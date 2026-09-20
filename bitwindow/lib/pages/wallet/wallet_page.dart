@@ -111,15 +111,25 @@ class WalletPage extends StatelessWidget {
   }
 
   static const String consolidateSubtabLabel = 'Consolidate';
+  static const String soloMiningSubtabLabel = 'Solo Mining';
 
   static void setSubtab(int index) {
     tabKey.currentState?.setIndex(index, null);
   }
 
-  /// Opens a tab by label, including an item inside a multi-select tab.
+  /// The tab a caller asked for before the page mounted. The next build opens
+  /// it.
+  static String? _pendingSubtab;
+
+  @visibleForTesting
+  static String? get pendingSubtab => _pendingSubtab;
+
+  /// Opens a tab by label, including an item inside a multi-select tab. A page
+  /// that is not on screen yet opens the tab as it arrives.
   static void openSubtab(String label) {
     final state = tabKey.currentState;
     if (state == null) {
+      _pendingSubtab = label;
       return;
     }
     final found = walletTabIndexForLabel(state.widget.tabs, label);
@@ -131,6 +141,10 @@ class WalletPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_pendingSubtab case final label?) {
+      _pendingSubtab = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => openSubtab(label));
+    }
     return QtPage(
       child: ViewModelBuilder<WalletPageViewModel>.reactive(
         viewModelBuilder: () => WalletPageViewModel(),
@@ -215,7 +229,7 @@ class WalletPage extends StatelessWidget {
                     ),
                     if (GetIt.I.get<BitcoinConfProvider>().network == BitcoinNetwork.BITCOIN_NETWORK_ECASH)
                       TabItem(
-                        label: 'Solo Mining',
+                        label: soloMiningSubtabLabel,
                         child: const SoloMiningTab(),
                       ),
                   ],

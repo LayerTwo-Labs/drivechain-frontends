@@ -13,12 +13,6 @@ service BitwindowdService {
   // running (only bitwindowd dies).
   rpc Stop(BitwindowdServiceStopRequest) returns (google.protobuf.Empty);
 
-  // CPU mining, eCash only. Start/Stop control a backend-owned miner that
-  // keeps running independent of any client; GetMiningStatus polls its stats.
-  rpc StartMining(google.protobuf.Empty) returns (google.protobuf.Empty);
-  rpc StopMining(google.protobuf.Empty) returns (google.protobuf.Empty);
-  rpc GetMiningStatus(google.protobuf.Empty) returns (GetMiningStatusResponse);
-
   // Deniability operations
   rpc CreateDenial(CreateDenialRequest) returns (google.protobuf.Empty);
   rpc CancelDenial(CancelDenialRequest) returns (google.protobuf.Empty);
@@ -277,19 +271,6 @@ message Block {
 message ListBlocksResponse {
   repeated Block recent_blocks = 4;
   bool has_more = 5; // Whether there are more blocks available
-}
-
-message GetMiningStatusResponse {
-  bool mining = 1;
-  // Hashes per second, averaged since the miner started.
-  double hash_rate = 2;
-  int32 blocks_found = 3;
-  // Block hashes found this session, newest first.
-  repeated string recent_block_hashes = 4;
-  // Why the miner last stopped on its own (e.g. the node is still syncing),
-  // empty when it stopped cleanly. StartMining returns before work is fetched,
-  // so this is where a startup failure surfaces.
-  string error = 5;
 }
 
 message GetNetworkStatsResponse {

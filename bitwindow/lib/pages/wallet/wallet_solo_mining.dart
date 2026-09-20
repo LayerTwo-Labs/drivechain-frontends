@@ -1,3 +1,4 @@
+import 'package:bitwindow/dialogs/mining_settings_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -12,6 +13,12 @@ const _poolKeyPrefix = 'pool:';
 const _soloDescription = 'Your node builds each block. A block that you find pays the full reward to you.';
 const _poolDescription = 'The pool splits each block among its miners. You get smaller payouts more often.';
 const _customDescription = 'Send the work to a Stratum pool that you type in.';
+
+const _ranges = [
+  (HashrateRange.HASHRATE_RANGE_HOUR, '1 h'),
+  (HashrateRange.HASHRATE_RANGE_DAY, '24 h'),
+  (HashrateRange.HASHRATE_RANGE_WEEK, '7 d'),
+];
 
 /// The dropdown key of a target the backend holds.
 String targetKey(Target target) {
@@ -33,11 +40,22 @@ String blockStatus(int confirmations) {
   return 'Immature · $confirmations of 100';
 }
 
-String truncateMiddle(String value, {int keep = 8}) {
-  if (value.length <= keep * 2 + 1) {
-    return value;
+/// chartLabels writes the time under the plot, oldest first.
+List<String> chartLabels(List<HashratePoint> points, HashrateRange range) {
+  if (points.isEmpty) {
+    return const [];
   }
-  return '${value.substring(0, keep)}…${value.substring(value.length - keep)}';
+  String two(int n) => n.toString().padLeft(2, '0');
+  String label(HashratePoint point) {
+    final at = point.time.toDateTime().toLocal();
+    if (range == HashrateRange.HASHRATE_RANGE_WEEK) {
+      return '${two(at.day)}.${two(at.month)}';
+    }
+    return '${two(at.hour)}:${two(at.minute)}';
+  }
+
+  final steps = [0, points.length ~/ 4, points.length ~/ 2, points.length * 3 ~/ 4, points.length - 1];
+  return [for (final i in steps) label(points[i])];
 }
 
 class SoloMiningTab extends StatefulWidget {
@@ -49,9 +67,7 @@ class SoloMiningTab extends StatefulWidget {
 
 class _SoloMiningTabState extends State<SoloMiningTab> {
   late final StratumProvider _stratum = GetIt.I.get<StratumProvider>();
-  late final MiningProvider _cpu = GetIt.I.get<MiningProvider>();
 
-  final _port = TextEditingController(text: '3333');
   final _poolUrl = TextEditingController();
   final _worker = TextEditingController();
   final _password = TextEditingController(text: 'x');
@@ -62,16 +78,12 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
   void initState() {
     super.initState();
     _stratum.addListener(_onChange);
-    _cpu.addListener(_onChange);
-    _cpu.refreshStatus();
     _showSavedCustom();
   }
 
   @override
   void dispose() {
     _stratum.removeListener(_onChange);
-    _cpu.removeListener(_onChange);
-    _port.dispose();
     _poolUrl.dispose();
     _worker.dispose();
     _password.dispose();
@@ -140,16 +152,11 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
   }
 
   Future<void> _start() async {
-    final port = int.tryParse(_port.text.trim());
-    if (port == null || port < 1 || port > 65535) {
-      showSailToast(context, 'The port must be a number from 1 to 65535');
-      return;
-    }
     await _run('Could not start the stratum server', () async {
       if (_currentKey == _customKey) {
         await _stratum.setTarget(_customTarget());
       }
-      await _stratum.start(port);
+      await _stratum.start(_stratum.status.settings.port);
     });
   }
 
@@ -241,6 +248,12 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
                         onPressed: () async => _run('Could not stop the stratum server', _stratum.stop),
                       )
                     : SailButton(label: 'Start', onPressed: () async => _start()),
+                SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.tabSettings,
+                  onPressed: () async =>
+                      showThemedDialog(context: context, builder: (context) => const MiningSettingsDialog()),
+                ),
               ],
             ),
             child: SailColumn(
@@ -269,7 +282,7 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
                   ],
                 ),
                 if (!status.running)
-                  _stoppedFields(status, key)
+                  _stoppedFields(status)
                 else if (key == _customKey && status.target.kind != TargetKind.TARGET_KIND_CUSTOM)
                   SailColumn(
                     spacing: SailStyleValues.padding12,
@@ -280,11 +293,12 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
                     ],
                   )
                 else
-                  _connectPanel(status, solo),
+                  _connectPanel(status),
               ],
             ),
           ),
           _statTiles(status, solo),
+          if (status.running) _hashrateCard(),
           SailCard(
             title: 'Miners',
             child: SailTable(
@@ -307,32 +321,14 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
               rowBuilder: (context, row, selected) => _minerRow(status.miners[row]),
             ),
           ),
-          if (solo)
-            SailCard(
-              title: 'Blocks found',
-              child: SailTable(
-                shrinkWrap: true,
-                getRowId: (i) => status.blocksFound[i].hash,
-                emptyPlaceholder: 'No block found',
-                headerBuilder: (context) => const [
-                  SailTableHeaderCell(name: 'Height'),
-                  SailTableHeaderCell(name: 'Block hash'),
-                  SailTableHeaderCell(name: 'Reward'),
-                  SailTableHeaderCell(name: 'Found by'),
-                  SailTableHeaderCell(name: 'Time'),
-                  SailTableHeaderCell(name: 'Status'),
-                ],
-                rowCount: status.blocksFound.length,
-                rowBuilder: (context, row, selected) => _blockRow(status.blocksFound[row]),
-              ),
-            ),
-          _cpuCard(),
+          _sharesCard(status),
+          if (solo) _blocksCard(status) else _poolBlocksCard(),
         ],
       ),
     );
   }
 
-  Widget _connectPanel(GetStratumStatusResponse status, bool solo) {
+  Widget _connectPanel(GetStratumStatusResponse status) {
     final theme = SailTheme.of(context);
     return Container(
       width: double.infinity,
@@ -349,27 +345,40 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
             'Pool address',
             status.poolUrl.isEmpty ? '—' : status.poolUrl,
             copy: status.poolUrl.isEmpty ? null : status.poolUrl,
+            info: poolAddressInfo,
           ),
           _field('Worker', 'Any name'),
           _field('Password', 'x', copy: 'x'),
-          switch (status.target.kind) {
-            TargetKind.TARGET_KIND_POOL => _field(
-              'Payout address',
-              status.payoutAddress.isEmpty ? '—' : status.payoutAddress,
-            ),
-            TargetKind.TARGET_KIND_CUSTOM => _field('Pool worker', status.target.worker),
-            _ => _field('Block reward to', 'Enforcer wallet'),
-          },
+          if (status.target.kind == TargetKind.TARGET_KIND_CUSTOM) _field('Pool worker', status.target.worker),
+          _payoutField(status),
         ],
       ),
     );
   }
 
-  Widget _field(String label, String value, {String? copy}) {
+  /// A custom pool pays whatever its own worker name earns, so this address
+  /// says nothing there.
+  Widget _payoutField(GetStratumStatusResponse status) {
+    if (_currentKey == _customKey) {
+      return const SizedBox.shrink();
+    }
+    return _field('Payout address', status.payoutAddress.isEmpty ? '—' : status.payoutAddress);
+  }
+
+  Widget _field(String label, String value, {String? copy, String? info}) {
     return SailRow(
       spacing: SailStyleValues.padding12,
       children: [
-        SizedBox(width: 140, child: SailText.secondary13(label)),
+        SizedBox(
+          width: 170,
+          child: SailRow(
+            spacing: SailStyleValues.padding04,
+            children: [
+              Flexible(child: SailText.secondary13(label)),
+              if (info != null) SailInfoIcon(title: label, message: info),
+            ],
+          ),
+        ),
         Flexible(child: SailText.primary13(value, monospace: copy != null)),
         if (copy != null)
           SailButton(
@@ -381,28 +390,15 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
     );
   }
 
-  Widget _stoppedFields(GetStratumStatusResponse status, String key) {
-    final port = SizedBox(
-      width: 160,
-      child: SailTextField(controller: _port, label: 'Port', hintText: '3333', textFieldType: TextFieldType.number),
-    );
-    if (key == _customKey) {
+  Widget _stoppedFields(GetStratumStatusResponse status) {
+    if (_currentKey == _customKey) {
       return SailColumn(
         spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [port, ..._customFields()],
+        children: [..._customFields(), _payoutField(status)],
       );
     }
-    return SailColumn(
-      spacing: SailStyleValues.padding12,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        port,
-        key == _soloKey
-            ? _field('Block reward to', 'Enforcer wallet')
-            : _field('Payout address', status.payoutAddress.isEmpty ? '—' : status.payoutAddress),
-      ],
-    );
+    return _payoutField(status);
   }
 
   List<Widget> _customFields() {
@@ -431,12 +427,20 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
         value: formatHashrate(status.hashrate),
         subtitle: '$miners ${miners == 1 ? 'miner' : 'miners'}',
         icon: SailSVGAsset.barChartBig,
+        info: hashrateInfo(
+          hashrate: status.hashrate,
+          networkHashrate: status.networkHashrate,
+          networkDifficulty: status.networkDifficulty,
+          formattedHashrate: formatHashrate(status.hashrate),
+          formattedNetwork: formatHashrate(status.networkHashrate),
+        ),
       ),
       SailCardStats(
         title: 'Best share',
         value: formatDifficulty(status.bestShare),
-        subtitle: 'network difficulty ${formatDifficulty(status.networkDifficulty)}',
+        subtitle: 'of ${formatDifficulty(status.networkDifficulty)} needed for a block',
         icon: SailSVGAsset.scatterChart,
+        info: bestShareInfo(bestShare: status.bestShare, networkDifficulty: status.networkDifficulty),
       ),
       if (solo) ...[
         SailCardStats(
@@ -444,12 +448,14 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
           value: '${status.blocksFound.length}',
           subtitle: 'since the server started',
           icon: SailSVGAsset.boxes,
+          info: blocksFoundInfo,
         ),
         SailCardStats(
           title: 'Expected time to a block',
           value: expected == null ? '—' : formatLongDuration(expected),
           subtitle: 'at the current hashrate',
           icon: SailSVGAsset.hourglass,
+          info: expectedTimeInfo,
         ),
       ] else ...[
         SailCardStats(
@@ -457,6 +463,7 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
           value: '${status.acceptedShares}',
           subtitle: '${status.rejectedShares} rejected',
           icon: SailSVGAsset.iconCheck,
+          info: recentSharesInfo,
         ),
         SailCardStats(
           title: 'Pool',
@@ -470,6 +477,143 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
       spacing: SailStyleValues.padding16,
       children: [for (final tile in tiles) Expanded(child: tile)],
     );
+  }
+
+  Widget _hashrateCard() {
+    final history = _stratum.history;
+    return SailCard(
+      title: 'Hashrate',
+      widgetHeaderEnd: SailToggleGroup<HashrateRange>(
+        singleChoice: true,
+        values: [_stratum.range],
+        items: [for (final (range, label) in _ranges) SailToggleGroupItem(value: range, label: label)],
+        onChanged: (values) {
+          if (values.isNotEmpty) {
+            _run('Could not read the hashrate chart', () => _stratum.setRange(values.first));
+          }
+        },
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SailAreaChart(
+            points: [
+              for (final point in history.points)
+                SailChartPoint(at: point.time.toDateTime().toLocal(), value: point.hashrate),
+            ],
+            labels: chartLabels(history.points, _stratum.range),
+          ),
+          SailText.secondary12(
+            'peak ${formatHashrate(history.peak)}  ·  now ${formatHashrate(history.current)}',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sharesCard(GetStratumStatusResponse status) {
+    return SailCard(
+      title: 'Recent shares',
+      titleTooltip: recentSharesInfo,
+      widgetHeaderEnd: SailText.secondary12(
+        'last ${status.recentShares.length} · a block needs ${formatDifficulty(status.networkDifficulty)}',
+      ),
+      child: SailTable(
+        shrinkWrap: true,
+        getRowId: (i) => '${status.recentShares[i].hash}/$i',
+        emptyPlaceholder: 'No share yet',
+        headerBuilder: (context) => const [
+          SailTableHeaderCell(name: 'When'),
+          SailTableHeaderCell(name: 'Worker'),
+          SailTableHeaderCell(name: 'Target'),
+          SailTableHeaderCell(name: 'Actual'),
+          SailTableHeaderCell(name: 'Share hash'),
+        ],
+        rowCount: status.recentShares.length,
+        rowBuilder: (context, row, selected) => _shareRow(status.recentShares[row]),
+      ),
+    );
+  }
+
+  List<Widget> _shareRow(AcceptedShare share) {
+    return [
+      SailTableCell(value: formatAgo(share.time.toDateTime(), DateTime.now())),
+      SailTableCell(value: share.worker),
+      SailTableCell(value: formatDifficulty(share.target)),
+      SailTableCell(value: formatDifficulty(share.actual)),
+      SailTableCell(value: share.block ? '${share.hash} · block' : share.hash, copyValue: share.hash),
+    ];
+  }
+
+  Widget _blocksCard(GetStratumStatusResponse status) {
+    return SailCard(
+      title: 'Blocks found',
+      child: SailTable(
+        shrinkWrap: true,
+        getRowId: (i) => status.blocksFound[i].hash,
+        emptyPlaceholder: 'No block found',
+        headerBuilder: (context) => const [
+          SailTableHeaderCell(name: 'Height'),
+          SailTableHeaderCell(name: 'Block hash'),
+          SailTableHeaderCell(name: 'Reward'),
+          SailTableHeaderCell(name: 'Found by'),
+          SailTableHeaderCell(name: 'Time'),
+          SailTableHeaderCell(name: 'Status'),
+        ],
+        rowCount: status.blocksFound.length,
+        rowBuilder: (context, row, selected) => _blockRow(status.blocksFound[row]),
+      ),
+    );
+  }
+
+  List<Widget> _blockRow(FoundBlock block) {
+    final formatter = GetIt.I.get<FormatterProvider>();
+    return [
+      SailTableCell(value: '${block.height}'),
+      SailTableCell(value: truncateMiddle(block.hash), copyValue: block.hash, monospace: true),
+      SailTableCell(value: formatter.formatSats(block.rewardSats.toInt())),
+      SailTableCell(value: block.worker),
+      SailTableCell(value: formatAgo(block.foundTime.toDateTime(), DateTime.now())),
+      SailTableCell(value: block.hasConfirmations() ? blockStatus(block.confirmations) : '—'),
+    ];
+  }
+
+  Widget _poolBlocksCard() {
+    final blocks = _stratum.poolBlocks;
+    return SailCard(
+      title: 'Blocks the pool found',
+      subtitle: blocks.unavailable.isEmpty ? null : blocks.unavailable,
+      child: SailTable(
+        shrinkWrap: true,
+        getRowId: (i) => blocks.blocks[i].hash,
+        emptyPlaceholder: blocks.unavailable.isEmpty ? 'No block found' : blocks.unavailable,
+        headerBuilder: (context) => const [
+          SailTableHeaderCell(name: 'Height'),
+          SailTableHeaderCell(name: 'Block hash'),
+          SailTableHeaderCell(name: 'Pool reward'),
+          SailTableHeaderCell(name: 'Found by'),
+          SailTableHeaderCell(name: 'My payout'),
+          SailTableHeaderCell(name: 'Time'),
+          SailTableHeaderCell(name: 'Status'),
+        ],
+        rowCount: blocks.blocks.length,
+        rowBuilder: (context, row, selected) => _poolBlockRow(blocks.blocks[row]),
+      ),
+    );
+  }
+
+  List<Widget> _poolBlockRow(PoolBlock block) {
+    final formatter = GetIt.I.get<FormatterProvider>();
+    return [
+      SailTableCell(value: '${block.height}'),
+      SailTableCell(value: truncateMiddle(block.hash), copyValue: block.hash, monospace: true),
+      SailTableCell(value: formatter.formatSats(block.rewardSats.toInt())),
+      SailTableCell(value: block.mine ? '${block.finder} (you)' : block.finder),
+      SailTableCell(value: block.hasMyPayoutSats() ? formatter.formatSats(block.myPayoutSats.toInt()) : '—'),
+      SailTableCell(value: block.hasFoundTime() ? formatAgo(block.foundTime.toDateTime(), DateTime.now()) : '—'),
+      SailTableCell(value: block.hasConfirmations() ? blockStatus(block.confirmations) : '—'),
+    ];
   }
 
   List<Widget> _minerRow(ConnectedMiner miner) {
@@ -516,36 +660,5 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
       WorkMode.WORK_MODE_HIGH => 'High',
       _ => '—',
     };
-  }
-
-  List<Widget> _blockRow(FoundBlock block) {
-    final formatter = GetIt.I.get<FormatterProvider>();
-    return [
-      SailTableCell(value: '${block.height}'),
-      SailTableCell(value: truncateMiddle(block.hash), copyValue: block.hash, monospace: true),
-      SailTableCell(value: formatter.formatSats(block.rewardSats.toInt())),
-      SailTableCell(value: block.worker),
-      SailTableCell(value: formatAgo(block.foundTime.toDateTime(), DateTime.now())),
-      SailTableCell(value: block.hasConfirmations() ? blockStatus(block.confirmations) : '—'),
-    ];
-  }
-
-  Widget _cpuCard() {
-    final running = _cpu.isMining;
-    return SailCard(
-      title: 'CPU miner',
-      subtitle: 'Mine blocks on eCash with your own CPU',
-      error: _cpu.error,
-      widgetHeaderEnd: SailRow(
-        spacing: SailStyleValues.padding12,
-        children: [
-          SailBadge(running ? 'Running' : 'Stopped', tone: running ? SailBadgeTone.success : SailBadgeTone.neutral),
-          running
-              ? SailButton(label: 'Stop', variant: ButtonVariant.outline, onPressed: () async => _cpu.stopMining())
-              : SailButton(label: 'Start', onPressed: () async => _cpu.startMining()),
-        ],
-      ),
-      child: running ? SailText.secondary13(_cpu.formattedHashRate) : const SizedBox.shrink(),
-    );
   }
 }

@@ -116,4 +116,59 @@ extension type StratumServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// SetMiningSettings changes the fields it carries and leaves the rest. The
+  /// hasher on this computer starts the server first when the server is stopped.
+  Future<stratumv1stratum.SetMiningSettingsResponse> setMiningSettings(
+    stratumv1stratum.SetMiningSettingsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.StratumService.setMiningSettings,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// GetHashrateHistory returns the hashrate of all miners together over a range.
+  Future<stratumv1stratum.GetHashrateHistoryResponse> getHashrateHistory(
+    stratumv1stratum.GetHashrateHistoryRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.StratumService.getHashrateHistory,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// ListPoolBlocks returns the blocks the upstream pool found, newest first.
+  Future<stratumv1stratum.ListPoolBlocksResponse> listPoolBlocks(
+    stratumv1stratum.ListPoolBlocksRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.StratumService.listPoolBlocks,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

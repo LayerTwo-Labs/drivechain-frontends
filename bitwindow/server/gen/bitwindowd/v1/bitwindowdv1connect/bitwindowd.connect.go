@@ -36,15 +36,6 @@ const (
 const (
 	// BitwindowdServiceStopProcedure is the fully-qualified name of the BitwindowdService's Stop RPC.
 	BitwindowdServiceStopProcedure = "/bitwindowd.v1.BitwindowdService/Stop"
-	// BitwindowdServiceStartMiningProcedure is the fully-qualified name of the BitwindowdService's
-	// StartMining RPC.
-	BitwindowdServiceStartMiningProcedure = "/bitwindowd.v1.BitwindowdService/StartMining"
-	// BitwindowdServiceStopMiningProcedure is the fully-qualified name of the BitwindowdService's
-	// StopMining RPC.
-	BitwindowdServiceStopMiningProcedure = "/bitwindowd.v1.BitwindowdService/StopMining"
-	// BitwindowdServiceGetMiningStatusProcedure is the fully-qualified name of the BitwindowdService's
-	// GetMiningStatus RPC.
-	BitwindowdServiceGetMiningStatusProcedure = "/bitwindowd.v1.BitwindowdService/GetMiningStatus"
 	// BitwindowdServiceCreateDenialProcedure is the fully-qualified name of the BitwindowdService's
 	// CreateDenial RPC.
 	BitwindowdServiceCreateDenialProcedure = "/bitwindowd.v1.BitwindowdService/CreateDenial"
@@ -106,11 +97,6 @@ type BitwindowdServiceClient interface {
 	// immediately. Pass skip_downstream=true to leave the orchestratord stack
 	// running (only bitwindowd dies).
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	// CPU mining, eCash only. Start/Stop control a backend-owned miner that
-	// keeps running independent of any client; GetMiningStatus polls its stats.
-	StartMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	StopMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	GetMiningStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMiningStatusResponse], error)
 	// Deniability operations
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
 	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
@@ -161,24 +147,6 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			httpClient,
 			baseURL+BitwindowdServiceStopProcedure,
 			connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		startMining: connect.NewClient[emptypb.Empty, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceStartMiningProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("StartMining")),
-			connect.WithClientOptions(opts...),
-		),
-		stopMining: connect.NewClient[emptypb.Empty, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceStopMiningProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("StopMining")),
-			connect.WithClientOptions(opts...),
-		),
-		getMiningStatus: connect.NewClient[emptypb.Empty, v1.GetMiningStatusResponse](
-			httpClient,
-			baseURL+BitwindowdServiceGetMiningStatusProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("GetMiningStatus")),
 			connect.WithClientOptions(opts...),
 		),
 		createDenial: connect.NewClient[v1.CreateDenialRequest, emptypb.Empty](
@@ -289,9 +257,6 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 // bitwindowdServiceClient implements BitwindowdServiceClient.
 type bitwindowdServiceClient struct {
 	stop                   *connect.Client[v1.BitwindowdServiceStopRequest, emptypb.Empty]
-	startMining            *connect.Client[emptypb.Empty, emptypb.Empty]
-	stopMining             *connect.Client[emptypb.Empty, emptypb.Empty]
-	getMiningStatus        *connect.Client[emptypb.Empty, v1.GetMiningStatusResponse]
 	createDenial           *connect.Client[v1.CreateDenialRequest, emptypb.Empty]
 	cancelDenial           *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
 	pauseDenial            *connect.Client[v1.PauseDenialRequest, emptypb.Empty]
@@ -314,21 +279,6 @@ type bitwindowdServiceClient struct {
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
 func (c *bitwindowdServiceClient) Stop(ctx context.Context, req *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
 	return c.stop.CallUnary(ctx, req)
-}
-
-// StartMining calls bitwindowd.v1.BitwindowdService.StartMining.
-func (c *bitwindowdServiceClient) StartMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return c.startMining.CallUnary(ctx, req)
-}
-
-// StopMining calls bitwindowd.v1.BitwindowdService.StopMining.
-func (c *bitwindowdServiceClient) StopMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return c.stopMining.CallUnary(ctx, req)
-}
-
-// GetMiningStatus calls bitwindowd.v1.BitwindowdService.GetMiningStatus.
-func (c *bitwindowdServiceClient) GetMiningStatus(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMiningStatusResponse], error) {
-	return c.getMiningStatus.CallUnary(ctx, req)
 }
 
 // CreateDenial calls bitwindowd.v1.BitwindowdService.CreateDenial.
@@ -424,11 +374,6 @@ type BitwindowdServiceHandler interface {
 	// immediately. Pass skip_downstream=true to leave the orchestratord stack
 	// running (only bitwindowd dies).
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	// CPU mining, eCash only. Start/Stop control a backend-owned miner that
-	// keeps running independent of any client; GetMiningStatus polls its stats.
-	StartMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	StopMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	GetMiningStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMiningStatusResponse], error)
 	// Deniability operations
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
 	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
@@ -475,24 +420,6 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		BitwindowdServiceStopProcedure,
 		svc.Stop,
 		connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceStartMiningHandler := connect.NewUnaryHandler(
-		BitwindowdServiceStartMiningProcedure,
-		svc.StartMining,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("StartMining")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceStopMiningHandler := connect.NewUnaryHandler(
-		BitwindowdServiceStopMiningProcedure,
-		svc.StopMining,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("StopMining")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceGetMiningStatusHandler := connect.NewUnaryHandler(
-		BitwindowdServiceGetMiningStatusProcedure,
-		svc.GetMiningStatus,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("GetMiningStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitwindowdServiceCreateDenialHandler := connect.NewUnaryHandler(
@@ -601,12 +528,6 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
 			bitwindowdServiceStopHandler.ServeHTTP(w, r)
-		case BitwindowdServiceStartMiningProcedure:
-			bitwindowdServiceStartMiningHandler.ServeHTTP(w, r)
-		case BitwindowdServiceStopMiningProcedure:
-			bitwindowdServiceStopMiningHandler.ServeHTTP(w, r)
-		case BitwindowdServiceGetMiningStatusProcedure:
-			bitwindowdServiceGetMiningStatusHandler.ServeHTTP(w, r)
 		case BitwindowdServiceCreateDenialProcedure:
 			bitwindowdServiceCreateDenialHandler.ServeHTTP(w, r)
 		case BitwindowdServiceCancelDenialProcedure:
@@ -652,18 +573,6 @@ type UnimplementedBitwindowdServiceHandler struct{}
 
 func (UnimplementedBitwindowdServiceHandler) Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.Stop is not implemented"))
-}
-
-func (UnimplementedBitwindowdServiceHandler) StartMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.StartMining is not implemented"))
-}
-
-func (UnimplementedBitwindowdServiceHandler) StopMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.StopMining is not implemented"))
-}
-
-func (UnimplementedBitwindowdServiceHandler) GetMiningStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMiningStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetMiningStatus is not implemented"))
 }
 
 func (UnimplementedBitwindowdServiceHandler) CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error) {

@@ -58,4 +58,29 @@ abstract final class StratumService {
     stratumv1stratum.SetWorkModeRequest.new,
     stratumv1stratum.SetWorkModeResponse.new,
   );
+
+  /// SetMiningSettings changes the fields it carries and leaves the rest. The
+  /// hasher on this computer starts the server first when the server is stopped.
+  static const setMiningSettings = connect.Spec(
+    '/$name/SetMiningSettings',
+    connect.StreamType.unary,
+    stratumv1stratum.SetMiningSettingsRequest.new,
+    stratumv1stratum.SetMiningSettingsResponse.new,
+  );
+
+  /// GetHashrateHistory returns the hashrate of all miners together over a range.
+  static const getHashrateHistory = connect.Spec(
+    '/$name/GetHashrateHistory',
+    connect.StreamType.unary,
+    stratumv1stratum.GetHashrateHistoryRequest.new,
+    stratumv1stratum.GetHashrateHistoryResponse.new,
+  );
+
+  /// ListPoolBlocks returns the blocks the upstream pool found, newest first.
+  static const listPoolBlocks = connect.Spec(
+    '/$name/ListPoolBlocks',
+    connect.StreamType.unary,
+    stratumv1stratum.ListPoolBlocksRequest.new,
+    stratumv1stratum.ListPoolBlocksResponse.new,
+  );
 }

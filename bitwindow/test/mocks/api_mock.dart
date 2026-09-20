@@ -168,15 +168,6 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<void> updateNetwork(String network, {String dataDir = '', String networkId = ''}) async {}
 
   @override
-  Future<void> startMining() async {}
-
-  @override
-  Future<void> stopMining() async {}
-
-  @override
-  Future<GetMiningStatusResponse> getMiningStatus() async => GetMiningStatusResponse();
-
-  @override
   Future<void> pauseDenial(Int64 id) {
     return Future.value();
   }

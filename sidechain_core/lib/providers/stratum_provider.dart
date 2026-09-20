@@ -19,6 +19,13 @@ class StratumProvider extends ChangeNotifier {
   GetStratumStatusResponse status = GetStratumStatusResponse();
   List<CatalogPool> pools = [];
 
+  /// The hashrate chart of [range], read with the status.
+  GetHashrateHistoryResponse history = GetHashrateHistoryResponse();
+  HashrateRange range = HashrateRange.HASHRATE_RANGE_DAY;
+
+  /// The blocks the upstream pool found. Empty for a solo target.
+  ListPoolBlocksResponse poolBlocks = ListPoolBlocksResponse();
+
   /// Why the last read of the status failed. Null after a read that worked.
   String? error;
 
@@ -42,6 +49,10 @@ class StratumProvider extends ChangeNotifier {
     try {
       final next = await _rpc.status();
       final nextPools = await _rpc.listPools();
+      history = await _rpc.hashrateHistory(range);
+      poolBlocks = next.target.kind == TargetKind.TARGET_KIND_SOLO
+          ? ListPoolBlocksResponse()
+          : await _rpc.listPoolBlocks();
       for (final block in next.blocksFound.reversed) {
         if (_announced.add(block.hash)) {
           onBlockFound?.call(block);
@@ -87,6 +98,21 @@ class StratumProvider extends ChangeNotifier {
 
   Future<void> setWorkMode(String address, WorkMode mode) async {
     await _rpc.setWorkMode(address, mode);
+    await refresh();
+  }
+
+  Future<void> setRange(HashrateRange next) async {
+    range = next;
+    await refresh();
+  }
+
+  Future<void> setMiningSettings({int? port, bool? cpuMining, int? cpuThreads, bool? keepMiningOnClose}) async {
+    await _rpc.setMiningSettings(
+      port: port,
+      cpuMining: cpuMining,
+      cpuThreads: cpuThreads,
+      keepMiningOnClose: keepMiningOnClose,
+    );
     await refresh();
   }
 

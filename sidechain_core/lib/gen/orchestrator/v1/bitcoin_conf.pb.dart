@@ -237,7 +237,7 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   void clearIsDemoMode() => clearField(8);
 
-  /// RPC creds — exposed so localhost callers (cpuminer, future tools) that
+  /// RPC creds — exposed so localhost callers (the btc-buf proxy, future tools) that
   /// need raw bitcoind JSON-RPC can dial it without re-parsing config_content.
   /// Prefer the hosted BitcoinService proxy when possible.
   @$pb.TagNumber(9)

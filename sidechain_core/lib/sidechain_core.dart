@@ -150,7 +150,7 @@ export 'providers/enforcer_conf_provider.dart';
 export 'providers/balance_provider.dart';
 export 'providers/hwi_provider.dart';
 export 'providers/formatter_provider.dart';
-export 'providers/mining_provider.dart';
+export 'providers/mining_words.dart';
 export 'providers/stratum_provider.dart';
 export 'providers/generic_sidechain_conf_provider.dart';
 export 'providers/backend_sidechain_conf_provider.dart';

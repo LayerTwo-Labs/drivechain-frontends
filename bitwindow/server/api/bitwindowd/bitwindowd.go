@@ -4,12 +4,9 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,7 +16,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/cpuminer"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
@@ -85,20 +81,6 @@ type Server struct {
 	// hash too, so same-height reorgs invalidate.
 	listBlocksCache sync.Map // listBlocksCacheKey -> *listBlocksCacheEntry
 	listBlocksTip   atomic.Pointer[blocksTip]
-
-	mining miningController
-}
-
-// miningController owns the backend CPU miner so mining survives independent of
-// any client. Guarded by mu; a nil miner means stopped.
-type miningController struct {
-	mu      sync.Mutex
-	miner   *cpuminer.Miner
-	cancel  context.CancelFunc
-	done    chan struct{} // closed when the miner goroutine has fully exited
-	started time.Time
-	blocks  []string
-	lastErr string // why the miner last stopped on its own, "" if cleanly
 }
 
 type listBlocksCacheKey struct {
@@ -160,10 +142,6 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 	if !isKnownNetwork(network) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network: %q", req.Msg.Network))
 	}
-
-	// Stop the eCash miner before switching away: the recycle builds a fresh
-	// server that would otherwise have no handle to stop it.
-	s.stopMiner()
 
 	confClient := orchrpc.NewBitcoinConfServiceClient(
 		http.DefaultClient,
@@ -1124,150 +1102,6 @@ walkBlocks:
 	return connect.NewResponse(&pb.ListRecentTransactionsResponse{
 		Transactions: transactions,
 	}), nil
-}
-
-// StartMining spins up the backend CPU miner on eCash, idempotently. The miner
-// runs on a detached context and keeps going after this call returns.
-func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	// Gate on the configured network rather than Core's reported chain: eCash
-	// reports "main" and so is indistinguishable from real mainnet there.
-	network := s.config.BitcoinCoreNetwork
-	if !config.IsMineableNetwork(network) {
-		return nil, connect.NewError(
-			connect.CodeFailedPrecondition,
-			fmt.Errorf("mining is only available on eCash, not %s", cmp.Or(string(network), "unknown network")),
-		)
-	}
-
-	s.mining.mu.Lock()
-	defer s.mining.mu.Unlock()
-	if s.mining.miner != nil {
-		return connect.NewResponse(&emptypb.Empty{}), nil
-	}
-
-	// Core gives templates only to the enforcer. The enforcer adds the
-	// BIP300/301 outputs and the payout to the coinbase.
-	miner, err := cpuminer.New(cpuminer.Config{
-		RpcURL:   "http://" + s.config.EnforcerJSONRPCAddr,
-		Routines: 1,
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create miner: %w", err))
-	}
-
-	logger, closeMinerLog := s.minerLogger(ctx)
-	minerCtx, cancel := context.WithCancel(logger.WithContext(context.Background()))
-	done := make(chan struct{})
-	s.mining.miner = miner
-	s.mining.cancel = cancel
-	s.mining.done = done
-	s.mining.started = time.Now()
-	s.mining.blocks = nil
-	s.mining.lastErr = ""
-
-	go s.consumeMinedBlocks(minerCtx, miner)
-	go func() {
-		defer closeMinerLog()
-		err := miner.Start(minerCtx)
-		// Also fires the block consumer's exit when Start returns on its own
-		// (an internal error), not just when StopMining cancels.
-		cancel()
-		fatal := err != nil && !errors.Is(err, context.Canceled)
-		s.mining.mu.Lock()
-		if s.mining.miner == miner {
-			s.mining.miner = nil
-			s.mining.cancel = nil
-			s.mining.done = nil
-			if fatal {
-				s.mining.lastErr = err.Error()
-			}
-		}
-		s.mining.mu.Unlock()
-		close(done)
-		if fatal {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("cpu miner stopped with error")
-			logger.Error().Err(err).Msg("cpu miner stopped with error")
-		}
-	}()
-
-	return connect.NewResponse(&emptypb.Empty{}), nil
-}
-
-// minerLogger returns the logger the miner runs with: its own debug-level
-// miner.log, since the miner's progress output sits below the server log level.
-// The returned closer must be called when the mining run ends.
-func (s *Server) minerLogger(ctx context.Context) (*zerolog.Logger, func()) {
-	serverLog := zerolog.Ctx(ctx)
-
-	path := filepath.Join(s.config.Datadir, "miner.log")
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		serverLog.Warn().Err(err).Str("path", path).Msg("could not open miner.log, logging to server log")
-		return serverLog, func() {}
-	}
-
-	writer := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-		w.Out = file
-		w.NoColor = true
-		w.TimeFormat = time.DateTime + ".000"
-	})
-	logger := zerolog.New(writer).Level(zerolog.DebugLevel).With().Timestamp().Logger()
-	serverLog.Info().Str("path", path).Msg("miner log enabled")
-	return &logger, func() { _ = file.Close() }
-}
-
-// consumeMinedBlocks records accepted block hashes until the miner is cancelled.
-func (s *Server) consumeMinedBlocks(ctx context.Context, miner *cpuminer.Miner) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case block := <-miner.AcceptedBlocks():
-			s.mining.mu.Lock()
-			if s.mining.miner == miner {
-				s.mining.blocks = append([]string{block.String()}, s.mining.blocks...)
-			}
-			s.mining.mu.Unlock()
-		}
-	}
-}
-
-// StopMining cancels the backend miner. Idempotent.
-func (s *Server) StopMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	s.stopMiner()
-	return connect.NewResponse(&emptypb.Empty{}), nil
-}
-
-// stopMiner cancels the miner and waits for its goroutine to exit, so a
-// following Start never overlaps a miner that is still hashing.
-func (s *Server) stopMiner() {
-	s.mining.mu.Lock()
-	cancel, done := s.mining.cancel, s.mining.done
-	s.mining.mu.Unlock()
-	if cancel == nil {
-		return
-	}
-	cancel()
-	<-done
-}
-
-// GetMiningStatus reports whether the miner is running plus its hash rate and
-// the blocks found this session, which survive a stop until mining restarts.
-func (s *Server) GetMiningStatus(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetMiningStatusResponse], error) {
-	s.mining.mu.Lock()
-	defer s.mining.mu.Unlock()
-	resp := &pb.GetMiningStatusResponse{
-		BlocksFound:       int32(len(s.mining.blocks)),
-		RecentBlockHashes: append([]string(nil), s.mining.blocks...),
-		Error:             s.mining.lastErr,
-	}
-	if s.mining.miner != nil {
-		resp.Mining = true
-		if elapsed := time.Since(s.mining.started).Seconds(); elapsed > 0 {
-			resp.HashRate = float64(s.mining.miner.GetHashes()) / elapsed
-		}
-	}
-	return connect.NewResponse(resp), nil
 }
 
 func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNetworkStatsResponse], error) {
