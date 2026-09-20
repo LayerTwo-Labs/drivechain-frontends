@@ -15,8 +15,8 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/empty.pb.dart' as $17;
-import '../../google/protobuf/timestamp.pb.dart' as $16;
+import '../../google/protobuf/empty.pb.dart' as $18;
+import '../../google/protobuf/timestamp.pb.dart' as $14;
 import '../../orchestrator/v1/orchestrator.pbenum.dart' as $3;
 import 'walletmanager.pbenum.dart';
 
@@ -546,6 +546,126 @@ class GetSidechainDepositTotalsResponse extends $pb.GeneratedMessage {
   $core.bool hasRecentSats() => $_has(1);
   @$pb.TagNumber(2)
   void clearRecentSats() => clearField(2);
+}
+
+/// A sidechain that starts no local binary still holds a slot, and the slot
+/// still holds a seed phrase. This derives that phrase on demand, so the user
+/// reads it and imports it into any wallet of that chain.
+class EnsureSidechainStarterRequest extends $pb.GeneratedMessage {
+  factory EnsureSidechainStarterRequest({
+    $core.int? slot,
+    $core.String? name,
+  }) {
+    final $result = create();
+    if (slot != null) {
+      $result.slot = slot;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    return $result;
+  }
+  EnsureSidechainStarterRequest._() : super();
+  factory EnsureSidechainStarterRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EnsureSidechainStarterRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EnsureSidechainStarterRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.OU3)
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EnsureSidechainStarterRequest clone() => EnsureSidechainStarterRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EnsureSidechainStarterRequest copyWith(void Function(EnsureSidechainStarterRequest) updates) => super.copyWith((message) => updates(message as EnsureSidechainStarterRequest)) as EnsureSidechainStarterRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EnsureSidechainStarterRequest create() => EnsureSidechainStarterRequest._();
+  EnsureSidechainStarterRequest createEmptyInstance() => create();
+  static $pb.PbList<EnsureSidechainStarterRequest> createRepeated() => $pb.PbList<EnsureSidechainStarterRequest>();
+  @$core.pragma('dart2js:noInline')
+  static EnsureSidechainStarterRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EnsureSidechainStarterRequest>(create);
+  static EnsureSidechainStarterRequest? _defaultInstance;
+
+  /// The BIP300 slot, 0 to 255.
+  @$pb.TagNumber(1)
+  $core.int get slot => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set slot($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSlot() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSlot() => clearField(1);
+
+  /// The display name to file the slot under.
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+}
+
+class EnsureSidechainStarterResponse extends $pb.GeneratedMessage {
+  factory EnsureSidechainStarterResponse({
+    $core.String? mnemonic,
+  }) {
+    final $result = create();
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    return $result;
+  }
+  EnsureSidechainStarterResponse._() : super();
+  factory EnsureSidechainStarterResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EnsureSidechainStarterResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EnsureSidechainStarterResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'mnemonic')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EnsureSidechainStarterResponse clone() => EnsureSidechainStarterResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EnsureSidechainStarterResponse copyWith(void Function(EnsureSidechainStarterResponse) updates) => super.copyWith((message) => updates(message as EnsureSidechainStarterResponse)) as EnsureSidechainStarterResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EnsureSidechainStarterResponse create() => EnsureSidechainStarterResponse._();
+  EnsureSidechainStarterResponse createEmptyInstance() => create();
+  static $pb.PbList<EnsureSidechainStarterResponse> createRepeated() => $pb.PbList<EnsureSidechainStarterResponse>();
+  @$core.pragma('dart2js:noInline')
+  static EnsureSidechainStarterResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EnsureSidechainStarterResponse>(create);
+  static EnsureSidechainStarterResponse? _defaultInstance;
+
+  /// The BIP39 seed phrase of the slot.
+  @$pb.TagNumber(1)
+  $core.String get mnemonic => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set mnemonic($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMnemonic() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMnemonic() => clearField(1);
 }
 
 class GetNodeModeRequest extends $pb.GeneratedMessage {
@@ -2319,7 +2439,7 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
     $core.String? displayName,
     $fixnum.Int64? confirmedSats,
     $fixnum.Int64? pendingSats,
-    $16.Timestamp? updatedAt,
+    $14.Timestamp? updatedAt,
   }) {
     final $result = create();
     if (binary != null) {
@@ -2348,7 +2468,7 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'displayName')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'pendingSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOM<$16.Timestamp>(5, _omitFieldNames ? '' : 'updatedAt', subBuilder: $16.Timestamp.create)
+    ..aOM<$14.Timestamp>(5, _omitFieldNames ? '' : 'updatedAt', subBuilder: $14.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -2410,15 +2530,15 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
   void clearPendingSats() => clearField(4);
 
   @$pb.TagNumber(5)
-  $16.Timestamp get updatedAt => $_getN(4);
+  $14.Timestamp get updatedAt => $_getN(4);
   @$pb.TagNumber(5)
-  set updatedAt($16.Timestamp v) { setField(5, v); }
+  set updatedAt($14.Timestamp v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasUpdatedAt() => $_has(4);
   @$pb.TagNumber(5)
   void clearUpdatedAt() => clearField(5);
   @$pb.TagNumber(5)
-  $16.Timestamp ensureUpdatedAt() => $_ensure(4);
+  $14.Timestamp ensureUpdatedAt() => $_ensure(4);
 }
 
 class BackupWalletSummary extends $pb.GeneratedMessage {
@@ -2502,7 +2622,7 @@ class BackupWalletSummary extends $pb.GeneratedMessage {
 class WalletBackup extends $pb.GeneratedMessage {
   factory WalletBackup({
     $core.String? backupId,
-    $16.Timestamp? createdAt,
+    $14.Timestamp? createdAt,
     $core.String? sourceName,
     $core.bool? encrypted,
     $core.bool? hasMetadata,
@@ -2551,7 +2671,7 @@ class WalletBackup extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletBackup', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'backupId')
-    ..aOM<$16.Timestamp>(2, _omitFieldNames ? '' : 'createdAt', subBuilder: $16.Timestamp.create)
+    ..aOM<$14.Timestamp>(2, _omitFieldNames ? '' : 'createdAt', subBuilder: $14.Timestamp.create)
     ..aOS(3, _omitFieldNames ? '' : 'sourceName')
     ..aOB(4, _omitFieldNames ? '' : 'encrypted')
     ..aOB(5, _omitFieldNames ? '' : 'hasMetadata')
@@ -2594,15 +2714,15 @@ class WalletBackup extends $pb.GeneratedMessage {
   void clearBackupId() => clearField(1);
 
   @$pb.TagNumber(2)
-  $16.Timestamp get createdAt => $_getN(1);
+  $14.Timestamp get createdAt => $_getN(1);
   @$pb.TagNumber(2)
-  set createdAt($16.Timestamp v) { setField(2, v); }
+  set createdAt($14.Timestamp v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasCreatedAt() => $_has(1);
   @$pb.TagNumber(2)
   void clearCreatedAt() => clearField(2);
   @$pb.TagNumber(2)
-  $16.Timestamp ensureCreatedAt() => $_ensure(1);
+  $14.Timestamp ensureCreatedAt() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $core.String get sourceName => $_getSZ(2);
@@ -8389,7 +8509,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.bool? spendable,
     $core.bool? solvable,
     $core.String? walletId,
-    $16.Timestamp? receivedAt,
+    $14.Timestamp? receivedAt,
     $core.String? derivationPath,
     $core.bool? splittable,
     $core.int? inputWeightUnits,
@@ -8454,7 +8574,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOB(8, _omitFieldNames ? '' : 'spendable')
     ..aOB(9, _omitFieldNames ? '' : 'solvable')
     ..aOS(10, _omitFieldNames ? '' : 'walletId')
-    ..aOM<$16.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $16.Timestamp.create)
+    ..aOM<$14.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $14.Timestamp.create)
     ..aOS(12, _omitFieldNames ? '' : 'derivationPath')
     ..aOB(13, _omitFieldNames ? '' : 'splittable')
     ..a<$core.int>(14, _omitFieldNames ? '' : 'inputWeightUnits', $pb.PbFieldType.O3)
@@ -8575,15 +8695,15 @@ class UnspentOutput extends $pb.GeneratedMessage {
   /// Wallet's first-seen mempool timestamp when available, otherwise the
   /// confirming block's time. Unset if neither is known.
   @$pb.TagNumber(11)
-  $16.Timestamp get receivedAt => $_getN(10);
+  $14.Timestamp get receivedAt => $_getN(10);
   @$pb.TagNumber(11)
-  set receivedAt($16.Timestamp v) { setField(11, v); }
+  set receivedAt($14.Timestamp v) { setField(11, v); }
   @$pb.TagNumber(11)
   $core.bool hasReceivedAt() => $_has(10);
   @$pb.TagNumber(11)
   void clearReceivedAt() => clearField(11);
   @$pb.TagNumber(11)
-  $16.Timestamp ensureReceivedAt() => $_ensure(10);
+  $14.Timestamp ensureReceivedAt() => $_ensure(10);
 
   /// BIP32 path of the address that owns this output. Empty when the backend
   /// cannot report one (Bitcoin Core bulk lists, the enforcer).
@@ -12467,6 +12587,9 @@ class WalletManagerServiceApi {
   $async.Future<GetNodeModeResponse> getNodeMode($pb.ClientContext? ctx, GetNodeModeRequest request) =>
     _client.invoke<GetNodeModeResponse>(ctx, 'WalletManagerService', 'GetNodeMode', request, GetNodeModeResponse())
   ;
+  $async.Future<EnsureSidechainStarterResponse> ensureSidechainStarter($pb.ClientContext? ctx, EnsureSidechainStarterRequest request) =>
+    _client.invoke<EnsureSidechainStarterResponse>(ctx, 'WalletManagerService', 'EnsureSidechainStarter', request, EnsureSidechainStarterResponse())
+  ;
   $async.Future<SetNodeModeResponse> setNodeMode($pb.ClientContext? ctx, SetNodeModeRequest request) =>
     _client.invoke<SetNodeModeResponse>(ctx, 'WalletManagerService', 'SetNodeMode', request, SetNodeModeResponse())
   ;
@@ -12554,8 +12677,8 @@ class WalletManagerServiceApi {
   $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
     _client.invoke<SendTransactionResponse>(ctx, 'WalletManagerService', 'SendTransaction', request, SendTransactionResponse())
   ;
-  $async.Future<$17.Empty> setFrozenCoins($pb.ClientContext? ctx, SetFrozenCoinsRequest request) =>
-    _client.invoke<$17.Empty>(ctx, 'WalletManagerService', 'SetFrozenCoins', request, $17.Empty())
+  $async.Future<$18.Empty> setFrozenCoins($pb.ClientContext? ctx, SetFrozenCoinsRequest request) =>
+    _client.invoke<$18.Empty>(ctx, 'WalletManagerService', 'SetFrozenCoins', request, $18.Empty())
   ;
   $async.Future<CreateDepositResponse> createDeposit($pb.ClientContext? ctx, CreateDepositRequest request) =>
     _client.invoke<CreateDepositResponse>(ctx, 'WalletManagerService', 'CreateDeposit', request, CreateDepositResponse())
@@ -12662,7 +12785,7 @@ class WalletManagerServiceApi {
   $async.Future<SetTorConfigResponse> setTorConfig($pb.ClientContext? ctx, SetTorConfigRequest request) =>
     _client.invoke<SetTorConfigResponse>(ctx, 'WalletManagerService', 'SetTorConfig', request, SetTorConfigResponse())
   ;
-  $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $17.Empty request) =>
+  $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $18.Empty request) =>
     _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())
   ;
 }

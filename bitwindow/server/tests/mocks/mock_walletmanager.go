@@ -343,6 +343,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) EnsureCoreWallets(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureCoreWallets", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).EnsureCoreWallets), arg0, arg1)
 }
 
+// EnsureSidechainStarter mocks base method.
+func (m *MockWalletManagerServiceClient) EnsureSidechainStarter(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EnsureSidechainStarterRequest]) (*connect.Response[walletmanagerv1.EnsureSidechainStarterResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureSidechainStarter", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EnsureSidechainStarterResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnsureSidechainStarter indicates an expected call of EnsureSidechainStarter.
+func (mr *MockWalletManagerServiceClientMockRecorder) EnsureSidechainStarter(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureSidechainStarter", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).EnsureSidechainStarter), arg0, arg1)
+}
+
 // EnumerateHardwareDevices mocks base method.
 func (m *MockWalletManagerServiceClient) EnumerateHardwareDevices(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EnumerateHardwareDevicesRequest]) (*connect.Response[walletmanagerv1.EnumerateHardwareDevicesResponse], error) {
 	m.ctrl.T.Helper()
@@ -1415,6 +1430,21 @@ func (m *MockWalletManagerServiceHandler) EnsureCoreWallets(arg0 context.Context
 func (mr *MockWalletManagerServiceHandlerMockRecorder) EnsureCoreWallets(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureCoreWallets", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).EnsureCoreWallets), arg0, arg1)
+}
+
+// EnsureSidechainStarter mocks base method.
+func (m *MockWalletManagerServiceHandler) EnsureSidechainStarter(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EnsureSidechainStarterRequest]) (*connect.Response[walletmanagerv1.EnsureSidechainStarterResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureSidechainStarter", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EnsureSidechainStarterResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnsureSidechainStarter indicates an expected call of EnsureSidechainStarter.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) EnsureSidechainStarter(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureSidechainStarter", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).EnsureSidechainStarter), arg0, arg1)
 }
 
 // EnumerateHardwareDevices mocks base method.

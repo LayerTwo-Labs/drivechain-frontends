@@ -82,6 +82,24 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// EnsureSidechainStarter RPC.
+  Future<walletmanagerv1walletmanager.EnsureSidechainStarterResponse> ensureSidechainStarter(
+    walletmanagerv1walletmanager.EnsureSidechainStarterRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.ensureSidechainStarter,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.SetNodeModeResponse> setNodeMode(
     walletmanagerv1walletmanager.SetNodeModeRequest input, {
     connect.Headers? headers,

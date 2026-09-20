@@ -44,6 +44,14 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.GetNodeModeResponse.new,
   );
 
+  /// EnsureSidechainStarter RPC.
+  static const ensureSidechainStarter = connect.Spec(
+    '/$name/EnsureSidechainStarter',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.EnsureSidechainStarterRequest.new,
+    walletmanagerv1walletmanager.EnsureSidechainStarterResponse.new,
+  );
+
   static const setNodeMode = connect.Spec(
     '/$name/SetNodeMode',
     connect.StreamType.unary,

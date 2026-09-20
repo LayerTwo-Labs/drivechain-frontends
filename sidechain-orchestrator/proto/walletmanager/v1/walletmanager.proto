@@ -16,6 +16,8 @@ service WalletManagerService {
   rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
   rpc GetSidechainDepositTotals(GetSidechainDepositTotalsRequest) returns (GetSidechainDepositTotalsResponse);
   rpc GetNodeMode(GetNodeModeRequest) returns (GetNodeModeResponse);
+  // EnsureSidechainStarter RPC.
+  rpc EnsureSidechainStarter(EnsureSidechainStarterRequest) returns (EnsureSidechainStarterResponse);
   rpc SetNodeMode(SetNodeModeRequest) returns (SetNodeModeResponse);
   rpc GenerateWallet(GenerateWalletRequest) returns (GenerateWalletResponse);
   rpc UnlockWallet(UnlockWalletRequest) returns (UnlockWalletResponse);
@@ -200,6 +202,21 @@ message GetSidechainDepositTotalsRequest {
 message GetSidechainDepositTotalsResponse {
   int64 total_sats = 1;
   int64 recent_sats = 2;
+}
+
+// A sidechain that starts no local binary still holds a slot, and the slot
+// still holds a seed phrase. This derives that phrase on demand, so the user
+// reads it and imports it into any wallet of that chain.
+message EnsureSidechainStarterRequest {
+  // The BIP300 slot, 0 to 255.
+  uint32 slot = 1;
+  // The display name to file the slot under.
+  string name = 2;
+}
+
+message EnsureSidechainStarterResponse {
+  // The BIP39 seed phrase of the slot.
+  string mnemonic = 1;
 }
 
 message GetNodeModeRequest {}

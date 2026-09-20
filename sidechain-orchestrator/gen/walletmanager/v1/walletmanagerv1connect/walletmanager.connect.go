@@ -46,6 +46,9 @@ const (
 	// WalletManagerServiceGetNodeModeProcedure is the fully-qualified name of the
 	// WalletManagerService's GetNodeMode RPC.
 	WalletManagerServiceGetNodeModeProcedure = "/walletmanager.v1.WalletManagerService/GetNodeMode"
+	// WalletManagerServiceEnsureSidechainStarterProcedure is the fully-qualified name of the
+	// WalletManagerService's EnsureSidechainStarter RPC.
+	WalletManagerServiceEnsureSidechainStarterProcedure = "/walletmanager.v1.WalletManagerService/EnsureSidechainStarter"
 	// WalletManagerServiceSetNodeModeProcedure is the fully-qualified name of the
 	// WalletManagerService's SetNodeMode RPC.
 	WalletManagerServiceSetNodeModeProcedure = "/walletmanager.v1.WalletManagerService/SetNodeMode"
@@ -257,6 +260,8 @@ type WalletManagerServiceClient interface {
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error)
 	GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error)
+	// EnsureSidechainStarter RPC.
+	EnsureSidechainStarter(context.Context, *connect.Request[v1.EnsureSidechainStarterRequest]) (*connect.Response[v1.EnsureSidechainStarterResponse], error)
 	SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error)
 	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
@@ -402,6 +407,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+WalletManagerServiceGetNodeModeProcedure,
 			connect.WithSchema(walletManagerServiceMethods.ByName("GetNodeMode")),
+			connect.WithClientOptions(opts...),
+		),
+		ensureSidechainStarter: connect.NewClient[v1.EnsureSidechainStarterRequest, v1.EnsureSidechainStarterResponse](
+			httpClient,
+			baseURL+WalletManagerServiceEnsureSidechainStarterProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("EnsureSidechainStarter")),
 			connect.WithClientOptions(opts...),
 		),
 		setNodeMode: connect.NewClient[v1.SetNodeModeRequest, v1.SetNodeModeResponse](
@@ -809,6 +820,7 @@ type walletManagerServiceClient struct {
 	listSidechainDeposits        *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
 	getSidechainDepositTotals    *connect.Client[v1.GetSidechainDepositTotalsRequest, v1.GetSidechainDepositTotalsResponse]
 	getNodeMode                  *connect.Client[v1.GetNodeModeRequest, v1.GetNodeModeResponse]
+	ensureSidechainStarter       *connect.Client[v1.EnsureSidechainStarterRequest, v1.EnsureSidechainStarterResponse]
 	setNodeMode                  *connect.Client[v1.SetNodeModeRequest, v1.SetNodeModeResponse]
 	generateWallet               *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
 	unlockWallet                 *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
@@ -895,6 +907,11 @@ func (c *walletManagerServiceClient) GetSidechainDepositTotals(ctx context.Conte
 // GetNodeMode calls walletmanager.v1.WalletManagerService.GetNodeMode.
 func (c *walletManagerServiceClient) GetNodeMode(ctx context.Context, req *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error) {
 	return c.getNodeMode.CallUnary(ctx, req)
+}
+
+// EnsureSidechainStarter calls walletmanager.v1.WalletManagerService.EnsureSidechainStarter.
+func (c *walletManagerServiceClient) EnsureSidechainStarter(ctx context.Context, req *connect.Request[v1.EnsureSidechainStarterRequest]) (*connect.Response[v1.EnsureSidechainStarterResponse], error) {
+	return c.ensureSidechainStarter.CallUnary(ctx, req)
 }
 
 // SetNodeMode calls walletmanager.v1.WalletManagerService.SetNodeMode.
@@ -1240,6 +1257,8 @@ type WalletManagerServiceHandler interface {
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error)
 	GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error)
+	// EnsureSidechainStarter RPC.
+	EnsureSidechainStarter(context.Context, *connect.Request[v1.EnsureSidechainStarterRequest]) (*connect.Response[v1.EnsureSidechainStarterResponse], error)
 	SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error)
 	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
@@ -1381,6 +1400,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceGetNodeModeProcedure,
 		svc.GetNodeMode,
 		connect.WithSchema(walletManagerServiceMethods.ByName("GetNodeMode")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceEnsureSidechainStarterHandler := connect.NewUnaryHandler(
+		WalletManagerServiceEnsureSidechainStarterProcedure,
+		svc.EnsureSidechainStarter,
+		connect.WithSchema(walletManagerServiceMethods.ByName("EnsureSidechainStarter")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceSetNodeModeHandler := connect.NewUnaryHandler(
@@ -1789,6 +1814,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetSidechainDepositTotalsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetNodeModeProcedure:
 			walletManagerServiceGetNodeModeHandler.ServeHTTP(w, r)
+		case WalletManagerServiceEnsureSidechainStarterProcedure:
+			walletManagerServiceEnsureSidechainStarterHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSetNodeModeProcedure:
 			walletManagerServiceSetNodeModeHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGenerateWalletProcedure:
@@ -1944,6 +1971,10 @@ func (UnimplementedWalletManagerServiceHandler) GetSidechainDepositTotals(contex
 
 func (UnimplementedWalletManagerServiceHandler) GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetNodeMode is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) EnsureSidechainStarter(context.Context, *connect.Request[v1.EnsureSidechainStarterRequest]) (*connect.Response[v1.EnsureSidechainStarterResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EnsureSidechainStarter is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error) {
