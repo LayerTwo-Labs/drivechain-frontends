@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
@@ -630,6 +631,12 @@ class BitAssetsViewModel extends BaseViewModel {
 
     return provider.entries.where((entry) {
       if (entry.hash.toLowerCase() == searchHash) {
+        if (entry.plaintextName == null && provider.hashNameMapping.nameFromHash(entry.hash) == null) {
+          unawaited(provider.saveHashNameMapping(query));
+        }
+        return true;
+      }
+      if (entry.plaintextName?.toLowerCase().contains(searchText) ?? false) {
         return true;
       }
 
