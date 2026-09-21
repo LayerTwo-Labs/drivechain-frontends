@@ -60,7 +60,7 @@ class MyAssetsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SailCard(
       title: 'Your BitAssets',
-      subtitle: 'BitAssets you have registered',
+      subtitle: 'The BitAssets your wallet holds',
       child: SailColumn(
         spacing: SailStyleValues.padding16,
         children: [
@@ -77,6 +77,7 @@ class MyAssetsTab extends StatelessWidget {
                 headerBuilder: (context) => [
                   SailTableHeaderCell(name: 'Hash'),
                   SailTableHeaderCell(name: 'Name'),
+                  SailTableHeaderCell(name: 'Amount'),
                   SailTableHeaderCell(name: 'Sequence ID'),
                   SailTableHeaderCell(name: 'Encryption Key'),
                   SailTableHeaderCell(name: 'Signing Key'),
@@ -87,6 +88,7 @@ class MyAssetsTab extends StatelessWidget {
                   return [
                     SailTableCell(value: shortHash, copyValue: entry.hash),
                     SailTableCell(value: entry.plaintextName ?? '<unknown>'),
+                    SailTableCell(value: model.amountOf(entry.hash).toString(), monospace: true),
                     SailTableCell(value: entry.sequenceID.toString()),
                     SailTableCell(value: entry.details.encryptionPubkey != null ? 'Set' : '-'),
                     SailTableCell(value: entry.details.signingPubkey != null ? 'Set' : '-'),
@@ -204,7 +206,7 @@ class _SendBitAssetTabState extends State<SendBitAssetTab> {
                 .map(
                   (a) => SailDropdownItem<String>(
                     value: a.hash,
-                    label: a.plaintextName ?? '${a.hash.substring(0, 10)}...',
+                    label: '${a.plaintextName ?? '${a.hash.substring(0, 10)}...'} (${widget.model.amountOf(a.hash)})',
                   ),
                 )
                 .toList(),
@@ -228,7 +230,7 @@ class _SendBitAssetTabState extends State<SendBitAssetTab> {
           ),
           if (myAssets.isEmpty)
             SailText.secondary13(
-              "You don't have any BitAssets to send. Register one first!",
+              'Your wallet holds no BitAssets.',
               color: context.sailTheme.colors.textTertiary,
             ),
         ],
@@ -668,6 +670,9 @@ class BitAssetsViewModel extends BaseViewModel {
   List<BitAssetEntry> get myEntries {
     return provider.entries.where((entry) => provider.ownedHashes.contains(entry.hash)).toList();
   }
+
+  /// The amount of one asset that the wallet holds.
+  int amountOf(String hash) => provider.ownedAmounts[hash] ?? 0;
 
   bool get isLoading => !provider.initialized;
 

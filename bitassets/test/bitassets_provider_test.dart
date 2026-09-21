@@ -4,7 +4,9 @@ import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/providers/sync_provider.dart';
 import 'package:sidechain_core/rpcs/bitassets_rpc.dart';
+import 'package:sidechain_core/rpcs/thunder_utxo.dart';
 import 'package:sidechain_core/settings/client_settings.dart';
 import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
 import 'package:thirds/blake3.dart';
@@ -139,6 +141,103 @@ void main() {
     expect(ownedFromLegacyMapping('{}'), isEmpty);
   });
 
+  // A node that receives an asset holds a coin of it, and never a setting that
+  // says the user registered the asset.
+  test('an asset another node sends reads as held, with its amount', () async {
+    final hash = blake3Hex(utf8.encode('SentAsset'));
+    rpc.assets = [BitAssetEntry(sequenceID: 1, hash: hash, details: BitAssetDetails())];
+    rpc.utxos = [assetCoin(hash, 4000000), assetCoin(hash, 3000000)];
+
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(provider.ownedHashes, contains(hash));
+    expect(provider.ownedAmounts[hash], 7000000);
+  });
+
+  test('an asset the wallet registered stays held with no coin of it', () async {
+    final hash = blake3Hex(utf8.encode('RegisteredAsset'));
+    rpc.assets = [BitAssetEntry(sequenceID: 1, hash: hash, details: BitAssetDetails())];
+    await appSettings.setValue(OwnedBitAssetsSetting(newValue: [hash]));
+
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(provider.ownedHashes, contains(hash));
+    expect(provider.ownedAmounts[hash], isNull);
+  });
+
+  // A coin of a received asset must never reach the settings. The asset would
+  // stay in the list with a zero amount after the user sends the coin away.
+  test('a received asset never joins the registered assets', () async {
+    final received = blake3Hex(utf8.encode('ReceivedAsset'));
+    rpc.utxos = [assetCoin(received, 10)];
+
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await provider.saveHashNameMapping('MyAsset', isMine: true);
+
+    final saved = await appSettings.getValue(OwnedBitAssetsSetting());
+    expect(saved.value, [blake3Hex(utf8.encode('MyAsset'))]);
+    expect(provider.ownedHashes, contains(received));
+  });
+
+  test('a new block reads the coins of the wallet again', () async {
+    final hash = blake3Hex(utf8.encode('MinedAsset'));
+    final sync = SyncProvider(startTimer: false);
+    GetIt.I.registerSingleton<SyncProvider>(sync);
+    rpc.assets = [BitAssetEntry(sequenceID: 1, hash: hash, details: BitAssetDetails())];
+
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(provider.ownedHashes, isEmpty);
+
+    rpc.utxos = [assetCoin(hash, 250)];
+    sync.maybeFireNewBlock(1);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(provider.ownedAmounts[hash], 250);
+  });
+
+  test('a failed coin read keeps the assets of the last read', () async {
+    final hash = blake3Hex(utf8.encode('HeldAsset'));
+    rpc.assets = [BitAssetEntry(sequenceID: 1, hash: hash, details: BitAssetDetails())];
+    rpc.utxos = [assetCoin(hash, 100)];
+
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(provider.ownedHashes, contains(hash));
+
+    rpc.utxoError = 'node unavailable';
+    await provider.fetch();
+
+    expect(provider.ownedHashes, contains(hash));
+    expect(provider.ownedAmounts[hash], 100);
+  });
+
+  // The node starts with the app, so the first coin read often fails.
+  test('a failed first coin read keeps the retry timer', () async {
+    rpc.assets = [BitAssetEntry(sequenceID: 1, hash: 'aa', details: BitAssetDetails())];
+    rpc.utxoError = 'node unavailable';
+
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(provider.initialized, isTrue);
+    expect(provider.walletRead, isFalse);
+
+    rpc.utxoError = null;
+    await provider.fetch();
+
+    expect(provider.walletRead, isTrue);
+  });
+
   // The two chains hash the same plaintext to the same value, so a BitName the
   // wallet holds must not mark a BitAsset of that name as held.
   test('a name held on another chain does not mark the asset as held', () async {
@@ -159,7 +258,30 @@ void main() {
 
 class _AssetListBitAssetsRPC extends MockBitAssetsRPC {
   List<BitAssetEntry> assets = [];
+  List<SidechainUTXO> utxos = [];
+  String? utxoError;
 
   @override
   Future<List<BitAssetEntry>> listBitAssets() async => assets;
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async {
+    final error = utxoError;
+    if (error != null) {
+      throw Exception(error);
+    }
+    return utxos;
+  }
 }
+
+BitAssetsUTXO assetCoin(String hash, int amount) => BitAssetsUTXO.fromJson({
+  'outpoint': {
+    'Regular': {'txid': 'aa', 'vout': 0},
+  },
+  'output': {
+    'address': 'mine',
+    'content': {
+      'BitAsset': [hash, amount],
+    },
+  },
+});

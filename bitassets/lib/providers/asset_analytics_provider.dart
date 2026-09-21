@@ -153,27 +153,8 @@ class AssetAnalyticsProvider extends ChangeNotifier {
       // Fetch wallet UTXOs to calculate BitAsset holdings
       final utxos = await rpc.listUTXOs();
 
-      // Group UTXOs by asset type
-      final Map<String, int> assetAmounts = {};
-      int totalValue = totalBtcBalance;
-
-      for (final utxo in utxos) {
-        if (utxo is! BitAssetsUTXO) continue;
-
-        final content = utxo.output['content'] as Map<String, dynamic>?;
-        if (content == null) continue;
-
-        if (content.containsKey('BitAsset')) {
-          final assetData = content['BitAsset'] as Map<String, dynamic>;
-          final assetId = assetData['asset_id'] as String?;
-          final amount = assetData['amount'] as int?;
-
-          if (assetId != null && amount != null) {
-            assetAmounts[assetId] = (assetAmounts[assetId] ?? 0) + amount;
-            totalValue += amount;
-          }
-        }
-      }
+      final assetAmounts = bitAssetAmounts(utxos);
+      final totalValue = assetAmounts.values.fold(totalBtcBalance, (sum, amount) => sum + amount);
 
       // Create holdings list with percentages
       final newHoldings = <AssetHolding>[];
