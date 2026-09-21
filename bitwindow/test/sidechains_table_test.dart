@@ -202,18 +202,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a downloaded chain offers a primary Start and a disabled outline Deposit', (tester) async {
+  testWidgets('a downloaded chain offers a primary Start and an outline Deposit', (tester) async {
     setUpChain(_thunder());
     await pumpTable(tester);
 
     expect(_buttonWidget(tester, 'Start').variant, ButtonVariant.primary);
     final deposit = _buttonWidget(tester, 'Deposit');
     expect(deposit.variant, ButtonVariant.outline);
-    expect(deposit.disabled, isTrue);
-    expect(
-      find.ancestor(of: _button('Deposit'), matching: find.byType(SailTooltip)),
-      findsOneWidget,
-    );
+    // A stopped chain still deposits: the modal takes a pasted address.
+    expect(deposit.disabled, isFalse);
     expect(find.byType(ProgressBar), findsNothing);
   });
 
