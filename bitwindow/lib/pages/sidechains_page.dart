@@ -1641,7 +1641,10 @@ class _DepositModalState extends State<DepositModal> {
     return null;
   }
 
+  /// Reads an address from the sidechain. An address the user pastes while the
+  /// read is in flight wins: the paste is the later action.
   Future<void> _fetchDepositAddress() async {
+    final before = addressController.text;
     setState(() {
       isFetchingAddress = true;
       fetchError = null;
@@ -1656,7 +1659,9 @@ class _DepositModalState extends State<DepositModal> {
       final address = await sidechainRPC.getDepositAddress();
       if (mounted) {
         setState(() {
-          addressController.text = address;
+          if (addressController.text == before) {
+            addressController.text = address;
+          }
           isFetchingAddress = false;
         });
       }

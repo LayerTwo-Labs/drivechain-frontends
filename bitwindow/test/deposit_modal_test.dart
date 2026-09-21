@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bitwindow/pages/sidechains_page.dart';
@@ -6,8 +7,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/mocks/mocks.dart';
 
 import 'test_utils.dart';
+
+class _SlowThunderRPC extends MockThunderRPC {
+  final Completer<String> address = Completer<String>();
+  Completer<String>? next;
+
+  _SlowThunderRPC() {
+    setConnected(true);
+  }
+
+  @override
+  Future<String> getDepositAddress() => next?.future ?? address.future;
+}
 
 WalletData _wallet(String id) => WalletData(
   version: 1,
@@ -57,6 +71,45 @@ void main() {
     expect(field.readOnly, isFalse);
     expect(field.controller.text, isEmpty);
     expect(tester.widget<SailButton>(_depositButton()).disabled, isTrue);
+  });
+
+  testWidgets('a paste during the address read survives the answer', (tester) async {
+    final rpc = _SlowThunderRPC();
+    GetIt.I.registerSingleton<ThunderRPC>(rpc);
+    await GetIt.I.unregister<BinaryProvider>();
+    // ignore: invalid_use_of_visible_for_testing_member
+    GetIt.I.registerSingleton<BinaryProvider>(BinaryProvider.test(appDir: Directory.systemTemp, binaries: [Thunder()]));
+
+    await pumpModal(tester);
+    await tester.enterText(find.byType(SailTextField).first, 's9_pastedaddress_abc123');
+    rpc.address.complete('s9_fetchedaddress_def456');
+    await tester.pump();
+
+    final field = tester.widget<SailTextField>(find.byType(SailTextField).first);
+    expect(field.controller.text, 's9_pastedaddress_abc123');
+  });
+
+  testWidgets('a paste during a manual address read survives the answer', (tester) async {
+    final rpc = _SlowThunderRPC();
+    GetIt.I.registerSingleton<ThunderRPC>(rpc);
+    await GetIt.I.unregister<BinaryProvider>();
+    // ignore: invalid_use_of_visible_for_testing_member
+    GetIt.I.registerSingleton<BinaryProvider>(BinaryProvider.test(appDir: Directory.systemTemp, binaries: [Thunder()]));
+
+    await pumpModal(tester);
+    rpc.address.complete('s9_firstaddress_111111');
+    await tester.pump();
+    expect(tester.widget<SailTextField>(find.byType(SailTextField).first).controller.text, 's9_firstaddress_111111');
+
+    rpc.next = Completer<String>();
+    await tester.tap(find.byWidgetPredicate((w) => w is SailButton && w.icon == SailSVGAsset.iconRestart));
+    await tester.pump();
+    await tester.enterText(find.byType(SailTextField).first, 's9_pastedaddress_abc123');
+    rpc.next!.complete('s9_secondaddress_222222');
+    await tester.pump();
+
+    final field = tester.widget<SailTextField>(find.byType(SailTextField).first);
+    expect(field.controller.text, 's9_pastedaddress_abc123');
   });
 
   testWidgets('a pasted address with an amount arms the deposit button', (tester) async {
