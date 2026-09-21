@@ -19,12 +19,19 @@ final _digest = 'a' * 64;
 class _SlowBitnamesRPC extends MockBitnamesRPC {
   final Completer<ReadCommitmentResult> reply = Completer<ReadCommitmentResult>();
   final List<String> registered = [];
+  final List<String> reserved = [];
   String? readAddress;
 
   @override
   Future<ReadCommitmentResult> readCommitment(String address) {
     readAddress = address;
     return reply.future;
+  }
+
+  @override
+  Future<String> reserveBitName(String name) {
+    reserved.add(name);
+    return Future.value('txid');
   }
 
   @override
@@ -40,7 +47,6 @@ void main() {
   });
 
   late _SlowBitnamesRPC rpc;
-  late BalanceProvider balances;
 
   setUp(() async {
     await GetIt.I.reset();
@@ -55,9 +61,6 @@ void main() {
     GetIt.I.registerSingleton<BitnamesRPC>(rpc);
     GetIt.I.registerSingleton<BitnamesProvider>(BitnamesProvider());
     GetIt.I.registerSingleton<NotificationProvider>(NotificationProvider());
-    balances = BalanceProvider(connections: [sidechainRPC]);
-    balances.setBalance(sidechainRPC, 1.0, 0.0);
-    GetIt.I.registerSingleton<BalanceProvider>(balances);
   });
 
   test('a lookup fills the two address fields the chain holds', () async {
@@ -191,5 +194,17 @@ void main() {
     await register;
 
     expect(rpc.registered, ['203.0.113.7:6002|$_digest']);
+  });
+
+  // The node reserves a name with no input and no fee.
+  testWidgets('a wallet with no coins can reserve a name', (tester) async {
+    final model = BitnamesViewModel();
+    model.reserveNameController.text = 'satoshi';
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await model.reserveBitname(tester.element(find.byType(SizedBox)));
+
+    expect(model.reserveError, isNull);
+    expect(rpc.reserved, ['satoshi']);
   });
 }

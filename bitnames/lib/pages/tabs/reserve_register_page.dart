@@ -597,7 +597,6 @@ class DetailRow extends StatelessWidget {
 }
 
 class BitnamesViewModel extends BaseViewModel {
-  final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
   final BitnamesProvider provider = GetIt.I.get<BitnamesProvider>();
   final BitnamesRPC bitnamesRPC = GetIt.I.get<BitnamesRPC>();
@@ -730,12 +729,6 @@ class BitnamesViewModel extends BaseViewModel {
   String? get loadError => provider.error;
 
   Future<void> reserveBitname(BuildContext context) async {
-    if (balanceProvider.balance < 0.00001000) {
-      reserveError = 'Insufficient balance, deposit more funds on the Parent Chain tab to reserve a bitname';
-      notifyListeners();
-      return;
-    }
-
     final name = reserveNameController.text.trim();
     if (name.isEmpty) {
       reserveError = 'Name cannot be empty';
@@ -792,12 +785,6 @@ class BitnamesViewModel extends BaseViewModel {
   }
 
   Future<void> _registerBitname(BuildContext context) async {
-    if (balanceProvider.balance < 0.00001000) {
-      registerError = 'Insufficient balance, deposit more funds on the Parent Chain tab to register a bitname';
-      notifyListeners();
-      return;
-    }
-
     final name = registerNameController.text.trim();
     if (name.isEmpty) {
       registerError = 'Name cannot be empty';
