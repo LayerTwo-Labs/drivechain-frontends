@@ -1120,6 +1120,12 @@ class DutchAuctionEntry {
   }
 }
 
+/// The asset hash and the amount that one BitAsset coin carries.
+typedef BitAssetAmount = ({String hash, int amount});
+
+/// The two assets of the AMM pool that one LP token belongs to.
+typedef AmmLpPair = ({String asset0, String asset1});
+
 class BitAssetsUTXO extends SidechainUTXO {
   final Map<String, dynamic> output;
 
@@ -1130,26 +1136,100 @@ class BitAssetsUTXO extends SidechainUTXO {
     required this.output,
   }) : super(
          address: output['address'] as String,
-         valueSats: _extractValueSats(output['content']),
+         valueSats: _extractValueSats(output['content'] as Map<String, dynamic>),
        );
 
   static int _extractValueSats(Map<String, dynamic> content) {
-    // Extract value based on content type
-    if (content.containsKey('BitcoinSats')) {
-      return content['BitcoinSats'] as int;
-    } else if (content.containsKey('BitAsset')) {
-      return content['BitAsset']['amount'] as int;
+    final sats = content['BitcoinSats'];
+    if (sats is int) {
+      return sats;
+    }
+    final asset = _bitAsset(content);
+    if (asset != null) {
+      return asset.amount;
+    }
+    final lpToken = content['AmmLpToken'];
+    if (lpToken is Map<String, dynamic>) {
+      return lpToken['amount'] as int? ?? 0;
     }
     return 0;
   }
 
+  /// The node writes a BitAsset coin as a pair of the asset hash and the amount.
+  static BitAssetAmount? _bitAsset(Map<String, dynamic> content) {
+    final pair = content['BitAsset'];
+    if (pair is! List || pair.length != 2) {
+      return null;
+    }
+    final hash = pair[0];
+    final amount = pair[1];
+    if (hash is! String || amount is! int) {
+      return null;
+    }
+    return (hash: hash, amount: amount);
+  }
+
+  static OutpointType _contentType(OutpointType outpointType, Map<String, dynamic> content) {
+    if (_bitAsset(content) != null) {
+      return OutpointType.bitAsset;
+    }
+    if (content['BitAssetControl'] is String) {
+      return OutpointType.bitAssetControl;
+    }
+    if (content['AmmLpToken'] is Map<String, dynamic>) {
+      return OutpointType.ammLpToken;
+    }
+    return outpointType;
+  }
+
+  /// The asset hash and the amount this coin holds, or null for another coin.
+  BitAssetAmount? get bitAsset => _bitAsset(output['content'] as Map<String, dynamic>);
+
+  /// The hash of the asset this control coin owns, or null for another coin.
+  String? get bitAssetControlHash {
+    final hash = (output['content'] as Map<String, dynamic>)['BitAssetControl'];
+    return hash is String ? hash : null;
+  }
+
+  /// The pool this LP token belongs to, or null for another coin.
+  AmmLpPair? get ammLpPair {
+    final token = (output['content'] as Map<String, dynamic>)['AmmLpToken'];
+    if (token is! Map<String, dynamic>) {
+      return null;
+    }
+    final asset0 = token['asset0'];
+    final asset1 = token['asset1'];
+    if (asset0 is! String || asset1 is! String) {
+      return null;
+    }
+    return (asset0: asset0, asset1: asset1);
+  }
+
   factory BitAssetsUTXO.fromJson(Map<String, dynamic> json) {
     final outpoint = Outpoint.fromJson(json['outpoint'] as Map<String, dynamic>);
+    final output = json['output'] as Map<String, dynamic>;
     return BitAssetsUTXO(
       outpoint: outpoint.id,
-      type: outpoint.type,
+      type: _contentType(outpoint.type, output['content'] as Map<String, dynamic>),
       confirmed: json['confirmed'] as bool? ?? true,
-      output: json['output'] as Map<String, dynamic>,
+      output: output,
     );
   }
 }
+
+/// The amount of each BitAsset that the coins hold, keyed by the asset hash.
+Map<String, int> bitAssetAmounts(Iterable<SidechainUTXO> utxos) {
+  final amounts = <String, int>{};
+  for (final utxo in utxos.whereType<BitAssetsUTXO>()) {
+    final asset = utxo.bitAsset;
+    if (asset == null) {
+      continue;
+    }
+    amounts[asset.hash] = (amounts[asset.hash] ?? 0) + asset.amount;
+  }
+  return amounts;
+}
+
+/// The hashes of the BitAssets that the control coins own.
+Set<String> controlledBitAssets(Iterable<SidechainUTXO> utxos) =>
+    utxos.whereType<BitAssetsUTXO>().map((utxo) => utxo.bitAssetControlHash).nonNulls.toSet();

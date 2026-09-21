@@ -9,6 +9,11 @@ enum OutpointType {
   // bitname specific types
   bitnameReservation,
   bitname,
+
+  // bitasset specific types
+  bitAsset,
+  bitAssetControl,
+  ammLpToken,
 }
 
 /// One outpoint of a UTXO: the text form to show, and the kind it names.

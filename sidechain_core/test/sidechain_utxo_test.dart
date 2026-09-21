@@ -124,4 +124,93 @@ void main() {
     expect(utxo.valueSats, 900);
     expect(utxo.confirmed, isFalse);
   });
+
+  test('a bitasset coin reads the asset hash and the amount', () {
+    final utxo = BitAssetsUTXO.fromJson({
+      'outpoint': outpoint,
+      'output': {
+        'address': 'mine',
+        'content': {
+          'BitAsset': ['e6' * 32, 7000000],
+        },
+        'memo': '',
+      },
+    });
+
+    expect(utxo.type, OutpointType.bitAsset);
+    expect(utxo.bitAsset?.hash, 'e6' * 32);
+    expect(utxo.bitAsset?.amount, 7000000);
+    expect(utxo.valueSats, 7000000);
+  });
+
+  test('a control coin names the asset it owns', () {
+    final utxo = BitAssetsUTXO.fromJson({
+      'outpoint': outpoint,
+      'output': {
+        'address': 'mine',
+        'content': {'BitAssetControl': 'aa' * 32},
+      },
+    });
+
+    expect(utxo.type, OutpointType.bitAssetControl);
+    expect(utxo.bitAssetControlHash, 'aa' * 32);
+    expect(utxo.bitAsset, isNull);
+    expect(controlledBitAssets([utxo]), {'aa' * 32});
+  });
+
+  test('the coins of one asset add up to the amount the wallet holds', () {
+    BitAssetsUTXO coin(Map<String, dynamic> content) => BitAssetsUTXO.fromJson({
+      'outpoint': outpoint,
+      'output': {'address': 'mine', 'content': content},
+    });
+
+    expect(
+      bitAssetAmounts([
+        coin({
+          'BitAsset': ['e6' * 32, 7000000],
+        }),
+        coin({
+          'BitAsset': ['e6' * 32, 3000000],
+        }),
+        coin({
+          'BitAsset': ['bb' * 32, 5],
+        }),
+        coin({'BitcoinSats': 900}),
+        coin({'BitAssetControl': 'aa' * 32}),
+      ]),
+      {'e6' * 32: 10000000, 'bb' * 32: 5},
+    );
+  });
+
+  test('an amm token coin reads its own amount', () {
+    final utxo = BitAssetsUTXO.fromJson({
+      'outpoint': outpoint,
+      'output': {
+        'address': 'mine',
+        'content': {
+          'AmmLpToken': {'asset0': 'aa' * 32, 'asset1': 'bb' * 32, 'amount': 42},
+        },
+      },
+    });
+
+    expect(utxo.type, OutpointType.ammLpToken);
+    expect(utxo.valueSats, 42);
+    expect(utxo.bitAsset, isNull);
+    expect(utxo.ammLpPair?.asset0, 'aa' * 32);
+    expect(utxo.ammLpPair?.asset1, 'bb' * 32);
+  });
+
+  test('a coin of one asset names no pool', () {
+    final utxo = BitAssetsUTXO.fromJson({
+      'outpoint': outpoint,
+      'output': {
+        'address': 'mine',
+        'content': {
+          'BitAsset': ['e6' * 32, 1],
+        },
+      },
+    });
+
+    expect(utxo.ammLpPair, isNull);
+  });
 }
