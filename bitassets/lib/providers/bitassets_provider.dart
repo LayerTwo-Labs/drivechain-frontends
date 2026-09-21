@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/env.dart';
+import 'package:sidechain_core/providers/sync_provider.dart';
 import 'package:sidechain_core/rpcs/bitassets_rpc.dart';
 import 'package:sidechain_core/settings/client_settings.dart';
 import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
@@ -24,11 +25,29 @@ class BitAssetsProvider extends ChangeNotifier {
   HashNameMappingSetting hashNameMapping = HashNameMappingSetting();
   Set<String> ownedHashes = {};
 
+  /// The amount of each BitAsset that the wallet holds, keyed by the asset hash.
+  Map<String, int> ownedAmounts = {};
+
+  /// The assets this install registered. A coin of another asset never joins
+  /// this set, so the settings keep the registrations alone.
+  Set<String> _registeredHashes = {};
+
+  /// The assets the wallet coins name. A failed read keeps the last set.
+  Set<String> _walletHashes = {};
+
+  /// True after the node answers one read of the wallet coins.
+  bool walletRead = false;
+
   BitAssetsProvider() {
     rpc.addListener(fetch);
+    if (GetIt.I.isRegistered<SyncProvider>()) {
+      GetIt.I.get<SyncProvider>().onNewBlock(_onNewBlock);
+    }
     unawaited(_start());
     _startRetryTimer();
   }
+
+  void _onNewBlock(int height) => unawaited(fetch());
 
   Future<void> _start() async {
     await migrateOwnedHashes();
@@ -61,13 +80,20 @@ class BitAssetsProvider extends ChangeNotifier {
 
     _retryTimer?.cancel();
     _retryTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (entries.isNotEmpty && initialized) {
+      if (entries.isNotEmpty && initialized && walletRead) {
         timer.cancel();
-        _retryTimer = null;
+        _startPollTimer();
         return;
       }
       fetch();
     });
+  }
+
+  /// A coin in the mempool fires no block event, and the sidechain mines a
+  /// block after the mainchain event that this provider listens to.
+  void _startPollTimer() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(seconds: 10), (_) => fetch());
   }
 
   Future<void> fetch() async {
@@ -77,16 +103,30 @@ class BitAssetsProvider extends ChangeNotifier {
     List<BitAssetEntry>? newEntries;
     List<DutchAuctionEntry>? newAuctions;
     HashNameMappingSetting? newHashNameMapping;
+    Map<String, int> newOwnedAmounts = ownedAmounts;
     bool newInitialized = initialized;
 
     try {
       final loaded = await nameSettings.getValue(HashNameMappingSetting());
       newHashNameMapping = HashNameMappingSetting(newValue: loaded.value);
       final owned = await appSettings.getValue(OwnedBitAssetsSetting());
-      ownedHashes = owned.value.toSet();
+      _registeredHashes = owned.value.toSet();
     } catch (e) {
       // Keep the in-memory mapping if settings are unavailable.
     }
+
+    // The coins the wallet holds name every asset it owns, and a coin from
+    // another node counts the same as a coin this node registered.
+    try {
+      final utxos = await rpc.listUTXOs();
+      newOwnedAmounts = bitAssetAmounts(utxos);
+      _walletHashes = {...newOwnedAmounts.keys, ...controlledBitAssets(utxos)};
+      walletRead = true;
+    } catch (e) {
+      // Keep the assets of the last read if the node is unavailable.
+    }
+
+    final newOwnedHashes = {..._registeredHashes, ..._walletHashes};
 
     // Try to fetch BitAssets
     try {
@@ -103,10 +143,12 @@ class BitAssetsProvider extends ChangeNotifier {
       // Handle auction error independently
     }
 
-    if (_dataHasChanged(newEntries, newAuctions, newHashNameMapping, newInitialized)) {
+    if (_dataHasChanged(newEntries, newAuctions, newHashNameMapping, newOwnedHashes, newOwnedAmounts, newInitialized)) {
       if (newHashNameMapping != null) {
         hashNameMapping = newHashNameMapping;
       }
+      ownedHashes = newOwnedHashes;
+      ownedAmounts = newOwnedAmounts;
       if (newEntries != null) {
         entries = newEntries;
         initialized = newInitialized;
@@ -127,9 +169,15 @@ class BitAssetsProvider extends ChangeNotifier {
     List<BitAssetEntry>? newEntries,
     List<DutchAuctionEntry>? newAuctions,
     HashNameMappingSetting? newHashNameMapping,
+    Set<String> newOwnedHashes,
+    Map<String, int> newOwnedAmounts,
     bool newInitialized,
   ) {
     if (newInitialized != initialized) {
+      return true;
+    }
+
+    if (!setEquals(ownedHashes, newOwnedHashes) || !mapEquals(ownedAmounts, newOwnedAmounts)) {
       return true;
     }
 
@@ -177,8 +225,9 @@ class BitAssetsProvider extends ChangeNotifier {
     );
     hashNameMapping = HashNameMappingSetting(newValue: saved.value);
     if (isMine) {
+      _registeredHashes = {..._registeredHashes, hash};
       ownedHashes = {...ownedHashes, hash};
-      await appSettings.setValue(OwnedBitAssetsSetting(newValue: ownedHashes.toList()));
+      await appSettings.setValue(OwnedBitAssetsSetting(newValue: _registeredHashes.toList()));
     }
     notifyListeners();
     await fetch(); // refetch to set the name in the list
@@ -188,6 +237,9 @@ class BitAssetsProvider extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _retryTimer?.cancel();
+    if (GetIt.I.isRegistered<SyncProvider>()) {
+      GetIt.I.get<SyncProvider>().offNewBlock(_onNewBlock);
+    }
     rpc.removeListener(fetch);
     super.dispose();
   }

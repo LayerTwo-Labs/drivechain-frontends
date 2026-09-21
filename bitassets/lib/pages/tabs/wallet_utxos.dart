@@ -3,6 +3,49 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
+/// True for a coin that carries an asset, and false for the sidechain currency.
+bool carriesAsset(SidechainUTXO utxo) =>
+    utxo.type == OutpointType.bitAsset ||
+    utxo.type == OutpointType.bitAssetControl ||
+    utxo.type == OutpointType.ammLpToken;
+
+/// The asset column of one coin: the text to show and the value to copy.
+({String text, String copy}) assetCell(SidechainUTXO utxo) {
+  if (utxo is! BitAssetsUTXO) {
+    return (text: '-', copy: '');
+  }
+  final asset = utxo.bitAsset;
+  if (asset != null) {
+    return (text: shortHash(asset.hash), copy: asset.hash);
+  }
+  final control = utxo.bitAssetControlHash;
+  if (control != null) {
+    return (text: shortHash(control), copy: control);
+  }
+  final pair = utxo.ammLpPair;
+  if (pair != null) {
+    return (
+      text: 'LP ${shortHash(pair.asset0)}/${shortHash(pair.asset1)}',
+      copy: '${pair.asset0}/${pair.asset1}',
+    );
+  }
+  return (text: '-', copy: '');
+}
+
+/// The amount a coin carries. A coin of an asset counts in units of that
+/// asset, and a control coin carries no amount.
+String amountOf(SidechainUTXO utxo, FormatterProvider formatter) {
+  if (utxo.type == OutpointType.bitAssetControl) {
+    return '-';
+  }
+  if (carriesAsset(utxo)) {
+    return utxo.valueSats.toString();
+  }
+  return formatter.formatSats(utxo.valueSats.toInt()).replaceAll(' ${formatter.currentUnit.symbol}', '');
+}
+
+String shortHash(String hash) => hash.length > 16 ? '${hash.substring(0, 8)}..' : hash;
+
 class UTXOsTab extends StatelessWidget {
   const UTXOsTab({super.key});
 
@@ -72,6 +115,10 @@ class _UTXOTableState extends State<UTXOTable> {
           aValue = a.address;
           bValue = b.address;
           break;
+        case 'asset':
+          aValue = assetCell(a).copy;
+          bValue = assetCell(b).copy;
+          break;
         case 'value':
           aValue = a.valueSats;
           bValue = b.valueSats;
@@ -105,20 +152,20 @@ class _UTXOTableState extends State<UTXOTable> {
                   headerBuilder: (context) => [
                     SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
                     SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                    SailTableHeaderCell(name: 'Asset', onSort: () => onSort('asset')),
                     SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
                   ],
                   rowBuilder: (context, row, selected) {
                     final utxo = widget.entries[row];
-                    final formattedAmount = formatter
-                        .formatSats(utxo.valueSats.toInt())
-                        .replaceAll(' ${formatter.currentUnit.symbol}', '');
+                    final asset = assetCell(utxo);
                     return [
                       SailTableCell(
                         value: '${utxo.outpoint.substring(0, 6)}..:${utxo.outpoint.split(':').last}',
                         copyValue: utxo.outpoint,
                       ),
                       SailTableCell(value: utxo.address, monospace: true),
-                      SailTableCell(value: formattedAmount, monospace: true),
+                      SailTableCell(value: asset.text, copyValue: asset.copy, monospace: true),
+                      SailTableCell(value: amountOf(utxo, formatter), monospace: true),
                     ];
                   },
                   rowCount: widget.entries.length,
@@ -126,11 +173,12 @@ class _UTXOTableState extends State<UTXOTable> {
                   sortColumnIndex: [
                     'output',
                     'address',
+                    'asset',
                     'value',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['output', 'address', 'value'][columnIndex]);
+                    onSort(['output', 'address', 'asset', 'value'][columnIndex]);
                   },
                 ),
               ),
