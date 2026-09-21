@@ -635,19 +635,11 @@ class _SidechainActions extends StatelessWidget {
   }
 
   Widget _depositButton(BuildContext context) {
-    final canDeposit = viewModel.canDeposit(slot);
-    final button = SailButton(
+    return SailButton(
       label: 'Deposit',
       variant: ButtonVariant.outline,
-      disabled: !canDeposit,
       onPressed: () => showDepositModal(context, slot, sidechain.info.title),
     );
-
-    if (canDeposit) {
-      return button;
-    }
-
-    return SailTooltip(message: 'Start the sidechain before depositing', child: button);
   }
 }
 
@@ -930,8 +922,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     final last = mismatched.removeLast();
     return '${mismatched.join(', ')} and $last';
   }
-
-  bool canDeposit(int slot) => isSidechainRunning(slot);
 
   /// The user's wallet balance in BTC on the chain in [slot], or null while the chain does not run.
   ({double confirmed, double pending})? yourBalance(int slot) {
@@ -1577,13 +1567,13 @@ class DepositModal extends StatefulWidget {
 }
 
 class _DepositModalState extends State<DepositModal> {
+  final TextEditingController addressController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController feeController = TextEditingController();
   late final DepositFeeEstimate depositFee = DepositFeeEstimate(feeController);
 
   bool isLoading = false;
   bool isFetchingAddress = true;
-  String? depositAddress;
   String? fetchError;
   String? selectedWalletId;
 
@@ -1594,6 +1584,7 @@ class _DepositModalState extends State<DepositModal> {
     super.initState();
     _fetchDepositAddress();
     unawaited(_setFeeTarget(depositFee.confTarget, keepEdits: true));
+    addressController.addListener(_onTextChanged);
     amountController.addListener(_onTextChanged);
     feeController.addListener(_onTextChanged);
   }
@@ -1611,8 +1602,10 @@ class _DepositModalState extends State<DepositModal> {
 
   @override
   void dispose() {
+    addressController.removeListener(_onTextChanged);
     amountController.removeListener(_onTextChanged);
     feeController.removeListener(_onTextChanged);
+    addressController.dispose();
     amountController.dispose();
     feeController.dispose();
     super.dispose();
@@ -1642,7 +1635,6 @@ class _DepositModalState extends State<DepositModal> {
       _ => null,
     };
 
-    // The same rule the deposit button reads.
     if (rpc != null && rpc.connected) {
       return rpc;
     }
@@ -1658,13 +1650,13 @@ class _DepositModalState extends State<DepositModal> {
     try {
       final sidechainRPC = _getSidechainRPC(widget.slot);
       if (sidechainRPC == null) {
-        throw Exception('Sidechain is not running. Start it first to deposit.');
+        throw Exception('${widget.sidechainName} is not running. Paste a deposit address.');
       }
 
       final address = await sidechainRPC.getDepositAddress();
       if (mounted) {
         setState(() {
-          depositAddress = address;
+          addressController.text = address;
           isFetchingAddress = false;
         });
       }
@@ -1679,7 +1671,7 @@ class _DepositModalState extends State<DepositModal> {
   }
 
   Future<void> _deposit() async {
-    if (depositAddress == null) {
+    if (addressController.text.isEmpty) {
       showSailToast(context, 'No deposit address available');
       return;
     }
@@ -1708,7 +1700,7 @@ class _DepositModalState extends State<DepositModal> {
       final txid = await api.wallet.createSidechainDeposit(
         walletId,
         widget.slot,
-        depositAddress!,
+        addressController.text,
         double.parse(amountController.text),
         double.parse(feeController.text),
       );
@@ -1773,10 +1765,9 @@ class _DepositModalState extends State<DepositModal> {
                           enabled: isFetchingAddress,
                           description: 'Fetching deposit address from ${widget.sidechainName}...',
                         ),
-                        controller: TextEditingController(text: depositAddress ?? ''),
+                        controller: addressController,
                         hintText: 's${widget.slot}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
-                        readOnly: true,
-                        suffixWidget: depositAddress != null ? CopyButton(text: depositAddress!) : null,
+                        suffixWidget: addressController.text.isEmpty ? null : CopyButton(text: addressController.text),
                       ),
                     ),
                     SailTooltip(
@@ -1826,7 +1817,7 @@ class _DepositModalState extends State<DepositModal> {
                   label: 'Deposit',
                   loading: isLoading,
                   disabled:
-                      depositAddress == null ||
+                      addressController.text.isEmpty ||
                       fromWalletId == null ||
                       amountController.text.isEmpty ||
                       feeController.text.isEmpty,
