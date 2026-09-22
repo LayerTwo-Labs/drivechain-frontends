@@ -920,7 +920,7 @@
               "application/json": {
                 "schema": {
                   "type": "string",
-                  "description": "Wrapper around x25519 pubkeys"
+                  "description": "Wrapper around ristretto255 verifying keys"
                 }
               }
             }
@@ -1078,12 +1078,12 @@
                                   "Coinbase": {
                                     "type": "object",
                                     "required": [
-                                      "merkle_root",
+                                      "txid",
                                       "vout"
                                     ],
                                     "properties": {
-                                      "merkle_root": {
-                                        "$ref": "#/components/schemas/MerkleRoot"
+                                      "txid": {
+                                        "$ref": "#/components/schemas/CoinbaseTxid"
                                       },
                                       "vout": {
                                         "type": "integer",
@@ -1765,12 +1765,12 @@
                                       "Coinbase": {
                                         "type": "object",
                                         "required": [
-                                          "merkle_root",
+                                          "txid",
                                           "vout"
                                         ],
                                         "properties": {
-                                          "merkle_root": {
-                                            "$ref": "#/components/schemas/MerkleRoot"
+                                          "txid": {
+                                            "$ref": "#/components/schemas/CoinbaseTxid"
                                           },
                                           "vout": {
                                             "type": "integer",
@@ -2062,7 +2062,7 @@
                   },
                   "verifying_key": {
                     "type": "string",
-                    "description": "Wrapper around x25519 pubkeys"
+                    "description": "Wrapper around ristretto255 verifying keys"
                   }
                 }
               }
@@ -2206,12 +2206,12 @@
                                 "Coinbase": {
                                   "type": "object",
                                   "required": [
-                                    "merkle_root",
+                                    "txid",
                                     "vout"
                                   ],
                                   "properties": {
-                                    "merkle_root": {
-                                      "$ref": "#/components/schemas/MerkleRoot"
+                                    "txid": {
+                                      "$ref": "#/components/schemas/CoinbaseTxid"
                                     },
                                     "vout": {
                                       "type": "integer",
@@ -2379,7 +2379,7 @@
                   },
                   "verifying_key": {
                     "type": "string",
-                    "description": "Wrapper around x25519 pubkeys"
+                    "description": "Wrapper around ristretto255 verifying keys"
                   }
                 }
               }
@@ -2725,10 +2725,7 @@
             }
           },
           "coinbase": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Output"
-            }
+            "$ref": "#/components/schemas/Coinbase"
           },
           "transactions": {
             "type": "array",
@@ -2737,6 +2734,28 @@
             }
           }
         }
+      },
+      "Coinbase": {
+        "type": "object",
+        "description": "Coinbase transaction of a block",
+        "required": [
+          "memo",
+          "outputs"
+        ],
+        "properties": {
+          "memo": {
+            "type": "string"
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            }
+          }
+        }
+      },
+      "CoinbaseTxid": {
+        "type": "string"
       },
       "EncryptionPubKey": {
         "type": "string",
@@ -3009,12 +3028,12 @@
               "Coinbase": {
                 "type": "object",
                 "required": [
-                  "merkle_root",
+                  "txid",
                   "vout"
                 ],
                 "properties": {
-                  "merkle_root": {
-                    "$ref": "#/components/schemas/MerkleRoot"
+                  "txid": {
+                    "$ref": "#/components/schemas/CoinbaseTxid"
                   },
                   "vout": {
                     "type": "integer",
@@ -3182,12 +3201,12 @@
                     "Coinbase": {
                       "type": "object",
                       "required": [
-                        "merkle_root",
+                        "txid",
                         "vout"
                       ],
                       "properties": {
-                        "merkle_root": {
-                          "$ref": "#/components/schemas/MerkleRoot"
+                        "txid": {
+                          "$ref": "#/components/schemas/CoinbaseTxid"
                         },
                         "vout": {
                           "type": "integer",
@@ -3343,7 +3362,7 @@
       },
       "VerifyingKey": {
         "type": "string",
-        "description": "Wrapper around x25519 pubkeys"
+        "description": "Wrapper around ristretto255 verifying keys"
       },
       "WithdrawalOutputContent": {
         "type": "object",

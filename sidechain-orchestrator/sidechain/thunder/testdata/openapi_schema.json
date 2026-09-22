@@ -1240,12 +1240,12 @@
                                       "Coinbase": {
                                         "type": "object",
                                         "required": [
-                                          "merkle_root",
+                                          "txid",
                                           "vout"
                                         ],
                                         "properties": {
-                                          "merkle_root": {
-                                            "$ref": "#/components/schemas/MerkleRoot"
+                                          "txid": {
+                                            "$ref": "#/components/schemas/CoinbaseTxid"
                                           },
                                           "vout": {
                                             "type": "integer",
@@ -1444,12 +1444,12 @@
                                     "Coinbase": {
                                       "type": "object",
                                       "required": [
-                                        "merkle_root",
+                                        "txid",
                                         "vout"
                                       ],
                                       "properties": {
-                                        "merkle_root": {
-                                          "$ref": "#/components/schemas/MerkleRoot"
+                                        "txid": {
+                                          "$ref": "#/components/schemas/CoinbaseTxid"
                                         },
                                         "vout": {
                                           "type": "integer",
@@ -1480,10 +1480,7 @@
                         }
                       },
                       "outputs": {
-                        "type": "array",
-                        "items": {
-                          "$ref": "#/components/schemas/Output"
-                        }
+                        "$ref": "#/components/schemas/Outputs"
                       },
                       "proof": {
                         "$ref": "#/components/schemas/utreexo.Proof",
@@ -1701,10 +1698,7 @@
             }
           },
           "coinbase": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Output"
-            }
+            "$ref": "#/components/schemas/Coinbase"
           },
           "transactions": {
             "type": "array",
@@ -1729,10 +1723,7 @@
             }
           },
           "coinbase": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Output"
-            }
+            "$ref": "#/components/schemas/Coinbase"
           },
           "transactions": {
             "type": "array",
@@ -1741,6 +1732,29 @@
             }
           }
         }
+      },
+      "Coinbase": {
+        "type": "object",
+        "required": [
+          "memo",
+          "outputs"
+        ],
+        "properties": {
+          "memo": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "u-int8",
+              "minimum": 0
+            }
+          },
+          "outputs": {
+            "$ref": "#/components/schemas/Outputs"
+          }
+        }
+      },
+      "CoinbaseTxid": {
+        "type": "string"
       },
       "Header": {
         "type": "object",
@@ -1878,12 +1892,12 @@
               "Coinbase": {
                 "type": "object",
                 "required": [
-                  "merkle_root",
+                  "txid",
                   "vout"
                 ],
                 "properties": {
-                  "merkle_root": {
-                    "$ref": "#/components/schemas/MerkleRoot"
+                  "txid": {
+                    "$ref": "#/components/schemas/CoinbaseTxid"
                   },
                   "vout": {
                     "type": "integer",
@@ -1971,6 +1985,12 @@
         ],
         "description": ""
       },
+      "Outputs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Output"
+        }
+      },
       "PeerConnectionStatus": {
         "type": "string",
         "enum": [
@@ -2044,12 +2064,12 @@
                         "Coinbase": {
                           "type": "object",
                           "required": [
-                            "merkle_root",
+                            "txid",
                             "vout"
                           ],
                           "properties": {
-                            "merkle_root": {
-                              "$ref": "#/components/schemas/MerkleRoot"
+                            "txid": {
+                              "$ref": "#/components/schemas/CoinbaseTxid"
                             },
                             "vout": {
                               "type": "integer",
@@ -2080,10 +2100,7 @@
             }
           },
           "outputs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Output"
-            }
+            "$ref": "#/components/schemas/Outputs"
           },
           "proof": {
             "$ref": "#/components/schemas/utreexo.Proof",
@@ -2166,12 +2183,12 @@
                         "Coinbase": {
                           "type": "object",
                           "required": [
-                            "merkle_root",
+                            "txid",
                             "vout"
                           ],
                           "properties": {
-                            "merkle_root": {
-                              "$ref": "#/components/schemas/MerkleRoot"
+                            "txid": {
+                              "$ref": "#/components/schemas/CoinbaseTxid"
                             },
                             "vout": {
                               "type": "integer",
@@ -2295,12 +2312,12 @@
                             "Coinbase": {
                               "type": "object",
                               "required": [
-                                "merkle_root",
+                                "txid",
                                 "vout"
                               ],
                               "properties": {
-                                "merkle_root": {
-                                  "$ref": "#/components/schemas/MerkleRoot"
+                                "txid": {
+                                  "$ref": "#/components/schemas/CoinbaseTxid"
                                 },
                                 "vout": {
                                   "type": "integer",

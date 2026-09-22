@@ -1288,7 +1288,7 @@
               "application/json": {
                 "schema": {
                   "type": "string",
-                  "description": "Wrapper around x25519 pubkeys"
+                  "description": "Wrapper around ristretto255 verifying keys"
                 }
               }
             }
@@ -1385,102 +1385,13 @@
                           ]
                         },
                         "inputs": {
-                          "type": "array",
-                          "items": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Regular"
-                                ],
-                                "properties": {
-                                  "Regular": {
-                                    "type": "object",
-                                    "required": [
-                                      "txid",
-                                      "vout"
-                                    ],
-                                    "properties": {
-                                      "txid": {
-                                        "$ref": "#/components/schemas/Txid"
-                                      },
-                                      "vout": {
-                                        "type": "integer",
-                                        "format": "u-int32",
-                                        "minimum": 0
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Coinbase"
-                                ],
-                                "properties": {
-                                  "Coinbase": {
-                                    "type": "object",
-                                    "required": [
-                                      "merkle_root",
-                                      "vout"
-                                    ],
-                                    "properties": {
-                                      "merkle_root": {
-                                        "$ref": "#/components/schemas/MerkleRoot"
-                                      },
-                                      "vout": {
-                                        "type": "integer",
-                                        "format": "u-int32",
-                                        "minimum": 0
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Deposit"
-                                ],
-                                "properties": {
-                                  "Deposit": {
-                                    "$ref": "#/components/schemas/bitcoin.OutPoint"
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/Inputs"
                         },
                         "memo": {
                           "type": "string"
                         },
                         "outputs": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "address",
-                              "content",
-                              "memo"
-                            ],
-                            "properties": {
-                              "address": {
-                                "$ref": "#/components/schemas/Address"
-                              },
-                              "content": {
-                                "$ref": "#/components/schemas/OutputContent"
-                              },
-                              "memo": {
-                                "type": "array",
-                                "items": {
-                                  "type": "integer",
-                                  "format": "u-int8",
-                                  "minimum": 0
-                                }
-                              }
-                            }
-                          }
+                          "$ref": "#/components/schemas/Outputs"
                         }
                       }
                     }
@@ -2695,12 +2606,12 @@
                                       "Coinbase": {
                                         "type": "object",
                                         "required": [
-                                          "merkle_root",
+                                          "txid",
                                           "vout"
                                         ],
                                         "properties": {
-                                          "merkle_root": {
-                                            "$ref": "#/components/schemas/MerkleRoot"
+                                          "txid": {
+                                            "$ref": "#/components/schemas/CoinbaseTxid"
                                           },
                                           "vout": {
                                             "type": "integer",
@@ -3013,7 +2924,7 @@
                   },
                   "verifying_key": {
                     "type": "string",
-                    "description": "Wrapper around x25519 pubkeys"
+                    "description": "Wrapper around ristretto255 verifying keys"
                   }
                 }
               }
@@ -3120,102 +3031,13 @@
                         ]
                       },
                       "inputs": {
-                        "type": "array",
-                        "items": {
-                          "oneOf": [
-                            {
-                              "type": "object",
-                              "required": [
-                                "Regular"
-                              ],
-                              "properties": {
-                                "Regular": {
-                                  "type": "object",
-                                  "required": [
-                                    "txid",
-                                    "vout"
-                                  ],
-                                  "properties": {
-                                    "txid": {
-                                      "$ref": "#/components/schemas/Txid"
-                                    },
-                                    "vout": {
-                                      "type": "integer",
-                                      "format": "u-int32",
-                                      "minimum": 0
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "required": [
-                                "Coinbase"
-                              ],
-                              "properties": {
-                                "Coinbase": {
-                                  "type": "object",
-                                  "required": [
-                                    "merkle_root",
-                                    "vout"
-                                  ],
-                                  "properties": {
-                                    "merkle_root": {
-                                      "$ref": "#/components/schemas/MerkleRoot"
-                                    },
-                                    "vout": {
-                                      "type": "integer",
-                                      "format": "u-int32",
-                                      "minimum": 0
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "required": [
-                                "Deposit"
-                              ],
-                              "properties": {
-                                "Deposit": {
-                                  "$ref": "#/components/schemas/bitcoin.OutPoint"
-                                }
-                              }
-                            }
-                          ]
-                        }
+                        "$ref": "#/components/schemas/Inputs"
                       },
                       "memo": {
                         "type": "string"
                       },
                       "outputs": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": [
-                            "address",
-                            "content",
-                            "memo"
-                          ],
-                          "properties": {
-                            "address": {
-                              "$ref": "#/components/schemas/Address"
-                            },
-                            "content": {
-                              "$ref": "#/components/schemas/OutputContent"
-                            },
-                            "memo": {
-                              "type": "array",
-                              "items": {
-                                "type": "integer",
-                                "format": "u-int8",
-                                "minimum": 0
-                              }
-                            }
-                          }
-                        }
+                        "$ref": "#/components/schemas/Outputs"
                       }
                     }
                   }
@@ -3483,7 +3305,7 @@
                   },
                   "verifying_key": {
                     "type": "string",
-                    "description": "Wrapper around x25519 pubkeys"
+                    "description": "Wrapper around ristretto255 verifying keys"
                   }
                 }
               }
@@ -3874,10 +3696,7 @@
             }
           },
           "coinbase": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Output"
-            }
+            "$ref": "#/components/schemas/Coinbase"
           },
           "transactions": {
             "type": "array",
@@ -3886,6 +3705,25 @@
             }
           }
         }
+      },
+      "Coinbase": {
+        "type": "object",
+        "description": "Coinbase transaction of a block",
+        "required": [
+          "memo",
+          "outputs"
+        ],
+        "properties": {
+          "memo": {
+            "type": "string"
+          },
+          "outputs": {
+            "$ref": "#/components/schemas/Outputs"
+          }
+        }
+      },
+      "CoinbaseTxid": {
+        "type": "string"
       },
       "DutchAuctionId": {
         "type": "string"
@@ -4139,6 +3977,12 @@
         ],
         "description": "Reference to a tx input."
       },
+      "Inputs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/OutPoint"
+        }
+      },
       "M6id": {
         "type": "string"
       },
@@ -4191,12 +4035,12 @@
               "Coinbase": {
                 "type": "object",
                 "required": [
-                  "merkle_root",
+                  "txid",
                   "vout"
                 ],
                 "properties": {
-                  "merkle_root": {
-                    "$ref": "#/components/schemas/MerkleRoot"
+                  "txid": {
+                    "$ref": "#/components/schemas/CoinbaseTxid"
                   },
                   "vout": {
                     "type": "integer",
@@ -4314,6 +4158,12 @@
             }
           }
         ]
+      },
+      "Outputs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Output"
+        }
       },
       "PeerConnectionStatus": {
         "type": "string",
@@ -4494,102 +4344,13 @@
             ]
           },
           "inputs": {
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "required": [
-                    "Regular"
-                  ],
-                  "properties": {
-                    "Regular": {
-                      "type": "object",
-                      "required": [
-                        "txid",
-                        "vout"
-                      ],
-                      "properties": {
-                        "txid": {
-                          "$ref": "#/components/schemas/Txid"
-                        },
-                        "vout": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "Coinbase"
-                  ],
-                  "properties": {
-                    "Coinbase": {
-                      "type": "object",
-                      "required": [
-                        "merkle_root",
-                        "vout"
-                      ],
-                      "properties": {
-                        "merkle_root": {
-                          "$ref": "#/components/schemas/MerkleRoot"
-                        },
-                        "vout": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "Deposit"
-                  ],
-                  "properties": {
-                    "Deposit": {
-                      "$ref": "#/components/schemas/bitcoin.OutPoint"
-                    }
-                  }
-                }
-              ]
-            }
+            "$ref": "#/components/schemas/Inputs"
           },
           "memo": {
             "type": "string"
           },
           "outputs": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "address",
-                "content",
-                "memo"
-              ],
-              "properties": {
-                "address": {
-                  "$ref": "#/components/schemas/Address"
-                },
-                "content": {
-                  "$ref": "#/components/schemas/OutputContent"
-                },
-                "memo": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer",
-                    "format": "u-int8",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/schemas/Outputs"
           }
         }
       },
@@ -4903,7 +4664,7 @@
       },
       "VerifyingKey": {
         "type": "string",
-        "description": "Wrapper around x25519 pubkeys"
+        "description": "Wrapper around ristretto255 verifying keys"
       },
       "WithdrawalOutputContent": {
         "type": "object",
