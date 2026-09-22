@@ -36,7 +36,10 @@ type outPoint struct {
 		Txid string `json:"txid"`
 		Vout uint32 `json:"vout"`
 	} `json:"Regular,omitempty"`
+	// Coinbase names its transaction by txid. An older node names the block's
+	// merkle root instead.
 	Coinbase *struct {
+		Txid       string `json:"txid"`
 		MerkleRoot string `json:"merkle_root"`
 		Vout       uint32 `json:"vout"`
 	} `json:"Coinbase,omitempty"`
@@ -53,6 +56,9 @@ func (o outPoint) id() (string, uint32, bool) {
 	case o.Regular != nil:
 		return o.Regular.Txid, o.Regular.Vout, true
 	case o.Coinbase != nil:
+		if o.Coinbase.Txid != "" {
+			return o.Coinbase.Txid, o.Coinbase.Vout, true
+		}
 		return o.Coinbase.MerkleRoot, o.Coinbase.Vout, true
 	case o.Deposit != nil:
 		txid, rest, found := strings.Cut(*o.Deposit, ":")

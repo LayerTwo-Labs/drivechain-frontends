@@ -695,8 +695,35 @@ func TestNodeTransactionKeepsACoinbaseInput(t *testing.T) {
 	if got := tx.GetInputs()[0].GetOutpointKind(); got != "coinbase" {
 		t.Errorf("the input reads as %q, want coinbase", got)
 	}
+	if got := tx.GetInputs()[0].GetTxid(); got != "mr" {
+		t.Errorf("the input names %q, want the merkle root mr", got)
+	}
 	if got := tx.GetOutputs()[0].GetValueSats(); got != 40000 {
 		t.Errorf("the output holds %d sats, want 40000", got)
+	}
+}
+
+// A current node names the coinbase transaction by txid.
+func TestNodeTransactionNamesACoinbaseInputByTxid(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{
+		"get_transaction": `{"inputs":[{"Coinbase":{"txid":"cb","vout":1}}],` +
+			`"outputs":[{"address":"s1","content":{"BitcoinSats":40000}}]}`,
+		"get_transaction_info": `null`,
+	}}
+	src := source{name: "thunder", node: node}
+
+	tx, err := nodeTransaction(context.Background(), src, "abc")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if got := len(tx.GetInputs()); got != 1 {
+		t.Fatalf("the transaction holds %d inputs, want 1", got)
+	}
+	if got := tx.GetInputs()[0].GetTxid(); got != "cb" {
+		t.Errorf("the input names %q, want the coinbase txid cb", got)
+	}
+	if got := tx.GetInputs()[0].GetVout(); got != 1 {
+		t.Errorf("the input names output %d, want 1", got)
 	}
 }
 
