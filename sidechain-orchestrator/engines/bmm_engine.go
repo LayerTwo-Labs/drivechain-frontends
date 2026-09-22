@@ -90,6 +90,9 @@ type BmmBackend interface {
 	// BlockAfter names the mainchain block following prevMainHash on the chain
 	// ending at tipHash, empty when the walk never reaches it.
 	BlockAfter(ctx context.Context, prevMainHash, tipHash string) (string, error)
+	// TemplateOnTip reports whether a block template still builds on the
+	// sidechain tip.
+	TemplateOnTip(ctx context.Context, sidechain pb.BinaryType, blockJSON string) (bool, error)
 }
 
 // MainchainTip reports the mainchain tip the enforcer has validated.
@@ -591,9 +594,12 @@ func (e *BmmEngine) tick(ctx context.Context) {
 			return
 		}
 
-		// Same tip means the same round; the only move left is to out-bid.
+		// Same tip means the same round; the only moves left are to rebuild a
+		// stale block and to out-bid.
 		if target.lastTip == tip {
-			e.maybeRaise(ctx, sidechain, target)
+			if !e.rebuildStaleBid(ctx, sidechain, target) {
+				e.maybeRaise(ctx, sidechain, target)
+			}
 			continue
 		}
 		if !e.markTip(sidechain, tip) {
@@ -1015,6 +1021,49 @@ func (e *BmmEngine) maybeRaise(ctx context.Context, sidechain pb.BinaryType, tar
 	// The replacement carries its own critical hash. A restart that reloads
 	// the old one reads the block it paid for as lost.
 	e.save(round)
+}
+
+// rebuildStaleBid replaces the live bid when the sidechain tip moved after its
+// template, and reports whether it tried. A sidechain that syncs from its peers
+// refuses a won block on a tip it left.
+func (e *BmmEngine) rebuildStaleBid(ctx context.Context, sidechain pb.BinaryType, target bmmTarget) bool {
+	e.mu.Lock()
+	round := e.current[sidechain]
+	var live bmmstate.Bid
+	if round != nil {
+		if bid := liveBid(round); bid != nil {
+			live = *bid
+		}
+	}
+	e.mu.Unlock()
+	if live.Txid == "" {
+		return false
+	}
+
+	onTip, err := e.backend.TemplateOnTip(ctx, sidechain, live.BlockJSON)
+	if err != nil {
+		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read the sidechain tip")
+		return false
+	}
+	if onTip {
+		return false
+	}
+
+	walletID := live.WalletID
+	if walletID == "" {
+		walletID = target.walletID
+	}
+	e.log.Info().Stringer("sidechain", sidechain).Str("txid", live.Txid).
+		Msg("the sidechain tip moved, rebuilding the bmm bid")
+	if err := e.placeBid(ctx, sidechain, round, walletID, live.BidSats, 0,
+		target.maxBidSats, live.Txid, target.capToBlockWorth); err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
+			Msg("rebuilding bmm bid failed, keeping the live bid")
+		e.notify()
+		return true
+	}
+	e.save(round)
+	return true
 }
 
 func liveBid(round *bmmstate.Round) *bmmstate.Bid {

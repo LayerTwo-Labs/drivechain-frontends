@@ -57,6 +57,9 @@ type fakeBackend struct {
 	mined      map[string]bool
 	minedErr   error
 	minedReads []string
+	// sideTip is the sidechain tip every new template builds on.
+	sideTip    string
+	sideTipErr error
 }
 
 func (f *fakeBackend) CreateBid(
@@ -90,7 +93,7 @@ func (f *fakeBackend) CreateBid(
 		CriticalHash: "critical",
 		BmmTxid:      "txid-" + string(rune('0'+f.bids)),
 		FeesSats:     f.feesSats,
-		BlockJson:    "{}",
+		BlockJson:    "side:" + f.sideTip,
 		PrevMainHash: req.Msg.ExpectPrevMainHash,
 		BidSats:      bid,
 	}), nil
@@ -200,6 +203,21 @@ func (f *fakeBackend) BlockAfter(_ context.Context, _, _ string) (string, error)
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.blockAfter, f.blockAfterErr
+}
+
+func (f *fakeBackend) TemplateOnTip(_ context.Context, _ pb.BinaryType, blockJSON string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.sideTipErr != nil {
+		return false, f.sideTipErr
+	}
+	return blockJSON == "side:"+f.sideTip, nil
+}
+
+func (f *fakeBackend) moveSideTip(tip string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sideTip = tip
 }
 
 // fakeFee stands in for Core's next block estimate.
@@ -1779,4 +1797,74 @@ func TestBmmEngineStartGivesTheTipItsCountsBack(t *testing.T) {
 	backend.mu.Unlock()
 	engine.tick(ctx)
 	assert.Equal(t, before+2, backend.prepares, "the tip counts again after the start")
+}
+
+// A sidechain that syncs from its peers moves its tip under a live bid. A won
+// block on the tip it left is one the sidechain refuses.
+func TestBmmEngineRebuildsABidWhenTheSidechainTipMoves(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 30_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	backend.moveSideTip("side-1")
+	engine.tick(ctx)
+
+	require.Equal(t, 2, backend.bids, "the moved tip rebuilds the bid")
+	assert.Equal(t, "txid-1", backend.lastReplace, "the rebuild replaces our own bid")
+	assert.Equal(t, "block-1", backend.lastExpectTip, "the rebuild stays in the same round")
+	round := engine.Current(testSidechain)
+	require.Len(t, round.OurBids, 2)
+	assert.Equal(t, BidReplaced, round.OurBids[0].State)
+	assert.Equal(t, "side:side-1", liveBid(round).BlockJSON)
+
+	engine.tick(ctx)
+	assert.Equal(t, 2, backend.bids, "a bid on the tip stands")
+}
+
+// A restart resumes the round in play with the template it bid on, which the
+// sidechain can have left while the engine was down.
+func TestBmmEngineRebuildsAResumedBidOnAStaleTip(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 30_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	backend.moveSideTip("side-195")
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	restarted.resumeTargets()
+	restarted.resumeUnconnected()
+	restarted.tick(ctx)
+
+	require.Equal(t, 2, backend.bids, "the resumed bid builds on a tip the sidechain left")
+	assert.Equal(t, "txid-1", backend.lastReplace)
+
+	again := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	round := roundOn(t, again, "block-1")
+	live := liveBid(&round)
+	require.NotNil(t, live)
+	assert.Equal(t, "side:side-195", live.BlockJSON, "the rebuilt bid reaches the disk")
+}
+
+// Without a tip to compare, the engine keeps the bid it has and still raises
+// against a rival.
+func TestBmmEngineKeepsTheBidWhenTheSidechainTipCannotBeRead(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.feesSats = 50_000
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 30_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	backend.sideTipErr = errors.New("sidechain down")
+	backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 12_000}}
+	engine.tick(ctx)
+
+	require.Equal(t, 2, backend.bids, "the raise still goes out")
+	assert.Equal(t, int64(13_000), backend.lastBidSats, "a raise, not a rebuild")
 }
