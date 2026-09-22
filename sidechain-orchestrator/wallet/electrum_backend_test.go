@@ -2469,6 +2469,186 @@ func TestElectrumCreatePSBTNoReplayProtect(t *testing.T) {
 	require.NotEqual(t, replay.ReplayLockTime, packet.UnsignedTx.LockTime)
 }
 
+// A BMM wallet pays itself a change coin every block, so its chain holds a
+// thousand used addresses in a row. The walk must follow the run, or the newest
+// coins drop out of the wallet.
+func TestElectrumScanFollowsALongRunOfUsedAddresses(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	const used = 1004
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, used)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	for i, addr := range addrs {
+		fake.stats[addr] = EsploraAddressStats{
+			Address:    addr,
+			ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 1_000, SpentTxoCount: 1, SpentTxoSum: 1_000, TxCount: 2},
+		}
+		if i != used-1 {
+			continue
+		}
+		// Only the last address of the run still holds the coin.
+		fake.stats[addr] = EsploraAddressStats{
+			Address:    addr,
+			ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+		}
+		fake.utxos[addr] = []EsploraUTXO{{
+			TxID: "cc00", Vout: 0, Value: 100_000,
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+		}}
+	}
+
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+
+	balance, _, err := p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 0.001, balance, 1e-9, "the walk reaches the coin past the old ceiling")
+}
+
+// allUsedEsplora answers that every address it hears about holds history.
+type allUsedEsplora struct {
+	*fakeEsplora
+}
+
+func (a allUsedEsplora) AddressStats(_ context.Context, address string) (EsploraAddressStats, error) {
+	return EsploraAddressStats{
+		Address:    address,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 1_000, SpentTxoCount: 1, SpentTxoSum: 1_000, TxCount: 2},
+	}, nil
+}
+
+func (a allUsedEsplora) AddressUTXOs(context.Context, string) ([]EsploraUTXO, error) {
+	return nil, nil
+}
+
+func (a allUsedEsplora) AddressTxs(context.Context, string) ([]EsploraTx, error) {
+	return nil, nil
+}
+
+// An index that calls every address used must not drive an endless walk.
+func TestElectrumScanStopsAtItsCeiling(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	counting := &countingEsplora{ChainDataSource: allUsedEsplora{fakeEsplora: newFakeEsplora()}}
+	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+
+	_, _, err = p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+	calls := int(atomic.LoadInt32(&counting.statsCalls))
+	require.Positive(t, calls)
+	require.LessOrEqual(t, calls, electrumMaxChainScan*4, "the walk holds its ceiling on every chain")
+}
+
+// One walk spends its address budget and stops, whatever a previous walk reached.
+func TestElectrumScanHoldsItsWalkBudget(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	counting := &countingEsplora{ChainDataSource: allUsedEsplora{fakeEsplora: newFakeEsplora()}}
+	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	p.maxWalk = 40
+
+	_, _, err = p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+	require.LessOrEqual(t, int(atomic.LoadInt32(&counting.statsCalls)), p.maxWalk*4)
+}
+
+// A walk that ends at its ceiling leaves addresses unread, so the next one takes
+// the full gap again instead of the short lookahead.
+func TestElectrumScanKeepsTheDeepGapAfterACeiling(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	p := NewElectrumBackend(svc, allUsedEsplora{fakeEsplora: newFakeEsplora()}, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	p.maxWalk = 40
+
+	_, _, err = p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+
+	p.mu.Lock()
+	deepAt := p.deepAt[w.ID]
+	p.mu.Unlock()
+	require.True(t, deepAt.IsZero(), "the ceiling clears the deep mark")
+}
+
+// The chain grows one address per block, so a walk that ends at its ceiling must
+// let the next one carry on from there.
+func TestElectrumScanCarriesTheChainForward(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 1030)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	spend := func(addr string) {
+		fake.stats[addr] = EsploraAddressStats{
+			Address:    addr,
+			ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 1_000, SpentTxoCount: 1, SpentTxoSum: 1_000, TxCount: 2},
+		}
+	}
+	hold := func(addr, txid string) {
+		fake.stats[addr] = EsploraAddressStats{
+			Address:    addr,
+			ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+		}
+		fake.utxos[addr] = []EsploraUTXO{{
+			TxID: txid, Vout: 0, Value: 100_000,
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+		}}
+	}
+	for i := range 1004 {
+		spend(addrs[i])
+	}
+	hold(addrs[1004], "dd00")
+
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	ctx := context.Background()
+	first, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 0.001, first, 1e-9)
+
+	// The wallet spends that coin into a new change address further out.
+	spend(addrs[1004])
+	delete(fake.utxos, addrs[1004])
+	for i := 1005; i < 1020; i++ {
+		spend(addrs[i])
+	}
+	hold(addrs[1020], "dd01")
+
+	p.mu.Lock()
+	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
+	p.mu.Unlock()
+
+	second, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 0.001, second, 1e-9, "the next walk reaches the newer coin")
+}
+
+// An empty chain still ends the walk, so one wallet cannot drive an endless
+// scan.
+func TestElectrumScanStopsOnAnEmptyChain(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
+	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+
+	balance, _, err := p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+	require.Zero(t, balance)
+	require.Less(t, int(atomic.LoadInt32(&counting.statsCalls)), electrumMaxChainScan)
+}
+
 func TestGapLimitFor(t *testing.T) {
 	assert.Equal(t, 20, gapLimitFor(true))
 	assert.Equal(t, 5, gapLimitFor(false))
