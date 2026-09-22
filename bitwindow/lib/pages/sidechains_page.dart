@@ -427,15 +427,15 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       if (sidechain == null) {
         return width;
       }
-      if (sidechain.updateAvailable ||
-          viewModel._binaryProvider.isInitializing(sidechain) ||
+      if (viewModel._binaryProvider.isInitializing(sidechain) ||
           viewModel._binaryProvider.isStopping(sidechain) ||
           viewModel._downloadProgressFor(sidechain) != null ||
           (viewModel._binaryProvider.isSidechainUp(sidechain) &&
               viewModel._syncingWidget(context, sidechain) != null)) {
-        return 400;
+        return max(width, 400);
       }
-      return max(width, sidechain.isDownloaded ? 220 : 240);
+      final update = sidechain.updateAvailable ? _updateButtonWidth + SailStyleValues.padding08 : 0.0;
+      return max(width, (sidechain.isDownloaded ? 220 : 240) + update);
     });
 
     return LayoutBuilder(
@@ -582,6 +582,9 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
 
 /// Slot holds 1 to 3 digits, so it never needs the table's default minimum.
 const double _slotColumnWidth = 48;
+
+/// The Update control is an icon, so an update keeps the actions column short.
+const double _updateButtonWidth = 32;
 
 /// A balance cell carries a long number and its unit, so it keeps less padding
 /// than the rest of the row.
@@ -1028,9 +1031,10 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       );
       final syncing = _syncingWidget(context, sidechain);
       if (syncing == null) {
-        return _withUpdate(sidechain, stop);
+        return _withUpdate(context, sidechain, stop);
       }
       return _withUpdate(
+        context,
         sidechain,
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -1068,11 +1072,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     return _withUpdate(
+      context,
       sidechain,
       SailButton(
         key: ValueKey('start_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Start',
-        variant: sidechain.updateAvailable ? ButtonVariant.outline : ButtonVariant.primary,
+        variant: ButtonVariant.primary,
         onPressed: () async => await _binaryProvider.start(sidechain),
       ),
     );
@@ -1108,7 +1113,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return null;
   }
 
-  Widget _withUpdate(Sidechain sidechain, Widget action) {
+  Widget _withUpdate(BuildContext context, Sidechain sidechain, Widget action) {
     if (!sidechain.updateAvailable) {
       return action;
     }
@@ -1116,12 +1121,23 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SailButton(
-          key: ValueKey('update_slot_${sidechain.slot}_${sidechain.name}'),
-          label: 'Update',
-          icon: SailSVGAsset.circleArrowUp,
-          variant: ButtonVariant.primary,
-          onPressed: () async => _binaryProvider.update(sidechain),
+        SailTooltip(
+          message: 'Update ${sidechain.name}',
+          child: SizedBox.square(
+            dimension: _updateButtonWidth,
+            child: Semantics(
+              button: true,
+              label: 'Update ${sidechain.name}',
+              child: SailButton(
+                key: ValueKey('update_slot_${sidechain.slot}_${sidechain.name}'),
+                icon: SailSVGAsset.circleArrowUp,
+                variant: ButtonVariant.icon,
+                small: true,
+                textColor: SailTheme.of(context).colors.primary,
+                onPressed: () async => _binaryProvider.update(sidechain),
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: SailStyleValues.padding08),
         action,
