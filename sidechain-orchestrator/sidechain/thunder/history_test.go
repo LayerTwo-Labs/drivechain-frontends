@@ -200,3 +200,41 @@ func TestLocalHistoryKeepsTheOutputIndex(t *testing.T) {
 		t.Errorf("vout = %d, want 1", got.Vout)
 	}
 }
+
+// A current node names a coinbase output by its txid. An older node names the
+// block's merkle root.
+func TestLocalHistoryNamesACoinbaseOutpoint(t *testing.T) {
+	for name, tc := range map[string]struct {
+		outpoint string
+		want     string
+	}{
+		"by txid":        {`{"Coinbase":{"txid":"cb","vout":3}}`, "cb"},
+		"by merkle root": {`{"Coinbase":{"merkle_root":"mr","vout":3}}`, "mr"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			proxy := nodeWith(t, map[string]string{
+				"get_wallet_addresses": `["alice"]`,
+				"get_utxos": `[{"outpoint":` + tc.outpoint + `,
+					"output":{"address":"alice","content":{"Value":5000}}}]`,
+				"get_stxos": `[]`,
+			})
+
+			h := NewHandlerWithIndex(proxy, "")
+			resp, err := h.ListWalletTransactions(context.Background(),
+				connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+			if err != nil {
+				t.Fatalf("list: %v", err)
+			}
+			if len(resp.Msg.Transactions) != 1 {
+				t.Fatalf("got %d transactions, want 1", len(resp.Msg.Transactions))
+			}
+			got := resp.Msg.Transactions[0]
+			if got.Txid != tc.want {
+				t.Errorf("txid = %q, want %q", got.Txid, tc.want)
+			}
+			if got.Vout != 3 {
+				t.Errorf("vout = %d, want 3", got.Vout)
+			}
+		})
+	}
+}

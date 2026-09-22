@@ -143,7 +143,9 @@ type nodeTx struct {
 			Txid string `json:"txid"`
 			Vout uint32 `json:"vout"`
 		} `json:"Deposit"`
+		// An older node names a coinbase by the block's merkle root.
 		Coinbase *struct {
+			Txid       string `json:"txid"`
 			MerkleRoot string `json:"merkle_root"`
 			Vout       uint32 `json:"vout"`
 		} `json:"Coinbase"`
@@ -212,8 +214,12 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 				Txid: in.Regular.Txid, Vout: in.Regular.Vout, OutpointKind: "regular",
 			})
 		case in.Coinbase != nil:
+			txid := in.Coinbase.Txid
+			if txid == "" {
+				txid = in.Coinbase.MerkleRoot
+			}
 			out.Inputs = append(out.Inputs, &pb.Coin{
-				Txid: in.Coinbase.MerkleRoot, Vout: in.Coinbase.Vout, OutpointKind: "coinbase",
+				Txid: txid, Vout: in.Coinbase.Vout, OutpointKind: "coinbase",
 			})
 		}
 	}
