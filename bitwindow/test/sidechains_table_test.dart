@@ -118,6 +118,10 @@ Thunder _thunder({bool downloaded = true, bool updateAvailable = false}) {
 
 Finder _button(String label) => find.byWidgetPredicate((widget) => widget is SailButton && widget.label == label);
 
+final Finder _updateButton = find.byWidgetPredicate(
+  (widget) => widget is SailButton && widget.icon == SailSVGAsset.circleArrowUp,
+);
+
 SailButton _buttonWidget(WidgetTester tester, String label) => tester.widget<SailButton>(_button(label));
 
 void main() {
@@ -288,20 +292,49 @@ void main() {
     expect(_button('Stop'), findsNothing);
   });
 
-  testWidgets('an update puts a primary Update before an outline Start', (tester) async {
+  testWidgets('an update puts a small icon before a primary Start', (tester) async {
     final binaries = setUpChain(_thunder(updateAvailable: true));
     await pumpTable(tester);
 
-    final update = _buttonWidget(tester, 'Update');
-    expect(update.variant, ButtonVariant.primary);
-    expect(update.icon, SailSVGAsset.circleArrowUp);
-    expect(_buttonWidget(tester, 'Start').variant, ButtonVariant.outline);
-    expect(tester.getTopLeft(_button('Update')).dx, lessThan(tester.getTopLeft(_button('Start')).dx));
+    final update = tester.widget<SailButton>(_updateButton);
+    expect(update.variant, ButtonVariant.icon);
+    expect(update.label, isNull);
+    expect(tester.getSize(_updateButton).width, lessThanOrEqualTo(32));
+    expect(_buttonWidget(tester, 'Start').variant, ButtonVariant.primary);
+    expect(tester.getTopLeft(_updateButton).dx, lessThan(tester.getTopLeft(_button('Start')).dx));
 
-    await tester.tap(_button('Update'));
+    await tester.tap(_updateButton);
     await tester.pump(kDoubleTapTimeout);
     await tester.pumpAndSettle();
     expect(binaries.updated.single.type, BinaryType.BINARY_TYPE_THUNDER);
+  });
+
+  testWidgets('the update icon keeps a name a screen reader reads', (tester) async {
+    final semantics = tester.ensureSemantics();
+    setUpChain(_thunder(updateAvailable: true));
+    await pumpTable(tester);
+
+    expect(find.bySemanticsLabel('Update Thunder'), findsOneWidget);
+    semantics.dispose();
+  });
+
+  testWidgets('an update keeps every control of the row inside the table', (tester) async {
+    setUpChain(_thunder(updateAvailable: true));
+    GetIt.I.get<BitcoinConfProvider>().network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+    GetIt.I.get<SidechainProvider>().sidechains[2] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'BitNames', slot: 2, balanceSatoshi: Int64(142391000)),
+      [],
+      [],
+    );
+    await pumpTable(tester, narrow: true, ecash: true);
+    await _captureTable(tester, 'update');
+
+    final table = tester.getRect(find.byType(SailTable));
+    expect(tester.getRect(_updateButton).right, lessThanOrEqualTo(table.right));
+    for (final deposit in _button('Deposit').evaluate()) {
+      expect(tester.getRect(find.byWidget(deposit.widget)).right, lessThanOrEqualTo(table.right));
+    }
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('an update in progress shows Updating and a percent in place of the buttons', (tester) async {
@@ -315,7 +348,7 @@ void main() {
 
     expect(find.text('Updating'), findsOneWidget);
     expect(find.text('45%'), findsOneWidget);
-    expect(_button('Update'), findsNothing);
+    expect(_updateButton, findsNothing);
     expect(_button('Start'), findsNothing);
   });
 
