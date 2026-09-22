@@ -47,6 +47,15 @@ func bidSizing(in bidInput) (sats int64, byRate bool) {
 	return sats, sats <= 0 && in.rateSatVb > 0
 }
 
+// bidCeiling is the most a bid may pay, zero for no limit.
+func bidCeiling(in bidInput) int64 {
+	ceiling := in.maxBidSats
+	if in.capToBlockWorth && in.blockWorthSats > 0 && (ceiling <= 0 || in.blockWorthSats < ceiling) {
+		ceiling = in.blockWorthSats
+	}
+	return ceiling
+}
+
 // replacementBumpSats is the margin a replacement adds over the fees it evicts.
 // A replacement that only matches them fails the incremental relay rule.
 const replacementBumpSats = 1000
