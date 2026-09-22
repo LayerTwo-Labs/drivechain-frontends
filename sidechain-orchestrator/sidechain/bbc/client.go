@@ -110,6 +110,34 @@ func (c *Client) ChainHolds(ctx context.Context, criticalHash string, depth int)
 	return false, nil
 }
 
+// TemplateOnTip reports whether a block from GetBlockTemplate still builds on
+// the chain tip.
+func (c *Client) TemplateOnTip(ctx context.Context, block json.RawMessage) (bool, error) {
+	var template struct {
+		Hex string `json:"hex"`
+	}
+	if err := json.Unmarshal(block, &template); err != nil {
+		return false, fmt.Errorf("decode block: %w", err)
+	}
+	raw, err := hex.DecodeString(template.Hex)
+	if err != nil {
+		return false, fmt.Errorf("decode block hex: %w", err)
+	}
+	// The header opens with a 4-byte version, then the parent hash.
+	if len(raw) < 36 {
+		return false, fmt.Errorf("block of %d bytes has no parent hash", len(raw))
+	}
+	parent := slices.Clone(raw[4:36])
+	// The header holds internal byte order, and Core names a block in display order.
+	slices.Reverse(parent)
+
+	tip, err := corenode.Decode[string](ctx, c.Client, "getbestblockhash", nil)
+	if err != nil {
+		return false, err
+	}
+	return hex.EncodeToString(parent) == tip, nil
+}
+
 // GetBmmCommitment returns the sidechain block hash committed to by a mainchain
 // block, empty when that block carries no commitment.
 func (c *Client) GetBmmCommitment(ctx context.Context, mainchainBlockHash string) (string, error) {

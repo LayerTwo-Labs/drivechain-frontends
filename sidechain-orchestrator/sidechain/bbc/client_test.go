@@ -125,3 +125,42 @@ func TestBbcDrivesBmmButProposesNoBundle(t *testing.T) {
 	_, proposesBundles := node.(sidechain.WithdrawalNode)
 	assert.False(t, proposesBundles, "bbc withdrawals are not wired into consensus")
 }
+
+const (
+	internalParent = "01" + "000000000000000000000000000000000000000000000000000000000000" + "ff"
+	displayParent  = "ff" + "000000000000000000000000000000000000000000000000000000000000" + "01"
+)
+
+// templateBlock is a template block whose header names parent, in internal
+// byte order, after a 4-byte version.
+func templateBlock(parent string) json.RawMessage {
+	return json.RawMessage(`{"header":{"prev_main_hash":"aa"},"hex":"20000000` + parent + `00"}`)
+}
+
+// The header holds the parent in internal byte order, and Core names its tip in
+// display order.
+func TestTemplateOnTipReversesTheParentHash(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{"getbestblockhash": json.RawMessage(`"` + displayParent + `"`)})
+	defer srv.Close()
+
+	onTip, err := clientFor(t, srv).TemplateOnTip(context.Background(), templateBlock(internalParent))
+	require.NoError(t, err)
+	assert.True(t, onTip)
+}
+
+func TestTemplateOnTipMissesATipTheChainLeft(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{"getbestblockhash": json.RawMessage(`"` + displayParent + `"`)})
+	defer srv.Close()
+
+	onTip, err := clientFor(t, srv).TemplateOnTip(context.Background(), templateBlock(displayParent))
+	require.NoError(t, err)
+	assert.False(t, onTip)
+}
+
+func TestTemplateOnTipRefusesABlockWithoutAHeader(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{})
+	defer srv.Close()
+
+	_, err := clientFor(t, srv).TemplateOnTip(context.Background(), json.RawMessage(`{"hex":"20000000"}`))
+	require.Error(t, err)
+}

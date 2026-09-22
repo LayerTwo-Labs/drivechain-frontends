@@ -93,3 +93,31 @@ func TestChainHoldsReportsABlockReadFault(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "archive read failed")
 }
+
+func TestTemplateOnTipReadsBothHeaderShapes(t *testing.T) {
+	for name, block := range map[string]string{
+		"nested": `{"header":{"prev_side_hash":"d","prev_main_hash":"aa"},"body":{}}`,
+		"flat":   `{"prev_side_hash":"d","prev_main_hash":"aa","height":4}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			onTip, err := chainServer(t, `"d"`, nil).TemplateOnTip(context.Background(), json.RawMessage(block))
+			require.NoError(t, err)
+			assert.True(t, onTip)
+		})
+	}
+}
+
+// A node that synced from its peers moved past the block its template named.
+func TestTemplateOnTipMissesATipTheChainLeft(t *testing.T) {
+	onTip, err := chainServer(t, `"d"`, nil).TemplateOnTip(context.Background(),
+		json.RawMessage(`{"header":{"prev_side_hash":null,"prev_main_hash":"aa"},"body":{}}`))
+	require.NoError(t, err)
+	assert.False(t, onTip)
+}
+
+func TestTemplateOnTipHoldsTheFirstBlockOfAnEmptyChain(t *testing.T) {
+	onTip, err := chainServer(t, `null`, nil).TemplateOnTip(context.Background(),
+		json.RawMessage(`{"prev_side_hash":null,"prev_main_hash":"aa","height":0}`))
+	require.NoError(t, err)
+	assert.True(t, onTip)
+}

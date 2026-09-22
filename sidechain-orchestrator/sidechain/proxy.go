@@ -57,6 +57,10 @@ type BMMNode interface {
 	// ChainHolds reports whether a critical hash names one of the depth blocks
 	// nearest the tip.
 	ChainHolds(ctx context.Context, criticalHash string, depth int) (bool, error)
+
+	// TemplateOnTip reports whether a block from GetBlockTemplate still builds
+	// on the chain tip.
+	TemplateOnTip(ctx context.Context, block json.RawMessage) (bool, error)
 }
 
 // WithdrawalNode is a sidechain that proposes withdrawal bundles. A chain that

@@ -143,22 +143,45 @@ func (p *JSONRPCProxy) ChainHolds(ctx context.Context, criticalHash string, dept
 		if *next == criticalHash {
 			return true, nil
 		}
-		// Thunder and photon nest the header. The other chains flatten it.
-		var block struct {
-			Header struct {
-				PrevSideHash *string `json:"prev_side_hash"`
-			} `json:"header"`
-			PrevSideHash *string `json:"prev_side_hash"`
-		}
+		var block cusfBlock
 		if err := p.Client.Call(ctx, "get_block", []string{*next}, &block); err != nil {
 			return false, err
 		}
-		next = block.Header.PrevSideHash
-		if next == nil {
-			next = block.PrevSideHash
-		}
+		next = block.parent()
 	}
 	return false, nil
+}
+
+func (p *JSONRPCProxy) TemplateOnTip(ctx context.Context, block json.RawMessage) (bool, error) {
+	var template cusfBlock
+	if err := json.Unmarshal(block, &template); err != nil {
+		return false, fmt.Errorf("decode block header: %w", err)
+	}
+	var tip *string
+	if err := p.Client.Call(ctx, "get_best_sidechain_block_hash", nil, &tip); err != nil {
+		return false, err
+	}
+	parent := template.parent()
+	if parent == nil || tip == nil {
+		return parent == nil && tip == nil, nil
+	}
+	return *parent == *tip, nil
+}
+
+// cusfBlock reads the parent of a block. Thunder and photon nest the header.
+// The other chains flatten it. The first block has no parent.
+type cusfBlock struct {
+	Header struct {
+		PrevSideHash *string `json:"prev_side_hash"`
+	} `json:"header"`
+	PrevSideHash *string `json:"prev_side_hash"`
+}
+
+func (b cusfBlock) parent() *string {
+	if b.Header.PrevSideHash != nil {
+		return b.Header.PrevSideHash
+	}
+	return b.PrevSideHash
 }
 
 func (p *JSONRPCProxy) GetPendingWithdrawalBundle(ctx context.Context) (json.RawMessage, error) {

@@ -379,6 +379,18 @@ func templatePrevMainHash(block json.RawMessage) (string, error) {
 	return decoded.PrevMainHash, nil
 }
 
+// TemplateOnTip reports whether a block template still builds on the sidechain
+// tip.
+func (h *BMMHandler) TemplateOnTip(
+	ctx context.Context, sidechainType pb.BinaryType, blockJSON string,
+) (bool, error) {
+	_, node, err := h.sidechainTarget(sidechainType)
+	if err != nil {
+		return false, err
+	}
+	return node.TemplateOnTip(ctx, json.RawMessage(blockJSON))
+}
+
 // CreateBid assembles a sidechain block and broadcasts an M8 bid for it. The
 // bid is the transaction's fee, which is the only thing a miner can collect.
 func (h *BMMHandler) CreateBid(
