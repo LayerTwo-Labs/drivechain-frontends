@@ -47,9 +47,14 @@ const (
 	// electrumBumpFeeTarget is the confirmation target, in blocks, behind the
 	// fee rate a fee bump suggests.
 	electrumBumpFeeTarget = 3
-	// electrumMaxScan caps per-chain derivation so a misbehaving backend
-	// can't drive an unbounded scan.
-	electrumMaxScan = 1000
+	// electrumMaxWalk is the most addresses one walk touches on one chain,
+	// whatever a previous walk reached. It holds the cost of a scan even when an
+	// index calls every address it hears about used.
+	electrumMaxWalk = 50_000
+	// electrumMaxChainScan is how far one walk reaches past the highest index a
+	// previous walk saw in use, so each scan carries the chain forward from
+	// where the last one stopped.
+	electrumMaxChainScan = 10_000
 	// electrumPollTTL re-walks the cache this often even without a new block,
 	// so mempool funds surface within seconds instead of at the next block.
 	electrumPollTTL = 15 * time.Second
@@ -79,6 +84,9 @@ type ElectrumBackend struct {
 	client    ChainDataSource
 	netParams ParamsFunc
 	log       zerolog.Logger
+
+	// maxWalk is the address budget of one walk on one chain.
+	maxWalk int
 
 	// proxyChange fans a successful Tor config change out to side clients
 	// (the split engine's mainnet client), so every esplora read obeys the
@@ -129,6 +137,7 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, params ParamsFunc,
 		svc:         svc,
 		client:      client,
 		netParams:   params,
+		maxWalk:     electrumMaxWalk,
 		log:         log.With().Str("component", "electrum-backend").Logger(),
 		watchKeys:   make(map[string][]WatchKey),
 		warm:        make(map[string]bool),
@@ -2316,9 +2325,16 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 			if i < len(chainNames) {
 				chain = chainNames[i]
 			}
-			addrs, err := p.scanChain(ctx, walletID, chain, d, prior, deep, initial)
+			addrs, hitCeiling, err := p.scanChain(ctx, walletID, chain, d, prior, deep, initial)
 			if err != nil {
 				return nil, err
+			}
+			if hitCeiling {
+				// The walk left addresses unread, so the next one takes the full
+				// gap again rather than the short lookahead.
+				p.mu.Lock()
+				p.deepAt[walletID] = time.Time{}
+				p.mu.Unlock()
 			}
 			scan.addrs = append(scan.addrs, addrs...)
 		}
@@ -2722,16 +2738,19 @@ func priorHighestUsed(prior *electrumScan, kind ScriptKind, change bool) uint32 
 	return highest
 }
 
-func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, prior *electrumScan, deep, reportProgress bool) ([]scannedAddr, error) {
+// scanChain walks one chain. It reports whether the walk ended at a ceiling
+// with addresses left unread.
+func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, prior *electrumScan, deep, reportProgress bool) ([]scannedAddr, bool, error) {
 	var out []scannedAddr
 	gap := gapLimitFor(deep)
 	consecutiveUnused := 0
 	found := 0
 	var keepThrough uint32
-	for i := uint32(0); i < electrumMaxScan; i++ {
+	hitCeiling := false
+	for i := uint32(0); ; i++ {
 		a, err := derive(i)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if i == 0 {
 			keepThrough = priorHighestUsed(prior, a.kind, a.change)
@@ -2739,11 +2758,22 @@ func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string,
 		if i > keepThrough && consecutiveUnused >= gap {
 			break
 		}
+		// A wallet that pays itself a change coin every block leaves no gap, so
+		// the walk ends this far past the index the last one reached, and the
+		// next walk carries the chain further.
+		if i > keepThrough && i-keepThrough >= electrumMaxChainScan {
+			hitCeiling = true
+			break
+		}
+		if len(out) >= p.maxWalk {
+			hitCeiling = true
+			break
+		}
 		if reportProgress {
 			p.svc.syncReporter.publish(walletID, scanProgress(chain, len(out), found))
 		}
 		if err := p.hydrate(ctx, walletID, &a, prior); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		out = append(out, a)
 		if a.stats.Used() {
@@ -2753,7 +2783,11 @@ func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string,
 			consecutiveUnused++
 		}
 	}
-	return out, nil
+	if hitCeiling {
+		p.log.Warn().Str("wallet_id", walletID).Str("chain", chain).Int("addresses", len(out)).
+			Msg("the address walk hit its ceiling, so a coin further out waits for the next walk")
+	}
+	return out, hitCeiling, nil
 }
 
 // hydrate fills an address's stats and, when it has history, its UTXOs and
