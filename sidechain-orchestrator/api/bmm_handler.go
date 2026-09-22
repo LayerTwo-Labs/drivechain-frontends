@@ -412,15 +412,14 @@ func (h *BMMHandler) CreateBid(
 		))
 	}
 
-	bidSats := req.Msg.BidSats
-
-	bidSats, byRate := bidSizing(bidInput{
-		bidSats:         bidSats,
+	sizing := bidInput{
+		bidSats:         req.Msg.BidSats,
 		rateSatVb:       req.Msg.FeeRateSatVb,
 		blockWorthSats:  template.FeesSats,
 		maxBidSats:      req.Msg.MaxBidSats,
 		capToBlockWorth: req.Msg.CapToBlockWorth,
-	})
+	}
+	bidSats, byRate := bidSizing(sizing)
 
 	script, err := orchestrator.M8BmmRequestScript(
 		uint8(cfg.Slot), template.CriticalHash, prevMainHash,
@@ -438,11 +437,12 @@ func (h *BMMHandler) CreateBid(
 			return nil, err
 		}
 		requiredInputs = replacement.Inputs
-		raised, ok := replacementBid(bidSats, replacement.FloorSats, req.Msg.MaxBidSats)
+		ceiling := bidCeiling(sizing)
+		raised, ok := replacementBid(bidSats, replacement.FloorSats, ceiling)
 		if !ok {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
 				"replacing %s costs %d sats, over the %d sat ceiling",
-				req.Msg.ReplaceTxid, replacement.FloorSats, req.Msg.MaxBidSats))
+				req.Msg.ReplaceTxid, replacement.FloorSats, ceiling))
 		}
 		if raised != bidSats {
 			bidSats, byRate = raised, false

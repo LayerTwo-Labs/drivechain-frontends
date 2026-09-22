@@ -147,3 +147,38 @@ func TestReplacementBid(t *testing.T) {
 		})
 	}
 }
+
+// A replacement pays at least the fees it evicts, so the block-worth cap has to
+// bound that floor too.
+func TestBidCeiling(t *testing.T) {
+	tests := []struct {
+		name string
+		in   bidInput
+		want int64
+	}{
+		{"the max bid alone", bidInput{maxBidSats: 100_000, blockWorthSats: 5_000}, 100_000},
+		{"the cap under the max bid", bidInput{maxBidSats: 100_000, blockWorthSats: 5_000, capToBlockWorth: true}, 5_000},
+		{"the max bid under the cap", bidInput{maxBidSats: 3_000, blockWorthSats: 5_000, capToBlockWorth: true}, 3_000},
+		{"the cap with no max bid", bidInput{blockWorthSats: 5_000, capToBlockWorth: true}, 5_000},
+		{"a block worth nothing sets no cap", bidInput{maxBidSats: 100_000, capToBlockWorth: true}, 100_000},
+		{"no limit at all", bidInput{}, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := bidCeiling(tt.in); got != tt.want {
+				t.Errorf("ceiling = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+// A rebuilt block worth less than the fees the replacement evicts is refused
+// under the cap, not paid for above it.
+func TestReplacementBidHoldsTheBlockWorthCap(t *testing.T) {
+	in := bidInput{maxBidSats: 100_000, blockWorthSats: 5_000, capToBlockWorth: true}
+	sized, _ := bidSizing(in)
+	_, ok := replacementBid(sized, 12_000, bidCeiling(in))
+	if ok {
+		t.Fatal("a 12 000 sat floor over a 5 000 sat block must be refused")
+	}
+}
