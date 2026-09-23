@@ -73,6 +73,22 @@ func TestResolveCreateDerivationPath(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestPinsOneKind(t *testing.T) {
+	for path, want := range map[string]bool{
+		"":                false,
+		"m/84'/0'/0'":     false,
+		"m/86'/1'/3'":     false,
+		"m/44'/0'/0'":     true,
+		"m/49'/0'/0'":     true,
+		"m/84'/0'/0'/7":   true,
+		"m/84/0/0":        true,
+		"m/1234'/9'/0'/7": true,
+		"m/84'/x":         true,
+	} {
+		assert.Equal(t, want, PinsOneKind(path), path)
+	}
+}
+
 func TestAccountPathForOverrides(t *testing.T) {
 	net := &chaincfg.MainNetParams
 
@@ -81,10 +97,28 @@ func TestAccountPathForOverrides(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "m/84'/0'/5'", ap.String())
 
-	// Explicit path overrides purpose, ignoring AccountIndex.
-	ap, err = accountPathFor(&WalletData{AccountIndex: 5, DerivationPath: "m/86'/0'/2'"}, ScriptNativeSegwit, net)
+	// A standard account path keeps its coin and account for every kind.
+	ap, err = accountPathFor(&WalletData{AccountIndex: 5, ScriptType: "taproot", DerivationPath: "m/86'/0'/2'"}, ScriptTaproot, net)
 	require.NoError(t, err)
 	assert.Equal(t, "m/86'/0'/2'", ap.String())
+	ap, err = accountPathFor(&WalletData{AccountIndex: 5, ScriptType: "taproot", DerivationPath: "m/86'/0'/2'"}, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	assert.Equal(t, "m/84'/0'/2'", ap.String())
+
+	// A path whose purpose differs from the script type keeps its one chain.
+	pathOnly := &WalletData{DerivationPath: "m/86'/0'/0'"}
+	assert.Equal(t, []ScriptKind{ScriptNativeSegwit}, ReceiveKinds(pathOnly))
+	ap, err = accountPathFor(pathOnly, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	assert.Equal(t, "m/86'/0'/0'", ap.String())
+
+	// A path that pins one kind is used as typed.
+	ap, err = accountPathFor(&WalletData{DerivationPath: "m/49'/0'/2'"}, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	assert.Equal(t, "m/49'/0'/2'", ap.String())
+	ap, err = accountPathFor(&WalletData{DerivationPath: "m/1234'/9'/0'/7"}, ScriptTaproot, net)
+	require.NoError(t, err)
+	assert.Equal(t, "m/1234'/9'/0'/7", ap.String())
 
 	// Default (no override) is account 0.
 	ap, err = accountPathFor(&WalletData{}, ScriptNativeSegwit, net)

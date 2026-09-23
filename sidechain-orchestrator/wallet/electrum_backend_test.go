@@ -1479,6 +1479,60 @@ func TestElectrumDualKindServesAndSpendsTaproot(t *testing.T) {
 	require.Len(t, fake.broadcast, 1)
 }
 
+// A taproot wallet stored with its standard path still finds the segwit change
+// that a Core wallet on the same seed pays to.
+func TestElectrumStandardPathFindsSegwitChange(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Light", nil, nil, testMnemonic, "", "", "taproot", 0, "m/86'/1'/0'")
+	require.NoError(t, err)
+	require.Equal(t, []ScriptKind{ScriptTaproot, ScriptNativeSegwit}, ReceiveKinds(w))
+
+	acct, err := accountKeyFromSeed(w.Master.SeedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptNativeSegwit, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	chg, _, err := d.DeriveScript(true, 10, net)
+	require.NoError(t, err)
+	chgAddr := chg.address.EncodeAddress()
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+	fake.stats[chgAddr] = EsploraAddressStats{
+		Address:    chgAddr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 288_900_017_262, TxCount: 1},
+	}
+	fake.utxos[chgAddr] = []EsploraUTXO{{
+		TxID: "3333333333333333333333333333333333333333333333333333333333333333",
+		Vout: 1, Value: 288_900_017_262,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	confirmed, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 2889.00017262, confirmed, 1e-9)
+}
+
+// A cache written when the wallet scanned taproot only must not stand in for a
+// scan that now covers segwit too.
+func TestElectrumColdCacheMissingAKindIsStale(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Light", nil, nil, testMnemonic, "", "", "taproot", 0, "m/86'/1'/0'")
+	require.NoError(t, err)
+	p := NewElectrumBackend(svc, newFakeEsplora(), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+
+	d, err := p.walletDescriptorFor(w, ScriptTaproot)
+	require.NoError(t, err)
+	a, err := p.deriveAddr(d, false, 0)
+	require.NoError(t, err)
+	ps := &persistedScan{WalletID: w.ID, Addrs: []persistedAddr{{Kind: ScriptTaproot, Index: 0, Address: a.address}}}
+	require.NoError(t, svc.saveElectrumScan("signet", w.ID, ps, 100))
+
+	_, _, ok := p.rebuildScanFromDisk("signet", w.ID, w)
+	assert.False(t, ok)
+}
+
 // TestElectrumListReceivedCapsAtHighestUsed proves the receive list stops at the
 // highest external index that has received funds, plus one — not the full
 // gap-limit lookahead the scan walks.

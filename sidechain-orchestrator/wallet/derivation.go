@@ -295,7 +295,15 @@ func PurposeToCoreKind(purpose uint32) (ScriptKind, bool) {
 // standard path for the kind and network at the wallet's AccountIndex.
 func accountPathFor(w *WalletData, kind ScriptKind, net *chaincfg.Params) (AccountPath, error) {
 	if w.usesExplicitPath() {
-		return ParseAccountPath(w.DerivationPath)
+		ap, err := ParseAccountPath(w.DerivationPath)
+		if err != nil || w.pinsOneKind() {
+			return ap, err
+		}
+		purpose, ok := kind.Purpose()
+		if !ok {
+			return ap, nil
+		}
+		return AccountPath{Purpose: purpose, Coin: ap.Coin, Account: ap.Account}, nil
 	}
 	purpose, ok := kind.Purpose()
 	if !ok {
@@ -336,4 +344,26 @@ func multisigAccountPath(scriptType string, account uint32, net *chaincfg.Params
 // a full DerivationPath override (vs only shifting the account index).
 func (w *WalletData) usesExplicitPath() bool {
 	return strings.TrimSpace(w.DerivationPath) != ""
+}
+
+// PinsOneKind reports whether a derivation path limits a wallet to one script
+// kind. An empty path, or a standard segwit or taproot account, derives both.
+func PinsOneKind(derivationPath string) bool {
+	if strings.TrimSpace(derivationPath) == "" {
+		return false
+	}
+	ap, err := ParseAccountPath(derivationPath)
+	if err != nil || !ap.Standard() {
+		return true
+	}
+	return ap.Purpose != 84 && ap.Purpose != 86
+}
+
+// pinsOneKind reports whether the wallet derives one script kind only. A path
+// whose purpose differs from the stored script type keeps its old single chain.
+func (w *WalletData) pinsOneKind() bool {
+	if PinsOneKind(w.DerivationPath) {
+		return true
+	}
+	return w.usesExplicitPath() && walletReceiveKind(w) != w.scriptKind()
 }

@@ -290,14 +290,14 @@ func bytesLess(a, b []byte) bool {
 }
 
 // ReceiveKinds lists the address kinds a wallet derives, its own kind first.
-// A hot single-sig wallet on a standard path derives both segwit and taproot;
+// A hot single-sig wallet on a standard segwit or taproot account derives both;
 // everything else serves exactly one kind.
 func ReceiveKinds(w *WalletData) []ScriptKind {
 	if w == nil {
 		return nil
 	}
 	primary := w.scriptKind()
-	if w.Multisig != nil || w.IsWatchOnly() || w.usesExplicitPath() {
+	if w.Multisig != nil || w.IsWatchOnly() || w.pinsOneKind() {
 		return []ScriptKind{primary}
 	}
 	switch primary {

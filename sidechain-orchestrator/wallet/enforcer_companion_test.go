@@ -75,8 +75,8 @@ func TestCompanionOnNetworksThatRunMainnetParams(t *testing.T) {
 }
 
 // The enforcer funded these wallets before BitWindow ever imported them into
-// Core. Core imports a descriptor with importTimestamp, which reads "now" for a
-// freshly generated seed and scans nothing before the tip. A migrated wallet
+// Core. Core imports a descriptor with importTimestamp, which reads a generated
+// seed's birth and scans nothing before it. A migrated wallet
 // that keeps that default reads a zero balance, which is what the migration
 // exists to prevent.
 func TestMigratedWalletsRescanFromGenesis(t *testing.T) {
