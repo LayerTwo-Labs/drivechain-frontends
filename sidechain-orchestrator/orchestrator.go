@@ -1544,6 +1544,11 @@ func (o *Orchestrator) startCoreRestartTimer(ctx context.Context, coreMon *Conne
 // answers name a live node, and a second bitcoind on one datadir cannot run.
 func (o *Orchestrator) startOrAdoptCore(ctx context.Context, args []string) error {
 	cfg := o.configs["bitcoind"]
+	if o.BitcoinConf != nil {
+		if err := o.BitcoinConf.CreateDataDir(); err != nil {
+			return err
+		}
+	}
 	if pid := o.datadirOwnerPid(cfg); pid > 0 {
 		o.adoptCore(cfg, pid, nil)
 		return nil

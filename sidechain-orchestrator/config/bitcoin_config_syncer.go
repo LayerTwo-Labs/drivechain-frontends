@@ -314,8 +314,11 @@ func (m *BitcoinConfManager) loadStateFromConfig(fallbackNetwork Network) {
 	m.Network = NetworkFromConfig(m.Config, fallbackNetwork)
 	m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
 
-	// Ensure datadir exists — Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't
-	_ = os.MkdirAll(m.RootDataDir(), 0755)
+	// Bitcoin Core exits with a bare assertion (code -6) when the datadir is
+	// absent. A start creates it again, and reports what stops it.
+	if err := m.CreateDataDir(); err != nil {
+		m.log.Warn().Err(err).Msg("cannot create the data directory")
+	}
 	if m.DetectedDataDir == "" {
 		return
 	}
