@@ -183,6 +183,23 @@ func (m *BitcoinConfManager) RootDataDir() string {
 	return BitcoinCoreDirs.RootDirNetwork(m.Network)
 }
 
+// CreateDataDir creates the directory bitcoind runs in.
+//
+// A path the user picked must still have its parent: a disconnected disk leaves
+// none, and a recursive create would hide the chain behind an empty directory.
+func (m *BitcoinConfManager) CreateDataDir() error {
+	dir := filepath.Clean(m.RootDataDir())
+	if m.DetectedDataDir != "" {
+		if _, err := os.Stat(filepath.Dir(dir)); err != nil {
+			return fmt.Errorf("read the folder that holds the data directory %s (make sure its disk is connected): %w", dir, err)
+		}
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("create the data directory %s: %w", dir, err)
+	}
+	return nil
+}
+
 // GetRPCCookiePath returns the path Core writes its auth cookie to. An
 // rpccookiefile setting wins, absolute or relative to the network datadir.
 func (m *BitcoinConfManager) GetRPCCookiePath() string {
