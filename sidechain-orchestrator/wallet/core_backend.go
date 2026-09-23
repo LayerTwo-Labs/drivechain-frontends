@@ -1452,14 +1452,10 @@ func Bip47RescanFrom(w *WalletData) int64 {
 	return w.CreatedAt.Unix()
 }
 
-// importTimestamp is what Core rescans from. A restored seed can have history
-// of any age, and "now" would leave its balance at zero; a seed generated here
-// has none, so it scans from the tip.
+// importTimestamp is what Core rescans from: the seed's birth, or genesis when
+// the seed is restored or its birth is unknown.
 func importTimestamp(w *WalletData) any {
-	if w.Imported {
-		return int64(0)
-	}
-	return "now"
+	return Bip47RescanFrom(w)
 }
 
 // retryBip47NotificationDescriptor re-imports a notification descriptor whose
@@ -1515,8 +1511,8 @@ func (p *CoreBackend) retryBip47NotificationDescriptor(ctx context.Context, wall
 
 // createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
 // With no derivation override it imports the standard BIP84 + BIP86 descriptors
-// at account 0; an AccountIndex shifts both to that account; an explicit
-// DerivationPath imports the single descriptor for that path's purpose.
+// at account 0; an AccountIndex shifts both to that account; a DerivationPath
+// that pins one kind imports the single descriptor for that path's purpose.
 func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName string, w *WalletData) error {
 	net := p.net()
 	if net == nil {
@@ -1534,7 +1530,7 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 	fingerprint := masterFingerprint(masterKey)
 
 	var purposes []ScriptKind
-	if w.usesExplicitPath() {
+	if w.pinsOneKind() {
 		if _, err := ParseAccountPath(w.DerivationPath); err != nil {
 			return fmt.Errorf("invalid derivation path: %w", err)
 		}
@@ -1758,10 +1754,8 @@ func createAndImport(
 	return nil
 }
 
-// walletScriptKind resolves the script kind a Core wallet receives to. A wallet
-// with an explicit derivation path imports only that purpose's descriptor, so
-// the kind follows the path; otherwise the default wallet (wpkh + tr both
-// imported) gives bech32 from getnewaddress, i.e. native segwit.
+// walletScriptKind resolves the script kind a Core wallet receives to: the
+// purpose of an explicit derivation path, else native segwit.
 func (p *CoreBackend) walletScriptKind(walletID string) ScriptKind {
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {

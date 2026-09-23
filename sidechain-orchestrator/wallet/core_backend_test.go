@@ -1330,8 +1330,12 @@ func TestImportTimestampRescansRestoredSeeds(t *testing.T) {
 	if got := importTimestamp(&WalletData{Imported: true}); got != int64(0) {
 		t.Errorf("importTimestamp(imported) = %v, want int64(0) — a rescan from genesis", got)
 	}
-	if got := importTimestamp(&WalletData{}); got != "now" {
-		t.Errorf("importTimestamp(generated) = %v, want \"now\"", got)
+	born := time.Date(2026, 8, 8, 21, 14, 27, 0, time.UTC)
+	if got := importTimestamp(&WalletData{CreatedAt: born}); got != born.Unix() {
+		t.Errorf("importTimestamp(generated) = %v, want its birth %d", got, born.Unix())
+	}
+	if got := importTimestamp(&WalletData{}); got != int64(0) {
+		t.Errorf("importTimestamp(no birth) = %v, want int64(0)", got)
 	}
 }
 
@@ -1481,6 +1485,40 @@ func TestCoreBackendImportsEveryKindTheWalletAdvertises(t *testing.T) {
 	require.Len(t, singleSig, 4, "the taproot pair and the segwit pair")
 	assert.Contains(t, singleSig[0].Desc, "tr([")
 	assert.Contains(t, singleSig[2].Desc, "wpkh([")
+}
+
+// A Core wallet on a standard taproot path that holds only the taproot pair
+// gets the segwit pair on the next load.
+func TestCoreBackendAddsSegwitToStandardTaprootPath(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "m/86'/1'/0'", "taproot", testSlots)
+	require.NoError(t, err)
+
+	fake := newFakeBitcoind(t)
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	t.Cleanup(backend.bip47Imports.Wait)
+	fake.stubEnsureFlow()
+	walletName := "wallet_" + core.ID[:8]
+	fake.handle("listwallets", func(bitcoindCall) (any, string) { return []string{walletName}, "" })
+	fake.handle("listdescriptors", func(bitcoindCall) (any, string) {
+		return map[string]any{"descriptors": []map[string]any{{"active": true}, {"active": true}}}, ""
+	})
+
+	_, err = backend.Ensure(context.Background(), core.ID)
+	require.NoError(t, err)
+
+	imports := fake.callsFor("importdescriptors")
+	require.NotEmpty(t, imports)
+	var singleSig []ImportDescriptor
+	require.NoError(t, json.Unmarshal(imports[0].Params[0], &singleSig))
+	require.Len(t, singleSig, 4)
+	assert.Contains(t, singleSig[0].Desc, "tr([")
+	assert.Contains(t, singleSig[0].Desc, "/86'/1'/0']")
+	assert.Contains(t, singleSig[2].Desc, "wpkh([")
+	assert.Contains(t, singleSig[2].Desc, "/84'/1'/0']")
+	assert.Equal(t, ScriptTaproot, backend.walletScriptKind(core.ID))
 }
 
 // coreBumpFeeFixture stubs an unconfirmed wallet transaction that pays a

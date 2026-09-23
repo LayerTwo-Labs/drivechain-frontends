@@ -27,21 +27,30 @@ func TestReceiveAddressTypesFollowTheWallet(t *testing.T) {
 			want:   []pb.AddressType{pb.AddressType_ADDRESS_TYPE_TAPROOT, pb.AddressType_ADDRESS_TYPE_SEGWIT},
 		},
 		{
-			name: "an explicit path pins the wallet to one kind",
+			name: "a standard taproot path still derives both kinds",
 			wallet: wallet.WalletData{
 				WalletType:     wallet.WalletTypeElectrum,
 				ScriptType:     "taproot",
 				DerivationPath: "m/86'/0'/0'",
 			},
-			want: []pb.AddressType{pb.AddressType_ADDRESS_TYPE_TAPROOT},
+			want: []pb.AddressType{pb.AddressType_ADDRESS_TYPE_TAPROOT, pb.AddressType_ADDRESS_TYPE_SEGWIT},
 		},
 		{
-			name: "a wallet pinned to an explicit path derives that kind only",
+			name: "the enforcer path derives both kinds",
 			wallet: wallet.WalletData{
 				WalletType:     wallet.WalletTypeElectrum,
 				DerivationPath: wallet.EnforcerAccountPath,
 			},
-			want: []pb.AddressType{pb.AddressType_ADDRESS_TYPE_SEGWIT},
+			want: []pb.AddressType{pb.AddressType_ADDRESS_TYPE_SEGWIT, pb.AddressType_ADDRESS_TYPE_TAPROOT},
+		},
+		{
+			name: "a custom path pins the wallet to one kind",
+			wallet: wallet.WalletData{
+				WalletType:     wallet.WalletTypeElectrum,
+				ScriptType:     "taproot",
+				DerivationPath: "m/86'/0'/0'/5",
+			},
+			want: []pb.AddressType{pb.AddressType_ADDRESS_TYPE_TAPROOT},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

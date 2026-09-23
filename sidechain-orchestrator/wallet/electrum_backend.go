@@ -2638,6 +2638,11 @@ func (p *ElectrumBackend) rebuildScanFromDisk(network, walletID string, w *Walle
 		a.txs = pa.Txs
 		scan.addrs = append(scan.addrs, a)
 	}
+	for _, kind := range p.receiveKinds(w) {
+		if descByKind[kind] == nil {
+			return nil, nil, false
+		}
+	}
 	finalizeScan(scan)
 	return scan, ps, true
 }
