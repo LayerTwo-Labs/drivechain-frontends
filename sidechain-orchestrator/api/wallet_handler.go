@@ -1040,7 +1040,7 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 		}
 	})
 
-	bids := h.bidLabels(ctx, pbTxs)
+	bids := h.bidLabels(ctx, walletID, pbTxs)
 	for _, entry := range pbTxs {
 		entry.BmmBid = bids[entry.Txid]
 	}
@@ -1056,7 +1056,9 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 // bidLabels names the BMM request each unconfirmed transaction carries. A
 // confirmed transaction cannot be a live bid, so a settled wallet costs no
 // Core call.
-func (h *WalletHandler) bidLabels(ctx context.Context, entries []*pb.TransactionEntry) map[string]*pb.BmmBid {
+func (h *WalletHandler) bidLabels(
+	ctx context.Context, walletID string, entries []*pb.TransactionEntry,
+) map[string]*pb.BmmBid {
 	if h.orch == nil {
 		return nil
 	}
@@ -1066,10 +1068,33 @@ func (h *WalletHandler) bidLabels(ctx context.Context, entries []*pb.Transaction
 	if len(pending) == 0 {
 		return nil
 	}
+	if h.orch.NodeMode() == orchestrator.NodeModeLight {
+		return h.walletBidLabels(ctx, walletID, lo.Uniq(pending))
+	}
 	core := NewHandler(h.orch)
 	return BidLabels(ctx, func(ctx context.Context, method, paramsJSON string) (json.RawMessage, error) {
 		return core.RawCoreCall(ctx, method, paramsJSON, "")
 	}, lo.Uniq(pending))
+}
+
+// walletBidLabels reads the bids of a light install from the wallet's chain
+// source. The wallet lists a transaction unconfirmed only while a mempool holds it.
+func (h *WalletHandler) walletBidLabels(ctx context.Context, walletID string, txids []string) map[string]*pb.BmmBid {
+	tip, _, err := h.orch.ChainTip(ctx)
+	if err != nil {
+		return nil
+	}
+	chain := h.engine.ChainForWallet(walletID)
+	return labelBids(tip, txids, func(txid string) (string, error) {
+		tx, err := chain.GetRawTransaction(ctx, txid)
+		if err != nil {
+			return "", err
+		}
+		if len(tx.Vout) == 0 {
+			return "", fmt.Errorf("transaction %s has no outputs", txid)
+		}
+		return tx.Vout[0].ScriptPubKey.Hex, nil
+	}, func(string) bool { return true })
 }
 
 func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {

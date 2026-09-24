@@ -249,7 +249,11 @@ func floorOver(t *testing.T, node *nodeWithFees, roots []string) int64 {
 	h := &BMMHandler{}
 	h.SetCoreCaller(node.call)
 	source := bidSource{h: h, own: coreBids{h: h}}
-	evictedSats, err := source.evictedFeeSats(context.Background(), "", source.own.evicted(context.Background(), roots, nil))
+	evicted, err := source.own.evicted(context.Background(), "", roots, nil)
+	if err != nil {
+		t.Fatalf("evicted: %v", err)
+	}
+	evictedSats, err := source.evictedFeeSats(context.Background(), "", evicted)
 	if err != nil {
 		t.Fatalf("floor: %v", err)
 	}

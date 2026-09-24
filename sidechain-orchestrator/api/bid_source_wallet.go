@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -75,11 +76,63 @@ func (w walletBids) paidSats(ctx context.Context, walletID, txid string) (int64,
 	return w.feeSats(ctx, walletID, txid)
 }
 
-// evicted names the chain the walk passed through. Each sidechain bids from a
-// coin of its own, so the only transactions over our bid are the bids the walk
-// already found.
-func (w walletBids) evicted(_ context.Context, _, chain []string) []string {
-	return chain
+// evicted names the chain the walk passed through, and every unconfirmed
+// transaction of the wallet built on its roots.
+func (w walletBids) evicted(ctx context.Context, walletID string, roots, chain []string) ([]string, error) {
+	pending, err := w.PendingTxids(ctx, []string{walletID})
+	if err != nil {
+		return nil, err
+	}
+	parents := make(map[string][]string, len(pending))
+	for txid := range pending {
+		tx, err := w.details(ctx, walletID, txid)
+		if err != nil {
+			return nil, err
+		}
+		parents[txid] = lo.Map(tx.Inputs, func(in *wpb.TransactionInput, _ int) string { return in.PrevTxid })
+	}
+	return lo.Uniq(append(slices.Clone(chain), descendants(roots, parents)...)), nil
+}
+
+// live says whether the wallet lists txid unconfirmed. An Electrum server
+// lists only a transaction its mempool holds.
+func (w walletBids) live(ctx context.Context, walletID, txid string) bool {
+	pending, err := w.PendingTxids(ctx, []string{walletID})
+	return err == nil && pending[txid]
+}
+
+func (w walletBids) request(ctx context.Context, walletID, txid string) (*orchestrator.BmmRequest, error) {
+	details, err := w.details(ctx, walletID, txid)
+	if err != nil {
+		return nil, err
+	}
+	return m8Request(details), nil
+}
+
+func (w walletBids) vsize(ctx context.Context, walletID, txid string) (int64, error) {
+	details, err := w.details(ctx, walletID, txid)
+	if err != nil {
+		return 0, err
+	}
+	return int64(details.VsizeVbytes), nil
+}
+
+func (w walletBids) outputValues(ctx context.Context, walletID, txid string) ([]int64, error) {
+	details, err := w.details(ctx, walletID, txid)
+	if err != nil {
+		return nil, err
+	}
+	return lo.Map(details.Outputs, func(out *wpb.TransactionOutput, _ int) int64 { return out.ValueSats }), nil
+}
+
+func (w walletBids) tip(ctx context.Context) (string, error) {
+	return w.h.mainchainTip(ctx)
+}
+
+// incrementalFeeSatPerKvB answers the default of Bitcoin Core, which no
+// Electrum server reports.
+func (walletBids) incrementalFeeSatPerKvB(context.Context) (int64, error) {
+	return defaultIncrementalFeeSatPerKvB, nil
 }
 
 // pendingListCount is how much history PendingTxids asks for. An Electrum
@@ -141,14 +194,19 @@ func (w walletBids) mined(ctx context.Context, txid string) (bool, error) {
 // m8Script says whether the transaction carries a BMM request in its first
 // output, which is where an M8 sits.
 func m8Script(details *wpb.GetTransactionDetailsResponse) bool {
+	return m8Request(details) != nil
+}
+
+// m8Request reads the BMM request in the first output, nil for none.
+func m8Request(details *wpb.GetTransactionDetailsResponse) *orchestrator.BmmRequest {
 	if len(details.Outputs) == 0 {
-		return false
+		return nil
 	}
 	script, err := hex.DecodeString(details.Outputs[0].ScriptPubkeyHex)
 	if err != nil {
-		return false
+		return nil
 	}
-	return orchestrator.ParseM8BmmRequestScript(script) != nil
+	return orchestrator.ParseM8BmmRequestScript(script)
 }
 
 // frozenCoins names the candidates a live bid of ours holds. The unconfirmed

@@ -16,6 +16,10 @@ import (
 // replacement fee plus this cannot come back.
 const cancelDustSats = 546
 
+// defaultIncrementalFeeSatPerKvB is the incremental relay fee Bitcoin Core
+// takes when no node reports its own.
+const defaultIncrementalFeeSatPerKvB = 1000
+
 // CancelBid replaces a stranded bid with a payment back to its own wallet.
 //
 // The replacement respends the coins under the whole unconfirmed bid chain, so
@@ -25,9 +29,6 @@ const cancelDustSats = 546
 func (h *BMMHandler) CancelBid(
 	ctx context.Context, req *connect.Request[bmmpb.CancelBidRequest],
 ) (*connect.Response[bmmpb.CancelBidResponse], error) {
-	if err := h.requireMempoolRead("a cancel"); err != nil {
-		return nil, err
-	}
 	if h.wallet == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is loaded"))
 	}
@@ -39,38 +40,37 @@ func (h *BMMHandler) CancelBid(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	tip, err := coreTipHash(ctx, h.coreCall)
+	own := h.ownBids()
+	tip, err := own.tip(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
-	if err := h.requireStrandedBid(ctx, walletID, req.Msg.Txid, tip); err != nil {
+	if err := requireStrandedBid(ctx, own, walletID, req.Msg.Txid, tip); err != nil {
 		return nil, err
 	}
 
-	replacement, err := h.bids().Replacement(ctx, walletID, req.Msg.Txid)
+	replacement, err := bidSource{h: h, own: own}.Replacement(ctx, walletID, req.Msg.Txid)
 	if err != nil {
 		return nil, err
 	}
 	inputs, evicted := replacement.Inputs, replacement.Evicted
-	if err := h.requireNoLiveBid(ctx, evicted, tip, req.Msg.Txid); err != nil {
+	if err := requireNoLiveBid(ctx, own, walletID, evicted, tip, req.Msg.Txid); err != nil {
 		return nil, err
 	}
 
-	evictedSats := replacement.EvictedFeeSats
-	vsize, err := h.cancelVsize(ctx, replacement.Roots, len(inputs))
+	vsize, err := cancelVsize(ctx, own, walletID, replacement.Roots, len(inputs))
 	if err != nil {
 		return nil, err
 	}
-	incrementalSatPerKvB, err := incrementalRelayFeeSatPerKvB(ctx, h.coreCall)
+	incrementalSatPerKvB, err := own.incrementalFeeSatPerKvB(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
-	feeSats := cancelFeeSats(evictedSats, vsize, incrementalSatPerKvB)
-
-	totalSats, err := h.inputValueSats(ctx, inputs)
+	totalSats, err := inputValueSats(ctx, own, walletID, inputs)
 	if err != nil {
 		return nil, err
 	}
+	feeSats := cancelFeeSats(replacement.EvictedFeeSats, vsize, incrementalSatPerKvB)
 	recoveredSats := totalSats - feeSats
 	if recoveredSats < cancelDustSats {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
@@ -106,26 +106,23 @@ func (h *BMMHandler) CancelBid(
 
 // requireStrandedBid refuses a bid the next block can still take. Cancelling
 // one throws away a round the wallet already paid for.
-func (h *BMMHandler) requireStrandedBid(ctx context.Context, walletID, txid, tip string) error {
-	// A cancel refuses without a mempool read, so this reads Core alongside
-	// the two reads below it.
-	if !(coreBids{h: h}).pending(ctx, walletID, txid) {
+func requireStrandedBid(ctx context.Context, own ownBids, walletID, txid, tip string) error {
+	if !own.pending(ctx, walletID, txid) {
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
 			"%s is not an unconfirmed BMM bid", txid))
 	}
-	if !inMempool(ctx, h.coreCall, txid) {
+	if !own.live(ctx, walletID, txid) {
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
 			"bid %s is not in the mempool", txid))
 	}
-	script, err := firstOutputScript(ctx, h.coreCall, txid)
+	bid, err := own.request(ctx, walletID, txid)
 	if err != nil {
 		return connect.NewError(connect.CodeNotFound, err)
 	}
-	bid := BidLabel(script, tip)
 	if bid == nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s is not a BMM bid", txid))
 	}
-	if !bid.Lost {
+	if bid.PrevMainHash == tip {
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
 			"bid %s builds on the current tip and can still win", txid))
 	}
@@ -142,23 +139,17 @@ func cancelFeeSats(evictedSats, vsize, incrementalSatPerKvB int64) int64 {
 
 // cancelVsize bounds the size of the cancel. It spends only coins the roots
 // spend, through one output, so only a longer signature makes it larger.
-func (h *BMMHandler) cancelVsize(ctx context.Context, roots []string, inputCount int) (int64, error) {
+func cancelVsize(ctx context.Context, own ownBids, walletID string, roots []string, inputCount int) (int64, error) {
 	var total int64
 	for _, root := range roots {
-		raw, err := h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", root))
+		vsize, err := own.vsize(ctx, walletID, root)
 		if err != nil {
-			return 0, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", root, err))
+			return 0, err
 		}
-		var tx struct {
-			Vsize int64 `json:"vsize"`
-		}
-		if err := json.Unmarshal(raw, &tx); err != nil {
-			return 0, connect.NewError(connect.CodeInternal, fmt.Errorf("decode bid %s: %w", root, err))
-		}
-		if tx.Vsize <= 0 {
+		if vsize <= 0 {
 			return 0, connect.NewError(connect.CodeInternal, fmt.Errorf("bid %s reports no size", root))
 		}
-		total += tx.Vsize
+		total += vsize
 	}
 	return total + int64(inputCount), nil
 }
@@ -185,12 +176,12 @@ func incrementalRelayFeeSatPerKvB(ctx context.Context, call coreReader) (int64, 
 // requireNoLiveBid refuses a cancel that would take this round's bid with it.
 // One wallet funds every slot, so a live bid of another slot can sit on the
 // same coins.
-func (h *BMMHandler) requireNoLiveBid(ctx context.Context, evicted []string, tip, cancelling string) error {
+func requireNoLiveBid(ctx context.Context, own ownBids, walletID string, evicted []string, tip, cancelling string) error {
 	for _, txid := range evicted {
 		if txid == cancelling {
 			continue
 		}
-		req, err := h.m8Request(ctx, txid)
+		req, err := own.request(ctx, walletID, txid)
 		if err != nil || req == nil {
 			continue
 		}
@@ -204,16 +195,16 @@ func (h *BMMHandler) requireNoLiveBid(ctx context.Context, evicted []string, tip
 
 // inputValueSats totals what the named outpoints hold. It reads each parent
 // transaction one time, because a bid chain shares its parents.
-func (h *BMMHandler) inputValueSats(ctx context.Context, inputs []*wpb.UnspentOutput) (int64, error) {
+func inputValueSats(ctx context.Context, own ownBids, walletID string, inputs []*wpb.UnspentOutput) (int64, error) {
 	values := make(map[string][]int64, len(inputs))
 	var total int64
 	for _, in := range inputs {
 		outs, ok := values[in.Txid]
 		if !ok {
 			var err error
-			outs, err = outputValuesSats(ctx, h.coreCall, in.Txid)
+			outs, err = own.outputValues(ctx, walletID, in.Txid)
 			if err != nil {
-				return 0, connect.NewError(connect.CodeInternal, err)
+				return 0, err
 			}
 			values[in.Txid] = outs
 		}

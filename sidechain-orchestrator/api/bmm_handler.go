@@ -85,6 +85,8 @@ type BMMHandler struct {
 	engine *engines.BmmEngine
 	// core reads bitcoind. A test supplies its own through SetCoreCaller.
 	core CoreRawCaller
+	// chainTip reads the mainchain tip. A test supplies its own.
+	chainTip func(context.Context) (string, error)
 
 	splitMu sync.Mutex
 	// splits names the coin split each wallet waits for. Bitcoin Core lists no
@@ -120,12 +122,16 @@ func (h *BMMHandler) ReadsMempool() bool {
 	return h.runsLocalCore()
 }
 
-func (h *BMMHandler) requireMempoolRead(action string) error {
-	if h.ReadsMempool() {
-		return nil
+// mainchainTip reads the tip the enforcer validated.
+func (h *BMMHandler) mainchainTip(ctx context.Context) (string, error) {
+	if h.chainTip != nil {
+		return h.chainTip(ctx)
 	}
-	return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-		"%s reads the mainchain mempool, and light mode runs no Bitcoin Core", action))
+	tip, _, err := h.orch.ChainTip(ctx)
+	if err != nil {
+		return "", fmt.Errorf("read the mainchain tip: %w", err)
+	}
+	return tip, nil
 }
 
 // requireEnforcerSynced rejects bidding until the enforcer has validated every
