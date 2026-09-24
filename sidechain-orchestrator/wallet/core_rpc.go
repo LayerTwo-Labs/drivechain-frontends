@@ -589,6 +589,8 @@ type MempoolEntry struct {
 	Vsize int64 `json:"vsize"`
 	Fees  struct {
 		Base float64 `json:"base"`
+		// Descendant is the fee of this transaction and every child of it.
+		Descendant float64 `json:"descendant"`
 	} `json:"fees"`
 	// DescendantCount counts this transaction and every child of it.
 	DescendantCount int64 `json:"descendantcount"`
@@ -606,6 +608,25 @@ func (c *CoreRPCClient) GetMempoolEntry(ctx context.Context, txid string) (*Memp
 		return nil, fmt.Errorf("decode getmempoolentry: %w", err)
 	}
 	return &entry, nil
+}
+
+// IncrementalRelayFeeSatPerKvB is the rate a replacement pays on its own size,
+// over the fees it evicts.
+func (c *CoreRPCClient) IncrementalRelayFeeSatPerKvB(ctx context.Context) (int64, error) {
+	result, err := c.call(ctx, "", "getnetworkinfo")
+	if err != nil {
+		return 0, fmt.Errorf("read the incremental relay fee: %w", err)
+	}
+	var info struct {
+		IncrementalFee *float64 `json:"incrementalfee"`
+	}
+	if err := json.Unmarshal(result, &info); err != nil {
+		return 0, fmt.Errorf("decode the incremental relay fee: %w", err)
+	}
+	if info.IncrementalFee == nil {
+		return 0, fmt.Errorf("the node reports no incremental relay fee")
+	}
+	return btcToSats(*info.IncrementalFee), nil
 }
 
 // EstimateSmartFee returns the fee rate in sat/vB Core expects for a

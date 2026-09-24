@@ -78,6 +78,9 @@ service WalletManagerService {
   // CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
   // fee lifts the parent+child package to the target fee rate (CPFP).
   rpc CreateCpfp(CreateCpfpRequest) returns (CreateCpfpResponse);
+  // CancelTransaction replaces an unconfirmed transaction with one that pays
+  // the wallet's own inputs of it back to the wallet.
+  rpc CancelTransaction(CancelTransactionRequest) returns (CancelTransactionResponse);
   rpc DeriveAddresses(DeriveAddressesRequest) returns (DeriveAddressesResponse);
 
   // PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
@@ -1150,6 +1153,17 @@ message PreviewBumpFeeResponse {
   // The backend funds a higher fee from another coin when the chosen output
   // cannot cover it, so a replacement holds even with no plan to show.
   bool adds_inputs = 11;
+  // The cancel. Unset when the wallet cannot cancel the transaction.
+  CancelPlan cancel = 12;
+  // Why the wallet cannot cancel the transaction. Empty when cancel is set.
+  string cancel_reason = 13;
+}
+
+// CancelPlan is the transaction that pays the wallet's own inputs of an
+// unconfirmed transaction back to the wallet.
+message CancelPlan {
+  int64 recovered_sats = 1;
+  int64 fee_sats = 2;
 }
 
 // BumpFeeOutput is one output of the transaction the fee can come from.
@@ -1181,6 +1195,19 @@ message BumpFeePlan {
   bool output_removed = 8;
   // The output belongs to the recipient, not to the wallet.
   bool reduces_payment = 9;
+}
+
+message CancelTransactionRequest {
+  string wallet_id = 1;
+  string txid = 2;
+  // The fee the user confirmed. A cancel that costs more is refused.
+  int64 max_fee_sats = 3;
+}
+
+message CancelTransactionResponse {
+  string replacement_txid = 1;
+  int64 recovered_sats = 2;
+  int64 fee_sats = 3;
 }
 
 message CreateCpfpRequest {

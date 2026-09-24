@@ -60,6 +60,12 @@ type Backend interface {
 	// fee lifts the parent+child package to req.TargetRate, then broadcasts it and
 	// returns the child txid.
 	CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error)
+	// PreviewCancel reports what a cancel of an unconfirmed transaction returns.
+	PreviewCancel(ctx context.Context, walletID, txid string) (*CancelPreview, error)
+	// CancelTransaction replaces an unconfirmed transaction with one that pays
+	// the wallet's own inputs of it back to the wallet, and broadcasts it.
+	// It refuses a cancel that pays more than maxFeeSats.
+	CancelTransaction(ctx context.Context, walletID, txid string, maxFeeSats int64) (*CancelResult, error)
 
 	Chain() ChainSource
 }

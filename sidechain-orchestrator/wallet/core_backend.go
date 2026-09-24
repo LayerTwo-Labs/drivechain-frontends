@@ -1269,6 +1269,112 @@ func (p *CoreBackend) settledPlan(ctx context.Context, txid, targetAddress strin
 	return plan
 }
 
+// PreviewCancel reports what a cancel of txid returns to the wallet.
+func (p *CoreBackend) PreviewCancel(ctx context.Context, walletID, txid string) (*CancelPreview, error) {
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	return p.previewCancel(ctx, walletID, name, txid)
+}
+
+// CancelTransaction replaces txid with a transaction that pays the wallet's
+// own inputs of it back to the wallet.
+func (p *CoreBackend) CancelTransaction(ctx context.Context, walletID, txid string, maxFeeSats int64) (*CancelResult, error) {
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	preview, err := p.previewCancel(ctx, walletID, name, txid)
+	if err != nil {
+		return nil, err
+	}
+	if err := preview.allows(maxFeeSats); err != nil {
+		return nil, err
+	}
+	newTxID, err := p.Send(ctx, walletID, cancelSend(*preview.Plan))
+	if err != nil {
+		return nil, err
+	}
+	return &CancelResult{NewTxID: newTxID, Plan: *preview.Plan}, nil
+}
+
+func (p *CoreBackend) previewCancel(ctx context.Context, walletID, name, txid string) (*CancelPreview, error) {
+	entry, err := p.rpc.GetMempoolEntry(ctx, txid)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s waits in no mempool: %w", txid, err))
+	}
+	if entry.Vsize <= 0 {
+		return nil, fmt.Errorf("transaction %s reports no size", txid)
+	}
+	if w := p.svc.GetWalletByID(walletID); w != nil && w.IsWatchOnly() {
+		return &CancelPreview{Reason: "this wallet holds no key, so it cannot sign a cancel"}, nil
+	}
+	tx, err := p.rpc.GetRawTransaction(ctx, txid)
+	if err != nil {
+		return nil, err
+	}
+	own, err := p.ownInputs(ctx, name, tx)
+	if err != nil {
+		return nil, err
+	}
+	incremental, err := p.rpc.IncrementalRelayFeeSatPerKvB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rate int64
+	// A node with no fee history answers nothing; the BIP125 floor then stands.
+	if estimate, err := p.rpc.EstimateSmartFee(ctx, coreBumpFeeTarget); err == nil {
+		rate = int64(math.Ceil(estimate))
+	}
+	plan, reason := planCancel(cancelTx{
+		VsizeVBytes:          entry.Vsize,
+		OwnInputs:            own,
+		EvictedFeeSats:       btcToSats(entry.Fees.Descendant),
+		IncrementalSatPerKvB: incremental,
+		RateSatPerVB:         rate,
+		ChangeKind:           p.walletScriptKind(walletID),
+	})
+	return &CancelPreview{Plan: plan, Reason: reason}, nil
+}
+
+// ownInputs returns the inputs of tx the wallet owns, with their values. Core
+// carries no prevout for a mempool transaction, so each parent answers.
+func (p *CoreBackend) ownInputs(ctx context.Context, name string, tx *RawTransaction) ([]RequiredInput, error) {
+	parents := make(map[string]*RawTransaction)
+	var own []RequiredInput
+	for _, in := range tx.Vin {
+		if in.Coinbase != "" {
+			continue
+		}
+		parent, ok := parents[in.TxID]
+		if !ok {
+			var err error
+			parent, err = p.rpc.GetRawTransaction(ctx, in.TxID)
+			if err != nil {
+				return nil, fmt.Errorf("read the parent %s: %w", in.TxID, err)
+			}
+			parents[in.TxID] = parent
+		}
+		if in.Vout < 0 || in.Vout >= len(parent.Vout) {
+			return nil, fmt.Errorf("transaction %s has no output %d", in.TxID, in.Vout)
+		}
+		out := parent.Vout[in.Vout]
+		if out.ScriptPubKey.Address == "" {
+			continue
+		}
+		info, err := p.rpc.GetAddressInfo(ctx, name, out.ScriptPubKey.Address)
+		if err != nil {
+			return nil, err
+		}
+		if !info.IsMine {
+			continue
+		}
+		own = append(own, RequiredInput{TxID: in.TxID, Vout: in.Vout, AmountSats: btcToSats(out.Value)})
+	}
+	return own, nil
+}
+
 func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {

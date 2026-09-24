@@ -88,6 +88,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) BumpFee(arg0, arg1 any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BumpFee", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).BumpFee), arg0, arg1)
 }
 
+// CancelTransaction mocks base method.
+func (m *MockWalletManagerServiceClient) CancelTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CancelTransactionRequest]) (*connect.Response[walletmanagerv1.CancelTransactionResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelTransaction", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CancelTransactionResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelTransaction indicates an expected call of CancelTransaction.
+func (mr *MockWalletManagerServiceClientMockRecorder) CancelTransaction(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelTransaction", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).CancelTransaction), arg0, arg1)
+}
+
 // ChangePassword mocks base method.
 func (m *MockWalletManagerServiceClient) ChangePassword(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ChangePasswordRequest]) (*connect.Response[walletmanagerv1.ChangePasswordResponse], error) {
 	m.ctrl.T.Helper()
@@ -1160,6 +1175,21 @@ func (m *MockWalletManagerServiceHandler) BumpFee(arg0 context.Context, arg1 *co
 func (mr *MockWalletManagerServiceHandlerMockRecorder) BumpFee(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BumpFee", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).BumpFee), arg0, arg1)
+}
+
+// CancelTransaction mocks base method.
+func (m *MockWalletManagerServiceHandler) CancelTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CancelTransactionRequest]) (*connect.Response[walletmanagerv1.CancelTransactionResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelTransaction", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CancelTransactionResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelTransaction indicates an expected call of CancelTransaction.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) CancelTransaction(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelTransaction", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).CancelTransaction), arg0, arg1)
 }
 
 // ChangePassword mocks base method.
