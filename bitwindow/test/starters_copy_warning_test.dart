@@ -25,6 +25,9 @@ class _WalletReader extends ChangeNotifier implements WalletReaderProvider {
   String? get activeWalletId => null;
 
   @override
+  WalletData? get primaryWallet => null;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
