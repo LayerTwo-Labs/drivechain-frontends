@@ -376,6 +376,11 @@ class OrchestratorRPC {
     return _unaryClient.shutdown(ShutdownRequest(onlyIfLast: onlyIfLast));
   }
 
+  /// Makes [ownerPid] the process whose exit drains the backend.
+  Future<void> adoptOwner(int ownerPid) async {
+    await _unaryClient.adoptOwner(AdoptOwnerRequest(ownerPid: ownerPid));
+  }
+
   /// Delete the files for [items] (the same selection passed to
   /// [gatherFilesToDelete]), skipping any path in [except]. Streams one event
   /// per path; an empty [DeleteFilesResponse.error] means that path succeeded.

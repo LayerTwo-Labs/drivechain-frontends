@@ -487,6 +487,8 @@ class BinaryProvider extends ChangeNotifier {
       rethrow;
     }
 
+    await _processManager.pidFileManager.writeOwnerFile(binary, pid);
+
     // Sync RPCConnection state — daemon is running.
     _syncDaemonConnectionState(binary, running: true);
     notifyListeners();
@@ -593,6 +595,15 @@ class BinaryProvider extends ChangeNotifier {
   /// True when the daemon connects or the app window is open.
   bool isSidechainUp(Binary binary) {
     return isConnected(binary) || (_rpcFor(binary)?.windowOpen ?? false);
+  }
+
+  /// True when [binary] runs from a previous session of the app.
+  bool isAdopted(Binary binary) => _processManager.runningProcesses[binary.name]?.adopted ?? false;
+
+  /// True when another app that spawned [binary] still runs.
+  Future<bool> ownerAlive(Binary binary) async {
+    final owner = await _processManager.pidFileManager.readOwnerFile(binary);
+    return owner != null && owner != pid && await _processManager.isPidAlive(owner);
   }
 
   bool isInitializing(Binary binary) {
