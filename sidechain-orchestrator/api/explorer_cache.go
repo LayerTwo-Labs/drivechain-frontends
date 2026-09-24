@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -10,6 +11,7 @@ import (
 
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 )
 
@@ -170,29 +172,93 @@ func (h *ExplorerHandler) anchorFromCore(ctx context.Context, hash string) (main
 	return out, true
 }
 
-// anchorFromEnforcer answers for an install that runs no bitcoind. It names
-// the parent's own time, which is the earliest the block can have connected.
+// enforcerHeaderPage bounds the headers one enforcer answer carries.
+const enforcerHeaderPage = 1000
+
+// anchorFromEnforcer answers for an install that runs no bitcoind. The
+// enforcer names no next block, so it walks back from the tip to the carrier.
 func (h *ExplorerHandler) anchorFromEnforcer(ctx context.Context, hash string) (mainchainAnchor, bool) {
 	validator, err := h.orch.EnforcerValidator()
 	if err != nil {
 		return mainchainAnchor{}, false
 	}
-	resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(
-		&enforcerpb.GetBlockHeaderInfoRequest{
-			BlockHash: &commonv1.ReverseHex{Hex: wrapperspb.String(hash)},
-		}))
-	if err != nil {
+	parent, err := enforcerHeaders(ctx, validator, hash, 0)
+	if err != nil || len(parent) == 0 {
 		return mainchainAnchor{}, false
 	}
-	for _, info := range resp.Msg.GetHeaderInfos() {
-		return mainchainAnchor{parentHeight: info.GetHeight(), minedAt: int64(info.GetTimestamp())}, true
+	out := mainchainAnchor{parentHeight: parent[0].GetHeight()}
+	tip, err := validator.GetChainTip(ctx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	if err != nil {
+		return out, true
 	}
-	return mainchainAnchor{}, false
+	from := tip.Msg.GetBlockHeaderInfo()
+	for from.GetHeight() > out.parentHeight {
+		headers, err := enforcerHeaders(ctx, validator,
+			from.GetBlockHash().GetHex().GetValue(), min(from.GetHeight()-out.parentHeight-1, enforcerHeaderPage))
+		if err != nil || len(headers) == 0 {
+			return out, true
+		}
+		anchors := carrierAnchors(headers)
+		for parentHash, anchor := range anchors {
+			h.mainchain.put(parentHash, anchor)
+		}
+		if held, ok := anchors[hash]; ok {
+			return held, true
+		}
+		lowest := headers[0]
+		for _, header := range headers {
+			if header.GetHeight() < lowest.GetHeight() {
+				lowest = header
+			}
+		}
+		if lowest.GetHeight() <= out.parentHeight+1 {
+			return out, true
+		}
+		from = &enforcerpb.BlockHeaderInfo{
+			BlockHash: lowest.GetPrevBlockHash(),
+			Height:    lowest.GetHeight() - 1,
+		}
+	}
+	return out, true
+}
+
+func enforcerHeaders(
+	ctx context.Context, validator enforcerrpc.ValidatorServiceClient, hash string, ancestors uint32,
+) ([]*enforcerpb.BlockHeaderInfo, error) {
+	resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(
+		&enforcerpb.GetBlockHeaderInfoRequest{
+			BlockHash:    &commonv1.ReverseHex{Hex: wrapperspb.String(hash)},
+			MaxAncestors: &ancestors,
+		}))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg.GetHeaderInfos(), nil
+}
+
+// carrierAnchors names, for each header, the anchor of the block before it.
+func carrierAnchors(headers []*enforcerpb.BlockHeaderInfo) map[string]mainchainAnchor {
+	out := make(map[string]mainchainAnchor, len(headers))
+	for _, header := range headers {
+		if header.GetHeight() == 0 {
+			continue
+		}
+		out[header.GetPrevBlockHash().GetHex().GetValue()] = mainchainAnchor{
+			parentHeight: header.GetHeight() - 1,
+			minedAt:      int64(header.GetTimestamp()),
+		}
+	}
+	return out
 }
 
 // resolveMainchain fills in the block a header names, and when it connected.
 func (h *ExplorerHandler) resolveMainchain(ctx context.Context, blocks ...*pb.Block) {
-	for _, block := range blocks {
+	// Oldest first: one walk from the tip then holds every younger block.
+	ordered := slices.Clone(blocks)
+	slices.SortStableFunc(ordered, func(a, b *pb.Block) int {
+		return int(a.GetHeight()) - int(b.GetHeight())
+	})
+	for _, block := range ordered {
 		if block == nil || block.GetMainchainHash() == "" {
 			continue
 		}
