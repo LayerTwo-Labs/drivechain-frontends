@@ -36,6 +36,7 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
   int _requestId = 0;
   bool _loading = true;
   bool _replacing = false;
+  bool _confirmCancel = false;
   // Set when a preview fails: the plan on screen answers an older question.
   bool _stale = false;
   bool _pickOutput = false;
@@ -163,6 +164,42 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
     }
   }
 
+  Future<void> _cancel(wmpb.CancelPlan cancel) async {
+    setState(() {
+      _replacing = true;
+      _error = null;
+    });
+    try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
+      final result = await _wallet.cancelTransaction(
+        walletId: walletId,
+        txid: widget.txid,
+        maxFeeSats: cancel.feeSats.toInt(),
+      );
+      if (!mounted) {
+        GetIt.I<Logger>().i('cancelled ${widget.txid} with ${result.replacementTxid}');
+        return;
+      }
+      showSailToast(context, 'Cancelled. New txid: ${result.replacementTxid}', variant: SailToastVariant.success);
+      Navigator.of(context).pop();
+      // The network holds the cancel already. A refresh that fails changes
+      // nothing about that.
+      unawaited(_transactions.fetch());
+    } catch (e) {
+      if (!mounted) {
+        GetIt.I<Logger>().e('failed to cancel ${widget.txid}: $e');
+        return;
+      }
+      setState(() {
+        _error = e.toString();
+        _replacing = false;
+      });
+    }
+  }
+
   Future<void> _accelerate() async {
     Navigator.of(context).pop(BumpFeeOutcome.accelerate);
   }
@@ -177,6 +214,10 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
     final hasWay = plan != null || (choices?.replaceWithoutPlan ?? false);
     final canReplace = hasWay && !_loading && !_replacing && !_stale;
 
+    if (_confirmCancel && preview != null && preview.hasCancel()) {
+      return _cancelConfirmation(preview.cancel);
+    }
+
     return PopScope(
       canPop: !_replacing,
       child: SailDialog(
@@ -186,11 +227,18 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
         error: _error,
         actions: [
           SailButton(
-            label: 'Cancel',
+            label: 'Close',
             onPressed: () async => Navigator.of(context).pop(),
             variant: ButtonVariant.secondary,
             disabled: _replacing,
           ),
+          if (choices != null && choices.showCancel)
+            SailButton(
+              label: 'Cancel transaction',
+              onPressed: () async => setState(() => _confirmCancel = true),
+              variant: ButtonVariant.secondary,
+              disabled: _replacing || _loading || _stale,
+            ),
           if (choices != null && choices.showOverride)
             SailButton(
               label: 'I want to RBF it',
@@ -225,6 +273,42 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
                   if (preview != null) ..._newFee(preview),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _cancelConfirmation(wmpb.CancelPlan cancel) {
+    final formatter = GetIt.I<FormatterProvider>();
+    return PopScope(
+      canPop: !_replacing,
+      child: SailDialog(
+        title: 'Cancel the transaction',
+        maxWidth: 620,
+        maxHeight: 420,
+        error: _error,
+        actions: [
+          SailButton(
+            label: 'Back',
+            onPressed: () async => setState(() => _confirmCancel = false),
+            variant: ButtonVariant.secondary,
+            disabled: _replacing,
+          ),
+          SailButton(
+            label: _replacing ? 'Cancelling...' : 'Cancel transaction',
+            onPressed: () => _cancel(cancel),
+            variant: ButtonVariant.destructive,
+            disabled: _replacing,
+          ),
+        ],
+        child: SailColumn(
+          spacing: SailStyleValues.padding12,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DetailRow(label: 'Transaction ID', value: widget.txid),
+            DetailRow(label: 'Returns to this wallet', value: formatter.formatSats(cancel.recoveredSats.toInt())),
+            DetailRow(label: 'Fee', value: formatter.formatSats(cancel.feeSats.toInt())),
+          ],
+        ),
       ),
     );
   }

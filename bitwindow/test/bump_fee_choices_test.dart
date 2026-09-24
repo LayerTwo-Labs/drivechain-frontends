@@ -1,4 +1,5 @@
 import 'package:bitwindow/pages/wallet/bump_fee_choices.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
@@ -17,6 +18,7 @@ wmpb.PreviewBumpFeeResponse _preview({
   bool addsInputs = false,
   String reason = '',
   wmpb.BumpFeePlan? plan,
+  wmpb.CancelPlan? cancel,
   List<wmpb.BumpFeeOutput>? outputs,
 }) {
   return wmpb.PreviewBumpFeeResponse(
@@ -25,6 +27,7 @@ wmpb.PreviewBumpFeeResponse _preview({
     addsInputs: addsInputs,
     reason: reason,
     plan: plan,
+    cancel: cancel,
     outputs:
         outputs ??
         [
@@ -156,6 +159,55 @@ void main() {
       );
       expect(choices.showReplace, isTrue);
       expect(choices.replaceWithoutPlan, isFalse);
+    });
+
+    test('a cancel plan offers Cancel next to Replace', () {
+      final choices = BumpFeeChoices.of(
+        _preview(
+          canReplace: true,
+          plan: wmpb.BumpFeePlan(feeFromVout: 1),
+          cancel: wmpb.CancelPlan(recoveredSats: Int64(194668), feeSats: Int64(5332)),
+        ),
+        pickOutput: false,
+      );
+      expect(choices.showReplace, isTrue);
+      expect(choices.showCancel, isTrue);
+    });
+
+    test('a partly owned transaction offers Cancel when Replace is gone', () {
+      final choices = BumpFeeChoices.of(
+        _preview(
+          canReplace: false,
+          reason: 'this wallet signs only part of the inputs, so it cannot replace the transaction',
+          cancel: wmpb.CancelPlan(recoveredSats: Int64(1999000000), feeSats: Int64(1000)),
+          outputs: [_output(vout: 0, address: '')],
+        ),
+        pickOutput: false,
+      );
+      expect(choices.showReplace, isFalse);
+      expect(choices.showAccelerate, isFalse);
+      expect(choices.showCancel, isTrue);
+    });
+
+    test('a transaction with a child still offers Cancel', () {
+      final choices = BumpFeeChoices.of(
+        _preview(
+          canReplace: false,
+          hasChild: true,
+          reason: 'another transaction already spends this one',
+          cancel: wmpb.CancelPlan(recoveredSats: Int64(90000), feeSats: Int64(5000)),
+        ),
+        pickOutput: false,
+      );
+      expect(choices.showCancel, isTrue, reason: 'the cancel evicts the child too');
+    });
+
+    test('no cancel plan hides Cancel', () {
+      final choices = BumpFeeChoices.of(
+        _preview(canReplace: false, reason: 'this wallet signs none of the inputs'),
+        pickOutput: false,
+      );
+      expect(choices.showCancel, isFalse);
     });
 
     test('every reason the dialog prints matches a button it draws', () {

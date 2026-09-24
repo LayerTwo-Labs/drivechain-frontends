@@ -19,6 +19,9 @@ class BumpFeeChoices {
   /// A child transaction can lift this one instead.
   final bool showAccelerate;
 
+  /// The wallet can pay its own inputs of the transaction back to itself.
+  final bool showCancel;
+
   /// What went wrong, and what the user does next. Empty when a plan exists.
   final String reason;
 
@@ -27,6 +30,7 @@ class BumpFeeChoices {
     required this.replaceWithoutPlan,
     required this.showOverride,
     required this.showAccelerate,
+    required this.showCancel,
     required this.reason,
   });
 
@@ -44,6 +48,7 @@ class BumpFeeChoices {
       replaceWithoutPlan: preview.canReplace && preview.addsInputs,
       showOverride: preview.canReplace && !hasChange && !pickOutput && hasPayableOutput,
       showAccelerate: showAccelerate,
+      showCancel: preview.hasCancel(),
       reason: _reason(preview, ownsAnOutput: ownsAnOutput, showAccelerate: showAccelerate),
     );
   }
