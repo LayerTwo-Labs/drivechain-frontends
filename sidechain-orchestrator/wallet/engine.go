@@ -38,6 +38,17 @@ func (e *WalletEngine) Backend() Backend {
 	return e.backend
 }
 
+// DeleteWallet releases the wallet's backend state, then removes it from wallet.json.
+func (e *WalletEngine) DeleteWallet(ctx context.Context, walletID string) error {
+	if err := e.svc.CheckDeletable(walletID); err != nil {
+		return err
+	}
+	if err := e.backend.Forget(ctx, walletID); err != nil {
+		return err
+	}
+	return e.svc.DeleteWallet(walletID)
+}
+
 // ElectrumConfigured reports whether an electrum (Esplora) backend is wired,
 // so callers can refuse to create electrum wallets that could never sync.
 func (e *WalletEngine) ElectrumConfigured() bool {

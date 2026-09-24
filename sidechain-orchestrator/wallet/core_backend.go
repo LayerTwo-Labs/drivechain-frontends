@@ -218,6 +218,36 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	return walletName, nil
 }
 
+// Forget unloads the Core wallets of walletID, and takes them off Core's
+// startup list.
+func (p *CoreBackend) Forget(ctx context.Context, walletID string) error {
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return fmt.Errorf("wallet %s not found", walletID)
+	}
+	if w.WalletType != WalletTypeBitcoinCore {
+		return nil
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, name := range coreWalletNames(walletID) {
+		if err := p.rpc.UnloadWallet(ctx, name); err != nil && !isWalletNotLoadedErr(err) {
+			return fmt.Errorf("unload core wallet %s: %w", name, err)
+		}
+	}
+	delete(p.coreWallets, walletID)
+	delete(p.bip47NotifRetry, walletID)
+	return nil
+}
+
+// coreWalletNames lists every Core wallet name a wallet ID can own, the
+// legacy watch-only name included.
+func coreWalletNames(walletID string) []string {
+	prefix := walletID[:8]
+	return []string{"wallet_" + prefix, "watch_" + prefix}
+}
+
 // EnsureAll syncs all bitcoinCore wallets (full and watch-only) to Bitcoin Core.
 func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 	wallets := p.svc.GetAllWallets()

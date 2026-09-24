@@ -109,6 +109,22 @@ func (r *BackendRouter) Ensure(ctx context.Context, walletID string) (string, er
 	return p.Ensure(ctx, walletID)
 }
 
+// Forget sends a bitcoinCore wallet to the chain backend. No other wallet type
+// holds backend state.
+func (r *BackendRouter) Forget(ctx context.Context, walletID string) error {
+	w := r.svc.GetWalletByID(walletID)
+	if w == nil {
+		return errors.New("wallet " + walletID + " not found")
+	}
+	if w.WalletType != WalletTypeBitcoinCore {
+		return nil
+	}
+	if r.chain == nil {
+		return errors.New("bitcoin Core RPC not configured")
+	}
+	return r.chain.Forget(ctx, walletID)
+}
+
 func (r *BackendRouter) EnsureAll(ctx context.Context) (int, error) {
 	if r.chain == nil {
 		return 0, nil

@@ -174,6 +174,13 @@ func (c *CoreRPCClient) LoadWallet(ctx context.Context, name string) error {
 	return err
 }
 
+// UnloadWallet unloads a Bitcoin Core wallet, and takes it off Core's startup list.
+func (c *CoreRPCClient) UnloadWallet(ctx context.Context, name string) error {
+	const loadOnStartup = false
+	_, err := c.call(ctx, "", "unloadwallet", name, loadOnStartup)
+	return err
+}
+
 // ListWallets returns loaded wallet names.
 func (c *CoreRPCClient) ListWallets(ctx context.Context) ([]string, error) {
 	result, err := c.call(ctx, "", "listwallets")
