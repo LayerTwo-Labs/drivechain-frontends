@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // seedTopic indexes a TopicCreation directly into cn_topics so stories
@@ -165,6 +166,79 @@ func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 	assert.Equal(t, timestamps.StatusConfirming, orphaned.Status, "orphaned timestamps go back to confirming")
 	assert.Nil(t, orphaned.BlockHeight, "orphaned timestamps lose their stale height")
 	assert.Nil(t, orphaned.ConfirmedAt, "orphaned timestamps lose their stale confirmation time")
+}
+
+// A timestamp discovered in the mempool has no block yet. Recording it as
+// confirmed strands it: checkConfirmations only revisits confirming rows, so
+// it would never be promoted for real, nor failed if the transaction is
+// dropped.
+func TestHandleTimestamp_DiscoveredStatus(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name       string
+		blockhash  string
+		wantStatus timestamps.Status
+		wantHeight int64
+	}{
+		{
+			name:       "mempool transaction is confirming",
+			wantStatus: timestamps.StatusConfirming,
+		},
+		{
+			name:       "mined transaction is confirmed",
+			blockhash:  "0000000000000000000000000000000000000000000000000000000000000abc",
+			wantStatus: timestamps.StatusConfirmed,
+			wantHeight: 101,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			db := database.Test(t)
+
+			core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+			parser := &Parser{
+				db: db,
+				bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+					return core, nil
+				}),
+			}
+
+			core.EXPECT().
+				GetRawTransaction(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&corepb.GetRawTransactionResponse{
+					Blockhash: tc.blockhash,
+				}), nil)
+
+			if tc.blockhash != "" {
+				core.EXPECT().
+					GetBlock(gomock.Any(), gomock.Any()).
+					Return(connect.NewResponse(&corepb.GetBlockResponse{
+						Height: uint32(tc.wantHeight),
+						Time:   timestamppb.Now(),
+					}), nil)
+			}
+
+			hash := chainhash.Hash{byte(i + 1)}
+			data := append([]byte(TimestampPrefix), hash[:]...)
+			txid := fmt.Sprintf("%064x", i+1)
+
+			require.NoError(t, parser.handleTimestamp(ctx, data, txid, nil))
+
+			got, err := timestamps.GetByHash(ctx, db, fmt.Sprintf("%x", hash[:]))
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			assert.Equal(t, tc.wantStatus, got.Status)
+			if tc.wantHeight == 0 {
+				assert.Nil(t, got.BlockHeight)
+			} else {
+				require.NotNil(t, got.BlockHeight)
+				assert.Equal(t, tc.wantHeight, *got.BlockHeight)
+			}
+		})
+	}
 }
 
 func pkScript(t *testing.T, data []byte) []byte {

@@ -2,7 +2,9 @@ package engines
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
@@ -76,6 +78,59 @@ func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
 	require.NoError(t, e.applyM4Votes(ctx, 151, msg))
 	later, _, _ := bundleState(t, ctx, e, "bundle-a")
 	require.Equal(t, first+1, later, "a new height must still score")
+}
+
+// A bundle that died can be proposed again, and the new M3 restarts it.
+func TestPersistM3Message_ReproposalRevivesDeadBundle(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+	e := NewM4Engine(db)
+
+	propose := func(height uint32) {
+		t.Helper()
+		require.NoError(t, e.persistM3Message(ctx, &m4.M3Message{
+			BlockHeight:   height,
+			BlockHash:     fmt.Sprintf("block-%d", height),
+			BlockTime:     time.Now(),
+			SidechainSlot: 0,
+			BundleHash:    "bundle-a",
+		}))
+	}
+	firstSeen := func() (height uint32) {
+		t.Helper()
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT first_seen_height FROM withdrawal_bundles WHERE bundle_hash = ?`, "bundle-a").Scan(&height))
+		return
+	}
+
+	propose(100)
+
+	// Age it out without the votes to approve it.
+	require.NoError(t, e.updateBundleStates(ctx, 100+m4.WithdrawalMaxAge))
+	_, _, status := bundleState(t, ctx, e, "bundle-a")
+	require.Equal(t, "failed", status)
+
+	const reproposed = 100 + m4.WithdrawalMaxAge + 10
+	propose(reproposed)
+
+	score, blocksLeft, status := bundleState(t, ctx, e, "bundle-a")
+	require.Equal(t, "pending", status, "a re-proposed bundle takes votes again")
+	require.Equal(t, 1, score, "the score starts over")
+	require.Equal(t, m4.WithdrawalMaxAge, blocksLeft, "so does the clock")
+	require.Equal(t, uint32(reproposed), firstSeen())
+
+	// A bundle still in play keeps what it has.
+	idx := uint16(0)
+	require.NoError(t, e.applyM4Votes(ctx, reproposed+1, &m4.M4Message{Votes: []m4.M4Vote{{
+		SidechainSlot: 0,
+		VoteType:      m4.VoteTypeUpvote,
+		BundleIndex:   &idx,
+	}}}))
+	propose(reproposed + 5)
+
+	score, _, _ = bundleState(t, ctx, e, "bundle-a")
+	require.Equal(t, 2, score, "a pending bundle keeps its score")
+	require.Equal(t, uint32(reproposed), firstSeen(), "and its clock")
 }
 
 // A bundle first seen in an orphaned block must not survive the reorg purge.
