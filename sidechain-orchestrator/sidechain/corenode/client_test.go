@@ -55,9 +55,9 @@ func cookieFile(t *testing.T, contents string) string {
 	return path
 }
 
-func clientFor(t *testing.T, srv *httptest.Server, cookiePath string) *Client {
+func clientFor(t *testing.T, srv *httptest.Server, cookiePath string, opts Options) *Client {
 	t.Helper()
-	c := New("testchain", "127.0.0.1", 0, cookiePath)
+	c := New("testchain", "127.0.0.1", 0, cookiePath, opts)
 	c.baseURL = srv.URL
 	c.http = srv.Client()
 	return c
@@ -69,11 +69,27 @@ func TestBalanceCountsImmatureAsPending(t *testing.T) {
 	})
 	defer srv.Close()
 
-	total, available, err := clientFor(t, srv, cookieFile(t, "__cookie__:secret")).GetBalance(context.Background())
+	total, available, err := clientFor(t, srv, cookieFile(t, "__cookie__:secret"), Options{}).GetBalance(context.Background())
 	require.NoError(t, err)
 	// A peg-in lands in the coinbase, so it is immature for a hundred blocks.
 	assert.Equal(t, int64(150_000_000), available)
 	assert.Equal(t, int64(5_175_000_000), total)
+}
+
+// A fork that predates getbalances carries the same split in getwalletinfo.
+func TestLegacyBalanceReadsGetWalletInfo(t *testing.T) {
+	srv, seen := fakeNode(t, map[string]json.RawMessage{
+		"getwalletinfo": json.RawMessage(`{"balance":1.0,"unconfirmed_balance":0.25,"immature_balance":0.5}`),
+	})
+	defer srv.Close()
+
+	client := clientFor(t, srv, cookieFile(t, "__cookie__:secret"), Options{LegacyBalance: true})
+	total, available, err := client.GetBalance(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, int64(100_000_000), available)
+	assert.Equal(t, int64(175_000_000), total)
+	require.Len(t, *seen, 1)
+	assert.Equal(t, "getwalletinfo", (*seen)[0].method)
 }
 
 func TestWalletCallsAreScopedToTheWallet(t *testing.T) {
@@ -83,7 +99,7 @@ func TestWalletCallsAreScopedToTheWallet(t *testing.T) {
 	})
 	defer srv.Close()
 
-	client := clientFor(t, srv, cookieFile(t, "__cookie__:secret"))
+	client := clientFor(t, srv, cookieFile(t, "__cookie__:secret"), Options{})
 	ctx := context.Background()
 	_, err := client.GetNewAddress(ctx)
 	require.NoError(t, err)
@@ -95,11 +111,28 @@ func TestWalletCallsAreScopedToTheWallet(t *testing.T) {
 	assert.Equal(t, "/", (*seen)[1].path, "node-level RPCs must not be wallet scoped")
 }
 
+// A fork that keeps one wallet of its own answers at the root endpoint, and
+// takes the address type it documents.
+func TestWalletPathAndAddressTypeFollowTheOptions(t *testing.T) {
+	srv, seen := fakeNode(t, map[string]json.RawMessage{
+		"getnewaddress": json.RawMessage(`"XaUJwsK9hTY7m4GdKqvfTELDrtZA9Kokhm"`),
+	})
+	defer srv.Close()
+
+	client := clientFor(t, srv, cookieFile(t, "__cookie__:secret"), Options{WalletPath: "/", AddressType: "legacy"})
+	_, err := client.GetNewAddress(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, *seen, 1)
+	assert.Equal(t, "/", (*seen)[0].path)
+	assert.JSONEq(t, `["","legacy"]`, string((*seen)[0].params))
+}
+
 func TestCallsAuthenticateWithTheCookie(t *testing.T) {
 	srv, seen := fakeNode(t, map[string]json.RawMessage{"getblockcount": json.RawMessage(`1`)})
 	defer srv.Close()
 
-	_, err := clientFor(t, srv, cookieFile(t, "  __cookie__:s3cret\n")).GetBlockCount(context.Background())
+	_, err := clientFor(t, srv, cookieFile(t, "  __cookie__:s3cret\n"), Options{}).GetBlockCount(context.Background())
 	require.NoError(t, err)
 	require.Len(t, *seen, 1)
 	assert.Equal(t, "__cookie__", (*seen)[0].user)
@@ -112,7 +145,7 @@ func TestMissingCookieFailsBeforeCalling(t *testing.T) {
 	srv, seen := fakeNode(t, map[string]json.RawMessage{})
 	defer srv.Close()
 
-	_, err := clientFor(t, srv, filepath.Join(t.TempDir(), "absent")).GetBlockCount(context.Background())
+	_, err := clientFor(t, srv, filepath.Join(t.TempDir(), "absent"), Options{}).GetBlockCount(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "read rpc cookie")
 	assert.Empty(t, *seen, "must not reach the node without credentials")
@@ -124,7 +157,7 @@ func TestUnauthenticatedResponseReportsHTTPStatus(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := clientFor(t, srv, cookieFile(t, "user:pass")).GetBlockCount(context.Background())
+	_, err := clientFor(t, srv, cookieFile(t, "user:pass"), Options{}).GetBlockCount(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "401")
 }
@@ -138,7 +171,7 @@ func TestRPCErrorNamesTheChain(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := clientFor(t, srv, cookieFile(t, "user:pass")).GetBlockCount(context.Background())
+	_, err := clientFor(t, srv, cookieFile(t, "user:pass"), Options{}).GetBlockCount(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "testchain RPC error -32601")
 }
@@ -151,7 +184,7 @@ func TestFeeEstimateFallsBackWithoutHistory(t *testing.T) {
 	})
 	defer srv.Close()
 
-	rate, err := clientFor(t, srv, cookieFile(t, "user:pass")).EstimateSmartFee(context.Background())
+	rate, err := clientFor(t, srv, cookieFile(t, "user:pass"), Options{}).EstimateSmartFee(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, FallbackFeeRate, rate)
 }
@@ -180,7 +213,7 @@ func slowNode(t *testing.T, delay time.Duration) *httptest.Server {
 // connect_block stores the mainchain ancestors of the block before it answers,
 // so it takes a deadline the ordinary calls never get.
 func TestConnectBlockOutlastsAnOrdinaryCall(t *testing.T) {
-	client := clientFor(t, slowNode(t, 200*time.Millisecond), cookieFile(t, "user:pass"))
+	client := clientFor(t, slowNode(t, 200*time.Millisecond), cookieFile(t, "user:pass"), Options{})
 	client.timeout = func(method string) time.Duration {
 		if method == "connect_block" {
 			return 5 * time.Second
@@ -200,7 +233,7 @@ func TestConnectBlockOutlastsAnOrdinaryCall(t *testing.T) {
 // The longer deadline still ends the call. A node that hangs must not hold the
 // BMM engine for as long as it runs.
 func TestConnectBlockStopsAtItsOwnDeadline(t *testing.T) {
-	client := clientFor(t, slowNode(t, time.Hour), cookieFile(t, "user:pass"))
+	client := clientFor(t, slowNode(t, time.Hour), cookieFile(t, "user:pass"), Options{})
 	client.timeout = func(string) time.Duration { return 100 * time.Millisecond }
 
 	_, err := Decode[bool](context.Background(), client, "connect_block", []any{"{}", "hash"})
@@ -209,7 +242,7 @@ func TestConnectBlockStopsAtItsOwnDeadline(t *testing.T) {
 }
 
 func TestMethodTimeoutBindsTheCoreTransport(t *testing.T) {
-	client := New("testchain", "127.0.0.1", 0, "")
+	client := New("testchain", "127.0.0.1", 0, "", Options{})
 	assert.Equal(t, rpc.ConnectBlockTimeout, client.timeout("connect_block"))
 	assert.Equal(t, rpc.CallTimeout, client.timeout("getblockcount"))
 }
