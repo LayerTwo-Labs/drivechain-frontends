@@ -95,14 +95,23 @@ if command -v appimagetool >/dev/null 2>&1; then
         fi
     done
     
-    # Create .desktop file for AppImage
+    # The runner sets the program name to APPLICATION_ID, which becomes the window class.
+    application_id=$(sed -n 's/^set(APPLICATION_ID "\(.*\)")$/\1/p' "$old_cwd/linux/CMakeLists.txt")
+    if [ -z "$application_id" ]; then
+        echo "APPLICATION_ID not found in $old_cwd/linux/CMakeLists.txt"
+        exit 1
+    fi
+
     cat > "$appdir_name/$lower_app_name.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=$app_name
+Comment=Drivechain Bitcoin frontend
 Exec=$lower_app_name
 Icon=$lower_app_name
-Categories=Utility;
+Terminal=false
+Categories=Office;Finance;
+StartupWMClass=$application_id
 EOF
     
     # Copy icon from assets
