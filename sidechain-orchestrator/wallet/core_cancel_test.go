@@ -17,7 +17,7 @@ const coreCancelForeignFundingTxid = "999999999999999999999999999999999999999999
 
 // coreCancelFixture turns the bump fee transaction into a deposit-like one: a
 // foreign input sits next to the wallet's own, and a child spends it.
-func coreCancelFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, *string) {
+func coreCancelFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, *string, string) {
 	t.Helper()
 	backend, fake, coreID, paymentAddr, changeAddr := coreBumpFeeFixture(t)
 	foreignAddr := p2wpkhAddr(t, fixedKey(0x77), &chaincfg.RegressionNetParams)
@@ -71,7 +71,7 @@ func coreCancelFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, *stri
 		return map[string]any{"hex": signedHex, "complete": true}, ""
 	})
 	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "cancel-txid", "" })
-	return backend, fake, coreID, &signedHex
+	return backend, fake, coreID, &signedHex, changeAddr
 }
 
 // The cancel evicts the child too, so it outpays both: 5150 sats of evicted
@@ -79,7 +79,7 @@ func coreCancelFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, *stri
 const coreCancelFeeSats = 5_150 + 182
 
 func TestCoreBackendCancelReturnsTheOwnInputs(t *testing.T) {
-	backend, fake, coreID, signedHex := coreCancelFixture(t)
+	backend, fake, coreID, signedHex, _ := coreCancelFixture(t)
 
 	preview, err := backend.PreviewCancel(context.Background(), coreID, coreBumpTxid)
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestCoreBackendCancelReturnsTheOwnInputs(t *testing.T) {
 }
 
 func TestCoreBackendCancelRefusesATransactionWithNoOwnInput(t *testing.T) {
-	backend, fake, coreID, _ := coreCancelFixture(t)
+	backend, fake, coreID, _, _ := coreCancelFixture(t)
 	fake.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
 		return map[string]any{"address": mustString(t, c.Params[0]), "ismine": false}, ""
 	})
@@ -122,7 +122,7 @@ func TestCoreBackendCancelRefusesATransactionWithNoOwnInput(t *testing.T) {
 }
 
 func TestCoreBackendCancelRefusesAConfirmedTransaction(t *testing.T) {
-	backend, fake, coreID, _ := coreCancelFixture(t)
+	backend, fake, coreID, _, _ := coreCancelFixture(t)
 	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
 		return nil, "Transaction not in mempool"
 	})
@@ -134,11 +134,38 @@ func TestCoreBackendCancelRefusesAConfirmedTransaction(t *testing.T) {
 }
 
 func TestCoreBackendCancelRefusesAFeeOverTheConfirmedOne(t *testing.T) {
-	backend, fake, coreID, _ := coreCancelFixture(t)
+	backend, fake, coreID, _, _ := coreCancelFixture(t)
 
 	_, err := backend.CancelTransaction(context.Background(), coreID, coreBumpTxid, coreCancelFeeSats-1)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Contains(t, err.Error(), "over the 5331 sats you confirmed")
 	assert.Empty(t, fake.callsFor("sendrawtransaction"))
+}
+
+// A default node keeps no txindex. The parent of a confirmed input then answers
+// from the chain view, and the cancel preview still prices the coins.
+func TestCoreBackendCancelReadsAConfirmedParentWithoutTxindex(t *testing.T) {
+	backend, fake, coreID, _, changeAddr := coreCancelFixture(t)
+	child := fake.handlerFor("getrawtransaction")
+	fake.handle("getrawtransaction", func(c bitcoindCall) (any, string) {
+		if mustString(t, c.Params[0]) == coreBumpFundingTxid {
+			return nil, "No such mempool transaction. Use -txindex to enable blockchain transaction queries."
+		}
+		return child(c)
+	})
+	fake.handle("gettxout", func(c bitcoindCall) (any, string) {
+		if mustString(t, c.Params[0]) != coreBumpFundingTxid {
+			return nil, ""
+		}
+		return map[string]any{
+			"value":        0.002,
+			"scriptPubKey": map[string]any{"address": changeAddr},
+		}, ""
+	})
+
+	preview, err := backend.PreviewCancel(context.Background(), coreID, coreBumpTxid)
+	require.NoError(t, err)
+	require.NotNil(t, preview.Plan, preview.Reason)
+	assert.Equal(t, int64(200_000-coreCancelFeeSats), preview.Plan.RecoveredSats)
 }

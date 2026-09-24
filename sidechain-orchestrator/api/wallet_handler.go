@@ -1621,7 +1621,10 @@ func (h *WalletHandler) PreviewBumpFee(ctx context.Context, req *connect.Request
 
 	cancel, err := h.engine.Backend().PreviewCancel(ctx, walletID, req.Msg.Txid)
 	if err != nil {
-		return nil, rpcError(err)
+		// The user asked for a bump, so a cancel this node cannot price says so
+		// on its own button, and the bump preview stands.
+		resp.CancelReason = fmt.Sprintf("this node cannot price a cancel: %v", err)
+		return connect.NewResponse(resp), nil
 	}
 	resp.CancelReason = cancel.Reason
 	if cancel.Plan != nil {

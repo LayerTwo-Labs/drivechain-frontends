@@ -1347,19 +1347,10 @@ func (p *CoreBackend) ownInputs(ctx context.Context, name string, tx *RawTransac
 		if in.Coinbase != "" {
 			continue
 		}
-		parent, ok := parents[in.TxID]
-		if !ok {
-			var err error
-			parent, err = p.rpc.GetRawTransaction(ctx, in.TxID)
-			if err != nil {
-				return nil, fmt.Errorf("read the parent %s: %w", in.TxID, err)
-			}
-			parents[in.TxID] = parent
+		out, err := p.prevout(ctx, in, parents)
+		if err != nil {
+			return nil, err
 		}
-		if in.Vout < 0 || in.Vout >= len(parent.Vout) {
-			return nil, fmt.Errorf("transaction %s has no output %d", in.TxID, in.Vout)
-		}
-		out := parent.Vout[in.Vout]
 		if out.ScriptPubKey.Address == "" {
 			continue
 		}
@@ -1373,6 +1364,31 @@ func (p *CoreBackend) ownInputs(ctx context.Context, name string, tx *RawTransac
 		own = append(own, RequiredInput{TxID: in.TxID, Vout: in.Vout, AmountSats: btcToSats(out.Value)})
 	}
 	return own, nil
+}
+
+// prevout reads the output an input spends. A confirmed parent answers from the
+// chain view, because a default node keeps no txindex and drops the parent from
+// getrawtransaction. A parent in the mempool answers as a whole transaction.
+func (p *CoreBackend) prevout(ctx context.Context, in RawTxIn, parents map[string]*RawTransaction) (*RawTxOut, error) {
+	out, err := p.rpc.GetTxOut(ctx, in.TxID, in.Vout)
+	if err != nil {
+		return nil, fmt.Errorf("read the output %s:%d: %w", in.TxID, in.Vout, err)
+	}
+	if out != nil {
+		return out, nil
+	}
+	parent, ok := parents[in.TxID]
+	if !ok {
+		parent, err = p.rpc.GetRawTransaction(ctx, in.TxID)
+		if err != nil {
+			return nil, fmt.Errorf("read the parent %s: %w", in.TxID, err)
+		}
+		parents[in.TxID] = parent
+	}
+	if in.Vout < 0 || in.Vout >= len(parent.Vout) {
+		return nil, fmt.Errorf("transaction %s has no output %d", in.TxID, in.Vout)
+	}
+	return &parent.Vout[in.Vout], nil
 }
 
 func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {

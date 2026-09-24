@@ -20,12 +20,13 @@ import (
 // panics on anything the test doesn't expect.
 type recordingProvider struct {
 	wallet.Backend
-	lastSendWallet string
-	lastSend       wallet.SendRequest
-	sendErr        error
-	lastBumpWallet string
-	lastBump       wallet.BumpFeeRequest
-	bumpErr        error
+	lastSendWallet   string
+	lastSend         wallet.SendRequest
+	sendErr          error
+	lastBumpWallet   string
+	lastBump         wallet.BumpFeeRequest
+	bumpErr          error
+	cancelErr        error
 	lastCancelTxid   string
 	lastCancelMaxFee int64
 }
@@ -183,6 +184,9 @@ func (f *recordingProvider) PreviewBumpFee(ctx context.Context, walletID string,
 
 func (f *recordingProvider) PreviewCancel(ctx context.Context, walletID, txid string) (*wallet.CancelPreview, error) {
 	f.lastBumpWallet = walletID
+	if f.cancelErr != nil {
+		return nil, f.cancelErr
+	}
 	return &wallet.CancelPreview{Plan: &wallet.CancelPlan{FeeSats: 5_332, RecoveredSats: 194_668}}, nil
 }
 
@@ -289,6 +293,21 @@ func TestPreviewBumpFeeReportsEveryField(t *testing.T) {
 	assert.Equal(t, int64(194_668), msg.Cancel.RecoveredSats)
 	assert.Equal(t, int64(5_332), msg.Cancel.FeeSats)
 	assert.Empty(t, msg.CancelReason)
+}
+
+// The bump preview carries the cancel, so a cancel the node cannot price must
+// not take the bump dialog down.
+func TestPreviewBumpFeeSurvivesAFailedCancelPreview(t *testing.T) {
+	h, elecFake, _, elecID, _ := newRoutedHandler(t)
+	elecFake.cancelErr = errors.New("read the parent abc: no such mempool transaction")
+
+	resp, err := h.PreviewBumpFee(context.Background(), connect.NewRequest(&pb.PreviewBumpFeeRequest{
+		WalletId: elecID, Txid: "abc",
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, int32(2), resp.Msg.InputCount)
+	assert.Nil(t, resp.Msg.Cancel)
+	assert.Contains(t, resp.Msg.CancelReason, "cannot price a cancel")
 }
 
 func TestBumpFeeKeepsTheBackendErrorCode(t *testing.T) {
