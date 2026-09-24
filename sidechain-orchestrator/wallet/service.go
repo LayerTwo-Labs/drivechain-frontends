@@ -1485,18 +1485,35 @@ func (s *Service) UpdateWalletMetadata(walletID, name string, gradientJSON json.
 	return fmt.Errorf("wallet %s not found", walletID)
 }
 
+// CheckDeletable returns the error DeleteWallet gives for walletID, without a change.
+func (s *Service) CheckDeletable(walletID string) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return deleteRefusal(s.wallets, s.starterWalletID, walletID)
+}
+
+func deleteRefusal(wallets []WalletData, starterWalletID, walletID string) error {
+	if !lo.ContainsBy(wallets, func(w WalletData) bool { return w.ID == walletID }) {
+		return fmt.Errorf("wallet %s not found", walletID)
+	}
+	// The starter wallet's seed derives every sidechain's starter. Delete it
+	// while another wallet remains and the pin moves to a different seed, so
+	// every sidechain restarts against coins the user does not hold. Deleting
+	// the last wallet is fine: nothing is left to derive from either way.
+	if starterWalletID == walletID && len(wallets) > 1 {
+		return fmt.Errorf("wallet %s derives the sidechain starters and cannot be deleted", walletID)
+	}
+	return nil
+}
+
 func (s *Service) DeleteWallet(walletID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.log.Info().Str("wallet_id", walletID).Msg("deleting wallet")
 
-	// The starter wallet's seed derives every sidechain's starter. Delete it
-	// while another wallet remains and the pin moves to a different seed, so
-	// every sidechain restarts against coins the user does not hold. Deleting
-	// the last wallet is fine: nothing is left to derive from either way.
-	if s.starterWalletID == walletID && len(s.wallets) > 1 {
-		return fmt.Errorf("wallet %s derives the sidechain starters and cannot be deleted", walletID)
+	if err := deleteRefusal(s.wallets, s.starterWalletID, walletID); err != nil {
+		return err
 	}
 
 	newWallets := make([]WalletData, 0, len(s.wallets))
@@ -1504,10 +1521,6 @@ func (s *Service) DeleteWallet(walletID string) error {
 		if w.ID != walletID {
 			newWallets = append(newWallets, w)
 		}
-	}
-	if len(newWallets) == len(s.wallets) {
-		s.log.Warn().Str("wallet_id", walletID).Msg("delete failed: wallet not found")
-		return fmt.Errorf("wallet %s not found", walletID)
 	}
 
 	s.wallets = newWallets

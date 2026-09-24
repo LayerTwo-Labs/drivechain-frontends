@@ -323,8 +323,14 @@ func (h *WalletHandler) UpdateWalletMetadata(ctx context.Context, req *connect.R
 }
 
 func (h *WalletHandler) DeleteWallet(ctx context.Context, req *connect.Request[pb.DeleteWalletRequest]) (*connect.Response[pb.DeleteWalletResponse], error) {
-	if err := h.svc.DeleteWallet(req.Msg.WalletId); err != nil {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	if err := h.svc.CheckDeletable(req.Msg.WalletId); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if err := h.engine.DeleteWallet(ctx, req.Msg.WalletId); err != nil {
+		return nil, rpcError(err)
 	}
 	return connect.NewResponse(&pb.DeleteWalletResponse{}), nil
 }

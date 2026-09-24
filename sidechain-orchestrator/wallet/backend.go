@@ -23,6 +23,9 @@ type Backend interface {
 	Ensure(ctx context.Context, walletID string) (string, error)
 	// EnsureAll syncs every backend-backed wallet; returns the count synced.
 	EnsureAll(ctx context.Context) (int, error)
+	// Forget releases the backend state of walletID before its delete. It
+	// keeps the wallet files on disk.
+	Forget(ctx context.Context, walletID string) error
 
 	// Balance returns confirmed and unconfirmed BTC.
 	Balance(ctx context.Context, walletID string) (confirmed, unconfirmed float64, err error)

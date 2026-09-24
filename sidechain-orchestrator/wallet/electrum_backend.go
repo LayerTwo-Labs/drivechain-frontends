@@ -270,6 +270,10 @@ func (p *ElectrumBackend) Ensure(ctx context.Context, walletID string) (string, 
 	return walletID, nil
 }
 
+func (p *ElectrumBackend) Forget(ctx context.Context, walletID string) error {
+	return nil
+}
+
 func (p *ElectrumBackend) EnsureAll(ctx context.Context) (int, error) {
 	return lo.CountBy(p.svc.GetAllWallets(), func(w WalletData) bool {
 		return w.WalletType == WalletTypeElectrum
