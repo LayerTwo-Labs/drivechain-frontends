@@ -525,6 +525,26 @@ func (c *CoreRPCClient) GetRawChangeAddress(ctx context.Context, walletName, add
 	return address, nil
 }
 
+// GetTxOut reads one unspent output from the chain view, which a node without
+// txindex answers. It returns nil when the chain holds no such output, as it
+// does for a parent that still waits in the mempool.
+func (c *CoreRPCClient) GetTxOut(ctx context.Context, txid string, vout int) (*RawTxOut, error) {
+	const includeMempool = false
+	result, err := c.call(ctx, "", "gettxout", txid, vout, includeMempool)
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 || string(result) == "null" {
+		return nil, nil
+	}
+	var out RawTxOut
+	if err := json.Unmarshal(result, &out); err != nil {
+		return nil, fmt.Errorf("decode gettxout: %w", err)
+	}
+	out.N = vout
+	return &out, nil
+}
+
 func (c *CoreRPCClient) GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error) {
 	result, err := c.call(ctx, "", "getrawtransaction", txid, 2)
 	if err != nil {

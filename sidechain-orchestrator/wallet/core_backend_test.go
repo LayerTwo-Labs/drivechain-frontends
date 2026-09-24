@@ -92,6 +92,13 @@ func (f *fakeBitcoind) handle(method string, fn func(bitcoindCall) (any, string)
 	f.handlers[method] = fn
 }
 
+// handlerFor returns the handler a method holds, so a test can wrap it.
+func (f *fakeBitcoind) handlerFor(method string) func(bitcoindCall) (any, string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.handlers[method]
+}
+
 func (f *fakeBitcoind) callsFor(method string) []bitcoindCall {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -1541,6 +1548,9 @@ func coreBumpFeeFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, stri
 		}
 		return map[string]any{"vsize": 150, "fees": map[string]any{"base": float64(150) / 1e8}, "descendantcount": 1}, ""
 	})
+	// A node answers nothing here while the parent waits in the mempool. A test
+	// of a confirmed parent replaces this.
+	fake.handle("gettxout", func(bitcoindCall) (any, string) { return nil, "" })
 	fake.handle("estimatesmartfee", func(bitcoindCall) (any, string) {
 		return map[string]any{"feerate": 0.00002, "blocks": 3}, ""
 	})
