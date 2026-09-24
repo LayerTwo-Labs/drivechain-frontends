@@ -62,6 +62,32 @@ func TestPaymentCode_RejectsWrongVersionByte(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestPaymentCode_RejectsNonCanonicalEncodings pins that a second encoding of
+// the same key material — features byte set, or any reserved byte non-zero —
+// does not parse. Such a code derives exactly the same addresses as the
+// canonical one, so accepting it splits the send-index state and reuses them.
+func TestPaymentCode_RejectsNonCanonicalEncodings(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		mutate func(*PaymentCode)
+	}{
+		{"features byte set", func(pc *PaymentCode) { pc.Features = 0x01 }},
+		{"first reserved byte set", func(pc *PaymentCode) { pc.Reserved[0] = 0x01 }},
+		{"last reserved byte set", func(pc *PaymentCode) { pc.Reserved[12] = 0x01 }},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			pc, err := ParsePaymentCode(bobPaymentCode)
+			require.NoError(t, err)
+			tt.mutate(pc)
+
+			alias := pc.Base58()
+			require.NotEqual(t, bobPaymentCode, alias)
+			_, err = ParsePaymentCode(alias)
+			require.Error(t, err)
+		})
+	}
+}
+
 func TestNotificationAddress_AliceMainnet(t *testing.T) {
 	pc, err := ParsePaymentCode(alicePaymentCode)
 	require.NoError(t, err)
