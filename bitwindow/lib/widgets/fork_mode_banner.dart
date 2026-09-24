@@ -503,7 +503,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       showSailToast(
         context,
         'Claimed ${broadcast + drafted} of ${planned.length} wallet(s). First error: $firstError',
-        duration: const Duration(seconds: 5),
+        variant: SailToastVariant.destructive,
       );
       return;
     }

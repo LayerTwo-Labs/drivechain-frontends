@@ -249,7 +249,7 @@ class SidechainProposalViewModel extends BaseViewModel {
       commitHashController.clear();
     } catch (e) {
       if (context.mounted) {
-        showSailToast(context, 'Failed to propose sidechain: $e');
+        showSailToast(context, 'Failed to propose sidechain: $e', variant: SailToastVariant.destructive);
       }
       setErrorForObject('proposal', e);
     } finally {

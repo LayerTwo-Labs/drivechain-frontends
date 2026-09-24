@@ -354,7 +354,7 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
         log.e('faucet claim failed', error: error, stackTrace: stackTrace);
       }
       if (mounted) {
-        showSailToast(context, 'Failed to claim from faucet: $userMessage');
+        showSailToast(context, 'Failed to claim from faucet: $userMessage', variant: SailToastVariant.destructive);
       }
     } finally {
       if (mounted) {

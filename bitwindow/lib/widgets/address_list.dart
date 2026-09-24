@@ -128,7 +128,7 @@ class AddressBookViewModel extends BaseViewModel {
       }
     } catch (e) {
       if (context.mounted) {
-        showSailToast(context, 'Export failed: $e');
+        showSailToast(context, 'Export failed: $e', variant: SailToastVariant.destructive);
       }
     } finally {
       setBusy(false);
@@ -157,7 +157,7 @@ class AddressBookViewModel extends BaseViewModel {
       }
     } catch (e) {
       if (context.mounted) {
-        showSailToast(context, 'Import failed: $e');
+        showSailToast(context, 'Import failed: $e', variant: SailToastVariant.destructive);
       }
     } finally {
       setBusy(false);

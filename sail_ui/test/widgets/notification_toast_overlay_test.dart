@@ -62,4 +62,33 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
     expect(find.text('Transaction sent'), findsNothing);
   });
+
+  testWidgets('an error notification stays until the user closes it', (tester) async {
+    await tester.pumpWidget(
+      SailApp(
+        dense: false,
+        accentColor: SailColorScheme.orange,
+        log: GetIt.I.get<Logger>(),
+        builder: (_) => const MaterialApp(
+          home: Scaffold(
+            body: Stack(children: [NotificationToastOverlay()]),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    GetIt.I.get<NotificationProvider>().add(
+      title: 'Send failed',
+      content: 'insufficient funds',
+      dialogType: DialogType.error,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 1));
+    expect(find.text('Send failed'), findsOneWidget);
+
+    await tester.tap(find.byType(SailButton));
+    await tester.pump();
+    expect(find.text('Send failed'), findsNothing);
+  });
 }

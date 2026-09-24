@@ -270,7 +270,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
           context,
           'Failed to save key: $e',
           variant: SailToastVariant.destructive,
-          duration: const Duration(seconds: 3),
         );
       }
     }

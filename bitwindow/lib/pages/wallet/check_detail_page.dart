@@ -108,6 +108,7 @@ class CheckDetailViewModel extends BaseViewModel {
       showSailToast(
         context,
         'Failed to fund check: $e',
+        variant: SailToastVariant.destructive,
       );
     }
   }
@@ -172,7 +173,7 @@ class CheckDetailViewModel extends BaseViewModel {
           showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSailToast(context, 'Failed to sweep check: $e');
+        showSailToast(context, 'Failed to sweep check: $e', variant: SailToastVariant.destructive);
       }
     }
   }

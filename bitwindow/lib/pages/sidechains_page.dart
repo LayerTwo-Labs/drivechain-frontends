@@ -1697,11 +1697,11 @@ class _DepositModalState extends State<DepositModal> {
       return;
     }
     if (double.tryParse(amountController.text) == null) {
-      showSailToast(context, 'Invalid amount, enter a number');
+      showSailToast(context, 'Invalid amount, enter a number', variant: SailToastVariant.destructive);
       return;
     }
     if (double.tryParse(feeController.text) == null) {
-      showSailToast(context, 'Invalid fee, enter a number');
+      showSailToast(context, 'Invalid fee, enter a number', variant: SailToastVariant.destructive);
       return;
     }
 
@@ -1737,7 +1737,7 @@ class _DepositModalState extends State<DepositModal> {
       await sidechainProvider.fetch();
     } catch (e) {
       if (mounted) {
-        showSailToast(context, 'Could not create deposit:\n$e');
+        showSailToast(context, 'Could not create deposit:\n$e', variant: SailToastVariant.destructive);
       }
     } finally {
       if (mounted) {

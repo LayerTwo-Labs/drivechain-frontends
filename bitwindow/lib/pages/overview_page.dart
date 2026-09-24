@@ -796,7 +796,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
       }
       Navigator.of(context).pop();
     } catch (e) {
-      showSailToast(context, 'could not broadcast news: $e');
+      showSailToast(context, 'could not broadcast news: $e', variant: SailToastVariant.destructive);
     }
   }
 
@@ -1098,7 +1098,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       nameController.clear();
       retentionDaysController.text = '7';
     } catch (e) {
-      showSailToast(context, 'Could not create topic: $e');
+      showSailToast(context, 'Could not create topic: $e', variant: SailToastVariant.destructive);
     }
   }
 
@@ -1121,7 +1121,11 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     final match = regex.firstMatch(url);
 
     if (match == null) {
-      showSailToast(context, 'Invalid URL format. Expected: {days}{identifier}Name');
+      showSailToast(
+        context,
+        'Invalid URL format. Expected: {days}{identifier}Name',
+        variant: SailToastVariant.destructive,
+      );
       return;
     }
 
@@ -1138,7 +1142,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       showSailToast(context, 'Subscribed to "$name"! txid: ${response.txid.substring(0, 8)}...');
       urlController.clear();
     } catch (e) {
-      showSailToast(context, 'Could not subscribe: $e');
+      showSailToast(context, 'Could not subscribe: $e', variant: SailToastVariant.destructive);
     }
   }
 
@@ -1198,7 +1202,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     if (imported > 0) {
       showSailToast(context, 'Imported $imported topic(s)${failed > 0 ? ', $failed failed' : ''}');
     } else if (failed > 0) {
-      showSailToast(context, 'Failed to import $failed topic(s)');
+      showSailToast(context, 'Failed to import $failed topic(s)', variant: SailToastVariant.destructive);
     } else {
       showSailToast(context, 'No new topics to import');
     }
@@ -1329,7 +1333,7 @@ class NewGraffitiViewModel extends BaseViewModel {
       if (!context.mounted) {
         return;
       }
-      showSailToast(context, 'could not broadcast graffiti: $e');
+      showSailToast(context, 'could not broadcast graffiti: $e', variant: SailToastVariant.destructive);
     }
   }
 

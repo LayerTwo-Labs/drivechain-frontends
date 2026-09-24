@@ -693,7 +693,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       }
     } catch (error) {
       if (context.mounted) {
-        showSailToast(context, 'Export failed: $error');
+        showSailToast(context, 'Export failed: $error', variant: SailToastVariant.destructive);
       }
       modelError = error.toString();
       notifyListeners();
@@ -736,7 +736,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     } catch (e) {
       log.e('failed to cancel bid ${tx.txid}: $e');
       if (context.mounted) {
-        showSailToast(context, 'Failed to cancel the bid: $e');
+        showSailToast(context, 'Failed to cancel the bid: $e', variant: SailToastVariant.destructive);
       }
     }
   }
@@ -799,7 +799,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     } catch (e) {
       log.e('Failed to accelerate (CPFP): $e');
       if (context.mounted) {
-        showSailToast(context, 'Failed to accelerate: $e');
+        showSailToast(context, 'Failed to accelerate: $e', variant: SailToastVariant.destructive);
       }
     }
   }

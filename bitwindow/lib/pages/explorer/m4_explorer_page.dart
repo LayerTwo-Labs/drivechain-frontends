@@ -330,7 +330,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                         }
                       } catch (e) {
                         if (context.mounted) {
-                          showSailToast(context, 'Failed to set vote: $e');
+                          showSailToast(context, 'Failed to set vote: $e', variant: SailToastVariant.destructive);
                         }
                       }
                     },
@@ -348,7 +348,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
     final result = await _m4Provider.generateM4Bytes();
     if (result == null) {
       if (mounted) {
-        showSailToast(context, 'Failed to generate M4 bytes');
+        showSailToast(context, 'Failed to generate M4 bytes', variant: SailToastVariant.destructive);
       }
       return;
     }

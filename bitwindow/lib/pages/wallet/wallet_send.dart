@@ -921,7 +921,7 @@ class SendPageViewModel extends BaseViewModel {
     } catch (error) {
       log.e('Error sending transaction: $error');
       if (context.mounted) {
-        showSailToast(context, 'Could not send transaction $error', duration: const Duration(seconds: 5));
+        showSailToast(context, 'Could not send transaction $error', variant: SailToastVariant.destructive);
       }
     } finally {
       setBusy(false);
@@ -967,7 +967,7 @@ class SendPageViewModel extends BaseViewModel {
     } catch (error) {
       log.e('Error saving draft: $error');
       if (context.mounted) {
-        showSailToast(context, 'Could not save transaction $error', duration: const Duration(seconds: 5));
+        showSailToast(context, 'Could not save transaction $error', variant: SailToastVariant.destructive);
       }
     }
   }
@@ -1016,7 +1016,7 @@ class SendPageViewModel extends BaseViewModel {
     } catch (error) {
       log.e('Error building unsigned PSBT: $error');
       if (context.mounted) {
-        showSailToast(context, 'Could not build PSBT $error', duration: const Duration(seconds: 5));
+        showSailToast(context, 'Could not build PSBT $error', variant: SailToastVariant.destructive);
       }
       return null;
     } finally {
@@ -1352,7 +1352,7 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
                 } catch (e) {
                   widget.log.e('Error saving to address book: $e');
                   if (context.mounted) {
-                    showSailToast(context, 'Failed to save address: $e');
+                    showSailToast(context, 'Failed to save address: $e', variant: SailToastVariant.destructive);
                   }
                 }
               },

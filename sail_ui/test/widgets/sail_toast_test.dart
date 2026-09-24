@@ -66,6 +66,35 @@ void main() {
       expect(find.text('temporary'), findsNothing);
     });
 
+    testWidgets('a destructive toast stays until the user closes it', (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        _app(
+          Builder(
+            builder: (c) {
+              ctx = c;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      showSailToast(
+        ctx,
+        'broken',
+        variant: SailToastVariant.destructive,
+        duration: const Duration(milliseconds: 100),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(const Duration(minutes: 1));
+      expect(find.text('broken'), findsOneWidget);
+
+      await tester.tap(find.text(String.fromCharCode(0x00D7)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.text('broken'), findsNothing);
+    });
+
     testWidgets('stacks multiple toasts', (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(

@@ -350,7 +350,11 @@ class ChecksTable extends StatelessWidget {
       if (success) {
         showSailToast(context, 'Check deleted successfully');
       } else {
-        showSailToast(context, checkProvider.modelError ?? 'Failed to delete check');
+        showSailToast(
+          context,
+          checkProvider.modelError ?? 'Failed to delete check',
+          variant: SailToastVariant.destructive,
+        );
       }
     }
   }

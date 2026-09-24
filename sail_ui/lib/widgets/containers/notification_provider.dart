@@ -112,7 +112,9 @@ class NotificationProvider extends ChangeNotifier {
       notifications.removeLast();
     }
 
-    // Automatically dismiss the notification after a set duration
+    if (dialogType == DialogType.error) {
+      return;
+    }
     Future.delayed(const Duration(seconds: 5), () {
       notifications.remove(notification);
       notifyListeners();

@@ -484,7 +484,7 @@ class BitDriveViewModel extends BaseViewModel {
         } catch (e) {
           Logger().e('Error reading file: $e');
           if (context.mounted) {
-            showSailToast(context, 'Error reading file: $e');
+            showSailToast(context, 'Error reading file: $e', variant: SailToastVariant.destructive);
           }
           return;
         }
@@ -503,7 +503,7 @@ class BitDriveViewModel extends BaseViewModel {
     } catch (e) {
       Logger().e('Error picking file: $e');
       if (context.mounted) {
-        showSailToast(context, 'Error picking file: $e');
+        showSailToast(context, 'Error picking file: $e', variant: SailToastVariant.destructive);
       }
     }
   }
@@ -521,7 +521,7 @@ class BitDriveViewModel extends BaseViewModel {
     } catch (e) {
       setError(e.toString());
       if (context.mounted) {
-        showSailToast(context, 'Failed to store content: $e');
+        showSailToast(context, 'Failed to store content: $e', variant: SailToastVariant.destructive);
       }
     } finally {
       setBusy(false);

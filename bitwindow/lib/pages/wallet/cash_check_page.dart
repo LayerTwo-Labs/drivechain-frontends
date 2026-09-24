@@ -135,7 +135,7 @@ class _CashCheckPageState extends State<CashCheckPage> {
           showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSailToast(context, 'Failed to cash check: $e');
+        showSailToast(context, 'Failed to cash check: $e', variant: SailToastVariant.destructive);
       }
     } finally {
       if (mounted) {

@@ -166,7 +166,7 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
       return true;
     } catch (e) {
       if (mounted) {
-        showSailToast(context, '$failure: ${extractConnectException(e)}');
+        showSailToast(context, '$failure: ${extractConnectException(e)}', variant: SailToastVariant.destructive);
       }
       return false;
     }

@@ -14,6 +14,7 @@ class SailToastAction {
   const SailToastAction({required this.label, required this.onPressed});
 }
 
+/// A destructive toast ignores [duration] and stays until the user closes it.
 void showSailToast(
   BuildContext context,
   String message, {
@@ -123,7 +124,9 @@ class _SailToastEntry {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       visible.value = true;
     });
-    _timer = Timer(spec.duration, dismiss);
+    if (spec.variant != SailToastVariant.destructive) {
+      _timer = Timer(spec.duration, dismiss);
+    }
   }
 
   void dismiss() {
