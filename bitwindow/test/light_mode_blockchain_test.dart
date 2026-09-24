@@ -39,6 +39,7 @@ class _CountingBitwindowdAPI extends MockBitwindowdAPI {
   }
 
   Object? blockError;
+  int tip = 7;
 
   @override
   Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) async {
@@ -49,7 +50,7 @@ class _CountingBitwindowdAPI extends MockBitwindowdAPI {
     if (blockError case final err?) {
       throw err;
     }
-    return (<Block>[Block(height: 7)], false);
+    return (<Block>[Block(height: tip)], false);
   }
 }
 
@@ -164,6 +165,21 @@ void main() {
     await provider.fetch();
 
     expect(output.lines.where((l) => l.contains('no such column')).length, 1);
+  });
+
+  test('a new block reaches the list', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    await pumpEventQueue();
+    GetIt.I.get<SyncProvider>().onNewBlock((_) => provider.fetch());
+    GetIt.I.get<SyncProvider>().maybeFireNewBlock(7);
+    await pumpEventQueue();
+    expect(provider.blocks.map((b) => b.height), [7]);
+
+    rpc.api.tip = 8;
+    GetIt.I.get<SyncProvider>().maybeFireNewBlock(8);
+    await pumpEventQueue();
+
+    expect(provider.blocks.map((b) => b.height), [8]);
   });
 
   test('blocks poll in full mode', () async {
