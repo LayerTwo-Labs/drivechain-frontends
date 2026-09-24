@@ -36,10 +36,11 @@ import (
 )
 
 type configg struct {
-	enforcer     mainchainv1connect.ValidatorServiceClient
-	crypto       cryptov1connect.CryptoServiceClient
-	bitcoind     bitcoindv1alphaconnect.BitcoinServiceClient
-	orchestrator orchrpc.WalletManagerServiceClient
+	enforcer      mainchainv1connect.ValidatorServiceClient
+	blockProducer mainchainv1connect.BlockProducerServiceClient
+	crypto        cryptov1connect.CryptoServiceClient
+	bitcoind      bitcoindv1alphaconnect.BitcoinServiceClient
+	orchestrator  orchrpc.WalletManagerServiceClient
 	// walletType is the backend of the fixture wallet. Electrum by default: it
 	// starts no local node, so a test opts in to Core only when it needs one.
 	walletType string
@@ -78,6 +79,10 @@ func newConfig(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) conf
 
 func WithValidator(validator mainchainv1connect.ValidatorServiceClient) ServerOpt {
 	return func(opt *configg) { opt.enforcer = validator }
+}
+
+func WithBlockProducer(producer mainchainv1connect.BlockProducerServiceClient) ServerOpt {
+	return func(opt *configg) { opt.blockProducer = producer }
 }
 
 func WithCrypto(crypto cryptov1connect.CryptoServiceClient) ServerOpt {
@@ -134,6 +139,12 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		Database: database,
 		EnforcerConnector: func(ctx context.Context) (mainchainv1connect.ValidatorServiceClient, error) {
 			return conf.enforcer, nil
+		},
+		BlockProducerConnector: func(ctx context.Context) (mainchainv1connect.BlockProducerServiceClient, error) {
+			if conf.blockProducer == nil {
+				return nil, fmt.Errorf("block producer not available in tests")
+			}
+			return conf.blockProducer, nil
 		},
 		CryptoConnector: func(ctx context.Context) (cryptov1connect.CryptoServiceClient, error) {
 			return conf.crypto, nil

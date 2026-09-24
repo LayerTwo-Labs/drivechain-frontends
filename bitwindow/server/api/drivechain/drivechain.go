@@ -3,7 +3,6 @@ package api_drivechain
 import (
 	"context"
 	"fmt"
-	"io"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -301,37 +300,17 @@ func (s *Server) ProposeSidechain(
 		},
 	}
 
-	// Call wallet's CreateSidechainProposal - this returns a stream
-	proposalReq := &validatorpb.CreateSidechainProposalRequest{
+	_, err = producer.SubmitSidechainProposal(ctx, connect.NewRequest(&validatorpb.SubmitSidechainProposalRequest{
 		SidechainId: wrapperspb.UInt32(c.Msg.Slot),
 		Declaration: declaration,
-	}
-
-	stream, err := producer.CreateSidechainProposal(ctx, connect.NewRequest(proposalReq))
+	}))
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("propose sidechain failed")
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("propose sidechain: %w", err))
-	}
-
-	// Read the first response from the stream to confirm it was accepted
-	// The stream will continue sending updates as the proposal gets mined
-	if stream.Receive() {
-		response := stream.Msg()
-		zerolog.Ctx(ctx).Info().
-			Uint32("slot", c.Msg.Slot).
-			Interface("response", response).
-			Msg("sidechain proposal created")
-	}
-
-	// Close the stream since we only need confirmation
-	if err := stream.Close(); err != nil && err != io.EOF {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("error closing proposal stream")
+		return nil, fmt.Errorf("propose sidechain: %w", err)
 	}
 
 	return connect.NewResponse(&pb.ProposeSidechainResponse{
 		Success: true,
-		Message: fmt.Sprintf("Sidechain %d proposal created. Will be included in the next mined block.", c.Msg.Slot),
+		Message: fmt.Sprintf("Sidechain %d proposal saved. It goes into the chain only when this node mines a block.", c.Msg.Slot),
 	}), nil
 }
 

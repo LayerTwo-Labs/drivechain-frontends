@@ -2,6 +2,7 @@ package api_drivechain_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -12,6 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -363,6 +365,54 @@ func TestService_ProposeSidechain(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
+
+	proposeWith := func(t *testing.T, producer *fakeProducer) (*connect.Response[pb.ProposeSidechainResponse], error) {
+		orchestrator := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+		apitests.ExpectOrchestratorReads(orchestrator)
+		cli := rpc.NewDrivechainServiceClient(apitests.API(t, database.Test(t),
+			apitests.WithOrchestrator(orchestrator),
+			apitests.WithBlockProducer(producer),
+		))
+		return cli.ProposeSidechain(context.Background(), connect.NewRequest(&pb.ProposeSidechainRequest{
+			Slot:  3,
+			Title: "RISCy",
+		}))
+	}
+
+	t.Run("submits the proposal", func(t *testing.T) {
+		t.Parallel()
+
+		producer := &fakeProducer{}
+		resp, err := proposeWith(t, producer)
+		require.NoError(t, err)
+		assert.True(t, resp.Msg.Success)
+		require.NotNil(t, producer.submitted)
+		assert.Equal(t, uint32(3), producer.submitted.GetSidechainId().GetValue())
+		assert.Equal(t, "RISCy", producer.submitted.GetDeclaration().GetV0().GetTitle().GetValue())
+	})
+
+	t.Run("reports an enforcer refusal", func(t *testing.T) {
+		t.Parallel()
+
+		producer := &fakeProducer{err: connect.NewError(connect.CodeAlreadyExists, errors.New("Sidechain proposal already exists"))}
+		_, err := proposeWith(t, producer)
+		require.Error(t, err)
+		assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+	})
+}
+
+type fakeProducer struct {
+	mainchainv1connect.BlockProducerServiceClient
+	err       error
+	submitted *mainchainv1.SubmitSidechainProposalRequest
+}
+
+func (f *fakeProducer) SubmitSidechainProposal(_ context.Context, req *connect.Request[mainchainv1.SubmitSidechainProposalRequest]) (*connect.Response[mainchainv1.SubmitSidechainProposalResponse], error) {
+	f.submitted = req.Msg
+	if f.err != nil {
+		return nil, f.err
+	}
+	return connect.NewResponse(&mainchainv1.SubmitSidechainProposalResponse{}), nil
 }
 
 func TestService_ListWithdrawals(t *testing.T) {
