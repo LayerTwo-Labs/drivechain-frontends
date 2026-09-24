@@ -3,9 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	"connectrpc.com/connect"
 
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -58,7 +61,19 @@ type ownBids interface {
 	// paidSats reports what txid pays a miner, false for one no source names.
 	paidSats(ctx context.Context, walletID, txid string) (int64, bool, error)
 	// evicted names every bid a replacement of the walked chain removes.
-	evicted(ctx context.Context, roots, chain []string) []string
+	evicted(ctx context.Context, walletID string, roots, chain []string) ([]string, error)
+	// live says whether the chain source still holds unconfirmed txid.
+	live(ctx context.Context, walletID, txid string) bool
+	// request reads the BMM request txid carries, nil for none.
+	request(ctx context.Context, walletID, txid string) (*orchestrator.BmmRequest, error)
+	// vsize reads the size of txid in vbytes.
+	vsize(ctx context.Context, walletID, txid string) (int64, error)
+	// outputValues reads what each output of txid holds, in sats.
+	outputValues(ctx context.Context, walletID, txid string) ([]int64, error)
+	// tip reads the mainchain tip hash.
+	tip(ctx context.Context) (string, error)
+	// incrementalFeeSatPerKvB is the rate a replacement pays on its own size.
+	incrementalFeeSatPerKvB(ctx context.Context) (int64, error)
 	// PendingTxids names our own transactions no block carries yet, over every
 	// wallet in walletIDs.
 	PendingTxids(ctx context.Context, walletIDs []string) (map[string]bool, error)
@@ -71,10 +86,14 @@ type ownBids interface {
 // bids builds the source for this install. It is the only place that reads the
 // node mode: every caller below it works the same way in both.
 func (h *BMMHandler) bids() BidSource {
+	return bidSource{h: h, own: h.ownBids()}
+}
+
+func (h *BMMHandler) ownBids() ownBids {
 	if h.ReadsMempool() {
-		return bidSource{h: h, own: coreBids{h: h}}
+		return coreBids{h: h}
 	}
-	return bidSource{h: h, own: walletBids{h: h}}
+	return walletBids{h: h}
 }
 
 type bidSource struct {
@@ -173,7 +192,10 @@ func (s bidSource) Replacement(ctx context.Context, walletID, txid string) (Repl
 			fmt.Errorf("bid %s has no inputs to reuse", txid))
 	}
 
-	evicted := s.own.evicted(ctx, roots, chain)
+	evicted, err := s.own.evicted(ctx, walletID, roots, chain)
+	if err != nil {
+		return Replacement{}, err
+	}
 	evictedSats, err := s.evictedFeeSats(ctx, walletID, evicted)
 	if err != nil {
 		return Replacement{}, err
@@ -212,4 +234,27 @@ func floorSats(evictedSats int64) int64 {
 		return 0
 	}
 	return evictedSats + replacementBumpSats
+}
+
+// descendants names every transaction in parents that spends a root, directly
+// or through another one. parents maps a txid to the txids its inputs spend.
+func descendants(roots []string, parents map[string][]string) []string {
+	dead := make(map[string]bool, len(roots))
+	for _, root := range roots {
+		dead[root] = true
+	}
+	txids := slices.Sorted(maps.Keys(parents))
+	var out []string
+	for grew := true; grew; {
+		grew = false
+		for _, txid := range txids {
+			if dead[txid] || !slices.ContainsFunc(parents[txid], func(p string) bool { return dead[p] }) {
+				continue
+			}
+			dead[txid] = true
+			out = append(out, txid)
+			grew = true
+		}
+	}
+	return out
 }

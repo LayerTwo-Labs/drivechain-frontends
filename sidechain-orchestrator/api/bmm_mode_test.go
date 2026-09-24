@@ -53,36 +53,6 @@ func lightHandler(t *testing.T) *BMMHandler {
 	return h
 }
 
-// Every mempool read names the mempool as the reason, so a user reads what is
-// missing rather than which mode they picked.
-func TestBMMLightModeRefusesTheMempoolReads(t *testing.T) {
-	tests := []struct {
-		name   string
-		reason string
-		call   func(*BMMHandler) error
-	}{
-		{
-			name:   "cancel a stranded bid",
-			reason: "a cancel reads the mainchain mempool",
-			call: func(h *BMMHandler) error {
-				_, err := h.CancelBid(context.Background(),
-					connect.NewRequest(&bmmpb.CancelBidRequest{Txid: "stranded"}))
-				return err
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.call(lightHandler(t))
-			require.Error(t, err)
-			assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
-			assert.Contains(t, err.Error(), tc.reason)
-			assert.Contains(t, err.Error(), "light mode runs no Bitcoin Core")
-		})
-	}
-}
-
 // The opening bid picks its coin without a mempool read. Only a confirmed coin
 // qualifies: the parent of an unconfirmed one names the slot that owns it, and
 // that parent is out of reach.

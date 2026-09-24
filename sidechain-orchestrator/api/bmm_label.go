@@ -45,16 +45,26 @@ func BidLabels(ctx context.Context, call coreReader, txids []string) map[string]
 	if err != nil {
 		return nil
 	}
+	return labelBids(tip, txids,
+		func(txid string) (string, error) { return firstOutputScript(ctx, call, txid) },
+		func(txid string) bool { return inMempool(ctx, call, txid) })
+}
+
+// labelBids names the BMM request each transaction carries. script reads the
+// first output script, and live says whether the mempool holds the transaction.
+func labelBids(
+	tip string, txids []string, script func(txid string) (string, error), live func(txid string) bool,
+) map[string]*wpb.BmmBid {
 	out := make(map[string]*wpb.BmmBid, len(txids))
 	for _, txid := range txids {
 		if _, done := out[txid]; done {
 			continue
 		}
-		script, err := firstOutputScript(ctx, call, txid)
+		scriptHex, err := script(txid)
 		if err != nil {
 			continue
 		}
-		if bid := BidLabel(script, tip); bid != nil && inMempool(ctx, call, txid) {
+		if bid := BidLabel(scriptHex, tip); bid != nil && live(txid) {
 			out[txid] = bid
 		}
 	}

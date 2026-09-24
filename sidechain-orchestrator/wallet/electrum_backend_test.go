@@ -3484,6 +3484,64 @@ func TestElectrumReplacementEvictsTheWholeChain(t *testing.T) {
 	require.Len(t, fake.broadcast, 1)
 }
 
+// A cancel of a bid chain pays the root coin back to the wallet at a fixed fee,
+// and it still carries the replay lock time.
+func TestElectrumChainReplacementKeepsTheLockTime(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	p.svc.SetNetwork("ecash")
+	ctx := context.Background()
+
+	const (
+		funding = "4444444444444444444444444444444444444444444444444444444444444444"
+		bid1    = "5555555555555555555555555555555555555555555555555555555555555555"
+		bid2    = "6666666666666666666666666666666666666666666666666666666666666666"
+	)
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = nil
+	fake.txByID[funding] = EsploraTx{
+		TxID:   funding,
+		Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 200_000}},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}
+	fake.txs[addr] = []EsploraTx{
+		{
+			TxID:   bid1,
+			Vin:    []EsploraVin{{TxID: funding, Vout: 0}},
+			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 199_000}},
+			Status: EsploraStatus{Confirmed: false},
+		},
+		{
+			TxID:   bid2,
+			Vin:    []EsploraVin{{TxID: bid1, Vout: 0}},
+			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 198_000}},
+			Status: EsploraStatus{Confirmed: false},
+		},
+	}
+
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{addr: 195_000},
+		FixedFeeSats:     5_000,
+		RequiredInputs:   []RequiredInput{{TxID: funding, Vout: 0}},
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	assert.EqualValues(t, replay.ReplayLockTime, tx.LockTime)
+	require.Len(t, tx.TxIn, 1)
+	assert.Equal(t, funding, tx.TxIn[0].PreviousOutPoint.Hash.String())
+	require.Len(t, tx.TxOut, 1)
+	assert.EqualValues(t, 195_000, tx.TxOut[0].Value)
+}
+
 // replacedChain must find the root and walk the whole unconfirmed chain built
 // on it, so no evicted output is left looking spendable.
 func TestReplacedChainWalksDescendants(t *testing.T) {

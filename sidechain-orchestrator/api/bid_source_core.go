@@ -117,7 +117,7 @@ func (c coreBids) mempoolFees(ctx context.Context, txid string) (mempoolFeeSats,
 
 // evicted names every transaction the replacement removes: each root of the
 // chain and everything the mempool holds over it.
-func (c coreBids) evicted(ctx context.Context, roots, _ []string) []string {
+func (c coreBids) evicted(ctx context.Context, _ string, roots, _ []string) ([]string, error) {
 	// One chain can carry two roots, and a bid over both of them belongs to
 	// each root's descendants. So each transaction counts one time, by txid.
 	seen := make(map[string]bool)
@@ -131,7 +131,7 @@ func (c coreBids) evicted(ctx context.Context, roots, _ []string) []string {
 			all = append(all, txid)
 		}
 	}
-	return all
+	return all, nil
 }
 
 // mempoolDescendants names every transaction the mempool holds over one
@@ -171,4 +171,42 @@ func (c coreBids) PendingTxids(ctx context.Context, _ []string) (map[string]bool
 // step as the block that carries it, so a txid PendingTxids named is unmined.
 func (coreBids) mined(context.Context, string) (bool, error) {
 	return false, nil
+}
+
+func (c coreBids) live(ctx context.Context, _, txid string) bool {
+	return inMempool(ctx, c.h.coreCall, txid)
+}
+
+func (c coreBids) request(ctx context.Context, _, txid string) (*orchestrator.BmmRequest, error) {
+	return c.h.m8Request(ctx, txid)
+}
+
+func (c coreBids) vsize(ctx context.Context, _, txid string) (int64, error) {
+	raw, err := c.h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
+	if err != nil {
+		return 0, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err))
+	}
+	var tx struct {
+		Vsize int64 `json:"vsize"`
+	}
+	if err := json.Unmarshal(raw, &tx); err != nil {
+		return 0, connect.NewError(connect.CodeInternal, fmt.Errorf("decode bid %s: %w", txid, err))
+	}
+	return tx.Vsize, nil
+}
+
+func (c coreBids) outputValues(ctx context.Context, _, txid string) ([]int64, error) {
+	values, err := outputValuesSats(ctx, c.h.coreCall, txid)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return values, nil
+}
+
+func (c coreBids) tip(ctx context.Context) (string, error) {
+	return coreTipHash(ctx, c.h.coreCall)
+}
+
+func (c coreBids) incrementalFeeSatPerKvB(ctx context.Context) (int64, error) {
+	return incrementalRelayFeeSatPerKvB(ctx, c.h.coreCall)
 }
