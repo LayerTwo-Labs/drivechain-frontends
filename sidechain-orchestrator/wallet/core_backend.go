@@ -1727,15 +1727,17 @@ func createAndImport(
 
 	created := false
 	if !lo.Contains(existing, walletName) {
-		if err := rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); err != nil {
-			if !strings.Contains(err.Error(), "already exists") {
-				return fmt.Errorf("create wallet: %w", err)
-			}
+		switch err := rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); {
+		case err == nil:
+			created = true
+		case !strings.Contains(err.Error(), "already exists"):
+			return fmt.Errorf("create wallet: %w", err)
+		default:
+			// A re-import of a loaded wallet makes Core rescan from its birthday.
 			if loadErr := rpc.LoadWallet(ctx, walletName); loadErr != nil {
 				return fmt.Errorf("load existing wallet: %w", loadErr)
 			}
 		}
-		created = true
 	}
 
 	// A createwallet that succeeds before a failing import leaves the wallet

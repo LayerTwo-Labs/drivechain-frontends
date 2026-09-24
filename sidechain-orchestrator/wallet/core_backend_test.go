@@ -2288,6 +2288,39 @@ func TestAnAlreadyLoadedWalletIsNotAFailure(t *testing.T) {
 	require.NoError(t, err, "already loaded is the outcome the load asked for")
 }
 
+// A wallet on disk that Core did not load at start already holds its
+// descriptors. A re-import makes Core rescan from the birthday, which takes
+// hours and blocks every balance call.
+func TestLoadingAWalletFromDiskDoesNotReimportIt(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	name := "wallet_" + coreID[:8]
+	fake.stubEnsureFlow()
+	fake.handle("createwallet", func(bitcoindCall) (any, string) {
+		return nil, "Wallet file verification failed. Failed to create database path '/x/" + name + "'. Database already exists."
+	})
+	fake.handle("loadwallet", func(bitcoindCall) (any, string) {
+		return map[string]any{"name": name}, ""
+	})
+	fake.handle("listdescriptors", func(bitcoindCall) (any, string) {
+		descs := make([]map[string]any, 4)
+		for i := range descs {
+			descs[i] = map[string]any{"active": true}
+		}
+		return map[string]any{"descriptors": descs}, ""
+	})
+
+	got, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+	assert.Equal(t, name, got)
+	require.Len(t, fake.callsFor("loadwallet"), 1)
+
+	for _, c := range fake.callsFor("importdescriptors") {
+		var descs []ImportDescriptor
+		require.NoError(t, json.Unmarshal(c.Params[0], &descs))
+		assert.NotEqual(t, 4, len(descs), "the wallet descriptors must not be imported again")
+	}
+}
+
 // Core drops a wallet on restart unless its settings name it, and then the next
 // call answers -18. Both the create and the load ask Core to keep it.
 func TestCoreKeepsTheWalletAcrossItsOwnRestart(t *testing.T) {
