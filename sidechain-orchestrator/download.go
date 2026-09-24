@@ -653,12 +653,7 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
 		return d.extractTarGz(archivePath, destDir, extractName)
 	default:
-		// Raw test-sidechain payload on Windows lands at <name>.exe.
-		name := extractName
-		if hasSCVariant && runtime.GOOS == "windows" {
-			name += ".exe"
-		}
-		return d.processRawBinary(archivePath, destDir, name)
+		return d.processRawBinary(archivePath, destDir, rawBinaryName(extractName, runtime.GOOS))
 	}
 }
 
@@ -858,6 +853,16 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 	}
 
 	return d.moveExtractedBinaries(tmpDir, destDir, binaryName)
+}
+
+// rawBinaryName is the on-disk name for a raw payload. A raw asset carries no
+// archive to read a name from, and both BinaryPath and TestSidechainBinaryPath
+// look for <name>.exe on Windows.
+func rawBinaryName(extractName, goos string) string {
+	if goos == "windows" {
+		return extractName + ".exe"
+	}
+	return extractName
 }
 
 // processRawBinary copies a raw binary to the destination directory.
