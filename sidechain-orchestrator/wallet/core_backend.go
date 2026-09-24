@@ -904,14 +904,11 @@ func (p *CoreBackend) requiredInputValueSats(ctx context.Context, name string, r
 // created it. The value comes from chain data, never from the caller, so a
 // foreign outpoint the node cannot serve is still refused.
 func (p *CoreBackend) prevOutValueSats(ctx context.Context, in RequiredInput) (int64, error) {
-	raw, err := p.rpc.GetRawTransaction(ctx, in.TxID)
+	out, err := p.prevout(ctx, in.TxID, in.Vout, map[string]*RawTransaction{})
 	if err != nil {
 		return 0, fmt.Errorf("required input %s:%d is not a wallet UTXO: %w", in.TxID, in.Vout, err)
 	}
-	if raw == nil || in.Vout < 0 || in.Vout >= len(raw.Vout) {
-		return 0, fmt.Errorf("required input %s:%d is not a wallet UTXO", in.TxID, in.Vout)
-	}
-	return int64(math.Round(raw.Vout[in.Vout].Value * 1e8)), nil
+	return int64(math.Round(out.Value * 1e8)), nil
 }
 
 // selectInputsForFixedFee picks spendable UTXOs largest-first until they
@@ -1347,7 +1344,7 @@ func (p *CoreBackend) ownInputs(ctx context.Context, name string, tx *RawTransac
 		if in.Coinbase != "" {
 			continue
 		}
-		out, err := p.prevout(ctx, in, parents)
+		out, err := p.prevout(ctx, in.TxID, in.Vout, parents)
 		if err != nil {
 			return nil, err
 		}
@@ -1366,29 +1363,32 @@ func (p *CoreBackend) ownInputs(ctx context.Context, name string, tx *RawTransac
 	return own, nil
 }
 
-// prevout reads the output an input spends. A confirmed parent answers from the
-// chain view, because a default node keeps no txindex and drops the parent from
-// getrawtransaction. A parent in the mempool answers as a whole transaction.
-func (p *CoreBackend) prevout(ctx context.Context, in RawTxIn, parents map[string]*RawTransaction) (*RawTxOut, error) {
-	out, err := p.rpc.GetTxOut(ctx, in.TxID, in.Vout)
+// prevout reads the output an outpoint names. A confirmed parent answers from
+// the chain view, because a default node keeps no txindex and drops the parent
+// from getrawtransaction. A parent in the mempool answers as a whole
+// transaction. [parents] holds the parents this read already decoded.
+func (p *CoreBackend) prevout(
+	ctx context.Context, txid string, vout int, parents map[string]*RawTransaction,
+) (*RawTxOut, error) {
+	out, err := p.rpc.GetTxOut(ctx, txid, vout)
 	if err != nil {
-		return nil, fmt.Errorf("read the output %s:%d: %w", in.TxID, in.Vout, err)
+		return nil, fmt.Errorf("read the output %s:%d: %w", txid, vout, err)
 	}
 	if out != nil {
 		return out, nil
 	}
-	parent, ok := parents[in.TxID]
+	parent, ok := parents[txid]
 	if !ok {
-		parent, err = p.rpc.GetRawTransaction(ctx, in.TxID)
+		parent, err = p.rpc.GetRawTransaction(ctx, txid)
 		if err != nil {
-			return nil, fmt.Errorf("read the parent %s: %w", in.TxID, err)
+			return nil, fmt.Errorf("read the parent %s: %w", txid, err)
 		}
-		parents[in.TxID] = parent
+		parents[txid] = parent
 	}
-	if in.Vout < 0 || in.Vout >= len(parent.Vout) {
-		return nil, fmt.Errorf("transaction %s has no output %d", in.TxID, in.Vout)
+	if parent == nil || vout < 0 || vout >= len(parent.Vout) {
+		return nil, fmt.Errorf("transaction %s has no output %d", txid, vout)
 	}
-	return &parent.Vout[in.Vout], nil
+	return &parent.Vout[vout], nil
 }
 
 func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {

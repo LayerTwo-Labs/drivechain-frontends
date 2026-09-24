@@ -168,4 +168,9 @@ func TestCoreBackendCancelReadsAConfirmedParentWithoutTxindex(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, preview.Plan, preview.Reason)
 	assert.Equal(t, int64(200_000-coreCancelFeeSats), preview.Plan.RecoveredSats)
+
+	result, err := backend.CancelTransaction(context.Background(), coreID, coreBumpTxid, coreCancelFeeSats)
+	require.NoError(t, err)
+	assert.Equal(t, "cancel-txid", result.NewTxID)
+	assert.Equal(t, int64(200_000-coreCancelFeeSats), result.Plan.RecoveredSats)
 }
