@@ -41,12 +41,8 @@ class SidechainProposalView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (model.hasErrorForKey('proposal')) ...{
-                    SailText.primary12(
-                      'Failed to propose sidechain: ${model.error('proposal')}',
-                      color: context.sailTheme.colors.error,
-                    ),
-                  },
+                  if (model.hasErrorForKey('proposal'))
+                    SailInlineError('Failed to propose sidechain: ${model.error('proposal')}'),
                   SailText.primary12('Required'),
                   const SizedBox(height: SailStyleValues.padding08),
                   _RequiredSection(model: model),
@@ -141,11 +137,17 @@ class SidechainProposalViewModel extends BaseViewModel {
   bool isProposing = false;
 
   SidechainProposalViewModel() {
-    slotController.addListener(notifyListeners);
-    titleController.addListener(notifyListeners);
-    versionController.addListener(notifyListeners);
-    tarballHashController.addListener(notifyListeners);
-    commitHashController.addListener(notifyListeners);
+    slotController.addListener(_onInputChanged);
+    titleController.addListener(_onInputChanged);
+    descriptionController.addListener(_onInputChanged);
+    versionController.addListener(_onInputChanged);
+    tarballHashController.addListener(_onInputChanged);
+    commitHashController.addListener(_onInputChanged);
+  }
+
+  void _onInputChanged() {
+    setErrorForObject('proposal', null);
+    notifyListeners();
   }
 
   // FormState.validate() calls setState() on the Form, so a build that reads
@@ -216,6 +218,7 @@ class SidechainProposalViewModel extends BaseViewModel {
     }
 
     isProposing = true;
+    setErrorForObject('proposal', null);
     notifyListeners();
 
     try {
@@ -248,9 +251,6 @@ class SidechainProposalViewModel extends BaseViewModel {
       tarballHashController.clear();
       commitHashController.clear();
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(context, 'Failed to propose sidechain: $e');
-      }
       setErrorForObject('proposal', e);
     } finally {
       isProposing = false;

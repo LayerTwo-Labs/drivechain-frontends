@@ -100,6 +100,7 @@ class AddressBookViewModel extends BaseViewModel {
   }
 
   Future<void> exportLabels(BuildContext context) async {
+    setErrorForObject('labels', null);
     try {
       setBusy(true);
 
@@ -127,15 +128,14 @@ class AddressBookViewModel extends BaseViewModel {
         showSailToast(context, 'Labels exported to ${result.toFilePath()}');
       }
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(context, 'Export failed: $e');
-      }
+      setErrorForObject('labels', 'Export failed: $e');
     } finally {
       setBusy(false);
     }
   }
 
   Future<void> importLabels(BuildContext context) async {
+    setErrorForObject('labels', null);
     try {
       setBusy(true);
 
@@ -156,9 +156,7 @@ class AddressBookViewModel extends BaseViewModel {
         showSailToast(context, 'Imported $imported labels, skipped ${summary.skipped}');
       }
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(context, 'Import failed: $e');
-      }
+      setErrorForObject('labels', 'Import failed: $e');
     } finally {
       setBusy(false);
     }
@@ -295,6 +293,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
       key: Key('address-book-$direction'),
       title: direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
       subtitle: widget.viewModel.error('create') ?? widget.viewModel.error('edit') ?? widget.viewModel.error('delete'),
+      error: widget.viewModel.error('labels')?.toString(),
       widgetHeaderEnd: SailRow(
         spacing: SailStyleValues.padding08,
         children: [

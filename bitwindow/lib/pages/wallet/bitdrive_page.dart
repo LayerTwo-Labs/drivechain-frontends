@@ -131,6 +131,7 @@ class _StoreTab extends StatelessWidget {
                         Expanded(child: SailText.secondary12('No file selected')),
                     ],
                   ),
+                  if (model.fileError != null) SailInlineError(model.fileError!),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -161,6 +162,7 @@ class _StoreTab extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (model.storeError != null) SailInlineError(model.storeError!),
                   if (model.showAdvancedSettings)
                     SailCard(
                       padding: true,
@@ -334,6 +336,8 @@ class BitDriveViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
   String? selectedFileName;
   Uint8List? selectedFileContent;
+  String? fileError;
+  String? storeError;
   bool get shouldEncrypt => provider.shouldEncrypt;
   bool get canStore => textController.text.isNotEmpty || selectedFileContent != null;
   String? _bitdriveDir;
@@ -351,6 +355,7 @@ class BitDriveViewModel extends BaseViewModel {
   BitDriveViewModel() {
     provider.addListener(_onProviderChanged);
     textController.addListener(() => onTextChanged(textController.text));
+    feeController.addListener(_clearStoreError);
     _initBitdrive();
   }
 
@@ -363,6 +368,13 @@ class BitDriveViewModel extends BaseViewModel {
 
   void _onProviderChanged() {
     notifyListeners();
+  }
+
+  void _clearStoreError() {
+    if (storeError != null) {
+      storeError = null;
+      notifyListeners();
+    }
   }
 
   @override
@@ -443,6 +455,8 @@ class BitDriveViewModel extends BaseViewModel {
   }
 
   void onTextChanged(String value) {
+    fileError = null;
+    storeError = null;
     provider.setTextContent(value);
     if (value.isNotEmpty) {
       selectedFileName = null;
@@ -454,6 +468,7 @@ class BitDriveViewModel extends BaseViewModel {
   void onEncryptChanged(bool? value) {
     if (value != null) {
       provider.setEncryption(value);
+      storeError = null;
       notifyListeners();
     }
   }
@@ -465,6 +480,9 @@ class BitDriveViewModel extends BaseViewModel {
   }
 
   Future<void> pickFile(BuildContext context) async {
+    fileError = null;
+    storeError = null;
+    notifyListeners();
     try {
       final file = await FilePicker.pickFile(
         type: FileType.any,
@@ -472,9 +490,8 @@ class BitDriveViewModel extends BaseViewModel {
 
       if (file != null) {
         if (await file.length() > 1024 * 1024) {
-          if (context.mounted) {
-            showSailToast(context, 'File size must be less than 1MB');
-          }
+          fileError = 'File size must be less than 1MB';
+          notifyListeners();
           return;
         }
 
@@ -483,9 +500,8 @@ class BitDriveViewModel extends BaseViewModel {
           fileContents = await file.readAsBytes();
         } catch (e) {
           Logger().e('Error reading file: $e');
-          if (context.mounted) {
-            showSailToast(context, 'Error reading file: $e');
-          }
+          fileError = 'Error reading file: $e';
+          notifyListeners();
           return;
         }
 
@@ -502,13 +518,13 @@ class BitDriveViewModel extends BaseViewModel {
       }
     } catch (e) {
       Logger().e('Error picking file: $e');
-      if (context.mounted) {
-        showSailToast(context, 'Error picking file: $e');
-      }
+      fileError = 'Error picking file: $e';
+      notifyListeners();
     }
   }
 
   Future<void> store(BuildContext context) async {
+    storeError = null;
     setBusy(true);
     try {
       await provider.store();
@@ -519,10 +535,7 @@ class BitDriveViewModel extends BaseViewModel {
         selectedFileContent = null;
       }
     } catch (e) {
-      setError(e.toString());
-      if (context.mounted) {
-        showSailToast(context, 'Failed to store content: $e');
-      }
+      storeError = 'Failed to store content: $e';
     } finally {
       setBusy(false);
     }

@@ -23,6 +23,7 @@ class CheckDetailViewModel extends BaseViewModel {
   bool _isLoading = false;
   @override
   String? modelError;
+  String? actionError;
 
   Cheque? get check => _check;
   bool get isLoading => _isLoading;
@@ -74,6 +75,7 @@ class CheckDetailViewModel extends BaseViewModel {
       return;
     }
 
+    _setActionError(null);
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) {
@@ -101,15 +103,13 @@ class CheckDetailViewModel extends BaseViewModel {
       }
       Navigator.of(context).pop();
     } catch (e) {
-      if (!context.mounted) {
-        return;
-      }
-
-      showSailToast(
-        context,
-        'Failed to fund check: $e',
-      );
+      _setActionError('Failed to fund check: $e');
     }
+  }
+
+  void _setActionError(String? error) {
+    actionError = error;
+    notifyListeners();
   }
 
   Future<void> sweepCheck(BuildContext context) async {
@@ -117,18 +117,15 @@ class CheckDetailViewModel extends BaseViewModel {
       return;
     }
 
+    _setActionError(null);
     final destinationAddress = _transactionProvider.address;
     if (destinationAddress.isEmpty) {
-      if (context.mounted) {
-        showSailToast(context, 'No receive address available');
-      }
+      _setActionError('No receive address available');
       return;
     }
 
     if (!_check!.hasPrivateKeyWif() || _check!.privateKeyWif.isEmpty) {
-      if (context.mounted) {
-        showSailToast(context, 'Private key not available - wallet may be locked');
-      }
+      _setActionError('Private key not available - wallet may be locked');
       return;
     }
 
@@ -169,10 +166,10 @@ class CheckDetailViewModel extends BaseViewModel {
             await sweepCheck(context);
           }
         } else {
-          showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
+          _setActionError('Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSailToast(context, 'Failed to sweep check: $e');
+        _setActionError('Failed to sweep check: $e');
       }
     }
   }
@@ -491,6 +488,8 @@ class CheckDetailPage extends StatelessWidget {
                                 ),
                               ),
                             ),
+                          if (model.actionError != null)
+                            SizedBox(width: 400, child: SailInlineError(model.actionError!)),
                         ],
                       ),
                     ),

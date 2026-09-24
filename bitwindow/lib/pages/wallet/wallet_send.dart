@@ -120,6 +120,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
               ),
             ],
           ),
+          if (viewModel.sendError != null) SailInlineError(viewModel.sendError!),
           SailSpacing(SailStyleValues.padding64),
         ],
       ),
@@ -132,6 +133,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
     if (walletId == null) {
       return;
     }
+    viewModel.setSendError(null);
     final plan = await viewModel.askReplayProtect(context);
     if (plan == null || !context.mounted) {
       return;
@@ -159,9 +161,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
       showSailToast(context, 'Transaction broadcast', variant: SailToastVariant.success);
       await viewModel.onAirgapBroadcast();
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(context, 'Failed to broadcast: $e', variant: SailToastVariant.destructive);
-      }
+      viewModel.setSendError('Failed to broadcast: $e');
     }
   }
 }
@@ -599,7 +599,15 @@ class SendPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void _onRecipientChanged() {
+  String? sendError;
+
+  void setSendError(String? error) {
+    sendError = error;
+    notifyListeners();
+  }
+
+  void _onFormChanged() {
+    sendError = null;
     notifyListeners();
   }
 
@@ -643,6 +651,7 @@ class SendPageViewModel extends BaseViewModel {
     } else {
       feeController = TextEditingController(text: '10000');
     }
+    feeController.addListener(_onFormChanged);
     addressBookProvider.addListener(notifyListeners);
     transactionsProvider.addListener(_clearStaleSelectedUTXOs);
     coinSelectionProvider.addListener(notifyListeners);
@@ -651,7 +660,7 @@ class SendPageViewModel extends BaseViewModel {
     _walletReader.addListener(notifyListeners);
     init();
     final initialRecipient = RecipientModel();
-    initialRecipient.addListener(_onRecipientChanged);
+    initialRecipient.addListener(_onFormChanged);
     recipients = [initialRecipient];
   }
 
@@ -699,7 +708,7 @@ class SendPageViewModel extends BaseViewModel {
   @override
   void dispose() {
     for (final recipient in recipients) {
-      recipient.removeListener(_onRecipientChanged);
+      recipient.removeListener(_onFormChanged);
     }
     addressBookProvider.removeListener(notifyListeners);
     coinSelectionProvider.removeListener(notifyListeners);
@@ -842,6 +851,7 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   Future<void> sendTransaction(BuildContext context) async {
+    setSendError(null);
     final plan = await askReplayProtect(context);
     if (plan == null || !context.mounted) {
       return;
@@ -861,7 +871,7 @@ class SendPageViewModel extends BaseViewModel {
     // Check if all recipients have an address
     final missingAddress = recipients.indexWhere((r) => r.addressController.text.trim().isEmpty);
     if (missingAddress != -1) {
-      showSailToast(context, 'Please enter an address for all recipients.');
+      setSendError('Please enter an address for all recipients.');
       setBusy(false);
       return;
     }
@@ -869,14 +879,14 @@ class SendPageViewModel extends BaseViewModel {
     // Check if all recipients have an amount
     final missingAmount = recipients.indexWhere((r) => r.amountController.text.trim().isEmpty);
     if (missingAmount != -1) {
-      showSailToast(context, 'Please enter an amount for all recipients.');
+      setSendError('Please enter an amount for all recipients.');
       setBusy(false);
       return;
     }
 
     final feeSats = parseAmountToSatoshis(feeController.text, currentUnit);
     if (feeSats <= 0) {
-      showSailToast(context, 'Please enter a valid fee.');
+      setSendError('Please enter a valid fee.');
       setBusy(false);
       return;
     }
@@ -920,9 +930,7 @@ class SendPageViewModel extends BaseViewModel {
       );
     } catch (error) {
       log.e('Error sending transaction: $error');
-      if (context.mounted) {
-        showSailToast(context, 'Could not send transaction $error', duration: const Duration(seconds: 5));
-      }
+      sendError = 'Could not send transaction: $error';
     } finally {
       setBusy(false);
       notifyListeners();
@@ -949,9 +957,7 @@ class SendPageViewModel extends BaseViewModel {
     // wallet or network switch during the build voids the draft instead of
     // filing a wrong-chain PSBT under the new state.
     if (activeWalletId != walletId || draftProvider.generation != generation) {
-      if (context.mounted) {
-        showSailToast(context, 'The active wallet or network changed. Create the transaction again.');
-      }
+      setSendError('The active wallet or network changed. Create the transaction again.');
       return;
     }
     try {
@@ -966,9 +972,7 @@ class SendPageViewModel extends BaseViewModel {
       await clearAll();
     } catch (error) {
       log.e('Error saving draft: $error');
-      if (context.mounted) {
-        showSailToast(context, 'Could not save transaction $error', duration: const Duration(seconds: 5));
-      }
+      setSendError('Could not save transaction: $error');
     }
   }
 
@@ -978,17 +982,17 @@ class SendPageViewModel extends BaseViewModel {
   Future<String?> buildUnsignedPsbtForAirgap(BuildContext context, {bool allowReplay = false}) async {
     final missingAddress = recipients.indexWhere((r) => r.addressController.text.trim().isEmpty);
     if (missingAddress != -1) {
-      showSailToast(context, 'Please enter an address for all recipients.');
+      setSendError('Please enter an address for all recipients.');
       return null;
     }
     final missingAmount = recipients.indexWhere((r) => r.amountController.text.trim().isEmpty);
     if (missingAmount != -1) {
-      showSailToast(context, 'Please enter an amount for all recipients.');
+      setSendError('Please enter an amount for all recipients.');
       return null;
     }
     final feeSats = parseAmountToSatoshis(feeController.text, currentUnit);
     if (feeSats <= 0) {
-      showSailToast(context, 'Please enter a valid fee.');
+      setSendError('Please enter a valid fee.');
       return null;
     }
 
@@ -1015,9 +1019,7 @@ class SendPageViewModel extends BaseViewModel {
       );
     } catch (error) {
       log.e('Error building unsigned PSBT: $error');
-      if (context.mounted) {
-        showSailToast(context, 'Could not build PSBT $error', duration: const Duration(seconds: 5));
-      }
+      sendError = 'Could not build PSBT: $error';
       return null;
     } finally {
       setBusy(false);
@@ -1034,13 +1036,13 @@ class SendPageViewModel extends BaseViewModel {
   Future<void> clearAll() async {
     // Remove listeners from all recipients
     for (final recipient in recipients) {
-      recipient.removeListener(_onRecipientChanged);
+      recipient.removeListener(_onFormChanged);
     }
     recipients.clear();
 
     // Optionally, add a new empty recipient and attach listener
     final initialRecipient = RecipientModel();
-    initialRecipient.addListener(_onRecipientChanged);
+    initialRecipient.addListener(_onFormChanged);
     recipients.add(initialRecipient);
     selectedRecipientIndex = 0;
     if (currentUnit == BitcoinUnit.btc) {
@@ -1107,7 +1109,7 @@ class SendPageViewModel extends BaseViewModel {
       r.subtractFee = false;
     }
     final recipient = RecipientModel();
-    recipient.addListener(_onRecipientChanged);
+    recipient.addListener(_onFormChanged);
     recipients.add(recipient);
     selectedRecipientIndex = recipients.length - 1;
     notifyListeners();
@@ -1119,7 +1121,7 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   void removeRecipient(int index) {
-    recipients[index].removeListener(_onRecipientChanged);
+    recipients[index].removeListener(_onFormChanged);
     recipients.removeAt(index);
     if (index != 0) {
       selectedRecipientIndex = index - 1;
@@ -1285,6 +1287,7 @@ class _SaveToAddressBookDialog extends StatefulWidget {
 
 class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
   final TextEditingController labelController = TextEditingController();
+  String? _error;
 
   @override
   void initState() {
@@ -1300,7 +1303,7 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
   }
 
   void _onTextChanged() {
-    setState(() {});
+    setState(() => _error = null);
   }
 
   @override
@@ -1339,6 +1342,7 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
                 if (labelController.text.isEmpty) {
                   return;
                 }
+                setState(() => _error = null);
                 try {
                   await widget.addressBookProvider.createEntry(
                     labelController.text,
@@ -1351,13 +1355,14 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
                   }
                 } catch (e) {
                   widget.log.e('Error saving to address book: $e');
-                  if (context.mounted) {
-                    showSailToast(context, 'Failed to save address: $e');
+                  if (mounted) {
+                    setState(() => _error = 'Failed to save address: $e');
                   }
                 }
               },
               disabled: labelController.text.isEmpty,
             ),
+            if (_error != null) SailInlineError(_error!),
           ],
         ),
       ),

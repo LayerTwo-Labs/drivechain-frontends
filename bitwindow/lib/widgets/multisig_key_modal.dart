@@ -134,6 +134,10 @@ class MultisigKeyModal extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (viewModel.saveError != null) ...[
+                    const SizedBox(height: 16),
+                    SailInlineError(viewModel.saveError!),
+                  ],
                 ],
               ),
             ),
@@ -148,8 +152,20 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
 
   String? modalError;
+  String? saveError;
   Map<String, dynamic>? keyInfo;
   final TextEditingController keyNameController = TextEditingController();
+
+  MultisigKeyModalViewModel() {
+    keyNameController.addListener(_onKeyNameChanged);
+  }
+
+  void _onKeyNameChanged() {
+    if (saveError != null) {
+      saveError = null;
+      notifyListeners();
+    }
+  }
 
   Future<void> init() async {
     setBusy(true);
@@ -240,17 +256,13 @@ class MultisigKeyModalViewModel extends BaseViewModel {
 
     final keyName = keyNameController.text.trim();
     if (keyName.isEmpty) {
-      if (context.mounted) {
-        showSailToast(
-          context,
-          'Please enter a key name',
-          variant: SailToastVariant.warning,
-          duration: const Duration(seconds: 3),
-        );
-      }
+      saveError = 'Please enter a key name';
+      notifyListeners();
       return;
     }
 
+    saveError = null;
+    notifyListeners();
     try {
       await _writeKeyToMultisigJson();
       final savedFilePath = await _saveConfigFileWithPicker();
@@ -265,14 +277,8 @@ class MultisigKeyModalViewModel extends BaseViewModel {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(
-          context,
-          'Failed to save key: $e',
-          variant: SailToastVariant.destructive,
-          duration: const Duration(seconds: 3),
-        );
-      }
+      saveError = 'Failed to save key: $e';
+      notifyListeners();
     }
   }
 
@@ -308,6 +314,7 @@ class MultisigKeyModalViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    keyNameController.removeListener(_onKeyNameChanged);
     keyNameController.dispose();
     super.dispose();
   }

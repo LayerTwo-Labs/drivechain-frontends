@@ -18,6 +18,7 @@ class M4ExplorerPage extends StatefulWidget {
 
 class _M4ExplorerPageState extends State<M4ExplorerPage> {
   int? _selectedSidechainSlot;
+  String? _generateError;
   M4Provider get _m4Provider => GetIt.I.get<M4Provider>();
   SidechainProvider get _sidechainProvider => GetIt.I.get<SidechainProvider>();
 
@@ -243,6 +244,10 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                                           skipLoading: true,
                                           onPressed: () async => await _showGenerateM4BytesDialog(),
                                         ),
+                                        if (_generateError != null) ...[
+                                          const SizedBox(height: SailStyleValues.padding08),
+                                          SailInlineError(_generateError!),
+                                        ],
                                       ],
                                     ),
                                   );
@@ -272,6 +277,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
 
   Future<void> _showSetVoteDialog() async {
     String voteType = 'abstain';
+    String? voteError;
     final bundleHashController = TextEditingController();
 
     await widgetDialog(
@@ -295,7 +301,10 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                 ],
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() => voteType = value);
+                    setState(() {
+                      voteType = value;
+                      voteError = null;
+                    });
                   }
                 },
               ),
@@ -304,7 +313,13 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                   controller: bundleHashController,
                   label: 'Bundle Hash',
                   hintText: 'Enter the bundle hash to upvote',
+                  onChanged: (_) {
+                    if (voteError != null) {
+                      setState(() => voteError = null);
+                    }
+                  },
                 ),
+              if (voteError != null) SailInlineError(voteError!),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -318,6 +333,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                     label: 'Set Vote',
                     variant: ButtonVariant.primary,
                     onPressed: () async {
+                      setState(() => voteError = null);
                       try {
                         await _m4Provider.setVotePreference(
                           sidechainSlot: _selectedSidechainSlot!,
@@ -330,7 +346,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                         }
                       } catch (e) {
                         if (context.mounted) {
-                          showSailToast(context, 'Failed to set vote: $e');
+                          setState(() => voteError = 'Failed to set vote: $e');
                         }
                       }
                     },
@@ -345,10 +361,11 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
   }
 
   Future<void> _showGenerateM4BytesDialog() async {
+    setState(() => _generateError = null);
     final result = await _m4Provider.generateM4Bytes();
     if (result == null) {
       if (mounted) {
-        showSailToast(context, 'Failed to generate M4 bytes');
+        setState(() => _generateError = 'Failed to generate M4 bytes');
       }
       return;
     }

@@ -92,6 +92,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
   final Map<String, Set<String>> _selected = {};
   final Map<String, Set<String>> _seen = {};
   bool _busy = false;
+  String? _claimError;
 
   TransactionProvider get _transactions => GetIt.I<TransactionProvider>();
 
@@ -216,6 +217,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                                   onPressed: () => _claim(context),
                                 ),
                               ),
+                            if (_claimError != null) SailInlineError(_claimError!),
                           ],
                         ),
                       );
@@ -464,7 +466,10 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     var drafted = 0;
     String? lastDraftId;
     Object? firstError;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _claimError = null;
+    });
     try {
       for (final p in planned) {
         try {
@@ -500,10 +505,8 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       }
     }
     if (firstError != null) {
-      showSailToast(
-        context,
-        'Claimed ${broadcast + drafted} of ${planned.length} wallet(s). First error: $firstError',
-        duration: const Duration(seconds: 5),
+      setState(
+        () => _claimError = 'Claimed ${broadcast + drafted} of ${planned.length} wallet(s). First error: $firstError',
       );
       return;
     }
