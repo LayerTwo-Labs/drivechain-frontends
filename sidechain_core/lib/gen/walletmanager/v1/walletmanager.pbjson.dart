@@ -2226,6 +2226,8 @@ const PreviewBumpFeeResponse$json = {
     {'1': 'can_replace', '3': 9, '4': 1, '5': 8, '10': 'canReplace'},
     {'1': 'has_child', '3': 10, '4': 1, '5': 8, '10': 'hasChild'},
     {'1': 'adds_inputs', '3': 11, '4': 1, '5': 8, '10': 'addsInputs'},
+    {'1': 'cancel', '3': 12, '4': 1, '5': 11, '6': '.walletmanager.v1.CancelPlan', '10': 'cancel'},
+    {'1': 'cancel_reason', '3': 13, '4': 1, '5': 9, '10': 'cancelReason'},
   ],
 };
 
@@ -2239,7 +2241,22 @@ final $typed_data.Uint8List previewBumpFeeResponseDescriptor = $convert.base64De
     'IxCgRwbGFuGAcgASgLMh0ud2FsbGV0bWFuYWdlci52MS5CdW1wRmVlUGxhblIEcGxhbhIWCgZy'
     'ZWFzb24YCCABKAlSBnJlYXNvbhIfCgtjYW5fcmVwbGFjZRgJIAEoCFIKY2FuUmVwbGFjZRIbCg'
     'loYXNfY2hpbGQYCiABKAhSCGhhc0NoaWxkEh8KC2FkZHNfaW5wdXRzGAsgASgIUgphZGRzSW5w'
-    'dXRz');
+    'dXRzEjQKBmNhbmNlbBgMIAEoCzIcLndhbGxldG1hbmFnZXIudjEuQ2FuY2VsUGxhblIGY2FuY2'
+    'VsEiMKDWNhbmNlbF9yZWFzb24YDSABKAlSDGNhbmNlbFJlYXNvbg==');
+
+@$core.Deprecated('Use cancelPlanDescriptor instead')
+const CancelPlan$json = {
+  '1': 'CancelPlan',
+  '2': [
+    {'1': 'recovered_sats', '3': 1, '4': 1, '5': 3, '10': 'recoveredSats'},
+    {'1': 'fee_sats', '3': 2, '4': 1, '5': 3, '10': 'feeSats'},
+  ],
+};
+
+/// Descriptor for `CancelPlan`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelPlanDescriptor = $convert.base64Decode(
+    'CgpDYW5jZWxQbGFuEiUKDnJlY292ZXJlZF9zYXRzGAEgASgDUg1yZWNvdmVyZWRTYXRzEhkKCG'
+    'ZlZV9zYXRzGAIgASgDUgdmZWVTYXRz');
 
 @$core.Deprecated('Use bumpFeeOutputDescriptor instead')
 const BumpFeeOutput$json = {
@@ -2286,6 +2303,37 @@ final $typed_data.Uint8List bumpFeePlanDescriptor = $convert.base64Decode(
     'cxgGIAEoA1IQYW1vdW50QmVmb3JlU2F0cxIqChFhbW91bnRfYWZ0ZXJfc2F0cxgHIAEoA1IPYW'
     '1vdW50QWZ0ZXJTYXRzEiUKDm91dHB1dF9yZW1vdmVkGAggASgIUg1vdXRwdXRSZW1vdmVkEicK'
     'D3JlZHVjZXNfcGF5bWVudBgJIAEoCFIOcmVkdWNlc1BheW1lbnQ=');
+
+@$core.Deprecated('Use cancelTransactionRequestDescriptor instead')
+const CancelTransactionRequest$json = {
+  '1': 'CancelTransactionRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'txid', '3': 2, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'max_fee_sats', '3': 3, '4': 1, '5': 3, '10': 'maxFeeSats'},
+  ],
+};
+
+/// Descriptor for `CancelTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelTransactionRequestDescriptor = $convert.base64Decode(
+    'ChhDYW5jZWxUcmFuc2FjdGlvblJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZB'
+    'ISCgR0eGlkGAIgASgJUgR0eGlkEiAKDG1heF9mZWVfc2F0cxgDIAEoA1IKbWF4RmVlU2F0cw==');
+
+@$core.Deprecated('Use cancelTransactionResponseDescriptor instead')
+const CancelTransactionResponse$json = {
+  '1': 'CancelTransactionResponse',
+  '2': [
+    {'1': 'replacement_txid', '3': 1, '4': 1, '5': 9, '10': 'replacementTxid'},
+    {'1': 'recovered_sats', '3': 2, '4': 1, '5': 3, '10': 'recoveredSats'},
+    {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
+  ],
+};
+
+/// Descriptor for `CancelTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelTransactionResponseDescriptor = $convert.base64Decode(
+    'ChlDYW5jZWxUcmFuc2FjdGlvblJlc3BvbnNlEikKEHJlcGxhY2VtZW50X3R4aWQYASABKAlSD3'
+    'JlcGxhY2VtZW50VHhpZBIlCg5yZWNvdmVyZWRfc2F0cxgCIAEoA1INcmVjb3ZlcmVkU2F0cxIZ'
+    'CghmZWVfc2F0cxgDIAEoA1IHZmVlU2F0cw==');
 
 @$core.Deprecated('Use createCpfpRequestDescriptor instead')
 const CreateCpfpRequest$json = {
@@ -2701,6 +2749,7 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'BumpFee', '2': '.walletmanager.v1.BumpFeeRequest', '3': '.walletmanager.v1.BumpFeeResponse'},
     {'1': 'PreviewBumpFee', '2': '.walletmanager.v1.PreviewBumpFeeRequest', '3': '.walletmanager.v1.PreviewBumpFeeResponse'},
     {'1': 'CreateCpfp', '2': '.walletmanager.v1.CreateCpfpRequest', '3': '.walletmanager.v1.CreateCpfpResponse'},
+    {'1': 'CancelTransaction', '2': '.walletmanager.v1.CancelTransactionRequest', '3': '.walletmanager.v1.CancelTransactionResponse'},
     {'1': 'DeriveAddresses', '2': '.walletmanager.v1.DeriveAddressesRequest', '3': '.walletmanager.v1.DeriveAddressesResponse'},
     {'1': 'CreatePsbt', '2': '.walletmanager.v1.CreatePsbtRequest', '3': '.walletmanager.v1.CreatePsbtResponse'},
     {'1': 'SignPsbt', '2': '.walletmanager.v1.SignPsbtRequest', '3': '.walletmanager.v1.SignPsbtResponse'},
@@ -2842,8 +2891,11 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.PreviewBumpFeeRequest': PreviewBumpFeeRequest$json,
   '.walletmanager.v1.PreviewBumpFeeResponse': PreviewBumpFeeResponse$json,
   '.walletmanager.v1.BumpFeeOutput': BumpFeeOutput$json,
+  '.walletmanager.v1.CancelPlan': CancelPlan$json,
   '.walletmanager.v1.CreateCpfpRequest': CreateCpfpRequest$json,
   '.walletmanager.v1.CreateCpfpResponse': CreateCpfpResponse$json,
+  '.walletmanager.v1.CancelTransactionRequest': CancelTransactionRequest$json,
+  '.walletmanager.v1.CancelTransactionResponse': CancelTransactionResponse$json,
   '.walletmanager.v1.DeriveAddressesRequest': DeriveAddressesRequest$json,
   '.walletmanager.v1.DeriveAddressesResponse': DeriveAddressesResponse$json,
   '.walletmanager.v1.CreatePsbtRequest': CreatePsbtRequest$json,
@@ -2988,56 +3040,58 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'oOUHJldmlld0J1bXBGZWUSJy53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdCdW1wRmVlUmVxdWVz'
     'dBooLndhbGxldG1hbmFnZXIudjEuUHJldmlld0J1bXBGZWVSZXNwb25zZRJXCgpDcmVhdGVDcG'
     'ZwEiMud2FsbGV0bWFuYWdlci52MS5DcmVhdGVDcGZwUmVxdWVzdBokLndhbGxldG1hbmFnZXIu'
-    'djEuQ3JlYXRlQ3BmcFJlc3BvbnNlEmYKD0Rlcml2ZUFkZHJlc3NlcxIoLndhbGxldG1hbmFnZX'
-    'IudjEuRGVyaXZlQWRkcmVzc2VzUmVxdWVzdBopLndhbGxldG1hbmFnZXIudjEuRGVyaXZlQWRk'
-    'cmVzc2VzUmVzcG9uc2USVwoKQ3JlYXRlUHNidBIjLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlUH'
-    'NidFJlcXVlc3QaJC53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZVBzYnRSZXNwb25zZRJRCghTaWdu'
-    'UHNidBIhLndhbGxldG1hbmFnZXIudjEuU2lnblBzYnRSZXF1ZXN0GiIud2FsbGV0bWFuYWdlci'
-    '52MS5TaWduUHNidFJlc3BvbnNlEnUKFFNpZ25Qc2J0V2l0aENvc2lnbmVyEi0ud2FsbGV0bWFu'
-    'YWdlci52MS5TaWduUHNidFdpdGhDb3NpZ25lclJlcXVlc3QaLi53YWxsZXRtYW5hZ2VyLnYxLl'
-    'NpZ25Qc2J0V2l0aENvc2lnbmVyUmVzcG9uc2USWgoLQ29tYmluZVBzYnQSJC53YWxsZXRtYW5h'
-    'Z2VyLnYxLkNvbWJpbmVQc2J0UmVxdWVzdBolLndhbGxldG1hbmFnZXIudjEuQ29tYmluZVBzYn'
-    'RSZXNwb25zZRJdCgxGaW5hbGl6ZVBzYnQSJS53YWxsZXRtYW5hZ2VyLnYxLkZpbmFsaXplUHNi'
-    'dFJlcXVlc3QaJi53YWxsZXRtYW5hZ2VyLnYxLkZpbmFsaXplUHNidFJlc3BvbnNlEm8KEk11bH'
-    'Rpc2lnUHNidFN0YXR1cxIrLndhbGxldG1hbmFnZXIudjEuTXVsdGlzaWdQc2J0U3RhdHVzUmVx'
-    'dWVzdBosLndhbGxldG1hbmFnZXIudjEuTXVsdGlzaWdQc2J0U3RhdHVzUmVzcG9uc2USdQoUQn'
-    'JvYWRjYXN0VHJhbnNhY3Rpb24SLS53YWxsZXRtYW5hZ2VyLnYxLkJyb2FkY2FzdFRyYW5zYWN0'
-    'aW9uUmVxdWVzdBouLndhbGxldG1hbmFnZXIudjEuQnJvYWRjYXN0VHJhbnNhY3Rpb25SZXNwb2'
-    '5zZRJsChFHZXRBZGRyZXNzVW5zcGVudBIqLndhbGxldG1hbmFnZXIudjEuR2V0QWRkcmVzc1Vu'
-    'c3BlbnRSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5HZXRBZGRyZXNzVW5zcGVudFJlc3Bvbn'
-    'NlEo0BChxCcm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uEjUud2FsbGV0bWFuYWdlci52MS5C'
-    'cm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVxdWVzdBo2LndhbGxldG1hbmFnZXIudjEuQn'
-    'JvYWRjYXN0RWxlY3RydW1UcmFuc2FjdGlvblJlc3BvbnNlEoEBChhFbnVtZXJhdGVIYXJkd2Fy'
-    'ZURldmljZXMSMS53YWxsZXRtYW5hZ2VyLnYxLkVudW1lcmF0ZUhhcmR3YXJlRGV2aWNlc1JlcX'
-    'Vlc3QaMi53YWxsZXRtYW5hZ2VyLnYxLkVudW1lcmF0ZUhhcmR3YXJlRGV2aWNlc1Jlc3BvbnNl'
-    'EmYKD0dldEhhcmR3YXJlWHB1YhIoLndhbGxldG1hbmFnZXIudjEuR2V0SGFyZHdhcmVYcHViUm'
-    'VxdWVzdBopLndhbGxldG1hbmFnZXIudjEuR2V0SGFyZHdhcmVYcHViUmVzcG9uc2USbwoSU2ln'
-    'blBzYnRXaXRoRGV2aWNlEisud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFdpdGhEZXZpY2VSZX'
-    'F1ZXN0Giwud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFdpdGhEZXZpY2VSZXNwb25zZRJmCg9Q'
-    'cm9tcHREZXZpY2VQaW4SKC53YWxsZXRtYW5hZ2VyLnYxLlByb21wdERldmljZVBpblJlcXVlc3'
-    'QaKS53YWxsZXRtYW5hZ2VyLnYxLlByb21wdERldmljZVBpblJlc3BvbnNlEmAKDVNlbmREZXZp'
-    'Y2VQaW4SJi53YWxsZXRtYW5hZ2VyLnYxLlNlbmREZXZpY2VQaW5SZXF1ZXN0Gicud2FsbGV0bW'
-    'FuYWdlci52MS5TZW5kRGV2aWNlUGluUmVzcG9uc2USWgoLQ2xvc2VEZXZpY2USJC53YWxsZXRt'
-    'YW5hZ2VyLnYxLkNsb3NlRGV2aWNlUmVxdWVzdBolLndhbGxldG1hbmFnZXIudjEuQ2xvc2VEZX'
-    'ZpY2VSZXNwb25zZRJjCg5EZXJpdmVLZXlzdG9yZRInLndhbGxldG1hbmFnZXIudjEuRGVyaXZl'
-    'S2V5c3RvcmVSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52MS5EZXJpdmVLZXlzdG9yZVJlc3Bvbn'
-    'NlEoEBChhQcmV2aWV3V2FsbGV0RnJvbUVudHJvcHkSMS53YWxsZXRtYW5hZ2VyLnYxLlByZXZp'
-    'ZXdXYWxsZXRGcm9tRW50cm9weVJlcXVlc3QaMi53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdXYW'
-    'xsZXRGcm9tRW50cm9weVJlc3BvbnNlEmAKDUdldFdhbGxldFNlZWQSJi53YWxsZXRtYW5hZ2Vy'
-    'LnYxLkdldFdhbGxldFNlZWRSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZW'
-    'VkUmVzcG9uc2USaQoQTGlzdENvcmVWYXJpYW50cxIpLndhbGxldG1hbmFnZXIudjEuTGlzdENv'
-    'cmVWYXJpYW50c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZX'
-    'Nwb25zZRJjCg5HZXRDb3JlVmFyaWFudBInLndhbGxldG1hbmFnZXIudjEuR2V0Q29yZVZhcmlh'
-    'bnRSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52MS5HZXRDb3JlVmFyaWFudFJlc3BvbnNlEmMKDl'
-    'NldENvcmVWYXJpYW50Eicud2FsbGV0bWFuYWdlci52MS5TZXRDb3JlVmFyaWFudFJlcXVlc3Qa'
-    'KC53YWxsZXRtYW5hZ2VyLnYxLlNldENvcmVWYXJpYW50UmVzcG9uc2USbAoRR2V0RWxlY3RydW'
-    '1TZXJ2ZXISKi53YWxsZXRtYW5hZ2VyLnYxLkdldEVsZWN0cnVtU2VydmVyUmVxdWVzdBorLndh'
-    'bGxldG1hbmFnZXIudjEuR2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZRJsChFTZXRFbGVjdHJ1bV'
-    'NlcnZlchIqLndhbGxldG1hbmFnZXIudjEuU2V0RWxlY3RydW1TZXJ2ZXJSZXF1ZXN0Gisud2Fs'
-    'bGV0bWFuYWdlci52MS5TZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEl0KDEdldFRvckNvbmZpZx'
-    'IlLndhbGxldG1hbmFnZXIudjEuR2V0VG9yQ29uZmlnUmVxdWVzdBomLndhbGxldG1hbmFnZXIu'
-    'djEuR2V0VG9yQ29uZmlnUmVzcG9uc2USXQoMU2V0VG9yQ29uZmlnEiUud2FsbGV0bWFuYWdlci'
-    '52MS5TZXRUb3JDb25maWdSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5TZXRUb3JDb25maWdS'
-    'ZXNwb25zZRJWCg9XYXRjaFdhbGxldERhdGESFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKS53YW'
-    'xsZXRtYW5hZ2VyLnYxLldhdGNoV2FsbGV0RGF0YVJlc3BvbnNlMAE=');
+    'djEuQ3JlYXRlQ3BmcFJlc3BvbnNlEmwKEUNhbmNlbFRyYW5zYWN0aW9uEioud2FsbGV0bWFuYW'
+    'dlci52MS5DYW5jZWxUcmFuc2FjdGlvblJlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLkNhbmNl'
+    'bFRyYW5zYWN0aW9uUmVzcG9uc2USZgoPRGVyaXZlQWRkcmVzc2VzEigud2FsbGV0bWFuYWdlci'
+    '52MS5EZXJpdmVBZGRyZXNzZXNSZXF1ZXN0Gikud2FsbGV0bWFuYWdlci52MS5EZXJpdmVBZGRy'
+    'ZXNzZXNSZXNwb25zZRJXCgpDcmVhdGVQc2J0EiMud2FsbGV0bWFuYWdlci52MS5DcmVhdGVQc2'
+    'J0UmVxdWVzdBokLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlc3BvbnNlElEKCFNpZ25Q'
+    'c2J0EiEud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFJlcXVlc3QaIi53YWxsZXRtYW5hZ2VyLn'
+    'YxLlNpZ25Qc2J0UmVzcG9uc2USdQoUU2lnblBzYnRXaXRoQ29zaWduZXISLS53YWxsZXRtYW5h'
+    'Z2VyLnYxLlNpZ25Qc2J0V2l0aENvc2lnbmVyUmVxdWVzdBouLndhbGxldG1hbmFnZXIudjEuU2'
+    'lnblBzYnRXaXRoQ29zaWduZXJSZXNwb25zZRJaCgtDb21iaW5lUHNidBIkLndhbGxldG1hbmFn'
+    'ZXIudjEuQ29tYmluZVBzYnRSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5Db21iaW5lUHNidF'
+    'Jlc3BvbnNlEl0KDEZpbmFsaXplUHNidBIlLndhbGxldG1hbmFnZXIudjEuRmluYWxpemVQc2J0'
+    'UmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuRmluYWxpemVQc2J0UmVzcG9uc2USbwoSTXVsdG'
+    'lzaWdQc2J0U3RhdHVzEisud2FsbGV0bWFuYWdlci52MS5NdWx0aXNpZ1BzYnRTdGF0dXNSZXF1'
+    'ZXN0Giwud2FsbGV0bWFuYWdlci52MS5NdWx0aXNpZ1BzYnRTdGF0dXNSZXNwb25zZRJ1ChRCcm'
+    '9hZGNhc3RUcmFuc2FjdGlvbhItLndhbGxldG1hbmFnZXIudjEuQnJvYWRjYXN0VHJhbnNhY3Rp'
+    'b25SZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5Ccm9hZGNhc3RUcmFuc2FjdGlvblJlc3Bvbn'
+    'NlEmwKEUdldEFkZHJlc3NVbnNwZW50Eioud2FsbGV0bWFuYWdlci52MS5HZXRBZGRyZXNzVW5z'
+    'cGVudFJlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLkdldEFkZHJlc3NVbnNwZW50UmVzcG9uc2'
+    'USjQEKHEJyb2FkY2FzdEVsZWN0cnVtVHJhbnNhY3Rpb24SNS53YWxsZXRtYW5hZ2VyLnYxLkJy'
+    'b2FkY2FzdEVsZWN0cnVtVHJhbnNhY3Rpb25SZXF1ZXN0GjYud2FsbGV0bWFuYWdlci52MS5Ccm'
+    '9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVzcG9uc2USgQEKGEVudW1lcmF0ZUhhcmR3YXJl'
+    'RGV2aWNlcxIxLndhbGxldG1hbmFnZXIudjEuRW51bWVyYXRlSGFyZHdhcmVEZXZpY2VzUmVxdW'
+    'VzdBoyLndhbGxldG1hbmFnZXIudjEuRW51bWVyYXRlSGFyZHdhcmVEZXZpY2VzUmVzcG9uc2US'
+    'ZgoPR2V0SGFyZHdhcmVYcHViEigud2FsbGV0bWFuYWdlci52MS5HZXRIYXJkd2FyZVhwdWJSZX'
+    'F1ZXN0Gikud2FsbGV0bWFuYWdlci52MS5HZXRIYXJkd2FyZVhwdWJSZXNwb25zZRJvChJTaWdu'
+    'UHNidFdpdGhEZXZpY2USKy53YWxsZXRtYW5hZ2VyLnYxLlNpZ25Qc2J0V2l0aERldmljZVJlcX'
+    'Vlc3QaLC53YWxsZXRtYW5hZ2VyLnYxLlNpZ25Qc2J0V2l0aERldmljZVJlc3BvbnNlEmYKD1By'
+    'b21wdERldmljZVBpbhIoLndhbGxldG1hbmFnZXIudjEuUHJvbXB0RGV2aWNlUGluUmVxdWVzdB'
+    'opLndhbGxldG1hbmFnZXIudjEuUHJvbXB0RGV2aWNlUGluUmVzcG9uc2USYAoNU2VuZERldmlj'
+    'ZVBpbhImLndhbGxldG1hbmFnZXIudjEuU2VuZERldmljZVBpblJlcXVlc3QaJy53YWxsZXRtYW'
+    '5hZ2VyLnYxLlNlbmREZXZpY2VQaW5SZXNwb25zZRJaCgtDbG9zZURldmljZRIkLndhbGxldG1h'
+    'bmFnZXIudjEuQ2xvc2VEZXZpY2VSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5DbG9zZURldm'
+    'ljZVJlc3BvbnNlEmMKDkRlcml2ZUtleXN0b3JlEicud2FsbGV0bWFuYWdlci52MS5EZXJpdmVL'
+    'ZXlzdG9yZVJlcXVlc3QaKC53YWxsZXRtYW5hZ2VyLnYxLkRlcml2ZUtleXN0b3JlUmVzcG9uc2'
+    'USgQEKGFByZXZpZXdXYWxsZXRGcm9tRW50cm9weRIxLndhbGxldG1hbmFnZXIudjEuUHJldmll'
+    'd1dhbGxldEZyb21FbnRyb3B5UmVxdWVzdBoyLndhbGxldG1hbmFnZXIudjEuUHJldmlld1dhbG'
+    'xldEZyb21FbnRyb3B5UmVzcG9uc2USYAoNR2V0V2FsbGV0U2VlZBImLndhbGxldG1hbmFnZXIu'
+    'djEuR2V0V2FsbGV0U2VlZFJlcXVlc3QaJy53YWxsZXRtYW5hZ2VyLnYxLkdldFdhbGxldFNlZW'
+    'RSZXNwb25zZRJpChBMaXN0Q29yZVZhcmlhbnRzEikud2FsbGV0bWFuYWdlci52MS5MaXN0Q29y'
+    'ZVZhcmlhbnRzUmVxdWVzdBoqLndhbGxldG1hbmFnZXIudjEuTGlzdENvcmVWYXJpYW50c1Jlc3'
+    'BvbnNlEmMKDkdldENvcmVWYXJpYW50Eicud2FsbGV0bWFuYWdlci52MS5HZXRDb3JlVmFyaWFu'
+    'dFJlcXVlc3QaKC53YWxsZXRtYW5hZ2VyLnYxLkdldENvcmVWYXJpYW50UmVzcG9uc2USYwoOU2'
+    'V0Q29yZVZhcmlhbnQSJy53YWxsZXRtYW5hZ2VyLnYxLlNldENvcmVWYXJpYW50UmVxdWVzdBoo'
+    'LndhbGxldG1hbmFnZXIudjEuU2V0Q29yZVZhcmlhbnRSZXNwb25zZRJsChFHZXRFbGVjdHJ1bV'
+    'NlcnZlchIqLndhbGxldG1hbmFnZXIudjEuR2V0RWxlY3RydW1TZXJ2ZXJSZXF1ZXN0Gisud2Fs'
+    'bGV0bWFuYWdlci52MS5HZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEmwKEVNldEVsZWN0cnVtU2'
+    'VydmVyEioud2FsbGV0bWFuYWdlci52MS5TZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3QaKy53YWxs'
+    'ZXRtYW5hZ2VyLnYxLlNldEVsZWN0cnVtU2VydmVyUmVzcG9uc2USXQoMR2V0VG9yQ29uZmlnEi'
+    'Uud2FsbGV0bWFuYWdlci52MS5HZXRUb3JDb25maWdSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52'
+    'MS5HZXRUb3JDb25maWdSZXNwb25zZRJdCgxTZXRUb3JDb25maWcSJS53YWxsZXRtYW5hZ2VyLn'
+    'YxLlNldFRvckNvbmZpZ1JlcXVlc3QaJi53YWxsZXRtYW5hZ2VyLnYxLlNldFRvckNvbmZpZ1Jl'
+    'c3BvbnNlElYKD1dhdGNoV2FsbGV0RGF0YRIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRopLndhbG'
+    'xldG1hbmFnZXIudjEuV2F0Y2hXYWxsZXREYXRhUmVzcG9uc2UwAQ==');
 

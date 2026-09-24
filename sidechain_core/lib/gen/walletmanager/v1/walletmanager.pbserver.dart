@@ -65,6 +65,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$18.BumpFeeResponse> bumpFee($pb.ServerContext ctx, $18.BumpFeeRequest request);
   $async.Future<$18.PreviewBumpFeeResponse> previewBumpFee($pb.ServerContext ctx, $18.PreviewBumpFeeRequest request);
   $async.Future<$18.CreateCpfpResponse> createCpfp($pb.ServerContext ctx, $18.CreateCpfpRequest request);
+  $async.Future<$18.CancelTransactionResponse> cancelTransaction($pb.ServerContext ctx, $18.CancelTransactionRequest request);
   $async.Future<$18.DeriveAddressesResponse> deriveAddresses($pb.ServerContext ctx, $18.DeriveAddressesRequest request);
   $async.Future<$18.CreatePsbtResponse> createPsbt($pb.ServerContext ctx, $18.CreatePsbtRequest request);
   $async.Future<$18.SignPsbtResponse> signPsbt($pb.ServerContext ctx, $18.SignPsbtRequest request);
@@ -138,6 +139,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'BumpFee': return $18.BumpFeeRequest();
       case 'PreviewBumpFee': return $18.PreviewBumpFeeRequest();
       case 'CreateCpfp': return $18.CreateCpfpRequest();
+      case 'CancelTransaction': return $18.CancelTransactionRequest();
       case 'DeriveAddresses': return $18.DeriveAddressesRequest();
       case 'CreatePsbt': return $18.CreatePsbtRequest();
       case 'SignPsbt': return $18.SignPsbtRequest();
@@ -214,6 +216,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'BumpFee': return this.bumpFee(ctx, request as $18.BumpFeeRequest);
       case 'PreviewBumpFee': return this.previewBumpFee(ctx, request as $18.PreviewBumpFeeRequest);
       case 'CreateCpfp': return this.createCpfp(ctx, request as $18.CreateCpfpRequest);
+      case 'CancelTransaction': return this.cancelTransaction(ctx, request as $18.CancelTransactionRequest);
       case 'DeriveAddresses': return this.deriveAddresses(ctx, request as $18.DeriveAddressesRequest);
       case 'CreatePsbt': return this.createPsbt(ctx, request as $18.CreatePsbtRequest);
       case 'SignPsbt': return this.signPsbt(ctx, request as $18.SignPsbtRequest);

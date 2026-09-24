@@ -765,6 +765,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// CancelTransaction replaces an unconfirmed transaction with one that pays
+  /// the wallet's own inputs of it back to the wallet.
+  Future<walletmanagerv1walletmanager.CancelTransactionResponse> cancelTransaction(
+    walletmanagerv1walletmanager.CancelTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.cancelTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.DeriveAddressesResponse> deriveAddresses(
     walletmanagerv1walletmanager.DeriveAddressesRequest input, {
     connect.Headers? headers,
