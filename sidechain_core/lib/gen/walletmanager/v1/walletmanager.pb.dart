@@ -10172,6 +10172,8 @@ class PreviewBumpFeeResponse extends $pb.GeneratedMessage {
     $core.bool? canReplace,
     $core.bool? hasChild,
     $core.bool? addsInputs,
+    CancelPlan? cancel,
+    $core.String? cancelReason,
   }) {
     final $result = create();
     if (inputCount != null) {
@@ -10207,6 +10209,12 @@ class PreviewBumpFeeResponse extends $pb.GeneratedMessage {
     if (addsInputs != null) {
       $result.addsInputs = addsInputs;
     }
+    if (cancel != null) {
+      $result.cancel = cancel;
+    }
+    if (cancelReason != null) {
+      $result.cancelReason = cancelReason;
+    }
     return $result;
   }
   PreviewBumpFeeResponse._() : super();
@@ -10225,6 +10233,8 @@ class PreviewBumpFeeResponse extends $pb.GeneratedMessage {
     ..aOB(9, _omitFieldNames ? '' : 'canReplace')
     ..aOB(10, _omitFieldNames ? '' : 'hasChild')
     ..aOB(11, _omitFieldNames ? '' : 'addsInputs')
+    ..aOM<CancelPlan>(12, _omitFieldNames ? '' : 'cancel', subBuilder: CancelPlan.create)
+    ..aOS(13, _omitFieldNames ? '' : 'cancelReason')
     ..hasRequiredFields = false
   ;
 
@@ -10353,6 +10363,94 @@ class PreviewBumpFeeResponse extends $pb.GeneratedMessage {
   $core.bool hasAddsInputs() => $_has(10);
   @$pb.TagNumber(11)
   void clearAddsInputs() => clearField(11);
+
+  /// The cancel. Unset when the wallet cannot cancel the transaction.
+  @$pb.TagNumber(12)
+  CancelPlan get cancel => $_getN(11);
+  @$pb.TagNumber(12)
+  set cancel(CancelPlan v) { setField(12, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasCancel() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearCancel() => clearField(12);
+  @$pb.TagNumber(12)
+  CancelPlan ensureCancel() => $_ensure(11);
+
+  /// Why the wallet cannot cancel the transaction. Empty when cancel is set.
+  @$pb.TagNumber(13)
+  $core.String get cancelReason => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set cancelReason($core.String v) { $_setString(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasCancelReason() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearCancelReason() => clearField(13);
+}
+
+/// CancelPlan is the transaction that pays the wallet's own inputs of an
+/// unconfirmed transaction back to the wallet.
+class CancelPlan extends $pb.GeneratedMessage {
+  factory CancelPlan({
+    $fixnum.Int64? recoveredSats,
+    $fixnum.Int64? feeSats,
+  }) {
+    final $result = create();
+    if (recoveredSats != null) {
+      $result.recoveredSats = recoveredSats;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    return $result;
+  }
+  CancelPlan._() : super();
+  factory CancelPlan.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CancelPlan.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CancelPlan', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'recoveredSats')
+    ..aInt64(2, _omitFieldNames ? '' : 'feeSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CancelPlan clone() => CancelPlan()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CancelPlan copyWith(void Function(CancelPlan) updates) => super.copyWith((message) => updates(message as CancelPlan)) as CancelPlan;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelPlan create() => CancelPlan._();
+  CancelPlan createEmptyInstance() => create();
+  static $pb.PbList<CancelPlan> createRepeated() => $pb.PbList<CancelPlan>();
+  @$core.pragma('dart2js:noInline')
+  static CancelPlan getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelPlan>(create);
+  static CancelPlan? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get recoveredSats => $_getI64(0);
+  @$pb.TagNumber(1)
+  set recoveredSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasRecoveredSats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRecoveredSats() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get feeSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set feeSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFeeSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFeeSats() => clearField(2);
 }
 
 /// BumpFeeOutput is one output of the transaction the fee can come from.
@@ -10645,6 +10743,163 @@ class BumpFeePlan extends $pb.GeneratedMessage {
   $core.bool hasReducesPayment() => $_has(8);
   @$pb.TagNumber(9)
   void clearReducesPayment() => clearField(9);
+}
+
+class CancelTransactionRequest extends $pb.GeneratedMessage {
+  factory CancelTransactionRequest({
+    $core.String? walletId,
+    $core.String? txid,
+    $fixnum.Int64? maxFeeSats,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (maxFeeSats != null) {
+      $result.maxFeeSats = maxFeeSats;
+    }
+    return $result;
+  }
+  CancelTransactionRequest._() : super();
+  factory CancelTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CancelTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CancelTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'txid')
+    ..aInt64(3, _omitFieldNames ? '' : 'maxFeeSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CancelTransactionRequest clone() => CancelTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CancelTransactionRequest copyWith(void Function(CancelTransactionRequest) updates) => super.copyWith((message) => updates(message as CancelTransactionRequest)) as CancelTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelTransactionRequest create() => CancelTransactionRequest._();
+  CancelTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<CancelTransactionRequest> createRepeated() => $pb.PbList<CancelTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CancelTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelTransactionRequest>(create);
+  static CancelTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get txid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxid() => clearField(2);
+
+  /// The fee the user confirmed. A cancel that costs more is refused.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get maxFeeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set maxFeeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMaxFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMaxFeeSats() => clearField(3);
+}
+
+class CancelTransactionResponse extends $pb.GeneratedMessage {
+  factory CancelTransactionResponse({
+    $core.String? replacementTxid,
+    $fixnum.Int64? recoveredSats,
+    $fixnum.Int64? feeSats,
+  }) {
+    final $result = create();
+    if (replacementTxid != null) {
+      $result.replacementTxid = replacementTxid;
+    }
+    if (recoveredSats != null) {
+      $result.recoveredSats = recoveredSats;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    return $result;
+  }
+  CancelTransactionResponse._() : super();
+  factory CancelTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CancelTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CancelTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'replacementTxid')
+    ..aInt64(2, _omitFieldNames ? '' : 'recoveredSats')
+    ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CancelTransactionResponse clone() => CancelTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CancelTransactionResponse copyWith(void Function(CancelTransactionResponse) updates) => super.copyWith((message) => updates(message as CancelTransactionResponse)) as CancelTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelTransactionResponse create() => CancelTransactionResponse._();
+  CancelTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<CancelTransactionResponse> createRepeated() => $pb.PbList<CancelTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CancelTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelTransactionResponse>(create);
+  static CancelTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get replacementTxid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set replacementTxid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasReplacementTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearReplacementTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get recoveredSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set recoveredSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasRecoveredSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRecoveredSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSats() => clearField(3);
 }
 
 class CreateCpfpRequest extends $pb.GeneratedMessage {
@@ -12583,6 +12838,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<CreateCpfpResponse> createCpfp($pb.ClientContext? ctx, CreateCpfpRequest request) =>
     _client.invoke<CreateCpfpResponse>(ctx, 'WalletManagerService', 'CreateCpfp', request, CreateCpfpResponse())
+  ;
+  $async.Future<CancelTransactionResponse> cancelTransaction($pb.ClientContext? ctx, CancelTransactionRequest request) =>
+    _client.invoke<CancelTransactionResponse>(ctx, 'WalletManagerService', 'CancelTransaction', request, CancelTransactionResponse())
   ;
   $async.Future<DeriveAddressesResponse> deriveAddresses($pb.ClientContext? ctx, DeriveAddressesRequest request) =>
     _client.invoke<DeriveAddressesResponse>(ctx, 'WalletManagerService', 'DeriveAddresses', request, DeriveAddressesResponse())

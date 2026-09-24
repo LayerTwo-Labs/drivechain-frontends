@@ -727,6 +727,18 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// Replaces [txid] with a transaction that pays the wallet's own inputs of
+  /// it back to the wallet. The backend refuses a fee over [maxFeeSats].
+  Future<wmpb.CancelTransactionResponse> cancelTransaction({
+    required String walletId,
+    required String txid,
+    required int maxFeeSats,
+  }) {
+    return _unaryClient.cancelTransaction(
+      wmpb.CancelTransactionRequest(walletId: walletId, txid: txid, maxFeeSats: Int64(maxFeeSats)),
+    );
+  }
+
   Future<wmpb.CreateCpfpResponse> createCpfp({
     required String walletId,
     required String parentTxid,

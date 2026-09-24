@@ -337,6 +337,15 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.CreateCpfpResponse.new,
   );
 
+  /// CancelTransaction replaces an unconfirmed transaction with one that pays
+  /// the wallet's own inputs of it back to the wallet.
+  static const cancelTransaction = connect.Spec(
+    '/$name/CancelTransaction',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CancelTransactionRequest.new,
+    walletmanagerv1walletmanager.CancelTransactionResponse.new,
+  );
+
   static const deriveAddresses = connect.Spec(
     '/$name/DeriveAddresses',
     connect.StreamType.unary,
