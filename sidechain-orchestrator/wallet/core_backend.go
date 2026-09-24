@@ -1333,6 +1333,10 @@ func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error)
 	return c.rpc.SendRawTransaction(ctx, rawHex)
 }
 
+func (c coreChain) TipHeight(ctx context.Context) (int, error) {
+	return c.rpc.GetBlockCount(ctx)
+}
+
 // ============================================================================
 // Core wallet creation (descriptor derivation + import)
 // ============================================================================

@@ -106,4 +106,6 @@ type ChainSource interface {
 	GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error)
 	// Broadcast submits a raw tx to the network and returns its txid.
 	Broadcast(ctx context.Context, rawHex string) (string, error)
+	// TipHeight returns the height of the mainchain tip the source sees.
+	TipHeight(ctx context.Context) (int, error)
 }

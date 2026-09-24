@@ -1984,6 +1984,10 @@ func (c esploraChain) Broadcast(ctx context.Context, rawHex string) (string, err
 	return c.client.Broadcast(ctx, rawHex)
 }
 
+func (c esploraChain) TipHeight(ctx context.Context) (int, error) {
+	return c.client.TipHeight(ctx)
+}
+
 // ============================================================================
 // Derivation + scanning
 // ============================================================================

@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -21,8 +22,24 @@ import (
 
 type ctipValidator struct {
 	enforcerrpc.UnimplementedValidatorServiceHandler
-	ctip *enforcerpb.GetCtipResponse_Ctip
-	err  error
+	height uint32
+	slots  []uint32
+	ctip   *enforcerpb.GetCtipResponse_Ctip
+	err    error
+}
+
+func (v ctipValidator) GetChainTip(context.Context, *connect.Request[enforcerpb.GetChainTipRequest]) (*connect.Response[enforcerpb.GetChainTipResponse], error) {
+	return connect.NewResponse(&enforcerpb.GetChainTipResponse{
+		BlockHeaderInfo: &enforcerpb.BlockHeaderInfo{Height: v.height},
+	}), nil
+}
+
+func (v ctipValidator) GetSidechains(context.Context, *connect.Request[enforcerpb.GetSidechainsRequest]) (*connect.Response[enforcerpb.GetSidechainsResponse], error) {
+	return connect.NewResponse(&enforcerpb.GetSidechainsResponse{
+		Sidechains: lo.Map(v.slots, func(slot uint32, _ int) *enforcerpb.GetSidechainsResponse_SidechainInfo {
+			return &enforcerpb.GetSidechainsResponse_SidechainInfo{SidechainNumber: wrapperspb.UInt32(slot)}
+		}),
+	}), nil
 }
 
 func (v ctipValidator) GetCtip(_ context.Context, req *connect.Request[enforcerpb.GetCtipRequest]) (*connect.Response[enforcerpb.GetCtipResponse], error) {
@@ -39,12 +56,15 @@ func TestDepositReadsTheEnforcerInBothModes(t *testing.T) {
 	for _, mode := range []orchestrator.NodeMode{orchestrator.NodeModeFull, orchestrator.NodeModeLight} {
 		t.Run(string(mode), func(t *testing.T) {
 			for _, state := range []struct {
-				name string
-				ctip *enforcerpb.GetCtipResponse_Ctip
-				err  error
+				name   string
+				slots  []uint32
+				ctip   *enforcerpb.GetCtipResponse_Ctip
+				err    error
+				refuse bool
 			}{
-				{name: "empty"},
-				{name: "funded", ctip: &enforcerpb.GetCtipResponse_Ctip{
+				{name: "first deposit", slots: []uint32{9}},
+				{name: "empty and inactive", refuse: true},
+				{name: "funded", slots: []uint32{9}, ctip: &enforcerpb.GetCtipResponse_Ctip{
 					Txid:  &commonpb.ReverseHex{Hex: wrapperspb.String("treasury")},
 					Vout:  2,
 					Value: 12000,
@@ -53,7 +73,7 @@ func TestDepositReadsTheEnforcerInBothModes(t *testing.T) {
 			} {
 				t.Run(state.name, func(t *testing.T) {
 					mux := http.NewServeMux()
-					path, handler := enforcerrpc.NewValidatorServiceHandler(ctipValidator{ctip: state.ctip, err: state.err})
+					path, handler := enforcerrpc.NewValidatorServiceHandler(ctipValidator{height: 100, slots: state.slots, ctip: state.ctip, err: state.err})
 					mux.Handle(path, handler)
 					server := h2cServer(mux)
 					t.Cleanup(server.Close)
@@ -69,13 +89,20 @@ func TestDepositReadsTheEnforcerInBothModes(t *testing.T) {
 					t.Cleanup(func() { require.NoError(t, orch.SetNodeMode(context.Background(), orchestrator.NodeModeFull)) })
 					require.Equal(t, mode, orch.NodeMode())
 
-					ctip, err := (&WalletHandler{orch: orch}).sidechainCtip(context.Background(), 9)
+					treasury, err := (&WalletHandler{orch: orch}).enforcerTreasury(context.Background(), 9)
 					if state.err != nil {
 						require.Error(t, err)
 						require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 						return
 					}
 					require.NoError(t, err)
+					require.Equal(t, 100, treasury.enforcerHeight)
+					if state.refuse {
+						require.Error(t, depositTreasuryReady(treasury, 100, 9))
+						return
+					}
+					require.NoError(t, depositTreasuryReady(treasury, 100, 9))
+					ctip := treasury.ctip
 					require.Equal(t, state.ctip.GetTxid().GetHex().GetValue(), ctip.GetTxid().GetHex().GetValue())
 					require.Equal(t, state.ctip.GetVout(), ctip.GetVout())
 					require.Equal(t, state.ctip.GetValue(), ctip.GetValue())

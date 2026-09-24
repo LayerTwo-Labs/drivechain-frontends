@@ -59,6 +59,10 @@ func (f *detailsProvider) Broadcast(_ context.Context, _ string) (string, error)
 	return "", errors.New("broadcast is out of scope")
 }
 
+func (f *detailsProvider) TipHeight(context.Context) (int, error) {
+	return 0, errors.New("tip height is out of scope")
+}
+
 // paymentWithChange is a send that pays a stranger, carries an OP_RETURN, and
 // returns the rest to the wallet's own change address.
 func paymentWithChange() *wallet.RawTransaction {
