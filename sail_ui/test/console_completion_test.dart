@@ -16,16 +16,18 @@ void main() {
     );
   }
 
-  Widget console() {
+  Widget console({List<ConsoleService>? services}) {
     return MaterialApp(
       home: SailTheme(
         data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
         child: Scaffold(
           body: ConsoleView(
-            services: [
-              service('alpha', ['help', 'alpha-only']),
-              service('beta', ['help', 'beta-only']),
-            ],
+            services:
+                services ??
+                [
+                  service('alpha', ['help', 'alpha-only']),
+                  service('beta', ['help', 'beta-only']),
+                ],
           ),
         ),
       ),
@@ -79,5 +81,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(ran, ['beta:beta-only', 'beta:help']);
+  });
+
+  testWidgets('each option shows its chain when several chains show', (tester) async {
+    await tester.pumpWidget(console());
+    await tester.enterText(find.byType(TextField), 'only');
+    await tester.pumpAndSettle();
+
+    final tags = find.byKey(const ValueKey('console-suggestion-chain'));
+    expect(tags, findsNWidgets(2));
+    expect(find.descendant(of: tags, matching: find.text('alpha')), findsOneWidget);
+    expect(find.descendant(of: tags, matching: find.text('beta')), findsOneWidget);
+  });
+
+  testWidgets('a console with one chain shows no chain on its options', (tester) async {
+    await tester.pumpWidget(
+      console(
+        services: [
+          service('alpha', ['help', 'alpha-only']),
+        ],
+      ),
+    );
+    await tester.enterText(find.byType(TextField), 'hel');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('console-suggestion-chain')), findsNothing);
   });
 }

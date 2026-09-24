@@ -107,4 +107,21 @@ void main() {
 
     expect(results['bitcoin-cli'], isNull);
   });
+
+  test('discoverCLIs in a sidechain app finds only the CLI of that sidechain', () async {
+    final suffix = Platform.isWindows ? '.exe' : '';
+    final bitnames = await seed('bitnames-cli$suffix');
+    await seed('thunder-cli$suffix');
+    await seed('bitassets-cli$suffix');
+    await seed('bitcoin-cli$suffix');
+
+    final results = await CLIConsole.discoverCLIs(sidechain: BinaryType.BINARY_TYPE_BITNAMES);
+
+    expect(results, {'bitnames-cli': bitnames.path});
+  });
+
+  test('clisFor gives every CLI outside a sidechain app', () {
+    expect(CLIConsole.clisFor(null), containsAll(['bitcoin-cli', 'thunder-cli', 'bitnames-cli']));
+    expect(CLIConsole.clisFor(BinaryType.BINARY_TYPE_THUNDER), ['thunder-cli']);
+  });
 }
