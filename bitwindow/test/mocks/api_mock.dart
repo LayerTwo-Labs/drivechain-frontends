@@ -234,7 +234,7 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<bool> verifyMessage(String walletId, String message, String signature, String publicKey) async {
+  Future<bool> verifyMessage(String walletId, String message, String signature, String address) async {
     return true;
   }
 

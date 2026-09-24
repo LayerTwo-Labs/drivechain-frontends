@@ -271,7 +271,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 				return err
 			}
 		}
-		walletSvcImpl := api_wallet.New(ctx, rt.db, s.Bitcoind, s.Crypto, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
+		walletSvcImpl := api_wallet.New(ctx, rt.db, s.Bitcoind, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
 		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
 		register(path, h)
 	}

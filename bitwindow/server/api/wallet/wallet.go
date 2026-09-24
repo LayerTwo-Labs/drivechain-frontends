@@ -26,10 +26,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/signmessage"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
-	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -45,7 +43,6 @@ import (
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ rpc.WalletServiceHandler = new(Server)
@@ -55,7 +52,6 @@ func New(
 	ctx context.Context,
 	database *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
-	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
 	chequeChain engines.ChequeChain,
 	walletEngine *engines.WalletEngine,
@@ -66,7 +62,6 @@ func New(
 		database:     database,
 		chequeChain:  chequeChain,
 		bitcoind:     bitcoind,
-		crypto:       crypto,
 		chequeEngine: chequeEngine,
 		walletEngine: walletEngine,
 		backupEngine: engines.NewBackupEngine(database, walletDir),
@@ -83,7 +78,6 @@ func New(
 type Server struct {
 	database     *sql.DB
 	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
-	crypto       *service.Service[cryptorpc.CryptoServiceClient]
 	chequeEngine *engines.ChequeEngine
 	chequeChain  engines.ChequeChain
 	walletEngine *engines.WalletEngine
@@ -1002,34 +996,34 @@ func receiveAddressForKind(kind orchwallet.ScriptKind, pubKey *btcec.PublicKey, 
 	return nil, fmt.Errorf("unsupported script kind %s", kind)
 }
 
-// deriveMessageSigningPrivateKey returns the hex encoded key behind address, so
-// the signature proves ownership of that address rather than some other one.
-func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (string, error) {
+// deriveMessageSigningPrivateKey returns the key behind address, so the
+// signature proves ownership of that address rather than some other one.
+func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (*btcec.PrivateKey, error) {
 	kinds, err := walletScriptKinds(wallet)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for _, kind := range kinds {
 		external, err := deriveExternalChainKey(wallet, chainParams, kind)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		for i := uint32(0); i < addressScanDepth; i++ {
 			addrKey, err := external.Derive(i)
 			if err != nil {
-				return "", fmt.Errorf("derive address %d: %w", i, err)
+				return nil, fmt.Errorf("derive address %d: %w", i, err)
 			}
 
 			pubKey, err := addrKey.ECPubKey()
 			if err != nil {
-				return "", fmt.Errorf("get public key %d: %w", i, err)
+				return nil, fmt.Errorf("get public key %d: %w", i, err)
 			}
 
 			derived, err := receiveAddressForKind(kind, pubKey, chainParams)
 			if err != nil {
-				return "", fmt.Errorf("create address %d: %w", i, err)
+				return nil, fmt.Errorf("create address %d: %w", i, err)
 			}
 
 			if derived.EncodeAddress() != address {
@@ -1038,7 +1032,7 @@ func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *cha
 
 			privKey, err := addrKey.ECPrivKey()
 			if err != nil {
-				return "", fmt.Errorf("get private key %d: %w", i, err)
+				return nil, fmt.Errorf("get private key %d: %w", i, err)
 			}
 
 			// A taproot address commits to the tweaked output key, so the
@@ -1047,24 +1041,19 @@ func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *cha
 				privKey = txscript.TweakTaprootPrivKey(*privKey, []byte{})
 			}
 
-			return hex.EncodeToString(privKey.Serialize()), nil
+			return privKey, nil
 		}
 	}
 
-	return "", fmt.Errorf("address %s is not one of the wallet's first %d receiving addresses", address, addressScanDepth)
+	return nil, fmt.Errorf("address %s is not one of the wallet's first %d receiving addresses", address, addressScanDepth)
 }
 
 // SignMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMessageRequest]) (*connect.Response[pb.SignMessageResponse], error) {
-	walletId := c.Msg.WalletId
-
-	// Wallet ID validation only - signing works the same for both wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
+	if _, err := s.walletEngine.GetWalletBackendType(ctx, c.Msg.WalletId); err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	// Signing needs the seed, so the wallet has to be unlocked
 	if !s.walletEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
@@ -1073,65 +1062,38 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
 	}
 
-	walletInfo, err := s.walletEngine.GetWalletInfo(ctx, walletId)
+	chainParams := s.walletEngine.GetChainParams()
+	address, err := btcutil.DecodeAddress(c.Msg.Address, chainParams)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("decode address: %w", err))
+	}
+
+	walletInfo, err := s.walletEngine.GetWalletInfo(ctx, c.Msg.WalletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet info: %w", err)
 	}
 
-	privKeyHex, err := deriveMessageSigningPrivateKey(walletInfo, s.walletEngine.GetChainParams(), c.Msg.Address)
+	privKey, err := deriveMessageSigningPrivateKey(walletInfo, chainParams, c.Msg.Address)
 	if err != nil {
 		return nil, fmt.Errorf("derive signing key: %w", err)
 	}
 
-	crypto, err := s.crypto.Get(ctx)
+	signature, err := signmessage.Sign(privKey, address, c.Msg.Message, chainParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sign message: %w", err)
 	}
 
-	res, err := crypto.Secp256K1Sign(ctx, connect.NewRequest(&cryptov1.Secp256K1SignRequest{
-		Message: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString([]byte(c.Msg.Message))},
-		},
-		SecretKey: &commonv1.ConsensusHex{
-			Hex: &wrapperspb.StringValue{Value: privKeyHex},
-		},
-	}))
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/crypto: could not sign message: %w", err)
-	}
-
-	return connect.NewResponse(&pb.SignMessageResponse{
-		Signature: res.Msg.Signature.Hex.Value,
-	}), nil
+	return connect.NewResponse(&pb.SignMessageResponse{Signature: signature}), nil
 }
 
 // VerifyMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.VerifyMessageRequest]) (*connect.Response[pb.VerifyMessageResponse], error) {
-	// Verification needs only the message, signature and public key, so a third
-	// party proof verifies without any wallet of our own.
-	crypto, err := s.crypto.Get(ctx)
+	valid, err := signmessage.Verify(c.Msg.PublicKey, c.Msg.Message, c.Msg.Signature, s.walletEngine.GetChainParams())
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	res, err := crypto.Secp256K1Verify(ctx, connect.NewRequest(&cryptov1.Secp256K1VerifyRequest{
-		Message: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString([]byte(c.Msg.Message))},
-		},
-		Signature: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: c.Msg.Signature},
-		},
-		PublicKey: &commonv1.ConsensusHex{
-			Hex: &wrapperspb.StringValue{Value: c.Msg.PublicKey},
-		},
-	}))
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/crypto: could not verify message: %w", err)
-	}
-
-	return connect.NewResponse(&pb.VerifyMessageResponse{
-		Valid: res.Msg.Valid,
-	}), nil
+	return connect.NewResponse(&pb.VerifyMessageResponse{Valid: valid}), nil
 }
 
 // ListUnspent implements walletv1connect.WalletServiceHandler.

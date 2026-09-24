@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,11 +12,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
-	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -24,8 +20,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const testSeedHex = "0329e77e27d1e24336be53d25a897e92e67b5ec7e88eca7529b14e3ffd9168a247b6906469fb8a79ecb25ec077e033f6b567d5d9b0ae334f1e33457ae6bb1364"
@@ -77,14 +71,14 @@ func TestDeriveMessageSigningPrivateKey(t *testing.T) {
 	for _, index := range []uint32{0, 3, addressScanDepth - 1} {
 		expected := deriveAddressKey(t, chainParams, 1, 0, index)
 
-		privKeyHex, err := deriveMessageSigningPrivateKey(
+		privKey, err := deriveMessageSigningPrivateKey(
 			signingWallet(0, ""), chainParams, addressOf(t, expected, chainParams),
 		)
 		require.NoError(t, err)
 
 		expectedKey, err := expected.ECPrivKey()
 		require.NoError(t, err)
-		require.Equal(t, hex.EncodeToString(expectedKey.Serialize()), privKeyHex)
+		require.Equal(t, expectedKey.Serialize(), privKey.Serialize())
 	}
 
 	// An address past the gap limit, or one from another wallet entirely, has no
@@ -114,12 +108,12 @@ func TestDeriveMessageSigningPrivateKeyHonorsAccount(t *testing.T) {
 		signingWallet(5, ""),
 		signingWallet(0, "m/84'/1'/5'"),
 	} {
-		privKeyHex, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
+		privKey, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
 		require.NoError(t, err)
 
 		expected, err := account5.ECPrivKey()
 		require.NoError(t, err)
-		require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+		require.Equal(t, expected.Serialize(), privKey.Serialize())
 	}
 
 	// The default-account wallet does not own that address
@@ -156,24 +150,18 @@ func TestDeriveMessageSigningPrivateKeyHandlesTaproot(t *testing.T) {
 		signingWallet(0, ""),            // taproot comes alongside segwit off one seed
 		signingWallet(0, "m/86'/1'/0'"), // explicit m/86' path is its single kind
 	} {
-		privKeyHex, err := deriveMessageSigningPrivateKey(wallet, chainParams, taproot.EncodeAddress())
+		privKey, err := deriveMessageSigningPrivateKey(wallet, chainParams, taproot.EncodeAddress())
 		require.NoError(t, err)
-		require.Equal(t, hex.EncodeToString(tweaked.Serialize()), privKeyHex)
+		require.Equal(t, tweaked.Serialize(), privKey.Serialize())
 	}
 }
 
-// The enforcer's Secp256K1Sign takes a common.Hex message, so plaintext has to be
-// hex encoded on the way in or every signature request fails to decode.
-func TestSignMessageHexEncodesMessage(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
+// Light mode has no enforcer and no bitcoind, so signing and verifying must
+// need neither.
+func TestSignAndVerifyMessageWithoutNode(t *testing.T) {
 	ctx := context.Background()
 
-	const (
-		walletID = "80CEBA2163224572BDEADD2D2181C51B"
-		seedHex  = testSeedHex
-	)
+	const walletID = "80CEBA2163224572BDEADD2D2181C51B"
 
 	tempDir := t.TempDir()
 	walletData, err := json.Marshal(map[string]any{
@@ -181,65 +169,54 @@ func TestSignMessageHexEncodesMessage(t *testing.T) {
 		"activeWalletId": walletID,
 		"wallets": []map[string]any{{
 			"version":     1,
-			"master":      map[string]any{"seed_hex": seedHex},
+			"master":      map[string]any{"seed_hex": testSeedHex},
 			"id":          walletID,
 			"name":        "test",
-			"wallet_type": "bitcoinCore",
+			"wallet_type": "electrum",
 		}},
 	})
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "wallet.json"), walletData, 0o600))
 
 	walletEngine := engines.NewWalletEngine(
-		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
+		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return nil, errors.New("no bitcoind in light mode")
+		},
 		tempDir,
 		&chaincfg.SigNetParams,
 	)
 	require.True(t, walletEngine.IsUnlocked(), "unencrypted wallets auto-unlock at startup")
 
-	var signed *cryptov1.Secp256K1SignRequest
-	mockCrypto := mocks.NewMockCryptoServiceClient(ctrl)
-	mockCrypto.EXPECT().
-		Secp256K1Sign(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, req *connect.Request[cryptov1.Secp256K1SignRequest]) (*connect.Response[cryptov1.Secp256K1SignResponse], error) {
-			signed = req.Msg
-			return &connect.Response[cryptov1.Secp256K1SignResponse]{
-				Msg: &cryptov1.Secp256K1SignResponse{
-					Signature: &commonv1.Hex{Hex: wrapperspb.String("3045')")},
-				},
-			}, nil
-		})
+	server := &Server{walletEngine: walletEngine}
 
-	server := &Server{
-		walletEngine: walletEngine,
-		crypto: service.New("test-crypto", func(ctx context.Context) (cryptorpc.CryptoServiceClient, error) {
-			return mockCrypto, nil
-		}),
-	}
-
-	// Non-ASCII on purpose: raw plaintext would not be valid hex either way, but
-	// multi-byte input also proves the encoding is over bytes, not runes.
 	const message = "signed by Bjørn"
+	segwit := addressOf(t, deriveAddressKey(t, &chaincfg.SigNetParams, 1, 0, 2), &chaincfg.SigNetParams)
 
-	wallet := signingWallet(0, "")
-	address := addressOf(t, deriveAddressKey(t, &chaincfg.SigNetParams, 1, 0, 0), &chaincfg.SigNetParams)
-
-	res, err := server.SignMessage(ctx, connect.NewRequest(&pb.SignMessageRequest{
-		WalletId: walletID,
-		Message:  message,
-		Address:  address,
-	}))
+	tapKey := txscript.ComputeTaprootKeyNoScript(pubKeyOf(t, deriveKeyAtPurpose(t, &chaincfg.SigNetParams, 86, 1, 0, 1)))
+	taproot, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), &chaincfg.SigNetParams)
 	require.NoError(t, err)
-	require.Equal(t, "3045')", res.Msg.Signature)
 
-	require.NotNil(t, signed, "enforcer was never called")
-	decoded, err := hex.DecodeString(signed.Message.Hex.Value)
-	require.NoError(t, err, "message must be hex the enforcer can decode")
-	require.Equal(t, message, string(decoded))
+	for _, address := range []string{segwit, taproot.EncodeAddress()} {
+		signed, err := server.SignMessage(ctx, connect.NewRequest(&pb.SignMessageRequest{
+			WalletId: walletID,
+			Message:  message,
+			Address:  address,
+		}))
+		require.NoError(t, err, address)
 
-	expectedKey, err := deriveMessageSigningPrivateKey(wallet, &chaincfg.SigNetParams, address)
-	require.NoError(t, err)
-	require.Equal(t, expectedKey, signed.SecretKey.Hex.Value)
+		for _, tc := range []struct {
+			message string
+			valid   bool
+		}{{message, true}, {message + " ", false}} {
+			verified, err := server.VerifyMessage(ctx, connect.NewRequest(&pb.VerifyMessageRequest{
+				Message:   tc.message,
+				Signature: signed.Msg.Signature,
+				PublicKey: address,
+			}))
+			require.NoError(t, err)
+			require.Equal(t, tc.valid, verified.Msg.Valid, address)
+		}
+	}
 }
 
 // deriveKeyAtPurpose walks m/purpose'/coin'/account'/0/index.
@@ -302,9 +279,9 @@ func TestDeriveMessageSigningPrivateKeyHandlesLegacyAndNested(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, wallet := range []*engines.WalletInfo{signingWallet(0, ""), signingWallet(0, tc.path)} {
-			privKeyHex, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
+			privKey, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
 			require.NoError(t, err)
-			require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+			require.Equal(t, expected.Serialize(), privKey.Serialize())
 		}
 	}
 }
