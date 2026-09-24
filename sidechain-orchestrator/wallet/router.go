@@ -260,6 +260,22 @@ func (r *BackendRouter) CreateCpfp(ctx context.Context, walletID string, req Cpf
 	return p.CreateCpfp(ctx, walletID, req)
 }
 
+func (r *BackendRouter) PreviewCancel(ctx context.Context, walletID, txid string) (*CancelPreview, error) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, err
+	}
+	return p.PreviewCancel(ctx, walletID, txid)
+}
+
+func (r *BackendRouter) CancelTransaction(ctx context.Context, walletID, txid string, maxFeeSats int64) (*CancelResult, error) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, err
+	}
+	return p.CancelTransaction(ctx, walletID, txid, maxFeeSats)
+}
+
 // Chain returns a chain source without a wallet context, preferring Core and
 // falling back to electrum (Esplora) so electrum-only deployments still work.
 // Prefer ChainForWallet when a wallet ID is available.

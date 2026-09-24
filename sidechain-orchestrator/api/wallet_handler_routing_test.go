@@ -26,6 +26,8 @@ type recordingProvider struct {
 	lastBumpWallet string
 	lastBump       wallet.BumpFeeRequest
 	bumpErr        error
+	lastCancelTxid   string
+	lastCancelMaxFee int64
 }
 
 func (f *recordingProvider) Send(ctx context.Context, walletID string, req wallet.SendRequest) (string, error) {
@@ -179,6 +181,47 @@ func (f *recordingProvider) PreviewBumpFee(ctx context.Context, walletID string,
 	}, nil
 }
 
+func (f *recordingProvider) PreviewCancel(ctx context.Context, walletID, txid string) (*wallet.CancelPreview, error) {
+	f.lastBumpWallet = walletID
+	return &wallet.CancelPreview{Plan: &wallet.CancelPlan{FeeSats: 5_332, RecoveredSats: 194_668}}, nil
+}
+
+func (f *recordingProvider) CancelTransaction(ctx context.Context, walletID, txid string, maxFeeSats int64) (*wallet.CancelResult, error) {
+	f.lastBumpWallet = walletID
+	f.lastCancelTxid = txid
+	f.lastCancelMaxFee = maxFeeSats
+	return &wallet.CancelResult{
+		NewTxID: "cancel-txid",
+		Plan:    wallet.CancelPlan{FeeSats: 5_332, RecoveredSats: 194_668},
+	}, nil
+}
+
+func TestCancelTransactionRoutesPerWalletType(t *testing.T) {
+	h, elecFake, chainFake, elecID, coreID := newRoutedHandler(t)
+
+	for _, tc := range []struct {
+		walletID string
+		fake     *recordingProvider
+		other    *recordingProvider
+	}{
+		{walletID: elecID, fake: elecFake, other: chainFake},
+		{walletID: coreID, fake: chainFake, other: elecFake},
+	} {
+		tc.other.lastBumpWallet, tc.other.lastCancelTxid = "", ""
+		resp, err := h.CancelTransaction(context.Background(), connect.NewRequest(&pb.CancelTransactionRequest{
+			WalletId: tc.walletID, Txid: "abc", MaxFeeSats: 5_332,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, "cancel-txid", resp.Msg.ReplacementTxid)
+		assert.Equal(t, int64(194_668), resp.Msg.RecoveredSats)
+		assert.Equal(t, int64(5_332), resp.Msg.FeeSats)
+		assert.Equal(t, tc.walletID, tc.fake.lastBumpWallet)
+		assert.Equal(t, "abc", tc.fake.lastCancelTxid)
+		assert.Equal(t, int64(5_332), tc.fake.lastCancelMaxFee)
+		assert.Empty(t, tc.other.lastCancelTxid)
+	}
+}
+
 // Output 0 is a real choice. It must not arrive at the backend as "take it from
 // the change output", which would replace the transaction the user never asked
 // for.
@@ -242,6 +285,10 @@ func TestPreviewBumpFeeReportsEveryField(t *testing.T) {
 	assert.True(t, msg.Outputs[1].IsMine)
 	assert.Equal(t, int64(294), msg.Outputs[1].DustSats)
 	assert.False(t, msg.Outputs[0].IsMine)
+	require.NotNil(t, msg.Cancel)
+	assert.Equal(t, int64(194_668), msg.Cancel.RecoveredSats)
+	assert.Equal(t, int64(5_332), msg.Cancel.FeeSats)
+	assert.Empty(t, msg.CancelReason)
 }
 
 func TestBumpFeeKeepsTheBackendErrorCode(t *testing.T) {

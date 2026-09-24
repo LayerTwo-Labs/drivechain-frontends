@@ -1618,7 +1618,43 @@ func (h *WalletHandler) PreviewBumpFee(ctx context.Context, req *connect.Request
 	if preview.Plan != nil {
 		resp.Plan = bumpFeePlanToProto(*preview.Plan)
 	}
+
+	cancel, err := h.engine.Backend().PreviewCancel(ctx, walletID, req.Msg.Txid)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	resp.CancelReason = cancel.Reason
+	if cancel.Plan != nil {
+		resp.Cancel = &pb.CancelPlan{
+			RecoveredSats: cancel.Plan.RecoveredSats,
+			FeeSats:       cancel.Plan.FeeSats,
+		}
+	}
 	return connect.NewResponse(resp), nil
+}
+
+func (h *WalletHandler) CancelTransaction(ctx context.Context, req *connect.Request[pb.CancelTransactionRequest]) (*connect.Response[pb.CancelTransactionResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if req.Msg.Txid == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name the transaction to cancel"))
+	}
+
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	result, err := h.engine.Backend().CancelTransaction(ctx, walletID, req.Msg.Txid, req.Msg.MaxFeeSats)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return connect.NewResponse(&pb.CancelTransactionResponse{
+		ReplacementTxid: result.NewTxID,
+		RecoveredSats:   result.Plan.RecoveredSats,
+		FeeSats:         result.Plan.FeeSats,
+	}), nil
 }
 
 // voutPointer maps the request's optional output index onto the backend's.

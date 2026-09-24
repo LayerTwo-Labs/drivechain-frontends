@@ -1699,6 +1699,97 @@ func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID string, req Bump
 	return &BumpFeeResult{NewTxID: newTxID, Plan: plan}, nil
 }
 
+// PreviewCancel reports what a cancel of txid returns to the wallet.
+func (p *ElectrumBackend) PreviewCancel(ctx context.Context, walletID, txid string) (*CancelPreview, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return nil, err
+	}
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	return p.previewCancel(ctx, walletID, scan, txid)
+}
+
+// CancelTransaction replaces txid with a transaction that pays the wallet's
+// own inputs of it back to the wallet.
+func (p *ElectrumBackend) CancelTransaction(ctx context.Context, walletID, txid string, maxFeeSats int64) (*CancelResult, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return nil, err
+	}
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	preview, err := p.previewCancel(ctx, walletID, scan, txid)
+	if err != nil {
+		return nil, err
+	}
+	if err := preview.allows(maxFeeSats); err != nil {
+		return nil, err
+	}
+	newTxID, err := p.Send(ctx, walletID, cancelSend(*preview.Plan))
+	if err != nil {
+		return nil, err
+	}
+	return &CancelResult{NewTxID: newTxID, Plan: *preview.Plan}, nil
+}
+
+func (p *ElectrumBackend) previewCancel(ctx context.Context, walletID string, scan *electrumScan, txid string) (*CancelPreview, error) {
+	tx, err := p.client.Tx(ctx, txid)
+	if err != nil {
+		return nil, err
+	}
+	if tx.Status.Confirmed {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s is confirmed", txid))
+	}
+	if tx.Weight <= 0 {
+		return nil, fmt.Errorf("transaction %s reports no weight", txid)
+	}
+	if scan.watchOnly {
+		return &CancelPreview{Reason: "this wallet holds no key, so it cannot sign a cancel"}, nil
+	}
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return nil, fmt.Errorf("wallet %s not found", walletID)
+	}
+	if w.Multisig != nil && lo.CountBy(w.Multisig.Cosigners, MultisigCosigner.Held) < w.Multisig.M {
+		return &CancelPreview{Reason: "this wallet holds fewer keys than the signatures a cancel needs"}, nil
+	}
+
+	var own []RequiredInput
+	for _, vin := range tx.Vin {
+		if vin.Prevout == nil || !scan.owns(vin.Prevout.ScriptPubKeyAddress) {
+			continue
+		}
+		own = append(own, RequiredInput{TxID: vin.TxID, Vout: vin.Vout, AmountSats: vin.Prevout.Value})
+	}
+
+	evictedSats := tx.Fee
+	family := unconfirmedFamily(scan, txid)
+	forEachUnconfirmed(scan, func(child EsploraTx) bool {
+		if child.TxID != txid && family[child.TxID] {
+			evictedSats += child.Fee
+		}
+		return false
+	})
+
+	var rate int64
+	// No estimate leaves the BIP125 floor to price the cancel.
+	if estimate, err := p.FeeRateForTarget(ctx, electrumBumpFeeTarget); err == nil {
+		rate = int64(math.Ceil(estimate))
+	}
+	plan, reason := planCancel(cancelTx{
+		VsizeVBytes:          int64(math.Ceil(float64(tx.Weight) / 4)),
+		OwnInputs:            own,
+		EvictedFeeSats:       evictedSats,
+		IncrementalSatPerKvB: electrumIncrementalSatPerKvB,
+		RateSatPerVB:         rate,
+		ChangeKind:           w.scriptKind(),
+	})
+	return &CancelPreview{Plan: plan, Reason: reason}, nil
+}
+
 // CreateCpfp builds a child transaction that spends an unconfirmed wallet UTXO
 // back to a fresh wallet address, with a fee chosen so the parent+child package
 // reaches req.TargetRate. Validation rejects a confirmed, unowned, or
@@ -2985,23 +3076,7 @@ func replacedChain(scan *electrumScan, required []RequiredInput) (string, []elec
 
 	// Every unconfirmed transaction that descends from the root dies with it,
 	// so the cache has to drop their outputs too.
-	dead := map[string]bool{root: true}
-	for grew := true; grew; {
-		grew = false
-		forEachUnconfirmed(scan, func(tx EsploraTx) bool {
-			if dead[tx.TxID] {
-				return false
-			}
-			for _, vin := range tx.Vin {
-				if dead[vin.TxID] {
-					dead[tx.TxID] = true
-					grew = true
-					return false
-				}
-			}
-			return false
-		})
-	}
+	dead := unconfirmedFamily(scan, root)
 
 	// An output that another evicted transaction already spends is not a live
 	// coin. Counting it would drop the balance by its value a second time, so
@@ -3039,6 +3114,29 @@ func replacedChain(scan *electrumScan, required []RequiredInput) (string, []elec
 		return false
 	})
 	return root, evicted, true
+}
+
+// unconfirmedFamily names root and every unconfirmed transaction of the scan
+// that descends from it.
+func unconfirmedFamily(scan *electrumScan, root string) map[string]bool {
+	family := map[string]bool{root: true}
+	for grew := true; grew; {
+		grew = false
+		forEachUnconfirmed(scan, func(tx EsploraTx) bool {
+			if family[tx.TxID] {
+				return false
+			}
+			for _, vin := range tx.Vin {
+				if family[vin.TxID] {
+					family[tx.TxID] = true
+					grew = true
+					return false
+				}
+			}
+			return false
+		})
+	}
+	return family
 }
 
 // forEachUnconfirmed visits every unconfirmed transaction the scan holds, once
