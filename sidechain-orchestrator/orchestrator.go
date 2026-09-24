@@ -1999,6 +1999,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		return
 	}
 
+	o.fetchTools(ctx, config, ch)
 	if err := o.appendSidechainArgs(ctx, config, &opts); err != nil {
 		failBoot(targetMon, ch, "configure "+config.Name, err)
 		return
@@ -2140,6 +2141,27 @@ func (o *Orchestrator) awaitBinaryOnDisk(
 		return err
 	}
 	return forwardDownload(downloadCh, ch, "downloading-"+config.Name)
+}
+
+// fetchTools puts the tools a chain lists among its dependencies, such as
+// grpcurl, on disk before the chain names them in its boot arguments. The
+// desktop app fetches grpcurl as it opens; a headless daemon has only this. A
+// failed download only warns: ToolPath then names nothing, and the chain
+// decides what that means.
+func (o *Orchestrator) fetchTools(ctx context.Context, cfg BinaryConfig, ch chan<- StartupProgress) {
+	for _, name := range cfg.Dependencies {
+		tool, err := o.getConfig(name)
+		if err != nil || tool.ChainLayer != 0 {
+			continue
+		}
+		if (bootHost{orch: o}).ToolPath(tool.BinaryName) != "" {
+			continue
+		}
+		if err := o.awaitBinaryOnDisk(ctx, tool, StartOpts{}, ch, nil); err != nil {
+			o.log.Warn().Err(err).Str("binary", cfg.Name).Str("tool", name).
+				Msg("could not download a tool the chain boots with")
+		}
+	}
 }
 
 // waitForConnectedOrExit blocks until the monitor reports connected, the
