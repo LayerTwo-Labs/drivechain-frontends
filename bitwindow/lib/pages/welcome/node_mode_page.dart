@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/main.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -15,42 +16,59 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 class NodeModePage extends StatefulWidget {
   final VoidCallback onModePicked;
 
-  /// Names what holds the backend while it stays silent. A test passes a stub,
-  /// because the real reader opens a socket and reads the PID files.
-  final Future<String> Function() readBlocker;
+  /// Brings a dead backend back, as a new start of the app does. It returns
+  /// what holds the backend, or null when the boot runs.
+  final Future<String?> Function() restartBackend;
 
-  const NodeModePage({super.key, required this.onModePicked, this.readBlocker = readBackendBlocker});
+  /// The polls the page waits after a restart, so a new backend gets time to
+  /// boot. The page polls every two seconds.
+  final int pollsBetweenRestarts;
+
+  const NodeModePage({
+    super.key,
+    required this.onModePicked,
+    this.restartBackend = restartSilentBackend,
+    this.pollsBetweenRestarts = 15,
+  });
 
   @override
   State<NodeModePage> createState() => _NodeModePageState();
 }
 
+const String backendWait = 'BitWindow waits for the local backend.';
+
 const String _backendDown = 'BitWindow cannot reach the local backend.';
 
-/// Reads what holds the machine while drivechaind stays silent. A user who
-/// reads a process name and a pid can act on it.
-Future<String> readBackendBlocker() async {
-  final host = Environment.orchestratorHost.value;
-  final port = Environment.orchestratorPort.value;
-
-  var listens = false;
+Future<bool> _backendListens() async {
   try {
-    final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 2));
+    final socket = await Socket.connect(
+      Environment.orchestratorHost.value,
+      Environment.orchestratorPort.value,
+      timeout: const Duration(seconds: 2),
+    );
     socket.destroy();
-    listens = true;
-  } catch (_) {
-    listens = false;
+    return true;
+  } on SocketException {
+    return false;
   }
+}
 
-  final lines = <String>[
-    listens ? '$host:$port answers, but not as drivechaind.' : 'drivechaind does not listen on $host:$port.',
-  ];
-  final live = await GetIt.I.get<BinaryProvider>().liveDaemonNames();
-  if (live.isNotEmpty) {
-    lines.add('These still run from the last session: ${live.join(', ')}.');
-    lines.add('Stop them, then start BitWindow again.');
+/// Runs the app boot again when nothing listens on the drivechaind port.
+///
+/// The boot replaces a bitwindowd from the last run, and it keeps a bitwindowd
+/// this app spawned. Only the boot starts Bitcoin Core and the enforcer, so a
+/// bitwindowd restart alone would open the app on a dead L1 stack.
+///
+/// A port that answers as something else gets no boot. A new bitwindowd could
+/// not bind that port, so the user reads who holds it.
+Future<String?> restartSilentBackend() async {
+  if (await _backendListens()) {
+    final host = Environment.orchestratorHost.value;
+    final port = Environment.orchestratorPort.value;
+    return '$host:$port answers, but not as drivechaind. Stop that program, then start BitWindow again.';
   }
-  return lines.join('\n');
+  await bootBitwindowBackend(GetIt.I.get<Logger>());
+  return null;
 }
 
 class _NodeModePageState extends State<NodeModePage> {
@@ -62,15 +80,16 @@ class _NodeModePageState extends State<NodeModePage> {
   String? _error;
   Timer? _poll;
   bool _reloading = false;
-  bool _reading = false;
-  String? _blocker;
+  bool _restarting = false;
+  bool _restartedOnce = false;
+  int _pollsSinceRestart = 0;
 
   @override
   void initState() {
     super.initState();
     _alignSelection();
     if (!_nodeMode.loaded) {
-      unawaited(_readBlocker());
+      unawaited(_restartSilentBackend());
       _poll = Timer.periodic(const Duration(seconds: 2), (_) => unawaited(_reload()));
     }
   }
@@ -105,7 +124,7 @@ class _NodeModePageState extends State<NodeModePage> {
       return;
     }
     if (!_nodeMode.loaded) {
-      unawaited(_readBlocker());
+      unawaited(_restartSilentBackend());
       return;
     }
     _poll?.cancel();
@@ -117,15 +136,31 @@ class _NodeModePageState extends State<NodeModePage> {
     setState(_alignSelection);
   }
 
-  Future<void> _readBlocker() async {
-    if (_reading) {
+  /// A silent backend gets a replacement, and then time to boot. The bottom
+  /// bar names the step, so the page asks the user for nothing.
+  Future<void> _restartSilentBackend() async {
+    if (_restarting) {
       return;
     }
-    _reading = true;
-    final text = await widget.readBlocker();
-    _reading = false;
-    if (mounted && text.isNotEmpty) {
-      setState(() => _blocker = text);
+    if (_restartedOnce && _pollsSinceRestart < widget.pollsBetweenRestarts) {
+      _pollsSinceRestart++;
+      return;
+    }
+    _restarting = true;
+    _restartedOnce = true;
+    _pollsSinceRestart = 0;
+    try {
+      final blocker = await widget.restartBackend();
+      if (mounted) {
+        setState(() => _error = blocker);
+      }
+    } catch (e) {
+      _log.e('node mode: the backend restart failed: $e');
+      if (mounted) {
+        setState(() => _error = '$_backendDown $e');
+      }
+    } finally {
+      _restarting = false;
     }
   }
 
@@ -156,12 +191,14 @@ class _NodeModePageState extends State<NodeModePage> {
           spacing: SailStyleValues.padding20,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.secondary13(_backendDown, color: SailTheme.of(context).colors.error),
-            if (_blocker != null) SailText.secondary13(_blocker!),
-            SailButton(
-              label: 'Try again',
-              onPressed: _reload,
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                const SizedBox(width: 16, height: 16, child: LoadingIndicator()),
+                SailText.secondary13(backendWait),
+              ],
             ),
+            if (_error != null) SailText.secondary13(_error!, color: SailTheme.of(context).colors.error),
           ],
         ),
       );
