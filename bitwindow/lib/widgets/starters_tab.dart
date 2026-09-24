@@ -6,20 +6,22 @@ import 'package:stacked/stacked.dart';
 
 class RevealSeedWarningDialog extends StatefulWidget {
   final String starterName;
+  final String action;
 
   const RevealSeedWarningDialog({
     super.key,
     required this.starterName,
+    this.action = 'Reveal',
   });
 
   @override
   State<RevealSeedWarningDialog> createState() => _RevealSeedWarningDialogState();
 
-  static Future<bool?> show(BuildContext context, String starterName) {
+  static Future<bool?> show(BuildContext context, String starterName, {String action = 'Reveal'}) {
     return showThemedDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => RevealSeedWarningDialog(starterName: starterName),
+      builder: (context) => RevealSeedWarningDialog(starterName: starterName, action: action),
     );
   }
 }
@@ -34,7 +36,7 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
     final canReveal = _understoodRisk && _verifiedEnvironment;
 
     return SailDialog(
-      title: 'Reveal Seed Phrase',
+      title: '${widget.action} Seed Phrase',
       subtitle: 'Security Warning',
       actions: [
         SailButton(
@@ -43,7 +45,7 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
           onPressed: () async => Navigator.of(context).pop(false),
         ),
         SailButton(
-          label: 'Reveal Seed Phrase',
+          label: '${widget.action} Seed Phrase',
           onPressed: canReveal ? () async => Navigator.of(context).pop(true) : null,
         ),
       ],
@@ -76,7 +78,7 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
                 ),
                 const SizedBox(height: SailStyleValues.padding08),
                 SailText.secondary13(
-                  'You are about to reveal the seed phrase for ${widget.starterName}. '
+                  'You are about to ${widget.action.toLowerCase()} the seed phrase for ${widget.starterName}. '
                   'Please read and understand the following:',
                 ),
               ],
@@ -350,8 +352,11 @@ TableRow mnemonicRow(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (hasMnemonic) ...[
-              CopyButton(
-                text: mnemonic!,
+              SailButton(
+                variant: ButtonVariant.icon,
+                icon: SailSVGAsset.iconCopy,
+                padding: const EdgeInsets.all(9.5),
+                onPressed: () async => viewModel.copyStarterMnemonic(context, name, mnemonic),
               ),
               const SizedBox(width: 8),
               if (!isRevealed)
@@ -468,9 +473,24 @@ class StartersPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<void> copyStarterMnemonic(String? mnemonic) async {
-    if (mnemonic != null) {
+  Future<void> copyStarterMnemonic(BuildContext context, String starterName, String? mnemonic) async {
+    if (mnemonic == null) {
+      return;
+    }
+    final confirmed = await RevealSeedWarningDialog.show(context, starterName, action: 'Copy');
+    if (confirmed != true) {
+      return;
+    }
+    try {
       await Clipboard.setData(ClipboardData(text: mnemonic));
+    } catch (e) {
+      if (context.mounted) {
+        showSailToast(context, 'Could not copy the seed phrase: $e', variant: SailToastVariant.destructive);
+      }
+      return;
+    }
+    if (context.mounted) {
+      showSailToast(context, '$starterName seed phrase copied to clipboard');
     }
   }
 }
