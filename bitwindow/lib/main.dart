@@ -19,6 +19,7 @@ import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
 import 'package:bitwindow/providers/fast_withdrawal_provider.dart';
+import 'package:bitwindow/providers/backend_swap_provider.dart';
 import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -38,7 +39,9 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/providers/consolidation_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/services/bitwindowd_start.dart';
 import 'package:bitwindow/widgets/address_list.dart';
+import 'package:bitwindow/widgets/backend_swap.dart';
 import 'package:bitwindow/widgets/ecash_upgrade_banner.dart';
 import 'package:bitwindow/widgets/converter_window.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
@@ -320,6 +323,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<MempoolProvider>(() => MempoolProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
   NetworkScopedRegistry.register<ForkProvider>(ForkProvider()..init());
+  GetIt.I.registerSingleton<BackendSwapProvider>(BackendSwapProvider());
   GetIt.I.registerSingleton<ECashMigrationProvider>(ECashMigrationProvider()..start());
   GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
   NetworkScopedRegistry.register<FastWithdrawalProvider>(FastWithdrawalProvider());
@@ -595,7 +599,7 @@ class _BitwindowAppContent extends StatelessWidget {
         return _ErrorBoundary(
           child: Scaffold(
             body: child ?? const SizedBox.shrink(),
-            bottomNavigationBar: const PersistentStatusBar(),
+            bottomNavigationBar: const BackendSwapBar(child: PersistentStatusBar()),
           ),
         );
       },
@@ -632,10 +636,7 @@ class _SplashScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SailText.primary10(
-                      'Starting BitWindow...',
-                      color: theme.colors.inactiveNavText,
-                    ),
+                    const BackendSwapSplash(),
                     const SizedBox(
                       width: 200,
                       child: ProgressBar(
@@ -739,8 +740,6 @@ Future<void> bootBitwindowBackend(Logger log) async {
   final binaryProvider = GetIt.I.get<BinaryProvider>();
   final orchestrator = GetIt.I.get<OrchestratorRPC>();
   final backendState = GetIt.I.get<BackendStateProvider>();
-  final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
-
   // Download grpcurl in background (needed for enforcer-cli in console)
   final grpcurl = binaryProvider.binaries.firstWhere((b) => b is GRPCurl);
   unawaited(() async {
