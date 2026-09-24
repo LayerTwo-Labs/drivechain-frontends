@@ -7,8 +7,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -326,6 +329,52 @@ func TestGetSyncStatus_NotRunningSidechainCarriesError(t *testing.T) {
 		assert.Equal(t, "not running", slot.Error, "sidechain %q should carry not-running error", name)
 		assert.Equal(t, int64(0), slot.Blocks, "sidechain %q blocks must remain zero", name)
 	}
+}
+
+// A Core fork answers a call without its cookie with an empty 401, so its row
+// would show an error for a healthy node. The probe carries the cookie and asks
+// only for the height: a Core fork reports no mainchain sync of its own.
+func TestGetSyncStatus_ACoreForkIsProbedWithItsCookie(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.explorerHTTPClient = &http.Client{
+		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+			return statusResponse(http.StatusServiceUnavailable), nil
+		}),
+	}
+	datadir := config.FreebankDirs.DatadirNetwork(config.Network(o.CurrentNetwork()), "")
+	require.NoError(t, os.MkdirAll(datadir, 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(datadir, ".cookie"), []byte("__cookie__:secret"), 0o600))
+
+	var methods []string
+	var mu sync.Mutex
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if user, password, ok := r.BasicAuth(); !ok || user != "__cookie__" || password != "secret" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		method, _ := readJSONRPC(r)
+		mu.Lock()
+		methods = append(methods, method)
+		mu.Unlock()
+		if method != "getblockcount" {
+			_, _ = w.Write([]byte(`{"result":null,"error":{"code":-32601,"message":"Method not found"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"result":42,"error":null}`))
+	}))
+	t.Cleanup(srv.Close)
+	setSidechainPort(t, o, "freebank", srv.URL)
+	adoptSidechain(t, o, "freebank")
+
+	out, err := o.GetSyncStatus(context.Background())
+	require.NoError(t, err)
+	slot := out.Sidechains["freebank"]
+	require.NotNil(t, slot)
+	assert.Equal(t, "", slot.Error)
+	assert.Equal(t, int64(42), slot.Blocks)
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []string{"getblockcount"}, methods)
 }
 
 func TestGetSyncStatus_EveryL2SidechainHasAPort(t *testing.T) {

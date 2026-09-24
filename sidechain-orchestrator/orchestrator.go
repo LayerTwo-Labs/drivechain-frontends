@@ -2370,6 +2370,11 @@ func unreachable(err error) bool {
 	if errors.Is(err, errNoStopClient) {
 		return true
 	}
+	// A Core node writes its cookie as its RPC server starts, so with no cookie
+	// to read no request went out.
+	if errors.Is(err, os.ErrNotExist) {
+		return true
+	}
 	if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.EHOSTUNREACH) {
 		return true
 	}
@@ -2388,11 +2393,18 @@ func (o *Orchestrator) callBitcoindStopRPC() error {
 	return client.Stop(rpcCtx)
 }
 
+// callSidechainStopRPC sends stop with the client the chain speaks. A Core fork
+// answers a call without its cookie with an empty 401, which reads as a stop
+// that may have landed, so shutdown would wait out the grace period for an
+// exit that never comes.
 func (o *Orchestrator) callSidechainStopRPC(cfg BinaryConfig) error {
-	proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
+	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.CurrentNetwork()))
+	if err != nil {
+		return fmt.Errorf("%s RPC stop: %w: %w", cfg.Name, errNoStopClient, err)
+	}
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	return proxy.Stop(rpcCtx)
+	return node.Stop(rpcCtx)
 }
 
 func (o *Orchestrator) callEnforcerStopRPC() error {
@@ -3417,6 +3429,19 @@ func (c *sidechainSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, 
 	cfg, ok := c.o.Configs()[c.name]
 	if !ok {
 		return nil, fmt.Errorf("unknown sidechain: %s", c.name)
+	}
+	// A Core fork answers only a call that carries its cookie, and reports no
+	// mainchain sync of its own.
+	if cfg.IsBitcoinCore {
+		node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, true, config.Network(c.o.CurrentNetwork()))
+		if err != nil {
+			return nil, err
+		}
+		count, err := node.GetBlockCount(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &ChainSyncResult{Blocks: count}, nil
 	}
 	proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
 	progress, err := proxy.MainchainSyncProgress(ctx)
