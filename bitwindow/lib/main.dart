@@ -754,12 +754,19 @@ Future<void> bootBitwindowBackend(Logger log) async {
 
   // 1. Start bitwindowd — it manages drivechaind internally,
   //    which in turn manages bitcoind, enforcer, and sidechains.
-  //
-  // Multi-instance: _adoptOrphanedProcesses (in the BinaryProvider
-  // constructor) reads bitwindowd's PID file and registers the still-alive
-  // process if found, so start() becomes a no-op.
+  final localAuthFlag = Platform.environment['ORCHESTRATOR_LOCAL_AUTH']?.toLowerCase();
+  final localAuth = localAuthFlag != 'false' && localAuthFlag != '0';
   log.i('STARTUP: starting bitwindowd');
-  await binaryProvider.start(bitwindow);
+  await startBitwindowd(
+    binaryProvider,
+    swap: GetIt.I.get<BackendSwapProvider>(),
+    claimDrivechaind: () async {
+      if (localAuth) {
+        await LocalAuth.load(timeout: const Duration(seconds: 2));
+      }
+      await claimDrivechaind(orchestrator, log);
+    },
+  );
 
   // 1b. Local auth is on by default; the kill switch is ORCHESTRATOR_LOCAL_AUTH
   //     =false/0 on our env, which we pass down to the backend. When on, the
@@ -767,8 +774,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
   //     memory before the readiness RPCs below, which now require it. Same
   //     await-on-startup pattern as the readiness loop. Skipped when disabled so
   //     we don't wait for a cookie that will never appear.
-  final localAuthFlag = Platform.environment['ORCHESTRATOR_LOCAL_AUTH']?.toLowerCase();
-  if (localAuthFlag != 'false' && localAuthFlag != '0') {
+  if (localAuth) {
     log.i('STARTUP: waiting for local auth cookie');
     final loaded = await LocalAuth.load();
     log.i(loaded ? 'STARTUP: local auth cookie loaded' : 'STARTUP: local auth cookie did not appear');
