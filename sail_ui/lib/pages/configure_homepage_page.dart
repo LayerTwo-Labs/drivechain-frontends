@@ -264,115 +264,125 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
     BuildContext context,
     SailConfigureHomePageViewModel model,
   ) async {
-    final allWidgets = widget.widgetCatalog.values.toList();
-
-    // Filter out widgets that are already added
-    final availableWidgets = allWidgets.where((widget) {
-      return !model.tempConfiguration.widgets.any(
-        (w) => w.widgetId == widget.id,
-      );
-    }).toList();
-
-    if (availableWidgets.isEmpty) {
+    if (_availableWidgets(model).isEmpty) {
       showSnackBar(context, 'All available widgets have been added');
       return;
     }
 
     await showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: context.sailTheme.colors.background,
-        surfaceTintColor: Colors.transparent,
-        child: Container(
-          width: 600,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: context.sailTheme.colors.background,
-            borderRadius: SailStyleValues.borderRadius,
-            border: Border.all(color: context.sailTheme.colors.border),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary20('Add Widget'),
-              const SizedBox(height: 16),
-              SailText.secondary13('Select a widget to add to your homepage'),
-              const SizedBox(height: 24),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 400),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: availableWidgets.map((widget) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: context.sailTheme.colors.backgroundSecondary,
-                          borderRadius: SailStyleValues.borderRadius,
-                          border: Border.all(
-                            color: context.sailTheme.colors.border,
-                          ),
+      builder: (context) => ListenableBuilder(
+        listenable: model,
+        builder: (context, _) => _addWidgetDialog(context, model, _availableWidgets(model)),
+      ),
+    );
+  }
+
+  List<HomepageWidgetInfo> _availableWidgets(SailConfigureHomePageViewModel model) {
+    return widget.widgetCatalog.values.where((info) {
+      return !model.tempConfiguration.widgets.any((w) => w.widgetId == info.id);
+    }).toList();
+  }
+
+  Widget _addWidgetDialog(
+    BuildContext context,
+    SailConfigureHomePageViewModel model,
+    List<HomepageWidgetInfo> availableWidgets,
+  ) {
+    return Dialog(
+      backgroundColor: context.sailTheme.colors.background,
+      surfaceTintColor: Colors.transparent,
+      child: Container(
+        width: 600,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: context.sailTheme.colors.background,
+          borderRadius: SailStyleValues.borderRadius,
+          border: Border.all(color: context.sailTheme.colors.border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('Add Widget'),
+            const SizedBox(height: 16),
+            SailText.secondary13('Select a widget to add to your homepage'),
+            const SizedBox(height: 24),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: availableWidgets.map((widget) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: context.sailTheme.colors.backgroundSecondary,
+                        borderRadius: SailStyleValues.borderRadius,
+                        border: Border.all(
+                          color: context.sailTheme.colors.border,
                         ),
-                        child: ListTile(
-                          tileColor: Colors.transparent,
-                          leading: SailSVG.icon(widget.icon, width: 32),
-                          title: SailText.primary15(widget.name),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SailText.secondary12(widget.description),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: widget.size == WidgetSize.full
-                                      ? Colors.blue.withValues(alpha: 0.1)
-                                      : widget.size == WidgetSize.bar
-                                      ? Colors.purple.withValues(alpha: 0.1)
-                                      : Colors.green.withValues(alpha: 0.1),
-                                  borderRadius: SailStyleValues.borderRadius,
-                                ),
-                                child: SailText.secondary12(
-                                  widget.size == WidgetSize.full
-                                      ? 'Full Width'
-                                      : widget.size == WidgetSize.bar
-                                      ? 'Bar'
-                                      : 'Half Width',
-                                ),
+                      ),
+                      child: ListTile(
+                        tileColor: Colors.transparent,
+                        leading: SailSVG.icon(widget.icon, width: 32),
+                        title: SailText.primary15(widget.name),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SailText.secondary12(widget.description),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
                               ),
-                            ],
-                          ),
-                          trailing: SailButton(
-                            label: 'Add',
-                            onPressed: () async {
-                              model.addWidget(widget.id);
-                              Navigator.of(context).pop();
-                            },
-                            variant: ButtonVariant.primary,
-                            small: true,
-                          ),
+                              decoration: BoxDecoration(
+                                color: widget.size == WidgetSize.full
+                                    ? Colors.blue.withValues(alpha: 0.1)
+                                    : widget.size == WidgetSize.bar
+                                    ? Colors.purple.withValues(alpha: 0.1)
+                                    : Colors.green.withValues(alpha: 0.1),
+                                borderRadius: SailStyleValues.borderRadius,
+                              ),
+                              child: SailText.secondary12(
+                                widget.size == WidgetSize.full
+                                    ? 'Full Width'
+                                    : widget.size == WidgetSize.bar
+                                    ? 'Bar'
+                                    : 'Half Width',
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    }).toList(),
-                  ),
+                        trailing: SailButton(
+                          label: 'Add',
+                          onPressed: () async {
+                            model.addWidget(widget.id);
+                            if (_availableWidgets(model).isEmpty) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          variant: ButtonVariant.primary,
+                          small: true,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SailButton(
-                    label: 'Close',
-                    onPressed: () async => Navigator.of(context).pop(),
-                    variant: ButtonVariant.secondary,
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SailButton(
+                  label: 'Close',
+                  onPressed: () async => Navigator.of(context).pop(),
+                  variant: ButtonVariant.secondary,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
