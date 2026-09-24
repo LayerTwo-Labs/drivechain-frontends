@@ -619,7 +619,7 @@ abstract class WalletAPI {
     String walletId,
     String message,
     String signature,
-    String publicKey,
+    String address,
   );
   Future<GetStatsResponse> getStats(String walletId);
 
@@ -880,7 +880,7 @@ class _WalletAPILive implements WalletAPI {
     String walletId,
     String message,
     String signature,
-    String publicKey,
+    String address,
   ) async {
     try {
       final response = await _client.verifyMessage(
@@ -888,7 +888,7 @@ class _WalletAPILive implements WalletAPI {
           ..walletId = walletId
           ..message = message
           ..signature = signature
-          ..publicKey = publicKey,
+          ..publicKey = address,
       );
       return response.valid;
     } catch (e) {

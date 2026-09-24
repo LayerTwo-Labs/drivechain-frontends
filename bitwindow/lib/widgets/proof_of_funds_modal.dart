@@ -883,10 +883,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
 
       // Create Bitcoin message signature using bitcoin_base
       final messageBytes = utf8.encode(message);
-      final signature = ecPrivateKey.signMessage(messageBytes);
-
-      // Convert signature to base64
-      final signatureBase64 = base64Encode(hex.decode(signature));
+      final signatureBase64 = ecPrivateKey.signBip137(messageBytes, mode: BIP137Mode.p2wpkh);
 
       return SignatureResult(
         signature: signatureBase64,
@@ -1070,7 +1067,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
   }
 
   /// Checks that the public key owns the address, then that it signed the
-  /// message. The signature check runs in the backend, over secp256k1.
+  /// message in the Bitcoin signed message format.
   Future<bool> _verifyBitcoinSignature(
     String message,
     String signatureBase64,
@@ -1086,12 +1083,11 @@ class ProofOfFundsViewModel extends BaseViewModel {
         return false;
       }
 
-      final signatureHex = hex.encode(base64Decode(signatureBase64));
       return await GetIt.I.get<BitwindowRPC>().wallet.verifyMessage(
         _walletReader.activeWalletId ?? '',
         message,
-        signatureHex,
-        publicKeyHex,
+        signatureBase64,
+        address,
       );
     } catch (e) {
       log.e('Error in signature verification: $e');
