@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:sidechain_core/config/binaries.dart';
 
@@ -27,11 +29,15 @@ class LogBuffer {
   final List<FullProcessLogEntry> entries = [];
   int currentSizeBytes = 0;
 
+  /// Count of entries ever added, evicted ones included.
+  int added = 0;
+
   LogBuffer({this.maxSizeBytes = 10 * 1024 * 1024}); // 10MB default
 
   void add(FullProcessLogEntry entry) {
     final entrySize = entry.estimatedSizeBytes;
     entries.add(entry);
+    added++;
     currentSizeBytes += entrySize;
 
     // Evict oldest entries until we're under the limit
@@ -99,6 +105,49 @@ class LogProvider extends ChangeNotifier {
   bool hasLogsForBinary(BinaryType type) {
     final buffer = _buffers[type];
     return buffer != null && buffer.entries.isNotEmpty;
+  }
+
+  /// The entries each binary, or only [only], added after the count in [since], keyed by binary type value.
+  Map<int, Map<String, Object>> entriesSince(Map<int, int> since, {BinaryType? only}) {
+    return {
+      for (final MapEntry(key: type, value: buffer) in _buffers.entries)
+        if (only == null || type == only)
+          type.value: {
+            'next': buffer.added,
+            'entries': [
+              for (final entry in buffer.entries.skip(
+                max(0, (since[type.value] ?? 0) - (buffer.added - buffer.entries.length)),
+              ))
+                [entry.timestamp.millisecondsSinceEpoch, entry.message, entry.isStderr, entry.isStartupMarker],
+            ],
+          },
+    };
+  }
+
+  /// Add the entries of an [entriesSince] reply, and return the count to ask from next.
+  Map<int, int> addEntriesSince(Map<Object?, Object?> reply) {
+    final next = <int, int>{};
+    for (final MapEntry(key: typeValue, value: batch) in reply.entries) {
+      final type = BinaryType.valueOf(typeValue as int)!;
+      final fields = batch as Map<Object?, Object?>;
+      for (final raw in fields['entries'] as List<Object?>) {
+        final entry = raw as List<Object?>;
+        _buffers
+            .putIfAbsent(type, () => LogBuffer())
+            .add(
+              FullProcessLogEntry(
+                timestamp: DateTime.fromMillisecondsSinceEpoch(entry[0] as int),
+                message: entry[1] as String,
+                isStderr: entry[2] as bool,
+                binaryType: type,
+                isStartupMarker: entry[3] as bool,
+              ),
+            );
+      }
+      next[typeValue] = fields['next'] as int;
+    }
+    notifyListeners();
+    return next;
   }
 
   /// Clear logs for a specific binary.

@@ -12,6 +12,7 @@ import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
 import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
 import 'package:bitwindow/dialogs/paper_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/log_window.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
@@ -1256,15 +1257,7 @@ class _StatusBarState extends State<StatusBar> {
         rpc: bitwindow,
         name: 'BitWindow',
       ),
-      navigateToLogs: (title, logPath, binaryType) {
-        GetIt.I.get<AppRouter>().push(
-          LogRoute(
-            title: title,
-            logPath: logPath,
-            binaryType: binaryType,
-          ),
-        );
-      },
+      navigateToLogs: openLogWindow,
       onOpenConfConfigurator: () {
         GetIt.I.get<AppRouter>().push(const BitcoinConfEditorRoute());
       },

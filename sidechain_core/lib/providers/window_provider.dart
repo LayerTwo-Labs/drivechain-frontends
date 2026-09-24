@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
@@ -112,7 +113,7 @@ class WindowProvider extends ChangeNotifier {
   }
 
   /// Create a new window with the specified window type
-  Future<WindowInfo?> open(SailWindow windowType) async {
+  Future<WindowInfo?> open(SailWindow windowType, {Map<String, dynamic> arguments = const {}}) async {
     try {
       final screen = PlatformDispatcher.instance.displays.first;
       final physicalSize = screen.size;
@@ -187,6 +188,7 @@ class WindowProvider extends ChangeNotifier {
         'window_y': windowPosition.dy,
         'window_width': windowSize.width,
         'window_height': windowSize.height,
+        ...arguments,
       };
 
       final title = windowType.name;
@@ -301,6 +303,13 @@ class WindowProvider extends ChangeNotifier {
 
   /// Handle incoming method calls from other windows
   Future<dynamic> _handleMethodCall(MethodCall call) async {
+    if (call.method == processLogsMethod) {
+      final arguments = call.arguments as Map<Object?, Object?>;
+      final since = (arguments['since'] as Map<Object?, Object?>).cast<int, int>();
+      final only = arguments['binary_type'] as int?;
+      return GetIt.I.get<LogProvider>().entriesSince(since, only: only == null ? null : BinaryType.valueOf(only));
+    }
+
     // In v3, the fromWindowId needs to be passed in the arguments if needed
     final arguments = call.arguments as Map<String, dynamic>?;
     final fromWindowId = arguments?['fromWindowId'] as String?;
@@ -352,6 +361,45 @@ class WindowProvider extends ChangeNotifier {
       return null;
     }
   }
+}
+
+const processLogsMethod = 'process_logs';
+
+/// Copies the process output the main window holds into [target] of a sub-window.
+class ProcessLogRelay {
+  final WindowProvider windows;
+  final LogProvider target;
+  final Map<int, int> _next = {};
+  bool _pulling = false;
+
+  final BinaryType? only;
+
+  ProcessLogRelay(this.windows, this.target, {this.only});
+
+  Future<void> pull() async {
+    if (_pulling) {
+      return;
+    }
+    _pulling = true;
+    try {
+      final reply = await windows.sendMessageToMain(processLogsMethod, {
+        'since': _next,
+        'binary_type': ?only?.value,
+      });
+      _next.addAll(target.addEntriesSince(reply as Map<Object?, Object?>));
+    } finally {
+      _pulling = false;
+    }
+  }
+
+  Timer start({Duration interval = const Duration(seconds: 1)}) {
+    unawaited(_pullLogged());
+    return Timer.periodic(interval, (_) => unawaited(_pullLogged()));
+  }
+
+  Future<void> _pullLogged() => pull().catchError((Object e) {
+    windows.log.w('could not copy process logs from the main window: $e');
+  });
 }
 
 /// WindowType lets you create different types of pages that can be opened in a subwindow.

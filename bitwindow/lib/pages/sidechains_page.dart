@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/log_window.dart';
 import 'package:bitwindow/utils/deposit_fee.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:bitwindow/routing/router.dart';
-import 'package:sail_ui/pages/router.gr.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
@@ -853,11 +852,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   /// The daemon cards enable "View logs" on their own and then call this
   /// unconditionally, so it has to be supplied wherever a card is rendered.
-  void navigateToLogs(String title, String logPath, BinaryType binaryType) {
-    GetIt.I.get<AppRouter>().push(
-      LogRoute(title: title, logPath: logPath, binaryType: binaryType),
-    );
-  }
+  void navigateToLogs(String title, String logPath, BinaryType binaryType) =>
+      unawaited(openLogWindow(title, logPath, binaryType));
 
   /// Check if current network supports sidechains (L2L networks only)
   bool get networkSupportsSidechains {
