@@ -163,9 +163,11 @@ class StartersTab extends StatelessWidget {
           future: viewModel.loadStarters(),
           builder: (context, snapshot) {
             final starters = snapshot.data ?? [];
+            final walletName = viewModel.starterWalletName;
 
             return SailCard(
               title: 'Starters',
+              subtitle: walletName == null ? null : 'Wallet: $walletName',
               padding: true,
               error: snapshot.hasError ? snapshot.error.toString() : null,
               child: Stack(
@@ -442,6 +444,14 @@ class StartersPageViewModel extends BaseViewModel {
     }
 
     return starters;
+  }
+
+  String? get starterWalletName {
+    final wallet = _walletReader.primaryWallet;
+    if (wallet == null || wallet.master.mnemonic.isEmpty) {
+      return null;
+    }
+    return wallet.name;
   }
 
   bool isStarterRevealed(String? starterName) {
