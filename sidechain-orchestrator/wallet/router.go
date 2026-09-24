@@ -279,3 +279,7 @@ func (c unavailableChain) GetRawTransaction(ctx context.Context, txid string) (*
 func (c unavailableChain) Broadcast(ctx context.Context, rawHex string) (string, error) {
 	return "", errors.New(c.reason)
 }
+
+func (c unavailableChain) TipHeight(ctx context.Context) (int, error) {
+	return 0, errors.New(c.reason)
+}
