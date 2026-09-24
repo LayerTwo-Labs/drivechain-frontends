@@ -89,6 +89,25 @@ class PidFileManager {
     }
   }
 
+  File _ownerFile(Binary binary) {
+    return File(path.join(pidDir.path, '${binary.binaryName}.owner'));
+  }
+
+  /// Records [ownerPid] as the app that spawned [binary].
+  Future<void> writeOwnerFile(Binary binary, int ownerPid) async {
+    await pidDir.create(recursive: true);
+    await _ownerFile(binary).writeAsString(ownerPid.toString());
+  }
+
+  /// The app that spawned [binary], or null when no app recorded one.
+  Future<int?> readOwnerFile(Binary binary) async {
+    final file = _ownerFile(binary);
+    if (!await file.exists()) {
+      return null;
+    }
+    return int.tryParse((await file.readAsString()).trim());
+  }
+
   /// Delete PID file for a binary
   Future<void> deletePidFile(Binary binary) async {
     try {
