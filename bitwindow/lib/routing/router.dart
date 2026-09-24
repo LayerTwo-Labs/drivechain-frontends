@@ -103,10 +103,6 @@ class AppRouter extends RootStackRouter {
       ],
     ),
     AutoRoute(
-      path: '/log',
-      page: LogRoute.page,
-    ),
-    AutoRoute(
       path: '/shutting-down',
       page: ShutDownRoute.page,
     ),

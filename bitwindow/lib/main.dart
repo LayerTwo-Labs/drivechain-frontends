@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/log_window.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:bitwindow/pages/debug_window.dart';
@@ -423,9 +424,12 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
       break;
 
     case SubWindowTypes.logsId:
+      final logWindow = LogWindowArguments.fromWindowArguments(arguments, bitwindowLogPath: logFile.path);
+      ProcessLogRelay(GetIt.I.get<WindowProvider>(), GetIt.I.get<LogProvider>(), only: logWindow.binaryType).start();
       child = LogPage(
-        logPath: logFile.path,
-        title: 'Bitwindow Logs',
+        logPath: logWindow.logPath,
+        title: logWindow.title,
+        binaryType: logWindow.binaryType,
       );
       break;
 
@@ -834,7 +838,6 @@ Future<void> bootBitwindowBackend(Logger log) async {
   // 4. Stream binary logs and start watching state.
   _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
   _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.BINARY_TYPE_ENFORCER, log);
-  _streamBinaryLogs(orchestrator, 'bitwindow', BinaryType.BINARY_TYPE_BITWINDOWD, log);
 
   log.i('STARTUP: starting backend state watch');
   backendState.startWatching();
@@ -972,6 +975,13 @@ class SubWindowTypes {
     name: 'Logs',
     defaultSize: Size(800, 600),
     defaultPosition: Offset(100, 100),
+  );
+
+  static SailWindow logsFor(String title) => SailWindow(
+    identifier: logsId,
+    name: title,
+    defaultSize: logs.defaultSize,
+    defaultPosition: logs.defaultPosition,
   );
 
   static const String deniabilityId = 'deniability';
