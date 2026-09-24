@@ -26,7 +26,8 @@ type Options struct {
 	// WalletPath is the endpoint a wallet RPC goes to. Empty takes
 	// /wallet/<CoreWalletName>, the wallet the orchestrator seeds. A fork that
 	// keeps a wallet of its own takes "/", where Core answers for the one
-	// wallet it loaded.
+	// wallet it loaded, and sets own_wallet in chains_config so that the
+	// orchestrator seeds none.
 	WalletPath string
 
 	// LegacyBalance reads getwalletinfo in place of getbalances, for a fork

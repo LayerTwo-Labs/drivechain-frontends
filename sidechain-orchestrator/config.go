@@ -47,7 +47,12 @@ type BinaryConfig struct {
 	DataDir        map[string]string // os -> subdir under AppDir() (default for all networks)
 	DataDirMainnet map[string]string // os -> subdir (mainnet override, empty = use DataDir)
 	IsBitcoinCore  bool              // built on Bitcoin Core: Core datadir layout, Core JSON-RPC, cookie auth
-	OwnWallet      bool              // Core fork that keeps the wallet its node creates: no starter, no provisioning
+
+	// OwnWallet marks a Core fork that keeps the wallet its node creates: no
+	// starter, no provisioning. Its client must send wallet calls to that
+	// wallet (corenode.Options.WalletPath "/"), since the seeded wallet the
+	// default path names is never created.
+	OwnWallet bool
 
 	// Flutter frontend directory — Dart: flutterFrontendDir() extension (L1306-1353)
 	// Per-OS subdir under the platform app support dir. Empty = no frontend.
@@ -83,7 +88,9 @@ type BinaryConfig struct {
 	HealthCheckType HealthCheckType
 	HealthCheckRPC  string // JSON-RPC method for health check
 
-	// Dependencies: names of binaries that must be running before this one
+	// Dependencies: names of binaries this one needs. A daemon (chain_layer
+	// 1 or 2) must be running before this one starts; a tool (chain_layer 0,
+	// such as grpcurl) must be on disk before its boot arguments are built.
 	Dependencies []string
 }
 
