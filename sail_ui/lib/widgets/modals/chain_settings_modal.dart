@@ -547,7 +547,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
         const Spacer(),
         if (widget.onOpenConfConfigurator != null)
           SailButton(
-            label: 'Open conf configurator',
+            label: 'Open configurator',
             variant: ButtonVariant.outline,
             onPressed: () async {
               Navigator.pop(context);
