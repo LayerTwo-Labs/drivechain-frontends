@@ -1071,6 +1071,12 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
+	// A fork that keeps its own wallet creates it at startup and has no RPC to
+	// import one, so it takes no starter, and its boot never waits on the
+	// wallet service.
+	if cfg.OwnWallet {
+		return nil
+	}
 	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
 	if err != nil {
 		return fmt.Errorf("sidechain starter: %w", err)

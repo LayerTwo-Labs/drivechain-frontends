@@ -633,11 +633,6 @@ func run(cctx *cli.Context) error {
 			path, bitassetsHandler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, bitassetsHandler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
-		case "freebank":
-			// FreeBank is a BitAssets fork and uses the same wallet RPC.
-			h := bitassetssvc.NewHandler(proxy)
-			handler.SetSidechainBalance(name, h.WalletBalance)
-			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain balance reader")
 		case "photon":
 			h := photonsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)

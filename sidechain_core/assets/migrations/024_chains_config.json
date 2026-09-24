@@ -1,0 +1,28 @@
+{
+  "version": 24,
+  "migration": "patch",
+  "binaries": {
+    "freebank": {
+      "port": 8454,
+      "is_bitcoin_core": true,
+      "own_wallet": true,
+      "dependencies": [
+        "bitcoind",
+        "enforcer",
+        "grpcurl"
+      ],
+      "startup_log_patterns": [
+        "Done loading"
+      ],
+      "directories": {
+        "binary": {
+          "default": {
+            "linux": ".freebank",
+            "macos": "FreeBank",
+            "windows": "FreeBank"
+          }
+        }
+      }
+    }
+  }
+}
