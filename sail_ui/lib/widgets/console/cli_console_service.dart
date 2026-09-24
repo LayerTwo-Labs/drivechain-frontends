@@ -50,23 +50,34 @@ class CLIConsole {
   static const _commandTimeout = Duration(minutes: 5);
   static const _helpTimeout = Duration(seconds: 10);
 
-  /// Real CLI binaries we discover on disk and exec. Every binary downloaded
-  /// by the orchestrator lands in BitWindow's `assets/bin/` (the Bitcoin Core
-  /// archive ships `bitcoin-cli`, `bitcoin-util`, etc. alongside `bitcoind`).
-  /// The enforcer is intentionally absent — it has no native CLI; we expose
-  /// it via the synthetic [_buildEnforcerService] instead.
-  static const _binaryToCLI = {
-    'BitcoinCore': 'bitcoin-cli',
-    'BitWindow': 'bitwindow-cli',
-    'Thunder': 'thunder-cli',
-    'Truthcoin': 'truthcoin-cli',
-    'Photon': 'photon-cli',
-    'BitNames': 'bitnames-cli',
-    'BitAssets': 'bitassets-cli',
-    'CoinShift': 'coinshift-cli',
-    'ZSide': 'zside-cli',
-    'Drivechaind': 'drivechain-cli',
+  static const _typeToCLI = {
+    BinaryType.BINARY_TYPE_BITCOIND: 'bitcoin-cli',
+    BinaryType.BINARY_TYPE_BITWINDOWD: 'bitwindow-cli',
+    BinaryType.BINARY_TYPE_THUNDER: 'thunder-cli',
+    BinaryType.BINARY_TYPE_TRUTHCOIN: 'truthcoin-cli',
+    BinaryType.BINARY_TYPE_PHOTON: 'photon-cli',
+    BinaryType.BINARY_TYPE_BITNAMES: 'bitnames-cli',
+    BinaryType.BINARY_TYPE_BITASSETS: 'bitassets-cli',
+    BinaryType.BINARY_TYPE_COINSHIFT: 'coinshift-cli',
+    BinaryType.BINARY_TYPE_ZSIDE: 'zside-cli',
+    BinaryType.BINARY_TYPE_DRIVECHAIND: 'drivechain-cli',
   };
+
+  /// The CLIs a console offers. A sidechain app offers only its own CLI.
+  static List<String> clisFor(BinaryType? sidechain) {
+    if (sidechain == null) {
+      return _typeToCLI.values.toList();
+    }
+    final cli = _typeToCLI[sidechain];
+    return cli == null ? const [] : [cli];
+  }
+
+  static BinaryType? _currentSidechain() {
+    if (!Binary.isSidechainApp || !GetIt.I.isRegistered<SidechainRPC>()) {
+      return null;
+    }
+    return GetIt.I.get<SidechainRPC>().binaryType;
+  }
 
   /// The orchestrator binary each CLI ships with. Every Core variant owns a
   /// folder, so only the folder the daemon runs from holds the matching CLI.
@@ -85,7 +96,7 @@ class CLIConsole {
 
   /// Discover available CLI executables on disk. Returns map of cli name →
   /// absolute path, each taken from the folder its daemon runs from.
-  static Future<Map<String, String>> discoverCLIs() async {
+  static Future<Map<String, String>> discoverCLIs({BinaryType? sidechain}) async {
     final available = <String, String>{};
     final exeSuffix = Platform.isWindows ? '.exe' : '';
 
@@ -96,7 +107,7 @@ class CLIConsole {
 
     final daemonDirs = await _daemonDirs();
 
-    for (final cliName in _binaryToCLI.values) {
+    for (final cliName in clisFor(sidechain)) {
       final filename = '$cliName$exeSuffix';
       final found = _besideDaemon(daemonDirs[_cliToBinary[cliName]], filename) ?? _findExecutable(bindir, filename);
       if (found != null) {
@@ -165,8 +176,9 @@ class CLIConsole {
   /// enforcer-cli (gRPC has no native CLI client we can ship).
   static Future<List<ConsoleService>> buildServices() async {
     final services = <ConsoleService>[];
+    final sidechain = _currentSidechain();
 
-    final clis = await discoverCLIs();
+    final clis = await discoverCLIs(sidechain: sidechain);
     services.addAll(
       await Future.wait(
         clis.entries.map((entry) async {
@@ -185,7 +197,7 @@ class CLIConsole {
       ),
     );
 
-    final enforcer = _buildEnforcerService();
+    final enforcer = sidechain == null ? _buildEnforcerService() : null;
     if (enforcer != null) {
       services.add(enforcer);
     }

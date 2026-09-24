@@ -507,15 +507,20 @@ class _ConsoleViewState extends State<ConsoleView> {
               child: Row(
                 children: [
                   SailText.primary12(completion.command, monospace: true),
-                  const Spacer(),
-                  if (first) ...[
-                    SailText.secondary12('tab', monospace: true),
+                  if (widget.services.length > 1) ...[
                     const SizedBox(width: 8),
+                    Container(
+                      key: const ValueKey('console-suggestion-chain'),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.colors.border),
+                        borderRadius: SailStyleValues.borderRadius,
+                      ),
+                      child: SailText.secondary12(completion.service.name, monospace: true),
+                    ),
                   ],
-                  SailText.secondary12(
-                    completion.service.name,
-                    monospace: true,
-                  ),
+                  const Spacer(),
+                  if (first) SailText.secondary12('tab', monospace: true),
                 ],
               ),
             ),
