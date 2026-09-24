@@ -18,6 +18,7 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
   final TextEditingController _amountController = TextEditingController();
   bool _isCreating = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -46,6 +47,11 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
                     hintText: '0.00000000',
                     suffix: activeTicker.symbol,
                     textFieldType: TextFieldType.bitcoin,
+                    onChanged: (_) {
+                      if (_error != null) {
+                        setState(() => _error = null);
+                      }
+                    },
                   ),
                   SailRow(
                     spacing: SailStyleValues.padding08,
@@ -63,6 +69,7 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
                       ),
                     ],
                   ),
+                  if (_error != null) SailInlineError(_error!),
                 ],
               ),
             ),
@@ -75,13 +82,13 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
   Future<void> _createCheck() async {
     final amountText = _amountController.text.trim();
     if (amountText.isEmpty) {
-      showSailToast(context, 'Please enter an amount');
+      setState(() => _error = 'Please enter an amount');
       return;
     }
 
     final btcAmount = double.tryParse(amountText);
     if (btcAmount == null || btcAmount <= 0) {
-      showSailToast(context, 'Please enter a valid amount');
+      setState(() => _error = 'Please enter a valid amount');
       return;
     }
 
@@ -89,6 +96,7 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
 
     setState(() {
       _isCreating = true;
+      _error = null;
     });
 
     try {
@@ -116,10 +124,10 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
             await _createCheck();
           }
         } else {
-          showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
+          setState(() => _error = 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSailToast(context, e.toString());
+        setState(() => _error = e.toString());
       }
     } finally {
       if (mounted) {

@@ -81,8 +81,6 @@ class _SignMessageTabState extends State<SignMessageTab> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.sailTheme;
-
     return SailCard(
       title: 'Sign Message',
       subtitle:
@@ -115,18 +113,7 @@ class _SignMessageTabState extends State<SignMessageTab> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),
-            Row(
-              children: [
-                SailSVG.fromAsset(SailSVGAsset.circleAlert, color: theme.colors.error),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SailText.primary13(
-                    _error!,
-                    color: theme.colors.error,
-                  ),
-                ),
-              ],
-            ),
+            SailInlineError(_error!),
           ],
         ],
       ),
@@ -219,20 +206,7 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
                 icon: SailSVGAsset.iconQuestion,
                 onPressed: _verifyMessage,
               ),
-              if (_error != null) ...[
-                Row(
-                  children: [
-                    SailSVG.fromAsset(SailSVGAsset.circleAlert, color: theme.colors.error),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SailText.primary13(
-                        _error!,
-                        color: theme.colors.error,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              if (_error != null) SailInlineError(_error!),
               if (_isValid != null && _error == null) ...[
                 const SizedBox(width: 16),
                 SailSVG.fromAsset(

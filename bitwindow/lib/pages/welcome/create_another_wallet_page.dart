@@ -166,13 +166,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       // The wizard has no back button, so a failure has to let the user try
       // again rather than hold the guard.
       _isCreating = false;
-      if (mounted) {
-        showSailToast(
-          context,
-          'Failed to create wallet: $e',
-          variant: SailToastVariant.destructive,
-        );
-      }
+      rethrow;
     }
   }
 
@@ -181,7 +175,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       MultisigConfigStep(
         onRestored: _leaveSetup,
         onRestoringChanged: (restoring) => setState(() => _restoringBackup = restoring),
-        onConfigured: (result) {
+        onConfigured: (result) async {
           setState(() {
             if (result.isMultisig) {
               _method = WalletSetupMethod.multisig;
@@ -203,7 +197,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
               }
             }
           });
-          _createWallet();
+          await _createWallet();
         },
       ),
     ];

@@ -239,6 +239,7 @@ class _TransactionTableState extends State<TransactionTable> {
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailCard(
           title: 'Wallet Transaction History',
+          error: widget.model.transactionsError,
           titleTooltip:
               'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
           bottomPadding: false,
@@ -418,6 +419,7 @@ class _TransactionTableState extends State<TransactionTable> {
                                       onSave: (updatedFields) async {
                                         final newNote = updatedFields.firstWhere((f) => f.name == 'Note').currentValue;
                                         await widget.model.saveNote(context, entry.txid, newNote);
+                                        return null;
                                       },
                                     ),
                                   ),
@@ -583,6 +585,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   @override
   String? modelError;
+  String? transactionsError;
 
   final TextEditingController searchController = TextEditingController();
 
@@ -662,6 +665,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   Future<void> exportTransactionsToCSV(BuildContext context, List<WalletTransaction> transactions) async {
+    transactionsError = null;
     try {
       setBusy(true);
 
@@ -692,10 +696,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
         showSailToast(context, 'Transactions exported successfully to ${result.toFilePath()}');
       }
     } catch (error) {
-      if (context.mounted) {
-        showSailToast(context, 'Export failed: $error');
-      }
-      modelError = error.toString();
+      transactionsError = 'Export failed: $error';
       notifyListeners();
     } finally {
       setBusy(false);
@@ -717,6 +718,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   /// Replaces a lost bid with a payment back to this wallet.
   Future<void> cancelBid(BuildContext context, WalletTransaction tx) async {
     final log = GetIt.I<Logger>();
+    transactionsError = null;
+    notifyListeners();
     try {
       final result = await _orchestratorBmm.cancelBid(
         txid: tx.txid,
@@ -735,9 +738,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       unawaited(_txProvider.fetch());
     } catch (e) {
       log.e('failed to cancel bid ${tx.txid}: $e');
-      if (context.mounted) {
-        showSailToast(context, 'Failed to cancel the bid: $e');
-      }
+      transactionsError = 'Failed to cancel the bid: $e';
+      notifyListeners();
     }
   }
 
@@ -756,14 +758,15 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
             final raw = updatedFields
                 .firstWhere((f) => f.name == 'Target fee rate (${activeTicker.feeRate})')
                 .currentValue;
-            await _createCpfp(context, tx, raw);
+            return _createCpfp(context, tx, raw);
           },
         ),
       ),
     );
   }
 
-  Future<void> _createCpfp(BuildContext context, WalletTransaction tx, String rawRate) async {
+  /// Returns the error to show in the dialog, or null on success.
+  Future<String?> _createCpfp(BuildContext context, WalletTransaction tx, String rawRate) async {
     final log = GetIt.I<Logger>();
 
     try {
@@ -796,11 +799,10 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       if (context.mounted) {
         showSailToast(context, 'Accelerated! Child txid: ${result.childTxid}');
       }
+      return null;
     } catch (e) {
       log.e('Failed to accelerate (CPFP): $e');
-      if (context.mounted) {
-        showSailToast(context, 'Failed to accelerate: $e');
-      }
+      return 'Failed to accelerate: $e';
     }
   }
 

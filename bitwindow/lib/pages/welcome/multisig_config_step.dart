@@ -188,7 +188,7 @@ class SingleSigResult {
 String defaultWalletProvider({required bool runsLocalBackends}) => runsLocalBackends ? 'core' : 'electrum';
 
 class MultisigConfigStep extends StatefulWidget {
-  final void Function(WalletSetupResult result) onConfigured;
+  final Future<void> Function(WalletSetupResult result) onConfigured;
 
   /// Called when a backup restore produced a wallet, so the caller can hand
   /// control back the same way it does for a freshly created one — a route
@@ -550,7 +550,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       // A bare xpub carries no script type, so hand over the policy this screen
       // shows rather than the key alone.
       final descriptor = (k.descriptor ?? '').isNotEmpty ? k.descriptor : _descriptorPreview;
-      widget.onConfigured(
+      await _configure(
         WalletSetupResult.single(
           (k.mnemonic ?? '').isNotEmpty
               ? SingleSigResult(
@@ -591,7 +591,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         group,
         scriptType: _scriptType,
       );
-      widget.onConfigured(
+      await _configure(
         WalletSetupResult.multisig(
           MultisigWalletSpec(
             m: _threshold,
@@ -608,6 +608,16 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     } finally {
       if (mounted) {
         setState(() => _building = false);
+      }
+    }
+  }
+
+  Future<void> _configure(WalletSetupResult result) async {
+    try {
+      await widget.onConfigured(result);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'Failed to create wallet: $e');
       }
     }
   }
@@ -690,7 +700,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
                       ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
-                      SailText.secondary12(_error!, color: SailTheme.of(context).colors.error),
+                      SailInlineError(_error!),
                     ],
                   ],
                 ),

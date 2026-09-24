@@ -122,6 +122,7 @@ export 'widgets/feedback/sail_alert.dart';
 export 'widgets/feedback/sail_skeleton.dart';
 export 'widgets/feedback/sail_toast.dart';
 export 'widgets/feedback/sail_info_icon.dart';
+export 'widgets/feedback/sail_inline_error.dart';
 export 'widgets/feedback/sail_tooltip.dart';
 export 'widgets/inputs/checkbox.dart';
 export 'widgets/inputs/dropdown_menu.dart';

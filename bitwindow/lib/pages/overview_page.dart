@@ -629,6 +629,7 @@ class BroadcastNewsView extends StatelessWidget {
                   ),
                 ],
               ),
+              if (viewModel.broadcastError != null) SailInlineError(viewModel.broadcastError!),
             ],
           ),
         );
@@ -681,11 +682,13 @@ class BroadcastNewsViewModel extends BaseViewModel {
       return;
     }
     subtype = value;
+    broadcastError = null;
     notifyListeners();
   }
 
   void setNsfw(bool value) {
     nsfw = value;
+    broadcastError = null;
     notifyListeners();
   }
 
@@ -715,10 +718,18 @@ class BroadcastNewsViewModel extends BaseViewModel {
     return text.length > 64 ? text.substring(64) : '';
   }
 
+  String? broadcastError;
+
   BroadcastNewsViewModel() {
     _loadLastUsedTopic();
-    messageController.addListener(notifyListeners);
-    feeController.addListener(notifyListeners);
+    messageController.addListener(_onInputChanged);
+    feeController.addListener(_onInputChanged);
+    urlController.addListener(_onInputChanged);
+  }
+
+  void _onInputChanged() {
+    broadcastError = null;
+    notifyListeners();
   }
 
   Future<void> _loadLastUsedTopic() async {
@@ -747,6 +758,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
     }
 
     topic = newTopic;
+    broadcastError = null;
     // Persist the selected topic
     await _settings.setValue(LastUsedTopicSetting(newValue: newTopic.topic));
 
@@ -761,6 +773,8 @@ class BroadcastNewsViewModel extends BaseViewModel {
       return;
     }
 
+    broadcastError = null;
+    notifyListeners();
     try {
       // Parse fee in user's preferred unit and convert to sats
       final feeSats = feeController.text.isNotEmpty ? parseAmountToSatoshis(feeController.text, feeUnit) : null;
@@ -796,16 +810,18 @@ class BroadcastNewsViewModel extends BaseViewModel {
       }
       Navigator.of(context).pop();
     } catch (e) {
-      showSailToast(context, 'could not broadcast news: $e');
+      broadcastError = 'Could not broadcast news: $e';
+      notifyListeners();
     }
   }
 
   @override
   void dispose() {
-    messageController.removeListener(notifyListeners);
+    messageController.removeListener(_onInputChanged);
     messageController.dispose();
-    feeController.removeListener(notifyListeners);
+    feeController.removeListener(_onInputChanged);
     feeController.dispose();
+    urlController.removeListener(_onInputChanged);
     urlController.dispose();
     super.dispose();
   }
@@ -920,6 +936,7 @@ class _YourTopicsTab extends StatelessWidget {
             ),
           ],
         ),
+        if (viewModel.importError != null) SailInlineError(viewModel.importError!),
       ],
     );
   }
@@ -958,6 +975,7 @@ class _SubscribeTab extends StatelessWidget {
             ),
           ],
         ),
+        if (viewModel.subscribeError != null) SailInlineError(viewModel.subscribeError!),
         const SailSpacing(SailStyleValues.padding16),
         SailText.secondary12(
           'URL format: {days}{identifier}Name\n'
@@ -1003,6 +1021,7 @@ class _CreateTopicTab extends StatelessWidget {
             label: 'Create Topic',
             onPressed: viewModel.canCreate ? () async => viewModel.createTopic(context) : null,
           ),
+          if (viewModel.createTopicError != null) SailInlineError(viewModel.createTopicError!),
           if (pendingTopics.isNotEmpty) ...[
             const SailSpacing(SailStyleValues.padding08),
             SailText.secondary13('Pending Topics (awaiting confirmation)'),
@@ -1052,12 +1071,31 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
   bool get canCreate =>
       identifierController.text.isNotEmpty && nameController.text.isNotEmpty && identifierController.text.length == 8;
 
+  String? createTopicError;
+  String? subscribeError;
+  String? importError;
+
   ManageNewsSubscriptionsViewModel() {
     _newsProvider.addListener(notifyListeners);
-    identifierController.addListener(notifyListeners);
-    nameController.addListener(notifyListeners);
-    urlController.addListener(notifyListeners);
-    retentionDaysController.addListener(notifyListeners);
+    identifierController.addListener(_onTopicInputChanged);
+    nameController.addListener(_onTopicInputChanged);
+    urlController.addListener(_onUrlChanged);
+    retentionDaysController.addListener(_onTopicInputChanged);
+  }
+
+  void _onTopicInputChanged() {
+    createTopicError = null;
+    notifyListeners();
+  }
+
+  void _onUrlChanged() {
+    subscribeError = null;
+    notifyListeners();
+  }
+
+  void _setCreateTopicError(String error) {
+    createTopicError = error;
+    notifyListeners();
   }
 
   Future<void> createTopic(BuildContext context) async {
@@ -1065,24 +1103,26 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       return;
     }
     if (identifierController.text.length != 8) {
-      showSailToast(context, 'Identifier must be exactly 8 hex characters');
+      _setCreateTopicError('Identifier must be exactly 8 hex characters');
       return;
     }
     final hexRegex = RegExp(r'^[0-9A-Fa-f]+$');
     if (!hexRegex.hasMatch(identifierController.text)) {
-      showSailToast(context, 'Identifier must contain only valid hex characters (0-9, A-F)');
+      _setCreateTopicError('Identifier must contain only valid hex characters (0-9, A-F)');
       return;
     }
     if (nameController.text.length > 20) {
-      showSailToast(context, 'Name must be 20 characters or less');
+      _setCreateTopicError('Name must be 20 characters or less');
       return;
     }
     final retentionDays = int.tryParse(retentionDaysController.text) ?? 7;
     if (retentionDays < 0 || retentionDays > 255) {
-      showSailToast(context, 'Retention days must be between 0 and 255 (0 = infinite)');
+      _setCreateTopicError('Retention days must be between 0 and 255 (0 = infinite)');
       return;
     }
 
+    createTopicError = null;
+    notifyListeners();
     try {
       final response = await _api.misc.createTopic(
         identifierController.text,
@@ -1098,7 +1138,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       nameController.clear();
       retentionDaysController.text = '7';
     } catch (e) {
-      showSailToast(context, 'Could not create topic: $e');
+      _setCreateTopicError('Could not create topic: $e');
     }
   }
 
@@ -1121,7 +1161,8 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     final match = regex.firstMatch(url);
 
     if (match == null) {
-      showSailToast(context, 'Invalid URL format. Expected: {days}{identifier}Name');
+      subscribeError = 'Invalid URL format. Expected: {days}{identifier}Name';
+      notifyListeners();
       return;
     }
 
@@ -1138,7 +1179,8 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       showSailToast(context, 'Subscribed to "$name"! txid: ${response.txid.substring(0, 8)}...');
       urlController.clear();
     } catch (e) {
-      showSailToast(context, 'Could not subscribe: $e');
+      subscribeError = 'Could not subscribe: $e';
+      notifyListeners();
     }
   }
 
@@ -1152,12 +1194,12 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
   }
 
   Future<void> importTopics(BuildContext context) async {
+    importError = null;
+    notifyListeners();
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text == null || data!.text!.isEmpty) {
-      if (!context.mounted) {
-        return;
-      }
-      showSailToast(context, 'Clipboard is empty');
+      importError = 'Clipboard is empty';
+      notifyListeners();
       return;
     }
 
@@ -1198,7 +1240,8 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     if (imported > 0) {
       showSailToast(context, 'Imported $imported topic(s)${failed > 0 ? ', $failed failed' : ''}');
     } else if (failed > 0) {
-      showSailToast(context, 'Failed to import $failed topic(s)');
+      importError = 'Failed to import $failed topic(s)';
+      notifyListeners();
     } else {
       showSailToast(context, 'No new topics to import');
     }
@@ -1239,13 +1282,13 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
   @override
   void dispose() {
     _newsProvider.removeListener(notifyListeners);
-    identifierController.removeListener(notifyListeners);
+    identifierController.removeListener(_onTopicInputChanged);
     identifierController.dispose();
-    nameController.removeListener(notifyListeners);
+    nameController.removeListener(_onTopicInputChanged);
     nameController.dispose();
-    retentionDaysController.removeListener(notifyListeners);
+    retentionDaysController.removeListener(_onTopicInputChanged);
     retentionDaysController.dispose();
-    urlController.removeListener(notifyListeners);
+    urlController.removeListener(_onUrlChanged);
     urlController.dispose();
     super.dispose();
   }
@@ -1278,6 +1321,7 @@ class NewGraffitiView extends StatelessWidget {
               onPressed: () => viewModel.createGraffiti(context),
               disabled: viewModel.messageController.text.isEmpty,
             ),
+            if (viewModel.graffitiError != null) SailInlineError(viewModel.graffitiError!),
           ],
         );
       },
@@ -1290,8 +1334,15 @@ class NewGraffitiViewModel extends BaseViewModel {
   final OrchestratorWalletRPC _orchestratorWallet = GetIt.I<OrchestratorRPC>().wallet;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
+  String? graffitiError;
+
   NewGraffitiViewModel() {
-    messageController.addListener(notifyListeners);
+    messageController.addListener(_onMessageChanged);
+  }
+
+  void _onMessageChanged() {
+    graffitiError = null;
+    notifyListeners();
   }
 
   Future<void> createGraffiti(BuildContext context) async {
@@ -1299,6 +1350,8 @@ class NewGraffitiViewModel extends BaseViewModel {
       return;
     }
 
+    graffitiError = null;
+    notifyListeners();
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) {
@@ -1326,16 +1379,14 @@ class NewGraffitiViewModel extends BaseViewModel {
       }
       messageController.clear();
     } catch (e) {
-      if (!context.mounted) {
-        return;
-      }
-      showSailToast(context, 'could not broadcast graffiti: $e');
+      graffitiError = 'Could not broadcast graffiti: $e';
+      notifyListeners();
     }
   }
 
   @override
   void dispose() {
-    messageController.removeListener(notifyListeners);
+    messageController.removeListener(_onMessageChanged);
     messageController.dispose();
     super.dispose();
   }

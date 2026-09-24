@@ -18,6 +18,7 @@ class _CashCheckPageState extends State<CashCheckPage> {
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
   final TextEditingController _wifController = TextEditingController();
   bool _isCashing = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -50,6 +51,11 @@ class _CashCheckPageState extends State<CashCheckPage> {
                     hintText: 'Private key (WIF format)',
                     textFieldType: TextFieldType.text,
                     maxLines: 3,
+                    onChanged: (_) {
+                      if (_error != null) {
+                        setState(() => _error = null);
+                      }
+                    },
                   ),
                   SailRow(
                     spacing: SailStyleValues.padding08,
@@ -67,6 +73,7 @@ class _CashCheckPageState extends State<CashCheckPage> {
                       ),
                     ],
                   ),
+                  if (_error != null) SailInlineError(_error!),
                 ],
               ),
             ),
@@ -79,12 +86,13 @@ class _CashCheckPageState extends State<CashCheckPage> {
   Future<void> _cashCheck() async {
     final wif = _wifController.text.trim();
     if (wif.isEmpty) {
-      showSailToast(context, 'Please enter a private key');
+      setState(() => _error = 'Please enter a private key');
       return;
     }
 
     setState(() {
       _isCashing = true;
+      _error = null;
     });
 
     try {
@@ -132,10 +140,10 @@ class _CashCheckPageState extends State<CashCheckPage> {
             await _cashCheck();
           }
         } else {
-          showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
+          setState(() => _error = 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSailToast(context, 'Failed to cash check: $e');
+        setState(() => _error = 'Failed to cash check: $e');
       }
     } finally {
       if (mounted) {

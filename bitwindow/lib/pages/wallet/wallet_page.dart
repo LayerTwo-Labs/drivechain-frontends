@@ -279,6 +279,7 @@ class GetCoinsButton extends StatefulWidget {
 class _GetCoinsButtonState extends State<GetCoinsButton> {
   final TransactionProvider _transactionProvider = GetIt.I.get<TransactionProvider>();
   bool _isClaiming = false;
+  String? _claimError;
 
   @override
   void initState() {
@@ -305,6 +306,7 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
 
     setState(() {
       _isClaiming = true;
+      _claimError = null;
     });
 
     try {
@@ -354,7 +356,7 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
         log.e('faucet claim failed', error: error, stackTrace: stackTrace);
       }
       if (mounted) {
-        showSailToast(context, 'Failed to claim from faucet: $userMessage');
+        setState(() => _claimError = 'Failed to claim from faucet: $userMessage');
       }
     } finally {
       if (mounted) {
@@ -374,13 +376,28 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
       return const SizedBox.shrink();
     }
 
-    return SailButton(
+    final button = SailButton(
       onPressed: () async => await _claimFaucet(),
       label: 'Get Coins',
       loading: _isClaiming,
       loadingLabel: 'Claiming',
       variant: _transactionProvider.balanceProvider.balance == 0 ? ButtonVariant.primary : ButtonVariant.secondary,
       insideTable: true,
+    );
+    final error = _claimError;
+    if (error == null) {
+      return button;
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button,
+        const SizedBox(width: SailStyleValues.padding08),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: SailTooltip(message: error, child: SailInlineError(error, maxLines: 1)),
+        ),
+      ],
     );
   }
 }

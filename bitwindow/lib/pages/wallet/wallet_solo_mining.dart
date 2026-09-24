@@ -73,6 +73,9 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
   final _password = TextEditingController(text: 'x');
   String? _choice;
   bool _savedCustomShown = false;
+  String? _serverError;
+  String? _chartError;
+  String? _minerError;
 
   @override
   void initState() {
@@ -138,21 +141,25 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
     final target = key == _soloKey
         ? Target(kind: TargetKind.TARGET_KIND_SOLO)
         : Target(kind: TargetKind.TARGET_KIND_POOL, poolId: key.substring(_poolKeyPrefix.length));
-    await _run('Could not change where the work goes', () => _stratum.setTarget(target));
+    await _run('Could not change where the work goes', (e) => _serverError = e, () => _stratum.setTarget(target));
     if (mounted) {
       setState(() => _choice = null);
     }
   }
 
   Future<void> _switchToCustom() async {
-    final done = await _run('Could not change where the work goes', () => _stratum.setTarget(_customTarget()));
+    final done = await _run(
+      'Could not change where the work goes',
+      (e) => _serverError = e,
+      () => _stratum.setTarget(_customTarget()),
+    );
     if (done && mounted) {
       setState(() => _choice = null);
     }
   }
 
   Future<void> _start() async {
-    await _run('Could not start the stratum server', () async {
+    await _run('Could not start the stratum server', (e) => _serverError = e, () async {
       if (_currentKey == _customKey) {
         await _stratum.setTarget(_customTarget());
       }
@@ -160,13 +167,14 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
     });
   }
 
-  Future<bool> _run(String failure, Future<void> Function() action) async {
+  Future<bool> _run(String failure, void Function(String? error) setError, Future<void> Function() action) async {
+    setState(() => setError(null));
     try {
       await action();
       return true;
     } catch (e) {
       if (mounted) {
-        showSailToast(context, '$failure: ${extractConnectException(e)}');
+        setState(() => setError('$failure: ${extractConnectException(e)}'));
       }
       return false;
     }
@@ -233,7 +241,7 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
           SailCard(
             title: 'Stratum server',
             subtitle: 'Mining for ASIC miners on your network',
-            error: _stratum.error ?? (status.error.isEmpty ? null : status.error),
+            error: _serverError ?? _stratum.error ?? (status.error.isEmpty ? null : status.error),
             widgetHeaderEnd: SailRow(
               spacing: SailStyleValues.padding12,
               children: [
@@ -245,7 +253,8 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
                     ? SailButton(
                         label: 'Stop',
                         variant: ButtonVariant.outline,
-                        onPressed: () async => _run('Could not stop the stratum server', _stratum.stop),
+                        onPressed: () async =>
+                            _run('Could not stop the stratum server', (e) => _serverError = e, _stratum.stop),
                       )
                     : SailButton(label: 'Start', onPressed: () async => _start()),
                 SailButton(
@@ -301,6 +310,7 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
           if (status.running) _hashrateCard(),
           SailCard(
             title: 'Miners',
+            error: _minerError,
             child: SailTable(
               shrinkWrap: true,
               getRowId: (i) => '${status.miners[i].address}/${status.miners[i].worker}',
@@ -487,13 +497,14 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
     final history = _stratum.history;
     return SailCard(
       title: 'Hashrate',
+      error: _chartError,
       widgetHeaderEnd: SailToggleGroup<HashrateRange>(
         singleChoice: true,
         values: [_stratum.range],
         items: [for (final (range, label) in _ranges) SailToggleGroupItem(value: range, label: label)],
         onChanged: (values) {
           if (values.isNotEmpty) {
-            _run('Could not read the hashrate chart', () => _stratum.setRange(values.first));
+            _run('Could not read the hashrate chart', (e) => _chartError = e, () => _stratum.setRange(values.first));
           }
         },
       ),
@@ -649,7 +660,11 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
                   if (mode == null || mode == miner.workMode) {
                     return;
                   }
-                  _run('Could not set the work mode', () => _stratum.setWorkMode(miner.address, mode));
+                  _run(
+                    'Could not set the work mode',
+                    (e) => _minerError = e,
+                    () => _stratum.setWorkMode(miner.address, mode),
+                  );
                 },
               ),
             ),

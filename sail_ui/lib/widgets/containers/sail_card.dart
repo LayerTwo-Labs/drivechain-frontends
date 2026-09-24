@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
@@ -532,7 +533,9 @@ class SailCardEditValues extends StatefulWidget {
   final String title;
   final String subtitle;
   final List<EditField> fields;
-  final void Function(List<EditField> updatedFields) onSave;
+
+  /// Returns an error to show under the fields, or null.
+  final FutureOr<String?> Function(List<EditField> updatedFields) onSave;
 
   const SailCardEditValues({
     super.key,
@@ -548,6 +551,7 @@ class SailCardEditValues extends StatefulWidget {
 
 class _SailCardEditValuesState extends State<SailCardEditValues> {
   late List<TextEditingController> controllers;
+  String? _error;
 
   @override
   void initState() {
@@ -559,7 +563,7 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
   }
 
   void setTheState() {
-    setState(() {});
+    setState(() => _error = null);
   }
 
   @override
@@ -597,6 +601,10 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
               ],
             );
           }),
+          if (_error != null) ...[
+            const SailSpacing(SailStyleValues.padding16),
+            SailInlineError(_error!),
+          ],
           const SailSpacing(SailStyleValues.padding16),
           Align(
             alignment: Alignment.centerRight,
@@ -610,7 +618,11 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
                     currentValue: controllers[i].text,
                   ),
                 );
-                widget.onSave(updatedFields);
+                setState(() => _error = null);
+                final error = await widget.onSave(updatedFields);
+                if (mounted) {
+                  setState(() => _error = error);
+                }
               },
             ),
           ),

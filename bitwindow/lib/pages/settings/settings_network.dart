@@ -31,6 +31,11 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   final _torProxyController = TextEditingController();
   final _snapshotController = TextEditingController();
   GetSnapshotStatusResponse? _snapshotStatus;
+  String? _dataDirError;
+  String? _snapshotError;
+  String? _variantError;
+  String? _electrumError;
+  String? _torError;
 
   bool get _isElectrumWallet => _walletReader.activeWallet?.isElectrum ?? false;
 
@@ -114,17 +119,14 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 
   Future<void> _applyElectrumServer() async {
+    setState(() => _electrumError = null);
     final tip = await _electrumProvider.setServer(_electrumServerController.text.trim());
     if (!mounted) {
       return;
     }
     final err = _electrumProvider.lastError;
     if (err != null) {
-      showSailToast(
-        context,
-        'Could not switch server (kept previous): $err',
-        variant: SailToastVariant.destructive,
-      );
+      setState(() => _electrumError = 'Could not switch server (kept previous): $err');
       return;
     }
     showSailToast(
@@ -135,17 +137,14 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 
   Future<void> _resetElectrumServer() async {
+    setState(() => _electrumError = null);
     final tip = await _electrumProvider.setServer('');
     if (!mounted) {
       return;
     }
     final err = _electrumProvider.lastError;
     if (err != null) {
-      showSailToast(
-        context,
-        'Could not reset server (kept previous): $err',
-        variant: SailToastVariant.destructive,
-      );
+      setState(() => _electrumError = 'Could not reset server (kept previous): $err');
       return;
     }
     _electrumServerController.text = _electrumProvider.url;
@@ -165,17 +164,14 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
   Future<void> _applyTorConfig(bool enabled) async {
     final proxy = _torProxyController.text.trim();
+    setState(() => _torError = null);
     final tip = await _torProvider.apply(enabled, proxy);
     if (!mounted) {
       return;
     }
     final err = _torProvider.lastError;
     if (err != null) {
-      showSailToast(
-        context,
-        'Could not apply Tor config (kept previous): $err',
-        variant: SailToastVariant.destructive,
-      );
+      setState(() => _torError = 'Could not apply Tor config (kept previous): $err');
       return;
     }
     showSailToast(
@@ -187,6 +183,17 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
   void setstate() {
     setState(() {});
+  }
+
+  Widget _withError(Widget child, String? error) {
+    if (error == null) {
+      return child;
+    }
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      mainAxisSize: MainAxisSize.min,
+      children: [child, SailInlineError(error)],
+    );
   }
 
   Future<void> _handleNetworkChange(NetworkOption? option) async {
@@ -216,6 +223,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _selectDataDirectory() async {
     setState(() {
       _isSelectingDataDir = true;
+      _dataDirError = null;
     });
 
     try {
@@ -239,11 +247,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       }
     } catch (e) {
       if (mounted) {
-        showSailToast(
-          context,
-          'Error selecting directory: $e',
-          variant: SailToastVariant.destructive,
-        );
+        setState(() => _dataDirError = 'Error selecting directory: $e');
       }
     } finally {
       if (mounted) {
@@ -259,7 +263,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 
   Future<void> _pickSnapshotFile() async {
-    setState(() => _isPickingSnapshot = true);
+    setState(() {
+      _isPickingSnapshot = true;
+      _snapshotError = null;
+    });
     try {
       final result = await FilePicker.pickFile(dialogTitle: 'Choose a UTXO snapshot');
       final path = result?.path;
@@ -268,11 +275,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       }
     } catch (e) {
       if (mounted) {
-        showSailToast(
-          context,
-          'Could not open the file picker: $e',
-          variant: SailToastVariant.destructive,
-        );
+        setState(() => _snapshotError = 'Could not open the file picker: $e');
       }
     } finally {
       if (mounted) {
@@ -284,13 +287,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _applySnapshot() async {
     final source = _snapshotController.text.trim();
     if (source.isEmpty) {
-      showSailToast(
-        context,
-        'Enter a snapshot URL or choose a file first',
-        variant: SailToastVariant.destructive,
-      );
+      setState(() => _snapshotError = 'Enter a snapshot URL or choose a file first');
       return;
     }
+    setState(() => _snapshotError = null);
     // A bare URL is downloaded; anything else is treated as a local file.
     final isURL = source.startsWith('http://') || source.startsWith('https://');
 
@@ -330,17 +330,14 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       return;
     }
 
+    setState(() => _variantError = null);
     await _variantProvider.setVariant(id);
     if (!mounted) {
       return;
     }
     final err = _variantProvider.lastError;
     if (err != null) {
-      showSailToast(
-        context,
-        'Failed to switch Core variant: $err',
-        variant: SailToastVariant.destructive,
-      );
+      setState(() => _variantError = 'Failed to switch Core variant: $err');
     }
   }
 
@@ -422,18 +419,21 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                         ],
                       )
                     : null,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SailStyleValues.padding08,
-                    vertical: SailStyleValues.padding04,
+                child: _withError(
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: SailStyleValues.padding08,
+                      vertical: SailStyleValues.padding04,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.colors.border),
+                      borderRadius: theme.chrome.radiusSmall,
+                      color: theme.colors.backgroundSecondary,
+                    ),
+                    child: SailText.secondary12(_confProvider.detectedDataDir ?? 'Default directory'),
                   ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.colors.border),
-                    borderRadius: theme.chrome.radiusSmall,
-                    color: theme.colors.backgroundSecondary,
-                  ),
-                  child: SailText.secondary12(_confProvider.detectedDataDir ?? 'Default directory'),
+                  _dataDirError,
                 ),
               ),
             SailSettingsRow(
@@ -472,32 +472,37 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                       .toList(),
                   onChanged: (String? id) async => _handleVariantChange(id),
                 ),
+                child: _variantError == null ? null : SailInlineError(_variantError!),
               ),
             SailSettingsRow(
               label: 'UTXO snapshot',
               description: _snapshotStatusText() ?? 'Load an assumeutxo snapshot to skip the historical download',
-              child: SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: SailTextField(
-                      controller: _snapshotController,
-                      hintText: 'https://example.com/utxo-957600.dat',
+              child: _withError(
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    Expanded(
+                      child: SailTextField(
+                        controller: _snapshotController,
+                        hintText: 'https://example.com/utxo-957600.dat',
+                        onChanged: (_) => setState(() => _snapshotError = null),
+                      ),
                     ),
-                  ),
-                  SailButton(
-                    label: 'Choose file',
-                    small: true,
-                    variant: ButtonVariant.secondary,
-                    loading: _isPickingSnapshot,
-                    onPressed: () async => await _pickSnapshotFile(),
-                  ),
-                  SailButton(
-                    label: 'Load',
-                    small: true,
-                    onPressed: () async => await _applySnapshot(),
-                  ),
-                ],
+                    SailButton(
+                      label: 'Choose file',
+                      small: true,
+                      variant: ButtonVariant.secondary,
+                      loading: _isPickingSnapshot,
+                      onPressed: () async => await _pickSnapshotFile(),
+                    ),
+                    SailButton(
+                      label: 'Load',
+                      small: true,
+                      onPressed: () async => await _applySnapshot(),
+                    ),
+                  ],
+                ),
+                _snapshotError,
               ),
             ),
           ],
@@ -511,32 +516,36 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                 description: _electrumProvider.isOverride
                     ? 'Custom server. Reset to return to the network default.'
                     : 'The endpoint this wallet reads from and broadcasts to',
-                child: SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    Expanded(
-                      child: SailTextField(
-                        controller: _electrumServerController,
-                        hintText: _electrumProvider.defaultUrl.isEmpty ? 'https://...' : _electrumProvider.defaultUrl,
-                        enabled: !_electrumProvider.busy,
-                        maxLines: 1,
-                        onSubmitted: (_) async => _applyElectrumServer(),
+                child: _withError(
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      Expanded(
+                        child: SailTextField(
+                          controller: _electrumServerController,
+                          onChanged: (_) => setState(() => _electrumError = null),
+                          hintText: _electrumProvider.defaultUrl.isEmpty ? 'https://...' : _electrumProvider.defaultUrl,
+                          enabled: !_electrumProvider.busy,
+                          maxLines: 1,
+                          onSubmitted: (_) async => _applyElectrumServer(),
+                        ),
                       ),
-                    ),
-                    SailButton(
-                      label: 'Apply',
-                      small: true,
-                      loading: _electrumProvider.busy,
-                      onPressed: () async => _applyElectrumServer(),
-                    ),
-                    if (_electrumProvider.isOverride)
                       SailButton(
-                        label: 'Reset',
+                        label: 'Apply',
                         small: true,
-                        variant: ButtonVariant.ghost,
-                        onPressed: () async => _resetElectrumServer(),
+                        loading: _electrumProvider.busy,
+                        onPressed: () async => _applyElectrumServer(),
                       ),
-                  ],
+                      if (_electrumProvider.isOverride)
+                        SailButton(
+                          label: 'Reset',
+                          small: true,
+                          variant: ButtonVariant.ghost,
+                          onPressed: () async => _resetElectrumServer(),
+                        ),
+                    ],
+                  ),
+                  _electrumError,
                 ),
               ),
               SailSettingsRow(
@@ -546,25 +555,29 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                   value: _torProvider.enabled,
                   onChanged: (v) async => _applyTorConfig(v),
                 ),
-                child: SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    Expanded(
-                      child: SailTextField(
-                        controller: _torProxyController,
-                        hintText: _torProvider.defaultProxy.isEmpty ? '127.0.0.1:9050' : _torProvider.defaultProxy,
-                        enabled: !_torProvider.busy,
-                        maxLines: 1,
-                        onSubmitted: (_) async => _applyTorConfig(true),
+                child: _withError(
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      Expanded(
+                        child: SailTextField(
+                          controller: _torProxyController,
+                          onChanged: (_) => setState(() => _torError = null),
+                          hintText: _torProvider.defaultProxy.isEmpty ? '127.0.0.1:9050' : _torProvider.defaultProxy,
+                          enabled: !_torProvider.busy,
+                          maxLines: 1,
+                          onSubmitted: (_) async => _applyTorConfig(true),
+                        ),
                       ),
-                    ),
-                    SailButton(
-                      label: 'Apply',
-                      small: true,
-                      loading: _torProvider.busy,
-                      onPressed: () async => _applyTorConfig(true),
-                    ),
-                  ],
+                      SailButton(
+                        label: 'Apply',
+                        small: true,
+                        loading: _torProvider.busy,
+                        onPressed: () async => _applyTorConfig(true),
+                      ),
+                    ],
+                  ),
+                  _torError,
                 ),
               ),
             ],

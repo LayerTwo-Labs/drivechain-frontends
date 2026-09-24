@@ -145,6 +145,7 @@ class _GroupsSection extends StatelessWidget {
           child: SailCard(
             title: 'Group Tools',
             subtitle: 'Manage multisig groups',
+            error: viewModel.groupToolsError,
             bottomPadding: false,
             child: SizedBox(
               height: kTableHeight,
@@ -206,6 +207,7 @@ class _TransactionsSection extends StatelessWidget {
           child: SailCard(
             title: 'Multisig Transactions',
             subtitle: '${viewModel.transactionRows.length} transaction(s)',
+            error: viewModel.transactionsError,
             bottomPadding: false,
             child: SizedBox(
               height: kTableHeight,
@@ -227,6 +229,7 @@ class _TransactionsSection extends StatelessWidget {
           child: SailCard(
             title: 'Transaction Tools',
             subtitle: 'Create and manage transactions',
+            error: viewModel.transactionToolsError,
             bottomPadding: false,
             child: SizedBox(
               height: kTableHeight,
@@ -882,6 +885,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
   bool isLoadingGroups = false;
   bool isLoadingTransactions = false;
   String? errorMessage;
+  String? groupToolsError;
+  String? transactionToolsError;
+  String? transactionsError;
+  String? exportError;
   bool _disposed = false;
 
   MultisigLoungeViewModel();
@@ -1015,6 +1022,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
   }
 
   Future<void> fundGroup(BuildContext context, MultisigGroup group) async {
+    groupToolsError = null;
+    notifyListeners();
     try {
       // Make sure the watch wallet is loaded. The modal asks it for the
       // address, so taking one here would consume a second one and leave a
@@ -1030,17 +1039,14 @@ class MultisigLoungeViewModel extends BaseViewModel {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(
-          context,
-          'Failed to get funding address: $e',
-          variant: SailToastVariant.destructive,
-        );
-      }
+      groupToolsError = 'Failed to get funding address: $e';
+      notifyListeners();
     }
   }
 
   Future<void> fundGroupWithSelection(BuildContext context) async {
+    groupToolsError = null;
+    notifyListeners();
     try {
       await showThemedDialog<bool>(
         context: context,
@@ -1049,13 +1055,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
         ),
       );
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(
-          context,
-          'Failed to open funding modal: $e',
-          variant: SailToastVariant.destructive,
-        );
-      }
+      groupToolsError = 'Failed to open funding modal: $e';
+      notifyListeners();
     }
   }
 
@@ -1073,6 +1074,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
     BuildContext context,
     MultisigGroup? group,
   ) async {
+    transactionToolsError = null;
+    notifyListeners();
     try {
       await showThemedDialog<bool>(
         context: context,
@@ -1082,13 +1085,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
         ),
       );
     } catch (e) {
-      if (context.mounted) {
-        showSailToast(
-          context,
-          'Failed to create transaction: $e',
-          variant: SailToastVariant.destructive,
-        );
-      }
+      transactionToolsError = 'Failed to create transaction: $e';
+      notifyListeners();
     }
   }
 
@@ -1264,6 +1262,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       orElse: () => throw Exception('Group not found for transaction'),
     );
 
+    exportError = null;
     await showThemedDialog<void>(
       context: context,
       builder: (context) => SailModal(
@@ -1488,10 +1487,21 @@ class MultisigLoungeViewModel extends BaseViewModel {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SailButton(
-                  label: 'Close',
-                  onPressed: () async => Navigator.of(context).pop(),
-                  variant: ButtonVariant.secondary,
+                ListenableBuilder(
+                  listenable: this,
+                  builder: (context, _) => SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (exportError != null) SailInlineError(exportError!),
+                      SailButton(
+                        label: 'Close',
+                        onPressed: () async => Navigator.of(context).pop(),
+                        variant: ButtonVariant.secondary,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1604,6 +1614,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
     MultisigTransaction tx,
     MultisigGroup group,
   ) async {
+    transactionsError = null;
+    notifyListeners();
     try {
       final rpcSigner = MultisigRPCSigner();
 
@@ -1669,11 +1681,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
             variant: SailToastVariant.success,
           );
         } else {
-          showSailToast(
-            context,
-            'Failed to add signatures to transaction',
-            variant: SailToastVariant.destructive,
-          );
+          transactionsError = 'Failed to add signatures to transaction';
         }
       }
 
@@ -1685,18 +1693,12 @@ class MultisigLoungeViewModel extends BaseViewModel {
     } catch (e) {
       MultisigLogger.error('Error in transaction signing: $e');
 
-      if (context.mounted) {
-        showSailToast(
-          context,
-          'Failed to sign transaction: $e',
-          variant: SailToastVariant.destructive,
-        );
-      }
-
       if (_disposed) {
         return;
       }
+      transactionsError = 'Failed to sign transaction: $e';
       await _stateManager.refreshData();
+      notifyListeners();
     }
   }
 
@@ -1708,28 +1710,20 @@ class MultisigLoungeViewModel extends BaseViewModel {
     String keyOwner,
     bool isSigned,
   ) async {
+    exportError = null;
+    notifyListeners();
     try {
       if (psbtData.isEmpty) {
-        if (context.mounted) {
-          showSailToast(
-            context,
-            'PSBT data is empty',
-            variant: SailToastVariant.warning,
-          );
-        }
+        exportError = 'PSBT data is empty';
+        notifyListeners();
         return;
       }
 
       try {
         await bitcoindRpcCall('decodepsbt', params: [psbtData]);
       } catch (e) {
-        if (context.mounted) {
-          showSailToast(
-            context,
-            'Invalid PSBT format: $e',
-            variant: SailToastVariant.destructive,
-          );
-        }
+        exportError = 'Invalid PSBT format: $e';
+        notifyListeners();
         return;
       }
 
@@ -1767,14 +1761,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
     } catch (e) {
       _logger.e('Failed to export PSBT to file: $e');
-
-      if (context.mounted) {
-        showSailToast(
-          context,
-          'Failed to export PSBT: $e',
-          variant: SailToastVariant.destructive,
-        );
-      }
+      exportError = 'Failed to export PSBT: $e';
+      notifyListeners();
     }
   }
 

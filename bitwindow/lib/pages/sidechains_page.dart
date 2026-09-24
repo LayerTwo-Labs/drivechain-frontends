@@ -1591,6 +1591,7 @@ class _DepositModalState extends State<DepositModal> {
   bool isLoading = false;
   bool isFetchingAddress = true;
   String? fetchError;
+  String? depositError;
   String? selectedWalletId;
 
   String? get fromWalletId => GetIt.I<WalletReaderProvider>().resolveFundingWalletId(selectedWalletId);
@@ -1613,7 +1614,7 @@ class _DepositModalState extends State<DepositModal> {
   }
 
   void _onTextChanged() {
-    setState(() {});
+    setState(() => depositError = null);
   }
 
   @override
@@ -1693,17 +1694,18 @@ class _DepositModalState extends State<DepositModal> {
 
   Future<void> _deposit() async {
     if (addressController.text.isEmpty) {
-      showSailToast(context, 'No deposit address available');
+      setState(() => depositError = 'No deposit address available');
       return;
     }
     if (double.tryParse(amountController.text) == null) {
-      showSailToast(context, 'Invalid amount, enter a number');
+      setState(() => depositError = 'Invalid amount, enter a number');
       return;
     }
     if (double.tryParse(feeController.text) == null) {
-      showSailToast(context, 'Invalid fee, enter a number');
+      setState(() => depositError = 'Invalid fee, enter a number');
       return;
     }
+    setState(() => depositError = null);
 
     final api = GetIt.I<BitwindowRPC>();
     final transactionsProvider = GetIt.I<TransactionProvider>();
@@ -1737,7 +1739,7 @@ class _DepositModalState extends State<DepositModal> {
       await sidechainProvider.fetch();
     } catch (e) {
       if (mounted) {
-        showSailToast(context, 'Could not create deposit:\n$e');
+        setState(() => depositError = 'Could not create deposit: $e');
       }
     } finally {
       if (mounted) {
@@ -1819,7 +1821,10 @@ class _DepositModalState extends State<DepositModal> {
                       flex: 2,
                       child: FromWalletField(
                         selectedWalletId: fromWalletId,
-                        onChanged: (walletId) => setState(() => selectedWalletId = walletId),
+                        onChanged: (walletId) => setState(() {
+                          selectedWalletId = walletId;
+                          depositError = null;
+                        }),
                       ),
                     ),
                   ],
@@ -1844,6 +1849,10 @@ class _DepositModalState extends State<DepositModal> {
                       feeController.text.isEmpty,
                   onPressed: _deposit,
                 ),
+                if (depositError != null) ...[
+                  const SailSpacing(SailStyleValues.padding08),
+                  SailInlineError(depositError!),
+                ],
               ],
             ),
           ),

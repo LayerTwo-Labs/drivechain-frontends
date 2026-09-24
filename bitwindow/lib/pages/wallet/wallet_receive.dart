@@ -409,6 +409,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                                   onSave: (updatedFields) async {
                                     final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
                                     await widget.model.saveLabel(context, entry.address, newLabel);
+                                    return null;
                                   },
                                 ),
                               ),
