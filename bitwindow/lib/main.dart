@@ -227,7 +227,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<CoinShiftRPC>(CoinShiftLive());
   GetIt.I.registerSingleton<PhotonRPC>(PhotonLive());
   GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
-  GetIt.I.registerSingleton<FreeBankRPC>(FreeBankRPC());
+  GetIt.I.registerSingleton<FreeBankRPC>(FreeBankLive());
 
   registerNodeMode();
 

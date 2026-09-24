@@ -8,12 +8,13 @@ import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
 import 'package:sidechain_core/rpcs/thunder_utxo.dart';
 
-/// API to the FreeBank node, served by the orchestrator.
-///
-/// It uses only the orchestrator's generic routes, so it works for any FreeBank
-/// build. A call those routes do not cover is unsupported.
-class FreeBankRPC extends SidechainRPC {
-  FreeBankRPC() : super(binaryType: BinaryType.BINARY_TYPE_FREEBANK);
+/// API to the FreeBank node, read through the orchestrator's generic routes.
+abstract class FreeBankRPC extends SidechainRPC {
+  FreeBankRPC({required super.binaryType});
+}
+
+class FreeBankLive extends FreeBankRPC {
+  FreeBankLive() : super(binaryType: BinaryType.BINARY_TYPE_FREEBANK);
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
 
@@ -75,44 +76,45 @@ class FreeBankRPC extends SidechainRPC {
 
   @override
   Future<String> getDepositAddress() async =>
-      throw UnsupportedError('BitWindow has no FreeBank route for addresses. Paste one from the FreeBank wallet.');
+      throw UnsupportedError('fetching a FreeBank address. Paste one from your FreeBank wallet.');
 
   @override
-  Future<String> getSideAddress() async => throw _noRoute('addresses');
+  Future<String> getSideAddress() async => throw _unsupported('addresses');
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async => throw _noRoute('sends');
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async =>
+      throw _unsupported('sends');
 
   @override
-  Future<double> sideEstimateFee() async => throw _noRoute('fees');
+  Future<double> sideEstimateFee() async => throw _unsupported('fees');
 
   @override
-  Future<List<SidechainUTXO>> listUTXOs() async => throw _noRoute('coins');
+  Future<List<SidechainUTXO>> listUTXOs() async => throw _unsupported('coins');
 
   @override
-  Future<List<SidechainUTXO>> listAllUTXOs() async => throw _noRoute('coins');
+  Future<List<SidechainUTXO>> listAllUTXOs() async => throw _unsupported('coins');
 
   @override
-  Future<List<CoreTransaction>> listTransactions() async => throw _noRoute('transactions');
+  Future<List<CoreTransaction>> listTransactions() async => throw _unsupported('transactions');
 
   @override
-  Future<BmmResult> mine(int feeSats) async => throw _noRoute('mining');
+  Future<BmmResult> mine(int feeSats) async => throw _unsupported('mining');
 
   @override
-  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async => throw _noRoute('withdrawal bundles');
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async => throw _unsupported('withdrawal bundles');
 
   @override
-  Future<int?> getLatestFailedWithdrawalBundleHeight() async => throw _noRoute('withdrawal bundles');
+  Future<int?> getLatestFailedWithdrawalBundleHeight() async => throw _unsupported('withdrawal bundles');
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async =>
-      throw _noRoute('withdrawals');
+      throw _unsupported('withdrawals');
 
   @override
-  Future<dynamic> callRAW(String method, [List<dynamic>? params]) async => throw _noRoute('raw calls');
+  Future<dynamic> callRAW(String method, [List<dynamic>? params]) async => throw _unsupported('raw calls');
 
   @override
   List<String> getMethods() => const [];
 
-  UnsupportedError _noRoute(String what) => UnsupportedError('BitWindow has no FreeBank route for $what');
+  UnsupportedError _unsupported(String what) => UnsupportedError('FreeBank $what through the orchestrator');
 }

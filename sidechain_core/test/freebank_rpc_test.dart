@@ -45,7 +45,7 @@ void main() {
     GetIt.I.registerSingleton<Logger>(Logger(level: Level.off));
     orchestrator = _FakeOrchestrator();
     GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
-    rpc = FreeBankRPC();
+    rpc = FreeBankLive();
     GetIt.I.registerSingleton<FreeBankRPC>(rpc);
   });
 
@@ -96,8 +96,17 @@ void main() {
     expect(orchestrator.stops, ['freebank']);
   });
 
-  test('a call the orchestrator has no route for is unsupported', () async {
-    await expectLater(rpc.getDepositAddress(), throwsUnsupportedError);
+  test('a call the orchestrator does not serve is unsupported', () async {
+    await expectLater(
+      rpc.getDepositAddress(),
+      throwsA(
+        isA<UnsupportedError>().having(
+          (e) => e.message,
+          'message',
+          'fetching a FreeBank address. Paste one from your FreeBank wallet.',
+        ),
+      ),
+    );
     await expectLater(rpc.getSideAddress(), throwsUnsupportedError);
     await expectLater(rpc.sideSend('addr', 1, false), throwsUnsupportedError);
     await expectLater(rpc.listTransactions(), throwsUnsupportedError);

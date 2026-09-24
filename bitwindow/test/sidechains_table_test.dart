@@ -311,7 +311,7 @@ void main() {
       GetIt.I.registerSingleton<BinaryProvider>(_Binaries([_freeBank(downloaded: downloaded)]));
       orchestrator = _Orchestrator();
       GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
-      freeBankRPC = FreeBankRPC();
+      freeBankRPC = FreeBankLive();
       GetIt.I.registerSingleton<FreeBankRPC>(freeBankRPC);
       await GetIt.I.unregister<BalanceProvider>();
       balances = BalanceProvider(connections: [thunderRPC, coinShiftRPC, freeBankRPC]);
