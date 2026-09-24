@@ -104,6 +104,24 @@ class _CoinShiftRPC extends MockCoinShiftRPC {
   Future<(double, double)> balance() async => wallet;
 }
 
+class _Orchestrator implements OrchestratorRPC {
+  final balanceReads = <BinaryType>[];
+  GetSidechainBalanceResponse balance = GetSidechainBalanceResponse();
+
+  @override
+  Future<GetSidechainBalanceResponse> getSidechainBalance(BinaryType sidechain) async {
+    balanceReads.add(sidechain);
+    return balance;
+  }
+
+  @override
+  Future<GetBinaryVersionResponse> getBinaryVersion(String name, {bool forceBackend = false}) async =>
+      GetBinaryVersionResponse(version: '$name 1.0');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 Thunder _thunder({bool downloaded = true, bool updateAvailable = false}) {
   final base = Thunder();
   return base.copyWith(
@@ -115,6 +133,22 @@ Thunder _thunder({bool downloaded = true, bool updateAvailable = false}) {
     ),
   );
 }
+
+FreeBank _freeBank({bool downloaded = true}) {
+  final base = FreeBank();
+  return base.copyWith(
+    metadata: base.metadata.copyWith(
+      remoteTimestamp: null,
+      downloadedTimestamp: downloaded ? DateTime(2026, 1) : null,
+      binaryPath: downloaded ? File('/tmp/freebankd') : null,
+      updateable: true,
+    ),
+  );
+}
+
+final Finder _settingsButton = find.byWidgetPredicate(
+  (widget) => widget is SailButton && widget.icon == SailSVGAsset.settings,
+);
 
 Finder _button(String label) => find.byWidgetPredicate((widget) => widget is SailButton && widget.label == label);
 
@@ -266,6 +300,89 @@ void main() {
 
     expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(0.25)), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
+  });
+
+  // FreeBank reads all its state through the orchestrator.
+  group('FreeBank', () {
+    late _Orchestrator orchestrator;
+    late FreeBankRPC freeBankRPC;
+
+    Future<void> setUpFreeBank({bool downloaded = true}) async {
+      GetIt.I.registerSingleton<BinaryProvider>(_Binaries([_freeBank(downloaded: downloaded)]));
+      orchestrator = _Orchestrator();
+      GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+      freeBankRPC = FreeBankRPC();
+      GetIt.I.registerSingleton<FreeBankRPC>(freeBankRPC);
+      await GetIt.I.unregister<BalanceProvider>();
+      balances = BalanceProvider(connections: [thunderRPC, coinShiftRPC, freeBankRPC]);
+      GetIt.I.registerSingleton<BalanceProvider>(balances);
+      GetIt.I.get<SidechainProvider>().sidechains[130] = SidechainOverview(
+        ListSidechainsResponse_Sidechain(title: 'FreeBank', slot: 130, balanceSatoshi: Int64(300000000)),
+        [],
+        [],
+      );
+    }
+
+    testWidgets('the row has a settings button that opens the chain settings', (tester) async {
+      await setUpFreeBank();
+      await pumpTable(tester);
+
+      expect(_settingsButton, findsOneWidget);
+      await tester.tap(_settingsButton);
+      await tester.pump(kDoubleTapTimeout);
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.byType(ChainSettingsModal), findsOneWidget);
+      expect(find.descendant(of: find.byType(ChainSettingsModal), matching: find.text('FreeBank')), findsOneWidget);
+      expect(find.textContaining('version freebank 1.0'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a stopped FreeBank offers Start and reads no balance', (tester) async {
+      await setUpFreeBank();
+      await balances.fetch();
+      await pumpTable(tester);
+
+      expect(_buttonWidget(tester, 'Start').variant, ButtonVariant.primary);
+      expect(_button('Stop'), findsNothing);
+      expect(_settingsButton, findsOneWidget);
+      expect(orchestrator.balanceReads, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a FreeBank that is not installed offers Download', (tester) async {
+      await setUpFreeBank(downloaded: false);
+      await pumpTable(tester);
+
+      expect(_buttonWidget(tester, 'Download').variant, ButtonVariant.primary);
+      expect(_settingsButton, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a running FreeBank offers Stop and shows the balance the orchestrator reads', (tester) async {
+      await setUpFreeBank();
+      orchestrator.balance = GetSidechainBalanceResponse(confirmedSats: Int64(250000000));
+      freeBankRPC.connected = true;
+      await balances.fetch();
+      await pumpTable(tester);
+
+      expect(_buttonWidget(tester, 'Stop').variant, ButtonVariant.outline);
+      expect(_tooltip('Connected'), findsOneWidget);
+      expect(orchestrator.balanceReads, contains(BinaryType.BINARY_TYPE_FREEBANK));
+      expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(2.5)), findsOneWidget);
+    });
+
+    testWidgets('a running FreeBank behind its headers shows the sync bar', (tester) async {
+      await setUpFreeBank();
+      freeBankRPC.connected = true;
+      sync.sidechains = {
+        SidechainType.SIDECHAIN_TYPE_FREEBANK: SyncInfo(progressCurrent: 100, progressGoal: 294, lastBlockAt: null),
+      };
+      await pumpTable(tester);
+
+      expect(find.text('34%'), findsOneWidget);
+      expect(_button('Stop'), findsOneWidget);
+    });
   });
 
   testWidgets('a chain that is not downloaded offers a primary Download', (tester) async {
