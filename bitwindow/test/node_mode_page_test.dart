@@ -9,18 +9,34 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 
 import 'test_utils.dart';
 
-// A backend that does not answer is not a user who did not pick. The page used
-// to ask the first-run question and then print the raw socket error.
+// A backend that does not answer is not a user who did not pick. The page waits
+// and replaces the silent backend, and it asks the user for nothing.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeWallet wallet;
   late int picked;
+  late int restarts;
+  Object? restartError;
+  String? blocker;
 
-  Future<void> pumpPage(WidgetTester tester, {String blocker = ''}) async {
+  Future<void> pumpPage(WidgetTester tester, {int pollsBetweenRestarts = 15}) async {
     picked = 0;
+    restarts = 0;
+    restartError = null;
+    blocker = null;
     await tester.pumpSailPage(
-      NodeModePage(onModePicked: () => picked++, readBlocker: () async => blocker),
+      NodeModePage(
+        onModePicked: () => picked++,
+        pollsBetweenRestarts: pollsBetweenRestarts,
+        restartBackend: () async {
+          restarts++;
+          if (restartError != null) {
+            throw restartError!;
+          }
+          return blocker;
+        },
+      ),
     );
   }
 
@@ -34,19 +50,13 @@ void main() {
 
   tearDown(() async => GetIt.I.reset());
 
-  testWidgets('holds the question while the backend does not answer', (tester) async {
+  testWidgets('waits while the backend does not answer, and asks nothing', (tester) async {
     await pumpPage(tester);
 
-    expect(find.text('BitWindow cannot reach the local backend.'), findsOneWidget);
+    expect(find.text(backendWait), findsOneWidget);
+    expect(find.byType(SailButton), findsNothing);
     expect(find.text('Light'), findsNothing);
     expect(find.text('Full node'), findsNothing);
-  });
-
-  testWidgets('names what holds the backend', (tester) async {
-    await pumpPage(tester, blocker: 'bitcoind (pid 1234) still runs.');
-    await tester.pump();
-
-    expect(find.text('bitcoind (pid 1234) still runs.'), findsOneWidget);
   });
 
   testWidgets('asks the question once the backend says the mode is unpicked', (tester) async {
@@ -103,14 +113,63 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('reads again when the user taps the button', (tester) async {
+  testWidgets('replaces a silent backend by itself', (tester) async {
     await pumpPage(tester);
-    final before = wallet.reads;
 
-    await tester.tap(find.byType(SailButton));
+    expect(restarts, 1);
+  });
+
+  testWidgets('gives a new backend time before it replaces one again', (tester) async {
+    await pumpPage(tester);
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(restarts, 1);
+  });
+
+  testWidgets('replaces the backend again once the wait runs out', (tester) async {
+    await pumpPage(tester, pollsBetweenRestarts: 1);
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    expect(restarts, 1);
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    expect(restarts, 2);
+  });
+
+  testWidgets('the page stops the restarts once the backend answers', (tester) async {
+    await pumpPage(tester, pollsBetweenRestarts: 0);
+    wallet.up = true;
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(restarts, 1);
+    expect(find.text('Light'), findsOneWidget);
+  });
+
+  testWidgets('names the program that holds the port', (tester) async {
+    await pumpPage(tester, pollsBetweenRestarts: 0);
+    blocker = '127.0.0.1:8080 answers, but not as drivechaind.';
+
+    await tester.pump(const Duration(seconds: 2));
     await tester.pump();
 
-    expect(wallet.reads, greaterThan(before));
+    expect(find.text(blocker!), findsOneWidget);
+  });
+
+  testWidgets('shows a failed restart', (tester) async {
+    await pumpPage(tester, pollsBetweenRestarts: 0);
+    restartError = StateError('no bitwindowd binary');
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+
+    expect(find.text('BitWindow cannot reach the local backend. Bad state: no bitwindowd binary'), findsOneWidget);
   });
 }
 
