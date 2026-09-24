@@ -10,11 +10,8 @@ import (
 
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
-
-// cancelDustSats is the smallest payment the wallet accepts. Coins under the
-// replacement fee plus this cannot come back.
-const cancelDustSats = 546
 
 // defaultIncrementalFeeSatPerKvB is the incremental relay fee Bitcoin Core
 // takes when no node reports its own.
@@ -70,9 +67,9 @@ func (h *BMMHandler) CancelBid(
 	if err != nil {
 		return nil, err
 	}
-	feeSats := cancelFeeSats(replacement.EvictedFeeSats, vsize, incrementalSatPerKvB)
+	feeSats := wallet.CancelFeeSats(replacement.EvictedFeeSats, vsize, incrementalSatPerKvB, 0)
 	recoveredSats := totalSats - feeSats
-	if recoveredSats < cancelDustSats {
+	if recoveredSats < wallet.CancelDustSats {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
 			"the coins under %s hold %d sats, under the %d sat replacement fee plus dust",
 			req.Msg.Txid, totalSats, feeSats))
@@ -127,14 +124,6 @@ func requireStrandedBid(ctx context.Context, own ownBids, walletID, txid, tip st
 			"bid %s builds on the current tip and can still win", txid))
 	}
 	return nil
-}
-
-// cancelFeeSats is what a cancel of vsize vbytes pays to evict evictedSats of
-// fees, by BIP125 rules 3 and 4.
-func cancelFeeSats(evictedSats, vsize, incrementalSatPerKvB int64) int64 {
-	feeSats := evictedSats + (incrementalSatPerKvB*vsize+999)/1000
-	// A chain the mempool forgot evicts nothing, and a cancel still pays a miner.
-	return max(feeSats, replacementBumpSats)
 }
 
 // cancelVsize bounds the size of the cancel. It spends only coins the roots
