@@ -153,6 +153,9 @@ func newCoreBackendFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string) {
 	require.Equal(t, WalletTypeBitcoinCore, core.WalletType)
 
 	fake := newFakeBitcoind(t)
+	// A node answers nothing here for an output the mempool already spends. A
+	// test of a confirmed parent replaces this.
+	fake.handle("gettxout", func(bitcoindCall) (any, string) { return nil, "" })
 	log := zerolog.New(zerolog.NewTestWriter(t))
 	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), log)
 	t.Cleanup(backend.bip47Imports.Wait)
@@ -1548,9 +1551,6 @@ func coreBumpFeeFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, stri
 		}
 		return map[string]any{"vsize": 150, "fees": map[string]any{"base": float64(150) / 1e8}, "descendantcount": 1}, ""
 	})
-	// A node answers nothing here while the parent waits in the mempool. A test
-	// of a confirmed parent replaces this.
-	fake.handle("gettxout", func(bitcoindCall) (any, string) { return nil, "" })
 	fake.handle("estimatesmartfee", func(bitcoindCall) (any, string) {
 		return map[string]any{"feerate": 0.00002, "blocks": 3}, ""
 	})
