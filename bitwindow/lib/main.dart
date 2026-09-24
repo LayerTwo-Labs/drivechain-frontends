@@ -841,8 +841,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
   final boot = await readBackendBoot(orchestratorReady: orchestratorReady);
 
   // 4. Stream binary logs and start watching state.
-  _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
-  _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.BINARY_TYPE_ENFORCER, log);
+  streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
+  streamBinaryLogs(orchestrator, 'enforcer', BinaryType.BINARY_TYPE_ENFORCER, log);
 
   log.i('STARTUP: starting backend state watch');
   backendState.startWatching();
@@ -870,7 +870,30 @@ Future<void> bootBitwindowBackend(Logger log) async {
   log.i('STARTUP: BitWindow backend boot task initialized');
 }
 
-void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {
+/// The binaries whose log stream runs. A second boot must not add a second
+/// stream, because every stream writes the same lines to the log page.
+final Set<String> _streamedBinaries = {};
+
+/// Starts the log stream of [binaryName], one per binary and app.
+@visibleForTesting
+void streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {
+  if (!_streamedBinaries.add(binaryName)) {
+    return;
+  }
+  _watchBinaryLogs(orchestrator, binaryName, binaryType, log);
+}
+
+/// The binaries with a reconnect in flight. An error and a close both end one
+/// stream, so without this the retry would open two.
+final Set<String> _reopenPending = {};
+
+@visibleForTesting
+void forgetBinaryLogStreams() {
+  _streamedBinaries.clear();
+  _reopenPending.clear();
+}
+
+void _watchBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {
   final logProvider = GetIt.I.get<LogProvider>();
 
   orchestrator
@@ -886,27 +909,45 @@ void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryTy
             ),
           );
         },
-        onError: (e) {
-          Future.delayed(const Duration(seconds: 5), () {
-            _streamBinaryLogs(orchestrator, binaryName, binaryType, log);
-          });
-        },
+        onError: (e) => _reopenBinaryLogs(orchestrator, binaryName, binaryType, log),
+        onDone: () => _reopenBinaryLogs(orchestrator, binaryName, binaryType, log),
       );
+}
+
+/// The backend ends the stream on a reboot, by an error or by a plain close.
+/// The log page goes silent until this opens the one stream again.
+void _reopenBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {
+  if (!_reopenPending.add(binaryName)) {
+    return;
+  }
+  Future.delayed(const Duration(seconds: 5), () {
+    _reopenPending.remove(binaryName);
+    _watchBinaryLogs(orchestrator, binaryName, binaryType, log);
+  });
 }
 
 Future<void> rebootBitwindowBackend(Logger log) async {
   final binaryProvider = GetIt.I.get<BinaryProvider>();
+  final swap = GetIt.I.get<BackendSwapProvider>();
 
-  // Ask first, kill second: bitwindowd relays this on a clean exit, but it gets
-  // force-killed if it lingers, and then nothing would drain drivechaind.
   try {
-    await GetIt.I.get<OrchestratorRPC>().shutdown();
+    swap.report(BackendSwapStep.stop);
+    // Ask first, kill second: bitwindowd relays this on a clean exit, but it gets
+    // force-killed if it lingers, and then nothing would drain drivechaind.
+    try {
+      await GetIt.I.get<OrchestratorRPC>().shutdown();
+    } catch (e) {
+      log.w('REBOOT: drivechaind shutdown call failed: $e');
+    }
+    await binaryProvider.stop(BitWindow());
+    await _awaitDrivechaindExit(log);
+    swap.report(BackendSwapStep.start);
+    await bootBitwindowBackend(log);
+    swap.finish();
   } catch (e) {
-    log.w('REBOOT: drivechaind shutdown call failed: $e');
+    swap.fail(e);
+    rethrow;
   }
-  await binaryProvider.stop(BitWindow());
-  await _awaitDrivechaindExit(log);
-  await bootBitwindowBackend(log);
 }
 
 /// Blocks until drivechaind's port stops accepting, the same signal bitwindowd
