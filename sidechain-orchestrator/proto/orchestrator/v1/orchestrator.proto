@@ -194,6 +194,9 @@ message GetDatadirNetworkResponse {
   string selected_name = 5;
   // True when the blocks belong to another published network.
   bool mismatch = 6;
+  // True when a switch to the detected network reads this same directory.
+  // Core keeps one directory per chain and one per datadir group.
+  bool switch_reads_blocks = 7;
 }
 
 message BinaryStatusMsg {

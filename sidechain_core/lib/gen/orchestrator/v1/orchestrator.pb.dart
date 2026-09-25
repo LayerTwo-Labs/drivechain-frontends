@@ -59,6 +59,7 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     $core.String? selectedId,
     $core.String? selectedName,
     $core.bool? mismatch,
+    $core.bool? switchReadsBlocks,
   }) {
     final $result = create();
     if (magic != null) {
@@ -79,6 +80,9 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     if (mismatch != null) {
       $result.mismatch = mismatch;
     }
+    if (switchReadsBlocks != null) {
+      $result.switchReadsBlocks = switchReadsBlocks;
+    }
     return $result;
   }
   GetDatadirNetworkResponse._() : super();
@@ -92,6 +96,7 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'selectedId')
     ..aOS(5, _omitFieldNames ? '' : 'selectedName')
     ..aOB(6, _omitFieldNames ? '' : 'mismatch')
+    ..aOB(7, _omitFieldNames ? '' : 'switchReadsBlocks')
     ..hasRequiredFields = false
   ;
 
@@ -173,6 +178,17 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
   $core.bool hasMismatch() => $_has(5);
   @$pb.TagNumber(6)
   void clearMismatch() => clearField(6);
+
+  /// True when a switch to the detected network reads this same directory.
+  /// Core keeps one directory per chain and one per datadir group.
+  @$pb.TagNumber(7)
+  $core.bool get switchReadsBlocks => $_getBF(6);
+  @$pb.TagNumber(7)
+  set switchReadsBlocks($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasSwitchReadsBlocks() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSwitchReadsBlocks() => clearField(7);
 }
 
 class BinaryStatusMsg extends $pb.GeneratedMessage {

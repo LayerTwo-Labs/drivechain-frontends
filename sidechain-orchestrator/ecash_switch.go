@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/blockfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
@@ -250,38 +249,39 @@ func (o *Orchestrator) pendingECashSwap() bool {
 	return o.pendingSwap != nil && o.pendingSwap.network == config.NetworkECash
 }
 
-// diskHoldsECash reports whether the block files already carry the magic of an
-// eCash network. Such a switch adopts the chain on disk: it converts no block
-// and rewinds no chain, because the files are that network's own.
+// chainAtTarget reports whether the ECX files on disk already belong to the
+// target network. Such a switch converts no block, and a rewind would bar a
+// block that chain holds.
 //
-// Both ends of the directory must name the target. A conversion that stopped
-// part way leaves the source magic behind the target, and a datadir that two
-// networks wrote holds the older one first. Both take the conversion.
-func (o *Orchestrator) diskHoldsECash(ctx context.Context, id string) (bool, error) {
+// The identity comes from the record every other path reads: the saved id,
+// else the migration journal, else the conf sentinel. A datadir with no ECX
+// files takes the ordinary switch, which reads the chain from Core itself.
+func (o *Orchestrator) chainAtTarget(toID string) bool {
 	status, err := o.ECashMigrationStatus()
 	if err != nil {
-		return false, err
+		o.log.Warn().Err(err).Msg("could not read the ECX migration, so the switch converts the files")
+		return false
 	}
 	if status.JobID != "" && !status.Complete {
-		return false, nil
+		// A job that stopped part way owes work, and the saved id can already
+		// name the target. It resumes rather than adopt.
+		return false
 	}
-	entry, ok := o.ecashEntry(id)
-	if !ok || entry.NetworkMagic == "" {
-		return false, nil
-	}
-	want, err := blockfile.ParseMagic(entry.NetworkMagic)
+	files, err := o.hasECashData()
 	if err != nil {
-		return false, fmt.Errorf("read the magic of %s: %w", id, err)
+		o.log.Warn().Err(err).Msg("could not read the ECX files, so the switch converts them")
+		return false
 	}
-	ends, err := blockfile.ReadEnds(ctx, o.coreBlocksDir(config.Network(o.CurrentNetwork())))
-	if errors.Is(err, blockfile.ErrNoBlocks) {
-		return false, nil
+	if !files {
+		return false
 	}
+	chain, err := o.catalogChainID(toID)
 	if err != nil {
-		o.log.Warn().Err(err).Msg("could not read the network of the block files")
-		return false, nil
+		o.log.Warn().Err(err).Str("target", toID).
+			Msg("the ECX files name no network, so the switch converts them")
+		return false
 	}
-	return ends.Uniform() && ends.Last == want, nil
+	return chain == toID
 }
 
 // ApplyECashSwitch moves this install onto another eCash network: it rewinds
@@ -297,10 +297,7 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 			return err
 		}
 	default:
-		var err error
-		if adopt, err = o.diskHoldsECash(ctx, toID); err != nil {
-			return err
-		}
+		adopt = o.chainAtTarget(toID)
 		if !adopt {
 			if migrated, err := o.applyDiskECashSwitch(ctx, toID); migrated || err != nil {
 				return err

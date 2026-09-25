@@ -168,6 +168,7 @@ const GetDatadirNetworkResponse$json = {
     {'1': 'selected_id', '3': 4, '4': 1, '5': 9, '10': 'selectedId'},
     {'1': 'selected_name', '3': 5, '4': 1, '5': 9, '10': 'selectedName'},
     {'1': 'mismatch', '3': 6, '4': 1, '5': 8, '10': 'mismatch'},
+    {'1': 'switch_reads_blocks', '3': 7, '4': 1, '5': 8, '10': 'switchReadsBlocks'},
   ],
 };
 
@@ -176,7 +177,8 @@ final $typed_data.Uint8List getDatadirNetworkResponseDescriptor = $convert.base6
     'ChlHZXREYXRhZGlyTmV0d29ya1Jlc3BvbnNlEhQKBW1hZ2ljGAEgASgJUgVtYWdpYxIfCgtkZX'
     'RlY3RlZF9pZBgCIAEoCVIKZGV0ZWN0ZWRJZBIjCg1kZXRlY3RlZF9uYW1lGAMgASgJUgxkZXRl'
     'Y3RlZE5hbWUSHwoLc2VsZWN0ZWRfaWQYBCABKAlSCnNlbGVjdGVkSWQSIwoNc2VsZWN0ZWRfbm'
-    'FtZRgFIAEoCVIMc2VsZWN0ZWROYW1lEhoKCG1pc21hdGNoGAYgASgIUghtaXNtYXRjaA==');
+    'FtZRgFIAEoCVIMc2VsZWN0ZWROYW1lEhoKCG1pc21hdGNoGAYgASgIUghtaXNtYXRjaBIuChNz'
+    'd2l0Y2hfcmVhZHNfYmxvY2tzGAcgASgIUhFzd2l0Y2hSZWFkc0Jsb2Nrcw==');
 
 @$core.Deprecated('Use binaryStatusMsgDescriptor instead')
 const BinaryStatusMsg$json = {
