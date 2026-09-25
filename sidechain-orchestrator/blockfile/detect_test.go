@@ -52,6 +52,82 @@ func TestDetectReportsAnEmptyDirectory(t *testing.T) {
 	require.ErrorIs(t, err, ErrNoBlocks)
 }
 
+// Core appends, so a file that holds two networks names the one the node ran
+// last. A conversion that stopped part way leaves such a file.
+func TestDetectReadsTheLastRecord(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	putRecords(t, opts, "blk00000.dat", [8]byte{}, 0,
+		dataRecord(sourceMagic, blockPayload(t), false),
+		dataRecord(targetMagic, blockPayload(t), false),
+	)
+
+	magic, err := Detect(context.Background(), opts.BlocksDir)
+	require.NoError(t, err)
+	require.Equal(t, targetMagic, magic)
+}
+
+// Core reserves the tail of a file, and an obfuscation key hides every record.
+// The walk reads past the key and stops at the reserved tail.
+func TestDetectReadsTheLastRecordUnderAKey(t *testing.T) {
+	key := [8]byte{1, 2, 3, 4, 5, 6, 7, 8}
+	opts := testOptions(t, key)
+	putRecords(t, opts, "blk00000.dat", key, 4096,
+		dataRecord(targetMagic, blockPayload(t), false),
+		dataRecord(sourceMagic, blockPayload(t), false),
+	)
+
+	magic, err := Detect(context.Background(), opts.BlocksDir)
+	require.NoError(t, err)
+	require.Equal(t, sourceMagic, magic)
+}
+
+// A datadir that two networks wrote holds the older one in its first file. A
+// reader of the newest record alone would call the directory uniform.
+func TestReadEndsNamesBothNetworks(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	putRecords(t, opts, "blk00000.dat", [8]byte{}, 0, dataRecord(sourceMagic, blockPayload(t), false))
+	putRecords(t, opts, "blk00001.dat", [8]byte{}, 0, dataRecord(targetMagic, blockPayload(t), false))
+
+	ends, err := ReadEnds(context.Background(), opts.BlocksDir)
+	require.NoError(t, err)
+	require.Equal(t, sourceMagic, ends.First)
+	require.Equal(t, targetMagic, ends.Last)
+	require.False(t, ends.Uniform())
+}
+
+// One network wrote every file, so both ends name it.
+func TestReadEndsNamesOneNetwork(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	putRecords(t, opts, "blk00000.dat", [8]byte{}, 0, dataRecord(targetMagic, blockPayload(t), false))
+	putRecords(t, opts, "blk00001.dat", [8]byte{}, 0, dataRecord(targetMagic, blockPayload(t), false))
+
+	ends, err := ReadEnds(context.Background(), opts.BlocksDir)
+	require.NoError(t, err)
+	require.True(t, ends.Uniform())
+	require.Equal(t, targetMagic, ends.Last)
+}
+
+// Core reserves a file before it writes one, so the walk reads past it at both
+// ends.
+func TestReadEndsWalksPastReservedFiles(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	require.NoError(t, os.WriteFile(filepath.Join(opts.BlocksDir, "blk00000.dat"), make([]byte, 128), 0600))
+	putRecords(t, opts, "blk00001.dat", [8]byte{}, 0, dataRecord(targetMagic, blockPayload(t), false))
+	require.NoError(t, os.WriteFile(filepath.Join(opts.BlocksDir, "blk00002.dat"), make([]byte, 128), 0600))
+
+	ends, err := ReadEnds(context.Background(), opts.BlocksDir)
+	require.NoError(t, err)
+	require.True(t, ends.Uniform())
+	require.Equal(t, targetMagic, ends.First)
+}
+
+// A datadir the user just picked holds no blocks directory at all, and a wipe
+// takes it away again. The caller reads that as an answer, not as a failure.
+func TestDetectReportsAnAbsentDirectory(t *testing.T) {
+	_, err := Detect(context.Background(), filepath.Join(t.TempDir(), "nothing", "blocks"))
+	require.ErrorIs(t, err, ErrNoBlocks)
+}
+
 // Core reserves a file before it writes one, so a directory of reserved files
 // names no network either.
 func TestDetectReportsOnlyReservedFiles(t *testing.T) {

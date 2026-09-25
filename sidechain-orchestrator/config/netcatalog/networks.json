@@ -58,7 +58,7 @@
         "name": "Signet Bitcoin",
         "ticker": "sBTC"
       },
-      "network_magic": null,
+      "network_magic": "13182df0",
       "fork_height": null,
       "backends": [
         {

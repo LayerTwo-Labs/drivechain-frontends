@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/blockfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
@@ -249,19 +250,61 @@ func (o *Orchestrator) pendingECashSwap() bool {
 	return o.pendingSwap != nil && o.pendingSwap.network == config.NetworkECash
 }
 
+// diskHoldsECash reports whether the block files already carry the magic of an
+// eCash network. Such a switch adopts the chain on disk: it converts no block
+// and rewinds no chain, because the files are that network's own.
+//
+// Both ends of the directory must name the target. A conversion that stopped
+// part way leaves the source magic behind the target, and a datadir that two
+// networks wrote holds the older one first. Both take the conversion.
+func (o *Orchestrator) diskHoldsECash(ctx context.Context, id string) (bool, error) {
+	status, err := o.ECashMigrationStatus()
+	if err != nil {
+		return false, err
+	}
+	if status.JobID != "" && !status.Complete {
+		return false, nil
+	}
+	entry, ok := o.ecashEntry(id)
+	if !ok || entry.NetworkMagic == "" {
+		return false, nil
+	}
+	want, err := blockfile.ParseMagic(entry.NetworkMagic)
+	if err != nil {
+		return false, fmt.Errorf("read the magic of %s: %w", id, err)
+	}
+	ends, err := blockfile.ReadEnds(ctx, o.coreBlocksDir(config.Network(o.CurrentNetwork())))
+	if errors.Is(err, blockfile.ErrNoBlocks) {
+		return false, nil
+	}
+	if err != nil {
+		o.log.Warn().Err(err).Msg("could not read the network of the block files")
+		return false, nil
+	}
+	return ends.Uniform() && ends.Last == want, nil
+}
+
 // ApplyECashSwitch moves this install onto another eCash network: it rewinds
 // the chain to the last block the two share, stops the daemons, rewrites the
 // confs and starts the stack again. The enforcer's validator chain is
 // per-network and small, so it goes rather than replays.
 func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error {
 	light := o.NodeMode() == NodeModeLight
-	if light {
+	adopt := false
+	switch {
+	case light:
 		if err := o.checkECashMigrationStart(ctx, BinaryConfig{Name: "enforcer"}); err != nil {
 			return err
 		}
-	} else {
-		if migrated, err := o.applyDiskECashSwitch(ctx, toID); migrated || err != nil {
+	default:
+		var err error
+		if adopt, err = o.diskHoldsECash(ctx, toID); err != nil {
 			return err
+		}
+		if !adopt {
+			if migrated, err := o.applyDiskECashSwitch(ctx, toID); migrated || err != nil {
+				return err
+			}
 		}
 	}
 	// The lock comes before the plan. Two overlapping requests would otherwise
@@ -324,7 +367,7 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	}
 
 	dropped := ""
-	if plan.NeedsRollback && !light {
+	if plan.NeedsRollback && !light && !adopt {
 		hash, err := o.rewindBelowTheFork(ctx, plan.RewindHeight)
 		switch {
 		case err == nil:
