@@ -15,20 +15,43 @@ class NotificationProvider extends ChangeNotifier {
   NotificationProvider({this.onPressed}) {
     if (GetIt.I.isRegistered<ClientSettings>()) {
       unawaited(_load());
+    } else {
+      _loaded.complete();
     }
   }
+
+  final Completer<void> _loaded = Completer<void>();
+
+  /// Completes once the stored history is in memory. A reader that acts on the
+  /// list before that reads an empty one, and clears a warning that still
+  /// stands, or opens a modal a second time.
+  Future<void> get ready => _loaded.future;
 
   /// Merges rather than replaces: loading is async, so anything added while it
   /// was in flight would otherwise be dropped.
   Future<void> _load() async {
+    try {
+      await _read();
+    } finally {
+      if (!_loaded.isCompleted) {
+        _loaded.complete();
+      }
+    }
+  }
+
+  Future<void> _read() async {
     final loaded = await GetIt.I.get<ClientSettings>().getValue(NotificationHistorySetting());
     for (final stored in loaded.value.items) {
       final live = history.indexWhere((n) => n.id == stored.id);
       if (live < 0) {
         history.add(stored);
-      } else if (stored.read && !history[live].read) {
-        // Re-added by a poll before the load landed, so it lost that it was dismissed.
-        history[live] = history[live].copyWith(read: true);
+      } else if ((stored.read && !history[live].read) || (stored.modalShown && !history[live].modalShown)) {
+        // Re-added by a poll before the load landed, so it lost that it was
+        // dismissed, or that its modal opened on an earlier start.
+        history[live] = history[live].copyWith(
+          read: stored.read || history[live].read,
+          modalShown: stored.modalShown || history[live].modalShown,
+        );
       }
     }
     history.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -47,7 +70,18 @@ class NotificationProvider extends ChangeNotifier {
   /// The banner to pin, or null. Only the newest unread one is ever shown.
   NotificationItem? get activeBanner {
     for (final item in history) {
-      if (item.style == NotificationStyle.banner && !item.read) {
+      if (item.pinned && !item.read) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  /// The item whose modal still has to open, or null. It opens one time, and
+  /// the banner carries the message after that.
+  NotificationItem? get pendingModal {
+    for (final item in history) {
+      if (item.style == NotificationStyle.modalThenBanner && !item.read && !item.modalShown) {
         return item;
       }
     }
@@ -64,6 +98,7 @@ class NotificationProvider extends ChangeNotifier {
     Future<void> Function()? onPressed,
     NotificationStyle style = NotificationStyle.toast,
     String action = '',
+    Map<String, String> data = const {},
     String? id,
   }) {
     if (id != null && history.any((n) => n.id == id)) {
@@ -82,13 +117,14 @@ class NotificationProvider extends ChangeNotifier {
         links: links,
         style: style,
         action: action,
+        data: data,
       ),
     );
     unawaited(_persist());
     notifyListeners();
 
     // A banner is already pinned on screen; a toast on top would double up.
-    if (style == NotificationStyle.banner) {
+    if (history.first.pinned) {
       return;
     }
 
@@ -117,6 +153,30 @@ class NotificationProvider extends ChangeNotifier {
       notifications.remove(notification);
       notifyListeners();
     });
+  }
+
+  /// Records that the modal opened, so it never opens a second time.
+  Future<void> markModalShown(String id) async {
+    final i = history.indexWhere((n) => n.id == id);
+    if (i == -1 || history[i].modalShown) {
+      return;
+    }
+    history[i] = history[i].copyWith(modalShown: true);
+    await _persist();
+    notifyListeners();
+  }
+
+  /// Drops an entry whose state no longer holds, so the same warning can come
+  /// back later. markRead leaves the entry in the history, which is what a user
+  /// dismissal means.
+  Future<void> forget(String id) async {
+    final i = history.indexWhere((n) => n.id == id);
+    if (i == -1) {
+      return;
+    }
+    history.removeAt(i);
+    await _persist();
+    notifyListeners();
   }
 
   /// Drops the pinned banner. The entry stays in the bell history.

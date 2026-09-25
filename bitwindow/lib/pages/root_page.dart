@@ -19,6 +19,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/widgets/datadir_network_notice.dart';
 import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:bitwindow/widgets/edit_wallet_flow.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -1156,6 +1157,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void onWindowClose() async {
+    // Stop the boot checks before the drain, so no request of ours waits on a
+    // daemon that is on its way out.
+    if (GetIt.I.isRegistered<DatadirNetworkWatcher>()) {
+      GetIt.I.get<DatadirNetworkWatcher>().dispose();
+    }
     // BinaryProvider.onShutdown relays to bitwindowd.Stop, which acks fast.
     // drivechaind is detached and finishes its ~90s bitcoind drain in the
     // background. Window destroys in milliseconds — no force-kill path, no

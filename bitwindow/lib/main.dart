@@ -42,6 +42,7 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/services/bitwindowd_start.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/backend_swap.dart';
+import 'package:bitwindow/widgets/datadir_network_notice.dart';
 import 'package:bitwindow/widgets/ecash_upgrade_banner.dart';
 import 'package:bitwindow/widgets/converter_window.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
@@ -167,7 +168,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
   GetIt.I.registerLazySingleton<NotificationActions>(
-    () => const NotificationActions({ecashUpgradeAction: openECashUpgrade}),
+    () => const NotificationActions({
+      ecashUpgradeAction: openECashUpgrade,
+      datadirNetworkAction: openDatadirNetworkSwitch,
+    }),
   );
 
   // Load chains config from JSON (copies seed from assets if missing)
@@ -205,6 +209,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
   // Eager, and after the orchestrator it polls: nothing ever resolves it.
   GetIt.I.registerSingleton<ECashUpgradeWatcher>(ECashUpgradeWatcher());
+  GetIt.I.registerSingleton<DatadirNetworkWatcher>(DatadirNetworkWatcher());
   final backendStateProvider = BackendStateProvider(orchestrator);
   GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
 

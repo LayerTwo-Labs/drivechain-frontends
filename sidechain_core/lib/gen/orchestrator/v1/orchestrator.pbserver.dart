@@ -57,6 +57,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$3.PreviewECashMigrationResponse> previewECashMigration($pb.ServerContext ctx, $3.PreviewECashMigrationRequest request);
   $async.Future<$3.StartECashMigrationResponse> startECashMigration($pb.ServerContext ctx, $3.StartECashMigrationRequest request);
   $async.Future<$3.GetECashMigrationStatusResponse> getECashMigrationStatus($pb.ServerContext ctx, $3.GetECashMigrationStatusRequest request);
+  $async.Future<$3.GetDatadirNetworkResponse> getDatadirNetwork($pb.ServerContext ctx, $3.GetDatadirNetworkRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -96,6 +97,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'PreviewECashMigration': return $3.PreviewECashMigrationRequest();
       case 'StartECashMigration': return $3.StartECashMigrationRequest();
       case 'GetECashMigrationStatus': return $3.GetECashMigrationStatusRequest();
+      case 'GetDatadirNetwork': return $3.GetDatadirNetworkRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -138,6 +140,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'PreviewECashMigration': return this.previewECashMigration(ctx, request as $3.PreviewECashMigrationRequest);
       case 'StartECashMigration': return this.startECashMigration(ctx, request as $3.StartECashMigrationRequest);
       case 'GetECashMigrationStatus': return this.getECashMigrationStatus(ctx, request as $3.GetECashMigrationStatusRequest);
+      case 'GetDatadirNetwork': return this.getDatadirNetwork(ctx, request as $3.GetDatadirNetworkRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
