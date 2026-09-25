@@ -18,7 +18,24 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
   BitcoinConfig? currentConfig;
 
   @override
+  bool hasPrivateBitcoinConf = false;
+
+  @override
+  List<NetworkOption> networks = [];
+
+  @override
+  List<NetworkOption> get networkOptions => networks;
+
+  @override
   String? get detectedDataDir => '/home/u/.bitcoin';
+
+  @override
+  BitcoinNetwork networkFromOption(NetworkOption option) => switch (option.network) {
+    'mainnet' => BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
+    'ecash' => BitcoinNetwork.BITCOIN_NETWORK_ECASH,
+    'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+    _ => BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+  };
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
@@ -33,13 +50,14 @@ class _FakeOrchestrator implements OrchestratorRPC {
     response = GetDatadirNetworkResponse(mismatch: false, magic: magic);
   }
 
-  void say(String detected, String selected) {
+  void say(String detected, String selected, {bool reads = true}) {
     response = GetDatadirNetworkResponse(
       mismatch: true,
       detectedId: detected,
       detectedName: detected,
       selectedId: selected,
       selectedName: selected,
+      switchReadsBlocks: reads,
     );
   }
 
@@ -55,6 +73,16 @@ class _FakeOrchestrator implements OrchestratorRPC {
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
+
+NotificationItem _notice(String detected, String selected) => NotificationItem(
+  id: 'datadir-network-1',
+  title: 't',
+  content: 'c',
+  dialogType: DialogType.error,
+  timestamp: DateTime.utc(2026, 9, 25),
+  style: NotificationStyle.modalThenBanner,
+  data: {'detected': detected, 'selected': selected},
+);
 
 void main() {
   late _FakeOrchestrator rpc;
@@ -131,5 +159,41 @@ void main() {
 
     expect(provider.history.single.id, isNot(first));
     expect(provider.pendingModal, isNotNull, reason: 'the modal opens for the new warning');
+  });
+
+  // Each datadir group keeps its own directory. A switch across groups reads
+  // another one, so it leaves these blocks where they are.
+  testWidgets('a switch that reads another directory refuses', (tester) async {
+    rpc.answers = true;
+    rpc.say('bitcoin', 'betanet', reads: false);
+    conf.networks = [NetworkOption(id: 'bitcoin', displayName: 'Bitcoin', network: 'mainnet')];
+
+    bool? result;
+    await tester.pumpWidget(
+      SailApp(
+        dense: false,
+        builder: (context) => MaterialApp(
+          home: Builder(
+            builder: (inner) => TextButton(
+              onPressed: () async => result = await openDatadirNetworkSwitch(inner, _notice('bitcoin', 'betanet')),
+              child: const Text('go'),
+            ),
+          ),
+        ),
+        initMethod: (_) async => (),
+        accentColor: SailColorScheme.black,
+        log: GetIt.I.get<Logger>(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+
+    expect(result, isFalse);
+    expect(find.textContaining('reads another data directory'), findsOneWidget);
+
+    // The toast keeps a timer, and the test frame refuses a pending one.
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
   });
 }

@@ -226,10 +226,23 @@ Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem not
     return false;
   }
 
+  if (!answer.switchReadsBlocks) {
+    if (context.mounted) {
+      showSailToast(
+        context,
+        '${_name(answer.detectedName, answer.detectedId)} reads another data directory. '
+        'Point it at this one, then switch.',
+        variant: SailToastVariant.info,
+      );
+    }
+    return false;
+  }
+
+  final target = conf.networkFromOption(option);
   if (!context.mounted) {
     return false;
   }
-  await swapNetworkWithDatadirPrompt(context, conf, conf.networkFromOption(option), networkId: option.id);
+  await swapNetworkWithDatadirPrompt(context, conf, target, networkId: option.id);
 
   // The prompt and the swap page both return nothing, so the chain itself says
   // whether the switch happened. A cancel leaves the notice on screen, and so
