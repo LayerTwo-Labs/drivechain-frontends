@@ -22,7 +22,7 @@ SailApp buildSailWindowApp(
           children: [
             Container(
               height: 26,
-              color: Colors.grey[200],
+              color: SailTheme.of(context).colors.backgroundSecondary,
               alignment: Alignment.centerLeft,
               child: Center(child: SailText.primary13(windowTitle)),
             ),

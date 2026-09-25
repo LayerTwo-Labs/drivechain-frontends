@@ -7,30 +7,22 @@ class MessageSigner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailModal(
-      child: SizedBox(
-        width: 800,
-        height: 600,
-        child: SailCard(
-          withCloseButton: true,
-          color: context.sailTheme.colors.background,
-          padding: false,
-          child: InlineTabBar(
-            tabs: const [
-              TabItem(
-                label: 'Sign Message',
-                icon: SailSVGAsset.iconPen,
-                child: SignMessageTab(),
-              ),
-              TabItem(
-                label: 'Verify Message',
-                icon: SailSVGAsset.iconCheck,
-                child: VerifyMessageTab(),
-              ),
-            ],
-            initialIndex: 0,
+    return SailCard(
+      padding: false,
+      child: InlineTabBar(
+        tabs: const [
+          TabItem(
+            label: 'Sign Message',
+            icon: SailSVGAsset.iconPen,
+            child: SignMessageTab(),
           ),
-        ),
+          TabItem(
+            label: 'Verify Message',
+            icon: SailSVGAsset.iconCheck,
+            child: VerifyMessageTab(),
+          ),
+        ],
+        initialIndex: 0,
       ),
     );
   }
@@ -85,37 +77,39 @@ class _SignMessageTabState extends State<SignMessageTab> {
       title: 'Sign Message',
       subtitle:
           'You can sign messages/agreements with your addresses to prove you can receive Drivechain coins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailTextField(
-            controller: _addressController,
-            label: 'Enter a Drivechain address (e.g. n2wxQmfexkjwEPgdD6iJA7T7RtzkrnHxhFc)',
-            hintText: '',
-          ),
-          const SizedBox(height: 24),
-          SailTextField(
-            controller: _messageController,
-            maxLines: 5,
-            hintText: 'Message',
-          ),
-          const SizedBox(height: 24),
-          SailTextField(
-            controller: _signatureController,
-            readOnly: true,
-            hintText: 'Signature',
-          ),
-          const SizedBox(height: 24),
-          SailButton(
-            onPressed: _signMessage,
-            label: 'Sign Message',
-            icon: SailSVGAsset.iconPen,
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            SailInlineError(_error!),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailTextField(
+              controller: _addressController,
+              label: 'Enter a Drivechain address (e.g. n2wxQmfexkjwEPgdD6iJA7T7RtzkrnHxhFc)',
+              hintText: '',
+            ),
+            const SizedBox(height: 24),
+            SailTextField(
+              controller: _messageController,
+              maxLines: 5,
+              hintText: 'Message',
+            ),
+            const SizedBox(height: 24),
+            SailTextField(
+              controller: _signatureController,
+              readOnly: true,
+              hintText: 'Signature',
+            ),
+            const SizedBox(height: 24),
+            SailButton(
+              onPressed: _signMessage,
+              label: 'Sign Message',
+              icon: SailSVGAsset.iconPen,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              SailInlineError(_error!),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

@@ -1058,7 +1058,7 @@ class SubWindowTypes {
   static var messageSigner = SailWindow(
     identifier: messageSignerId,
     name: 'Message Signer',
-    defaultSize: Size(600, 400),
+    defaultSize: Size(800, 600),
     defaultPosition: Offset(150, 150),
   );
 
