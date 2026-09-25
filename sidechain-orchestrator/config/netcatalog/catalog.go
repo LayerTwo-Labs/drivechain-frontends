@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -415,4 +416,19 @@ func parse(raw []byte) (Catalog, error) {
 		}
 	}
 	return c, nil
+}
+
+// ByMagic returns the network whose blocks carry this magic, and whether one
+// does. The blocks name the chain on disk, so a datadir tells the app which
+// network it holds.
+func (c Catalog) ByMagic(magic string) (Network, bool) {
+	if magic == "" {
+		return Network{}, false
+	}
+	for _, n := range c.Networks {
+		if n.NetworkMagic != "" && strings.EqualFold(n.NetworkMagic, magic) {
+			return n, true
+		}
+	}
+	return Network{}, false
 }

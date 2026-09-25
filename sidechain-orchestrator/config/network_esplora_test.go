@@ -5,7 +5,7 @@ import "testing"
 // A wallet reads its thunder history from the hosted index, so a wrong URL
 // leaves the history empty with no other sign.
 func TestThunderEsploraURLForNetwork(t *testing.T) {
-	if got := ThunderEsploraURLForNetwork(NetworkECash); got != "https://seed.alpha.ecash.eu.com/thunder" {
+	if got := ThunderEsploraURLForNetwork(NetworkECash); got != "https://seed.beta.ecash.eu.com/thunder" {
 		t.Errorf("ecash index = %q", got)
 	}
 	for _, n := range []Network{NetworkSignet, NetworkMainnet, NetworkRegtest} {
@@ -19,11 +19,11 @@ func TestThunderEsploraURLForNetwork(t *testing.T) {
 // leaves the address empty with no other sign.
 func TestSidechainEsploraURLForNetwork(t *testing.T) {
 	for chain, want := range map[string]string{
-		"thunder":   "https://seed.alpha.ecash.eu.com/thunder",
-		"bitnames":  "https://seed.alpha.ecash.eu.com/bitnames",
-		"bitassets": "https://seed.alpha.ecash.eu.com/bitassets",
-		"photon":    "https://seed.alpha.ecash.eu.com/photon",
-		"coinshift": "https://seed.alpha.ecash.eu.com/coinshift",
+		"thunder":   "https://seed.beta.ecash.eu.com/thunder",
+		"bitnames":  "https://seed.beta.ecash.eu.com/bitnames",
+		"bitassets": "https://seed.beta.ecash.eu.com/bitassets",
+		"photon":    "https://seed.beta.ecash.eu.com/photon",
+		"coinshift": "https://seed.beta.ecash.eu.com/coinshift",
 	} {
 		if got := SidechainEsploraURLForNetwork(chain, NetworkECash); got != want {
 			t.Errorf("%s ecash index = %q, want %q", chain, got, want)

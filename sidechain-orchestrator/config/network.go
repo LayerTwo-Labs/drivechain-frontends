@@ -247,12 +247,16 @@ func EsploraURLsForNetwork(n Network) []string {
 // carries transactions no miner takes pushes that estimate far over what the
 // blocks really pay. The explorer reads the blocks, so it answers the market.
 func FeeExplorerURLForNetwork(n Network) string {
-	switch n {
-	case NetworkECash:
-		return "https://explorer.alpha.ecash.ninja"
-	default:
+	if n != NetworkECash {
 		return ""
 	}
+	// Each eCash generation runs its own explorer, and a bid priced off another
+	// generation's fee market loses the round or pays far over it.
+	host := ECashExplorerHost()
+	if host == "" {
+		return ""
+	}
+	return "https://" + host
 }
 
 // DrivechainIndexURLForNetwork names the index that reads the sidechain escrow

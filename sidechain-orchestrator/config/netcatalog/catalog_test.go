@@ -3,12 +3,13 @@ package netcatalog
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 // embeddedGeneration is the eCash network networks.json ships with. Change it
 // whenever the embedded catalog is refreshed from the published document.
-const embeddedGeneration = "alphanet"
+const embeddedGeneration = "betanet"
 
 func TestEmbeddedCatalogParses(t *testing.T) {
 	c := Embedded()
@@ -186,5 +187,30 @@ func TestEmbeddedCatalogPublishesTheForkParentHash(t *testing.T) {
 	}
 	if len(entry.ForkParentHash) != 64 {
 		t.Errorf("%s fork parent hash = %q, want 64 hex characters", embeddedGeneration, entry.ForkParentHash)
+	}
+}
+
+// The blocks on disk name the chain, so a magic reads back its network.
+func TestByMagicNamesTheNetwork(t *testing.T) {
+	c := Embedded()
+	for _, want := range []string{"betanet", "alphanet", "bitcoin"} {
+		entry, ok := c.ByID(want)
+		if !ok {
+			t.Fatalf("embedded catalog lists no %s", want)
+		}
+		got, ok := c.ByMagic(entry.NetworkMagic)
+		if !ok || got.ID != want {
+			t.Errorf("ByMagic(%s) = %q, %v; want %s", entry.NetworkMagic, got.ID, ok, want)
+		}
+		upper, ok := c.ByMagic(strings.ToUpper(entry.NetworkMagic))
+		if !ok || upper.ID != want {
+			t.Errorf("ByMagic reads hexadecimal in either case")
+		}
+	}
+	if _, ok := c.ByMagic("00000000"); ok {
+		t.Error("a magic no network carries must read as unknown")
+	}
+	if _, ok := c.ByMagic(""); ok {
+		t.Error("an empty magic must read as unknown")
 	}
 }

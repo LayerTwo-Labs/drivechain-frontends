@@ -258,7 +258,7 @@ func TestRemoteSidechainRejectsMissingEndpoint(t *testing.T) {
 	require.ErrorContains(t, o.prepareSidechainArgs(cfg, &opts), "no remote enforcer endpoint")
 }
 
-func TestRemoteSidechainAlphanetArgs(t *testing.T) {
+func TestRemoteSidechainECashArgs(t *testing.T) {
 	server := remoteValidatorServer(t, 42, nil)
 	o := remoteTestOrchestrator(t, server.URL)
 	previous := config.ECashEndpoints()
@@ -285,7 +285,7 @@ func TestRemoteSidechainAlphanetArgs(t *testing.T) {
 				"--mainchain-grpc-host", "localhost", "--mainchain-grpc-port", "50051",
 			}}
 			require.NoError(t, o.prepareSidechainArgs(cfg, &opts))
-			require.Contains(t, opts.TargetArgs, "--network=alphanet")
+			require.Contains(t, opts.TargetArgs, "--network="+entry.ID)
 			require.NotContains(t, strings.Join(opts.TargetArgs, " "), "localhost")
 			switch name {
 			case "bitnames", "bitassets", "truthcoin":

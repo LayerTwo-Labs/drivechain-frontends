@@ -15,6 +15,11 @@ import (
 // Magic is the four-byte network identifier in each disk record.
 type Magic [4]byte
 
+// String writes the four bytes in hexadecimal order, as the catalog names them.
+func (m Magic) String() string {
+	return hex.EncodeToString(m[:])
+}
+
 // ParseMagic reads four bytes in hexadecimal order.
 func ParseMagic(value string) (Magic, error) {
 	var magic Magic
@@ -349,19 +354,32 @@ func scanFile(ctx context.Context, opts Options, key [8]byte, name string, saved
 		xor(header[:], key, offset)
 		size := binary.LittleEndian.Uint32(header[4:])
 		if saved == nil {
-			if Magic(header[:4]) != opts.From {
-				return plan, fmt.Errorf("unexpected magic at byte %d", offset)
+			// A record already at the target is a block the datadir wrote on the
+			// network we move to, so the swap leaves it alone.
+			switch found := Magic(header[:4]); found {
+			case opts.From, opts.To:
+			default:
+				return plan, fmt.Errorf(
+					"unexpected magic %s at byte %d: the file holds neither %s nor %s",
+					found, offset, opts.From, opts.To)
 			}
 		} else {
 			if count >= len(saved.Records) {
 				return plan, fmt.Errorf("record is absent from the journal at byte %d", offset)
 			}
 			item := saved.Records[count]
-			original := encodedMagic(opts.From, key, offset)
-			if item.Offset != offset || item.Size != size || item.Original != original {
+			target := encodedMagic(opts.To, key, offset)
+			// A record the first pass found at the target keeps that magic in
+			// the journal, so a resume reads either one as its original.
+			switch item.Original {
+			case encodedMagic(opts.From, key, offset), target:
+			default:
 				return plan, fmt.Errorf("record differs from the journal at byte %d", offset)
 			}
-			if !validPartial(raw, original, encodedMagic(opts.To, key, offset)) {
+			if item.Offset != offset || item.Size != size {
+				return plan, fmt.Errorf("record differs from the journal at byte %d", offset)
+			}
+			if !validPartial(raw, item.Original, target) {
 				return plan, fmt.Errorf("unexpected magic at byte %d", offset)
 			}
 		}

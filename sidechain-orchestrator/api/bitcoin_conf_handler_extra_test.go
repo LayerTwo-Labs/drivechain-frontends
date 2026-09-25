@@ -124,6 +124,9 @@ func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
 	orch.Catalog = netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
 		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+		// The resolve above pins the embedded generation, and a switch away
+		// from it reads its fork height.
+		{ID: netcatalog.EmbeddedECashID(), Family: netcatalog.FamilyECash, ForkHeight: 967680},
 	}}
 	require.NoError(t, orch.SelectECashNetwork("drynet4"))
 	require.Equal(t, "drynet4", orch.RunningECashID(orch.Catalog))

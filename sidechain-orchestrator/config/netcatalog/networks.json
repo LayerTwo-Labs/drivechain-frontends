@@ -191,10 +191,68 @@
       "assumeutxo": null
     },
     {
+      "id": "betanet",
+      "family": "ecash",
+      "display_name": "Betanet",
+      "description": "Fork of mainnet with PoW difficulty reset \u2014 the ECX beta network",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "eca5b104",
+      "fork_height": 967680,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.beta.ecash.ninja",
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://explorer.beta.ecash.ninja:50002",
+          "tls": true,
+          "label": "Fulcrum"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.beta.ecash.ninja/tx/{txid}",
+      "explorer_address_template": "https://explorer.beta.ecash.ninja/address/{address}",
+      "explorer_block_template": "https://explorer.beta.ecash.ninja/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": null
+        },
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": "https://pool.beta.bip300.xyz",
+          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334",
+          "stats_url": "https://pool.beta.bip300.xyz/api/overview"
+        },
+        "fast_withdrawal": [],
+        "enforcer": {
+          "url": "https://seed.beta.ecash.eu.com/enforcer"
+        }
+      },
+      "p2p": {
+        "address": "seed.beta.ecash.ninja:8533"
+      },
+      "sidechains": [],
+      "assumeutxo": null,
+      "fork_parent_hash": "00000000000000000001b58cb69869f6067f0ecb3f2fe0f2263e62ba1ccb0c41"
+    },
+    {
       "id": "alphanet",
       "family": "ecash",
       "display_name": "Alphanet",
-      "description": "Fork of mainnet with PoW difficulty reset — the ECX alpha network",
+      "description": "Fork of mainnet with PoW difficulty reset \u2014 the ECX alpha network",
       "chain": "main",
       "currency": {
         "name": "eCash",
@@ -251,63 +309,6 @@
         "sha256": "922ccc7ae0ebf23fbff674e12e295265c9958ecfb0a5da729341b50319ae73cc",
         "size_bytes": 9387990306
       }
-    },
-    {
-      "id": "betanet",
-      "family": "ecash",
-      "display_name": "Betanet",
-      "description": "Fork of mainnet with PoW difficulty reset — the ECX beta network",
-      "chain": "main",
-      "currency": {
-        "name": "eCash",
-        "ticker": "ECX"
-      },
-      "network_magic": "eca5b104",
-      "fork_height": 967680,
-      "backends": [
-        {
-          "kind": "esplora",
-          "url": "https://esplora.beta.ecash.ninja",
-          "tls": true,
-          "label": "L2L Esplora"
-        },
-        {
-          "kind": "electrum",
-          "url": "ssl://explorer.beta.ecash.ninja:50002",
-          "tls": true,
-          "label": "Fulcrum"
-        }
-      ],
-      "explorer_tx_template": "https://explorer.beta.ecash.ninja/tx/{txid}",
-      "explorer_address_template": "https://explorer.beta.ecash.ninja/address/{address}",
-      "explorer_block_template": "https://explorer.beta.ecash.ninja/block/{hash}",
-      "services": {
-        "faucet": {
-          "url": null,
-          "amount": null,
-          "cooldown_seconds": null
-        },
-        "coinnews": {
-          "url": null
-        },
-        "blockbook": {
-          "url": null
-        },
-        "mining_pool": {
-          "url": "https://pool.beta.bip300.xyz",
-          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334",
-          "stats_url": "https://pool.beta.bip300.xyz/api/overview"
-        },
-        "fast_withdrawal": [],
-        "enforcer": {
-          "url": "https://seed.beta.ecash.eu.com/enforcer"
-        }
-      },
-      "p2p": {
-        "address": "seed.beta.ecash.ninja:8533"
-      },
-      "sidechains": [],
-      "assumeutxo": null
     }
   ]
 }
