@@ -13,11 +13,12 @@ func (h *Handler) GetDatadirNetwork(ctx context.Context, _ *connect.Request[pb.G
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	return connect.NewResponse(&pb.GetDatadirNetworkResponse{
-		Magic:        out.Magic,
-		DetectedId:   out.DetectedID,
-		DetectedName: out.DetectedName,
-		SelectedId:   out.SelectedID,
-		SelectedName: out.SelectedName,
-		Mismatch:     out.Mismatch,
+		Magic:             out.Magic,
+		DetectedId:        out.DetectedID,
+		DetectedName:      out.DetectedName,
+		SelectedId:        out.SelectedID,
+		SelectedName:      out.SelectedName,
+		Mismatch:          out.Mismatch,
+		SwitchReadsBlocks: out.SwitchReadsBlocks,
 	}), nil
 }

@@ -25,6 +25,10 @@ type DatadirNetwork struct {
 	SelectedName string
 	// Mismatch is true when the blocks belong to another published network.
 	Mismatch bool
+	// SwitchReadsBlocks is true when a switch to the detected network reads
+	// this same directory. Core keeps one directory per chain and one per
+	// datadir group, so a switch elsewhere leaves these blocks where they are.
+	SwitchReadsBlocks bool
 }
 
 // ReadDatadirNetwork reads the network out of the block files and compares it
@@ -73,14 +77,64 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 		}
 	}
 	out.Mismatch = out.DetectedID != "" && out.SelectedID != "" && out.DetectedID != out.SelectedID
+	if out.Mismatch {
+		out.SwitchReadsBlocks = o.sameBlocksDir(cat, out.DetectedID, network)
+	}
 	return out, nil
+}
+
+// sameBlocksDir reports whether a network reads the directory the app reads
+// right now.
+func (o *Orchestrator) sameBlocksDir(cat netcatalog.Catalog, id string, running config.Network) bool {
+	family := ""
+	if entry, ok := cat.ByID(id); ok {
+		family = entry.Family
+	}
+	target, ok := config.NetworkForCatalogEntry(id, family)
+	if !ok {
+		if id != regtestOption.ID {
+			return false
+		}
+		target = config.NetworkRegtest
+	}
+	return sameDir(o.coreBlocksDir(target), o.coreBlocksDir(running))
+}
+
+// sameDir reports whether two paths name one directory. A user can point two
+// datadir groups at one place through a link, and the names then differ.
+func sameDir(a, b string) bool {
+	if a == b {
+		return true
+	}
+	resolvedA, err := filepath.EvalSymlinks(a)
+	if err != nil {
+		return false
+	}
+	resolvedB, err := filepath.EvalSymlinks(b)
+	if err != nil {
+		return false
+	}
+	return resolvedA == resolvedB
+}
+
+// datadirRootFor names the data directory of a network. Each datadir group
+// keeps its own, so a network outside the running group reads another one.
+func (o *Orchestrator) datadirRootFor(n config.Network) string {
+	group := config.DatadirGroupForNetwork(n)
+	if group == config.DatadirGroupForNetwork(config.Network(o.CurrentNetwork())) {
+		return o.BitcoinConf.RootDataDir()
+	}
+	if dir := o.BitcoinConf.Config.GetGroupDatadir(group); dir != "" {
+		return dir
+	}
+	return config.BitcoinCoreDirs.RootDirNetwork(n)
 }
 
 // coreBlocksDir names the directory Core keeps the blocks in. Core takes the
 // blocksdir setting, else the datadir base, and adds the network subdirectory
 // and "blocks" to it (common/args.cpp, GetBlocksDirPath).
 func (o *Orchestrator) coreBlocksDir(network config.Network) string {
-	base := o.BitcoinConf.RootDataDir()
+	base := o.datadirRootFor(network)
 	if dir := o.BitcoinConf.Config.GetEffectiveSetting("blocksdir", network.CoreSection()); dir != "" {
 		if filepath.IsAbs(dir) {
 			base = dir

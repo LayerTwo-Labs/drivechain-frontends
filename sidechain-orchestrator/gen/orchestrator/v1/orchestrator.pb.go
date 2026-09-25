@@ -474,9 +474,12 @@ type GetDatadirNetworkResponse struct {
 	SelectedId   string `protobuf:"bytes,4,opt,name=selected_id,json=selectedId,proto3" json:"selected_id,omitempty"`
 	SelectedName string `protobuf:"bytes,5,opt,name=selected_name,json=selectedName,proto3" json:"selected_name,omitempty"`
 	// True when the blocks belong to another published network.
-	Mismatch      bool `protobuf:"varint,6,opt,name=mismatch,proto3" json:"mismatch,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Mismatch bool `protobuf:"varint,6,opt,name=mismatch,proto3" json:"mismatch,omitempty"`
+	// True when a switch to the detected network reads this same directory.
+	// Core keeps one directory per chain and one per datadir group.
+	SwitchReadsBlocks bool `protobuf:"varint,7,opt,name=switch_reads_blocks,json=switchReadsBlocks,proto3" json:"switch_reads_blocks,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetDatadirNetworkResponse) Reset() {
@@ -547,6 +550,13 @@ func (x *GetDatadirNetworkResponse) GetSelectedName() string {
 func (x *GetDatadirNetworkResponse) GetMismatch() bool {
 	if x != nil {
 		return x.Mismatch
+	}
+	return false
+}
+
+func (x *GetDatadirNetworkResponse) GetSwitchReadsBlocks() bool {
+	if x != nil {
+		return x.SwitchReadsBlocks
 	}
 	return false
 }
@@ -5688,7 +5698,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\x1a\n" +
-	"\x18GetDatadirNetworkRequest\"\xd9\x01\n" +
+	"\x18GetDatadirNetworkRequest\"\x89\x02\n" +
 	"\x19GetDatadirNetworkResponse\x12\x14\n" +
 	"\x05magic\x18\x01 \x01(\tR\x05magic\x12\x1f\n" +
 	"\vdetected_id\x18\x02 \x01(\tR\n" +
@@ -5697,7 +5707,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\vselected_id\x18\x04 \x01(\tR\n" +
 	"selectedId\x12#\n" +
 	"\rselected_name\x18\x05 \x01(\tR\fselectedName\x12\x1a\n" +
-	"\bmismatch\x18\x06 \x01(\bR\bmismatch\"\xd5\a\n" +
+	"\bmismatch\x18\x06 \x01(\bR\bmismatch\x12.\n" +
+	"\x13switch_reads_blocks\x18\a \x01(\bR\x11switchReadsBlocks\"\xd5\a\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +

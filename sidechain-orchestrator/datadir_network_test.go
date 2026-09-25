@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -144,28 +145,20 @@ func TestReadDatadirNetworkReportsAnEmptyDatadir(t *testing.T) {
 	require.False(t, out.Mismatch)
 }
 
-// A switch to the network the block files already carry adopts the chain on
-// disk. The files hold that network's magic, so nothing converts them, and a
-// rewind would drop blocks the chain keeps.
-func TestDiskHoldsECashReadsTheBlocks(t *testing.T) {
-	cat := netcatalog.Embedded()
-	betanet, ok := cat.ByID("betanet")
-	require.True(t, ok)
+// A user can point two datadir groups at one place through a link, and the
+// names then differ although Core reads the same blocks.
+func TestSameDirReadsThroughALink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a link needs a privilege on windows")
+	}
+	real := t.TempDir()
+	link := filepath.Join(t.TempDir(), "blocks")
+	require.NoError(t, os.Symlink(real, link))
 
-	o := parkInstall(t)
-	o.setNetwork(string(config.NetworkECash))
-	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "alphanet"
-	o.Catalog = cat
-	writeBlockFile(t, o.BitcoinConf.DataDir(), betanet.NetworkMagic)
-
-	adopt, err := o.diskHoldsECash(context.Background(), "betanet")
-	require.NoError(t, err)
-	require.True(t, adopt, "the blocks already carry the betanet magic")
-
-	adopt, err = o.diskHoldsECash(context.Background(), "alphanet")
-	require.NoError(t, err)
-	require.False(t, adopt, "alphanet blocks are not on disk, so the switch converts them")
+	require.True(t, sameDir(real, link))
+	require.True(t, sameDir(real, real))
+	require.False(t, sameDir(real, t.TempDir()))
+	require.False(t, sameDir(real, filepath.Join(real, "nothing")), "a path that is absent stays apart")
 }
 
 // The catalog lists no regtest row, because nothing is deployed for it. The
@@ -198,63 +191,102 @@ func TestReadDatadirNetworkAgreesWithRegtest(t *testing.T) {
 	require.False(t, out.Mismatch)
 }
 
-// A datadir that two networks wrote holds the older one first. Core reads the
-// older records with the magic it runs, so the conversion runs over them.
-func TestDiskHoldsECashReadsBothEnds(t *testing.T) {
+// Core keeps one blocks directory per chain, so a switch to another chain
+// reads another one and leaves these blocks where they are.
+func TestReadDatadirNetworkReportsAnUnreadableSwitch(t *testing.T) {
+	cat := netcatalog.Embedded()
+	bitcoin, ok := cat.ByID("bitcoin")
+	require.True(t, ok)
+
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkSignet))
+	o.BitcoinConf.Network = config.NetworkSignet
+	o.Catalog = cat
+	writeBlockFile(t, o.BitcoinConf.DataDir(), bitcoin.NetworkMagic)
+
+	out, err := o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.True(t, out.Mismatch)
+	require.False(t, out.SwitchReadsBlocks, "bitcoin reads <root>/blocks, and these sit under signet")
+}
+
+// The eCash networks share one directory, so a switch between them reads these
+// same blocks.
+func TestReadDatadirNetworkReportsAReadableSwitch(t *testing.T) {
 	cat := netcatalog.Embedded()
 	alphanet, ok := cat.ByID("alphanet")
 	require.True(t, ok)
-	betanet, ok := cat.ByID("betanet")
-	require.True(t, ok)
 
 	o := parkInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "alphanet"
+	o.ecashID = "betanet"
 	o.Catalog = cat
-	blocks := o.BitcoinConf.DataDir()
-	writeBlockFile(t, blocks, alphanet.NetworkMagic)
-	writeBlockFileAs(t, blocks, "blk00001.dat", betanet.NetworkMagic)
+	writeBlockFile(t, o.BitcoinConf.DataDir(), alphanet.NetworkMagic)
 
-	adopt, err := o.diskHoldsECash(context.Background(), "betanet")
+	out, err := o.ReadDatadirNetwork(context.Background())
 	require.NoError(t, err)
-	require.False(t, adopt, "the oldest file still holds the alphanet magic")
+	require.True(t, out.Mismatch)
+	require.True(t, out.SwitchReadsBlocks)
 }
 
-// A half-run conversion writes the target magic to the newest file alone, so
-// the rest still holds the source. The conversion finishes first.
-func TestDiskHoldsECashWaitsForAConversion(t *testing.T) {
-	cat := netcatalog.Embedded()
-	betanet, ok := cat.ByID("betanet")
-	require.True(t, ok)
-
+// The switch adopts a chain the records already name: it converts no block,
+// and a rewind would bar a block that chain holds.
+func TestChainAtTargetReadsTheRecord(t *testing.T) {
 	o := parkInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "alphanet"
-	o.Catalog = cat
-	writeBlockFile(t, o.BitcoinConf.DataDir(), betanet.NetworkMagic)
-	o.migrationState = &ecashMigration{
-		Status: ECashMigrationStatus{JobID: "job1", FromID: "alphanet", ToID: "betanet"},
-		Step:   2,
-	}
+	o.Catalog = netcatalog.Embedded()
+	writeBlockFile(t, o.ecashDatadir(), netcatalog.Embedded().Networks[0].NetworkMagic)
+	require.NoError(t, o.Settings.SetECashChainID("betanet"))
 
-	adopt, err := o.diskHoldsECash(context.Background(), "betanet")
-	require.NoError(t, err)
-	require.False(t, adopt)
+	require.True(t, o.chainAtTarget("betanet"))
+	require.False(t, o.chainAtTarget("alphanet"), "an alphanet switch converts the betanet files")
 }
 
-// An empty datadir names no network, so the ordinary switch runs.
-func TestDiskHoldsECashAnswersForAnEmptyDatadir(t *testing.T) {
+// A datadir with no ECX files takes the ordinary switch, which reads the chain
+// from Core itself.
+func TestChainAtTargetAnswersForAnEmptyDatadir(t *testing.T) {
 	o := parkInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "alphanet"
 	o.Catalog = netcatalog.Embedded()
 
-	adopt, err := o.diskHoldsECash(context.Background(), "betanet")
-	require.NoError(t, err)
-	require.False(t, adopt)
+	require.False(t, o.chainAtTarget("betanet"))
+}
+
+// A job that stopped part way owes work, and the saved id can already name the
+// target. The conversion finishes first.
+func TestChainAtTargetWaitsForAConversion(t *testing.T) {
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+	o.ecashID = "alphanet"
+	o.Catalog = netcatalog.Embedded()
+	writeBlockFile(t, o.ecashDatadir(), netcatalog.Embedded().Networks[0].NetworkMagic)
+	require.NoError(t, o.Settings.SetECashChainID("betanet"))
+	o.migrationState = &ecashMigration{
+		Status: ECashMigrationStatus{JobID: "job1", FromID: "alphanet", ToID: "betanet"},
+		Step:   2,
+	}
+
+	require.False(t, o.chainAtTarget("betanet"))
+}
+
+// Files that no record names take the conversion, which reads them itself.
+func TestChainAtTargetRefusesUnnamedFiles(t *testing.T) {
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+	o.ecashID = "alphanet"
+	o.Catalog = netcatalog.Embedded()
+	writeBlockFile(t, o.ecashDatadir(), netcatalog.Embedded().Networks[0].NetworkMagic)
+	o.BitcoinConf.Config.RemoveSetting("uacomment", "main")
+	o.BitcoinConf.Config.RemoveSetting("uacomment")
+
+	require.False(t, o.chainAtTarget("betanet"))
 }
 
 // A datadir with no blocks directory names no network, so the app shows no
