@@ -13,8 +13,8 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $17;
-import '../../google/protobuf/timestamp.pbjson.dart' as $16;
+import '../../google/protobuf/empty.pbjson.dart' as $18;
+import '../../google/protobuf/timestamp.pbjson.dart' as $14;
 
 @$core.Deprecated('Use nodeModeDescriptor instead')
 const NodeMode$json = {
@@ -2822,7 +2822,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletBackupsRequest': ListWalletBackupsRequest$json,
   '.walletmanager.v1.ListWalletBackupsResponse': ListWalletBackupsResponse$json,
   '.walletmanager.v1.WalletBackup': WalletBackup$json,
-  '.google.protobuf.Timestamp': $16.Timestamp$json,
+  '.google.protobuf.Timestamp': $14.Timestamp$json,
   '.walletmanager.v1.BackupWalletSummary': BackupWalletSummary$json,
   '.walletmanager.v1.BalanceSnapshot': BalanceSnapshot$json,
   '.walletmanager.v1.RestoreWalletBackupRequest': RestoreWalletBackupRequest$json,
@@ -2867,7 +2867,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.walletmanager.v1.SetFrozenCoinsRequest': SetFrozenCoinsRequest$json,
   '.walletmanager.v1.FrozenOutpoint': FrozenOutpoint$json,
-  '.google.protobuf.Empty': $17.Empty$json,
+  '.google.protobuf.Empty': $18.Empty$json,
   '.walletmanager.v1.CreateDepositRequest': CreateDepositRequest$json,
   '.walletmanager.v1.CreateDepositResponse': CreateDepositResponse$json,
   '.walletmanager.v1.ListTransactionsRequest': ListTransactionsRequest$json,

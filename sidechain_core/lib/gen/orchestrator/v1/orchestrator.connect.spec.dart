@@ -355,4 +355,14 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetECashMigrationStatusRequest.new,
     orchestratorv1orchestrator.GetECashMigrationStatusResponse.new,
   );
+
+  /// Read the network the blocks on disk belong to, next to the one the app
+  /// runs. The blocks name the chain, so a datadir from another network says so
+  /// before a rollback throws the balance away.
+  static const getDatadirNetwork = connect.Spec(
+    '/$name/GetDatadirNetwork',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetDatadirNetworkRequest.new,
+    orchestratorv1orchestrator.GetDatadirNetworkResponse.new,
+  );
 }

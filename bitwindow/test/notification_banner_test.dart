@@ -158,7 +158,7 @@ void main() {
         GetIt.I.unregister<NotificationActions>();
       }
       GetIt.I.registerSingleton<NotificationActions>(
-        NotificationActions({'act': (_) async => ran = true}),
+        NotificationActions({'act': (_, _) async => ran = true}),
       );
       p.add(
         id: 'first',

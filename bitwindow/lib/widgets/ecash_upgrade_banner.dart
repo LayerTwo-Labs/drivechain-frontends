@@ -248,7 +248,7 @@ Future<void> _announceNewNetworks() async {
 
 /// Opens the upgrade flow. Wired to [ecashUpgradeAction] in main.dart.
 /// True once the switch is recorded.
-Future<bool> openECashUpgrade(BuildContext context) async {
+Future<bool> openECashUpgrade(BuildContext context, [NotificationItem? notice]) async {
   final GetPendingNetworkGenerationResponse pending;
   try {
     final saved = (await GetIt.I.get<OrchestratorRPC>().getECashMigrationStatus()).status;

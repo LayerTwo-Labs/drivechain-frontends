@@ -15,9 +15,10 @@ class NotificationLink {
   );
 }
 
-/// How a notification is presented: a transient toast, or a strip pinned at the
-/// top of the app until the user interacts with it.
-enum NotificationStyle { toast, banner }
+/// How a notification is presented: a transient toast, a strip pinned at the
+/// top of the app until the user interacts with it, or a modal that opens one
+/// time and leaves that strip behind.
+enum NotificationStyle { toast, banner, modalThenBanner }
 
 /// A persisted notification shown in the bell history list.
 class NotificationItem {
@@ -33,7 +34,18 @@ class NotificationItem {
   /// than a callback because history is persisted as JSON.
   final String action;
 
+  /// What the action works on, such as the networks a switch names. The text
+  /// the user reads and the work the action does come from one place.
+  final Map<String, String> data;
+
   final bool read;
+
+  /// True once the modal of a [NotificationStyle.modalThenBanner] item opened.
+  /// It opens one time, and the banner carries the message after that.
+  final bool modalShown;
+
+  /// True for a style that pins a strip at the top of the app.
+  bool get pinned => style == NotificationStyle.banner || style == NotificationStyle.modalThenBanner;
 
   NotificationItem({
     required this.id,
@@ -44,10 +56,12 @@ class NotificationItem {
     this.links = const [],
     this.style = NotificationStyle.toast,
     this.action = '',
+    this.data = const {},
     this.read = false,
+    this.modalShown = false,
   });
 
-  NotificationItem copyWith({bool? read}) => NotificationItem(
+  NotificationItem copyWith({bool? read, bool? modalShown}) => NotificationItem(
     id: id,
     title: title,
     content: content,
@@ -56,7 +70,9 @@ class NotificationItem {
     links: links,
     style: style,
     action: action,
+    data: data,
     read: read ?? this.read,
+    modalShown: modalShown ?? this.modalShown,
   );
 
   Map<String, dynamic> toMap() => {
@@ -68,7 +84,9 @@ class NotificationItem {
     'links': links.map((l) => l.toMap()).toList(),
     'style': style.index,
     'action': action,
+    'data': data,
     'read': read,
+    'modalShown': modalShown,
   };
 
   factory NotificationItem.fromMap(Map<String, dynamic> map) {
@@ -84,7 +102,9 @@ class NotificationItem {
           : const [],
       style: NotificationStyle.values[(map['style'] ?? 0).clamp(0, NotificationStyle.values.length - 1)],
       action: map['action'] ?? '',
+      data: map['data'] is Map ? Map<String, String>.from(map['data'] as Map) : const {},
       read: map['read'] ?? false,
+      modalShown: map['modalShown'] ?? false,
     );
   }
 }

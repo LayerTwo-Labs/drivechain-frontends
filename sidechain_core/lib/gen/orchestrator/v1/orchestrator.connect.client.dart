@@ -713,4 +713,24 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Read the network the blocks on disk belong to, next to the one the app
+  /// runs. The blocks name the chain, so a datadir from another network says so
+  /// before a rollback throws the balance away.
+  Future<orchestratorv1orchestrator.GetDatadirNetworkResponse> getDatadirNetwork(
+    orchestratorv1orchestrator.GetDatadirNetworkRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getDatadirNetwork,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

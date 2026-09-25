@@ -149,6 +149,35 @@ final $typed_data.Uint8List resetPhaseDescriptor = $convert.base64Decode(
     'TkNfRk9SV0FSRBADEhgKFFJFU0VUX1BIQVNFX0VORk9SQ0VSEAQSFAoQUkVTRVRfUEhBU0VfRE'
     '9ORRAF');
 
+@$core.Deprecated('Use getDatadirNetworkRequestDescriptor instead')
+const GetDatadirNetworkRequest$json = {
+  '1': 'GetDatadirNetworkRequest',
+};
+
+/// Descriptor for `GetDatadirNetworkRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getDatadirNetworkRequestDescriptor = $convert.base64Decode(
+    'ChhHZXREYXRhZGlyTmV0d29ya1JlcXVlc3Q=');
+
+@$core.Deprecated('Use getDatadirNetworkResponseDescriptor instead')
+const GetDatadirNetworkResponse$json = {
+  '1': 'GetDatadirNetworkResponse',
+  '2': [
+    {'1': 'magic', '3': 1, '4': 1, '5': 9, '10': 'magic'},
+    {'1': 'detected_id', '3': 2, '4': 1, '5': 9, '10': 'detectedId'},
+    {'1': 'detected_name', '3': 3, '4': 1, '5': 9, '10': 'detectedName'},
+    {'1': 'selected_id', '3': 4, '4': 1, '5': 9, '10': 'selectedId'},
+    {'1': 'selected_name', '3': 5, '4': 1, '5': 9, '10': 'selectedName'},
+    {'1': 'mismatch', '3': 6, '4': 1, '5': 8, '10': 'mismatch'},
+  ],
+};
+
+/// Descriptor for `GetDatadirNetworkResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getDatadirNetworkResponseDescriptor = $convert.base64Decode(
+    'ChlHZXREYXRhZGlyTmV0d29ya1Jlc3BvbnNlEhQKBW1hZ2ljGAEgASgJUgVtYWdpYxIfCgtkZX'
+    'RlY3RlZF9pZBgCIAEoCVIKZGV0ZWN0ZWRJZBIjCg1kZXRlY3RlZF9uYW1lGAMgASgJUgxkZXRl'
+    'Y3RlZE5hbWUSHwoLc2VsZWN0ZWRfaWQYBCABKAlSCnNlbGVjdGVkSWQSIwoNc2VsZWN0ZWRfbm'
+    'FtZRgFIAEoCVIMc2VsZWN0ZWROYW1lEhoKCG1pc21hdGNoGAYgASgIUghtaXNtYXRjaA==');
+
 @$core.Deprecated('Use binaryStatusMsgDescriptor instead')
 const BinaryStatusMsg$json = {
   '1': 'BinaryStatusMsg',
@@ -1502,6 +1531,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'PreviewECashMigration', '2': '.orchestrator.v1.PreviewECashMigrationRequest', '3': '.orchestrator.v1.PreviewECashMigrationResponse'},
     {'1': 'StartECashMigration', '2': '.orchestrator.v1.StartECashMigrationRequest', '3': '.orchestrator.v1.StartECashMigrationResponse'},
     {'1': 'GetECashMigrationStatus', '2': '.orchestrator.v1.GetECashMigrationStatusRequest', '3': '.orchestrator.v1.GetECashMigrationStatusResponse'},
+    {'1': 'GetDatadirNetwork', '2': '.orchestrator.v1.GetDatadirNetworkRequest', '3': '.orchestrator.v1.GetDatadirNetworkResponse'},
   ],
 };
 
@@ -1591,6 +1621,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.StartECashMigrationResponse': StartECashMigrationResponse$json,
   '.orchestrator.v1.GetECashMigrationStatusRequest': GetECashMigrationStatusRequest$json,
   '.orchestrator.v1.GetECashMigrationStatusResponse': GetECashMigrationStatusResponse$json,
+  '.orchestrator.v1.GetDatadirNetworkRequest': GetDatadirNetworkRequest$json,
+  '.orchestrator.v1.GetDatadirNetworkResponse': GetDatadirNetworkResponse$json,
 };
 
 /// Descriptor for `OrchestratorService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -1662,5 +1694,7 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'dGFydEVDYXNoTWlncmF0aW9uUmVxdWVzdBosLm9yY2hlc3RyYXRvci52MS5TdGFydEVDYXNoTW'
     'lncmF0aW9uUmVzcG9uc2USfAoXR2V0RUNhc2hNaWdyYXRpb25TdGF0dXMSLy5vcmNoZXN0cmF0'
     'b3IudjEuR2V0RUNhc2hNaWdyYXRpb25TdGF0dXNSZXF1ZXN0GjAub3JjaGVzdHJhdG9yLnYxLk'
-    'dldEVDYXNoTWlncmF0aW9uU3RhdHVzUmVzcG9uc2U=');
+    'dldEVDYXNoTWlncmF0aW9uU3RhdHVzUmVzcG9uc2USagoRR2V0RGF0YWRpck5ldHdvcmsSKS5v'
+    'cmNoZXN0cmF0b3IudjEuR2V0RGF0YWRpck5ldHdvcmtSZXF1ZXN0Gioub3JjaGVzdHJhdG9yLn'
+    'YxLkdldERhdGFkaXJOZXR3b3JrUmVzcG9uc2U=');
 

@@ -187,4 +187,178 @@ void main() {
       expect(provider.history.single.title, 'NoStore');
     });
   });
+
+  group('a modal that opens one time', () {
+    test('the item pins a banner and waits for its modal', () async {
+      final provider = NotificationProvider();
+      await _flush();
+
+      provider.add(
+        id: 'net-1',
+        title: 'The blocks on disk are from Betanet',
+        content: 'You selected Alphanet. Switch to Betanet?',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+      );
+
+      expect(provider.activeBanner?.id, 'net-1', reason: 'the style pins a banner');
+      expect(provider.pendingModal?.id, 'net-1', reason: 'the modal still has to open');
+      expect(provider.notifications, isEmpty, reason: 'a pinned item raises no toast');
+    });
+
+    test('the modal opens one time only', () async {
+      final provider = NotificationProvider();
+      await _flush();
+      provider.add(
+        id: 'net-1',
+        title: 't',
+        content: 'c',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+      );
+
+      await provider.markModalShown('net-1');
+
+      expect(provider.pendingModal, isNull, reason: 'the modal never opens again');
+      expect(provider.activeBanner?.id, 'net-1', reason: 'the banner carries the message on');
+    });
+
+    test('the mark survives a reload', () async {
+      final first = NotificationProvider();
+      await _flush();
+      first.add(
+        id: 'net-1',
+        title: 't',
+        content: 'c',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+      );
+      await first.markModalShown('net-1');
+      await _flush();
+
+      final second = NotificationProvider();
+      await _flush();
+
+      expect(second.pendingModal, isNull);
+      expect(second.activeBanner?.id, 'net-1');
+    });
+
+    test('a read item raises no modal and no banner', () async {
+      final provider = NotificationProvider();
+      await _flush();
+      provider.add(
+        id: 'net-1',
+        title: 't',
+        content: 'c',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+      );
+
+      await provider.markRead('net-1');
+
+      expect(provider.pendingModal, isNull);
+      expect(provider.activeBanner, isNull);
+    });
+
+    // A poll can add the item again before the stored history lands, and the
+    // modal would then open a second time.
+    test('a reload keeps the mark when the poll adds the item first', () async {
+      final first = NotificationProvider();
+      await _flush();
+      first.add(
+        id: 'net-1',
+        title: 't',
+        content: 'c',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+      );
+      await first.markModalShown('net-1');
+      await _flush();
+
+      final second = NotificationProvider();
+      second.add(
+        id: 'net-1',
+        title: 't',
+        content: 'c',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+      );
+      await _flush();
+
+      expect(second.pendingModal, isNull, reason: 'the stored mark wins over the fresh item');
+      expect(second.activeBanner?.id, 'net-1');
+    });
+  });
+
+  test('the action data round-trips through the store', () {
+    final original = NotificationItem(
+      id: 'net-1',
+      title: 't',
+      content: 'c',
+      dialogType: DialogType.error,
+      timestamp: DateTime.utc(2026, 9, 25),
+      style: NotificationStyle.modalThenBanner,
+      data: const {'detected': 'betanet', 'selected': 'alphanet'},
+    );
+
+    final restored = NotificationItem.fromMap(original.toMap());
+
+    expect(restored.data['detected'], 'betanet');
+    expect(restored.data['selected'], 'alphanet');
+    expect(restored.style, NotificationStyle.modalThenBanner);
+  });
+
+  // A dismissal keeps the entry, because the user read it. A state that no
+  // longer holds leaves none, so the same warning can come back.
+  test('forget drops the entry, and it stays dropped over a reload', () async {
+    final provider = NotificationProvider();
+    await _flush();
+    provider.add(
+      id: 'net-1',
+      title: 't',
+      content: 'c',
+      dialogType: DialogType.error,
+      style: NotificationStyle.modalThenBanner,
+    );
+    await _flush();
+
+    await provider.forget('net-1');
+    await _flush();
+
+    expect(provider.history, isEmpty);
+    expect(provider.activeBanner, isNull);
+
+    final second = NotificationProvider();
+    await _flush();
+    expect(second.history, isEmpty);
+  });
+
+  // A reader that acts on the list before the load lands clears a warning that
+  // still stands, and the load then puts the stale banner back.
+  test('ready waits for the stored history', () async {
+    final first = NotificationProvider();
+    await _flush();
+    first.add(
+      id: 'net-1',
+      title: 't',
+      content: 'c',
+      dialogType: DialogType.error,
+      style: NotificationStyle.modalThenBanner,
+    );
+    await _flush();
+
+    final second = NotificationProvider();
+    expect(second.history, isEmpty, reason: 'the load runs in the background');
+
+    await second.ready;
+
+    expect(second.history.map((n) => n.id), ['net-1']);
+  });
+
+  // No settings store, so nothing loads, and a reader must still run.
+  test('ready completes with no settings store', () async {
+    await GetIt.I.unregister<ClientSettings>();
+
+    await NotificationProvider().ready;
+  });
 }

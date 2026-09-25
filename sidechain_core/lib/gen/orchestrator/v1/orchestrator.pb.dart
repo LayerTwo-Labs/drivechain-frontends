@@ -19,6 +19,162 @@ import 'orchestrator.pbenum.dart';
 
 export 'orchestrator.pbenum.dart';
 
+class GetDatadirNetworkRequest extends $pb.GeneratedMessage {
+  factory GetDatadirNetworkRequest() => create();
+  GetDatadirNetworkRequest._() : super();
+  factory GetDatadirNetworkRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetDatadirNetworkRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetDatadirNetworkRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetDatadirNetworkRequest clone() => GetDatadirNetworkRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetDatadirNetworkRequest copyWith(void Function(GetDatadirNetworkRequest) updates) => super.copyWith((message) => updates(message as GetDatadirNetworkRequest)) as GetDatadirNetworkRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetDatadirNetworkRequest create() => GetDatadirNetworkRequest._();
+  GetDatadirNetworkRequest createEmptyInstance() => create();
+  static $pb.PbList<GetDatadirNetworkRequest> createRepeated() => $pb.PbList<GetDatadirNetworkRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetDatadirNetworkRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetDatadirNetworkRequest>(create);
+  static GetDatadirNetworkRequest? _defaultInstance;
+}
+
+class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
+  factory GetDatadirNetworkResponse({
+    $core.String? magic,
+    $core.String? detectedId,
+    $core.String? detectedName,
+    $core.String? selectedId,
+    $core.String? selectedName,
+    $core.bool? mismatch,
+  }) {
+    final $result = create();
+    if (magic != null) {
+      $result.magic = magic;
+    }
+    if (detectedId != null) {
+      $result.detectedId = detectedId;
+    }
+    if (detectedName != null) {
+      $result.detectedName = detectedName;
+    }
+    if (selectedId != null) {
+      $result.selectedId = selectedId;
+    }
+    if (selectedName != null) {
+      $result.selectedName = selectedName;
+    }
+    if (mismatch != null) {
+      $result.mismatch = mismatch;
+    }
+    return $result;
+  }
+  GetDatadirNetworkResponse._() : super();
+  factory GetDatadirNetworkResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetDatadirNetworkResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetDatadirNetworkResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'magic')
+    ..aOS(2, _omitFieldNames ? '' : 'detectedId')
+    ..aOS(3, _omitFieldNames ? '' : 'detectedName')
+    ..aOS(4, _omitFieldNames ? '' : 'selectedId')
+    ..aOS(5, _omitFieldNames ? '' : 'selectedName')
+    ..aOB(6, _omitFieldNames ? '' : 'mismatch')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetDatadirNetworkResponse clone() => GetDatadirNetworkResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetDatadirNetworkResponse copyWith(void Function(GetDatadirNetworkResponse) updates) => super.copyWith((message) => updates(message as GetDatadirNetworkResponse)) as GetDatadirNetworkResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetDatadirNetworkResponse create() => GetDatadirNetworkResponse._();
+  GetDatadirNetworkResponse createEmptyInstance() => create();
+  static $pb.PbList<GetDatadirNetworkResponse> createRepeated() => $pb.PbList<GetDatadirNetworkResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetDatadirNetworkResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetDatadirNetworkResponse>(create);
+  static GetDatadirNetworkResponse? _defaultInstance;
+
+  /// The network magic the newest block file carries, in hexadecimal.
+  @$pb.TagNumber(1)
+  $core.String get magic => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set magic($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMagic() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMagic() => clearField(1);
+
+  /// The network that writes that magic, empty when no published network does.
+  @$pb.TagNumber(2)
+  $core.String get detectedId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set detectedId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDetectedId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDetectedId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get detectedName => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set detectedName($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDetectedName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDetectedName() => clearField(3);
+
+  /// The network the app runs.
+  @$pb.TagNumber(4)
+  $core.String get selectedId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set selectedId($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSelectedId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSelectedId() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get selectedName => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set selectedName($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSelectedName() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSelectedName() => clearField(5);
+
+  /// True when the blocks belong to another published network.
+  @$pb.TagNumber(6)
+  $core.bool get mismatch => $_getBF(5);
+  @$pb.TagNumber(6)
+  set mismatch($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasMismatch() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearMismatch() => clearField(6);
+}
+
 class BinaryStatusMsg extends $pb.GeneratedMessage {
   factory BinaryStatusMsg({
     $core.String? name,
@@ -6592,6 +6748,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<GetECashMigrationStatusResponse> getECashMigrationStatus($pb.ClientContext? ctx, GetECashMigrationStatusRequest request) =>
     _client.invoke<GetECashMigrationStatusResponse>(ctx, 'OrchestratorService', 'GetECashMigrationStatus', request, GetECashMigrationStatusResponse())
+  ;
+  $async.Future<GetDatadirNetworkResponse> getDatadirNetwork($pb.ClientContext? ctx, GetDatadirNetworkRequest request) =>
+    _client.invoke<GetDatadirNetworkResponse>(ctx, 'OrchestratorService', 'GetDatadirNetwork', request, GetDatadirNetworkResponse())
   ;
 }
 

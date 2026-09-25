@@ -355,6 +355,11 @@ class OrchestratorRPC {
     );
   }
 
+  /// The network the blocks on disk belong to, next to the one the app runs.
+  Future<GetDatadirNetworkResponse> getDatadirNetwork() {
+    return _unaryClient.getDatadirNetwork(GetDatadirNetworkRequest());
+  }
+
   /// Record the go-ahead to switch to the published eCash network. Applied
   /// on the next backend start, which the caller is responsible for.
   Future<ConfirmPendingNetworkGenerationResponse> confirmPendingNetworkGeneration() {
