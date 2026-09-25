@@ -713,7 +713,7 @@ func (o *Orchestrator) stopMigrationCore(ctx context.Context) error {
 	}
 }
 
-func (o *Orchestrator) startMigrationCore(ctx context.Context, state *ecashMigration, target bool) (*CoreStatusClient, error) {
+func (o *Orchestrator) startMigrationCore(ctx context.Context, state *ecashMigration, target bool, extra ...string) (*CoreStatusClient, error) {
 	cfg, digest := state.FromConfig, state.FromDigest
 	if target {
 		cfg, digest = state.ToConfig, state.ToDigest
@@ -735,6 +735,7 @@ func (o *Orchestrator) startMigrationCore(ctx context.Context, state *ecashMigra
 	}
 	if !o.process.IsRunning("bitcoind") {
 		args := []string{"-conf=" + o.BitcoinConf.GetConfFilePath(), "-datadir=" + state.RootDir, "-networkactive=0", "-walletbroadcast=0"}
+		args = append(args, extra...)
 		if _, err := o.process.Start(ctx, cfg, args, nil); err != nil {
 			return nil, err
 		}
@@ -879,6 +880,17 @@ func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigratio
 	if state.Status.WalletOnly && sourceActive {
 		return nil
 	}
+	if !state.Status.WalletOnly {
+		atTarget, err := o.blocksAtTarget(ctx, state)
+		if err != nil {
+			return err
+		}
+		// A rewind here would bar a block the target chain holds, and Core would never sync past it.
+		if atTarget {
+			o.log.Info().Str("target", state.Status.ToID).Msg("the blocks already belong to the target network, so nothing rolls back")
+			return o.readTargetChain(ctx, state)
+		}
+	}
 	for _, name := range []string{"peers.dat", "anchors.dat", "mempool.dat"} {
 		if err := moveMigrationFile(filepath.Join(state.Status.DataDir, name), filepath.Join(o.migrationBackup(state), "source-"+name)); err != nil {
 			return err
@@ -947,6 +959,39 @@ func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigratio
 		return err
 	}
 	return nil
+}
+
+// readTargetChain records the common block from the target Core, which alone reads the blocks.
+func (o *Orchestrator) readTargetChain(ctx context.Context, state *ecashMigration) error {
+	state.WalletDir = o.BitcoinConf.Config.GetEffectiveSetting("walletdir", "main")
+	// A source wallet stops the target Core from loading, and the chain read needs no wallet.
+	client, err := o.startMigrationCore(ctx, state, true, "-disablewallet=1")
+	if err != nil {
+		return err
+	}
+	err = checkBelowFork(ctx, client, state)
+	return errors.Join(err, o.stopMigrationCore(ctx))
+}
+
+// blocksAtTarget reports whether every block and undo record already carries the target magic.
+func (o *Orchestrator) blocksAtTarget(ctx context.Context, state *ecashMigration) (bool, error) {
+	from, err := blockfile.ParseMagic(state.Status.SourceMagic)
+	if err != nil {
+		return false, err
+	}
+	to, err := blockfile.ParseMagic(state.Status.TargetMagic)
+	if err != nil {
+		return false, err
+	}
+	if err := os.MkdirAll(o.migrationBackup(state), 0o700); err != nil {
+		return false, err
+	}
+	report, err := blockfile.Preview(ctx, blockfile.Options{DataDir: state.Status.DataDir, BlocksDir: state.BlocksDir,
+		JournalPath: filepath.Join(o.migrationBackup(state), "blocks.json"), From: from, To: to})
+	if err != nil {
+		return false, err
+	}
+	return report.Complete, nil
 }
 
 // Header-only source branches stay in the reused block index, so the target could connect their blocks.

@@ -82,7 +82,7 @@ func TestECashMigrationCompletesAfterClientCancellation(t *testing.T) {
 func TestECashMigrationResumesSavedConversion(t *testing.T) {
 	o, fixture, block, undo, wallet := prepareMigrationEngineTest(t, "", false)
 	blockPath := filepath.Join(fixture.DataDir, "blocks", "blk00000.dat")
-	require.NoError(t, os.WriteFile(blockPath, block[:len(block)-1], 0o600))
+	require.NoError(t, os.Chmod(blockPath, 0o400))
 	status, err := o.StartECashMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
 	require.NotZero(t, status.StartedAt)
@@ -97,7 +97,7 @@ func TestECashMigrationResumesSavedConversion(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &saved))
 	require.Equal(t, 2, saved.Step)
 	require.Equal(t, strings.Repeat("b", 64), saved.RejectedHash)
-	require.NoError(t, os.WriteFile(blockPath, block, 0o600))
+	require.NoError(t, os.Chmod(blockPath, 0o600))
 
 	next := New(o.DataDir, "ecash", o.BitwindowDir, AllDefaults(), testLogger(t))
 	registerMigrationEngineCleanup(t, next)
@@ -203,6 +203,51 @@ func TestECashMigrationSkipsRollbackBelowFork(t *testing.T) {
 		}
 	}
 	require.Equal(t, []string{strings.Repeat("b", 64)}, hashes)
+}
+
+func TestECashMigrationSkipsRollbackAtTarget(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		height int64
+		below  bool
+	}{
+		{name: "above the fork", height: 110},
+		{name: "below the fork", height: 90, below: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			o, fixture, block, undo, _ := prepareMigrationEngineTest(t, "", false)
+			require.NoError(t, os.WriteFile(filepath.Join(fixture.DataDir, "fixture-height"), []byte(strconv.FormatInt(test.height, 10)), 0o600))
+			target := []byte{0xec, 0xa5, 0xa1, 0x05}
+			files := map[string][]byte{"blocks/blk00000.dat": bytes.Clone(block), "blocks/rev00000.dat": bytes.Clone(undo)}
+			for name, data := range files {
+				copy(data, target)
+				require.NoError(t, os.WriteFile(filepath.Join(fixture.DataDir, filepath.FromSlash(name)), data, 0o600))
+			}
+
+			_, err := o.StartECashMigration(context.Background(), "alphanet", "betanet")
+			require.NoError(t, err)
+			complete := waitMigrationEngineTest(t, o)
+
+			require.Empty(t, complete.Error)
+			require.True(t, complete.Complete)
+			require.Equal(t, test.below, complete.BelowFork)
+			if test.below {
+				require.Equal(t, test.height, complete.CommonHeight)
+			}
+			require.Equal(t, "betanet", o.Settings.ECashChainID())
+			require.True(t, o.process.IsRunning("bitcoind"))
+			for name, want := range files {
+				got, err := os.ReadFile(filepath.Join(fixture.DataDir, filepath.FromSlash(name)))
+				require.NoError(t, err)
+				require.Equal(t, want, got, name)
+			}
+			steps, _ := readMigrationEngineEvents(t, fixture)
+			require.Equal(t, []string{
+				"alphanet:start", "alphanet:stop", "betanet:start", "betanet:stop", "betanet:start", "betanet:getblock",
+				"betanet:loadwallet", "betanet:getwalletinfo", "betanet:setnetworkactive",
+			}, steps)
+		})
+	}
 }
 
 func prepareMigrationEngineTest(t *testing.T, externalName string, twoBranches bool) (*Orchestrator, migrationCoreFixture, []byte, []byte, []byte) {
@@ -364,6 +409,24 @@ func requireMigrationEngineResult(t *testing.T, o *Orchestrator, fixture migrati
 
 func requireMigrationEngineEvents(t *testing.T, fixture migrationCoreFixture) []migrationCoreEvent {
 	t.Helper()
+	steps, events := readMigrationEngineEvents(t, fixture)
+	want := []string{
+		"alphanet:start", "alphanet:stop", "alphanet:start", "alphanet:invalidateblock",
+	}
+	if fixture.TwoBranches {
+		want = append(want, "alphanet:invalidateblock")
+	}
+	want = append(want, "alphanet:stop", "betanet:start", "betanet:getblock", "betanet:loadwallet", "betanet:getwalletinfo")
+	if fixture.ExternalWallet != "" {
+		want = append(want, "betanet:loadwallet", "betanet:getwalletinfo")
+	}
+	want = append(want, "betanet:setnetworkactive")
+	require.Equal(t, want, steps)
+	return events
+}
+
+func readMigrationEngineEvents(t *testing.T, fixture migrationCoreFixture) ([]string, []migrationCoreEvent) {
+	t.Helper()
 	data, err := os.ReadFile(filepath.Join(fixture.DataDir, "fixture-events"))
 	require.NoError(t, err)
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -386,19 +449,7 @@ func requireMigrationEngineEvents(t *testing.T, fixture migrationCoreFixture) []
 			require.Contains(t, event.Args, "-walletbroadcast=0")
 		}
 	}
-	want := []string{
-		"alphanet:start", "alphanet:stop", "alphanet:start", "alphanet:invalidateblock",
-	}
-	if fixture.TwoBranches {
-		want = append(want, "alphanet:invalidateblock")
-	}
-	want = append(want, "alphanet:stop", "betanet:start", "betanet:getblock", "betanet:loadwallet", "betanet:getwalletinfo")
-	if fixture.ExternalWallet != "" {
-		want = append(want, "betanet:loadwallet", "betanet:getwalletinfo")
-	}
-	want = append(want, "betanet:setnetworkactive")
-	require.Equal(t, want, steps)
-	return events
+	return steps, events
 }
 
 func runMigrationCoreFixture(path string) error {
@@ -421,7 +472,11 @@ func runMigrationCoreFixture(path string) error {
 	if fixture.ExternalWallet != "" {
 		files[filepath.Join(fixture.ExternalWallet, "wallet.dat")] = 68
 	}
+	walletless := slices.Contains(os.Args[1:], "-disablewallet=1")
 	for name, offset := range files {
+		if walletless && offset != 0 {
+			continue
+		}
 		readPath := name
 		if !filepath.IsAbs(readPath) {
 			readPath = filepath.Join(fixture.DataDir, filepath.FromSlash(name))
