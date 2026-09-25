@@ -107,7 +107,8 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	})
 	go clients.Run(ctx)
 
-	if _, err := startDrivechaind(bootCtx, conf); err != nil {
+	orchCmd, err := startDrivechaind(bootCtx, conf)
+	if err != nil {
 		return fmt.Errorf("start drivechaind: %w", err)
 	}
 
@@ -118,6 +119,31 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// call is harmless. drivechaind is detached and survives bitwindowd's
 	// exit either way.
 	defer relayShutdownToDrivechaind(conf.OrchestratorAddr, bitwindowDir, bootLogger)
+
+	supervisor := drivechaindSupervisor{
+		start:       func(ctx context.Context) (*exec.Cmd, error) { return startDrivechaind(ctx, conf) },
+		watchPort:   orchestratorPortWatcher(conf.OrchestratorAddr, drivechaindPollWait),
+		restartWait: drivechaindRestartWait,
+		maxRestarts: drivechaindMaxRestarts,
+		log:         &bootLogger,
+	}
+	superCtx, stopSupervisor := context.WithCancel(bootCtx)
+	supervisorDone := make(chan struct{})
+	go func() {
+		defer close(supervisorDone)
+		supervisor.run(superCtx, orchCmd)
+	}()
+	// Registered after the relay, so it runs before it. A cancel alone leaves a
+	// window where the supervisor starts a daemon the relay never reaches, so
+	// this waits for the goroutine to stop.
+	defer func() {
+		stopSupervisor()
+		select {
+		case <-supervisorDone:
+		case <-time.After(drivechaindJoinWait):
+			bootLogger.Warn().Msg("the drivechaind supervisor did not stop in time")
+		}
+	}()
 
 	// bitcoin.conf is the source of truth, and reading it is one file read.
 	// Ask drivechaind only on a first run, where it still has to write the
@@ -466,8 +492,8 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	//   zerolog (panics, child-process spew). Bitwindowd's fd closes when the
 	//   defer below runs; drivechaind inherits an independent fd that
 	//   survives.
-	// - watchDrivechaind: bitwindowd keeps the handle and reaps the child, so
-	//   an early exit gets a line in the log instead of a silent dead port.
+	// - drivechaindSupervisor: the caller keeps the handle, reaps the child,
+	//   and starts it again instead of leaving a silent dead port.
 	orchLogPath := drivechaindLogPath(conf, bitwindowDir)
 	// On a fresh install the bitwindow dir doesn't exist yet; opening the log
 	// would fail, drivechaind would never spawn, and the UI would poll a dead
@@ -512,15 +538,13 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 
 	log.Info().Int("pid", cmd.Process.Pid).Msg("drivechaind started")
 
-	go watchDrivechaind(cmd, log)
-
 	return cmd, nil
 }
 
 // bootLogWriter sends the boot lines to console and to the shared log file.
 // bitwindowd spawns drivechaind before initLogger runs, so without this the
 // one line that names a spawn failure reaches neither the file nor the user.
-// The handle stays open for the process lifetime, because watchDrivechaind
+// The handle stays open for the process lifetime, because the supervisor
 // writes through it later.
 func bootLogWriter(path string, console io.Writer) io.Writer {
 	const timeFormat = time.DateTime + ".000"
@@ -539,18 +563,136 @@ func bootLogWriter(path string, console io.Writer) io.Writer {
 	})
 }
 
-// watchDrivechaind logs the exit of the child. bitwindowd serves on after
-// drivechaind dies, so the exit code is the one clue the log file holds.
-func watchDrivechaind(cmd *exec.Cmd, log *zerolog.Logger) {
-	err := cmd.Wait()
-	code := -1
-	if cmd.ProcessState != nil {
-		code = cmd.ProcessState.ExitCode()
+const (
+	drivechaindRestartWait = 2 * time.Second
+	drivechaindMaxRestarts = 5
+	drivechaindPollWait    = 5 * time.Second
+	drivechaindJoinWait    = 10 * time.Second
+)
+
+// drivechaindSupervisor starts drivechaind again after an exit bitwindowd did
+// not ask for. One kill otherwise leaves the orchestrator RPC port dead for the
+// rest of the session.
+type drivechaindSupervisor struct {
+	start       func(context.Context) (*exec.Cmd, error)
+	watchPort   func(context.Context)
+	restartWait time.Duration
+	maxRestarts int
+	log         *zerolog.Logger
+}
+
+// run watches drivechaind until bitwindowd stops. A nil cmd means this process
+// adopted the daemon instead of a spawn, so only the RPC port reports its exit.
+func (s drivechaindSupervisor) run(ctx context.Context, cmd *exec.Cmd) {
+	for restarts := 0; ; restarts++ {
+		exit := s.waitForExit(ctx, cmd)
+		event := s.log.Warn()
+		if exit.adopted {
+			event = event.Str("owner", "adopted")
+		} else {
+			event = event.Err(exit.err).Int("pid", exit.pid).Int("exit_code", exit.code)
+		}
+
+		// drivechaind outlives bitwindowd on purpose: it drains bitcoind for up
+		// to 90s. Leave it alone and let the caller relay the Shutdown RPC.
+		if exit.cancelled || ctx.Err() != nil {
+			event.Msg("bitwindowd stopped watching drivechaind")
+			return
+		}
+		if restarts >= s.maxRestarts {
+			event.Int("restarts", restarts).
+				Msg("drivechaind exited, its RPC port stays dead until BitWindow restarts")
+			return
+		}
+		event.Int("restart", restarts+1).Msg("drivechaind exited, starting it again")
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(s.restartWait):
+		}
+
+		next, startErr := s.start(ctx)
+		if startErr != nil {
+			s.log.Error().Err(startErr).
+				Msg("drivechaind restart failed, its RPC port stays dead until BitWindow restarts")
+			return
+		}
+		// bitwindowd asked to stop while the start ran. The child is detached,
+		// so it outlives this process and keeps the whole stack up.
+		if ctx.Err() != nil && next != nil {
+			s.stopOrphan(next)
+			return
+		}
+		cmd = next
 	}
-	log.Error().Err(err).
-		Int("pid", cmd.Process.Pid).
-		Int("exit_code", code).
-		Msg("drivechaind exited, its RPC port stays dead until BitWindow restarts")
+}
+
+type drivechaindExit struct {
+	err       error
+	pid       int
+	code      int
+	adopted   bool
+	cancelled bool
+}
+
+// waitForExit returns as soon as drivechaind exits or ctx ends, so the caller
+// can join this goroutine before it relays the Shutdown RPC.
+func (s drivechaindSupervisor) waitForExit(ctx context.Context, cmd *exec.Cmd) drivechaindExit {
+	if cmd == nil {
+		s.watchPort(ctx)
+		return drivechaindExit{adopted: true, cancelled: ctx.Err() != nil}
+	}
+	reaped := make(chan error, 1)
+	go func() { reaped <- cmd.Wait() }()
+
+	select {
+	case <-ctx.Done():
+		return drivechaindExit{pid: cmd.Process.Pid, code: -1, cancelled: true}
+	case err := <-reaped:
+		code := -1
+		if cmd.ProcessState != nil {
+			code = cmd.ProcessState.ExitCode()
+		}
+		return drivechaindExit{err: err, pid: cmd.Process.Pid, code: code}
+	}
+}
+
+// orchestratorPortWatcher returns when the orchestrator RPC port refuses two
+// dials in a row. An adopted daemon has no handle to reap, so the port is the
+// one signal bitwindowd gets.
+func orchestratorPortWatcher(addr string, every time.Duration) func(context.Context) {
+	return func(ctx context.Context) {
+		hostPort, err := orchestratorHostPort(addr)
+		if err != nil {
+			<-ctx.Done()
+			return
+		}
+		for misses := 0; misses < 2; {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(every):
+			}
+			conn, dialErr := net.DialTimeout("tcp", hostPort, time.Second)
+			if dialErr != nil {
+				misses++
+				continue
+			}
+			_ = conn.Close()
+			misses = 0
+		}
+	}
+}
+
+func (s drivechaindSupervisor) stopOrphan(cmd *exec.Cmd) {
+	event := s.log.Warn().Int("pid", cmd.Process.Pid)
+	if err := cmd.Process.Kill(); err != nil {
+		event.Err(err).Msg("stop the drivechaind started during the shutdown")
+		return
+	}
+	_ = cmd.Wait()
+	event.Msg("stopped the drivechaind started during the shutdown")
 }
 
 func existingOrchestratorAdoptable(addr, bitwindowDir string) (bool, error) {
