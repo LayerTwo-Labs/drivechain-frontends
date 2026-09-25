@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
@@ -309,6 +310,32 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
   log.d('Finished copying all available binaries to assets/bin');
 }
 
+/// Writes [bytes] to [dest] as an executable, through a temp file and a rename.
+Future<void> stageBinary(File dest, List<int> bytes) async {
+  // A shared temp name lets one writer rename a file another still writes,
+  // which stages a torn binary. Two app instances share no pid, and two
+  // sub-window engines of one instance share no token.
+  final token = Random.secure().nextInt(1 << 32).toRadixString(16);
+  final staged = File('${dest.path}.$pid-$token.new');
+  try {
+    await staged.writeAsBytes(bytes, flush: true);
+
+    // bitwindowd spawns drivechaind through Go's exec.Command, which does not chmod.
+    if (!Platform.isWindows) {
+      await Process.run('chmod', ['+x', staged.path]);
+    }
+
+    // A second app instance stages binaries that the first one still runs. An
+    // in-place overwrite makes macOS kill the running daemon with SIGKILL.
+    await staged.rename(dest.path);
+  } catch (_) {
+    if (await staged.exists()) {
+      await staged.delete();
+    }
+    rethrow;
+  }
+}
+
 Future<void> _copyEmbeddedBinary(Logger log, Directory fileDir, String canonical, {String? label}) async {
   final name = label ?? canonical;
   final exe = Platform.isWindows && !canonical.endsWith('.exe') ? '.exe' : '';
@@ -320,16 +347,10 @@ Future<void> _copyEmbeddedBinary(Logger log, Directory fileDir, String canonical
     final file = File(path.join(fileDir.path, destName));
 
     final buffer = binResource.buffer;
-    await file.writeAsBytes(
+    await stageBinary(
+      file,
       buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
     );
-
-    // Ensure the copied binary is executable. bitwindowd spawns drivechaind
-    // via Go's exec.Command which does NOT chmod, so without this drivechaind
-    // fails with "permission denied" on fresh installs.
-    if (!Platform.isWindows) {
-      await Process.run('chmod', ['+x', file.path]);
-    }
 
     log.d('Wrote binary $name from $assetName to ${file.path}');
   } catch (e) {
