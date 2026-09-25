@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/blockfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -49,13 +50,19 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 	o.mu.RUnlock()
 
 	out := DatadirNetwork{Magic: magic.String()}
-	if entry, ok := cat.ByMagic(out.Magic); ok {
+	switch entry, ok := cat.ByMagic(out.Magic); {
+	case ok:
 		out.DetectedID, out.DetectedName = entry.ID, displayName(entry)
+	case strings.EqualFold(out.Magic, regtestMagic):
+		out.DetectedID, out.DetectedName = regtestOption.ID, regtestOption.DisplayName
 	}
 	selected := o.SelectedNetworkID(cat)
-	if entry, ok := cat.ByID(selected); ok {
+	switch entry, ok := cat.ByID(selected); {
+	case ok:
 		out.SelectedID, out.SelectedName = entry.ID, displayName(entry)
-	} else {
+	case selected == regtestOption.ID:
+		out.SelectedID, out.SelectedName = regtestOption.ID, regtestOption.DisplayName
+	default:
 		out.SelectedID = selected
 	}
 	// A slot and its catalog row carry different names, so a mainnet install

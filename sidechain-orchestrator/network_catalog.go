@@ -581,6 +581,10 @@ type NetworkOption struct {
 // regtest — nothing is deployed for it — but the app still runs it.
 var regtestOption = NetworkOption{ID: "regtest", DisplayName: "Regtest", Network: config.NetworkRegtest}
 
+// regtestMagic is what Core writes into a regtest block file. The catalog
+// lists no regtest row, so a lookup by magic misses it.
+const regtestMagic = "fabfb5da"
+
 // ListNetworks returns the networks the user can pick: every catalog entry the
 // app knows how to run, in document order, plus regtest.
 func (o *Orchestrator) ListNetworks() []NetworkOption {
