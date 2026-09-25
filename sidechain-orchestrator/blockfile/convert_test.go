@@ -139,7 +139,9 @@ func TestPreflightStopsBeforeAnyDataWrite(t *testing.T) {
 		data  func(*testing.T) []byte
 		error string
 	}{
-		{"wrong_magic", "blk00001.dat", func(t *testing.T) []byte { return dataRecord(targetMagic, blockPayload(t), false) }, "unexpected magic"},
+		{"another_networks_magic", "blk00001.dat", func(t *testing.T) []byte {
+			return dataRecord(Magic{0xf9, 0xbe, 0xb4, 0xd9}, blockPayload(t), false)
+		}, "unexpected magic"},
 		{"short_header", "blk00001.dat", func(*testing.T) []byte { return sourceMagic[:] }, "partial record header"},
 		{"short_payload", "blk00001.dat", func(t *testing.T) []byte { return dataRecord(sourceMagic, blockPayload(t), false)[:100] }, "partial record data"},
 		{"small_block", "blk00001.dat", func(*testing.T) []byte { return dataRecord(sourceMagic, make([]byte, 79), false) }, "invalid block size"},
@@ -415,4 +417,74 @@ func TestJournalDecodeErrors(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, append(data, sum[:]...), 0600))
 	_, err := readJournal(path)
 	require.ErrorContains(t, err, "decode conversion journal")
+}
+
+// A datadir that already holds the target network's blocks converts without a
+// complaint, so a user whose chain is already there swaps without a resync.
+func TestConvertAcceptsRecordsAlreadyAtTheTarget(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	payload := blockPayload(t)
+	before := putRecords(t, opts, "blk00000.dat", [8]byte{}, 0,
+		dataRecord(targetMagic, payload, false),
+		dataRecord(targetMagic, payload, false),
+	)
+
+	report, err := Convert(context.Background(), opts)
+	require.NoError(t, err)
+	require.True(t, report.Complete)
+	require.Equal(t, int64(2), report.Records)
+	require.Equal(t, before, readData(t, opts, "blk00000.dat"), "a record at the target stays byte for byte")
+}
+
+// A file the last run converted half way finishes on the next run.
+func TestConvertFinishesAMixedFile(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	payload := blockPayload(t)
+	putRecords(t, opts, "blk00000.dat", [8]byte{}, 0,
+		dataRecord(targetMagic, payload, false),
+		dataRecord(sourceMagic, payload, false),
+	)
+
+	report, err := Convert(context.Background(), opts)
+	require.NoError(t, err)
+	require.True(t, report.Complete)
+
+	want := bytes.Join([][]byte{
+		dataRecord(targetMagic, payload, false),
+		dataRecord(targetMagic, payload, false),
+	}, nil)
+	require.Equal(t, want, readData(t, opts, "blk00000.dat"))
+}
+
+// A third network's blocks still stop the conversion, with the byte named.
+func TestConvertRefusesAnotherNetworksRecord(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	payload := blockPayload(t)
+	putRecords(t, opts, "blk00000.dat", [8]byte{}, 0,
+		dataRecord(Magic{0xf9, 0xbe, 0xb4, 0xd9}, payload, false),
+	)
+
+	_, err := Convert(context.Background(), opts)
+	require.ErrorContains(t, err, "unexpected magic f9beb4d9 at byte 0")
+}
+
+// A run that stops after the journal exists must resume, whatever magic each
+// record carried when the first pass read it.
+func TestConvertResumesAFileWithTargetRecords(t *testing.T) {
+	opts := testOptions(t, [8]byte{})
+	payload := blockPayload(t)
+	putRecords(t, opts, "blk00000.dat", [8]byte{}, 0,
+		dataRecord(targetMagic, payload, false),
+		dataRecord(sourceMagic, payload, false),
+	)
+
+	// The first run writes the journal; the second reads it and must accept the
+	// record whose original magic was already the target.
+	report, err := Convert(context.Background(), opts)
+	require.NoError(t, err)
+	require.True(t, report.Complete)
+
+	again, err := Convert(context.Background(), opts)
+	require.NoError(t, err)
+	require.True(t, again.Complete, "a second run over the converted file must pass")
 }

@@ -141,6 +141,9 @@ const (
 	// OrchestratorServiceGetECashMigrationStatusProcedure is the fully-qualified name of the
 	// OrchestratorService's GetECashMigrationStatus RPC.
 	OrchestratorServiceGetECashMigrationStatusProcedure = "/orchestrator.v1.OrchestratorService/GetECashMigrationStatus"
+	// OrchestratorServiceGetDatadirNetworkProcedure is the fully-qualified name of the
+	// OrchestratorService's GetDatadirNetwork RPC.
+	OrchestratorServiceGetDatadirNetworkProcedure = "/orchestrator.v1.OrchestratorService/GetDatadirNetwork"
 )
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
@@ -275,6 +278,10 @@ type OrchestratorServiceClient interface {
 	StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error)
 	// Read the saved migration state from the daemon.
 	GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error)
+	// Read the network the blocks on disk belong to, next to the one the app
+	// runs. The blocks name the chain, so a datadir from another network says so
+	// before a rollback throws the balance away.
+	GetDatadirNetwork(context.Context, *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error)
 }
 
 // NewOrchestratorServiceClient constructs a client for the orchestrator.v1.OrchestratorService
@@ -504,6 +511,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetECashMigrationStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		getDatadirNetwork: connect.NewClient[v1.GetDatadirNetworkRequest, v1.GetDatadirNetworkResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetDatadirNetworkProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetDatadirNetwork")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -545,6 +558,7 @@ type orchestratorServiceClient struct {
 	previewECashMigration           *connect.Client[v1.PreviewECashMigrationRequest, v1.PreviewECashMigrationResponse]
 	startECashMigration             *connect.Client[v1.StartECashMigrationRequest, v1.StartECashMigrationResponse]
 	getECashMigrationStatus         *connect.Client[v1.GetECashMigrationStatusRequest, v1.GetECashMigrationStatusResponse]
+	getDatadirNetwork               *connect.Client[v1.GetDatadirNetworkRequest, v1.GetDatadirNetworkResponse]
 }
 
 // ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
@@ -729,6 +743,11 @@ func (c *orchestratorServiceClient) GetECashMigrationStatus(ctx context.Context,
 	return c.getECashMigrationStatus.CallUnary(ctx, req)
 }
 
+// GetDatadirNetwork calls orchestrator.v1.OrchestratorService.GetDatadirNetwork.
+func (c *orchestratorServiceClient) GetDatadirNetwork(ctx context.Context, req *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error) {
+	return c.getDatadirNetwork.CallUnary(ctx, req)
+}
+
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
@@ -862,6 +881,10 @@ type OrchestratorServiceHandler interface {
 	StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error)
 	// Read the saved migration state from the daemon.
 	GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error)
+	// Read the network the blocks on disk belong to, next to the one the app
+	// runs. The blocks name the chain, so a datadir from another network says so
+	// before a rollback throws the balance away.
+	GetDatadirNetwork(context.Context, *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error)
 }
 
 // NewOrchestratorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -1087,6 +1110,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetECashMigrationStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetDatadirNetworkHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetDatadirNetworkProcedure,
+		svc.GetDatadirNetwork,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetDatadirNetwork")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/orchestrator.v1.OrchestratorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrchestratorServiceListBinariesProcedure:
@@ -1161,6 +1190,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceStartECashMigrationHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetECashMigrationStatusProcedure:
 			orchestratorServiceGetECashMigrationStatusHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetDatadirNetworkProcedure:
+			orchestratorServiceGetDatadirNetworkHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1312,4 +1343,8 @@ func (UnimplementedOrchestratorServiceHandler) StartECashMigration(context.Conte
 
 func (UnimplementedOrchestratorServiceHandler) GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetECashMigrationStatus is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetDatadirNetwork(context.Context, *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetDatadirNetwork is not implemented"))
 }

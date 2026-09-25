@@ -165,6 +165,9 @@ func TestTransactionWarningChecksTheBurnOutputs(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			h, _ := newWarningHandler(t, &warningBackend{})
+			// The id is a process-wide value that another test can move, so the
+			// case pins the network it asserts.
+			config.SetECashNetworkID("alphanet")
 			message := h.transactionWarning(tc.change(warningOutputs(t)))
 			if tc.warn {
 				require.Equal(t, warningTestMessage, message)
