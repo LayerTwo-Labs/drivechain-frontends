@@ -189,7 +189,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
         data: MediaQuery.of(context).copyWith(
           textScaler: _fontScale == 1.0 ? platformScaler : _ScaledTextScaler(platformScaler, _fontScale),
         ),
-        child: widget.builder(context),
+        child: Builder(builder: widget.builder),
       ),
     );
   }
