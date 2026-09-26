@@ -1,12 +1,14 @@
 // Package corenode is the RPC client every Bitcoin Core derived sidechain
 // shares. It speaks Core's JSON-RPC with cookie auth, unlike the CUSF
-// sidechains.
+// sidechains. A fork states its differences in Options and writes no client of
+// its own.
 package corenode
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -20,10 +22,29 @@ import (
 
 var _ sidechain.Node = (*Client)(nil)
 
+// Options are the ways one Core fork differs from another.
+type Options struct {
+	// WalletPath is the endpoint a wallet RPC goes to. Empty takes
+	// /wallet/<CoreWalletName>, the wallet the orchestrator seeds. A fork that
+	// keeps a wallet of its own takes "/", where Core answers for the one
+	// wallet it loaded, and sets own_wallet in chains_config so that the
+	// orchestrator seeds none.
+	WalletPath string
+
+	// LegacyBalance reads getwalletinfo in place of getbalances, for a fork
+	// that predates getbalances.
+	LegacyBalance bool
+
+	// AddressType is the getnewaddress argument, one of "legacy",
+	// "p2sh-segwit" or "bech32". Empty takes the node default.
+	AddressType string
+}
+
 // Client talks to one Core derived sidechain node.
 type Client struct {
 	name       string
 	baseURL    string
+	opts       Options
 	cookiePath string
 	http       *http.Client
 	// timeout is the deadline one method gets. http.Client.Timeout would cap
@@ -34,10 +55,14 @@ type Client struct {
 // New creates a client pointed at host:port. name prefixes an RPC error, so a
 // log names the chain that failed. cookiePath is the node's .cookie, read on
 // every call because Core rewrites it on each restart.
-func New(name, host string, port int, cookiePath string) *Client {
+func New(name, host string, port int, cookiePath string, opts Options) *Client {
+	if opts.WalletPath == "" {
+		opts.WalletPath = "/wallet/" + sidechain.CoreWalletName
+	}
 	return &Client{
 		name:       name,
 		baseURL:    fmt.Sprintf("http://%s:%d", host, port),
+		opts:       opts,
 		cookiePath: cookiePath,
 		http:       &http.Client{},
 		timeout:    rpc.MethodTimeout,
@@ -66,9 +91,26 @@ func (e *rpcError) Error() string {
 	return fmt.Sprintf("%s RPC error %d: %s", e.chain, e.Code, e.Message)
 }
 
-// WalletCall sends one wallet RPC to the wallet the orchestrator seeds.
+// RPCErrorCode returns the JSON-RPC error code a node answered with, if err
+// carries one.
+func RPCErrorCode(err error) (int, bool) {
+	var rpcErr *rpcError
+	if errors.As(err, &rpcErr) {
+		return rpcErr.Code, true
+	}
+	return 0, false
+}
+
+// IsMethodNotFound reports whether a node refused a call because it does not
+// have that method, as an older release of a fork does.
+func IsMethodNotFound(err error) bool {
+	var rpcErr *rpcError
+	return errors.As(err, &rpcErr) && rpcErr.Code == -32601
+}
+
+// WalletCall sends one wallet RPC to the endpoint this fork keeps its wallet at.
 func (c *Client) WalletCall(ctx context.Context, method string, params any) (json.RawMessage, error) {
-	return c.callAt(ctx, "/wallet/"+sidechain.CoreWalletName, method, params)
+	return c.callAt(ctx, c.opts.WalletPath, method, params)
 }
 
 // Call sends one node RPC to the root endpoint.
@@ -163,6 +205,14 @@ func BTCToSats(btc float64) int64 { return int64(math.Round(btc * 1e8)) }
 // GetBalance returns the wallet balance in satoshis. Peg-ins arrive in the
 // coinbase, so immature counts as pending rather than as missing.
 func (c *Client) GetBalance(ctx context.Context) (totalSats, availableSats int64, err error) {
+	if c.opts.LegacyBalance {
+		info, err := DecodeWallet[WalletInfo](ctx, c, "getwalletinfo", nil)
+		if err != nil {
+			return 0, 0, err
+		}
+		available := BTCToSats(info.Balance)
+		return available + BTCToSats(info.UnconfirmedBalance+info.ImmatureBalance), available, nil
+	}
 	balances, err := DecodeWallet[Balances](ctx, c, "getbalances", nil)
 	if err != nil {
 		return 0, 0, err
@@ -171,9 +221,12 @@ func (c *Client) GetBalance(ctx context.Context) (totalSats, availableSats int64
 	return available + BTCToSats(balances.Mine.UntrustedPending+balances.Mine.Immature), available, nil
 }
 
-// GetNewAddress returns a fresh address of the node default type.
+// GetNewAddress returns a fresh address of the type this fork takes.
 func (c *Client) GetNewAddress(ctx context.Context) (string, error) {
-	return DecodeWallet[string](ctx, c, "getnewaddress", nil)
+	if c.opts.AddressType == "" {
+		return DecodeWallet[string](ctx, c, "getnewaddress", nil)
+	}
+	return DecodeWallet[string](ctx, c, "getnewaddress", []any{"", c.opts.AddressType})
 }
 
 // ListUnspent returns the wallet's UTXOs.
@@ -258,6 +311,14 @@ type Balances struct {
 		UntrustedPending float64 `json:"untrusted_pending"`
 		Immature         float64 `json:"immature"`
 	} `json:"mine"`
+}
+
+// WalletInfo is Core's getwalletinfo reply, amounts in BTC. A fork that
+// predates getbalances carries the same split here.
+type WalletInfo struct {
+	Balance            float64 `json:"balance"`
+	UnconfirmedBalance float64 `json:"unconfirmed_balance"`
+	ImmatureBalance    float64 `json:"immature_balance"`
 }
 
 // Unspent is one wallet UTXO from listunspent, amount in BTC.

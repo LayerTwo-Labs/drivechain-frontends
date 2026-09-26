@@ -112,6 +112,26 @@ void main() {
     expect(field.controller.text, 's9_pastedaddress_abc123');
   });
 
+  testWidgets('a running FreeBank leaves the address field open for a paste and says why', (tester) async {
+    GetIt.I.registerSingleton<FreeBankRPC>(FreeBankLive()..connected = true);
+    await GetIt.I.unregister<BinaryProvider>();
+    GetIt.I.registerSingleton<BinaryProvider>(
+      BinaryProvider.test(appDir: Directory.systemTemp, binaries: [FreeBank()]),
+    );
+
+    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    await tester.pumpSailPage(const DepositModal(slot: 130, sidechainName: 'FreeBank'));
+    await tester.pump();
+
+    final field = tester.widget<SailTextField>(find.byType(SailTextField).first);
+    expect(field.readOnly, isFalse);
+    expect(field.controller.text, isEmpty);
+    expect(
+      find.text('Unsupported operation: fetching a FreeBank address. Paste one from your FreeBank wallet.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a pasted address with an amount arms the deposit button', (tester) async {
     await pumpModal(tester);
 

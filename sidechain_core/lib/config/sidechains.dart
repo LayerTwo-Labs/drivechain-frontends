@@ -346,7 +346,9 @@ class Bbc extends Sidechain {
 }
 
 /// Credit-creation drivechain of Scottish free-banking lineage: discount houses
-/// issue redeemable notes and discount bills of exchange. A fork of BitAssets.
+/// issue redeemable notes and discount bills of exchange. A Bitcoin Core fork,
+/// Core-derived like Bbc, so it speaks Core-style JSON-RPC rather than the CUSF
+/// interface the Rust sidechains use.
 class FreeBank extends Sidechain {
   FreeBank({
     super.name = 'FreeBank',
@@ -355,7 +357,7 @@ class FreeBank extends Sidechain {
     super.repoUrl = 'https://github.com/mbdrivechains/freebank',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.port = 6130,
+    super.port = 8454,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],

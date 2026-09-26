@@ -2,8 +2,13 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -13,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
 
 func thunderOrchestrator(t *testing.T, settings map[string]string) *Orchestrator {
@@ -158,7 +164,6 @@ func TestPrepareSidechainArgsPassesTheZmqChainPorts(t *testing.T) {
 	for name, want := range map[string][]string{
 		"bitnames":  {"--net-addr=0.0.0.0:34002", "--zmq-addr=127.0.0.1:58002", "--network=signet"},
 		"bitassets": {"--net-addr=0.0.0.0:34004", "--zmq-addr=127.0.0.1:58004", "--network=signet"},
-		"freebank":  {"--net-addr=0.0.0.0:34130", "--zmq-addr=127.0.0.1:58130", "--network=signet"},
 	} {
 		useTempHome(t)
 		spec, ok := config.KnownSidechainSpecs[name]
@@ -346,25 +351,81 @@ func TestUnforcedBackendKeepsItsWindow(t *testing.T) {
 	assert.Empty(t, opts.TargetArgs)
 }
 
-// FreeBank has no frontend, so only a forced backend hides its window.
-func TestFreeBankHidesItsWindowOnlyAsABackend(t *testing.T) {
+// betanetPin is the hash of the eCash betanet fork block.
+const betanetPin = "00000000000000030101ba5cfea54b22becc79f95dc6040beb76e01dd9d04042"
+
+// freebankOnBetanet is an orchestrator on the eCash betanet. Its Core runs the
+// conf BitWindow writes and answers the hash of the fork block.
+func freebankOnBetanet(t *testing.T) (*Orchestrator, string) {
+	t.Helper()
 	useTempHome(t)
-	orch := &Orchestrator{log: zerolog.Nop(), Network: string(config.NetworkRegtest), DataDir: t.TempDir()}
+	height := config.PublishedForkHeight(config.NetworkECash)
+	t.Cleanup(func() { config.SetForkHeight(config.NetworkECash, height) })
+	betanet, ok := netcatalog.Embedded().ByID("betanet")
+	require.True(t, ok)
+	config.SetForkHeight(config.NetworkECash, betanet.ForkHeight)
 
-	var windowed StartOpts
-	require.NoError(t, orch.appendSidechainArgs(context.Background(),
-		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 6130}, &windowed))
-	assert.NotContains(t, windowed.TargetArgs, "--headless")
+	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Method string `json:"method"`
+			Params []int  `json:"params"`
+		}
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		assert.Equal(t, "getblockhash", req.Method)
+		assert.Equal(t, []int{967680}, req.Params)
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": betanetPin, "error": nil, "id": "orchestrator"})
+	}))
+	t.Cleanup(core.Close)
+	_, port, err := net.SplitHostPort(core.Listener.Addr().String())
+	require.NoError(t, err)
 
-	fresh := StartOpts{ForceBackend: true}
-	require.NoError(t, orch.appendSidechainArgs(context.Background(),
-		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 6130}, &fresh))
-	assert.Equal(t, []string{"--headless"}, fresh.TargetArgs)
+	conf := &config.BitcoinConfManager{Network: config.NetworkECash}
+	conf.Config = config.ParseBitcoinConfig(conf.GetDefaultConfig())
+	for key, value := range map[string]string{"rpcport": port, "rpcuser": "user", "rpcpassword": "password"} {
+		conf.Config.SetSetting(key, value, config.CoreSectionForNetwork(config.NetworkECash))
+	}
+	orch := &Orchestrator{log: zerolog.Nop(), Network: string(config.NetworkECash), DataDir: t.TempDir(), BitcoinConf: conf}
+	return orch, port
+}
 
-	dupe := StartOpts{ForceBackend: true, TargetArgs: []string{"--headless"}}
+// On betanet FreeBank boots pinned to the fork block the catalog publishes. It
+// verifies deposits over the REST port of the Core BitWindow runs, and freebankd
+// refuses to start unless that Core serves REST with a txindex.
+func TestFreeBankBootsPinnedToTheBetanetForkBlock(t *testing.T) {
+	orch, port := freebankOnBetanet(t)
+	for _, key := range []string{"rest", "txindex"} {
+		assert.Equal(t, "1", orch.BitcoinConf.Config.GetEffectiveSetting(key, "main"), key)
+	}
+	grpcurl := BinaryPath(orch.DataDir, "grpcurl")
+	require.NoError(t, os.MkdirAll(filepath.Dir(grpcurl), 0o755))
+	require.NoError(t, os.WriteFile(grpcurl, nil, 0o755))
+
+	opts := StartOpts{ForceBackend: true}
 	require.NoError(t, orch.appendSidechainArgs(context.Background(),
-		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 6130}, &dupe))
-	assert.Equal(t, []string{"--headless"}, dupe.TargetArgs)
+		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 8454, IsBitcoinCore: true}, &opts))
+	assert.Equal(t, []string{
+		"-mainchaintransport=enforcer",
+		"-mainchainrest=127.0.0.1:" + port,
+		"-mainchainchain=main",
+		"-mainchainblockpin=967680:" + betanetPin,
+		"-grpcurlbin=" + grpcurl,
+	}, opts.TargetArgs)
+}
+
+// A caller that passes its own value for a flag keeps it. A second copy would
+// leave the node with two answers for one option.
+func TestACallerValueBeatsTheGeneratedFlag(t *testing.T) {
+	orch, _ := freebankOnBetanet(t)
+
+	opts := StartOpts{TargetArgs: []string{"-mainchainrest=10.0.0.9:1234"}}
+	require.NoError(t, orch.appendSidechainArgs(context.Background(),
+		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 8454, IsBitcoinCore: true}, &opts))
+	assert.Equal(t, []string{
+		"-mainchainrest=10.0.0.9:1234",
+		"-mainchaintransport=enforcer",
+		"-mainchainchain=main",
+		"-mainchainblockpin=967680:" + betanetPin,
+	}, opts.TargetArgs)
 }
 
 // A command line that already carries the flag takes it one time.

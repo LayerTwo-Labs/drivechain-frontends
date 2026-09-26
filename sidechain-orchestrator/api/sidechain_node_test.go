@@ -57,18 +57,19 @@ func TestCoreForkAnswersOnlyWhatItDrives(t *testing.T) {
 	assert.Contains(t, err.Error(), "proposes no withdrawal bundle")
 }
 
-// FreeBank is a BitAssets fork, so it does BMM and proposes withdrawal bundles.
-func TestFreebankAnswersEveryInterfaceLikeBitassets(t *testing.T) {
-	cfg := orchestrator.BinaryConfig{Name: "freebank", DisplayName: "FreeBank", Port: 6130}
+// The BMM engine drives FreeBank blocks through the node's get_block_template
+// and connect_block, but FreeBank settles withdrawals on its own paths.
+func TestFreebankAnswersBMMButNotWithdrawals(t *testing.T) {
+	cfg := orchestrator.BinaryConfig{Name: "freebank", DisplayName: "FreeBank", Port: 8454, IsBitcoinCore: true}
 	node, err := sidechainNode(cfg, config.NetworkRegtest)
 	require.NoError(t, err)
 
-	bmm, err := bmmNode(cfg, config.NetworkRegtest)
+	_, err = bmmNode(cfg, config.NetworkRegtest)
 	require.NoError(t, err)
-	assert.NotNil(t, bmm)
 
-	_, proposesBundles := node.(sidechain.WithdrawalNode)
-	assert.True(t, proposesBundles)
+	_, err = withdrawalNode(node, cfg.DisplayName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "proposes no withdrawal bundle")
 }
 
 // A chain with no directory config names itself in the failure, rather than

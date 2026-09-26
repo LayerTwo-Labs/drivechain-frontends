@@ -39,7 +39,7 @@ var (
 // NewNode returns a client for the node that runs in datadir.
 func NewNode(host string, port int, datadir string, network config.Network) *Node {
 	return &Node{
-		Client:  corenode.New("Elements Alpha", host, port, filepath.Join(datadir, ".cookie")),
+		Client:  corenode.New("Elements Alpha", host, port, filepath.Join(datadir, ".cookie"), corenode.Options{}),
 		port:    port,
 		datadir: datadir,
 		network: network,

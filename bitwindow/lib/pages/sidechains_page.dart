@@ -9,6 +9,7 @@ import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
+import 'package:bitwindow/widgets/freebank_bid_dialog.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -615,6 +616,23 @@ class _SidechainActions extends StatelessWidget {
           ],
           _depositButton(context),
           const SizedBox(width: SailStyleValues.padding08),
+          if (viewModel.sidechainForSlot(slot) is FreeBank && settingsConnection != null) ...[
+            SizedBox.square(
+              dimension: 32,
+              child: SailTooltip(
+                message: 'Bid for FreeBank blocks',
+                child: SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.iconTabBmm,
+                  small: true,
+                  onPressed: () async {
+                    await showThemedDialog(context: context, builder: (context) => const FreeBankBidDialog());
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+          ],
           SizedBox.square(
             dimension: 32,
             child: settingsConnection == null
@@ -736,6 +754,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     Truthcoin() => SidechainType.SIDECHAIN_TYPE_TRUTHCOIN,
     Photon() => SidechainType.SIDECHAIN_TYPE_PHOTON,
     CoinShift() => SidechainType.SIDECHAIN_TYPE_COINSHIFT,
+    FreeBank() => SidechainType.SIDECHAIN_TYPE_FREEBANK,
     _ => null,
   };
 
@@ -898,6 +917,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Truthcoin => GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null,
       var b when b is Photon => GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
       var b when b is CoinShift => GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
+      var b when b is FreeBank => GetIt.I.isRegistered<FreeBankRPC>() ? GetIt.I.get<FreeBankRPC>() : null,
       _ => null,
     };
 
@@ -949,6 +969,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Truthcoin => (GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null),
       var b when b is Photon => (GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null),
       var b when b is CoinShift => (GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null),
+      var b when b is FreeBank => (GetIt.I.isRegistered<FreeBankRPC>() ? GetIt.I.get<FreeBankRPC>() : null),
       _ => null,
     };
   }
@@ -1645,6 +1666,7 @@ class _DepositModalState extends State<DepositModal> {
       ZSide() => GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null,
       CoinShift() => GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
       Thunder() => GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
+      FreeBank() => GetIt.I.isRegistered<FreeBankRPC>() ? GetIt.I.get<FreeBankRPC>() : null,
       _ => null,
     };
 
