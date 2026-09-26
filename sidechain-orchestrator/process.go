@@ -593,6 +593,11 @@ func (pm *ProcessManager) Stop(_ context.Context, name string, force bool) error
 		return fmt.Errorf("%s is not running", name)
 	}
 
+	// A signalled process reports exit code -1, so without this line the log
+	// cannot tell a stop we asked for from a kill by the OS.
+	pm.log.Info().Str("binary", name).Int("pid", proc.Pid).Bool("force", force).
+		Msg("stopping process")
+
 	if force {
 		if err := forceKillProcess(proc.Pid); err != nil {
 			return fmt.Errorf("force kill %s: %w", name, err)
