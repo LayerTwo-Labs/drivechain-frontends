@@ -2062,11 +2062,11 @@ type esploraChain struct {
 func (c esploraChain) GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error) {
 	tx, err := c.client.Tx(ctx, txid)
 	if err != nil {
-		return nil, err
+		return nil, esploraTxError(err, txid)
 	}
 	rawHex, err := c.client.TxHex(ctx, txid)
 	if err != nil {
-		return nil, err
+		return nil, esploraTxError(err, txid)
 	}
 	tip, err := c.client.TipHeight(ctx)
 	if err != nil {
@@ -2077,6 +2077,65 @@ func (c esploraChain) GetRawTransaction(ctx context.Context, txid string) (*RawT
 
 func (c esploraChain) Broadcast(ctx context.Context, rawHex string) (string, error) {
 	return c.client.Broadcast(ctx, rawHex)
+}
+
+// outspendSource is the part of Esplora that names a spender. ElectrumClient
+// satisfies ChainDataSource but not this: its protocol has no such call.
+// esploraTxError turns a 404 into ErrTxNotFound. A rate limit, a timeout or a
+// malformed body stays what it was: those prove nothing about the transaction.
+func esploraTxError(err error, txid string) error {
+	if allNotFound(err) {
+		return fmt.Errorf("%w: %s", ErrTxNotFound, txid)
+	}
+	return err
+}
+
+// allNotFound reports whether every source that answered said the chain holds
+// no such transaction. A fallback joins the errors of each source, so one such
+// answer beside a Fulcrum timeout proves nothing: that server may still hold
+// it. This is the one place that reads a per-source failure as proof.
+func allNotFound(err error) bool {
+	joined, ok := err.(interface{ Unwrap() []error })
+	if !ok {
+		var electrum *electrumError
+		if errors.As(err, &electrum) {
+			return electrum.missingTx()
+		}
+		return isNotFound(err)
+	}
+	parts := joined.Unwrap()
+	if len(parts) == 0 {
+		return false
+	}
+	for _, part := range parts {
+		if !allNotFound(part) {
+			return false
+		}
+	}
+	return true
+}
+
+type outspendSource interface {
+	Outspend(ctx context.Context, txid string, vout int) (EsploraOutspend, bool, error)
+}
+
+func (c esploraChain) SpenderOf(ctx context.Context, txid string, vout int) (string, bool, error) {
+	source, ok := c.client.(outspendSource)
+	if !ok {
+		return "", false, ErrSpenderUnknown
+	}
+	spend, held, err := source.Outspend(ctx, txid, vout)
+	if err != nil {
+		return "", false, err
+	}
+	// No server holds the funding transaction, so "unspent" would be a guess.
+	if !held {
+		return "", false, ErrSpenderUnknown
+	}
+	if !spend.Spent {
+		return "", false, nil
+	}
+	return spend.Txid, true, nil
 }
 
 func (c esploraChain) TipHeight(ctx context.Context) (int, error) {

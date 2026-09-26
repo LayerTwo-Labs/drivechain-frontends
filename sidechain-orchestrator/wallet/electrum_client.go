@@ -77,6 +77,24 @@ type rpcResult struct {
 	err    error
 }
 
+// electrumError is one server's failure. It never wraps ErrTxNotFound: a
+// fallback joins the errors of every source, and errors.Is walks each branch,
+// so a wrapped sentinel would read as proof even beside a live server that
+// failed for another reason. Only allNotFound turns these into the sentinel.
+type electrumError struct{ message string }
+
+func (e *electrumError) Error() string { return "electrum error: " + e.message }
+
+// missingTx reports the one failure that proves the chain holds no such
+// transaction. Every server proxies Core's wording for it.
+func (e *electrumError) missingTx() bool {
+	return strings.Contains(strings.ToLower(e.message), "no such mempool or blockchain transaction")
+}
+
+func electrumRPCError(message string) error {
+	return &electrumError{message: message}
+}
+
 // ElectrumNotification is a server push: a scripthash status change, a new block
 // header, or a synthetic reconnect signal so the backend re-subscribes.
 type ElectrumNotification struct {
@@ -298,7 +316,7 @@ func (c *ElectrumClient) dispatch(line []byte) {
 			return
 		}
 		if msg.Error != nil {
-			ch <- rpcResult{err: fmt.Errorf("electrum error: %s", msg.Error.Message)}
+			ch <- rpcResult{err: electrumRPCError(msg.Error.Message)}
 		} else {
 			ch <- rpcResult{result: msg.Result}
 		}

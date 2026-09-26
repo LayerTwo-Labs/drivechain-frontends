@@ -1476,12 +1476,37 @@ type coreChain struct {
 	rpc *CoreRPCClient
 }
 
+// coreTxNotFound is Core's RPC_INVALID_ADDRESS_OR_KEY, which getrawtransaction
+// returns for a transaction neither the mempool nor a block holds.
+const coreTxNotFound = -5
+
 func (c coreChain) GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error) {
-	return c.rpc.GetRawTransaction(ctx, txid)
+	tx, err := c.rpc.GetRawTransaction(ctx, txid)
+	if err != nil {
+		var rpcErr *rpcError
+		// Only a node with a synced txindex can say a transaction is absent.
+		// Without one, -5 also means "I cannot look that up", and reading it
+		// as proof would stamp a confirmed deposit as dropped.
+		if errors.As(err, &rpcErr) && rpcErr.Code == coreTxNotFound {
+			if indexed, indexErr := c.rpc.TxIndexReady(ctx); indexErr == nil && indexed {
+				return nil, fmt.Errorf("%w: %s", ErrTxNotFound, txid)
+			}
+		}
+		return nil, err
+	}
+	return tx, nil
 }
 
 func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error) {
 	return c.rpc.SendRawTransaction(ctx, rawHex)
+}
+
+func (c coreChain) SpenderOf(ctx context.Context, txid string, vout int) (string, bool, error) {
+	spender, err := c.rpc.TxSpendingPrevout(ctx, txid, vout)
+	if err != nil {
+		return "", false, err
+	}
+	return spender, spender != "", nil
 }
 
 func (c coreChain) TipHeight(ctx context.Context) (int, error) {
