@@ -33,11 +33,8 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -234,84 +231,18 @@ func (s *Server) sendWithRequiredInputs(
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
 	walletId := c.Msg.WalletId
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	var addressType orchpb.AddressType
+	switch c.Msg.AddressType {
+	case pb.AddressType_ADDRESS_TYPE_UNSPECIFIED:
+		addressType = orchpb.AddressType_ADDRESS_TYPE_UNSPECIFIED
+	case pb.AddressType_ADDRESS_TYPE_SEGWIT:
+		addressType = orchpb.AddressType_ADDRESS_TYPE_SEGWIT
+	case pb.AddressType_ADDRESS_TYPE_TAPROOT:
+		addressType = orchpb.AddressType_ADDRESS_TYPE_TAPROOT
+	}
+	address, err := s.walletEngine.GetNewAddress(ctx, walletId, addressType)
 	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	addressType := c.Msg.AddressType
-	if addressType == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
-		addressType = pb.AddressType_ADDRESS_TYPE_SEGWIT
-	}
-
-	coreAddressType := "bech32"
-	if addressType == pb.AddressType_ADDRESS_TYPE_TAPROOT {
-		coreAddressType = "bech32m"
-	}
-
-	// For segwit Bitcoin Core wallets, derive addresses and find the first
-	// unused one to prevent address reuse and gaps in the derivation path.
-	// Taproot addresses are served straight from Bitcoin Core (bech32m).
-	if walletType == engines.WalletTypeBitcoinCore && addressType == pb.AddressType_ADDRESS_TYPE_SEGWIT {
-		unusedAddress, derivedAddresses, err := s.deriveAndCheckAddresses(ctx, walletId)
-		if err != nil {
-			zerolog.Ctx(ctx).Warn().Err(err).Msg("derive addresses failed, will generate new")
-		}
-		if unusedAddress != "" {
-			zerolog.Ctx(ctx).Debug().Str("address", unusedAddress).Msg("using derived unused address")
-
-			// Save the unused address to addressbook
-			err = addressbook.Create(ctx, s.database, &walletId, "", unusedAddress, addressbook.DirectionReceive)
-			if err != nil && !strings.Contains(err.Error(), addressbook.ErrUniqueAddress) {
-				zerolog.Ctx(ctx).Warn().Err(err).Msg("save address to addressbook")
-			}
-
-			return connect.NewResponse(&pb.GetNewAddressResponse{
-				Address: unusedAddress,
-				Index:   0,
-			}), nil
-		}
-
-		// Also save any other derived addresses we found (for addressbook sync)
-		for _, addr := range derivedAddresses {
-			err = addressbook.Create(ctx, s.database, &walletId, "", addr.Address, addressbook.DirectionReceive)
-			if err != nil && !strings.Contains(err.Error(), addressbook.ErrUniqueAddress) {
-				zerolog.Ctx(ctx).Debug().Err(err).Str("address", addr.Address).Msg("save derived address")
-			}
-		}
-	}
-
-	var address string
-	switch walletType {
-	case engines.WalletTypeBitcoinCore:
-		// Watch-only Core wallets import a descriptor; full wallets use the
-		// seed-derived wallet. Both serve addresses from Bitcoin Core.
-		ensure := s.walletEngine.GetBitcoinCoreWalletName
-		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
-		if err != nil {
-			return nil, err
-		}
-		if watchOnly {
-			ensure = s.walletEngine.EnsureWatchOnlyWallet
-		}
-		address, err = s.getBitcoinCoreAddress(ctx, walletId, ensure, coreAddressType)
-		if err != nil {
-			return nil, err
-		}
-
-	case engines.WalletTypeElectrum:
-		// Electrum path — orchestrator derives the address and serves chain
-		// data over Esplora.
-		if addressType == pb.AddressType_ADDRESS_TYPE_TAPROOT {
-			return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("taproot addresses are not supported for electrum wallets"))
-		}
-		address, err = s.walletEngine.GetElectrumReceiveAddress(ctx, walletId)
-		if err != nil {
-			return nil, err
-		}
-
-	default:
-		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
+		return nil, err
 	}
 
 	// Store all receiving addresses in the address book
@@ -330,118 +261,20 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 	}), nil
 }
 
-// DerivedAddress represents an address derived from a wallet seed
-type DerivedAddress struct {
-	Address string
-	Index   uint32
-	Used    bool
-}
-
-// deriveAndCheckAddresses is the single source of truth for Bitcoin Core address derivation
-// It derives addresses from the seed and checks which have been used
-// Returns: (firstUnusedAddress, allDerivedAddresses, error)
-func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (string, []DerivedAddress, error) {
-	// Get wallet info to access seed
-	walletInfo, err := s.walletEngine.GetWalletInfo(ctx, walletId)
-	if err != nil {
-		return "", nil, fmt.Errorf("get wallet info: %w", err)
-	}
-
-	if walletInfo.Master.SeedHex == "" {
-		return "", nil, fmt.Errorf("wallet has no seed")
-	}
-
-	chainParams := s.walletEngine.GetChainParams()
-
-	external, err := deriveExternalChainKey(walletInfo, chainParams, orchwallet.ScriptNativeSegwit)
-	if err != nil {
-		return "", nil, err
-	}
-
-	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
-	if err != nil {
-		return "", nil, fmt.Errorf("get wallet name: %w", err)
-	}
-
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return "", nil, fmt.Errorf("bitcoind: %w", err)
-	}
-
-	// Get all transactions once to avoid repeated RPC calls
-	txResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
-		Wallet: walletName,
-		Count:  1000, // Check recent transactions
-	}))
-	if err != nil {
-		return "", nil, fmt.Errorf("list transactions: %w", err)
-	}
-
-	// Build a map of used addresses for fast lookup
-	usedAddresses := make(map[string]bool)
-	for _, tx := range txResp.Msg.Transactions {
-		for _, detail := range tx.Details {
-			usedAddresses[detail.Address] = true
-		}
-	}
-
-	var derivedAddresses []DerivedAddress
-	firstUnusedAddress := ""
-
-	// Derive addresses and check usage
-	for i := uint32(0); i < addressScanDepth; i++ {
-		// Derive address at index i
-		addrKey, err := external.Derive(i)
-		if err != nil {
-			return "", nil, fmt.Errorf("derive address %d: %w", i, err)
-		}
-
-		pubKey, err := addrKey.ECPubKey()
-		if err != nil {
-			return "", nil, fmt.Errorf("get public key %d: %w", i, err)
-		}
-
-		// Create P2WPKH address
-		pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
-		witnessAddr, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, chainParams)
-		if err != nil {
-			return "", nil, fmt.Errorf("create address %d: %w", i, err)
-		}
-
-		address := witnessAddr.EncodeAddress()
-		used := usedAddresses[address]
-
-		derivedAddresses = append(derivedAddresses, DerivedAddress{
-			Address: address,
-			Index:   i,
-			Used:    used,
-		})
-
-		// Track first unused address
-		if firstUnusedAddress == "" && !used {
-			firstUnusedAddress = address
-		}
-	}
-
-	return firstUnusedAddress, derivedAddresses, nil
-}
-
-// syncCoreAddresses syncs derived addresses to the addressbook
-// This ensures the addressbook stays in sync with wallet state
+// syncCoreAddresses adds the receive addresses of each Bitcoin Core wallet to
+// the addressbook.
 func (s *Server) syncCoreAddresses(ctx context.Context) error {
 	wallets, err := s.walletEngine.GetAllWallets(ctx)
 	if err != nil {
 		return fmt.Errorf("get wallets: %w", err)
 	}
 
-	// Sync addresses for each Bitcoin Core wallet
 	for _, wallet := range wallets {
 		if wallet.WalletType != engines.WalletTypeBitcoinCore {
 			continue
 		}
 
-		// Use the unified function to derive and check addresses
-		_, derivedAddresses, err := s.deriveAndCheckAddresses(ctx, wallet.ID)
+		addresses, err := s.walletEngine.DeriveReceiveAddresses(ctx, wallet.ID, addressScanDepth)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Err(err).
 				Str("wallet_id", wallet.ID).
@@ -450,12 +283,11 @@ func (s *Server) syncCoreAddresses(ctx context.Context) error {
 			continue
 		}
 
-		// Add all derived addresses to addressbook
-		for _, addr := range derivedAddresses {
-			err := addressbook.Create(ctx, s.database, &wallet.ID, "", addr.Address, addressbook.DirectionReceive)
+		for _, address := range addresses {
+			err := addressbook.Create(ctx, s.database, &wallet.ID, "", address, addressbook.DirectionReceive)
 			if err != nil && !strings.Contains(err.Error(), addressbook.ErrUniqueAddress) {
 				zerolog.Ctx(ctx).Debug().Err(err).
-					Str("address", addr.Address).
+					Str("address", address).
 					Str("wallet_id", wallet.ID).
 					Msg("save address to addressbook")
 			}
@@ -485,34 +317,6 @@ func (s *Server) startAddressSyncLoop(ctx context.Context) {
 			}
 		}
 	}
-}
-
-// getBitcoinCoreAddress is a helper to get a new address from Bitcoin Core wallets
-func (s *Server) getBitcoinCoreAddress(
-	ctx context.Context,
-	walletId string,
-	getWalletName func(context.Context, string) (string, error),
-	addressType string,
-) (string, error) {
-	walletName, err := getWalletName(ctx, walletId)
-	if err != nil {
-		return "", fmt.Errorf("get wallet name: %w", err)
-	}
-
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-		Wallet:      walletName,
-		AddressType: addressType,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("bitcoin core get new address: %w", err)
-	}
-
-	return resp.Msg.Address, nil
 }
 
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
@@ -855,153 +659,22 @@ func (s *Server) createWalletSidechainDeposit(
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{Txid: txid}), nil
 }
 
-// addressScanDepth bounds how far along the external chain the wallet derives
-// receiving addresses, and so how far a signable address can sit.
+// addressScanDepth bounds how far along a receive chain a signable address can
+// sit, and how many receive addresses the addressbook sync adds.
 const addressScanDepth = 100
-
-// walletScriptKinds returns the script kinds a wallet's receive descriptors were
-// imported with, mirroring engines.coreDescriptors.
-func walletScriptKinds(wallet *engines.WalletInfo) ([]orchwallet.ScriptKind, error) {
-	// Core wallets import BIP84+BIP86, Electrum ones can be at m/44' or m/49',
-	// and the stored wallet does not say which — so try every standard purpose.
-	if strings.TrimSpace(wallet.DerivationPath) == "" {
-		return []orchwallet.ScriptKind{
-			orchwallet.ScriptNativeSegwit,
-			orchwallet.ScriptTaproot,
-			orchwallet.ScriptNestedSegwit,
-			orchwallet.ScriptLegacy,
-		}, nil
-	}
-
-	accountPath, err := orchwallet.ParseAccountPath(wallet.DerivationPath)
-	if err != nil {
-		return nil, fmt.Errorf("invalid derivation path: %w", err)
-	}
-
-	kind, ok := orchwallet.PurposeToCoreKind(accountPath.Purpose)
-	if !ok {
-		return nil, fmt.Errorf("unsupported derivation purpose %d'", accountPath.Purpose)
-	}
-
-	return []orchwallet.ScriptKind{kind}, nil
-}
-
-// deriveExternalChainKey derives the external chain a wallet's addresses of this
-// script kind come from, at the account path its descriptors were imported with.
-func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, kind orchwallet.ScriptKind) (*hdkeychain.ExtendedKey, error) {
-	seed, err := hex.DecodeString(wallet.Master.SeedHex)
-	if err != nil {
-		return nil, fmt.Errorf("decode seed: %w", err)
-	}
-
-	masterKey, err := hdkeychain.NewMaster(seed, chainParams)
-	if err != nil {
-		return nil, fmt.Errorf("derive master key: %w", err)
-	}
-
-	accountPath, err := orchwallet.ResolveAccountPath(
-		wallet.AccountIndex, wallet.DerivationPath, kind, chainParams,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("resolve account path: %w", err)
-	}
-
-	account, err := engines.DeriveHardenedPath(masterKey, accountPath)
-	if err != nil {
-		return nil, fmt.Errorf("derive account: %w", err)
-	}
-
-	external, err := account.Derive(0)
-	if err != nil {
-		return nil, fmt.Errorf("derive external chain: %w", err)
-	}
-
-	return external, nil
-}
-
-// receiveAddressForKind builds the receiving address a pubkey produces under kind.
-func receiveAddressForKind(kind orchwallet.ScriptKind, pubKey *btcec.PublicKey, chainParams *chaincfg.Params) (btcutil.Address, error) {
-	pkHash := btcutil.Hash160(pubKey.SerializeCompressed())
-
-	if kind == orchwallet.ScriptNativeSegwit {
-		return btcutil.NewAddressWitnessPubKeyHash(pkHash, chainParams)
-	}
-
-	if kind == orchwallet.ScriptTaproot {
-		return btcutil.NewAddressTaproot(schnorr.SerializePubKey(txscript.ComputeTaprootKeyNoScript(pubKey)), chainParams)
-	}
-
-	if kind == orchwallet.ScriptLegacy {
-		return btcutil.NewAddressPubKeyHash(pkHash, chainParams)
-	}
-
-	if kind == orchwallet.ScriptNestedSegwit {
-		witness, err := btcutil.NewAddressWitnessPubKeyHash(pkHash, chainParams)
-		if err != nil {
-			return nil, err
-		}
-
-		redeem, err := txscript.PayToAddrScript(witness)
-		if err != nil {
-			return nil, err
-		}
-
-		return btcutil.NewAddressScriptHash(redeem, chainParams)
-	}
-
-	return nil, fmt.Errorf("unsupported script kind %s", kind)
-}
 
 // deriveMessageSigningPrivateKey returns the key behind address, so the
 // signature proves ownership of that address rather than some other one.
 func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (*btcec.PrivateKey, error) {
-	kinds, err := walletScriptKinds(wallet)
-	if err != nil {
-		return nil, err
+	if wallet.Master.SeedHex == "" {
+		return nil, errors.New("wallet has no seed to sign with")
 	}
-
-	for _, kind := range kinds {
-		external, err := deriveExternalChainKey(wallet, chainParams, kind)
-		if err != nil {
-			return nil, err
-		}
-
-		for i := uint32(0); i < addressScanDepth; i++ {
-			addrKey, err := external.Derive(i)
-			if err != nil {
-				return nil, fmt.Errorf("derive address %d: %w", i, err)
-			}
-
-			pubKey, err := addrKey.ECPubKey()
-			if err != nil {
-				return nil, fmt.Errorf("get public key %d: %w", i, err)
-			}
-
-			derived, err := receiveAddressForKind(kind, pubKey, chainParams)
-			if err != nil {
-				return nil, fmt.Errorf("create address %d: %w", i, err)
-			}
-
-			if derived.EncodeAddress() != address {
-				continue
-			}
-
-			privKey, err := addrKey.ECPrivKey()
-			if err != nil {
-				return nil, fmt.Errorf("get private key %d: %w", i, err)
-			}
-
-			// A taproot address commits to the tweaked output key, so the
-			// untweaked internal key would sign for a key nobody can check.
-			if kind == orchwallet.ScriptTaproot {
-				privKey = txscript.TweakTaprootPrivKey(*privKey, []byte{})
-			}
-
-			return privKey, nil
-		}
-	}
-
-	return nil, fmt.Errorf("address %s is not one of the wallet's first %d receiving addresses", address, addressScanDepth)
+	return orchwallet.SigningKey(&orchwallet.WalletData{
+		Master:         orchwallet.MasterWallet{SeedHex: wallet.Master.SeedHex},
+		ScriptType:     wallet.ScriptType,
+		AccountIndex:   wallet.AccountIndex,
+		DerivationPath: wallet.DerivationPath,
+	}, chainParams, address, addressScanDepth)
 }
 
 // SignMessage implements walletv1connect.WalletServiceHandler.

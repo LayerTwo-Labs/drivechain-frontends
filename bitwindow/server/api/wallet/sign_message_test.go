@@ -24,9 +24,10 @@ import (
 
 const testSeedHex = "0329e77e27d1e24336be53d25a897e92e67b5ec7e88eca7529b14e3ffd9168a247b6906469fb8a79ecb25ec077e033f6b567d5d9b0ae334f1e33457ae6bb1364"
 
-// signingWallet is a seed-only wallet at the given account override.
-func signingWallet(accountIndex uint32, derivationPath string) *engines.WalletInfo {
-	wallet := &engines.WalletInfo{AccountIndex: accountIndex, DerivationPath: derivationPath}
+// signingWallet is a seed-only wallet at the given account override and stored
+// script type.
+func signingWallet(accountIndex uint32, derivationPath, scriptType string) *engines.WalletInfo {
+	wallet := &engines.WalletInfo{AccountIndex: accountIndex, DerivationPath: derivationPath, ScriptType: scriptType}
 	wallet.Master.SeedHex = testSeedHex
 	return wallet
 }
@@ -72,7 +73,7 @@ func TestDeriveMessageSigningPrivateKey(t *testing.T) {
 		expected := deriveAddressKey(t, chainParams, 1, 0, index)
 
 		privKey, err := deriveMessageSigningPrivateKey(
-			signingWallet(0, ""), chainParams, addressOf(t, expected, chainParams),
+			signingWallet(0, "", ""), chainParams, addressOf(t, expected, chainParams),
 		)
 		require.NoError(t, err)
 
@@ -85,13 +86,13 @@ func TestDeriveMessageSigningPrivateKey(t *testing.T) {
 	// key here - signing it would be a lie.
 	beyondGap := deriveAddressKey(t, chainParams, 1, 0, addressScanDepth)
 	_, err := deriveMessageSigningPrivateKey(
-		signingWallet(0, ""), chainParams, addressOf(t, beyondGap, chainParams),
+		signingWallet(0, "", ""), chainParams, addressOf(t, beyondGap, chainParams),
 	)
 	require.ErrorContains(t, err, "not one of the wallet")
 
 	// Mainnet uses coin type 0, so the same index is a different address entirely
 	mainnetAddr := addressOf(t, deriveAddressKey(t, &chaincfg.MainNetParams, 0, 0, 0), &chaincfg.MainNetParams)
-	_, err = deriveMessageSigningPrivateKey(signingWallet(0, ""), chainParams, mainnetAddr)
+	_, err = deriveMessageSigningPrivateKey(signingWallet(0, "", ""), chainParams, mainnetAddr)
 	require.ErrorContains(t, err, "not one of the wallet")
 }
 
@@ -105,8 +106,8 @@ func TestDeriveMessageSigningPrivateKeyHonorsAccount(t *testing.T) {
 	address := addressOf(t, account5, chainParams)
 
 	for _, wallet := range []*engines.WalletInfo{
-		signingWallet(5, ""),
-		signingWallet(0, "m/84'/1'/5'"),
+		signingWallet(5, "", ""),
+		signingWallet(0, "m/84'/1'/5'", ""),
 	} {
 		privKey, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
 		require.NoError(t, err)
@@ -117,7 +118,7 @@ func TestDeriveMessageSigningPrivateKeyHonorsAccount(t *testing.T) {
 	}
 
 	// The default-account wallet does not own that address
-	_, err := deriveMessageSigningPrivateKey(signingWallet(0, ""), chainParams, address)
+	_, err := deriveMessageSigningPrivateKey(signingWallet(0, "", ""), chainParams, address)
 	require.ErrorContains(t, err, "not one of the wallet")
 }
 
@@ -147,8 +148,8 @@ func TestDeriveMessageSigningPrivateKeyHandlesTaproot(t *testing.T) {
 	)
 
 	for _, wallet := range []*engines.WalletInfo{
-		signingWallet(0, ""),            // taproot comes alongside segwit off one seed
-		signingWallet(0, "m/86'/1'/0'"), // explicit m/86' path is its single kind
+		signingWallet(0, "", ""),                   // taproot comes alongside segwit off one seed
+		signingWallet(0, "m/86'/1'/0'", "taproot"), // a taproot wallet on an explicit m/86' path
 	} {
 		privKey, err := deriveMessageSigningPrivateKey(wallet, chainParams, taproot.EncodeAddress())
 		require.NoError(t, err)
@@ -245,24 +246,25 @@ func pubKeyOf(t *testing.T, key *hdkeychain.ExtendedKey) *btcec.PublicKey {
 	return pubKey
 }
 
-// Electrum wallets can sit at m/44' or m/49', and the stored wallet does not say
-// which, so those addresses must resolve too.
+// A legacy or nested segwit wallet stores its script type, and signs for the
+// addresses of that type. A default wallet does not own them.
 func TestDeriveMessageSigningPrivateKeyHandlesLegacyAndNested(t *testing.T) {
 	t.Parallel()
 
 	chainParams := &chaincfg.SigNetParams
 
 	for _, tc := range []struct {
-		purpose uint32
-		path    string
-		address func(*testing.T, *btcec.PublicKey) string
+		purpose    uint32
+		path       string
+		scriptType string
+		address    func(*testing.T, *btcec.PublicKey) string
 	}{
-		{44, "m/44'/1'/0'", func(t *testing.T, pub *btcec.PublicKey) string {
+		{44, "m/44'/1'/0'", "legacy", func(t *testing.T, pub *btcec.PublicKey) string {
 			addr, err := btcutil.NewAddressPubKeyHash(btcutil.Hash160(pub.SerializeCompressed()), chainParams)
 			require.NoError(t, err)
 			return addr.EncodeAddress()
 		}},
-		{49, "m/49'/1'/0'", func(t *testing.T, pub *btcec.PublicKey) string {
+		{49, "m/49'/1'/0'", "nested-segwit", func(t *testing.T, pub *btcec.PublicKey) string {
 			witness, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pub.SerializeCompressed()), chainParams)
 			require.NoError(t, err)
 			redeem, err := txscript.PayToAddrScript(witness)
@@ -278,10 +280,13 @@ func TestDeriveMessageSigningPrivateKeyHandlesLegacyAndNested(t *testing.T) {
 		expected, err := key.ECPrivKey()
 		require.NoError(t, err)
 
-		for _, wallet := range []*engines.WalletInfo{signingWallet(0, ""), signingWallet(0, tc.path)} {
+		for _, wallet := range []*engines.WalletInfo{signingWallet(0, "", tc.scriptType), signingWallet(0, tc.path, tc.scriptType)} {
 			privKey, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
 			require.NoError(t, err)
 			require.Equal(t, expected.Serialize(), privKey.Serialize())
 		}
+
+		_, err = deriveMessageSigningPrivateKey(signingWallet(0, "", ""), chainParams, address)
+		require.ErrorContains(t, err, "not one of the wallet")
 	}
 }
