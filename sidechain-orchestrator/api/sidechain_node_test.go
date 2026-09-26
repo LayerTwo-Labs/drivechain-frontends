@@ -57,17 +57,15 @@ func TestCoreForkAnswersOnlyWhatItDrives(t *testing.T) {
 	assert.Contains(t, err.Error(), "proposes no withdrawal bundle")
 }
 
-// FreeBank blind merge mines with its own refreshbmm ticker and settles
-// withdrawals on its own paths, so it is a Node and nothing more.
-func TestFreebankAnswersNeitherBMMNorWithdrawals(t *testing.T) {
+// The BMM engine drives FreeBank blocks through the node's get_block_template
+// and connect_block, but FreeBank settles withdrawals on its own paths.
+func TestFreebankAnswersBMMButNotWithdrawals(t *testing.T) {
 	cfg := orchestrator.BinaryConfig{Name: "freebank", DisplayName: "FreeBank", Port: 8454, IsBitcoinCore: true}
 	node, err := sidechainNode(cfg, config.NetworkRegtest)
 	require.NoError(t, err)
 
 	_, err = bmmNode(cfg, config.NetworkRegtest)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "FreeBank")
-	assert.Contains(t, err.Error(), "produces its own blocks")
+	require.NoError(t, err)
 
 	_, err = withdrawalNode(node, cfg.DisplayName)
 	require.Error(t, err)
