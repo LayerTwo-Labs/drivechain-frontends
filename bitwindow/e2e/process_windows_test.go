@@ -26,19 +26,22 @@ func interruptProcessGroup(cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil {
 		return errors.New("no process")
 	}
-	// GenerateConsoleCtrlEvent is unreliable across process groups that don't
-	// share a console — defer to taskkill which is the canonical way to
-	// terminate a process tree gracefully on Windows.
-	return runTaskkill(cmd.Process.Pid, false)
+	// `just` is a console process with no window, so taskkill without /F never
+	// reaches it. The child leads its own group, so Ctrl+Break does.
+	proc := syscall.NewLazyDLL("kernel32.dll").NewProc("GenerateConsoleCtrlEvent")
+	if sent, _, err := proc.Call(syscall.CTRL_BREAK_EVENT, uintptr(cmd.Process.Pid)); sent == 0 {
+		return fmt.Errorf("GenerateConsoleCtrlEvent CTRL_BREAK to %d: %w", cmd.Process.Pid, err)
+	}
+	return nil
 }
 
-// terminateProcessGroup is the same as interrupt on Windows — taskkill
-// without /F asks the process to exit.
+// terminateProcessGroup force-kills the whole tree. Windows has no SIGTERM,
+// and the interrupt above already covers the request-to-exit stage.
 func terminateProcessGroup(cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil {
 		return errors.New("no process")
 	}
-	return runTaskkill(cmd.Process.Pid, false)
+	return runTaskkill(cmd.Process.Pid, true)
 }
 
 // killProcessGroup force-kills the whole tree (taskkill /T /F).
