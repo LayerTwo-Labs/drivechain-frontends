@@ -105,8 +105,14 @@ func makeTempDataDir(t *testing.T) string {
 
 func startJustRunIn(t *testing.T, dataDir string, extraEnv map[string]string) *runHandle {
 	t.Helper()
-
 	sweepPriorRunOrphans(t)
+	return launchJustRun(t, dataDir, extraEnv)
+}
+
+// launchJustRun starts `just run` and leaves a daemon of an earlier launch
+// alone. The fast-relaunch test needs that overlap, and the sweep kills it.
+func launchJustRun(t *testing.T, dataDir string, extraEnv map[string]string) *runHandle {
+	t.Helper()
 
 	bitwindowDir := bitwindowRepoDir(t)
 
