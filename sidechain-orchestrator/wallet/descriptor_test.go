@@ -426,3 +426,31 @@ func TestWatchOnlyImportHonoursTheChosenAddressType(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, byte('1'), ds.address.EncodeAddress()[0], "a legacy import must scan 1-prefixed addresses")
 }
+
+// Core takes each branch as its own descriptor, with the key encoded for the
+// network it runs on.
+func TestCoreImportsRenderBothBranchesForTheNetwork(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	watch, err := ParseDescriptor("wpkh([73c5da0a/84h/0h/0h]" + accountXpub(t, seedHex, &chaincfg.MainNetParams) + "/0/*)")
+	require.NoError(t, err)
+	hot, err := DescriptorFor(&WalletData{Master: MasterWallet{SeedHex: seedHex}}, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+
+	for prefix, d := range map[string]*Descriptor{"tpub": watch, "tprv": hot} {
+		imports, err := d.coreImports(net, 0)
+		require.NoError(t, err)
+		require.Len(t, imports, 2)
+		assert.Regexp(t, `^wpkh\(\[73c5da0a/84'/[01]'/0'\]`+prefix+`[1-9A-HJ-NP-Za-km-z]+/0/\*\)#[a-z0-9]{8}$`, imports[0].Desc)
+		assert.False(t, imports[0].Internal)
+		assert.Contains(t, imports[1].Desc, "/1/*)#")
+		assert.True(t, imports[1].Internal)
+		for _, imp := range imports {
+			assert.True(t, imp.Active)
+			assert.Equal(t, []int{0, 999}, imp.Range)
+			assert.Equal(t, 0, imp.Timestamp)
+			_, err := stripDescriptorChecksum(imp.Desc)
+			require.NoError(t, err)
+		}
+	}
+}

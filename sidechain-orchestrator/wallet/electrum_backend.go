@@ -2093,44 +2093,42 @@ func (p *ElectrumBackend) walletDescriptor(w *WalletData) (*Descriptor, error) {
 	return p.walletDescriptorFor(w, w.scriptKind())
 }
 
-// walletDescriptorFor builds the parsed output descriptor for one of a wallet's
-// script kinds: from its seed + the kind when hot (the account key is private,
-// so its addresses can be signed), or from its single stored watch-only
-// descriptor otherwise (watch-only wallets are single-kind, so kind is ignored).
+// walletDescriptorFor builds the descriptor for one of a wallet's script kinds.
 func (p *ElectrumBackend) walletDescriptorFor(w *WalletData, kind ScriptKind) (*Descriptor, error) {
-	net := p.params()
-	if net == nil {
-		return nil, errors.New("no chain params for this network; cannot derive electrum wallet")
-	}
-	if w.Multisig != nil {
-		return p.multisigSigningDescriptor(w)
-	}
-	if w.Master.SeedHex != "" {
-		ap, err := accountPathFor(w, kind, net)
-		if err != nil {
-			return nil, err
-		}
-		acct, origin, err := accountKeyAndOrigin(w.Master.SeedHex, ap, net)
-		if err != nil {
-			return nil, err
-		}
-		return &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Origin: origin, Account: acct}}}, nil
-	}
-	desc, err := watchOnlyDescriptorString(w)
-	if err != nil {
-		return nil, err
-	}
-	// A bare xpub states no kind, so the one recorded at import decides.
-	return ParseDescriptorAs(desc, w.scriptKind())
+	p.warnNoOrigin(w)
+	return DescriptorFor(w, kind, p.params())
 }
 
-// multisigSigningDescriptor builds the wallet's multisig descriptor, substituting
-// each held cosigner's account xprv for its xpub (so deriveAddr yields signing
-// keys) while external legs stay xpubs. The resulting descriptor derives the same
-// addresses as the watch-only one and is signed through the same PSBT path as any
-// other input — held keys are just signers that happen to live on disk.
-func (p *ElectrumBackend) multisigSigningDescriptor(w *WalletData) (*Descriptor, error) {
-	return p.multisigSigningDescriptorFor(w, "")
+// multisigSigningDescriptorFor builds the multisig descriptor that signs with
+// the held cosigners, or with the one cosigner onlyXpub names.
+func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub string) (*Descriptor, error) {
+	p.warnNoOrigin(w)
+	return multisigDescriptor(w, onlyXpub, p.params())
+}
+
+// warnNoOrigin names each multisig cosigner that has no key origin, one time
+// for each wallet. A hardware signer cannot place such a key in the script it
+// rebuilds, and the device reports only a bad signature.
+func (p *ElectrumBackend) warnNoOrigin(w *WalletData) {
+	if w.Multisig == nil {
+		return
+	}
+	var noOrigin []string
+	for _, c := range w.Multisig.Cosigners {
+		if c.Fingerprint == "" {
+			noOrigin = append(noOrigin, shortXpub(c.Xpub))
+		}
+	}
+	if len(noOrigin) == 0 {
+		return
+	}
+	if _, seen := p.warnedNoOrigin.LoadOrStore(w.ID, true); seen {
+		return
+	}
+	p.log.Warn().
+		Str("wallet", w.ID).
+		Strs("cosigners", noOrigin).
+		Msg("cosigner has no key origin; a hardware signer cannot rebuild this script")
 }
 
 // shortXpub names a key in a log line without printing the whole thing.
@@ -2139,79 +2137,6 @@ func shortXpub(xpub string) string {
 		return xpub
 	}
 	return xpub[:12] + "…" + xpub[len(xpub)-4:]
-}
-
-// multisigSigningDescriptorFor builds the multisig descriptor with held cosigners
-// substituted as their xprv. When onlyXpub is non-empty, only that cosigner's
-// xprv is substituted (the rest stay xpubs), so signing adds a single cosigner's
-// signature — the per-keystore signing path.
-func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub string) (*Descriptor, error) {
-	net := p.params()
-	ms := w.Multisig
-	if ms == nil {
-		return nil, errors.New("wallet has no multisig config")
-	}
-	group := MultisigLoungeGroup{M: ms.M, N: ms.N}
-	signWithXprv := map[string]string{}
-	// A cosigner with no origin reaches the PSBT as a bare key, and a hardware
-	// signer cannot place it in the script it rebuilds. Name it here: the device
-	// reports only a bad signature, which says nothing about which leg is short.
-	var noOrigin []string
-	for _, c := range ms.Cosigners {
-		if c.Fingerprint == "" {
-			noOrigin = append(noOrigin, shortXpub(c.Xpub))
-		}
-		group.Keys = append(group.Keys, MultisigLoungeKey{
-			Xpub:        c.Xpub,
-			Fingerprint: c.Fingerprint,
-			OriginPath:  c.OriginPath,
-			// Emit a key-origin prefix for every cosigner we know a fingerprint
-			// for, so each origin lands in the PSBT. A hardware signer needs all
-			// of them to rebuild the multisig script it signs over.
-			IsWallet: c.Fingerprint != "",
-		})
-		if !c.Held() {
-			continue
-		}
-		if onlyXpub != "" && c.Xpub != onlyXpub {
-			continue
-		}
-		xprv := c.Xprv
-		if xprv == "" {
-			seedHex := hex.EncodeToString(MnemonicToSeed(c.Mnemonic, c.Passphrase))
-			x, _, err := DeriveAccountXprv(seedHex, "m/"+c.OriginPath, net)
-			if err != nil {
-				return nil, fmt.Errorf("derive cosigner xprv: %w", err)
-			}
-			xprv = x
-		}
-		signWithXprv[c.Xpub] = xprv
-	}
-
-	if len(noOrigin) > 0 {
-		if _, seen := p.warnedNoOrigin.LoadOrStore(w.ID, true); seen {
-			noOrigin = nil
-		}
-	}
-	if len(noOrigin) > 0 {
-		p.log.Warn().
-			Str("wallet", w.ID).
-			Strs("cosigners", noOrigin).
-			Msg("cosigner has no key origin; a hardware signer cannot rebuild this script")
-	}
-
-	scriptType := multisigTypeString(w.scriptKind())
-	var receive string
-	var err error
-	if len(signWithXprv) > 0 {
-		receive, _, err = BuildMultisigSigningDescriptorsTyped(group, signWithXprv, scriptType)
-	} else {
-		receive, _, err = BuildMultisigLoungeDescriptorsTyped(group, scriptType)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return ParseDescriptor(receive)
 }
 
 // deriveAddr resolves one address of a descriptor, enriching it with the signing
@@ -2953,27 +2878,6 @@ func (p *ElectrumBackend) hydrate(ctx context.Context, walletID string, a *scann
 	}
 	a.txs = txs
 	return nil
-}
-
-// watchOnlyDescriptorString returns the descriptor (or bare xpub) stored in a
-// watch-only wallet's payload, for ParseDescriptor.
-func watchOnlyDescriptorString(w *WalletData) (string, error) {
-	var stored struct {
-		Xpub       string `json:"xpub"`
-		Descriptor string `json:"descriptor"`
-	}
-	if len(w.WatchOnly) > 0 {
-		if err := json.Unmarshal(w.WatchOnly, &stored); err != nil {
-			return "", fmt.Errorf("parse watch-only data: %w", err)
-		}
-	}
-	if stored.Descriptor != "" {
-		return stored.Descriptor, nil
-	}
-	if stored.Xpub != "" {
-		return stored.Xpub, nil
-	}
-	return "", errors.New("watch-only electrum wallet has no descriptor or xpub")
 }
 
 func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, walletID string, k WatchKey, prior *electrumScan) (scannedAddr, error) {

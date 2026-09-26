@@ -1,98 +1,19 @@
 package wallet
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/tyler-smith/go-bip32"
-	"golang.org/x/crypto/ripemd160" //nolint:staticcheck // Bitcoin protocol requires RIPEMD160
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 )
 
-// serializeKeyForNetwork serializes a BIP32 key, patching the version bytes to
-// match the network. go-bip32 hardcodes mainnet xprv version bytes; for any
-// other chain Core rejects the serialized key, so we strip + replace + re-sum.
-func serializeKeyForNetwork(key *bip32.Key, network *chaincfg.Params) string {
-	if network == nil {
-		panic("serializeKeyForNetwork: no network; a key's version bytes name its chain")
-	}
-	if network.HDPrivateKeyID == chaincfg.MainNetParams.HDPrivateKeyID {
-		return key.String()
-	}
-
-	// key.Serialize() returns the full 82-byte payload (78 data + 4 checksum).
-	// We need to strip the existing checksum, replace version bytes, then
-	// re-encode with a fresh checksum so Bitcoin Core accepts the key.
-	serialized, err := key.Serialize()
-	if err != nil {
-		return key.String()
-	}
-
-	// serialized is 82 bytes: [4 version][74 data][4 checksum].
-	// Strip old checksum, patch version, recompute.
-	raw := serialized[:78]
-	copy(raw[0:4], network.HDPrivateKeyID[:])
-	return base58CheckEncode(raw)
-}
-
 // DeriveBIP84Addresses derives external-chain P2WPKH receive addresses
-// (m/84'/coin'/0'/0/i) from a BIP32 seed, locally, without any backend.
+// (m/84'/coin'/0'/0/i) of a BIP32 seed.
 func DeriveBIP84Addresses(seedHex string, net *chaincfg.Params, start, count int) ([]string, error) {
-	if net == nil {
-		return nil, fmt.Errorf("no chain params for this network; cannot derive addresses")
-	}
-	seed, err := hex.DecodeString(seedHex)
-	if err != nil {
-		return nil, fmt.Errorf("decode seed hex: %w", err)
-	}
-	masterKey, err := bip32.NewMasterKey(seed)
-	if err != nil {
-		return nil, fmt.Errorf("create master key: %w", err)
-	}
-	purpose, err := masterKey.NewChildKey(bip32.FirstHardenedChild + 84)
-	if err != nil {
-		return nil, fmt.Errorf("derive purpose: %w", err)
-	}
-	coin, err := purpose.NewChildKey(bip32.FirstHardenedChild + net.HDCoinType)
-	if err != nil {
-		return nil, fmt.Errorf("derive coin: %w", err)
-	}
-	account, err := coin.NewChildKey(bip32.FirstHardenedChild + 0)
-	if err != nil {
-		return nil, fmt.Errorf("derive account: %w", err)
-	}
-	external, err := account.NewChildKey(0)
-	if err != nil {
-		return nil, fmt.Errorf("derive external chain: %w", err)
-	}
-
-	addrs := make([]string, 0, count)
-	for i := start; i < start+count; i++ {
-		child, err := external.NewChildKey(uint32(i))
-		if err != nil {
-			return nil, fmt.Errorf("derive index %d: %w", i, err)
-		}
-		addr, err := btcutil.NewAddressWitnessPubKeyHash(hash160(child.PublicKey().Key), net)
-		if err != nil {
-			return nil, fmt.Errorf("address at index %d: %w", i, err)
-		}
-		addrs = append(addrs, addr.EncodeAddress())
-	}
-	return addrs, nil
-}
-
-// masterFingerprint computes the master fingerprint from a BIP32 key.
-// Hash160(compressed_pubkey)[:4], hex encoded.
-func masterFingerprint(masterKey *bip32.Key) string {
-	pubKey := masterKey.PublicKey()
-	h := hash160(pubKey.Key)
-	return hex.EncodeToString(h[:4])
+	return DeriveWalletReceiveAddresses(&WalletData{Master: MasterWallet{SeedHex: seedHex}}, net, start, count)
 }
 
 // Bip47PaymentCodeFromSeed returns the BIP47 v1 spec-compliant payment code
@@ -112,14 +33,6 @@ func Bip47PaymentCodeFromSeed(seedHex string, net *chaincfg.Params) (string, err
 		return "", fmt.Errorf("bip47: derive payment code: %w", err)
 	}
 	return pc.Base58(), nil
-}
-
-// hash160 computes RIPEMD160(SHA256(data)).
-func hash160(data []byte) []byte {
-	sha := sha256.Sum256(data)
-	ripemd := ripemd160.New()
-	ripemd.Write(sha[:])
-	return ripemd.Sum(nil)
 }
 
 // mustAddChecksum adds a descriptor checksum, panicking on error (for known-good descriptors).

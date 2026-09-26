@@ -160,14 +160,14 @@ func parseRawKey(raw string) (xpub, fingerprint, originPath string, err error) {
 // singleSigWatchDescriptor builds the canonical checksummed watch descriptor
 // wrap([fp/origin]xpub/<0;1>/*) for a single-sig kind.
 func singleSigWatchDescriptor(kind ScriptKind, fingerprint, originPath, xpub string) (string, error) {
-	open, close, ok := coreDescriptorWrapper(kind)
-	if !ok {
+	if _, ok := kind.Purpose(); !ok {
 		return "", fmt.Errorf("no single-sig descriptor for kind %s", kind)
 	}
-	raw := fmt.Sprintf("%s[%s/%s]%s/<0;1>/*%s", open, fingerprint, originPath, xpub, close)
-	d, err := ParseDescriptor(raw)
+	key, err := parseKeyExpr(xpub)
 	if err != nil {
 		return "", err
 	}
+	key.Origin = fingerprint + "/" + originPath
+	d := &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{key}}
 	return d.String()
 }
