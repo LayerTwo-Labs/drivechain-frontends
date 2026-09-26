@@ -23,7 +23,8 @@ func TestJustRunBootsDaemons(t *testing.T) {
 	run := startJustRun(t, nil)
 	t.Cleanup(func() {
 		run.dumpDiagnostics(t)
-		run.stop(t, 15*time.Second)
+		// A cleanup does not test the graceful path; the shutdown test does.
+		run.stop(t, 3*time.Second)
 	})
 
 	// 1. bitwindowd process — Flutter spawns it directly.
