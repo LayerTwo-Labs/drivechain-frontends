@@ -51,6 +51,7 @@ func TestArgsPinTheForkBlock(t *testing.T) {
 		"-mainchainrest=127.0.0.1:18302",
 		"-mainchainchain=main",
 		"-mainchainblockpin=967680:00000000000000030101ba5cfea54b22becc79f95dc6040beb76e01dd9d04042",
+		"-bmmbidder=engine",
 	}, args)
 }
 

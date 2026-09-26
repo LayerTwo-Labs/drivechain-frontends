@@ -91,6 +91,16 @@ func (e *rpcError) Error() string {
 	return fmt.Sprintf("%s RPC error %d: %s", e.chain, e.Code, e.Message)
 }
 
+// RPCErrorCode returns the JSON-RPC error code a node answered with, if err
+// carries one.
+func RPCErrorCode(err error) (int, bool) {
+	var rpcErr *rpcError
+	if errors.As(err, &rpcErr) {
+		return rpcErr.Code, true
+	}
+	return 0, false
+}
+
 // IsMethodNotFound reports whether a node refused a call because it does not
 // have that method, as an older release of a fork does.
 func IsMethodNotFound(err error) bool {

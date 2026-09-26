@@ -18,6 +18,11 @@ var _ sidechain.BMMNode = (*Client)(nil)
 // of a bare "method not found".
 const tooOld = "this FreeBank node is too old for bidding from BitWindow (it needs v0.2.16 or later)"
 
+// notReadyCodes are the answers with which freebankd says "not on this tip yet,
+// ask again": -40 while its own block for the tip is arriving or it is
+// reindexing, -10 and -28 while it starts up.
+var notReadyCodes = map[int]bool{-40: true, -10: true, -28: true}
+
 // call sends one BMM method, and turns an older node's "method not found" into
 // a sentence a user can act on.
 func call[T any](ctx context.Context, c *Client, method string, params any) (T, error) {
@@ -25,6 +30,10 @@ func call[T any](ctx context.Context, c *Client, method string, params any) (T, 
 	if corenode.IsMethodNotFound(err) {
 		var zero T
 		return zero, fmt.Errorf("%s: %w", tooOld, err)
+	}
+	if code, ok := corenode.RPCErrorCode(err); ok && notReadyCodes[code] {
+		var zero T
+		return zero, fmt.Errorf("%w: %w", sidechain.ErrNotReady, err)
 	}
 	return result, err
 }
