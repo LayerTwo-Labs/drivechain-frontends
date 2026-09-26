@@ -277,8 +277,10 @@ func getSharedClient(ctx context.Context) *http.Client {
 					PingTimeout:      15 * time.Second,
 					WriteByteTimeout: 10 * time.Second,
 
+					// A metrics counter, not a fault report: an idle connection
+					// closes on its own keepalive and counts an error here.
 					CountError: func(errType string) {
-						zerolog.Ctx(ctx).Error().Msgf("HTTP/2 transport error: %s", errType)
+						zerolog.Ctx(ctx).Debug().Msgf("HTTP/2 transport error: %s", errType)
 					},
 				},
 			},
