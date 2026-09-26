@@ -149,6 +149,28 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Cache Go modules (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ env.GO_VERSION }}-${{ runner.os }}-
+
+      - name: Cache Go modules (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+          key: go-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ env.GO_VERSION }}-${{ runner.os }}-
+
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}

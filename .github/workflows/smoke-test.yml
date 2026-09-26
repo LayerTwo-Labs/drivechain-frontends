@@ -26,20 +26,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache Flutter SDK
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.flutter
-            ~/.pub-cache
-          key: flutter-smoke-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
-          restore-keys: |
-            flutter-smoke-${{ env.FLUTTER_VERSION }}-
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-sdk-:channel:-:version:-:os:-:arch:
+          pub-cache: true
+          pub-cache-key: flutter-pub-:channel:-:version:-:os:-:arch:
 
       - name: Install Linux dependencies
         run: |

@@ -23,8 +23,10 @@ case "$(uname -m)" in
 esac
 
 # CI builds both macOS arches (suffixed -arm64 / -x86_64); dev builds host only.
+# BITWINDOW_HOST_ARCH_ONLY forces the dev behaviour for a CI job that runs the
+# app instead of releasing it.
 if [[ "$os" == "darwin" ]]; then
-    if [[ -n "${CI:-}" ]]; then
+    if [[ -n "${CI:-}" && -z "${BITWINDOW_HOST_ARCH_ONLY:-}" ]]; then
         targets=("arm64:arm64" "amd64:x86_64")
     elif [[ "$(uname -m)" == "arm64" ]]; then
         targets=("arm64:arm64")
