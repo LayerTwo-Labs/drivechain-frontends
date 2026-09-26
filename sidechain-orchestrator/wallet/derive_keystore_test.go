@@ -45,6 +45,11 @@ func TestDeriveKeystoreSingleSigMnemonic(t *testing.T) {
 	require.Equal(t, "84'/0'/0'", out.OriginPath) // AccountPath renders hardened with '
 }
 
+func TestDeriveKeystoreRefusesAnInvalidMnemonic(t *testing.T) {
+	_, err := DeriveKeystore(context.Background(), KeystoreSource{Mnemonic: "abandon abandon"}, "native-segwit", false, 0, "", &chaincfg.MainNetParams)
+	require.ErrorContains(t, err, "invalid mnemonic")
+}
+
 func TestDeriveKeystoreMultisigMnemonic(t *testing.T) {
 	net := &chaincfg.MainNetParams
 	out, err := DeriveKeystore(context.Background(), KeystoreSource{Mnemonic: testMnemonic}, "wsh", true, 0, "", net)

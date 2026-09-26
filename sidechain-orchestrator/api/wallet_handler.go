@@ -450,11 +450,17 @@ func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.R
 	cosigners := make([]wallet.MultisigCosigner, 0, len(req.Msg.Cosigners))
 	for _, c := range req.Msg.Cosigners {
 		xpub := c.Xpub
+		mnemonic := c.Mnemonic
 		// For a held cosigner, derive the authoritative xpub from its seed +
 		// passphrase so the stored (watch-only) key can never disagree with the
 		// signing key — the wallet always watches exactly what it can sign.
-		if c.Mnemonic != "" {
-			seedHex := hex.EncodeToString(wallet.MnemonicToSeed(c.Mnemonic, c.Passphrase))
+		if mnemonic != "" {
+			var err error
+			mnemonic, err = wallet.ParseMnemonic(mnemonic)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cosigner mnemonic: %w", err))
+			}
+			seedHex := hex.EncodeToString(wallet.MnemonicToSeed(mnemonic, c.Passphrase))
 			_, derived, err := wallet.DeriveAccountXprv(seedHex, "m/"+c.OriginPath, net)
 			if err != nil {
 				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive cosigner xpub: %w", err))
@@ -468,7 +474,7 @@ func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.R
 			Xpub:               xpub,
 			OriginPath:         c.OriginPath,
 			Fingerprint:        c.Fingerprint,
-			Mnemonic:           c.Mnemonic,
+			Mnemonic:           mnemonic,
 			Passphrase:         c.Passphrase,
 			Xprv:               c.Xprv,
 			HardwareDeviceType: c.HardwareDeviceType,

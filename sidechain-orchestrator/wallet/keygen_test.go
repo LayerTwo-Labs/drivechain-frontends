@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"crypto/sha512"
 	"encoding/hex"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 func TestGenerateMnemonic(t *testing.T) {
@@ -63,6 +65,16 @@ func TestMnemonicToSeedWithPassphrase(t *testing.T) {
 
 	assert.Len(t, seed2, 64)
 	assert.NotEqual(t, seed1, seed2, "different passphrases should produce different seeds")
+}
+
+// BIP39 hashes the passphrase in NFKD, so a composed and a decomposed é give
+// one seed.
+func TestMnemonicToSeedAppliesNFKDToThePassphrase(t *testing.T) {
+	composed := MnemonicToSeed(testMnemonic, "caf\u00e9")
+	decomposed := MnemonicToSeed(testMnemonic, "cafe\u0301")
+	assert.Equal(t, decomposed, composed)
+	assert.Equal(t, pbkdf2.Key([]byte(testMnemonic), []byte("mnemonic"+"cafe\u0301"), 2048, 64, sha512.New), composed)
+	assert.NotEqual(t, bip39.NewSeed(testMnemonic, "caf\u00e9"), composed)
 }
 
 func TestMnemonicToSeedDeterministic(t *testing.T) {
@@ -216,6 +228,24 @@ func TestGenerateFullWalletWithCustomMnemonic(t *testing.T) {
 	// Verify known seed hex for "abandon" mnemonic with no passphrase
 	expectedSeedHex := "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4"
 	assert.Equal(t, expectedSeedHex, wallet.Master.SeedHex)
+}
+
+// A pasted phrase keeps its words, not its whitespace or its case.
+func TestGenerateFullWalletNormalizesThePastedPhrase(t *testing.T) {
+	const seedHex = "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4"
+	for _, pasted := range []string{
+		testMnemonic + "\n",
+		"  " + testMnemonic,
+		strings.ReplaceAll(testMnemonic, " ", "\t"),
+		strings.ReplaceAll(testMnemonic, " ", "  "),
+		strings.ReplaceAll(testMnemonic, " ", "\u00a0"),
+		"Abandon" + strings.TrimPrefix(testMnemonic, "abandon"),
+	} {
+		wallet, err := GenerateFullWallet("Pasted", pasted, "", nil, WalletTypeElectrum)
+		require.NoError(t, err, "%q", pasted)
+		assert.Equal(t, testMnemonic, wallet.Master.Mnemonic, "%q", pasted)
+		assert.Equal(t, seedHex, wallet.Master.SeedHex, "%q", pasted)
+	}
 }
 
 func TestGenerateFullWalletInvalidCustomMnemonic(t *testing.T) {

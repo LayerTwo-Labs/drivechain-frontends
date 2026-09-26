@@ -631,8 +631,7 @@ func (s *Service) GenerateWalletFromEntropy(entropy []byte, passphrase string, d
 		return nil, fmt.Errorf("create mnemonic from entropy: %w", err)
 	}
 
-	// Generate seed (bip39 library uses PBKDF2-HMAC-SHA512 internally)
-	seed := bip39.NewSeed(mnemonic, passphrase)
+	seed := MnemonicToSeed(mnemonic, passphrase)
 	seedHex := hex.EncodeToString(seed)
 
 	// Create master key

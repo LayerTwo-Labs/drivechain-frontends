@@ -1,11 +1,13 @@
 package wallet
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 )
 
@@ -77,10 +79,9 @@ func multisigDescriptor(w *WalletData, onlyXpub string, net *chaincfg.Params) (*
 		}
 		xprv := c.Xprv
 		if xprv == "" {
-			seedHex := hex.EncodeToString(MnemonicToSeed(c.Mnemonic, c.Passphrase))
-			x, _, err := DeriveAccountXprv(seedHex, "m/"+c.OriginPath, net)
+			x, err := cosignerXprv(c, net)
 			if err != nil {
-				return nil, fmt.Errorf("derive cosigner xprv: %w", err)
+				return nil, err
 			}
 			xprv = x
 		}
@@ -99,6 +100,35 @@ func multisigDescriptor(w *WalletData, onlyXpub string, net *chaincfg.Params) (*
 		return nil, err
 	}
 	return ParseDescriptor(receive)
+}
+
+// cosignerXprv derives the account xprv of a cosigner held as a mnemonic. It
+// must be the key the stored xpub names.
+func cosignerXprv(c MultisigCosigner, net *chaincfg.Params) (string, error) {
+	stored, err := parseKeyExpr(c.Xpub)
+	if err != nil {
+		return "", fmt.Errorf("cosigner xpub: %w", err)
+	}
+	seedHex := hex.EncodeToString(MnemonicToSeed(c.Mnemonic, c.Passphrase))
+	key, err := deriveMultisigAccountKey(seedHex, "m/"+c.OriginPath, net)
+	if err != nil {
+		return "", fmt.Errorf("derive cosigner xprv: %w", err)
+	}
+	if !sameAccountKey(key, stored.Account) {
+		return "", fmt.Errorf("the seed of cosigner %s does not derive its stored key", shortXpub(c.Xpub))
+	}
+	return key.String(), nil
+}
+
+// sameAccountKey reports whether two extended keys hold the same public key
+// and chain code.
+func sameAccountKey(a, b *hdkeychain.ExtendedKey) bool {
+	pubA, errA := a.ECPubKey()
+	pubB, errB := b.ECPubKey()
+	if errA != nil || errB != nil {
+		return false
+	}
+	return bytes.Equal(pubA.SerializeCompressed(), pubB.SerializeCompressed()) && bytes.Equal(a.ChainCode(), b.ChainCode())
 }
 
 // watchOnlyDescriptorString returns the descriptor (or bare xpub) stored in a
