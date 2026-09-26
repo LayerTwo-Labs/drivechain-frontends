@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -2560,4 +2561,96 @@ func TestCoreReceiveListAddsEveryCoinOnAnAddress(t *testing.T) {
 	out := coreReceiveList([]ReceivedByAddress{{Address: addr}}, utxos)
 	require.Len(t, out, 1)
 	require.EqualValues(t, 3, out[0].BalanceSats)
+}
+
+// Core reads more policies than the parser. An old watch-only wallet that holds
+// one imports it as the user gave it, and scans from genesis.
+func TestCoreBackendImportsAPolicyTheParserRejectsAsStored(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	first := accountXpub(t, hex.EncodeToString(MnemonicToSeed(testMnemonic, "")), net)
+	second := accountXpub(t, hex.EncodeToString(MnemonicToSeed(testMnemonic, "second")), net)
+	multi := "wsh(multi(1," + first + "/0/*," + second + "/0/*))"
+	_, err := ParseDescriptor(multi)
+	require.Error(t, err)
+	summed, err := AddDescriptorChecksum(multi)
+	require.NoError(t, err)
+
+	dir := t.TempDir()
+	body, err := json.Marshal(map[string]any{
+		"wallets": []map[string]any{
+			{"id": "WATCHBARE", "name": "Bare", "wallet_type": "bitcoinCore", "watch_only": map[string]string{"descriptor": multi}},
+			{"id": "WATCHSUMMED", "name": "Summed", "wallet_type": "bitcoinCore", "watch_only": map[string]string{"descriptor": summed}},
+		},
+		"activeWalletId": "WATCHBARE",
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), body, 0o600))
+	svc := NewService(dir, zerolog.New(zerolog.NewTestWriter(t)))
+	require.NoError(t, svc.Init())
+	t.Cleanup(svc.Close)
+
+	fake := newFakeBitcoind(t)
+	fake.stubEnsureFlow()
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+	for _, id := range []string{"WATCHBARE", "WATCHSUMMED"} {
+		_, err := backend.Ensure(context.Background(), id)
+		require.NoError(t, err, id)
+
+		creates := fake.callsFor("createwallet")
+		var disablePrivateKeys bool
+		require.NoError(t, json.Unmarshal(creates[len(creates)-1].Params[1], &disablePrivateKeys))
+		assert.True(t, disablePrivateKeys, id)
+
+		calls := fake.callsFor("importdescriptors")
+		var imports []ImportDescriptor
+		require.NoError(t, json.Unmarshal(calls[len(calls)-1].Params[0], &imports))
+		require.Len(t, imports, 1, id)
+		assert.Equal(t, summed, imports[0].Desc, id)
+		assert.True(t, imports[0].Active, id)
+		assert.False(t, imports[0].Internal, id)
+		assert.Equal(t, float64(0), asFloat(t, imports[0].Timestamp), id)
+	}
+}
+
+// A watch-only Core wallet imports both branches of its key with no private
+// keys. The key can hold history of any age, so Core scans from genesis.
+func TestCoreBackendImportsAWatchOnlyKeyOnBothBranches(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	svc := newTestService(t)
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	zpub := reencodeVersion(t, accountXpub(t, seedHex, &chaincfg.MainNetParams), 0x04B24746)
+	require.NoError(t, svc.CreateWatchOnlyWallet("Watch", zpub, `{"background_svg":""}`))
+	w := svc.GetWalletByID(svc.ActiveWalletID())
+	require.NotNil(t, w)
+	assert.True(t, w.Imported)
+	assert.Equal(t, ScriptNativeSegwit, w.scriptKind())
+
+	fake := newFakeBitcoind(t)
+	fake.stubEnsureFlow()
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+	_, err := backend.Ensure(context.Background(), w.ID)
+	require.NoError(t, err)
+
+	creates := fake.callsFor("createwallet")
+	require.Len(t, creates, 1)
+	var disablePrivateKeys bool
+	require.NoError(t, json.Unmarshal(creates[0].Params[1], &disablePrivateKeys))
+	assert.True(t, disablePrivateKeys)
+
+	var imports []ImportDescriptor
+	require.NoError(t, json.Unmarshal(fake.callsFor("importdescriptors")[0].Params[0], &imports))
+	require.Len(t, imports, 2)
+	assert.True(t, strings.HasPrefix(imports[0].Desc, "wpkh(tpub"), imports[0].Desc)
+	assert.Contains(t, imports[0].Desc, "/0/*)#")
+	assert.False(t, imports[0].Internal)
+	assert.Contains(t, imports[1].Desc, "/1/*)#")
+	assert.True(t, imports[1].Internal)
+	assert.Equal(t, float64(0), asFloat(t, imports[0].Timestamp))
+
+	receive, err := ParseDescriptor(imports[0].Desc)
+	require.NoError(t, err)
+	ds, _, err := receive.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	// The key hash of the BIP84 test vector, in the regtest encoding.
+	assert.Equal(t, "bcrt1qcr8te4kr609gcawutmrza0j4xv80jy8zeqchgx", ds.address.EncodeAddress())
 }
