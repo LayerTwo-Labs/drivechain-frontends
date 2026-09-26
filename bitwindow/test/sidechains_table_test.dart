@@ -156,6 +156,10 @@ final Finder _updateButton = find.byWidgetPredicate(
   (widget) => widget is SailButton && widget.icon == SailSVGAsset.circleArrowUp,
 );
 
+final Finder _bidButton = find.byWidgetPredicate(
+  (widget) => widget is SailButton && widget.icon == SailSVGAsset.iconTabBmm,
+);
+
 SailButton _buttonWidget(WidgetTester tester, String label) => tester.widget<SailButton>(_button(label));
 
 void main() {
@@ -338,6 +342,15 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('the row has a button for the bid dialog', (tester) async {
+      await setUpFreeBank();
+      await pumpTable(tester);
+
+      expect(_bidButton, findsOneWidget);
+      expect(_tooltip('Bid for FreeBank blocks'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('a stopped FreeBank offers Start and reads no balance', (tester) async {
       await setUpFreeBank();
       await balances.fetch();
@@ -362,6 +375,14 @@ void main() {
       expect(orchestrator.balanceReads, contains(BinaryType.BINARY_TYPE_FREEBANK));
       expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(2.5)), findsOneWidget);
     });
+  });
+
+  // Only FreeBank bids from BitWindow: every other chain bids from its own app.
+  testWidgets('another chain has no bid button', (tester) async {
+    setUpChain(_thunder());
+    await pumpTable(tester);
+
+    expect(_bidButton, findsNothing);
   });
 
   testWidgets('a chain that is not downloaded offers a primary Download', (tester) async {

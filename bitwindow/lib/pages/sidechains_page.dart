@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/dialogs/freebank_bid_dialog.dart';
 import 'package:bitwindow/log_window.dart';
 import 'package:bitwindow/utils/deposit_fee.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
@@ -615,6 +616,23 @@ class _SidechainActions extends StatelessWidget {
           ],
           _depositButton(context),
           const SizedBox(width: SailStyleValues.padding08),
+          if (viewModel.sidechainForSlot(slot) is FreeBank && settingsConnection != null) ...[
+            SizedBox.square(
+              dimension: 32,
+              child: SailTooltip(
+                message: 'Bid for FreeBank blocks',
+                child: SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.iconTabBmm,
+                  small: true,
+                  onPressed: () async {
+                    await showThemedDialog(context: context, builder: (context) => const FreeBankBidDialog());
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+          ],
           SizedBox.square(
             dimension: 32,
             child: settingsConnection == null
