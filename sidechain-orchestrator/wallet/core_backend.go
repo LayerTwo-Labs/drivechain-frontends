@@ -1707,23 +1707,6 @@ func (p *CoreBackend) createCoreWallet(ctx context.Context, walletName string, w
 	return p.createAndImport(ctx, walletName, w.IsWatchOnly(), imports)
 }
 
-// coreDescriptorWrapper returns the open/close fragments wrapping the key
-// expression for a single-sig kind's Core descriptor.
-func coreDescriptorWrapper(kind ScriptKind) (open, close string, ok bool) {
-	switch kind {
-	case ScriptLegacy:
-		return "pkh(", ")", true
-	case ScriptNestedSegwit:
-		return "sh(wpkh(", "))", true
-	case ScriptNativeSegwit:
-		return "wpkh(", ")", true
-	case ScriptTaproot:
-		return "tr(", ")", true
-	default:
-		return "", "", false
-	}
-}
-
 // purposeToCoreKind maps a BIP purpose to the single-sig kind Core imports for it.
 func purposeToCoreKind(purpose uint32) (ScriptKind, bool) {
 	switch purpose {
