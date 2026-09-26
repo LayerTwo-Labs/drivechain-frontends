@@ -7,6 +7,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,4 +81,36 @@ func TestCosignerSignsWithTheKeyItsXpubNames(t *testing.T) {
 	foreign := MultisigCosigner{Xpub: xpubOf(MnemonicToSeed(testMnemonic, "other")), OriginPath: path, Mnemonic: testMnemonic, Passphrase: passphrase}
 	_, err = cosignerXprv(foreign, net)
 	require.ErrorContains(t, err, "does not derive its stored key")
+}
+
+func TestSigningKeyFindsTheKeyBehindAReceiveAddress(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	w := &WalletData{Master: MasterWallet{SeedHex: seedHex}}
+	descriptors, err := WalletDescriptors(w, net)
+	require.NoError(t, err)
+
+	for _, d := range descriptors {
+		ds, pub, err := d.DeriveScript(false, 3, net)
+		require.NoError(t, err)
+		key, err := SigningKey(w, net, ds.address.EncodeAddress(), 10)
+		require.NoError(t, err)
+		want := pub.SerializeCompressed()
+		if d.Kind == ScriptTaproot {
+			// A taproot address commits to the tweaked key.
+			want = txscript.ComputeTaprootKeyNoScript(pub).SerializeCompressed()
+		}
+		assert.Equal(t, want, key.PubKey().SerializeCompressed(), d.Kind.String())
+	}
+
+	beyond, _, err := descriptors[0].DeriveScript(false, 10, net)
+	require.NoError(t, err)
+	_, err = SigningKey(w, net, beyond.address.EncodeAddress(), 10)
+	require.ErrorContains(t, err, "not one of the wallet")
+
+	first, _, err := descriptors[0].DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	watch := &WalletData{WatchOnly: json.RawMessage(`{"xpub":"` + accountXpub(t, seedHex, net) + `"}`)}
+	_, err = SigningKey(watch, net, first.address.EncodeAddress(), 10)
+	require.ErrorContains(t, err, "no private key")
 }
