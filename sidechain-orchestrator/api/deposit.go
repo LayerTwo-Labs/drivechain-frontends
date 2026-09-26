@@ -256,15 +256,28 @@ func (h *WalletHandler) ListSidechainDeposits(
 				FeeSats:       d.FeeSats,
 				Confirmations: h.depositConfirmations(ctx, d),
 				CreatedAt:     d.CreatedAt.Format(time.RFC3339),
+				DroppedAt:     isoOrEmpty(d.DroppedAt),
 			}
 		}),
 	}), nil
+}
+
+func isoOrEmpty(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339)
 }
 
 // depositConfirmations reads the chain rather than the store, because a
 // confirmation count goes stale the moment a block arrives. Zero when the
 // chain source cannot answer.
 func (h *WalletHandler) depositConfirmations(ctx context.Context, d wallet.SidechainDeposit) int32 {
+	// A dropped deposit is in no block, so zero is its real count and the
+	// chain read would only confirm that.
+	if !d.DroppedAt.IsZero() {
+		return 0
+	}
 	if h.engine == nil {
 		return 0
 	}

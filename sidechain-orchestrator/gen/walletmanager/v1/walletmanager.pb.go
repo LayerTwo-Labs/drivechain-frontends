@@ -461,6 +461,9 @@ type SidechainDeposit struct {
 	FeeSats     int64                  `protobuf:"varint,7,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
 	// Blocks on top of the one holding this deposit. Zero while unconfirmed.
 	Confirmations int32 `protobuf:"varint,8,opt,name=confirmations,proto3" json:"confirmations,omitempty"`
+	// Set when the network no longer holds the deposit, so it can never confirm
+	// and the user must send it again. Empty while the deposit can still land.
+	DroppedAt     string `protobuf:"bytes,9,opt,name=dropped_at,json=droppedAt,proto3" json:"dropped_at,omitempty"` // ISO 8601
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -549,6 +552,13 @@ func (x *SidechainDeposit) GetConfirmations() int32 {
 		return x.Confirmations
 	}
 	return 0
+}
+
+func (x *SidechainDeposit) GetDroppedAt() string {
+	if x != nil {
+		return x.DroppedAt
+	}
+	return ""
 }
 
 type ListSidechainDepositsResponse struct {
@@ -10402,7 +10412,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x12active_wallet_name\x18\x05 \x01(\tR\x10activeWalletName\"O\n" +
 	"\x1cListSidechainDepositsRequest\x12\x12\n" +
 	"\x04slot\x18\x01 \x01(\rR\x04slot\x12\x1b\n" +
-	"\twallet_id\x18\x02 \x01(\tR\bwalletId\"\xfa\x01\n" +
+	"\twallet_id\x18\x02 \x01(\tR\bwalletId\"\x99\x02\n" +
 	"\x10SidechainDeposit\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x1b\n" +
 	"\twallet_id\x18\x02 \x01(\tR\bwalletId\x12\x12\n" +
@@ -10413,7 +10423,9 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x19\n" +
 	"\bfee_sats\x18\a \x01(\x03R\afeeSats\x12$\n" +
-	"\rconfirmations\x18\b \x01(\x05R\rconfirmations\"_\n" +
+	"\rconfirmations\x18\b \x01(\x05R\rconfirmations\x12\x1d\n" +
+	"\n" +
+	"dropped_at\x18\t \x01(\tR\tdroppedAt\"_\n" +
 	"\x1dListSidechainDepositsResponse\x12>\n" +
 	"\bdeposits\x18\x01 \x03(\v2\".walletmanager.v1.SidechainDepositR\bdeposits\"^\n" +
 	" GetSidechainDepositTotalsRequest\x12\x1d\n" +

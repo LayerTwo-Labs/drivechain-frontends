@@ -235,6 +235,7 @@ class SidechainDeposit extends $pb.GeneratedMessage {
     $core.String? createdAt,
     $fixnum.Int64? feeSats,
     $core.int? confirmations,
+    $core.String? droppedAt,
   }) {
     final $result = create();
     if (txid != null) {
@@ -261,6 +262,9 @@ class SidechainDeposit extends $pb.GeneratedMessage {
     if (confirmations != null) {
       $result.confirmations = confirmations;
     }
+    if (droppedAt != null) {
+      $result.droppedAt = droppedAt;
+    }
     return $result;
   }
   SidechainDeposit._() : super();
@@ -276,6 +280,7 @@ class SidechainDeposit extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'createdAt')
     ..aInt64(7, _omitFieldNames ? '' : 'feeSats')
     ..a<$core.int>(8, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
+    ..aOS(9, _omitFieldNames ? '' : 'droppedAt')
     ..hasRequiredFields = false
   ;
 
@@ -372,6 +377,17 @@ class SidechainDeposit extends $pb.GeneratedMessage {
   $core.bool hasConfirmations() => $_has(7);
   @$pb.TagNumber(8)
   void clearConfirmations() => clearField(8);
+
+  /// Set when the network no longer holds the deposit, so it can never confirm
+  /// and the user must send it again. Empty while the deposit can still land.
+  @$pb.TagNumber(9)
+  $core.String get droppedAt => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set droppedAt($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasDroppedAt() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearDroppedAt() => clearField(9);
 }
 
 class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
