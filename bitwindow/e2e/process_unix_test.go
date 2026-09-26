@@ -46,6 +46,20 @@ func forceKillPID(pid int) error {
 	return nil
 }
 
+// signalPID sends one signal to one process and nothing it spawned, so the
+// app runs its own handler and the daemons keep running until it acts.
+func signalPID(pid int, sig string) error {
+	signals := map[string]syscall.Signal{"SIGINT": syscall.SIGINT, "SIGTERM": syscall.SIGTERM}
+	s, known := signals[sig]
+	if !known {
+		return fmt.Errorf("unknown signal %q", sig)
+	}
+	if err := syscall.Kill(pid, s); err != nil {
+		return fmt.Errorf("%s %d: %w", sig, pid, err)
+	}
+	return nil
+}
+
 func signalGroup(cmd *exec.Cmd, sig syscall.Signal) error {
 	if cmd == nil || cmd.Process == nil {
 		return errors.New("no process")

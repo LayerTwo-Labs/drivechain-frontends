@@ -25,7 +25,7 @@ jobs:
     name: e2e (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
-    timeout-minutes: 75
+    timeout-minutes: 110
     strategy:
       fail-fast: false
       matrix:
@@ -141,6 +141,18 @@ jobs:
           ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/fast-relaunch
+          FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
+
+      # Every way out of the app must give the user a working app back.
+      - name: Exit matrix restart test
+        id: exit_matrix
+        if: always() && steps.fast_relaunch.conclusion == 'success'
+        working-directory: bitwindow/e2e
+        run:
+          go test -tags e2e -v -timeout 40m -run TestEveryExitPathRestartsClean
+          ./...
+        env:
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/exit-matrix
           FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
       - name: Issue 2b — window-close shutdown test
