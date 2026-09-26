@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,4 +55,29 @@ func TestWatchOnlyPreviewDerivesItsAddresses(t *testing.T) {
 	want, err := DeriveBIP84Addresses(seedHex, net, 0, 2)
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
+}
+
+// A cosigner signs only with the key its stored xpub names.
+func TestCosignerSignsWithTheKeyItsXpubNames(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const passphrase = "bl\u00e5b\u00e6r"
+	const path = "48'/1'/0'/2'"
+	xpubOf := func(seed []byte) string {
+		xpub, err := DeriveAccountXpub(hex.EncodeToString(seed), "m/"+path, net)
+		require.NoError(t, err)
+		return xpub
+	}
+
+	own := xpubOf(MnemonicToSeed(testMnemonic, passphrase))
+	xprv, err := cosignerXprv(MultisigCosigner{Xpub: own, OriginPath: path, Mnemonic: testMnemonic, Passphrase: passphrase}, net)
+	require.NoError(t, err)
+	key, err := hdkeychain.NewKeyFromString(xprv)
+	require.NoError(t, err)
+	pub, err := key.Neuter()
+	require.NoError(t, err)
+	assert.Equal(t, own, pub.String())
+
+	foreign := MultisigCosigner{Xpub: xpubOf(MnemonicToSeed(testMnemonic, "other")), OriginPath: path, Mnemonic: testMnemonic, Passphrase: passphrase}
+	_, err = cosignerXprv(foreign, net)
+	require.ErrorContains(t, err, "does not derive its stored key")
 }

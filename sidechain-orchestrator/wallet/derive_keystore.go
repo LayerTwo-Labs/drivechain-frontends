@@ -57,7 +57,11 @@ func DeriveKeystore(
 	var out DerivedKeystore
 	switch {
 	case src.Mnemonic != "":
-		seedHex := hex.EncodeToString(MnemonicToSeed(src.Mnemonic, src.Passphrase))
+		mnemonic, merr := ParseMnemonic(src.Mnemonic)
+		if merr != nil {
+			return DerivedKeystore{}, merr
+		}
+		seedHex := hex.EncodeToString(MnemonicToSeed(mnemonic, src.Passphrase))
 		xpub, xerr := DeriveAccountXpub(seedHex, path, net)
 		if xerr != nil {
 			return DerivedKeystore{}, xerr

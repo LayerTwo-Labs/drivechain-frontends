@@ -3,12 +3,14 @@ package wallet
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"
+	"golang.org/x/text/unicode/norm"
 )
 
 // GenerateMnemonic generates a new 12-word BIP39 mnemonic.
@@ -24,9 +26,24 @@ func GenerateMnemonic() (string, error) {
 	return mnemonic, nil
 }
 
-// MnemonicToSeed converts a mnemonic to a seed using PBKDF2-HMAC-SHA512.
+// MnemonicToSeed returns the BIP39 seed of a mnemonic and a passphrase.
 func MnemonicToSeed(mnemonic, passphrase string) []byte {
-	return bip39.NewSeed(mnemonic, passphrase)
+	return bip39.NewSeed(NormalizeMnemonic(mnemonic), norm.NFKD.String(passphrase))
+}
+
+// NormalizeMnemonic returns a mnemonic in the form BIP39 hashes: NFKD, lower
+// case, and one space between words.
+func NormalizeMnemonic(mnemonic string) string {
+	return strings.Join(strings.Fields(strings.ToLower(norm.NFKD.String(mnemonic))), " ")
+}
+
+// ParseMnemonic returns a valid BIP39 mnemonic in its normal form.
+func ParseMnemonic(mnemonic string) (string, error) {
+	normal := NormalizeMnemonic(mnemonic)
+	if !bip39.IsMnemonicValid(normal) {
+		return "", errors.New("invalid mnemonic")
+	}
+	return normal, nil
 }
 
 // DeriveStarter derives a child mnemonic from a seed at the given derivation path.
@@ -138,11 +155,10 @@ func GenerateFullWallet(name string, customMnemonic string, passphrase string, s
 	var err error
 
 	if customMnemonic != "" {
-		// Validate the provided mnemonic
-		if !bip39.IsMnemonicValid(customMnemonic) {
-			return nil, fmt.Errorf("invalid mnemonic")
+		mnemonic, err = ParseMnemonic(customMnemonic)
+		if err != nil {
+			return nil, err
 		}
-		mnemonic = customMnemonic
 	} else {
 		mnemonic, err = GenerateMnemonic()
 		if err != nil {
