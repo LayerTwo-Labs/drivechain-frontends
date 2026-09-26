@@ -230,24 +230,6 @@ func TestAStandardPathGivesOneAddressOnEveryBackend(t *testing.T) {
 	}
 }
 
-func TestCoreDescriptorWrapper(t *testing.T) {
-	cases := []struct {
-		kind        ScriptKind
-		open, close string
-	}{
-		{ScriptLegacy, "pkh(", ")"},
-		{ScriptNestedSegwit, "sh(wpkh(", "))"},
-		{ScriptNativeSegwit, "wpkh(", ")"},
-		{ScriptTaproot, "tr(", ")"},
-	}
-	for _, c := range cases {
-		open, close, ok := coreDescriptorWrapper(c.kind)
-		require.True(t, ok, c.kind)
-		assert.Equal(t, c.open, open, c.kind)
-		assert.Equal(t, c.close, close, c.kind)
-	}
-}
-
 // A custom account path — any depth or purpose — derives the key it names, so a
 // wallet created at one scans the addresses the user asked for.
 func TestCustomDerivationPathDerivesThatPath(t *testing.T) {

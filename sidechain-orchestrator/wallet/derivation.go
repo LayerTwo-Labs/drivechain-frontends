@@ -269,27 +269,6 @@ func ResolveCreateDerivationPath(accountIndex uint32, derivationPath string) (ac
 	return accountIndex, "", nil
 }
 
-// ResolveAccountPath resolves the account path for a stored override: an
-// explicit derivationPath takes precedence; otherwise the standard path for the
-// kind and network at accountIndex. Mirrors accountPathFor for callers outside
-// this package (e.g. the bitwindow Core fallback) so both derive identically.
-func ResolveAccountPath(accountIndex uint32, derivationPath string, kind ScriptKind, net *chaincfg.Params) (AccountPath, error) {
-	return accountPathFor(&WalletData{AccountIndex: accountIndex, DerivationPath: derivationPath}, kind, net)
-}
-
-// CoreDescriptorWrapper returns the open/close fragments wrapping the key
-// expression for a single-sig kind's Core descriptor. Exported for the
-// bitwindow Core fallback path.
-func CoreDescriptorWrapper(kind ScriptKind) (open, close string, ok bool) {
-	return coreDescriptorWrapper(kind)
-}
-
-// PurposeToCoreKind maps a BIP purpose to the single-sig kind Core imports for
-// it. Exported for the bitwindow Core fallback path.
-func PurposeToCoreKind(purpose uint32) (ScriptKind, bool) {
-	return purposeToCoreKind(purpose)
-}
-
 // accountPathFor resolves the account path a wallet derives from for a given
 // script kind: its explicit DerivationPath override if present, else the
 // standard path for the kind and network at the wallet's AccountIndex.
