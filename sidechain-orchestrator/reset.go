@@ -299,8 +299,11 @@ func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string, specs ..
 		}
 	}
 
-	// Windows keeps handles briefly after force-kill; wait before removing.
-	time.Sleep(postKillFileLockGrace)
+	// Windows keeps handles briefly after force-kill; wait before removing. No
+	// process ran, so no handle can linger.
+	if len(running) > 0 {
+		time.Sleep(postKillFileLockGrace)
+	}
 
 	// Any path that is a known wallet location gets moved to backup rather than
 	// hard-deleted. Computed across every binary so a wallet path can never slip
