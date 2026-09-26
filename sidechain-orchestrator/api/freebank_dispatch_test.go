@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,8 +15,6 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
-	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 )
 
 // GetSyncStatus shows FreeBank with its own type.
@@ -24,34 +24,37 @@ func TestSidechainTypeFromNameKnowsFreebank(t *testing.T) {
 	assert.Equal(t, pb.SidechainType_SIDECHAIN_TYPE_UNSPECIFIED, sidechainTypeFromName("nosuchchain"))
 }
 
-// FreeBank has no "balance" RPC, so its balance comes from bitcoin_balance.
-func TestFreebankBalanceUsesBitcoinBalanceMethod(t *testing.T) {
-	var gotMethod string
+// FreeBank keeps the one wallet its node created and predates getbalances, so
+// its balance is getwalletinfo, asked at the root endpoint with the cookie.
+func TestFreebankBalanceReadsItsOwnWallet(t *testing.T) {
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir("") })
+	datadir := config.FreebankDirs.DatadirNetwork(config.NetworkRegtest, "")
+	require.NoError(t, os.MkdirAll(datadir, 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(datadir, ".cookie"), []byte("__cookie__:secret"), 0o600))
+
+	var gotPath, gotMethod, gotUser string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			ID     uint64 `json:"id"`
 			Method string `json:"method"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
-		gotMethod = req.Method
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"total_sats":300,"available_sats":125}}`))
+		gotPath, gotMethod = r.URL.Path, req.Method
+		gotUser, _, _ = r.BasicAuth()
+		_, _ = w.Write([]byte(`{"result":{"balance":1.0,"unconfirmed_balance":0.25,"immature_balance":0.5},"error":null}`))
 	}))
 	defer srv.Close()
 	host, port := hostPort(t, srv)
 
-	bh := bitassetssvc.NewHandler(sidechain.NewJSONRPCProxy(host, port))
-	h := &Handler{
-		orch:              &orchestrator.Orchestrator{Network: string(config.NetworkRegtest)},
-		sidechainBalances: map[string]SidechainBalanceFunc{"freebank": bh.WalletBalance},
-	}
-
+	h := &Handler{orch: &orchestrator.Orchestrator{Network: string(config.NetworkRegtest)}}
 	confirmed, pending, err := h.fetchSidechainBalance(
 		context.Background(),
-		orchestrator.BinaryConfig{Name: "freebank", Host: host, Port: port},
+		orchestrator.BinaryConfig{Name: "freebank", Host: host, Port: port, IsBitcoinCore: true},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "bitcoin_balance", gotMethod)
-	assert.Equal(t, int64(125), confirmed)
-	assert.Equal(t, int64(175), pending)
+	assert.Equal(t, "/", gotPath)
+	assert.Equal(t, "getwalletinfo", gotMethod)
+	assert.Equal(t, "__cookie__", gotUser)
+	assert.Equal(t, int64(100_000_000), confirmed)
+	assert.Equal(t, int64(75_000_000), pending)
 }

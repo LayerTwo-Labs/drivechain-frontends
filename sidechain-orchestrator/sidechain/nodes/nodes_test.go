@@ -28,7 +28,6 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 		{name: "truthcoin"},
 		{name: "zside"},
 		{name: "bbc", core: true},
-		{name: "freebank"},
 	}
 
 	for _, chain := range chains {

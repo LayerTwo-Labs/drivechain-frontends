@@ -1,5 +1,5 @@
 {
-  "version": 23,
+  "version": 24,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -837,9 +837,9 @@
       "version": "latest",
       "description": "Credit-creation drivechain (Scottish free-banking lineage).",
       "repo_url": "https://github.com/mbdrivechains/freebank",
-      "port": 6130,
+      "port": 8454,
       "chain_layer": 2,
-      "is_bitcoin_core": false,
+      "is_bitcoin_core": true,
       "color": "orange",
       "health_check": {
         "type": "tcp"
@@ -849,9 +849,9 @@
       "directories": {
         "binary": {
           "default": {
-            "linux": "freebank",
-            "macos": "freebank",
-            "windows": "freebank"
+            "linux": ".freebank",
+            "macos": "FreeBank",
+            "windows": "FreeBank"
           }
         },
         "flutter_frontend": {}

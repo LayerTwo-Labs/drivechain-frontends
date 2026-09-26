@@ -11,6 +11,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/elements"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
@@ -34,6 +35,8 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 	switch name {
 	case "liquid-signet":
 		return elements.NewNode(host, port, datadir, network), nil
+	case "freebank":
+		return freebank.NewClient(host, port, cookie), nil
 	default:
 		return bbc.NewClient(host, port, cookie), nil
 	}
