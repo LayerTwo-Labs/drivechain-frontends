@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -12,6 +13,13 @@ class SeedBackup {
   final String mnemonic;
   final String passphrase;
   const SeedBackup(this.mnemonic, this.passphrase);
+}
+
+/// Whether a phrase is a seed of the Electrum app, whose words hash to a
+/// version prefix. A BIP39 wallet cannot restore it.
+bool _isElectrumSeed(String phrase) {
+  final version = Hmac(sha512, utf8.encode('Seed version')).convert(utf8.encode(phrase)).toString();
+  return const ['01', '100', '101', '102'].any(version.startsWith);
 }
 
 /// Where the seed comes from: minted here, or one the user already has.
@@ -876,9 +884,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                             ],
                           )
                         : SailText.secondary13(
-                            complete
-                                ? 'These words are not a valid BIP39 phrase — check for a typo'
-                                : '$_importedCount of ${_imported.length} words entered',
+                            !complete
+                                ? '$_importedCount of ${_imported.length} words entered'
+                                : _isElectrumSeed(_importedWords.join(' '))
+                                ? 'These words are an Electrum seed, not a BIP39 phrase — restore them in Electrum'
+                                : 'These words are not a valid BIP39 phrase — check for a typo',
                             color: complete ? theme.colors.error : theme.colors.textSecondary,
                           ),
                   ),

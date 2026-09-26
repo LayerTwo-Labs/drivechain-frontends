@@ -462,6 +462,20 @@ void main() {
       expect(_createWalletButton(tester).disabled, isTrue);
     });
 
+    // An Electrum-app seed fails the checksum too, and the line names it.
+    testWidgets('an Electrum seed is named as one', (tester) async {
+      await _pumpPage(tester, mode: SeedEntryMode.importExisting);
+
+      await tester.enterText(
+        find.byType(TextField).first,
+        'bitter grass shiver impose acquire brush forget axis eager alone wine silver',
+      );
+      await tester.pump();
+
+      expect(find.textContaining('an Electrum seed'), findsOneWidget);
+      expect(_createWalletButton(tester).disabled, isTrue);
+    });
+
     // The grid opens at 12, so a 24-word backup has to grow it on paste.
     testWidgets('pasting 24 words switches the grid to 24', (tester) async {
       await _pumpPage(tester, mode: SeedEntryMode.importExisting);
