@@ -138,7 +138,12 @@ func (f *fakeBitcoind) stubEnsureFlow() {
 	f.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
 		var address string
 		_ = json.Unmarshal(c.Params[0], &address)
-		return map[string]any{"address": address, "hdkeypath": "m/84'/1'/0'/0/0", "ismine": true}, ""
+		return map[string]any{
+			"address":     address,
+			"hdkeypath":   "m/84h/1h/0h/0/0",
+			"ismine":      true,
+			"parent_desc": "wpkh([d34db33f/84h/1h/0h]tpub.../0/*)#aaaaaaaa",
+		}, ""
 	})
 }
 
@@ -2653,4 +2658,41 @@ func TestCoreBackendImportsAWatchOnlyKeyOnBothBranches(t *testing.T) {
 	require.NoError(t, err)
 	// The key hash of the BIP84 test vector, in the regtest encoding.
 	assert.Equal(t, "bcrt1qcr8te4kr609gcawutmrza0j4xv80jy8zeqchgx", ds.address.EncodeAddress())
+}
+
+// Core holds the BIP47 notification key as a single key. Its P2PKH address is
+// unused, but a legacy receive request must not hand it out.
+func TestCoreBackendLegacyReceiveSkipsTheBip47Key(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	ctx := context.Background()
+
+	net := &chaincfg.RegressionNetParams
+	notification := p2pkhAddr(t, fixedKey(0x47), net)
+	minted := p2pkhAddr(t, fixedKey(0x44), net)
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		return []map[string]any{{"address": notification, "amount": 0.0, "txids": []string{}}}, ""
+	})
+	stubbed := fake.handlerFor("getaddressinfo")
+	fake.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
+		if mustString(t, c.Params[0]) != notification {
+			return stubbed(c)
+		}
+		return map[string]any{
+			"address":     notification,
+			"hdkeypath":   "m",
+			"ismine":      true,
+			"parent_desc": "pkh([2bd5a2f9]02ab...)#bbbbbbbb",
+		}, ""
+	})
+	var mintedType string
+	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
+		mintedType = mustString(t, c.Params[1])
+		return minted, ""
+	})
+
+	addr, err := nextAddr(backend, ctx, coreID, ScriptLegacy)
+	require.NoError(t, err)
+	assert.Equal(t, minted, addr)
+	assert.Equal(t, "legacy", mintedType)
 }

@@ -496,10 +496,9 @@ func (p *CoreBackend) OwnedAddresses(ctx context.Context, walletID string, addre
 // mempool receives). Lets the receive page poll without burning the keypool,
 // while staying entirely stateless across orchestrator restarts.
 //
-// Candidates are filtered to the chain's bech32 prefix because the Core wallet
-// also imports P2PKH addresses for BIP47 (the notification address + per-sender
-// derived payment addresses) — those must never leak into the regular receive
-// flow.
+// Core also holds single BIP47 keys: the notification key and the per-sender
+// payment keys. Their P2PKH addresses never enter the receive flow, because
+// only an address from a ranged descriptor is reused.
 func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (DerivedAddress, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
@@ -527,7 +526,14 @@ func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, k
 		if !p.addressMatchesKind(a.Address, kind) {
 			continue
 		}
-		return p.describeAddress(ctx, walletID, a.Address), nil
+		info, err := p.rpc.GetAddressInfo(ctx, name, a.Address)
+		if err != nil {
+			return DerivedAddress{}, err
+		}
+		if !strings.Contains(info.ParentDesc, "*") {
+			continue
+		}
+		return DerivedAddress{Address: a.Address, HDPath: info.HDKeyPath, Index: -1}, nil
 	}
 	addr, err := p.rpc.GetNewAddress(ctx, name, "", addressType)
 	if err != nil {
