@@ -248,6 +248,19 @@ func TestGenerateFullWalletNormalizesThePastedPhrase(t *testing.T) {
 	}
 }
 
+// An Electrum-app seed fails the BIP39 checksum, and the error names it.
+func TestParseMnemonicNamesAnElectrumSeed(t *testing.T) {
+	for _, seed := range []string{
+		"bitter grass shiver impose acquire brush forget axis eager alone wine silver",
+		"cycle rocket west magnet parrot shuffle foot correct salt library feed song",
+	} {
+		_, err := ParseMnemonic(seed)
+		require.ErrorContains(t, err, "Electrum seed", seed)
+	}
+	_, err := ParseMnemonic("abandon abandon abandon")
+	require.EqualError(t, err, "invalid mnemonic")
+}
+
 func TestGenerateFullWalletInvalidCustomMnemonic(t *testing.T) {
 	_, err := GenerateFullWallet("Bad", "invalid mnemonic words that are not real bip39", "", nil, "enforcer")
 	assert.Error(t, err)
