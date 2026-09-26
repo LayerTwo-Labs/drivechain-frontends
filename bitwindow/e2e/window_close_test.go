@@ -27,6 +27,7 @@ func TestWindowCloseShutsDownDaemons(t *testing.T) {
 	// wait well clear of it. The test's own go-test timeout is 15m.
 	const shutdownDeadline = 5 * time.Minute
 	const shutdownPoll = 500 * time.Millisecond
+	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make drivechaind RPC-ready
 
 	t.Logf("window-close shutdown test on %s", runtime.GOOS)
 
@@ -57,7 +58,8 @@ func TestWindowCloseShutsDownDaemons(t *testing.T) {
 		prettyPIDs(processPIDs(t, drivechaindName)))
 
 	// Let late-init work finish so the shutdown path isn't racing.
-	time.Sleep(5 * time.Second)
+	waitForPort(t, drivechaindPort, rpcDeadline, "drivechaind")
+	waitForOrchestratorRPC(t, rpcDeadline, run.dataDir)
 
 	// Dispatch the OS-native close event to the GUI app — simulates
 	// red-X / Cmd+Q / Alt+F4. This path goes through onWindowClose in
