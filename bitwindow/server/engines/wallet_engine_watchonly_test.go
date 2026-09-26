@@ -3,8 +3,6 @@ package engines
 import (
 	"context"
 	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -28,68 +26,19 @@ func (s stubOrchWalletClient) CreateBitcoinCoreWallet(context.Context, *connect.
 	return nil, s.err
 }
 
-// TestEnsureWatchOnlyWalletTransientOrchestratorError asserts a warming-up
-// orchestrator or a starting bitcoind propagates instead of falling through to
-// the local path, which would mint a second Core wallet for the same walletId.
+// TestEnsureWatchOnlyWalletTransientOrchestratorError asserts an orchestrator
+// error reaches the caller. Only the orchestrator creates a Core wallet.
 func TestEnsureWatchOnlyWalletTransientOrchestratorError(t *testing.T) {
-	// A starting bitcoind fails the local path the same way, so it propagates.
-	t.Run("startup propagates", func(t *testing.T) {
-		orchErr := connect.NewError(connect.CodeInternal, errors.New("-28: Verifying blocks…"))
+	for _, orchErr := range []error{
+		connect.NewError(connect.CodeInternal, errors.New("-28: Verifying blocks…")),
+		connect.NewError(connect.CodeUnavailable, errors.New("connection refused")),
+	} {
 		e := NewWalletEngine(nil, t.TempDir(), &chaincfg.MainNetParams)
 		e.SetOrchestratorClient(stubOrchWalletClient{err: orchErr})
 
 		_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 		require.ErrorIs(t, err, orchErr)
-	})
-
-	// A down orchestrator is exactly what the local path is the fallback for.
-	t.Run("unavailable falls back to local", func(t *testing.T) {
-		orchErr := connect.NewError(connect.CodeUnavailable, errors.New("connection refused"))
-		e := NewWalletEngine(nil, t.TempDir(), &chaincfg.MainNetParams)
-		e.SetOrchestratorClient(stubOrchWalletClient{err: orchErr})
-
-		_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
-		require.NotErrorIs(t, err, orchErr)
-	})
-}
-
-// TestEnsureWatchOnlyWalletLocalName asserts the local fallback names the Core
-// wallet the same way the orchestrator does, so both resolve one walletId to
-// one bitcoind wallet.
-func TestEnsureWatchOnlyWalletLocalName(t *testing.T) {
-	walletDir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(`{
-		"version": 1,
-		"activeWalletId": "deadbeefcafebabe",
-		"wallets": [{
-			"id": "deadbeefcafebabe",
-			"name": "watcher",
-			"wallet_type": "bitcoinCore",
-			"watch_only": {"xpub": "xpub6BosfCnifzxcFwrSzQiqu2DBVTshkCXacvNsWGYJVVhhawA7d4R5WSWGFNbi8Aw6ZRc1brxMyWMzG3DSSSSoekkudhUd9yLb6qx39T9nMdj"}
-		}]
-	}`), 0o600))
-
-	ctrl := gomock.NewController(t)
-	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-	mockBitcoind.EXPECT().
-		ListWallets(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ListWalletsResponse]{
-			Msg: &corepb.ListWalletsResponse{Wallets: []string{"wallet_deadbeef"}},
-		}, nil).
-		AnyTimes()
-	// No wallet from before the rename, so the local name applies.
-	mockBitcoind.EXPECT().
-		LoadWallet(gomock.Any(), gomock.Any()).
-		Return(nil, errors.New("Wallet file verification failed. Path does not exist.")).
-		AnyTimes()
-
-	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
-		return mockBitcoind, nil
-	}, walletDir, &chaincfg.MainNetParams)
-
-	walletName, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
-	require.NoError(t, err)
-	require.Equal(t, "wallet_deadbeef", walletName)
+	}
 }
 
 // A wallet from before the rename holds the scan state, so it wins over a fresh

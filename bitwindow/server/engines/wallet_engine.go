@@ -18,11 +18,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
-	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -60,6 +57,8 @@ type WalletInfo struct {
 	// DerivationPath is an explicit account-level path (m/purpose'/coin'/account')
 	// overriding purpose/coin/account; empty = standard purposes at AccountIndex.
 	DerivationPath string `json:"derivation_path,omitempty"`
+	// ScriptType is the stored address kind; empty means native segwit.
+	ScriptType string `json:"script_type,omitempty"`
 }
 
 // IsWatchOnly reports whether the wallet holds no signing key — it carries an
@@ -613,247 +612,19 @@ func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletId str
 // ensureBitcoinCoreWalletLocked is the singleflight-wrapped body of
 // EnsureBitcoinCoreWallet. Don't call directly.
 func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, walletId string) (string, error) {
-	// Try orchestrator first
-	if e.orchClient != nil {
-		resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
-			WalletId: walletId,
-		}))
-		if err == nil {
-			e.mu.Lock()
-			e.coreWallets[walletId] = resp.Msg.CoreWalletName
-			e.mu.Unlock()
-			return resp.Msg.CoreWalletName, nil
-		}
-		// If the orchestrator says "still warming up" (Unavailable), don't
-		// fall through to the local path — it would re-issue the same RPCs
-		// against bitcoind and fail the same way, defeating the orchestrator's
-		// 5s backoff and storming bitcoind during IBD/rescan.
-		if connect.CodeOf(err) == connect.CodeUnavailable || IsBitcoinCoreStartupError(err.Error()) {
-			return "", err
-		}
-		// Otherwise fall through to local fallback.
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
 	}
-
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Check cache
-	if walletName, exists := e.coreWallets[walletId]; exists {
-		return walletName, nil
-	}
-
-	// Get wallet info
-	wallet, err := e.GetWalletInfo(ctx, walletId)
+	resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
+		WalletId: walletId,
+	}))
 	if err != nil {
 		return "", err
 	}
-
-	if wallet.WalletType != WalletTypeBitcoinCore {
-		return "", fmt.Errorf("wallet %s is not a Bitcoin Core wallet", walletId)
-	}
-
-	// Generate wallet name from wallet ID
-	walletName := fmt.Sprintf("wallet_%s", walletId[:8])
-
-	// Get bitcoind client
-	bitcoindClient, err := e.bitcoindConnector(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	// Check if wallet already exists in Bitcoin Core
-	listResp, err := bitcoindClient.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
-	if err != nil {
-		return "", fmt.Errorf("list Bitcoin Core wallets: %w", err)
-	}
-
-	walletExists := lo.Contains(listResp.Msg.Wallets, walletName)
-	if !walletExists {
-		// Create wallet from seed
-		if err := e.CreateBitcoinCoreWalletFromSeed(ctx, walletName, wallet.Master.SeedHex, wallet.AccountIndex, wallet.DerivationPath); err != nil {
-			return "", fmt.Errorf("create Bitcoin Core wallet: %w", err)
-		}
-		zerolog.Ctx(ctx).Info().
-			Str("wallet_id", walletId).
-			Str("wallet_name", walletName).
-			Msg("created Bitcoin Core wallet from seed")
-	}
-
-	// Cache the mapping
-	e.coreWallets[walletId] = walletName
-	return walletName, nil
-}
-
-// CreateBitcoinCoreWalletFromSeed creates a Bitcoin Core wallet and imports the
-// seed. accountIndex/derivationPath are the optional account-level derivation
-// override (0/"" = standard BIP84+BIP86 at account 0).
-func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
-	ctx context.Context,
-	walletName string,
-	seedHex string,
-	accountIndex uint32,
-	derivationPath string,
-) error {
-	// Decode seed
-	seed, err := hex.DecodeString(seedHex)
-	if err != nil {
-		return fmt.Errorf("decode seed hex: %w", err)
-	}
-
-	// Derive master key
-	masterKey, err := hdkeychain.NewMaster(seed, e.chainParams)
-	if err != nil {
-		return fmt.Errorf("derive master key: %w", err)
-	}
-
-	descriptors, err := e.coreDescriptors(masterKey, accountIndex, derivationPath, true)
-	if err != nil {
-		return err
-	}
-
-	// Get bitcoind client
-	bitcoindClient, err := e.bitcoindConnector(ctx)
-	if err != nil {
-		return fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	// Create descriptor wallet in Bitcoin Core
-	_, err = bitcoindClient.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
-		Name:               walletName,
-		DisablePrivateKeys: false,
-		Blank:              true,
-		Passphrase:         "",
-		AvoidReuse:         false,
-	}))
-	if err != nil {
-		// If wallet already exists on disk, load it instead
-		if strings.Contains(err.Error(), "Database already exists") {
-			zerolog.Ctx(ctx).Info().
-				Str("wallet_name", walletName).
-				Msg("Bitcoin Core wallet already exists on disk, loading it")
-
-			_, err = bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
-				Filename:      walletName,
-				LoadOnStartup: true,
-			}))
-			if err != nil {
-				return fmt.Errorf("load Bitcoin Core wallet: %w", err)
-			}
-		} else {
-			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
-		}
-	}
-
-	var requests []*corepb.ImportDescriptorsRequest_Request
-	for _, d := range descriptors {
-		descriptorWithChecksum, err := AddDescriptorChecksum(d.desc)
-		if err != nil {
-			return fmt.Errorf("compute descriptor checksum: %w", err)
-		}
-
-		requests = append(requests, &corepb.ImportDescriptorsRequest_Request{
-			Descriptor_: descriptorWithChecksum,
-			Active:      true,
-			Timestamp:   nil,
-			Internal:    d.internal,
-			RangeEnd:    999,
-		})
-	}
-
-	resp, err := bitcoindClient.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
-		Wallet:   walletName,
-		Requests: requests,
-	}))
-	if err != nil {
-		return fmt.Errorf("import descriptors: %w", err)
-	}
-
-	// Check results
-	for i, result := range resp.Msg.Responses {
-		if !result.Success {
-			errMsg := "unknown error"
-			if result.Error != nil {
-				errMsg = result.Error.Message
-			}
-			return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
-		}
-	}
-
-	return nil
-}
-
-// coreDescriptor is one descriptor string and whether it's the internal (change) chain.
-type coreDescriptor struct {
-	desc     string
-	internal bool
-}
-
-// coreDescriptors builds the receive+change descriptors for a Core wallet from
-// the master key and the optional account-level derivation override. With no
-// override it returns BIP84 + BIP86 at account 0; an account index shifts both;
-// an explicit path returns the single descriptor for that path's purpose. This
-// mirrors the orchestrator CoreBackend so the local fallback derives identically.
-func (e *WalletEngine) coreDescriptors(masterKey *hdkeychain.ExtendedKey, accountIndex uint32, derivationPath string, withOrigin bool) ([]coreDescriptor, error) {
-	pubKey, err := masterKey.ECPubKey()
-	if err != nil {
-		return nil, fmt.Errorf("get master public key: %w", err)
-	}
-	fingerprint := hex.EncodeToString(btcutil.Hash160(pubKey.SerializeCompressed())[:4])
-
-	var kinds []orchwallet.ScriptKind
-	if strings.TrimSpace(derivationPath) != "" {
-		ap, err := orchwallet.ParseAccountPath(derivationPath)
-		if err != nil {
-			return nil, fmt.Errorf("invalid derivation path: %w", err)
-		}
-		kind, ok := orchwallet.PurposeToCoreKind(ap.Purpose)
-		if !ok {
-			return nil, fmt.Errorf("unsupported core descriptor purpose %d'", ap.Purpose)
-		}
-		kinds = []orchwallet.ScriptKind{kind}
-	} else {
-		kinds = []orchwallet.ScriptKind{orchwallet.ScriptNativeSegwit, orchwallet.ScriptTaproot}
-	}
-
-	var out []coreDescriptor
-	for _, kind := range kinds {
-		ap, err := orchwallet.ResolveAccountPath(accountIndex, derivationPath, kind, e.chainParams)
-		if err != nil {
-			return nil, err
-		}
-		acct, err := DeriveHardenedPath(masterKey, ap)
-		if err != nil {
-			return nil, err
-		}
-		acctXprv := acct.String()
-		open, close, ok := orchwallet.CoreDescriptorWrapper(kind)
-		if !ok {
-			return nil, fmt.Errorf("unsupported core descriptor kind %s", kind)
-		}
-		origin := ""
-		if withOrigin {
-			origin = fmt.Sprintf("[%s/%s]", fingerprint, ap.Origin("'"))
-		}
-		out = append(out,
-			coreDescriptor{desc: fmt.Sprintf("%s%s%s/0/*%s", open, origin, acctXprv, close), internal: false},
-			coreDescriptor{desc: fmt.Sprintf("%s%s%s/1/*%s", open, origin, acctXprv, close), internal: true},
-		)
-	}
-	return out, nil
-}
-
-// DeriveHardenedPath derives the hardened account-level key for an AccountPath.
-func DeriveHardenedPath(masterKey *hdkeychain.ExtendedKey, ap orchwallet.AccountPath) (*hdkeychain.ExtendedKey, error) {
-	const h = hdkeychain.HardenedKeyStart
-	cur := masterKey
-	for _, idx := range []uint32{ap.Purpose, ap.Coin, ap.Account} {
-		next, err := cur.Derive(h + idx)
-		if err != nil {
-			return nil, fmt.Errorf("derive %d': %w", idx, err)
-		}
-		cur = next
-	}
-	return cur, nil
+	e.mu.Lock()
+	e.coreWallets[walletId] = resp.Msg.CoreWalletName
+	e.mu.Unlock()
+	return resp.Msg.CoreWalletName, nil
 }
 
 // GetBitcoinCoreWalletName returns the Bitcoin Core wallet name for a walletId
@@ -861,20 +632,36 @@ func (e *WalletEngine) GetBitcoinCoreWalletName(ctx context.Context, walletId st
 	return e.EnsureBitcoinCoreWallet(ctx, walletId)
 }
 
-// GetElectrumReceiveAddress returns a fresh receive address for an electrum
-// wallet from the orchestrator, which derives it locally and serves chain
-// data over Esplora (no Bitcoin Core).
-func (e *WalletEngine) GetElectrumReceiveAddress(ctx context.Context, walletId string) (string, error) {
+// GetNewAddress returns a receive address of the wallet. The orchestrator
+// derives it for Core and electrum wallets alike.
+func (e *WalletEngine) GetNewAddress(ctx context.Context, walletId string, addressType orchpb.AddressType) (string, error) {
 	if e.orchClient == nil {
 		return "", fmt.Errorf("orchestrator wallet client not connected")
 	}
 	resp, err := e.orchClient.GetNewAddress(ctx, connect.NewRequest(&orchpb.GetNewAddressRequest{
-		WalletId: walletId,
+		WalletId:    walletId,
+		AddressType: addressType,
 	}))
 	if err != nil {
-		return "", fmt.Errorf("electrum: get new address: %w", err)
+		return "", fmt.Errorf("get new address: %w", err)
 	}
 	return resp.Msg.Address, nil
+}
+
+// DeriveReceiveAddresses returns the first count receive addresses of the
+// wallet, as the orchestrator derives them.
+func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletId string, count int) ([]string, error) {
+	if e.orchClient == nil {
+		return nil, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.DeriveAddresses(ctx, connect.NewRequest(&orchpb.DeriveAddressesRequest{
+		WalletId: walletId,
+		Count:    int32(count),
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("derive addresses: %w", err)
+	}
+	return resp.Msg.Addresses, nil
 }
 
 // GetElectrumBalance returns the confirmed and pending balance (in sats) for
@@ -1091,202 +878,7 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 		return legacy, nil
 	}
 
-	// Try orchestrator first (it handles full and watch-only Core wallets)
-	if e.orchClient != nil {
-		resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
-			WalletId: walletId,
-		}))
-		if err == nil {
-			e.mu.Lock()
-			e.coreWallets[walletId] = resp.Msg.CoreWalletName
-			e.mu.Unlock()
-			return resp.Msg.CoreWalletName, nil
-		}
-		// A starting bitcoind fails the local path the same way, so propagate
-		// instead of storming it. A transport failure means the orchestrator is
-		// down, and the local path is exactly the fallback for that.
-		if IsBitcoinCoreStartupError(err.Error()) {
-			return "", err
-		}
-		// Otherwise fall through to local on error
-	}
-
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Check cache
-	if walletName, exists := e.coreWallets[walletId]; exists {
-		return walletName, nil
-	}
-
-	// Get wallet info
-	wallet, err := e.GetWalletInfo(ctx, walletId)
-	if err != nil {
-		return "", err
-	}
-
-	if !wallet.IsWatchOnly() {
-		return "", fmt.Errorf("wallet %s is not a watch-only wallet", walletId)
-	}
-
-	// Generate wallet name from wallet ID
-	walletName := fmt.Sprintf("wallet_%s", walletId[:8])
-
-	// Get bitcoind client
-	bitcoindClient, err := e.bitcoindConnector(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	// Check if wallet already exists in Bitcoin Core
-	listResp, err := bitcoindClient.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
-	if err != nil {
-		return "", fmt.Errorf("list Bitcoin Core wallets: %w", err)
-	}
-
-	walletExists := lo.Contains(listResp.Msg.Wallets, walletName)
-	if !walletExists {
-		// Create watch-only wallet
-		if err := e.createWatchOnlyWallet(ctx, walletName, wallet); err != nil {
-			return "", fmt.Errorf("create watch-only wallet: %w", err)
-		}
-		zerolog.Ctx(ctx).Info().
-			Str("wallet_id", walletId).
-			Str("wallet_name", walletName).
-			Msg("created watch-only Bitcoin Core wallet")
-	}
-
-	// Cache the mapping
-	e.coreWallets[walletId] = walletName
-	return walletName, nil
-}
-
-// createWatchOnlyWallet creates a watch-only Bitcoin Core wallet
-func (e *WalletEngine) createWatchOnlyWallet(
-	ctx context.Context,
-	walletName string,
-	wallet *WalletInfo,
-) error {
-	// Get bitcoind client
-	bitcoindClient, err := e.bitcoindConnector(ctx)
-	if err != nil {
-		return fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	// Create descriptor wallet in Bitcoin Core (watch-only)
-	_, err = bitcoindClient.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
-		Name:               walletName,
-		DisablePrivateKeys: true,
-		Blank:              true,
-		Passphrase:         "",
-		AvoidReuse:         false,
-	}))
-	if err != nil {
-		// If wallet already exists on disk, load it instead
-		if strings.Contains(err.Error(), "Database already exists") {
-			zerolog.Ctx(ctx).Info().
-				Str("wallet_name", walletName).
-				Msg("Bitcoin Core watch-only wallet already exists on disk, loading it")
-
-			_, err = bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
-				Filename:      walletName,
-				LoadOnStartup: false,
-			}))
-			if err != nil {
-				return fmt.Errorf("load Bitcoin Core wallet: %w", err)
-			}
-		} else {
-			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
-		}
-	}
-
-	// Import the descriptor or xpub
-	var descriptorToImport string
-	var isXpub bool
-
-	switch {
-	case wallet.WatchOnly.Descriptor != "":
-		descriptorToImport = wallet.WatchOnly.Descriptor
-		isXpub = false
-
-	case wallet.WatchOnly.Xpub != "":
-		xpub := wallet.WatchOnly.Xpub
-		descriptorToImport = fmt.Sprintf("wpkh(%s/0/*)#checksum", xpub)
-		isXpub = true
-
-	default:
-		return fmt.Errorf("watch-only wallet requires either descriptor or xpub")
-	}
-
-	if err := e.importDescriptorToWallet(ctx, bitcoindClient, walletName, descriptorToImport, isXpub); err != nil {
-		return fmt.Errorf("import descriptor: %w", err)
-	}
-
-	return nil
-}
-
-// importDescriptorToWallet imports a descriptor into a Bitcoin Core wallet
-func (e *WalletEngine) importDescriptorToWallet(
-	ctx context.Context,
-	bitcoindClient corerpc.BitcoinServiceClient,
-	walletName string,
-	descriptor string,
-	isXpub bool,
-) error {
-	descriptorsToImport := []string{descriptor}
-
-	if isXpub {
-		// Add change descriptor for xpub-based wallets
-		xpubStart := strings.Index(descriptor, "wpkh(") + 5
-		xpubEnd := strings.Index(descriptor, "/0/*)")
-		if xpubStart > 5 && xpubEnd > xpubStart {
-			xpub := descriptor[xpubStart:xpubEnd]
-			changeDescriptor := fmt.Sprintf("wpkh(%s/1/*)#checksum", xpub)
-			descriptorsToImport = append(descriptorsToImport, changeDescriptor)
-		}
-	}
-
-	var requests []*corepb.ImportDescriptorsRequest_Request
-	for i, desc := range descriptorsToImport {
-		// Strip any existing (possibly placeholder) checksum and compute a real
-		// one — Bitcoin Core rejects descriptors imported without a valid checksum.
-		descWithChecksum, err := AddDescriptorChecksum(strings.Split(desc, "#")[0])
-		if err != nil {
-			return fmt.Errorf("compute descriptor checksum: %w", err)
-		}
-		isInternal := i == 1
-
-		requests = append(requests, &corepb.ImportDescriptorsRequest_Request{
-			Descriptor_: descWithChecksum,
-			Active:      true,
-			Timestamp:   nil,
-			Internal:    isInternal,
-			Label:       "",
-			RangeStart:  0,
-			RangeEnd:    1000,
-		})
-	}
-
-	resp, err := bitcoindClient.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
-		Wallet:   walletName,
-		Requests: requests,
-	}))
-	if err != nil {
-		return fmt.Errorf("bitcoin core importdescriptors: %w", err)
-	}
-
-	// Check results
-	for i, result := range resp.Msg.Responses {
-		if !result.Success {
-			errMsg := "unknown error"
-			if result.Error != nil {
-				errMsg = result.Error.Message
-			}
-			return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
-		}
-	}
-
-	return nil
+	return e.EnsureBitcoinCoreWallet(ctx, walletId)
 }
 
 // ============================================================================
@@ -1310,32 +902,14 @@ func (e *WalletEngine) SyncWallets(ctx context.Context) error {
 
 	log.Info().Msg("wallet sync: starting")
 
-	// Try orchestrator first
-	if e.orchClient != nil {
-		resp, err := e.orchClient.EnsureCoreWallets(ctx, connect.NewRequest(&orchpb.EnsureCoreWalletsRequest{}))
-		if err == nil {
-			log.Info().Int32("synced", resp.Msg.SyncedCount).Msg("wallet sync: completed via orchestrator")
-			return nil
-		}
-		log.Warn().Err(err).Msg("wallet sync: orchestrator failed, falling back to local")
+	if e.orchClient == nil {
+		return fmt.Errorf("orchestrator wallet client not connected")
 	}
-
-	wallets, err := e.loadAllWallets()
+	resp, err := e.orchClient.EnsureCoreWallets(ctx, connect.NewRequest(&orchpb.EnsureCoreWalletsRequest{}))
 	if err != nil {
-		return fmt.Errorf("load wallets: %w", err)
+		return fmt.Errorf("wallet sync: %w", err)
 	}
-
-	if len(wallets) == 0 {
-		log.Info().Msg("wallet sync: no wallets to sync")
-		return nil
-	}
-
-	// Ensure Bitcoin Core wallets exist
-	if err := e.ensureBitcoinCoreWallets(ctx, wallets); err != nil {
-		log.Error().Err(err).Msg("wallet sync: failed")
-	}
-
-	log.Info().Msg("wallet sync: completed")
+	log.Info().Int32("synced", resp.Msg.SyncedCount).Msg("wallet sync: completed via orchestrator")
 	return nil
 }
 
@@ -1382,148 +956,6 @@ func (e *WalletEngine) loadAllWallets() ([]WalletInfo, error) {
 
 func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) {
 	return e.loadAllWallets()
-}
-
-func (e *WalletEngine) ensureBitcoinCoreWallets(ctx context.Context, wallets []WalletInfo) error {
-	log := zerolog.Ctx(ctx)
-
-	// Find all Bitcoin Core wallets
-	coreWallets := lo.Filter(wallets, func(w WalletInfo, _ int) bool {
-		return w.WalletType == WalletTypeBitcoinCore
-	})
-
-	if len(coreWallets) == 0 {
-		return nil
-	}
-
-	// Get bitcoind client
-	bitcoindClient, err := e.bitcoindConnector(ctx)
-	if err != nil {
-		return fmt.Errorf("bitcoind not available: %w", err)
-	}
-
-	// List existing wallets in Bitcoin Core
-	listResp, err := bitcoindClient.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
-	if err != nil {
-		return fmt.Errorf("list Bitcoin Core wallets: %w", err)
-	}
-
-	// Check each wallet
-	for _, wallet := range coreWallets {
-		walletName := fmt.Sprintf("wallet_%s", wallet.ID[:8])
-		walletExists := lo.Contains(listResp.Msg.Wallets, walletName)
-
-		if !walletExists {
-			log.Info().
-				Str("wallet_id", wallet.ID).
-				Str("wallet_name", walletName).
-				Msg("wallet sync: creating missing Bitcoin Core wallet")
-
-			if err := e.createBitcoinCoreWalletForSync(ctx, bitcoindClient, walletName, &wallet); err != nil {
-				log.Error().
-					Err(err).
-					Str("wallet_id", wallet.ID).
-					Msg("wallet sync: failed to create Bitcoin Core wallet")
-				continue
-			}
-
-			log.Info().
-				Str("wallet_id", wallet.ID).
-				Str("wallet_name", walletName).
-				Msg("wallet sync: created Bitcoin Core wallet")
-		}
-	}
-
-	return nil
-}
-
-func (e *WalletEngine) createBitcoinCoreWalletForSync(
-	ctx context.Context,
-	bitcoindClient corerpc.BitcoinServiceClient,
-	walletName string,
-	wallet *WalletInfo,
-) error {
-	// Decode seed
-	seed, err := hex.DecodeString(wallet.Master.SeedHex)
-	if err != nil {
-		return fmt.Errorf("decode seed hex: %w", err)
-	}
-
-	// Derive master key
-	masterKey, err := hdkeychain.NewMaster(seed, e.chainParams)
-	if err != nil {
-		return fmt.Errorf("derive master key: %w", err)
-	}
-
-	descriptors, err := e.coreDescriptors(masterKey, wallet.AccountIndex, wallet.DerivationPath, false)
-	if err != nil {
-		return err
-	}
-
-	// Create wallet
-	_, err = bitcoindClient.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
-		Name:               walletName,
-		DisablePrivateKeys: false,
-		Blank:              true,
-		Passphrase:         "",
-		AvoidReuse:         false,
-	}))
-	if err != nil {
-		// If wallet already exists on disk, load it instead
-		if strings.Contains(err.Error(), "Database already exists") {
-			zerolog.Ctx(ctx).Info().
-				Str("wallet_name", walletName).
-				Msg("Bitcoin Core wallet already exists on disk, loading it")
-
-			_, err = bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
-				Filename:      walletName,
-				LoadOnStartup: false,
-			}))
-			if err != nil {
-				return fmt.Errorf("load Bitcoin Core wallet: %w", err)
-			}
-		} else {
-			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
-		}
-	}
-
-	var requests []*corepb.ImportDescriptorsRequest_Request
-	for _, d := range descriptors {
-		descriptorWithChecksum, err := AddDescriptorChecksum(d.desc)
-		if err != nil {
-			return fmt.Errorf("compute descriptor checksum: %w", err)
-		}
-
-		requests = append(requests, &corepb.ImportDescriptorsRequest_Request{
-			Descriptor_: descriptorWithChecksum,
-			Active:      true,
-			Timestamp:   nil,
-			Internal:    d.internal,
-			RangeStart:  0,
-			RangeEnd:    1000,
-		})
-	}
-
-	resp, err := bitcoindClient.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
-		Wallet:   walletName,
-		Requests: requests,
-	}))
-	if err != nil {
-		return fmt.Errorf("import descriptors: %w", err)
-	}
-
-	// Check results
-	for i, result := range resp.Msg.Responses {
-		if !result.Success {
-			errMsg := "unknown error"
-			if result.Error != nil {
-				errMsg = result.Error.Message
-			}
-			return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
-		}
-	}
-
-	return nil
 }
 
 // HasOrchestratorClient reports whether the orchestrator's electrum surface is

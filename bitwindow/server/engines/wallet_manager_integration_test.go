@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
@@ -143,7 +144,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 
 		// Don't use GetDescriptorInfo - it strips private keys!
 		// Compute checksum ourselves to keep private keys intact
-		descriptorWithChecksum, err := AddDescriptorChecksum(d.desc)
+		descriptorWithChecksum, err := orchwallet.AddDescriptorChecksum(d.desc)
 		if err != nil {
 			t.Fatalf("compute checksum: %v", err)
 		}

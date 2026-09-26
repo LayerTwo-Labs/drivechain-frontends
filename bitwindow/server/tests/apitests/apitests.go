@@ -49,9 +49,13 @@ type configg struct {
 
 type ServerOpt func(opt *configg)
 
-func (o *configg) populate(_ *testing.T, ctrl *gomock.Controller, options ...ServerOpt) {
+func (o *configg) populate(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) {
 	for _, option := range options {
 		option(o)
+	}
+
+	if o.walletType == "bitcoinCore" && o.orchestrator == nil {
+		o.orchestrator = CoreWalletOrchestrator(t)
 	}
 
 	if o.enforcer == nil {
@@ -295,6 +299,30 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 		AnyTimes()
 
 	return mock
+}
+
+// CoreWalletOrchestrator returns an orchestrator client that names the Bitcoin
+// Core wallet of a wallet as the orchestrator does. Every other call answers
+// as unimplemented.
+func CoreWalletOrchestrator(t *testing.T) orchrpc.WalletManagerServiceClient {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle(orchrpc.NewWalletManagerServiceHandler(coreWalletManager{}))
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	return orchrpc.NewWalletManagerServiceClient(server.Client(), server.URL)
+}
+
+type coreWalletManager struct {
+	orchrpc.UnimplementedWalletManagerServiceHandler
+}
+
+func (coreWalletManager) CreateBitcoinCoreWallet(
+	_ context.Context, req *connect.Request[orchpb.CreateBitcoinCoreWalletRequest],
+) (*connect.Response[orchpb.CreateBitcoinCoreWalletResponse], error) {
+	return connect.NewResponse(&orchpb.CreateBitcoinCoreWalletResponse{
+		CoreWalletName: "wallet_" + req.Msg.WalletId[:8],
+	}), nil
 }
 
 // ExpectCoreWalletSetup allows the calls the wallet engine makes in the

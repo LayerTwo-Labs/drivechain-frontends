@@ -58,9 +58,10 @@ func testDenialWalletEngine(
 		dir,
 		&chaincfg.SigNetParams,
 	)
-	if orchestrator != nil {
-		engine.SetOrchestratorClient(orchestrator)
+	if orchestrator == nil {
+		orchestrator = apitests.CoreWalletOrchestrator(t)
 	}
+	engine.SetOrchestratorClient(orchestrator)
 	return engine
 }
 

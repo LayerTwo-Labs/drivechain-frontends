@@ -563,7 +563,7 @@ func (e *DeniabilityEngine) getNewAddress(ctx context.Context, walletType Wallet
 		}
 		return e.getBitcoinCoreNewAddress(ctx, walletId)
 	case WalletTypeElectrum:
-		return e.walletEngine.GetElectrumReceiveAddress(ctx, walletId)
+		return e.walletEngine.GetNewAddress(ctx, walletId, orchpb.AddressType_ADDRESS_TYPE_UNSPECIFIED)
 	default:
 		return "", fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
 	}
