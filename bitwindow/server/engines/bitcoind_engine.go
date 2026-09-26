@@ -331,19 +331,6 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		return fmt.Errorf("fetch current height: %w", err)
 	}
 
-	// The node dropped every block above its tip: a wiped datadir, or an eCash
-	// switch that rewound below the fork. The next tick checks the rest.
-	if currentHeight < lastProcessedHeight {
-		zerolog.Ctx(ctx).Warn().
-			Uint32("processed_tip", lastProcessedHeight).
-			Uint32("node_tip", currentHeight).
-			Msg("bitcoind_engine/parser: node is behind our processed tip, dropping the blocks above it")
-		if _, err := p.purgeAtOrAbove(ctx, currentHeight+1); err != nil {
-			return fmt.Errorf("purge above the node tip: %w", err)
-		}
-		return nil
-	}
-
 	// Before the IBD guard below. A switch leaves the replacement fork in IBD
 	// while it downloads from the rewind point, and every tick that returns
 	// early keeps serving rows from the fork that went away. The purge is a few
