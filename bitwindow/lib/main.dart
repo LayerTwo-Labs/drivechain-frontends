@@ -228,6 +228,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<PhotonRPC>(PhotonLive());
   GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
   GetIt.I.registerSingleton<FreeBankRPC>(FreeBankLive());
+  // FreeBank has no app of its own, so its BMM controls live in BitWindow. Lazy:
+  // the provider only starts watching the engine once the bid dialog opens.
+  GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider(sidechainRPC: GetIt.I.get<FreeBankRPC>()));
 
   registerNodeMode();
 
