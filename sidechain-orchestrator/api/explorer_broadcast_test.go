@@ -26,7 +26,7 @@ const broadcastTestJSON = `{
 }`
 
 func TestExplorerBroadcastKeepsSignedJSON(t *testing.T) {
-	for _, chain := range []string{"bitnames", "bitassets", "freebank"} {
+	for _, chain := range []string{"bitnames", "bitassets"} {
 		t.Run(chain, func(t *testing.T) {
 			node := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var req struct {

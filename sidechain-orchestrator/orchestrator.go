@@ -1071,6 +1071,13 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
+	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.Network))
+	if err != nil {
+		return err
+	}
+	if _, ok := node.(sidechain.OwnWalletNode); ok {
+		return nil
+	}
 	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
 	if err != nil {
 		return fmt.Errorf("sidechain starter: %w", err)
@@ -1080,10 +1087,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		return fmt.Errorf("no directory config for %s", cfg.Name)
 	}
 	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), ".cookie")
-	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.Network))
-	if err != nil {
-		return err
-	}
 	netParams := o.NetParams.Resolve()
 	if own, ok := node.(sidechain.WalletParamsNode); ok {
 		netParams = own.WalletParams()

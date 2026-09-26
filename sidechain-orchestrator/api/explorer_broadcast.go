@@ -20,9 +20,9 @@ type broadcastResult struct {
 
 func (h *ExplorerHandler) broadcastSource(chain string) (source, error) {
 	chain = strings.TrimSpace(chain)
-	if chain != "bitnames" && chain != "bitassets" && chain != "freebank" {
+	if chain != "bitnames" && chain != "bitassets" {
 		return source{}, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("transaction rebroadcast supports BitNames, BitAssets and FreeBank"))
+			fmt.Errorf("transaction rebroadcast supports BitNames and BitAssets"))
 	}
 	src, err := h.sourceOf(chain)
 	if err != nil {
