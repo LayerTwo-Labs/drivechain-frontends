@@ -17,6 +17,27 @@ class _FakeWriter extends WalletWriterProvider {
   Future<bool> hasExistingWallet() async => false;
 }
 
+/// Records the phrase a restore hands the backend.
+class _RecordingWriter extends _FakeWriter {
+  String? restored;
+
+  @override
+  Future<void> createElectrumWallet({
+    required String name,
+    required WalletGradient gradient,
+    String? customMnemonic,
+    String? passphrase,
+    String? xpubOrDescriptor,
+    String? scriptType,
+    int account = 0,
+    String? derivationPath,
+    String? hardwareDeviceType,
+    String? hardwareFingerprint,
+  }) async {
+    restored = customMnemonic;
+  }
+}
+
 Future<void> _pumpPage(WidgetTester tester) async {
   await tester.binding.setSurfaceSize(const Size(1440, 1024));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -68,6 +89,28 @@ void main() {
       find.widgetWithText(TextField, 'Paste your seed phrase — 12 or 24 words, separated by spaces'),
       findsOneWidget,
     );
+  });
+
+  // A phrase pasted with more than one space between words is still 12 words.
+  testWidgets('a seed with extra spaces reaches the backend', (tester) async {
+    final writer = _RecordingWriter();
+    GetIt.I.unregister<WalletWriterProvider>();
+    GetIt.I.registerSingleton<WalletWriterProvider>(writer);
+    await _pumpPage(tester);
+    await tester.tap(find.text('Paste a seed phrase'));
+    await tester.pumpAndSettle();
+
+    const pasted = 'abandon  abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon  about\n';
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Paste your seed phrase — 12 or 24 words, separated by spaces'),
+      pasted,
+    );
+    // The button draws its label twice, so both finds name the one button.
+    await tester.tap(find.widgetWithText(SailButton, 'Restore').first);
+    await tester.pump();
+
+    expect(find.textContaining('Invalid mnemonic format'), findsNothing);
+    expect(writer.restored, pasted);
   });
 
   // Electrum takes a passphrase like every other backend; the field used to be
