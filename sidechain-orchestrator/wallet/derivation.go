@@ -365,5 +365,47 @@ func (w *WalletData) pinsOneKind() bool {
 	if PinsOneKind(w.DerivationPath) {
 		return true
 	}
-	return w.usesExplicitPath() && walletReceiveKind(w) != w.scriptKind()
+	kind, ok := pathKind(w.DerivationPath)
+	return ok && kind != w.scriptKind()
+}
+
+// pathKind returns the script kind that the purpose of a standard account path
+// names.
+func pathKind(derivationPath string) (ScriptKind, bool) {
+	if strings.TrimSpace(derivationPath) == "" {
+		return ScriptUnknown, false
+	}
+	ap, err := ParseAccountPath(derivationPath)
+	if err != nil || !ap.Standard() {
+		return ScriptUnknown, false
+	}
+	return purposeToCoreKind(ap.Purpose)
+}
+
+// ResolveScriptType returns the script type a new hot wallet stores: the
+// requested type, or the type a standard path names when the request has none.
+func ResolveScriptType(requested, derivationPath string) (string, error) {
+	scriptType, err := validateHotScriptType(requested)
+	if err != nil {
+		return "", err
+	}
+	kind, ok := pathKind(derivationPath)
+	switch {
+	case !ok:
+		return scriptType, nil
+	case requested == "":
+		return hotScriptType(kind), nil
+	case kind != HotScriptKind(scriptType):
+		purpose, _ := kind.Purpose()
+		return "", fmt.Errorf("derivation purpose %d' does not match script type %q", purpose, requested)
+	}
+	return scriptType, nil
+}
+
+// hotScriptType is the stored ScriptType of a single-sig kind.
+func hotScriptType(kind ScriptKind) string {
+	if kind == ScriptNativeSegwit {
+		return ""
+	}
+	return kind.String()
 }

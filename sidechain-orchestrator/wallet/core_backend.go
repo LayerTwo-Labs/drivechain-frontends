@@ -1685,20 +1685,10 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 	}
 	fingerprint := masterFingerprint(masterKey)
 
-	var purposes []ScriptKind
-	if w.pinsOneKind() {
-		if _, err := ParseAccountPath(w.DerivationPath); err != nil {
-			return fmt.Errorf("invalid derivation path: %w", err)
-		}
-		purposes = []ScriptKind{coreScriptKind(w)}
-	} else {
-		// Exactly what the wallet advertises on the Receive page. Core hands out
-		// no address it holds no descriptor for, so the two sets must be one.
-		purposes = ReceiveKinds(w)
-	}
-
+	// Exactly what the wallet advertises on the Receive page. Core hands out no
+	// address it holds no descriptor for, so the two sets must be one.
 	var descriptors []ImportDescriptor
-	for _, kind := range purposes {
+	for _, kind := range ReceiveKinds(w) {
 		ap, err := accountPathFor(w, kind, net)
 		if err != nil {
 			return err
@@ -1912,29 +1902,11 @@ func createAndImport(
 	return nil
 }
 
-// walletScriptKind resolves the script kind a Core wallet receives to: the
-// purpose of an explicit derivation path, else native segwit.
+// walletScriptKind resolves the script kind a Core wallet receives to.
 func (p *CoreBackend) walletScriptKind(walletID string) ScriptKind {
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
 		return ScriptNativeSegwit
-	}
-	return coreScriptKind(w)
-}
-
-// coreScriptKind is the address kind a Core wallet derives: the BIP purpose of
-// an explicit path when it names one, else the kind the wallet stores. The
-// import reads it too, or Core is asked for a family it holds no descriptor for.
-func coreScriptKind(w *WalletData) ScriptKind {
-	if !w.usesExplicitPath() {
-		return w.scriptKind()
-	}
-	ap, err := ParseAccountPath(w.DerivationPath)
-	if err != nil {
-		return w.scriptKind()
-	}
-	if kind, ok := purposeToCoreKind(ap.Purpose); ok {
-		return kind
 	}
 	return w.scriptKind()
 }
