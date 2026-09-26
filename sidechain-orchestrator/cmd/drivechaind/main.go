@@ -378,6 +378,10 @@ func run(cctx *cli.Context) error {
 	var localChain wallet.ChainSource
 	if orch.BitcoinConf != nil {
 		// Port and credentials both move with the network.
+		// Every RPC call resolves the endpoint again, and Core writes the
+		// cookie seconds after boot. Without the gate one missing cookie fills
+		// the log with thousands of copies of the same line.
+		credGate := &changeGate{}
 		coreEndpoint := func() wallet.CoreEndpoint {
 			endpoint := wallet.CoreEndpoint{
 				Host: orch.BitcoinConf.GetRPCHost(),
@@ -385,8 +389,13 @@ func run(cctx *cli.Context) error {
 			}
 			user, password, err := orch.BitcoinConf.GetRPCCredentials()
 			if err != nil {
-				log.Warn().Err(err).Msg("core wallet rpc has no credentials")
+				if credGate.fires(err.Error()) {
+					log.Warn().Err(err).Msg("core wallet rpc has no credentials")
+				}
 				return endpoint
+			}
+			if credGate.fires("") {
+				log.Info().Msg("core wallet rpc got its credentials")
 			}
 			endpoint.User, endpoint.Password = user, password
 			return endpoint
@@ -831,4 +840,22 @@ func startCoreProxy(ctx context.Context, orch *orchestrator.Orchestrator, log ze
 		coreproxy.WithLogging(func(_ context.Context) *zerolog.Logger { return &proxyLog }),
 		coreproxy.WithoutInitialConnectionCheck(),
 	)
+}
+
+// changeGate reports a state one time and stays quiet until the state changes.
+// A closure that runs per RPC call uses it to keep one cause to one log line.
+type changeGate struct {
+	mu     sync.Mutex
+	last   string
+	report bool
+}
+
+func (g *changeGate) fires(state string) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.report && state == g.last {
+		return false
+	}
+	g.last, g.report = state, true
+	return true
 }
