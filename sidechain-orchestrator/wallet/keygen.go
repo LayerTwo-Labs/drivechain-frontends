@@ -1,7 +1,9 @@
 package wallet
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -40,10 +42,28 @@ func NormalizeMnemonic(mnemonic string) string {
 // ParseMnemonic returns a valid BIP39 mnemonic in its normal form.
 func ParseMnemonic(mnemonic string) (string, error) {
 	normal := NormalizeMnemonic(mnemonic)
-	if !bip39.IsMnemonicValid(normal) {
-		return "", errors.New("invalid mnemonic")
+	if bip39.IsMnemonicValid(normal) {
+		return normal, nil
 	}
-	return normal, nil
+	if isElectrumSeed(normal) {
+		return "", errors.New("the phrase is an Electrum seed, not a BIP39 seed; restore it in Electrum")
+	}
+	return "", errors.New("invalid mnemonic")
+}
+
+// isElectrumSeed reports whether a phrase in normal form is a seed of the
+// Electrum app, whose words hash to a version prefix. The normal form is the
+// Electrum form for a phrase with no accents and no CJK characters.
+func isElectrumSeed(normal string) bool {
+	mac := hmac.New(sha512.New, []byte("Seed version"))
+	mac.Write([]byte(normal))
+	version := hex.EncodeToString(mac.Sum(nil))
+	for _, prefix := range []string{"01", "100", "101", "102"} {
+		if strings.HasPrefix(version, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // DeriveStarter derives a child mnemonic from a seed at the given derivation path.
