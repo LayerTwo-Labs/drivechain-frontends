@@ -22,7 +22,6 @@ import 'wallet.pbjson.dart';
 export 'wallet.pb.dart';
 
 abstract class WalletServiceBase extends $pb.GeneratedService {
-  $async.Future<$13.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ServerContext ctx, $13.CreateBitcoinCoreWalletRequest request);
   $async.Future<$13.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $13.SendTransactionRequest request);
   $async.Future<$13.GetBalanceResponse> getBalance($pb.ServerContext ctx, $13.GetBalanceRequest request);
   $async.Future<$13.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $13.GetNewAddressRequest request);
@@ -59,7 +58,6 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'CreateBitcoinCoreWallet': return $13.CreateBitcoinCoreWalletRequest();
       case 'SendTransaction': return $13.SendTransactionRequest();
       case 'GetBalance': return $13.GetBalanceRequest();
       case 'GetNewAddress': return $13.GetNewAddressRequest();
@@ -99,7 +97,6 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'CreateBitcoinCoreWallet': return this.createBitcoinCoreWallet(ctx, request as $13.CreateBitcoinCoreWalletRequest);
       case 'SendTransaction': return this.sendTransaction(ctx, request as $13.SendTransactionRequest);
       case 'GetBalance': return this.getBalance(ctx, request as $13.GetBalanceRequest);
       case 'GetNewAddress': return this.getNewAddress(ctx, request as $13.GetNewAddressRequest);
