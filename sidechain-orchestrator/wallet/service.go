@@ -758,7 +758,7 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 	}
 
 	if xpubOrDescriptor != "" {
-		return s.createElectrumWatchOnly(name, gradient, xpubOrDescriptor, HotScriptKind(st))
+		return s.createWatchOnly(name, gradient, xpubOrDescriptor, HotScriptKind(st), WalletTypeElectrum)
 	}
 
 	sidechainSlots := make([]SidechainSlot, len(slots))
@@ -798,19 +798,14 @@ func validateHotScriptType(s string) (string, error) {
 	}
 }
 
-// createElectrumWatchOnly creates a watch-only electrum wallet from an xpub or
-// descriptor. Addresses derive from the public key material; with no seed the
-// ElectrumBackend can read balances/history but cannot sign or send. requested
-// is the kind to record when the key states none of its own.
-func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string, requested ScriptKind) (*WalletData, error) {
-	// Parse-validate the descriptor and record its script kind so derivation
-	// scans the addresses the descriptor actually owns.
+// createWatchOnly creates a watch-only wallet of a backend type from an xpub or
+// descriptor. requested is the kind to store when the key states none of its
+// own. The key can hold history of any age, so the wallet counts as imported.
+func (s *Service) createWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string, requested ScriptKind, walletType WalletType) (*WalletData, error) {
 	desc, err := ParseDescriptorAs(xpubOrDescriptor, requested)
 	if err != nil {
 		return nil, fmt.Errorf("invalid watch-only descriptor: %w", err)
 	}
-	// Watch-only stays public-only; reject any private extended key so the
-	// wallet can never store or sign with private material.
 	for _, k := range desc.Keys {
 		if k.Account.IsPrivate() {
 			return nil, errors.New("watch-only import must not contain private keys")
@@ -831,7 +826,10 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 	} else {
 		watchOnly["xpub"] = xpubOrDescriptor
 	}
-	watchOnlyJSON, _ := json.Marshal(watchOnly)
+	watchOnlyJSON, err := json.Marshal(watchOnly)
+	if err != nil {
+		return nil, fmt.Errorf("encode watch-only data: %w", err)
+	}
 
 	wallet := WalletData{
 		Version:    1,
@@ -842,18 +840,19 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 		Name:       name,
 		Gradient:   gradient,
 		CreatedAt:  time.Now(),
-		WalletType: WalletTypeElectrum,
+		WalletType: walletType,
 		WatchOnly:  json.RawMessage(watchOnlyJSON),
 		ScriptType: desc.Kind.String(),
+		Imported:   true,
 	}
 
 	s.wallets = append(s.wallets, wallet)
 	s.activeWalletID = walletID
 	s.adoptStarterWallet()
 	if err := s.saveWalletFile(); err != nil {
-		return nil, fmt.Errorf("save watch-only electrum wallet: %w", err)
+		return nil, fmt.Errorf("save watch-only wallet: %w", err)
 	}
-	s.log.Info().Str("id", walletID).Msg("watch-only electrum wallet created")
+	s.log.Info().Str("id", walletID).Str("type", string(walletType)).Msg("watch-only wallet created")
 	return &wallet, nil
 }
 
@@ -913,54 +912,11 @@ func (s *Service) CreateElectrumMultisig(
 	return &wallet, nil
 }
 
-// CreateWatchOnlyWallet creates a watch-only wallet from an xpub or descriptor.
-// Dart: WalletWriterProvider.createWatchOnlyWallet (L156-214)
+// CreateWatchOnlyWallet creates a watch-only Bitcoin Core wallet from an xpub or
+// descriptor. A bare key states no kind, so it is native segwit.
 func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.locked() {
-		return fmt.Errorf("wallet is locked, unlock before creating a wallet")
-	}
-
-	s.log.Info().Str("name", name).Msg("creating watch-only wallet")
-
-	walletID := generateWalletID()
-
-	// Detect if descriptor (contains '(' and ')')
-	isDescriptor := strings.Contains(xpubOrDescriptor, "(") && strings.Contains(xpubOrDescriptor, ")")
-
-	watchOnly := map[string]string{}
-	if isDescriptor {
-		watchOnly["descriptor"] = xpubOrDescriptor
-	} else {
-		watchOnly["xpub"] = xpubOrDescriptor
-	}
-	watchOnlyJSON, _ := json.Marshal(watchOnly)
-
-	wallet := WalletData{
-		Version:    1,
-		Master:     MasterWallet{SeedHex: ""},
-		L1:         L1Wallet{Mnemonic: ""},
-		Sidechains: []SidechainWallet{},
-		ID:         walletID,
-		Name:       name,
-		Gradient:   json.RawMessage(gradientJSON),
-		CreatedAt:  time.Now(),
-		WalletType: WalletTypeBitcoinCore,
-		WatchOnly:  json.RawMessage(watchOnlyJSON),
-	}
-
-	s.wallets = append(s.wallets, wallet)
-	s.activeWalletID = walletID
-	s.adoptStarterWallet()
-
-	if err := s.saveWalletFile(); err != nil {
-		return fmt.Errorf("save watch-only wallet: %w", err)
-	}
-
-	s.log.Info().Str("id", walletID).Msg("watch-only wallet created")
-	return nil
+	_, err := s.createWatchOnly(name, json.RawMessage(gradientJSON), xpubOrDescriptor, ScriptNativeSegwit, WalletTypeBitcoinCore)
+	return err
 }
 
 // SetWalletHardwareDevice tags a watch-only wallet to sign on a USB device.
@@ -1869,6 +1825,9 @@ func (s *Service) loadWalletFile() error {
 	if s.alignCoreScriptTypes() {
 		migrated = true
 	}
+	if s.alignWatchOnlyWallets() {
+		migrated = true
+	}
 	if s.adoptStarterWallet() {
 		migrated = true
 	}
@@ -1995,6 +1954,36 @@ func (s *Service) alignCoreScriptTypes() bool {
 			continue
 		}
 		w.ScriptType = hotScriptType(kind)
+		changed = true
+	}
+	return changed
+}
+
+// alignWatchOnlyWallets stores on each watch-only wallet the script type its
+// descriptor states, and marks it imported, because its key can hold history
+// of any age. Must be called with mu held.
+func (s *Service) alignWatchOnlyWallets() bool {
+	changed := false
+	for i := range s.wallets {
+		w := &s.wallets[i]
+		if w.Multisig != nil || !w.IsWatchOnly() {
+			continue
+		}
+		if !w.Imported {
+			w.Imported = true
+			changed = true
+		}
+		stored, err := watchOnlyDescriptorString(w)
+		if err != nil {
+			// A payload that does not parse states no kind; the backend reports
+			// the error when it derives.
+			continue
+		}
+		d, err := ParseDescriptorAs(stored, w.scriptKind())
+		if err != nil || d.Kind == w.scriptKind() {
+			continue
+		}
+		w.ScriptType = d.Kind.String()
 		changed = true
 	}
 	return changed

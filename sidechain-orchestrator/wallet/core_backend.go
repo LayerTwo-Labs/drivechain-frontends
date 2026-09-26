@@ -174,13 +174,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	var err error
 	switch targetWallet.WalletType {
 	case WalletTypeBitcoinCore:
-		// Watch-only Core wallets import a descriptor; full wallets create from
-		// the seed. Both run on the same Core backend.
-		if targetWallet.IsWatchOnly() {
-			err = p.createWatchOnlyWallet(ctx, walletName, targetWallet)
-		} else {
-			err = p.createBitcoinCoreWallet(ctx, walletName, targetWallet)
-		}
+		err = p.createCoreWallet(ctx, walletName, targetWallet)
 	default:
 		return "", fmt.Errorf("wallet type %s does not use Bitcoin Core", targetWallet.WalletType)
 	}
@@ -1664,9 +1658,33 @@ func (p *CoreBackend) retryBip47NotificationDescriptor(ctx context.Context, wall
 	delete(p.bip47NotifRetry, walletID)
 }
 
-// createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet that holds
-// every descriptor the wallet derives.
-func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName string, w *WalletData) error {
+// descriptorOnlyCoreReads returns the stored descriptor of a watch-only wallet
+// when the parser rejects it. Core reads more policies, such as wsh(multi(...)).
+func descriptorOnlyCoreReads(w *WalletData) (string, bool) {
+	stored := w.watchOnlyField("descriptor")
+	if stored == "" {
+		return "", false
+	}
+	_, err := ParseDescriptor(stored)
+	return stored, err != nil
+}
+
+// createCoreWallet creates a Bitcoin Core descriptor wallet that holds every
+// descriptor the wallet derives. A watch-only wallet holds no private key.
+func (p *CoreBackend) createCoreWallet(ctx context.Context, walletName string, w *WalletData) error {
+	if stored, ok := descriptorOnlyCoreReads(w); ok {
+		body, err := stripDescriptorChecksum(stored)
+		if err != nil {
+			return err
+		}
+		desc, err := AddDescriptorChecksum(body)
+		if err != nil {
+			return err
+		}
+		return p.createAndImport(ctx, walletName, true, []ImportDescriptor{{
+			Desc: desc, Active: true, Timestamp: importTimestamp(w), Range: []int{0, 999},
+		}})
+	}
 	net := p.net()
 	descriptors, err := WalletDescriptors(w, net)
 	if err != nil {
@@ -1680,7 +1698,7 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 		}
 		imports = append(imports, pair...)
 	}
-	return p.createAndImport(ctx, walletName, false, imports)
+	return p.createAndImport(ctx, walletName, w.IsWatchOnly(), imports)
 }
 
 // coreDescriptorWrapper returns the open/close fragments wrapping the key
@@ -1714,59 +1732,6 @@ func purposeToCoreKind(purpose uint32) (ScriptKind, bool) {
 	default:
 		return ScriptUnknown, false
 	}
-}
-
-// createWatchOnlyWallet creates a watch-only Bitcoin Core wallet.
-func (p *CoreBackend) createWatchOnlyWallet(ctx context.Context, walletName string, w *WalletData) error {
-	if w.WatchOnly == nil {
-		return fmt.Errorf("watch-only wallet missing watch_only data")
-	}
-
-	var watchOnly struct {
-		Descriptor string `json:"descriptor"`
-		Xpub       string `json:"xpub"`
-	}
-	if err := json.Unmarshal(w.WatchOnly, &watchOnly); err != nil {
-		return fmt.Errorf("parse watch_only: %w", err)
-	}
-
-	var descriptors []ImportDescriptor
-	if watchOnly.Descriptor != "" {
-		desc := watchOnly.Descriptor
-		if !strings.Contains(desc, "#") {
-			var err error
-			desc, err = AddDescriptorChecksum(desc)
-			if err != nil {
-				return fmt.Errorf("add checksum: %w", err)
-			}
-		}
-		descriptors = append(descriptors, ImportDescriptor{
-			Desc:      desc,
-			Active:    true,
-			Timestamp: "now",
-			Range:     []int{0, 1000},
-		})
-	} else if watchOnly.Xpub != "" {
-		descriptors = append(descriptors,
-			ImportDescriptor{
-				Desc:      mustAddChecksum(fmt.Sprintf("wpkh(%s/0/*)", watchOnly.Xpub)),
-				Active:    true,
-				Timestamp: "now",
-				Range:     []int{0, 1000},
-			},
-			ImportDescriptor{
-				Desc:      mustAddChecksum(fmt.Sprintf("wpkh(%s/1/*)", watchOnly.Xpub)),
-				Active:    true,
-				Timestamp: "now",
-				Internal:  true,
-				Range:     []int{0, 1000},
-			},
-		)
-	} else {
-		return fmt.Errorf("watch-only wallet requires descriptor or xpub")
-	}
-
-	return p.createAndImport(ctx, walletName, true, descriptors)
 }
 
 // createAndImport creates a Core wallet and imports descriptors.
