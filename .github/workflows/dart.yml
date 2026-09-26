@@ -52,23 +52,14 @@ jobs:
         if: matrix.package == 'sidechain_core'
         run: ../scripts/check-migrations.sh
 
-      - name: Cache Flutter SDK
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.flutter
-            ~/.pub-cache
-          key:
-            flutter-${{ env.FLUTTER_VERSION }}-${{ env.DART_VERSION }}-${{
-            runner.os }}
-          restore-keys: |
-            flutter-${{ env.FLUTTER_VERSION }}-${{ env.DART_VERSION }}-
-            flutter-${{ env.FLUTTER_VERSION }}-
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-sdk-:channel:-:version:-:os:-:arch:
+          pub-cache: true
+          pub-cache-key: flutter-pub-:channel:-:version:-:os:-:arch:
 
       - uses: dart-lang/setup-dart@v1
         with:
@@ -88,6 +79,7 @@ jobs:
 
         # https://docs.flutter.dev/platform-integration/linux/building
       - name: Install Linux build dependencies
+        if: matrix.package != 'sail_ui' && matrix.package != 'sidechain_core'
         run: |
           sudo find /etc/apt/sources.list.d -maxdepth 1 -type f -name '*google-chrome*' -delete
           sudo apt-get update -y
