@@ -118,33 +118,13 @@ func (h *WalletHandler) GetWalletStatus(ctx context.Context, req *connect.Reques
 	}), nil
 }
 
-// checkPathMatchesScriptType rejects a derivation path whose BIP purpose names
-// a different address kind than scriptType. One wallet derives one kind, so a
-// mismatch scans and signs addresses it does not own. An empty scriptType
-// states nothing, and the kind then comes from the path itself.
-func checkPathMatchesScriptType(path, scriptType string) error {
-	if path == "" || scriptType == "" {
-		return nil
-	}
-	ap, err := wallet.ParseAccountPath(path)
-	if err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, err)
-	}
-	want, ok := wallet.HotScriptKind(scriptType).Purpose()
-	if !ap.Standard() || !ok || ap.Purpose == want {
-		return nil
-	}
-	return connect.NewError(connect.CodeInvalidArgument,
-		fmt.Errorf("derivation purpose %d' does not match script type %q (want %d')", ap.Purpose, scriptType, want))
-}
-
 func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request[pb.GenerateWalletRequest]) (*connect.Response[pb.GenerateWalletResponse], error) {
 	account, path, err := wallet.ResolveCreateDerivationPath(req.Msg.Account, req.Msg.DerivationPath)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	if err := checkPathMatchesScriptType(path, req.Msg.ScriptType); err != nil {
-		return nil, err
+	if _, err := wallet.ResolveScriptType(req.Msg.ScriptType, path); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	w, err := h.svc.GenerateWalletWithPath(req.Msg.Name, req.Msg.CustomMnemonic, req.Msg.Passphrase, account, path, req.Msg.ScriptType, allSidechainSlots())
 	if err != nil {
@@ -435,8 +415,8 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if req.Msg.XpubOrDescriptor == "" {
-		if err := checkPathMatchesScriptType(path, req.Msg.ScriptType); err != nil {
-			return nil, err
+		if _, err := wallet.ResolveScriptType(req.Msg.ScriptType, path); err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
 	// A bare extended key states no kind, so its own history places it. With

@@ -753,7 +753,7 @@ func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMess
 // xpubOrDescriptor instead creates a watch-only electrum wallet with no
 // private keys; it is mutually exclusive with customMnemonic.
 func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, passphrase, xpubOrDescriptor, scriptType string, accountIndex uint32, derivationPath string) (*WalletData, error) {
-	st, err := validateHotScriptType(scriptType)
+	st, err := ResolveScriptType(scriptType, derivationPath)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,7 +1056,7 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 // derivation-path override stored on the wallet so descriptor derivation honors
 // it. Both override args must be pre-validated (see ResolveCreateDerivationPath).
 func (s *Service) GenerateWalletWithPath(name, customMnemonic, passphrase string, accountIndex uint32, derivationPath, scriptType string, slots []SidechainSlot) (*WalletData, error) {
-	st, err := validateHotScriptType(scriptType)
+	st, err := ResolveScriptType(scriptType, derivationPath)
 	if err != nil {
 		return nil, err
 	}
@@ -1867,6 +1867,9 @@ func (s *Service) loadWalletFile() error {
 	if enforcerMigrated {
 		migrated = true
 	}
+	if s.alignCoreScriptTypes() {
+		migrated = true
+	}
 	if s.adoptStarterWallet() {
 		migrated = true
 	}
@@ -1976,6 +1979,26 @@ func (s *Service) enforcerLegacyWallet(w *WalletData, target WalletType) (*Walle
 	legacy.Master.MasterKey = masterKey.B58Serialize()
 	legacy.Master.ChainCode = hex.EncodeToString(masterKey.ChainCode)
 	return &legacy, nil
+}
+
+// alignCoreScriptTypes stores on each Core wallet the script type that its
+// standard path names, because Core imported that type. Must be called with mu
+// held.
+func (s *Service) alignCoreScriptTypes() bool {
+	changed := false
+	for i := range s.wallets {
+		w := &s.wallets[i]
+		if w.WalletType != WalletTypeBitcoinCore || w.Multisig != nil || w.IsWatchOnly() {
+			continue
+		}
+		kind, ok := pathKind(w.DerivationPath)
+		if !ok || kind == w.scriptKind() {
+			continue
+		}
+		w.ScriptType = hotScriptType(kind)
+		changed = true
+	}
+	return changed
 }
 
 // saveWalletFile writes wallet.json atomically, keeping every wallet the file
@@ -2134,7 +2157,7 @@ func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
 		// startup, so this cannot happen.
 		panic(fmt.Sprintf("unknown network %q: %v", s.network, err))
 	}
-	ap, err := accountPathFor(w, walletReceiveKind(w), net)
+	ap, err := accountPathFor(w, w.scriptKind(), net)
 	if err != nil {
 		return false
 	}

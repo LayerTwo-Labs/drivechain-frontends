@@ -22,7 +22,7 @@ func TestGenerateWalletAcceptsAStandardPathWithNoScriptType(t *testing.T) {
 		DerivationPath: "m/86'/1'/0'",
 	}))
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.WalletId)
+	assert.Equal(t, "taproot", h.svc.GetWalletByID(resp.Msg.WalletId).ScriptType)
 }
 
 // A stated type and a path that disagree would scan addresses the wallet does

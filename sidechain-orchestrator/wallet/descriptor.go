@@ -520,21 +520,6 @@ func accountKeyFromSeed(seedHex string, kind ScriptKind, net *chaincfg.Params) (
 	return acct, err
 }
 
-// walletReceiveKind resolves the script kind a wallet's receive addresses use:
-// an explicit derivation path's purpose wins (BIP44/49/84/86), otherwise the
-// wallet's stored ScriptType (default native segwit). This is the kind the
-// address preview must derive against so it matches the real receive addresses.
-func walletReceiveKind(w *WalletData) ScriptKind {
-	if w.usesExplicitPath() {
-		if ap, err := ParseAccountPath(w.DerivationPath); err == nil {
-			if kind, ok := purposeToCoreKind(ap.Purpose); ok {
-				return kind
-			}
-		}
-	}
-	return w.scriptKind()
-}
-
 // DeriveWalletReceiveAddresses derives receive addresses without an address allocation.
 func DeriveWalletReceiveAddresses(w *WalletData, net *chaincfg.Params, start, count int) ([]string, error) {
 	if net == nil {
@@ -561,7 +546,7 @@ func DeriveWalletReceiveAddresses(w *WalletData, net *chaincfg.Params, start, co
 		if w.Master.SeedHex == "" {
 			return nil, errors.New("wallet has no seed; cannot derive addresses")
 		}
-		kind := walletReceiveKind(w)
+		kind := w.scriptKind()
 		ap, err := accountPathFor(w, kind, net)
 		if err != nil {
 			return nil, err

@@ -1,10 +1,13 @@
 package wallet
 
 import (
+	"context"
 	"encoding/hex"
+	"encoding/json"
 	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -154,6 +157,77 @@ func TestCustomAccountAddressVector(t *testing.T) {
 	ds0, _, err := d0.DeriveScript(false, 0, net)
 	require.NoError(t, err)
 	assert.Equal(t, "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", ds0.address.EncodeAddress())
+}
+
+func TestResolveScriptType(t *testing.T) {
+	for _, c := range []struct {
+		requested, path, want, wantErr string
+	}{
+		{requested: "", path: "", want: ""},
+		{requested: "taproot", path: "", want: "taproot"},
+		{requested: "", path: "m/44'/1'/0'", want: "legacy"},
+		{requested: "", path: "m/49'/0'/3'", want: "nested-segwit"},
+		{requested: "", path: "m/84'/0'/0'", want: ""},
+		{requested: "", path: "m/86'/0'/0'", want: "taproot"},
+		{requested: "native-segwit", path: "m/84'/0'/0'", want: ""},
+		{requested: "legacy", path: "m/1234'/9'/0'/7", want: "legacy"},
+		{requested: "legacy", path: "m/86'/1'/0'", wantErr: "does not match"},
+		{requested: "native-segwit", path: "m/86'/0'/0'", wantErr: "does not match"},
+		{requested: "bogus", path: "", wantErr: "unsupported script type"},
+	} {
+		got, err := ResolveScriptType(c.requested, c.path)
+		if c.wantErr != "" {
+			require.ErrorContains(t, err, c.wantErr, "%q %q", c.requested, c.path)
+			continue
+		}
+		require.NoError(t, err, "%q %q", c.requested, c.path)
+		assert.Equal(t, c.want, got, "%q %q", c.requested, c.path)
+	}
+}
+
+// One seed and one path give one address, whichever backend serves the wallet.
+func TestAStandardPathGivesOneAddressOnEveryBackend(t *testing.T) {
+	net := &chaincfg.MainNetParams
+	for path, want := range map[string]string{
+		"m/44'/0'/0'": "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA",
+		"m/49'/0'/0'": "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf",
+		"m/86'/0'/0'": "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr",
+	} {
+		t.Run(path, func(t *testing.T) {
+			svc := newTestService(t)
+			elec, err := svc.CreateElectrumWallet("Electrum", nil, nil, testMnemonic, "", "", "", 0, path)
+			require.NoError(t, err)
+			core, err := svc.GenerateWalletWithPath("Core", testMnemonic, "", 0, path, "", nil)
+			require.NoError(t, err)
+
+			eb := NewElectrumBackend(svc, newFakeEsplora(), StaticParams(net), zerolog.Nop())
+			d, err := eb.walletDescriptorFor(elec, ReceiveKinds(elec)[0])
+			require.NoError(t, err)
+			a, err := eb.deriveAddr(d, false, 0)
+			require.NoError(t, err)
+			assert.Equal(t, want, a.address, "electrum")
+
+			fake := newFakeBitcoind(t)
+			fake.stubEnsureFlow()
+			cb := NewCoreBackend(svc, fake.client(t), StaticParams(net), zerolog.Nop())
+			t.Cleanup(cb.bip47Imports.Wait)
+			_, err = cb.Ensure(context.Background(), core.ID)
+			require.NoError(t, err)
+			var imports []ImportDescriptor
+			require.NoError(t, json.Unmarshal(fake.callsFor("importdescriptors")[0].Params[0], &imports))
+			receive, err := ParseDescriptor(imports[0].Desc)
+			require.NoError(t, err)
+			ds, _, err := receive.DeriveScript(false, 0, net)
+			require.NoError(t, err)
+			assert.Equal(t, want, ds.address.EncodeAddress(), "core")
+
+			for _, w := range []*WalletData{elec, core} {
+				preview, err := DeriveWalletReceiveAddresses(w, net, 0, 1)
+				require.NoError(t, err)
+				assert.Equal(t, want, preview[0], "preview of the %s wallet", w.WalletType)
+			}
+		})
+	}
 }
 
 func TestCoreDescriptorWrapper(t *testing.T) {
