@@ -130,6 +130,19 @@ jobs:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/restart
           FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
+      # A relaunch inside the owner grace must not kill the daemons the first
+      # launch still runs.
+      - name: Fast relaunch test
+        id: fast_relaunch
+        if: always() && steps.restart.conclusion == 'success'
+        working-directory: bitwindow/e2e
+        run:
+          go test -tags e2e -v -timeout 25m -run TestFastRelaunchKeepsDrivechaindAlive
+          ./...
+        env:
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/fast-relaunch
+          FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
+
       - name: Issue 2b — window-close shutdown test
         id: window_close
         if: always() && steps.boot.conclusion == 'success'
