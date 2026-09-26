@@ -176,6 +176,7 @@ export 'rpcs/bitnames_rpc.dart';
 export 'rpcs/bitwindow_api.dart';
 export 'rpcs/coinshift_rpc.dart';
 export 'rpcs/enforcer_rpc.dart';
+export 'rpcs/freebank_rpc.dart';
 export 'rpcs/keepalive_http_client.dart';
 export 'rpcs/orchestrator_multisig_lounge_rpc.dart';
 export 'rpcs/orchestrator_rpc.dart';
