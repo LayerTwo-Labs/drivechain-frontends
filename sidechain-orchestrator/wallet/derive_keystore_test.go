@@ -15,13 +15,17 @@ func TestMultisigAccountPath(t *testing.T) {
 		"wsh":    "m/48'/0'/0'/2'",
 		"sh-wsh": "m/48'/0'/0'/1'",
 		"tr":     "m/48'/0'/0'/3'",
-		"sh":     "m/45'/0'",
+		"sh":     "m/45'/0",
 	}
 	for st, want := range cases {
 		got, err := multisigAccountPath(st, 0, net)
 		require.NoError(t, err)
 		require.Equal(t, want, got, st)
 	}
+	// A hardware signer accepts a key on the default legacy path.
+	sh, err := parseHDPath(cases["sh"])
+	require.NoError(t, err)
+	require.True(t, multisigPathIsStandard(append(sh, 0, 5)))
 	// Testnet coin 1 for a different account.
 	got, err := multisigAccountPath("wsh", 3, &chaincfg.TestNet3Params)
 	require.NoError(t, err)
@@ -133,7 +137,7 @@ func TestStandardDerivationPaths(t *testing.T) {
 	require.Equal(t, "m/48'/1'/1'/2'", def)
 	require.Len(t, opts, 4)
 	require.Equal(t, "m/48'/1'/1'/2'", opts[0].Path)
-	require.Equal(t, "m/45'/1'", opts[3].Path)
+	require.Equal(t, "m/45'/1", opts[3].Path)
 
 	opts, def, err = StandardDerivationPaths("taproot", false, 0, &chaincfg.MainNetParams)
 	require.NoError(t, err)
@@ -157,6 +161,7 @@ func TestKeystorePathScriptType(t *testing.T) {
 		{"m/48'/1'/0'/2'", true, "wsh"},
 		{"m/48'/1'/0'/1'", true, "sh-wsh"},
 		{"m/48'/1'/0'/3'", true, "tr"},
+		{"m/45'/0", true, "sh"},
 		{"m/45'/0'", true, "sh"},
 		// A path that is standard for the other policy, or custom, has no type.
 		{"m/84'/0'/0'", true, ""},
