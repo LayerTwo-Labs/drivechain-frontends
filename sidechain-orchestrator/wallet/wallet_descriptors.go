@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 )
 
 // WalletDescriptors returns every descriptor a wallet derives, its receive
@@ -53,6 +55,42 @@ func DescriptorFor(w *WalletData, kind ScriptKind, net *chaincfg.Params) (*Descr
 		// A bare xpub states no kind, so the one recorded at import decides.
 		return ParseDescriptorAs(desc, w.scriptKind())
 	}
+}
+
+// SigningKey returns the private key behind one of the first depth receive
+// addresses of each descriptor a wallet derives. A taproot key comes tweaked,
+// because the address commits to the tweaked key.
+func SigningKey(w *WalletData, net *chaincfg.Params, address string, depth uint32) (*btcec.PrivateKey, error) {
+	descriptors, err := WalletDescriptors(w, net)
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range descriptors {
+		if len(d.Keys) != 1 {
+			continue
+		}
+		for index := uint32(0); index < depth; index++ {
+			ds, _, err := d.DeriveScript(false, index, net)
+			if err != nil {
+				return nil, err
+			}
+			if ds.address.EncodeAddress() != address {
+				continue
+			}
+			priv, ok, err := deriveChildPrivIfPossible(d.Keys[0].Account, 0, index)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				return nil, fmt.Errorf("the wallet holds no private key for address %s", address)
+			}
+			if d.Kind == ScriptTaproot {
+				return txscript.TweakTaprootPrivKey(*priv, []byte{}), nil
+			}
+			return priv, nil
+		}
+	}
+	return nil, fmt.Errorf("address %s is not one of the wallet's first %d receiving addresses", address, depth)
 }
 
 // multisigDescriptor builds the multisig descriptor with each held cosigner as
