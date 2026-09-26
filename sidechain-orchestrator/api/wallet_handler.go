@@ -60,6 +60,10 @@ type WalletHandler struct {
 	orch            *orchestrator.Orchestrator // nil until set; used for Core variant RPCs
 	bip47State      *bip47state.Store          // nil until SetBip47StateStore is called
 	ecxBurnWarnings sync.Map
+	// depositSlotLocks serializes CreateDeposit per slot. Every wallet of this
+	// install spends one shared treasury output per slot, so two overlapping
+	// calls would both pass the pending check and then conflict on the wire.
+	depositSlotLocks sync.Map
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {

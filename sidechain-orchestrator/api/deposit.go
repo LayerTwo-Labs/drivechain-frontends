@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 	"strconv"
 	"strings"
+	"sync"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -51,6 +52,11 @@ func (h *WalletHandler) CreateDeposit(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+
+	// Held past the broadcast and the record below: two overlapping calls would
+	// otherwise both pass the pending check and spend the same treasury output.
+	unlock := h.lockDepositSlot(slot)
+	defer unlock()
 
 	treasury, err := h.enforcerTreasury(ctx, uint32(slot))
 	if err != nil {
@@ -170,6 +176,14 @@ func depositTreasuryReady(treasury sidechainTreasury, walletHeight int, slot uin
 		return fmt.Errorf("the enforcer shows no treasury output and no active sidechain in slot %d", slot)
 	}
 	return nil
+}
+
+// lockDepositSlot serializes every deposit to one slot and returns the unlock.
+func (h *WalletHandler) lockDepositSlot(slot uint8) func() {
+	lock, _ := h.depositSlotLocks.LoadOrStore(slot, &sync.Mutex{})
+	mu := lock.(*sync.Mutex)
+	mu.Lock()
+	return mu.Unlock
 }
 
 // enforcerTreasury reads the enforcer tip, the slot's treasury outpoint, and
