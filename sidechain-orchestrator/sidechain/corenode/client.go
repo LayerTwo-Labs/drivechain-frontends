@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -88,6 +89,13 @@ type rpcError struct {
 
 func (e *rpcError) Error() string {
 	return fmt.Sprintf("%s RPC error %d: %s", e.chain, e.Code, e.Message)
+}
+
+// IsMethodNotFound reports whether a node refused a call because it does not
+// have that method, as an older release of a fork does.
+func IsMethodNotFound(err error) bool {
+	var rpcErr *rpcError
+	return errors.As(err, &rpcErr) && rpcErr.Code == -32601
 }
 
 // WalletCall sends one wallet RPC to the endpoint this fork keeps its wallet at.

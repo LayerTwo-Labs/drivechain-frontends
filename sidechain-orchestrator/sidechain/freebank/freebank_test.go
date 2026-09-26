@@ -92,13 +92,13 @@ func TestArgsReportAMainchainBehindTheFork(t *testing.T) {
 	assert.Contains(t, err.Error(), "967680")
 }
 
-// FreeBank blind merge mines with its own ticker and settles withdrawals on its
+// The BMM engine drives FreeBank blocks, but FreeBank settles withdrawals on its
 // own paths, so the orchestrator reads that from the type.
-func TestFreeBankDrivesNeitherBmmNorBundles(t *testing.T) {
+func TestFreeBankDrivesBmmButProposesNoBundle(t *testing.T) {
 	var node sidechain.Node = NewClient("127.0.0.1", 8454, "")
 
 	_, drivesBMM := node.(sidechain.BMMNode)
-	assert.False(t, drivesBMM)
+	assert.True(t, drivesBMM)
 
 	_, proposesBundles := node.(sidechain.WithdrawalNode)
 	assert.False(t, proposesBundles)

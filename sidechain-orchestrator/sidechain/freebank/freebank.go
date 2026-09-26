@@ -1,6 +1,7 @@
 // Package freebank is what the FreeBank sidechain adds to a plain Bitcoin Core
-// fork: the wallet dialect its node speaks, and the mainchain identity it pins
-// itself to at boot. Everything Core answers comes from the shared Core client.
+// fork: the wallet dialect its node speaks, the mainchain identity it pins
+// itself to at boot, and the blind-merge-mining methods the BMM engine drives
+// (bmm.go). Everything Core answers comes from the shared Core client.
 package freebank
 
 import (
