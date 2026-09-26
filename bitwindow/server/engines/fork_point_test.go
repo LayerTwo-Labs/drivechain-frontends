@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -104,4 +105,40 @@ func TestForkPointReportsNoneWhenTheChainsAgree(t *testing.T) {
 	fork, err := p.forkPoint(ctx, 10, hashAt(10, 'a').String())
 	require.NoError(t, err)
 	require.Zero(t, fork)
+}
+
+// shortCoreParser wires a Parser to a Core that holds `chain` up to `tip` and
+// reports every height above it as out of range.
+func shortCoreParser(t *testing.T, chain byte, tip uint32) *Parser {
+	t.Helper()
+	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	p := &Parser{
+		db: database.Test(t),
+		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return core, nil
+		}),
+	}
+	core.EXPECT().
+		GetBlockHash(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+			if req.Msg.Height > tip {
+				return nil, errors.New("Block height out of range")
+			}
+			return connect.NewResponse(&corepb.GetBlockHashResponse{Hash: hashAt(req.Msg.Height, chain).String()}), nil
+		}).
+		AnyTimes()
+	return p
+}
+
+// A Core shorter than our processed chain needs no height compare: the hash
+// search alone lands the purge right above the blocks Core still holds.
+func TestForkPointFindsTheTipOfAShorterCore(t *testing.T) {
+	ctx := context.Background()
+	// A wide gap, so the hash search walks several steps down to Core's tip.
+	p := shortCoreParser(t, 'c', 6)
+	seedProcessed(t, ctx, p, 40, 'c')
+
+	fork, err := p.forkPoint(ctx, 40, hashAt(40, 'c').String())
+	require.NoError(t, err)
+	require.Equal(t, uint32(7), fork, "the purge must start right above the blocks Core holds")
 }
