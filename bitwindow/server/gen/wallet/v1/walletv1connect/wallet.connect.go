@@ -34,9 +34,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// WalletServiceCreateBitcoinCoreWalletProcedure is the fully-qualified name of the WalletService's
-	// CreateBitcoinCoreWallet RPC.
-	WalletServiceCreateBitcoinCoreWalletProcedure = "/wallet.v1.WalletService/CreateBitcoinCoreWallet"
 	// WalletServiceSendTransactionProcedure is the fully-qualified name of the WalletService's
 	// SendTransaction RPC.
 	WalletServiceSendTransactionProcedure = "/wallet.v1.WalletService/SendTransaction"
@@ -137,7 +134,6 @@ const (
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
 type WalletServiceClient interface {
-	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
@@ -195,12 +191,6 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 	baseURL = strings.TrimRight(baseURL, "/")
 	walletServiceMethods := v1.File_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods()
 	return &walletServiceClient{
-		createBitcoinCoreWallet: connect.NewClient[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse](
-			httpClient,
-			baseURL+WalletServiceCreateBitcoinCoreWalletProcedure,
-			connect.WithSchema(walletServiceMethods.ByName("CreateBitcoinCoreWallet")),
-			connect.WithClientOptions(opts...),
-		),
 		sendTransaction: connect.NewClient[v1.SendTransactionRequest, v1.SendTransactionResponse](
 			httpClient,
 			baseURL+WalletServiceSendTransactionProcedure,
@@ -404,7 +394,6 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // walletServiceClient implements WalletServiceClient.
 type walletServiceClient struct {
-	createBitcoinCoreWallet  *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
 	sendTransaction          *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
 	getBalance               *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
 	getNewAddress            *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
@@ -438,11 +427,6 @@ type walletServiceClient struct {
 	createBackup             *connect.Client[emptypb.Empty, v1.CreateBackupResponse]
 	restoreBackup            *connect.Client[v1.RestoreBackupRequest, emptypb.Empty]
 	validateBackup           *connect.Client[v1.ValidateBackupRequest, v1.ValidateBackupResponse]
-}
-
-// CreateBitcoinCoreWallet calls wallet.v1.WalletService.CreateBitcoinCoreWallet.
-func (c *walletServiceClient) CreateBitcoinCoreWallet(ctx context.Context, req *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
-	return c.createBitcoinCoreWallet.CallUnary(ctx, req)
 }
 
 // SendTransaction calls wallet.v1.WalletService.SendTransaction.
@@ -612,7 +596,6 @@ func (c *walletServiceClient) ValidateBackup(ctx context.Context, req *connect.R
 
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
-	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
@@ -666,12 +649,6 @@ type WalletServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	walletServiceMethods := v1.File_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods()
-	walletServiceCreateBitcoinCoreWalletHandler := connect.NewUnaryHandler(
-		WalletServiceCreateBitcoinCoreWalletProcedure,
-		svc.CreateBitcoinCoreWallet,
-		connect.WithSchema(walletServiceMethods.ByName("CreateBitcoinCoreWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
 	walletServiceSendTransactionHandler := connect.NewUnaryHandler(
 		WalletServiceSendTransactionProcedure,
 		svc.SendTransaction,
@@ -872,8 +849,6 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case WalletServiceCreateBitcoinCoreWalletProcedure:
-			walletServiceCreateBitcoinCoreWalletHandler.ServeHTTP(w, r)
 		case WalletServiceSendTransactionProcedure:
 			walletServiceSendTransactionHandler.ServeHTTP(w, r)
 		case WalletServiceGetBalanceProcedure:
@@ -948,10 +923,6 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 
 // UnimplementedWalletServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedWalletServiceHandler struct{}
-
-func (UnimplementedWalletServiceHandler) CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.CreateBitcoinCoreWallet is not implemented"))
-}
 
 func (UnimplementedWalletServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SendTransaction is not implemented"))
