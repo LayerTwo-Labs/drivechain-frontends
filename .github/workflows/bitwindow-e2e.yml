@@ -19,6 +19,8 @@ on:
 env:
   FLUTTER_VERSION: "3.44.8"
   GO_VERSION: "1.27"
+  # The app loads the host arch, so a second macOS arch is dead build work.
+  BITWINDOW_HOST_ARCH_ONLY: "1"
 
 jobs:
   e2e:
@@ -34,19 +36,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache Flutter SDK
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.flutter
-            ~/.pub-cache
-          key: flutter-e2e-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
-          restore-keys: flutter-e2e-${{ env.FLUTTER_VERSION }}-
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-sdk-:channel:-:version:-:os:-:arch:
+          pub-cache: true
+          pub-cache-key: flutter-pub-:channel:-:version:-:os:-:arch:
 
       - name: Cache Go modules (Unix)
         if: runner.os != 'Windows'
@@ -78,6 +75,22 @@ jobs:
 
       - name: Install just
         uses: extractions/setup-just@v4
+
+      - name: Cache the hwi-daemon binary
+        id: hwi-daemon-cache
+        uses: actions/cache@v5
+        with:
+          path: bitwindow/assets/bin/hwi-daemon*
+          key:
+            hwi-daemon-${{ runner.os }}-${{
+            hashFiles('sidechain-orchestrator/hwi-daemon/**') }}
+
+      # download-binaries.sh rebuilds a binary older than its sources, and the
+      # checkout stamps the sources with the current time.
+      - name: Mark the cached hwi-daemon current
+        if: steps.hwi-daemon-cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: touch bitwindow/assets/bin/hwi-daemon*
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
