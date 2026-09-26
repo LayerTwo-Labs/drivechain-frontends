@@ -654,6 +654,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitAssets => _getRegistered<BitAssetsRPC>(),
       var b when b is ZSide => _getRegistered<ZSideRPC>(),
       var b when b is CoinShift => _getRegistered<CoinShiftRPC>(),
+      var b when b is FreeBank => _getRegistered<FreeBankRPC>(),
       _ => null,
     };
   }

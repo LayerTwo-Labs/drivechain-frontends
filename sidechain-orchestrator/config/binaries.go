@@ -378,7 +378,7 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 	case "bitwindowd":
 		return GetExistingFilesInDir(networkDir, []string{"bitdrive", "bitwindow.db"}, log)
 
-	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift", "freebankd":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		return GetExistingFilesInDir(networkDir, SidechainChainDataNames, log)
 
 	default:
@@ -538,7 +538,7 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 			paths = append(paths, legacyWallet)
 		}
 
-	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift", "freebankd":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"wallet.mdb"}, log)...)
 
 	case "bitwindowd":
@@ -633,7 +633,7 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 			logfile.Name, "debug.log", "drivechaind.log",
 		}, log)...)
 
-	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift", "freebankd":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"logs"}, log)...)
 	}
 
@@ -662,7 +662,7 @@ func (b BinaryDirConfig) LogPath(networkDir string) string {
 	case "bip300301-enforcer":
 		return findLatestEnforcerLog(networkDir)
 
-	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift", "freebankd":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		return findLatestDirVersionedLog(networkDir)
 
 	default:
