@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/samber/lo"
@@ -69,16 +70,30 @@ func (h *WalletHandler) CreateDeposit(
 	if err := depositTreasuryReady(treasury, walletHeight, slot); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	ctip := treasury.ctip
-
 	treasuryHex := hex.EncodeToString(orchestrator.M8TreasuryScript(slot))
 	var externalInputs []*wpb.ExternalInput
 	oldTreasurySats := int64(0)
-	if ctip != nil {
-		oldTreasurySats = int64(ctip.Value)
+
+	start, startErr := h.depositStart(ctx, treasury, walletID, slot)
+	if startErr != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, startErr)
+	}
+	if start != nil {
+		tip, tipErr := treasuryTip(ctx, h.engine.ChainForWallet(walletID), slot, *start)
+		switch {
+		case errors.Is(tipErr, errTreasuryChainFull), errors.Is(tipErr, errTreasurySpentElsewhere):
+			return nil, connect.NewError(connect.CodeResourceExhausted, tipErr)
+		case tipErr != nil:
+			return nil, connect.NewError(connect.CodeUnavailable, tipErr)
+		}
+		if tip.ancestors > 0 {
+			h.svc.Log().Info().Uint8("slot", slot).Int("ancestors", tip.ancestors).
+				Str("txid", tip.txid).Msg("the deposit builds on an unconfirmed treasury output")
+		}
+		oldTreasurySats = tip.valueSats
 		externalInputs = []*wpb.ExternalInput{{
-			Txid:            ctip.GetTxid().GetHex().GetValue(),
-			Vout:            int32(ctip.Vout),
+			Txid:            tip.txid,
+			Vout:            int32(tip.vout),
 			ValueSats:       oldTreasurySats,
 			ScriptPubkeyHex: treasuryHex,
 		}}
@@ -241,15 +256,28 @@ func (h *WalletHandler) ListSidechainDeposits(
 				FeeSats:       d.FeeSats,
 				Confirmations: h.depositConfirmations(ctx, d),
 				CreatedAt:     d.CreatedAt.Format(time.RFC3339),
+				DroppedAt:     isoOrEmpty(d.DroppedAt),
 			}
 		}),
 	}), nil
+}
+
+func isoOrEmpty(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339)
 }
 
 // depositConfirmations reads the chain rather than the store, because a
 // confirmation count goes stale the moment a block arrives. Zero when the
 // chain source cannot answer.
 func (h *WalletHandler) depositConfirmations(ctx context.Context, d wallet.SidechainDeposit) int32 {
+	// A dropped deposit is in no block, so zero is its real count and the
+	// chain read would only confirm that.
+	if !d.DroppedAt.IsZero() {
+		return 0
+	}
 	if h.engine == nil {
 		return 0
 	}

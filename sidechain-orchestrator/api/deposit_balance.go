@@ -34,7 +34,9 @@ func (h *Handler) depositPendingSats(ctx context.Context, cfg orchestrator.Binar
 	}
 	open := make([]wallet.SidechainDeposit, 0, len(deposits))
 	for _, d := range deposits {
-		if d.CreditedAt.IsZero() {
+		// A dropped deposit can never confirm, so counting it as pending shows
+		// the user money that is not on its way.
+		if d.CreditedAt.IsZero() && d.DroppedAt.IsZero() {
 			open = append(open, d)
 		}
 	}

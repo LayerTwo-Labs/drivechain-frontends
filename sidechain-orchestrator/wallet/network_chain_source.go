@@ -237,6 +237,21 @@ func (s *NetworkChainSource) Broadcast(ctx context.Context, rawHex string) (stri
 	return c.Broadcast(ctx, rawHex)
 }
 
+// Outspend forwards to the current source when it can name a spender. An
+// Electrum endpoint cannot, and the wallet falls back to the confirmed
+// treasury output rather than guess.
+func (s *NetworkChainSource) Outspend(ctx context.Context, txid string, vout int) (EsploraOutspend, bool, error) {
+	c, err := s.current()
+	if err != nil {
+		return EsploraOutspend{}, false, err
+	}
+	source, ok := c.(outspendSource)
+	if !ok {
+		return EsploraOutspend{}, false, ErrSpenderUnknown
+	}
+	return source.Outspend(ctx, txid, vout)
+}
+
 func (s *NetworkChainSource) TipHeight(ctx context.Context) (int, error) {
 	c, err := s.current()
 	if err != nil {

@@ -588,6 +588,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 				Amount:        d.AmountSats,
 				Fee:           d.FeeSats,
 				Confirmations: d.Confirmations,
+				Dropped:       d.DroppedAt != "",
 			}
 		}),
 	}), nil

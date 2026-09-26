@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -144,4 +145,17 @@ func TestEsploraOutspendFailsOverPastRateLimit(t *testing.T) {
 	require.True(t, found)
 	require.False(t, out.Spent)
 	require.Equal(t, int32(1), atomic.LoadInt32(&primaryCalls))
+}
+
+// The spender txid is the whole point of an outspend lookup: a deposit chain
+// walks from one treasury output to the transaction that took it.
+func TestOutspendCarriesTheSpender(t *testing.T) {
+	var body = `{"spent":true,"txid":"aabbcc","vin":2,"status":{"confirmed":false}}`
+	var out EsploraOutspend
+	require.NoError(t, json.Unmarshal([]byte(body), &out))
+
+	require.True(t, out.Spent)
+	require.Equal(t, "aabbcc", out.Txid)
+	require.Equal(t, 2, out.Vin)
+	require.False(t, out.Status.Confirmed)
 }

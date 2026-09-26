@@ -312,6 +312,10 @@ func (c unavailableChain) Broadcast(ctx context.Context, rawHex string) (string,
 	return "", errors.New(c.reason)
 }
 
+func (c unavailableChain) SpenderOf(ctx context.Context, txid string, vout int) (string, bool, error) {
+	return "", false, errors.New(c.reason)
+}
+
 func (c unavailableChain) TipHeight(ctx context.Context) (int, error) {
 	return 0, errors.New(c.reason)
 }

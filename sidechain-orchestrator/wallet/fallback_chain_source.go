@@ -128,6 +128,39 @@ func (f *fallbackChainSource) Tx(ctx context.Context, txid string) (EsploraTx, e
 	return out, err
 }
 
+// Outspend asks each source that can name a spender, in order.
+//
+// It does not go through try: an Electrum endpoint cannot answer this one call,
+// and try would both mark that healthy source down and fold ErrSpenderUnknown
+// into the joined error. A caller reading that sentinel would then take a stale
+// treasury output as proven, while the capable source was the one that failed.
+func (f *fallbackChainSource) Outspend(ctx context.Context, txid string, vout int) (EsploraOutspend, bool, error) {
+	var errs []error
+	capable := false
+	for _, i := range f.order() {
+		if err := ctx.Err(); err != nil {
+			return EsploraOutspend{}, false, err
+		}
+		source, ok := f.sources[i].(outspendSource)
+		if !ok {
+			continue
+		}
+		capable = true
+		out, held, err := source.Outspend(ctx, txid, vout)
+		if err == nil {
+			f.markUp(i)
+			return out, held, nil
+		}
+		f.markDown(i)
+		f.log.Debug().Err(err).Str("op", "outspend").Int("source", i).Msg("chain source failed, trying the next")
+		errs = append(errs, err)
+	}
+	if !capable {
+		return EsploraOutspend{}, false, ErrSpenderUnknown
+	}
+	return EsploraOutspend{}, false, errors.Join(errs...)
+}
+
 func (f *fallbackChainSource) TxHex(ctx context.Context, txid string) (string, error) {
 	var out string
 	err := f.try(ctx, "tx_hex", func(c ChainDataSource) error {

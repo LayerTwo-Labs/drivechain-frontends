@@ -125,16 +125,17 @@ const SystemEvent_Type$json = {
     {'1': 'TYPE_SERVICE_DISCONNECTED', '2': 2},
     {'1': 'TYPE_SYNC_COMPLETED', '2': 3},
     {'1': 'TYPE_BLOCK_FOUND', '2': 4},
+    {'1': 'TYPE_DEPOSIT_DROPPED', '2': 5},
   ],
 };
 
 /// Descriptor for `SystemEvent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List systemEventDescriptor = $convert.base64Decode(
     'CgtTeXN0ZW1FdmVudBI1CgR0eXBlGAEgASgOMiEubm90aWZpY2F0aW9uLnYxLlN5c3RlbUV2ZW'
-    '50LlR5cGVSBHR5cGUSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZSKGAQoEVHlwZRIUChBUWVBF'
+    '50LlR5cGVSBHR5cGUSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZSKgAQoEVHlwZRIUChBUWVBF'
     'X1VOU1BFQ0lGSUVEEAASGgoWVFlQRV9TRVJWSUNFX0NPTk5FQ1RFRBABEh0KGVRZUEVfU0VSVk'
     'lDRV9ESVNDT05ORUNURUQQAhIXChNUWVBFX1NZTkNfQ09NUExFVEVEEAMSFAoQVFlQRV9CTE9D'
-    'S19GT1VORBAE');
+    'S19GT1VORBAEEhgKFFRZUEVfREVQT1NJVF9EUk9QUEVEEAU=');
 
 @$core.Deprecated('Use sidechainWithdrawalEventDescriptor instead')
 const SidechainWithdrawalEvent$json = {

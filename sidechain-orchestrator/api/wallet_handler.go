@@ -1559,6 +1559,13 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 		return nil, rpcError(err)
 	}
 
+	// A bumped deposit keeps its money on the way under a new txid. Without
+	// this the old record reads as a deposit the network lost.
+	if err := h.svc.RepointSidechainDeposit(ctx, req.Msg.Txid, result.NewTxID, result.Plan.NewFeeSats); err != nil {
+		h.svc.Log().Warn().Err(err).Str("old_txid", req.Msg.Txid).Str("new_txid", result.NewTxID).
+			Msg("could not move the deposit record onto the replacement")
+	}
+
 	return connect.NewResponse(&pb.BumpFeeResponse{
 		NewTxid: result.NewTxID,
 		Plan:    bumpFeePlanToProto(result.Plan),

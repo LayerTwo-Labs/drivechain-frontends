@@ -432,16 +432,26 @@ func (e *NotificationEngine) Broadcast(ctx context.Context, event *notificationv
 	e.broadcast(ctx, event)
 }
 
-func (e *NotificationEngine) broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
+// Deliver broadcasts an event and reports how many subscribers took it. A
+// caller that records an event as reported uses this: a send to nobody, or to
+// a full channel, reaches nobody.
+func (e *NotificationEngine) Deliver(ctx context.Context, event *notificationv1.WatchResponse) int {
 	log := zerolog.Ctx(ctx)
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
+	delivered := 0
 	for _, sub := range e.subscribers {
 		select {
 		case sub <- event:
+			delivered++
 		default:
 			log.Warn().Msg("subscriber channel full, dropping event")
 		}
 	}
+	return delivered
+}
+
+func (e *NotificationEngine) broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
+	e.Deliver(ctx, event)
 }

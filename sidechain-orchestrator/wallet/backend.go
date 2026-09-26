@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"errors"
 )
 
 // Backend serves the wallets in wallet.json from some chain backend:
@@ -117,4 +118,18 @@ type ChainSource interface {
 	Broadcast(ctx context.Context, rawHex string) (string, error)
 	// TipHeight returns the height of the mainchain tip the source sees.
 	TipHeight(ctx context.Context) (int, error)
+	// SpenderOf names the transaction that spends an outpoint, the mempool
+	// included, and reports false when the outpoint is unspent. A source that
+	// cannot answer returns ErrSpenderUnknown.
+	SpenderOf(ctx context.Context, txid string, vout int) (string, bool, error)
 }
+
+// ErrSpenderUnknown says the chain source cannot name the spender of an
+// outpoint. The Electrum protocol has no such call, so a wallet on that
+// backend falls back to the confirmed treasury output.
+var ErrSpenderUnknown = errors.New("this chain source cannot name the spender of an outpoint")
+
+// ErrTxNotFound says the chain source answered that neither the mempool nor a
+// block holds the transaction. Only this proves a transaction is gone; any
+// other failure means the source could not answer, which proves nothing.
+var ErrTxNotFound = errors.New("the chain holds no such transaction")

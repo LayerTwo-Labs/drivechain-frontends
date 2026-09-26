@@ -188,3 +188,98 @@ func TestFallbackChainSourceDropsPushesWhileThePrimaryIsDown(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, f.Notifications(), "a cooled-down primary must offer no push stream")
 }
+
+// spenderStub is a source that can name a spender. stubChainSource cannot,
+// which is the Electrum case.
+type spenderStub struct {
+	stubChainSource
+	spender string
+	spent   bool
+	err     error
+}
+
+func (s *spenderStub) Outspend(context.Context, string, int) (EsploraOutspend, bool, error) {
+	if s.err != nil {
+		return EsploraOutspend{}, false, s.err
+	}
+	return EsploraOutspend{Spent: s.spent, Txid: s.spender}, true, nil
+}
+
+// A network runs Fulcrum beside Esplora. The Electrum source cannot answer, so
+// the walk must reach the Esplora one rather than stop at the first source.
+func TestFallbackOutspendSkipsASourceThatCannotAnswer(t *testing.T) {
+	electrum := &stubChainSource{}
+	esplora := &spenderStub{spender: "spender-tx", spent: true}
+	f := newFallbackChainSource([]ChainDataSource{electrum, esplora}, zerolog.Nop())
+
+	out, held, err := f.Outspend(context.Background(), "abc", 0)
+
+	require.NoError(t, err)
+	require.True(t, held)
+	require.Equal(t, "spender-tx", out.Txid)
+	assert.Zero(t, electrum.calls, "an incapable source must not be called or marked down")
+}
+
+// The capable source failed, so the caller must see that failure. Reporting
+// ErrSpenderUnknown would let a deposit take a stale treasury output as proven.
+func TestFallbackOutspendReportsACapableSourceFailure(t *testing.T) {
+	boom := errors.New("esplora GET /outspend: 429 Too Many Requests")
+	f := newFallbackChainSource([]ChainDataSource{
+		&stubChainSource{},
+		&spenderStub{err: boom},
+	}, zerolog.Nop())
+
+	_, _, err := f.Outspend(context.Background(), "abc", 0)
+
+	require.ErrorIs(t, err, boom)
+	require.NotErrorIs(t, err, ErrSpenderUnknown)
+}
+
+// No source can answer, so the wallet keeps the confirmed treasury output.
+func TestFallbackOutspendReportsAnUnknownSpenderWithNoCapableSource(t *testing.T) {
+	f := newFallbackChainSource([]ChainDataSource{&stubChainSource{}, &stubChainSource{}}, zerolog.Nop())
+
+	_, _, err := f.Outspend(context.Background(), "abc", 0)
+
+	require.ErrorIs(t, err, ErrSpenderUnknown)
+}
+
+// A spend is positive evidence whichever source reports it.
+func TestFallbackOutspendTakesASpendFromAnySource(t *testing.T) {
+	f := newFallbackChainSource([]ChainDataSource{
+		&stubChainSource{},
+		&spenderStub{spent: true, spender: "spender-tx"},
+	}, zerolog.Nop())
+
+	out, _, err := f.Outspend(context.Background(), "abc", 0)
+
+	require.NoError(t, err)
+	require.Equal(t, "spender-tx", out.Txid)
+}
+
+// With no silent source ahead of it, an unspent answer is proof.
+func TestFallbackOutspendTrustsAnUnspentFromThePrimary(t *testing.T) {
+	f := newFallbackChainSource([]ChainDataSource{&spenderStub{spent: false}}, zerolog.Nop())
+
+	out, held, err := f.Outspend(context.Background(), "abc", 0)
+
+	require.NoError(t, err)
+	require.True(t, held)
+	require.False(t, out.Spent)
+}
+
+// The published networks put Fulcrum first, and Fulcrum never answers an
+// outspend. A verified unspent from Esplora must let the deposit through, or
+// every deposit after the first one on a slot is refused.
+func TestFallbackOutspendTakesAVerifiedUnspentBehindASilentSource(t *testing.T) {
+	f := newFallbackChainSource([]ChainDataSource{
+		&stubChainSource{},
+		&spenderStub{spent: false},
+	}, zerolog.Nop())
+
+	out, held, err := f.Outspend(context.Background(), "abc", 0)
+
+	require.NoError(t, err)
+	require.True(t, held)
+	require.False(t, out.Spent)
+}

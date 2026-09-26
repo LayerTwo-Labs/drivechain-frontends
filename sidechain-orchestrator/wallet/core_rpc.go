@@ -79,6 +79,12 @@ type rpcError struct {
 	Message string `json:"message"`
 }
 
+// Error keeps the wording the plain fmt.Errorf produced, so a caller that
+// matches on the text still works while errors.As can read the code.
+func (e *rpcError) Error() string {
+	return fmt.Sprintf("RPC error %d: %s", e.Code, e.Message)
+}
+
 // call makes a JSON-RPC call to Bitcoin Core.
 // If walletName is non-empty, routes to /wallet/<name>.
 func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, params ...interface{}) (json.RawMessage, error) {
@@ -140,7 +146,7 @@ func (c *CoreRPCClient) callWallet(ctx context.Context, client *http.Client, wal
 	}
 
 	if rpcResp.Error != nil {
-		return nil, fmt.Errorf("%s RPC error %d: %s", method, rpcResp.Error.Code, rpcResp.Error.Message)
+		return nil, fmt.Errorf("%s %w", method, rpcResp.Error)
 	}
 
 	return rpcResp.Result, nil
@@ -555,6 +561,45 @@ func (c *CoreRPCClient) GetRawTransaction(ctx context.Context, txid string) (*Ra
 		return nil, fmt.Errorf("decode getrawtransaction: %w", err)
 	}
 	return &tx, nil
+}
+
+// TxSpendingPrevout names the transaction that spends an outpoint, the mempool
+// included. An empty txid means nothing spends it.
+func (c *CoreRPCClient) TxSpendingPrevout(ctx context.Context, txid string, vout int) (string, error) {
+	outputs := []map[string]any{{"txid": txid, "vout": vout}}
+	result, err := c.call(ctx, "", "gettxspendingprevout", outputs)
+	if err != nil {
+		return "", err
+	}
+	var spends []struct {
+		SpendingTxid string `json:"spendingtxid"`
+	}
+	if err := json.Unmarshal(result, &spends); err != nil {
+		return "", fmt.Errorf("decode gettxspendingprevout: %w", err)
+	}
+	if len(spends) == 0 {
+		return "", nil
+	}
+	return spends[0].SpendingTxid, nil
+}
+
+// TxIndexReady reports whether Core keeps a synced transaction index. Without
+// one, getrawtransaction answers -5 for a confirmed transaction it simply
+// cannot look up, which reads the same as a transaction that is gone.
+func (c *CoreRPCClient) TxIndexReady(ctx context.Context) (bool, error) {
+	result, err := c.call(ctx, "", "getindexinfo", "txindex")
+	if err != nil {
+		return false, err
+	}
+	var info struct {
+		TxIndex *struct {
+			Synced bool `json:"synced"`
+		} `json:"txindex"`
+	}
+	if err := json.Unmarshal(result, &info); err != nil {
+		return false, fmt.Errorf("decode getindexinfo: %w", err)
+	}
+	return info.TxIndex != nil && info.TxIndex.Synced, nil
 }
 
 // ListReceivedByAddress returns addresses that have received funds.

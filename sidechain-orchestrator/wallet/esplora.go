@@ -485,6 +485,10 @@ func (c *EsploraClient) Tx(ctx context.Context, txid string) (EsploraTx, error) 
 type EsploraOutspend struct {
 	Spent  bool          `json:"spent"`
 	Status EsploraStatus `json:"status"`
+	// Txid and Vin name the spender, mempool included. Esplora always sends
+	// them with a spent output.
+	Txid string `json:"txid"`
+	Vin  int    `json:"vin"`
 }
 
 func isNotFound(err error) bool {

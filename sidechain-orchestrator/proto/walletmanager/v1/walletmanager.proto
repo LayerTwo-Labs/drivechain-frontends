@@ -187,6 +187,9 @@ message SidechainDeposit {
   int64 fee_sats = 7;
   // Blocks on top of the one holding this deposit. Zero while unconfirmed.
   int32 confirmations = 8;
+  // Set when the network no longer holds the deposit, so it can never confirm
+  // and the user must send it again. Empty while the deposit can still land.
+  string dropped_at = 9; // ISO 8601
 }
 
 message ListSidechainDepositsResponse {
