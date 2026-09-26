@@ -317,7 +317,8 @@ func accountPathFor(w *WalletData, kind ScriptKind, net *chaincfg.Params) (Accou
 }
 
 // multisigAccountPath returns the cosigner account path for a script type:
-// BIP48 for segwit variants, BIP45 for legacy P2SH.
+// BIP48 for segwit variants, BIP45 for legacy P2SH. BIP45 takes the account as
+// its unhardened cosigner index.
 func multisigAccountPath(scriptType string, account uint32, net *chaincfg.Params) (string, error) {
 	if account >= 1<<31 {
 		return "", fmt.Errorf("account index %d out of hardened range", account)
@@ -328,7 +329,7 @@ func multisigAccountPath(scriptType string, account uint32, net *chaincfg.Params
 	}
 	switch scriptType {
 	case "sh":
-		return fmt.Sprintf("m/45'/%d'", account), nil
+		return fmt.Sprintf("m/45'/%d", account), nil
 	case "sh-wsh":
 		return fmt.Sprintf("m/48'/%d'/%d'/1'", coin, account), nil
 	case "tr":
