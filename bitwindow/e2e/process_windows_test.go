@@ -59,6 +59,12 @@ func forceKillPID(pid int) error {
 	return nil
 }
 
+// signalPID has no Windows counterpart: the app watches neither SIGINT nor
+// SIGTERM there, so the signal cases of the exit matrix skip this platform.
+func signalPID(pid int, sig string) error {
+	return fmt.Errorf("signal %s is not supported on windows", sig)
+}
+
 func runTaskkill(pid int, force bool) error {
 	args := []string{"/PID", strconv.Itoa(pid), "/T"}
 	if force {
