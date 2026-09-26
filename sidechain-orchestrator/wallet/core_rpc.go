@@ -745,6 +745,7 @@ type AddressInfo struct {
 	IsWitness  bool   `json:"iswitness"`
 	WitnessVer int    `json:"witness_version"`
 	PubKey     string `json:"pubkey"`
+	ParentDesc string `json:"parent_desc"`
 }
 
 // GetAddressInfo returns information about an address in the wallet, including
