@@ -1534,6 +1534,7 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
     $fixnum.Int64? amount,
     $fixnum.Int64? fee,
     $core.int? confirmations,
+    $core.bool? dropped,
   }) {
     final $result = create();
     if (txid != null) {
@@ -1548,6 +1549,9 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
     if (confirmations != null) {
       $result.confirmations = confirmations;
     }
+    if (dropped != null) {
+      $result.dropped = dropped;
+    }
     return $result;
   }
   ListSidechainDepositsResponse_SidechainDeposit._() : super();
@@ -1559,6 +1563,7 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
     ..aInt64(2, _omitFieldNames ? '' : 'amount')
     ..aInt64(3, _omitFieldNames ? '' : 'fee')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
+    ..aOB(5, _omitFieldNames ? '' : 'dropped')
     ..hasRequiredFields = false
   ;
 
@@ -1618,6 +1623,17 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
   $core.bool hasConfirmations() => $_has(3);
   @$pb.TagNumber(4)
   void clearConfirmations() => clearField(4);
+
+  /// True when the network no longer holds the deposit, so it can never
+  /// confirm and the user must send it again.
+  @$pb.TagNumber(5)
+  $core.bool get dropped => $_getBF(4);
+  @$pb.TagNumber(5)
+  set dropped($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDropped() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDropped() => clearField(5);
 }
 
 class ListSidechainDepositsResponse extends $pb.GeneratedMessage {

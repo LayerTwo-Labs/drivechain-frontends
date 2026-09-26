@@ -229,6 +229,9 @@ message ListSidechainDepositsResponse {
     int64 amount = 2;
     int64 fee = 3;
     int32 confirmations = 4;
+    // True when the network no longer holds the deposit, so it can never
+    // confirm and the user must send it again.
+    bool dropped = 5;
   }
 
   repeated SidechainDeposit deposits = 1;

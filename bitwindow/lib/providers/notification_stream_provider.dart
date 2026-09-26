@@ -145,6 +145,10 @@ class NotificationStreamProvider extends ChangeNotifier {
         title = 'Block Found';
         type = DialogType.success;
         break;
+      case SystemEvent_Type.TYPE_DEPOSIT_DROPPED:
+        title = 'Deposit Dropped';
+        type = DialogType.error;
+        break;
       default:
         break;
     }

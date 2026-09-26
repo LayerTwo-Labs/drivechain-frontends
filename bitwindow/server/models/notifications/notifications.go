@@ -13,6 +13,7 @@ const (
 	EventTypeTransaction     = "transaction"
 	EventTypeTimestamp       = "timestamp"
 	EventTypeTransactionConf = "transaction_confirmed"
+	EventTypeDepositDropped  = "deposit_dropped"
 )
 
 // HasBeenNotified checks if an event has already been notified
@@ -45,6 +46,20 @@ func MarkNotified(ctx context.Context, db *sql.DB, eventType, eventID string) er
 	_, err := db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("mark event notified: %w", err)
+	}
+	return nil
+}
+
+// ClearNotified forgets that an event was reported, so the same id can report
+// again. A state that comes back is a new episode, not a repeat of the old.
+func ClearNotified(ctx context.Context, db *sql.DB, eventType, eventID string) error {
+	query, args := sq.
+		Delete("notified_events").
+		Where(sq.Eq{"event_type": eventType, "event_id": eventID}).
+		MustSql()
+
+	if _, err := db.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("clear event notified: %w", err)
 	}
 	return nil
 }

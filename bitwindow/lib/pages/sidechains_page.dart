@@ -1492,7 +1492,9 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
             SailTableCell(value: '${deposit.txid.substring(0, 10)}..', copyValue: deposit.txid),
             SailTableCell(value: formatter.formatSats(deposit.amount.toInt())),
             SailTableCell(value: formatter.formatSats(deposit.fee.toInt())),
-            SailTableCell(value: deposit.confirmations.toString()),
+            SailTableCell(
+              value: deposit.dropped ? 'Dropped — deposit again' : deposit.confirmations.toString(),
+            ),
           ];
         },
         rowCount: viewModel.sortedDeposits.length,
