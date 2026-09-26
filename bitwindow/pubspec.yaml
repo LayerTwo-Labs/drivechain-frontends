@@ -66,7 +66,7 @@ dependencies:
   bitcoin_base: ^7.3.0
   blockchain_utils: ^7.1.0
   bech32: ^0.2.2
-  archive: ^4.0.9
+  archive: ^4.3.0
   csv: ^8.0.0
   uuid: ^4.6.0
   mobile_scanner: ^7.4.0
