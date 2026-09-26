@@ -63,6 +63,9 @@ func (h *WalletHandler) CreateDeposit(
 	if err := depositTreasuryReady(treasury, walletHeight, slot); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
+	if err := h.refuseDepositOnAPendingCtip(ctx, treasury, walletID, slot); err != nil {
+		return nil, err
+	}
 	ctip := treasury.ctip
 
 	treasuryHex := hex.EncodeToString(orchestrator.M8TreasuryScript(slot))
@@ -170,6 +173,64 @@ func depositTreasuryReady(treasury sidechainTreasury, walletHeight int, slot uin
 		return fmt.Errorf("the enforcer shows no treasury output and no active sidechain in slot %d", slot)
 	}
 	return nil
+}
+
+// mempoolDeposit is what the chain knows about a deposit we recorded.
+type mempoolDeposit struct {
+	found         bool
+	confirmations int32
+}
+
+// ctipStillPending reports whether our own unconfirmed deposit already spends
+// the ctip a new deposit would spend. Core reads that second deposit as an RBF
+// replacement: it rejects the deposit for an underpaid fee, or it takes it and
+// evicts the first one, which we already recorded under a txid that can never
+// confirm.
+//
+// Every other state lets the deposit through, so a deposit the network dropped
+// releases the slot on its own.
+func ctipStillPending(ctipTxid, lastDepositTxid string, chain mempoolDeposit) bool {
+	if lastDepositTxid == "" || ctipTxid == lastDepositTxid {
+		return false
+	}
+	if !chain.found {
+		return false
+	}
+	return chain.confirmations == 0
+}
+
+func (h *WalletHandler) refuseDepositOnAPendingCtip(
+	ctx context.Context, treasury sidechainTreasury, walletID string, slot uint8,
+) error {
+	if treasury.ctip == nil {
+		return nil
+	}
+	deposits, err := h.svc.SidechainDeposits(ctx, uint32(slot), walletID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("read the deposits of slot %d: %w", slot, err))
+	}
+	if len(deposits) == 0 {
+		return nil
+	}
+	last := deposits[0]
+
+	chain := mempoolDeposit{}
+	switch tx, lookupErr := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, last.Txid); {
+	case lookupErr != nil:
+		// The chain source knows no such transaction, so nothing of ours spends
+		// the ctip. A lookup that fails must not hold a deposit back.
+		h.svc.Log().Debug().Err(lookupErr).Str("txid", last.Txid).
+			Msg("could not look the last deposit up, letting the new one through")
+	case tx != nil:
+		chain = mempoolDeposit{found: true, confirmations: tx.Confirmations}
+	}
+
+	if !ctipStillPending(treasury.ctip.GetTxid().GetHex().GetValue(), last.Txid, chain) {
+		return nil
+	}
+	return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+		"deposit %s to slot %d is still unconfirmed and holds the treasury output; wait for the next block",
+		last.Txid, slot))
 }
 
 // enforcerTreasury reads the enforcer tip, the slot's treasury outpoint, and
