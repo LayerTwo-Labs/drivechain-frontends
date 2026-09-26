@@ -21,7 +21,6 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"github.com/tyler-smith/go-bip32"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
@@ -1665,76 +1664,23 @@ func (p *CoreBackend) retryBip47NotificationDescriptor(ctx context.Context, wall
 	delete(p.bip47NotifRetry, walletID)
 }
 
-// createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
-// With no derivation override it imports the standard BIP84 + BIP86 descriptors
-// at account 0; an AccountIndex shifts both to that account; a DerivationPath
-// that pins one kind imports the single descriptor for that path's purpose.
+// createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet that holds
+// every descriptor the wallet derives.
 func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName string, w *WalletData) error {
 	net := p.net()
-	if net == nil {
-		return fmt.Errorf("no chain params for this network; cannot derive wallet descriptors")
-	}
-	seed, err := hex.DecodeString(w.Master.SeedHex)
+	descriptors, err := WalletDescriptors(w, net)
 	if err != nil {
-		return fmt.Errorf("decode seed hex: %w", err)
+		return err
 	}
-
-	masterKey, err := bip32.NewMasterKey(seed)
-	if err != nil {
-		return fmt.Errorf("create master key: %w", err)
-	}
-	fingerprint := masterFingerprint(masterKey)
-
-	// Exactly what the wallet advertises on the Receive page. Core hands out no
-	// address it holds no descriptor for, so the two sets must be one.
-	var descriptors []ImportDescriptor
-	for _, kind := range ReceiveKinds(w) {
-		ap, err := accountPathFor(w, kind, net)
+	var imports []ImportDescriptor
+	for _, d := range descriptors {
+		pair, err := d.coreImports(net, importTimestamp(w))
 		if err != nil {
 			return err
 		}
-		acct, err := deriveAccountKey(masterKey, ap)
-		if err != nil {
-			return err
-		}
-		acctXprv := serializeKeyForNetwork(acct, net)
-		open, close, ok := coreDescriptorWrapper(kind)
-		if !ok {
-			return fmt.Errorf("unsupported core descriptor kind %s", kind)
-		}
-		origin := ap.Origin("'")
-		descriptors = append(descriptors,
-			ImportDescriptor{
-				Desc:      mustAddChecksum(fmt.Sprintf("%s[%s/%s]%s/0/*%s", open, fingerprint, origin, acctXprv, close)),
-				Active:    true,
-				Timestamp: importTimestamp(w),
-				Internal:  false,
-				Range:     []int{0, 999},
-			},
-			ImportDescriptor{
-				Desc:      mustAddChecksum(fmt.Sprintf("%s[%s/%s]%s/1/*%s", open, fingerprint, origin, acctXprv, close)),
-				Active:    true,
-				Timestamp: importTimestamp(w),
-				Internal:  true,
-				Range:     []int{0, 999},
-			},
-		)
+		imports = append(imports, pair...)
 	}
-
-	return p.createAndImport(ctx, walletName, false, descriptors)
-}
-
-// deriveAccountKey derives the hardened account-level key for an AccountPath.
-func deriveAccountKey(masterKey *bip32.Key, ap AccountPath) (*bip32.Key, error) {
-	cur := masterKey
-	for _, index := range ap.Indices() {
-		next, err := cur.NewChildKey(index)
-		if err != nil {
-			return nil, fmt.Errorf("derive %d: %w", index, err)
-		}
-		cur = next
-	}
-	return cur, nil
+	return p.createAndImport(ctx, walletName, false, imports)
 }
 
 // coreDescriptorWrapper returns the open/close fragments wrapping the key

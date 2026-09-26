@@ -206,8 +206,7 @@ func validateBranchSuffix(suffix string) error {
 // String renders the descriptor in canonical form with a checksum, using the
 // multipath /<0;1>/* branch and neutering any private account keys.
 func (d *Descriptor) String() (string, error) {
-	exprs := make([]string, len(d.Keys))
-	for i, k := range d.Keys {
+	body, err := d.render(func(k DescriptorKey) (string, error) {
 		acct := k.Account
 		if acct.IsPrivate() {
 			pub, err := acct.Neuter()
@@ -220,35 +219,96 @@ func (d *Descriptor) String() (string, error) {
 		if k.Origin != "" {
 			expr = "[" + k.Origin + "]" + expr
 		}
-		exprs[i] = expr + "/<0;1>/*"
-	}
-
-	var body string
-	switch d.Kind {
-	case ScriptLegacy:
-		body = "pkh(" + exprs[0] + ")"
-	case ScriptNativeSegwit:
-		body = "wpkh(" + exprs[0] + ")"
-	case ScriptNestedSegwit:
-		body = "sh(wpkh(" + exprs[0] + "))"
-	case ScriptTaproot:
-		body = "tr(" + exprs[0] + ")"
-	case ScriptMultisig:
-		body = fmt.Sprintf("wsh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ","))
-	case ScriptMultisigP2SH:
-		body = fmt.Sprintf("sh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ","))
-	case ScriptMultisigNested:
-		body = fmt.Sprintf("sh(wsh(sortedmulti(%d,%s)))", d.Threshold, strings.Join(exprs, ","))
-	case ScriptMultisigTaproot:
-		body = fmt.Sprintf("tr(%s,sortedmulti_a(%d,%s))", numsInternalKeyHex, d.Threshold, strings.Join(exprs, ","))
-	default:
-		return "", fmt.Errorf("cannot serialize script kind %s", d.Kind)
-	}
-	sum, err := DescriptorChecksum(body)
+		return expr + "/<0;1>/*", nil
+	})
 	if err != nil {
 		return "", err
 	}
-	return body + "#" + sum, nil
+	return AddDescriptorChecksum(body)
+}
+
+// coreImports renders the descriptor as the receive and change descriptors
+// Bitcoin Core imports, each key as the wallet holds it.
+func (d *Descriptor) coreImports(net *chaincfg.Params, timestamp any) ([]ImportDescriptor, error) {
+	imports := make([]ImportDescriptor, 0, 2)
+	for _, change := range []bool{false, true} {
+		body, err := d.render(func(k DescriptorKey) (string, error) {
+			return coreKeyExpr(k, chainIndex(change), net)
+		})
+		if err != nil {
+			return nil, err
+		}
+		desc, err := AddDescriptorChecksum(body)
+		if err != nil {
+			return nil, err
+		}
+		imports = append(imports, ImportDescriptor{
+			Desc:      desc,
+			Active:    true,
+			Timestamp: timestamp,
+			Internal:  change,
+			Range:     []int{0, 999},
+		})
+	}
+	return imports, nil
+}
+
+// coreKeyExpr writes one key of a branch as Core reads it: the version bytes
+// of net, and ' as the hardened marker of the origin.
+func coreKeyExpr(k DescriptorKey, chain uint32, net *chaincfg.Params) (string, error) {
+	version := net.HDPublicKeyID[:]
+	if k.Account.IsPrivate() {
+		version = net.HDPrivateKeyID[:]
+	}
+	key, err := k.Account.CloneWithVersion(version)
+	if err != nil {
+		return "", err
+	}
+	expr := fmt.Sprintf("%s/%d/*", key.String(), chain)
+	if k.Origin == "" {
+		return expr, nil
+	}
+	fingerprint, originPath, _ := strings.Cut(k.Origin, "/")
+	path, ok := parsePathSegments(strings.Split(originPath, "/"))
+	if !ok {
+		return "", fmt.Errorf("key origin %q has an invalid path", k.Origin)
+	}
+	if len(path) == 0 {
+		return "[" + fingerprint + "]" + expr, nil
+	}
+	return "[" + fingerprint + "/" + formatOriginPath(path) + "]" + expr, nil
+}
+
+// render writes the script of the descriptor around each key expression.
+func (d *Descriptor) render(keyExpr func(DescriptorKey) (string, error)) (string, error) {
+	exprs := make([]string, len(d.Keys))
+	for i, k := range d.Keys {
+		expr, err := keyExpr(k)
+		if err != nil {
+			return "", err
+		}
+		exprs[i] = expr
+	}
+	switch d.Kind {
+	case ScriptLegacy:
+		return "pkh(" + exprs[0] + ")", nil
+	case ScriptNativeSegwit:
+		return "wpkh(" + exprs[0] + ")", nil
+	case ScriptNestedSegwit:
+		return "sh(wpkh(" + exprs[0] + "))", nil
+	case ScriptTaproot:
+		return "tr(" + exprs[0] + ")", nil
+	case ScriptMultisig:
+		return fmt.Sprintf("wsh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ",")), nil
+	case ScriptMultisigP2SH:
+		return fmt.Sprintf("sh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ",")), nil
+	case ScriptMultisigNested:
+		return fmt.Sprintf("sh(wsh(sortedmulti(%d,%s)))", d.Threshold, strings.Join(exprs, ",")), nil
+	case ScriptMultisigTaproot:
+		return fmt.Sprintf("tr(%s,sortedmulti_a(%d,%s))", numsInternalKeyHex, d.Threshold, strings.Join(exprs, ",")), nil
+	default:
+		return "", fmt.Errorf("cannot serialize script kind %s", d.Kind)
+	}
 }
 
 // DeriveScript resolves the address + scripts at (change, index). For single-sig
@@ -522,42 +582,10 @@ func accountKeyFromSeed(seedHex string, kind ScriptKind, net *chaincfg.Params) (
 
 // DeriveWalletReceiveAddresses derives receive addresses without an address allocation.
 func DeriveWalletReceiveAddresses(w *WalletData, net *chaincfg.Params, start, count int) ([]string, error) {
-	if net == nil {
-		return nil, errors.New("no chain params for this network; cannot derive addresses")
+	d, err := DescriptorFor(w, w.scriptKind(), net)
+	if err != nil {
+		return nil, err
 	}
-	var d *Descriptor
-	if w.Multisig != nil {
-		group := MultisigLoungeGroup{M: w.Multisig.M, N: w.Multisig.N}
-		for _, c := range w.Multisig.Cosigners {
-			group.Keys = append(group.Keys, MultisigLoungeKey{
-				Xpub: c.Xpub, Fingerprint: c.Fingerprint, OriginPath: c.OriginPath,
-				IsWallet: c.Fingerprint != "",
-			})
-		}
-		receive, _, err := BuildMultisigLoungeDescriptorsTyped(group, w.MultisigScriptType())
-		if err != nil {
-			return nil, err
-		}
-		d, err = ParseDescriptor(receive)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if w.Master.SeedHex == "" {
-			return nil, errors.New("wallet has no seed; cannot derive addresses")
-		}
-		kind := w.scriptKind()
-		ap, err := accountPathFor(w, kind, net)
-		if err != nil {
-			return nil, err
-		}
-		acct, _, err := accountKeyAndOrigin(w.Master.SeedHex, ap, net)
-		if err != nil {
-			return nil, err
-		}
-		d = &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
-	}
-
 	addrs := make([]string, 0, count)
 	for i := start; i < start+count; i++ {
 		ds, _, err := d.DeriveScript(false, uint32(i), net)
