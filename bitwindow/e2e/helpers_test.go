@@ -105,8 +105,14 @@ func makeTempDataDir(t *testing.T) string {
 
 func startJustRunIn(t *testing.T, dataDir string, extraEnv map[string]string) *runHandle {
 	t.Helper()
-
 	sweepPriorRunOrphans(t)
+	return launchJustRun(t, dataDir, extraEnv)
+}
+
+// launchJustRun starts `just run` and leaves a daemon of an earlier launch
+// alone. The fast-relaunch test needs that overlap, and the sweep kills it.
+func launchJustRun(t *testing.T, dataDir string, extraEnv map[string]string) *runHandle {
+	t.Helper()
 
 	bitwindowDir := bitwindowRepoDir(t)
 
@@ -529,6 +535,29 @@ func listWalletIDs(t *testing.T, cookieDir string) []string {
 		ids = append(ids, w.ID)
 	}
 	return ids
+}
+
+// waitForNewPID waits for a process of `name` that `before` does not hold, and
+// returns the new pids. A relaunch that overlaps the launch it replaces leaves
+// the old daemons alive, so a bare "is one running" check passes at once and
+// proves nothing about the new launch.
+func waitForNewPID(t *testing.T, name string, before []int, deadline, poll time.Duration, msg string) []int {
+	t.Helper()
+	old := make(map[int]bool, len(before))
+	for _, pid := range before {
+		old[pid] = true
+	}
+	var fresh []int
+	waitUntil(t, deadline, poll, msg, func() bool {
+		fresh = nil
+		for _, pid := range processPIDs(t, name) {
+			if !old[pid] {
+				fresh = append(fresh, pid)
+			}
+		}
+		return len(fresh) > 0
+	})
+	return fresh
 }
 
 // waitForPort polls until something accepts TCP on 127.0.0.1:port or deadline.
