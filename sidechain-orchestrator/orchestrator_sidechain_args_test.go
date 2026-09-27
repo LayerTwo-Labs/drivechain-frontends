@@ -408,6 +408,7 @@ func TestFreeBankBootsPinnedToTheBetanetForkBlock(t *testing.T) {
 		"-mainchainrest=127.0.0.1:" + port,
 		"-mainchainchain=main",
 		"-mainchainblockpin=967680:" + betanetPin,
+		"-bmmbidder=engine",
 		"-grpcurlbin=" + grpcurl,
 	}, opts.TargetArgs)
 }
