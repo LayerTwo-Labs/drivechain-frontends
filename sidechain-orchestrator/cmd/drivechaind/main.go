@@ -516,6 +516,27 @@ func run(cctx *cli.Context) error {
 		}()
 	}
 
+	// Deposit watch engine: a deposit that loses the race for the treasury
+	// output leaves the mempool and never confirms. Nothing else notices, so
+	// it would count as pending for ever.
+	depositWatch := engines.NewDepositWatchEngine(log, walletSvc, walletEngine, func() []uint32 {
+		// The deposits themselves name the slots. A slot the enforcer holds
+		// takes a deposit even with no binary configured here, and a slot with
+		// no open deposit costs nothing to skip.
+		slots, err := walletSvc.SidechainDepositSlots(ctx)
+		if err != nil {
+			log.Warn().Err(err).Msg("could not list the slots with open deposits")
+			return nil
+		}
+		return slots
+	})
+	walletEngine.OnNetworkReset(depositWatch.ResetForNetwork)
+	go func() {
+		if err := depositWatch.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("deposit watch engine exited")
+		}
+	}()
+
 	// BMM engine: bids for sidechain blocks on every new mainchain tip and
 	// connects the blocks miners take, with no frontend attached.
 	bmmHandler := api.NewBMMHandler(orch, walletHandler)
