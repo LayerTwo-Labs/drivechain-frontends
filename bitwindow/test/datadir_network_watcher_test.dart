@@ -593,6 +593,33 @@ void main() {
     expect(_button('Switch to alphanet'), findsNothing);
   });
 
+  // The state can move while the dialog stands open. A repair that acts on the
+  // older answer would put the app on a network these blocks do not carry.
+  testWidgets('a state that moves under the dialog stops the repair', (tester) async {
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    final answer = await openRepairs(tester);
+    expect(_button('Switch to alphanet'), findsOneWidget);
+
+    // The blocks move to another network while the dialog stands open.
+    rpc.say('drynet4', 'betanet', convertFrom: '');
+
+    await tester.tap(_button('Switch to alphanet'));
+    await tester.pumpAndSettle();
+
+    expect(answer[0], isFalse, reason: 'the banner stays, and the new notice carries the new state');
+    expect(find.textContaining('The state moved'), findsOneWidget);
+
+    // The toast keeps a timer, and the test frame refuses a pending one.
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+  });
+
   // A cancelled repair leaves the banner on screen, so the mismatch stays
   // visible until the user acts on it.
   testWidgets('a cancelled dialog leaves the notice', (tester) async {

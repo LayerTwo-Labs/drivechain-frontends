@@ -240,3 +240,28 @@ func TestECashMigrationTakesTheSourceFromAHalfConvertedStore(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "eca5a104", state.Status.SourceMagic)
 }
+
+// A third network at one end has no place in the job. A start would write the
+// record and stop the nodes before the conversion refuses those blocks.
+func TestECashMigrationRefusesAThirdNetworkAtAnEnd(t *testing.T) {
+	o := migrationTestNode(t)
+	o.ecashID = "betanet"
+	require.NoError(t, o.recordECashChain("betanet"))
+	_, err := o.Settings.SetECashNetworkID("betanet")
+	require.NoError(t, err)
+
+	// The ends carry alphanet and the drynet4 row, which this move names nowhere.
+	o.Catalog.Networks = append(o.Catalog.Networks, netcatalog.Network{
+		ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 91, NetworkMagic: "eca5d404",
+	})
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", "eca5d404")
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", "eca5a104")
+
+	_, err = o.newMigration(context.Background(), "alphanet", "betanet")
+	require.ErrorContains(t, err, "does not match")
+
+	// Both ends belong to the pair, so the same move passes.
+	require.NoError(t, os.Remove(filepath.Join(o.BitcoinConf.DataDir(), "blocks", "blk00000.dat")))
+	_, err = o.newMigration(context.Background(), "alphanet", "betanet")
+	require.NoError(t, err)
+}

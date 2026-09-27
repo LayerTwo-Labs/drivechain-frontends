@@ -217,17 +217,8 @@ String datadirWatchKey(BitcoinConfProvider conf) {
 Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem notice) async {
   final conf = GetIt.I.get<BitcoinConfProvider>();
 
-  final GetDatadirNetworkResponse answer;
-  try {
-    answer = await GetIt.I.get<OrchestratorRPC>().getDatadirNetwork();
-  } catch (e) {
-    if (context.mounted) {
-      showSailToast(
-        context,
-        'The app could not read the network of your blocks: $e',
-        variant: SailToastVariant.destructive,
-      );
-    }
+  final answer = await _readDatadirNetwork(context);
+  if (answer == null || !context.mounted) {
     return false;
   }
   if (!answer.mismatch) {
@@ -236,31 +227,59 @@ Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem not
   // The state can move while the user reads the text, and a repair must go where
   // the text says, never where a later answer points. The text is what the user
   // read, so it is the thing to compare.
-  final fresh = datadirNoticeText(answer, conf);
-  if (fresh.title != notice.title || fresh.content != notice.content) {
-    if (context.mounted) {
-      showSailToast(context, 'The networks moved. Read the new notice.', variant: SailToastVariant.info);
-    }
-    return false;
-  }
-  if (!context.mounted) {
-    return false;
+  final promise = datadirNoticeText(answer, conf);
+  if (promise.title != notice.title || promise.content != notice.content) {
+    return _sayTheStateMoved(context);
   }
 
   final repair = await showThemedDialog<DatadirNetworkRepair>(
     context: context,
     builder: (context) => DatadirNetworkDialog(answer: answer),
   );
-  if (repair == null) {
+  if (repair == null || !context.mounted) {
     return false;
   }
-  if (!context.mounted) {
+
+  // The state can also move while the dialog stands open, so the repair asks once
+  // more and acts on the answer the user picked from.
+  final latest = await _readDatadirNetwork(context);
+  if (latest == null || !context.mounted) {
     return false;
+  }
+  if (!latest.mismatch) {
+    return true;
+  }
+  if (datadirNoticeText(latest, conf) != promise) {
+    return _sayTheStateMoved(context);
   }
   if (repair == DatadirNetworkRepair.switchNetwork) {
-    return _switchToDetected(context, conf, answer);
+    return _switchToDetected(context, conf, latest);
   }
-  return _convertBlocksToSelected(context, answer);
+  return _convertBlocksToSelected(context, latest);
+}
+
+/// Reads what the daemon says about the blocks, and null once it says nothing.
+Future<GetDatadirNetworkResponse?> _readDatadirNetwork(BuildContext context) async {
+  try {
+    return await GetIt.I.get<OrchestratorRPC>().getDatadirNetwork();
+  } catch (e) {
+    if (context.mounted) {
+      showSailToast(
+        context,
+        'The app could not read the network of your blocks: $e',
+        variant: SailToastVariant.destructive,
+      );
+    }
+    return null;
+  }
+}
+
+/// Tells the user that the answer moved, and leaves the banner on screen.
+bool _sayTheStateMoved(BuildContext context) {
+  if (context.mounted) {
+    showSailToast(context, 'The state moved. Read the new notice.', variant: SailToastVariant.info);
+  }
+  return false;
 }
 
 /// Runs the network the blocks belong to.
