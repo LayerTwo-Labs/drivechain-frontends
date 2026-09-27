@@ -27,6 +27,7 @@ class FreeBankBidDialog extends StatefulWidget {
 
 class _FreeBankBidDialogState extends State<FreeBankBidDialog> {
   final FreeBankRPC _rpc = GetIt.I.get<FreeBankRPC>();
+  final BMMProvider _bmm = GetIt.I.get<BMMProvider>();
   final TextEditingController _name = TextEditingController();
   String? _saved;
   String? _error;
@@ -34,12 +35,35 @@ class _FreeBankBidDialogState extends State<FreeBankBidDialog> {
 
   bool get _hasName => _saved != null && _saved!.isNotEmpty;
 
+  /// Why the engine's controls stay shut, or null when a bid can go out. Every
+  /// block a bid wins carries the name, and a node that restarts answers no RPC
+  /// until it is up again.
+  String? get _blockedReason {
+    if (!_hasName) {
+      return 'Save a name above to start bidding.';
+    }
+    // The orchestrator keeps a started session, and it bids on. So the Stop
+    // control stays reachable while the node is down.
+    if (!_rpc.connected && !_bmm.running) {
+      return 'Waiting for FreeBank to start.';
+    }
+    return null;
+  }
+
   File get _conf => File(filePath([_rpc.binary.datadirNetwork(), 'freebank.conf']));
 
   @override
   void initState() {
     super.initState();
+    _rpc.addListener(_onConnectionChanged);
+    _bmm.addListener(_onConnectionChanged);
     _load();
+  }
+
+  void _onConnectionChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _load() async {
@@ -97,6 +121,8 @@ class _FreeBankBidDialogState extends State<FreeBankBidDialog> {
 
   @override
   void dispose() {
+    _rpc.removeListener(_onConnectionChanged);
+    _bmm.removeListener(_onConnectionChanged);
     _name.dispose();
     super.dispose();
   }
@@ -146,13 +172,12 @@ class _FreeBankBidDialogState extends State<FreeBankBidDialog> {
               scrollDirection: Axis.horizontal,
               child: SizedBox(
                 width: _bmmTabWidth,
-                // Every block a bid wins carries the name, so bidding waits for one.
-                child: _hasName
+                child: _blockedReason == null
                     ? const BMMTab()
                     : Stack(
                         children: [
                           const IgnorePointer(child: Opacity(opacity: 0.35, child: BMMTab())),
-                          Center(child: SailText.primary15('Save a name above to start bidding.')),
+                          Center(child: SailText.primary15(_blockedReason!)),
                         ],
                       ),
               ),
