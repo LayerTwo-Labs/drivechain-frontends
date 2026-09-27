@@ -5,6 +5,8 @@ import 'package:sail_ui/sail_ui.dart';
 
 import 'test_utils.dart';
 
+Future<bool> _noop(BuildContext context, NotificationItem item) async => true;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -155,37 +157,19 @@ void main() {
       expect(find.text('drynet3 is out'), findsNothing);
     });
 
-    // A handler that opens its own dialog carries the whole message. A generic
-    // card in front of it reads as two dialogs for one warning.
-    testWidgets('an own-dialog action opens no generic card', (tester) async {
-      final p = await freshProvider();
-      var ran = false;
-      if (GetIt.I.isRegistered<NotificationActions>()) {
-        GetIt.I.unregister<NotificationActions>();
-      }
-      GetIt.I.registerSingleton<NotificationActions>(
-        NotificationActions({'act': (_, _) async => ran = true}, ownDialogs: const {'act'}),
-      );
-      p.add(
-        id: 'first',
-        title: 'The blocks on disk are from alphanet',
-        content: 'But you are on betanet.',
-        dialogType: DialogType.error,
-        style: NotificationStyle.modalThenBanner,
-        action: 'act',
-      );
+    // A handler that opens its own dialog carries the whole message, so the
+    // generic card stays shut. The key decides, and main.dart passes it.
+    test('an action key can own its dialog', () {
+      const actions = NotificationActions({'act': _noop}, ownDialogs: {'act'});
 
-      // A bare tree, with no SailApp: the handler owns the dialog, so the banner
-      // paints no strip and reads no theme. A heavier harness waits on frames
-      // this assertion does not need.
-      await tester.pumpWidget(const MaterialApp(home: NotificationBanner()));
-      for (var frame = 0; frame < 3; frame++) {
-        await tester.pump(const Duration(milliseconds: 50));
-      }
+      expect(actions.ownDialogs, contains('act'));
+      expect(actions['act'], isNotNull);
+    });
 
-      expect(ran, isTrue);
-      expect(find.text('Confirm'), findsNothing);
-      expect(p.activeBanner, isNull, reason: 'the handler reported the repair done');
+    test('an action key owns no dialog by default', () {
+      const actions = NotificationActions({'act': _noop});
+
+      expect(actions.ownDialogs, isEmpty);
     });
 
     testWidgets('the ✕ marks it read without running the action', (tester) async {

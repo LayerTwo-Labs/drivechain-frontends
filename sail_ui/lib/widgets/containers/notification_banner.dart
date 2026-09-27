@@ -55,10 +55,17 @@ class _NotificationBannerState extends State<NotificationBanner> {
     super.dispose();
   }
 
-  void _onNotifications() {
-    if (_provider != null && _provider!.pendingModal != null) {
-      unawaited(_openPendingModal(_provider!));
+  void _onNotifications() => _openWhenFree();
+
+  /// Opens a pending modal while the screen is free. The screen frees up at the
+  /// end of an action and at the end of the loop, and a modal can arrive at any
+  /// moment, so all three call this.
+  void _openWhenFree() {
+    final provider = _provider;
+    if (!mounted || _modalOpen || _actionRunning || provider == null || provider.pendingModal == null) {
+      return;
     }
+    unawaited(_openPendingModal(provider));
   }
 
   /// Opens the modal of every item that waits for one, in turn. The mark goes
@@ -75,13 +82,23 @@ class _NotificationBannerState extends State<NotificationBanner> {
         if (item == null) {
           return;
         }
-        await provider.markModalShown(item.id);
         if (!mounted) {
           return;
         }
         if (_ownsDialog(item.action)) {
-          await _runAction(context, provider, item);
+          // The handler carries the whole message, and _actionRunning stops a
+          // second copy, so the mark waits for the action. A mark before a busy
+          // action drops the modal for good. The loop ends while another action
+          // owns the screen, and the end of that action opens this one.
+          if (!await _runAction(context, provider, item)) {
+            return;
+          }
+          await provider.markModalShown(item.id);
           continue;
+        }
+        await provider.markModalShown(item.id);
+        if (!mounted) {
+          return;
         }
         final confirmed = await showThemedDialog<bool>(
           context: context,
@@ -97,6 +114,7 @@ class _NotificationBannerState extends State<NotificationBanner> {
       }
     } finally {
       _modalOpen = false;
+      _openWhenFree();
     }
   }
 
@@ -105,11 +123,13 @@ class _NotificationBannerState extends State<NotificationBanner> {
       GetIt.I.isRegistered<NotificationActions>() &&
       GetIt.I.get<NotificationActions>().ownDialogs.contains(action);
 
-  /// Runs the item's action. One at a time: the modal closes before the action
-  /// ends, and a tap on the banner behind it would start a second one.
-  Future<void> _runAction(BuildContext context, NotificationProvider provider, NotificationItem item) async {
+  /// Runs the item's action, and reports whether it ran. One at a time: the modal
+  /// closes before the action ends, and a tap on the banner behind it would start
+  /// a second one. False means another action owns the screen, so the caller
+  /// leaves this item for its turn.
+  Future<bool> _runAction(BuildContext context, NotificationProvider provider, NotificationItem item) async {
     if (_actionRunning) {
-      return;
+      return false;
     }
     _actionRunning = true;
     try {
@@ -117,11 +137,13 @@ class _NotificationBannerState extends State<NotificationBanner> {
           ? GetIt.I.get<NotificationActions>()[item.action]
           : null;
       if (handler != null && !await handler(context, item)) {
-        return;
+        return true;
       }
       await provider.markRead(item.id);
+      return true;
     } finally {
       _actionRunning = false;
+      _openWhenFree();
     }
   }
 
