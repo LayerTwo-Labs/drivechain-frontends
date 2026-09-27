@@ -12,9 +12,10 @@ enum DatadirNetworkRepair {
 }
 
 /// True when the app can run the network the blocks belong to: this build lists
-/// it, and it reads this same directory.
+/// it, and it reads this same directory. A directory that holds two networks
+/// offers no switch, because either network reads one half of it only.
 bool canSwitchToDetected(BitcoinConfProvider conf, GetDatadirNetworkResponse answer) {
-  if (conf.hasPrivateBitcoinConf || !answer.switchReadsBlocks) {
+  if (conf.hasPrivateBitcoinConf || answer.mixed || !answer.switchReadsBlocks) {
     return false;
   }
   return conf.networkOptions.any((option) => option.id == answer.detectedId);
@@ -23,10 +24,10 @@ bool canSwitchToDetected(BitcoinConfProvider conf, GetDatadirNetworkResponse ans
 /// True when a conversion can move the blocks onto the network the app runs.
 /// Only two eCash networks share the history a conversion rewinds to.
 bool canConvertBlocks(BitcoinConfProvider conf, GetDatadirNetworkResponse answer) {
-  if (conf.hasPrivateBitcoinConf) {
+  if (conf.hasPrivateBitcoinConf || answer.convertFromId.isEmpty) {
     return false;
   }
-  return _isECash(conf, answer.detectedId) && _isECash(conf, answer.selectedId);
+  return _isECash(conf, answer.convertFromId) && _isECash(conf, answer.selectedId);
 }
 
 bool _isECash(BitcoinConfProvider conf, String id) {
@@ -43,6 +44,8 @@ class DatadirNetworkDialog extends StatelessWidget {
 
   String get _detected => answer.detectedName.isNotEmpty ? answer.detectedName : answer.detectedId;
   String get _selected => answer.selectedName.isNotEmpty ? answer.selectedName : answer.selectedId;
+  String get _first => answer.firstName.isNotEmpty ? answer.firstName : answer.firstId;
+  String get _source => answer.convertFromName.isNotEmpty ? answer.convertFromName : answer.convertFromId;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +54,7 @@ class DatadirNetworkDialog extends StatelessWidget {
     final canConvert = canConvertBlocks(conf, answer);
 
     return SailDialog(
-      title: 'The blocks on disk are from $_detected',
+      title: answer.mixed ? 'The block files hold two networks' : 'The blocks on disk are from $_detected',
       subtitle: 'But you are on $_selected.',
       actions: [
         SailButton(
@@ -65,8 +68,11 @@ class DatadirNetworkDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailText.primary13(
-            'A start on $_selected rolls this chain back below the fork the two networks share, which '
-            'empties the balance until the branch comes back.',
+            answer.mixed
+                ? '$_first records and $_detected records sit in one directory. A conversion stopped part '
+                      'way, and no node reads every block until they all carry one magic.'
+                : 'A start on $_selected rolls this chain back below the fork the two networks share, which '
+                      'empties the balance until the branch comes back.',
           ),
           if (canSwitch)
             _repair(
@@ -80,20 +86,24 @@ class DatadirNetworkDialog extends StatelessWidget {
           if (canConvert)
             _repair(
               button: SailButton(
-                label: 'Convert the blocks to $_selected',
+                label: answer.mixed ? 'Finish the conversion to $_selected' : 'Convert the blocks to $_selected',
                 onPressed: () async => Navigator.of(context).pop(DatadirNetworkRepair.convertBlocks),
               ),
-              detail:
-                  'The chain rewinds to the block both networks share, and every record takes the '
-                  '$_selected magic. Chain data is never deleted.',
+              detail: answer.mixed
+                  ? 'Every $_source record takes the $_selected magic. The records that already moved stay '
+                        'as they are, and chain data is never deleted.'
+                  : 'The chain rewinds to the block both networks share, and every record takes the '
+                        '$_selected magic. Chain data is never deleted.',
             ),
           if (conf.hasPrivateBitcoinConf)
             SailText.secondary13('Your own bitcoin.conf names the network. Change it there, then restart.'),
-          if (!conf.hasPrivateBitcoinConf && !answer.switchReadsBlocks)
+          if (!conf.hasPrivateBitcoinConf && !answer.mixed && !answer.switchReadsBlocks)
             SailText.secondary13('$_detected reads another data directory. Point it at this one, then switch.'),
-          if (!conf.hasPrivateBitcoinConf && answer.switchReadsBlocks && !canSwitch)
+          if (!conf.hasPrivateBitcoinConf && !answer.mixed && answer.switchReadsBlocks && !canSwitch)
             SailText.secondary13('This build lists no network named ${answer.detectedId}.'),
-          if (!conf.hasPrivateBitcoinConf && !canConvert)
+          if (!conf.hasPrivateBitcoinConf && !canConvert && answer.convertFromId.isEmpty)
+            SailText.secondary13('Neither half of this directory belongs to $_selected, so no conversion reaches it.'),
+          if (!conf.hasPrivateBitcoinConf && !canConvert && answer.convertFromId.isNotEmpty)
             SailText.secondary13('A conversion runs between two eCash networks only.'),
         ],
       ),
