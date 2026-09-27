@@ -474,27 +474,31 @@ func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
 // A saved job belongs to the files it started on, and a resume refuses any
 // others. A job the user left behind says nothing about these blocks, so the
 // answer falls back to what the two ends name.
-func TestMigrationReadsThisStore(t *testing.T) {
-	o := parkInstall(t)
-	o.setNetwork(string(config.NetworkECash))
-	o.BitcoinConf.Network = config.NetworkECash
-
-	dir, err := filepath.Abs(o.BitcoinConf.DataDir())
+func TestMigrationForThisStore(t *testing.T) {
+	o := migrationTestNode(t)
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
-	blocks := o.coreBlocksDir(config.NetworkECash)
-	job := ECashMigrationStatus{JobID: "job-1", DataDir: dir}
+	state.Status.JobID = "job-1"
+	require.NoError(t, o.saveMigration(state))
 
-	require.True(t, o.migrationReadsThisStore(job, blocks))
-	require.False(t, o.migrationReadsThisStore(job, filepath.Join(t.TempDir(), "blocks")))
-	require.False(t, o.migrationReadsThisStore(job, ""))
-	require.False(t, o.migrationReadsThisStore(ECashMigrationStatus{JobID: "job-1", DataDir: t.TempDir()}, blocks))
-	require.False(t, o.migrationReadsThisStore(ECashMigrationStatus{JobID: "job-1"}, blocks))
-	require.False(t, o.migrationReadsThisStore(ECashMigrationStatus{DataDir: dir}, blocks))
+	require.Equal(t, "job-1", o.migrationForThisStore().JobID)
 
 	// A blocksdir the user moves after the job started points at another store,
 	// even while the data directory stays.
 	o.BitcoinConf.Config.SetSetting("blocksdir", t.TempDir(), "main")
-	require.False(t, o.migrationReadsThisStore(job, blocks))
+	require.Empty(t, o.migrationForThisStore().JobID)
+}
+
+// A job saved for another data directory drops out the same way.
+func TestMigrationForAnotherDatadir(t *testing.T) {
+	o := migrationTestNode(t)
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
+	require.NoError(t, err)
+	state.Status.JobID = "job-1"
+	state.Status.DataDir = t.TempDir()
+	require.NoError(t, o.saveMigration(state))
+
+	require.Empty(t, o.migrationForThisStore().JobID)
 }
 
 // The conversion rewinds to the block the source forks from. The published
@@ -524,18 +528,33 @@ func TestDatadirNetworkNeedsTheForkParent(t *testing.T) {
 
 // A resume compares the saved paths as text. A link this check resolved would
 // offer a repair the resume then refuses.
-func TestMigrationReadsThisStoreComparesRawPaths(t *testing.T) {
-	o := parkInstall(t)
-	o.setNetwork(string(config.NetworkECash))
-	o.BitcoinConf.Network = config.NetworkECash
-
-	dir, err := filepath.Abs(o.BitcoinConf.DataDir())
+func TestMigrationForThisStoreComparesRawPaths(t *testing.T) {
+	o := migrationTestNode(t)
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
-	blocks := o.coreBlocksDir(config.NetworkECash)
-	link := filepath.Join(t.TempDir(), "link")
-	require.NoError(t, os.Symlink(dir, link))
+	state.Status.JobID = "job-1"
 
-	job := ECashMigrationStatus{JobID: "job-1", DataDir: link}
-	require.False(t, o.migrationReadsThisStore(job, blocks))
-	require.True(t, o.migrationReadsThisStore(ECashMigrationStatus{JobID: "job-1", DataDir: dir}, blocks))
+	link := filepath.Join(t.TempDir(), "link")
+	require.NoError(t, os.Symlink(state.Status.DataDir, link))
+	state.Status.DataDir = link
+	require.NoError(t, o.saveMigration(state))
+
+	require.Empty(t, o.migrationForThisStore().JobID, "the resume compares the text, not the target")
+}
+
+// A conversion rewrites the magic of every record, so the two networks have to
+// carry different ones. A document that publishes a blank magic names no network.
+func TestCheckECashConversionReadsBothMagics(t *testing.T) {
+	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 101, NetworkMagic: "eca5a104",
+			ForkParentHash: strings.Repeat("a", 64)},
+		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 121, NetworkMagic: "eca5b104"},
+	}}
+	require.NoError(t, CheckECashConversion(cat, "alphanet", "betanet"))
+
+	cat.Networks[1].NetworkMagic = "eca5a104"
+	require.ErrorContains(t, CheckECashConversion(cat, "alphanet", "betanet"), "must differ")
+
+	cat.Networks[1].NetworkMagic = ""
+	require.ErrorContains(t, CheckECashConversion(cat, "alphanet", "betanet"), "magic")
 }

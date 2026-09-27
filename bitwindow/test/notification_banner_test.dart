@@ -171,8 +171,11 @@ void main() {
         action: 'act',
       );
 
+      // Bounded pumps, never pumpAndSettle: the page animates, so a settle waits
+      // for a frame that never comes.
       await tester.pumpSailPage(const Column(children: [NotificationBanner()]));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(ran, isTrue);
       expect(find.text('Confirm'), findsNothing);

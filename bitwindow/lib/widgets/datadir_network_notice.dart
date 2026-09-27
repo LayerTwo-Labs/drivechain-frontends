@@ -10,7 +10,9 @@ import 'package:sail_ui/sail_ui.dart';
 /// Action key the notification carries; see NotificationActions.
 const datadirNetworkAction = 'datadir_network';
 
-const _noticeIdPrefix = 'datadir-network-';
+/// The one stored notice this watcher owns. Its text carries the state, so a
+/// state that changes replaces the entry rather than key a second one.
+const datadirNoticeId = 'datadir-network';
 
 /// Raises a modal, and then a banner, when the blocks on disk belong to another
 /// network than the app runs. The blocks name the chain, and a start on the
@@ -29,14 +31,23 @@ class DatadirNetworkWatcher {
   static const _attempts = 12;
   static const _between = Duration(seconds: 5);
 
+  /// How often the watcher looks again while a warning stands. A conversion
+  /// rewrites the block files without a config change, so nothing else tells the
+  /// app that the warning moved or went away.
+  static const _whileWarned = Duration(seconds: 30);
+
   Timer? _retry;
   bool _stopped = false;
   bool _asking = false;
   BitcoinConfProvider? _conf;
 
-  /// The watch key of the last answer. A standing poll would hold a request
-  /// open while the app shuts down, so a change of the key asks again instead.
+  /// The watch key of the last answer. A change of the key asks again, so a
+  /// config change reaches the check between two polls.
   String _checked = '';
+
+  /// True while the last answer reported a warning. The watcher keeps looking
+  /// until the blocks and the app agree.
+  bool _warned = false;
 
   @visibleForTesting
   String get watchedKey => _checked;
@@ -57,8 +68,9 @@ class DatadirNetworkWatcher {
     unawaited(_checkUntilAnswered());
   }
 
-  /// Asks until the daemon answers, then stops. A standing timer would hold a
-  /// request open while the app shuts down.
+  /// Asks until the daemon answers, and then keeps watch while a warning stands.
+  /// The loop ends once the blocks and the app agree, so a quiet app holds no
+  /// request open while it shuts down.
   Future<void> _checkUntilAnswered() async {
     if (_asking) {
       return;
@@ -67,30 +79,44 @@ class DatadirNetworkWatcher {
     try {
       for (var attempt = 0; attempt < _attempts && !_stopped; attempt++) {
         if (await check()) {
+          break;
+        }
+        await _wait(_between);
+      }
+      while (!_stopped && _warned) {
+        await _wait(_whileWarned);
+        if (_stopped) {
           return;
         }
-        final wait = Completer<void>();
-        _retry = Timer(_between, wait.complete);
-        await wait.future;
+        await check();
       }
     } finally {
       _asking = false;
     }
   }
 
+  Future<void> _wait(Duration duration) async {
+    final done = Completer<void>();
+    _retry = Timer(duration, done.complete);
+    await done.future;
+  }
+
   /// True once the daemon answers, whatever it says.
   Future<bool> check() async {
-    if (!GetIt.I.isRegistered<NotificationProvider>() || !GetIt.I.isRegistered<OrchestratorRPC>()) {
+    if (!GetIt.I.isRegistered<NotificationProvider>() ||
+        !GetIt.I.isRegistered<OrchestratorRPC>() ||
+        !GetIt.I.isRegistered<BitcoinConfProvider>()) {
       return false;
     }
     final provider = GetIt.I.get<NotificationProvider>();
+    final conf = GetIt.I.get<BitcoinConfProvider>();
     // The stored notices load in the background. A run over an empty list
     // clears nothing, and the load then puts the stale banner back.
     await provider.ready;
     if (_stopped) {
       return false;
     }
-    final key = _conf == null ? '' : datadirWatchKey(_conf!);
+    final key = datadirWatchKey(conf);
 
     final GetDatadirNetworkResponse answer;
     try {
@@ -110,50 +136,34 @@ class DatadirNetworkWatcher {
     }
     _checked = key;
 
+    _warned = answer.mismatch;
+
     if (!answer.mismatch) {
-      await _clear(provider);
+      await provider.forget(datadirNoticeId);
       return true;
     }
-    await _retireOtherPairs(provider, answer);
 
-    final conf = _conf ?? (GetIt.I.isRegistered<BitcoinConfProvider>() ? GetIt.I.get<BitcoinConfProvider>() : null);
-    // The banner and the dialog read one pair of rules, so the text never offers
-    // a repair the dialog then withholds.
-    final text = datadirNoticeText(
-      answer,
-      canSwitch: conf != null && canSwitchToDetected(conf, answer),
-      canConvert: conf != null && canConvertBlocks(conf, answer),
-    );
+    final text = datadirNoticeText(answer, conf);
+    final stored = provider.history.where((n) => n.id == datadirNoticeId).firstOrNull;
+    if (stored != null) {
+      if (stored.title == text.title && stored.content == text.content) {
+        // The same warning stands. A ✕ the user pressed keeps the banner down,
+        // and the modal stays shut.
+        return true;
+      }
+      // The state moved, so what the user read no longer holds. The entry goes,
+      // and the replacement earns a fresh banner and a fresh modal.
+      await provider.forget(datadirNoticeId);
+    }
     provider.add(
-      id: datadirNoticeId(provider.history, datadirNoticeState(answer), DateTime.now()),
+      id: datadirNoticeId,
       title: text.title,
       content: text.content,
       dialogType: DialogType.error,
       style: NotificationStyle.modalThenBanner,
       action: datadirNetworkAction,
-      data: datadirNoticeState(answer),
     );
     return true;
-  }
-
-  /// Drops every notice about another pair, read or not. The networks can move
-  /// from one mismatch to another and back, so a pair this run retires leaves
-  /// no entry, and its return earns a new warning.
-  Future<void> _retireOtherPairs(NotificationProvider provider, GetDatadirNetworkResponse answer) async {
-    final state = datadirNoticeState(answer);
-    for (final stale
-        in provider.history.where((n) => n.id.startsWith(_noticeIdPrefix) && !_sameState(n.data, state)).toList()) {
-      await provider.forget(stale.id);
-    }
-  }
-
-  /// The blocks and the app agree, so every notice of ours describes a state
-  /// that no longer holds. The entry goes, and the same mismatch warns again
-  /// when it comes back, on this run or on the next start.
-  Future<void> _clear(NotificationProvider provider) async {
-    for (final stale in provider.history.where((n) => n.id.startsWith(_noticeIdPrefix)).toList()) {
-      await provider.forget(stale.id);
-    }
   }
 }
 
@@ -165,18 +175,15 @@ String datadirWatchKey(BitcoinConfProvider conf) {
   return [conf.network.name, conf.ecashNetworkId, conf.detectedDataDir ?? '', blocks].join('\u0000');
 }
 
-String _name(String displayName, String id) => displayName.isNotEmpty ? displayName : id;
-
 /// The notice text for one answer. It names the network the app runs either way,
-/// because the network on disk alone says nothing about the repair.
-({String title, String content}) datadirNoticeText(
-  GetDatadirNetworkResponse answer, {
-  required bool canSwitch,
-  required bool canConvert,
-}) {
-  final detected = _name(answer.detectedName, answer.detectedId);
-  final selected = _name(answer.selectedName, answer.selectedId);
-  final target = _name(answer.convertToName, answer.convertToId);
+/// because the network on disk alone says nothing about the repair. The banner
+/// asks the dialog's own rules, so it never offers a repair the dialog withholds.
+({String title, String content}) datadirNoticeText(GetDatadirNetworkResponse answer, BitcoinConfProvider conf) {
+  final canSwitch = canSwitchToDetected(conf, answer);
+  final canConvert = canConvertBlocks(conf, answer);
+  final detected = networkLabel(answer.detectedName, answer.detectedId);
+  final selected = networkLabel(answer.selectedName, answer.selectedId);
+  final target = networkLabel(answer.convertToName, answer.convertToId);
   if (!answer.mixed) {
     final fix = switch ((canSwitch, canConvert)) {
       (true, true) => 'Switch to $detected, or convert the blocks to $target.',
@@ -188,7 +195,7 @@ String _name(String displayName, String id) => displayName.isNotEmpty ? displayN
   }
   // Either network reads one half of a mixed directory only, so no switch repairs
   // it. The conversion finishes what stopped.
-  final first = _name(answer.firstName, answer.firstId);
+  final first = networkLabel(answer.firstName, answer.firstId);
   return (
     title: 'The block files hold two networks',
     content: canConvert
@@ -196,30 +203,6 @@ String _name(String displayName, String id) => displayName.isNotEmpty ? displayN
         : '$first and $detected records sit in one directory, and you are on $selected.',
   );
 }
-
-/// The id of the notice for one pair of networks. A mismatch that stands keeps
-/// one id, whether the user crossed the banner out or restarted the app, so the
-/// modal opens one time. A pair with no entry takes a fresh id, which is how a
-/// mismatch that went away and came back earns a new warning.
-///
-/// The pair lives in the item data, never in the id: a catalog id is free text,
-/// and two ids joined by a mark can read as another pair.
-String datadirNoticeId(Iterable<NotificationItem> history, Map<String, String> state, DateTime now) {
-  final open = history.where((n) => n.id.startsWith(_noticeIdPrefix) && _sameState(n.data, state)).firstOrNull;
-  return open?.id ?? '$_noticeIdPrefix${now.microsecondsSinceEpoch}';
-}
-
-/// What the notice describes. The oldest end rides along with the newest one: a
-/// conversion that moves the oldest records first leaves the same pair of
-/// networks, and the entry would otherwise keep text that no longer holds.
-Map<String, String> datadirNoticeState(GetDatadirNetworkResponse answer) => {
-  'first': answer.firstId,
-  'detected': answer.detectedId,
-  'selected': answer.selectedId,
-};
-
-bool _sameState(Map<String, String> data, Map<String, String> state) =>
-    state.keys.every((key) => data[key] == state[key]);
 
 /// Offers the two repairs for a datadir on another network, and runs the one the
 /// user picks. False leaves the banner on screen, so a cancelled or failed
@@ -239,9 +222,11 @@ Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem not
   if (!answer.mismatch) {
     return true;
   }
-  // The networks can move while the user reads the text, and a repair must go
-  // where the text says, never where a later answer points.
-  if (!_sameState(notice.data, datadirNoticeState(answer))) {
+  // The state can move while the user reads the text, and a repair must go where
+  // the text says, never where a later answer points. The text is what the user
+  // read, so it is the thing to compare.
+  final fresh = datadirNoticeText(answer, conf);
+  if (fresh.title != notice.title || fresh.content != notice.content) {
     if (context.mounted) {
       showSailToast(context, 'The networks moved. Read the new notice.', variant: SailToastVariant.info);
     }

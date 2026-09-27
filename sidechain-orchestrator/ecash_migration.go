@@ -222,6 +222,41 @@ func (o *Orchestrator) checkECashMigrationStart(ctx context.Context, cfg BinaryC
 	return nil
 }
 
+// CheckECashConversion reports whether a migration can move one eCash network
+// onto another, from the catalog alone. The dialog asks this before it offers the
+// repair, and the migration asks it before it starts, so every offer the user
+// reads is one the daemon accepts.
+func CheckECashConversion(cat netcatalog.Catalog, fromID, toID string) error {
+	if !validMigrationID(fromID) || !validMigrationID(toID) || fromID == toID {
+		return fmt.Errorf("select distinct source and target ECX networks")
+	}
+	from, fromOK := cat.ByID(fromID)
+	to, toOK := cat.ByID(toID)
+	if !fromOK || !toOK || from.Family != netcatalog.FamilyECash || to.Family != netcatalog.FamilyECash {
+		return fmt.Errorf("the catalog must include both ECX networks")
+	}
+	for _, entry := range []netcatalog.Network{from, to} {
+		if _, err := blockfile.ParseMagic(entry.NetworkMagic); err != nil {
+			return fmt.Errorf("network %s magic: %w", entry.ID, err)
+		}
+		if entry.ForkHeight <= 1 {
+			return fmt.Errorf("network %s has no valid fork height", entry.ID)
+		}
+	}
+	if strings.EqualFold(from.NetworkMagic, to.NetworkMagic) {
+		return fmt.Errorf("source and target network magic must differ")
+	}
+	// The conversion rewinds to the block the source forks from and replays the
+	// target, so the target has to fork the mainchain after the source.
+	if to.ForkHeight <= from.ForkHeight {
+		return fmt.Errorf("the target must fork BTC after the source network")
+	}
+	if data, err := hex.DecodeString(from.ForkParentHash); err != nil || len(data) != 32 {
+		return fmt.Errorf("network %s must publish fork_parent_hash in /config", from.ID)
+	}
+	return nil
+}
+
 func validMigrationID(id string) bool {
 	if id == "" {
 		return false
@@ -263,9 +298,6 @@ func (o *Orchestrator) blockFilesHoldECashID(ctx context.Context, id string) boo
 }
 
 func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*ecashMigration, error) {
-	if !validMigrationID(fromID) || !validMigrationID(toID) || fromID == toID {
-		return nil, fmt.Errorf("select distinct source and target ECX networks")
-	}
 	if o.BitcoinConf == nil || o.BitcoinConf.Config == nil || o.Settings == nil {
 		return nil, fmt.Errorf("ECX migration configuration is unavailable")
 	}
@@ -292,28 +324,11 @@ func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*
 	if !ok {
 		return nil, fmt.Errorf("the Core binary configuration is unavailable")
 	}
-	from, fromOK := cat.ByID(fromID)
-	to, toOK := cat.ByID(toID)
-	if !fromOK || !toOK || from.Family != netcatalog.FamilyECash || to.Family != netcatalog.FamilyECash {
-		return nil, fmt.Errorf("the catalog must include both ECX networks")
+	if err := CheckECashConversion(cat, fromID, toID); err != nil {
+		return nil, err
 	}
-	for _, entry := range []netcatalog.Network{from, to} {
-		if _, err := blockfile.ParseMagic(entry.NetworkMagic); err != nil {
-			return nil, fmt.Errorf("network %s magic: %w", entry.ID, err)
-		}
-		if entry.ForkHeight <= 1 {
-			return nil, fmt.Errorf("network %s has no valid fork height", entry.ID)
-		}
-	}
-	if strings.EqualFold(from.NetworkMagic, to.NetworkMagic) {
-		return nil, fmt.Errorf("source and target network magic must differ")
-	}
-	if to.ForkHeight <= from.ForkHeight {
-		return nil, fmt.Errorf("the target must fork BTC after the source network")
-	}
-	if !namesForkParent(from) {
-		return nil, fmt.Errorf("network %s must publish fork_parent_hash in /config", from.ID)
-	}
+	from, _ := cat.ByID(fromID)
+	to, _ := cat.ByID(toID)
 	root, err := filepath.Abs(o.BitcoinConf.RootDataDir())
 	if err != nil {
 		return nil, err
