@@ -554,3 +554,27 @@ func TestCheckECashConversionNeedsTheForkParent(t *testing.T) {
 	cat.Networks[0].ForkParentHash = strings.Repeat("a", 64)
 	require.NoError(t, CheckECashConversion(cat, "alphanet", "betanet"))
 }
+
+// A job describes these blocks while an end still carries one of its networks.
+// Blocks the user put there by hand carry neither, so the ends decide.
+func TestDatadirNetworkDropsAJobTheBlocksDoNotCarry(t *testing.T) {
+	hash := strings.Repeat("a", 64)
+	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 101, NetworkMagic: "eca5a104", ForkParentHash: hash},
+		{ID: "gammanet", Family: netcatalog.FamilyECash, ForkHeight: 111, NetworkMagic: "eca5c104", ForkParentHash: hash},
+		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 121, NetworkMagic: "eca5b104", ForkParentHash: hash},
+	}}
+	job := ECashMigrationStatus{JobID: "job-1", FromID: "alphanet", ToID: "betanet"}
+
+	// The blocks the job wrote: one end at the source, one at the target.
+	part := DatadirNetwork{Mixed: true, FirstID: "betanet", DetectedID: "alphanet", SelectedID: "alphanet"}
+	part.setConversion(cat, job)
+	require.Equal(t, "alphanet", part.ConvertFromID)
+	require.Equal(t, "betanet", part.ConvertToID)
+
+	// Another chain sits in the directory, so the job says nothing about it.
+	replaced := DatadirNetwork{DetectedID: "gammanet", FirstID: "gammanet", SelectedID: "betanet"}
+	replaced.setConversion(cat, job)
+	require.Equal(t, "gammanet", replaced.ConvertFromID, "the ends decide")
+	require.Equal(t, "betanet", replaced.ConvertToID)
+}

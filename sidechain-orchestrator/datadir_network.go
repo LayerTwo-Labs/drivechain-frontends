@@ -130,7 +130,10 @@ func (o *Orchestrator) migrationForThisStore() ECashMigrationStatus {
 // conversion can make.
 func (n *DatadirNetwork) setConversion(cat netcatalog.Catalog, job ECashMigrationStatus) {
 	from, to := n.mixedSource(), n.SelectedID
-	if job.JobID != "" && !job.Complete {
+	// A job describes these blocks while an end still carries one of its two
+	// networks: the source it has to move, or the target it already wrote. Blocks
+	// the user put there by hand carry neither, and the ends alone then decide.
+	if job.JobID != "" && !job.Complete && (n.holdsNetwork(job.FromID) || n.holdsNetwork(job.ToID)) {
 		from, to = job.FromID, job.ToID
 	}
 	if CheckECashConversion(cat, from, to) != nil {
@@ -138,6 +141,11 @@ func (n *DatadirNetwork) setConversion(cat netcatalog.Catalog, job ECashMigratio
 	}
 	n.ConvertFromID, n.ConvertFromName = from, catalogName(cat, from)
 	n.ConvertToID, n.ConvertToName = to, catalogName(cat, to)
+}
+
+// holdsNetwork reports whether an end of the directory carries a network.
+func (n DatadirNetwork) holdsNetwork(id string) bool {
+	return id != "" && (id == n.FirstID || id == n.DetectedID)
 }
 
 // mixedSource names the end of the directory that is not the network the app

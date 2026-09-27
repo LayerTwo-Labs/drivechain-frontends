@@ -201,13 +201,13 @@ String datadirWatchKey(BitcoinConfProvider conf) {
     return (title: 'The blocks on disk are from $detected', content: 'But you are on $selected. $fix');
   }
   // Either network reads one half of a mixed directory only, so no switch repairs
-  // it. The conversion finishes what stopped.
+  // it. The conversion finishes what stopped. The text names both halves: two
+  // directories with the same repair are still two states.
   final first = networkLabel(answer.firstName, answer.firstId);
+  final halves = '$first and $detected records sit in one directory';
   return (
     title: 'The block files hold two networks',
-    content: canConvert
-        ? 'But you are on $selected. A conversion stopped part way. Finish it to $target.'
-        : '$first and $detected records sit in one directory, and you are on $selected.',
+    content: canConvert ? '$halves. Finish the conversion to $target.' : '$halves, and you are on $selected.',
   );
 }
 
