@@ -169,6 +169,12 @@ const GetDatadirNetworkResponse$json = {
     {'1': 'selected_name', '3': 5, '4': 1, '5': 9, '10': 'selectedName'},
     {'1': 'mismatch', '3': 6, '4': 1, '5': 8, '10': 'mismatch'},
     {'1': 'switch_reads_blocks', '3': 7, '4': 1, '5': 8, '10': 'switchReadsBlocks'},
+    {'1': 'first_magic', '3': 8, '4': 1, '5': 9, '10': 'firstMagic'},
+    {'1': 'first_id', '3': 9, '4': 1, '5': 9, '10': 'firstId'},
+    {'1': 'first_name', '3': 10, '4': 1, '5': 9, '10': 'firstName'},
+    {'1': 'mixed', '3': 11, '4': 1, '5': 8, '10': 'mixed'},
+    {'1': 'convert_from_id', '3': 12, '4': 1, '5': 9, '10': 'convertFromId'},
+    {'1': 'convert_from_name', '3': 13, '4': 1, '5': 9, '10': 'convertFromName'},
   ],
 };
 
@@ -178,7 +184,11 @@ final $typed_data.Uint8List getDatadirNetworkResponseDescriptor = $convert.base6
     'RlY3RlZF9pZBgCIAEoCVIKZGV0ZWN0ZWRJZBIjCg1kZXRlY3RlZF9uYW1lGAMgASgJUgxkZXRl'
     'Y3RlZE5hbWUSHwoLc2VsZWN0ZWRfaWQYBCABKAlSCnNlbGVjdGVkSWQSIwoNc2VsZWN0ZWRfbm'
     'FtZRgFIAEoCVIMc2VsZWN0ZWROYW1lEhoKCG1pc21hdGNoGAYgASgIUghtaXNtYXRjaBIuChNz'
-    'd2l0Y2hfcmVhZHNfYmxvY2tzGAcgASgIUhFzd2l0Y2hSZWFkc0Jsb2Nrcw==');
+    'd2l0Y2hfcmVhZHNfYmxvY2tzGAcgASgIUhFzd2l0Y2hSZWFkc0Jsb2NrcxIfCgtmaXJzdF9tYW'
+    'dpYxgIIAEoCVIKZmlyc3RNYWdpYxIZCghmaXJzdF9pZBgJIAEoCVIHZmlyc3RJZBIdCgpmaXJz'
+    'dF9uYW1lGAogASgJUglmaXJzdE5hbWUSFAoFbWl4ZWQYCyABKAhSBW1peGVkEiYKD2NvbnZlcn'
+    'RfZnJvbV9pZBgMIAEoCVINY29udmVydEZyb21JZBIqChFjb252ZXJ0X2Zyb21fbmFtZRgNIAEo'
+    'CVIPY29udmVydEZyb21OYW1l');
 
 @$core.Deprecated('Use binaryStatusMsgDescriptor instead')
 const BinaryStatusMsg$json = {

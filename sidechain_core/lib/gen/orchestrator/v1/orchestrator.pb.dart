@@ -60,6 +60,12 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     $core.String? selectedName,
     $core.bool? mismatch,
     $core.bool? switchReadsBlocks,
+    $core.String? firstMagic,
+    $core.String? firstId,
+    $core.String? firstName,
+    $core.bool? mixed,
+    $core.String? convertFromId,
+    $core.String? convertFromName,
   }) {
     final $result = create();
     if (magic != null) {
@@ -83,6 +89,24 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     if (switchReadsBlocks != null) {
       $result.switchReadsBlocks = switchReadsBlocks;
     }
+    if (firstMagic != null) {
+      $result.firstMagic = firstMagic;
+    }
+    if (firstId != null) {
+      $result.firstId = firstId;
+    }
+    if (firstName != null) {
+      $result.firstName = firstName;
+    }
+    if (mixed != null) {
+      $result.mixed = mixed;
+    }
+    if (convertFromId != null) {
+      $result.convertFromId = convertFromId;
+    }
+    if (convertFromName != null) {
+      $result.convertFromName = convertFromName;
+    }
     return $result;
   }
   GetDatadirNetworkResponse._() : super();
@@ -97,6 +121,12 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'selectedName')
     ..aOB(6, _omitFieldNames ? '' : 'mismatch')
     ..aOB(7, _omitFieldNames ? '' : 'switchReadsBlocks')
+    ..aOS(8, _omitFieldNames ? '' : 'firstMagic')
+    ..aOS(9, _omitFieldNames ? '' : 'firstId')
+    ..aOS(10, _omitFieldNames ? '' : 'firstName')
+    ..aOB(11, _omitFieldNames ? '' : 'mixed')
+    ..aOS(12, _omitFieldNames ? '' : 'convertFromId')
+    ..aOS(13, _omitFieldNames ? '' : 'convertFromName')
     ..hasRequiredFields = false
   ;
 
@@ -169,7 +199,8 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   void clearSelectedName() => clearField(5);
 
-  /// True when the blocks belong to another published network.
+  /// True when the blocks do not belong to the network the app runs, either
+  /// because they name another one or because two networks wrote them.
   @$pb.TagNumber(6)
   $core.bool get mismatch => $_getBF(5);
   @$pb.TagNumber(6)
@@ -189,6 +220,68 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
   $core.bool hasSwitchReadsBlocks() => $_has(6);
   @$pb.TagNumber(7)
   void clearSwitchReadsBlocks() => clearField(7);
+
+  /// The magic the first record of the oldest file carries, and the network that
+  /// writes it. They differ from magic and detected_id when a conversion stopped
+  /// part way.
+  @$pb.TagNumber(8)
+  $core.String get firstMagic => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set firstMagic($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasFirstMagic() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearFirstMagic() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get firstId => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set firstId($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasFirstId() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearFirstId() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get firstName => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set firstName($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasFirstName() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearFirstName() => clearField(10);
+
+  /// True when the two ends of the directory carry different networks, so no
+  /// node reads every block in it.
+  @$pb.TagNumber(11)
+  $core.bool get mixed => $_getBF(10);
+  @$pb.TagNumber(11)
+  set mixed($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasMixed() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearMixed() => clearField(11);
+
+  /// The network in this directory whose records a conversion has to move, empty
+  /// when no single network can move. It is the end that is not the one the app
+  /// runs.
+  @$pb.TagNumber(12)
+  $core.String get convertFromId => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set convertFromId($core.String v) { $_setString(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasConvertFromId() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearConvertFromId() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.String get convertFromName => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set convertFromName($core.String v) { $_setString(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasConvertFromName() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearConvertFromName() => clearField(13);
 }
 
 class BinaryStatusMsg extends $pb.GeneratedMessage {

@@ -473,13 +473,28 @@ type GetDatadirNetworkResponse struct {
 	// The network the app runs.
 	SelectedId   string `protobuf:"bytes,4,opt,name=selected_id,json=selectedId,proto3" json:"selected_id,omitempty"`
 	SelectedName string `protobuf:"bytes,5,opt,name=selected_name,json=selectedName,proto3" json:"selected_name,omitempty"`
-	// True when the blocks belong to another published network.
+	// True when the blocks do not belong to the network the app runs, either
+	// because they name another one or because two networks wrote them.
 	Mismatch bool `protobuf:"varint,6,opt,name=mismatch,proto3" json:"mismatch,omitempty"`
 	// True when a switch to the detected network reads this same directory.
 	// Core keeps one directory per chain and one per datadir group.
 	SwitchReadsBlocks bool `protobuf:"varint,7,opt,name=switch_reads_blocks,json=switchReadsBlocks,proto3" json:"switch_reads_blocks,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// The magic the first record of the oldest file carries, and the network that
+	// writes it. They differ from magic and detected_id when a conversion stopped
+	// part way.
+	FirstMagic string `protobuf:"bytes,8,opt,name=first_magic,json=firstMagic,proto3" json:"first_magic,omitempty"`
+	FirstId    string `protobuf:"bytes,9,opt,name=first_id,json=firstId,proto3" json:"first_id,omitempty"`
+	FirstName  string `protobuf:"bytes,10,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	// True when the two ends of the directory carry different networks, so no
+	// node reads every block in it.
+	Mixed bool `protobuf:"varint,11,opt,name=mixed,proto3" json:"mixed,omitempty"`
+	// The network in this directory whose records a conversion has to move, empty
+	// when no single network can move. It is the end that is not the one the app
+	// runs.
+	ConvertFromId   string `protobuf:"bytes,12,opt,name=convert_from_id,json=convertFromId,proto3" json:"convert_from_id,omitempty"`
+	ConvertFromName string `protobuf:"bytes,13,opt,name=convert_from_name,json=convertFromName,proto3" json:"convert_from_name,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetDatadirNetworkResponse) Reset() {
@@ -559,6 +574,48 @@ func (x *GetDatadirNetworkResponse) GetSwitchReadsBlocks() bool {
 		return x.SwitchReadsBlocks
 	}
 	return false
+}
+
+func (x *GetDatadirNetworkResponse) GetFirstMagic() string {
+	if x != nil {
+		return x.FirstMagic
+	}
+	return ""
+}
+
+func (x *GetDatadirNetworkResponse) GetFirstId() string {
+	if x != nil {
+		return x.FirstId
+	}
+	return ""
+}
+
+func (x *GetDatadirNetworkResponse) GetFirstName() string {
+	if x != nil {
+		return x.FirstName
+	}
+	return ""
+}
+
+func (x *GetDatadirNetworkResponse) GetMixed() bool {
+	if x != nil {
+		return x.Mixed
+	}
+	return false
+}
+
+func (x *GetDatadirNetworkResponse) GetConvertFromId() string {
+	if x != nil {
+		return x.ConvertFromId
+	}
+	return ""
+}
+
+func (x *GetDatadirNetworkResponse) GetConvertFromName() string {
+	if x != nil {
+		return x.ConvertFromName
+	}
+	return ""
 }
 
 type BinaryStatusMsg struct {
@@ -5698,7 +5755,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\x1a\n" +
-	"\x18GetDatadirNetworkRequest\"\x89\x02\n" +
+	"\x18GetDatadirNetworkRequest\"\xce\x03\n" +
 	"\x19GetDatadirNetworkResponse\x12\x14\n" +
 	"\x05magic\x18\x01 \x01(\tR\x05magic\x12\x1f\n" +
 	"\vdetected_id\x18\x02 \x01(\tR\n" +
@@ -5708,7 +5765,16 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"selectedId\x12#\n" +
 	"\rselected_name\x18\x05 \x01(\tR\fselectedName\x12\x1a\n" +
 	"\bmismatch\x18\x06 \x01(\bR\bmismatch\x12.\n" +
-	"\x13switch_reads_blocks\x18\a \x01(\bR\x11switchReadsBlocks\"\xd5\a\n" +
+	"\x13switch_reads_blocks\x18\a \x01(\bR\x11switchReadsBlocks\x12\x1f\n" +
+	"\vfirst_magic\x18\b \x01(\tR\n" +
+	"firstMagic\x12\x19\n" +
+	"\bfirst_id\x18\t \x01(\tR\afirstId\x12\x1d\n" +
+	"\n" +
+	"first_name\x18\n" +
+	" \x01(\tR\tfirstName\x12\x14\n" +
+	"\x05mixed\x18\v \x01(\bR\x05mixed\x12&\n" +
+	"\x0fconvert_from_id\x18\f \x01(\tR\rconvertFromId\x12*\n" +
+	"\x11convert_from_name\x18\r \x01(\tR\x0fconvertFromName\"\xd5\a\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
