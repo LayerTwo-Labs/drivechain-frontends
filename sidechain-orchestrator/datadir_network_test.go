@@ -472,74 +472,53 @@ func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
 }
 
 // A saved job belongs to the files it started on, and a resume refuses any
-// others. A job the user left behind says nothing about these blocks, so the
-// answer falls back to what the two ends name.
+// others. The offer asks the resume's own rule, so each file the rule names
+// takes the job away.
 func TestMigrationForThisStore(t *testing.T) {
-	o := migrationTestNode(t)
-	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
-	require.NoError(t, err)
-	state.Status.JobID = "job-1"
-	require.NoError(t, o.saveMigration(state))
+	for _, row := range []struct {
+		name    string
+		change  func(t *testing.T, o *Orchestrator)
+		wantJob bool
+	}{
+		{name: "the same files", change: func(*testing.T, *Orchestrator) {}, wantJob: true},
+		{
+			name: "another blocksdir",
+			change: func(t *testing.T, o *Orchestrator) {
+				o.BitcoinConf.Config.SetSetting("blocksdir", t.TempDir(), "main")
+			},
+		},
+		{
+			name: "another walletdir",
+			change: func(t *testing.T, o *Orchestrator) {
+				o.BitcoinConf.Config.SetSetting("walletdir", t.TempDir(), "main")
+			},
+		},
+		{
+			name: "another network",
+			change: func(t *testing.T, o *Orchestrator) {
+				o.setNetwork(string(config.NetworkSignet))
+			},
+		},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			o := migrationTestNode(t)
+			state, err := o.newMigration(context.Background(), "alphanet", "betanet")
+			require.NoError(t, err)
+			state.Status.JobID = "job-1"
+			// Past the rewind, which is where the walletdir starts to count.
+			state.Step = 2
+			state.WalletDir = o.BitcoinConf.Config.GetEffectiveSetting("walletdir", "main")
+			require.NoError(t, o.saveMigration(state))
 
-	require.Equal(t, "job-1", o.migrationForThisStore().JobID)
+			row.change(t, o)
 
-	// A blocksdir the user moves after the job started points at another store,
-	// even while the data directory stays.
-	o.BitcoinConf.Config.SetSetting("blocksdir", t.TempDir(), "main")
-	require.Empty(t, o.migrationForThisStore().JobID)
-}
-
-// A job saved for another data directory drops out the same way.
-func TestMigrationForAnotherDatadir(t *testing.T) {
-	o := migrationTestNode(t)
-	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
-	require.NoError(t, err)
-	state.Status.JobID = "job-1"
-	state.Status.DataDir = t.TempDir()
-	require.NoError(t, o.saveMigration(state))
-
-	require.Empty(t, o.migrationForThisStore().JobID)
-}
-
-// The conversion rewinds to the block the source forks from. The published
-// document can leave that hash out, and a network this build does not know then
-// carries none, so the offer would end in a refusal.
-func TestDatadirNetworkNeedsTheForkParent(t *testing.T) {
-	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 101, NetworkMagic: "eca5a104"},
-		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 121, NetworkMagic: "eca5b104"},
-	}}
-
-	out := DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
-	out.setConversion(cat, ECashMigrationStatus{})
-	require.Empty(t, out.ConvertFromID, "the source publishes no fork parent hash")
-
-	cat.Networks[0].ForkParentHash = strings.Repeat("a", 64)
-	out = DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
-	out.setConversion(cat, ECashMigrationStatus{})
-	require.Equal(t, "alphanet", out.ConvertFromID)
-
-	// A hash of the wrong length names no block either.
-	cat.Networks[0].ForkParentHash = "abcd"
-	out = DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
-	out.setConversion(cat, ECashMigrationStatus{})
-	require.Empty(t, out.ConvertFromID)
-}
-
-// A resume compares the saved paths as text. A link this check resolved would
-// offer a repair the resume then refuses.
-func TestMigrationForThisStoreComparesRawPaths(t *testing.T) {
-	o := migrationTestNode(t)
-	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
-	require.NoError(t, err)
-	state.Status.JobID = "job-1"
-
-	link := filepath.Join(t.TempDir(), "link")
-	require.NoError(t, os.Symlink(state.Status.DataDir, link))
-	state.Status.DataDir = link
-	require.NoError(t, o.saveMigration(state))
-
-	require.Empty(t, o.migrationForThisStore().JobID, "the resume compares the text, not the target")
+			if row.wantJob {
+				require.Equal(t, "job-1", o.migrationForThisStore().JobID)
+				return
+			}
+			require.Empty(t, o.migrationForThisStore().JobID)
+		})
+	}
 }
 
 // A conversion rewrites the magic of every record, so the two networks have to
@@ -557,4 +536,21 @@ func TestCheckECashConversionReadsBothMagics(t *testing.T) {
 
 	cat.Networks[1].NetworkMagic = ""
 	require.ErrorContains(t, CheckECashConversion(cat, "alphanet", "betanet"), "magic")
+}
+
+// The conversion rewinds to the block the source forks from. The published
+// document can leave that hash out, and a network this build does not know then
+// carries none, so an offer would end in a refusal.
+func TestCheckECashConversionNeedsTheForkParent(t *testing.T) {
+	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 101, NetworkMagic: "eca5a104"},
+		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 121, NetworkMagic: "eca5b104"},
+	}}
+	require.ErrorContains(t, CheckECashConversion(cat, "alphanet", "betanet"), "fork_parent_hash")
+
+	cat.Networks[0].ForkParentHash = "abcd"
+	require.ErrorContains(t, CheckECashConversion(cat, "alphanet", "betanet"), "fork_parent_hash")
+
+	cat.Networks[0].ForkParentHash = strings.Repeat("a", 64)
+	require.NoError(t, CheckECashConversion(cat, "alphanet", "betanet"))
 }
