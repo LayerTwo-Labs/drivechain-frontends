@@ -82,11 +82,13 @@ class _FakeOrchestrator implements OrchestratorRPC {
       switchReadsBlocks: reads,
       convertFromId: source,
       convertFromName: source,
+      convertToId: source.isEmpty ? '' : selected,
+      convertToName: source.isEmpty ? '' : selected,
     );
   }
 
   /// A directory a conversion left part way: one network at each end.
-  void sayMixed(String first, String last, String selected, {String convertFrom = ''}) {
+  void sayMixed(String first, String last, String selected, {String convertFrom = '', String? convertTo}) {
     response = GetDatadirNetworkResponse(
       mismatch: true,
       mixed: true,
@@ -101,6 +103,8 @@ class _FakeOrchestrator implements OrchestratorRPC {
       switchReadsBlocks: true,
       convertFromId: convertFrom,
       convertFromName: convertFrom,
+      convertToId: convertFrom.isEmpty ? '' : convertTo ?? selected,
+      convertToName: convertFrom.isEmpty ? '' : convertTo ?? selected,
     );
   }
 
@@ -479,6 +483,23 @@ void main() {
     expect(_button('Switch to betanet'), findsOneWidget);
     expect(_button('Convert the blocks to alphanet'), findsNothing);
     expect(find.textContaining('moves a chain forward only'), findsOneWidget);
+  });
+
+  // A job that stops during the conversion leaves the app on the source, while
+  // the oldest records already carry the target. The dialog offers the direction
+  // the job holds, not the reverse move the two ends suggest.
+  testWidgets('an interrupted job offers its own direction', (tester) async {
+    rpc.answers = true;
+    rpc.sayMixed('betanet', 'alphanet', 'alphanet', convertFrom: 'alphanet', convertTo: 'betanet');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    await openRepairs(tester, 'alphanet', 'alphanet', first: 'betanet');
+
+    expect(_button('Finish the conversion to betanet'), findsOneWidget);
+    expect(_button('Switch to alphanet'), findsNothing);
   });
 
   // A cancelled repair leaves the banner on screen, so the mismatch stays

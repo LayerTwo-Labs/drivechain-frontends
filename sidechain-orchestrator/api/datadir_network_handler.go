@@ -26,5 +26,7 @@ func (h *Handler) GetDatadirNetwork(ctx context.Context, _ *connect.Request[pb.G
 		Mixed:             out.Mixed,
 		ConvertFromId:     out.ConvertFromID,
 		ConvertFromName:   out.ConvertFromName,
+		ConvertToId:       out.ConvertToID,
+		ConvertToName:     out.ConvertToName,
 	}), nil
 }

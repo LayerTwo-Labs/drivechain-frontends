@@ -43,6 +43,7 @@ class DatadirNetworkDialog extends StatelessWidget {
   String get _selected => answer.selectedName.isNotEmpty ? answer.selectedName : answer.selectedId;
   String get _first => answer.firstName.isNotEmpty ? answer.firstName : answer.firstId;
   String get _source => answer.convertFromName.isNotEmpty ? answer.convertFromName : answer.convertFromId;
+  String get _target => answer.convertToName.isNotEmpty ? answer.convertToName : answer.convertToId;
 
   @override
   Widget build(BuildContext context) {
@@ -83,14 +84,14 @@ class DatadirNetworkDialog extends StatelessWidget {
           if (canConvert)
             _repair(
               button: SailButton(
-                label: answer.mixed ? 'Finish the conversion to $_selected' : 'Convert the blocks to $_selected',
+                label: answer.mixed ? 'Finish the conversion to $_target' : 'Convert the blocks to $_target',
                 onPressed: () async => Navigator.of(context).pop(DatadirNetworkRepair.convertBlocks),
               ),
               detail: answer.mixed
-                  ? 'Every $_source record takes the $_selected magic. The records that already moved stay '
+                  ? 'Every $_source record takes the $_target magic. The records that already moved stay '
                         'as they are, and chain data is never deleted.'
                   : 'The chain rewinds to the block both networks share, and every record takes the '
-                        '$_selected magic. Chain data is never deleted.',
+                        '$_target magic. Chain data is never deleted.',
             ),
           if (conf.hasPrivateBitcoinConf)
             SailText.secondary13('Your own bitcoin.conf names the network. Change it there, then restart.'),

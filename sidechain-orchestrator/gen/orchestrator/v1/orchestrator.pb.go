@@ -488,11 +488,13 @@ type GetDatadirNetworkResponse struct {
 	// True when the two ends of the directory carry different networks, so no
 	// node reads every block in it.
 	Mixed bool `protobuf:"varint,11,opt,name=mixed,proto3" json:"mixed,omitempty"`
-	// The network in this directory whose records a conversion has to move, empty
-	// when no single network can move. It is the end that is not the one the app
-	// runs.
+	// The conversion that leaves one network in this directory, empty when none
+	// can run. A saved migration names its own direction, which is not always the
+	// network the app runs: the job writes the pick after it moves the records.
 	ConvertFromId   string `protobuf:"bytes,12,opt,name=convert_from_id,json=convertFromId,proto3" json:"convert_from_id,omitempty"`
 	ConvertFromName string `protobuf:"bytes,13,opt,name=convert_from_name,json=convertFromName,proto3" json:"convert_from_name,omitempty"`
+	ConvertToId     string `protobuf:"bytes,14,opt,name=convert_to_id,json=convertToId,proto3" json:"convert_to_id,omitempty"`
+	ConvertToName   string `protobuf:"bytes,15,opt,name=convert_to_name,json=convertToName,proto3" json:"convert_to_name,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -614,6 +616,20 @@ func (x *GetDatadirNetworkResponse) GetConvertFromId() string {
 func (x *GetDatadirNetworkResponse) GetConvertFromName() string {
 	if x != nil {
 		return x.ConvertFromName
+	}
+	return ""
+}
+
+func (x *GetDatadirNetworkResponse) GetConvertToId() string {
+	if x != nil {
+		return x.ConvertToId
+	}
+	return ""
+}
+
+func (x *GetDatadirNetworkResponse) GetConvertToName() string {
+	if x != nil {
+		return x.ConvertToName
 	}
 	return ""
 }
@@ -5755,7 +5771,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\x1a\n" +
-	"\x18GetDatadirNetworkRequest\"\xce\x03\n" +
+	"\x18GetDatadirNetworkRequest\"\x9a\x04\n" +
 	"\x19GetDatadirNetworkResponse\x12\x14\n" +
 	"\x05magic\x18\x01 \x01(\tR\x05magic\x12\x1f\n" +
 	"\vdetected_id\x18\x02 \x01(\tR\n" +
@@ -5774,7 +5790,9 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	" \x01(\tR\tfirstName\x12\x14\n" +
 	"\x05mixed\x18\v \x01(\bR\x05mixed\x12&\n" +
 	"\x0fconvert_from_id\x18\f \x01(\tR\rconvertFromId\x12*\n" +
-	"\x11convert_from_name\x18\r \x01(\tR\x0fconvertFromName\"\xd5\a\n" +
+	"\x11convert_from_name\x18\r \x01(\tR\x0fconvertFromName\x12\"\n" +
+	"\rconvert_to_id\x18\x0e \x01(\tR\vconvertToId\x12&\n" +
+	"\x0fconvert_to_name\x18\x0f \x01(\tR\rconvertToName\"\xd5\a\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +

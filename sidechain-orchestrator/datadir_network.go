@@ -40,11 +40,12 @@ type DatadirNetwork struct {
 	// this same directory. Core keeps one directory per chain and one per
 	// datadir group, so a switch elsewhere leaves these blocks where they are.
 	SwitchReadsBlocks bool
-	// ConvertFromID names the network whose records a conversion has to move,
-	// empty when no single network can move. It is the end that is not the one
-	// the app runs.
+	// ConvertFromID and ConvertToID name the conversion that leaves one network
+	// in this directory, both empty when none can run.
 	ConvertFromID   string
 	ConvertFromName string
+	ConvertToID     string
+	ConvertToName   string
 }
 
 // ReadDatadirNetwork reads the network out of the block files and compares it
@@ -94,46 +95,69 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 	out.Mismatch = out.Mixed || out.DetectedID != "" && out.SelectedID != "" && out.DetectedID != out.SelectedID
 	if out.Mismatch {
 		out.SwitchReadsBlocks = o.sameBlocksDir(cat, out.DetectedID, network)
-		out.ConvertFromID, out.ConvertFromName = out.convertSource(cat)
+		// The saved job is read here, outside every lock this function takes.
+		job, err := o.ECashMigrationStatus()
+		if err != nil {
+			o.log.Warn().Err(err).Msg("could not read the saved ECX migration")
+		}
+		out.setConversion(cat, job)
 	}
 	return out, nil
 }
 
-// convertSource names the network a conversion can move onto the one the app
-// runs, empty when none can. The migration rewinds to the block the two networks
-// share and replays the target, so the target has to fork the mainchain after
-// the source, and both have to be eCash.
-func (n DatadirNetwork) convertSource(cat netcatalog.Catalog) (string, string) {
-	id, name := n.mixedSource()
-	if id == "" {
-		return "", ""
+// setConversion names the conversion that leaves one network in the directory,
+// and leaves both ends empty when none can run.
+//
+// A saved job names its own direction. The conversion writes the pick after it
+// moves the records, so an interrupted job leaves the app on the source while
+// the oldest records already carry the target: a guess from the ends alone reads
+// that as the reverse move, which no conversion can make.
+func (n *DatadirNetwork) setConversion(cat netcatalog.Catalog, job ECashMigrationStatus) {
+	from, to := n.mixedSource(), n.SelectedID
+	if job.JobID != "" && !job.Complete {
+		from, to = job.FromID, job.ToID
 	}
-	from, okFrom := cat.ByID(id)
-	to, okTo := cat.ByID(n.SelectedID)
+	if !conversionRuns(cat, from, to) {
+		return
+	}
+	n.ConvertFromID, n.ConvertFromName = from, catalogName(cat, from)
+	n.ConvertToID, n.ConvertToName = to, catalogName(cat, to)
+}
+
+// conversionRuns reports whether a migration can move one network onto another.
+// It rewinds to the block the two share and replays the target, so the target has
+// to fork the mainchain after the source, and both have to be eCash.
+func conversionRuns(cat netcatalog.Catalog, fromID, toID string) bool {
+	if fromID == "" || toID == "" || fromID == toID {
+		return false
+	}
+	from, okFrom := cat.ByID(fromID)
+	to, okTo := cat.ByID(toID)
 	if !okFrom || !okTo || from.Family != netcatalog.FamilyECash || to.Family != netcatalog.FamilyECash {
-		return "", ""
+		return false
 	}
-	if from.ForkHeight <= 1 || to.ForkHeight <= from.ForkHeight {
-		return "", ""
-	}
-	return id, name
+	return from.ForkHeight > 1 && to.ForkHeight > from.ForkHeight
 }
 
 // mixedSource names the end of the directory that is not the network the app
 // runs. A mixed directory holds two, and the one that matches the app stays as
 // it is: the conversion moves the other. Empty when both ends differ, because no
 // single conversion reaches the running network then.
-func (n DatadirNetwork) mixedSource() (string, string) {
-	if !n.Mixed {
-		return n.DetectedID, n.DetectedName
-	}
-	if n.FirstID == n.SelectedID {
-		return n.DetectedID, n.DetectedName
+func (n DatadirNetwork) mixedSource() string {
+	if !n.Mixed || n.FirstID == n.SelectedID {
+		return n.DetectedID
 	}
 	if n.DetectedID == n.SelectedID {
-		return n.FirstID, n.FirstName
+		return n.FirstID
 	}
-	return "", ""
+	return ""
+}
+
+func catalogName(cat netcatalog.Catalog, id string) string {
+	if entry, ok := cat.ByID(id); ok {
+		return displayName(entry)
+	}
+	return id
 }
 
 // nameMagic names the catalog network that writes a magic. Regtest carries no
