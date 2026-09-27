@@ -1553,6 +1553,17 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	// A bump of a deposit replaces the transaction the slot's treasury chain
+	// builds on. Hold the slot across the broadcast and the record move, or a
+	// deposit that starts between the two sees no treasury at all and builds a
+	// rival one.
+	if slot, isDeposit, slotErr := h.svc.SidechainDepositSlotOf(ctx, req.Msg.Txid); slotErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, slotErr)
+	} else if isDeposit {
+		unlock := h.lockDepositSlot(uint8(slot)) //nolint:gosec // a slot is 0-255
+		defer unlock()
+	}
+
 	result, err := h.engine.Backend().BumpFee(ctx, walletID, wallet.BumpFeeRequest{
 		TxID:        req.Msg.Txid,
 		NewFeeRate:  req.Msg.NewFeeRate,
@@ -1560,6 +1571,13 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 	})
 	if err != nil {
 		return nil, rpcError(err)
+	}
+
+	// A bumped deposit keeps its money on the way under a new txid. Without
+	// this the old record reads as a deposit the network lost.
+	if err := h.svc.RepointSidechainDeposit(ctx, req.Msg.Txid, result.NewTxID, result.Plan.NewFeeSats); err != nil {
+		h.svc.Log().Error().Err(err).Str("old_txid", req.Msg.Txid).Str("new_txid", result.NewTxID).
+			Msg("could not move the deposit record onto the replacement")
 	}
 
 	return connect.NewResponse(&pb.BumpFeeResponse{

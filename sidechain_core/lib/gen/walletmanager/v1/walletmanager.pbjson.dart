@@ -152,6 +152,7 @@ const SidechainDeposit$json = {
     {'1': 'created_at', '3': 6, '4': 1, '5': 9, '10': 'createdAt'},
     {'1': 'fee_sats', '3': 7, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'confirmations', '3': 8, '4': 1, '5': 5, '10': 'confirmations'},
+    {'1': 'dropped_at', '3': 9, '4': 1, '5': 9, '10': 'droppedAt'},
   ],
 };
 
@@ -161,7 +162,8 @@ final $typed_data.Uint8List sidechainDepositDescriptor = $convert.base64Decode(
     'gJUgh3YWxsZXRJZBISCgRzbG90GAMgASgNUgRzbG90EiAKC2Rlc3RpbmF0aW9uGAQgASgJUgtk'
     'ZXN0aW5hdGlvbhIfCgthbW91bnRfc2F0cxgFIAEoA1IKYW1vdW50U2F0cxIdCgpjcmVhdGVkX2'
     'F0GAYgASgJUgljcmVhdGVkQXQSGQoIZmVlX3NhdHMYByABKANSB2ZlZVNhdHMSJAoNY29uZmly'
-    'bWF0aW9ucxgIIAEoBVINY29uZmlybWF0aW9ucw==');
+    'bWF0aW9ucxgIIAEoBVINY29uZmlybWF0aW9ucxIdCgpkcm9wcGVkX2F0GAkgASgJUglkcm9wcG'
+    'VkQXQ=');
 
 @$core.Deprecated('Use listSidechainDepositsResponseDescriptor instead')
 const ListSidechainDepositsResponse$json = {

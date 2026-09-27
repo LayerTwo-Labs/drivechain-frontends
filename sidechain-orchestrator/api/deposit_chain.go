@@ -135,6 +135,10 @@ func (h *WalletHandler) firstTreasuryOf(
 		return nil, fmt.Errorf("read the deposits of slot %d: %w", slot, err)
 	}
 	script := orchestrator.M8TreasuryScript(slot)
+	// A stamp alone does not skip a deposit: the watch needs two agreeing passes
+	// and lifts a stamp a minute late, so a deposit can carry one while it still
+	// lives. The chain decides, and a transaction it has lost answers
+	// ErrTxNotFound below.
 	var bases []*treasuryOutpoint
 	for _, d := range deposits {
 		source := sourceFor(d.WalletID)
@@ -143,6 +147,11 @@ func (h *WalletHandler) firstTreasuryOf(
 		case errors.Is(err, wallet.ErrTxNotFound):
 			// The chain holds no such transaction, so it created no treasury
 			// output. A later record may still name a live one.
+			continue
+		case errors.Is(err, wallet.ErrTxUnreadable) && !d.DroppedAt.IsZero():
+			// Core without a txindex reads no transaction outside its mempool,
+			// so a stamped deposit stays unreadable for ever and would lock the
+			// slot. A stamp plus no mempool copy is proof of a dead deposit.
 			continue
 		case err != nil:
 			// The source could not answer. Treating that as "no treasury"
