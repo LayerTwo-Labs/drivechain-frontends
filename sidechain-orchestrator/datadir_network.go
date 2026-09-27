@@ -2,7 +2,6 @@ package orchestrator
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -96,48 +95,37 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 	out.Mismatch = out.Mixed || out.DetectedID != "" && out.SelectedID != "" && out.DetectedID != out.SelectedID
 	if out.Mismatch {
 		out.SwitchReadsBlocks = o.sameBlocksDir(cat, out.DetectedID, network)
-		// The saved job is read here, outside every lock this function takes.
-		job, jobBlocks := o.savedMigration()
-		if !o.migrationReadsThisStore(job, jobBlocks) {
-			job = ECashMigrationStatus{}
-		}
-		out.setConversion(cat, job)
+		out.setConversion(cat, o.migrationForThisStore())
 	}
 	return out, nil
 }
 
-// savedMigration returns the job on disk with the block store it belongs to. The
-// status carries the data directory, and a resume compares the block store as
-// well, so the caller reads both.
-func (o *Orchestrator) savedMigration() (ECashMigrationStatus, string) {
+// migrationForThisStore returns the saved job the files on disk belong to, and an
+// empty status when none does. A resume refuses another data directory and
+// another blocksdir alike, so a job the user left behind elsewhere says nothing
+// about these blocks.
+func (o *Orchestrator) migrationForThisStore() ECashMigrationStatus {
 	o.migrationMu.Lock()
-	defer o.migrationMu.Unlock()
 	state, err := o.readMigration()
+	o.migrationMu.Unlock()
 	if err != nil {
 		o.log.Warn().Err(err).Msg("could not read the saved ECX migration")
-		return ECashMigrationStatus{}, ""
+		return ECashMigrationStatus{}
 	}
-	if state == nil {
-		return ECashMigrationStatus{}, ""
-	}
-	return state.Status, state.BlocksDir
-}
-
-// migrationReadsThisStore reports whether a saved job belongs to the files the
-// app reads today. A resume refuses another data directory and another blocksdir
-// alike, so a job the user left behind says nothing about these blocks.
-func (o *Orchestrator) migrationReadsThisStore(job ECashMigrationStatus, jobBlocks string) bool {
-	if job.JobID == "" || job.DataDir == "" || jobBlocks == "" {
-		return false
+	if state == nil || state.Status.JobID == "" || state.Status.DataDir == "" || state.BlocksDir == "" {
+		return ECashMigrationStatus{}
 	}
 	dir, err := filepath.Abs(o.BitcoinConf.DataDir())
 	if err != nil {
 		o.log.Warn().Err(err).Msg("could not resolve the ECX data directory")
-		return false
+		return ECashMigrationStatus{}
 	}
 	// Raw paths, as the resume compares them: a link this check accepted would
 	// send the user into a refusal instead of a repair.
-	return dir == job.DataDir && o.coreBlocksDir(config.Network(o.CurrentNetwork())) == jobBlocks
+	if dir != state.Status.DataDir || o.coreBlocksDir(config.Network(o.CurrentNetwork())) != state.BlocksDir {
+		return ECashMigrationStatus{}
+	}
+	return state.Status
 }
 
 // setConversion names the conversion that leaves one network in the directory,
@@ -152,36 +140,11 @@ func (n *DatadirNetwork) setConversion(cat netcatalog.Catalog, job ECashMigratio
 	if job.JobID != "" && !job.Complete {
 		from, to = job.FromID, job.ToID
 	}
-	if !conversionRuns(cat, from, to) {
+	if CheckECashConversion(cat, from, to) != nil {
 		return
 	}
 	n.ConvertFromID, n.ConvertFromName = from, catalogName(cat, from)
 	n.ConvertToID, n.ConvertToName = to, catalogName(cat, to)
-}
-
-// conversionRuns reports whether a migration can move one network onto another.
-// It rewinds to the block the two share and replays the target, so the target has
-// to fork the mainchain after the source, and both have to be eCash.
-func conversionRuns(cat netcatalog.Catalog, fromID, toID string) bool {
-	if fromID == "" || toID == "" || fromID == toID {
-		return false
-	}
-	from, okFrom := cat.ByID(fromID)
-	to, okTo := cat.ByID(toID)
-	if !okFrom || !okTo || from.Family != netcatalog.FamilyECash || to.Family != netcatalog.FamilyECash {
-		return false
-	}
-	// The conversion rewinds to the block the source forks from, so a source that
-	// names no parent block has nothing to rewind to.
-	return from.ForkHeight > 1 && to.ForkHeight > from.ForkHeight && namesForkParent(from)
-}
-
-// namesForkParent reports whether an entry names the block its fork descends
-// from, as a 32-byte hash. A published document can leave it out, and a network
-// this build does not know then carries none at all.
-func namesForkParent(n netcatalog.Network) bool {
-	data, err := hex.DecodeString(n.ForkParentHash)
-	return err == nil && len(data) == 32
 }
 
 // mixedSource names the end of the directory that is not the network the app

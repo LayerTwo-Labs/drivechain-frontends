@@ -125,15 +125,17 @@ class _FakeOrchestrator implements OrchestratorRPC {
 /// the width while it loads — so a text finder counts it twice.
 Finder _button(String label) => find.byWidgetPredicate((widget) => widget is SailButton && widget.label == label);
 
-NotificationItem _notice(String detected, String selected, {String? first}) => NotificationItem(
-  id: 'datadir-network-1',
-  title: 't',
-  content: 'c',
-  dialogType: DialogType.error,
-  timestamp: DateTime.utc(2026, 9, 25),
-  style: NotificationStyle.modalThenBanner,
-  data: {'first': first ?? detected, 'detected': detected, 'selected': selected},
-);
+NotificationItem _noticeFor(GetDatadirNetworkResponse answer, BitcoinConfProvider conf) {
+  final text = datadirNoticeText(answer, conf);
+  return NotificationItem(
+    id: datadirNoticeId,
+    title: text.title,
+    content: text.content,
+    dialogType: DialogType.error,
+    timestamp: DateTime.utc(2026, 9, 25),
+    style: NotificationStyle.modalThenBanner,
+  );
+}
 
 void main() {
   late _FakeOrchestrator rpc;
@@ -247,7 +249,7 @@ void main() {
   // A conversion can move the oldest records first. The pair of networks then
   // stays as it was, and only the mixed state tells the two apart. An entry that
   // keeps its id keeps text that offers a switch the app can no longer make.
-  test('a store that turns mixed earns a new notice', () async {
+  test('a store that turns mixed replaces the notice', () async {
     final provider = GetIt.I.get<NotificationProvider>();
     final watcher = DatadirNetworkWatcher();
     addTearDown(watcher.dispose);
@@ -259,16 +261,58 @@ void main() {
 
     rpc.say('alphanet', 'betanet');
     expect(await watcher.check(), isTrue);
-    final uniform = provider.history.single.id;
+    await provider.markModalShown(datadirNoticeId);
+    await provider.markRead(datadirNoticeId);
 
     // The oldest records moved to betanet; the newest ones still say alphanet.
     rpc.sayMixed('betanet', 'alphanet', 'betanet', convertFrom: 'alphanet');
     expect(await watcher.check(), isTrue);
 
-    final mixed = provider.history.single;
-    expect(mixed.id, isNot(uniform), reason: 'the old entry holds text that no longer applies');
-    expect(mixed.title, 'The block files hold two networks');
+    expect(provider.history.single.title, 'The block files hold two networks');
     expect(provider.pendingModal, isNotNull, reason: 'the modal opens for the new state');
+  });
+
+  // The same warning holds, so a ✕ the user pressed keeps the banner down and
+  // the modal stays shut.
+  test('the same warning leaves the dismissed notice alone', () async {
+    final provider = GetIt.I.get<NotificationProvider>();
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+
+    expect(await watcher.check(), isTrue);
+    await provider.markModalShown(datadirNoticeId);
+    await provider.markRead(datadirNoticeId);
+
+    expect(await watcher.check(), isTrue);
+
+    expect(provider.activeBanner, isNull);
+    expect(provider.pendingModal, isNull);
+  });
+
+  // A private bitcoin.conf takes both repairs away. The stored text promised
+  // them, so the entry has to carry the new one.
+  test('a conf the user takes over replaces the notice', () async {
+    final provider = GetIt.I.get<NotificationProvider>();
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    expect(await watcher.check(), isTrue);
+    expect(provider.history.single.content, contains('Switch to alphanet'));
+    await provider.markRead(datadirNoticeId);
+
+    conf.hasPrivateBitcoinConf = true;
+    expect(await watcher.check(), isTrue);
+
+    expect(provider.history.single.content, 'But you are on betanet. Open this notice to read what to do.');
+    expect(provider.activeBanner, isNotNull, reason: 'the new text earns a fresh banner');
   });
 
   // The user's own file names the network, so the app makes neither repair. A
@@ -293,8 +337,8 @@ void main() {
   });
 
   // The user crosses a banner out while the mismatch stands. A move to another
-  // pair and back is a new state, so it warns again rather than stay quiet.
-  test('a dismissed pair that comes back warns again', () async {
+  // warning and back is a new state, so it warns again rather than stay quiet.
+  test('a dismissed warning that comes back warns again', () async {
     final provider = GetIt.I.get<NotificationProvider>();
     final watcher = DatadirNetworkWatcher();
     addTearDown(watcher.dispose);
@@ -302,24 +346,23 @@ void main() {
 
     rpc.say('betanet', 'alphanet');
     expect(await watcher.check(), isTrue);
-    final first = provider.history.single.id;
-    await provider.markRead(first);
+    await provider.markModalShown(datadirNoticeId);
+    await provider.markRead(datadirNoticeId);
 
     rpc.say('bitcoin', 'alphanet');
     expect(await watcher.check(), isTrue);
-    expect(provider.history.map((n) => n.id), isNot(contains(first)));
 
     rpc.say('betanet', 'alphanet');
     expect(await watcher.check(), isTrue);
 
-    expect(provider.history.single.id, isNot(first));
+    expect(provider.activeBanner, isNotNull);
     expect(provider.pendingModal, isNotNull, reason: 'the modal opens for the new warning');
   });
 
   /// Opens the repair dialog and hands back the slot the handler writes its
   /// answer into. The dialog is still open when this returns, so the answer
   /// lands once the test presses a button.
-  Future<List<bool?>> openRepairs(WidgetTester tester, String detected, String selected, {String? first}) async {
+  Future<List<bool?>> openRepairs(WidgetTester tester) async {
     final answer = <bool?>[null];
     await tester.pumpWidget(
       SailApp(
@@ -327,8 +370,7 @@ void main() {
         builder: (context) => MaterialApp(
           home: Builder(
             builder: (inner) => TextButton(
-              onPressed: () async =>
-                  answer[0] = await openDatadirNetworkSwitch(inner, _notice(detected, selected, first: first)),
+              onPressed: () async => answer[0] = await openDatadirNetworkSwitch(inner, _noticeFor(rpc.response, conf)),
               child: const Text('go'),
             ),
           ),
@@ -351,7 +393,7 @@ void main() {
     rpc.say('bitcoin', 'betanet', reads: false);
     conf.networks = [NetworkOption(id: 'bitcoin', displayName: 'Bitcoin', network: 'mainnet')];
 
-    final answer = await openRepairs(tester, 'bitcoin', 'betanet');
+    final answer = await openRepairs(tester);
 
     expect(find.textContaining('reads another data directory'), findsOneWidget);
     expect(_button('Switch to bitcoin'), findsNothing);
@@ -372,7 +414,7 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'alphanet', 'betanet');
+    await openRepairs(tester);
 
     expect(find.text('The blocks on disk are from alphanet'), findsWidgets);
     expect(find.text('But you are on betanet.'), findsWidgets);
@@ -390,11 +432,11 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'bitcoin', 'betanet');
+    await openRepairs(tester);
 
     expect(_button('Switch to bitcoin'), findsOneWidget);
     expect(_button('Convert the blocks to betanet'), findsNothing);
-    expect(find.textContaining('between two eCash networks only'), findsOneWidget);
+    expect(find.textContaining('cannot move these blocks to betanet'), findsOneWidget);
   });
 
   // The user's own file names the network, so neither repair is the app's to
@@ -408,7 +450,7 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'alphanet', 'betanet');
+    await openRepairs(tester);
 
     expect(find.textContaining('Your own bitcoin.conf names the network'), findsOneWidget);
     expect(_button('Switch to alphanet'), findsNothing);
@@ -426,7 +468,7 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'betanet', 'betanet', first: 'alphanet');
+    await openRepairs(tester);
 
     expect(find.text('The block files hold two networks'), findsWidgets);
     expect(find.text('But you are on betanet.'), findsWidgets);
@@ -446,11 +488,11 @@ void main() {
       NetworkOption(id: 'drynet4', displayName: 'Drynet4', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'betanet', 'drynet4', first: 'alphanet');
+    await openRepairs(tester);
 
     expect(_button('Finish the conversion to drynet4'), findsNothing);
     expect(_button('Switch to betanet'), findsNothing);
-    expect(find.textContaining('no conversion reaches it'), findsOneWidget);
+    expect(find.textContaining('cannot move these blocks to drynet4'), findsOneWidget);
   });
 
   // The notice text carries the state: a half converted store reads as one, not
@@ -478,11 +520,11 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'betanet', 'alphanet');
+    await openRepairs(tester);
 
     expect(_button('Switch to betanet'), findsOneWidget);
     expect(_button('Convert the blocks to alphanet'), findsNothing);
-    expect(find.textContaining('moves a chain forward only'), findsOneWidget);
+    expect(find.textContaining('cannot move these blocks to alphanet'), findsOneWidget);
   });
 
   // A job that stops during the conversion leaves the app on the source, while
@@ -496,7 +538,7 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'alphanet', 'alphanet', first: 'betanet');
+    await openRepairs(tester);
 
     expect(_button('Finish the conversion to betanet'), findsOneWidget);
     expect(_button('Switch to alphanet'), findsNothing);
@@ -512,7 +554,7 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    final answer = await openRepairs(tester, 'alphanet', 'betanet');
+    final answer = await openRepairs(tester);
     await tester.tap(_button('Close'));
     await tester.pumpAndSettle();
 

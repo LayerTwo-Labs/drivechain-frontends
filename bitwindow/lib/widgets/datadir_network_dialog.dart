@@ -11,6 +11,9 @@ enum DatadirNetworkRepair {
   convertBlocks,
 }
 
+/// A network's display name, or its id while the catalog names none.
+String networkLabel(String name, String id) => name.isNotEmpty ? name : id;
+
 /// True when the app can run the network the blocks belong to: this build lists
 /// it, and it reads this same directory. A directory that holds two networks
 /// offers no switch, because either network reads one half of it only.
@@ -22,28 +25,22 @@ bool canSwitchToDetected(BitcoinConfProvider conf, GetDatadirNetworkResponse ans
 }
 
 /// True when a conversion can move the blocks onto the network the app runs. The
-/// daemon names that network in convertFromId, or leaves it empty: it holds the
-/// fork heights the conversion rewinds to.
+/// daemon names both ends of it, or neither: the rules live with the catalog.
 bool canConvertBlocks(BitcoinConfProvider conf, GetDatadirNetworkResponse answer) =>
     !conf.hasPrivateBitcoinConf && answer.convertFromId.isNotEmpty;
 
-bool _isECash(BitcoinConfProvider conf, String id) {
-  final option = conf.networkOptions.where((option) => option.id == id).firstOrNull;
-  return option != null && conf.networkFromOption(option) == BitcoinNetwork.BITCOIN_NETWORK_ECASH;
-}
-
 /// States which network the blocks belong to, which one the app runs, and offers
-/// the two repairs.
+/// every repair that runs.
 class DatadirNetworkDialog extends StatelessWidget {
   const DatadirNetworkDialog({super.key, required this.answer});
 
   final GetDatadirNetworkResponse answer;
 
-  String get _detected => answer.detectedName.isNotEmpty ? answer.detectedName : answer.detectedId;
-  String get _selected => answer.selectedName.isNotEmpty ? answer.selectedName : answer.selectedId;
-  String get _first => answer.firstName.isNotEmpty ? answer.firstName : answer.firstId;
-  String get _source => answer.convertFromName.isNotEmpty ? answer.convertFromName : answer.convertFromId;
-  String get _target => answer.convertToName.isNotEmpty ? answer.convertToName : answer.convertToId;
+  String get _detected => networkLabel(answer.detectedName, answer.detectedId);
+  String get _selected => networkLabel(answer.selectedName, answer.selectedId);
+  String get _first => networkLabel(answer.firstName, answer.firstId);
+  String get _source => networkLabel(answer.convertFromName, answer.convertFromId);
+  String get _target => networkLabel(answer.convertToName, answer.convertToId);
 
   @override
   Widget build(BuildContext context) {
@@ -65,13 +62,7 @@ class DatadirNetworkDialog extends StatelessWidget {
         spacing: SailStyleValues.padding16,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary13(
-            answer.mixed
-                ? '$_first records and $_detected records sit in one directory. A conversion stopped part '
-                      'way, and no node reads every block until they all carry one magic.'
-                : 'A start on $_selected rolls this chain back below the fork the two networks share, which '
-                      'empties the balance until the branch comes back.',
-          ),
+          SailText.primary13(_cost),
           if (canSwitch)
             _repair(
               button: SailButton(
@@ -93,28 +84,32 @@ class DatadirNetworkDialog extends StatelessWidget {
                   : 'The chain rewinds to the block both networks share, and every record takes the '
                         '$_target magic. Chain data is never deleted.',
             ),
-          if (conf.hasPrivateBitcoinConf)
-            SailText.secondary13('Your own bitcoin.conf names the network. Change it there, then restart.'),
-          if (!conf.hasPrivateBitcoinConf && !answer.mixed && !answer.switchReadsBlocks)
-            SailText.secondary13('$_detected reads another data directory. Point it at this one, then switch.'),
-          if (!conf.hasPrivateBitcoinConf && !answer.mixed && answer.switchReadsBlocks && !canSwitch)
-            SailText.secondary13('This build lists no network named ${answer.detectedId}.'),
-          if (!conf.hasPrivateBitcoinConf && !canConvert) SailText.secondary13(_noConversionReason(conf)),
+          for (final note in _notes(conf, canSwitch: canSwitch, canConvert: canConvert)) SailText.secondary13(note),
         ],
       ),
     );
   }
 
-  /// Why the daemon named no conversion. It reports the fact, not the reason, so
-  /// the three states it covers read apart here.
-  String _noConversionReason(BitcoinConfProvider conf) {
-    if (answer.mixed && answer.firstId != answer.selectedId && answer.detectedId != answer.selectedId) {
-      return 'Neither half of this directory belongs to $_selected, so no conversion reaches it.';
+  /// What a start on the running network costs while the blocks stay as they are.
+  String get _cost => answer.mixed
+      ? '$_first records and $_detected records sit in one directory. A conversion stopped part way, and '
+            'no node reads every block until they all carry one magic.'
+      : 'A start on $_selected rolls this chain back below the fork the two networks share, which empties '
+            'the balance until the branch comes back.';
+
+  /// Why a repair is absent. One note per repair, and none while it is on offer.
+  List<String> _notes(BitcoinConfProvider conf, {required bool canSwitch, required bool canConvert}) {
+    if (conf.hasPrivateBitcoinConf) {
+      return ['Your own bitcoin.conf names the network. Change it there, then restart.'];
     }
-    if (!_isECash(conf, answer.detectedId) || !_isECash(conf, answer.selectedId)) {
-      return 'A conversion runs between two eCash networks only.';
-    }
-    return 'A conversion moves a chain forward only, and $_selected forks the mainchain before these blocks.';
+    return [
+      if (!canSwitch && !answer.mixed && !answer.switchReadsBlocks)
+        '$_detected reads another data directory. Point it at this one, then switch.',
+      if (!canSwitch && !answer.mixed && answer.switchReadsBlocks)
+        'This build lists no network named ${answer.detectedId}.',
+      if (!canConvert)
+        'A conversion moves one eCash network onto a later one, so it cannot move these blocks to $_selected.',
+    ];
   }
 
   Widget _repair({required Widget button, required String detail}) => SailColumn(
