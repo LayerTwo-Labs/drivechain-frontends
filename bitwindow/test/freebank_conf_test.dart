@@ -15,6 +15,16 @@ void main() {
       expect(readCoinbaseTag('server=1\n# coinbasetag=old\n'), isNull);
     });
 
+    test('drops an inline comment, as the node does', () {
+      expect(readCoinbaseTag('coinbasetag = alice # my pool\n'), 'alice');
+      expect(readCoinbaseTag('[main]\ncoinbasetag=bob#x\n'), 'bob');
+    });
+
+    test('takes whitespace around the delimiter, as Core does', () {
+      expect(readCoinbaseTag('coinbasetag = alice\n'), 'alice');
+      expect(readCoinbaseTag('[main]\ncoinbasetag\t=\tbob\n'), 'bob');
+    });
+
     test('takes the [main] name over the global one', () {
       expect(readCoinbaseTag('coinbasetag=global\n[main]\ncoinbasetag=active\n'), 'active');
       expect(readCoinbaseTag('[main]\ncoinbasetag=active\n'), 'active');
@@ -59,6 +69,13 @@ void main() {
       expect(
         setCoinbaseTag('server=1\n[regtest]\nrpcport=1\n', 'alice'),
         'server=1\ncoinbasetag=alice\n[regtest]\nrpcport=1\n',
+      );
+    });
+
+    test('changes a spaced entry in place, and adds no second line', () {
+      expect(
+        setCoinbaseTag('[main]\ncoinbasetag = alice\n', 'bob'),
+        '[main]\ncoinbasetag=bob\n',
       );
     });
 

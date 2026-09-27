@@ -12,6 +12,10 @@ const coinbaseTagMaxBytes = 64;
 /// belongs to that network only.
 final _sectionHeader = RegExp(r'^\[[^\]]*\]$');
 
+/// A `coinbasetag` line. Core takes whitespace around the `=`, so a valid entry
+/// reads `coinbasetag = alice` as well.
+final _tagLine = RegExp('^$coinbaseTagKey\\s*=\\s*(.*)\$');
+
 /// The network section freebankd reads. BitWindow starts the node with no chain
 /// flag, so it runs its default main chain.
 const activeNetworkSection = 'main';
@@ -29,10 +33,11 @@ String? readCoinbaseTag(String conf) {
       section = trimmed.substring(1, trimmed.length - 1);
       continue;
     }
-    if (!trimmed.startsWith('$coinbaseTagKey=')) {
+    final tag = _tagLine.firstMatch(trimmed);
+    if (tag == null) {
       continue;
     }
-    final value = trimmed.substring(coinbaseTagKey.length + 1).trim();
+    final value = _withoutComment(tag.group(1)!);
     if (section == null) {
       global = value;
     } else if (section == activeNetworkSection) {
@@ -40,6 +45,13 @@ String? readCoinbaseTag(String conf) {
     }
   }
   return active ?? global;
+}
+
+/// The value without an inline `# comment`, as the node's own conf parser reads
+/// it.
+String _withoutComment(String value) {
+  final hash = value.indexOf('#');
+  return (hash < 0 ? value : value.substring(0, hash)).trim();
 }
 
 /// Why freebankd would refuse this name, or null if it takes it. It mirrors the
@@ -88,7 +100,7 @@ String setCoinbaseTag(String conf, String name) {
         written = true;
       }
       section = trimmed.substring(1, trimmed.length - 1);
-    } else if (section == target && trimmed.startsWith('$coinbaseTagKey=')) {
+    } else if (section == target && _tagLine.hasMatch(trimmed)) {
       if (!written) {
         kept.add(line);
         written = true;
@@ -114,7 +126,7 @@ bool _tagInActiveSection(List<String> lines) {
     final trimmed = l.trim();
     if (_sectionHeader.hasMatch(trimmed)) {
       section = trimmed.substring(1, trimmed.length - 1);
-    } else if (section == activeNetworkSection && trimmed.startsWith('$coinbaseTagKey=')) {
+    } else if (section == activeNetworkSection && _tagLine.hasMatch(trimmed)) {
       return true;
     }
   }
