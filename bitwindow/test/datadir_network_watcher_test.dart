@@ -70,8 +70,13 @@ class _FakeOrchestrator implements OrchestratorRPC {
     final source = convertFrom ?? detected;
     response = GetDatadirNetworkResponse(
       mismatch: true,
+      magic: 'eca5a104',
       detectedId: detected,
       detectedName: detected,
+      // One network wrote every record, so both ends name it.
+      firstMagic: 'eca5a104',
+      firstId: detected,
+      firstName: detected,
       selectedId: selected,
       selectedName: selected,
       switchReadsBlocks: reads,
@@ -116,14 +121,14 @@ class _FakeOrchestrator implements OrchestratorRPC {
 /// the width while it loads — so a text finder counts it twice.
 Finder _button(String label) => find.byWidgetPredicate((widget) => widget is SailButton && widget.label == label);
 
-NotificationItem _notice(String detected, String selected) => NotificationItem(
+NotificationItem _notice(String detected, String selected, {String? first}) => NotificationItem(
   id: 'datadir-network-1',
   title: 't',
   content: 'c',
   dialogType: DialogType.error,
   timestamp: DateTime.utc(2026, 9, 25),
   style: NotificationStyle.modalThenBanner,
-  data: {'detected': detected, 'selected': selected},
+  data: {'first': first ?? detected, 'detected': detected, 'selected': selected},
 );
 
 void main() {
@@ -186,6 +191,10 @@ void main() {
     addTearDown(watcher.dispose);
     rpc.answers = true;
     rpc.say('alphanet', 'betanet');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
 
     expect(await watcher.check(), isTrue);
 
@@ -201,6 +210,10 @@ void main() {
     addTearDown(watcher.dispose);
     rpc.answers = true;
     rpc.say('betanet', 'alphanet', convertFrom: '');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
 
     expect(await watcher.check(), isTrue);
 
@@ -225,6 +238,54 @@ void main() {
 
     expect(await watcher.check(), isTrue);
     expect(GetIt.I.get<NotificationProvider>().history, hasLength(1));
+  });
+
+  // A conversion can move the oldest records first. The pair of networks then
+  // stays as it was, and only the mixed state tells the two apart. An entry that
+  // keeps its id keeps text that offers a switch the app can no longer make.
+  test('a store that turns mixed earns a new notice', () async {
+    final provider = GetIt.I.get<NotificationProvider>();
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    rpc.say('alphanet', 'betanet');
+    expect(await watcher.check(), isTrue);
+    final uniform = provider.history.single.id;
+
+    // The oldest records moved to betanet; the newest ones still say alphanet.
+    rpc.sayMixed('betanet', 'alphanet', 'betanet', convertFrom: 'alphanet');
+    expect(await watcher.check(), isTrue);
+
+    final mixed = provider.history.single;
+    expect(mixed.id, isNot(uniform), reason: 'the old entry holds text that no longer applies');
+    expect(mixed.title, 'The block files hold two networks');
+    expect(provider.pendingModal, isNotNull, reason: 'the modal opens for the new state');
+  });
+
+  // The user's own file names the network, so the app makes neither repair. A
+  // banner that offers one opens a dialog with no button.
+  test('a private conf offers no repair in the banner', () async {
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+    conf.hasPrivateBitcoinConf = true;
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    expect(await watcher.check(), isTrue);
+
+    expect(
+      GetIt.I.get<NotificationProvider>().history.single.content,
+      'But you are on betanet. Open this notice to read what to do.',
+    );
   });
 
   // The user crosses a banner out while the mismatch stands. A move to another
@@ -254,7 +315,7 @@ void main() {
   /// Opens the repair dialog and hands back the slot the handler writes its
   /// answer into. The dialog is still open when this returns, so the answer
   /// lands once the test presses a button.
-  Future<List<bool?>> openRepairs(WidgetTester tester, String detected, String selected) async {
+  Future<List<bool?>> openRepairs(WidgetTester tester, String detected, String selected, {String? first}) async {
     final answer = <bool?>[null];
     await tester.pumpWidget(
       SailApp(
@@ -262,7 +323,8 @@ void main() {
         builder: (context) => MaterialApp(
           home: Builder(
             builder: (inner) => TextButton(
-              onPressed: () async => answer[0] = await openDatadirNetworkSwitch(inner, _notice(detected, selected)),
+              onPressed: () async =>
+                  answer[0] = await openDatadirNetworkSwitch(inner, _notice(detected, selected, first: first)),
               child: const Text('go'),
             ),
           ),
@@ -360,7 +422,7 @@ void main() {
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'betanet', 'betanet');
+    await openRepairs(tester, 'betanet', 'betanet', first: 'alphanet');
 
     expect(find.text('The block files hold two networks'), findsWidgets);
     expect(find.text('But you are on betanet.'), findsWidgets);
@@ -380,7 +442,7 @@ void main() {
       NetworkOption(id: 'drynet4', displayName: 'Drynet4', network: 'ecash'),
     ];
 
-    await openRepairs(tester, 'betanet', 'drynet4');
+    await openRepairs(tester, 'betanet', 'drynet4', first: 'alphanet');
 
     expect(_button('Finish the conversion to drynet4'), findsNothing);
     expect(_button('Switch to betanet'), findsNothing);

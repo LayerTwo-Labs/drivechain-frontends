@@ -34,6 +34,7 @@ NotificationItem _notice(
   bool read = false,
   String detected = 'betanet',
   String selected = 'alphanet',
+  String? first,
 }) => NotificationItem(
   id: id,
   title: 't',
@@ -41,15 +42,26 @@ NotificationItem _notice(
   dialogType: DialogType.error,
   timestamp: DateTime.utc(2026, 9, 25),
   style: NotificationStyle.modalThenBanner,
-  data: {'detected': detected, 'selected': selected},
+  data: {'first': first ?? detected, 'detected': detected, 'selected': selected},
   read: read,
 );
+
+/// The state the watcher keys a notice on. A uniform directory carries one
+/// network at both ends.
+Map<String, String> _state(String detected, String selected, {String? first}) => {
+  'first': first ?? detected,
+  'detected': detected,
+  'selected': selected,
+};
 
 void main() {
   final now = DateTime.utc(2026, 9, 25, 6);
 
   test('an empty history takes a fresh id', () {
-    expect(datadirNoticeId(const [], 'betanet', 'alphanet', now), 'datadir-network-${now.microsecondsSinceEpoch}');
+    expect(
+      datadirNoticeId(const [], _state('betanet', 'alphanet'), now),
+      'datadir-network-${now.microsecondsSinceEpoch}',
+    );
   });
 
   // The watcher polls every half minute, and a second entry per poll would
@@ -57,7 +69,7 @@ void main() {
   test('an open notice keeps its id', () {
     final open = _notice('datadir-network-1');
 
-    expect(datadirNoticeId([open], 'betanet', 'alphanet', now), open.id);
+    expect(datadirNoticeId([open], _state('betanet', 'alphanet'), now), open.id);
   });
 
   // A resolved mismatch leaves no entry, so the same pair takes a new id and
@@ -66,7 +78,7 @@ void main() {
   test('a pair with no entry takes a new id', () {
     final other = _notice('datadir-network-1', detected: 'bitcoin', selected: 'betanet');
 
-    final id = datadirNoticeId([other], 'betanet', 'alphanet', now);
+    final id = datadirNoticeId([other], _state('betanet', 'alphanet'), now);
 
     expect(id, 'datadir-network-${now.microsecondsSinceEpoch}');
   });
@@ -77,8 +89,8 @@ void main() {
     final first = _notice('datadir-network-1', detected: 'foo-bar', selected: 'baz');
     final second = _notice('datadir-network-2', detected: 'foo', selected: 'bar-baz');
 
-    expect(datadirNoticeId([first, second], 'foo-bar', 'baz', now), 'datadir-network-1');
-    expect(datadirNoticeId([first, second], 'foo', 'bar-baz', now), 'datadir-network-2');
+    expect(datadirNoticeId([first, second], _state('foo-bar', 'baz'), now), 'datadir-network-1');
+    expect(datadirNoticeId([first, second], _state('foo', 'bar-baz'), now), 'datadir-network-2');
   });
 
   // Core reads the blocks from blocksdir, so the editor can put another
@@ -105,7 +117,7 @@ void main() {
   test('another pair takes its own id', () {
     final open = _notice('datadir-network-1');
 
-    expect(datadirNoticeId([open], 'bitcoin', 'betanet', now), isNot(open.id));
+    expect(datadirNoticeId([open], _state('bitcoin', 'betanet'), now), isNot(open.id));
   });
 
   // The ✕ dismisses the banner while the mismatch stands, and the entry stays,
@@ -113,6 +125,6 @@ void main() {
   test('a dismissed notice of the same pair keeps its id', () {
     final dismissed = _notice('datadir-network-7', read: true);
 
-    expect(datadirNoticeId([dismissed], 'betanet', 'alphanet', now), 'datadir-network-7');
+    expect(datadirNoticeId([dismissed], _state('betanet', 'alphanet'), now), 'datadir-network-7');
   });
 }
