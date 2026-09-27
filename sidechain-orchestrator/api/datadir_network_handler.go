@@ -20,5 +20,11 @@ func (h *Handler) GetDatadirNetwork(ctx context.Context, _ *connect.Request[pb.G
 		SelectedName:      out.SelectedName,
 		Mismatch:          out.Mismatch,
 		SwitchReadsBlocks: out.SwitchReadsBlocks,
+		FirstMagic:        out.FirstMagic,
+		FirstId:           out.FirstID,
+		FirstName:         out.FirstName,
+		Mixed:             out.Mixed,
+		ConvertFromId:     out.ConvertFromID,
+		ConvertFromName:   out.ConvertFromName,
 	}), nil
 }
