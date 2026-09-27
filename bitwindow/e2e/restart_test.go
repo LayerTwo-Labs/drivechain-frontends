@@ -64,7 +64,8 @@ func TestJustRunRestart(t *testing.T) {
 	second := startJustRunIn(t, dataDir, nil)
 	t.Cleanup(func() {
 		second.dumpDiagnostics(t)
-		second.stop(t, 15*time.Second)
+		// A cleanup does not test the graceful path; the shutdown test does.
+		second.stop(t, 3*time.Second)
 	})
 
 	waitUntil(t, bootDeadline, bootPoll, "second launch: bitwindowd did not start", func() bool {
