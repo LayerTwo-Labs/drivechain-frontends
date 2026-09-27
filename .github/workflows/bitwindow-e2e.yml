@@ -19,6 +19,8 @@ on:
 env:
   FLUTTER_VERSION: "3.44.8"
   GO_VERSION: "1.27"
+  # The app loads the host arch, so a second macOS arch is dead build work.
+  BITWINDOW_HOST_ARCH_ONLY: "1"
 
 jobs:
   e2e:
