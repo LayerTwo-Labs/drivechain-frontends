@@ -21,14 +21,11 @@ bool canSwitchToDetected(BitcoinConfProvider conf, GetDatadirNetworkResponse ans
   return conf.networkOptions.any((option) => option.id == answer.detectedId);
 }
 
-/// True when a conversion can move the blocks onto the network the app runs.
-/// Only two eCash networks share the history a conversion rewinds to.
-bool canConvertBlocks(BitcoinConfProvider conf, GetDatadirNetworkResponse answer) {
-  if (conf.hasPrivateBitcoinConf || answer.convertFromId.isEmpty) {
-    return false;
-  }
-  return _isECash(conf, answer.convertFromId) && _isECash(conf, answer.selectedId);
-}
+/// True when a conversion can move the blocks onto the network the app runs. The
+/// daemon names that network in convertFromId, or leaves it empty: it holds the
+/// fork heights the conversion rewinds to.
+bool canConvertBlocks(BitcoinConfProvider conf, GetDatadirNetworkResponse answer) =>
+    !conf.hasPrivateBitcoinConf && answer.convertFromId.isNotEmpty;
 
 bool _isECash(BitcoinConfProvider conf, String id) {
   final option = conf.networkOptions.where((option) => option.id == id).firstOrNull;
@@ -101,13 +98,22 @@ class DatadirNetworkDialog extends StatelessWidget {
             SailText.secondary13('$_detected reads another data directory. Point it at this one, then switch.'),
           if (!conf.hasPrivateBitcoinConf && !answer.mixed && answer.switchReadsBlocks && !canSwitch)
             SailText.secondary13('This build lists no network named ${answer.detectedId}.'),
-          if (!conf.hasPrivateBitcoinConf && !canConvert && answer.convertFromId.isEmpty)
-            SailText.secondary13('Neither half of this directory belongs to $_selected, so no conversion reaches it.'),
-          if (!conf.hasPrivateBitcoinConf && !canConvert && answer.convertFromId.isNotEmpty)
-            SailText.secondary13('A conversion runs between two eCash networks only.'),
+          if (!conf.hasPrivateBitcoinConf && !canConvert) SailText.secondary13(_noConversionReason(conf)),
         ],
       ),
     );
+  }
+
+  /// Why the daemon named no conversion. It reports the fact, not the reason, so
+  /// the three states it covers read apart here.
+  String _noConversionReason(BitcoinConfProvider conf) {
+    if (answer.mixed && answer.firstId != answer.selectedId && answer.detectedId != answer.selectedId) {
+      return 'Neither half of this directory belongs to $_selected, so no conversion reaches it.';
+    }
+    if (!_isECash(conf, answer.detectedId) || !_isECash(conf, answer.selectedId)) {
+      return 'A conversion runs between two eCash networks only.';
+    }
+    return 'A conversion moves a chain forward only, and $_selected forks the mainchain before these blocks.';
   }
 
   Widget _repair({required Widget button, required String detail}) => SailColumn(

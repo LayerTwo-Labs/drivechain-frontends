@@ -355,9 +355,9 @@ func TestReadDatadirNetworkNamesTheHalfThatHasToMove(t *testing.T) {
 	require.Equal(t, "alphanet", out.ConvertFromID)
 }
 
-// convertSource names the half that has to move. Neither end is the network the
+// mixedSource names the half that has to move. Neither end is the network the
 // app runs in the last row, so no single conversion reaches it.
-func TestDatadirNetworkConvertSource(t *testing.T) {
+func TestDatadirNetworkMixedSource(t *testing.T) {
 	for _, row := range []struct {
 		name   string
 		in     DatadirNetwork
@@ -385,10 +385,32 @@ func TestDatadirNetworkConvertSource(t *testing.T) {
 		},
 	} {
 		t.Run(row.name, func(t *testing.T) {
-			id, _ := row.in.convertSource()
+			id, _ := row.in.mixedSource()
 			require.Equal(t, row.wantID, id)
 		})
 	}
+}
+
+// A conversion rewinds to the block both networks share and replays the target,
+// so it moves a chain forward only. The offer stands for one direction.
+func TestDatadirNetworkConvertSourceRunsOneWay(t *testing.T) {
+	cat := netcatalog.Embedded()
+
+	forward := DatadirNetwork{DetectedID: "alphanet", DetectedName: "Alphanet", SelectedID: "betanet"}
+	id, name := forward.convertSource(cat)
+	require.Equal(t, "alphanet", id)
+	require.Equal(t, "Alphanet", name)
+
+	// Betanet blocks while the app runs alphanet: the backend refuses this
+	// direction, so the answer offers no conversion at all.
+	backward := DatadirNetwork{DetectedID: "betanet", DetectedName: "Betanet", SelectedID: "alphanet"}
+	id, _ = backward.convertSource(cat)
+	require.Empty(t, id)
+
+	// Bitcoin blocks share no fork height with an eCash network.
+	family := DatadirNetwork{DetectedID: "bitcoin", DetectedName: "Bitcoin", SelectedID: "betanet"}
+	id, _ = family.convertSource(cat)
+	require.Empty(t, id)
 }
 
 // One end carries a magic no network in hand names. The published catalog names
