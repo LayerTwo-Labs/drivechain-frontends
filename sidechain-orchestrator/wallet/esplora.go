@@ -300,6 +300,7 @@ func (c *EsploraClient) doWith(ctx context.Context, roots []string, maxAttempts 
 	client := c.httpClient()
 
 	var lastErr error
+	notFound := map[string]bool{}
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if err := c.pace(ctx); err != nil {
 			return nil, err
@@ -343,6 +344,22 @@ func (c *EsploraClient) doWith(ctx context.Context, roots []string, maxAttempts 
 		lastErr = &esploraStatusError{
 			code: resp.StatusCode,
 			msg:  fmt.Sprintf("esplora %s %s: %s: %s", method, path, resp.Status, strings.TrimSpace(string(body))),
+		}
+		// Each server keeps its own mempool, so one host answers 404 for a
+		// transaction another host holds. The caller reads a 404 as proof of
+		// absence, so ask every root before it gets one.
+		if resp.StatusCode == http.StatusNotFound {
+			notFound[base] = true
+			if len(notFound) >= len(roots) {
+				return nil, lastErr
+			}
+			if attempt+1 >= maxAttempts {
+				// A bare 404 reads as proof of absence, and these roots never
+				// agreed on one.
+				return nil, fmt.Errorf("esplora %s %s: %d of %d servers answered 404",
+					method, path, len(notFound), len(roots))
+			}
+			continue
 		}
 		if !retryableStatus(resp.StatusCode) {
 			return nil, lastErr
@@ -485,6 +502,10 @@ func (c *EsploraClient) Tx(ctx context.Context, txid string) (EsploraTx, error) 
 type EsploraOutspend struct {
 	Spent  bool          `json:"spent"`
 	Status EsploraStatus `json:"status"`
+	// Txid and Vin name the spender, mempool included. Esplora always sends
+	// them with a spent output.
+	Txid string `json:"txid"`
+	Vin  int    `json:"vin"`
 }
 
 func isNotFound(err error) bool {
@@ -512,6 +533,7 @@ func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (Es
 	spend := tx + "/outspend/" + strconv.Itoa(vout)
 	roots := c.BaseURLs()
 	notFound := 0
+	var unspent *EsploraOutspend
 	var lastErr error
 	for _, root := range roots {
 		body, err := c.getFrom(ctx, root, spend)
@@ -527,7 +549,8 @@ func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (Es
 		if err := json.Unmarshal(body, &o); err != nil {
 			return EsploraOutspend{}, false, fmt.Errorf("decode %s: %w", spend, err)
 		}
-		// A spend proves this server holds the transaction.
+		// A spend proves this server holds the transaction, and one server that
+		// saw it is proof for all of them.
 		if o.Spent {
 			return o, true, nil
 		}
@@ -541,7 +564,12 @@ func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (Es
 			lastErr = err
 			continue
 		}
-		return o, true, nil
+		// Keep looking. Unspent is only the absence of a spend on this server,
+		// and a later one may hold the spend in its own mempool.
+		unspent = &o
+	}
+	if unspent != nil {
+		return *unspent, true, nil
 	}
 	if notFound == len(roots) && notFound > 0 {
 		return EsploraOutspend{}, false, nil

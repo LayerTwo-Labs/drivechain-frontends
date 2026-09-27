@@ -59,6 +59,10 @@ func (f *detailsProvider) Broadcast(_ context.Context, _ string) (string, error)
 	return "", errors.New("broadcast is out of scope")
 }
 
+func (f *detailsProvider) SpenderOf(context.Context, string, int) (string, bool, error) {
+	return "", false, wallet.ErrSpenderUnknown
+}
+
 func (f *detailsProvider) TipHeight(context.Context) (int, error) {
 	return 0, errors.New("tip height is out of scope")
 }

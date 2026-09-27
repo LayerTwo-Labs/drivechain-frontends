@@ -2,8 +2,10 @@ package wallet
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -144,4 +146,49 @@ func TestEsploraOutspendFailsOverPastRateLimit(t *testing.T) {
 	require.True(t, found)
 	require.False(t, out.Spent)
 	require.Equal(t, int32(1), atomic.LoadInt32(&primaryCalls))
+}
+
+// The spender txid is the whole point of an outspend lookup: a deposit chain
+// walks from one treasury output to the transaction that took it.
+func TestOutspendCarriesTheSpender(t *testing.T) {
+	var body = `{"spent":true,"txid":"aabbcc","vin":2,"status":{"confirmed":false}}`
+	var out EsploraOutspend
+	require.NoError(t, json.Unmarshal([]byte(body), &out))
+
+	require.True(t, out.Spent)
+	require.Equal(t, "aabbcc", out.Txid)
+	require.Equal(t, 2, out.Vin)
+	require.False(t, out.Status.Confirmed)
+}
+
+// One server's silence about a spend is not proof. A deposit that reads
+// "unspent" from the first provider and builds on that output conflicts with
+// the spend a second provider already holds.
+func TestOutspendAsksEveryServerBeforeReportingUnspent(t *testing.T) {
+	quiet := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/outspend/") {
+			_, _ = w.Write([]byte(`{"spent":false}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"txid":"abc"}`))
+	}))
+	t.Cleanup(quiet.Close)
+
+	knows := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/outspend/") {
+			_, _ = w.Write([]byte(`{"spent":true,"txid":"spender","vin":0}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"txid":"abc"}`))
+	}))
+	t.Cleanup(knows.Close)
+
+	client := NewEsploraClient([]string{quiet.URL, knows.URL}, zerolog.Nop())
+
+	out, held, err := client.Outspend(context.Background(), "abc", 0)
+
+	require.NoError(t, err)
+	require.True(t, held)
+	require.True(t, out.Spent, "a spend on any server decides")
+	require.Equal(t, "spender", out.Txid)
 }
