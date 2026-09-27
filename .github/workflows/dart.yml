@@ -14,6 +14,8 @@ on:
       - "zside/**"
       - "bitwindow/**"
       - "coinshift/**"
+      - "*/windows/packaging/exe/make_config.yaml"
+      - "scripts/check-windows-app-ids.sh"
       - ".github/workflows/dart.yml"
 
 env:
@@ -21,6 +23,14 @@ env:
   DART_VERSION: "3.12.2"
 
 jobs:
+  windows-app-ids:
+    name: windows installer ids
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: ./scripts/check-windows-app-ids.sh
+
   format-lint-test:
     name: ${{ matrix.package }}
     runs-on: ubuntu-latest
