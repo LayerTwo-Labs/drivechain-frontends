@@ -1,6 +1,6 @@
 # The value of AppId uniquely identifies this application.
 # Do not use the same AppId value in installers for other applications.
-app_id: CB6BF331-C832-4005-970F-B880295700CA
+app_id: 8795EE87-0A17-4A80-9B08-9DC66B6E80C6
 publisher: LayerTwo Labs
 publisher_url: https://github.com/LayerTwo-Labs/drivechain-frontends
 display_name: BitAssets

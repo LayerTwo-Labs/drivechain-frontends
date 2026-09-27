@@ -1,6 +1,6 @@
 # The value of AppId uniquely identifies this application.
 # Do not use the same AppId value in installers for other applications.
-app_id: CB6BF331-C832-4005-970F-B880295700CA
+app_id: BC988268-8F95-4B35-9C16-C5670F8D6FE3
 publisher: LayerTwo Labs
 publisher_url: https://github.com/LayerTwo-Labs/drivechain-frontends
 display_name: Coinshift

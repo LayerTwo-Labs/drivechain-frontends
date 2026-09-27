@@ -1,6 +1,6 @@
 # The value of AppId uniquely identifies this application.
 # Do not use the same AppId value in installers for other applications.
-app_id: CB6BF331-C832-4005-970F-B880295700CA
+app_id: 8357DDDC-8A7F-4079-BAAC-EBE48B6B0653
 publisher: LayerTwo Labs
 publisher_url: https://github.com/LayerTwo-Labs/drivechain-frontends
 display_name: Truthcoin
