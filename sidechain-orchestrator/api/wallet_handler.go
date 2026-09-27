@@ -64,6 +64,9 @@ type WalletHandler struct {
 	// install spends one shared treasury output per slot, so two overlapping
 	// calls would both pass the pending check and then conflict on the wire.
 	depositSlotLocks sync.Map
+	// depositSlotBlind marks a slot whose deposit never reached the store, so
+	// our own records no longer describe its treasury chain.
+	depositSlotBlind sync.Map
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {
