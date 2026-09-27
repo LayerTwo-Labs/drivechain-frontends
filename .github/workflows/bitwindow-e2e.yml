@@ -76,6 +76,22 @@ jobs:
       - name: Install just
         uses: extractions/setup-just@v4
 
+      - name: Cache the hwi-daemon binary
+        id: hwi-daemon-cache
+        uses: actions/cache@v5
+        with:
+          path: bitwindow/assets/bin/hwi-daemon*
+          key:
+            hwi-daemon-${{ runner.os }}-${{ runner.arch }}-${{
+            hashFiles('sidechain-orchestrator/hwi-daemon/**') }}
+
+      # download-binaries.sh rebuilds a binary older than its sources, and the
+      # checkout stamps the sources with the current time.
+      - name: Mark the cached hwi-daemon current
+        if: steps.hwi-daemon-cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: touch bitwindow/assets/bin/hwi-daemon*
+
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
