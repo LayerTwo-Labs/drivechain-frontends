@@ -116,15 +116,22 @@ class DatadirNetworkWatcher {
     }
     await _retireOtherPairs(provider, answer);
 
-    final text = datadirNoticeText(answer);
+    final conf = _conf ?? (GetIt.I.isRegistered<BitcoinConfProvider>() ? GetIt.I.get<BitcoinConfProvider>() : null);
+    // The banner and the dialog read one pair of rules, so the text never offers
+    // a repair the dialog then withholds.
+    final text = datadirNoticeText(
+      answer,
+      canSwitch: conf != null && canSwitchToDetected(conf, answer),
+      canConvert: conf != null && canConvertBlocks(conf, answer),
+    );
     provider.add(
-      id: datadirNoticeId(provider.history, answer.detectedId, answer.selectedId, DateTime.now()),
+      id: datadirNoticeId(provider.history, datadirNoticeState(answer), DateTime.now()),
       title: text.title,
       content: text.content,
       dialogType: DialogType.error,
       style: NotificationStyle.modalThenBanner,
       action: datadirNetworkAction,
-      data: {'detected': answer.detectedId, 'selected': answer.selectedId},
+      data: datadirNoticeState(answer),
     );
     return true;
   }
@@ -133,14 +140,9 @@ class DatadirNetworkWatcher {
   /// from one mismatch to another and back, so a pair this run retires leaves
   /// no entry, and its return earns a new warning.
   Future<void> _retireOtherPairs(NotificationProvider provider, GetDatadirNetworkResponse answer) async {
+    final state = datadirNoticeState(answer);
     for (final stale
-        in provider.history
-            .where(
-              (n) =>
-                  n.id.startsWith(_noticeIdPrefix) &&
-                  !(n.data['detected'] == answer.detectedId && n.data['selected'] == answer.selectedId),
-            )
-            .toList()) {
+        in provider.history.where((n) => n.id.startsWith(_noticeIdPrefix) && !_sameState(n.data, state)).toList()) {
       await provider.forget(stale.id);
     }
   }
@@ -167,14 +169,15 @@ String _name(String displayName, String id) => displayName.isNotEmpty ? displayN
 
 /// The notice text for one answer. It names the network the app runs either way,
 /// because the network on disk alone says nothing about the repair.
-({String title, String content}) datadirNoticeText(GetDatadirNetworkResponse answer) {
+({String title, String content}) datadirNoticeText(
+  GetDatadirNetworkResponse answer, {
+  required bool canSwitch,
+  required bool canConvert,
+}) {
   final detected = _name(answer.detectedName, answer.detectedId);
   final selected = _name(answer.selectedName, answer.selectedId);
-  final canConvert = answer.convertFromId.isNotEmpty;
   if (!answer.mixed) {
-    // A directory another network reads keeps these blocks where they are, so a
-    // switch is no repair for it.
-    final fix = switch ((answer.switchReadsBlocks, canConvert)) {
+    final fix = switch ((canSwitch, canConvert)) {
       (true, true) => 'Switch to $detected, or convert the blocks to $selected.',
       (true, false) => 'Switch to $detected.',
       (false, true) => 'Convert the blocks to $selected.',
@@ -200,14 +203,22 @@ String _name(String displayName, String id) => displayName.isNotEmpty ? displayN
 ///
 /// The pair lives in the item data, never in the id: a catalog id is free text,
 /// and two ids joined by a mark can read as another pair.
-String datadirNoticeId(Iterable<NotificationItem> history, String detectedId, String selectedId, DateTime now) {
-  final open = history
-      .where(
-        (n) => n.id.startsWith(_noticeIdPrefix) && n.data['detected'] == detectedId && n.data['selected'] == selectedId,
-      )
-      .firstOrNull;
+String datadirNoticeId(Iterable<NotificationItem> history, Map<String, String> state, DateTime now) {
+  final open = history.where((n) => n.id.startsWith(_noticeIdPrefix) && _sameState(n.data, state)).firstOrNull;
   return open?.id ?? '$_noticeIdPrefix${now.microsecondsSinceEpoch}';
 }
+
+/// What the notice describes. The oldest end rides along with the newest one: a
+/// conversion that moves the oldest records first leaves the same pair of
+/// networks, and the entry would otherwise keep text that no longer holds.
+Map<String, String> datadirNoticeState(GetDatadirNetworkResponse answer) => {
+  'first': answer.firstId,
+  'detected': answer.detectedId,
+  'selected': answer.selectedId,
+};
+
+bool _sameState(Map<String, String> data, Map<String, String> state) =>
+    state.keys.every((key) => data[key] == state[key]);
 
 /// Offers the two repairs for a datadir on another network, and runs the one the
 /// user picks. False leaves the banner on screen, so a cancelled or failed
@@ -229,7 +240,7 @@ Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem not
   }
   // The networks can move while the user reads the text, and a repair must go
   // where the text says, never where a later answer points.
-  if (notice.data['detected'] != answer.detectedId || notice.data['selected'] != answer.selectedId) {
+  if (!_sameState(notice.data, datadirNoticeState(answer))) {
     if (context.mounted) {
       showSailToast(context, 'The networks moved. Read the new notice.', variant: SailToastVariant.info);
     }
