@@ -234,17 +234,22 @@ func validMigrationID(id string) bool {
 	return true
 }
 
-// blockFileECashID names the eCash network the block files carry, empty when
-// nothing on disk says. The record names the network the app runs, and a switch
-// that stopped part way leaves the two apart: those blocks are the ones a
-// migration repairs, so the source it names has to be allowed.
-func (o *Orchestrator) blockFileECashID(ctx context.Context) string {
+// blockFilesHoldECashID reports whether the block files carry records of a
+// network. The record names the network the app runs, and a switch that stopped
+// part way leaves the two apart: those blocks are the ones a migration repairs,
+// so the source they carry has to be allowed. A conversion that stopped part way
+// leaves one network at each end, and the half that still has to move is the
+// source, so both ends count.
+func (o *Orchestrator) blockFilesHoldECashID(ctx context.Context, id string) bool {
+	if id == "" {
+		return false
+	}
 	found, err := o.ReadDatadirNetwork(ctx)
 	if err != nil {
 		o.log.Warn().Err(err).Msg("could not read the network of the block files")
-		return ""
+		return false
 	}
-	return found.DetectedID
+	return id == found.DetectedID || id == found.FirstID
 }
 
 func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*ecashMigration, error) {
@@ -271,7 +276,7 @@ func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*
 	if recorded := o.Settings.ECashChainID(); recorded != "" {
 		id = recorded
 	}
-	if fromID != id && fromID != o.blockFileECashID(ctx) {
+	if fromID != id && !o.blockFilesHoldECashID(ctx, fromID) {
 		return nil, fmt.Errorf("source %s does not match the active ECX network %s", fromID, id)
 	}
 	if !ok {

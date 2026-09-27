@@ -218,3 +218,25 @@ func TestECashMigrationTakesTheSourceFromTheBlockFiles(t *testing.T) {
 	require.Equal(t, "eca5a104", state.Status.SourceMagic)
 	require.Equal(t, "eca5a105", state.Status.TargetMagic)
 }
+
+// A conversion that stopped part way leaves one network at each end. The half
+// that still has to move is the source, so the guard reads both ends.
+func TestECashMigrationTakesTheSourceFromAHalfConvertedStore(t *testing.T) {
+	o := migrationTestNode(t)
+	o.ecashID = "betanet"
+	require.NoError(t, o.recordECashChain("betanet"))
+	_, err := o.Settings.SetECashNetworkID("betanet")
+	require.NoError(t, err)
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", "eca5a104")
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", "eca5a105")
+
+	out, err := o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.True(t, out.Mixed)
+	require.Equal(t, "betanet", out.SelectedID)
+	require.Equal(t, "alphanet", out.ConvertFromID)
+
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
+	require.NoError(t, err)
+	require.Equal(t, "eca5a104", state.Status.SourceMagic)
+}

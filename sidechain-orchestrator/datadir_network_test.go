@@ -303,3 +303,112 @@ func TestReadDatadirNetworkAcceptsAnAbsentBlocksDir(t *testing.T) {
 	require.False(t, out.Mismatch)
 	require.Empty(t, out.DetectedID)
 }
+
+// A conversion that stopped part way leaves one network at each end of the
+// directory. No node reads every block then, so it warns even when the newest
+// record agrees with the app.
+func TestReadDatadirNetworkNamesAHalfConvertedStore(t *testing.T) {
+	cat := netcatalog.Embedded()
+	alphanet, ok := cat.ByID("alphanet")
+	require.True(t, ok)
+	betanet, ok := cat.ByID("betanet")
+	require.True(t, ok)
+
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+	o.ecashID = "betanet"
+	o.Catalog = cat
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", alphanet.NetworkMagic)
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", betanet.NetworkMagic)
+
+	out, err := o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.True(t, out.Mixed)
+	require.True(t, out.Mismatch, "the app reads one half of the blocks only")
+	require.Equal(t, "alphanet", out.FirstID)
+	require.Equal(t, "betanet", out.DetectedID)
+	require.Equal(t, "betanet", out.SelectedID)
+	require.Equal(t, "alphanet", out.ConvertFromID, "the records that still have to move")
+}
+
+// The conversion ran the other way: the newest records carry the old network and
+// the oldest ones already moved. The source is still the end that disagrees.
+func TestReadDatadirNetworkNamesTheHalfThatHasToMove(t *testing.T) {
+	cat := netcatalog.Embedded()
+	alphanet, ok := cat.ByID("alphanet")
+	require.True(t, ok)
+	betanet, ok := cat.ByID("betanet")
+	require.True(t, ok)
+
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+	o.ecashID = "betanet"
+	o.Catalog = cat
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", betanet.NetworkMagic)
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", alphanet.NetworkMagic)
+
+	out, err := o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.True(t, out.Mixed)
+	require.Equal(t, "alphanet", out.ConvertFromID)
+}
+
+// convertSource names the half that has to move. Neither end is the network the
+// app runs in the last row, so no single conversion reaches it.
+func TestDatadirNetworkConvertSource(t *testing.T) {
+	for _, row := range []struct {
+		name   string
+		in     DatadirNetwork
+		wantID string
+	}{
+		{
+			name:   "one network, another than the app",
+			in:     DatadirNetwork{DetectedID: "alphanet", DetectedName: "Alphanet", SelectedID: "betanet"},
+			wantID: "alphanet",
+		},
+		{
+			name:   "the newest records already moved",
+			in:     DatadirNetwork{Mixed: true, FirstID: "alphanet", DetectedID: "betanet", SelectedID: "betanet"},
+			wantID: "alphanet",
+		},
+		{
+			name:   "the oldest records already moved",
+			in:     DatadirNetwork{Mixed: true, FirstID: "betanet", DetectedID: "alphanet", SelectedID: "betanet"},
+			wantID: "alphanet",
+		},
+		{
+			name:   "both ends differ from the app",
+			in:     DatadirNetwork{Mixed: true, FirstID: "alphanet", DetectedID: "betanet", SelectedID: "drynet4"},
+			wantID: "",
+		},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			id, _ := row.in.convertSource()
+			require.Equal(t, row.wantID, id)
+		})
+	}
+}
+
+// One end carries a magic no network in hand names. The published catalog names
+// the networks that came after this build, so the caller asks again rather than
+// warn about a directory it cannot describe.
+func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
+	cat := netcatalog.Embedded()
+	betanet, ok := cat.ByID("betanet")
+	require.True(t, ok)
+
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+	o.ecashID = "betanet"
+	o.Catalog = cat
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", "eca5ff04")
+	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", betanet.NetworkMagic)
+
+	out, err := o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.False(t, out.Mixed)
+	require.False(t, out.Mismatch)
+}
