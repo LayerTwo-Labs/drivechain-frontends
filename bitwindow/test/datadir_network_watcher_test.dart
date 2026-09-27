@@ -364,6 +364,27 @@ void main() {
     expect(provider.history, isEmpty);
   });
 
+  // Two mixed directories can offer the same repair. The text names both halves,
+  // so the second state replaces the first rather than pass as the same one.
+  test('another pair of halves replaces the notice', () async {
+    final provider = GetIt.I.get<NotificationProvider>();
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+
+    rpc.sayMixed('alphanet', 'betanet', 'betanet', convertFrom: 'alphanet');
+    expect(await watcher.check(), isTrue);
+    await provider.markModalShown(datadirNoticeId);
+    await provider.markRead(datadirNoticeId);
+    final before = provider.history.single.content;
+
+    rpc.sayMixed('drynet4', 'betanet', 'betanet', convertFrom: 'drynet4');
+    expect(await watcher.check(), isTrue);
+
+    expect(provider.history.single.content, isNot(before));
+    expect(provider.pendingModal, isNotNull, reason: 'the modal opens for the new state');
+  });
+
   // The user crosses a banner out while the mismatch stands. A move to another
   // warning and back is a new state, so it warns again rather than stay quiet.
   test('a dismissed warning that comes back warns again', () async {
@@ -535,7 +556,7 @@ void main() {
 
     final notice = GetIt.I.get<NotificationProvider>().history.single;
     expect(notice.title, 'The block files hold two networks');
-    expect(notice.content, 'But you are on betanet. A conversion stopped part way. Finish it to betanet.');
+    expect(notice.content, 'alphanet and betanet records sit in one directory. Finish the conversion to betanet.');
   });
 
   // A conversion moves a chain forward only. Betanet blocks while the app runs
