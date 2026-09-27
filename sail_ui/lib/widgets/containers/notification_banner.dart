@@ -15,7 +15,11 @@ typedef NotificationActionHandler = Future<bool> Function(BuildContext context, 
 class NotificationActions {
   final Map<String, NotificationActionHandler> _handlers;
 
-  const NotificationActions(this._handlers);
+  /// Action keys whose handler opens its own dialog. The generic card then stays
+  /// shut: two dialogs in a row for one message read as a fault.
+  final Set<String> ownDialogs;
+
+  const NotificationActions(this._handlers, {this.ownDialogs = const {}});
 
   NotificationActionHandler? operator [](String key) => _handlers[key];
 }
@@ -75,6 +79,10 @@ class _NotificationBannerState extends State<NotificationBanner> {
         if (!mounted) {
           return;
         }
+        if (_ownsDialog(item.action)) {
+          await _runAction(context, provider, item);
+          continue;
+        }
         final confirmed = await showThemedDialog<bool>(
           context: context,
           builder: (context) => SailAlertCard(
@@ -91,6 +99,11 @@ class _NotificationBannerState extends State<NotificationBanner> {
       _modalOpen = false;
     }
   }
+
+  bool _ownsDialog(String action) =>
+      action.isNotEmpty &&
+      GetIt.I.isRegistered<NotificationActions>() &&
+      GetIt.I.get<NotificationActions>().ownDialogs.contains(action);
 
   /// Runs the item's action. One at a time: the modal closes before the action
   /// ends, and a tap on the banner behind it would start a second one.

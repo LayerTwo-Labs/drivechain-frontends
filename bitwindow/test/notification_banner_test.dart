@@ -155,6 +155,34 @@ void main() {
       expect(find.text('drynet3 is out'), findsNothing);
     });
 
+    // A handler that opens its own dialog carries the whole message. A generic
+    // card in front of it reads as two dialogs for one warning.
+    testWidgets('an own-dialog action opens no generic card', (tester) async {
+      final p = await freshProvider();
+      var ran = false;
+      if (GetIt.I.isRegistered<NotificationActions>()) {
+        GetIt.I.unregister<NotificationActions>();
+      }
+      GetIt.I.registerSingleton<NotificationActions>(
+        NotificationActions({'act': (_, _) async => ran = true}, ownDialogs: const {'act'}),
+      );
+      p.add(
+        id: 'first',
+        title: 'The blocks on disk are from alphanet',
+        content: 'But you are on betanet.',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+        action: 'act',
+      );
+
+      await tester.pumpSailPage(const Column(children: [NotificationBanner()]));
+      await tester.pumpAndSettle();
+
+      expect(ran, isTrue);
+      expect(find.text('Confirm'), findsNothing);
+      expect(p.activeBanner, isNull, reason: 'the handler reported the repair done');
+    });
+
     testWidgets('the ✕ marks it read without running the action', (tester) async {
       final p = await freshProvider(tester: tester);
       var ran = false;
