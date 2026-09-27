@@ -94,16 +94,36 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 	out.Mismatch = out.Mixed || out.DetectedID != "" && out.SelectedID != "" && out.DetectedID != out.SelectedID
 	if out.Mismatch {
 		out.SwitchReadsBlocks = o.sameBlocksDir(cat, out.DetectedID, network)
-		out.ConvertFromID, out.ConvertFromName = out.convertSource()
+		out.ConvertFromID, out.ConvertFromName = out.convertSource(cat)
 	}
 	return out, nil
 }
 
-// convertSource names the end of the directory that is not the network the app
+// convertSource names the network a conversion can move onto the one the app
+// runs, empty when none can. The migration rewinds to the block the two networks
+// share and replays the target, so the target has to fork the mainchain after
+// the source, and both have to be eCash.
+func (n DatadirNetwork) convertSource(cat netcatalog.Catalog) (string, string) {
+	id, name := n.mixedSource()
+	if id == "" {
+		return "", ""
+	}
+	from, okFrom := cat.ByID(id)
+	to, okTo := cat.ByID(n.SelectedID)
+	if !okFrom || !okTo || from.Family != netcatalog.FamilyECash || to.Family != netcatalog.FamilyECash {
+		return "", ""
+	}
+	if from.ForkHeight <= 1 || to.ForkHeight <= from.ForkHeight {
+		return "", ""
+	}
+	return id, name
+}
+
+// mixedSource names the end of the directory that is not the network the app
 // runs. A mixed directory holds two, and the one that matches the app stays as
 // it is: the conversion moves the other. Empty when both ends differ, because no
 // single conversion reaches the running network then.
-func (n DatadirNetwork) convertSource() (string, string) {
+func (n DatadirNetwork) mixedSource() (string, string) {
 	if !n.Mixed {
 		return n.DetectedID, n.DetectedName
 	}

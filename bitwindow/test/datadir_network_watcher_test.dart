@@ -50,7 +50,10 @@ class _FakeOrchestrator implements OrchestratorRPC {
     response = GetDatadirNetworkResponse(mismatch: false, magic: magic);
   }
 
-  void say(String detected, String selected, {bool reads = true}) {
+  /// convertFrom defaults to the detected network. The daemon leaves it empty
+  /// when no conversion reaches the running network, and a test says so too.
+  void say(String detected, String selected, {bool reads = true, String? convertFrom}) {
+    final source = convertFrom ?? detected;
     response = GetDatadirNetworkResponse(
       mismatch: true,
       detectedId: detected,
@@ -58,8 +61,8 @@ class _FakeOrchestrator implements OrchestratorRPC {
       selectedId: selected,
       selectedName: selected,
       switchReadsBlocks: reads,
-      convertFromId: detected,
-      convertFromName: detected,
+      convertFromId: source,
+      convertFromName: source,
     );
   }
 
@@ -177,6 +180,22 @@ void main() {
     expect(notice.content, 'But you are on betanet. Switch to alphanet, or convert the blocks to betanet.');
   });
 
+  // The banner names the repairs the answer allows. A conversion the daemon
+  // refuses must not appear in the text either.
+  test('the notice offers no conversion the daemon refuses', () async {
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.say('betanet', 'alphanet', convertFrom: '');
+
+    expect(await watcher.check(), isTrue);
+
+    expect(
+      GetIt.I.get<NotificationProvider>().history.single.content,
+      'But you are on alphanet. Switch to betanet.',
+    );
+  });
+
   // The user crosses a banner out while the mismatch stands. A move to another
   // pair and back is a new state, so it warns again rather than stay quiet.
   test('a dismissed pair that comes back warns again', () async {
@@ -268,7 +287,7 @@ void main() {
   // another family parts from eCash, so there is no block to rewind to.
   testWidgets('blocks from another family offer no conversion', (tester) async {
     rpc.answers = true;
-    rpc.say('bitcoin', 'betanet');
+    rpc.say('bitcoin', 'betanet', convertFrom: '');
     conf.networks = [
       NetworkOption(id: 'bitcoin', displayName: 'Bitcoin', network: 'mainnet'),
       NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
@@ -350,6 +369,23 @@ void main() {
     final notice = GetIt.I.get<NotificationProvider>().history.single;
     expect(notice.title, 'The block files hold two networks');
     expect(notice.content, 'But you are on betanet. A conversion stopped part way. Finish it to betanet.');
+  });
+
+  // A conversion moves a chain forward only. Betanet blocks while the app runs
+  // alphanet therefore offer no conversion, and the daemon says so.
+  testWidgets('a backward conversion offers no button', (tester) async {
+    rpc.answers = true;
+    rpc.say('betanet', 'alphanet', convertFrom: '');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    await openRepairs(tester, 'betanet', 'alphanet');
+
+    expect(_button('Switch to betanet'), findsOneWidget);
+    expect(_button('Convert the blocks to alphanet'), findsNothing);
+    expect(find.textContaining('moves a chain forward only'), findsOneWidget);
   });
 
   // A cancelled repair leaves the banner on screen, so the mismatch stays

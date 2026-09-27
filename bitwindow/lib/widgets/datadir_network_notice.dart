@@ -168,22 +168,26 @@ String _name(String displayName, String id) => displayName.isNotEmpty ? displayN
 ({String title, String content}) datadirNoticeText(GetDatadirNetworkResponse answer) {
   final detected = _name(answer.detectedName, answer.detectedId);
   final selected = _name(answer.selectedName, answer.selectedId);
+  final canConvert = answer.convertFromId.isNotEmpty;
   if (!answer.mixed) {
-    return (
-      title: 'The blocks on disk are from $detected',
-      content: 'But you are on $selected. Switch to $detected, or convert the blocks to $selected.',
-    );
+    // A directory another network reads keeps these blocks where they are, so a
+    // switch is no repair for it.
+    final fix = switch ((answer.switchReadsBlocks, canConvert)) {
+      (true, true) => 'Switch to $detected, or convert the blocks to $selected.',
+      (true, false) => 'Switch to $detected.',
+      (false, true) => 'Convert the blocks to $selected.',
+      (false, false) => 'Open this notice to read what to do.',
+    };
+    return (title: 'The blocks on disk are from $detected', content: 'But you are on $selected. $fix');
   }
+  // Either network reads one half of a mixed directory only, so no switch repairs
+  // it. The conversion finishes what stopped.
   final first = _name(answer.firstName, answer.firstId);
-  if (answer.convertFromId.isEmpty) {
-    return (
-      title: 'The block files hold two networks',
-      content: '$first and $detected records sit in one directory, and you are on $selected.',
-    );
-  }
   return (
     title: 'The block files hold two networks',
-    content: 'But you are on $selected. A conversion stopped part way. Finish it to $selected.',
+    content: canConvert
+        ? 'But you are on $selected. A conversion stopped part way. Finish it to $selected.'
+        : '$first and $detected records sit in one directory, and you are on $selected.',
   );
 }
 
