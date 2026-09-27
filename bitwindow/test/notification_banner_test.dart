@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'test_utils.dart';
@@ -171,11 +172,16 @@ void main() {
         action: 'act',
       );
 
-      // Bounded pumps, never pumpAndSettle: the page animates, so a settle waits
-      // for a frame that never comes.
-      await tester.pumpSailPage(const Column(children: [NotificationBanner()]));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(
+        SailApp(
+          dense: false,
+          builder: (context) => const MaterialApp(home: NotificationBanner()),
+          initMethod: (_) async => (),
+          accentColor: SailColorScheme.black,
+          log: GetIt.I.get<Logger>(),
+        ),
+      );
+      await tester.pumpAndSettle();
 
       expect(ran, isTrue);
       expect(find.text('Confirm'), findsNothing);

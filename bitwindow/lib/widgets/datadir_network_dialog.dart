@@ -79,36 +79,43 @@ class DatadirNetworkDialog extends StatelessWidget {
                 onPressed: () async => Navigator.of(context).pop(DatadirNetworkRepair.convertBlocks),
               ),
               detail: answer.mixed
-                  ? 'Every $_source record takes the $_target magic. The records that already moved stay '
-                        'as they are, and chain data is never deleted.'
-                  : 'The chain rewinds to the block both networks share, and every record takes the '
-                        '$_target magic. Chain data is never deleted.',
+                  ? 'Every $_source record takes the $_target magic. The records that already moved stay as '
+                        'they are. The app deletes no chain data.'
+                  : 'The chain rewinds to the block both networks share, and every record takes the $_target '
+                        'magic. The app deletes no chain data.',
             ),
-          for (final note in _notes(conf, canSwitch: canSwitch, canConvert: canConvert)) SailText.secondary13(note),
+          for (final note in _notes(conf)) SailText.secondary13(note),
         ],
       ),
     );
   }
 
-  /// What a start on the running network costs while the blocks stay as they are.
+  /// What a start costs while the blocks stay as they are.
   String get _cost => answer.mixed
       ? '$_first records and $_detected records sit in one directory. A conversion stopped part way, and '
             'no node reads every block until they all carry one magic.'
-      : 'A start on $_selected rolls this chain back below the fork the two networks share, which empties '
-            'the balance until the branch comes back.';
+      : 'A start on $_selected rolls this chain back to the block the two networks share. Your balance '
+            'then reads empty until the chain syncs again.';
+
+  /// True when the directory holds two networks and the app runs neither of them.
+  bool get _bothHalvesForeign =>
+      answer.mixed && answer.firstId != answer.selectedId && answer.detectedId != answer.selectedId;
 
   /// Why a repair is absent. One note per repair, and none while it is on offer.
-  List<String> _notes(BitcoinConfProvider conf, {required bool canSwitch, required bool canConvert}) {
+  List<String> _notes(BitcoinConfProvider conf) {
     if (conf.hasPrivateBitcoinConf) {
-      return ['Your own bitcoin.conf names the network. Change it there, then restart.'];
+      return ['Your own bitcoin.conf names the network. Change it there. Then restart BitWindow.'];
     }
+    final canSwitch = canSwitchToDetected(conf, answer);
     return [
       if (!canSwitch && !answer.mixed && !answer.switchReadsBlocks)
-        '$_detected reads another data directory. Point it at this one, then switch.',
+        '$_detected reads another data directory. Point it at this one. Then switch.',
       if (!canSwitch && !answer.mixed && answer.switchReadsBlocks)
         'This build lists no network named ${answer.detectedId}.',
-      if (!canConvert)
-        'A conversion moves one eCash network onto a later one, so it cannot move these blocks to $_selected.',
+      if (!canConvertBlocks(conf, answer))
+        _bothHalvesForeign
+            ? 'Neither half of this directory belongs to $_selected.'
+            : 'A conversion moves an eCash chain forward only. It cannot move these blocks to $_selected.',
     ];
   }
 

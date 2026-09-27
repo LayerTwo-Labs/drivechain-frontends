@@ -45,7 +45,7 @@ class DatadirNetworkWatcher {
   /// config change reaches the check between two polls.
   String _checked = '';
 
-  /// True while the last answer reported a warning. The watcher keeps looking
+  /// True while the last answer reported a warning. The watcher asks again
   /// until the blocks and the app agree.
   bool _warned = false;
 
@@ -101,6 +101,15 @@ class DatadirNetworkWatcher {
     await done.future;
   }
 
+  /// Drops every stored warning of ours. An older build wrote one id per state,
+  /// so a user who upgrades carries entries this build no longer words.
+  Future<void> _forgetNotices(NotificationProvider provider) async {
+    for (final stale
+        in provider.history.where((n) => n.id == datadirNoticeId || n.id.startsWith('$datadirNoticeId-')).toList()) {
+      await provider.forget(stale.id);
+    }
+  }
+
   /// True once the daemon answers, whatever it says.
   Future<bool> check() async {
     if (!GetIt.I.isRegistered<NotificationProvider>() ||
@@ -139,22 +148,20 @@ class DatadirNetworkWatcher {
     _warned = answer.mismatch;
 
     if (!answer.mismatch) {
-      await provider.forget(datadirNoticeId);
+      await _forgetNotices(provider);
       return true;
     }
 
     final text = datadirNoticeText(answer, conf);
     final stored = provider.history.where((n) => n.id == datadirNoticeId).firstOrNull;
-    if (stored != null) {
-      if (stored.title == text.title && stored.content == text.content) {
-        // The same warning stands. A ✕ the user pressed keeps the banner down,
-        // and the modal stays shut.
-        return true;
-      }
-      // The state moved, so what the user read no longer holds. The entry goes,
-      // and the replacement earns a fresh banner and a fresh modal.
-      await provider.forget(datadirNoticeId);
+    if (stored != null && stored.title == text.title && stored.content == text.content) {
+      // The same warning stands. A ✕ the user pressed keeps the banner down, and
+      // the modal stays shut.
+      return true;
     }
+    // Whatever stands says something else, so it goes. The replacement earns a
+    // fresh banner and a fresh modal.
+    await _forgetNotices(provider);
     provider.add(
       id: datadirNoticeId,
       title: text.title,
@@ -215,7 +222,11 @@ Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem not
     answer = await GetIt.I.get<OrchestratorRPC>().getDatadirNetwork();
   } catch (e) {
     if (context.mounted) {
-      showSailToast(context, 'Could not read the network of your blocks: $e', variant: SailToastVariant.destructive);
+      showSailToast(
+        context,
+        'The app could not read the network of your blocks: $e',
+        variant: SailToastVariant.destructive,
+      );
     }
     return false;
   }

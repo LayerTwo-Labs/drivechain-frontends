@@ -131,10 +131,10 @@ func (o *Orchestrator) migrationForThisStore() ECashMigrationStatus {
 // setConversion names the conversion that leaves one network in the directory,
 // and leaves both ends empty when none can run.
 //
-// A saved job names its own direction. The conversion writes the pick after it
-// moves the records, so an interrupted job leaves the app on the source while
-// the oldest records already carry the target: a guess from the ends alone reads
-// that as the reverse move, which no conversion can make.
+// A saved job names its own direction. The conversion writes the pick last, so an
+// interrupted job leaves the app on the source. The oldest records already carry
+// the target, and the ends alone then read as the reverse move, which no
+// conversion can make.
 func (n *DatadirNetwork) setConversion(cat netcatalog.Catalog, job ECashMigrationStatus) {
 	from, to := n.mixedSource(), n.SelectedID
 	if job.JobID != "" && !job.Complete {
@@ -150,7 +150,7 @@ func (n *DatadirNetwork) setConversion(cat netcatalog.Catalog, job ECashMigratio
 // mixedSource names the end of the directory that is not the network the app
 // runs. A mixed directory holds two, and the one that matches the app stays as
 // it is: the conversion moves the other. Empty when both ends differ, because no
-// single conversion reaches the running network then.
+// single conversion reaches the network the app runs then.
 func (n DatadirNetwork) mixedSource() string {
 	if !n.Mixed || n.FirstID == n.SelectedID {
 		return n.DetectedID
