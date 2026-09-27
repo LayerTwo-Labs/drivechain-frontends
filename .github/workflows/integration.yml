@@ -6,6 +6,11 @@ on:
       - "sidechain-orchestrator/**"
       - "bitwindow/server/**"
       - ".github/workflows/integration.yml"
+  push:
+    branches: [master]
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
 
 env:
   GO_VERSION: "1.27"
@@ -14,7 +19,7 @@ jobs:
   bitwindow-backend-smoke:
     name: bitwindow backend smoke
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
@@ -62,19 +67,14 @@ jobs:
   integration:
     name: integration (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            cache-path: ~/.cache/drivechain-test-binaries
-          - os: windows-latest
-            cache-path: ~/AppData/Local/drivechain-test-binaries
-          - os: macos-latest
-            cache-path: ~/Library/Caches/drivechain-test-binaries
+        # A PR gates on Linux only. The other runners cost 5-10 minutes each,
+        # so they run on master, once a night, and on demand.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest","windows-latest","macos-latest"]') }}
 
     steps:
       - uses: actions/checkout@v5
@@ -125,7 +125,11 @@ jobs:
       - name: Cache bitcoind binary
         uses: actions/cache@v5
         with:
-          path: ${{ matrix.cache-path }}
+          # An include entry would add back the runners the matrix above drops.
+          path:
+            ${{ runner.os == 'Windows' && '~/AppData/Local/drivechain-test-binaries'
+            || runner.os == 'macOS' && '~/Library/Caches/drivechain-test-binaries'
+            || '~/.cache/drivechain-test-binaries' }}
           key: bitcoind-${{ runner.os }}-v30.2
 
       - name: Run orchestrator wallet integration tests
@@ -139,12 +143,14 @@ jobs:
   hwi-daemon:
     name: hwi daemon (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2022, macos-latest]
+        # A PR gates on Linux only. The other runners cost 5-10 minutes each,
+        # so they run on master, once a night, and on demand.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest","windows-2022","macos-latest"]') }}
 
     steps:
       - uses: actions/checkout@v5
@@ -192,7 +198,7 @@ jobs:
   replay-protection:
     name: replay protection (macOS)
     runs-on: macos-latest
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
