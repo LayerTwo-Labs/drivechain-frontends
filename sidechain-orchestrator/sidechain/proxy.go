@@ -3,6 +3,7 @@ package sidechain
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/btcsuite/btcd/chaincfg"
 )
@@ -15,6 +16,12 @@ type BlockTemplate struct {
 	Block        json.RawMessage `json:"block"`
 	FeesSats     int64           `json:"fees_sats"`
 }
+
+// ErrNotReady is what a node answers when it cannot build on the current
+// mainchain tip yet but will shortly, for example while its own block for that
+// tip is still arriving. The engine asks again on the same tip rather than
+// skipping the block.
+var ErrNotReady = errors.New("sidechain not ready for this mainchain tip yet")
 
 // Node is every operation the orchestrator asks of a sidechain, whatever the
 // chain is built on. A new sidechain satisfies this and nothing more.
