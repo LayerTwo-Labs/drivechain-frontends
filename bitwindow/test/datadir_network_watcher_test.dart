@@ -51,7 +51,7 @@ class _FakeOrchestrator implements OrchestratorRPC {
   }
 
   /// The oldest records carry a magic no network in hand names, and the newest
-  /// ones belong to the running network. The daemon can name one end only.
+  /// ones belong to the network the app runs. The daemon names one end only.
   void sayUnknownFirst(String firstMagic, String last) {
     response = GetDatadirNetworkResponse(
       mismatch: false,
@@ -65,7 +65,7 @@ class _FakeOrchestrator implements OrchestratorRPC {
   }
 
   /// convertFrom defaults to the detected network. The daemon leaves it empty
-  /// when no conversion reaches the running network, and a test says so too.
+  /// when no conversion reaches the network the app runs, and a test says so too.
   void say(String detected, String selected, {bool reads = true, String? convertFrom}) {
     final source = convertFrom ?? detected;
     response = GetDatadirNetworkResponse(
@@ -293,7 +293,7 @@ void main() {
 
   // A private bitcoin.conf takes both repairs away. The stored text promised
   // them, so the entry has to carry the new one.
-  test('a conf the user takes over replaces the notice', () async {
+  test('a private conf replaces the notice', () async {
     final provider = GetIt.I.get<NotificationProvider>();
     final watcher = DatadirNetworkWatcher();
     addTearDown(watcher.dispose);
@@ -317,7 +317,7 @@ void main() {
 
   // The user's own file names the network, so the app makes neither repair. A
   // banner that offers one opens a dialog with no button.
-  test('a private conf offers no repair in the banner', () async {
+  test('a private conf leaves the banner without a repair', () async {
     final watcher = DatadirNetworkWatcher();
     addTearDown(watcher.dispose);
     rpc.answers = true;
@@ -334,6 +334,34 @@ void main() {
       GetIt.I.get<NotificationProvider>().history.single.content,
       'But you are on betanet. Open this notice to read what to do.',
     );
+  });
+
+  // An older build wrote one id per state. A user who upgrades carries those
+  // entries, and a stale warning would stand for good.
+  test('an id an older build wrote goes away', () async {
+    final provider = GetIt.I.get<NotificationProvider>();
+    provider.add(
+      id: '$datadirNoticeId-1790000000000000',
+      title: 'The blocks on disk are from alphanet',
+      content: 'You selected betanet. Switch to alphanet?',
+      dialogType: DialogType.error,
+      style: NotificationStyle.modalThenBanner,
+      action: datadirNetworkAction,
+    );
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+
+    expect(await watcher.check(), isTrue);
+
+    expect(provider.history.single.id, datadirNoticeId);
+    expect(provider.history.single.content, contains('But you are on betanet.'));
+
+    rpc.response = GetDatadirNetworkResponse(mismatch: false);
+    expect(await watcher.check(), isTrue);
+
+    expect(provider.history, isEmpty);
   });
 
   // The user crosses a banner out while the mismatch stands. A move to another
@@ -492,7 +520,7 @@ void main() {
 
     expect(_button('Finish the conversion to drynet4'), findsNothing);
     expect(_button('Switch to betanet'), findsNothing);
-    expect(find.textContaining('cannot move these blocks to drynet4'), findsOneWidget);
+    expect(find.text('Neither half of this directory belongs to drynet4.'), findsWidgets);
   });
 
   // The notice text carries the state: a half converted store reads as one, not
