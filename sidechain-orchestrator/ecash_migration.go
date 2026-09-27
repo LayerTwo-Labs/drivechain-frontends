@@ -547,7 +547,11 @@ func (o *Orchestrator) restoreMigrationCoreMonitor() error {
 	return nil
 }
 
-func (o *Orchestrator) runMigrationSteps(ctx context.Context, state *ecashMigration) error {
+// checkMigrationResume reports whether a saved job can carry on with the files the
+// app reads today. The resume asks this before it runs a step, and the datadir
+// answer asks it before it offers the repair, so an offer the user reads is one
+// the daemon accepts.
+func (o *Orchestrator) checkMigrationResume(state *ecashMigration) error {
 	if err := o.checkMigrationRPC(); err != nil {
 		return err
 	}
@@ -570,6 +574,13 @@ func (o *Orchestrator) runMigrationSteps(ctx context.Context, state *ecashMigrat
 	}
 	if state.Step > 1 && o.BitcoinConf.Config.GetEffectiveSetting("walletdir", "main") != state.WalletDir {
 		return fmt.Errorf("restore the saved walletdir before migration resume")
+	}
+	return nil
+}
+
+func (o *Orchestrator) runMigrationSteps(ctx context.Context, state *ecashMigration) error {
+	if err := o.checkMigrationResume(state); err != nil {
+		return err
 	}
 	phases := []string{"prepare", "rewind", "convert", "select", "check"}
 	for state.Step < len(phases) {

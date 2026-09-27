@@ -101,9 +101,8 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 }
 
 // migrationForThisStore returns the saved job the files on disk belong to, and an
-// empty status when none does. A resume refuses another data directory and
-// another blocksdir alike, so a job the user left behind elsewhere says nothing
-// about these blocks.
+// empty status when none does. It asks the resume's own rule, so a job the user
+// left behind elsewhere earns no offer it would then refuse.
 func (o *Orchestrator) migrationForThisStore() ECashMigrationStatus {
 	o.migrationMu.Lock()
 	state, err := o.readMigration()
@@ -112,17 +111,11 @@ func (o *Orchestrator) migrationForThisStore() ECashMigrationStatus {
 		o.log.Warn().Err(err).Msg("could not read the saved ECX migration")
 		return ECashMigrationStatus{}
 	}
-	if state == nil || state.Status.JobID == "" || state.Status.DataDir == "" || state.BlocksDir == "" {
+	if state == nil || state.Status.JobID == "" {
 		return ECashMigrationStatus{}
 	}
-	dir, err := filepath.Abs(o.BitcoinConf.DataDir())
-	if err != nil {
-		o.log.Warn().Err(err).Msg("could not resolve the ECX data directory")
-		return ECashMigrationStatus{}
-	}
-	// Raw paths, as the resume compares them: a link this check accepted would
-	// send the user into a refusal instead of a repair.
-	if dir != state.Status.DataDir || o.coreBlocksDir(config.Network(o.CurrentNetwork())) != state.BlocksDir {
+	if err := o.checkMigrationResume(state); err != nil {
+		o.log.Info().Err(err).Msg("the saved ECX migration belongs to other files")
 		return ECashMigrationStatus{}
 	}
 	return state.Status
