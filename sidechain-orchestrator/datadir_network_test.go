@@ -470,19 +470,28 @@ func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
 	require.Empty(t, out.FirstID)
 }
 
-// A saved job belongs to the directory it started in, and a resume refuses any
-// other one. A job the user left behind elsewhere says nothing about these
-// blocks, so the answer falls back to what the two ends name.
-func TestMigrationReadsThisDir(t *testing.T) {
+// A saved job belongs to the files it started on, and a resume refuses any
+// others. A job the user left behind says nothing about these blocks, so the
+// answer falls back to what the two ends name.
+func TestMigrationReadsThisStore(t *testing.T) {
 	o := parkInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 
-	here, err := filepath.Abs(o.BitcoinConf.DataDir())
+	dir, err := filepath.Abs(o.BitcoinConf.DataDir())
 	require.NoError(t, err)
+	blocks := o.coreBlocksDir(config.NetworkECash)
+	job := ECashMigrationStatus{JobID: "job-1", DataDir: dir}
 
-	require.True(t, o.migrationReadsThisDir(ECashMigrationStatus{JobID: "job-1", DataDir: here}))
-	require.False(t, o.migrationReadsThisDir(ECashMigrationStatus{JobID: "job-1", DataDir: t.TempDir()}))
-	require.False(t, o.migrationReadsThisDir(ECashMigrationStatus{JobID: "job-1"}))
-	require.False(t, o.migrationReadsThisDir(ECashMigrationStatus{DataDir: here}))
+	require.True(t, o.migrationReadsThisStore(job, blocks))
+	require.False(t, o.migrationReadsThisStore(job, filepath.Join(t.TempDir(), "blocks")))
+	require.False(t, o.migrationReadsThisStore(job, ""))
+	require.False(t, o.migrationReadsThisStore(ECashMigrationStatus{JobID: "job-1", DataDir: t.TempDir()}, blocks))
+	require.False(t, o.migrationReadsThisStore(ECashMigrationStatus{JobID: "job-1"}, blocks))
+	require.False(t, o.migrationReadsThisStore(ECashMigrationStatus{DataDir: dir}, blocks))
+
+	// A blocksdir the user moves after the job started points at another store,
+	// even while the data directory stays.
+	o.BitcoinConf.Config.SetSetting("blocksdir", t.TempDir(), "main")
+	require.False(t, o.migrationReadsThisStore(job, blocks))
 }
