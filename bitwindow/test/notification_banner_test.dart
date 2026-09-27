@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -154,7 +155,9 @@ void main() {
     // A handler that opens its own dialog carries the whole message. A generic
     // card in front of it reads as two dialogs for one warning.
     testWidgets('an own-dialog action opens no generic card', (tester) async {
+      debugPrint('STEP 1 provider');
       final p = await freshProvider();
+      debugPrint('STEP 2 provider ready');
       var ran = false;
       if (GetIt.I.isRegistered<NotificationActions>()) {
         GetIt.I.unregister<NotificationActions>();
@@ -174,14 +177,77 @@ void main() {
       // A bare tree, with no SailApp: the handler owns the dialog, so the banner
       // paints no strip and reads no theme. A heavier harness waits on frames
       // this assertion does not need.
+      debugPrint('STEP 3 pump widget');
       await tester.pumpWidget(const MaterialApp(home: NotificationBanner()));
+      debugPrint('STEP 4 widget up');
+      for (var frame = 0; frame < 3; frame++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        debugPrint('STEP 5 frame $frame');
+      }
+
+      debugPrint('STEP 6 assert');
+      expect(ran, isTrue);
+      expect(find.text('Confirm'), findsNothing);
+      expect(p.activeBanner, isNull, reason: 'the handler reported the repair done');
+      debugPrint('STEP 7 done');
+    }, timeout: const Timeout(Duration(seconds: 45)));
+
+    // A second warning can arrive while a handler still owns the screen. Its modal
+    // waits for a turn; a mark before a busy action drops it for good.
+    testWidgets('a busy action keeps the owned modal pending', (tester) async {
+      final p = await freshProvider();
+      final busy = Completer<void>();
+      var ranMine = false;
+      if (GetIt.I.isRegistered<NotificationActions>()) {
+        GetIt.I.unregister<NotificationActions>();
+      }
+      GetIt.I.registerSingleton<NotificationActions>(
+        NotificationActions(
+          {
+            'slow': (_, _) async {
+              await busy.future;
+              return true;
+            },
+            'mine': (_, _) async => ranMine = true,
+          },
+          ownDialogs: const {'mine'},
+        ),
+      );
+      p.add(
+        id: 'slow',
+        title: 'drynet3 is out',
+        content: 'Switch here →',
+        dialogType: DialogType.info,
+        style: NotificationStyle.banner,
+        action: 'slow',
+      );
+
+      await tester.pumpWidget(const MaterialApp(home: NotificationBanner()));
+      await tester.pump();
+      await tester.tap(find.text('drynet3 is out'));
+      await tester.pump();
+
+      p.add(
+        id: 'mine',
+        title: 'The blocks on disk are from alphanet',
+        content: 'But you are on betanet.',
+        dialogType: DialogType.error,
+        style: NotificationStyle.modalThenBanner,
+        action: 'mine',
+      );
       for (var frame = 0; frame < 3; frame++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
 
-      expect(ran, isTrue);
-      expect(find.text('Confirm'), findsNothing);
-      expect(p.activeBanner, isNull, reason: 'the handler reported the repair done');
+      expect(ranMine, isFalse, reason: 'the first handler still owns the screen');
+      expect(p.pendingModal?.id, 'mine', reason: 'the modal waits for its turn');
+
+      busy.complete();
+      for (var frame = 0; frame < 3; frame++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(ranMine, isTrue, reason: 'the modal opens once the screen is free');
     });
 
     testWidgets('the ✕ marks it read without running the action', (tester) async {
