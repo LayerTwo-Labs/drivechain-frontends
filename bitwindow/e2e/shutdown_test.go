@@ -19,6 +19,7 @@ func TestJustRunShutsDownDaemons(t *testing.T) {
 	const bootPoll = 2 * time.Second
 	const shutdownDeadline = 3 * time.Minute // drivechaind finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s
 	const shutdownPoll = 500 * time.Millisecond
+	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make drivechaind RPC-ready
 
 	t.Logf("Issue 2 / shutdown: launching `just run` on %s", runtime.GOOS)
 
@@ -42,7 +43,8 @@ func TestJustRunShutsDownDaemons(t *testing.T) {
 		prettyPIDs(bitwindowdBefore), prettyPIDs(drivechaindBefore))
 
 	// Let the app settle so shutdown isn't racing against late init work.
-	time.Sleep(5 * time.Second)
+	waitForPort(t, drivechaindPort, rpcDeadline, "drivechaind")
+	waitForOrchestratorRPC(t, rpcDeadline, run.dataDir)
 
 	// Request a graceful shutdown and wait up to `shutdownDeadline` for the
 	// whole tree to exit. This mirrors the user closing the window — we
