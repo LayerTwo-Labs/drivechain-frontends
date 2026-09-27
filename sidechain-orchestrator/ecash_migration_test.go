@@ -43,29 +43,29 @@ func migrationTestNode(t *testing.T) *Orchestrator {
 
 func TestECashMigrationChecksPublishedIdentity(t *testing.T) {
 	o := migrationTestNode(t)
-	state, err := o.newMigration("alphanet", "betanet")
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
 	require.EqualValues(t, 100, state.Status.CommonHeight)
 	require.Equal(t, strings.Repeat("a", 64), state.Status.CommonHash)
 	require.Equal(t, filepath.Join(state.Status.DataDir, "blocks"), state.BlocksDir)
 
 	o.Catalog.Networks[0].ForkParentHash = ""
-	_, err = o.newMigration("alphanet", "betanet")
+	_, err = o.newMigration(context.Background(), "alphanet", "betanet")
 	require.ErrorContains(t, err, "fork_parent_hash")
 	o.Catalog.Networks[0].ForkParentHash = strings.Repeat("a", 64)
 	o.Catalog.Networks[1].NetworkMagic = "eca5a104"
-	_, err = o.newMigration("alphanet", "betanet")
+	_, err = o.newMigration(context.Background(), "alphanet", "betanet")
 	require.ErrorContains(t, err, "must differ")
-	_, err = o.newMigration("../../alphanet", "betanet")
+	_, err = o.newMigration(context.Background(), "../../alphanet", "betanet")
 	require.Error(t, err)
 }
 
 func TestECashMigrationUsesRecordedSourceAfterSelection(t *testing.T) {
 	o := migrationTestNode(t)
 	o.ecashID = "betanet"
-	_, err := o.newMigration("alphanet", "betanet")
+	_, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
-	_, err = o.newMigration("betanet", "alphanet")
+	_, err = o.newMigration(context.Background(), "betanet", "alphanet")
 	require.ErrorContains(t, err, "does not match")
 	blocks := filepath.Join(o.BitcoinConf.DataDir(), "blocks")
 	require.NoError(t, os.MkdirAll(blocks, 0o700))
@@ -80,7 +80,7 @@ func TestECashMigrationUsesRecordedSourceAfterSelection(t *testing.T) {
 
 func TestECashMigrationStatusSurvivesDaemonExit(t *testing.T) {
 	o := migrationTestNode(t)
-	state, err := o.newMigration("alphanet", "betanet")
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
 	state.Status.JobID = "saved-job"
 	state.Status.Running = true
@@ -129,7 +129,7 @@ func TestECashMigrationKeepsRepeatedPeerBackups(t *testing.T) {
 
 func TestECashMigrationKeepsCustomCoreSettings(t *testing.T) {
 	o := migrationTestNode(t)
-	state, err := o.newMigration("alphanet", "betanet")
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
 	state.Status.JobID = "config-test"
 	o.BitcoinConf.Config.SetSetting("rpcport", "18444", "main")
@@ -198,4 +198,23 @@ func TestECashMigrationSameNetworkKeepsBlocks(t *testing.T) {
 	require.Equal(t, "data", string(data))
 	_, err = os.Stat(o.migrationPath())
 	require.True(t, os.IsNotExist(err), fmt.Sprint(err))
+}
+
+// A switch that stopped part way records the new network while the block files
+// still carry the old one. That datadir is the one a migration repairs, so the
+// source it names comes from the blocks.
+func TestECashMigrationTakesTheSourceFromTheBlockFiles(t *testing.T) {
+	o := migrationTestNode(t)
+	o.ecashID = "betanet"
+	require.NoError(t, o.recordECashChain("betanet"))
+
+	_, err := o.newMigration(context.Background(), "alphanet", "betanet")
+	require.ErrorContains(t, err, "does not match")
+
+	writeBlockFile(t, o.BitcoinConf.DataDir(), "eca5a104")
+
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
+	require.NoError(t, err)
+	require.Equal(t, "eca5a104", state.Status.SourceMagic)
+	require.Equal(t, "eca5a105", state.Status.TargetMagic)
 }

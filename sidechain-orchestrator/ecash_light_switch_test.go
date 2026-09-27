@@ -76,7 +76,7 @@ func TestECashLightSwitchKeepsSourceForFullMode(t *testing.T) {
 func TestECashLightSwitchKeepsIncompleteJob(t *testing.T) {
 	o := lightECashTestNode(t)
 	files := lightECashFiles(t, o)
-	state, err := o.newMigration("alphanet", "betanet")
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
 	state.Status.JobID = "saved-job"
 	state.Step = 2
