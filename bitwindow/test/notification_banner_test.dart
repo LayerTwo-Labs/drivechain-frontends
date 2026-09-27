@@ -185,7 +185,11 @@ void main() {
           log: GetIt.I.get<Logger>(),
         ),
       );
-      await tester.pumpAndSettle();
+      // Bounded pumps, as the tests beside this one do. The page animates, so a
+      // settle waits for a frame that never comes.
+      for (var frame = 0; frame < 3; frame++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(ran, isTrue);
       expect(find.text('Confirm'), findsNothing);

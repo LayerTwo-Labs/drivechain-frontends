@@ -269,17 +269,17 @@ func validMigrationID(id string) bool {
 	return true
 }
 
-// blockFilesHoldECashID reports whether the block files carry records of a
-// network. The record names the network the app runs, and a switch that stopped
-// part way leaves the two apart: those blocks are the ones a migration repairs,
-// so the source they carry has to be allowed. A conversion that stopped part way
-// leaves one network at each end, and the half that still has to move is the
-// source, so both ends count.
+// blockFilesNameThePair reports whether the block files hold the two networks a
+// migration moves between, and nothing else. The record names the network the app
+// runs, and a switch that stopped part way leaves the two apart: those blocks are
+// the ones a migration repairs, so the source they carry has to be allowed. A
+// third network at one end has no place in this job, and a start would stop the
+// nodes before it refuses.
 //
-// It reads the block files rather than call ReadDatadirNetwork: a start holds
-// the migration mutex while it asks, and that read takes the same mutex.
-func (o *Orchestrator) blockFilesHoldECashID(ctx context.Context, id string) bool {
-	if id == "" {
+// It reads the block files rather than call ReadDatadirNetwork: a start holds the
+// migration mutex while it asks, and that read takes the same mutex.
+func (o *Orchestrator) blockFilesNameThePair(ctx context.Context, fromID, toID string) bool {
+	if fromID == "" {
 		return false
 	}
 	ends, err := blockfile.ReadEnds(ctx, o.coreBlocksDir(config.Network(o.CurrentNetwork())))
@@ -294,7 +294,13 @@ func (o *Orchestrator) blockFilesHoldECashID(ctx context.Context, id string) boo
 	o.mu.RUnlock()
 	first, _ := nameMagic(cat, ends.First.String())
 	last, _ := nameMagic(cat, ends.Last.String())
-	return id == first || id == last
+	for _, id := range []string{first, last} {
+		if id != fromID && id != toID {
+			return false
+		}
+	}
+	// The source has to be there: a conversion moves those records and no others.
+	return first == fromID || last == fromID
 }
 
 func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*ecashMigration, error) {
@@ -318,7 +324,7 @@ func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*
 	if recorded := o.Settings.ECashChainID(); recorded != "" {
 		id = recorded
 	}
-	if fromID != id && !o.blockFilesHoldECashID(ctx, fromID) {
+	if fromID != id && !o.blockFilesNameThePair(ctx, fromID, toID) {
 		return nil, fmt.Errorf("source %s does not match the active ECX network %s", fromID, id)
 	}
 	if !ok {
