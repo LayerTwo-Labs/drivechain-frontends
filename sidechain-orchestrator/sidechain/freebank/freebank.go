@@ -70,6 +70,9 @@ func (c *Client) Args(ctx context.Context, host sidechain.Host) ([]string, error
 		"-mainchainrest=" + rest,
 		"-mainchainchain=main",
 		fmt.Sprintf("-mainchainblockpin=%d:%s", height, hash),
+		// BitWindow's BMM engine bids for this node, so the node makes no bids of
+		// its own. Nodes before v0.2.16 ignore the flag.
+		"-bmmbidder=engine",
 	}
 	// Without the flag, the node looks for grpcurl on PATH.
 	if grpcurl := host.ToolPath("grpcurl"); grpcurl != "" {
