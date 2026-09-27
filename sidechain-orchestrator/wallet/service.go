@@ -1503,18 +1503,18 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 		onStatusUpdate("Stopping binaries")
 	}
 
-	// Dart L562-575: stop all binaries
+	// Dart L562-578: stop all binaries, then wait for them to exit. Without the
+	// callback nothing ran, so there is nothing to wait for.
 	if s.OnStopAllBinaries != nil {
 		if err := s.OnStopAllBinaries(); err != nil {
 			s.log.Error().Err(err).Msg("could not stop binaries")
 		}
-	}
 
-	// Dart L577-578: wait for processes to stop
-	if onStatusUpdate != nil {
-		onStatusUpdate("Waiting for processes to stop")
+		if onStatusUpdate != nil {
+			onStatusUpdate("Waiting for processes to stop")
+		}
+		time.Sleep(5 * time.Second)
 	}
-	time.Sleep(5 * time.Second)
 
 	// Dart L580: onStatusUpdate?.call('Backing up wallet files')
 	if onStatusUpdate != nil {
