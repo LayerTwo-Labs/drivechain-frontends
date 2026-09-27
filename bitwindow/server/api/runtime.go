@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+
 	"connectrpc.com/grpcreflect"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 
 	api_bitdrive "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitdrive"
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
@@ -54,6 +56,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchctlrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
@@ -115,6 +118,7 @@ type Runtime struct {
 	timestampEngine    *engines.TimestampEngine
 	notificationEngine *engines.NotificationEngine
 	sidechainMonitor   *engines.SidechainMonitorEngine
+	depositDropped     *engines.DepositDroppedEngine
 	m4Engine           *engines.M4Engine
 	bitdriveEngine     *engines.BitDriveEngine
 
@@ -210,6 +214,12 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	rt.sidechainMonitor = engines.NewSidechainMonitorEngine(
 		s.Thunder, s.BitNames, s.BitAssets, s.Truthcoin, s.Photon, s.CoinShift,
 		rt.notificationEngine,
+	)
+	// A dropped deposit never reaches the sidechain, and nothing else in the
+	// app reports it. The enforcer names the slots worth reading.
+	rt.depositDropped = engines.NewDepositDroppedEngine(
+		rt.db, rt.walletEngine, rt.notificationEngine,
+		func() []uint32 { return activeSidechainSlots(rt.ctx, s.Enforcer) },
 	)
 	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, rt.db, conf)
 	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())
@@ -396,6 +406,7 @@ func (rt *Runtime) Start(parent context.Context) {
 	rt.runEngine("timestamp", rt.timestampEngine.Run, log)
 	rt.runEngine("notification", rt.notificationEngine.Run, log)
 	rt.runEngine("sidechain-monitor", rt.sidechainMonitor.Run, log)
+	rt.runEngine("deposit-dropped", rt.depositDropped.Run, log)
 
 	// ZMQ engine acquires its endpoint from bitcoind dynamically; retry
 	// loop tolerates bitcoind startup. Lives on rt.ctx so it stops on
@@ -582,4 +593,22 @@ func chainParamsFor(network config.Network) *chaincfg.Params {
 	// These params name the coin every address and key path takes, so a guess
 	// here is a wrong address, not a small mistake.
 	panic(fmt.Sprintf("unknown network %q", network))
+}
+
+// activeSidechainSlots names the slots that hold a sidechain. The deposit
+// watch reads deposits per slot, and every slot the enforcer omits holds none.
+func activeSidechainSlots(ctx context.Context, enforcer *service.Service[validatorrpc.ValidatorServiceClient]) []uint32 {
+	client, err := enforcer.Get(ctx)
+	if err != nil {
+		return nil
+	}
+	resp, err := client.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	if err != nil {
+		return nil
+	}
+	slots := make([]uint32, 0, len(resp.Msg.GetSidechains()))
+	for _, sc := range resp.Msg.GetSidechains() {
+		slots = append(slots, sc.GetSidechainNumber().GetValue())
+	}
+	return slots
 }

@@ -55,6 +55,7 @@ class SystemEvent_Type extends $pb.ProtobufEnum {
   static const SystemEvent_Type TYPE_SERVICE_DISCONNECTED = SystemEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_SERVICE_DISCONNECTED');
   static const SystemEvent_Type TYPE_SYNC_COMPLETED = SystemEvent_Type._(3, _omitEnumNames ? '' : 'TYPE_SYNC_COMPLETED');
   static const SystemEvent_Type TYPE_BLOCK_FOUND = SystemEvent_Type._(4, _omitEnumNames ? '' : 'TYPE_BLOCK_FOUND');
+  static const SystemEvent_Type TYPE_DEPOSIT_DROPPED = SystemEvent_Type._(5, _omitEnumNames ? '' : 'TYPE_DEPOSIT_DROPPED');
 
   static const $core.List<SystemEvent_Type> values = <SystemEvent_Type> [
     TYPE_UNSPECIFIED,
@@ -62,6 +63,7 @@ class SystemEvent_Type extends $pb.ProtobufEnum {
     TYPE_SERVICE_DISCONNECTED,
     TYPE_SYNC_COMPLETED,
     TYPE_BLOCK_FOUND,
+    TYPE_DEPOSIT_DROPPED,
   ];
 
   static final $core.Map<$core.int, SystemEvent_Type> _byValue = $pb.ProtobufEnum.initByValue(values);
