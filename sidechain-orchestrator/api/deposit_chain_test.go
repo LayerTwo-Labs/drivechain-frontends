@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"testing"
+	"time"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	commonpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
@@ -175,6 +176,17 @@ func TestTreasuryTipFailsOnALookupError(t *testing.T) {
 	require.NotErrorIs(t, err, errTreasuryChainFull)
 }
 
+// A dropped deposit sits in no block, so zero is its real count and the chain
+// read would only repeat it.
+func TestDepositConfirmationsSkipsADroppedDeposit(t *testing.T) {
+	chain := &fakeChain{}
+	h := &WalletHandler{}
+
+	dropped := wallet.SidechainDeposit{Txid: "gone", DroppedAt: time.Now()}
+
+	require.Zero(t, h.depositConfirmations(context.Background(), dropped))
+	require.Zero(t, chain.lookups, "a dropped deposit must not touch the chain")
+}
 
 // The enforcer reads a slot as unfunded until the first deposit confirms. A
 // second deposit in that window must extend the first, not build a rival
@@ -246,9 +258,93 @@ func TestFirstTreasuryOfReportsNoneOnAFreshSlot(t *testing.T) {
 	require.Nil(t, out)
 }
 
+// A stamped deposit that still lives must be used: the watch lifts a stamp a
+// minute late, and building a rival treasury in that window loses the money.
+func TestFirstTreasuryOfUsesAStampedDepositTheChainStillHolds(t *testing.T) {
+	ctx := context.Background()
+	svc := wallet.NewService(t.TempDir(), zerolog.Nop())
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+	require.NoError(t, svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+		Txid: "stamped", WalletID: "w", Slot: 2, AmountSats: 700,
+	}))
+	require.NoError(t, svc.MarkSidechainDepositDropped(ctx, "stamped"))
 
+	h := &WalletHandler{svc: svc}
+	chain := &fakeChain{txs: map[string]*wallet.RawTransaction{"stamped": treasuryTx(2, 700)}}
 
+	out, err := h.firstTreasuryOf(ctx, oneSource(chain), 2)
 
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, "stamped", out.txid)
+}
+
+// The chain lost the transaction, so it created no treasury output.
+func TestFirstTreasuryOfSkipsADepositTheChainLost(t *testing.T) {
+	ctx := context.Background()
+	svc := wallet.NewService(t.TempDir(), zerolog.Nop())
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+	require.NoError(t, svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+		Txid: "lost", WalletID: "w", Slot: 2, AmountSats: 500,
+	}))
+	require.NoError(t, svc.MarkSidechainDepositDropped(ctx, "lost"))
+
+	h := &WalletHandler{svc: svc}
+	// The chain knows no such transaction.
+	chain := &fakeChain{}
+
+	out, err := h.firstTreasuryOf(ctx, oneSource(chain), 2)
+
+	require.NoError(t, err)
+	require.Nil(t, out)
+}
+
+// Core without a txindex reads no transaction outside its mempool, so a dead
+// deposit stays unreadable for ever. Without the stamp the slot takes no deposit
+// again.
+func TestFirstTreasuryOfSkipsAStampedUnreadableDeposit(t *testing.T) {
+	ctx := context.Background()
+	svc := wallet.NewService(t.TempDir(), zerolog.Nop())
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+	require.NoError(t, svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+		Txid: "gone", WalletID: "w", Slot: 2, AmountSats: 1000,
+	}))
+	require.NoError(t, svc.MarkSidechainDepositDropped(ctx, "gone"))
+
+	h := &WalletHandler{svc: svc}
+	chain := &fakeChain{hardFail: map[string]bool{"gone": true}}
+
+	out, err := h.firstTreasuryOf(ctx, oneSource(chain), 2)
+
+	require.NoError(t, err)
+	require.Nil(t, out, "this deposit creates the first treasury output")
+}
+
+// The same unreadable answer without a stamp proves nothing, so the slot refuses
+// rather than build a rival treasury output.
+func TestFirstTreasuryOfRefusesAnUnreadableDepositWithNoStamp(t *testing.T) {
+	ctx := context.Background()
+	svc := wallet.NewService(t.TempDir(), zerolog.Nop())
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+	require.NoError(t, svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+		Txid: "unknown", WalletID: "w", Slot: 2, AmountSats: 1000,
+	}))
+
+	h := &WalletHandler{svc: svc}
+	chain := &fakeChain{hardFail: map[string]bool{"unknown": true}}
+
+	_, err := h.firstTreasuryOf(ctx, oneSource(chain), 2)
+
+	require.ErrorIs(t, err, wallet.ErrTxUnreadable)
+}
 
 // A source that cannot answer proves nothing. Reading its failure as "no
 // treasury" makes this deposit build a rival output for the slot.
