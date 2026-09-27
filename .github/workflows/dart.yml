@@ -109,10 +109,11 @@ jobs:
             exit 1
           fi
 
+      # A ubuntu runner holds 4 cores; the test runner defaults to half of them.
       - name: Test
         run: |
           if [ -d "test" ]; then
-            flutter test
+            flutter test -j 4
           else
             echo "No test directory, skipping."
           fi
