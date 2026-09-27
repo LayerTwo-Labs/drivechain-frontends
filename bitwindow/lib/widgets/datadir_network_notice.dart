@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:bitwindow/pages/settings/settings_network.dart';
+import 'package:bitwindow/widgets/datadir_network_dialog.dart';
+import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -117,7 +119,7 @@ class DatadirNetworkWatcher {
     provider.add(
       id: datadirNoticeId(provider.history, answer.detectedId, answer.selectedId, DateTime.now()),
       title: 'The blocks on disk are from $detected',
-      content: 'You selected $selected. Switch to $detected?',
+      content: 'But you are on $selected. Switch to $detected, or convert the blocks to $selected.',
       dialogType: DialogType.error,
       style: NotificationStyle.modalThenBanner,
       action: datadirNetworkAction,
@@ -178,20 +180,11 @@ String datadirNoticeId(Iterable<NotificationItem> history, String detectedId, St
   return open?.id ?? '$_noticeIdPrefix${now.microsecondsSinceEpoch}';
 }
 
-/// Switches the app to the network the blocks belong to. False leaves the
-/// banner on screen, so a cancelled or failed switch stays visible.
+/// Offers the two repairs for a datadir on another network, and runs the one the
+/// user picks. False leaves the banner on screen, so a cancelled or failed
+/// repair stays visible.
 Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem notice) async {
   final conf = GetIt.I.get<BitcoinConfProvider>();
-  if (conf.hasPrivateBitcoinConf) {
-    if (context.mounted) {
-      showSailToast(
-        context,
-        'Your own bitcoin.conf names the network. Change it there, then restart.',
-        variant: SailToastVariant.info,
-      );
-    }
-    return false;
-  }
 
   final GetDatadirNetworkResponse answer;
   try {
@@ -205,7 +198,7 @@ Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem not
   if (!answer.mismatch) {
     return true;
   }
-  // The networks can move while the user reads the text, and a switch must go
+  // The networks can move while the user reads the text, and a repair must go
   // where the text says, never where a later answer points.
   if (notice.data['detected'] != answer.detectedId || notice.data['selected'] != answer.selectedId) {
     if (context.mounted) {
@@ -213,40 +206,50 @@ Future<bool> openDatadirNetworkSwitch(BuildContext context, NotificationItem not
     }
     return false;
   }
-
-  final option = conf.networkOptions.where((o) => o.id == answer.detectedId).firstOrNull;
-  if (option == null) {
-    if (context.mounted) {
-      showSailToast(
-        context,
-        'This build lists no network named ${answer.detectedId}',
-        variant: SailToastVariant.destructive,
-      );
-    }
-    return false;
-  }
-
-  if (!answer.switchReadsBlocks) {
-    if (context.mounted) {
-      showSailToast(
-        context,
-        '${_name(answer.detectedName, answer.detectedId)} reads another data directory. '
-        'Point it at this one, then switch.',
-        variant: SailToastVariant.info,
-      );
-    }
-    return false;
-  }
-
-  final target = conf.networkFromOption(option);
   if (!context.mounted) {
     return false;
   }
-  await swapNetworkWithDatadirPrompt(context, conf, target, networkId: option.id);
+
+  final repair = await showThemedDialog<DatadirNetworkRepair>(
+    context: context,
+    builder: (context) => DatadirNetworkDialog(answer: answer),
+  );
+  if (repair == null) {
+    return false;
+  }
+  if (!context.mounted) {
+    return false;
+  }
+  if (repair == DatadirNetworkRepair.switchNetwork) {
+    return _switchToDetected(context, conf, answer);
+  }
+  return _convertBlocksToSelected(context, answer);
+}
+
+/// Runs the network the blocks belong to.
+Future<bool> _switchToDetected(
+  BuildContext context,
+  BitcoinConfProvider conf,
+  GetDatadirNetworkResponse answer,
+) async {
+  final option = conf.networkOptions.where((o) => o.id == answer.detectedId).firstOrNull;
+  if (option == null) {
+    return false;
+  }
+  await swapNetworkWithDatadirPrompt(context, conf, conf.networkFromOption(option), networkId: option.id);
 
   // The prompt and the swap page both return nothing, so the chain itself says
   // whether the switch happened. A cancel leaves the notice on screen, and so
   // does a daemon that answers nothing.
+  return await datadirNetworkMismatches() == false;
+}
+
+/// Rewrites the blocks for the network the app runs. The conversion carries on
+/// in the daemon, so the notice stays until the two agree.
+Future<bool> _convertBlocksToSelected(BuildContext context, GetDatadirNetworkResponse answer) async {
+  if (!await openECashMigration(context, fromId: answer.detectedId, toId: answer.selectedId)) {
+    return false;
+  }
   return await datadirNetworkMismatches() == false;
 }
 

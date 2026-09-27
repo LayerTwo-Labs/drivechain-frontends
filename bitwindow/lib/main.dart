@@ -168,10 +168,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
   GetIt.I.registerLazySingleton<NotificationActions>(
-    () => const NotificationActions({
-      ecashUpgradeAction: openECashUpgrade,
-      datadirNetworkAction: openDatadirNetworkSwitch,
-    }),
+    () => const NotificationActions(
+      {
+        ecashUpgradeAction: openECashUpgrade,
+        datadirNetworkAction: openDatadirNetworkSwitch,
+      },
+      ownDialogs: {datadirNetworkAction},
+    ),
   );
 
   // Load chains config from JSON (copies seed from assets if missing)
