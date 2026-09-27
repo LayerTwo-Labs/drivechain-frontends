@@ -469,3 +469,20 @@ func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
 	require.Equal(t, "eca5ff04", out.FirstMagic)
 	require.Empty(t, out.FirstID)
 }
+
+// A saved job belongs to the directory it started in, and a resume refuses any
+// other one. A job the user left behind elsewhere says nothing about these
+// blocks, so the answer falls back to what the two ends name.
+func TestMigrationReadsThisDir(t *testing.T) {
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+
+	here, err := filepath.Abs(o.BitcoinConf.DataDir())
+	require.NoError(t, err)
+
+	require.True(t, o.migrationReadsThisDir(ECashMigrationStatus{JobID: "job-1", DataDir: here}))
+	require.False(t, o.migrationReadsThisDir(ECashMigrationStatus{JobID: "job-1", DataDir: t.TempDir()}))
+	require.False(t, o.migrationReadsThisDir(ECashMigrationStatus{JobID: "job-1"}))
+	require.False(t, o.migrationReadsThisDir(ECashMigrationStatus{DataDir: here}))
+}
