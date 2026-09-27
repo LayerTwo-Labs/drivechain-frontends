@@ -74,6 +74,10 @@ class _FakeOrchestrator implements OrchestratorRPC {
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
+/// A button by its label. SailButton renders the label twice — one copy holds
+/// the width while it loads — so a text finder counts it twice.
+Finder _button(String label) => find.byWidgetPredicate((widget) => widget is SailButton && widget.label == label);
+
 NotificationItem _notice(String detected, String selected) => NotificationItem(
   id: 'datadir-network-1',
   title: 't',
@@ -137,6 +141,21 @@ void main() {
     expect(GetIt.I.get<NotificationProvider>().history, hasLength(1));
   });
 
+  // The text names both networks: the one the blocks belong to, and the one the
+  // app runs. A warning that names one of the two says nothing about the fix.
+  test('the notice names the network the app runs', () async {
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+
+    expect(await watcher.check(), isTrue);
+
+    final notice = GetIt.I.get<NotificationProvider>().history.single;
+    expect(notice.title, 'The blocks on disk are from alphanet');
+    expect(notice.content, 'But you are on betanet. Switch to alphanet, or convert the blocks to betanet.');
+  });
+
   // The user crosses a banner out while the mismatch stands. A move to another
   // pair and back is a new state, so it warns again rather than stay quiet.
   test('a dismissed pair that comes back warns again', () async {
@@ -161,21 +180,18 @@ void main() {
     expect(provider.pendingModal, isNotNull, reason: 'the modal opens for the new warning');
   });
 
-  // Each datadir group keeps its own directory. A switch across groups reads
-  // another one, so it leaves these blocks where they are.
-  testWidgets('a switch that reads another directory refuses', (tester) async {
-    rpc.answers = true;
-    rpc.say('bitcoin', 'betanet', reads: false);
-    conf.networks = [NetworkOption(id: 'bitcoin', displayName: 'Bitcoin', network: 'mainnet')];
-
-    bool? result;
+  /// Opens the repair dialog and hands back the slot the handler writes its
+  /// answer into. The dialog is still open when this returns, so the answer
+  /// lands once the test presses a button.
+  Future<List<bool?>> openRepairs(WidgetTester tester, String detected, String selected) async {
+    final answer = <bool?>[null];
     await tester.pumpWidget(
       SailApp(
         dense: false,
         builder: (context) => MaterialApp(
           home: Builder(
             builder: (inner) => TextButton(
-              onPressed: () async => result = await openDatadirNetworkSwitch(inner, _notice('bitcoin', 'betanet')),
+              onPressed: () async => answer[0] = await openDatadirNetworkSwitch(inner, _notice(detected, selected)),
               child: const Text('go'),
             ),
           ),
@@ -188,12 +204,96 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('go'));
     await tester.pumpAndSettle();
+    return answer;
+  }
 
-    expect(result, isFalse);
+  // Each datadir group keeps its own directory. A switch across groups reads
+  // another one, so it leaves these blocks where they are.
+  testWidgets('a switch that reads another directory offers no switch', (tester) async {
+    rpc.answers = true;
+    rpc.say('bitcoin', 'betanet', reads: false);
+    conf.networks = [NetworkOption(id: 'bitcoin', displayName: 'Bitcoin', network: 'mainnet')];
+
+    final answer = await openRepairs(tester, 'bitcoin', 'betanet');
+
     expect(find.textContaining('reads another data directory'), findsOneWidget);
+    expect(_button('Switch to bitcoin'), findsNothing);
 
-    // The toast keeps a timer, and the test frame refuses a pending one.
-    await tester.pump(const Duration(seconds: 10));
+    await tester.tap(_button('Close'));
     await tester.pumpAndSettle();
+
+    expect(answer[0], isFalse, reason: 'the banner stays while the mismatch stands');
+  });
+
+  // The blocks and the app are both on eCash, so the user picks which of the
+  // two moves. The text names the network the app runs.
+  testWidgets('two eCash networks offer both repairs', (tester) async {
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    await openRepairs(tester, 'alphanet', 'betanet');
+
+    expect(find.text('The blocks on disk are from alphanet'), findsWidgets);
+    expect(find.text('But you are on betanet.'), findsWidgets);
+    expect(_button('Switch to alphanet'), findsOneWidget);
+    expect(_button('Convert the blocks to betanet'), findsOneWidget);
+  });
+
+  // A conversion rewinds to the block two eCash forks share. Nothing says where
+  // another family parts from eCash, so there is no block to rewind to.
+  testWidgets('blocks from another family offer no conversion', (tester) async {
+    rpc.answers = true;
+    rpc.say('bitcoin', 'betanet');
+    conf.networks = [
+      NetworkOption(id: 'bitcoin', displayName: 'Bitcoin', network: 'mainnet'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    await openRepairs(tester, 'bitcoin', 'betanet');
+
+    expect(_button('Switch to bitcoin'), findsOneWidget);
+    expect(_button('Convert the blocks to betanet'), findsNothing);
+    expect(find.textContaining('between two eCash networks only'), findsOneWidget);
+  });
+
+  // The user's own file names the network, so neither repair is the app's to
+  // make. The dialog says so rather than offer a button that fails.
+  testWidgets('a private bitcoin.conf offers no repair', (tester) async {
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+    conf.hasPrivateBitcoinConf = true;
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    await openRepairs(tester, 'alphanet', 'betanet');
+
+    expect(find.textContaining('Your own bitcoin.conf names the network'), findsOneWidget);
+    expect(_button('Switch to alphanet'), findsNothing);
+    expect(_button('Convert the blocks to betanet'), findsNothing);
+    expect(_button('Close'), findsOneWidget);
+  });
+
+  // A cancelled repair leaves the banner on screen, so the mismatch stays
+  // visible until the user acts on it.
+  testWidgets('a cancelled dialog leaves the notice', (tester) async {
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    final answer = await openRepairs(tester, 'alphanet', 'betanet');
+    await tester.tap(_button('Close'));
+    await tester.pumpAndSettle();
+
+    expect(_button('Switch to alphanet'), findsNothing);
+    expect(answer[0], isFalse);
   });
 }
