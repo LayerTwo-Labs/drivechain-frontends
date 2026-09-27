@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -494,4 +495,47 @@ func TestMigrationReadsThisStore(t *testing.T) {
 	// even while the data directory stays.
 	o.BitcoinConf.Config.SetSetting("blocksdir", t.TempDir(), "main")
 	require.False(t, o.migrationReadsThisStore(job, blocks))
+}
+
+// The conversion rewinds to the block the source forks from. The published
+// document can leave that hash out, and a network this build does not know then
+// carries none, so the offer would end in a refusal.
+func TestDatadirNetworkNeedsTheForkParent(t *testing.T) {
+	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 101, NetworkMagic: "eca5a104"},
+		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 121, NetworkMagic: "eca5b104"},
+	}}
+
+	out := DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
+	out.setConversion(cat, ECashMigrationStatus{})
+	require.Empty(t, out.ConvertFromID, "the source publishes no fork parent hash")
+
+	cat.Networks[0].ForkParentHash = strings.Repeat("a", 64)
+	out = DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
+	out.setConversion(cat, ECashMigrationStatus{})
+	require.Equal(t, "alphanet", out.ConvertFromID)
+
+	// A hash of the wrong length names no block either.
+	cat.Networks[0].ForkParentHash = "abcd"
+	out = DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
+	out.setConversion(cat, ECashMigrationStatus{})
+	require.Empty(t, out.ConvertFromID)
+}
+
+// A resume compares the saved paths as text. A link this check resolved would
+// offer a repair the resume then refuses.
+func TestMigrationReadsThisStoreComparesRawPaths(t *testing.T) {
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+
+	dir, err := filepath.Abs(o.BitcoinConf.DataDir())
+	require.NoError(t, err)
+	blocks := o.coreBlocksDir(config.NetworkECash)
+	link := filepath.Join(t.TempDir(), "link")
+	require.NoError(t, os.Symlink(dir, link))
+
+	job := ECashMigrationStatus{JobID: "job-1", DataDir: link}
+	require.False(t, o.migrationReadsThisStore(job, blocks))
+	require.True(t, o.migrationReadsThisStore(ECashMigrationStatus{JobID: "job-1", DataDir: dir}, blocks))
 }

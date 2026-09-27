@@ -311,9 +311,8 @@ func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*
 	if to.ForkHeight <= from.ForkHeight {
 		return nil, fmt.Errorf("the target must fork BTC after the source network")
 	}
-	first := from
-	if data, err := hex.DecodeString(first.ForkParentHash); err != nil || len(data) != 32 {
-		return nil, fmt.Errorf("network %s must publish fork_parent_hash in /config", first.ID)
+	if !namesForkParent(from) {
+		return nil, fmt.Errorf("network %s must publish fork_parent_hash in /config", from.ID)
 	}
 	root, err := filepath.Abs(o.BitcoinConf.RootDataDir())
 	if err != nil {
@@ -332,7 +331,7 @@ func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*
 	}
 	state := &ecashMigration{
 		Status: ECashMigrationStatus{FromID: fromID, ToID: toID, Phase: "preview", DataDir: dataDir,
-			CommonHeight: int64(first.ForkHeight - 1), CommonHash: strings.ToLower(first.ForkParentHash),
+			CommonHeight: int64(from.ForkHeight - 1), CommonHash: strings.ToLower(from.ForkParentHash),
 			SourceMagic: strings.ToLower(from.NetworkMagic), TargetMagic: strings.ToLower(to.NetworkMagic), SyncState: "waiting"},
 		RootDir: root, BlocksDir: filepath.Join(blocksDir, "blocks"), FromEntry: from, ToEntry: to,
 		FromConfig: expandECashPlaceholder(raw, fromID), ToConfig: expandECashPlaceholder(raw, toID),

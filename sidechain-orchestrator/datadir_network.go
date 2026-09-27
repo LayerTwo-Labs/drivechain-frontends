@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -134,7 +135,9 @@ func (o *Orchestrator) migrationReadsThisStore(job ECashMigrationStatus, jobBloc
 		o.log.Warn().Err(err).Msg("could not resolve the ECX data directory")
 		return false
 	}
-	return sameDir(dir, job.DataDir) && sameDir(o.coreBlocksDir(config.Network(o.CurrentNetwork())), jobBlocks)
+	// Raw paths, as the resume compares them: a link this check accepted would
+	// send the user into a refusal instead of a repair.
+	return dir == job.DataDir && o.coreBlocksDir(config.Network(o.CurrentNetwork())) == jobBlocks
 }
 
 // setConversion names the conversion that leaves one network in the directory,
@@ -168,7 +171,17 @@ func conversionRuns(cat netcatalog.Catalog, fromID, toID string) bool {
 	if !okFrom || !okTo || from.Family != netcatalog.FamilyECash || to.Family != netcatalog.FamilyECash {
 		return false
 	}
-	return from.ForkHeight > 1 && to.ForkHeight > from.ForkHeight
+	// The conversion rewinds to the block the source forks from, so a source that
+	// names no parent block has nothing to rewind to.
+	return from.ForkHeight > 1 && to.ForkHeight > from.ForkHeight && namesForkParent(from)
+}
+
+// namesForkParent reports whether an entry names the block its fork descends
+// from, as a 32-byte hash. A published document can leave it out, and a network
+// this build does not know then carries none at all.
+func namesForkParent(n netcatalog.Network) bool {
+	data, err := hex.DecodeString(n.ForkParentHash)
+	return err == nil && len(data) == 32
 }
 
 // mixedSource names the end of the directory that is not the network the app
