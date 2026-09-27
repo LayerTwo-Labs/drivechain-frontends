@@ -79,6 +79,7 @@ jobs:
 
         # https://docs.flutter.dev/platform-integration/linux/building
       - name: Install Linux build dependencies
+        if: matrix.package != 'sail_ui' && matrix.package != 'sidechain_core'
         run: |
           sudo find /etc/apt/sources.list.d -maxdepth 1 -type f -name '*google-chrome*' -delete
           sudo apt-get update -y
