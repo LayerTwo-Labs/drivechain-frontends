@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/samber/lo"
@@ -69,16 +70,33 @@ func (h *WalletHandler) CreateDeposit(
 	if err := depositTreasuryReady(treasury, walletHeight, slot); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	ctip := treasury.ctip
-
 	treasuryHex := hex.EncodeToString(orchestrator.M8TreasuryScript(slot))
 	var externalInputs []*wpb.ExternalInput
 	oldTreasurySats := int64(0)
-	if ctip != nil {
-		oldTreasurySats = int64(ctip.Value)
+
+	start, startErr := h.depositStart(ctx, treasury, walletID, slot)
+	switch {
+	case errors.Is(startErr, errTreasuryAmbiguous):
+		return nil, connect.NewError(connect.CodeResourceExhausted, startErr)
+	case startErr != nil:
+		return nil, connect.NewError(connect.CodeUnavailable, startErr)
+	}
+	if start != nil {
+		tip, tipErr := treasuryTip(ctx, h.engine.ChainForWallet(walletID), slot, *start, h.recordedTipOf(slot))
+		switch {
+		case errors.Is(tipErr, errTreasuryChainFull), errors.Is(tipErr, errTreasurySpentElsewhere):
+			return nil, connect.NewError(connect.CodeResourceExhausted, tipErr)
+		case tipErr != nil:
+			return nil, connect.NewError(connect.CodeUnavailable, tipErr)
+		}
+		if tip.ancestors > 0 {
+			h.svc.Log().Info().Uint8("slot", slot).Int("ancestors", tip.ancestors).
+				Str("txid", tip.txid).Msg("the deposit builds on an unconfirmed treasury output")
+		}
+		oldTreasurySats = tip.valueSats
 		externalInputs = []*wpb.ExternalInput{{
-			Txid:            ctip.GetTxid().GetHex().GetValue(),
-			Vout:            int32(ctip.Vout),
+			Txid:            tip.txid,
+			Vout:            int32(tip.vout),
 			ValueSats:       oldTreasurySats,
 			ScriptPubkeyHex: treasuryHex,
 		}}
@@ -107,7 +125,7 @@ func (h *WalletHandler) CreateDeposit(
 
 	// An M5 is an ordinary transaction on the wire, so nothing later can tell
 	// it apart from a normal send. Record it while we still know.
-	if err := h.svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+	if err := h.recordDeposit(ctx, wallet.SidechainDeposit{
 		Txid:        send.Msg.Txid,
 		WalletID:    walletID,
 		Slot:        uint32(slot),
@@ -116,8 +134,12 @@ func (h *WalletHandler) CreateDeposit(
 		FeeSats:     req.Msg.FeeSats,
 	}); err != nil {
 		// The broadcast already happened, so failing the call would report a
-		// deposit that did not land. This row is the only record of it.
-		h.svc.Log().Error().Err(err).Str("txid", send.Msg.Txid).Msg("could not record the deposit")
+		// deposit that did not land. This row is the only record of it, and
+		// the next deposit to the slot builds on it, so the slot is now in an
+		// unknown state until a block settles it.
+		h.depositSlotBlind.Store(h.blindKey(slot), treasury.ctip.GetTxid().GetHex().GetValue())
+		h.svc.Log().Error().Err(err).Str("txid", send.Msg.Txid).Uint8("slot", slot).
+			Msg("could not record the deposit, holding the slot until a block lands")
 	}
 
 	return connect.NewResponse(&wpb.CreateDepositResponse{
