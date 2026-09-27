@@ -26,9 +26,7 @@ WalletData _wallet(String id, String name, {bool watchOnly = false, bool multisi
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   late WalletReaderProvider walletReader;
 

@@ -6,11 +6,11 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<NotificationProvider> freshProvider() async {
+  // A testWidgets body runs under FakeAsync, where a zero delay only completes
+  // when the tester pumps.
+  Future<NotificationProvider> freshProvider({WidgetTester? tester}) async {
     await registerTestDependencies();
     if (GetIt.I.isRegistered<NotificationProvider>()) {
       GetIt.I.unregister<NotificationProvider>();
@@ -19,7 +19,11 @@ void main() {
     GetIt.I.registerSingleton<NotificationProvider>(provider);
     // Let the constructor's history load settle, then start from empty — the
     // mock store is shared across tests.
-    await Future<void>.delayed(Duration.zero);
+    if (tester != null) {
+      await tester.pump();
+    } else {
+      await Future<void>.delayed(Duration.zero);
+    }
     await provider.clearAll();
     return provider;
   }
@@ -133,7 +137,7 @@ void main() {
 
   group('NotificationBanner widget', () {
     testWidgets('renders one strip at a time and clears once read', (tester) async {
-      final p = await freshProvider();
+      final p = await freshProvider(tester: tester);
       addBanner(p, 'first', 'drynet3 is out');
       addBanner(p, 'second', 'drynet4 is out');
 
@@ -152,7 +156,7 @@ void main() {
     });
 
     testWidgets('the ✕ marks it read without running the action', (tester) async {
-      final p = await freshProvider();
+      final p = await freshProvider(tester: tester);
       var ran = false;
       if (GetIt.I.isRegistered<NotificationActions>()) {
         GetIt.I.unregister<NotificationActions>();

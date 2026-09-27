@@ -12,9 +12,7 @@ UnspentOutput coin(String address, int sats) =>
     UnspentOutput(output: '$address:0', address: address, valueSats: Int64(sats));
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
     await GetIt.I.reset();

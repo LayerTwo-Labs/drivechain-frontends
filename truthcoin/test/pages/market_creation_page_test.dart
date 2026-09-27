@@ -13,9 +13,7 @@ import '../mocks/mock_truthcoin_rpc.dart';
 import '../test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   late TestTruthcoinRPC mockRpc;
 

@@ -9,9 +9,7 @@ import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
     final sidechainRPC = MockSidechainRPC();

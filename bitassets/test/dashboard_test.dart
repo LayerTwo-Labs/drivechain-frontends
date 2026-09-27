@@ -24,22 +24,21 @@ import 'test_utils.dart';
 final txProvider = SidechainTransactionsProvider();
 
 void main() {
-  // there's timers in sidechainrpc and mainchainrpc, that
-  // will get shut off when they're disposed. However, they're
-  // not disposed per test!
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
     final sidechainRPC = MockSidechainRPC();
     final bitassetsRPC = MockBitAssetsRPC();
     GetIt.I.registerLazySingleton<SidechainRPC>(() => sidechainRPC);
     GetIt.I.registerLazySingleton<BitAssetsRPC>(() => bitassetsRPC);
-    GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
+    GetIt.I.registerLazySingleton<BitcoindConnection>(
+      () => MockBitcoindConnection(),
+    );
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
-    GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => txProvider);
+    GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
+      () => txProvider,
+    );
     GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
     final balanceProvider = BalanceProvider(connections: [sidechainRPC]);
     GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
@@ -49,9 +48,7 @@ void main() {
 
   testWidgets('can render and show balance', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpSailPage(
-      const ParentChainPage(),
-    );
+    await tester.pumpSailPage(const ParentChainPage());
     await tester.pumpAndSettle();
   });
 }

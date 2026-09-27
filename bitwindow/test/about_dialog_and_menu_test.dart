@@ -6,9 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('About dialog renders refreshed copy', (tester) async {
     await tester.pumpSailPage(const AboutBitwindowDialog());

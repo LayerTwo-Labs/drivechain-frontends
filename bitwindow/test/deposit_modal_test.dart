@@ -38,9 +38,7 @@ WalletData _wallet(String id) => WalletData(
 Finder _depositButton() => find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'Deposit');
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
     await GetIt.I.reset();
