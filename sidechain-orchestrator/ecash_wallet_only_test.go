@@ -141,7 +141,7 @@ func TestECashWalletOnlyMigrationStarts(t *testing.T) {
 
 func TestECashWalletOnlyMigrationResumesConvertedWallet(t *testing.T) {
 	o, fixture, wallet := prepareWalletOnlyEngineTest(t, false)
-	state, err := o.newMigration("alphanet", "betanet")
+	state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 	require.NoError(t, err)
 	require.True(t, state.Status.WalletOnly)
 	state.Status.JobID = "wallet-only-resume"
@@ -172,7 +172,7 @@ func TestECashWalletOnlyStoppedSourceStarts(t *testing.T) {
 			o, fixture, wallet := prepareWalletOnlyEngineTest(t, true)
 			require.NoError(t, o.stopMigrationCore(context.Background()))
 			require.NoError(t, os.Remove(filepath.Join(fixture.DataDir, "fixture-events")))
-			state, err := o.newMigration("alphanet", "betanet")
+			state, err := o.newMigration(context.Background(), "alphanet", "betanet")
 			require.NoError(t, err)
 			require.False(t, state.Status.WalletOnly)
 			if saved {

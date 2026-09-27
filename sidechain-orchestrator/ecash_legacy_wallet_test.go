@@ -55,7 +55,7 @@ func TestECashMigrationRejectsLegacyWalletBeforeAJob(t *testing.T) {
 				require.NoError(t, os.MkdirAll(blocks, 0o700))
 				require.NoError(t, os.WriteFile(filepath.Join(blocks, "blk00000.dat"), []byte("retained blocks"), 0o600))
 			}
-			_, err := o.newMigration("alphanet", "betanet")
+			_, err := o.newMigration(context.Background(), "alphanet", "betanet")
 			require.ErrorContains(t, err, "SQLite")
 			_, err = o.PreviewECashMigration(context.Background(), "alphanet", "betanet")
 			require.ErrorContains(t, err, "SQLite")
