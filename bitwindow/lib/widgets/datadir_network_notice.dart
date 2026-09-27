@@ -100,10 +100,12 @@ class DatadirNetworkWatcher {
       // so a later change of the config asks again.
       return false;
     }
-    if (answer.detectedId.isEmpty && answer.magic.isNotEmpty) {
-      // The blocks carry a magic that no network in hand names. The published
-      // catalog names the networks that came after this build, and it lands
-      // after the start, so the watcher asks again.
+    if (answer.detectedId.isEmpty && answer.magic.isNotEmpty ||
+        answer.firstId.isEmpty && answer.firstMagic.isNotEmpty) {
+      // An end of the directory carries a magic that no network in hand names.
+      // The published catalog names the networks that came after this build, and
+      // it lands after the start, so the watcher asks again. Both ends count: a
+      // directory the daemon cannot describe holds a warning it cannot word.
       return false;
     }
     _checked = key;
