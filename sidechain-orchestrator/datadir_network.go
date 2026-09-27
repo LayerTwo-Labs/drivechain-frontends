@@ -100,9 +100,27 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 		if err != nil {
 			o.log.Warn().Err(err).Msg("could not read the saved ECX migration")
 		}
+		if !o.migrationReadsThisDir(job) {
+			job = ECashMigrationStatus{}
+		}
 		out.setConversion(cat, job)
 	}
 	return out, nil
+}
+
+// migrationReadsThisDir reports whether a saved job belongs to the directory the
+// app reads today. A resume refuses any other one, so a job the user left behind
+// in another datadir says nothing about these blocks.
+func (o *Orchestrator) migrationReadsThisDir(job ECashMigrationStatus) bool {
+	if job.JobID == "" || job.DataDir == "" {
+		return false
+	}
+	dir, err := filepath.Abs(o.BitcoinConf.DataDir())
+	if err != nil {
+		o.log.Warn().Err(err).Msg("could not resolve the ECX data directory")
+		return false
+	}
+	return sameDir(dir, job.DataDir)
 }
 
 // setConversion names the conversion that leaves one network in the directory,
