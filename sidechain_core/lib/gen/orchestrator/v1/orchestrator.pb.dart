@@ -66,6 +66,8 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     $core.bool? mixed,
     $core.String? convertFromId,
     $core.String? convertFromName,
+    $core.String? convertToId,
+    $core.String? convertToName,
   }) {
     final $result = create();
     if (magic != null) {
@@ -107,6 +109,12 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     if (convertFromName != null) {
       $result.convertFromName = convertFromName;
     }
+    if (convertToId != null) {
+      $result.convertToId = convertToId;
+    }
+    if (convertToName != null) {
+      $result.convertToName = convertToName;
+    }
     return $result;
   }
   GetDatadirNetworkResponse._() : super();
@@ -127,6 +135,8 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
     ..aOB(11, _omitFieldNames ? '' : 'mixed')
     ..aOS(12, _omitFieldNames ? '' : 'convertFromId')
     ..aOS(13, _omitFieldNames ? '' : 'convertFromName')
+    ..aOS(14, _omitFieldNames ? '' : 'convertToId')
+    ..aOS(15, _omitFieldNames ? '' : 'convertToName')
     ..hasRequiredFields = false
   ;
 
@@ -262,9 +272,9 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   void clearMixed() => clearField(11);
 
-  /// The network in this directory whose records a conversion has to move, empty
-  /// when no single network can move. It is the end that is not the one the app
-  /// runs.
+  /// The conversion that leaves one network in this directory, empty when none
+  /// can run. A saved migration names its own direction, which is not always the
+  /// network the app runs: the job writes the pick after it moves the records.
   @$pb.TagNumber(12)
   $core.String get convertFromId => $_getSZ(11);
   @$pb.TagNumber(12)
@@ -282,6 +292,24 @@ class GetDatadirNetworkResponse extends $pb.GeneratedMessage {
   $core.bool hasConvertFromName() => $_has(12);
   @$pb.TagNumber(13)
   void clearConvertFromName() => clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.String get convertToId => $_getSZ(13);
+  @$pb.TagNumber(14)
+  set convertToId($core.String v) { $_setString(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasConvertToId() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearConvertToId() => clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.String get convertToName => $_getSZ(14);
+  @$pb.TagNumber(15)
+  set convertToName($core.String v) { $_setString(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasConvertToName() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearConvertToName() => clearField(15);
 }
 
 class BinaryStatusMsg extends $pb.GeneratedMessage {

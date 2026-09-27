@@ -207,11 +207,13 @@ message GetDatadirNetworkResponse {
   // True when the two ends of the directory carry different networks, so no
   // node reads every block in it.
   bool mixed = 11;
-  // The network in this directory whose records a conversion has to move, empty
-  // when no single network can move. It is the end that is not the one the app
-  // runs.
+  // The conversion that leaves one network in this directory, empty when none
+  // can run. A saved migration names its own direction, which is not always the
+  // network the app runs: the job writes the pick after it moves the records.
   string convert_from_id = 12;
   string convert_from_name = 13;
+  string convert_to_id = 14;
+  string convert_to_name = 15;
 }
 
 message BinaryStatusMsg {

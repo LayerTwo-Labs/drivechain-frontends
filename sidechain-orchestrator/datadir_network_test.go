@@ -385,32 +385,64 @@ func TestDatadirNetworkMixedSource(t *testing.T) {
 		},
 	} {
 		t.Run(row.name, func(t *testing.T) {
-			id, _ := row.in.mixedSource()
-			require.Equal(t, row.wantID, id)
+			require.Equal(t, row.wantID, row.in.mixedSource())
 		})
 	}
 }
 
 // A conversion rewinds to the block both networks share and replays the target,
 // so it moves a chain forward only. The offer stands for one direction.
-func TestDatadirNetworkConvertSourceRunsOneWay(t *testing.T) {
+func TestDatadirNetworkConversionRunsOneWay(t *testing.T) {
 	cat := netcatalog.Embedded()
 
-	forward := DatadirNetwork{DetectedID: "alphanet", DetectedName: "Alphanet", SelectedID: "betanet"}
-	id, name := forward.convertSource(cat)
-	require.Equal(t, "alphanet", id)
-	require.Equal(t, "Alphanet", name)
+	forward := DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
+	forward.setConversion(cat, ECashMigrationStatus{})
+	require.Equal(t, "alphanet", forward.ConvertFromID)
+	require.Equal(t, "betanet", forward.ConvertToID)
+	require.Equal(t, "Alphanet", forward.ConvertFromName)
 
 	// Betanet blocks while the app runs alphanet: the backend refuses this
 	// direction, so the answer offers no conversion at all.
-	backward := DatadirNetwork{DetectedID: "betanet", DetectedName: "Betanet", SelectedID: "alphanet"}
-	id, _ = backward.convertSource(cat)
-	require.Empty(t, id)
+	backward := DatadirNetwork{DetectedID: "betanet", SelectedID: "alphanet"}
+	backward.setConversion(cat, ECashMigrationStatus{})
+	require.Empty(t, backward.ConvertFromID)
+	require.Empty(t, backward.ConvertToID)
 
 	// Bitcoin blocks share no fork height with an eCash network.
-	family := DatadirNetwork{DetectedID: "bitcoin", DetectedName: "Bitcoin", SelectedID: "betanet"}
-	id, _ = family.convertSource(cat)
-	require.Empty(t, id)
+	family := DatadirNetwork{DetectedID: "bitcoin", SelectedID: "betanet"}
+	family.setConversion(cat, ECashMigrationStatus{})
+	require.Empty(t, family.ConvertFromID)
+}
+
+// A job that stops during the conversion leaves the app on the source while the
+// oldest records already carry the target. The ends alone read as the reverse
+// move, so the saved direction decides.
+func TestDatadirNetworkResumesTheSavedDirection(t *testing.T) {
+	cat := netcatalog.Embedded()
+	interrupted := DatadirNetwork{
+		Mixed:      true,
+		FirstID:    "betanet",
+		DetectedID: "alphanet",
+		SelectedID: "alphanet",
+	}
+
+	// With no saved job the ends name a move no conversion can make.
+	guess := interrupted
+	guess.setConversion(cat, ECashMigrationStatus{})
+	require.Empty(t, guess.ConvertFromID)
+
+	interrupted.setConversion(cat, ECashMigrationStatus{JobID: "job-1", FromID: "alphanet", ToID: "betanet"})
+	require.Equal(t, "alphanet", interrupted.ConvertFromID)
+	require.Equal(t, "betanet", interrupted.ConvertToID)
+}
+
+// A job that finished says nothing about the directory today, so the ends decide.
+func TestDatadirNetworkIgnoresAFinishedJob(t *testing.T) {
+	cat := netcatalog.Embedded()
+	out := DatadirNetwork{DetectedID: "alphanet", SelectedID: "betanet"}
+	out.setConversion(cat, ECashMigrationStatus{JobID: "job-1", FromID: "betanet", ToID: "alphanet", Complete: true})
+	require.Equal(t, "alphanet", out.ConvertFromID)
+	require.Equal(t, "betanet", out.ConvertToID)
 }
 
 // One end carries a magic no network in hand names. The published catalog names

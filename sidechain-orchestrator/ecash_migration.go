@@ -240,16 +240,26 @@ func validMigrationID(id string) bool {
 // so the source they carry has to be allowed. A conversion that stopped part way
 // leaves one network at each end, and the half that still has to move is the
 // source, so both ends count.
+//
+// It reads the block files rather than call ReadDatadirNetwork: a start holds
+// the migration mutex while it asks, and that read takes the same mutex.
 func (o *Orchestrator) blockFilesHoldECashID(ctx context.Context, id string) bool {
 	if id == "" {
 		return false
 	}
-	found, err := o.ReadDatadirNetwork(ctx)
+	ends, err := blockfile.ReadEnds(ctx, o.coreBlocksDir(config.Network(o.CurrentNetwork())))
 	if err != nil {
-		o.log.Warn().Err(err).Msg("could not read the network of the block files")
+		if !errors.Is(err, blockfile.ErrNoBlocks) {
+			o.log.Warn().Err(err).Msg("could not read the network of the block files")
+		}
 		return false
 	}
-	return id == found.DetectedID || id == found.FirstID
+	o.mu.RLock()
+	cat := o.Catalog
+	o.mu.RUnlock()
+	first, _ := nameMagic(cat, ends.First.String())
+	last, _ := nameMagic(cat, ends.Last.String())
+	return id == first || id == last
 }
 
 func (o *Orchestrator) newMigration(ctx context.Context, fromID, toID string) (*ecashMigration, error) {

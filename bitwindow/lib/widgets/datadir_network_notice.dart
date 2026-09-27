@@ -176,11 +176,12 @@ String _name(String displayName, String id) => displayName.isNotEmpty ? displayN
 }) {
   final detected = _name(answer.detectedName, answer.detectedId);
   final selected = _name(answer.selectedName, answer.selectedId);
+  final target = _name(answer.convertToName, answer.convertToId);
   if (!answer.mixed) {
     final fix = switch ((canSwitch, canConvert)) {
-      (true, true) => 'Switch to $detected, or convert the blocks to $selected.',
+      (true, true) => 'Switch to $detected, or convert the blocks to $target.',
       (true, false) => 'Switch to $detected.',
-      (false, true) => 'Convert the blocks to $selected.',
+      (false, true) => 'Convert the blocks to $target.',
       (false, false) => 'Open this notice to read what to do.',
     };
     return (title: 'The blocks on disk are from $detected', content: 'But you are on $selected. $fix');
@@ -191,7 +192,7 @@ String _name(String displayName, String id) => displayName.isNotEmpty ? displayN
   return (
     title: 'The block files hold two networks',
     content: canConvert
-        ? 'But you are on $selected. A conversion stopped part way. Finish it to $selected.'
+        ? 'But you are on $selected. A conversion stopped part way. Finish it to $target.'
         : '$first and $detected records sit in one directory, and you are on $selected.',
   );
 }
@@ -287,7 +288,7 @@ Future<bool> _switchToDetected(
 /// Rewrites the blocks for the network the app runs. The conversion carries on
 /// in the daemon, so the notice stays until the two agree.
 Future<bool> _convertBlocksToSelected(BuildContext context, GetDatadirNetworkResponse answer) async {
-  if (!await openECashMigration(context, fromId: answer.convertFromId, toId: answer.selectedId)) {
+  if (!await openECashMigration(context, fromId: answer.convertFromId, toId: answer.convertToId)) {
     return false;
   }
   return await datadirNetworkMismatches() == false;
