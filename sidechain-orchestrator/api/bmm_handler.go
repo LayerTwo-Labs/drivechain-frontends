@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -414,6 +415,10 @@ func (h *BMMHandler) CreateBid(
 	}
 
 	template, err := proxy.GetBlockTemplate(ctx)
+	if errors.Is(err, sidechain.ErrNotReady) {
+		// FailedPrecondition makes the engine ask again on this tip.
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get block template: %w", err))
+	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get block template: %w", err))
 	}
