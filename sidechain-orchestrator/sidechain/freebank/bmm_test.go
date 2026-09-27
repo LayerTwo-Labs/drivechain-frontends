@@ -3,6 +3,7 @@ package freebank
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
 // fakeNode replies per method, and records the params each call carried. A
@@ -37,6 +40,11 @@ func fakeNode(t *testing.T, results map[string]json.RawMessage, seen map[string]
 		if result == nil {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(`{"result":null,"error":{"code":-32601,"message":"Method not found"}}`))
+			return
+		}
+		if string(result) == "notready" {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"result":null,"error":{"code":-40,"message":"side block for this eCash tip pending"}}`))
 			return
 		}
 		_, _ = w.Write([]byte(`{"result":` + string(result) + `,"error":null}`))
@@ -148,4 +156,16 @@ func TestTemplateOnTipReadsTheParentFromTheHeader(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, want, onTip, "tip %s", tip)
 	}
+}
+
+// freebankd's "not on this tip yet" answers become sidechain.ErrNotReady, which
+// the handler turns into a same-tip retry instead of skipping the block.
+func TestANodeNotReadyAsksForARetryOnTheSameTip(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{"get_block_template": json.RawMessage("notready")}, nil)
+	defer srv.Close()
+
+	_, err := clientFor(t, srv).GetBlockTemplate(context.Background())
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, sidechain.ErrNotReady))
+	assert.Contains(t, err.Error(), "pending")
 }
