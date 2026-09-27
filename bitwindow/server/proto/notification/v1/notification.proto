@@ -54,6 +54,9 @@ message SystemEvent {
     TYPE_SERVICE_DISCONNECTED = 2;
     TYPE_SYNC_COMPLETED = 3;
     TYPE_BLOCK_FOUND = 4;
+    // The network dropped a sidechain deposit, so it can never confirm and
+    // the user must send it again.
+    TYPE_DEPOSIT_DROPPED = 5;
   }
   Type type = 1;
   string message = 2;

@@ -13,6 +13,7 @@ const (
 	EventTypeTransaction     = "transaction"
 	EventTypeTimestamp       = "timestamp"
 	EventTypeTransactionConf = "transaction_confirmed"
+	EventTypeDepositDropped  = "deposit_dropped"
 )
 
 // HasBeenNotified checks if an event has already been notified

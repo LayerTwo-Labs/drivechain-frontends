@@ -4296,6 +4296,9 @@ type ListSidechainDepositsResponse_SidechainDeposit struct {
 	Amount        int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
 	Fee           int64                  `protobuf:"varint,3,opt,name=fee,proto3" json:"fee,omitempty"`
 	Confirmations int32                  `protobuf:"varint,4,opt,name=confirmations,proto3" json:"confirmations,omitempty"`
+	// True when the network no longer holds the deposit, so it can never
+	// confirm and the user must send it again.
+	Dropped       bool `protobuf:"varint,5,opt,name=dropped,proto3" json:"dropped,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4356,6 +4359,13 @@ func (x *ListSidechainDepositsResponse_SidechainDeposit) GetConfirmations() int3
 		return x.Confirmations
 	}
 	return 0
+}
+
+func (x *ListSidechainDepositsResponse_SidechainDeposit) GetDropped() bool {
+	if x != nil {
+		return x.Dropped
+	}
+	return false
 }
 
 var File_wallet_v1_wallet_proto protoreflect.FileDescriptor
@@ -4452,14 +4462,15 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x04lost\x18\x04 \x01(\bR\x04lost\"O\n" +
 	"\x1cListSidechainDepositsRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x12\n" +
-	"\x04slot\x18\x02 \x01(\x05R\x04slot\"\xee\x01\n" +
+	"\x04slot\x18\x02 \x01(\x05R\x04slot\"\x89\x02\n" +
 	"\x1dListSidechainDepositsResponse\x12U\n" +
-	"\bdeposits\x18\x01 \x03(\v29.wallet.v1.ListSidechainDepositsResponse.SidechainDepositR\bdeposits\x1av\n" +
+	"\bdeposits\x18\x01 \x03(\v29.wallet.v1.ListSidechainDepositsResponse.SidechainDepositR\bdeposits\x1a\x90\x01\n" +
 	"\x10SidechainDeposit\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x10\n" +
 	"\x03fee\x18\x03 \x01(\x03R\x03fee\x12$\n" +
-	"\rconfirmations\x18\x04 \x01(\x05R\rconfirmations\"\x9c\x01\n" +
+	"\rconfirmations\x18\x04 \x01(\x05R\rconfirmations\x12\x18\n" +
+	"\adropped\x18\x05 \x01(\bR\adropped\"\x9c\x01\n" +
 	"\x1dCreateSidechainDepositRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x12\n" +
 	"\x04slot\x18\x02 \x01(\x03R\x04slot\x12 \n" +
