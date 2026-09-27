@@ -433,4 +433,7 @@ func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, out.Mixed)
 	require.False(t, out.Mismatch)
+	// The caller reads the empty name beside the magic and asks again.
+	require.Equal(t, "eca5ff04", out.FirstMagic)
+	require.Empty(t, out.FirstID)
 }

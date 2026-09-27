@@ -50,6 +50,20 @@ class _FakeOrchestrator implements OrchestratorRPC {
     response = GetDatadirNetworkResponse(mismatch: false, magic: magic);
   }
 
+  /// The oldest records carry a magic no network in hand names, and the newest
+  /// ones belong to the running network. The daemon can name one end only.
+  void sayUnknownFirst(String firstMagic, String last) {
+    response = GetDatadirNetworkResponse(
+      mismatch: false,
+      firstMagic: firstMagic,
+      magic: 'eca5b104',
+      detectedId: last,
+      detectedName: last,
+      selectedId: last,
+      selectedName: last,
+    );
+  }
+
   /// convertFrom defaults to the detected network. The daemon leaves it empty
   /// when no conversion reaches the running network, and a test says so too.
   void say(String detected, String selected, {bool reads = true, String? convertFrom}) {
@@ -194,6 +208,23 @@ void main() {
       GetIt.I.get<NotificationProvider>().history.single.content,
       'But you are on alphanet. Switch to betanet.',
     );
+  });
+
+  // An unknown magic at either end is no answer. A check recorded over it bars
+  // every later one, and a mixed directory then stays quiet for good.
+  test('an unknown oldest end asks again', () async {
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.sayUnknownFirst('eca5ff04', 'betanet');
+
+    expect(await watcher.check(), isFalse);
+    expect(watcher.watchedKey, isEmpty);
+
+    rpc.sayMixed('alphanet', 'betanet', 'betanet', convertFrom: 'alphanet');
+
+    expect(await watcher.check(), isTrue);
+    expect(GetIt.I.get<NotificationProvider>().history, hasLength(1));
   });
 
   // The user crosses a banner out while the mismatch stands. A move to another
