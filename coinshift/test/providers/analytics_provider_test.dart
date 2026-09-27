@@ -7,14 +7,14 @@ import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
     final coinshiftRPC = MockCoinShiftRPC();
     GetIt.I.registerLazySingleton<CoinShiftRPC>(() => coinshiftRPC);
-    GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
+    GetIt.I.registerLazySingleton<BitcoindConnection>(
+      () => MockBitcoindConnection(),
+    );
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
     // Register SwapProvider (needed by AnalyticsProvider)

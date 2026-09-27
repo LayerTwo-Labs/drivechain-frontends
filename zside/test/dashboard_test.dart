@@ -27,12 +27,7 @@ import 'test_utils.dart';
 final txProvider = SidechainTransactionsProvider();
 
 void main() {
-  // there's timers in sidechainrpc and mainchainrpc, that
-  // will get shut off when they're disposed. However, they're
-  // not disposed per test!
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
     final sidechainRPC = MockSidechainRPC();

@@ -13,9 +13,7 @@ import 'mocks/storage_mock.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
     await GetIt.I.reset();
@@ -30,18 +28,12 @@ void main() {
     GetIt.I.registerLazySingleton<NotificationProvider>(
       () => NotificationProvider(),
     );
-    GetIt.I.registerLazySingleton<BitAssetsRPC>(
-      () => MockBitAssetsRPC(),
-    );
-    GetIt.I.registerLazySingleton<BitAssetsProvider>(
-      () => BitAssetsProvider(),
-    );
+    GetIt.I.registerLazySingleton<BitAssetsRPC>(() => MockBitAssetsRPC());
+    GetIt.I.registerLazySingleton<BitAssetsProvider>(() => BitAssetsProvider());
     GetIt.I.registerLazySingleton<AssetAnalyticsProvider>(
       () => AssetAnalyticsProvider(),
     );
-    GetIt.I.registerLazySingleton<FavoritesProvider>(
-      () => FavoritesProvider(),
-    );
+    GetIt.I.registerLazySingleton<FavoritesProvider>(() => FavoritesProvider());
     GetIt.I.registerLazySingleton<PriceAlertProvider>(
       () => PriceAlertProvider(),
     );
@@ -49,9 +41,7 @@ void main() {
 
   group('TransactionHistoryCard', () {
     testWidgets('renders empty state correctly', (WidgetTester tester) async {
-      await tester.pumpSailPage(
-        const TransactionHistoryCard(),
-      );
+      await tester.pumpSailPage(const TransactionHistoryCard());
 
       expect(find.text('Recent Activity'), findsOneWidget);
       expect(find.text('No recent activity'), findsOneWidget);
@@ -59,9 +49,7 @@ void main() {
     });
 
     testWidgets('shows title and subtitle', (WidgetTester tester) async {
-      await tester.pumpSailPage(
-        const TransactionHistoryCard(),
-      );
+      await tester.pumpSailPage(const TransactionHistoryCard());
 
       expect(find.text('Recent Activity'), findsOneWidget);
       expect(find.text('Your recent BitAssets transactions'), findsOneWidget);

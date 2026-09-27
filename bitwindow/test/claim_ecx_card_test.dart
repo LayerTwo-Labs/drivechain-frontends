@@ -104,9 +104,7 @@ class _FakeConf implements BitcoinConfProvider {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeWalletApi walletApi;
 

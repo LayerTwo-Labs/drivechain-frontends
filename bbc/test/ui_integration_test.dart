@@ -9,9 +9,7 @@ import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
     final sidechainRPC = MockSidechainRPC();
@@ -24,7 +22,9 @@ void main() {
       GetIt.I.registerLazySingleton<BbcRPC>(() => bbcRPC);
     }
     if (!GetIt.I.isRegistered<BitcoindConnection>()) {
-      GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
+      GetIt.I.registerLazySingleton<BitcoindConnection>(
+        () => MockBitcoindConnection(),
+      );
     }
     if (!GetIt.I.isRegistered<Logger>()) {
       GetIt.I.registerLazySingleton<Logger>(() => Logger());
@@ -132,11 +132,7 @@ void main() {
 
     testWidgets('SailButton loading state renders', (tester) async {
       await tester.pumpSailPage(
-        SailButton(
-          label: 'Loading',
-          loading: true,
-          onPressed: () async {},
-        ),
+        SailButton(label: 'Loading', loading: true, onPressed: () async {}),
       );
       // Don't use pumpAndSettle - loading indicator has infinite animation
       await tester.pump();
@@ -144,7 +140,9 @@ void main() {
       expect(find.byType(SailButton), findsOneWidget);
     });
 
-    testWidgets('Disabled SailButton does not trigger callback', (tester) async {
+    testWidgets('Disabled SailButton does not trigger callback', (
+      tester,
+    ) async {
       bool wasPressed = false;
 
       await tester.pumpSailPage(
@@ -169,10 +167,7 @@ void main() {
       final controller = TextEditingController();
 
       await tester.pumpSailPage(
-        SailTextField(
-          controller: controller,
-          hintText: 'Enter address',
-        ),
+        SailTextField(controller: controller, hintText: 'Enter address'),
       );
 
       await tester.enterText(find.byType(TextField), 'tb1qtest123');
@@ -183,10 +178,7 @@ void main() {
       final controller = TextEditingController();
 
       await tester.pumpSailPage(
-        SailTextField(
-          controller: controller,
-          hintText: 'Bitcoin address',
-        ),
+        SailTextField(controller: controller, hintText: 'Bitcoin address'),
       );
 
       expect(find.text('Bitcoin address'), findsOneWidget);
@@ -201,10 +193,7 @@ void main() {
             final theme = SailTheme.of(context);
             return Container(
               color: theme.colors.background,
-              child: SailText.primary15(
-                'Themed',
-                color: theme.colors.text,
-              ),
+              child: SailText.primary15('Themed', color: theme.colors.text),
             );
           },
         ),

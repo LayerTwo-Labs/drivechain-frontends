@@ -72,9 +72,7 @@ WalletData _wallet(String id) => WalletData(
 Finder _inline(String text) => find.descendant(of: find.byType(SailInlineError), matching: find.textContaining(text));
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
     await GetIt.I.reset();

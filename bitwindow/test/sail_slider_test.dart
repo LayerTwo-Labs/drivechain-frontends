@@ -5,9 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   Future<void> pump(WidgetTester tester, Widget slider) async {
     await tester.pumpSailPage(

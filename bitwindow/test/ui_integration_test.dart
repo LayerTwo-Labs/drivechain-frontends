@@ -7,9 +7,7 @@ import 'package:stacked/stacked.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Dashboard Widget Tests', () {
     testWidgets('CoinNews widget renders and shows content', (tester) async {

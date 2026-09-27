@@ -38,9 +38,9 @@ class _ListBitAssetsRPC extends MockBitAssetsRPC {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  // The register flow completes over real async hops, so this file keeps the
+  // real-clock binding.
+  LiveTestWidgetsFlutterBinding.ensureInitialized();
 
   late BitwindowClientSettings settings;
   late _ListBitAssetsRPC rpc;
@@ -52,7 +52,9 @@ void main() {
     rpc = _ListBitAssetsRPC();
     GetIt.I.registerSingleton<Logger>(log);
     GetIt.I.registerSingleton<BitwindowClientSettings>(settings);
-    GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: MockStore(), log: log));
+    GetIt.I.registerSingleton<ClientSettings>(
+      ClientSettings(store: MockStore(), log: log),
+    );
     GetIt.I.registerSingleton<BitAssetsRPC>(rpc);
     GetIt.I.registerSingleton<BitAssetsProvider>(BitAssetsProvider());
     GetIt.I.registerSingleton<NotificationProvider>(NotificationProvider());
@@ -62,24 +64,31 @@ void main() {
     await GetIt.I.reset();
   });
 
-  test('a search for the plaintext of an unnamed asset saves its name', () async {
-    final hash = blake3Hex(utf8.encode('ECX'));
-    rpc.assets = [BitAssetEntry(sequenceID: 0, hash: hash, details: BitAssetDetails())];
-    final model = BitAssetsViewModel();
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+  test(
+    'a search for the plaintext of an unnamed asset saves its name',
+    () async {
+      final hash = blake3Hex(utf8.encode('ECX'));
+      rpc.assets = [
+        BitAssetEntry(sequenceID: 0, hash: hash, details: BitAssetDetails()),
+      ];
+      final model = BitAssetsViewModel();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
 
-    model.searchController.text = 'ECX';
+      model.searchController.text = 'ECX';
 
-    expect(model.entries.single.hash, hash);
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-    final saved = await settings.getValue(HashNameMappingSetting());
-    expect(saved.value[hash]?.name, 'ECX');
-  });
+      expect(model.entries.single.hash, hash);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      final saved = await settings.getValue(HashNameMappingSetting());
+      expect(saved.value[hash]?.name, 'ECX');
+    },
+  );
 
   // A save notifies the view, and the rebuild reads the list again.
   test('a search saves the name of an asset one time', () async {
     final hash = blake3Hex(utf8.encode('ECX'));
-    rpc.assets = [BitAssetEntry(sequenceID: 0, hash: hash, details: BitAssetDetails())];
+    rpc.assets = [
+      BitAssetEntry(sequenceID: 0, hash: hash, details: BitAssetDetails()),
+    ];
     final model = BitAssetsViewModel();
     await Future<void>.delayed(const Duration(milliseconds: 20));
     rpc.failList = true;
@@ -97,7 +106,14 @@ void main() {
 
   test('a search matches the saved name of an asset', () async {
     final hash = blake3Hex(utf8.encode('Gold'));
-    rpc.assets = [BitAssetEntry(sequenceID: 0, hash: hash, plaintextName: 'Gold', details: BitAssetDetails())];
+    rpc.assets = [
+      BitAssetEntry(
+        sequenceID: 0,
+        hash: hash,
+        plaintextName: 'Gold',
+        details: BitAssetDetails(),
+      ),
+    ];
     final model = BitAssetsViewModel();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 

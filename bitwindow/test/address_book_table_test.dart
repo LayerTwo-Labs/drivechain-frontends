@@ -6,9 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   const entries = [
     ['bb privat', 'bc1qjyeu20wv7yrwj6q96h5k7ewcc5v474n7yqv023'],

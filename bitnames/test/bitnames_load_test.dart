@@ -37,9 +37,9 @@ class _ListRPC extends MockBitnamesRPC {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  // The list load completes over real async hops, so this file keeps the
+  // real-clock binding.
+  LiveTestWidgetsFlutterBinding.ensureInitialized();
 
   late _ListRPC rpc;
   late BitnamesProvider provider;

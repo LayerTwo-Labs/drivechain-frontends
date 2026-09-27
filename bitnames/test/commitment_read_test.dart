@@ -42,9 +42,9 @@ class _SlowBitnamesRPC extends MockBitnamesRPC {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  // The register flow completes over real async hops, so this file keeps the
+  // real-clock binding.
+  LiveTestWidgetsFlutterBinding.ensureInitialized();
 
   late _SlowBitnamesRPC rpc;
 

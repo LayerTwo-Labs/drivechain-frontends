@@ -5,9 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   group('UI Component Tests', () {
     testWidgets('SailCard renders with title and content', (tester) async {

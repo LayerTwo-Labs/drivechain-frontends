@@ -5,9 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   group('UI Component Tests', () {
     testWidgets('SailCard renders with title and content', (tester) async {
@@ -47,10 +45,7 @@ void main() {
       await tester.pumpSailPage(
         SailRow(
           spacing: SailStyleValues.padding16,
-          children: [
-            SailText.primary15('Left'),
-            SailText.primary15('Right'),
-          ],
+          children: [SailText.primary15('Left'), SailText.primary15('Right')],
         ),
       );
       await tester.pumpAndSettle();
@@ -94,7 +89,9 @@ void main() {
       expect(find.byType(SailButton), findsOneWidget);
     });
 
-    testWidgets('Disabled SailButton does not trigger callback', (tester) async {
+    testWidgets('Disabled SailButton does not trigger callback', (
+      tester,
+    ) async {
       bool wasPressed = false;
 
       await tester.pumpSailPage(
@@ -175,10 +172,7 @@ void main() {
     testWidgets('SailCheckbox renders', (tester) async {
       await tester.pumpSailPage(
         StatefulBuilder(
-          builder: (context, setState) => SailCheckbox(
-            value: false,
-            onChanged: (value) {},
-          ),
+          builder: (context, setState) => SailCheckbox(value: false, onChanged: (value) {}),
         ),
       );
       await tester.pumpAndSettle();
