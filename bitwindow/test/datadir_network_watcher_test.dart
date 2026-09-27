@@ -58,6 +58,27 @@ class _FakeOrchestrator implements OrchestratorRPC {
       selectedId: selected,
       selectedName: selected,
       switchReadsBlocks: reads,
+      convertFromId: detected,
+      convertFromName: detected,
+    );
+  }
+
+  /// A directory a conversion left part way: one network at each end.
+  void sayMixed(String first, String last, String selected, {String convertFrom = ''}) {
+    response = GetDatadirNetworkResponse(
+      mismatch: true,
+      mixed: true,
+      firstId: first,
+      firstName: first,
+      firstMagic: 'eca5a104',
+      detectedId: last,
+      detectedName: last,
+      magic: 'eca5b104',
+      selectedId: selected,
+      selectedName: selected,
+      switchReadsBlocks: true,
+      convertFromId: convertFrom,
+      convertFromName: convertFrom,
     );
   }
 
@@ -277,6 +298,58 @@ void main() {
     expect(_button('Switch to alphanet'), findsNothing);
     expect(_button('Convert the blocks to betanet'), findsNothing);
     expect(_button('Close'), findsOneWidget);
+  });
+
+  // A conversion that stopped part way leaves one network at each end. Either
+  // network reads one half of the directory, so the only repair finishes the job.
+  testWidgets('a half converted store offers the conversion only', (tester) async {
+    rpc.answers = true;
+    rpc.sayMixed('alphanet', 'betanet', 'betanet', convertFrom: 'alphanet');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+    ];
+
+    await openRepairs(tester, 'betanet', 'betanet');
+
+    expect(find.text('The block files hold two networks'), findsWidgets);
+    expect(find.text('But you are on betanet.'), findsWidgets);
+    expect(_button('Finish the conversion to betanet'), findsOneWidget);
+    expect(_button('Switch to betanet'), findsNothing);
+    expect(find.textContaining('A conversion stopped part way'), findsOneWidget);
+  });
+
+  // Neither half belongs to the network the app runs, so no single conversion
+  // reaches it. The dialog says so rather than offer a button that fails.
+  testWidgets('a store with two foreign halves offers no repair', (tester) async {
+    rpc.answers = true;
+    rpc.sayMixed('alphanet', 'betanet', 'drynet4');
+    conf.networks = [
+      NetworkOption(id: 'alphanet', displayName: 'Alphanet', network: 'ecash'),
+      NetworkOption(id: 'betanet', displayName: 'Betanet', network: 'ecash'),
+      NetworkOption(id: 'drynet4', displayName: 'Drynet4', network: 'ecash'),
+    ];
+
+    await openRepairs(tester, 'betanet', 'drynet4');
+
+    expect(_button('Finish the conversion to drynet4'), findsNothing);
+    expect(_button('Switch to betanet'), findsNothing);
+    expect(find.textContaining('no conversion reaches it'), findsOneWidget);
+  });
+
+  // The notice text carries the state: a half converted store reads as one, not
+  // as a plain move between two networks.
+  test('the notice names a half converted store', () async {
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.sayMixed('alphanet', 'betanet', 'betanet', convertFrom: 'alphanet');
+
+    expect(await watcher.check(), isTrue);
+
+    final notice = GetIt.I.get<NotificationProvider>().history.single;
+    expect(notice.title, 'The block files hold two networks');
+    expect(notice.content, 'But you are on betanet. A conversion stopped part way. Finish it to betanet.');
   });
 
   // A cancelled repair leaves the banner on screen, so the mismatch stays

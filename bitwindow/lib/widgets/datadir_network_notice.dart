@@ -114,12 +114,11 @@ class DatadirNetworkWatcher {
     }
     await _retireOtherPairs(provider, answer);
 
-    final detected = _name(answer.detectedName, answer.detectedId);
-    final selected = _name(answer.selectedName, answer.selectedId);
+    final text = datadirNoticeText(answer);
     provider.add(
       id: datadirNoticeId(provider.history, answer.detectedId, answer.selectedId, DateTime.now()),
-      title: 'The blocks on disk are from $detected',
-      content: 'But you are on $selected. Switch to $detected, or convert the blocks to $selected.',
+      title: text.title,
+      content: text.content,
       dialogType: DialogType.error,
       style: NotificationStyle.modalThenBanner,
       action: datadirNetworkAction,
@@ -163,6 +162,30 @@ String datadirWatchKey(BitcoinConfProvider conf) {
 }
 
 String _name(String displayName, String id) => displayName.isNotEmpty ? displayName : id;
+
+/// The notice text for one answer. It names the network the app runs either way,
+/// because the network on disk alone says nothing about the repair.
+({String title, String content}) datadirNoticeText(GetDatadirNetworkResponse answer) {
+  final detected = _name(answer.detectedName, answer.detectedId);
+  final selected = _name(answer.selectedName, answer.selectedId);
+  if (!answer.mixed) {
+    return (
+      title: 'The blocks on disk are from $detected',
+      content: 'But you are on $selected. Switch to $detected, or convert the blocks to $selected.',
+    );
+  }
+  final first = _name(answer.firstName, answer.firstId);
+  if (answer.convertFromId.isEmpty) {
+    return (
+      title: 'The block files hold two networks',
+      content: '$first and $detected records sit in one directory, and you are on $selected.',
+    );
+  }
+  return (
+    title: 'The block files hold two networks',
+    content: 'But you are on $selected. A conversion stopped part way. Finish it to $selected.',
+  );
+}
 
 /// The id of the notice for one pair of networks. A mismatch that stands keeps
 /// one id, whether the user crossed the banner out or restarted the app, so the
@@ -247,7 +270,7 @@ Future<bool> _switchToDetected(
 /// Rewrites the blocks for the network the app runs. The conversion carries on
 /// in the daemon, so the notice stays until the two agree.
 Future<bool> _convertBlocksToSelected(BuildContext context, GetDatadirNetworkResponse answer) async {
-  if (!await openECashMigration(context, fromId: answer.detectedId, toId: answer.selectedId)) {
+  if (!await openECashMigration(context, fromId: answer.convertFromId, toId: answer.selectedId)) {
     return false;
   }
   return await datadirNetworkMismatches() == false;
