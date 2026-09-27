@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'test_utils.dart';
@@ -176,17 +175,10 @@ void main() {
         action: 'act',
       );
 
-      await tester.pumpWidget(
-        SailApp(
-          dense: false,
-          builder: (context) => const MaterialApp(home: NotificationBanner()),
-          initMethod: (_) async => (),
-          accentColor: SailColorScheme.black,
-          log: GetIt.I.get<Logger>(),
-        ),
-      );
-      // Bounded pumps, as the tests beside this one do. The page animates, so a
-      // settle waits for a frame that never comes.
+      // A bare tree, with no SailApp: the handler owns the dialog, so the banner
+      // paints no strip and reads no theme. A heavier harness waits on frames
+      // this assertion does not need.
+      await tester.pumpWidget(const MaterialApp(home: NotificationBanner()));
       for (var frame = 0; frame < 3; frame++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
