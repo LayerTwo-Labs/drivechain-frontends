@@ -277,7 +277,7 @@ class _TransactionTableState extends State<TransactionTable> {
                           onSort: () => onSort('date'),
                           filterWidget: SailTooltip(
                             message: 'Filter by date range',
-                            child: DateFilter(model: widget.model),
+                            child: DateFilter(range: widget.model.dateRange, onChanged: widget.model.setDateRange),
                           ),
                         ),
                         SailTableHeaderCell(
@@ -552,14 +552,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
         return false;
       }
 
-      if (dateRange != null) {
-        final rangeStart = DateTime(dateRange!.start.year, dateRange!.start.month, dateRange!.start.day);
-        final rangeEnd = DateTime(dateRange!.end.year, dateRange!.end.month, dateRange!.end.day, 23, 59, 59);
-
-        final txDate = tx.confirmationTime.timestamp.toDateTime();
-        if (txDate.isBefore(rangeStart) || txDate.isAfter(rangeEnd)) {
-          return false;
-        }
+      if (dateRange != null && !isInDateRange(tx.confirmationTime.timestamp.toDateTime(), dateRange!)) {
+        return false;
       }
 
       return true;
@@ -616,11 +610,6 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   void setDateRange(({DateTime start, DateTime end})? range) {
     dateRange = range;
-    notifyListeners();
-  }
-
-  void clearDateFilter() {
-    dateRange = null;
     notifyListeners();
   }
 
@@ -883,105 +872,6 @@ class WalletStats extends ViewModelWidget<OverviewViewModel> {
       loading: LoadingDetails(
         enabled: viewModel.loading,
         description: 'Waiting for enforcer to boot and wallet to sync..',
-      ),
-    );
-  }
-}
-
-class DateRangeFilterWidget extends StatelessWidget {
-  final OverviewViewModel model;
-
-  const DateRangeFilterWidget({
-    super.key,
-    required this.model,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        final pickedRange = await showSailDateRangePicker(
-          context: context,
-          firstDate: DateTime(2009, 1, 3),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
-          initialRange: model.dateRange,
-        );
-
-        if (pickedRange != null) {
-          model.setDateRange(pickedRange);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: SailStyleValues.padding16,
-          vertical: SailStyleValues.padding12,
-        ),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: context.sailTheme.colors.divider,
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailSVG.icon(SailSVGAsset.iconCalendar, width: 16),
-            const SizedBox(width: SailStyleValues.padding08),
-            SailText.primary13(
-              model.dateRange == null
-                  ? 'Select date range'
-                  : '${DateFormat('MMM dd, yyyy').format(model.dateRange!.start)} - ${DateFormat('MMM dd, yyyy').format(model.dateRange!.end)}',
-            ),
-            if (model.dateRange != null) ...[
-              const SizedBox(width: SailStyleValues.padding08),
-              SailTappable(
-                onTap: () async => model.clearDateFilter(),
-                child: SailSVG.fromAsset(
-                  SailSVGAsset.x,
-                  width: 16,
-                  color: context.sailTheme.colors.text,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class DateFilter extends StatelessWidget {
-  final OverviewViewModel model;
-
-  const DateFilter({
-    super.key,
-    required this.model,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        if (model.dateRange != null) {
-          model.setDateRange(null);
-          return;
-        }
-        final pickedRange = await showSailDateRangePicker(
-          context: context,
-          firstDate: DateTime(2009, 1, 3),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
-          initialRange: model.dateRange,
-        );
-
-        if (pickedRange != null) {
-          model.setDateRange(pickedRange);
-        }
-      },
-      child: SailSVG.icon(
-        width: 16,
-        model.dateRange == null ? SailSVGAsset.filter : SailSVGAsset.filterX,
-        color: model.dateRange == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.orange,
       ),
     );
   }

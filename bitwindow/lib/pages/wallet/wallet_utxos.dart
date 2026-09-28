@@ -433,7 +433,11 @@ class _UTXOTableState extends State<UTXOTable> {
             getRowId: (index) => sortedEntries[index].output,
             headerBuilder: (context) => [
               SailTableHeaderCell(name: '', onSort: () => onSort('frozen')),
-              SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
+              SailTableHeaderCell(
+                name: 'Date',
+                onSort: () => onSort('date'),
+                filterWidget: DateFilter(range: widget.model.dateRange, onChanged: widget.model.setDateRange),
+              ),
               SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
               SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
               SailTableHeaderCell(name: 'Path', onSort: () => onSort('path')),
@@ -449,6 +453,7 @@ class _UTXOTableState extends State<UTXOTable> {
 
               return [
                 SailTableCell(
+                  width: 14,
                   value: '',
                   child: isFrozen
                       ? SailSVG.fromAsset(SailSVGAsset.snowflake, width: 14, color: theme.colors.info)
@@ -461,8 +466,9 @@ class _UTXOTableState extends State<UTXOTable> {
                   textColor: utxo.confirmations == 0 ? theme.colors.orange : null,
                 ),
                 SailTableCell(
-                  value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
+                  value: '',
                   copyValue: utxo.output,
+                  child: _OutputCell(utxo.output),
                 ),
                 SailTableCell(
                   value: utxo.address,
@@ -571,11 +577,18 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
       ];
     }
 
-    return _txProvider.utxos.toList();
+    final range = dateRange;
+    if (range == null) {
+      return _txProvider.utxos.toList();
+    }
+    return _txProvider.utxos
+        .where((utxo) => utxo.hasReceivedAt() && isInDateRange(utxo.receivedAt.toDateTime(), range))
+        .toList();
   }
 
   String sortColumn = 'date';
   bool sortAscending = true;
+  ({DateTime start, DateTime end})? dateRange;
 
   LatestUTXOsViewModel() {
     initChangeTracker();
@@ -594,6 +607,28 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   void dispose() {
     _txProvider.removeListener(_onChange);
     super.dispose();
+  }
+
+  void setDateRange(({DateTime start, DateTime end})? range) {
+    dateRange = range;
+    notifyListeners();
+  }
+}
+
+class _OutputCell extends StatelessWidget {
+  final String output;
+
+  const _OutputCell(this.output);
+
+  @override
+  Widget build(BuildContext context) {
+    final separator = output.lastIndexOf(':');
+    return Row(
+      children: [
+        Flexible(child: SailText.primary13(output.substring(0, separator), overflow: TextOverflow.ellipsis)),
+        SailText.primary13(output.substring(separator)),
+      ],
+    );
   }
 }
 
