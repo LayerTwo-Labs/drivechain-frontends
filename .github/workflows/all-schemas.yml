@@ -29,41 +29,14 @@ jobs:
           restore-keys: |
             all-schemas-${{ env.GO_VERSION }}-
 
-      - name: Cache Bitcoin Core, enforcer, and sidechain binaries
-        uses: actions/cache@v5
-        with:
-          path: |
-            /tmp/orchestrator-data
-            ~/.cache/drivechain-binaries
-            ~/.cache/enforcer-binaries
-          key: drivechain-binaries-${{ hashFiles('sidechain-orchestrator/go.sum') }}
-          restore-keys: |
-            drivechain-binaries-
-      
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Build orchestrator binaries
-        working-directory: sidechain-orchestrator
-        run: |
-          set -euo pipefail
-          go build -o drivechain-cli ./cmd/drivechain-cli/
-          go build -o drivechaind ./cmd/drivechaind/
-
-      - name: Start orchestrator daemon
-        working-directory: sidechain-orchestrator
-        run: |
-          set -euo pipefail
-          # Start daemon in background
-          ./drivechaind --datadir=/tmp/orchestrator-data &
-          # Wait for daemon to be ready
-          sleep 5
-        env:
-          ORCHESTRATOR_AUTO_DOWNLOAD: "1"
-
       - name: Download and generate all schemas
         working-directory: sidechain-orchestrator
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           
@@ -71,20 +44,11 @@ jobs:
           sidechains=(bitassets bitnames coinshift photon thunder truthcoin)
           
           for sidechain in "${sidechains[@]}"; do
-            echo "Downloading $sidechain binary..."
-            ./drivechain-cli download --wait --force-backend "$sidechain"
-            
-            echo "Contents of assets/bin:"
-            ls -la /tmp/orchestrator-data/assets/bin/ || echo "No bin directory yet"
-            
-            # Test binary integrity
-            cli_binary="/tmp/orchestrator-data/assets/bin/${sidechain}-cli"
-            echo "Testing $sidechain-cli binary:"
-            file "$cli_binary" || echo "file command failed"
-            ldd "$cli_binary" | head -5 || echo "ldd failed (static binary?)"
-            "$cli_binary" --version || echo "--version failed"
-            "$cli_binary" --help | head -3 || echo "--help failed"
-            
+            repo=$(jq -r ".binaries.${sidechain}.download.files.default.base_url" config/chains_config.json | sed -E 's#^https://api.github.com/repos/([^/]+/[^/]+)/releases/latest$#\1#')
+            cli_binary="/tmp/${sidechain}-cli"
+            gh release download -R "$repo" --clobber --pattern "${sidechain}-cli-*-x86_64-unknown-linux-gnu" -O "$cli_binary"
+            chmod +x "$cli_binary"
+
             echo "Generating schema for $sidechain..."
             # Extract just the JSON by finding the opening { and matching closing }
             "$cli_binary" openapi-schema 2>/dev/null > "/tmp/${sidechain}_raw.json"
