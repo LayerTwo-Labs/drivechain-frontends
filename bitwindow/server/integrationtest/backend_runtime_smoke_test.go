@@ -196,7 +196,7 @@ func newOrchestratorOnlyNode(t *testing.T) *orchestratorOnlyNode {
 	nodeDir := filepath.Join(rootDir, "node0")
 	orchconfig.SetHomeDir(nodeDir)
 	t.Cleanup(func() { orchconfig.SetHomeDir("") })
-	prepareEnforcerConfigForSmokeTest(t, basePort+210, basePort+211, basePort+212)
+	prepareEnforcerConfigForSmokeTest(t, basePort+210, basePort+212)
 
 	bitwindowDir := filepath.Join(nodeDir, "bitwindow")
 	bitcoinDataDir := filepath.Join(nodeDir, "bitcoin")
@@ -284,7 +284,7 @@ port=%d
 	return node
 }
 
-func prepareEnforcerConfigForSmokeTest(t *testing.T, rpcPort, jsonRPCPort, grpcPort int) {
+func prepareEnforcerConfigForSmokeTest(t *testing.T, rpcPort, grpcPort int) {
 	t.Helper()
 	confDir := orchconfig.EnforcerDirs.RootDir()
 	confPath := filepath.Join(confDir, "bitwindow-enforcer.conf")
@@ -303,9 +303,8 @@ enable-wallet=false
 enable-mempool=true
 wallet-esplora-url=
 serve-rpc-addr=127.0.0.1:%d
-serve-json-rpc-addr=127.0.0.1:%d
 serve-grpc-addr=127.0.0.1:%d
-`, rpcPort, jsonRPCPort, grpcPort)
+`, rpcPort, grpcPort)
 	require.NoError(t, os.WriteFile(confPath, []byte(content), 0o644))
 
 	t.Cleanup(func() {
