@@ -61,3 +61,44 @@ Widget _themedPickerBuilder(BuildContext context, Widget? child) {
     child: child!,
   );
 }
+
+/// True when [time] falls on a calendar day inside [range], both ends included.
+bool isInDateRange(DateTime time, ({DateTime start, DateTime end}) range) {
+  final start = DateTime(range.start.year, range.start.month, range.start.day);
+  final end = DateTime(range.end.year, range.end.month, range.end.day + 1);
+  return !time.isBefore(start) && time.isBefore(end);
+}
+
+/// Filter icon for a table header. A tap picks a range, or clears the active one.
+class DateFilter extends StatelessWidget {
+  final ({DateTime start, DateTime end})? range;
+  final void Function(({DateTime start, DateTime end})? range) onChanged;
+
+  const DateFilter({super.key, required this.range, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final active = range != null;
+    return SailTappable(
+      onTap: () async {
+        if (active) {
+          onChanged(null);
+          return;
+        }
+        final picked = await showSailDateRangePicker(
+          context: context,
+          firstDate: DateTime(2009, 1, 3),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (picked != null) {
+          onChanged(picked);
+        }
+      },
+      child: SailSVG.icon(
+        active ? SailSVGAsset.filterX : SailSVGAsset.filter,
+        color: active ? context.sailTheme.colors.orange : context.sailTheme.colors.textSecondary,
+        width: 16,
+      ),
+    );
+  }
+}
