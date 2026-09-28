@@ -218,6 +218,7 @@ func run(cctx *cli.Context) error {
 	configPath := orchestrator.ConfigFilePath(bitwindowDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
 	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
+	orch.SetBackendOnly(cctx.Bool("force-backend"))
 
 	// Whoever holds this owns the binaries in dataDir. The kernel frees it when
 	// the holder dies, so a leftover from a crashed run is ours to stop.
@@ -753,7 +754,7 @@ func run(cctx *cli.Context) error {
 
 	// Auto-boot sidechains specified via --binary flags
 	binariesToBoot := cctx.StringSlice("binary")
-	forceBackend := cctx.Bool("force-backend")
+	forceBackend := orch.BackendOnly()
 	for _, name := range binariesToBoot {
 		go func(target string) {
 			log.Info().Str("binary", target).Bool("force_backend", forceBackend).Msg("auto-booting sidechain with deps")

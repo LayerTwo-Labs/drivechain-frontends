@@ -188,6 +188,10 @@ type Orchestrator struct {
 	// walletEngine is reset on a network swap; nil in tests that don't wire it.
 	walletEngine *wallet.WalletEngine
 
+	// backendOnly is true while this daemon runs with --force-backend. A host
+	// with no display then opens no chain window, whatever a caller asks for.
+	backendOnly atomic.Bool
+
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
 	process    *ProcessManager
@@ -594,6 +598,7 @@ func (o *Orchestrator) Download(ctx context.Context, name string, force bool, op
 	if len(options) > 0 {
 		opts = options[0]
 	}
+	opts = o.downloadOptsFor(opts)
 	config, err := o.getConfig(name)
 	if err != nil {
 		return nil, err
@@ -609,7 +614,7 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	}
 	// A layer-2 binary starts its frontend, which then asks for the backend slot
 	// under this same name, so the frontend takes the GUI slot instead.
-	if config.ChainLayer == 2 && o.process.SidechainVariant != nil {
+	if config.ChainLayer == 2 && !o.BackendOnly() && o.process.SidechainVariant != nil {
 		if sv, ok := o.process.SidechainVariant(config); ok {
 			guiName := sidechainGUIProcessName(config.Name)
 			return o.process.StartWithOptions(ctx, config, args, env, ProcessStartOptions{
@@ -623,7 +628,21 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	if err := o.alignECashSidechainState(config); err != nil {
 		return 0, err
 	}
-	return o.process.Start(ctx, config, args, env)
+	if !o.BackendOnly() {
+		return o.process.Start(ctx, config, args, env)
+	}
+	// The chain states its own command line, and the starter path, --network and
+	// --headless are part of it. This call takes no L1 boot, so nothing else
+	// adds them, and the node would then derive another wallet.
+	opts := StartOpts{TargetArgs: args, ForceBackend: true}
+	o.injectSidechainStarter(config, &opts)
+	if err := o.prepareSidechainArgs(config, &opts); err != nil {
+		return 0, err
+	}
+	if err := o.appendSidechainArgs(ctx, config, &opts); err != nil {
+		return 0, err
+	}
+	return o.process.StartWithOptions(ctx, config, opts.TargetArgs, env, ProcessStartOptions{ForceBackend: true})
 }
 
 // Stop stops a running binary and marks its monitor as stopped so
@@ -710,6 +729,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 // the test sidechain resolver, so a sidechain app reports the daemon it runs
 // instead of the test build BitWindow launches.
 func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) BinaryStatus {
+	opts = o.downloadOptsFor(opts)
 	config, err := o.getConfig(name)
 	if err != nil {
 		return BinaryStatus{Name: name, Error: err.Error()}
@@ -800,6 +820,7 @@ func (o *Orchestrator) ListAll() []BinaryStatus {
 // ListAllWithOptions is ListAll with the force-backend lever of
 // StatusWithOptions.
 func (o *Orchestrator) ListAllWithOptions(opts DownloadOptions) []BinaryStatus {
+	opts = o.downloadOptsFor(opts)
 	// Snapshot names and release before Status: it re-acquires o.mu via
 	// getConfig, and a queued writer would deadlock the nested read lock.
 	o.mu.RLock()
@@ -891,6 +912,8 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	if err := o.refuseWhileParked(); err != nil {
 		return nil, err
 	}
+	// The target prefetch below reads this, so it lands before the boot starts.
+	opts = o.startOptsFor(opts)
 	// Mainnet and eCash keep their chain outside the platform default,
 	// so booting before the user picks a directory syncs a second copy over
 	// whatever they already run. The node mode gate above and this one are the
@@ -1920,6 +1943,7 @@ func enforcerEnv() map[string]string {
 // If prefetched is non-nil, the target binary is already being downloaded in
 // parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress, prefetched <-chan error) {
+	opts = o.startOptsFor(opts)
 	var startupPatterns []string
 	var healthOpts HealthCheckOpts
 	if config.IsMainchainCore() && o.BitcoinConf != nil {
@@ -2052,6 +2076,34 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 }
 
+// downloadOptsFor applies the answers this daemon holds to a caller's options.
+// Status, download and version each pick a build, so a backend-only daemon
+// answers for all three, and no caller has to carry the flag.
+func (o *Orchestrator) downloadOptsFor(opts DownloadOptions) DownloadOptions {
+	if o.BackendOnly() {
+		opts.ForceBackend = true
+	}
+	return opts
+}
+
+// startOptsFor applies the answers this daemon holds to a caller's options.
+// Every start reaches it, and a restart of a dead process reads no flag off that
+// process, so the daemon answers for it.
+func (o *Orchestrator) startOptsFor(opts StartOpts) StartOpts {
+	if o.BackendOnly() {
+		opts.ForceBackend = true
+	}
+	return opts
+}
+
+// SetBackendOnly records that this daemon runs with --force-backend. The daemon
+// calls it one time, before it serves, so a later start reads the same answer as
+// the boot did.
+func (o *Orchestrator) SetBackendOnly(backendOnly bool) { o.backendOnly.Store(backendOnly) }
+
+// BackendOnly reports whether this daemon starts bare nodes only.
+func (o *Orchestrator) BackendOnly() bool { return o.backendOnly.Load() }
+
 func sidechainGUIProcessName(name string) string {
 	return name + "-gui"
 }
@@ -2083,7 +2135,7 @@ func shutdownList(running []string, keepWindows bool) []string {
 // window. A backend call asks for the daemon instead, and a chain with no app
 // bundle has no window to open.
 func (o *Orchestrator) opensSidechainWindow(config BinaryConfig, opts StartOpts) bool {
-	if opts.ForceBackend || config.ChainLayer != 2 || o.process == nil || o.process.SidechainVariant == nil {
+	if opts.ForceBackend || o.BackendOnly() || config.ChainLayer != 2 || o.process == nil || o.process.SidechainVariant == nil {
 		return false
 	}
 	_, ok := o.process.SidechainVariant(config)
