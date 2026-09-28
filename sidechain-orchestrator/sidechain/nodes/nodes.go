@@ -20,10 +20,14 @@ import (
 // chains speak a bare JSON-RPC with no credentials.
 func New(name, host string, port int, isBitcoinCore bool, network config.Network) (sidechain.Node, error) {
 	if !isBitcoinCore {
-		if name == "zside" {
+		switch name {
+		case "zside":
 			return zside.NewNode(host, port), nil
+		case "bitassets", "photon":
+			return selfMinedNode{sidechain.NewJSONRPCProxy(host, port)}, nil
+		default:
+			return sidechain.NewJSONRPCProxy(host, port), nil
 		}
-		return sidechain.NewJSONRPCProxy(host, port), nil
 	}
 	dirs, ok := config.DirConfigByName(name)
 	if !ok {
@@ -40,4 +44,10 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 	default:
 		return bbc.NewClient(host, port, cookie), nil
 	}
+}
+
+// selfMinedNode is a chain that serves no block template and mines its own
+// blocks, so the BMM engine does not drive it.
+type selfMinedNode struct {
+	sidechain.WithdrawalNode
 }
