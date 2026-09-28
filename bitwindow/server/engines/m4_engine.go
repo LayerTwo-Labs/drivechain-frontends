@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 )
@@ -20,7 +22,8 @@ func NewM4Engine(db *sql.DB) *M4Engine {
 	return &M4Engine{db: db}
 }
 
-// ProcessBlock processes a block for M3/M4 messages and updates SCDB state
+// ProcessBlock stores the M3 and M4 messages of a block. ApplyPendingM4
+// applies the M4 votes once the enforcer reaches the block.
 func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.MsgBlock) error {
 	log := zerolog.Ctx(ctx).With().
 		Uint32("height", height).
@@ -67,23 +70,93 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 			return fmt.Errorf("persist M4: %w", err)
 		}
 
-		// Apply M4 votes to update bundle work scores
-		if err := e.applyM4Votes(ctx, height, m4Msg); err != nil {
-			return fmt.Errorf("apply M4 votes: %w", err)
-		}
-
 		log.Debug().
-			Int("votes", len(m4Msg.Votes)).
 			Uint8("version", m4Msg.Version).
-			Msg("processed M4 message")
-	}
-
-	// Update all bundle states (recompute blocks_left, check expiration)
-	if err := e.updateBundleStates(ctx, height); err != nil {
-		return fmt.Errorf("update bundle states: %w", err)
+			Msg("stored M4 message")
 	}
 
 	return nil
+}
+
+// ApplyPendingM4 applies the stored M4 votes up to height in height order, then
+// ages the bundles to height. sidechains is the enforcer's active set at height or above.
+func (e *M4Engine) ApplyPendingM4(
+	ctx context.Context, height uint32, sidechains []*validatorpb.GetSidechainsResponse_SidechainInfo,
+) error {
+	pending, err := e.pendingM4Messages(ctx, height)
+	if err != nil {
+		return fmt.Errorf("list pending M4: %w", err)
+	}
+
+	for _, msg := range pending {
+		if msg.BlockHeight > 0 {
+			if err := e.updateBundleStates(ctx, msg.BlockHeight-1); err != nil {
+				return fmt.Errorf("update bundle states: %w", err)
+			}
+		}
+
+		votes, err := m4.ParseM4Votes(msg.RawBytes, activeSlotsAt(sidechains, msg.BlockHeight))
+		if err != nil {
+			// The enforcer takes no votes from an M4 it cannot place either.
+			zerolog.Ctx(ctx).Debug().Err(err).Uint32("height", msg.BlockHeight).Msg("skip malformed M4")
+		} else {
+			msg.Votes = votes
+			if err := e.persistM4Votes(ctx, msg.ID, votes); err != nil {
+				return fmt.Errorf("persist M4 votes: %w", err)
+			}
+			if err := e.applyM4Votes(ctx, msg.BlockHeight, &msg); err != nil {
+				return fmt.Errorf("apply M4 votes: %w", err)
+			}
+		}
+
+		if err := e.updateBundleStates(ctx, msg.BlockHeight); err != nil {
+			return fmt.Errorf("update bundle states: %w", err)
+		}
+		if _, err := e.db.ExecContext(ctx, `UPDATE m4_messages SET applied = 1 WHERE id = ?`, msg.ID); err != nil {
+			return fmt.Errorf("mark M4 applied: %w", err)
+		}
+	}
+
+	if err := e.updateBundleStates(ctx, height); err != nil {
+		return fmt.Errorf("update bundle states: %w", err)
+	}
+	return nil
+}
+
+func (e *M4Engine) pendingM4Messages(ctx context.Context, height uint32) ([]m4.M4Message, error) {
+	rows, err := e.db.QueryContext(ctx, `
+		SELECT id, block_height, raw_bytes
+		FROM m4_messages
+		WHERE applied = 0 AND block_height <= ?
+		ORDER BY block_height
+	`, height)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []m4.M4Message
+	for rows.Next() {
+		var msg m4.M4Message
+		if err := rows.Scan(&msg.ID, &msg.BlockHeight, &msg.RawBytes); err != nil {
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, rows.Err()
+}
+
+// activeSlotsAt lists the sidechain slots active at height, in ascending order.
+func activeSlotsAt(sidechains []*validatorpb.GetSidechainsResponse_SidechainInfo, height uint32) []uint8 {
+	var slots []uint8
+	for _, sc := range sidechains {
+		if sc.GetActivationHeight().GetValue() > height {
+			continue
+		}
+		slots = append(slots, uint8(sc.GetSidechainNumber().GetValue()))
+	}
+	slices.Sort(slots)
+	return slots
 }
 
 // extractM4FromCoinbase finds and parses M4 from coinbase OP_RETURNs
@@ -107,16 +180,9 @@ func (e *M4Engine) extractM4FromCoinbase(coinbase *wire.MsgTx) (*m4.M4Message, e
 	return nil, fmt.Errorf("no M4 commitment found in coinbase")
 }
 
-// persistM4Message stores an M4 message and its votes in the database
+// persistM4Message stores an M4 message. Its votes wait for ApplyPendingM4.
 func (e *M4Engine) persistM4Message(ctx context.Context, msg *m4.M4Message) error {
-	tx, err := e.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	// Insert M4 message
-	result, err := tx.ExecContext(ctx, `
+	_, err := e.db.ExecContext(ctx, `
 		INSERT INTO m4_messages (
 			block_height, block_hash, block_time, raw_bytes, version
 		) VALUES (?, ?, ?, ?, ?)
@@ -127,29 +193,23 @@ func (e *M4Engine) persistM4Message(ctx context.Context, msg *m4.M4Message) erro
 	if err != nil {
 		return fmt.Errorf("insert M4 message: %w", err)
 	}
+	return nil
+}
 
-	msgID, err := result.LastInsertId()
+// persistM4Votes replaces the votes stored for an M4 message.
+func (e *M4Engine) persistM4Votes(ctx context.Context, msgID int64, votes []m4.M4Vote) error {
+	tx, err := e.db.BeginTx(ctx, nil)
 	if err != nil {
-		// On conflict, we need to get the existing ID
-		row := tx.QueryRowContext(ctx, `
-			SELECT id FROM m4_messages WHERE block_height = ? AND block_hash = ?
-		`, msg.BlockHeight, msg.BlockHash)
-		if err := row.Scan(&msgID); err != nil {
-			return fmt.Errorf("get M4 message ID: %w", err)
-		}
+		return err
 	}
+	defer func() { _ = tx.Rollback() }()
 
-	// Delete old votes for this message (in case of reorg)
-	_, err = tx.ExecContext(ctx, `DELETE FROM m4_votes WHERE m4_message_id = ?`, msgID)
-	if err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM m4_votes WHERE m4_message_id = ?`, msgID); err != nil {
 		return fmt.Errorf("delete old votes: %w", err)
 	}
 
-	// Insert votes
-	for _, vote := range msg.Votes {
-		var bundleHash *string
+	for _, vote := range votes {
 		var bundleIndex *uint16
-
 		if vote.VoteType == m4.VoteTypeUpvote {
 			bundleIndex = vote.BundleIndex
 		}
@@ -157,8 +217,8 @@ func (e *M4Engine) persistM4Message(ctx context.Context, msg *m4.M4Message) erro
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO m4_votes (
 				m4_message_id, sidechain_slot, vote_type, bundle_hash, bundle_index
-			) VALUES (?, ?, ?, ?, ?)
-		`, msgID, vote.SidechainSlot, vote.VoteType, bundleHash, bundleIndex)
+			) VALUES (?, ?, ?, NULL, ?)
+		`, msgID, vote.SidechainSlot, vote.VoteType, bundleIndex)
 		if err != nil {
 			return fmt.Errorf("insert vote: %w", err)
 		}
@@ -386,11 +446,12 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 					    SELECT id FROM withdrawal_bundles
 					    WHERE sidechain_slot = ?
 					      AND status = 'pending'
+					      AND first_seen_height <= ?
 					    ORDER BY first_seen_height ASC
 					    LIMIT 1 OFFSET ?
 					)
 					  AND last_updated_height < ?
-				`, height, vote.SidechainSlot, *vote.BundleIndex, height)
+				`, height, vote.SidechainSlot, height, *vote.BundleIndex, height)
 				if err != nil {
 					return fmt.Errorf("upvote bundle: %w", err)
 				}
@@ -405,8 +466,9 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 				    updated_at = CURRENT_TIMESTAMP
 				WHERE sidechain_slot = ?
 				  AND status = 'pending'
+				  AND first_seen_height <= ?
 				  AND last_updated_height < ?
-			`, height, vote.SidechainSlot, height)
+			`, height, vote.SidechainSlot, height, height)
 			if err != nil {
 				return fmt.Errorf("alarm (downvote) bundles: %w", err)
 			}
@@ -418,8 +480,9 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 				SET last_updated_height = ?
 				WHERE sidechain_slot = ?
 				  AND status = 'pending'
+				  AND first_seen_height <= ?
 				  AND last_updated_height < ?
-			`, height, vote.SidechainSlot, height)
+			`, height, vote.SidechainSlot, height, height)
 			if err != nil {
 				return fmt.Errorf("abstain (no-op) on bundles: %w", err)
 			}
@@ -438,7 +501,8 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 		SET blocks_left = MAX(0, max_age - (? - first_seen_height)),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE status = 'pending'
-	`, height)
+		  AND first_seen_height <= ?
+	`, height, height)
 	if err != nil {
 		return fmt.Errorf("recompute blocks_left: %w", err)
 	}

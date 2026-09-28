@@ -37,25 +37,31 @@ func TestParseM4Bytes_Version01(t *testing.T) {
 	msg, err := ParseM4Bytes(opReturn(t, payload))
 	require.NoError(t, err)
 	require.NotNil(t, msg)
-
 	assert.Equal(t, uint8(0x01), msg.Version)
-	assert.Len(t, msg.Votes, 3)
+
+	// Vote i belongs to the i-th active slot.
+	votes, err := ParseM4Votes(msg.RawBytes, []uint8{0, 4, 9})
+	require.NoError(t, err)
+	assert.Len(t, votes, 3)
 
 	// Check vote 0 (abstain)
-	assert.Equal(t, uint8(0), msg.Votes[0].SidechainSlot)
-	assert.Equal(t, VoteTypeAbstain, msg.Votes[0].VoteType)
-	assert.Nil(t, msg.Votes[0].BundleIndex)
+	assert.Equal(t, uint8(0), votes[0].SidechainSlot)
+	assert.Equal(t, VoteTypeAbstain, votes[0].VoteType)
+	assert.Nil(t, votes[0].BundleIndex)
 
 	// Check vote 1 (alarm)
-	assert.Equal(t, uint8(1), msg.Votes[1].SidechainSlot)
-	assert.Equal(t, VoteTypeAlarm, msg.Votes[1].VoteType)
-	assert.Nil(t, msg.Votes[1].BundleIndex)
+	assert.Equal(t, uint8(4), votes[1].SidechainSlot)
+	assert.Equal(t, VoteTypeAlarm, votes[1].VoteType)
+	assert.Nil(t, votes[1].BundleIndex)
 
 	// Check vote 2 (upvote index 5)
-	assert.Equal(t, uint8(2), msg.Votes[2].SidechainSlot)
-	assert.Equal(t, VoteTypeUpvote, msg.Votes[2].VoteType)
-	require.NotNil(t, msg.Votes[2].BundleIndex)
-	assert.Equal(t, uint16(5), *msg.Votes[2].BundleIndex)
+	assert.Equal(t, uint8(9), votes[2].SidechainSlot)
+	assert.Equal(t, VoteTypeUpvote, votes[2].VoteType)
+	require.NotNil(t, votes[2].BundleIndex)
+	assert.Equal(t, uint16(5), *votes[2].BundleIndex)
+
+	_, err = ParseM4Votes(msg.RawBytes, []uint8{0, 9})
+	assert.Error(t, err, "a vote count other than the active count is invalid")
 }
 
 func TestParseM4Bytes_Version02(t *testing.T) {
@@ -79,17 +85,20 @@ func TestParseM4Bytes_Version02(t *testing.T) {
 	require.NotNil(t, msg)
 
 	assert.Equal(t, uint8(0x02), msg.Version)
-	assert.Len(t, msg.Votes, 2)
+
+	votes, err := ParseM4Votes(msg.RawBytes, []uint8{0, 1})
+	require.NoError(t, err)
+	assert.Len(t, votes, 2)
 
 	// Check vote 0 (abstain)
-	assert.Equal(t, uint8(0), msg.Votes[0].SidechainSlot)
-	assert.Equal(t, VoteTypeAbstain, msg.Votes[0].VoteType)
+	assert.Equal(t, uint8(0), votes[0].SidechainSlot)
+	assert.Equal(t, VoteTypeAbstain, votes[0].VoteType)
 
 	// Check vote 1 (upvote index 1000)
-	assert.Equal(t, uint8(1), msg.Votes[1].SidechainSlot)
-	assert.Equal(t, VoteTypeUpvote, msg.Votes[1].VoteType)
-	require.NotNil(t, msg.Votes[1].BundleIndex)
-	assert.Equal(t, uint16(1000), *msg.Votes[1].BundleIndex)
+	assert.Equal(t, uint8(1), votes[1].SidechainSlot)
+	assert.Equal(t, VoteTypeUpvote, votes[1].VoteType)
+	require.NotNil(t, votes[1].BundleIndex)
+	assert.Equal(t, uint16(1000), *votes[1].BundleIndex)
 }
 
 func TestParseM4Bytes_PushData1(t *testing.T) {
@@ -105,7 +114,7 @@ func TestParseM4Bytes_PushData1(t *testing.T) {
 
 	msg, err := ParseM4Bytes(script)
 	require.NoError(t, err)
-	assert.Len(t, msg.Votes, 100)
+	assert.Len(t, msg.RawBytes, 101)
 }
 
 func TestParseM4Bytes_OnChainHeader(t *testing.T) {
@@ -118,7 +127,7 @@ func TestParseM4Bytes_OnChainHeader(t *testing.T) {
 	msg, err := ParseM4Bytes(script)
 	require.NoError(t, err)
 	assert.Equal(t, uint8(0x01), msg.Version)
-	assert.Len(t, msg.Votes, 2)
+	assert.Equal(t, []byte{0x01, 0xff, 0xff}, msg.RawBytes)
 }
 
 func TestParseM4Bytes_InvalidHeader(t *testing.T) {

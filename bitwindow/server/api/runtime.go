@@ -221,7 +221,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		rt.db, rt.walletEngine, rt.notificationEngine,
 		func() []uint32 { return activeSidechainSlots(rt.ctx, s.Enforcer) },
 	)
-	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, rt.db, conf)
+	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf)
 	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())
 
 	coinnewsLogPath := coinnewsLogPath(conf)

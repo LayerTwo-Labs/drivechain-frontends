@@ -48,7 +48,7 @@ func runParserFor(t *testing.T, mode orchpb.NodeMode, window time.Duration) int6
 	t.Helper()
 
 	var dials atomic.Int64
-	parser := engines.NewBitcoind(countingBitcoind(&dials), database.Test(t), config.Config{})
+	parser := engines.NewBitcoind(countingBitcoind(&dials), nil, database.Test(t), config.Config{})
 	parser.SetNodeMode(nodeModeSource(t, mode))
 
 	ctx, cancel := context.WithTimeout(context.Background(), window)
@@ -163,7 +163,7 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 	require.NoError(t, err)
 
 	var sweeps atomic.Int64
-	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), db, config.Config{})
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), nil, db, config.Config{})
 	parser.SetNodeMode(nodeMode)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
@@ -189,7 +189,7 @@ func TestParserRetriesTheStartupSweepAfterCoreIsReady(t *testing.T) {
 	require.NoError(t, err)
 
 	var sweeps atomic.Int64
-	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), db, config.Config{})
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), nil, db, config.Config{})
 	parser.SetNodeMode(nodeModeSource(t, orchpb.NodeMode_NODE_MODE_FULL))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
