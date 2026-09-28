@@ -162,6 +162,41 @@ void main() {
     expect(find.text(blocker!), findsOneWidget);
   });
 
+  // The daemon refuses a mode it cannot serve, and it names the repair. A generic
+  // line in its place leaves the user with no next step.
+  testWidgets('shows the reason the daemon refuses a mode', (tester) async {
+    await pumpPage(tester);
+    wallet.up = true;
+    wallet.setError = Exception(
+      'ECX files belong to alphanet; open Settings, Network, ECX migration to move them to betanet',
+    );
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+
+    await tester.tap(find.text('Full node'));
+    await tester.pump();
+    await tester.tap(find.byType(SailButton));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ECX files belong to alphanet'), findsOneWidget);
+    expect(find.text('BitWindow cannot reach the local backend.'), findsNothing);
+  });
+
+  // A backend that answers nothing earns the generic line, because it names no
+  // repair of its own.
+  testWidgets('shows the generic line when the backend answers nothing', (tester) async {
+    await pumpPage(tester);
+    wallet.up = true;
+    wallet.setError = Exception('connection refused');
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+
+    await tester.tap(find.byType(SailButton));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('cannot reach the local backend'), findsOneWidget);
+  });
+
   testWidgets('shows a failed restart', (tester) async {
     await pumpPage(tester, pollsBetweenRestarts: 0);
     restartError = StateError('no bitwindowd binary');
@@ -190,6 +225,7 @@ class _FakeWallet implements OrchestratorWalletRPC {
   bool hang = false;
   wmpb.NodeMode mode = wmpb.NodeMode.NODE_MODE_UNSPECIFIED;
   int reads = 0;
+  Object? setError;
 
   final Completer<void> _held = Completer<void>();
 
@@ -213,6 +249,9 @@ class _FakeWallet implements OrchestratorWalletRPC {
 
   @override
   Future<void> setNodeMode(wmpb.NodeMode next) async {
+    if (setError != null) {
+      throw setError!;
+    }
     mode = next;
   }
 

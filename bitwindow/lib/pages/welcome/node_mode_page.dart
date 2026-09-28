@@ -174,7 +174,9 @@ class _NodeModePageState extends State<NodeModePage> {
       widget.onModePicked();
     } catch (e) {
       _log.e('node mode: could not record the choice: $e');
-      setState(() => _error = _backendDown);
+      // The daemon refuses a mode it cannot serve, and it names the repair. Only
+      // a connection failure earns the generic line.
+      setState(() => _error = isExpectedBootError(e) ? _backendDown : e.toString());
     } finally {
       if (mounted) {
         setState(() => _saving = false);
