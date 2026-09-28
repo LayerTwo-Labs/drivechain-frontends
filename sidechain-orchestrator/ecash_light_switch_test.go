@@ -184,3 +184,22 @@ func checkLightECashFiles(t *testing.T, files map[string][]byte) {
 		require.Equal(t, want, data, path)
 	}
 }
+
+// Full mode runs Core on the blocks, so a move there refuses files that belong to
+// another network. The start refuses them as well, from a restart goroutine, where
+// the user reads nothing.
+func TestSetNodeModeRefusesForeignBlocks(t *testing.T) {
+	o := lightECashTestNode(t)
+	lightECashFiles(t, o)
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
+	require.Equal(t, "alphanet", o.Settings.ECashChainID())
+
+	want := "ECX files belong to alphanet; open Settings, Network, ECX migration to move them to betanet"
+	require.EqualError(t, o.SetNodeMode(context.Background(), NodeModeFull), want)
+	require.Equal(t, NodeModeLight, o.NodeMode(), "the mode stays until the files move")
+
+	// The files belong to betanet, so the move passes.
+	require.NoError(t, o.Settings.SetECashChainID("betanet"))
+	require.NoError(t, o.SetNodeMode(context.Background(), NodeModeFull))
+	require.Equal(t, NodeModeFull, o.NodeMode())
+}

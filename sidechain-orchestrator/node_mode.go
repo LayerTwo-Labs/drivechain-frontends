@@ -139,6 +139,16 @@ func (o *Orchestrator) SetNodeMode(ctx context.Context, mode NodeMode) error {
 			return fmt.Errorf("select a Bitcoin data directory for %s before full mode", network)
 		}
 	}
+	// Full mode runs Core on the blocks, so the files have to belong to the
+	// network this install serves. The start refuses them too, and it reports
+	// that from a restart goroutine, where the user reads nothing.
+	if mode == NodeModeFull {
+		if core, ok := o.Configs()["bitcoind"]; ok {
+			if err := o.checkECashMigrationStart(ctx, core); err != nil {
+				return err
+			}
+		}
+	}
 	for name := range sidechains {
 		if err := o.stopForNetworkSwap(ctx, name, StopOptions{ForceBackend: true}); err != nil {
 			return err
