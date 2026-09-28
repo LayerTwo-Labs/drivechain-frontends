@@ -85,30 +85,32 @@ class DatadirNetworkWatcher {
     unawaited(_checkUntilAnswered());
   }
 
-  /// Asks until the daemon answers, and then keeps watch while a warning stands.
-  /// The loop ends once the blocks and the app agree, so a quiet app holds no
-  /// request open while it shuts down.
+  /// Asks until the answer is current and quiet: the daemon answered, the blocks
+  /// and the app agree, and no state change waits. Anything else asks again, so a
+  /// quiet app holds no request open while it shuts down.
   Future<void> _checkUntilAnswered() async {
     if (_asking) {
       return;
     }
     _asking = true;
     try {
-      for (var attempt = 0; attempt < _attempts && !_stopped; attempt++) {
-        if (await check()) {
-          break;
-        }
-        await _wait(_between);
-      }
-      while (!_stopped && (_warned || _stale)) {
-        if (!_stale) {
-          await _wait(_whileWarned);
-        }
+      var misses = 0;
+      while (!_stopped) {
         _stale = false;
-        if (_stopped) {
+        final answered = await check();
+        if (answered && !_warned && !_stale) {
           return;
         }
-        await check();
+        if (!answered && !_warned && ++misses >= _attempts) {
+          // The daemon says nothing at start. A config change asks again, so the
+          // watcher holds no request open while the app shuts down.
+          return;
+        }
+        if (_stale) {
+          continue;
+        }
+        // A warning earns the long wait, and a silent daemon the short one.
+        await _wait(answered ? _whileWarned : _between);
       }
     } finally {
       _asking = false;
