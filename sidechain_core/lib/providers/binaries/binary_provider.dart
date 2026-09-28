@@ -565,6 +565,8 @@ class BinaryProvider extends ChangeNotifier {
   /// Stop a daemon binary via ProcessManager.
   Future<void> _stopDaemonBinary(Binary binary) async {
     await _processManager.kill(binary);
+    // The exit watch ignores an expected stop, so the card reads the flag from here.
+    _syncDaemonConnectionState(binary, running: false);
     notifyListeners();
   }
 
