@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 void main() {
@@ -74,4 +75,25 @@ void main() {
 
     expect(binary.startupLogs.length, 1, reason: 'the user asked for the daemon to stay down');
   });
+
+  test('a stop shows the daemon as down', () async {
+    final rpc = _ConnectedBitwindow();
+    GetIt.instance.registerSingleton<BitwindowRPC>(rpc);
+    addTearDown(() => GetIt.instance.unregister<BitwindowRPC>());
+    final binary = BitWindow();
+
+    await provider(binary).stop(binary);
+
+    expect(rpc.connected, isFalse, reason: 'the card offers Start only on a daemon that is not connected');
+  });
+}
+
+class _ConnectedBitwindow extends MockBitwindowRPC {
+  bool _up = true;
+
+  @override
+  bool get connected => _up;
+
+  @override
+  set connected(bool value) => _up = value;
 }
