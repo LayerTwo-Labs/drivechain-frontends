@@ -14,6 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// fullModeInstall builds an install that runs Core. Full mode is the one mode
+// that reads these blocks, so it is the mode where a mismatch counts.
+func fullModeInstall(t *testing.T) *Orchestrator {
+	t.Helper()
+	o := parkInstall(t)
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeFull))
+	return o
+}
+
 // writeBlockFile puts one record of a network magic into a blocks directory.
 func writeBlockFile(t *testing.T, root, magic string) {
 	t.Helper()
@@ -38,7 +47,7 @@ func TestReadDatadirNetworkNamesTheBlocks(t *testing.T) {
 	alphanet, ok := cat.ByID("alphanet")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -59,7 +68,7 @@ func TestReadDatadirNetworkAgreesWithThePick(t *testing.T) {
 	betanet, ok := cat.ByID("betanet")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -79,7 +88,7 @@ func TestReadDatadirNetworkAcceptsMainnetBlocks(t *testing.T) {
 	bitcoin, ok := cat.ByID("bitcoin")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkMainnet))
 	o.BitcoinConf.Network = config.NetworkMainnet
 	o.Catalog = cat
@@ -97,7 +106,7 @@ func TestReadDatadirNetworkReadsTheNetworkDirectory(t *testing.T) {
 	bitcoin, ok := cat.ByID("bitcoin")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkSignet))
 	o.BitcoinConf.Network = config.NetworkSignet
 	o.Catalog = cat
@@ -116,7 +125,7 @@ func TestReadDatadirNetworkObeysBlocksdir(t *testing.T) {
 	bitcoin, ok := cat.ByID("bitcoin")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkSignet))
 	o.BitcoinConf.Network = config.NetworkSignet
 	o.Catalog = cat
@@ -132,7 +141,7 @@ func TestReadDatadirNetworkObeysBlocksdir(t *testing.T) {
 // A datadir with no blocks names no network, so the answer carries no mismatch
 // and the app clears whatever it said before.
 func TestReadDatadirNetworkReportsAnEmptyDatadir(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -165,7 +174,7 @@ func TestSameDirReadsThroughALink(t *testing.T) {
 // The catalog lists no regtest row, because nothing is deployed for it. The
 // picker offers regtest, so its blocks name it.
 func TestReadDatadirNetworkNamesRegtestBlocks(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkSignet))
 	o.BitcoinConf.Network = config.NetworkSignet
 	o.Catalog = netcatalog.Embedded()
@@ -180,7 +189,7 @@ func TestReadDatadirNetworkNamesRegtestBlocks(t *testing.T) {
 
 // A regtest install reads its own blocks, so it gets no warning.
 func TestReadDatadirNetworkAgreesWithRegtest(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkRegtest))
 	o.BitcoinConf.Network = config.NetworkRegtest
 	o.Catalog = netcatalog.Embedded()
@@ -199,7 +208,7 @@ func TestReadDatadirNetworkReportsAnUnreadableSwitch(t *testing.T) {
 	bitcoin, ok := cat.ByID("bitcoin")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkSignet))
 	o.BitcoinConf.Network = config.NetworkSignet
 	o.Catalog = cat
@@ -218,7 +227,7 @@ func TestReadDatadirNetworkReportsAReadableSwitch(t *testing.T) {
 	alphanet, ok := cat.ByID("alphanet")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -234,7 +243,7 @@ func TestReadDatadirNetworkReportsAReadableSwitch(t *testing.T) {
 // The switch adopts a chain the records already name: it converts no block,
 // and a rewind would bar a block that chain holds.
 func TestChainAtTargetReadsTheRecord(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "alphanet"
@@ -249,7 +258,7 @@ func TestChainAtTargetReadsTheRecord(t *testing.T) {
 // A datadir with no ECX files takes the ordinary switch, which reads the chain
 // from Core itself.
 func TestChainAtTargetAnswersForAnEmptyDatadir(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "alphanet"
@@ -261,7 +270,7 @@ func TestChainAtTargetAnswersForAnEmptyDatadir(t *testing.T) {
 // A job that stopped part way owes work, and the saved id can already name the
 // target. The conversion finishes first.
 func TestChainAtTargetWaitsForAConversion(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "alphanet"
@@ -278,7 +287,7 @@ func TestChainAtTargetWaitsForAConversion(t *testing.T) {
 
 // Files that no record names take the conversion, which reads them itself.
 func TestChainAtTargetRefusesUnnamedFiles(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "alphanet"
@@ -293,7 +302,7 @@ func TestChainAtTargetRefusesUnnamedFiles(t *testing.T) {
 // A datadir with no blocks directory names no network, so the app shows no
 // warning and the caller reads an empty answer.
 func TestReadDatadirNetworkAcceptsAnAbsentBlocksDir(t *testing.T) {
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -315,7 +324,7 @@ func TestReadDatadirNetworkNamesAHalfConvertedStore(t *testing.T) {
 	betanet, ok := cat.ByID("betanet")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -342,7 +351,7 @@ func TestReadDatadirNetworkNamesTheHalfThatHasToMove(t *testing.T) {
 	betanet, ok := cat.ByID("betanet")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -454,7 +463,7 @@ func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
 	betanet, ok := cat.ByID("betanet")
 	require.True(t, ok)
 
-	o := parkInstall(t)
+	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
 	o.ecashID = "betanet"
@@ -577,4 +586,41 @@ func TestDatadirNetworkDropsAJobTheBlocksDoNotCarry(t *testing.T) {
 	replaced.setConversion(cat, job)
 	require.Equal(t, "gammanet", replaced.ConvertFromID, "the ends decide")
 	require.Equal(t, "betanet", replaced.ConvertToID)
+}
+
+// Core never starts in light mode, so no process reads these blocks and the
+// balance comes from the remote chain source. A switch there moves the pick and
+// leaves the files, by design, so a warning about them helps nobody.
+func TestReadDatadirNetworkKeepsQuietInLightMode(t *testing.T) {
+	cat := netcatalog.Embedded()
+	alphanet, ok := cat.ByID("alphanet")
+	require.True(t, ok)
+
+	o := parkInstall(t)
+	o.setNetwork(string(config.NetworkECash))
+	o.BitcoinConf.Network = config.NetworkECash
+	o.ecashID = "betanet"
+	o.Catalog = cat
+	writeBlockFile(t, o.BitcoinConf.DataDir(), alphanet.NetworkMagic)
+
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
+	out, err := o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.False(t, out.Mismatch, "no node reads these blocks")
+	require.Equal(t, "alphanet", out.DetectedID, "the facts stay, for the migration page")
+	require.Equal(t, "betanet", out.SelectedID)
+
+	// A fresh install has no mode file, and it boots nothing while it asks the
+	// user, so the warning waits for that answer.
+	require.NoError(t, os.Remove(filepath.Join(o.BitwindowDir, "node_mode")))
+	require.Equal(t, NodeModeUnset, o.NodeMode())
+	out, err = o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.False(t, out.Mismatch)
+
+	// Full mode reads them, so the warning stands there.
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeFull))
+	out, err = o.ReadDatadirNetwork(context.Background())
+	require.NoError(t, err)
+	require.True(t, out.Mismatch)
 }

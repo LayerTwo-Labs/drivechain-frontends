@@ -93,6 +93,15 @@ func (o *Orchestrator) ReadDatadirNetwork(ctx context.Context) (DatadirNetwork, 
 		}
 	}
 	out.Mismatch = out.Mixed || out.DetectedID != "" && out.SelectedID != "" && out.DetectedID != out.SelectedID
+	// Full mode is the one mode that runs Core on these blocks. Light mode reads a
+	// remote chain source, and an unset mode boots nothing while the app asks the
+	// user, so no process reads the files in either one. A network without light
+	// mode answers full, so its warning stands. A start in full mode refuses the
+	// files on its own, and it names the conversion then.
+	if out.Mismatch && o.NodeMode() != NodeModeFull {
+		out.Mismatch = false
+		return out, nil
+	}
 	if out.Mismatch {
 		out.SwitchReadsBlocks = o.sameBlocksDir(cat, out.DetectedID, network)
 		out.setConversion(cat, o.migrationForThisStore())
