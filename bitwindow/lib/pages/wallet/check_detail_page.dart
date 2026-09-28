@@ -24,6 +24,7 @@ class CheckDetailViewModel extends BaseViewModel {
   @override
   String? modelError;
   String? actionError;
+  bool _funding = false;
 
   Cheque? get check => _check;
   bool get isLoading => _isLoading;
@@ -71,10 +72,11 @@ class CheckDetailViewModel extends BaseViewModel {
   }
 
   Future<void> fundWithWallet(BuildContext context) async {
-    if (_check == null) {
+    if (_check == null || _funding) {
       return;
     }
 
+    _funding = true;
     _setActionError(null);
     try {
       final walletId = _walletReader.activeWalletId;
@@ -104,6 +106,8 @@ class CheckDetailViewModel extends BaseViewModel {
       Navigator.of(context).pop();
     } catch (e) {
       _setActionError('Failed to fund check: $e');
+    } finally {
+      _funding = false;
     }
   }
 
