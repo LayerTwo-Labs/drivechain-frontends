@@ -332,25 +332,11 @@ func (h *Handler) GetBitNameOwner(
 	return connect.NewResponse(&pb.GetBitNameOwnerResponse{Address: address}), nil
 }
 
+// GetPendingPaymail is not available: the node lists no mempool.
 func (h *Handler) GetPendingPaymail(
-	ctx context.Context, req *connect.Request[pb.GetPendingPaymailRequest],
+	context.Context, *connect.Request[pb.GetPendingPaymailRequest],
 ) (*connect.Response[pb.GetPendingPaymailResponse], error) {
-	pending, err := pendingPaymail(ctx, h.proxy.Client)
-	if err != nil {
-		return nil, err
-	}
-	raw, err := json.Marshal(pending)
-	if err != nil {
-		return nil, fmt.Errorf("marshal the pending paymail: %w", err)
-	}
-	txids, err := mempoolTxids(ctx, h.proxy.Client)
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&pb.GetPendingPaymailResponse{
-		PaymailJson:  string(raw),
-		MempoolTxids: txids,
-	}), nil
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("the bitnames node does not list its mempool"))
 }
 
 func (h *Handler) GetPaymail(ctx context.Context, req *connect.Request[pb.GetPaymailRequest]) (*connect.Response[pb.GetPaymailResponse], error) {

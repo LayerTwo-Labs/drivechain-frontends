@@ -6,6 +6,11 @@ import (
 	"fmt"
 )
 
+// nodeCaller is the part of the node client that BitNameOwner uses.
+type nodeCaller interface {
+	Call(ctx context.Context, method string, params any, result any) error
+}
+
 var errBitNameNotFound = errors.New("no utxo holds the bitname")
 
 // utxoEntry is one entry of the list_utxos answer.
@@ -20,7 +25,7 @@ type utxoEntry struct {
 
 // BitNameOwner returns the address that holds a BitName. A message pays the
 // holder, so a chat needs this address, and bitname_data does not carry it.
-func BitNameOwner(ctx context.Context, client mempoolReader, bitname string) (string, error) {
+func BitNameOwner(ctx context.Context, client nodeCaller, bitname string) (string, error) {
 	if bitname == "" {
 		return "", fmt.Errorf("bitname is empty")
 	}
