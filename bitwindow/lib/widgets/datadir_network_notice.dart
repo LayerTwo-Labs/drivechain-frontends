@@ -22,7 +22,7 @@ class DatadirNetworkWatcher {
   DatadirNetworkWatcher() {
     if (GetIt.I.isRegistered<BitcoinConfProvider>()) {
       _conf = GetIt.I.get<BitcoinConfProvider>();
-      _conf!.addListener(_onConfChanged);
+      _conf!.addListener(_onStateChanged);
     }
     unawaited(_checkUntilAnswered());
   }
@@ -37,9 +37,13 @@ class DatadirNetworkWatcher {
   static const _whileWarned = Duration(seconds: 30);
 
   Timer? _retry;
+
+  /// The wait a loop stands in, and null while no loop waits.
+  Completer<void>? _waking;
   bool _stopped = false;
   bool _asking = false;
   BitcoinConfProvider? _conf;
+  NodeModeProvider? _nodeMode;
 
   /// The watch key of the last answer. A change of the key asks again, so a
   /// config change reaches the check between two polls.
@@ -49,22 +53,35 @@ class DatadirNetworkWatcher {
   /// until the blocks and the app agree.
   bool _warned = false;
 
+  /// True when a state change arrives while a check runs. That answer describes
+  /// the state before the change, so the loop asks again at once.
+  bool _stale = false;
+
   @visibleForTesting
   String get watchedKey => _checked;
 
   void dispose() {
     _stopped = true;
-    _retry?.cancel();
-    _conf?.removeListener(_onConfChanged);
+    _wake();
+    _conf?.removeListener(_onStateChanged);
+    _nodeMode?.removeListener(_onStateChanged);
   }
 
-  /// A change of the network or of a block path makes the blocks on disk
-  /// another set, so the watcher asks again. The conf provider notifies often,
-  /// and the key keeps that down to one check per real change.
-  void _onConfChanged() {
-    if (_stopped || _conf == null || datadirWatchKey(_conf!) == _checked) {
+  /// A change of the network, of a block path, or of the node mode puts another
+  /// answer under the app, so the watcher asks again. Both providers notify
+  /// often, and the key keeps that down to one check per real change.
+  void _onStateChanged() {
+    if (_stopped || _conf == null || datadirWatchKey(_conf!, _nodeMode) == _checked) {
       return;
     }
+    // A wait holds the loop for half a minute, and a request holds it for the
+    // round trip. Both end with this change, and the loop asks again.
+    if (_asking) {
+      _stale = true;
+      _wake();
+      return;
+    }
+    _wake();
     unawaited(_checkUntilAnswered());
   }
 
@@ -83,8 +100,11 @@ class DatadirNetworkWatcher {
         }
         await _wait(_between);
       }
-      while (!_stopped && _warned) {
-        await _wait(_whileWarned);
+      while (!_stopped && (_warned || _stale)) {
+        if (!_stale) {
+          await _wait(_whileWarned);
+        }
+        _stale = false;
         if (_stopped) {
           return;
         }
@@ -97,8 +117,21 @@ class DatadirNetworkWatcher {
 
   Future<void> _wait(Duration duration) async {
     final done = Completer<void>();
-    _retry = Timer(duration, done.complete);
+    _waking = done;
+    _retry = Timer(duration, _wake);
     await done.future;
+  }
+
+  /// Ends a wait, from the timer or from a state change. The stop path calls it
+  /// too, so no loop waits for a timer this watcher already cancelled.
+  void _wake() {
+    _retry?.cancel();
+    _retry = null;
+    final done = _waking;
+    _waking = null;
+    if (done != null && !done.isCompleted) {
+      done.complete();
+    }
   }
 
   /// Drops every stored warning of ours. An older build wrote one id per state,
@@ -110,6 +143,18 @@ class DatadirNetworkWatcher {
     }
   }
 
+  /// Takes the node mode provider at the first check that finds it. bitwindow
+  /// builds this watcher before it registers that provider, so a read in the
+  /// constructor finds nothing. The mode decides whether any process reads these
+  /// blocks, so a change of it asks again.
+  void _attachNodeMode() {
+    if (_nodeMode != null || !GetIt.I.isRegistered<NodeModeProvider>()) {
+      return;
+    }
+    _nodeMode = GetIt.I.get<NodeModeProvider>();
+    _nodeMode!.addListener(_onStateChanged);
+  }
+
   /// True once the daemon answers, whatever it says.
   Future<bool> check() async {
     if (!GetIt.I.isRegistered<NotificationProvider>() ||
@@ -119,13 +164,14 @@ class DatadirNetworkWatcher {
     }
     final provider = GetIt.I.get<NotificationProvider>();
     final conf = GetIt.I.get<BitcoinConfProvider>();
+    _attachNodeMode();
     // The stored notices load in the background. A run over an empty list
     // clears nothing, and the load then puts the stale banner back.
     await provider.ready;
     if (_stopped) {
       return false;
     }
-    final key = datadirWatchKey(conf);
+    final key = datadirWatchKey(conf, _nodeMode);
 
     final GetDatadirNetworkResponse answer;
     try {
@@ -174,12 +220,19 @@ class DatadirNetworkWatcher {
   }
 }
 
-/// Names the blocks the app reads. Core takes the blocks from the blocksdir
-/// setting, and from the datadir when the conf names no blocksdir, so a change
-/// of either one puts another chain under the app.
-String datadirWatchKey(BitcoinConfProvider conf) {
+/// Names the answer the app reads. Core takes the blocks from the blocksdir
+/// setting, and from the datadir when the conf names no blocksdir, so a change of
+/// either one puts another chain under the app. The key holds the node mode too:
+/// light mode reads no blocks, and a move to full mode makes them count again.
+String datadirWatchKey(BitcoinConfProvider conf, [NodeModeProvider? nodeMode]) {
   final blocks = conf.currentConfig?.getEffectiveSetting('blocksdir', conf.network.toCoreNetwork()) ?? '';
-  return [conf.network.name, conf.ecashNetworkId, conf.detectedDataDir ?? '', blocks].join('\u0000');
+  return [
+    conf.network.name,
+    conf.ecashNetworkId,
+    conf.detectedDataDir ?? '',
+    blocks,
+    nodeMode?.mode.name ?? '',
+  ].join('\u0000');
 }
 
 /// The notice text for one answer. It names the network the app runs either way,

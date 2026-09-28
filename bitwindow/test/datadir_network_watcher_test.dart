@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:bitwindow/widgets/datadir_network_notice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
 import 'mocks/store_mock.dart';
 
@@ -36,6 +38,21 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
     'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
     _ => BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
   };
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class _FakeNodeMode extends ChangeNotifier implements NodeModeProvider {
+  _FakeNodeMode(this.mode);
+
+  @override
+  wmpb.NodeMode mode;
+
+  void moveTo(wmpb.NodeMode next) {
+    mode = next;
+    notifyListeners();
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
@@ -108,9 +125,17 @@ class _FakeOrchestrator implements OrchestratorRPC {
     );
   }
 
+  /// A call the test holds, so it can change the state while the daemon answers.
+  Completer<void>? hold;
+
   @override
   Future<GetDatadirNetworkResponse> getDatadirNetwork() async {
     calls++;
+    final held = hold;
+    if (held != null) {
+      hold = null;
+      await held.future;
+    }
     if (!answers) {
       throw Exception('the daemon is down');
     }
@@ -383,6 +408,91 @@ void main() {
 
     expect(provider.history.single.content, isNot(before));
     expect(provider.pendingModal, isNotNull, reason: 'the modal opens for the new state');
+  });
+
+  // main.dart builds this watcher after registerNodeMode, so the first check finds
+  // the provider. A watcher built before it takes the provider at a later check.
+  test('a node mode registered after the watcher still reaches the key', () async {
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+
+    expect(await watcher.check(), isTrue);
+    expect(watcher.watchedKey, datadirWatchKey(conf), reason: 'no provider yet');
+
+    final nodeMode = _FakeNodeMode(wmpb.NodeMode.NODE_MODE_LIGHT);
+    GetIt.I.registerSingleton<NodeModeProvider>(nodeMode);
+
+    expect(await watcher.check(), isTrue);
+    expect(watcher.watchedKey, datadirWatchKey(conf, nodeMode));
+    expect(watcher.watchedKey, contains('NODE_MODE_LIGHT'));
+
+    // A move to full mode makes the blocks count again, so the key moves with it.
+    nodeMode.moveTo(wmpb.NodeMode.NODE_MODE_FULL);
+    expect(watcher.watchedKey, isNot(datadirWatchKey(conf, nodeMode)));
+
+    expect(await watcher.check(), isTrue);
+    expect(watcher.watchedKey, contains('NODE_MODE_FULL'));
+  });
+
+  // A warning stands, so the loop waits half a minute between checks. A move to
+  // light mode must clear the banner at once, not after that wait.
+  test('a state change during a wait asks at once', () async {
+    final provider = GetIt.I.get<NotificationProvider>();
+    final nodeMode = _FakeNodeMode(wmpb.NodeMode.NODE_MODE_FULL);
+    GetIt.I.registerSingleton<NodeModeProvider>(nodeMode);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    for (var step = 0; step < 6; step++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(provider.history.single.id, datadirNoticeId, reason: 'the warning stands');
+    final asked = rpc.calls;
+
+    // The user picks light mode, so the daemon reports no mismatch.
+    rpc.response = GetDatadirNetworkResponse(mismatch: false);
+    nodeMode.moveTo(wmpb.NodeMode.NODE_MODE_LIGHT);
+
+    for (var step = 0; step < 6; step++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    expect(rpc.calls, greaterThan(asked), reason: 'the wait ended with the change');
+    expect(provider.history, isEmpty, reason: 'the banner goes with the warning');
+  });
+
+  // A change can arrive while the daemon answers. That answer describes the state
+  // before the change, so the loop asks again rather than record it.
+  test('a change during a check asks again', () async {
+    final nodeMode = _FakeNodeMode(wmpb.NodeMode.NODE_MODE_FULL);
+    GetIt.I.registerSingleton<NodeModeProvider>(nodeMode);
+    rpc.answers = true;
+    rpc.say('alphanet', 'betanet');
+    final held = Completer<void>();
+    rpc.hold = held;
+
+    final watcher = DatadirNetworkWatcher();
+    addTearDown(watcher.dispose);
+    for (var step = 0; step < 4; step++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(rpc.calls, 1, reason: 'the first call waits for the test');
+
+    // The user picks light mode while that call stands open.
+    rpc.response = GetDatadirNetworkResponse(mismatch: false);
+    nodeMode.moveTo(wmpb.NodeMode.NODE_MODE_LIGHT);
+    held.complete();
+
+    for (var step = 0; step < 8; step++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    expect(rpc.calls, greaterThan(1), reason: 'the change asks again');
+    expect(watcher.watchedKey, contains('NODE_MODE_LIGHT'));
   });
 
   // The user crosses a banner out while the mismatch stands. A move to another
