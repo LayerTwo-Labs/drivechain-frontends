@@ -178,6 +178,23 @@ func (e *M4Engine) GetM4History(ctx context.Context, limit int) ([]m4.M4Message,
 	if err != nil {
 		return nil, fmt.Errorf("query M4 messages: %w", err)
 	}
+	messages, err := scanM4Messages(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	// The database has one connection, so the votes query waits until the rows above close.
+	for i := range messages {
+		votes, err := e.getVotesForMessage(ctx, messages[i].ID)
+		if err != nil {
+			return nil, fmt.Errorf("get votes for message %d: %w", messages[i].ID, err)
+		}
+		messages[i].Votes = votes
+	}
+	return messages, nil
+}
+
+func scanM4Messages(rows *sql.Rows) ([]m4.M4Message, error) {
 	defer rows.Close()
 
 	var messages []m4.M4Message
@@ -190,17 +207,8 @@ func (e *M4Engine) GetM4History(ctx context.Context, limit int) ([]m4.M4Message,
 		if err != nil {
 			return nil, fmt.Errorf("scan M4 message: %w", err)
 		}
-
-		// Load votes for this message
-		votes, err := e.getVotesForMessage(ctx, msg.ID)
-		if err != nil {
-			return nil, fmt.Errorf("get votes for message %d: %w", msg.ID, err)
-		}
-		msg.Votes = votes
-
 		messages = append(messages, msg)
 	}
-
 	return messages, rows.Err()
 }
 
