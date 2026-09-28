@@ -24,6 +24,7 @@ func (o *Orchestrator) BinaryVersion(name string, forceBackend bool) (version, b
 		return "", "", false, err
 	}
 
+	forceBackend = o.downloadOptsFor(DownloadOptions{ForceBackend: forceBackend}).ForceBackend
 	binPath, pidName := o.process.resolvePaths(config, forceBackend)
 	isTest = strings.HasSuffix(pidName, "-test")
 	if isTest {
