@@ -23,8 +23,6 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 	}{
 		{name: "thunder"},
 		{name: "bitnames"},
-		{name: "bitassets"},
-		{name: "photon"},
 		{name: "coinshift"},
 		{name: "truthcoin"},
 		{name: "zside"},
@@ -45,6 +43,20 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 			default:
 				assert.Failf(t, "unaudited transport", "%s takes %T", chain.name, bmm)
 			}
+		})
+	}
+}
+
+func TestSelfMinedSidechainIsNoBmmNode(t *testing.T) {
+	for _, name := range []string{"bitassets", "photon"} {
+		t.Run(name, func(t *testing.T) {
+			node, err := New(name, "127.0.0.1", 1, false, config.NetworkSignet)
+			require.NoError(t, err)
+
+			_, isBMM := node.(sidechain.BMMNode)
+			assert.False(t, isBMM, "the node serves no block template")
+			_, proposes := node.(sidechain.WithdrawalNode)
+			assert.True(t, proposes, "the node proposes withdrawal bundles")
 		})
 	}
 }
