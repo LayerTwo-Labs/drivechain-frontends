@@ -358,7 +358,6 @@ final thunderRPCMethods = [
   'connect_peer',
   'create_deposit',
   'create_transfer',
-  'create_transfer_many',
   'create_withdrawal',
   'format_deposit_address',
   'generate_mnemonic',

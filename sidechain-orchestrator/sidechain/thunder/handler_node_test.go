@@ -76,19 +76,6 @@ func TestWalletCallsUseNodeWithIndex(t *testing.T) {
 			},
 		},
 		{
-			name: "transfer many", method: "create_transfer_many",
-			result: `"transfers-id"`, request: `create_transfer_many [{"alice":5000},100]`, want: "transfers-id",
-			call: func(h *Handler) (any, error) {
-				resp, err := h.TransferMany(ctx, connect.NewRequest(&pb.TransferManyRequest{
-					Destinations: map[string]int64{"alice": 5000}, FeeSats: 100,
-				}))
-				if err != nil {
-					return nil, err
-				}
-				return resp.Msg.Txid, nil
-			},
-		},
-		{
 			name: "withdrawal", method: "create_withdrawal",
 			result: `"withdrawal-id"`, request: `create_withdrawal ["main-address",5000,100,200]`, want: "withdrawal-id",
 			call: func(h *Handler) (any, error) {
