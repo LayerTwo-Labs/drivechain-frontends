@@ -212,7 +212,6 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
   // Eager, and after the orchestrator it polls: nothing ever resolves it.
   GetIt.I.registerSingleton<ECashUpgradeWatcher>(ECashUpgradeWatcher());
-  GetIt.I.registerSingleton<DatadirNetworkWatcher>(DatadirNetworkWatcher());
   final backendStateProvider = BackendStateProvider(orchestrator);
   GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
 
@@ -241,6 +240,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider(sidechainRPC: GetIt.I.get<FreeBankRPC>()));
 
   registerNodeMode();
+  // After the node mode: the watcher reads it at the first check, and the mode
+  // decides whether any process reads the blocks.
+  GetIt.I.registerSingleton<DatadirNetworkWatcher>(DatadirNetworkWatcher());
 
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
