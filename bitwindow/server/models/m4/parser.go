@@ -23,7 +23,8 @@ func opReturnPayload(script []byte) ([]byte, error) {
 	return payload, nil
 }
 
-// ParseM4Bytes parses raw M4 bytes from a coinbase OP_RETURN
+// ParseM4Bytes parses raw M4 bytes from a coinbase OP_RETURN. It leaves the
+// votes to ParseM4Votes, which needs the active sidechains.
 // Format: OP_RETURN | push( 0xD77D1776 (4 bytes) | Version (1 byte) | Upvote Vector (n bytes) )
 func ParseM4Bytes(opReturnScript []byte) (*M4Message, error) {
 	payload, err := opReturnPayload(opReturnScript)
@@ -43,54 +44,70 @@ func ParseM4Bytes(opReturnScript []byte) (*M4Message, error) {
 	}
 
 	version := payload[4]
-	upvoteVector := payload[5:]
-
-	msg := &M4Message{
-		Version:  version,
-		RawBytes: payload[4:], // Version + upvote vector
+	if version > 0x03 {
+		return nil, fmt.Errorf("M4: unsupported version: 0x%02x", version)
 	}
 
-	// Parse votes based on version
+	return &M4Message{
+		Version:  version,
+		RawBytes: payload[4:], // Version + upvote vector
+	}, nil
+}
+
+// ParseM4Votes parses the votes in raw, the M4 version byte and upvote vector.
+// Vote i belongs to activeSlots[i], the active sidechain slots in ascending order.
+func ParseM4Votes(raw []byte, activeSlots []uint8) ([]M4Vote, error) {
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("M4: no version byte")
+	}
+	version := raw[0]
+	upvoteVector := raw[1:]
+
+	var votes []M4Vote
 	switch version {
 	case 0x00:
 		// Version 0x00: Repeat previous block's M4
 		// No votes to parse
-		return msg, nil
+		return nil, nil
 
 	case 0x01:
 		// Version 0x01: 1 byte per sidechain (most common)
-		msg.Votes = parseVersion01(upvoteVector)
+		votes = parseVersion01(upvoteVector)
 
 	case 0x02:
 		// Version 0x02: 2 bytes per sidechain (handles all cases)
-		votes, err := parseVersion02(upvoteVector)
+		parsed, err := parseVersion02(upvoteVector)
 		if err != nil {
 			return nil, fmt.Errorf("M4: parse v0x02: %w", err)
 		}
-		msg.Votes = votes
+		votes = parsed
 
 	case 0x03:
 		// Version 0x03: Upvote only leading bundles (special algorithm)
 		// This requires SCDB state to determine which bundles are leading
 		// For now, we'll just mark it as abstain for all sidechains
 		// TODO: Implement version 0x03 logic when we have SCDB state
-		return msg, nil
+		return nil, nil
 
 	default:
 		return nil, fmt.Errorf("M4: unsupported version: 0x%02x", version)
 	}
 
-	return msg, nil
+	if len(votes) != len(activeSlots) {
+		return nil, fmt.Errorf("M4: %d votes for %d active sidechains", len(votes), len(activeSlots))
+	}
+	for i := range votes {
+		votes[i].SidechainSlot = activeSlots[i]
+	}
+	return votes, nil
 }
 
 func parseVersion01(vector []byte) []M4Vote {
 	// Each byte is a sidechain vote
 	// 0xFF = abstain, 0xFE = alarm, 0x00-0xFD = upvote index
 	var votes []M4Vote
-	for slot, b := range vector {
-		vote := M4Vote{
-			SidechainSlot: uint8(slot),
-		}
+	for _, b := range vector {
+		var vote M4Vote
 
 		switch b {
 		case 0xFF:
@@ -117,12 +134,9 @@ func parseVersion02(vector []byte) ([]M4Vote, error) {
 
 	var votes []M4Vote
 	for i := 0; i < len(vector); i += 2 {
-		slot := uint8(i / 2)
 		value := binary.LittleEndian.Uint16(vector[i : i+2])
 
-		vote := M4Vote{
-			SidechainSlot: slot,
-		}
+		var vote M4Vote
 
 		switch value {
 		case VoteAbstain:

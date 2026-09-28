@@ -19,6 +19,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -31,11 +33,13 @@ import (
 
 func NewBitcoind(
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
 	db *sql.DB,
 	conf config.Config,
 ) *Parser {
 	return &Parser{
 		bitcoind: bitcoind,
+		enforcer: enforcer,
 		db:       db,
 		conf:     conf,
 		m4Engine: NewM4Engine(db),
@@ -45,6 +49,7 @@ func NewBitcoind(
 // Parser is responsible for parsing blocks from bitcoind and storing OP_RETURN data in SQLite
 type Parser struct {
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
+	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
 	db       *sql.DB
 	conf     config.Config
 
@@ -110,10 +115,14 @@ func (p *Parser) Run(ctx context.Context) error {
 			zerolog.Ctx(ctx).Trace().
 				Msgf("bitcoind_engine/parser: processing block tick")
 
-			if err := p.handleBlockTick(ctx); err != nil {
+			tickErr := p.handleBlockTick(ctx)
+			if err := p.applyPendingM4(ctx); err != nil {
+				zerolog.Ctx(ctx).Err(err).Msgf("unable to apply M4 votes")
+			}
+			if tickErr != nil {
 				// Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
-				if !isBitcoinCoreStartupError(err.Error()) {
-					zerolog.Ctx(ctx).Err(err).Msgf("unable to handle block tick")
+				if !isBitcoinCoreStartupError(tickErr.Error()) {
+					zerolog.Ctx(ctx).Err(tickErr).Msgf("unable to handle block tick")
 				}
 				continue
 			}
@@ -512,6 +521,41 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 	}
 
 	return nil
+}
+
+// applyPendingM4 applies the M4 votes of processed blocks the enforcer has
+// reached. It waits, without error, while the enforcer is unreachable.
+func (p *Parser) applyPendingM4(ctx context.Context) error {
+	if p.enforcer == nil {
+		return nil
+	}
+	processed, err := blocks.GetProcessedTip(ctx, p.db)
+	if err != nil {
+		return fmt.Errorf("get processed tip: %w", err)
+	}
+	if processed == nil {
+		return nil
+	}
+
+	log := zerolog.Ctx(ctx)
+	client, err := p.enforcer.Get(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("M4 waits for the enforcer")
+		return nil
+	}
+	tip, err := client.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	if err != nil {
+		log.Debug().Err(err).Msg("M4 waits for the enforcer tip")
+		return nil
+	}
+	sidechains, err := client.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	if err != nil {
+		log.Debug().Err(err).Msg("M4 waits for the enforcer sidechains")
+		return nil
+	}
+
+	height := min(processed.Height, tip.Msg.GetBlockHeaderInfo().GetHeight())
+	return p.m4Engine.ApplyPendingM4(ctx, height, sidechains.Msg.GetSidechains())
 }
 
 // HandleNewRawTransaction can be called on a brand new transaction
