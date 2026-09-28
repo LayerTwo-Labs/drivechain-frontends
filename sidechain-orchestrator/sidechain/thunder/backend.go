@@ -39,17 +39,6 @@ func (b *nodeBackend) Transfer(
 	return txid, nil
 }
 
-func (b *nodeBackend) TransferMany(
-	ctx context.Context, destinations map[string]int64, feeSats int64,
-) (string, error) {
-	var txid string
-	params := []any{destinations, feeSats}
-	if err := b.proxy.Client.Call(ctx, "create_transfer_many", params, &txid); err != nil {
-		return "", err
-	}
-	return txid, nil
-}
-
 func (b *nodeBackend) Withdraw(
 	ctx context.Context, address string, amountSats, sideFeeSats, mainFeeSats int64,
 ) (string, error) {

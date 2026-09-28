@@ -100,8 +100,17 @@ func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.Transfer
 	return connect.NewResponse(&pb.TransferResponse{Txid: txid}), nil
 }
 
+// TransferMany pays one address. The thunder node builds no transfer to many addresses.
 func (h *Handler) TransferMany(ctx context.Context, req *connect.Request[pb.TransferManyRequest]) (*connect.Response[pb.TransferManyResponse], error) {
-	txid, err := h.backend.TransferMany(ctx, req.Msg.Destinations, req.Msg.FeeSats)
+	if len(req.Msg.Destinations) != 1 {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("the thunder node sends to one address per transaction"))
+	}
+	var address string
+	var amountSats int64
+	for a, sats := range req.Msg.Destinations {
+		address, amountSats = a, sats
+	}
+	txid, err := h.backend.Transfer(ctx, address, amountSats, req.Msg.FeeSats)
 	if err != nil {
 		return nil, err
 	}
