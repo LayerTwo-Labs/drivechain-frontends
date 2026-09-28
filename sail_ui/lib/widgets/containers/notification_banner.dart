@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Returns whether the action was carried out. False leaves the banner unread,
@@ -55,12 +56,11 @@ class _NotificationBannerState extends State<NotificationBanner> {
     super.dispose();
   }
 
-  void _onNotifications() => _openWhenFree();
+  void _onNotifications() => _openPendingModalIfIdle();
 
-  /// Opens a pending modal while the screen is free. The screen frees up at the
-  /// end of an action and at the end of the loop, and a modal can arrive at any
-  /// moment, so all three call this.
-  void _openWhenFree() {
+  /// Opens a pending modal while no action and no loop run. An action ends, a
+  /// loop ends, and a notification arrives, so all three call this.
+  void _openPendingModalIfIdle() {
     final provider = _provider;
     if (!mounted || _modalOpen || _actionRunning || provider == null || provider.pendingModal == null) {
       return;
@@ -70,7 +70,7 @@ class _NotificationBannerState extends State<NotificationBanner> {
 
   /// Opens the modal of every item that waits for one, in turn. The mark goes
   /// in before the dialog, so a rebuild while it stands opens no second copy,
-  /// and an item that arrives while one modal is open takes its turn after it.
+  /// and an item that arrives while one modal is open opens after that one.
   Future<void> _openPendingModal(NotificationProvider provider) async {
     if (_modalOpen) {
       return;
@@ -88,12 +88,18 @@ class _NotificationBannerState extends State<NotificationBanner> {
         if (_ownsDialog(item.action)) {
           // The handler carries the whole message, and _actionRunning stops a
           // second copy, so the mark waits for the action. A mark before a busy
-          // action drops the modal for good. The loop ends while another action
-          // owns the screen, and the end of that action opens this one.
+          // action leaves the modal shown with no dialog. The loop ends while
+          // another action runs, and the end of that action opens this one.
           if (!await _runAction(context, provider, item)) {
             return;
           }
-          await provider.markModalShown(item.id);
+          // The entry can change under this id while the handler stands open. A
+          // mark would then hide the modal of a state the user never read, so it
+          // only lands while the stored text is the text the handler carried.
+          final stored = provider.history.where((n) => n.id == item.id).firstOrNull;
+          if (stored != null && stored.title == item.title && stored.content == item.content) {
+            await provider.markModalShown(item.id);
+          }
           continue;
         }
         await provider.markModalShown(item.id);
@@ -114,7 +120,7 @@ class _NotificationBannerState extends State<NotificationBanner> {
       }
     } finally {
       _modalOpen = false;
-      _openWhenFree();
+      _openPendingModalIfIdle();
     }
   }
 
@@ -125,8 +131,8 @@ class _NotificationBannerState extends State<NotificationBanner> {
 
   /// Runs the item's action, and reports whether it ran. One at a time: the modal
   /// closes before the action ends, and a tap on the banner behind it would start
-  /// a second one. False means another action owns the screen, so the caller
-  /// leaves this item for its turn.
+  /// a second one. False means another action runs, so the caller leaves this item
+  /// for a later call.
   Future<bool> _runAction(BuildContext context, NotificationProvider provider, NotificationItem item) async {
     if (_actionRunning) {
       return false;
@@ -136,14 +142,27 @@ class _NotificationBannerState extends State<NotificationBanner> {
       final handler = GetIt.I.isRegistered<NotificationActions>()
           ? GetIt.I.get<NotificationActions>()[item.action]
           : null;
-      if (handler != null && !await handler(context, item)) {
+      if (handler == null) {
+        await provider.markRead(item.id);
+        return true;
+      }
+      try {
+        if (!await handler(context, item)) {
+          return true;
+        }
+      } catch (error) {
+        // A handler that throws gets no second run: a retry would start the same
+        // failure again, and the caller would run this action for ever.
+        if (GetIt.I.isRegistered<Logger>()) {
+          GetIt.I.get<Logger>().e('notification action ${item.action} failed: $error');
+        }
         return true;
       }
       await provider.markRead(item.id);
       return true;
     } finally {
       _actionRunning = false;
-      _openWhenFree();
+      _openPendingModalIfIdle();
     }
   }
 
