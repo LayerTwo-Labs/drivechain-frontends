@@ -489,7 +489,13 @@ class BitDriveViewModel extends BaseViewModel {
       );
 
       if (file != null) {
-        if (await file.length() > 1024 * 1024) {
+        final size = await file.length();
+        if (size == null) {
+          fileError = 'Could not read file size';
+          notifyListeners();
+          return;
+        }
+        if (size > 1024 * 1024) {
           fileError = 'File size must be less than 1MB';
           notifyListeners();
           return;
