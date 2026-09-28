@@ -1,10 +1,15 @@
 package bitnames
 
 import (
+	"context"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
 func TestDataServerAddressPrefersIPv4(t *testing.T) {
@@ -36,4 +41,10 @@ func TestDataServerAddressSkipsEmptyIPv4(t *testing.T) {
 func TestDataServerAddressErrorsWithNoAddress(t *testing.T) {
 	_, err := dataServerAddress(BitNameData{})
 	require.Error(t, err)
+}
+
+func TestGetPendingPaymailIsUnimplemented(t *testing.T) {
+	_, err := NewHandler(sidechain.NewJSONRPCProxy("127.0.0.1", 1)).GetPendingPaymail(
+		context.Background(), connect.NewRequest(&pb.GetPendingPaymailRequest{}))
+	assert.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
 }
