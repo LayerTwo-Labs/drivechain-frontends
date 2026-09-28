@@ -26,10 +26,12 @@ func TestGetM4History_OneConnection(t *testing.T) {
 			BlockHash:   fmt.Sprintf("hash-%d", height),
 			BlockTime:   time.Unix(int64(height), 0),
 			RawBytes:    []byte{0x00},
-			Votes: []m4.M4Vote{
-				{SidechainSlot: 0, VoteType: m4.VoteTypeAbstain},
-				{SidechainSlot: 1, VoteType: m4.VoteTypeAbstain},
-			},
+		}))
+		var id int64
+		require.NoError(t, db.QueryRowContext(ctx, `SELECT id FROM m4_messages WHERE block_height = ?`, height).Scan(&id))
+		require.NoError(t, e.persistM4Votes(ctx, id, []m4.M4Vote{
+			{SidechainSlot: 0, VoteType: m4.VoteTypeAbstain},
+			{SidechainSlot: 1, VoteType: m4.VoteTypeAbstain},
 		}))
 	}
 
