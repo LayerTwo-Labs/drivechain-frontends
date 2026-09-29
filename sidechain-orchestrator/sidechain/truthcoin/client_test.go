@@ -41,7 +41,7 @@ func clientFromServer(srv *httptest.Server) *Client {
 
 func TestBalance(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{
-		"balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
+		"bitcoin_balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
 	})
 	defer srv.Close()
 
@@ -124,4 +124,54 @@ func TestNullableResults(t *testing.T) {
 	height, err := c.LatestFailedWithdrawalBundleHeight(context.Background())
 	require.NoError(t, err)
 	assert.Nil(t, height)
+}
+
+// paramsRecorder answers every method with null and keeps the params it read.
+func paramsRecorder(t *testing.T, seen *json.RawMessage) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Params json.RawMessage `json:"params"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		*seen = req.Params
+
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(rpcResponse{Result: json.RawMessage(`"ok"`)}))
+	}))
+}
+
+// jsonrpsee rejects a bare scalar in params: it takes an array or an object.
+func TestSingleParamCallsSendAnArray(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		call func(*Client) error
+		want string
+	}{
+		{
+			name: "get_bmm_inclusions",
+			call: func(c *Client) error {
+				_, err := c.GetBMMInclusions(context.Background(), "deadbeef")
+				return err
+			},
+			want: `["deadbeef"]`,
+		},
+		{
+			name: "mine",
+			call: func(c *Client) error {
+				_, err := c.Mine(context.Background(), 1000)
+				return err
+			},
+			want: `[1000]`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var seen json.RawMessage
+			srv := paramsRecorder(t, &seen)
+			defer srv.Close()
+
+			_ = tc.call(clientFromServer(srv))
+			assert.JSONEq(t, tc.want, string(seen))
+		})
+	}
 }
