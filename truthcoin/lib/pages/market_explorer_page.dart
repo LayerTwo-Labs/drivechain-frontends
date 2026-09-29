@@ -7,6 +7,16 @@ import 'package:truthcoin/models/market.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/routing/router.dart';
+import 'package:truthcoin/widgets/market_card.dart';
+
+const double _cardGap = SailStyleValues.padding16;
+const int _maxCardsPerRow = 3;
+
+/// A card holds its content at this width.
+const double _minCardWidth = 330;
+
+/// Below this width the header controls sit under the title.
+const double _wideHeaderWidth = 900;
 
 @RoutePage()
 class MarketExplorerPage extends StatelessWidget {
@@ -22,9 +32,9 @@ class MarketExplorerPage extends StatelessWidget {
           child: SailColumn(
             spacing: SailStyleValues.padding16,
             children: [
-              HeaderSection(model: model),
-              StatsSection(model: model),
-              Expanded(child: _MarketListSection(model: model)),
+              _HeaderSection(model: model),
+              _FilterChips(model: model),
+              Expanded(child: _MarketGrid(model: model)),
             ],
           ),
         );
@@ -33,125 +43,191 @@ class MarketExplorerPage extends StatelessWidget {
   }
 }
 
-class HeaderSection extends StatelessWidget {
+class _HeaderSection extends StatelessWidget {
   final MarketExplorerViewModel model;
 
-  const HeaderSection({super.key, required this.model});
+  const _HeaderSection({required this.model});
 
   @override
   Widget build(BuildContext context) {
-    return SailRow(
-      spacing: SailStyleValues.padding12,
-      children: [
-        Expanded(
-          flex: 2,
-          child: SailTextField(
-            controller: model.searchController,
-            hintText: 'Search markets...',
-            onChanged: model.onSearchChanged,
-            prefixIcon: SailSVG.fromAsset(SailSVGAsset.search, width: 16, color: SailTheme.of(context).colors.icon),
+    final formatter = GetIt.I.get<FormatterProvider>();
+
+    final title = ListenableBuilder(
+      listenable: formatter,
+      builder: (context, _) => SailColumn(
+        spacing: SailStyleValues.padding04,
+        children: [
+          SailText.primary24('Prediction markets', bold: true),
+          SailText.secondary13(
+            '${model.totalMarkets} markets  ·  ${model.activeMarkets} live  ·  '
+            '${formatter.formatBTC(model.totalVolumeBTC)} traded',
           ),
-        ),
-        SizedBox(
-          width: 150,
-          child: SailDropdownButton<MarketState?>(
-            value: model.stateFilter,
-            items: [
-              const SailDropdownItem<MarketState?>(
-                value: null,
-                label: 'All States',
-              ),
-              ...MarketState.values.map(
-                (state) => SailDropdownItem<MarketState?>(
-                  value: state,
-                  label: state.displayName,
+        ],
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < _wideHeaderWidth;
+        final controls = [
+          SizedBox(
+            width: narrow ? 180 : 280,
+            child: SailTextField(
+              controller: model.searchController,
+              hintText: 'Search markets',
+              size: TextFieldSize.small,
+              onChanged: model.onSearchChanged,
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: SailStyleValues.padding10),
+                child: SailSVG.fromAsset(
+                  SailSVGAsset.search,
+                  width: 14,
+                  height: 14,
+                  color: SailTheme.of(context).colors.icon,
                 ),
               ),
-            ],
-            onChanged: model.onStateFilterChanged,
+              prefixIconConstraints: const BoxConstraints(minWidth: 28, minHeight: 14),
+            ),
           ),
-        ),
-        SizedBox(
-          width: 150,
-          child: SailDropdownButton<MarketSort>(
-            value: model.sortBy,
-            items: const [
-              SailDropdownItem<MarketSort>(
-                value: MarketSort.volume,
-                label: 'By Volume',
-              ),
-              SailDropdownItem<MarketSort>(
-                value: MarketSort.created,
-                label: 'By Date',
-              ),
-              SailDropdownItem<MarketSort>(
-                value: MarketSort.title,
-                label: 'By Title',
+          SizedBox(
+            width: 150,
+            child: SailDropdownButton<MarketSort>(
+              value: model.sortBy,
+              items: const [
+                SailDropdownItem<MarketSort>(value: MarketSort.volume, label: 'By volume'),
+                SailDropdownItem<MarketSort>(value: MarketSort.created, label: 'By date'),
+                SailDropdownItem<MarketSort>(value: MarketSort.title, label: 'By title'),
+              ],
+              onChanged: (sort) {
+                if (sort != null) model.onSortChanged(sort);
+              },
+            ),
+          ),
+          SailButton(
+            label: 'Refresh',
+            variant: ButtonVariant.secondary,
+            small: true,
+            loading: model.isLoading || model.isLoadingPrices,
+            onPressed: () async => model.loadMarkets(refresh: true),
+          ),
+          SailButton(
+            label: 'Create market',
+            icon: SailSVGAsset.plus,
+            small: true,
+            onPressed: () async => model.openCreateMarket(),
+          ),
+        ];
+
+        if (narrow) {
+          return SailColumn(
+            spacing: SailStyleValues.padding12,
+            children: [
+              title,
+              Wrap(
+                spacing: SailStyleValues.padding08,
+                runSpacing: SailStyleValues.padding08,
+                children: controls,
               ),
             ],
-            onChanged: (sort) {
-              if (sort != null) model.onSortChanged(sort);
-            },
+          );
+        }
+
+        return SailRow(
+          spacing: SailStyleValues.padding12,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Expanded(child: title),
+            ...controls,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FilterChips extends StatelessWidget {
+  final MarketExplorerViewModel model;
+
+  const _FilterChips({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: SailStyleValues.padding08,
+      runSpacing: SailStyleValues.padding08,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _FilterChip(
+          label: 'All',
+          selected: model.stateFilter == null && model.tagFilter == null,
+          onTap: model.clearFilters,
+        ),
+        for (final tag in model.availableTags)
+          _FilterChip(
+            label: tag,
+            selected: model.tagFilter == tag,
+            onTap: () => model.onTagFilterChanged(model.tagFilter == tag ? null : tag),
           ),
-        ),
-        SailButton(
-          label: '+ Create Market',
-          onPressed: () async {
-            await model.openCreateMarket(context);
-          },
-        ),
+        for (final state in MarketState.values)
+          _FilterChip(
+            label: state.displayName,
+            selected: model.stateFilter == state,
+            onTap: () => model.onStateFilterChanged(model.stateFilter == state ? null : state),
+          ),
+        if (model.isLoadingPrices) SailText.secondary12('prices load'),
+        if (model.priceError != null) SailText.secondary12(model.priceError!),
       ],
     );
   }
 }
 
-class StatsSection extends StatelessWidget {
-  final MarketExplorerViewModel model;
+/// A rounded state filter, drawn as a pill.
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
-  const StatsSection({super.key, required this.model});
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final formatter = GetIt.I<FormatterProvider>();
+    final theme = SailTheme.of(context);
 
-    return ListenableBuilder(
-      listenable: formatter,
-      builder: (context, _) => SailRow(
-        spacing: SailStyleValues.padding16,
-        children: [
-          _StatCard(
-            label: 'Total Markets',
-            value: model.totalMarkets.toString(),
-          ),
-          _StatCard(
-            label: 'Active Markets',
-            value: model.activeMarkets.toString(),
-          ),
-          _StatCard(
-            label: 'Total Volume',
-            value: formatter.formatBTC(model.totalVolumeBTC),
-          ),
-        ],
+    return SailTappable(
+      onTap: () async => onTap(),
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding12,
+          vertical: SailStyleValues.padding08,
+        ),
+        decoration: BoxDecoration(
+          color: selected ? theme.colors.text : theme.colors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: SailText.primary12(
+          label,
+          bold: selected,
+          color: selected ? theme.colors.background : theme.colors.textSecondary,
+        ),
       ),
     );
   }
 }
 
-class _MarketListSection extends StatelessWidget {
+class _MarketGrid extends StatelessWidget {
   final MarketExplorerViewModel model;
 
-  const _MarketListSection({required this.model});
+  const _MarketGrid({required this.model});
 
   @override
   Widget build(BuildContext context) {
-    final formatter = GetIt.I<FormatterProvider>();
-
-    if (model.isLoading) {
+    if (model.isLoading && model.markets.isEmpty) {
       return Center(
         child: SailSkeletonizer(
           enabled: true,
-          description: 'Loading markets...',
-          child: SailText.primary15('Loading...'),
+          description: 'Markets load',
+          child: SailText.primary15('Markets load'),
         ),
       );
     }
@@ -159,13 +235,15 @@ class _MarketListSection extends StatelessWidget {
     if (model.marketError != null) {
       return Center(
         child: SailColumn(
+          spacing: SailStyleValues.padding16,
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SailText.primary15(model.marketError!),
-            const SizedBox(height: 16),
             SailButton(
-              label: 'Retry',
-              onPressed: () async => model.loadMarkets(),
+              label: 'Try again',
+              small: true,
+              onPressed: () async => model.loadMarkets(refresh: true),
             ),
           ],
         ),
@@ -175,134 +253,49 @@ class _MarketListSection extends StatelessWidget {
     if (model.markets.isEmpty) {
       return Center(
         child: SailColumn(
+          spacing: SailStyleValues.padding16,
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SailText.secondary15('No markets found'),
-            const SizedBox(height: 16),
+            SailText.secondary15('No market matches the filter'),
             SailButton(
-              label: 'Create First Market',
-              onPressed: () async => model.openCreateMarket(context),
+              label: 'Create the first market',
+              small: true,
+              onPressed: () async => model.openCreateMarket(),
             ),
           ],
         ),
       );
     }
 
-    return ListenableBuilder(
-      listenable: formatter,
-      builder: (context, _) => SailCard(
-        title: 'Markets (${model.markets.length})',
-        bottomPadding: false,
-        child: SailTable(
-          getRowId: (index) => model.markets[index].marketId,
-          headerBuilder: (context) => [
-            SailTableHeaderCell(
-              name: 'Title',
-              onSort: () => model.onSortChanged(MarketSort.title),
-            ),
-            const SailTableHeaderCell(name: 'Outcomes'),
-            SailTableHeaderCell(
-              name: 'Volume',
-              onSort: () => model.onSortChanged(MarketSort.volume),
-            ),
-            const SailTableHeaderCell(name: 'State'),
-            const SailTableHeaderCell(name: 'Action'),
-          ],
-          rowBuilder: (context, row, selected) {
-            final market = model.markets[row];
-            return [
-              SailTableCell(
-                value: market.title,
-                child: SailColumn(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.primary13(market.title, bold: true),
-                    if (market.description.isNotEmpty)
-                      SailText.secondary12(
-                        market.description.length > 60
-                            ? '${market.description.substring(0, 60)}...'
-                            : market.description,
-                      ),
-                  ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fit = ((constraints.maxWidth + _cardGap) / (_minCardWidth + _cardGap)).floor();
+        final columns = fit.clamp(1, _maxCardsPerRow);
+        final cardWidth = (constraints.maxWidth - _cardGap * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          child: Wrap(
+            spacing: _cardGap,
+            runSpacing: _cardGap,
+            children: [
+              for (final market in model.markets)
+                SizedBox(
+                  width: cardWidth,
+                  child: MarketCard(
+                    market: market,
+                    detail: model.marketDetails[market.marketId],
+                    onTap: () => model.openMarket(market.marketId),
+                    onTradeOutcome: (outcomeIndex) => model.openMarket(
+                      market.marketId,
+                      outcomeIndex: outcomeIndex,
+                    ),
+                  ),
                 ),
-              ),
-              SailTableCell(value: market.outcomeCount.toString()),
-              SailTableCell(
-                value: formatter.formatSats(market.volumeSats),
-                monospace: true,
-              ),
-              SailTableCell(
-                value: market.marketState.displayName,
-                child: _StateChip(state: market.marketState),
-              ),
-              SailTableCell(
-                value: 'View',
-                child: SailButton(
-                  label: 'View',
-                  small: true,
-                  onPressed: () async => model.openMarket(context, market.marketId),
-                ),
-              ),
-            ];
-          },
-          rowCount: model.markets.length,
-          emptyPlaceholder: 'No markets match your filters',
-          drawGrid: true,
-          onDoubleTap: (marketId) => model.openMarket(context, marketId),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _StatCard({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return SailCard(
-      child: SailColumn(
-        spacing: SailStyleValues.padding04,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailText.secondary12(label),
-          SailText.primary20(value, bold: true),
-        ],
-      ),
-    );
-  }
-}
-
-class _StateChip extends StatelessWidget {
-  final MarketState state;
-
-  const _StateChip({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    Color bgColor;
-    switch (state) {
-      case MarketState.trading:
-        bgColor = theme.colors.success.withValues(alpha: 0.2);
-      case MarketState.ossified:
-        bgColor = theme.colors.info.withValues(alpha: 0.2);
-      case MarketState.cancelled:
-      case MarketState.invalid:
-        bgColor = theme.colors.error.withValues(alpha: 0.2);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: SailText.secondary12(state.displayName),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -312,9 +305,14 @@ class MarketExplorerViewModel extends BaseViewModel {
   final TextEditingController searchController = TextEditingController();
 
   List<MarketSummary> get markets => _marketProvider.filteredMarkets;
+  Map<String, MarketData> get marketDetails => _marketProvider.marketDetails;
   bool get isLoading => _marketProvider.isLoading;
+  bool get isLoadingPrices => _marketProvider.isLoadingPrices;
   String? get marketError => _marketProvider.error;
+  String? get priceError => _marketProvider.priceError;
   MarketState? get stateFilter => _marketProvider.stateFilter;
+  String? get tagFilter => _marketProvider.tagFilter;
+  List<String> get availableTags => _marketProvider.availableTags;
   MarketSort get sortBy => _marketProvider.sortBy;
 
   int get totalMarkets => _marketProvider.markets.length;
@@ -330,8 +328,9 @@ class MarketExplorerViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<void> loadMarkets() async {
+  Future<void> loadMarkets({bool refresh = false}) async {
     await _marketProvider.loadMarkets();
+    await _marketProvider.loadMarketPrices(refresh: refresh);
   }
 
   void onSearchChanged(String query) {
@@ -342,16 +341,29 @@ class MarketExplorerViewModel extends BaseViewModel {
     _marketProvider.setStateFilter(state);
   }
 
+  void onTagFilterChanged(String? tag) {
+    _marketProvider.setTagFilter(tag);
+  }
+
+  void clearFilters() {
+    _marketProvider.setStateFilter(null);
+    _marketProvider.setTagFilter(null);
+  }
+
   void onSortChanged(MarketSort sort) {
     _marketProvider.setSort(sort);
   }
 
-  Future<void> openMarket(BuildContext context, String marketId) async {
-    await GetIt.I.get<AppRouter>().push(MarketDetailRoute(marketId: marketId));
+  Future<void> openMarket(String marketId, {int? outcomeIndex}) async {
+    await GetIt.I.get<AppRouter>().push(
+      MarketDetailRoute(marketId: marketId, initialOutcomeIndex: outcomeIndex),
+    );
   }
 
-  Future<void> openCreateMarket(BuildContext context) async {
+  Future<void> openCreateMarket() async {
     await GetIt.I.get<AppRouter>().push(const MarketCreationRoute());
+    // A new market carries no price yet, so the grid reads the list again.
+    await loadMarkets();
   }
 
   @override
