@@ -347,7 +347,7 @@ func (h *Handler) Shutdown(_ context.Context, req *connect.Request[pb.ShutdownRe
 		h.orch.ClientLeaving()
 		return connect.NewResponse(&pb.ShutdownResponse{}), nil
 	}
-	h.orch.BeginShutdown()
+	h.orch.BeginShutdown(req.Msg.GetKeepL1())
 	return connect.NewResponse(&pb.ShutdownResponse{}), nil
 }
 

@@ -794,7 +794,7 @@ func run(cctx *cli.Context) error {
 	// drain finishes; os.Exit usually fires before this returns. The final
 	// os.Exit is belt-and-suspenders for the "somehow we became KEEP" case.
 	log.Info().Msg("shutting down managed binaries...")
-	orch.BeginShutdown()
+	orch.BeginShutdown(false)
 	_ = orch.AwaitShutdownIdle(context.Background())
 	os.Exit(0)
 

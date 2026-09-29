@@ -5881,10 +5881,14 @@ class ForkClaimUtxo extends $pb.GeneratedMessage {
 class ShutdownRequest extends $pb.GeneratedMessage {
   factory ShutdownRequest({
     $core.bool? onlyIfLast,
+    $core.bool? keepL1,
   }) {
     final $result = create();
     if (onlyIfLast != null) {
       $result.onlyIfLast = onlyIfLast;
+    }
+    if (keepL1 != null) {
+      $result.keepL1 = keepL1;
     }
     return $result;
   }
@@ -5894,6 +5898,7 @@ class ShutdownRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ShutdownRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'onlyIfLast')
+    ..aOB(2, _omitFieldNames ? '' : 'keepL1')
     ..hasRequiredFields = false
   ;
 
@@ -5928,6 +5933,17 @@ class ShutdownRequest extends $pb.GeneratedMessage {
   $core.bool hasOnlyIfLast() => $_has(0);
   @$pb.TagNumber(1)
   void clearOnlyIfLast() => clearField(1);
+
+  /// Exit and leave bitcoind, the enforcer and the sidechains running. The
+  /// daemon that takes the port adopts them.
+  @$pb.TagNumber(2)
+  $core.bool get keepL1 => $_getBF(1);
+  @$pb.TagNumber(2)
+  set keepL1($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasKeepL1() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearKeepL1() => clearField(2);
 }
 
 class ShutdownResponse extends $pb.GeneratedMessage {
