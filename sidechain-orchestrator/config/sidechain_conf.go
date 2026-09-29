@@ -101,6 +101,10 @@ type SidechainConfSpec struct {
 	RPCKey string
 	// DirKey is the chains_config.json key for the data directory lookup.
 	DirKey string
+	// LegacyRootDirName is the folder an older release kept this chain's conf
+	// in, under the same platform base. The first load moves the conf out of
+	// it, so a value the user set by hand survives the move.
+	LegacyRootDirName string
 }
 
 // rpcEndpointKey names the conf key that holds the RPC endpoint.
@@ -169,6 +173,7 @@ func NewSidechainConfManager(spec SidechainConfSpec, bitcoinConf *BitcoinConfMan
 // LoadConfig loads the config from file, or creates default if not exists.
 func (m *SidechainConfManager) LoadConfig() error {
 	m.ConfigPath = m.getConfigPath()
+	m.adoptLegacyConfig()
 
 	data, err := os.ReadFile(m.ConfigPath)
 	if err == nil {
@@ -484,6 +489,37 @@ func (m *SidechainConfManager) getConfigPath() string {
 	return filepath.Join(dirs.RootDir(), m.Spec.ConfigFilename)
 }
 
+// adoptLegacyConfig copies the conf an older release left in another folder.
+// The launch path builds the daemon flags from this file, so a dropped file
+// restarts the daemon on other ports than the user chose.
+func (m *SidechainConfManager) adoptLegacyConfig() {
+	if m.Spec.LegacyRootDirName == "" {
+		return
+	}
+	if _, err := os.Stat(m.ConfigPath); err == nil {
+		return
+	}
+	legacyPath := filepath.Join(
+		MustDirConfig(m.Spec.DirKey).AppDir(),
+		m.Spec.LegacyRootDirName,
+		m.Spec.ConfigFilename,
+	)
+	data, err := os.ReadFile(legacyPath)
+	if err != nil {
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(m.ConfigPath), 0755); err != nil {
+		m.log.Error().Err(err).Msgf("failed to create %s config directory", m.Spec.Name)
+		return
+	}
+	if err := os.WriteFile(m.ConfigPath, data, 0644); err != nil {
+		m.log.Error().Err(err).Str("path", m.ConfigPath).Msgf("failed to copy the old %s config", m.Spec.Name)
+		return
+	}
+	m.log.Info().Str("from", legacyPath).Str("to", m.ConfigPath).
+		Msgf("copied the %s config out of its old folder", m.Spec.Name)
+}
+
 // StartWatching watches the config directory for file changes.
 func (m *SidechainConfManager) StartWatching() error {
 	watcher, err := fsnotify.NewWatcher()
@@ -627,14 +663,15 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		DirKey:         "photon",
 	},
 	"truthcoin": {
-		EnforcerArg:    "mainchain-grpc-host",
-		Name:           "Truthcoin",
-		ConfigFilename: "truthcoin.conf",
-		BasePort:       6013,
-		CliArgKeys:     []string{"net-addr", "zmq-addr"},
-		PortStyle:      "zmq",
-		RPCKey:         "rpc-port",
-		DirKey:         "truthcoin",
+		EnforcerArg:       "mainchain-grpc-host",
+		Name:              "Truthcoin",
+		ConfigFilename:    "truthcoin.conf",
+		BasePort:          6013,
+		CliArgKeys:        []string{"net-addr", "zmq-addr"},
+		PortStyle:         "zmq",
+		RPCKey:            "rpc-port",
+		DirKey:            "truthcoin",
+		LegacyRootDirName: "truthcoin",
 	},
 	"coinshift": {
 		EnforcerArg:    "mainchain-grpc-url",
