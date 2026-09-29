@@ -556,7 +556,7 @@ class _PositionsSummaryWidget extends StatelessWidget {
                         children: [
                           SailText.secondary13('Total Value'),
                           SailText.primary15(
-                            formatter.formatBTC(model.holdings!.totalValue),
+                            formatter.formatSats(model.holdings!.totalValueSats),
                             bold: true,
                           ),
                         ],
