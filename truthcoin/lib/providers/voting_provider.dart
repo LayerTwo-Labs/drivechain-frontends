@@ -208,12 +208,14 @@ class VotingProvider extends ChangeNotifier {
   }
 
   /// Get votecoin balance for an address
+  /// Votecoin of one address. Throws when the node fails, so a caller never
+  /// reads a failure as a zero balance.
   Future<int> getVotecoinBalance(String address) async {
     try {
       return await _rpc.votecoinBalance(address);
     } catch (e) {
       _log.e('Failed to get votecoin balance: $e');
-      return 0;
+      rethrow;
     }
   }
 

@@ -54,7 +54,7 @@ void main() {
       await tester.pumpSailPage(const VotingDashboardPage());
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Voting'), findsWidgets);
+      expect(find.textContaining('Oracle voting'), findsWidgets);
     });
 
     testWidgets('shows voter status section', (WidgetTester tester) async {
@@ -107,7 +107,7 @@ void main() {
       await tester.pumpSailPage(const VotingDashboardPage());
       await tester.pumpAndSettle();
 
-      expect(find.text('Category'), findsOneWidget);
+      expect(find.textContaining('category slot'), findsOneWidget);
       for (final option in ['Alice', 'Bob', 'Carol']) {
         expect(find.text(option), findsOneWidget);
       }
