@@ -1340,12 +1340,14 @@ const ShutdownRequest$json = {
   '1': 'ShutdownRequest',
   '2': [
     {'1': 'only_if_last', '3': 1, '4': 1, '5': 8, '10': 'onlyIfLast'},
+    {'1': 'keep_l1', '3': 2, '4': 1, '5': 8, '10': 'keepL1'},
   ],
 };
 
 /// Descriptor for `ShutdownRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List shutdownRequestDescriptor = $convert.base64Decode(
-    'Cg9TaHV0ZG93blJlcXVlc3QSIAoMb25seV9pZl9sYXN0GAEgASgIUgpvbmx5SWZMYXN0');
+    'Cg9TaHV0ZG93blJlcXVlc3QSIAoMb25seV9pZl9sYXN0GAEgASgIUgpvbmx5SWZMYXN0EhcKB2'
+    'tlZXBfbDEYAiABKAhSBmtlZXBMMQ==');
 
 @$core.Deprecated('Use shutdownResponseDescriptor instead')
 const ShutdownResponse$json = {

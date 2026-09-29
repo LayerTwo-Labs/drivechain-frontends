@@ -964,6 +964,9 @@ message ShutdownRequest {
   // Drain only once no client is connected and the owner process is gone.
   // Unset means drain now, whoever else is attached.
   bool only_if_last = 1;
+  // Exit and leave bitcoind, the enforcer and the sidechains running. The
+  // daemon that takes the port adopts them.
+  bool keep_l1 = 2;
 }
 message ShutdownResponse {}
 

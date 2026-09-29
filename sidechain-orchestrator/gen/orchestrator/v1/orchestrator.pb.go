@@ -5082,7 +5082,10 @@ type ShutdownRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Drain only once no client is connected and the owner process is gone.
 	// Unset means drain now, whoever else is attached.
-	OnlyIfLast    bool `protobuf:"varint,1,opt,name=only_if_last,json=onlyIfLast,proto3" json:"only_if_last,omitempty"`
+	OnlyIfLast bool `protobuf:"varint,1,opt,name=only_if_last,json=onlyIfLast,proto3" json:"only_if_last,omitempty"`
+	// Exit and leave bitcoind, the enforcer and the sidechains running. The
+	// daemon that takes the port adopts them.
+	KeepL1        bool `protobuf:"varint,2,opt,name=keep_l1,json=keepL1,proto3" json:"keep_l1,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5120,6 +5123,13 @@ func (*ShutdownRequest) Descriptor() ([]byte, []int) {
 func (x *ShutdownRequest) GetOnlyIfLast() bool {
 	if x != nil {
 		return x.OnlyIfLast
+	}
+	return false
+}
+
+func (x *ShutdownRequest) GetKeepL1() bool {
+	if x != nil {
+		return x.KeepL1
 	}
 	return false
 }
@@ -6124,10 +6134,11 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"splittable\x18\x05 \x01(\bH\x00R\n" +
 	"splittable\x88\x01\x01\x12\x16\n" +
 	"\x06height\x18\x06 \x01(\x05R\x06heightB\r\n" +
-	"\v_splittable\"3\n" +
+	"\v_splittable\"L\n" +
 	"\x0fShutdownRequest\x12 \n" +
 	"\fonly_if_last\x18\x01 \x01(\bR\n" +
-	"onlyIfLast\"\x12\n" +
+	"onlyIfLast\x12\x17\n" +
+	"\akeep_l1\x18\x02 \x01(\bR\x06keepL1\"\x12\n" +
 	"\x10ShutdownResponse\"0\n" +
 	"\x11AdoptOwnerRequest\x12\x1b\n" +
 	"\towner_pid\x18\x01 \x01(\x05R\bownerPid\"9\n" +

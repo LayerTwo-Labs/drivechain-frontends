@@ -17,6 +17,9 @@ const (
 	shutdownStateDrainingKeep int32 = 2 // drain in progress, stay alive at end
 )
 
+// exitProcess ends the daemon. A test replaces it to watch the exit.
+var exitProcess = os.Exit
+
 // ShutdownDraining reports whether a drain is currently in progress and, if
 // so, whether the daemon will os.Exit when it completes.
 func (o *Orchestrator) ShutdownDraining() (draining, willExit bool) {
@@ -65,8 +68,9 @@ func (o *Orchestrator) AdoptOwner(pid int) (bool, error) {
 
 // BeginShutdown kicks off the drivechaind shutdown sequence. Idempotent:
 // subsequent calls while a drain is in flight are no-ops. Returns true iff
-// this call initiated a fresh drain.
-func (o *Orchestrator) BeginShutdown() bool {
+// this call initiated a fresh drain. With keepL1 the daemon exits and leaves
+// every child running, so the daemon that takes the port adopts them.
+func (o *Orchestrator) BeginShutdown(keepL1 bool) bool {
 	o.shutdownMu.Lock()
 	if o.shutdownState != shutdownStateRunning {
 		o.shutdownMu.Unlock()
@@ -75,7 +79,7 @@ func (o *Orchestrator) BeginShutdown() bool {
 	idleCh := o.startDrainLocked()
 	o.shutdownMu.Unlock()
 
-	go o.runShutdown(idleCh)
+	go o.runShutdown(idleCh, keepL1)
 	return true
 }
 
@@ -105,13 +109,26 @@ func (o *Orchestrator) RequestExit() {
 	idleCh := o.startDrainLocked()
 	o.shutdownMu.Unlock()
 
-	go o.runShutdown(idleCh)
+	go o.runShutdown(idleCh, false)
 }
 
 // runShutdown drains all managed children, then either os.Exit(0)s or stays
 // alive depending on whether CancelShutdownExit flipped the bit while we were
-// draining. In-flight binary stops always run to completion.
-func (o *Orchestrator) runShutdown(idleCh chan struct{}) {
+// draining. In-flight binary stops always run to completion. With keepL1 no
+// child stops: the L1 stack outlives this daemon and a fresh one adopts it.
+func (o *Orchestrator) runShutdown(idleCh chan struct{}, keepL1 bool) {
+	// A retire is an order, not a request. No client may cancel it, or the
+	// app that asked waits out its whole deadline on a port nobody frees.
+	if keepL1 {
+		o.log.Info().Msg("exit without a drain; bitcoind, the enforcer and the sidechains keep running")
+		o.shutdownMu.Lock()
+		o.shutdownIdle = nil
+		close(idleCh)
+		o.shutdownMu.Unlock()
+		exitProcess(0)
+		return
+	}
+
 	progressCh, err := o.ShutdownAll(context.Background(), false, ShutdownOptions{KeepWindows: true})
 	if err != nil {
 		o.log.Error().Err(err).Msg("shutdown: ShutdownAll start failed")
@@ -129,7 +146,7 @@ func (o *Orchestrator) runShutdown(idleCh chan struct{}) {
 
 	if final == shutdownStateDrainingExit {
 		o.log.Info().Msg("shutdown drain complete; exiting")
-		os.Exit(0)
+		exitProcess(0)
 	}
 	o.log.Info().Msg("shutdown drain complete; staying alive (adopted by relaunched bitwindowd)")
 }
