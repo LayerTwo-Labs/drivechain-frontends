@@ -48,10 +48,15 @@ class MarketDetailRoute extends PageRouteInfo<MarketDetailRouteArgs> {
   MarketDetailRoute({
     Key? key,
     required String marketId,
+    int? initialOutcomeIndex,
     List<PageRouteInfo>? children,
   }) : super(
          MarketDetailRoute.name,
-         args: MarketDetailRouteArgs(key: key, marketId: marketId),
+         args: MarketDetailRouteArgs(
+           key: key,
+           marketId: marketId,
+           initialOutcomeIndex: initialOutcomeIndex,
+         ),
          rawPathParams: {'marketId': marketId},
          initialChildren: children,
        );
@@ -66,32 +71,45 @@ class MarketDetailRoute extends PageRouteInfo<MarketDetailRouteArgs> {
         orElse: () =>
             MarketDetailRouteArgs(marketId: pathParams.getString('marketId')),
       );
-      return MarketDetailPage(key: args.key, marketId: args.marketId);
+      return MarketDetailPage(
+        key: args.key,
+        marketId: args.marketId,
+        initialOutcomeIndex: args.initialOutcomeIndex,
+      );
     },
   );
 }
 
 class MarketDetailRouteArgs {
-  const MarketDetailRouteArgs({this.key, required this.marketId});
+  const MarketDetailRouteArgs({
+    this.key,
+    required this.marketId,
+    this.initialOutcomeIndex,
+  });
 
   final Key? key;
 
   final String marketId;
 
+  final int? initialOutcomeIndex;
+
   @override
   String toString() {
-    return 'MarketDetailRouteArgs{key: $key, marketId: $marketId}';
+    return 'MarketDetailRouteArgs{key: $key, marketId: $marketId, initialOutcomeIndex: $initialOutcomeIndex}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! MarketDetailRouteArgs) return false;
-    return key == other.key && marketId == other.marketId;
+    return key == other.key &&
+        marketId == other.marketId &&
+        initialOutcomeIndex == other.initialOutcomeIndex;
   }
 
   @override
-  int get hashCode => key.hashCode ^ marketId.hashCode;
+  int get hashCode =>
+      key.hashCode ^ marketId.hashCode ^ initialOutcomeIndex.hashCode;
 }
 
 /// generated route for
@@ -106,6 +124,22 @@ class MarketExplorerRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const MarketExplorerPage();
+    },
+  );
+}
+
+/// generated route for
+/// [PortfolioPage]
+class PortfolioRoute extends PageRouteInfo<void> {
+  const PortfolioRoute({List<PageRouteInfo>? children})
+    : super(PortfolioRoute.name, initialChildren: children);
+
+  static const String name = 'PortfolioRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const PortfolioPage();
     },
   );
 }

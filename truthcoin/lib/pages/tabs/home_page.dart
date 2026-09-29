@@ -35,6 +35,9 @@ enum Tabs {
   // prediction markets
   Markets,
 
+  // open share positions
+  Portfolio,
+
   // voting/oracle system
   Voting,
 
@@ -447,6 +450,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 TruthcoinHomepageRoute(),
                 // prediction markets
                 MarketExplorerRoute(),
+                // open share positions
+                PortfolioRoute(),
                 // voting/oracle system
                 VotingDashboardRoute(),
                 // sidechain console route
@@ -495,6 +500,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             optionalKey: Tabs.Markets.index,
                             onTap: () {
                               tabsRouter.setActiveIndex(Tabs.Markets.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Portfolio',
+                            optionalKey: Tabs.Portfolio.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Portfolio.index);
                             },
                           ),
                           TopNavRoute(

@@ -7,6 +7,7 @@ import 'package:truthcoin/pages/market_creation_page.dart';
 import 'package:truthcoin/pages/market_detail_page.dart';
 import 'package:truthcoin/pages/market_explorer_page.dart';
 import 'package:truthcoin/pages/tabs/home_page.dart';
+import 'package:truthcoin/pages/tabs/portfolio_page.dart';
 import 'package:truthcoin/pages/tabs/settings_page.dart';
 import 'package:truthcoin/pages/tabs/truthcoin_configure_homepage_page.dart';
 import 'package:truthcoin/pages/tabs/truthcoin_homepage.dart';
@@ -70,6 +71,9 @@ class AppRouter extends RootStackRouter {
         ),
         AutoRoute(
           page: MarketExplorerRoute.page,
+        ),
+        AutoRoute(
+          page: PortfolioRoute.page,
         ),
         AutoRoute(
           page: VotingDashboardRoute.page,
