@@ -1,28 +1,23 @@
-import 'dart:io';
-
 import 'package:bitwindow/providers/backend_swap_provider.dart';
-import 'package:connectrpc/connect.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Starts bitwindowd for this app.
 ///
-/// Only a new bitwindowd spawns drivechaind or claims it for this app. So a
-/// bitwindowd whose app exited gets replaced, after [claimDrivechaind] keeps
-/// its drivechaind alive through the swap. One that a live app owns is shared.
+/// A start always replaces a bitwindowd from an earlier session, and that new
+/// bitwindowd retires the running drivechaind. A shared daemon keeps the build
+/// it started with: the network picker then lists the catalog that daemon
+/// shipped with, and a newer RPC answers 404. bitcoind, the enforcer and the
+/// sidechains stay up through the swap.
 Future<void> startBitwindowd(
   BinaryProvider provider, {
-  required Future<void> Function() claimDrivechaind,
   required BackendSwapProvider swap,
 }) async {
   final bitwindow = provider.binaries.firstWhere((b) => b is BitWindow);
-  if (!provider.isAdopted(bitwindow) || await provider.ownerAlive(bitwindow)) {
+  if (!provider.isAdopted(bitwindow)) {
     await provider.start(bitwindow);
     return;
   }
   try {
-    swap.report(BackendSwapStep.claim);
-    await claimDrivechaind();
     await _replace(provider, bitwindow, swap);
     swap.finish();
   } catch (e) {
@@ -38,14 +33,4 @@ Future<void> _replace(BinaryProvider provider, Binary bitwindow, BackendSwapProv
   await provider.stop(bitwindow);
   swap.report(BackendSwapStep.start);
   await provider.start(bitwindow);
-}
-
-/// Makes this app the owner of a drivechaind from the last session. The
-/// backend drains the whole stack when its owner exits.
-Future<void> claimDrivechaind(OrchestratorRPC orchestrator, Logger log) async {
-  try {
-    await orchestrator.adoptOwner(pid);
-  } on ConnectException catch (e) {
-    log.i('STARTUP: no drivechaind to claim, the new bitwindowd starts one: $e');
-  }
 }

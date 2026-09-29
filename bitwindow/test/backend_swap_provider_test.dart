@@ -47,7 +47,7 @@ void main() {
   });
 
   test('the end clears the report', () {
-    swap.report(BackendSwapStep.claim);
+    swap.report(BackendSwapStep.stop);
     swap.finish();
 
     expect(swap.swapping, isFalse);
@@ -79,9 +79,9 @@ void main() {
   test('a new swap drops the steps of the swap that stopped', () {
     swap.report(BackendSwapStep.stop);
     swap.fail(StateError('no bitwindowd binary'));
-    swap.report(BackendSwapStep.claim);
+    swap.report(BackendSwapStep.stop);
 
-    expect(swap.steps, [BackendSwapStep.claim]);
+    expect(swap.steps, [BackendSwapStep.stop]);
   });
 
   test('a second end tells nobody', () {

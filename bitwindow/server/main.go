@@ -419,26 +419,21 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	log := zerolog.Ctx(ctx)
 	bitwindowDir := conf.BitwindowDir()
 
-	// If a previous drivechaind is still draining, adopt it only after it
-	// proves it knows the cookie. This avoids sending the bearer token to an
-	// arbitrary listener that managed to occupy the port.
-	adopted, err := existingOrchestratorAdoptable(conf.OrchestratorAddr, bitwindowDir)
+	// A running drivechaind keeps the build it started with, so an app start
+	// retires it and spawns a fresh one. bitcoind, the enforcer and the
+	// sidechains stay up, and the fresh daemon adopts them by their RPC
+	// ports. Verify the cookie first: without it the stop RPC carries the
+	// bearer token to any listener on the port.
+	running, err := verifiedOrchestratorRunning(conf.OrchestratorAddr, bitwindowDir)
 	if err != nil {
 		return nil, err
 	}
-	if adopted {
-		// The running daemon still watches the frontend an app update
-		// replaced. Claim it for the new one, or it drains the whole stack a
-		// few seconds from now and leaves this install a dead port.
-		claimErr := claimOrchestratorOwner(conf.OrchestratorAddr, bitwindowDir, conf.OwnerPID)
-		if claimErr == nil {
-			log.Info().Str("addr", conf.OrchestratorAddr).Msg("drivechaind already running, adopting verified instance")
+	if running {
+		if !retireRunningOrchestrator(conf.OwnerPID) {
+			log.Info().Str("addr", conf.OrchestratorAddr).Msg("drivechaind already running under no owner, adopting verified instance")
 			return nil, nil
 		}
-		// A build older than AdoptOwner cannot hand over. It drains on its own
-		// dead owner and leaves a dead port, so retire it and take the port.
-		log.Warn().Err(claimErr).Str("addr", conf.OrchestratorAddr).
-			Msg("the running drivechaind refused the handover, retiring it")
+		log.Info().Str("addr", conf.OrchestratorAddr).Msg("retiring the running drivechaind, this start needs its own")
 		if err := retireOrchestrator(ctx, conf.OrchestratorAddr, bitwindowDir, log); err != nil {
 			return nil, err
 		}
@@ -695,7 +690,7 @@ func (s drivechaindSupervisor) stopOrphan(cmd *exec.Cmd) {
 	event.Msg("stopped the drivechaind started during the shutdown")
 }
 
-func existingOrchestratorAdoptable(addr, bitwindowDir string) (bool, error) {
+func verifiedOrchestratorRunning(addr, bitwindowDir string) (bool, error) {
 	hostPort, err := orchestratorHostPort(addr)
 	if err != nil {
 		return false, err
@@ -811,32 +806,22 @@ func relayShutdownToDrivechaind(addr, bitwindowDir string, log zerolog.Logger) {
 	log.Info().Msg("relayed Shutdown to drivechaind on exit")
 }
 
-// claimOrchestratorOwner tells a running drivechaind which frontend owns it
-// now. Without the claim it keeps the pid of the frontend the update replaced,
-// finds it dead, and drains bitcoind, the enforcer and every sidechain.
-// An unset owner pid leaves the daemon as it is: it never drains on its own.
-func claimOrchestratorOwner(addr, bitwindowDir string, ownerPID int) error {
-	if ownerPID <= 0 {
-		return nil
-	}
-	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := client.AdoptOwner(ctx, connect.NewRequest(&orchpb.AdoptOwnerRequest{
-		OwnerPid: int32(ownerPID), //nolint:gosec // a pid fits an int32 on every platform we ship
-	}))
-	if err != nil {
-		return fmt.Errorf("hand drivechaind over to pid %d: %w", ownerPID, err)
-	}
-	return nil
+// retireRunningOrchestrator reports whether this bitwindowd replaces the
+// drivechaind that holds the port. A frontend passes its pid, so the tree is
+// this app's to renew. An unset pid names a drivechaind somebody started by
+// hand: a retire there takes a port this bitwindowd cannot fill again.
+func retireRunningOrchestrator(ownerPID int) bool {
+	return ownerPID > 0
 }
 
-// retireDrainWait bounds the wait on a drain that stops bitcoind, the enforcer
-// and every sidechain.
+// retireDrainWait bounds the wait on the freed port. A daemon that knows
+// keep_l1 exits at once; one that predates the field drains bitcoind, the
+// enforcer and every sidechain first.
 const retireDrainWait = 2 * time.Minute
 
-// retireOrchestrator drains a running drivechaind this install cannot claim,
-// and returns once it lets the port go. A fresh daemon then binds it.
+// retireOrchestrator stops the running drivechaind and returns once it lets
+// the port go. A fresh daemon then binds it. bitcoind, the enforcer and the
+// sidechains keep running, and the fresh daemon adopts them.
 func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zerolog.Logger) error {
 	hostPort, err := orchestratorHostPort(addr)
 	if err != nil {
@@ -845,8 +830,10 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
 	drainCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if _, err := client.Shutdown(drainCtx, connect.NewRequest(&orchpb.ShutdownRequest{})); err != nil {
-		log.Warn().Err(err).Msg("ask the old drivechaind to drain (waiting for the port anyway)")
+	// A daemon that takes this exits at once, so it often drops the answer.
+	// The freed port is the signal that counts, not the reply.
+	if _, err := client.Shutdown(drainCtx, connect.NewRequest(&orchpb.ShutdownRequest{KeepL1: true})); err != nil {
+		log.Info().Err(err).Msg("asked the old drivechaind to exit, waiting for the port")
 	}
 
 	deadline := time.Now().Add(retireDrainWait)
