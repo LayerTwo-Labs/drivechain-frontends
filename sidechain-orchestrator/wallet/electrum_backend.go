@@ -55,6 +55,10 @@ const (
 	// previous walk saw in use, so each scan carries the chain forward from
 	// where the last one stopped.
 	electrumMaxChainScan = 10_000
+	// electrumOwnOutputWindow is how far past a used index the wallet derives to
+	// tell whether it owns an output of its own transaction. Core hands out a
+	// change key from a keypool it tops up 1000 at a time.
+	electrumOwnOutputWindow = 1000
 	// electrumPollTTL re-walks the cache this often even without a new block,
 	// so mempool funds surface within seconds instead of at the next block.
 	electrumPollTTL = 15 * time.Second
@@ -103,6 +107,13 @@ type ElectrumBackend struct {
 	scanAt      map[string]time.Time     // walletID -> when the cached scan was taken
 	lastScan    map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
 	firstSeen   map[string]int64         // txid -> unix time this process first listed it unconfirmed
+	// addrSpots holds walletID -> address -> where it sits on the derivation
+	// chains, with the window each chain derives through.
+	addrSpots       map[string]map[string]addressSpot
+	addrSpotWindows map[string]map[walletChain]uint32
+	// otherAddrs holds walletID -> the output addresses the map does not
+	// derive, so a refresh looks each one up one time.
+	otherAddrs map[string]map[string]bool
 
 	// generation changes on every network switch, so a read that checked out a
 	// scan before the switch can tell its result belongs to the previous chain.
@@ -148,9 +159,14 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, params ParamsFunc,
 		scanAt:      make(map[string]time.Time),
 		lastScan:    make(map[string][]byte),
 		firstSeen:   make(map[string]int64),
-		scanLocks:   make(map[string]*sync.Mutex),
-		subStatus:   make(map[string]string),
-		shWallet:    make(map[string]string),
+
+		addrSpots:       make(map[string]map[string]addressSpot),
+		addrSpotWindows: make(map[string]map[walletChain]uint32),
+		otherAddrs:      make(map[string]map[string]bool),
+
+		scanLocks: make(map[string]*sync.Mutex),
+		subStatus: make(map[string]string),
+		shWallet:  make(map[string]string),
 	}
 	return b
 }
@@ -201,6 +217,10 @@ func (p *ElectrumBackend) ResetNetworkState() {
 
 	p.mu.Lock()
 	p.watchKeys = make(map[string][]WatchKey)
+	// A network gives an address its prefix, so the derived map cannot carry over.
+	p.addrSpots = make(map[string]map[string]addressSpot)
+	p.addrSpotWindows = make(map[string]map[walletChain]uint32)
+	p.otherAddrs = make(map[string]map[string]bool)
 	p.mu.Unlock()
 
 	p.scanMu.Lock()
@@ -2439,6 +2459,10 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 			continue
 		}
 		scan.addrs = append(scan.addrs, a)
+	}
+
+	if err := p.addOwnOutputs(ctx, walletID, w, scan, prior); err != nil {
+		return nil, err
 	}
 
 	finalizeScan(scan)
