@@ -168,16 +168,18 @@ func TestZSidePath(t *testing.T) {
 	}
 }
 
+// The truthcoin node writes truthcoin_dc, not truthcoin, so every path the
+// app reads has to name the same folder.
 func TestTruthcoinPath(t *testing.T) {
 	p := TruthcoinDirs.RootDir()
 	var want string
 	switch runtime.GOOS {
 	case "darwin":
-		want = filepath.Join(home(), "Library", "Application Support", "truthcoin")
+		want = filepath.Join(home(), "Library", "Application Support", "truthcoin_dc")
 	case "windows":
-		want = filepath.Join(home(), "AppData", "Roaming", "truthcoin")
+		want = filepath.Join(home(), "AppData", "Roaming", "truthcoin_dc")
 	default:
-		want = filepath.Join(home(), ".local", "share", "truthcoin")
+		want = filepath.Join(home(), ".local", "share", "truthcoin_dc")
 	}
 	if p != want {
 		t.Errorf("Truthcoin path = %q, want %q", p, want)
