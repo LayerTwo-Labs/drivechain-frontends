@@ -1,7 +1,6 @@
 package orchestrator
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -160,6 +159,10 @@ type ProcessManager struct {
 	pidManager  *PidFileManager
 	log         zerolog.Logger
 
+	// SharedLogPath is the one log file a user sends. Every managed binary
+	// lands there under its own tag. An empty path keeps the lines in memory.
+	SharedLogPath string
+
 	// CoreVariant resolves the binary path for Bitcoin Core when set. If nil
 	// (or it returns ok=false), the default flat BinaryPath is used.
 	CoreVariant func(config BinaryConfig) (CoreVariantSpec, bool)
@@ -309,27 +312,25 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 
 	configureProcessAttr(cmd)
 
-	// Own the pipes rather than using cmd.StdoutPipe: cmd.Wait closes those the
-	// moment the child exits, discarding whatever the readers hadn't drained yet.
-	stdout, stdoutW, err := os.Pipe()
+	// A file, not a pipe: the child holds its own descriptor, so its output
+	// survives an orchestrator exit and the orchestrator that adopts it next
+	// reads the same file.
+	stdoutFile, err := openBinaryLog(pm.dataDir, processName, "stdout")
 	if err != nil {
-		return 0, fmt.Errorf("stdout pipe: %w", err)
+		return 0, fmt.Errorf("open stdout log: %w", err)
 	}
-	stderr, stderrW, err := os.Pipe()
+	stderrFile, err := openBinaryLog(pm.dataDir, processName, "stderr")
 	if err != nil {
-		stdout.Close()  //nolint:errcheck // cleanup
-		stdoutW.Close() //nolint:errcheck // cleanup
-		return 0, fmt.Errorf("stderr pipe: %w", err)
+		stdoutFile.Close() //nolint:errcheck // cleanup
+		return 0, fmt.Errorf("open stderr log: %w", err)
 	}
-	cmd.Stdout = stdoutW
-	cmd.Stderr = stderrW
+	cmd.Stdout = stdoutFile
+	cmd.Stderr = stderrFile
 
 	startErr := cmd.Start()
-	stdoutW.Close() //nolint:errcheck // cleanup
-	stderrW.Close() //nolint:errcheck // cleanup
+	stdoutFile.Close() //nolint:errcheck // the child holds its own descriptor
+	stderrFile.Close() //nolint:errcheck // the child holds its own descriptor
 	if startErr != nil {
-		stdout.Close() //nolint:errcheck // cleanup
-		stderr.Close() //nolint:errcheck // cleanup
 		return 0, fmt.Errorf("start %s: %w", processName, startErr)
 	}
 
@@ -390,64 +391,25 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 		}
 	}
 
-	// Capture stdout
-	stdoutDone := make(chan struct{})
-	go func() {
-		defer close(stdoutDone)
-		defer stdout.Close() //nolint:errcheck // cleanup
-		scanner := bufio.NewScanner(stdout)
-		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
-		for scanner.Scan() {
-			line := stripANSI(scanner.Text())
-			if isSpam(line) {
-				continue
-			}
-			proc.addLog(LogEntry{
-				Timestamp: time.Now(),
-				Stream:    "stdout",
-				Line:      line,
-			})
-			captureStartupLog(line)
+	stopTail := make(chan struct{})
+	stdoutDone := pm.tailBinaryLog(proc, processName, "stdout", 0, stopTail, captureStartupLog, nil)
+	stderrDone := pm.tailBinaryLog(proc, processName, "stderr", 0, stopTail, captureStartupLog, func(line string) {
+		stderrMu.Lock()
+		stderrBuffer = append(stderrBuffer, line)
+		if len(stderrBuffer) > 100 {
+			stderrBuffer = stderrBuffer[len(stderrBuffer)-100:]
 		}
-	}()
-
-	// Capture stderr
-	stderrDone := make(chan struct{})
-	go func() {
-		defer close(stderrDone)
-		defer stderr.Close() //nolint:errcheck // cleanup
-		scanner := bufio.NewScanner(stderr)
-		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
-		for scanner.Scan() {
-			line := stripANSI(scanner.Text())
-			if isSpam(line) {
-				continue
-			}
-			proc.addLog(LogEntry{
-				Timestamp: time.Now(),
-				Stream:    "stderr",
-				Line:      line,
-			})
-			captureStartupLog(line)
-			// Buffer stderr for error extraction
-			stderrMu.Lock()
-			stderrBuffer = append(stderrBuffer, line)
-			if len(stderrBuffer) > 100 {
-				stderrBuffer = stderrBuffer[len(stderrBuffer)-100:]
-			}
-			stderrMu.Unlock()
-		}
-	}()
+		stderrMu.Unlock()
+	})
 
 	// Wait for exit in background
 	go func() {
 		err := cmd.Wait()
 
-		// A descendant that inherited the pipes keeps the readers blocked past the
-		// child's exit, so closing them is what bounds the drain.
-		drain := time.AfterFunc(2*time.Second, func() {
-			stdout.Close() //nolint:errcheck // cleanup
-			stderr.Close() //nolint:errcheck // cleanup
+		// The child wrote every line before it died, so the tail only has to
+		// read to the end of the file once.
+		close(stopTail)
+		drain := time.AfterFunc(5*time.Second, func() {
 			pm.log.Warn().Str("binary", processName).Msg("timed out waiting for output to drain")
 		})
 		<-stdoutDone
@@ -754,7 +716,14 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 
 	pm.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
 
-	go pm.watchAdopted(config.Name, pm.processes[config.Name])
+	// The adopted child still appends to the same files, so its log window
+	// fills again. The tails end when watchAdopted closes exitCh.
+	adopted := pm.processes[config.Name]
+	for _, stream := range []string{"stdout", "stderr"} {
+		pm.tailBinaryLog(adopted, config.Name, stream, readLogOffset(pm.dataDir, config.Name, stream), adopted.exitCh, nil, nil)
+	}
+
+	go pm.watchAdopted(config.Name, adopted)
 }
 
 const adoptedPollInterval = time.Second
