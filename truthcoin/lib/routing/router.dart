@@ -41,20 +41,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       page: HomeRoute.page,
       initial: true,
-      guards: [
-        NetworkGuard(),
-        WalletGuard(
-          createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
-            homeRoute: const HomeRoute(),
-            onWalletCreated: onWalletCreated,
-            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
-              bootBinaries: (log) async => bootBinaries(log),
-              binariesToStop: [BitcoinCore(), Enforcer(), Truthcoin()],
-            ),
-          ),
-        ),
-        PasswordGuard(),
-      ],
+      guards: _startupGuards,
       children: [
         AutoRoute(
           page: ParentChainRoute.page,
@@ -117,12 +104,15 @@ class AppRouter extends RootStackRouter {
       page: TruthcoinConfEditorRoute.page,
     ),
 
-    // Market pages
+    // Market pages. A deep link opens these two, so they take the startup
+    // guards a top-level route does not get from HomeRoute.
     AutoRoute(
       page: MarketExplorerRoute.page,
+      guards: _startupGuards,
     ),
     AutoRoute(
       page: MarketDetailRoute.page,
+      guards: _startupGuards,
     ),
     AutoRoute(
       page: MarketCreationRoute.page,
@@ -136,5 +126,22 @@ class AppRouter extends RootStackRouter {
     /// This route is used in tests so that we can pump a widget into a route
     /// and use the real router for our test
     AutoRoute(page: SailTestRoute.page),
+  ];
+
+  /// Every route a user can reach first asks for a network, a wallet and the
+  /// password.
+  static List<AutoRouteGuard> get _startupGuards => [
+    NetworkGuard(),
+    WalletGuard(
+      createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
+        homeRoute: const HomeRoute(),
+        onWalletCreated: onWalletCreated,
+        additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+          bootBinaries: (log) async => bootBinaries(log),
+          binariesToStop: [BitcoinCore(), Enforcer(), Truthcoin()],
+        ),
+      ),
+    ),
+    PasswordGuard(),
   ];
 }
