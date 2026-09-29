@@ -288,3 +288,57 @@ func TestSupervisorStopsOnAStartError(t *testing.T) {
 	require.Equal(t, 1, starts)
 	require.Contains(t, out.String(), "drivechaind restart failed")
 }
+
+func TestVerifiedOrchestratorRunningSaysNoOnADeadPort(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := "http://" + listener.Addr().String()
+	require.NoError(t, listener.Close())
+
+	running, err := verifiedOrchestratorRunning(addr, t.TempDir())
+
+	require.NoError(t, err)
+	assert.False(t, running)
+}
+
+func TestRetireOrchestratorReturnsOnceTheDaemonLetsThePortGo(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := "http://" + listener.Addr().String()
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		_ = listener.Close()
+	}()
+
+	log := zerolog.Nop()
+	done := make(chan error, 1)
+	go func() { done <- retireOrchestrator(context.Background(), addr, t.TempDir(), &log) }()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(30 * time.Second):
+		t.Fatal("the retire never saw the freed port")
+	}
+}
+
+func TestRetireOrchestratorStopsWhenTheContextEnds(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+	addr := "http://" + listener.Addr().String()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	log := zerolog.Nop()
+	err = retireOrchestrator(ctx, addr, t.TempDir(), &log)
+
+	require.Error(t, err)
+}
+
+func TestRetireRunningOrchestratorFollowsTheOwner(t *testing.T) {
+	assert.True(t, retireRunningOrchestrator(4242), "an app start renews the tree it owns")
+	assert.False(t, retireRunningOrchestrator(0), "a daemon under no owner stays")
+	assert.False(t, retireRunningOrchestrator(-1), "an unset pid stays")
+}

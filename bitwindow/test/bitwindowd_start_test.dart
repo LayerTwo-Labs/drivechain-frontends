@@ -5,8 +5,8 @@ import 'package:bitwindow/services/bitwindowd_start.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-// After an app update the new app adopted the old bitwindowd. That one never
-// spawns or claims drivechaind again, so the backend port stayed dead.
+// An app that shares a bitwindowd from an earlier session also shares that
+// daemon's build, so the network picker lists the catalog it shipped with.
 void main() {
   late List<String> calls;
   late BackendSwapProvider swap;
@@ -20,8 +20,6 @@ void main() {
     binaries: [BitWindow()],
   );
 
-  Future<void> claim() async => calls.add('claim');
-
   setUp(() {
     calls = [];
     reports = [];
@@ -32,30 +30,29 @@ void main() {
   tearDown(() => swap.dispose());
 
   test('starts a new bitwindowd when none runs', () async {
-    await startBitwindowd(binaries(adopted: false), claimDrivechaind: claim, swap: swap);
+    await startBitwindowd(binaries(adopted: false), swap: swap);
 
     expect(calls, ['start']);
     expect(reports, isEmpty);
   });
 
-  test('claims drivechaind, then replaces a bitwindowd from the last session', () async {
-    await startBitwindowd(binaries(adopted: true), claimDrivechaind: claim, swap: swap);
+  test('replaces a bitwindowd from the last session', () async {
+    await startBitwindowd(binaries(adopted: true), swap: swap);
 
-    expect(calls, ['claim', 'stop', 'start']);
+    expect(calls, ['stop', 'start']);
+  });
+
+  test('replaces a bitwindowd that another live app owns', () async {
+    await startBitwindowd(binaries(adopted: true, liveOwner: true), swap: swap);
+
+    expect(calls, ['stop', 'start']);
   });
 
   test('reports the swap to the screen, then ends the report', () async {
-    await startBitwindowd(binaries(adopted: true), claimDrivechaind: claim, swap: swap);
+    await startBitwindowd(binaries(adopted: true), swap: swap);
 
-    expect(reports, [BackendSwapStep.claim, BackendSwapStep.stop, BackendSwapStep.start, null]);
+    expect(reports, [BackendSwapStep.stop, BackendSwapStep.start, null]);
     expect(swap.swapping, isFalse);
-  });
-
-  test('shares a bitwindowd that another live app owns', () async {
-    await startBitwindowd(binaries(adopted: true, liveOwner: true), claimDrivechaind: claim, swap: swap);
-
-    expect(calls, ['start']);
-    expect(reports, isEmpty);
   });
 
   test('a failed stop still ends the report', () async {
@@ -68,7 +65,7 @@ void main() {
       stopError: StateError('no bitwindowd binary'),
     );
 
-    await expectLater(startBitwindowd(provider, claimDrivechaind: claim, swap: swap), throwsStateError);
+    await expectLater(startBitwindowd(provider, swap: swap), throwsStateError);
     expect(swap.swapping, isFalse);
     expect(swap.failedStep, BackendSwapStep.stop);
     expect(swap.error, 'Bad state: no bitwindowd binary');

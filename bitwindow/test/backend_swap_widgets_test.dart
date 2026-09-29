@@ -35,13 +35,13 @@ void main() {
   });
 
   testWidgets('the detail lists the steps the app did', (tester) async {
-    swap.report(BackendSwapStep.claim);
     swap.report(BackendSwapStep.stop);
+    swap.report(BackendSwapStep.start);
     await tester.pumpSailPage(BackendSwapSteps(swap: swap));
 
     expect(find.text(backendSwapReason), findsOneWidget);
-    expect(find.text(BackendSwapStep.claim.label), findsOneWidget);
-    expect(find.text('Old backend stops (0s)'), findsOneWidget);
+    expect(find.text(BackendSwapStep.stop.label), findsOneWidget);
+    expect(find.text('New backend starts (0s)'), findsOneWidget);
 
     swap.finish();
   });

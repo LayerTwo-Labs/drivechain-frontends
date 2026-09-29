@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 
 /// A step of the backend swap, in the order BitWindow does them.
 enum BackendSwapStep {
-  claim('Chain handover', 'BitWindow takes the chain from the old backend. The chain stays up through the swap.'),
   stop('Old backend stops', 'The old backend stops its daemons. BitWindow waits for it to exit.'),
   start('New backend starts', 'The new backend takes over. It runs the code of this version.');
 

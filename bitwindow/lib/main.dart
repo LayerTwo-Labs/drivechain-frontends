@@ -749,6 +749,12 @@ class _ErrorCatcher extends StatelessWidget {
   }
 }
 
+/// Polls of 500 ms the boot waits for drivechaind. A fresh bitwindowd first
+/// retires the drivechaind of the last session, and one that predates the
+/// keep_l1 field drains bitcoind before it goes. A short wait would end the
+/// boot before that daemon frees the port, and the L1 stack would stay down.
+const drivechaindReadyTries = 300;
+
 Future<void> bootBitwindowBackend(Logger log) async {
   log.i('STARTUP: Booting BitWindow backend');
 
@@ -772,16 +778,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
   final localAuthFlag = Platform.environment['ORCHESTRATOR_LOCAL_AUTH']?.toLowerCase();
   final localAuth = localAuthFlag != 'false' && localAuthFlag != '0';
   log.i('STARTUP: starting bitwindowd');
-  await startBitwindowd(
-    binaryProvider,
-    swap: GetIt.I.get<BackendSwapProvider>(),
-    claimDrivechaind: () async {
-      if (localAuth) {
-        await LocalAuth.load(timeout: const Duration(seconds: 2));
-      }
-      await claimDrivechaind(orchestrator, log);
-    },
-  );
+  await startBitwindowd(binaryProvider, swap: GetIt.I.get<BackendSwapProvider>());
 
   // 1b. Local auth is on by default; the kill switch is ORCHESTRATOR_LOCAL_AUTH
   //     =false/0 on our env, which we pass down to the backend. When on, the
@@ -812,7 +809,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
   binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_BITWINDOWD, 'Waiting for drivechaind...');
 
   var orchestratorReady = false;
-  for (var i = 0; i < 30; i++) {
+  for (var i = 0; i < drivechaindReadyTries; i++) {
     try {
       await orchestrator.listBinaries();
       log.i('STARTUP: drivechaind is ready');
@@ -831,8 +828,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
       }
       break;
     } catch (_) {
-      if (i == 29) {
-        log.e('STARTUP: drivechaind did not become ready after 15s');
+      if (i == drivechaindReadyTries - 1) {
+        log.e('STARTUP: drivechaind did not become ready after ${drivechaindReadyTries ~/ 2}s');
       }
       await Future.delayed(const Duration(milliseconds: 500));
     }
