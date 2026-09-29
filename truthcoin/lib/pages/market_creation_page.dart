@@ -7,6 +7,14 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/providers/voting_provider.dart';
+import 'package:truthcoin/widgets/market_card.dart';
+
+const double _panelWidth = 380;
+
+/// Below this width the preview sits under the form, not beside it.
+const double _twoColumnWidth = 900;
+const int _networkFeeSats = 1000;
 
 @RoutePage()
 class MarketCreationPage extends StatelessWidget {
@@ -16,31 +24,46 @@ class MarketCreationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<MarketCreationViewModel>.reactive(
       viewModelBuilder: () => MarketCreationViewModel(),
+      onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
+        final panel = [
+          _PreviewCard(model: model),
+          _CostCard(model: model),
+          const _NextStepsCard(),
+        ];
+
         return QtPage(
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            children: [
-              // Header
-              SailRow(
-                spacing: SailStyleValues.padding12,
-                children: [
-                  SailButton(
-                    label: '← Back',
-                    small: true,
-                    onPressed: () async => AutoRouter.of(context).maybePop(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < _twoColumnWidth) {
+                return SingleChildScrollView(
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding12,
+                    children: [
+                      _FormColumn(model: model),
+                      ...panel,
+                    ],
                   ),
+                );
+              }
+
+              return SailRow(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
+                children: [
                   Expanded(
-                    child: SailText.primary20('Create New Market', bold: true),
+                    child: SingleChildScrollView(child: _FormColumn(model: model)),
+                  ),
+                  SizedBox(
+                    width: _panelWidth,
+                    child: SingleChildScrollView(
+                      child: SailColumn(spacing: SailStyleValues.padding12, children: panel),
+                    ),
                   ),
                 ],
-              ),
-
-              // Stepper
-              Expanded(
-                child: _StepperContent(model: model),
-              ),
-            ],
+              );
+            },
           ),
         );
       },
@@ -48,273 +71,416 @@ class MarketCreationPage extends StatelessWidget {
   }
 }
 
-class _StepperContent extends StatelessWidget {
+class _FormColumn extends StatelessWidget {
   final MarketCreationViewModel model;
 
-  const _StepperContent({required this.model});
+  const _FormColumn({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding12,
+      children: [
+        SailRow(
+          spacing: SailStyleValues.padding04,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            SailButton(
+              label: '←  Markets',
+              variant: ButtonVariant.link,
+              small: true,
+              onPressed: () async => AutoRouter.of(context).maybePop(),
+            ),
+          ],
+        ),
+        SailColumn(
+          spacing: SailStyleValues.padding04,
+          children: [
+            SailText.primary24('Create a market', bold: true),
+            SailText.secondary13('A market needs a question, one decision slot, and a liquidity subsidy.'),
+          ],
+        ),
+        _QuestionCard(model: model),
+        _OutcomesCard(model: model),
+        _LiquidityCard(model: model),
+        _ActionRow(model: model),
+      ],
+    );
+  }
+}
+
+/// Puts its children in a row on a wide card, and in a column on a narrow one.
+class _Responsive extends StatelessWidget {
+  final double breakpoint;
+  final double spacing;
+  final List<Widget> children;
+
+  const _Responsive({required this.breakpoint, required this.spacing, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < breakpoint) {
+          return SailColumn(spacing: spacing, children: children);
+        }
+        return SailRow(
+          spacing: spacing,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          children: [for (final child in children) Expanded(child: child)],
+        );
+      },
+    );
+  }
+}
+
+class _QuestionCard extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _QuestionCard({required this.model});
 
   @override
   Widget build(BuildContext context) {
     return SailCard(
-      child: SingleChildScrollView(
-        child: SailStepper(
-          currentStep: model.currentStep,
-          controls: Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                if (model.currentStep > 0)
-                  SailButton(
-                    label: 'Back',
-                    onPressed: () async => model.previousStep(),
-                  ),
-                SailButton(
-                  label: model.currentStep == 4 ? 'Create Market' : 'Continue',
-                  onPressed: model.canContinue ? () async => model.nextStep(context) : null,
-                  disabled: !model.canContinue,
-                  loading: model.isCreating,
-                ),
-              ],
-            ),
+      title: 'Question',
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        children: [
+          SailTextField(
+            controller: model.titleController,
+            label: 'Title',
+            hintText: 'Will the coin price close above 200,000 dollars on 31 December 2027?',
+            maxLines: 1,
+            onChanged: (_) => model.onFormChanged(),
           ),
-          steps: [
-            SailStep(
-              title: 'Basic Info',
-              subtitle: 'Title and description',
-              content: _BasicInfoStep(model: model),
-            ),
-            SailStep(
-              title: 'Dimensions',
-              subtitle: 'Market outcomes',
-              content: _DimensionsStep(model: model),
-            ),
-            SailStep(
-              title: 'Liquidity',
-              subtitle: 'LMSR parameters',
-              content: _LiquidityStep(model: model),
-            ),
-            SailStep(
-              title: 'Trading Fee',
-              subtitle: 'Fee percentage',
-              content: _TradingFeeStep(model: model),
-            ),
-            SailStep(
-              title: 'Review',
-              subtitle: 'Confirm and create',
-              content: _ReviewStep(model: model),
-            ),
-          ],
-        ),
+          SailTextField(
+            controller: model.descriptionController,
+            label: 'Resolution text',
+            hintText: 'State the source and the exact condition a voter reads.',
+            maxLines: 4,
+            onChanged: (_) => model.onFormChanged(),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _BasicInfoStep extends StatelessWidget {
+class _OutcomesCard extends StatelessWidget {
   final MarketCreationViewModel model;
 
-  const _BasicInfoStep({required this.model});
+  const _OutcomesCard({required this.model});
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding12,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.secondary13('Title *'),
-        SailTextField(
-          controller: model.titleController,
-          hintText: 'e.g., Will BTC reach \$100k by Q2 2026?',
-          maxLines: 1,
-        ),
-        const SizedBox(height: 8),
-        SailText.secondary13('Description *'),
-        SailTextField(
-          controller: model.descriptionController,
-          hintText: 'Detailed description of the market and resolution criteria...',
-          maxLines: 4,
-        ),
-      ],
-    );
-  }
-}
-
-class _DimensionsStep extends StatelessWidget {
-  final MarketCreationViewModel model;
-
-  const _DimensionsStep({required this.model});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailColumn(
-      spacing: SailStyleValues.padding12,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.secondary13('Market Type'),
-        SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            _TypeButton(
-              label: 'Binary',
-              description: 'Yes/No outcome',
-              isSelected: model.marketType == MarketType.binary,
-              onTap: () => model.setMarketType(MarketType.binary),
+    return SailCard(
+      title: 'Outcomes',
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        children: [
+          Wrap(
+            spacing: SailStyleValues.padding08,
+            runSpacing: SailStyleValues.padding04,
+            children: [
+              SailTabItem(
+                label: 'Yes / No',
+                isSelected: model.marketType == MarketType.binary,
+                onTap: () => model.setMarketType(MarketType.binary),
+              ),
+              SailTabItem(
+                label: 'Many outcomes',
+                isSelected: model.marketType == MarketType.categorical,
+                onTap: () => model.setMarketType(MarketType.categorical),
+              ),
+              SailTabItem(
+                label: 'Custom',
+                isSelected: model.marketType == MarketType.custom,
+                onTap: () => model.setMarketType(MarketType.custom),
+              ),
+            ],
+          ),
+          if (model.marketType != MarketType.custom) ...[
+            SailText.secondary12('Decision slot'),
+            SailDropdownButton<String>(
+              value: model.selectedSlotId,
+              variant: ButtonVariant.outline,
+              large: true,
+              hint: model.isLoadingSlots ? 'Slots load' : 'Pick a slot',
+              items: [
+                for (final slot in model.claimedSlots)
+                  SailDropdownItem<String>(
+                    value: slot.slotIdHex,
+                    // The trigger holds the id, so a long question never
+                    // pushes the control past the card.
+                    triggerChild: SailText.primary13(slot.slotIdHex, monospace: true),
+                    child: SailText.primary13('${slot.slotIdHex}  ·  ${model.slotLabel(slot)}'),
+                  ),
+              ],
+              onChanged: (id) {
+                if (id != null) model.selectSlot(id);
+              },
             ),
-            _TypeButton(
-              label: 'Categorical',
-              description: 'Multiple outcomes',
-              isSelected: model.marketType == MarketType.categorical,
-              onTap: () => model.setMarketType(MarketType.categorical),
-            ),
-            _TypeButton(
-              label: 'Custom',
-              description: 'Decision slots',
-              isSelected: model.marketType == MarketType.custom,
-              onTap: () => model.setMarketType(MarketType.custom),
-            ),
+            if (model.slotError != null) SailInlineError(model.slotError!),
           ],
-        ),
-        const SizedBox(height: 16),
-        if (model.marketType == MarketType.binary) ...[
-          SailText.secondary13('This creates a market with Yes/No outcomes based on a single decision slot.'),
-          const SizedBox(height: 8),
-          SailText.secondary13('Decision Slot ID'),
           SailTextField(
             controller: model.dimensionsController,
-            hintText: 'e.g., 004008',
+            label: model.marketType == MarketType.custom ? model.dimensionLabel : 'Or type a slot id',
+            hintText: model.dimensionHint,
+            onChanged: (_) => model.onSlotTextChanged(),
           ),
-        ] else if (model.marketType == MarketType.categorical) ...[
-          SailText.secondary13('This creates a market with one outcome per option of a category decision.'),
-          const SizedBox(height: 8),
-          SailText.secondary13('Category Decision ID'),
-          SailTextField(
-            controller: model.dimensionsController,
-            hintText: 'e.g., 004008',
-          ),
-        ] else ...[
-          SailText.secondary13('Enter decision slot IDs, or paste DimensionInput JSON.'),
-          const SizedBox(height: 8),
-          SailText.secondary13('Dimensions'),
-          SailTextField(
-            controller: model.dimensionsController,
-            hintText: 'e.g., 004008,004009 or [{"type":"existing","id":"004008"}]',
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colors.backgroundSecondary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: SailColumn(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.secondary12('Dimension Syntax:', bold: true),
-                SailText.secondary12('slot_id - One dimension per claimed decision'),
-                SailText.secondary12('{"type":"existing","id":"s1"} - Reference a claimed decision'),
-                SailText.secondary12('{"type":"new",...} - Claim a decision with the market'),
+          if (model.typedSlotError != null)
+            SailInlineError(model.typedSlotError!)
+          else
+            SailText.secondary12(model.dimensionHelp),
+          if (model.marketType == MarketType.binary)
+            _Responsive(
+              breakpoint: 420,
+              spacing: SailStyleValues.padding10,
+              children: const [
+                _StartPrice(label: 'Yes', tone: OutcomeTone.yes),
+                _StartPrice(label: 'No', tone: OutcomeTone.no),
               ],
             ),
-          ),
         ],
-      ],
+      ),
     );
   }
 }
 
-class _LiquidityStep extends StatelessWidget {
-  final MarketCreationViewModel model;
+class _StartPrice extends StatelessWidget {
+  final String label;
+  final OutcomeTone tone;
 
-  const _LiquidityStep({required this.model});
+  const _StartPrice({required this.label, required this.tone});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final formatter = GetIt.I<FormatterProvider>();
+    final color = tone == OutcomeTone.yes ? theme.colors.success : theme.colors.error;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding12,
+        vertical: SailStyleValues.padding10,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: SailStyleValues.borderRadius,
+      ),
+      child: SailRow(
+        spacing: SailStyleValues.padding08,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Expanded(child: SailText.primary13(label, bold: true, color: color)),
+          SailText.primary13('starts at 50%', color: color),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiquidityCard extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _LiquidityCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      title: 'Liquidity and fee',
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        children: [
+          Wrap(
+            spacing: SailStyleValues.padding08,
+            runSpacing: SailStyleValues.padding04,
+            children: [
+              SailTabItem(
+                label: 'Initial liquidity',
+                isSelected: model.liquidityMethod == LiquidityMethod.initialLiquidity,
+                onTap: () => model.setLiquidityMethod(LiquidityMethod.initialLiquidity),
+              ),
+              SailTabItem(
+                label: 'Liquidity β',
+                isSelected: model.liquidityMethod == LiquidityMethod.beta,
+                onTap: () => model.setLiquidityMethod(LiquidityMethod.beta),
+              ),
+            ],
+          ),
+          _Responsive(
+            breakpoint: 620,
+            spacing: SailStyleValues.padding12,
+            children: [
+              model.liquidityMethod == LiquidityMethod.initialLiquidity
+                  ? SailTextField(
+                      controller: model.liquidityController,
+                      label: 'Initial liquidity (${activeTicker.subunit})',
+                      hintText: '100000',
+                      textFieldType: TextFieldType.number,
+                      onChanged: (_) => model.onLiquidityInputChanged(),
+                    )
+                  : SailTextField(
+                      controller: model.betaController,
+                      label: 'Liquidity β',
+                      hintText: '7.0',
+                      textFieldType: TextFieldType.bitcoin,
+                      onChanged: (_) => model.onLiquidityInputChanged(),
+                    ),
+              SailTextField(
+                controller: model.tradingFeeController,
+                label: 'Trading fee (%)',
+                hintText: '0.5',
+                textFieldType: TextFieldType.bitcoin,
+                onChanged: (_) => model.onFormChanged(),
+              ),
+              SailButton(
+                label: 'Calculate cost',
+                variant: ButtonVariant.secondary,
+                small: true,
+                disabled: model.effectiveDimensions.isEmpty,
+                onPressed: () async => model.calculateLiquidityPreview(),
+              ),
+            ],
+          ),
+          SailText.secondary12(
+            model.liquidityMethod == LiquidityMethod.initialLiquidity
+                ? 'More liquidity moves the price less per trade.'
+                : 'β = liquidity / ln(number of outcomes).',
+          ),
+          Wrap(
+            spacing: SailStyleValues.padding08,
+            runSpacing: SailStyleValues.padding04,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SailText.secondary12('Fee presets'),
+              for (final preset in const [0.5, 1.0, 2.0])
+                SailTabItem(
+                  label: '$preset%',
+                  isSelected: model.tradingFeePercent == preset,
+                  onTap: () => model.setTradingFee(preset),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _ActionRow({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I.get<FormatterProvider>();
 
     return ListenableBuilder(
       listenable: formatter,
       builder: (context, _) => SailColumn(
-        spacing: SailStyleValues.padding12,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: SailStyleValues.padding08,
         children: [
-          SailText.secondary13('Liquidity Method'),
+          if (model.createError != null) SailInlineError(model.createError!),
+          Wrap(
+            spacing: SailStyleValues.padding12,
+            runSpacing: SailStyleValues.padding08,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 240,
+                child: SailColumn(
+                  spacing: SailStyleValues.padding04,
+                  children: [
+                    SailText.primary15(
+                      model.totalCostSats == null
+                          ? 'Total cost unknown'
+                          : 'Total cost ${formatter.formatSats(model.totalCostSats!)}',
+                      bold: true,
+                    ),
+                    SailText.secondary12(
+                      model.totalCostSats == null
+                          ? 'press calculate cost to read the subsidy'
+                          : 'subsidy plus the network fee',
+                    ),
+                  ],
+                ),
+              ),
+              SailButton(
+                label: 'Cancel',
+                variant: ButtonVariant.secondary,
+                onPressed: () async => AutoRouter.of(context).maybePop(),
+              ),
+              SailButton(
+                label: 'Create market',
+                loading: model.isCreating,
+                disabled: !model.canCreate,
+                onPressed: () async => model.createMarket(context),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewCard extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _PreviewCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final title = model.titleController.text.trim();
+
+    return SailCard(
+      title: 'Preview',
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        children: [
+          SailRow(
+            spacing: SailStyleValues.padding12,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Container(
+                height: 40,
+                width: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.colors.backgroundSecondary,
+                  borderRadius: SailStyleValues.borderRadius,
+                ),
+                child: SailText.secondary13(
+                  title.isEmpty ? '?' : marketInitials(title),
+                  bold: true,
+                ),
+              ),
+              Expanded(
+                child: SailColumn(
+                  spacing: SailStyleValues.padding04,
+                  children: [
+                    SailText.primary15(
+                      title.isEmpty ? 'Your question shows here' : title,
+                      bold: true,
+                    ),
+                    SailText.secondary12(model.previewMeta),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SailSeparator(),
           SailRow(
             spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.max,
             children: [
-              Expanded(
-                child: _MethodButton(
-                  label: 'Initial Liquidity',
-                  description: 'Recommended',
-                  isSelected: model.liquidityMethod == LiquidityMethod.initialLiquidity,
-                  onTap: () => model.setLiquidityMethod(LiquidityMethod.initialLiquidity),
-                ),
-              ),
-              Expanded(
-                child: _MethodButton(
-                  label: 'Beta (Advanced)',
-                  description: 'LMSR parameter',
-                  isSelected: model.liquidityMethod == LiquidityMethod.beta,
-                  onTap: () => model.setLiquidityMethod(LiquidityMethod.beta),
-                ),
-              ),
+              Expanded(child: SailText.secondary12('0 volume')),
+              SailBadge('new'),
             ],
-          ),
-          const SizedBox(height: 16),
-          if (model.liquidityMethod == LiquidityMethod.initialLiquidity) ...[
-            SailText.secondary13('Initial Liquidity (sats)'),
-            SailTextField(
-              controller: model.liquidityController,
-              hintText: 'e.g., 100000 (0.001 BTC)',
-              textFieldType: TextFieldType.number,
-            ),
-            SailText.secondary12(
-              'Higher liquidity means lower price impact per trade.',
-            ),
-          ] else ...[
-            SailText.secondary13('Beta (LMSR liquidity parameter)'),
-            SailTextField(
-              controller: model.betaController,
-              hintText: 'e.g., 7.0',
-              textFieldType: TextFieldType.bitcoin,
-            ),
-            SailText.secondary12(
-              'Beta controls price sensitivity. β = liquidity / ln(num_outcomes)',
-            ),
-          ],
-          if (model.liquidityPreview != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colors.success.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: SailColumn(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailText.secondary12('Preview:', bold: true),
-                  SailText.secondary12(
-                    'Required liquidity: ${formatter.formatSats(model.liquidityPreview!.initialLiquiditySats)}',
-                  ),
-                  SailText.secondary12(
-                    'Min treasury: ${formatter.formatSats(model.liquidityPreview!.minTreasurySats)}',
-                  ),
-                  SailText.secondary12('Outcomes: ${model.liquidityPreview!.numOutcomes}'),
-                  SailText.secondary12('Beta: ${model.liquidityPreview!.beta.toStringAsFixed(2)}'),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          SailButton(
-            label: 'Calculate Preview',
-            small: true,
-            disabled: model.effectiveDimensions.isEmpty,
-            onPressed: () async => model.calculateLiquidityPreview(),
           ),
         ],
       ),
@@ -322,181 +488,40 @@ class _LiquidityStep extends StatelessWidget {
   }
 }
 
-class _TradingFeeStep extends StatelessWidget {
+class _CostCard extends StatelessWidget {
   final MarketCreationViewModel model;
 
-  const _TradingFeeStep({required this.model});
+  const _CostCard({required this.model});
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding12,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.secondary13('Trading Fee (%)'),
-        SailTextField(
-          controller: model.tradingFeeController,
-          hintText: 'e.g., 0.5',
-          textFieldType: TextFieldType.bitcoin,
-        ),
-        SailText.secondary12(
-          'Fee charged on each trade. Goes to the market creator. '
-          'Typical values: 0.5% - 2%',
-        ),
-        const SizedBox(height: 16),
-        SailRow(
+    final formatter = GetIt.I.get<FormatterProvider>();
+    final preview = model.liquidityPreview;
+
+    return SailCard(
+      title: 'Cost',
+      subtitle: preview == null ? 'Press calculate cost to read the subsidy.' : null,
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => SailColumn(
           spacing: SailStyleValues.padding08,
           children: [
-            _FeePreset(
-              label: '0.5%',
-              isSelected: model.tradingFeeController.text == '0.5',
-              onTap: () => model.setTradingFee(0.5),
+            _CostRow(
+              label: 'Liquidity subsidy',
+              value: model.subsidySats == null ? '—' : formatter.formatSats(model.subsidySats!),
             ),
-            _FeePreset(
-              label: '1%',
-              isSelected: model.tradingFeeController.text == '1',
-              onTap: () => model.setTradingFee(1.0),
-            ),
-            _FeePreset(
-              label: '2%',
-              isSelected: model.tradingFeeController.text == '2',
-              onTap: () => model.setTradingFee(2.0),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _ReviewStep extends StatelessWidget {
-  final MarketCreationViewModel model;
-
-  const _ReviewStep({required this.model});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailColumn(
-      spacing: SailStyleValues.padding12,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.secondary12('Review your market before creating:'),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: SailColumn(
-            spacing: SailStyleValues.padding08,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ReviewRow(label: 'Title', value: model.titleController.text),
-              _ReviewRow(
-                label: 'Description',
-                value: model.descriptionController.text.length > 100
-                    ? '${model.descriptionController.text.substring(0, 100)}...'
-                    : model.descriptionController.text,
-              ),
-              _ReviewRow(label: 'Type', value: model.marketType.name),
-              _ReviewRow(label: 'Dimensions', value: model.dimensionInputs),
-              _ReviewRow(
-                label: model.liquidityMethod == LiquidityMethod.beta ? 'Beta' : 'Liquidity',
-                value: model.liquidityMethod == LiquidityMethod.beta
-                    ? model.betaController.text
-                    : '${model.liquidityController.text} ${activeTicker.subunit}',
-              ),
-              _ReviewRow(label: 'Trading Fee', value: '${model.tradingFeeController.text}%'),
+            if (preview != null) ...[
+              _CostRow(label: 'Minimum treasury', value: formatter.formatSats(preview.minTreasurySats)),
+              _CostRow(label: 'Outcomes', value: '${preview.numOutcomes}'),
+              _CostRow(label: 'Liquidity β', value: preview.beta.toStringAsFixed(2)),
             ],
-          ),
-        ),
-        if (model.createError != null) ...[
-          const SizedBox(height: 8),
-          SailText.secondary12(model.createError!, color: theme.colors.error),
-        ],
-      ],
-    );
-  }
-}
-
-class _TypeButton extends StatelessWidget {
-  final String label;
-  final String description;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _TypeButton({
-    required this.label,
-    required this.description,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
-              width: 2,
+            _CostRow(label: 'Network fee', value: formatter.formatSats(_networkFeeSats)),
+            const SailSeparator(),
+            _CostRow(
+              label: 'Total',
+              value: model.totalCostSats == null ? '—' : formatter.formatSats(model.totalCostSats!),
+              bold: true,
             ),
-          ),
-          child: SailColumn(
-            children: [
-              SailText.primary13(label, bold: isSelected),
-              SailText.secondary12(description),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MethodButton extends StatelessWidget {
-  final String label;
-  final String description;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _MethodButton({
-    required this.label,
-    required this.description,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
-            width: 2,
-          ),
-        ),
-        child: SailColumn(
-          children: [
-            SailText.primary13(label, bold: isSelected),
-            SailText.secondary12(description),
           ],
         ),
       ),
@@ -504,67 +529,62 @@ class _MethodButton extends StatelessWidget {
   }
 }
 
-class _FeePreset extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _FeePreset({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colors.primary.withValues(alpha: 0.2) : theme.colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
-          ),
-        ),
-        child: SailText.primary13(label, bold: isSelected),
-      ),
-    );
-  }
-}
-
-class _ReviewRow extends StatelessWidget {
+class _CostRow extends StatelessWidget {
   final String label;
   final String value;
+  final bool bold;
 
-  const _ReviewRow({required this.label, required this.value});
+  const _CostRow({required this.label, required this.value, this.bold = false});
 
   @override
   Widget build(BuildContext context) {
     return SailRow(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: SailStyleValues.padding08,
+      mainAxisSize: MainAxisSize.max,
       children: [
-        SizedBox(
-          width: 100,
-          child: SailText.secondary13(label),
-        ),
-        Expanded(
-          child: SailText.primary13(value),
-        ),
+        Expanded(child: SailText.secondary13(label)),
+        bold ? SailText.primary15(value, bold: true) : SailText.primary13(value, bold: true),
       ],
     );
   }
 }
 
-enum MarketType { binary, categorical, custom }
+class _NextStepsCard extends StatelessWidget {
+  const _NextStepsCard();
 
-enum LiquidityMethod { initialLiquidity, beta }
+  @override
+  Widget build(BuildContext context) {
+    const steps = [
+      'The market opens as soon as the block confirms.',
+      'A trade moves the price of every outcome.',
+      'Voters answer the decision slot in its period.',
+      'The market pays out after the tally.',
+    ];
+
+    return SailCard(
+      title: 'What happens next',
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        children: [
+          for (final (index, step) in steps.indexed)
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                SailBadge('${index + 1}'),
+                Expanded(child: SailText.secondary12(step)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
 
 class MarketCreationViewModel extends BaseViewModel {
   final MarketProvider _marketProvider = GetIt.I.get<MarketProvider>();
+  final VotingProvider _votingProvider = GetIt.I.get<VotingProvider>();
 
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -573,10 +593,13 @@ class MarketCreationViewModel extends BaseViewModel {
   final TextEditingController betaController = TextEditingController(text: '7.0');
   final TextEditingController tradingFeeController = TextEditingController(text: '0.5');
 
-  int currentStep = 0;
   MarketType marketType = MarketType.binary;
+  String? selectedSlotId;
   LiquidityMethod liquidityMethod = LiquidityMethod.initialLiquidity;
   InitialLiquidityCalculation? liquidityPreview;
+
+  /// Counts the cost calculations, so a late answer never wins.
+  int _liquidityRequest = 0;
   bool isCreating = false;
   String? createError;
 
@@ -625,39 +648,197 @@ class MarketCreationViewModel extends BaseViewModel {
     ]);
   }
 
-  bool get canContinue {
-    switch (currentStep) {
-      case 0:
-        return titleController.text.trim().isNotEmpty && descriptionController.text.trim().isNotEmpty;
-      case 1:
-        final input = dimensionsController.text.trim();
-        if (marketType == MarketType.categorical) {
-          return RegExp(r'^[0-9a-fA-F]+$').hasMatch(input);
-        }
-        return input.isNotEmpty;
-      case 2:
-        return liquidityMethod == LiquidityMethod.beta
-            ? (double.tryParse(betaController.text) ?? 0) > 0
-            : (int.tryParse(liquidityController.text) ?? 0) > 0;
-      case 3:
-        return (double.tryParse(tradingFeeController.text) ?? 0) > 0;
-      case 4:
-        return true;
-      default:
-        return false;
+  /// Slots the node reports, filtered to the ones that carry a decision.
+  /// Slots the node reports, filtered to the decisions the market type takes.
+  List<SlotListItem> get claimedSlots => _votingProvider.slots.where((slot) {
+    final decision = slot.decision;
+    if (decision == null) return false;
+    return switch (marketType) {
+      MarketType.binary => decision.isBinary,
+      MarketType.categorical => decision.isCategory,
+      MarketType.custom => true,
+    };
+  }).toList();
+
+  bool get isLoadingSlots => _votingProvider.isLoading;
+  String? get slotError => _votingProvider.error;
+
+  /// The loaded slot that the typed id names, or null when the node lists no
+  /// decision with that id.
+  SlotListItem? get typedSlot {
+    final id = dimensionsController.text.trim();
+    if (id.isEmpty) return null;
+    final match = _votingProvider.slots.where((slot) => slot.slotIdHex == id);
+    return match.isEmpty ? null : match.first;
+  }
+
+  /// True when a dimension asks the node to claim a new decision. The node
+  /// charges a tiered listing fee for such a claim, and this form reads no
+  /// fee, so it never sends that market.
+  bool get claimsNewDecision {
+    final decoded = jsonDecode(dimensionInputs);
+    if (decoded is! List) return false;
+    return decoded.any((dimension) => dimension is Map && dimension['type'] != 'existing');
+  }
+
+  /// Why the dimension input does not fit, or null when it fits.
+  String? get typedSlotError {
+    if (claimsNewDecision) {
+      return 'This form takes a claimed decision. Claim the decision first, then name its id.';
     }
+    if (marketType == MarketType.custom) return null;
+
+    final id = dimensionsController.text.trim();
+    if (id.isEmpty) return null;
+
+    if (_votingProvider.slots.isEmpty) {
+      // Without the list the kind of the id stays unknown, and an unknown
+      // kind decides the outcomes and the subsidy of the market.
+      return 'The decision list did not load. Press refresh before you create a market.';
+    }
+
+    final slot = typedSlot;
+    if (slot?.decision == null) {
+      return 'The node lists no claimed decision with the id $id.';
+    }
+
+    final decision = slot!.decision!;
+    if (marketType == MarketType.binary && !decision.isBinary) {
+      final kind = decision.isCategory ? 'category' : 'scaled';
+      return 'Slot $id carries a $kind decision. Pick another tab.';
+    }
+    if (marketType == MarketType.categorical && !decision.isCategory) {
+      return 'Slot $id carries no category decision. Pick another tab.';
+    }
+    return null;
+  }
+
+  String slotLabel(SlotListItem slot) {
+    final decision = slot.decision;
+    if (decision == null) return slot.state.displayName;
+    final kind = decision.isScaled
+        ? 'scaled'
+        : decision.isCategory
+        ? 'category'
+        : 'binary';
+    return '${decision.question} ($kind)';
+  }
+
+  void init() {
+    _votingProvider.addListener(notifyListeners);
+    loadSlots();
+  }
+
+  Future<void> loadSlots() async {
+    await _votingProvider.loadSlots();
+  }
+
+  void selectSlot(String slotIdHex) {
+    selectedSlotId = slotIdHex;
+    dimensionsController.text = slotIdHex;
+    onLiquidityInputChanged();
+  }
+
+  /// The text field wins when the typed id leaves the picked slot.
+  void onSlotTextChanged() {
+    if (dimensionsController.text.trim() != selectedSlotId) {
+      selectedSlotId = null;
+    }
+    onLiquidityInputChanged();
+  }
+
+  String get dimensionLabel => switch (marketType) {
+    MarketType.binary => 'Decision slot id',
+    MarketType.categorical => 'Category decision id',
+    MarketType.custom => 'Dimensions',
+  };
+
+  String get dimensionHint => switch (marketType) {
+    MarketType.binary => '004008',
+    MarketType.categorical => '004008',
+    MarketType.custom => '004008,004009',
+  };
+
+  String get dimensionHelp => switch (marketType) {
+    MarketType.binary => 'One binary slot gives a Yes outcome and a No outcome.',
+    MarketType.categorical => 'One category decision gives one outcome per option.',
+    MarketType.custom => 'Name every slot id, or paste a DimensionInput JSON array.',
+  };
+
+  String get previewMeta {
+    final slot = dimensionsController.text.trim();
+    final parts = <String>[slot.isEmpty ? 'no slot yet' : 'slot $slot'];
+    if (liquidityMethod == LiquidityMethod.beta) {
+      parts.add('β ${betaController.text}');
+    }
+    parts.add('fee ${tradingFeeController.text}%');
+    return parts.join('  ·  ');
+  }
+
+  double get tradingFeePercent => double.tryParse(tradingFeeController.text) ?? 0;
+
+  /// Satoshis the author pays into the market maker. The figure comes from
+  /// the same input that market_create submits. Beta mode knows the figure
+  /// only after the node calculates it.
+  int? get subsidySats {
+    if (liquidityMethod == LiquidityMethod.initialLiquidity) {
+      return int.tryParse(liquidityController.text) ?? 0;
+    }
+    return liquidityPreview?.initialLiquiditySats;
+  }
+
+  int? get totalCostSats {
+    final subsidy = subsidySats;
+    return subsidy == null ? null : subsidy + _networkFeeSats;
+  }
+
+  bool get canCreate {
+    if (titleController.text.trim().isEmpty) return false;
+    if (descriptionController.text.trim().isEmpty) return false;
+
+    final input = dimensionsController.text.trim();
+    if (input.isEmpty) return false;
+    if (marketType == MarketType.categorical && !RegExp(r'^[0-9a-fA-F]+$').hasMatch(input)) {
+      return false;
+    }
+    if (typedSlotError != null) return false;
+    if (claimsNewDecision) return false;
+
+    if (liquidityMethod == LiquidityMethod.beta) {
+      if ((double.tryParse(betaController.text) ?? 0) <= 0) return false;
+      // The node derives the subsidy from beta. A market goes out only after
+      // the author reads that cost.
+      if (liquidityPreview == null) return false;
+    } else if ((int.tryParse(liquidityController.text) ?? 0) <= 0) {
+      return false;
+    }
+
+    return tradingFeePercent > 0;
+  }
+
+  void onFormChanged() {
+    notifyListeners();
+  }
+
+  /// An edit of beta, of the liquidity, or of a slot invalidates the last
+  /// calculation, so the cost card never shows a figure for older inputs.
+  void onLiquidityInputChanged() {
+    _liquidityRequest++;
+    liquidityPreview = null;
+    notifyListeners();
   }
 
   void setMarketType(MarketType type) {
     marketType = type;
     dimensionsController.clear();
+    selectedSlotId = null;
+    liquidityPreview = null;
     notifyListeners();
   }
 
   void setLiquidityMethod(LiquidityMethod method) {
     liquidityMethod = method;
-    liquidityPreview = null;
-    notifyListeners();
+    onLiquidityInputChanged();
   }
 
   void setTradingFee(double fee) {
@@ -668,27 +849,16 @@ class MarketCreationViewModel extends BaseViewModel {
   Future<void> calculateLiquidityPreview() async {
     final beta = liquidityMethod == LiquidityMethod.beta ? double.tryParse(betaController.text) ?? 7.0 : 7.0;
 
-    liquidityPreview = await _marketProvider.calculateInitialLiquidity(
+    final request = ++_liquidityRequest;
+    final result = await _marketProvider.calculateInitialLiquidity(
       beta: beta,
       dimensions: effectiveDimensions.isNotEmpty ? effectiveDimensions : null,
     );
+    if (request != _liquidityRequest) return;
+
+    liquidityPreview = result;
+    createError = result == null ? 'The node gave no liquidity calculation' : null;
     notifyListeners();
-  }
-
-  void nextStep(BuildContext context) {
-    if (currentStep < 4) {
-      currentStep++;
-      notifyListeners();
-    } else {
-      createMarket(context);
-    }
-  }
-
-  void previousStep() {
-    if (currentStep > 0) {
-      currentStep--;
-      notifyListeners();
-    }
   }
 
   Future<void> createMarket(BuildContext context) async {
@@ -700,12 +870,12 @@ class MarketCreationViewModel extends BaseViewModel {
       title: titleController.text.trim(),
       description: descriptionController.text.trim(),
       dimensions: dimensionInputs,
-      feeSats: 1000,
+      feeSats: _networkFeeSats,
       beta: liquidityMethod == LiquidityMethod.beta ? double.tryParse(betaController.text) : null,
       initialLiquidity: liquidityMethod == LiquidityMethod.initialLiquidity
           ? int.tryParse(liquidityController.text)
           : null,
-      tradingFee: (double.tryParse(tradingFeeController.text) ?? 0.5) / 100,
+      tradingFee: tradingFeePercent / 100,
     );
 
     isCreating = false;
@@ -714,12 +884,13 @@ class MarketCreationViewModel extends BaseViewModel {
       if (context.mounted) {
         showSailToast(
           context,
-          'Market created: ${txid.substring(0, 16)}...',
+          'Market created: ${txid.length > 16 ? txid.substring(0, 16) : txid}',
+          variant: SailToastVariant.success,
         );
         await AutoRouter.of(context).maybePop();
       }
     } else {
-      createError = _marketProvider.error ?? 'Failed to create market';
+      createError = _marketProvider.error ?? 'The market creation failed';
     }
 
     notifyListeners();
@@ -727,6 +898,7 @@ class MarketCreationViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    _votingProvider.removeListener(notifyListeners);
     titleController.dispose();
     descriptionController.dispose();
     dimensionsController.dispose();
@@ -736,3 +908,7 @@ class MarketCreationViewModel extends BaseViewModel {
     super.dispose();
   }
 }
+
+enum MarketType { binary, categorical, custom }
+
+enum LiquidityMethod { initialLiquidity, beta }
