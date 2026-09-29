@@ -31,6 +31,7 @@ import (
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/nodes"
@@ -371,6 +372,10 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		monitors:     make(map[string]*ConnectionMonitor),
 		log:          log.With().Str("component", "orchestrator").Logger(),
 	}
+
+	// Every managed binary lands in the one log file a user sends, beside the
+	// lines of the frontend, bitwindowd and this daemon.
+	orch.process.SharedLogPath = logfile.Path(bitwindowDir)
 
 	// Variant resolver shared by download + process managers.
 	variantResolver := func(c BinaryConfig) (CoreVariantSpec, bool) {
