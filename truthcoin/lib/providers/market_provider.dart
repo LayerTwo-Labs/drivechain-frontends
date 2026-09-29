@@ -16,17 +16,34 @@ class MarketProvider extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
+  /// Full market data per market id. market_list carries no prices.
+  Map<String, MarketData> marketDetails = {};
+  bool isLoadingPrices = false;
+  String? priceError;
+
   // Filter state
   MarketState? stateFilter;
+  String? tagFilter;
   String searchQuery = '';
   MarketSort sortBy = MarketSort.volume;
   bool sortAscending = false;
+
+  /// Every tag the loaded markets carry, in alphabetical order.
+  List<String> get availableTags {
+    final tags = <String>{for (final detail in marketDetails.values) ...detail.tags};
+    final sorted = tags.toList()..sort();
+    return sorted;
+  }
 
   /// Filtered and sorted markets
   List<MarketSummary> get filteredMarkets {
     var result = markets.where((m) {
       // State filter
       if (stateFilter != null && m.marketState != stateFilter) {
+        return false;
+      }
+      // Tag filter. A market with no loaded detail carries no tag.
+      if (tagFilter != null && !(marketDetails[m.marketId]?.tags.contains(tagFilter) ?? false)) {
         return false;
       }
       // Search filter
@@ -73,19 +90,65 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
+  /// Load the outcome prices of every listed market, a few at a time.
+  /// A market already in [marketDetails] loads again only when [refresh] is true.
+  Future<void> loadMarketPrices({int batchSize = 4, bool refresh = false}) async {
+    if (markets.isEmpty) return;
+
+    final ids = markets
+        .map((m) => m.marketId)
+        .where((id) => id.isNotEmpty && (refresh || !marketDetails.containsKey(id)))
+        .toList();
+    if (ids.isEmpty) return;
+
+    isLoadingPrices = true;
+    priceError = null;
+    notifyListeners();
+
+    for (var start = 0; start < ids.length; start += batchSize) {
+      final batch = ids.skip(start).take(batchSize);
+      final results = await Future.wait(
+        batch.map((id) async {
+          try {
+            final response = await _rpc.marketGet(id);
+            return response == null ? null : MapEntry(id, MarketData.fromJson(response));
+          } catch (e) {
+            priceError = 'Failed to load prices: $e';
+            _log.e(priceError);
+            return null;
+          }
+        }),
+      );
+
+      marketDetails = {
+        ...marketDetails,
+        for (final entry in results.whereType<MapEntry<String, MarketData>>()) entry.key: entry.value,
+      };
+      notifyListeners();
+    }
+
+    isLoadingPrices = false;
+    notifyListeners();
+  }
+
   /// Load a specific market
   Future<void> loadMarket(String marketId) async {
     isLoading = true;
     error = null;
+    // Drop the market of the last route, or a failed load shows it again.
+    selectedMarket = null;
     notifyListeners();
 
     try {
       final response = await _rpc.marketGet(marketId);
       if (response != null) {
         selectedMarket = MarketData.fromJson(response);
+        // The grid reads this cache, so a fresh load also refreshes the card.
+        marketDetails = {...marketDetails, marketId: selectedMarket!};
         _log.d('Loaded market: ${selectedMarket!.title}');
       } else {
         error = 'Market not found';
+        marketDetails = {...marketDetails}..remove(marketId);
       }
     } catch (e) {
       error = 'Failed to load market: $e';
@@ -96,15 +159,21 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
-  /// Load user positions
-  Future<void> loadUserPositions(String address) async {
+  /// Load the positions of one address. Returns false when the node fails.
+  Future<bool> loadUserPositions(String address) async {
     try {
       final response = await _rpc.marketPositions(address: address);
       userPositions = UserHoldings.fromJson(response);
+      error = null;
       _log.d('Loaded ${userPositions!.positions.length} positions for $address');
       notifyListeners();
+      return true;
     } catch (e) {
-      _log.e('Failed to load positions: $e');
+      userPositions = null;
+      error = 'Failed to load positions: $e';
+      _log.e(error);
+      notifyListeners();
+      return false;
     }
   }
 
@@ -123,11 +192,14 @@ class MarketProvider extends ChangeNotifier {
         dryRun: true,
         maxCost: maxCost,
       );
+      // The node reports cost_sats with the trading fee inside it.
+      final totalCostSats = (response['cost_sats'] ?? 0) as int;
+      final feeSats = (response['trading_fee_sats'] ?? 0) as int;
       return TradePreview(
         shares: shares,
-        costSats: (response['cost_sats'] ?? 0) as int,
-        feeSats: (response['trading_fee_sats'] ?? 0) as int,
-        totalCostSats: ((response['cost_sats'] ?? 0) as int) + ((response['trading_fee_sats'] ?? 0) as int),
+        costSats: (totalCostSats - feeSats).clamp(0, totalCostSats),
+        feeSats: feeSats,
+        totalCostSats: totalCostSats,
         postTradePrice: (response['new_price'] ?? 0.0) as double,
       );
     } catch (e) {
@@ -279,6 +351,12 @@ class MarketProvider extends ChangeNotifier {
   /// Set filter state
   void setStateFilter(MarketState? state) {
     stateFilter = state;
+    notifyListeners();
+  }
+
+  /// Keep only the markets that carry the tag. Null shows every market.
+  void setTagFilter(String? tag) {
+    tagFilter = tag;
     notifyListeners();
   }
 
