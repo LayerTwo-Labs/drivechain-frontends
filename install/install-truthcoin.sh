@@ -154,10 +154,11 @@ Type=Application
 Name=Truthcoin
 GenericName=Drivechain Sidechain
 Comment=Truthcoin Sidechain for Drivechain - Prediction markets
-Exec=$APPIMAGE_PATH %U
+Exec="$APPIMAGE_PATH" %U
 Terminal=false
 Categories=Network;P2P;Finance;
 StartupWMClass=truthcoin
+MimeType=x-scheme-handler/truthcoin;
 Keywords=bitcoin;drivechain;sidechain;truthcoin;prediction;markets;
 EOF
 
@@ -170,6 +171,12 @@ chmod +x "$DESKTOP_FILE"
 # Update desktop database
 if command -v update-desktop-database &> /dev/null; then
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+fi
+
+# Make Truthcoin the default handler, so a browser opens a truthcoin:// link
+# without a chooser.
+if command -v xdg-mime &> /dev/null; then
+    xdg-mime default "$APP_NAME_LOWER.desktop" x-scheme-handler/truthcoin 2>/dev/null || true
 fi
 
 # Update icon cache
