@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  app_links
   auto_updater_windows
   desktop_multi_window
   screen_retriever_windows

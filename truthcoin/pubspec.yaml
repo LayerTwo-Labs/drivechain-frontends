@@ -44,6 +44,7 @@ dependencies:
   connectrpc: ^1.0.0
   path: ^1.9.1
   auto_updater: ^1.0.0
+  app_links: ^7.2.1
 
 # Needed for silencing complaints from adding the web3dart lib
 dependency_overrides:

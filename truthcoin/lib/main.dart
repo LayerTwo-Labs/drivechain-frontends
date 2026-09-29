@@ -16,6 +16,8 @@ import 'package:sidechain_core/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/config/runtime_args.dart';
+import 'package:truthcoin/deeplink/deep_link_service.dart';
+import 'package:truthcoin/deeplink/scheme_registration.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/truthcoin_conf_provider.dart';
 import 'package:truthcoin/providers/truthcoin_homepage_provider.dart';
@@ -136,6 +138,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     GetIt.I.registerLazySingleton<VotingProvider>(() => votingProvider);
   }
 
+  // runMainWindow starts the link stream, because a cold launch delivers the
+  // first link at once and the router mounts later.
+  if (!GetIt.I.isRegistered<DeepLinkService>()) {
+    GetIt.I.registerSingleton<DeepLinkService>(DeepLinkService.live(router: router, log: log));
+    unawaited(registerTruthcoinScheme(log));
+  }
+
   return (applicationDir, logFile, log);
 }
 
@@ -221,6 +230,10 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
       log: log,
     ),
   );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    GetIt.I.get<DeepLinkService>().start();
+  });
 }
 
 class _TruthcoinAppContent extends StatelessWidget {
