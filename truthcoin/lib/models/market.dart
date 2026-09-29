@@ -24,7 +24,7 @@ enum MarketState {
     if (lower == 'trading' || lower == 'live') return MarketState.trading;
     if (lower == 'cancelled') return MarketState.cancelled;
     if (lower == 'invalid') return MarketState.invalid;
-    if (lower == 'ossified' || lower == 'resolved') return MarketState.ossified;
+    if (lower == 'ossified' || lower == 'resolved' || lower == 'settled') return MarketState.ossified;
     return MarketState.trading;
   }
 
