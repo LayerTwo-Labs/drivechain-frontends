@@ -112,7 +112,7 @@ func unmarshal[T any](c *Client, ctx context.Context, method string, params inte
 
 // Balance returns the node wallet balance.
 func (c *Client) Balance(ctx context.Context) (*BalanceResponse, error) {
-	r, err := unmarshal[BalanceResponse](c, ctx, "balance", nil)
+	r, err := unmarshal[BalanceResponse](c, ctx, "bitcoin_balance", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -137,11 +137,6 @@ func (c *Client) GetWalletUTXOs(ctx context.Context) (json.RawMessage, error) {
 // ListUTXOs returns all UTXOs as raw JSON.
 func (c *Client) ListUTXOs(ctx context.Context) (json.RawMessage, error) {
 	return c.call(ctx, "list_utxos", nil)
-}
-
-// MyUTXOs returns the caller's owned UTXOs as raw JSON.
-func (c *Client) MyUTXOs(ctx context.Context) (json.RawMessage, error) {
-	return c.call(ctx, "my_utxos", nil)
 }
 
 // Transfer sends funds.
@@ -181,7 +176,7 @@ func (c *Client) GetBlock(ctx context.Context, hash string) (json.RawMessage, er
 
 // GetBMMInclusions returns mainchain blocks that commit to the given block hash.
 func (c *Client) GetBMMInclusions(ctx context.Context, blockHash string) (string, error) {
-	return unmarshal[string](c, ctx, "get_bmm_inclusions", blockHash)
+	return unmarshal[string](c, ctx, "get_bmm_inclusions", []any{blockHash})
 }
 
 // GetBestMainchainBlockHash returns the best known mainchain block hash.
@@ -269,39 +264,12 @@ func (c *Client) SetSeedFromMnemonic(ctx context.Context, mnemonic string) error
 }
 
 // ---------------------------------------------------------------------------
-// Market-specific methods for Truthcoin (prediction markets)
-// ---------------------------------------------------------------------------
-
-// CreateMarket creates a new prediction market.
-func (c *Client) CreateMarket(ctx context.Context, description string, outcomes []string) (string, error) {
-	params := []interface{}{description, outcomes}
-	return unmarshal[string](c, ctx, "create_market", params)
-}
-
-// ListMarkets returns all prediction markets.
-func (c *Client) ListMarkets(ctx context.Context) (json.RawMessage, error) {
-	return c.call(ctx, "list_markets", nil)
-}
-
-// PlaceBet places a bet on a market outcome.
-func (c *Client) PlaceBet(ctx context.Context, marketID string, outcome int, amount int64) (string, error) {
-	params := []interface{}{marketID, outcome, amount}
-	return unmarshal[string](c, ctx, "place_bet", params)
-}
-
-// ResolveMarket resolves a prediction market with the winning outcome.
-func (c *Client) ResolveMarket(ctx context.Context, marketID string, winningOutcome int) (string, error) {
-	params := []interface{}{marketID, winningOutcome}
-	return unmarshal[string](c, ctx, "resolve_market", params)
-}
-
-// ---------------------------------------------------------------------------
 // Mining
 // ---------------------------------------------------------------------------
 
 // Mine attempts to create and submit a BMM block.
 func (c *Client) Mine(ctx context.Context, feeSats int64) (*BmmResult, error) {
-	r, err := unmarshal[BmmResult](c, ctx, "mine", feeSats)
+	r, err := unmarshal[BmmResult](c, ctx, "mine", []any{feeSats})
 	if err != nil {
 		return nil, err
 	}
