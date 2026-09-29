@@ -1,0 +1,17 @@
+{
+  "version": 25,
+  "migration": "patch",
+  "binaries": {
+    "truthcoin": {
+      "directories": {
+        "binary": {
+          "default": {
+            "linux": "truthcoin_dc",
+            "macos": "truthcoin_dc",
+            "windows": "truthcoin_dc"
+          }
+        }
+      }
+    }
+  }
+}

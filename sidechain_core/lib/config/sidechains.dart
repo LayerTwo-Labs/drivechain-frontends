@@ -839,9 +839,9 @@ class Truthcoin extends Sidechain {
              directories ??
              DirectoryConfig(
                binary: allNetworks({
-                 OS.linux: 'truthcoin',
-                 OS.macos: 'truthcoin',
-                 OS.windows: 'truthcoin',
+                 OS.linux: 'truthcoin_dc',
+                 OS.macos: 'truthcoin_dc',
+                 OS.windows: 'truthcoin_dc',
                }),
                flutterFrontend: {
                  OS.linux: 'com.layertwolabs.truthcoin',

@@ -1,5 +1,5 @@
 {
-  "version": 24,
+  "version": 25,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -537,9 +537,9 @@
       "directories": {
         "binary": {
           "default": {
-            "linux": "truthcoin",
-            "macos": "truthcoin",
-            "windows": "truthcoin"
+            "linux": "truthcoin_dc",
+            "macos": "truthcoin_dc",
+            "windows": "truthcoin_dc"
           }
         },
         "flutter_frontend": {
