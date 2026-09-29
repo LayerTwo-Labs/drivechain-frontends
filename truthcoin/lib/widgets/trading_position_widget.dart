@@ -64,7 +64,7 @@ class TradingPositionWidget extends StatelessWidget {
                         children: [
                           SailText.secondary12('Total Value'),
                           SailText.primary20(
-                            formatter.formatBTC(holdings.totalValue),
+                            formatter.formatSats(holdings.totalValueSats),
                             bold: true,
                           ),
                         ],
@@ -121,7 +121,7 @@ class TradingPositionWidget extends StatelessWidget {
                             monospace: true,
                           ),
                           SailTableCell(
-                            value: formatter.formatBTC(position.currentValue),
+                            value: formatter.formatSats(position.currentValueSats),
                             monospace: true,
                           ),
                           SailTableCell(
@@ -260,7 +260,7 @@ class PositionsSummaryWidget extends StatelessWidget {
                         children: [
                           SailText.secondary13('Total Value'),
                           SailText.primary15(
-                            formatter.formatBTC(model.holdings!.totalValue),
+                            formatter.formatSats(model.holdings!.totalValueSats),
                             bold: true,
                           ),
                         ],
