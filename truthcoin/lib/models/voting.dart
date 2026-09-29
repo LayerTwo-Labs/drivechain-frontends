@@ -1,3 +1,4 @@
+import 'package:sidechain_core/bitcoin.dart';
 import 'package:truthcoin/models/market.dart';
 
 /// Slot system status and configuration
@@ -91,6 +92,9 @@ class DecisionInfo {
   final int? min;
   final int? max;
 
+  /// The option labels of a category decision, empty for any other kind.
+  final List<String> categoryOptions;
+
   DecisionInfo({
     required this.id,
     required this.marketMakerPubkeyHash,
@@ -99,10 +103,12 @@ class DecisionInfo {
     required this.question,
     this.min,
     this.max,
+    this.categoryOptions = const [],
   });
 
   factory DecisionInfo.fromJson(Map<String, dynamic> json) {
-    final scaled = _scaledRange(json['decision_type']);
+    final decisionType = json['decision_type'];
+    final scaled = _scaledRange(decisionType);
     return DecisionInfo(
       id: json['id']?.toString() ?? '',
       marketMakerPubkeyHash: json['market_maker_pubkey_hash']?.toString() ?? '',
@@ -111,10 +117,12 @@ class DecisionInfo {
       question: json['header']?.toString() ?? '',
       min: (scaled?['min'] as num?)?.toInt(),
       max: (scaled?['max'] as num?)?.toInt(),
+      categoryOptions: _categoryOptions(decisionType),
     );
   }
 
-  bool get isBinary => !isScaled;
+  bool get isCategory => categoryOptions.isNotEmpty;
+  bool get isBinary => !isScaled && !isCategory;
 }
 
 /// Full voter information
@@ -271,13 +279,12 @@ class DecisionSummary {
 
   factory DecisionSummary.fromJson(Map<String, dynamic> json) {
     final decisionType = json['decision_type'];
-    final category = decisionType is Map<String, dynamic> ? decisionType['Category'] as Map<String, dynamic>? : null;
     return DecisionSummary(
       slotIdHex: json['decision_id_hex']?.toString() ?? '',
       question: json['header']?.toString() ?? '',
       isStandard: json['is_standard'] as bool? ?? true,
       isScaled: _scaledRange(decisionType) != null,
-      categoryOptions: [for (final option in category?['options'] as List? ?? []) option.toString()],
+      categoryOptions: _categoryOptions(decisionType),
     );
   }
 
@@ -556,13 +563,15 @@ class MarketOutcome {
   });
 
   factory MarketOutcome.fromJson(Map<String, dynamic> json) {
+    // The node names the fields label, price and outcome_index.
+    final price = ((json['price'] ?? json['current_price'] ?? json['probability'] ?? 0) as num).toDouble();
     return MarketOutcome(
-      name: json['name']?.toString() ?? '',
-      currentPrice: (json['current_price'] ?? 0.0) as double,
-      probability: (json['probability'] ?? 0.0) as double,
+      name: (json['label'] ?? json['name'])?.toString() ?? '',
+      currentPrice: price,
+      probability: ((json['probability'] ?? price) as num).toDouble(),
       volumeSats: (json['volume_sats'] ?? 0) as int,
-      index: (json['index'] ?? 0) as int,
-      displayIndex: (json['display_index'] ?? 0) as int,
+      index: (json['outcome_index'] ?? json['index'] ?? 0) as int,
+      displayIndex: (json['full_state_index'] ?? json['display_index'] ?? json['outcome_index'] ?? 0) as int,
     );
   }
 
@@ -625,8 +634,11 @@ class MarketData {
 
     List<String> parseSlots(dynamic slots) {
       if (slots == null) return [];
-      if (slots is List) return slots.map((s) => s.toString()).toList();
-      return [];
+      if (slots is! List) return [];
+      return [
+        for (final slot in slots)
+          if (slot is Map<String, dynamic>) slot['decision_id']?.toString() ?? '' else slot.toString(),
+      ].where((id) => id.isNotEmpty).toList();
     }
 
     return MarketData(
@@ -635,16 +647,16 @@ class MarketData {
       description: json['description']?.toString() ?? '',
       outcomes: parseOutcomes(json['outcomes']),
       state: json['state']?.toString() ?? 'trading',
-      marketMaker: json['market_maker']?.toString() ?? '',
-      expiresAt: json['expires_at'] as int?,
-      beta: (json['beta'] ?? 7.0) as double,
-      tradingFee: (json['trading_fee'] ?? 0.005) as double,
+      marketMaker: (json['creator_address'] ?? json['market_maker'])?.toString() ?? '',
+      expiresAt: (json['expires_at_height'] ?? json['expires_at']) as int?,
+      beta: ((json['beta'] ?? 7.0) as num).toDouble(),
+      tradingFee: ((json['trading_fee_rate'] ?? json['trading_fee'] ?? 0.005) as num).toDouble(),
       tags: parseTags(json['tags']),
       createdAtHeight: (json['created_at_height'] ?? 0) as int,
-      treasury: (json['treasury'] ?? 0.0) as double,
+      treasury: satoshiToBTC((json['treasury_sats'] ?? 0) as int) + ((json['treasury'] ?? 0) as num).toDouble(),
       totalVolumeSats: (json['total_volume_sats'] ?? 0) as int,
-      liquidity: (json['liquidity'] ?? 0.0) as double,
-      decisionSlots: parseSlots(json['decision_slots']),
+      liquidity: satoshiToBTC((json['liquidity_base_sats'] ?? 0) as int) + ((json['liquidity'] ?? 0) as num).toDouble(),
+      decisionSlots: parseSlots(json['dimensions'] ?? json['decision_slots']),
       resolution: json['resolution'] != null
           ? MarketResolution.fromJson(json['resolution'] as Map<String, dynamic>)
           : null,
@@ -705,7 +717,8 @@ class WinningOutcome {
   }
 }
 
-/// Share position in a market
+/// Share position in a market. One share pays one satoshi at resolution, so
+/// the node counts every value field of this class in satoshis.
 class SharePosition {
   final String marketId;
   final int outcomeIndex;
@@ -743,12 +756,16 @@ class SharePosition {
     );
   }
 
+  int get currentValueSats => currentValue.round();
+  int get costBasisSats => costBasis.round();
+  int get unrealizedPnlSats => unrealizedPnl.round();
+
   double get pnlPercent => costBasis > 0 ? (unrealizedPnl / costBasis) * 100 : 0;
   bool get isProfit => unrealizedPnl > 0;
   String get pnlDisplay => '${unrealizedPnl >= 0 ? '+' : ''}${pnlPercent.toStringAsFixed(1)}%';
 }
 
-/// User holdings across all markets
+/// User holdings across all markets. Every value field counts satoshis.
 class UserHoldings {
   final String address;
   final List<SharePosition> positions;
@@ -787,6 +804,10 @@ class UserHoldings {
       lastUpdatedHeight: (json['last_updated_height'] ?? 0) as int,
     );
   }
+
+  int get totalValueSats => totalValue.round();
+  int get totalCostBasisSats => totalCostBasis.round();
+  int get totalUnrealizedPnlSats => totalUnrealizedPnl.round();
 
   double get totalPnlPercent => totalCostBasis > 0 ? (totalUnrealizedPnl / totalCostBasis) * 100 : 0;
   bool get hasProfits => totalUnrealizedPnl > 0;
@@ -850,6 +871,12 @@ class InitialLiquidityCalculation {
       outcomeBreakdown: json['outcome_breakdown']?.toString() ?? '',
     );
   }
+}
+
+List<String> _categoryOptions(Object? decisionType) {
+  if (decisionType is! Map<String, dynamic>) return const [];
+  final category = decisionType['Category'] as Map<String, dynamic>?;
+  return [for (final option in category?['options'] as List? ?? []) option.toString()];
 }
 
 Map<String, dynamic>? _scaledRange(Object? decisionType) {
