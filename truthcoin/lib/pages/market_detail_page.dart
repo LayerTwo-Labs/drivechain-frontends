@@ -3,20 +3,43 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:truthcoin/models/address_position.dart';
 import 'package:truthcoin/models/market.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/routing/router.dart';
+import 'package:truthcoin/widgets/market_card.dart';
+
+const double _panelWidth = 348;
+
+/// Miner fee of one trade, as the node counts it.
+const int _tradeMinerFeeSats = 1000;
+
+/// Below this width the trade panel sits under the market, not beside it.
+const double _twoColumnWidth = 900;
+
+enum TradeMode { buy, sell }
 
 @RoutePage()
 class MarketDetailPage extends StatelessWidget {
   final String marketId;
 
-  const MarketDetailPage({super.key, @PathParam('marketId') required this.marketId});
+  /// Outcome the market grid asks for. The panel selects it at startup.
+  final int? initialOutcomeIndex;
+
+  const MarketDetailPage({
+    super.key,
+    @PathParam('marketId') required this.marketId,
+    this.initialOutcomeIndex,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<MarketDetailViewModel>.reactive(
-      viewModelBuilder: () => MarketDetailViewModel(marketId: marketId),
+      viewModelBuilder: () => MarketDetailViewModel(
+        marketId: marketId,
+        initialOutcomeIndex: initialOutcomeIndex,
+      ),
       onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
         if (model.isLoading) {
@@ -24,24 +47,27 @@ class MarketDetailPage extends StatelessWidget {
             child: Center(
               child: SailSkeletonizer(
                 enabled: true,
-                description: 'Loading market...',
-                child: SailText.primary15('Loading...'),
+                description: 'Market loads',
+                child: SailText.primary15('Market loads'),
               ),
             ),
           );
         }
 
-        if (model.marketError != null || model.market == null) {
+        final market = model.market;
+        if (market == null) {
           return QtPage(
             child: Center(
               child: SailColumn(
+                spacing: SailStyleValues.padding16,
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SailText.primary15(model.marketError ?? 'Market not found'),
-                  const SizedBox(height: 16),
                   SailButton(
-                    label: 'Go Back',
-                    onPressed: () async => AutoRouter.of(context).maybePop(),
+                    label: 'Try again',
+                    small: true,
+                    onPressed: () async => model.load(),
                   ),
                 ],
               ),
@@ -49,66 +75,49 @@ class MarketDetailPage extends StatelessWidget {
           );
         }
 
-        final market = model.market!;
+        final content = [
+          _BackRow(model: model),
+          _MarketHeaderCard(market: market),
+          _OutcomePricesCard(model: model, market: market),
+          _RulesCard(market: market),
+          _HoldersCard(model: model),
+        ];
+        final panel = [
+          _TradePanel(model: model, market: market),
+          _MarketFactsCard(market: market),
+        ];
 
         return QtPage(
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            children: [
-              // Header
-              SailRow(
-                spacing: SailStyleValues.padding12,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < _twoColumnWidth) {
+                return SingleChildScrollView(
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding12,
+                    children: [...content, ...panel],
+                  ),
+                );
+              }
+
+              return SailRow(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
                 children: [
-                  SailButton(
-                    label: '← Back',
-                    small: true,
-                    onPressed: () async => AutoRouter.of(context).maybePop(),
-                  ),
                   Expanded(
-                    child: SailText.primary20(market.title, bold: true),
+                    child: SingleChildScrollView(
+                      child: SailColumn(spacing: SailStyleValues.padding12, children: content),
+                    ),
                   ),
-                  _StateChip(state: market.marketState),
+                  SizedBox(
+                    width: _panelWidth,
+                    child: SingleChildScrollView(
+                      child: SailColumn(spacing: SailStyleValues.padding12, children: panel),
+                    ),
+                  ),
                 ],
-              ),
-
-              // Description and metadata
-              SailCard(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding08,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.secondary13(market.description),
-                    const SizedBox(height: 8),
-                    SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        ...market.tags.map((tag) => _TagChip(tag: tag)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Main content
-              Expanded(
-                child: SailRow(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left: Outcomes
-                    Expanded(
-                      flex: 3,
-                      child: _OutcomesSection(model: model, market: market),
-                    ),
-                    // Right: Trading panel
-                    Expanded(
-                      flex: 2,
-                      child: _TradingPanel(model: model, market: market),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              );
+            },
           ),
         );
       },
@@ -116,53 +125,90 @@ class MarketDetailPage extends StatelessWidget {
   }
 }
 
-class _OutcomesSection extends StatelessWidget {
+class _BackRow extends StatelessWidget {
   final MarketDetailViewModel model;
-  final MarketData market;
 
-  const _OutcomesSection({required this.model, required this.market});
+  const _BackRow({required this.model});
 
   @override
   Widget build(BuildContext context) {
-    final formatter = GetIt.I<FormatterProvider>();
+    return SailRow(
+      spacing: SailStyleValues.padding04,
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        SailButton(
+          label: '←  Markets',
+          variant: ButtonVariant.link,
+          small: true,
+          onPressed: () async => GetIt.I.get<AppRouter>().maybePop(),
+        ),
+        const Spacer(),
+        SailButton(
+          label: 'Refresh',
+          variant: ButtonVariant.secondary,
+          small: true,
+          loading: model.isLoading,
+          onPressed: () async => model.load(),
+        ),
+      ],
+    );
+  }
+}
+
+class _MarketHeaderCard extends StatelessWidget {
+  final MarketData market;
+
+  const _MarketHeaderCard({required this.market});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final formatter = GetIt.I.get<FormatterProvider>();
 
     return SailCard(
-      title: 'Outcomes',
       child: ListenableBuilder(
         listenable: formatter,
-        builder: (context, _) => SailColumn(
+        builder: (context, _) => SailRow(
           spacing: SailStyleValues.padding12,
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
           children: [
-            ...market.outcomes.map(
-              (outcome) => _OutcomeBar(
-                outcome: outcome,
-                isSelected: model.selectedOutcome?.index == outcome.index,
-                onTap: () => model.selectOutcome(outcome),
+            Container(
+              height: 48,
+              width: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.colors.backgroundSecondary,
+                borderRadius: SailStyleValues.borderRadius,
+              ),
+              child: SailText.primary15(marketInitials(market.title), bold: true),
+            ),
+            Expanded(
+              child: SailColumn(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailText.primary22(market.title, bold: true),
+                  Wrap(
+                    spacing: SailStyleValues.padding10,
+                    runSpacing: SailStyleValues.padding04,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SailBadge(
+                        market.marketState.displayName,
+                        tone: market.isTrading ? SailBadgeTone.success : SailBadgeTone.neutral,
+                      ),
+                      SailText.secondary12('${formatter.formatSats(market.totalVolumeSats)} volume'),
+                      SailText.secondary12('·'),
+                      SailText.secondary12('created at block ${market.createdAtHeight}'),
+                      if (market.expiresAt != null) ...[
+                        SailText.secondary12('·'),
+                        SailText.secondary12('ends at block ${market.expiresAt}'),
+                      ],
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            SailRow(
-              spacing: SailStyleValues.padding16,
-              children: [
-                _StatBox(
-                  label: 'Volume',
-                  value: formatter.formatSats(market.totalVolumeSats),
-                ),
-                _StatBox(
-                  label: 'Liquidity',
-                  value: market.liquidity.toStringAsFixed(2),
-                ),
-                _StatBox(
-                  label: 'Trading Fee',
-                  value: market.tradingFeePercent,
-                ),
-              ],
-            ),
-            if (market.decisionSlots.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              SailText.secondary12('Decision Slots: ${market.decisionSlots.join(", ")}'),
-            ],
           ],
         ),
       ),
@@ -170,247 +216,548 @@ class _OutcomesSection extends StatelessWidget {
   }
 }
 
-class _TradingPanel extends StatelessWidget {
+class _OutcomePricesCard extends StatelessWidget {
   final MarketDetailViewModel model;
   final MarketData market;
 
-  const _TradingPanel({required this.model, required this.market});
+  const _OutcomePricesCard({required this.model, required this.market});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final formatter = GetIt.I<FormatterProvider>();
+    final formatter = GetIt.I.get<FormatterProvider>();
+    final outcomes = model.orderedOutcomes;
+
+    return SailCard(
+      title: 'Outcome prices',
+      subtitle: 'The LMSR price of a share is also the chance of the outcome.',
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => _SideScroll(
+          minWidth: 560,
+          child: SailColumn(
+            spacing: SailStyleValues.padding12,
+            children: [
+              for (final outcome in outcomes)
+                SailRow(
+                  spacing: SailStyleValues.padding12,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    SizedBox(
+                      width: 160,
+                      child: SailText.primary14(
+                        outcome.name,
+                        bold: true,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Expanded(
+                      child: _PriceBar(
+                        fraction: outcome.currentPrice.clamp(0, 1).toDouble(),
+                        color: theme.colors.success,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 60,
+                      child: SailText.primary13(formatChance(outcome.currentPrice), bold: true),
+                    ),
+                    SizedBox(
+                      width: 110,
+                      child: SailText.secondary12(formatter.formatSats(outcome.volumeSats)),
+                    ),
+                    OutcomeTradeButton(
+                      label: model.selectedOutcome?.index == outcome.index ? 'Selected' : 'Trade',
+                      price: formatChance(outcome.currentPrice),
+                      tone: OutcomeTone.yes,
+                      onTap: () => model.selectOutcome(outcome),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lets a wide table scroll sideways inside a narrow window.
+class _SideScroll extends StatelessWidget {
+  final double minWidth;
+  final Widget child;
+
+  const _SideScroll({required this.minWidth, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= minWidth) return child;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(width: minWidth, child: child),
+        );
+      },
+    );
+  }
+}
+
+class _PriceBar extends StatelessWidget {
+  final double fraction;
+  final Color color;
+
+  const _PriceBar({required this.fraction, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) => Stack(
+        children: [
+          Container(
+            height: 6,
+            decoration: BoxDecoration(
+              color: theme.colors.backgroundSecondary,
+              borderRadius: SailStyleValues.borderRadiusSmall,
+            ),
+          ),
+          Container(
+            height: 6,
+            width: constraints.maxWidth * fraction,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: SailStyleValues.borderRadiusSmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RulesCard extends StatelessWidget {
+  final MarketData market;
+
+  const _RulesCard({required this.market});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I.get<FormatterProvider>();
+
+    return SailCard(
+      title: 'Resolution',
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => SailColumn(
+          spacing: SailStyleValues.padding12,
+          children: [
+            SailText.primary13(market.description),
+            const SailSeparator(),
+            Wrap(
+              spacing: SailStyleValues.padding25,
+              runSpacing: SailStyleValues.padding12,
+              children: [
+                _Fact(label: 'Decision slots', value: market.decisionSlots.join(', ')),
+                _Fact(label: 'Liquidity β', value: market.beta.toStringAsFixed(1)),
+                _Fact(label: 'Trading fee', value: market.tradingFeePercent),
+                _Fact(label: 'Treasury', value: formatter.formatBTC(market.treasury)),
+                _Fact(label: 'Creator', value: market.marketMaker),
+              ],
+            ),
+            if (market.tags.isNotEmpty)
+              Wrap(
+                spacing: SailStyleValues.padding08,
+                runSpacing: SailStyleValues.padding04,
+                children: [for (final tag in market.tags) SailBadge(tag)],
+              ),
+            if (market.resolution != null)
+              SailAlert(
+                variant: SailAlertVariant.info,
+                title: 'Resolved',
+                description: market.resolution!.summary,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Fact extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _Fact({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 150,
+      child: SailColumn(
+        spacing: SailStyleValues.padding04,
+        children: [
+          SailText.secondary12(label),
+          SailText.primary14(
+            value.isEmpty ? '—' : value,
+            bold: true,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HoldersCard extends StatelessWidget {
+  final MarketDetailViewModel model;
+
+  const _HoldersCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I.get<FormatterProvider>();
+    final positions = model.positions;
+
+    return SailCard(
+      title: 'Your positions in this market',
+      subtitle: positions.isEmpty ? 'This wallet holds no share of this market.' : null,
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => SailColumn(
+          spacing: SailStyleValues.padding08,
+          children: [
+            if (model.positionsError != null) SailInlineError(model.positionsError!),
+            _SideScroll(
+              minWidth: 640,
+              child: SailColumn(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  if (positions.isNotEmpty)
+                    SailRow(
+                      spacing: SailStyleValues.padding12,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Expanded(flex: 3, child: SailText.secondary12('Address')),
+                        Expanded(flex: 2, child: SailText.secondary12('Outcome')),
+                        Expanded(flex: 2, child: SailText.secondary12('Shares')),
+                        Expanded(flex: 2, child: SailText.secondary12('Average price')),
+                        Expanded(flex: 2, child: SailText.secondary12('Value')),
+                        Expanded(flex: 2, child: SailText.secondary12('Profit')),
+                      ],
+                    ),
+                  for (final holder in positions)
+                    SailRow(
+                      spacing: SailStyleValues.padding12,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: SailText.primary13(holder.address, monospace: true),
+                        ),
+                        Expanded(flex: 2, child: SailText.primary13(holder.position.outcomeName, bold: true)),
+                        Expanded(flex: 2, child: SailText.primary13('${holder.position.shares}')),
+                        Expanded(
+                          flex: 2,
+                          child: SailText.primary13(formatChance(holder.position.avgPurchasePrice)),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: SailText.primary13(formatter.formatSats(holder.position.currentValueSats)),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: SailText.primary13(
+                            holder.position.pnlDisplay,
+                            bold: true,
+                            color: holder.position.isProfit
+                                ? SailTheme.of(context).colors.success
+                                : SailTheme.of(context).colors.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TradePanel extends StatelessWidget {
+  final MarketDetailViewModel model;
+  final MarketData market;
+
+  const _TradePanel({required this.model, required this.market});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I.get<FormatterProvider>();
 
     if (!market.isTrading) {
       return SailCard(
-        title: 'Trading Closed',
-        child: SailColumn(
-          children: [
-            SailText.secondary15('This market is ${market.state}'),
-            if (market.resolution != null) ...[
-              const SizedBox(height: 16),
-              SailText.primary15('Resolution:', bold: true),
-              SailText.secondary13(market.resolution!.summary),
-            ],
-          ],
-        ),
+        title: 'Trading closed',
+        child: SailText.secondary13('The market state is ${market.marketState.displayName}.'),
       );
     }
 
     return SailCard(
-      title: 'Trade',
       child: ListenableBuilder(
         listenable: formatter,
         builder: (context, _) => SailColumn(
           spacing: SailStyleValues.padding12,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Outcome selector
-            SailText.secondary12('Outcome'),
-            SailDropdownButton<int?>(
-              value: model.selectedOutcome?.index,
-              items: market.outcomes
-                  .map(
-                    (o) => SailDropdownItem<int?>(
-                      value: o.index,
-                      label: '${o.name} (${o.probabilityPercent})',
-                    ),
-                  )
-                  .toList(),
-              onChanged: (index) {
-                if (index != null) {
-                  final outcome = market.outcomes.firstWhere((o) => o.index == index);
-                  model.selectOutcome(outcome);
-                }
-              },
-            ),
-
-            // Shares input
-            const SizedBox(height: 8),
-            SailText.secondary12('Shares'),
-            SailTextField(
-              controller: model.sharesController,
-              hintText: 'Enter number of shares',
-              textFieldType: TextFieldType.number,
-              onChanged: (_) => model.updatePreview(),
-            ),
-
-            // Preview
-            if (model.preview != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colors.backgroundSecondary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SailColumn(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    _PreviewRow(
-                      label: 'Est. Cost',
-                      value: formatter.formatSats(model.preview!.costSats),
-                    ),
-                    _PreviewRow(
-                      label: 'Trading Fee',
-                      value: formatter.formatSats(model.preview!.feeSats),
-                    ),
-                    _PreviewRow(
-                      label: 'Total Cost',
-                      value: formatter.formatSats(model.preview!.totalCostSats),
-                      bold: true,
-                    ),
-                    _PreviewRow(
-                      label: 'New Price',
-                      value: '${(model.preview!.postTradePrice * 100).toStringAsFixed(1)}%',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            if (model.previewError != null) ...[
-              const SizedBox(height: 8),
-              SailText.secondary12(model.previewError!, color: theme.colors.error),
-            ],
-
-            // Action buttons
-            const SizedBox(height: 16),
             SailRow(
               spacing: SailStyleValues.padding08,
+              mainAxisSize: MainAxisSize.max,
               children: [
                 Expanded(
-                  child: SailButton(
-                    label: 'Preview',
-                    onPressed: () async => model.updatePreview(),
-                    disabled: model.selectedOutcome == null || model.shares <= 0,
+                  child: SailTabItem(
+                    label: 'Buy',
+                    isSelected: model.tradeMode == TradeMode.buy,
+                    onTap: () => model.setTradeMode(TradeMode.buy),
                   ),
                 ),
                 Expanded(
-                  child: SailButton(
-                    label: 'Buy Shares',
-                    onPressed: () async => model.executeBuy(context),
-                    disabled: model.selectedOutcome == null || model.shares <= 0 || model.preview == null,
-                    loading: model.isExecuting,
+                  child: SailTabItem(
+                    label: 'Sell',
+                    isSelected: model.tradeMode == TradeMode.sell,
+                    onTap: () => model.setTradeMode(TradeMode.sell),
                   ),
                 ),
               ],
             ),
-
-            // Sell button
-            const SizedBox(height: 8),
-            SailButton(
-              label: 'Sell Shares',
-              onPressed: () async => model.openSellDialog(context),
-              disabled: model.selectedOutcome == null,
-            ),
+            _OutcomeSelector(model: model),
+            if (model.tradeMode == TradeMode.buy)
+              ..._buyFields(context, formatter)
+            else
+              ..._sellFields(context, formatter),
           ],
         ),
       ),
     );
   }
+
+  List<Widget> _buyFields(BuildContext context, FormatterProvider formatter) {
+    final preview = model.preview;
+    final outcome = model.selectedOutcome;
+
+    return [
+      SailRow(
+        spacing: SailStyleValues.padding08,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Expanded(child: SailText.secondary12('Shares')),
+          SailText.secondary12('balance ${formatter.formatBTC(model.walletBalance)}'),
+        ],
+      ),
+      SailTextField(
+        controller: model.sharesController,
+        hintText: 'Shares to buy',
+        textFieldType: TextFieldType.number,
+        onChanged: (_) => model.updatePreview(),
+      ),
+      if (model.previewError != null) SailInlineError(model.previewError!),
+      if (model.buyCostsTooMuch)
+        SailAlert(
+          variant: SailAlertVariant.warning,
+          description: 'The total cost is above the wallet balance.',
+        ),
+      if (preview != null)
+        _SummaryBox(
+          rows: [
+            ('Shares', '${preview.shares}'),
+            ('Cost', formatter.formatSats(preview.costSats)),
+            ('Trading fee', formatter.formatSats(preview.feeSats)),
+            ('Total cost', formatter.formatSats(preview.totalCostSats)),
+            ('Price after trade', formatChance(preview.postTradePrice)),
+          ],
+        ),
+      SizedBox(
+        width: double.infinity,
+        child: SailButton(
+          label: outcome == null ? 'Buy' : 'Buy ${outcome.name}',
+          loading: model.isExecuting,
+          disabled: preview == null || model.buyCostsTooMuch,
+          onPressed: () async => model.executeBuy(context),
+        ),
+      ),
+      SailText.secondary12('The LMSR market maker moves the price with the trade size.'),
+    ];
+  }
+
+  List<Widget> _sellFields(BuildContext context, FormatterProvider formatter) {
+    final preview = model.sellPreview;
+    final outcome = model.selectedOutcome;
+
+    return [
+      SailText.secondary12('Seller address'),
+      if (model.walletAddresses.isEmpty)
+        SailText.primary13('The wallet reports no address.')
+      else
+        SailDropdownButton<String>(
+          value: model.sellerAddress,
+          items: [
+            for (final address in model.walletAddresses)
+              SailDropdownItem<String>(value: address, label: address, monospace: true),
+          ],
+          onChanged: (address) {
+            if (address != null) model.setSellerAddress(address);
+          },
+        ),
+      SailRow(
+        spacing: SailStyleValues.padding08,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Expanded(child: SailText.secondary12('Shares')),
+          SailText.secondary12('you hold ${model.sellerShares}'),
+        ],
+      ),
+      SailRow(
+        spacing: SailStyleValues.padding08,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Expanded(
+            child: SailTextField(
+              controller: model.sellSharesController,
+              hintText: 'Shares to sell',
+              textFieldType: TextFieldType.number,
+              onChanged: (_) => model.updateSellPreview(),
+            ),
+          ),
+          SailButton(
+            label: 'Max',
+            variant: ButtonVariant.secondary,
+            small: true,
+            disabled: model.sellerShares <= 0,
+            onPressed: () async => model.sellEverything(),
+          ),
+        ],
+      ),
+      if (model.sellError != null) SailInlineError(model.sellError!),
+      if (preview != null)
+        _SummaryBox(
+          rows: [
+            ('Gross proceeds', formatter.formatSats(preview.proceedsSats)),
+            ('Trading fee', formatter.formatSats(preview.tradingFeeSats)),
+            ('Net proceeds', formatter.formatSats(preview.netProceedsSats)),
+            ('Price after trade', formatChance(preview.newPrice)),
+          ],
+        ),
+      SizedBox(
+        width: double.infinity,
+        child: SailButton(
+          label: outcome == null ? 'Sell' : 'Sell ${outcome.name}',
+          variant: ButtonVariant.destructive,
+          loading: model.isExecuting,
+          disabled: preview == null || model.sellShares > model.sellerShares,
+          onPressed: () async => model.executeSell(context),
+        ),
+      ),
+      if (model.sellShares > model.sellerShares)
+        SailAlert(
+          variant: SailAlertVariant.warning,
+          description: 'The address holds fewer shares than the sell asks for.',
+        ),
+    ];
+  }
 }
 
-class _StateChip extends StatelessWidget {
-  final MarketState state;
+class _OutcomeSelector extends StatelessWidget {
+  final MarketDetailViewModel model;
 
-  const _StateChip({required this.state});
+  const _OutcomeSelector({required this.model});
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
+    final outcomes = model.orderedOutcomes;
 
-    Color bgColor;
-    switch (state) {
-      case MarketState.trading:
-        bgColor = theme.colors.success.withValues(alpha: 0.2);
-      case MarketState.ossified:
-        bgColor = theme.colors.info.withValues(alpha: 0.2);
-      case MarketState.cancelled:
-      case MarketState.invalid:
-        bgColor = theme.colors.error.withValues(alpha: 0.2);
+    if (outcomes.length == 2) {
+      return SailRow(
+        spacing: SailStyleValues.padding10,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          for (final outcome in outcomes)
+            Expanded(
+              child: _OutcomeChoice(
+                outcome: outcome,
+                selected: model.selectedOutcome?.index == outcome.index,
+                tone: outcome.name.toLowerCase() == 'no' ? OutcomeTone.no : OutcomeTone.yes,
+                onTap: () => model.selectOutcome(outcome),
+              ),
+            ),
+        ],
+      );
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: SailText.primary13(state.displayName),
+    return SailColumn(
+      spacing: SailStyleValues.padding04,
+      children: [
+        SailText.secondary12('Outcome'),
+        SailDropdownButton<int>(
+          value: model.selectedOutcome?.index,
+          items: [
+            for (final outcome in outcomes)
+              SailDropdownItem<int>(
+                value: outcome.index,
+                label: '${outcome.name}  ${formatChance(outcome.currentPrice)}',
+              ),
+          ],
+          onChanged: (index) {
+            if (index == null) return;
+            model.selectOutcome(outcomes.firstWhere((o) => o.index == index));
+          },
+        ),
+        SailText.secondary12(
+          'Chance ${model.selectedOutcome == null ? '—' : formatChance(model.selectedOutcome!.currentPrice)}',
+        ),
+      ],
     );
   }
 }
 
-class _TagChip extends StatelessWidget {
-  final String tag;
-
-  const _TagChip({required this.tag});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: theme.colors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: SailText.secondary12(tag),
-    );
-  }
-}
-
-class _OutcomeBar extends StatelessWidget {
+class _OutcomeChoice extends StatelessWidget {
   final MarketOutcome outcome;
-  final bool isSelected;
+  final bool selected;
+  final OutcomeTone tone;
   final VoidCallback onTap;
 
-  const _OutcomeBar({
+  const _OutcomeChoice({
     required this.outcome,
-    required this.isSelected,
+    required this.selected,
+    required this.tone,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final probability = outcome.probability.clamp(0.0, 1.0);
+    final color = tone == OutcomeTone.yes ? theme.colors.success : theme.colors.error;
 
-    return GestureDetector(
-      onTap: onTap,
+    return SailTappable(
+      onTap: () async => onTap(),
+      borderRadius: SailStyleValues.borderRadius,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding10),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(8),
+          color: selected ? color.withValues(alpha: 0.10) : theme.colors.background,
+          borderRadius: SailStyleValues.borderRadius,
           border: Border.all(
-            color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
-            width: 2,
+            color: selected ? color : theme.colors.border,
+            width: selected ? 2 : 1,
           ),
         ),
         child: SailColumn(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 0,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SailRow(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SailText.primary15(outcome.name, bold: true),
-                SailText.primary15(outcome.probabilityPercent, bold: true),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: ProgressBar(
-                current: probability,
-                goal: 1,
-                small: true,
-                hideProgressInside: true,
-                color: theme.colors.primary,
-              ),
-            ),
+            SailText.primary15(outcome.name, bold: true, color: selected ? color : theme.colors.text),
+            SailText.secondary12(formatChance(outcome.currentPrice)),
           ],
         ),
       ),
@@ -418,42 +765,82 @@ class _OutcomeBar extends StatelessWidget {
   }
 }
 
-class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
+class _SummaryBox extends StatelessWidget {
+  final List<(String, String)> rows;
 
-  const _StatBox({required this.label, required this.value});
+  const _SummaryBox({required this.rows});
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.secondary12(label),
-        SailText.primary15(value, bold: true),
-      ],
+    final theme = SailTheme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(SailStyleValues.padding12),
+      decoration: BoxDecoration(
+        color: theme.colors.backgroundSecondary,
+        borderRadius: SailStyleValues.borderRadius,
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        children: [
+          for (final row in rows)
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Expanded(child: SailText.secondary12(row.$1)),
+                SailText.primary13(row.$2, bold: true),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }
 
-class _PreviewRow extends StatelessWidget {
+class _MarketFactsCard extends StatelessWidget {
+  final MarketData market;
+
+  const _MarketFactsCard({required this.market});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I.get<FormatterProvider>();
+
+    return SailCard(
+      title: 'Market',
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => SailColumn(
+          spacing: SailStyleValues.padding08,
+          children: [
+            _FactRow(label: 'State', value: market.marketState.displayName),
+            _FactRow(label: 'Outcomes', value: '${market.outcomes.length}'),
+            _FactRow(label: 'Liquidity', value: formatter.formatBTC(market.liquidity)),
+            _FactRow(label: 'Volume', value: formatter.formatSats(market.totalVolumeSats)),
+            _FactRow(label: 'Created at block', value: '${market.createdAtHeight}'),
+            _FactRow(label: 'Market id', value: market.shortId),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FactRow extends StatelessWidget {
   final String label;
   final String value;
-  final bool bold;
 
-  const _PreviewRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-  });
+  const _FactRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return SailRow(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      spacing: SailStyleValues.padding08,
+      mainAxisSize: MainAxisSize.max,
       children: [
-        SailText.secondary13(label),
-        bold ? SailText.primary13(value, bold: true) : SailText.secondary13(value),
+        Expanded(child: SailText.secondary13(label)),
+        SailText.primary13(value, bold: true),
       ],
     );
   }
@@ -461,25 +848,93 @@ class _PreviewRow extends StatelessWidget {
 
 class MarketDetailViewModel extends BaseViewModel {
   final String marketId;
+  final int? initialOutcomeIndex;
   final MarketProvider _marketProvider = GetIt.I.get<MarketProvider>();
+  final BalanceProvider _balanceProvider = GetIt.I.get<BalanceProvider>();
+  final TruthcoinRPC _rpc = GetIt.I.get<TruthcoinRPC>();
+
   final TextEditingController sharesController = TextEditingController();
+  final TextEditingController sellSharesController = TextEditingController();
 
   MarketData? get market => _marketProvider.selectedMarket;
   bool get isLoading => _marketProvider.isLoading;
   String? get marketError => _marketProvider.error;
 
   MarketOutcome? selectedOutcome;
+  TradeMode tradeMode = TradeMode.buy;
   TradePreview? preview;
   String? previewError;
+  MarketSellResponse? sellPreview;
+  String? sellError;
   bool isExecuting = false;
 
-  int get shares => int.tryParse(sharesController.text) ?? 0;
+  /// Counts the preview requests, so a late answer never wins.
+  int _previewRequest = 0;
+  int _sellPreviewRequest = 0;
 
-  MarketDetailViewModel({required this.marketId});
+  /// Positions of the wallet in this market, one entry per address.
+  List<AddressPosition> positions = [];
+  String? positionsError;
+
+  /// Addresses of this wallet. A sell spends the shares of one of them.
+  List<String> walletAddresses = [];
+  String? sellerAddress;
+
+  double get walletBalance => _balanceProvider.balance;
+
+  /// Shares the seller address holds in the selected outcome.
+  int get sellerShares {
+    final outcome = selectedOutcome;
+    if (outcome == null) return 0;
+    final match = positions.where(
+      (p) => p.address == sellerAddress && p.position.outcomeIndex == outcome.index,
+    );
+    return match.isEmpty ? 0 : match.first.position.shares;
+  }
+
+  /// True when the buy costs more than the wallet holds.
+  bool get buyCostsTooMuch {
+    final total = preview?.totalCostSats;
+    if (total == null) return false;
+    // The wallet pays the market cost and the miner fee of the trade.
+    return satoshiToBTC(total + _tradeMinerFeeSats) > walletBalance;
+  }
+
+  int get shares => int.tryParse(sharesController.text) ?? 0;
+  int get sellShares => int.tryParse(sellSharesController.text) ?? 0;
+
+  List<MarketOutcome> get orderedOutcomes {
+    final outcomes = [...?market?.outcomes];
+    outcomes.sort((a, b) => a.displayIndex.compareTo(b.displayIndex));
+    return outcomes;
+  }
+
+  MarketDetailViewModel({required this.marketId, this.initialOutcomeIndex});
 
   void init() {
     _marketProvider.addListener(_onProviderChange);
-    loadMarket();
+    _balanceProvider.addListener(_onProviderChange);
+    load();
+  }
+
+  Future<void> load() async {
+    // Drop the market of the last route first. A wallet read takes time, and
+    // the page must never draw the outcomes of another market.
+    _marketProvider.clearSelection();
+    selectedOutcome = null;
+    positions = [];
+    _previewRequest++;
+    _sellPreviewRequest++;
+    preview = null;
+    previewError = null;
+    sellPreview = null;
+    sellError = null;
+    sharesController.clear();
+    sellSharesController.clear();
+    notifyListeners();
+
+    await loadWalletAddresses();
+    await loadMarket();
   }
 
   void _onProviderChange() {
@@ -488,40 +943,162 @@ class MarketDetailViewModel extends BaseViewModel {
 
   Future<void> loadMarket() async {
     await _marketProvider.loadMarket(marketId);
-    if (market != null && market!.outcomes.isNotEmpty) {
-      selectedOutcome = market!.outcomes.first;
-      notifyListeners();
+
+    final outcomes = orderedOutcomes;
+    if (outcomes.isNotEmpty) {
+      selectedOutcome = outcomes.firstWhere(
+        (o) => o.index == initialOutcomeIndex,
+        orElse: () => _defaultOutcome(outcomes),
+      );
     }
+    notifyListeners();
+
+    await loadPositions();
+  }
+
+  /// Yes leads a binary market. Any other market leads with the best price.
+  MarketOutcome _defaultOutcome(List<MarketOutcome> outcomes) {
+    final yes = outcomes.where((o) => o.name.toLowerCase() == 'yes');
+    if (outcomes.length == 2 && yes.isNotEmpty) return yes.first;
+    return outcomes.reduce((a, b) => b.currentPrice > a.currentPrice ? b : a);
+  }
+
+  Future<void> loadWalletAddresses() async {
+    try {
+      walletAddresses = await _rpc.getWalletAddresses();
+    } catch (e) {
+      walletAddresses = [];
+      positionsError = 'Failed to read the wallet addresses: $e';
+      notifyListeners();
+      return;
+    }
+
+    // The read worked, so an error of an older try stops here.
+    positionsError = null;
+    sellerAddress = walletAddresses.isEmpty ? null : walletAddresses.first;
+    notifyListeners();
+  }
+
+  void setSellerAddress(String address) {
+    sellerAddress = address;
+    sellSharesController.clear();
+    sellPreview = null;
+    notifyListeners();
+  }
+
+  /// Put every share the address holds into the sell field.
+  Future<void> sellEverything() async {
+    if (sellerShares <= 0) return;
+    sellSharesController.text = '$sellerShares';
+    await updateSellPreview();
+  }
+
+  /// Reads the position of every wallet address in this market. The node
+  /// scopes market_positions to one address.
+  Future<void> loadPositions() async {
+    if (walletAddresses.isEmpty) {
+      // The address error of loadWalletAddresses stands.
+      positions = [];
+      notifyListeners();
+      return;
+    }
+
+    final collected = <AddressPosition>[];
+
+    for (final address in walletAddresses) {
+      try {
+        final response = await _rpc.marketPositions(address: address, marketId: marketId);
+        for (final position in UserHoldings.fromJson(response).positions) {
+          collected.add(AddressPosition(address, position));
+        }
+      } catch (e) {
+        positions = [];
+        positionsError = 'Failed to load the positions of $address: $e';
+        notifyListeners();
+        return;
+      }
+    }
+
+    positions = collected;
+    positionsError = null;
+    notifyListeners();
+  }
+
+  void setTradeMode(TradeMode mode) {
+    tradeMode = mode;
+    notifyListeners();
   }
 
   void selectOutcome(MarketOutcome outcome) {
+    _previewRequest++;
+    _sellPreviewRequest++;
     selectedOutcome = outcome;
     preview = null;
+    sellPreview = null;
     previewError = null;
+    sellError = null;
     notifyListeners();
   }
 
   Future<void> updatePreview() async {
     if (selectedOutcome == null || shares <= 0) {
+      _previewRequest++;
       preview = null;
       previewError = null;
       notifyListeners();
       return;
     }
 
-    preview = await _marketProvider.buySharesPreview(
+    // Drop the old quote at once. A stale quote must never arm the button
+    // while the new one loads.
+    final request = ++_previewRequest;
+    preview = null;
+    previewError = null;
+    notifyListeners();
+
+    final result = await _marketProvider.buySharesPreview(
       marketId: marketId,
       outcomeIndex: selectedOutcome!.index,
       shares: shares,
     );
+    if (request != _previewRequest) return;
 
-    if (preview!.hasError) {
-      previewError = preview!.error;
+    if (result.hasError) {
       preview = null;
+      previewError = result.error;
     } else {
+      preview = result;
       previewError = null;
     }
 
+    notifyListeners();
+  }
+
+  Future<void> updateSellPreview() async {
+    final address = sellerAddress ?? '';
+    if (selectedOutcome == null || sellShares <= 0 || address.isEmpty) {
+      _sellPreviewRequest++;
+      sellPreview = null;
+      sellError = null;
+      notifyListeners();
+      return;
+    }
+
+    final request = ++_sellPreviewRequest;
+    sellPreview = null;
+    sellError = null;
+    notifyListeners();
+
+    final result = await _marketProvider.sellSharesPreview(
+      marketId: marketId,
+      outcomeIndex: selectedOutcome!.index,
+      shares: sellShares,
+      sellerAddress: address,
+    );
+    if (request != _sellPreviewRequest) return;
+
+    sellPreview = result;
+    sellError = result == null ? 'The node gave no sell preview' : null;
     notifyListeners();
   }
 
@@ -531,10 +1108,15 @@ class MarketDetailViewModel extends BaseViewModel {
     isExecuting = true;
     notifyListeners();
 
+    // The node rejects a buy without a cost limit. max_cost caps the market
+    // charge, so it holds the previewed cost and a 2 percent slippage step.
+    // The node pays its own miner fee, which max_cost never covers.
+    final limit = preview!.totalCostSats + (preview!.totalCostSats ~/ 50).clamp(1, 1 << 30);
     final txid = await _marketProvider.buyShares(
       marketId: marketId,
       outcomeIndex: selectedOutcome!.index,
       shares: shares,
+      maxCost: limit,
     );
 
     isExecuting = false;
@@ -542,207 +1124,65 @@ class MarketDetailViewModel extends BaseViewModel {
     if (txid != null) {
       sharesController.clear();
       preview = null;
+      await loadPositions();
       if (context.mounted) {
-        showSailToast(
-          context,
-          'Purchase successful: ${txid.substring(0, 16)}...',
-        );
+        showSailToast(context, 'Bought shares: ${_shortTxid(txid)}', variant: SailToastVariant.success);
       }
+    } else if (context.mounted) {
+      showSailToast(
+        context,
+        _marketProvider.error ?? 'The buy failed',
+        variant: SailToastVariant.destructive,
+      );
     }
 
     notifyListeners();
   }
 
-  Future<void> openSellDialog(BuildContext context) async {
-    // Show sell dialog
-    if (selectedOutcome == null) return;
+  Future<void> executeSell(BuildContext context) async {
+    final address = sellerAddress ?? '';
+    if (selectedOutcome == null || sellShares <= 0 || address.isEmpty || sellPreview == null) return;
 
-    final result = await showThemedDialog<bool>(
-      context: context,
-      builder: (context) => _SellDialog(
-        marketId: marketId,
-        outcome: selectedOutcome!,
-        marketProvider: _marketProvider,
-      ),
+    isExecuting = true;
+    notifyListeners();
+
+    final net = sellPreview!.netProceedsSats;
+    final txid = await _marketProvider.sellShares(
+      marketId: marketId,
+      outcomeIndex: selectedOutcome!.index,
+      shares: sellShares,
+      sellerAddress: address,
+      minProceeds: (net - (net ~/ 50).clamp(1, 1 << 30)).clamp(0, net),
     );
 
-    if (result == true) {
-      await loadMarket();
+    isExecuting = false;
+
+    if (txid != null) {
+      sellSharesController.clear();
+      sellPreview = null;
+      await loadPositions();
+      if (context.mounted) {
+        showSailToast(context, 'Sold shares: ${_shortTxid(txid)}', variant: SailToastVariant.success);
+      }
+    } else if (context.mounted) {
+      showSailToast(
+        context,
+        _marketProvider.error ?? 'The sell failed',
+        variant: SailToastVariant.destructive,
+      );
     }
+
+    notifyListeners();
   }
+
+  String _shortTxid(String txid) => txid.length > 16 ? txid.substring(0, 16) : txid;
 
   @override
   void dispose() {
     _marketProvider.removeListener(_onProviderChange);
+    _balanceProvider.removeListener(_onProviderChange);
     sharesController.dispose();
-    super.dispose();
-  }
-}
-
-class _SellDialog extends StatefulWidget {
-  final String marketId;
-  final MarketOutcome outcome;
-  final MarketProvider marketProvider;
-
-  const _SellDialog({
-    required this.marketId,
-    required this.outcome,
-    required this.marketProvider,
-  });
-
-  @override
-  State<_SellDialog> createState() => _SellDialogState();
-}
-
-class _SellDialogState extends State<_SellDialog> {
-  final TextEditingController sharesController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
-  MarketSellResponse? preview;
-  bool isLoading = false;
-  String? error;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-    final formatter = GetIt.I<FormatterProvider>();
-
-    return SailDialog(
-      title: 'Sell ${widget.outcome.name} Shares',
-      maxWidth: 460,
-      error: error,
-      actions: [
-        SailButton(
-          label: 'Cancel',
-          variant: ButtonVariant.ghost,
-          onPressed: () async => Navigator.of(context).pop(false),
-        ),
-        SailButton(
-          label: 'Preview',
-          variant: ButtonVariant.secondary,
-          onPressed: () async => _previewSell(),
-        ),
-        SailButton(
-          label: 'Sell',
-          loading: isLoading,
-          disabled: preview == null,
-          onPressed: () async => _executeSell(),
-        ),
-      ],
-      child: ListenableBuilder(
-        listenable: formatter,
-        builder: (context, _) => SailColumn(
-          spacing: SailStyleValues.padding08,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.secondary12('Seller Address'),
-            SailTextField(
-              controller: addressController,
-              hintText: 'Your address holding the shares',
-            ),
-            const SizedBox(height: 8),
-            SailText.secondary12('Shares to Sell'),
-            SailTextField(
-              controller: sharesController,
-              hintText: 'Number of shares',
-              textFieldType: TextFieldType.number,
-            ),
-            if (preview != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colors.backgroundSecondary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    _PreviewRow(
-                      label: 'Gross Proceeds',
-                      value: formatter.formatSats(preview!.proceedsSats),
-                    ),
-                    _PreviewRow(
-                      label: 'Trading Fee',
-                      value: formatter.formatSats(preview!.tradingFeeSats),
-                    ),
-                    _PreviewRow(
-                      label: 'Net Proceeds',
-                      value: formatter.formatSats(preview!.netProceedsSats),
-                      bold: true,
-                    ),
-                    _PreviewRow(
-                      label: 'New Price',
-                      value: preview!.newPricePercent,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _previewSell() async {
-    final shares = int.tryParse(sharesController.text) ?? 0;
-    final address = addressController.text.trim();
-
-    if (shares <= 0 || address.isEmpty) {
-      setState(() => error = 'Enter valid shares and address');
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
-
-    preview = await widget.marketProvider.sellSharesPreview(
-      marketId: widget.marketId,
-      outcomeIndex: widget.outcome.index,
-      shares: shares,
-      sellerAddress: address,
-    );
-
-    setState(() {
-      isLoading = false;
-      if (preview == null) {
-        error = 'Failed to get preview';
-      }
-    });
-  }
-
-  Future<void> _executeSell() async {
-    final shares = int.tryParse(sharesController.text) ?? 0;
-    final address = addressController.text.trim();
-
-    if (shares <= 0 || address.isEmpty) return;
-
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
-
-    final txid = await widget.marketProvider.sellShares(
-      marketId: widget.marketId,
-      outcomeIndex: widget.outcome.index,
-      shares: shares,
-      sellerAddress: address,
-    );
-
-    setState(() => isLoading = false);
-
-    if (txid != null && mounted) {
-      Navigator.of(context).pop(true);
-    } else {
-      setState(() => error = widget.marketProvider.error ?? 'Sell failed');
-    }
-  }
-
-  @override
-  void dispose() {
-    sharesController.dispose();
-    addressController.dispose();
+    sellSharesController.dispose();
     super.dispose();
   }
 }

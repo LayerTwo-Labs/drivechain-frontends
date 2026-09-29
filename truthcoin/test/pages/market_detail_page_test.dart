@@ -54,8 +54,7 @@ void main() {
       await tester.pumpSailPage(const MarketDetailPage(marketId: 'market_001'));
       await tester.pumpAndSettle();
 
-      // Back button with icon or text
-      expect(find.textContaining('Back'), findsWidgets);
+      expect(find.textContaining('Markets'), findsWidgets);
     });
 
     testWidgets('displays market title', (WidgetTester tester) async {

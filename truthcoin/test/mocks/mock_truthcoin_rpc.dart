@@ -36,6 +36,15 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   Map<String, dynamic> marketBuyResponse = {'txid': 'test_buy_txid'};
   Map<String, dynamic> marketSellResponse = {'txid': 'test_sell_txid'};
   Map<String, dynamic> marketPositionsResponse = {};
+
+  /// Positions per address, for a wallet test with several addresses.
+  Map<String, Map<String, dynamic>> marketPositionsByAddress = {};
+  bool shouldThrowOnMarketPositions = false;
+  bool shouldThrowOnVotecoinBalance = false;
+  bool shouldThrowOnWalletAddresses = false;
+
+  /// Address of the last market_positions call.
+  String? lastPositionsAddress;
   String marketCreateResponse = 'test_create_txid';
 
   Map<String, dynamic> slotStatusResponse = {};
@@ -54,6 +63,12 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   bool shouldThrowOnMarketList = false;
   bool shouldThrowOnMarketGet = false;
   bool shouldThrowOnMarketBuy = false;
+
+  /// Cost limit of the last buy the app sent, so a test can read it.
+  int? lastBuyMaxCost;
+
+  /// Proceeds floor of the last sell the app sent.
+  int? lastSellMinProceeds;
   bool shouldThrowOnMarketSell = false;
   bool shouldThrowOnVotePeriod = false;
   String errorMessage = 'Test error';
@@ -167,7 +182,12 @@ class TestTruthcoinRPC extends TruthcoinRPC {
 
   // Wallet addresses
   @override
-  Future<List<String>> getWalletAddresses() async => walletAddresses;
+  Future<List<String>> getWalletAddresses() async {
+    if (shouldThrowOnWalletAddresses) {
+      throw Exception(errorMessage);
+    }
+    return walletAddresses;
+  }
 
   // Prediction Markets
   @override
@@ -203,8 +223,12 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     return marketListResponse;
   }
 
+  /// Number of market_get calls, so a test can count the RPC traffic.
+  int marketGetCalls = 0;
+
   @override
   Future<Map<String, dynamic>?> marketGet(String marketId) async {
+    marketGetCalls++;
     if (shouldThrowOnMarketGet) {
       throw Exception(errorMessage);
     }
@@ -223,6 +247,9 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     if (shouldThrowOnMarketBuy) {
       throw Exception(errorMessage);
     }
+    if (dryRun != true) {
+      lastBuyMaxCost = maxCost;
+    }
     return marketBuyResponse;
   }
 
@@ -239,11 +266,21 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     if (shouldThrowOnMarketSell) {
       throw Exception(errorMessage);
     }
+    if (dryRun != true) {
+      lastSellMinProceeds = minProceeds;
+    }
     return marketSellResponse;
   }
 
   @override
   Future<Map<String, dynamic>> marketPositions({String? address, String? marketId}) async {
+    lastPositionsAddress = address;
+    if (shouldThrowOnMarketPositions) {
+      throw Exception(errorMessage);
+    }
+    if (address != null && marketPositionsByAddress.containsKey(address)) {
+      return marketPositionsByAddress[address]!;
+    }
     return marketPositionsResponse;
   }
 
@@ -317,7 +354,12 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<int> votecoinBalance(String address) async => votecoinBalanceResponse;
+  Future<int> votecoinBalance(String address) async {
+    if (shouldThrowOnVotecoinBalance) {
+      throw Exception(errorMessage);
+    }
+    return votecoinBalanceResponse;
+  }
 
   @override
   Future<String> transferVotecoin({
