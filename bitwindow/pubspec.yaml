@@ -36,7 +36,7 @@ dependencies:
     path: ../sidechain_core
   logger: ^2.8.0
   google_fonts: ^8.2.0
-  auto_route: ^11.1.0
+  auto_route: ^11.2.0
   fixnum: ^1.1.1
   get_it: ^8.3.0
   meta: ^1.18.0
