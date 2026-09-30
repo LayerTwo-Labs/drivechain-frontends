@@ -9,7 +9,7 @@ environment:
 
 dependencies:
   archive: ^4.3.0
-  auto_route: ^11.1.0
+  auto_route: ^11.2.0
   auto_updater: ^1.0.0
   collection: ^1.19.1
   connectrpc: 1.0.0
