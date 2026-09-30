@@ -101,10 +101,10 @@ packages:
     dependency: "direct main"
     description:
       name: auto_route
-      sha256: e9acfeb3df33d188fce4ad0239ef4238f333b7aa4d95ec52af3c2b9360dcd969
+      sha256: "538d8eb2ffc48de30abb30d4545a90405b5f8a29248b82d5e4b2977a79bfd229"
       url: "https://pub.dev"
     source: hosted
-    version: "11.1.0"
+    version: "11.2.0"
   auto_route_generator:
     dependency: "direct dev"
     description:
@@ -305,6 +305,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  cupertino_ui:
+    dependency: transitive
+    description:
+      name: cupertino_ui
+      sha256: "1fa3c6bf0925e96c7235ab4f1a6c701cc07e3c7abe13aa4e3d1219e651586615"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.1"
   custom_lint:
     dependency: "direct dev"
     description:
@@ -809,6 +817,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
+  material_ui:
+    dependency: transitive
+    description:
+      name: material_ui
+      sha256: "47b4acbb50683230000996cedd2a5ea511c2106c818db8ee28155ba0f0e26063"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.1"
   meta:
     dependency: transitive
     description:
