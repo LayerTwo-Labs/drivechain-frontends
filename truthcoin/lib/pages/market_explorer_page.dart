@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:truthcoin/routing/open_market.dart';
 import 'package:truthcoin/models/market.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
@@ -355,13 +356,13 @@ class MarketExplorerViewModel extends BaseViewModel {
   }
 
   Future<void> openMarket(String marketId, {int? outcomeIndex}) async {
-    await GetIt.I.get<AppRouter>().push(
+    await openMarketsRoute(
       MarketDetailRoute(marketId: marketId, initialOutcomeIndex: outcomeIndex),
     );
   }
 
   Future<void> openCreateMarket() async {
-    await GetIt.I.get<AppRouter>().push(const MarketCreationRoute());
+    await openMarketsRoute(const MarketCreationRoute());
     // A new market carries no price yet, so the grid reads the list again.
     await loadMarkets();
   }

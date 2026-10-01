@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart';
 import 'package:stacked/stacked.dart';
+import 'package:truthcoin/routing/open_market.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
@@ -449,7 +450,7 @@ class _MarketSummaryWidget extends StatelessWidget {
                         label: 'Create Market',
                         small: true,
                         onPressed: () async {
-                          await GetIt.I.get<AppRouter>().push(const MarketCreationRoute());
+                          await openMarketsRoute(const MarketCreationRoute());
                         },
                       ),
                     ],
@@ -461,7 +462,7 @@ class _MarketSummaryWidget extends StatelessWidget {
                           .take(3)
                           .map(
                             (market) => GestureDetector(
-                              onTap: () => GetIt.I.get<AppRouter>().push(MarketDetailRoute(marketId: market.marketId)),
+                              onTap: () => openMarketsRoute(MarketDetailRoute(marketId: market.marketId)),
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 child: SailRow(
@@ -483,7 +484,7 @@ class _MarketSummaryWidget extends StatelessWidget {
                         label: 'View All Markets',
                         small: true,
                         onPressed: () async {
-                          await GetIt.I.get<AppRouter>().push(const MarketExplorerRoute());
+                          await openMarketsRoute(const MarketExplorerRoute());
                         },
                       ),
                     ],
@@ -693,7 +694,7 @@ class _VotingStatusWidget extends StatelessWidget {
                       label: 'Go to Voting',
                       small: true,
                       onPressed: () async {
-                        await GetIt.I.get<AppRouter>().push(const VotingDashboardRoute());
+                        await openHomeTab(const VotingDashboardRoute());
                       },
                     ),
                   ],

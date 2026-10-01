@@ -7,6 +7,7 @@ import 'package:truthcoin/pages/market_creation_page.dart';
 import 'package:truthcoin/pages/market_detail_page.dart';
 import 'package:truthcoin/pages/market_explorer_page.dart';
 import 'package:truthcoin/pages/tabs/home_page.dart';
+import 'package:truthcoin/pages/tabs/markets_tab_page.dart';
 import 'package:truthcoin/pages/tabs/portfolio_page.dart';
 import 'package:truthcoin/pages/tabs/settings_page.dart';
 import 'package:truthcoin/pages/tabs/truthcoin_configure_homepage_page.dart';
@@ -57,7 +58,19 @@ class AppRouter extends RootStackRouter {
           initial: true,
         ),
         AutoRoute(
-          page: MarketExplorerRoute.page,
+          page: MarketsTabRoute.page,
+          children: [
+            AutoRoute(
+              page: MarketExplorerRoute.page,
+              initial: true,
+            ),
+            AutoRoute(
+              page: MarketDetailRoute.page,
+            ),
+            AutoRoute(
+              page: MarketCreationRoute.page,
+            ),
+          ],
         ),
         AutoRoute(
           page: PortfolioRoute.page,
@@ -102,25 +115,6 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       page: TruthcoinConfEditorRoute.page,
-    ),
-
-    // Market pages. A deep link opens these two, so they take the startup
-    // guards a top-level route does not get from HomeRoute.
-    AutoRoute(
-      page: MarketExplorerRoute.page,
-      guards: _startupGuards,
-    ),
-    AutoRoute(
-      page: MarketDetailRoute.page,
-      guards: _startupGuards,
-    ),
-    AutoRoute(
-      page: MarketCreationRoute.page,
-    ),
-
-    // Voting pages
-    AutoRoute(
-      page: VotingDashboardRoute.page,
     ),
 
     /// This route is used in tests so that we can pump a widget into a route
