@@ -129,6 +129,22 @@ class MarketExplorerRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [MarketsTabPage]
+class MarketsTabRoute extends PageRouteInfo<void> {
+  const MarketsTabRoute({List<PageRouteInfo>? children})
+    : super(MarketsTabRoute.name, initialChildren: children);
+
+  static const String name = 'MarketsTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const MarketsTabPage();
+    },
+  );
+}
+
+/// generated route for
 /// [PortfolioPage]
 class PortfolioRoute extends PageRouteInfo<void> {
   const PortfolioRoute({List<PageRouteInfo>? children})

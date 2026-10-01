@@ -449,7 +449,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 // truthcoin configurable homepage
                 TruthcoinHomepageRoute(),
                 // prediction markets
-                MarketExplorerRoute(),
+                MarketsTabRoute(),
                 // open share positions
                 PortfolioRoute(),
                 // voting/oracle system

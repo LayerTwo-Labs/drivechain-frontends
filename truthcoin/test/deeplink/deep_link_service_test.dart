@@ -17,9 +17,8 @@ void main() {
     steps = [];
     pushed = [];
     service = DeepLinkService(
-      navigate: (route) async => steps.add('navigate ${route.routeName}'),
-      push: (route) async {
-        steps.add('push ${route.routeName}');
+      open: (route) async {
+        steps.add('open ${route.routeName}');
         pushed.add(route);
       },
       log: Logger(level: Level.off),
@@ -41,18 +40,18 @@ void main() {
     expect(pushed.single.rawPathParams['marketId'], 'c8fa97101f0c');
   });
 
-  test('the app runs the home guards before the market page', () async {
+  test('the app opens the market inside the Markets tab', () async {
     service.handle(Uri.parse('truthcoin://market/c8fa97101f0c'));
     await pumpEventQueue();
 
-    expect(steps, ['navigate ${HomeRoute.name}', 'push ${MarketDetailRoute.name}']);
+    expect(steps, ['open ${MarketDetailRoute.name}']);
   });
 
   test('a markets link opens the market list', () async {
     service.handle(Uri.parse('truthcoin://markets'));
     await pumpEventQueue();
 
-    expect(steps, ['navigate ${HomeRoute.name}', 'push ${MarketExplorerRoute.name}']);
+    expect(steps, ['open ${MarketExplorerRoute.name}']);
   });
 
   test('a link the app does not own moves nothing', () async {

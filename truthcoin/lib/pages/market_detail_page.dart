@@ -856,9 +856,11 @@ class MarketDetailViewModel extends BaseViewModel {
   final TextEditingController sharesController = TextEditingController();
   final TextEditingController sellSharesController = TextEditingController();
 
-  MarketData? get market => _marketProvider.selectedMarket;
+  /// The market of this page only. Two detail pages can sit in one stack, so
+  /// the page never reads the shared selection of the provider.
+  MarketData? market;
   bool get isLoading => _marketProvider.isLoading;
-  String? get marketError => _marketProvider.error;
+  String? marketError;
 
   MarketOutcome? selectedOutcome;
   TradeMode tradeMode = TradeMode.buy;
@@ -918,9 +920,8 @@ class MarketDetailViewModel extends BaseViewModel {
   }
 
   Future<void> load() async {
-    // Drop the market of the last route first. A wallet read takes time, and
-    // the page must never draw the outcomes of another market.
-    _marketProvider.clearSelection();
+    market = null;
+    marketError = null;
     selectedOutcome = null;
     positions = [];
     _previewRequest++;
@@ -943,6 +944,8 @@ class MarketDetailViewModel extends BaseViewModel {
 
   Future<void> loadMarket() async {
     await _marketProvider.loadMarket(marketId);
+    market = _marketProvider.marketDetails[marketId];
+    marketError = market == null ? _marketProvider.error ?? 'Market not found' : null;
 
     final outcomes = orderedOutcomes;
     if (outcomes.isNotEmpty) {

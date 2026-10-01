@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:truthcoin/routing/open_market.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/routing/router.dart';
@@ -43,7 +44,7 @@ class TradingPositionWidget extends StatelessWidget {
                       label: 'Browse Markets',
                       small: true,
                       onPressed: () async {
-                        await GetIt.I.get<AppRouter>().push(const MarketExplorerRoute());
+                        await openMarketsRoute(const MarketExplorerRoute());
                       },
                     ),
                   ],
@@ -147,7 +148,7 @@ class TradingPositionWidget extends StatelessWidget {
                       emptyPlaceholder: 'No positions',
                       drawGrid: true,
                       onDoubleTap: (marketId) {
-                        GetIt.I.get<AppRouter>().push(MarketDetailRoute(marketId: marketId));
+                        openMarketsRoute(MarketDetailRoute(marketId: marketId));
                       },
                     ),
                   ),
