@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/models/market.dart';
+import 'package:truthcoin/providers/price_history_provider.dart';
 import 'package:truthcoin/models/voting.dart';
 
 /// Provider for prediction market data
@@ -124,6 +125,9 @@ class MarketProvider extends ChangeNotifier {
         ...marketDetails,
         for (final entry in results.whereType<MapEntry<String, MarketData>>()) entry.key: entry.value,
       };
+      for (final entry in results.whereType<MapEntry<String, MarketData>>()) {
+        _recordPrices(entry.value);
+      }
       notifyListeners();
     }
 
@@ -132,20 +136,37 @@ class MarketProvider extends ChangeNotifier {
   }
 
   /// Load a specific market
-  Future<void> loadMarket(String marketId) async {
+  /// The node serves no price history, so each read feeds the local series
+  /// the chart draws.
+  void _recordPrices(MarketData market) {
+    if (!GetIt.I.isRegistered<PriceHistoryProvider>()) return;
+    final history = GetIt.I.get<PriceHistoryProvider>();
+    for (final outcome in market.outcomes) {
+      history.record('${market.marketId}:${outcome.index}', outcome.currentPrice);
+    }
+  }
+
+  /// Answers the market this call read, or null when the call failed. A
+  /// caller reads its own result, not the shared error of another call.
+  Future<MarketData?> loadMarket(String marketId) async {
     isLoading = true;
     error = null;
     // Drop the market of the last route, or a failed load shows it again.
     selectedMarket = null;
     notifyListeners();
 
+    // The answer belongs to this call. Two loads can overlap, so a failed
+    // call must never answer with the market of the other one.
+    MarketData? loaded;
     try {
       final response = await _rpc.marketGet(marketId);
       if (response != null) {
-        selectedMarket = MarketData.fromJson(response);
+        loaded = MarketData.fromJson(response);
+        selectedMarket = loaded;
         // The grid reads this cache, so a fresh load also refreshes the card.
-        marketDetails = {...marketDetails, marketId: selectedMarket!};
-        _log.d('Loaded market: ${selectedMarket!.title}');
+        marketDetails = {...marketDetails, marketId: loaded};
+        _recordPrices(loaded);
+        _log.d('Loaded market: ${loaded.title}');
       } else {
         error = 'Market not found';
         marketDetails = {...marketDetails}..remove(marketId);
@@ -157,6 +178,8 @@ class MarketProvider extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+
+    return loaded;
   }
 
   /// Load the positions of one address. Returns false when the node fails.

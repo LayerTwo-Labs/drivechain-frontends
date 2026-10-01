@@ -6,6 +6,7 @@ import 'package:sail_ui/pages/sail_test_page.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/providers/price_history_provider.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
 
 import 'mocks/mock_truthcoin_rpc.dart';
@@ -110,6 +111,7 @@ Future<TestTruthcoinRPC> setupMarketVotingTests() async {
   // Now register providers that depend on RPC and Logger
   final marketProvider = MarketProvider();
   GetIt.I.registerLazySingleton<MarketProvider>(() => marketProvider);
+  GetIt.I.registerLazySingleton<PriceHistoryProvider>(() => PriceHistoryProvider());
 
   final votingProvider = VotingProvider();
   GetIt.I.registerLazySingleton<VotingProvider>(() => votingProvider);

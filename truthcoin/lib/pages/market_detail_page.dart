@@ -7,8 +7,9 @@ import 'package:truthcoin/models/address_position.dart';
 import 'package:truthcoin/models/market.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
-import 'package:truthcoin/routing/router.dart';
+import 'package:truthcoin/providers/price_history_provider.dart';
 import 'package:truthcoin/widgets/market_card.dart';
+import 'package:truthcoin/widgets/price_chart.dart';
 
 const double _panelWidth = 348;
 
@@ -17,6 +18,9 @@ const int _tradeMinerFeeSats = 1000;
 
 /// Below this width the trade panel sits under the market, not beside it.
 const double _twoColumnWidth = 900;
+
+/// Below this width the range buttons move under the price.
+const double _priceHeaderWidth = 520;
 
 enum TradeMode { buy, sell }
 
@@ -78,9 +82,9 @@ class MarketDetailPage extends StatelessWidget {
         final content = [
           _BackRow(model: model),
           _MarketHeaderCard(market: market),
+          _PriceCard(model: model, market: market),
           _OutcomePricesCard(model: model, market: market),
-          _RulesCard(market: market),
-          _HoldersCard(model: model),
+          _MarketTabs(model: model, market: market),
         ];
         final panel = [
           _TradePanel(model: model, market: market),
@@ -140,7 +144,9 @@ class _BackRow extends StatelessWidget {
           label: '←  Markets',
           variant: ButtonVariant.link,
           small: true,
-          onPressed: () async => GetIt.I.get<AppRouter>().maybePop(),
+          // The page sits in the Markets tab stack, so the nearest router
+          // owns it, not the root one.
+          onPressed: () async => AutoRouter.of(context).maybePop(),
         ),
         const Spacer(),
         SailButton(
@@ -846,6 +852,159 @@ class _FactRow extends StatelessWidget {
   }
 }
 
+/// The headline price of the market, with the chart of the readings the app
+/// recorded. The node serves no price history, so the series starts empty.
+class _PriceCard extends StatefulWidget {
+  final MarketDetailViewModel model;
+  final MarketData market;
+
+  const _PriceCard({required this.model, required this.market});
+
+  @override
+  State<_PriceCard> createState() => _PriceCardState();
+}
+
+class _PriceCardState extends State<_PriceCard> {
+  PriceRange _range = PriceRange.day;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final history = GetIt.I.get<PriceHistoryProvider>();
+    final outcomes = widget.model.orderedOutcomes;
+    if (outcomes.isEmpty) {
+      return SailCard(child: SailText.secondary13('The node reports no outcome price.'));
+    }
+
+    // The chart follows the outcome the page selects, so a categorical
+    // market charts the row the trade panel holds.
+    final selected = widget.model.selectedOutcome;
+    final lead = selected != null && outcomes.any((outcome) => outcome.index == selected.index)
+        ? outcomes.firstWhere((outcome) => outcome.index == selected.index)
+        : outcomes.firstWhere(
+            (outcome) => shortOutcomeLabel(outcome.name).toLowerCase() == 'yes',
+            orElse: () => outcomes.last,
+          );
+    final other = outcomes.length == 2 ? outcomes.firstWhere((outcome) => outcome != lead) : null;
+    final seriesKey = '${widget.market.marketId}:${lead.index}';
+
+    return SailCard(
+      child: ListenableBuilder(
+        listenable: history,
+        builder: (context, _) {
+          final change = history.dayChangePoints(seriesKey);
+
+          final priceBlock = SailColumn(
+            spacing: SailStyleValues.padding04,
+            children: [
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  SailText.primary24(
+                    '${shortOutcomeLabel(lead.name)} ${formatChance(lead.currentPrice)}',
+                    bold: true,
+                    color: lead.currentPrice >= 0.5 ? theme.colors.success : theme.colors.text,
+                  ),
+                  if (change != null && change.abs() >= 1)
+                    SailText.primary13(
+                      '${change > 0 ? '+' : ''}${change.round()} pts today',
+                      bold: true,
+                      color: change > 0 ? theme.colors.success : theme.colors.error,
+                    ),
+                ],
+              ),
+              SailText.secondary12(
+                other == null
+                    ? 'created at block ${widget.market.createdAtHeight}'
+                    : '${shortOutcomeLabel(other.name)} ${formatChance(other.currentPrice)}  ·  created at block ${widget.market.createdAtHeight}',
+              ),
+            ],
+          );
+
+          final ranges = SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SailToggleGroup<PriceRange>(
+              items: [
+                for (final range in PriceRange.values) SailToggleGroupItem(value: range, label: range.label),
+              ],
+              values: [_range],
+              singleChoice: true,
+              onChanged: (values) => setState(() => _range = values.isEmpty ? _range : values.first),
+            ),
+          );
+
+          final chart = PriceChart(
+            points: history.seriesFor(seriesKey, range: _range),
+            color: lead.currentPrice >= 0.5 ? theme.colors.success : theme.colors.error,
+          );
+
+          return LayoutBuilder(
+            builder: (context, constraints) => SailColumn(
+              spacing: SailStyleValues.padding12,
+              children: [
+                if (constraints.maxWidth < _priceHeaderWidth) ...[
+                  priceBlock,
+                  ranges,
+                ] else
+                  SailRow(
+                    spacing: SailStyleValues.padding12,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [priceBlock, const Spacer(), ranges],
+                  ),
+                chart,
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+enum _MarketTab { rules, holders }
+
+/// The market page sections, one at a time, as the design shows them.
+class _MarketTabs extends StatefulWidget {
+  final MarketDetailViewModel model;
+  final MarketData market;
+
+  const _MarketTabs({required this.model, required this.market});
+
+  @override
+  State<_MarketTabs> createState() => _MarketTabsState();
+}
+
+class _MarketTabsState extends State<_MarketTabs> {
+  _MarketTab _tab = _MarketTab.rules;
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding12,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SailToggleGroup<_MarketTab>(
+            items: const [
+              SailToggleGroupItem(value: _MarketTab.rules, label: 'Rules'),
+              SailToggleGroupItem(value: _MarketTab.holders, label: 'Holders'),
+            ],
+            values: [_tab],
+            singleChoice: true,
+            onChanged: (values) => setState(() => _tab = values.isEmpty ? _tab : values.first),
+          ),
+        ),
+        switch (_tab) {
+          _MarketTab.rules => _RulesCard(market: widget.market),
+          _MarketTab.holders => _HoldersCard(model: widget.model),
+        },
+      ],
+    );
+  }
+}
+
 class MarketDetailViewModel extends BaseViewModel {
   final String marketId;
   final int? initialOutcomeIndex;
@@ -939,13 +1098,32 @@ class MarketDetailViewModel extends BaseViewModel {
   }
 
   void _onProviderChange() {
+    // A trade reloads the market, so a page that already holds one takes the
+    // fresh entry. A page whose own load failed keeps its error state.
+    final fresh = _marketProvider.marketDetails[marketId];
+    if (market != null && fresh != null && !identical(fresh, market)) {
+      market = fresh;
+      // The selection names an outcome of the old snapshot, so it reads the
+      // same index in the new one.
+      final index = selectedOutcome?.index;
+      if (index != null) {
+        for (final outcome in fresh.outcomes) {
+          if (outcome.index == index) {
+            selectedOutcome = outcome;
+            break;
+          }
+        }
+      }
+    }
     notifyListeners();
   }
 
   Future<void> loadMarket() async {
-    await _marketProvider.loadMarket(marketId);
-    market = _marketProvider.marketDetails[marketId];
-    marketError = market == null ? _marketProvider.error ?? 'Market not found' : null;
+    // The call answers its own result, so a failed load of another market
+    // never hides this one.
+    final loaded = await _marketProvider.loadMarket(marketId);
+    market = loaded;
+    marketError = loaded == null ? _marketProvider.error ?? 'Market not found' : null;
 
     final outcomes = orderedOutcomes;
     if (outcomes.isNotEmpty) {
