@@ -19,6 +19,7 @@ import 'package:truthcoin/config/runtime_args.dart';
 import 'package:truthcoin/deeplink/deep_link_service.dart';
 import 'package:truthcoin/deeplink/scheme_registration.dart';
 import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/providers/price_history_provider.dart';
 import 'package:truthcoin/providers/truthcoin_conf_provider.dart';
 import 'package:truthcoin/providers/truthcoin_homepage_provider.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
@@ -132,6 +133,15 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     GetIt.I.registerLazySingleton<MarketProvider>(() => marketProvider);
   }
 
+  // Register the price history, which feeds the market chart
+  if (!GetIt.I.isRegistered<PriceHistoryProvider>()) {
+    final priceHistory = PriceHistoryProvider.inDirectory(applicationDir);
+    // The cache read finishes first, so a fast market load cannot write a
+    // point the read then drops.
+    await priceHistory.load();
+    GetIt.I.registerSingleton<PriceHistoryProvider>(priceHistory);
+  }
+
   // Register voting provider
   final votingProvider = VotingProvider();
   if (!GetIt.I.isRegistered<VotingProvider>()) {
@@ -141,7 +151,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // runMainWindow starts the link stream, because a cold launch delivers the
   // first link at once and the router mounts later.
   if (!GetIt.I.isRegistered<DeepLinkService>()) {
-    GetIt.I.registerSingleton<DeepLinkService>(DeepLinkService.live(router: router, log: log));
+    GetIt.I.registerSingleton<DeepLinkService>(DeepLinkService.live(log: log));
     unawaited(registerTruthcoinScheme(log));
   }
 

@@ -7,6 +7,7 @@ import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
 import 'package:sidechain_core/rpcs/truthcoin_rpc.dart';
 import 'package:sidechain_core/providers/balance_provider.dart';
 import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/providers/price_history_provider.dart';
 
 import 'package:truthcoin/pages/market_explorer_page.dart';
 import 'package:truthcoin/widgets/market_card.dart';
@@ -32,6 +33,7 @@ void main() {
 
     final marketProvider = MarketProvider();
     GetIt.I.registerLazySingleton<MarketProvider>(() => marketProvider);
+    GetIt.I.registerLazySingleton<PriceHistoryProvider>(() => PriceHistoryProvider());
 
     final balanceProvider = BalanceProvider(connections: [mockRpc]);
     GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);

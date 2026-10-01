@@ -13,6 +13,7 @@ import 'package:truthcoin/pages/market_explorer_page.dart';
 import 'package:truthcoin/pages/tabs/portfolio_page.dart';
 import 'package:truthcoin/pages/voting_dashboard_page.dart';
 import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/providers/price_history_provider.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
 
 import '../fixtures/test_data.dart';
@@ -40,6 +41,7 @@ void main() {
     GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
     GetIt.I.registerLazySingleton<Logger>(() => Logger(level: Level.off));
     GetIt.I.registerLazySingleton<MarketProvider>(() => MarketProvider());
+    GetIt.I.registerLazySingleton<PriceHistoryProvider>(() => PriceHistoryProvider());
     GetIt.I.registerLazySingleton<VotingProvider>(() => VotingProvider());
 
     final balanceProvider = BalanceProvider(connections: [mockRpc]);
