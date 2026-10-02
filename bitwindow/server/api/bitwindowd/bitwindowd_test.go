@@ -1231,7 +1231,7 @@ func TestService_ListBlocksInitialSync(t *testing.T) {
 			core := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
 				return mockBitcoind, nil
 			})
-			server := api_bitwindowd.New(nil, nil, core, nil, config.Config{BitcoinCoreNetwork: test.network}, nil)
+			server := api_bitwindowd.New(nil, nil, core, nil, nil, config.Config{BitcoinCoreNetwork: test.network}, nil)
 
 			response, err := server.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
 			require.NoError(t, err)

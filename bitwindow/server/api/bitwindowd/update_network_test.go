@@ -117,7 +117,7 @@ func TestUpdateNetworkKeepsCompletedMigrationRows(t *testing.T) {
 				require.NoError(t, err)
 			}
 			var resetFrom uint32
-			server := api_bitwindowd.New(nil, db, nil, nil, conf, func(ctx context.Context, network config.Network, id string, height uint32) error {
+			server := api_bitwindowd.New(nil, db, nil, nil, nil, conf, func(ctx context.Context, network config.Network, id string, height uint32) error {
 				handler.calls <- "recycle:" + id
 				require.Equal(t, config.NetworkECash, network)
 				resetFrom = height
@@ -151,7 +151,7 @@ func TestUpdateNetworkReturnsMigrationStatusError(t *testing.T) {
 		statusError: connect.NewError(connect.CodeUnavailable, errors.New("The migration status is unavailable.")),
 	}
 	conf := config.Config{Datadir: t.TempDir(), OrchestratorAddr: newMigrationNetworkServer(t, handler)}
-	server := api_bitwindowd.New(nil, nil, nil, nil, conf, func(context.Context, config.Network, string, uint32) error {
+	server := api_bitwindowd.New(nil, nil, nil, nil, nil, conf, func(context.Context, config.Network, string, uint32) error {
 		t.Fatal("The failed status call must stop the network update.")
 		return nil
 	})

@@ -84,6 +84,18 @@ const (
 	// BitwindowdServiceGetNetworkStatsProcedure is the fully-qualified name of the BitwindowdService's
 	// GetNetworkStats RPC.
 	BitwindowdServiceGetNetworkStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetNetworkStats"
+	// BitwindowdServiceSetMempoolWatchProcedure is the fully-qualified name of the BitwindowdService's
+	// SetMempoolWatch RPC.
+	BitwindowdServiceSetMempoolWatchProcedure = "/bitwindowd.v1.BitwindowdService/SetMempoolWatch"
+	// BitwindowdServiceGetMempoolWatchStatusProcedure is the fully-qualified name of the
+	// BitwindowdService's GetMempoolWatchStatus RPC.
+	BitwindowdServiceGetMempoolWatchStatusProcedure = "/bitwindowd.v1.BitwindowdService/GetMempoolWatchStatus"
+	// BitwindowdServiceListMempoolTransactionsProcedure is the fully-qualified name of the
+	// BitwindowdService's ListMempoolTransactions RPC.
+	BitwindowdServiceListMempoolTransactionsProcedure = "/bitwindowd.v1.BitwindowdService/ListMempoolTransactions"
+	// BitwindowdServiceListBlockStatsProcedure is the fully-qualified name of the BitwindowdService's
+	// ListBlockStats RPC.
+	BitwindowdServiceListBlockStatsProcedure = "/bitwindowd.v1.BitwindowdService/ListBlockStats"
 	// BitwindowdServiceUpdateNetworkProcedure is the fully-qualified name of the BitwindowdService's
 	// UpdateNetwork RPC.
 	BitwindowdServiceUpdateNetworkProcedure = "/bitwindowd.v1.BitwindowdService/UpdateNetwork"
@@ -122,6 +134,11 @@ type BitwindowdServiceClient interface {
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// Get network statistics
 	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
+	// Mempool watch: records every mempool tx and how long it waited.
+	SetMempoolWatch(context.Context, *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error)
+	GetMempoolWatchStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error)
+	ListMempoolTransactions(context.Context, *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error)
+	ListBlockStats(context.Context, *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error)
 	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
 	// (network-scoped folder) is co-located with the orchestrator update.
 	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
@@ -245,6 +262,30 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
 			connect.WithClientOptions(opts...),
 		),
+		setMempoolWatch: connect.NewClient[v1.SetMempoolWatchRequest, emptypb.Empty](
+			httpClient,
+			baseURL+BitwindowdServiceSetMempoolWatchProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("SetMempoolWatch")),
+			connect.WithClientOptions(opts...),
+		),
+		getMempoolWatchStatus: connect.NewClient[emptypb.Empty, v1.GetMempoolWatchStatusResponse](
+			httpClient,
+			baseURL+BitwindowdServiceGetMempoolWatchStatusProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("GetMempoolWatchStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		listMempoolTransactions: connect.NewClient[v1.ListMempoolTransactionsRequest, v1.ListMempoolTransactionsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceListMempoolTransactionsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ListMempoolTransactions")),
+			connect.WithClientOptions(opts...),
+		),
+		listBlockStats: connect.NewClient[v1.ListBlockStatsRequest, v1.ListBlockStatsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceListBlockStatsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlockStats")),
+			connect.WithClientOptions(opts...),
+		),
 		updateNetwork: connect.NewClient[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse](
 			httpClient,
 			baseURL+BitwindowdServiceUpdateNetworkProcedure,
@@ -256,24 +297,28 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 
 // bitwindowdServiceClient implements BitwindowdServiceClient.
 type bitwindowdServiceClient struct {
-	stop                   *connect.Client[v1.BitwindowdServiceStopRequest, emptypb.Empty]
-	createDenial           *connect.Client[v1.CreateDenialRequest, emptypb.Empty]
-	cancelDenial           *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
-	pauseDenial            *connect.Client[v1.PauseDenialRequest, emptypb.Empty]
-	resumeDenial           *connect.Client[v1.ResumeDenialRequest, emptypb.Empty]
-	createAddressBookEntry *connect.Client[v1.CreateAddressBookEntryRequest, v1.CreateAddressBookEntryResponse]
-	listAddressBook        *connect.Client[emptypb.Empty, v1.ListAddressBookResponse]
-	updateAddressBookEntry *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
-	deleteAddressBookEntry *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
-	getSyncInfo            *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
-	setTransactionNote     *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
-	exportLabels           *connect.Client[emptypb.Empty, v1.ExportLabelsResponse]
-	importLabels           *connect.Client[v1.ImportLabelsRequest, v1.ImportLabelsResponse]
-	getFireplaceStats      *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
-	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
-	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
-	getNetworkStats        *connect.Client[emptypb.Empty, v1.GetNetworkStatsResponse]
-	updateNetwork          *connect.Client[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse]
+	stop                    *connect.Client[v1.BitwindowdServiceStopRequest, emptypb.Empty]
+	createDenial            *connect.Client[v1.CreateDenialRequest, emptypb.Empty]
+	cancelDenial            *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
+	pauseDenial             *connect.Client[v1.PauseDenialRequest, emptypb.Empty]
+	resumeDenial            *connect.Client[v1.ResumeDenialRequest, emptypb.Empty]
+	createAddressBookEntry  *connect.Client[v1.CreateAddressBookEntryRequest, v1.CreateAddressBookEntryResponse]
+	listAddressBook         *connect.Client[emptypb.Empty, v1.ListAddressBookResponse]
+	updateAddressBookEntry  *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
+	deleteAddressBookEntry  *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
+	getSyncInfo             *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
+	setTransactionNote      *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
+	exportLabels            *connect.Client[emptypb.Empty, v1.ExportLabelsResponse]
+	importLabels            *connect.Client[v1.ImportLabelsRequest, v1.ImportLabelsResponse]
+	getFireplaceStats       *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
+	listRecentTransactions  *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
+	listBlocks              *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
+	getNetworkStats         *connect.Client[emptypb.Empty, v1.GetNetworkStatsResponse]
+	setMempoolWatch         *connect.Client[v1.SetMempoolWatchRequest, emptypb.Empty]
+	getMempoolWatchStatus   *connect.Client[emptypb.Empty, v1.GetMempoolWatchStatusResponse]
+	listMempoolTransactions *connect.Client[v1.ListMempoolTransactionsRequest, v1.ListMempoolTransactionsResponse]
+	listBlockStats          *connect.Client[v1.ListBlockStatsRequest, v1.ListBlockStatsResponse]
+	updateNetwork           *connect.Client[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
@@ -361,6 +406,26 @@ func (c *bitwindowdServiceClient) GetNetworkStats(ctx context.Context, req *conn
 	return c.getNetworkStats.CallUnary(ctx, req)
 }
 
+// SetMempoolWatch calls bitwindowd.v1.BitwindowdService.SetMempoolWatch.
+func (c *bitwindowdServiceClient) SetMempoolWatch(ctx context.Context, req *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.setMempoolWatch.CallUnary(ctx, req)
+}
+
+// GetMempoolWatchStatus calls bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus.
+func (c *bitwindowdServiceClient) GetMempoolWatchStatus(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error) {
+	return c.getMempoolWatchStatus.CallUnary(ctx, req)
+}
+
+// ListMempoolTransactions calls bitwindowd.v1.BitwindowdService.ListMempoolTransactions.
+func (c *bitwindowdServiceClient) ListMempoolTransactions(ctx context.Context, req *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error) {
+	return c.listMempoolTransactions.CallUnary(ctx, req)
+}
+
+// ListBlockStats calls bitwindowd.v1.BitwindowdService.ListBlockStats.
+func (c *bitwindowdServiceClient) ListBlockStats(ctx context.Context, req *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error) {
+	return c.listBlockStats.CallUnary(ctx, req)
+}
+
 // UpdateNetwork calls bitwindowd.v1.BitwindowdService.UpdateNetwork.
 func (c *bitwindowdServiceClient) UpdateNetwork(ctx context.Context, req *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {
 	return c.updateNetwork.CallUnary(ctx, req)
@@ -399,6 +464,11 @@ type BitwindowdServiceHandler interface {
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// Get network statistics
 	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
+	// Mempool watch: records every mempool tx and how long it waited.
+	SetMempoolWatch(context.Context, *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error)
+	GetMempoolWatchStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error)
+	ListMempoolTransactions(context.Context, *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error)
+	ListBlockStats(context.Context, *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error)
 	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
 	// (network-scoped folder) is co-located with the orchestrator update.
 	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
@@ -518,6 +588,30 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceSetMempoolWatchHandler := connect.NewUnaryHandler(
+		BitwindowdServiceSetMempoolWatchProcedure,
+		svc.SetMempoolWatch,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("SetMempoolWatch")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceGetMempoolWatchStatusHandler := connect.NewUnaryHandler(
+		BitwindowdServiceGetMempoolWatchStatusProcedure,
+		svc.GetMempoolWatchStatus,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("GetMempoolWatchStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceListMempoolTransactionsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceListMempoolTransactionsProcedure,
+		svc.ListMempoolTransactions,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ListMempoolTransactions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceListBlockStatsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceListBlockStatsProcedure,
+		svc.ListBlockStats,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlockStats")),
+		connect.WithHandlerOptions(opts...),
+	)
 	bitwindowdServiceUpdateNetworkHandler := connect.NewUnaryHandler(
 		BitwindowdServiceUpdateNetworkProcedure,
 		svc.UpdateNetwork,
@@ -560,6 +654,14 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceListBlocksHandler.ServeHTTP(w, r)
 		case BitwindowdServiceGetNetworkStatsProcedure:
 			bitwindowdServiceGetNetworkStatsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceSetMempoolWatchProcedure:
+			bitwindowdServiceSetMempoolWatchHandler.ServeHTTP(w, r)
+		case BitwindowdServiceGetMempoolWatchStatusProcedure:
+			bitwindowdServiceGetMempoolWatchStatusHandler.ServeHTTP(w, r)
+		case BitwindowdServiceListMempoolTransactionsProcedure:
+			bitwindowdServiceListMempoolTransactionsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceListBlockStatsProcedure:
+			bitwindowdServiceListBlockStatsHandler.ServeHTTP(w, r)
 		case BitwindowdServiceUpdateNetworkProcedure:
 			bitwindowdServiceUpdateNetworkHandler.ServeHTTP(w, r)
 		default:
@@ -637,6 +739,22 @@ func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *connec
 
 func (UnimplementedBitwindowdServiceHandler) GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetNetworkStats is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) SetMempoolWatch(context.Context, *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.SetMempoolWatch is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) GetMempoolWatchStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListMempoolTransactions(context.Context, *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListMempoolTransactions is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListBlockStats(context.Context, *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListBlockStats is not implemented"))
 }
 
 func (UnimplementedBitwindowdServiceHandler) UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {

@@ -49,6 +49,12 @@ service BitwindowdService {
   // Get network statistics
   rpc GetNetworkStats(google.protobuf.Empty) returns (GetNetworkStatsResponse);
 
+  // Mempool watch: records every mempool tx and how long it waited.
+  rpc SetMempoolWatch(SetMempoolWatchRequest) returns (google.protobuf.Empty);
+  rpc GetMempoolWatchStatus(google.protobuf.Empty) returns (GetMempoolWatchStatusResponse);
+  rpc ListMempoolTransactions(ListMempoolTransactionsRequest) returns (ListMempoolTransactionsResponse);
+  rpc ListBlockStats(ListBlockStatsRequest) returns (ListBlockStatsResponse);
+
   // Swap bitcoind network. bitwindowd is the entry point so the DB swap
   // (network-scoped folder) is co-located with the orchestrator update.
   // Implementation: forward to orchestratord's SetBitcoinConfigNetwork
@@ -224,6 +230,87 @@ message GetFireplaceStatsResponse {
   int64 transaction_count_24h = 1;
   int64 coinnews_count_7d = 2;
   int64 block_count_24h = 3;
+}
+
+message SetMempoolWatchRequest {
+  bool enabled = 1;
+}
+
+message GetMempoolWatchStatusResponse {
+  bool enabled = 1;
+  bool running = 2;
+  string error = 3;
+  uint32 tip_height = 4;
+  uint64 pending_count = 5;
+  uint64 mined_count = 6;
+  uint64 removed_count = 7;
+}
+
+enum MempoolTxStatus {
+  MEMPOOL_TX_STATUS_UNSPECIFIED = 0;
+  MEMPOOL_TX_STATUS_PENDING = 1;
+  MEMPOOL_TX_STATUS_MINED = 2;
+  MEMPOOL_TX_STATUS_REMOVED = 3;
+}
+
+enum MempoolTxSort {
+  MEMPOOL_TX_SORT_UNSPECIFIED = 0;
+  MEMPOOL_TX_SORT_FEE_RATE = 1;
+  MEMPOOL_TX_SORT_FEE = 2;
+  MEMPOOL_TX_SORT_VSIZE = 3;
+  MEMPOOL_TX_SORT_FIRST_SEEN = 4;
+}
+
+message ListMempoolTransactionsRequest {
+  // Unspecified lists every status.
+  MempoolTxStatus status = 1;
+  // Only transactions paying strictly more than this, in sat/vB.
+  double min_fee_rate = 2;
+  uint32 limit = 3;
+  uint32 offset = 4;
+  MempoolTxSort sort_by = 5;
+  bool sort_descending = 6;
+  // Prefix of the txid to match.
+  string txid = 7;
+}
+
+message MempoolTransaction {
+  string txid = 1;
+  uint64 fee_sats = 2;
+  uint32 vsize = 3;
+  // The rate a block template weighs it at: ancestor package fee over
+  // package vsize, in sat/vB.
+  double fee_rate = 4;
+  google.protobuf.Timestamp first_seen = 5;
+  uint32 first_seen_height = 6;
+  MempoolTxStatus status = 7;
+  google.protobuf.Timestamp resolved_at = 8;
+  optional uint32 resolved_height = 9;
+  // False until the fee fields have been fetched from the node.
+  bool has_details = 10;
+}
+
+message ListMempoolTransactionsResponse {
+  repeated MempoolTransaction transactions = 1;
+  uint64 total = 2;
+  uint32 tip_height = 3;
+}
+
+message ListBlockStatsRequest {
+  uint32 from_height = 1;
+  uint32 to_height = 2;
+}
+
+// What a connected block showed about the fee market.
+message BlockStats {
+  uint32 height = 1;
+  // Lowest fee rate the block included, in sat/vB.
+  double min_fee_rate = 2;
+  uint64 total_fee_sats = 3;
+}
+
+message ListBlockStatsResponse {
+  repeated BlockStats blocks = 1;
 }
 
 message ListRecentTransactionsRequest {

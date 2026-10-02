@@ -238,3 +238,84 @@ func (bc *zmqEngine) SubscribeRawTx(ctx context.Context) (chan RawMsg, func(), e
 	}
 	return subCh, cancel, nil
 }
+
+const sequenceChannelSize = 10000
+
+// SubscribeSequence subscribes to the ZMQ "sequence" topic: mempool adds and
+// removals plus block connects and disconnects.
+func (bc *zmqEngine) SubscribeSequence(ctx context.Context) (chan SequenceMsg, func(), error) {
+	sub := zmq.NewSub(ctx)
+	if err := sub.Dial(bc.endpoint); err != nil {
+		return nil, nil, fmt.Errorf("dial %q: %w", bc.endpoint, err)
+	}
+
+	if err := sub.SetOption(zmq.OptionSubscribe, "sequence"); err != nil {
+		return nil, nil, fmt.Errorf("subscribe to sequence: %w", err)
+	}
+
+	subCh := make(chan SequenceMsg, sequenceChannelSize)
+	go func() {
+		defer close(subCh)
+		for {
+			msg, err := sub.Recv()
+			if err != nil {
+				return
+			}
+
+			parsed, err := parseSequenceMsg(msg.Frames)
+			if err != nil {
+				zerolog.Ctx(ctx).Err(err).Msg("engines/zmq: bad sequence message")
+				continue
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case subCh <- parsed:
+			}
+		}
+	}()
+
+	cancel := func() {
+		if err := sub.Close(); err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("engines/zmq: unable to close sequence subscription")
+		}
+	}
+	return subCh, cancel, nil
+}
+
+// Body: 32-byte hash, 1 label byte, and for A/R an 8-byte LE mempool sequence.
+func parseSequenceMsg(frames [][]byte) (SequenceMsg, error) {
+	if len(frames) != 3 {
+		return SequenceMsg{}, fmt.Errorf("expected 3 frames, got %d", len(frames))
+	}
+	if topic := string(frames[0]); topic != "sequence" {
+		return SequenceMsg{}, fmt.Errorf("expected sequence topic, got %s", topic)
+	}
+	body := frames[1]
+	if len(body) < 33 {
+		return SequenceMsg{}, fmt.Errorf("body too short: %d bytes", len(body))
+	}
+
+	var msg SequenceMsg
+	copy(msg.Hash[:], body[:32])
+	switch body[32] {
+	case 'C':
+		msg.Event = BlockConnected
+	case 'D':
+		msg.Event = BlockDisconnected
+	case 'R':
+		msg.Event = TransactionRemoved
+	case 'A':
+		msg.Event = TransactionAdded
+	default:
+		return SequenceMsg{}, fmt.Errorf("unknown label %q", body[32])
+	}
+	if msg.Event == TransactionRemoved || msg.Event == TransactionAdded {
+		if len(body) < 41 {
+			return SequenceMsg{}, fmt.Errorf("body too short for mempool sequence: %d bytes", len(body))
+		}
+		msg.MempoolSeq = binary.LittleEndian.Uint64(body[33:41])
+	}
+	return msg, nil
+}

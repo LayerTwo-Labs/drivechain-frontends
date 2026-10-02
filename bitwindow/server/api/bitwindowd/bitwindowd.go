@@ -23,6 +23,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bip329"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/mempooltx"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -51,6 +52,7 @@ func New(
 	db *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
+	mempoolWatcher *engines.MempoolWatcher,
 	config config.Config,
 	recycle func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error,
 ) *Server {
@@ -59,6 +61,7 @@ func New(
 		db:               db,
 		bitcoind:         bitcoind,
 		walletEngine:     walletEngine,
+		mempoolWatcher:   mempoolWatcher,
 		bandwidthTracker: bandwidth.NewTracker(),
 		recycle:          recycle,
 
@@ -72,6 +75,7 @@ type Server struct {
 	db               *sql.DB
 	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine     *engines.WalletEngine
+	mempoolWatcher   *engines.MempoolWatcher
 	bandwidthTracker *bandwidth.Tracker
 	recycle          func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error
 
@@ -1367,4 +1371,111 @@ func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid
 	return lo.ContainsBy(utxos.Msg.Unspent, func(utxo *corepb.UnspentOutput) bool {
 		return utxo.Txid == txid && utxo.Vout == vout
 	}), nil
+}
+func (s *Server) SetMempoolWatch(ctx context.Context, req *connect.Request[pb.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error) {
+	if req.Msg.Enabled {
+		if err := s.walletEngine.NodeMode().RequireFullNode(ctx, "mempool watch"); err != nil {
+			return nil, err
+		}
+	}
+	if err := s.mempoolWatcher.SetEnabled(ctx, req.Msg.Enabled); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) GetMempoolWatchStatus(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetMempoolWatchStatusResponse], error) {
+	status := s.mempoolWatcher.Status()
+	counts, err := mempooltx.Counts(ctx, s.db)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetMempoolWatchStatusResponse{
+		Enabled:      status.Enabled,
+		Running:      status.Running,
+		Error:        status.Error,
+		TipHeight:    status.Tip,
+		PendingCount: counts[mempooltx.StatusPending],
+		MinedCount:   counts[mempooltx.StatusMined],
+		RemovedCount: counts[mempooltx.StatusRemoved],
+	}), nil
+}
+
+var mempoolTxStatuses = map[pb.MempoolTxStatus]mempooltx.Status{
+	pb.MempoolTxStatus_MEMPOOL_TX_STATUS_PENDING: mempooltx.StatusPending,
+	pb.MempoolTxStatus_MEMPOOL_TX_STATUS_MINED:   mempooltx.StatusMined,
+	pb.MempoolTxStatus_MEMPOOL_TX_STATUS_REMOVED: mempooltx.StatusRemoved,
+}
+
+var mempoolTxSorts = map[pb.MempoolTxSort]mempooltx.SortField{
+	pb.MempoolTxSort_MEMPOOL_TX_SORT_FEE_RATE:   mempooltx.SortFeeRate,
+	pb.MempoolTxSort_MEMPOOL_TX_SORT_FEE:        mempooltx.SortFee,
+	pb.MempoolTxSort_MEMPOOL_TX_SORT_VSIZE:      mempooltx.SortVsize,
+	pb.MempoolTxSort_MEMPOOL_TX_SORT_FIRST_SEEN: mempooltx.SortFirstSeen,
+}
+
+func (s *Server) ListMempoolTransactions(ctx context.Context, req *connect.Request[pb.ListMempoolTransactionsRequest]) (*connect.Response[pb.ListMempoolTransactionsResponse], error) {
+	filter := mempooltx.Filter{
+		TxidPrefix: strings.ToLower(strings.TrimSpace(req.Msg.Txid)),
+		MinFeeRate: req.Msg.MinFeeRate,
+		Limit:      int(req.Msg.Limit),
+		Offset:     int(req.Msg.Offset),
+		SortBy:     mempoolTxSorts[req.Msg.SortBy],
+		Desc:       req.Msg.SortDescending,
+	}
+	if filter.Limit == 0 {
+		filter.Limit = 200
+	}
+	if status, ok := mempoolTxStatuses[req.Msg.Status]; ok {
+		filter.Status = &status
+	}
+
+	txs, total, err := mempooltx.List(ctx, s.db, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*pb.MempoolTransaction, len(txs))
+	for i, tx := range txs {
+		out[i] = &pb.MempoolTransaction{
+			Txid:            tx.Txid,
+			FeeSats:         tx.FeeSats,
+			Vsize:           tx.Vsize,
+			FeeRate:         tx.FeeRate,
+			FirstSeen:       timestamppb.New(tx.FirstSeenAt),
+			FirstSeenHeight: tx.FirstSeenHeight,
+			Status:          mempoolTxStatusProto(tx.Status),
+			ResolvedHeight:  tx.ResolvedHeight,
+			HasDetails:      tx.HasDetails,
+		}
+		if tx.ResolvedAt != nil {
+			out[i].ResolvedAt = timestamppb.New(*tx.ResolvedAt)
+		}
+	}
+	return connect.NewResponse(&pb.ListMempoolTransactionsResponse{
+		Transactions: out,
+		Total:        total,
+		TipHeight:    s.mempoolWatcher.Status().Tip,
+	}), nil
+}
+
+func (s *Server) ListBlockStats(ctx context.Context, req *connect.Request[pb.ListBlockStatsRequest]) (*connect.Response[pb.ListBlockStatsResponse], error) {
+	blocks, err := mempooltx.ListBlockStats(ctx, s.db, req.Msg.FromHeight, req.Msg.ToHeight)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*pb.BlockStats, len(blocks))
+	for i, b := range blocks {
+		out[i] = &pb.BlockStats{Height: b.Height, MinFeeRate: b.MinFeeRate, TotalFeeSats: b.TotalFeeSats}
+	}
+	return connect.NewResponse(&pb.ListBlockStatsResponse{Blocks: out}), nil
+}
+
+func mempoolTxStatusProto(status mempooltx.Status) pb.MempoolTxStatus {
+	for k, v := range mempoolTxStatuses {
+		if v == status {
+			return k
+		}
+	}
+	return pb.MempoolTxStatus_MEMPOOL_TX_STATUS_UNSPECIFIED
 }

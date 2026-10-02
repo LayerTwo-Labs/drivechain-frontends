@@ -115,6 +115,7 @@ type Runtime struct {
 	chequeChain        engines.ChequeChain
 	bitcoinEngine      *engines.Parser
 	deniabilityEngine  *engines.DeniabilityEngine
+	mempoolWatcher     *engines.MempoolWatcher
 	timestampEngine    *engines.TimestampEngine
 	notificationEngine *engines.NotificationEngine
 	sidechainMonitor   *engines.SidechainMonitorEngine
@@ -239,6 +240,14 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	}
 
 	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
+	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, coreRawCall(s), func(ctx context.Context) (<-chan engines.SequenceMsg, func(), error) {
+		addr, err := zmqAddress(ctx, conf, "pubsequence")
+		if err != nil {
+			return nil, nil, err
+		}
+		return engines.NewZmqEngine(addr).SubscribeSequence(ctx)
+	})
+	rt.mempoolWatcher.SetNodeMode(rt.walletEngine.NodeMode())
 
 	// Register Connect sub-handlers on rt.mux. All registrations capture
 	// rt's db + engines, so when this runtime is replaced, none of these
@@ -256,7 +265,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
 	// to current runtime via s.current at call time.
 	{
-		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
+		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, rt.mempoolWatcher, conf, s.Recycle)
 		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
 		register(path, h)
 	}
@@ -403,6 +412,7 @@ func (rt *Runtime) Start(parent context.Context) {
 
 	rt.runEngine("bitcoin", rt.bitcoinEngine.Run, log)
 	rt.runEngine("deniability", rt.deniabilityEngine.Run, log)
+	rt.runEngine("mempool-watch", rt.mempoolWatcher.Run, log)
 	rt.runEngine("timestamp", rt.timestampEngine.Run, log)
 	rt.runEngine("notification", rt.notificationEngine.Run, log)
 	rt.runEngine("sidechain-monitor", rt.sidechainMonitor.Run, log)
@@ -491,23 +501,61 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 }
 
 func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
+	addr, err := zmqAddress(ctx, conf, "pubrawtx")
+	if err != nil {
+		return nil, err
+	}
+	return engines.NewZMQ(addr)
+}
+
+// coreRawCall routes raw bitcoind RPCs through the orchestrator.
+func coreRawCall(s *Server) engines.RawCall {
+	if s.svcs.OrchestratorAddr == "" {
+		return func(context.Context, string, ...any) (json.RawMessage, error) {
+			return nil, errors.New("no orchestrator configured")
+		}
+	}
+	client := orchctlrpc.NewOrchestratorServiceClient(
+		http.DefaultClient,
+		s.svcs.OrchestratorAddr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
+	)
+	return func(ctx context.Context, method string, params ...any) (json.RawMessage, error) {
+		paramsJSON, err := json.Marshal(params)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := client.CoreRawCall(ctx, connect.NewRequest(&orchctlpb.CoreRawCallRequest{
+			Method:     method,
+			ParamsJson: string(paramsJSON),
+		}))
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage(resp.Msg.ResultJson), nil
+	}
+}
+
+// zmqAddress looks up the endpoint bitcoind publishes notifType on.
+func zmqAddress(ctx context.Context, conf config.Config, notifType string) (string, error) {
 	btc, err := dial.Bitcoind(ctx, conf.OrchestratorAddr)
 	if err != nil {
-		return nil, fmt.Errorf("dial orchestrator bitcoin service: %w", err)
+		return "", fmt.Errorf("dial orchestrator bitcoin service: %w", err)
 	}
 	notifs, err := btc.GetZmqNotifications(ctx, connect.NewRequest(&emptypb.Empty{}))
 	if err != nil {
-		return nil, fmt.Errorf("get zmq notifications: %w", err)
+		return "", fmt.Errorf("get zmq notifications: %w", err)
 	}
-	pubRawTxAddress, found := lo.Find(notifs.Msg.Notifications,
+	notif, found := lo.Find(notifs.Msg.Notifications,
 		func(n *corepb.GetZmqNotificationsResponse_Notification) bool {
-			return n.Type == "pubrawtx"
+			return n.Type == notifType
 		},
 	)
 	if !found {
-		return nil, errors.New("bitcoind does not publish pubrawtx ZMQ notifications")
+		return "", fmt.Errorf("bitcoind does not publish %s ZMQ notifications", notifType)
 	}
-	return engines.NewZMQ(pubRawTxAddress.Address)
+	return notif.Address, nil
 }
 
 func (rt *Runtime) autoUnlockWallet(ctx context.Context) {
