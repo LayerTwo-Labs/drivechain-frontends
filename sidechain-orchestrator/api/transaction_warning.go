@@ -14,16 +14,24 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
-const ecxBurnWarning = "This transaction burns Alphanet coins for a claim of real ECX."
+const ecxBurnWarning = "This transaction burns %s coins for a claim of real ECX."
 
-func (h *WalletHandler) transactionWarning(outputs []*pb.TransactionOutput) string {
-	if config.NetworkFromString(h.svc.Network()) != config.NetworkECash || config.ECashNetworkID() != "alphanet" {
+func (h *WalletHandler) burnNetworkName() string {
+	if config.NetworkFromString(h.svc.Network()) != config.NetworkECash {
 		return ""
 	}
-	return burnTransactionWarning(outputs)
+	return wallet.ECXBurnNetworkByID(config.ECashNetworkID()).Name
 }
 
-func burnTransactionWarning(outputs []*pb.TransactionOutput) string {
+func (h *WalletHandler) transactionWarning(outputs []*pb.TransactionOutput) string {
+	networkName := h.burnNetworkName()
+	if networkName == "" {
+		return ""
+	}
+	return burnTransactionWarning(outputs, networkName)
+}
+
+func burnTransactionWarning(outputs []*pb.TransactionOutput, networkName string) string {
 	var hasBurn, hasAddress bool
 	for _, output := range outputs {
 		script, err := hex.DecodeString(output.ScriptPubkeyHex)
@@ -38,7 +46,7 @@ func burnTransactionWarning(outputs []*pb.TransactionOutput) string {
 		}
 	}
 	if hasBurn && hasAddress {
-		return ecxBurnWarning
+		return fmt.Sprintf(ecxBurnWarning, networkName)
 	}
 	return ""
 }
@@ -61,7 +69,8 @@ func hasClaimAddress(script []byte) bool {
 }
 
 func (h *WalletHandler) setTransactionWarnings(ctx context.Context, walletID string, entries []*pb.TransactionEntry) error {
-	if config.NetworkFromString(h.svc.Network()) != config.NetworkECash || config.ECashNetworkID() != "alphanet" {
+	networkName := h.burnNetworkName()
+	if networkName == "" {
 		return nil
 	}
 	warnings := make(map[string]string)
@@ -69,7 +78,7 @@ func (h *WalletHandler) setTransactionWarnings(ctx context.Context, walletID str
 		if _, seen := warnings[entry.Txid]; seen {
 			continue
 		}
-		if message, found := h.ecxBurnWarnings.Load(entry.Txid); found {
+		if message, found := h.ecxBurnWarnings.Load([2]string{networkName, entry.Txid}); found {
 			warnings[entry.Txid] = message.(string)
 			continue
 		}
@@ -84,8 +93,8 @@ func (h *WalletHandler) setTransactionWarnings(ctx context.Context, walletID str
 		if decoded.Form != wallet.DecodedFormRawTx {
 			return fmt.Errorf("transaction %s has no raw transaction data", entry.Txid)
 		}
-		warnings[entry.Txid] = burnTransactionWarning(decodedToResponse(decoded).Outputs)
-		h.ecxBurnWarnings.Store(entry.Txid, warnings[entry.Txid])
+		warnings[entry.Txid] = burnTransactionWarning(decodedToResponse(decoded).Outputs, networkName)
+		h.ecxBurnWarnings.Store([2]string{networkName, entry.Txid}, warnings[entry.Txid])
 	}
 	for _, entry := range entries {
 		entry.WarningMessage = warnings[entry.Txid]

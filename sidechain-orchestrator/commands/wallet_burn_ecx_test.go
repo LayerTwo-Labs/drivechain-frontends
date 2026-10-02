@@ -483,12 +483,42 @@ func TestBurnECXStopsAfterContextChanges(t *testing.T) {
 	}
 }
 
+func TestBurnECXNamesBetanet(t *testing.T) {
+	f := newBurnTestFlow(t)
+	f.daemon.network = "betanet"
+	require.NoError(t, f.run())
+	for _, text := range []string{
+		"Betanet burn: 1.00000001 coins (100000001 satoshis)",
+		"To BitcoinEater: " + burnTestAddress,
+		"This transaction burns Betanet coins.",
+		"You will receive 1/50 of the amount you burn as real ECX at this address.",
+		"Real ECX credit: 0.02000001 ECX",
+		"Network fee: 0.00000452 Betanet coins (452 satoshis)",
+		"Total from Betanet: 1.00000453 coins",
+		"Burn these Betanet coins? [y/N]",
+		"Burn sent: burn-txid\nECX credit pending: 0.02000001 ECX",
+	} {
+		require.Contains(t, f.output.String(), text)
+	}
+	require.NotContains(t, f.output.String(), "Alphanet")
+	require.Equal(t, map[string]int64{burnTestAddress: 100000001}, f.daemon.created.Destinations)
+	require.Equal(t, "final-transaction", f.daemon.broadcast.TxHex)
+}
+
+func TestBurnECXStopsWhenBetanetChangesToAlphanet(t *testing.T) {
+	f := newBurnTestFlow(t, "--yes")
+	f.daemon.network = "betanet"
+	f.daemon.after["finalize"] = func() { f.daemon.network = "alphanet" }
+	require.ErrorContains(t, f.run(), "the network changed; create the burn again")
+	require.Nil(t, f.daemon.broadcast)
+}
+
 func TestBurnECXRejectsOtherNetworks(t *testing.T) {
-	for _, network := range []string{"betanet", "mainnet", "signet", "", "ecash"} {
+	for _, network := range []string{"drynet4", "mainnet", "signet", "", "ecash"} {
 		t.Run(network, func(t *testing.T) {
 			f := newBurnTestFlow(t)
 			f.daemon.network = network
-			require.ErrorContains(t, f.run(), "only on Alphanet")
+			require.ErrorContains(t, f.run(), "only on Alphanet and Betanet")
 			require.Equal(t, []string{"network"}, f.daemon.calls)
 		})
 	}
@@ -628,7 +658,7 @@ func TestBurnECXCreditUsesEightDecimals(t *testing.T) {
 		{math.MaxInt64, "922337203.68547759"},
 	} {
 		t.Run(strconv.FormatInt(test.sats, 10), func(t *testing.T) {
-			require.Equal(t, test.credit, formatBurnCoins(wallet.ECXCreditSats(test.sats), 8))
+			require.Equal(t, test.credit, formatBurnCoins(wallet.ECXBurnNetworkByID("alphanet").CreditSats(test.sats), 8))
 		})
 	}
 }
@@ -649,7 +679,7 @@ func TestBurnECXCommandChecksTheProductionMinimum(t *testing.T) {
 				"drivechain-cli", "--rpcserver", "127.0.0.1:0", "--bitwindow-dir", t.TempDir(),
 				"wallet", "burn-ecx", "--sats", strconv.FormatInt(amount, 10), "--preview",
 			})
-			require.ErrorContains(t, err, "the burn must be at least 100000000000 Alphanet satoshis")
+			require.ErrorContains(t, err, "the burn must be at least 100000000000 satoshis")
 		})
 	}
 }
@@ -672,6 +702,27 @@ func TestBurnECXAcceptsExactlyTheProductionMinimum(t *testing.T) {
 	require.Equal(t, map[string]int64{wallet.ECXBurnAddress: amount}, f.daemon.created.Destinations)
 	require.Contains(t, f.output.String(), "Alphanet burn: 1000.00000000 coins (100000000000 satoshis)")
 	require.Contains(t, f.output.String(), "Real ECX credit: 10.00000000 ECX")
+	require.NotNil(t, f.daemon.broadcast)
+}
+
+func TestBurnECXCreditsTwentyCoinsForTheProductionMinimumOnBetanet(t *testing.T) {
+	const amount = wallet.ECXBurnMinimumSats
+	f := newBurnTestFlow(t, "--sats", strconv.FormatInt(amount, 10), "--yes")
+	f.daemon.network = "betanet"
+	address, err := btcutil.DecodeAddress(wallet.ECXBurnAddress, &chaincfg.MainNetParams)
+	require.NoError(t, err)
+	script, err := txscript.PayToAddrScript(address)
+	require.NoError(t, err)
+	f.daemon.preview.Outputs[0].ValueSats = amount
+	f.daemon.preview.Outputs[0].ScriptPubkeyHex = hex.EncodeToString(script)
+	f.daemon.preview.TotalOutputSats = amount + 10000
+	f.daemon.preview.TotalInputSats = amount + 10452
+
+	require.NoError(t, runWalletBurnECX(f.ctx, f.client, f.conf, wallet.ECXBurnAddress, wallet.ECXBurnMinimumSats))
+	require.Equal(t, map[string]int64{wallet.ECXBurnAddress: amount}, f.daemon.created.Destinations)
+	require.Contains(t, f.output.String(), "Betanet burn: 1000.00000000 coins (100000000000 satoshis)")
+	require.Contains(t, f.output.String(), "Real ECX credit: 20.00000000 ECX")
+	require.Contains(t, f.output.String(), "ECX credit pending: 20.00000000 ECX")
 	require.NotNil(t, f.daemon.broadcast)
 }
 

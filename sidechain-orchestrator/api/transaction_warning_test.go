@@ -25,6 +25,7 @@ import (
 )
 
 const warningTestMessage = "This transaction burns Alphanet coins for a claim of real ECX."
+const warningTestBetanetMessage = "This transaction burns Betanet coins for a claim of real ECX."
 const warningTestBurnAddress = wallet.ECXBurnAddress
 const warningTestClaimAddress = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
 const warningTestPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
@@ -184,24 +185,20 @@ func TestTransactionWarningChecksTheNetwork(t *testing.T) {
 	for _, tc := range []struct {
 		network config.Network
 		id      string
-		warn    bool
+		message string
 	}{
-		{config.NetworkECash, "alphanet", true},
-		{config.NetworkECash, "betanet", false},
-		{config.NetworkMainnet, "alphanet", false},
-		{config.NetworkSignet, "alphanet", false},
-		{config.NetworkRegtest, "alphanet", false},
-		{config.NetworkTestnet, "alphanet", false},
+		{config.NetworkECash, "alphanet", warningTestMessage},
+		{config.NetworkECash, "betanet", warningTestBetanetMessage},
+		{config.NetworkECash, "drynet4", ""},
+		{config.NetworkMainnet, "alphanet", ""},
+		{config.NetworkSignet, "alphanet", ""},
+		{config.NetworkRegtest, "alphanet", ""},
+		{config.NetworkTestnet, "alphanet", ""},
 	} {
 		t.Run(string(tc.network)+" "+tc.id, func(t *testing.T) {
 			require.NoError(t, h.svc.RebindNetwork(string(tc.network)))
 			config.SetECashNetworkID(tc.id)
-			message := h.transactionWarning(warningOutputs(t))
-			if tc.warn {
-				require.Equal(t, warningTestMessage, message)
-			} else {
-				require.Empty(t, message)
-			}
+			require.Equal(t, tc.message, h.transactionWarning(warningOutputs(t)))
 		})
 	}
 }
@@ -310,6 +307,31 @@ func TestListTransactionsKeepsTheCacheAcrossNetworkChanges(t *testing.T) {
 	require.Equal(t, []string{tx.TxID}, backend.readIDs)
 }
 
+func TestListTransactionsNamesTheNetworkOfEachRead(t *testing.T) {
+	raw, _, tx := warningTransaction(t, warningOutputs(t))
+	backend := &warningBackend{
+		hexByID: map[string]string{tx.TxID: raw},
+		transactions: []wallet.WalletTransaction{
+			{TxID: tx.TxID, Address: warningTestBurnAddress, Category: "send"},
+		},
+	}
+	h, walletID := newWarningHandler(t, backend)
+	for _, tc := range []struct {
+		id      string
+		message string
+	}{
+		{"alphanet", warningTestMessage},
+		{"betanet", warningTestBetanetMessage},
+		{"alphanet", warningTestMessage},
+	} {
+		config.SetECashNetworkID(tc.id)
+		response, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+		require.NoError(t, err)
+		require.Equal(t, tc.message, response.Msg.Transactions[0].WarningMessage)
+	}
+	require.Equal(t, []string{tx.TxID, tx.TxID}, backend.readIDs)
+}
+
 func TestListTransactionsReturnsWarningReadErrors(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -333,12 +355,12 @@ func TestListTransactionsReturnsWarningReadErrors(t *testing.T) {
 	}
 }
 
-func TestListTransactionsSkipsWarningsOutsideAlphanet(t *testing.T) {
+func TestListTransactionsSkipsWarningsOutsideBurnNetworks(t *testing.T) {
 	for _, tc := range []struct {
 		network config.Network
 		id      string
 	}{
-		{config.NetworkECash, "betanet"},
+		{config.NetworkECash, "drynet4"},
 		{config.NetworkMainnet, "alphanet"},
 		{config.NetworkSignet, "alphanet"},
 		{config.NetworkRegtest, "alphanet"},

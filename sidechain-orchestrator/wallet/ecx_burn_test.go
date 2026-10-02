@@ -10,6 +10,9 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
 
 func TestECXBurnAddressAndScriptMatch(t *testing.T) {
@@ -23,8 +26,72 @@ func TestECXBurnAddressAndScriptMatch(t *testing.T) {
 	require.Equal(t, ECXBurnScriptHex, hex.EncodeToString(script))
 }
 
+func TestECXBurnNetworkByID(t *testing.T) {
+	for id, network := range map[string]ECXBurnNetwork{
+		"alphanet": {Name: "Alphanet", CreditDivisor: 100},
+		"betanet":  {Name: "Betanet", CreditDivisor: 50},
+		"drynet4":  {},
+		"bitcoin":  {},
+		"signet":   {},
+		"":         {},
+	} {
+		t.Run(id, func(t *testing.T) {
+			require.Equal(t, network, ECXBurnNetworkByID(id))
+		})
+	}
+}
+
+func TestECXBurnAddressHasOneHashOnEachBurnNetwork(t *testing.T) {
+	script, err := hex.DecodeString(ECXBurnScriptHex)
+	require.NoError(t, err)
+	for _, id := range []string{"alphanet", "betanet"} {
+		t.Run(id, func(t *testing.T) {
+			network, found := netcatalog.Embedded().ByID(id)
+			require.True(t, found)
+			require.Equal(t, netcatalog.FamilyECash, network.Family)
+			require.Equal(t, "main", network.Chain)
+			require.Equal(t, network.DisplayName, ECXBurnNetworkByID(id).Name)
+			params := config.ChainParamsFor(config.NetworkECash)
+			address, err := btcutil.DecodeAddress(ECXBurnAddress, params)
+			require.NoError(t, err)
+			require.True(t, address.IsForNet(params))
+			require.Equal(t, script[3:23], address.ScriptAddress())
+		})
+	}
+}
+
 func TestECXBurnMinimumIsOneThousandCoins(t *testing.T) {
 	require.EqualValues(t, 1000*btcutil.SatoshiPerBitcoin, ECXBurnMinimumSats)
+}
+
+func TestECXCreditSatsRoundsUpOnBetanet(t *testing.T) {
+	for _, test := range []struct {
+		burn   int64
+		credit int64
+	}{
+		{math.MinInt64, -184_467_440_737_095_516},
+		{-51, -1},
+		{-50, -1},
+		{-49, 0},
+		{0, 0},
+		{1, 1},
+		{49, 1},
+		{50, 1},
+		{51, 2},
+		{99, 2},
+		{100, 2},
+		{100_000_000_000, 2_000_000_000},
+		{100_000_000_001, 2_000_000_001},
+		{9_007_199_254_740_993, 180_143_985_094_820},
+		{math.MaxInt64 - 8, 184_467_440_737_095_516},
+		{math.MaxInt64 - 7, 184_467_440_737_095_516},
+		{math.MaxInt64 - 6, 184_467_440_737_095_517},
+		{math.MaxInt64, 184_467_440_737_095_517},
+	} {
+		t.Run(strconv.FormatInt(test.burn, 10), func(t *testing.T) {
+			require.Equal(t, test.credit, ECXBurnNetworkByID("betanet").CreditSats(test.burn))
+		})
+	}
 }
 
 func TestECXCreditSatsRoundsUp(t *testing.T) {
@@ -51,7 +118,7 @@ func TestECXCreditSatsRoundsUp(t *testing.T) {
 		{math.MaxInt64, 92_233_720_368_547_759},
 	} {
 		t.Run(strconv.FormatInt(test.burn, 10), func(t *testing.T) {
-			require.Equal(t, test.credit, ECXCreditSats(test.burn))
+			require.Equal(t, test.credit, ECXBurnNetworkByID("alphanet").CreditSats(test.burn))
 		})
 	}
 }
