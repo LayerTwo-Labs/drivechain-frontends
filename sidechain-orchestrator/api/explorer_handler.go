@@ -296,18 +296,12 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 		}
 	}
 
-	if bmm, ok := src.node.(sidechain.BMMNode); ok {
-		if template, err := bmm.GetBlockTemplate(ctx); err == nil && template != nil {
-			out.Mempool.FeesSats = template.FeesSats
-		}
-	}
 	// The unconfirmed rows lead the mined ones, the way an explorer reads.
-	if pool, err := sidechain.Mempool(ctx, src.node); err == nil {
-		out.Mempool.TxCount = uint32(len(pool))
-		out.Recent = append(mempoolActivity(pool), out.Recent...)
-		if len(out.Recent) > activityListSize {
-			out.Recent = out.Recent[:activityListSize]
-		}
+	pool := sidechain.Mempool(ctx, src.node)
+	out.Mempool.TxCount = uint32(len(pool))
+	out.Recent = append(mempoolActivity(pool), out.Recent...)
+	if len(out.Recent) > activityListSize {
+		out.Recent = out.Recent[:activityListSize]
 	}
 	if bundles, ok := src.node.(sidechain.WithdrawalNode); ok {
 		if raw, err := bundles.GetPendingWithdrawalBundle(ctx); err == nil {

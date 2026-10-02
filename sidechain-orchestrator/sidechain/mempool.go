@@ -26,9 +26,6 @@ type MempoolInput struct {
 }
 
 // MempoolTx is one transaction the sidechain holds but has not mined.
-//
-// Txid and SizeBytes are empty on a node that serves no list_mempool: the
-// block template names neither, and only the node can compute a txid.
 type MempoolTx struct {
 	Txid      string
 	SizeBytes int64
@@ -36,16 +33,14 @@ type MempoolTx struct {
 	Outputs   []MempoolOutput
 }
 
-// Mempool reads the unconfirmed set.
+// Mempool reads the unconfirmed set from list_mempool. A node without that
+// method answers nothing.
 //
-// list_mempool answers it whole, with a txid per transaction. A node without
-// that method answers the block template instead, which holds the same
-// transactions and no txid.
-func Mempool(ctx context.Context, node Node) ([]MempoolTx, error) {
-	if txs, ok := listMempool(ctx, node); ok {
-		return txs, nil
-	}
-	return templateMempool(ctx, node)
+// The block template holds the same transactions, and it is not read here:
+// a thunder node stops its wallet update task when it serves one.
+func Mempool(ctx context.Context, node Node) []MempoolTx {
+	txs, _ := listMempool(ctx, node)
+	return txs
 }
 
 // MempoolDelta is what the mempool does to this wallet, in sats.
@@ -271,41 +266,6 @@ func listMempool(ctx context.Context, node Node) ([]MempoolTx, bool) {
 	return out, true
 }
 
-// templateMempool reads the block the node would mine next. Its body is the
-// set the node holds, and it names no txid. A chain the BMM engine does not
-// drive builds no template, so it answers nothing here.
-func templateMempool(ctx context.Context, node Node) ([]MempoolTx, error) {
-	bmm, ok := node.(BMMNode)
-	if !ok {
-		return nil, nil
-	}
-	template, err := bmm.GetBlockTemplate(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("read the block template: %w", err)
-	}
-	if template == nil || len(template.Block) == 0 {
-		return nil, nil
-	}
-	var block struct {
-		Body struct {
-			Transactions []mempoolBody `json:"transactions"`
-		} `json:"body"`
-		Transactions []mempoolBody `json:"transactions"`
-	}
-	if err := json.Unmarshal(template.Block, &block); err != nil {
-		return nil, fmt.Errorf("read the template body: %w", err)
-	}
-	body := block.Body.Transactions
-	if len(body) == 0 {
-		body = block.Transactions
-	}
-	out := make([]MempoolTx, 0, len(body))
-	for _, tx := range body {
-		out = append(out, MempoolTx{Inputs: tx.spends(), Outputs: tx.outputs()})
-	}
-	return out, nil
-}
-
 // WithMempoolUTXOs appends the wallet's unconfirmed coins to a node's own
 // UTXO listing, in the same shape, each marked unconfirmed.
 //
@@ -316,10 +276,7 @@ func WithMempoolUTXOs(ctx context.Context, node Node, confirmed json.RawMessage)
 	if err != nil || len(owned) == 0 {
 		return confirmed
 	}
-	txs, err := Mempool(ctx, node)
-	if err != nil {
-		return confirmed
-	}
+	txs := Mempool(ctx, node)
 	rows := mempoolUTXORows(OwnedOutputs(txs, owned))
 
 	var listing []json.RawMessage

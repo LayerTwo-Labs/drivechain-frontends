@@ -14,11 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeNode answers the two feeds a mempool read can use.
+// fakeNode answers the mempool listing and counts each template request.
 type fakeNode struct {
 	BMMNode
 	mempool   string
-	template  string
 	addresses string
 	utxos     string
 	stxos     string
@@ -47,10 +46,7 @@ func (n *fakeNode) CallRaw(_ context.Context, method string, _ any) (json.RawMes
 
 func (n *fakeNode) GetBlockTemplate(_ context.Context) (*BlockTemplate, error) {
 	n.called = append(n.called, "get_block_template")
-	if n.template == "" {
-		return nil, fmt.Errorf("no template")
-	}
-	return &BlockTemplate{Block: json.RawMessage(n.template)}, nil
+	return nil, fmt.Errorf("no template")
 }
 
 const listMempoolAnswer = `[
@@ -60,33 +56,24 @@ const listMempoolAnswer = `[
   ]}}
 ]`
 
-const templateAnswer = `{"header": {"merkle_root": "m"}, "body": {"transactions": [
-  {"outputs": [{"address": "mine", "content": {"BitcoinSats": 7000}}]}
-]}}`
+func TestMempoolReadsTheNodeListing(t *testing.T) {
+	node := &fakeNode{mempool: listMempoolAnswer}
 
-func TestMempoolPrefersTheNodeListing(t *testing.T) {
-	node := &fakeNode{mempool: listMempoolAnswer, template: templateAnswer}
-
-	txs, err := Mempool(context.Background(), node)
-	require.NoError(t, err)
+	txs := Mempool(context.Background(), node)
 	require.Len(t, txs, 1)
 	assert.Equal(t, "aa", txs[0].Txid)
 	assert.Equal(t, int64(240), txs[0].SizeBytes)
 	require.Len(t, txs[0].Outputs, 2)
 	assert.Equal(t, uint32(1), txs[0].Outputs[1].Vout)
-	assert.NotContains(t, node.called, "get_block_template", "the listing answers it whole")
 }
 
-// An older node serves no list_mempool. The template holds the same
-// transactions, so the balance still moves; only the txid is missing.
-func TestMempoolFallsBackToTheTemplate(t *testing.T) {
-	node := &fakeNode{template: templateAnswer}
+// A thunder node stops its wallet update task when it serves a template, so
+// a node with no list_mempool gets no template request.
+func TestMempoolAsksNoTemplateWithoutTheNodeListing(t *testing.T) {
+	node := &fakeNode{}
 
-	txs, err := Mempool(context.Background(), node)
-	require.NoError(t, err)
-	require.Len(t, txs, 1)
-	assert.Empty(t, txs[0].Txid, "a template names no txid")
-	assert.Equal(t, int64(7000), txs[0].Outputs[0].ValueSats)
+	assert.Empty(t, Mempool(context.Background(), node))
+	assert.Equal(t, []string{"list_mempool"}, node.called)
 }
 
 func TestMempoolReadsThunderInputPairs(t *testing.T) {
@@ -94,39 +81,13 @@ func TestMempoolReadsThunderInputPairs(t *testing.T) {
 		[{"Regular":{"txid":"old","vout":2}},"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"],
 		[{"Deposit":"maintxid:0"},"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
 	],"outputs":[{"address":"mine","content":{"Value":9000}}]}`
-	for _, tc := range []struct {
-		name string
-		node *fakeNode
-		txid string
-	}{
-		{
-			name: "mempool",
-			node: &fakeNode{mempool: `[{"txid":"spend","size":240,"tx":` + transaction + `}]`},
-			txid: "spend",
-		},
-		{
-			name: "template",
-			node: &fakeNode{template: `{"body":{"transactions":[` + transaction + `]}}`},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			txs, err := Mempool(context.Background(), tc.node)
-			require.NoError(t, err)
-			require.Len(t, txs, 1)
-			assert.Equal(t, tc.txid, txs[0].Txid)
-			assert.Equal(t, []MempoolInput{{Key: "old:2"}, {Key: "maintxid:0"}}, txs[0].Inputs)
-			assert.Equal(t, []MempoolOutput{{Address: "mine", Vout: 0, ValueSats: 9000}}, txs[0].Outputs)
-			if tc.txid != "" {
-				assert.NotContains(t, tc.node.called, "get_block_template")
-			}
-		})
-	}
-}
+	node := &fakeNode{mempool: `[{"txid":"spend","size":240,"tx":` + transaction + `}]`}
 
-func TestMempoolIsEmptyWhenNeitherFeedAnswers(t *testing.T) {
-	txs, err := Mempool(context.Background(), &fakeNode{})
-	require.Error(t, err)
-	assert.Empty(t, txs)
+	txs := Mempool(context.Background(), node)
+	require.Len(t, txs, 1)
+	assert.Equal(t, "spend", txs[0].Txid)
+	assert.Equal(t, []MempoolInput{{Key: "old:2"}, {Key: "maintxid:0"}}, txs[0].Inputs)
+	assert.Equal(t, []MempoolOutput{{Address: "mine", Vout: 0, ValueSats: 9000}}, txs[0].Outputs)
 }
 
 func TestDeltaCountsOnlyOurAddresses(t *testing.T) {
@@ -224,15 +185,6 @@ func TestWithMempoolUTXOsAppendsTheUnconfirmedCoins(t *testing.T) {
 	assert.Equal(t, float64(10000), output["content"].(map[string]any)["Value"])
 }
 
-// A coin with no outpoint is not a coin. The balance still counts it.
-func TestWithMempoolUTXOsSkipsATemplateWithNoTxid(t *testing.T) {
-	node := &fakeNode{template: templateAnswer, addresses: `["mine"]`}
-	confirmed := json.RawMessage(`[]`)
-
-	merged := WithMempoolUTXOs(context.Background(), node, confirmed)
-	assert.JSONEq(t, `[]`, string(merged))
-}
-
 func TestWithMempoolUTXOsKeepsTheListingWhenTheWalletHasNoAddress(t *testing.T) {
 	node := &fakeNode{mempool: listMempoolAnswer}
 	confirmed := json.RawMessage(`[{"outpoint":{"Regular":{"txid":"old","vout":0}}}]`)
@@ -253,8 +205,7 @@ func TestSpendsNamesEveryCoinAnInputTakes(t *testing.T) {
 	     "outputs":[{"address":"mine","content":{"Value":10}}]}}
 	]`}
 
-	txs, err := Mempool(context.Background(), node)
-	require.NoError(t, err)
+	txs := Mempool(context.Background(), node)
 	require.Len(t, txs[0].Inputs, 2, "a regular input and a deposit both name a coin")
 	assert.Equal(t, MempoolInput{Key: "old:2"}, txs[0].Inputs[0])
 }
@@ -411,8 +362,7 @@ func TestDeltaDoesNotCreditAWithdrawal(t *testing.T) {
 		    ]}}]`,
 	}
 
-	txs, err := Mempool(context.Background(), node)
-	require.NoError(t, err)
+	txs := Mempool(context.Background(), node)
 	require.True(t, txs[0].Outputs[0].Withdrawal)
 	require.False(t, txs[0].Outputs[1].Withdrawal)
 

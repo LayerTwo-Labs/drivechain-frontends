@@ -740,10 +740,7 @@ func (h *Handler) mempoolDelta(ctx context.Context, cfg orchestrator.BinaryConfi
 	if err != nil || len(owned) == 0 {
 		return sidechain.MempoolDelta{}
 	}
-	txs, err := sidechain.Mempool(ctx, node)
-	if err != nil {
-		return sidechain.MempoolDelta{}
-	}
+	txs := sidechain.Mempool(ctx, node)
 	ourCoins, err := sidechain.OurCoins(ctx, node)
 	if err != nil {
 		return sidechain.MempoolDelta{}

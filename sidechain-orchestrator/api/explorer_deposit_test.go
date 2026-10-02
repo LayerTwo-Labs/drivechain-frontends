@@ -188,6 +188,31 @@ func TestOverviewStopsAtTheScanDepth(t *testing.T) {
 	}
 }
 
+// A thunder node stops its wallet update task when it serves a template, so
+// the overview asks for none.
+func TestOverviewAsksNoBlockTemplate(t *testing.T) {
+	node := &recordingNode{
+		count: 1,
+		answers: map[string]string{
+			"get_best_sidechain_block_hash": `"b0"`,
+		},
+		byHash: map[string]string{
+			"b0": `{"header":{"merkle_root":"m","prev_main_hash":"x"},"body":{"transactions":[]}}`,
+		},
+		index: map[string]string{"b0": `{"txs":[],"deposits":[]}`},
+	}
+
+	src := source{name: "thunder", node: node, cache: newBlockCache()}
+	if _, err := nodeOverview(context.Background(), src); err != nil {
+		t.Fatalf("read the overview: %v", err)
+	}
+	for _, method := range node.called {
+		if method == "get_block_template" {
+			t.Error("the overview asked for a block template")
+		}
+	}
+}
+
 // The cache answers a copy. A caller that stamps a row must never write into
 // what the next reader gets.
 func TestBlockCacheAnswersACopy(t *testing.T) {
