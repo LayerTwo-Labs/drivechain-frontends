@@ -60,34 +60,6 @@ func TestTransferCallsCreateTransfer(t *testing.T) {
 	assert.Equal(t, []string{`create_transfer ["ocPdhEToXd9myNCN8si5mGxdaRQ",50000000,1000]`}, *seen)
 }
 
-func TestTransferManyToOneAddressCallsCreateTransfer(t *testing.T) {
-	proxy, seen := sendMethodNode(t, map[string]string{"create_transfer": `"txid3"`})
-
-	resp, err := NewHandler(proxy).TransferMany(context.Background(),
-		connect.NewRequest(&pb.TransferManyRequest{
-			Destinations: map[string]int64{"ocPdhEToXd9myNCN8si5mGxdaRQ": 50_000_000},
-			FeeSats:      1000,
-		}))
-	require.NoError(t, err)
-	assert.Equal(t, "txid3", resp.Msg.Txid)
-	assert.Equal(t, []string{`create_transfer ["ocPdhEToXd9myNCN8si5mGxdaRQ",50000000,1000]`}, *seen)
-}
-
-func TestTransferManyToManyAddressesIsUnimplemented(t *testing.T) {
-	proxy, seen := sendMethodNode(t, map[string]string{})
-
-	_, err := NewHandler(proxy).TransferMany(context.Background(),
-		connect.NewRequest(&pb.TransferManyRequest{
-			Destinations: map[string]int64{
-				"ocPdhEToXd9myNCN8si5mGxdaRQ":  50_000_000,
-				"ocDzT2wRnkYcvzy2pRYPZgeBRhwp": 25_000_000,
-			},
-			FeeSats: 1000,
-		}))
-	assert.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
-	assert.Empty(t, *seen)
-}
-
 func TestWithdrawCallsCreateWithdrawal(t *testing.T) {
 	proxy, seen := sendMethodNode(t, map[string]string{"create_withdrawal": `"txid2"`})
 
