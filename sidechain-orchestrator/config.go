@@ -58,6 +58,10 @@ type BinaryConfig struct {
 	Files            map[string]string // os -> filename or regex pattern
 	ExtractSubfolder map[string]string // os -> subfolder to extract from zip (empty = root)
 
+	// CLI the release publishes as its own asset, beside the daemon.
+	CLIBinaryName string
+	CLIFiles      map[string]string // os -> filename or regex pattern
+
 	// Core variant configuration — only populated for the bitcoincore entry.
 	// Keys are variant IDs ("core", "patched", "knots").
 	Variants map[string]CoreVariantSpec

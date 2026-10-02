@@ -60,6 +60,12 @@ type jsonDownloadConf struct {
 	Files            map[string]json.RawMessage `json:"files"`
 	ExtractSubfolder map[string]json.RawMessage `json:"extract_subfolder"`
 	Variants         map[string]jsonVariantConf `json:"variants"`
+	CLI              *jsonCLIConf               `json:"cli"`
+}
+
+type jsonCLIConf struct {
+	Binary string            `json:"binary"`
+	Files  map[string]string `json:"files"`
 }
 
 type jsonVariantConf struct {
@@ -295,6 +301,10 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		bc.DownloadURLs = parseBaseURLs(jb.Download.Files)
 		bc.Files = parseOSFiles(jb.Download.Files, "default")
 		bc.ExtractSubfolder = parseOSMapFromExtract(jb.Download.ExtractSubfolder, "default")
+		if jb.Download.CLI != nil {
+			bc.CLIBinaryName = jb.Download.CLI.Binary
+			bc.CLIFiles = jb.Download.CLI.Files
+		}
 
 		// Determine download source from URL
 		defaultURL := bc.BaseURL("default")
