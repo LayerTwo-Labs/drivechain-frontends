@@ -1,3 +1,4 @@
+import 'package:bitwindow/models/burn_ecx_amount.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -47,8 +48,9 @@ class ReceiveTab extends StatelessWidget {
                       children: [
                         const ClaimEcxCard(),
                         if (conf.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH &&
-                            (conf.ecashNetworkId.isNotEmpty ? conf.ecashNetworkId : conf.currentNetworkOptionId) ==
-                                'alphanet')
+                            burnEcxNetworks.containsKey(
+                              conf.ecashNetworkId.isNotEmpty ? conf.ecashNetworkId : conf.currentNetworkOptionId,
+                            ))
                           const BurnEcxCard(),
                       ],
                     ),
