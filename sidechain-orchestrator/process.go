@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -152,6 +153,9 @@ type StartupLogEntry struct {
 	Message   string
 }
 
+// ErrAlreadyRunning reports a start of a binary that runs, or that another caller starts.
+var ErrAlreadyRunning = errors.New("already running")
+
 // ProcessManager handles spawning, monitoring, and killing processes.
 type ProcessManager struct {
 	BeforeStart func(context.Context, BinaryConfig) error
@@ -267,7 +271,7 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 	pm.mu.Lock()
 	if _, exists := pm.processes[processName]; exists || pm.starting[processName] {
 		pm.mu.Unlock()
-		return 0, fmt.Errorf("%s is already running", processName)
+		return 0, fmt.Errorf("%s is %w", processName, ErrAlreadyRunning)
 	}
 	pm.starting[processName] = true
 	pm.mu.Unlock()
