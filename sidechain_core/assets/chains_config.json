@@ -372,6 +372,15 @@
             "macos-arm64": "thunder-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
             "windows-x86_64": "thunder-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
           }
+        },
+        "cli": {
+          "binary": "thunder-cli",
+          "files": {
+            "linux-x86_64": "thunder-cli-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu$",
+            "macos-x86_64": "thunder-cli-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
+            "macos-arm64": "thunder-cli-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
+            "windows-x86_64": "thunder-cli-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
+          }
         }
       },
       "alternative_download": {
@@ -433,6 +442,15 @@
             "macos-x86_64": "bitnames-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
             "macos-arm64": "bitnames-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
             "windows-x86_64": "bitnames-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
+          }
+        },
+        "cli": {
+          "binary": "bitnames-cli",
+          "files": {
+            "linux-x86_64": "bitnames-cli-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu$",
+            "macos-x86_64": "bitnames-cli-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
+            "macos-arm64": "bitnames-cli-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
+            "windows-x86_64": "bitnames-cli-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
           }
         }
       },
@@ -496,6 +514,15 @@
             "macos-arm64": "bitassets-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
             "windows-x86_64": "bitassets-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
           }
+        },
+        "cli": {
+          "binary": "bitassets-cli",
+          "files": {
+            "linux-x86_64": "bitassets-cli-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu$",
+            "macos-x86_64": "bitassets-cli-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
+            "macos-arm64": "bitassets-cli-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
+            "windows-x86_64": "bitassets-cli-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
+          }
         }
       },
       "alternative_download": {
@@ -558,6 +585,15 @@
             "macos-arm64": "truthcoin-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
             "windows-x86_64": "truthcoin-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
           }
+        },
+        "cli": {
+          "binary": "truthcoin-cli",
+          "files": {
+            "linux-x86_64": "truthcoin-cli-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu$",
+            "macos-x86_64": "truthcoin-cli-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
+            "macos-arm64": "truthcoin-cli-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
+            "windows-x86_64": "truthcoin-cli-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
+          }
         }
       },
       "alternative_download": {
@@ -619,6 +655,15 @@
             "macos-x86_64": "photon-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
             "macos-arm64": "photon-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
             "windows-x86_64": "photon-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
+          }
+        },
+        "cli": {
+          "binary": "photon-cli",
+          "files": {
+            "linux-x86_64": "photon-cli-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu$",
+            "macos-x86_64": "photon-cli-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
+            "macos-arm64": "photon-cli-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
+            "windows-x86_64": "photon-cli-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe$"
           }
         }
       },

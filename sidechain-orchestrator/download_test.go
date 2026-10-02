@@ -179,6 +179,7 @@ func TestDownload_SkipsWhenExists(t *testing.T) {
 	binPath := BinaryPath(dir, "thunder")
 	require.NoError(t, os.MkdirAll(filepath.Dir(binPath), 0o755))
 	require.NoError(t, os.WriteFile(binPath, []byte("existing"), 0o755))
+	require.NoError(t, os.WriteFile(BinaryPath(dir, "thunder-cli"), []byte("existing"), 0o755))
 
 	thunderCfg, ok := BinaryConfigByName("thunder")
 	require.True(t, ok, "thunder config must exist")

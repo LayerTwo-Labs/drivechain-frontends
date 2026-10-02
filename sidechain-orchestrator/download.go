@@ -349,6 +349,9 @@ func (d *DownloadManager) fetchArchive(ctx context.Context, config BinaryConfig,
 		}
 		return savePath, nil
 	}
+	if target.IsCLI {
+		return savePath, nil
+	}
 
 	// Compute SHA256 hash and write back to config
 	if !send(DownloadProgress{Message: "verifying hash..."}) {
@@ -1142,13 +1145,26 @@ func (d *DownloadManager) claim(targets []DownloadTarget) (owned, busy []*inFlig
 
 // Targets lists every download that writes a binary for this config. A layer-2
 // binary with the test build enabled has two: the test build and its backend.
+// A release that publishes its CLI as a separate asset adds one more.
 func (d *DownloadManager) Targets(config BinaryConfig, network string, opts DownloadOptions) []DownloadTarget {
 	target := d.ResolveTarget(config, network, opts)
+	targets := []DownloadTarget{target}
 	backend := d.ResolveTarget(config, network, DownloadOptions{ForceBackend: true})
-	if backend.InFlightKey == target.InFlightKey || backend.FileName == "" || backend.BaseURL == "" {
-		return []DownloadTarget{target}
+	if backend.InFlightKey != target.InFlightKey && backend.FileName != "" && backend.BaseURL != "" {
+		targets = append(targets, backend)
 	}
-	return []DownloadTarget{target, backend}
+	if cli := fileForPlatform(config.CLIFiles); cli != "" {
+		targets = append(targets, DownloadTarget{
+			BinPath:     BinaryPath(d.dataDir, config.CLIBinaryName),
+			FileName:    cli,
+			BaseURL:     config.BaseURL(network),
+			Source:      config.DownloadSource,
+			InFlightKey: config.Name + ":cli",
+			ExtractName: config.CLIBinaryName,
+			IsCLI:       true,
+		})
+	}
+	return targets
 }
 
 // DownloadTarget is where a binary lives on disk and where its archive comes
@@ -1172,6 +1188,8 @@ type DownloadTarget struct {
 	// BinSubfolder is the Core variant's directory under bin/, empty for
 	// everything else. Extraction must land where BinPath says it does.
 	BinSubfolder string
+	// IsCLI marks the CLI asset, whose hash is not the binary's.
+	IsCLI bool
 }
 
 // ResolveTarget picks the Core variant, the test sidechain build, or the plain
