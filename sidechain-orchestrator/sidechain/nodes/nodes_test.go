@@ -10,6 +10,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
@@ -39,7 +40,7 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 			require.True(t, ok, "the BMM engine drives this chain")
 
 			switch bmm.(type) {
-			case *sidechain.JSONRPCProxy, *bbc.Client, *freebank.Client, *zside.Node:
+			case *sidechain.JSONRPCProxy, *bbc.Client, *freebank.Client, *zside.Node, *thunder.Node:
 			default:
 				assert.Failf(t, "unaudited transport", "%s takes %T", chain.name, bmm)
 			}
