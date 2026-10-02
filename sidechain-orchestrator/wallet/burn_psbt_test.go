@@ -92,7 +92,7 @@ func testBurnPSBT(t *testing.T, multisig bool) {
 	require.Len(t, preview.Outputs, 3)
 	require.Equal(t, burn.EncodeAddress(), preview.Outputs[0].Address)
 	require.Equal(t, burnAmount, preview.Outputs[0].ValueSats)
-	require.EqualValues(t, 1_000_000_001, ECXCreditSats(burnAmount))
+	require.EqualValues(t, 1_000_000_001, ECXBurnNetworkByID("alphanet").CreditSats(burnAmount))
 	require.Zero(t, preview.Outputs[1].ValueSats)
 	script, err := hex.DecodeString(preview.Outputs[1].ScriptPubKeyHex)
 	require.NoError(t, err)

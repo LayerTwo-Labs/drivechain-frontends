@@ -28,10 +28,10 @@ import (
 func newWalletBurnECXCommand(burnAddress string, minimumSats int64) *cli.Command {
 	return &cli.Command{
 		Name:      "burn-ecx",
-		Usage:     "Burn Alphanet coins for real ECX",
+		Usage:     "Burn Alphanet or Betanet coins for real ECX",
 		ArgsUsage: "[wallet-id]",
 		Flags: []cli.Flag{
-			&cli.Int64Flag{Name: "sats", Usage: "amount to burn in Alphanet satoshis", Required: true},
+			&cli.Int64Flag{Name: "sats", Usage: "amount to burn in satoshis", Required: true},
 			&cli.Int64Flag{Name: "fee-rate", Usage: "fee rate in sat/vB (0 = default)"},
 			&cli.BoolFlag{Name: "preview", Usage: "show the transaction without a signature or broadcast"},
 			&cli.BoolFlag{Name: "yes", Usage: "approve the burn without a prompt"},
@@ -52,6 +52,7 @@ func newWalletBurnECXCommand(burnAddress string, minimumSats int64) *cli.Command
 }
 
 type burnWalletState struct {
+	network  wallet.ECXBurnNetwork
 	walletID string
 	active   bool
 	external bool
@@ -63,15 +64,23 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 	if err != nil {
 		return fmt.Errorf("read the network: %w", err)
 	}
-	alphanet := false
+	var current wallet.ECXBurnNetwork
 	for _, network := range networks.Msg.Networks {
 		if network.IsCurrent {
-			alphanet = network.Id == "alphanet" && network.Network == "ecash"
+			if network.Network == "ecash" {
+				current = wallet.ECXBurnNetworkByID(network.Id)
+			}
 			break
 		}
 	}
-	if !alphanet {
-		return fmt.Errorf("the burn is available only on Alphanet")
+	if current.Name == "" {
+		return fmt.Errorf("the burn is available only on Alphanet and Betanet")
+	}
+	if s.network.Name == "" {
+		s.network = current
+	}
+	if s.network != current {
+		return fmt.Errorf("the network changed; create the burn again")
 	}
 	status, err := client.GetWalletStatus(cctx.Context, connect.NewRequest(&pb.GetWalletStatusRequest{}))
 	if err != nil {
@@ -126,7 +135,7 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 	}
 	amount := cctx.Int64("sats")
 	if amount < minimumSats {
-		return fmt.Errorf("the burn must be at least %d Alphanet satoshis", minimumSats)
+		return fmt.Errorf("the burn must be at least %d satoshis", minimumSats)
 	}
 	if cctx.Int64("fee-rate") < 0 {
 		return fmt.Errorf("the fee rate cannot be negative")
@@ -143,7 +152,7 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 		return fmt.Errorf("read the burn address: %w", err)
 	}
 	if !burn.IsForNet(&chaincfg.MainNetParams) {
-		return fmt.Errorf("the burn address must use the Alphanet address format")
+		return fmt.Errorf("the burn address must use the eCash address format")
 	}
 	burnScript, err := txscript.PayToAddrScript(burn)
 	if err != nil {
@@ -242,10 +251,10 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 		}
 		ready = status.Msg.Finalizable
 	}
-	creditSats := wallet.ECXCreditSats(amount)
-	preview := fmt.Sprintf("Burn Transaction\nWallet: %s\nAlphanet burn: %s coins (%d satoshis)\nTo BitcoinEater: %s\nThis transaction burns Alphanet coins.\nOP_RETURN: 0 satoshis\nECX address: %s\nThe address used is the first address of this wallet.\nYou will receive 1/100 of the amount you burn as real ECX at this address.\nThe credit rounds up to a whole ECX satoshi.\nReal ECX credit: %s ECX\nNetwork fee: %s Alphanet coins (%d satoshis)\nTotal from Alphanet: %s coins\nYou cannot reverse this burn\n",
-		state.walletID, formatBurnCoins(amount, 8), amount, burnAddress, address, formatBurnCoins(creditSats, 8),
-		formatBurnCoins(decoded.Msg.FeeSats, 8), decoded.Msg.FeeSats, formatBurnCoins(amount+decoded.Msg.FeeSats, 8))
+	creditSats := state.network.CreditSats(amount)
+	preview := fmt.Sprintf("Burn Transaction\nWallet: %s\n%s burn: %s coins (%d satoshis)\nTo BitcoinEater: %s\nThis transaction burns %s coins.\nOP_RETURN: 0 satoshis\nECX address: %s\nThe address used is the first address of this wallet.\nYou will receive 1/%d of the amount you burn as real ECX at this address.\nThe credit rounds up to a whole ECX satoshi.\nReal ECX credit: %s ECX\nNetwork fee: %s %s coins (%d satoshis)\nTotal from %s: %s coins\nYou cannot reverse this burn\n",
+		state.walletID, state.network.Name, formatBurnCoins(amount, 8), amount, burnAddress, state.network.Name, address, state.network.CreditDivisor, formatBurnCoins(creditSats, 8),
+		formatBurnCoins(decoded.Msg.FeeSats, 8), state.network.Name, decoded.Msg.FeeSats, state.network.Name, formatBurnCoins(amount+decoded.Msg.FeeSats, 8))
 	if _, err := io.WriteString(cctx.App.Writer, preview); err != nil {
 		return fmt.Errorf("write the burn preview: %w", err)
 	}
@@ -273,7 +282,7 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 		return fmt.Errorf("collect sufficient signatures before the burn")
 	}
 	if !cctx.Bool("yes") {
-		if _, err := io.WriteString(cctx.App.Writer, "Burn these Alphanet coins? [y/N] "); err != nil {
+		if _, err := fmt.Fprintf(cctx.App.Writer, "Burn these %s coins? [y/N] ", state.network.Name); err != nil {
 			return fmt.Errorf("write the burn prompt: %w", err)
 		}
 		answer, err := bufio.NewReader(cctx.App.Reader).ReadString('\n')
@@ -330,7 +339,7 @@ func checkBurnPreview(preview *pb.DecodeTransactionResponse, amount int64, burnS
 		sequences[i] = uint32(input.Sequence)
 	}
 	if !replay.Protected(uint32(preview.Locktime), sequences) {
-		return fmt.Errorf("the burn transaction must keep Alphanet replay protection")
+		return fmt.Errorf("the burn transaction must keep replay protection")
 	}
 	var burnCount, dataCount int
 	var total int64
