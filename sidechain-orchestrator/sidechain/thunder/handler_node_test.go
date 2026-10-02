@@ -146,6 +146,21 @@ func TestWalletUTXOsKeepMempoolWithIndex(t *testing.T) {
 	assert.Equal(t, []string{"get_wallet_utxos", "get_wallet_addresses", "list_mempool"}, *seen)
 }
 
+// The upstream node serves no list_mempool. It stops its wallet update task
+// when it serves a block template, so the wallet read asks for none.
+func TestWalletUTXOsAskNoBlockTemplate(t *testing.T) {
+	const confirmed = `[{"outpoint":{"Regular":{"txid":"old","vout":0}},
+		"output":{"address":"mine","content":{"Value":2000}}}]`
+	proxy, seen := sendMethodNode(t, map[string]string{
+		"get_wallet_utxos":     confirmed,
+		"get_wallet_addresses": `["mine"]`,
+	})
+	resp, err := NewHandler(proxy).GetWalletUtxos(context.Background(), connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+	require.NoError(t, err)
+	assert.JSONEq(t, confirmed, resp.Msg.UtxosJson)
+	assert.Equal(t, []string{"get_wallet_utxos", "get_wallet_addresses", "list_mempool"}, *seen)
+}
+
 func TestListTransactionsReportsIndexError(t *testing.T) {
 	proxy, seen := sendMethodNode(t, map[string]string{"get_wallet_addresses": `["mine"]`})
 	index := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

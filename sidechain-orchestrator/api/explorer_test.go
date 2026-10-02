@@ -241,6 +241,7 @@ func (n *recordingNode) GetBlockCount(context.Context) (int64, error) {
 // This node mines nothing and proposes nothing, so the overview reads an empty
 // mempool and no bundle.
 func (n *recordingNode) GetBlockTemplate(context.Context) (*sidechain.BlockTemplate, error) {
+	n.called = append(n.called, "get_block_template")
 	return nil, fmt.Errorf("this node builds no template")
 }
 
