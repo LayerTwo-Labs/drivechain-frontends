@@ -1926,7 +1926,9 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	// (#1712), where the question is whether --node-rpc-user reaches the binary.
 	o.log.Info().Strs("argv", opts.EnforcerArgs).Msg("starting enforcer with final argv")
 
-	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); err != nil {
+	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); errors.Is(err, ErrAlreadyRunning) {
+		return
+	} else if err != nil {
 		enforcerMon.SetInitializing(false)
 		o.log.Error().Err(err).Msg("failed to start enforcer")
 		return
@@ -2061,7 +2063,8 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		o.exitedFunc(config.Name),
 	)
 
-	if _, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts); err != nil {
+	// Another caller that starts the same binary owns the start, so this one waits for it.
+	if _, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts); err != nil && !errors.Is(err, ErrAlreadyRunning) {
 		failBoot(targetMon, ch, "start "+config.Name, err)
 		return
 	}
