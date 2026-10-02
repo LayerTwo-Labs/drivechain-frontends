@@ -312,6 +312,75 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Mempool watch: records every mempool tx and how long it waited.
+  Future<googleprotobufempty.Empty> setMempoolWatch(
+    bitwindowdv1bitwindowd.SetMempoolWatchRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.setMempoolWatch,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.GetMempoolWatchStatusResponse> getMempoolWatchStatus(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.getMempoolWatchStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.ListMempoolTransactionsResponse> listMempoolTransactions(
+    bitwindowdv1bitwindowd.ListMempoolTransactionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.listMempoolTransactions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.ListBlockStatsResponse> listBlockStats(
+    bitwindowdv1bitwindowd.ListBlockStatsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.listBlockStats,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Swap bitcoind network. bitwindowd is the entry point so the DB swap
   /// (network-scoped folder) is co-located with the orchestrator update.
   /// Implementation: forward to orchestratord's SetBitcoinConfigNetwork

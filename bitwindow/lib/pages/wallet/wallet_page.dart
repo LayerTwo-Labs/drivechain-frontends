@@ -9,6 +9,7 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_hd.dart';
+import 'package:bitwindow/pages/wallet/transaction_censorship_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
 import 'package:bitwindow/pages/wallet/wallet_checks.dart';
 import 'package:bitwindow/pages/wallet/wallet_timestamps.dart';
@@ -214,6 +215,12 @@ class WalletPage extends StatelessWidget {
                     TabItem(
                       label: 'Multisig Lounge',
                       child: MultisigLoungeTab(),
+                    ),
+                    TabItem(
+                      label: 'Transaction Censorship',
+                      child: TransactionCensorshipTab(
+                        newWindowButton: SubWindowTypes.transactionCensorship,
+                      ),
                     ),
                     TabItem(
                       label: 'Decode Transaction',

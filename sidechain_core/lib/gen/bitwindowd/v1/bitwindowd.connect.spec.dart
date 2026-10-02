@@ -144,6 +144,35 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.GetNetworkStatsResponse.new,
   );
 
+  /// Mempool watch: records every mempool tx and how long it waited.
+  static const setMempoolWatch = connect.Spec(
+    '/$name/SetMempoolWatch',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.SetMempoolWatchRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const getMempoolWatchStatus = connect.Spec(
+    '/$name/GetMempoolWatchStatus',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.GetMempoolWatchStatusResponse.new,
+  );
+
+  static const listMempoolTransactions = connect.Spec(
+    '/$name/ListMempoolTransactions',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListMempoolTransactionsRequest.new,
+    bitwindowdv1bitwindowd.ListMempoolTransactionsResponse.new,
+  );
+
+  static const listBlockStats = connect.Spec(
+    '/$name/ListBlockStats',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListBlockStatsRequest.new,
+    bitwindowdv1bitwindowd.ListBlockStatsResponse.new,
+  );
+
   /// Swap bitcoind network. bitwindowd is the entry point so the DB swap
   /// (network-scoped folder) is co-located with the orchestrator update.
   /// Implementation: forward to orchestratord's SetBitcoinConfigNetwork

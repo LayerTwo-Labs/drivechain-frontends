@@ -12,6 +12,7 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/message_signer.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_hd.dart';
+import 'package:bitwindow/pages/wallet/transaction_censorship_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
@@ -32,6 +33,7 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/m4_provider.dart';
 import 'package:bitwindow/providers/mempool_provider.dart';
+import 'package:bitwindow/providers/mempool_watch_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/notification_stream_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
@@ -323,6 +325,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     )..startPolling(),
   );
   NetworkScopedRegistry.register<HDWalletProvider>(HDWalletProvider());
+  NetworkScopedRegistry.register<MempoolWatchProvider>(MempoolWatchProvider());
   GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
   // Eager initialization so it can listen for wallet unlock events
   final checkProvider = CheckProvider();
@@ -479,6 +482,9 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
       break;
     case SubWindowTypes.multisigLoungeId:
       child = const MultisigLoungeTab();
+      break;
+    case SubWindowTypes.transactionCensorshipId:
+      child = const TransactionCensorshipTab(newWindowButton: null);
       break;
     case SubWindowTypes.bitDriveId:
       child = const BitDriveTab();
@@ -1103,6 +1109,14 @@ class SubWindowTypes {
   static var multisigLounge = SailWindow(
     identifier: multisigLoungeId,
     name: 'Multisig Lounge',
+    defaultSize: Size(1200, 800),
+    defaultPosition: Offset(100, 100),
+  );
+
+  static const String transactionCensorshipId = 'transaction_censorship';
+  static var transactionCensorship = SailWindow(
+    identifier: transactionCensorshipId,
+    name: 'Transaction Censorship',
     defaultSize: Size(1200, 800),
     defaultPosition: Offset(100, 100),
   );

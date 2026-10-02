@@ -410,6 +410,12 @@ abstract class BitwindowAPI {
 
   Future<GetNetworkStatsResponse> getNetworkStats();
 
+  // Mempool watch
+  Future<void> setMempoolWatch(bool enabled);
+  Future<GetMempoolWatchStatusResponse> getMempoolWatchStatus();
+  Future<ListMempoolTransactionsResponse> listMempoolTransactions(ListMempoolTransactionsRequest request);
+  Future<List<BlockStats>> listBlockStats(int fromHeight, int toHeight);
+
   /// Swap bitcoind network. bitwindowd forwards to drivechaind and exits
   /// for a launcher restart so the DB rescopes to the new network folder.
   Future<void> updateNetwork(String network, {String dataDir, String networkId});
@@ -573,6 +579,43 @@ class _BitwindowAPILive implements BitwindowAPI {
     } catch (e) {
       final error = 'could not get network stats: ${extractConnectException(e)}';
       throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<void> setMempoolWatch(bool enabled) async {
+    try {
+      await _client.setMempoolWatch(SetMempoolWatchRequest(enabled: enabled));
+    } catch (e) {
+      throw BitwindowException('could not set mempool watch: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<GetMempoolWatchStatusResponse> getMempoolWatchStatus() async {
+    try {
+      return await _client.getMempoolWatchStatus(Empty());
+    } catch (e) {
+      throw BitwindowException('could not get mempool watch status: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<ListMempoolTransactionsResponse> listMempoolTransactions(ListMempoolTransactionsRequest request) async {
+    try {
+      return await _client.listMempoolTransactions(request);
+    } catch (e) {
+      throw BitwindowException('could not list mempool transactions: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<List<BlockStats>> listBlockStats(int fromHeight, int toHeight) async {
+    try {
+      final response = await _client.listBlockStats(ListBlockStatsRequest(fromHeight: fromHeight, toHeight: toHeight));
+      return response.blocks;
+    } catch (e) {
+      throw BitwindowException('could not list block stats: ${extractConnectException(e)}');
     }
   }
 

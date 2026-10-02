@@ -76,5 +76,45 @@ class AddressType extends $pb.ProtobufEnum {
   const AddressType._($core.int v, $core.String n) : super(v, n);
 }
 
+class MempoolTxStatus extends $pb.ProtobufEnum {
+  static const MempoolTxStatus MEMPOOL_TX_STATUS_UNSPECIFIED = MempoolTxStatus._(0, _omitEnumNames ? '' : 'MEMPOOL_TX_STATUS_UNSPECIFIED');
+  static const MempoolTxStatus MEMPOOL_TX_STATUS_PENDING = MempoolTxStatus._(1, _omitEnumNames ? '' : 'MEMPOOL_TX_STATUS_PENDING');
+  static const MempoolTxStatus MEMPOOL_TX_STATUS_MINED = MempoolTxStatus._(2, _omitEnumNames ? '' : 'MEMPOOL_TX_STATUS_MINED');
+  static const MempoolTxStatus MEMPOOL_TX_STATUS_REMOVED = MempoolTxStatus._(3, _omitEnumNames ? '' : 'MEMPOOL_TX_STATUS_REMOVED');
+
+  static const $core.List<MempoolTxStatus> values = <MempoolTxStatus> [
+    MEMPOOL_TX_STATUS_UNSPECIFIED,
+    MEMPOOL_TX_STATUS_PENDING,
+    MEMPOOL_TX_STATUS_MINED,
+    MEMPOOL_TX_STATUS_REMOVED,
+  ];
+
+  static final $core.Map<$core.int, MempoolTxStatus> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static MempoolTxStatus? valueOf($core.int value) => _byValue[value];
+
+  const MempoolTxStatus._($core.int v, $core.String n) : super(v, n);
+}
+
+class MempoolTxSort extends $pb.ProtobufEnum {
+  static const MempoolTxSort MEMPOOL_TX_SORT_UNSPECIFIED = MempoolTxSort._(0, _omitEnumNames ? '' : 'MEMPOOL_TX_SORT_UNSPECIFIED');
+  static const MempoolTxSort MEMPOOL_TX_SORT_FEE_RATE = MempoolTxSort._(1, _omitEnumNames ? '' : 'MEMPOOL_TX_SORT_FEE_RATE');
+  static const MempoolTxSort MEMPOOL_TX_SORT_FEE = MempoolTxSort._(2, _omitEnumNames ? '' : 'MEMPOOL_TX_SORT_FEE');
+  static const MempoolTxSort MEMPOOL_TX_SORT_VSIZE = MempoolTxSort._(3, _omitEnumNames ? '' : 'MEMPOOL_TX_SORT_VSIZE');
+  static const MempoolTxSort MEMPOOL_TX_SORT_FIRST_SEEN = MempoolTxSort._(4, _omitEnumNames ? '' : 'MEMPOOL_TX_SORT_FIRST_SEEN');
+
+  static const $core.List<MempoolTxSort> values = <MempoolTxSort> [
+    MEMPOOL_TX_SORT_UNSPECIFIED,
+    MEMPOOL_TX_SORT_FEE_RATE,
+    MEMPOOL_TX_SORT_FEE,
+    MEMPOOL_TX_SORT_VSIZE,
+    MEMPOOL_TX_SORT_FIRST_SEEN,
+  ];
+
+  static final $core.Map<$core.int, MempoolTxSort> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static MempoolTxSort? valueOf($core.int value) => _byValue[value];
+
+  const MempoolTxSort._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');
