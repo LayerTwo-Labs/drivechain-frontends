@@ -123,5 +123,6 @@ void main() {
   test('clisFor gives every CLI outside a sidechain app', () {
     expect(CLIConsole.clisFor(null), containsAll(['bitcoin-cli', 'thunder-cli', 'bitnames-cli']));
     expect(CLIConsole.clisFor(BinaryType.BINARY_TYPE_THUNDER), ['thunder-cli']);
+    expect(CLIConsole.clisFor(BinaryType.BINARY_TYPE_ZSIDE), ['thunder-orchard-cli']);
   });
 }
