@@ -63,7 +63,8 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
     );
   }
 
-  bool get _isAlphanet => _context.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH && _context.networkId == 'alphanet';
+  ({String name, int creditDivisor})? get _network =>
+      _context.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH ? burnEcxNetworks[_context.networkId] : null;
 
   @override
   void initState() {
@@ -118,7 +119,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
   }
 
   bool _isCurrent(int version, _BurnContext context) =>
-      mounted && version == _version && context == _readContext() && _isAlphanet && context.blocked == null;
+      mounted && version == _version && context == _readContext() && _network != null && context.blocked == null;
 
   void _onAmountChanged(String value) {
     _timer?.cancel();
@@ -252,7 +253,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isAlphanet) {
+    if (_network == null) {
       return const SizedBox.shrink();
     }
     final theme = SailTheme.of(context);
@@ -273,15 +274,15 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
         spacing: SailStyleValues.padding04,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary15('Burn Alphanet Coins', bold: true),
-          SailText.secondary13('Burn your coins to receive 1/100 of the amount as real ECX'),
+          SailText.primary15('Burn ${_network!.name} Coins', bold: true),
+          SailText.secondary13('Burn your coins to receive 1/${_network!.creditDivisor} of the amount as real ECX'),
         ],
       ),
       SailColumn(
         spacing: SailStyleValues.padding08,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.secondary12('Alphanet amount', bold: true),
+          SailText.secondary12('${_network!.name} amount', bold: true),
           SailTextField(
             controller: _amountController,
             hintText: '0.00000000',
@@ -339,7 +340,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
           children: [
             _row('To BitcoinEater', formatBurnAmount(amount)),
             SailText.primary12(widget.burnAddress, overflow: TextOverflow.visible),
-            SailText.secondary12('This transaction burns the bitcoins on Alphanet.'),
+            SailText.secondary12('This transaction burns the bitcoins on ${_network!.name}.'),
             Divider(height: 1, color: theme.colors.divider),
             _row('OP_RETURN', '0 ECX'),
             SailText.primary12(
@@ -358,7 +359,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
     children: [
       Divider(height: 1, color: theme.colors.divider),
       _row('Network fee', formatBurnAmount(fee)),
-      _row('Total from Alphanet', formatBurnAmount(amount + fee)),
+      _row('Total from ${_network!.name}', formatBurnAmount(amount + fee)),
     ],
   );
 
@@ -371,7 +372,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
             spacing: SailStyleValues.padding04,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SailText.secondary12('Alphanet'),
+              SailText.secondary12(_network!.name),
               SailText.primary13(formatBurnAmount(amount, compact: true), bold: true),
               SailText.secondary12(sent ? 'Burn sent' : 'Burn permanently'),
             ],
@@ -385,7 +386,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.secondary12('Real ECX'),
-              SailText.primary13(formatEcxCredit(amount, compact: true), bold: true),
+              SailText.primary13(formatEcxCredit(amount, _network!.creditDivisor, compact: true), bold: true),
               SailText.secondary12(sent ? 'Credit pending' : 'Credit after acceptance'),
             ],
           ),

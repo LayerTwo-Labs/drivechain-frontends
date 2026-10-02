@@ -196,6 +196,11 @@ void main() {
 
     conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'betanet');
     await tester.pump();
+    expect(find.byType(BurnEcxCard), findsOneWidget);
+    expect(find.text('Burn Betanet Coins'), findsOneWidget);
+
+    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'drynet4');
+    await tester.pump();
     expectNoBurnGap();
 
     conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_MAINNET, 'alphanet');

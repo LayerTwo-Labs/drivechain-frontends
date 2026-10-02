@@ -330,10 +330,35 @@ void main() {
     });
   }
 
-  testWidgets('hides the card on Betanet with the same ECASH enum', (tester) async {
-    conf.ecashNetworkId = 'betanet';
+  testWidgets('hides the card on an ECASH network without the burn', (tester) async {
+    conf.ecashNetworkId = 'drynet4';
     await pumpCard(tester);
     expect(burnButton(), findsNothing);
+  });
+
+  testWidgets('shows the card on Betanet with the Betanet name', (tester) async {
+    conf.ecashNetworkId = 'betanet';
+    await pumpCard(tester);
+    await enterAmount(tester);
+    expect(find.text('Burn Betanet Coins'), findsOneWidget);
+    expect(find.text('Betanet amount'), findsOneWidget);
+    expect(find.text('Betanet'), findsOneWidget);
+    expect(find.text('This transaction burns the bitcoins on Betanet.'), findsOneWidget);
+    expect(find.text('Total from Betanet'), findsOneWidget);
+    expect(find.textContaining('1/50 of the amount'), findsOneWidget);
+    expect(find.text('25 ECX'), findsOneWidget);
+    expect(find.textContaining('Alphanet'), findsNothing);
+    expect(rpc.amounts, [
+      {_burnAddress: 125000000000},
+    ]);
+    expect(rpc.opReturnAddresses, [_walletAddress]);
+    expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
+    expect(tester.takeException(), isNull);
+
+    await burn(tester);
+    expect(find.text('Burn sent'), findsWidgets);
+    expect(rpc.calls.last, 'broadcast');
+    expect(find.textContaining('Alphanet'), findsNothing);
   });
 
   testWidgets('uses the catalog id when the explicit network id is empty', (tester) async {
@@ -554,9 +579,7 @@ void main() {
         expect(rpc.calls.length, count);
         expect(find.text('Burn sent'), findsNothing);
         expect(find.text(_walletAddress), findsNothing);
-        if (change != 'network') {
-          expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
-        }
+        expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
       });
     }
   }

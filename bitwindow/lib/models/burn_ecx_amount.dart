@@ -1,5 +1,9 @@
 const burnEcxAddress = '1BitcoinEaterAddressDontSendf59kuE';
 const burnEcxMinimumSats = 100000000000;
+const burnEcxNetworks = {
+  'alphanet': (name: 'Alphanet', creditDivisor: 100),
+  'betanet': (name: 'Betanet', creditDivisor: 50),
+};
 
 int parseBurnAmount(String text) {
   final value = text.trim();
@@ -16,10 +20,11 @@ int parseBurnAmount(String text) {
 
 String formatBurnAmount(int amountSats, {bool compact = false}) => _formatAmount(amountSats, 8, compact: compact);
 
-int calculateEcxCreditSats(int amountSats) => amountSats ~/ 100 + (amountSats % 100 == 0 ? 0 : 1);
+int calculateEcxCreditSats(int amountSats, int creditDivisor) =>
+    amountSats ~/ creditDivisor + (amountSats % creditDivisor == 0 ? 0 : 1);
 
-String formatEcxCredit(int amountSats, {bool compact = false}) =>
-    _formatAmount(calculateEcxCreditSats(amountSats), 8, compact: compact);
+String formatEcxCredit(int amountSats, int creditDivisor, {bool compact = false}) =>
+    _formatAmount(calculateEcxCreditSats(amountSats, creditDivisor), 8, compact: compact);
 
 String _formatAmount(int amount, int decimals, {bool compact = false}) {
   final digits = amount.toString().padLeft(decimals + 1, '0');
