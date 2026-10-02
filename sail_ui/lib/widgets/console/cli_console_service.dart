@@ -59,7 +59,7 @@ class CLIConsole {
     BinaryType.BINARY_TYPE_BITNAMES: 'bitnames-cli',
     BinaryType.BINARY_TYPE_BITASSETS: 'bitassets-cli',
     BinaryType.BINARY_TYPE_COINSHIFT: 'coinshift-cli',
-    BinaryType.BINARY_TYPE_ZSIDE: 'zside-cli',
+    BinaryType.BINARY_TYPE_ZSIDE: 'thunder-orchard-cli',
     BinaryType.BINARY_TYPE_DRIVECHAIND: 'drivechain-cli',
   };
 
@@ -90,7 +90,7 @@ class CLIConsole {
     'bitnames-cli': 'bitnames',
     'bitassets-cli': 'bitassets',
     'coinshift-cli': 'coinshift',
-    'zside-cli': 'zside',
+    'thunder-orchard-cli': 'zside',
     'drivechain-cli': 'drivechaind',
   };
 
