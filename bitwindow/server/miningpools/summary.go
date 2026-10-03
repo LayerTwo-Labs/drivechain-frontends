@@ -37,7 +37,7 @@ func Summarize(rows []coinbases.Coinbase, pools []Pool) Summary {
 		bySlug[pool.Slug] = &Share{Pool: pool}
 	}
 	work := new(big.Int)
-	for _, row := range rows {
+	for i, row := range rows {
 		pool := Match(row.Script, row.Addresses, pools)
 		share, ok := bySlug[pool.Slug]
 		if !ok {
@@ -48,7 +48,10 @@ func Summarize(rows []coinbases.Coinbase, pools []Pool) Summary {
 		if row.TxCount == 1 {
 			share.Empty++
 		}
-		work.Add(work, blockchain.CalcWork(row.Bits))
+		// The first block's work came before the span starts.
+		if i > 0 {
+			work.Add(work, blockchain.CalcWork(row.Bits))
+		}
 	}
 
 	out := Summary{Blocks: uint32(len(rows))}
