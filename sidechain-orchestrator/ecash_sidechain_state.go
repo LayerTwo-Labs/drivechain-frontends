@@ -25,7 +25,7 @@ var ecashAlignMu sync.Mutex
 // ecashSidechainStateNames are the entries one eCash network owns in a
 // sidechain datadir. The wallet goes too: its coins belong to that chain, and
 // the starter mnemonic rebuilds its keys on any network.
-var ecashSidechainStateNames = append(append([]string{}, config.SidechainChainDataNames...), "wallet.mdb")
+var ecashSidechainStateNames = append(append([]string{}, config.SidechainChainDataNames...), sidechainWalletFile, walletStampFile)
 
 // alignECashSidechainState gives a sidechain the state of the eCash network it
 // starts on. Every eCash network shares one flat datadir, so after a switch the

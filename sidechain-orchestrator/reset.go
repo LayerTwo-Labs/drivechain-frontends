@@ -642,12 +642,18 @@ func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinar
 	case ResetBinaryBitwindowd:
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)
 	default:
-		o.injectSidechainStarter(cfg, &opts)
+		walletID, err := o.alignSidechainState(cfg)
+		if err != nil {
+			startErr = err
+			break
+		}
+		o.injectSidechainStarter(cfg, &opts, walletID)
 		if err := o.prepareSidechainArgs(cfg, &opts); err != nil {
 			startErr = err
 			break
 		}
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)
+		o.reloadIfWalletChanged(walletID)
 	}
 
 	close(ch)

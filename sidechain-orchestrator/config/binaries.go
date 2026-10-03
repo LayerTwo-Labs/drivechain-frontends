@@ -540,6 +540,17 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 
 	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"wallet.mdb"}, log)...)
+		// Each parked wallet.mdb: of another BitWindow wallet, another eCash
+		// network, or a seed no wallet here made.
+		entries, err := os.ReadDir(networkDir)
+		if err != nil && !os.IsNotExist(err) {
+			log.Warn().Err(err).Str("dir", networkDir).Msg("list parked sidechain wallets")
+		}
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "wallet.mdb.network-") {
+				paths = append(paths, filepath.Join(networkDir, entry.Name()))
+			}
+		}
 
 	case "bitwindowd":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"wallet.json", "wallet_encryption.json"}, log)...)

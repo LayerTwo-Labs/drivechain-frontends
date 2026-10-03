@@ -256,6 +256,12 @@ message BinaryStatusMsg {
   bool window_open = 27;
   reserved 28;
   reserved "serves_light_wallet";
+  // ID of the wallet whose sidechain wallet this binary holds. Empty for a
+  // binary that keeps no wallet file, and before the first start.
+  string loaded_wallet_id = 29;
+  // The sidechain keeps a wallet.mdb aside that holds a seed no wallet here
+  // made, because its node refused it.
+  bool has_external_wallet = 30;
 }
 
 message StartupLogEntryMsg {
