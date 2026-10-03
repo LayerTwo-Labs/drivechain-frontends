@@ -40,7 +40,7 @@ type Services struct {
 	// id reads as a chain change and throws the database away.
 	ECashNetworkID string
 
-	// MiningPoolFetch downloads the pool registry. Nil uses HTTP; tests inject.
+	// MiningPoolFetch downloads the pool registry. A nil value uses DefaultFetch.
 	MiningPoolFetch miningpools.Fetch
 
 	BitcoindConnector service.Connector[corerpc.BitcoinServiceClient]
