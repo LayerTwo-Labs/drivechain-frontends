@@ -15,7 +15,6 @@ import 'package:bitwindow/pages/wallet/wallet_timestamps.dart';
 import 'package:bitwindow/pages/wallet/wallet_overview.dart';
 import 'package:bitwindow/pages/wallet/wallet_receive.dart';
 import 'package:bitwindow/pages/wallet/wallet_send.dart';
-import 'package:bitwindow/pages/wallet/wallet_solo_mining.dart';
 import 'package:bitwindow/pages/wallet/wallet_utxos.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fork_mode_banner.dart';
@@ -111,7 +110,6 @@ class WalletPage extends StatelessWidget {
   }
 
   static const String consolidateSubtabLabel = 'Consolidate';
-  static const String soloMiningSubtabLabel = 'Solo Mining';
 
   static void setSubtab(int index) {
     tabKey.currentState?.setIndex(index, null);
@@ -227,11 +225,6 @@ class WalletPage extends StatelessWidget {
                       label: 'Block Explorer',
                       child: const BlockExplorerDialog(),
                     ),
-                    if (GetIt.I.get<BitcoinConfProvider>().network == BitcoinNetwork.BITCOIN_NETWORK_ECASH)
-                      TabItem(
-                        label: soloMiningSubtabLabel,
-                        child: const SoloMiningTab(),
-                      ),
                   ],
                 ),
               ];

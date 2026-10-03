@@ -1,4 +1,7 @@
 import 'package:bitwindow/dialogs/mining_settings_dialog.dart';
+import 'package:bitwindow/pages/mining/mining_page.dart';
+import 'package:bitwindow/pages/mining/pools_tab.dart';
+import 'package:bitwindow/providers/mining_pools_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -9,6 +12,7 @@ import 'package:sidechain_core/gen/stratum/v1/stratum.pb.dart';
 const _soloKey = 'solo';
 const _customKey = 'custom';
 const _poolKeyPrefix = 'pool:';
+const _registryKeyPrefix = 'registry:';
 
 const _soloDescription = 'Your node builds each block. A block that you find pays the full reward to you.';
 const _poolDescription = 'The pool splits each block among its miners. You get smaller payouts more often.';
@@ -58,15 +62,16 @@ List<String> chartLabels(List<HashratePoint> points, HashrateRange range) {
   return [for (final i in steps) label(points[i])];
 }
 
-class SoloMiningTab extends StatefulWidget {
-  const SoloMiningTab({super.key});
+class MiningTab extends StatefulWidget {
+  const MiningTab({super.key});
 
   @override
-  State<SoloMiningTab> createState() => _SoloMiningTabState();
+  State<MiningTab> createState() => _MiningTabState();
 }
 
-class _SoloMiningTabState extends State<SoloMiningTab> {
+class _MiningTabState extends State<MiningTab> {
   late final StratumProvider _stratum = GetIt.I.get<StratumProvider>();
+  late final MiningPoolsProvider _shares = GetIt.I.get<MiningPoolsProvider>();
 
   final _poolUrl = TextEditingController();
   final _worker = TextEditingController();
@@ -81,12 +86,17 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
   void initState() {
     super.initState();
     _stratum.addListener(_onChange);
+    _shares.addListener(_onChange);
+    MiningPage.requestedPoolUrl.addListener(_takeRequestedPool);
     _showSavedCustom();
+    _takeRequestedPool();
   }
 
   @override
   void dispose() {
     _stratum.removeListener(_onChange);
+    _shares.removeListener(_onChange);
+    MiningPage.requestedPoolUrl.removeListener(_takeRequestedPool);
     _poolUrl.dispose();
     _worker.dispose();
     _password.dispose();
@@ -106,6 +116,23 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
     }
     _savedCustomShown = true;
     _fillCustomFields();
+  }
+
+  void _takeRequestedPool() {
+    final url = MiningPage.requestedPoolUrl.value;
+    if (url == null) {
+      return;
+    }
+    MiningPage.requestedPoolUrl.value = null;
+    _fillPool(url);
+  }
+
+  void _fillPool(String url) {
+    _fillCustomFields();
+    _poolUrl.text = url;
+    if (mounted) {
+      setState(() => _choice = _customKey);
+    }
   }
 
   String get _currentKey => _choice ?? targetKey(_stratum.status.target);
@@ -133,6 +160,10 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
   }
 
   Future<void> _choose(String key) async {
+    if (key.startsWith(_registryKeyPrefix)) {
+      _fillPool(key.substring(_registryKeyPrefix.length));
+      return;
+    }
     setState(() => _choice = key);
     if (key == _customKey) {
       _fillCustomFields();
@@ -188,6 +219,44 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
   }
 
   List<SailComboboxItem<String>> _targetItems() {
+    final window = miningPoolWindowLabel(_shares.window);
+    String shareLabel(MiningPoolShare share) => '${(share.share * 100).toStringAsFixed(0)}% of blocks · $window';
+
+    final pools = <({SailComboboxItem<String> item, int blocks})>[];
+    for (final pool in _stratum.pools) {
+      final share = _shares.shareFor(pool.url);
+      final reach = share == null ? (pool.hasHashrate() ? formatHashrate(pool.hashrate) : '—') : shareLabel(share);
+      pools.add((
+        blocks: share?.blockCount ?? -1,
+        item: SailComboboxItem(
+          value: '$_poolKeyPrefix${pool.id}',
+          label: pool.name,
+          subtitle: _poolDescription,
+          section: 'Pools',
+          searchValue: '${pool.name} ${pool.url}',
+          trailing: [reach, if (pool.fee.isNotEmpty) '${pool.fee} fee'],
+        ),
+      ));
+    }
+    for (final share in _shares.pools) {
+      final url = share.pool.stratumUrl;
+      if (url.isEmpty || _stratum.pools.any((pool) => samePoolUrl(pool.url, url))) {
+        continue;
+      }
+      pools.add((
+        blocks: share.blockCount,
+        item: SailComboboxItem(
+          value: '$_registryKeyPrefix$url',
+          label: share.pool.name,
+          subtitle: _poolDescription,
+          section: 'Pools',
+          searchValue: '${share.pool.name} $url',
+          trailing: [shareLabel(share), '${formatPoolFee(share.pool.feeBps)} fee'],
+        ),
+      ));
+    }
+    pools.sort((a, b) => b.blocks.compareTo(a.blocks));
+
     return [
       const SailComboboxItem(
         value: _soloKey,
@@ -196,18 +265,7 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
         section: 'Your node',
         trailing: ['No fee'],
       ),
-      for (final pool in _stratum.pools)
-        SailComboboxItem(
-          value: '$_poolKeyPrefix${pool.id}',
-          label: pool.name,
-          subtitle: _poolDescription,
-          section: 'Pools',
-          searchValue: '${pool.name} ${pool.url}',
-          trailing: [
-            pool.hasHashrate() ? formatHashrate(pool.hashrate) : '—',
-            if (pool.fee.isNotEmpty) '${pool.fee} fee',
-          ],
-        ),
+      for (final pool in pools) pool.item,
       const SailComboboxItem(
         value: _customKey,
         label: 'Custom pool',

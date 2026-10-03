@@ -27,6 +27,7 @@ import 'package:bitwindow/widgets/fork_countdown_timer.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/pages/mining/mining_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
@@ -41,16 +42,10 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
-/// Opens the mining page: the Wallet tab, and the Solo Mining tab on it.
-void _openSoloMining() {
-  GetIt.I.get<AppRouter>().navigate(const WalletRoute());
-  WalletPage.openSubtab(WalletPage.soloMiningSubtabLabel);
-}
-
-/// Mining runs on eCash only, and the mining page is a tab that other networks
-/// do not carry.
-bool _minesHere() {
-  return GetIt.I.get<BitcoinConfProvider>().network == BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+/// Opens a tab of the Mining page.
+void _openMining(String subtab) {
+  GetIt.I.get<AppRouter>().navigate(const MiningRoute());
+  MiningPage.openSubtab(subtab);
 }
 
 @RoutePage()
@@ -321,19 +316,16 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Crypto Tools',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.converter),
       ),
-      if (_minesHere())
+      if (minesHere())
         CommandItem(
-          label: 'Solo Mine',
+          label: 'Mine',
           category: 'Work for Bitcoin',
-          onSelected: _openSoloMining,
+          onSelected: () => _openMining(MiningPage.miningSubtabLabel),
         ),
       CommandItem(
         label: 'Mining Pools',
         category: 'Work for Bitcoin',
-        onSelected: () {
-          final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(_tabIndex(TabIndices.mining));
-        },
+        onSelected: () => _openMining(MiningPage.poolsSubtabLabel),
       ),
 
       // This Node
@@ -790,10 +782,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               menus: [
                 PlatformMenuItemGroup(
                   members: [
-                    if (_minesHere())
+                    if (minesHere())
                       PlatformMenuItem(
-                        label: 'Solo Mine',
-                        onSelected: _openSoloMining,
+                        label: 'Mine',
+                        onSelected: () => _openMining(MiningPage.miningSubtabLabel),
                       ),
                     PlatformMenuItem(
                       label: 'Network Statistics',
@@ -806,10 +798,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Mining Pools',
-                      onSelected: () {
-                        final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(_tabIndex(TabIndices.mining));
-                      },
+                      onSelected: () => _openMining(MiningPage.poolsSubtabLabel),
                     ),
                     PlatformMenuItem(
                       label: 'Sidechain Activation',
