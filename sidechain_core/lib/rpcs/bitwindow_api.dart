@@ -410,6 +410,9 @@ abstract class BitwindowAPI {
 
   Future<GetNetworkStatsResponse> getNetworkStats();
 
+  // Mining pools
+  Future<ListMiningPoolsResponse> listMiningPools(MiningPoolWindow window);
+
   /// Swap bitcoind network. bitwindowd forwards to drivechaind and exits
   /// for a launcher restart so the DB rescopes to the new network folder.
   Future<void> updateNetwork(String network, {String dataDir, String networkId});
@@ -573,6 +576,15 @@ class _BitwindowAPILive implements BitwindowAPI {
     } catch (e) {
       final error = 'could not get network stats: ${extractConnectException(e)}';
       throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<ListMiningPoolsResponse> listMiningPools(MiningPoolWindow window) async {
+    try {
+      return await _client.listMiningPools(ListMiningPoolsRequest(window: window));
+    } catch (e) {
+      throw BitwindowException('could not list mining pools: ${extractConnectException(e)}');
     }
   }
 

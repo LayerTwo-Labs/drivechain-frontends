@@ -19,9 +19,11 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bip329"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
@@ -51,6 +53,7 @@ func New(
 	db *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
+	pools *miningpools.Registry,
 	config config.Config,
 	recycle func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error,
 ) *Server {
@@ -59,6 +62,7 @@ func New(
 		db:               db,
 		bitcoind:         bitcoind,
 		walletEngine:     walletEngine,
+		pools:            pools,
 		bandwidthTracker: bandwidth.NewTracker(),
 		recycle:          recycle,
 
@@ -72,6 +76,7 @@ type Server struct {
 	db               *sql.DB
 	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine     *engines.WalletEngine
+	pools            *miningpools.Registry
 	bandwidthTracker *bandwidth.Tracker
 	recycle          func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error
 
@@ -955,6 +960,9 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 	slices.SortFunc(blocks, func(a, b *pb.Block) int {
 		return -cmp.Compare(a.Height, b.Height)
 	})
+	if err := s.attributeBlocks(ctx, blocks); err != nil {
+		return nil, err
+	}
 
 	hasMore := startHeight > uint32(len(blocks))
 	s.listBlocksCache.Store(cacheKey, &listBlocksCacheEntry{
@@ -1367,4 +1375,78 @@ func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid
 	return lo.ContainsBy(utxos.Msg.Unspent, func(utxo *corepb.UnspentOutput) bool {
 		return utxo.Txid == txid && utxo.Vout == vout
 	}), nil
+}
+
+var miningPoolWindows = map[pb.MiningPoolWindow]time.Duration{
+	pb.MiningPoolWindow_MINING_POOL_WINDOW_24H: 24 * time.Hour,
+	pb.MiningPoolWindow_MINING_POOL_WINDOW_3D:  3 * 24 * time.Hour,
+	pb.MiningPoolWindow_MINING_POOL_WINDOW_1W:  7 * 24 * time.Hour,
+}
+
+func (s *Server) ListMiningPools(ctx context.Context, req *connect.Request[pb.ListMiningPoolsRequest]) (*connect.Response[pb.ListMiningPoolsResponse], error) {
+	window, ok := miningPoolWindows[req.Msg.Window]
+	if !ok {
+		window = miningPoolWindows[pb.MiningPoolWindow_MINING_POOL_WINDOW_24H]
+	}
+	rows, err := coinbases.ListSince(ctx, s.db, time.Now().Add(-window))
+	if err != nil {
+		return nil, fmt.Errorf("list coinbases: %w", err)
+	}
+	registry := s.pools.Pools()
+	summary := miningpools.Summarize(rows, registry.Pools)
+	shares := make([]*pb.MiningPoolShare, len(summary.Shares))
+	for i, share := range summary.Shares {
+		shares[i] = &pb.MiningPoolShare{
+			Pool:              miningPoolProto(share.Pool),
+			BlockCount:        share.Blocks,
+			EmptyBlocks:       share.Empty,
+			Share:             share.Share,
+			EstimatedHashrate: share.Hashrate,
+		}
+	}
+	return connect.NewResponse(&pb.ListMiningPoolsResponse{
+		Pools:             shares,
+		BlockCount:        summary.Blocks,
+		FromHeight:        summary.FromHeight,
+		ToHeight:          summary.ToHeight,
+		NetworkHashrate:   summary.NetworkHashrate,
+		RegistryAvailable: registry.Available,
+		RegistrySource:    registry.Source,
+	}), nil
+}
+
+// attributeBlocks fills the pool of every block whose coinbase was recorded.
+// Blocks arrive sorted by height, descending.
+func (s *Server) attributeBlocks(ctx context.Context, blocks []*pb.Block) error {
+	if len(blocks) == 0 {
+		return nil
+	}
+	rows, err := coinbases.ListRange(ctx, s.db, blocks[len(blocks)-1].Height, blocks[0].Height)
+	if err != nil {
+		return fmt.Errorf("list coinbases: %w", err)
+	}
+	byHeight := make(map[uint32]coinbases.Coinbase, len(rows))
+	for _, row := range rows {
+		byHeight[row.Height] = row
+	}
+	registry := s.pools.Pools()
+	for _, block := range blocks {
+		if row, ok := byHeight[block.Height]; ok && row.Hash == block.Hash {
+			block.Pool = miningPoolProto(miningpools.Match(row.Script, row.Addresses, registry.Pools))
+		}
+	}
+	return nil
+}
+
+func miningPoolProto(p miningpools.Pool) *pb.MiningPool {
+	return &pb.MiningPool{
+		Name:       p.Name,
+		Slug:       p.Slug,
+		Link:       p.Link,
+		Operator:   p.Operator,
+		Mode:       p.Mode,
+		FeeBps:     uint32(p.FeeBps),
+		StratumUrl: p.StratumURL,
+		Payout:     p.Payout,
+	}
 }

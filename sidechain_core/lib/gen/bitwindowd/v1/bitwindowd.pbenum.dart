@@ -76,5 +76,24 @@ class AddressType extends $pb.ProtobufEnum {
   const AddressType._($core.int v, $core.String n) : super(v, n);
 }
 
+class MiningPoolWindow extends $pb.ProtobufEnum {
+  static const MiningPoolWindow MINING_POOL_WINDOW_UNSPECIFIED = MiningPoolWindow._(0, _omitEnumNames ? '' : 'MINING_POOL_WINDOW_UNSPECIFIED');
+  static const MiningPoolWindow MINING_POOL_WINDOW_24H = MiningPoolWindow._(1, _omitEnumNames ? '' : 'MINING_POOL_WINDOW_24H');
+  static const MiningPoolWindow MINING_POOL_WINDOW_3D = MiningPoolWindow._(2, _omitEnumNames ? '' : 'MINING_POOL_WINDOW_3D');
+  static const MiningPoolWindow MINING_POOL_WINDOW_1W = MiningPoolWindow._(3, _omitEnumNames ? '' : 'MINING_POOL_WINDOW_1W');
+
+  static const $core.List<MiningPoolWindow> values = <MiningPoolWindow> [
+    MINING_POOL_WINDOW_UNSPECIFIED,
+    MINING_POOL_WINDOW_24H,
+    MINING_POOL_WINDOW_3D,
+    MINING_POOL_WINDOW_1W,
+  ];
+
+  static final $core.Map<$core.int, MiningPoolWindow> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static MiningPoolWindow? valueOf($core.int value) => _byValue[value];
+
+  const MiningPoolWindow._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

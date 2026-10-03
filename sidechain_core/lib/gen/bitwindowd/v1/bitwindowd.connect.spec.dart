@@ -144,6 +144,14 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.GetNetworkStatsResponse.new,
   );
 
+  /// Mining pools: which pools mined the recent blocks.
+  static const listMiningPools = connect.Spec(
+    '/$name/ListMiningPools',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListMiningPoolsRequest.new,
+    bitwindowdv1bitwindowd.ListMiningPoolsResponse.new,
+  );
+
   /// Swap bitcoind network. bitwindowd is the entry point so the DB swap
   /// (network-scoped folder) is co-located with the orchestrator update.
   /// Implementation: forward to orchestratord's SetBitcoinConfigNetwork

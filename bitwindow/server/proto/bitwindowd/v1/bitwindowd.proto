@@ -49,6 +49,9 @@ service BitwindowdService {
   // Get network statistics
   rpc GetNetworkStats(google.protobuf.Empty) returns (GetNetworkStatsResponse);
 
+  // Mining pools: which pools mined the recent blocks.
+  rpc ListMiningPools(ListMiningPoolsRequest) returns (ListMiningPoolsResponse);
+
   // Swap bitcoind network. bitwindowd is the entry point so the DB swap
   // (network-scoped folder) is co-located with the orchestrator update.
   // Implementation: forward to orchestratord's SetBitcoinConfigNetwork
@@ -226,6 +229,53 @@ message GetFireplaceStatsResponse {
   int64 block_count_24h = 3;
 }
 
+enum MiningPoolWindow {
+  MINING_POOL_WINDOW_UNSPECIFIED = 0;
+  MINING_POOL_WINDOW_24H = 1;
+  MINING_POOL_WINDOW_3D = 2;
+  MINING_POOL_WINDOW_1W = 3;
+}
+
+// A pool from pool.drivechain.info, or "Unknown". The payout fields are
+// empty on networks served by mempool's list.
+message MiningPool {
+  string name = 1;
+  string slug = 2;
+  string link = 3;
+  string operator = 4;
+  string mode = 5;
+  uint32 fee_bps = 6;
+  string stratum_url = 7;
+  string payout = 8;
+}
+
+message MiningPoolShare {
+  MiningPool pool = 1;
+  uint32 block_count = 2;
+  uint32 empty_blocks = 3;
+  // Fraction of the window's blocks, 0..1.
+  double share = 4;
+  double estimated_hashrate = 5;
+}
+
+message ListMiningPoolsRequest {
+  // Unspecified means 24h.
+  MiningPoolWindow window = 1;
+}
+
+message ListMiningPoolsResponse {
+  repeated MiningPoolShare pools = 1;
+  uint32 block_count = 2;
+  uint32 from_height = 3;
+  uint32 to_height = 4;
+  // Work the window took over the time it spanned, in hashes per second.
+  double network_hashrate = 5;
+  // False on networks without a pool registry; every block is then Unknown.
+  bool registry_available = 6;
+  // The registry URL, or "built-in" while the compiled-in seed is in use.
+  string registry_source = 7;
+}
+
 message ListRecentTransactionsRequest {
   int64 count = 1;
 }
@@ -266,6 +316,8 @@ message Block {
   int32 size = 14;
   int32 weight = 15;
   repeated string txids = 16;
+  // Unset when the block's coinbase was not recorded.
+  MiningPool pool = 17;
 }
 
 message ListBlocksResponse {

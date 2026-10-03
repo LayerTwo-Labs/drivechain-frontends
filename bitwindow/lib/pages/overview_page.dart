@@ -385,6 +385,8 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
   }
 }
 
+const _blockColumns = ['time', 'height', 'hash', 'pool'];
+
 class LatestBlocksTable extends StatefulWidget {
   final List<Block> blocks;
 
@@ -441,6 +443,10 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
           aValue = a.hash;
           bValue = b.hash;
           break;
+        case 'pool':
+          aValue = a.pool.name;
+          bValue = b.pool.name;
+          break;
       }
 
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
@@ -455,6 +461,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
         const SailTableHeaderCell(name: 'Time'),
         const SailTableHeaderCell(name: 'Height'),
         const SailTableHeaderCell(name: 'Block Hash'),
+        const SailTableHeaderCell(name: 'Pool'),
       ],
       rowBuilder: (context, row, selected) {
         final entry = widget.blocks[row];
@@ -462,15 +469,16 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
           SailTableCell(value: entry.blockTime.toDateTime().toLocal().format()),
           SailTableCell(value: entry.height.toString()),
           SailTableCell(value: entry.hash),
+          SailTableCell(value: entry.hasPool() ? entry.pool.name : ''),
         ];
       },
       rowCount: widget.blocks.length,
       emptyPlaceholder: 'No blocks yet',
       drawGrid: true,
-      sortColumnIndex: ['time', 'height', 'hash'].indexOf(sortColumn),
+      sortColumnIndex: _blockColumns.indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
-        onSort(['time', 'height', 'hash'][columnIndex]);
+        onSort(_blockColumns[columnIndex]);
       },
     );
   }
