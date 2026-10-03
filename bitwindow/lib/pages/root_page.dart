@@ -19,6 +19,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/providers/mempool_watch_provider.dart';
 import 'package:bitwindow/widgets/datadir_network_notice.dart';
 import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:bitwindow/widgets/edit_wallet_flow.dart';
@@ -67,12 +68,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   final BitwindowSettingsProvider _bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
   final BitcoinConfProvider _confProvider = GetIt.I.get<BitcoinConfProvider>();
   final BitnamesRPC _bitnamesRPC = GetIt.I.get<BitnamesRPC>();
+  final MempoolWatchProvider _mempoolWatch = GetIt.I.get<MempoolWatchProvider>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
   final _clientSettings = GetIt.I<ClientSettings>();
 
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   bool _isWalletSwitching = false;
   bool _isWalletEncrypted = false;
+  bool _censorshipAlert = false;
   List<PlatformMenuItem>? _cachedMenuList;
   bool? _cachedMenuListEncrypted;
   DateTime? _lastShiftPress;
@@ -89,7 +92,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     (id: TabIndices.wallet, route: WalletRoute(), nav: TopNavRoute(label: 'Wallet')),
     if (_confProvider.drivechainFeaturesAvailable)
       (id: TabIndices.sidechains, route: SidechainsRoute(), nav: TopNavRoute(label: 'Sidechains')),
-    (id: TabIndices.mining, route: MiningRoute(), nav: TopNavRoute(label: 'Mining')),
+    (id: TabIndices.mining, route: MiningRoute(), nav: TopNavRoute(label: _censorshipAlert ? 'Mining ❗' : 'Mining')),
     (id: TabIndices.learn, route: LearnRoute(), nav: TopNavRoute(label: 'Learn')),
     (id: TabIndices.console, route: ConsoleRoute(), nav: TopNavRoute(label: 'Console')),
     (id: TabIndices.chat, route: ChatRoute(), nav: TopNavRoute(label: 'Chat')),
@@ -109,6 +112,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _bitwindowSettingsProvider.addListener(_onProviderChanged);
     _walletReader.addListener(_onProviderChanged);
     _bitnamesRPC.addListener(_onProviderChanged);
+    _mempoolWatch.addListener(_onMempoolWatchChanged);
     _confProvider.addListener(_onNetworkChange);
     _initializeWindowManager();
     _checkEncryptionStatus();
@@ -155,6 +159,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   void _onProviderChanged() {
     _checkEncryptionStatus();
     setState(() {});
+  }
+
+  void _onMempoolWatchChanged() {
+    final alert = _mempoolWatch.alerting;
+    if (alert != _censorshipAlert) {
+      setState(() => _censorshipAlert = alert);
+    }
   }
 
   Future<void> _checkEncryptionStatus() async {
@@ -255,6 +266,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         label: 'Multisig Lounge',
         category: 'Banking',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.multisigLounge),
+      ),
+      CommandItem(
+        label: 'Transaction Censorship',
+        category: 'Banking',
+        onSelected: () => GetIt.I.get<AppRouter>().push(const TransactionCensorshipRoute()),
       ),
       CommandItem(
         label: 'Write a Check',
@@ -672,6 +688,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: () {
                         final windowProvider = GetIt.I.get<WindowProvider>();
                         windowProvider.open(SubWindowTypes.multisigLounge);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Transaction Censorship',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(const TransactionCensorshipRoute());
                       },
                     ),
                   ],
@@ -1159,6 +1181,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _bitwindowSettingsProvider.removeListener(_onProviderChanged);
     _walletReader.removeListener(_onProviderChanged);
     _bitnamesRPC.removeListener(_onProviderChanged);
+    _mempoolWatch.removeListener(_onMempoolWatchChanged);
     _confProvider.removeListener(_onNetworkChange);
     // dispose() must NOT shut the app down. It runs on any unmount — a rebuild
     // that replaces RootPage, an inline widget-error swap, a route change — and

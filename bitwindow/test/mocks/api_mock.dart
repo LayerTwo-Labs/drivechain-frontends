@@ -168,6 +168,25 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<void> updateNetwork(String network, {String dataDir = '', String networkId = ''}) async {}
 
   @override
+  Future<void> setMempoolWatch(bool enabled) async {}
+
+  @override
+  Future<void> resetMempoolWatch() async {}
+
+  @override
+  Future<GetMempoolWatchStatusResponse> getMempoolWatchStatus() {
+    return Future.value(GetMempoolWatchStatusResponse());
+  }
+
+  @override
+  Future<ListMempoolTransactionsResponse> listMempoolTransactions(ListMempoolTransactionsRequest request) {
+    return Future.value(ListMempoolTransactionsResponse());
+  }
+
+  @override
+  Future<List<BlockStats>> listBlockStats(int fromHeight, int toHeight) async => [];
+
+  @override
   Future<ListMiningPoolsResponse> listMiningPools(MiningPoolWindow window) async => ListMiningPoolsResponse();
 
   @override

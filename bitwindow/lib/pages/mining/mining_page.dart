@@ -1,5 +1,7 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/providers/mempool_watch_provider.dart';
 import 'package:bitwindow/providers/mining_pools_provider.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -29,6 +31,11 @@ class MiningPage extends StatelessWidget {
                 'The pools listed at pool.drivechain.info and the recent blocks each one mined, read from the coinbase.',
             error: provider.error,
             bottomPadding: false,
+            widgetHeaderEnd: SailButton(
+              label: model.mempoolWatch.alerting ? 'Transaction Censorship ❗' : 'Transaction Censorship',
+              variant: ButtonVariant.secondary,
+              onPressed: () => GetIt.I.get<AppRouter>().push(const TransactionCensorshipRoute()),
+            ),
             child: model.isLight
                 ? SailText.secondary13('Mining Pools needs a full node.')
                 : SailColumn(
@@ -270,9 +277,11 @@ String formatFee(int feeBps) => '${(feeBps / 100).toStringAsFixed(feeBps % 100 =
 
 class MiningPoolsViewModel extends BaseViewModel {
   final MiningPoolsProvider provider = GetIt.I.get<MiningPoolsProvider>();
+  final MempoolWatchProvider mempoolWatch = GetIt.I.get<MempoolWatchProvider>();
 
   MiningPoolsViewModel() {
     provider.addListener(notifyListeners);
+    mempoolWatch.addListener(notifyListeners);
   }
 
   bool get isLight => GetIt.I.isRegistered<NodeModeProvider>() && GetIt.I<NodeModeProvider>().isLight;
@@ -287,6 +296,7 @@ class MiningPoolsViewModel extends BaseViewModel {
   @override
   void dispose() {
     provider.removeListener(notifyListeners);
+    mempoolWatch.removeListener(notifyListeners);
     super.dispose();
   }
 }

@@ -6,6 +6,7 @@ import 'package:bitwindow/pages/console_page.dart';
 import 'package:bitwindow/pages/explorer/m4_explorer_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
 import 'package:bitwindow/pages/mining/mining_page.dart';
+import 'package:bitwindow/pages/mining/transaction_censorship_page.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/remove_encryption_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
@@ -172,6 +173,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/network-statistics',
       page: NetworkStatisticsRoute.page,
+    ),
+    AutoRoute(
+      path: '/transaction-censorship',
+      page: TransactionCensorshipRoute.page,
     ),
     AutoRoute(
       path: '/remove-encryption',
