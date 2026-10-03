@@ -1,5 +1,6 @@
 // Package miningpools attributes blocks to mining pools the way mempool does:
 // by the coinbase's output addresses first, then by tags in its script.
+// An address that two pools claim identifies neither of them.
 package miningpools
 
 import (
@@ -25,6 +26,7 @@ type Pool struct {
 	Tags       []string
 
 	matchers []func(string) bool
+	owned    []string
 }
 
 // Unknown is the pool a coinbase no registry entry explains.
@@ -125,9 +127,20 @@ func deref(s *string) string {
 }
 
 func finish(pools []Pool) []Pool {
+	claims := make(map[string]int)
+	for _, pool := range pools {
+		for _, address := range slices.Compact(slices.Sorted(slices.Values(pool.Addresses))) {
+			claims[address]++
+		}
+	}
 	for i := range pools {
 		pools[i].Slug = Slug(pools[i].Name)
 		pools[i].matchers = tagMatchers(pools[i].Tags)
+		for _, address := range pools[i].Addresses {
+			if claims[address] == 1 {
+				pools[i].owned = append(pools[i].owned, address)
+			}
+		}
 	}
 	return pools
 }
@@ -157,16 +170,19 @@ func ScriptText(script []byte) string {
 	return string(runes)
 }
 
-// Match returns the first pool, in registry order, whose addresses or tags
-// explain the coinbase, or Unknown.
+// Match returns the first pool, in registry order, that owns an address the
+// coinbase pays. With none, it returns the first pool whose tag the coinbase
+// script carries, or Unknown.
 func Match(script []byte, addresses []string, pools []Pool) Pool {
-	text := ScriptText(script)
 	for _, pool := range pools {
-		if len(addresses) > 0 && slices.ContainsFunc(pool.Addresses, func(a string) bool {
+		if slices.ContainsFunc(pool.owned, func(a string) bool {
 			return slices.Contains(addresses, a)
 		}) {
 			return pool
 		}
+	}
+	text := ScriptText(script)
+	for _, pool := range pools {
 		for _, matches := range pool.matchers {
 			if matches(text) {
 				return pool
