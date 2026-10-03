@@ -7,6 +7,16 @@ void main() {
       expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH), Ticker.ecash);
     });
 
+    test('each eCash test network names its own coin', () {
+      expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'alphanet'), Ticker.alphanet);
+      expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'betanet'), Ticker.betanet);
+      expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'gammanet'), Ticker.ecash);
+    });
+
+    test('an eCash network id never renames Bitcoin', () {
+      expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_SIGNET, ecashNetworkId: 'betanet'), Ticker.bitcoin);
+    });
+
     test('every other network is Bitcoin', () {
       for (final n in [
         BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
@@ -25,6 +35,10 @@ void main() {
       expect(Ticker.ecash.subunit, 'szats');
       expect(Ticker.ecash.subunitLabel, 'Szats');
       expect(Ticker.ecash.feeRate, 'szat/vB');
+
+      expect(Ticker.alphanet.symbol, 'aECX');
+      expect(Ticker.betanet.symbol, 'bECX');
+      expect(Ticker.betanet.subunit, 'szats');
 
       expect(Ticker.bitcoin.symbol, 'BTC');
       expect(Ticker.bitcoin.subunit, 'sats');
