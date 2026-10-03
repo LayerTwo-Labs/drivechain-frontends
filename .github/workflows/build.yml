@@ -221,6 +221,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Freezes the x86_64 hwi-daemon on the arm64 runner.
+      - uses: astral-sh/setup-uv@v6
+        if: matrix.client == 'bitwindow' && runner.os == 'macOS'
+
+      - name: Install Rosetta
+        if: matrix.client == 'bitwindow' && runner.os == 'macOS'
+        run: softwareupdate --install-rosetta --agree-to-license
+
       - name: Setup build directory
         run: |
           # Create build directory name, isolated per OS AND client (AND variant, so
