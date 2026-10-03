@@ -181,6 +181,10 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Freeze the hwi daemon
         shell: bash
         run: |
