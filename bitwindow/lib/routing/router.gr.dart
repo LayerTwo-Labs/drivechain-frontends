@@ -319,6 +319,22 @@ class M4ExplorerRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [MiningPage]
+class MiningRoute extends PageRouteInfo<void> {
+  const MiningRoute({List<PageRouteInfo>? children})
+    : super(MiningRoute.name, initialChildren: children);
+
+  static const String name = 'MiningRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const MiningPage();
+    },
+  );
+}
+
+/// generated route for
 /// [NetworkStatisticsPage]
 class NetworkStatisticsRoute extends PageRouteInfo<void> {
   const NetworkStatisticsRoute({List<PageRouteInfo>? children})
@@ -340,10 +356,17 @@ class NodeModeRoute extends PageRouteInfo<NodeModeRouteArgs> {
   NodeModeRoute({
     Key? key,
     required VoidCallback onModePicked,
+    Future<String?> Function() restartBackend = restartSilentBackend,
+    int pollsBetweenRestarts = 15,
     List<PageRouteInfo>? children,
   }) : super(
          NodeModeRoute.name,
-         args: NodeModeRouteArgs(key: key, onModePicked: onModePicked),
+         args: NodeModeRouteArgs(
+           key: key,
+           onModePicked: onModePicked,
+           restartBackend: restartBackend,
+           pollsBetweenRestarts: pollsBetweenRestarts,
+         ),
          initialChildren: children,
        );
 
@@ -353,32 +376,49 @@ class NodeModeRoute extends PageRouteInfo<NodeModeRouteArgs> {
     name,
     builder: (data) {
       final args = data.argsAs<NodeModeRouteArgs>();
-      return NodeModePage(key: args.key, onModePicked: args.onModePicked);
+      return NodeModePage(
+        key: args.key,
+        onModePicked: args.onModePicked,
+        restartBackend: args.restartBackend,
+        pollsBetweenRestarts: args.pollsBetweenRestarts,
+      );
     },
   );
 }
 
 class NodeModeRouteArgs {
-  const NodeModeRouteArgs({this.key, required this.onModePicked});
+  const NodeModeRouteArgs({
+    this.key,
+    required this.onModePicked,
+    this.restartBackend = restartSilentBackend,
+    this.pollsBetweenRestarts = 15,
+  });
 
   final Key? key;
 
   final VoidCallback onModePicked;
 
+  final Future<String?> Function() restartBackend;
+
+  final int pollsBetweenRestarts;
+
   @override
   String toString() {
-    return 'NodeModeRouteArgs{key: $key, onModePicked: $onModePicked}';
+    return 'NodeModeRouteArgs{key: $key, onModePicked: $onModePicked, restartBackend: $restartBackend, pollsBetweenRestarts: $pollsBetweenRestarts}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! NodeModeRouteArgs) return false;
-    return key == other.key && onModePicked == other.onModePicked;
+    return key == other.key &&
+        onModePicked == other.onModePicked &&
+        pollsBetweenRestarts == other.pollsBetweenRestarts;
   }
 
   @override
-  int get hashCode => key.hashCode ^ onModePicked.hashCode;
+  int get hashCode =>
+      key.hashCode ^ onModePicked.hashCode ^ pollsBetweenRestarts.hashCode;
 }
 
 /// generated route for

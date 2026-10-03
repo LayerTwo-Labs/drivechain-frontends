@@ -38,6 +38,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1/bitdrivev1connect"
@@ -135,7 +136,7 @@ func coinnewsLogPath(conf config.Config) string {
 	return filepath.Join(conf.Datadir, "coinnews-sync.log")
 }
 
-func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime, error) {
+func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID string) (*Runtime, error) {
 	log := zerolog.Ctx(ctx)
 
 	walletDir := s.svcs.WalletDir
@@ -221,7 +222,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		rt.db, rt.walletEngine, rt.notificationEngine,
 		func() []uint32 { return activeSidechainSlots(rt.ctx, s.Enforcer) },
 	)
-	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf)
+	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams)
 	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())
 
 	coinnewsLogPath := coinnewsLogPath(conf)
@@ -256,7 +257,8 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
 	// to current runtime via s.current at call time.
 	{
-		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
+		pools := miningpools.New(conf.BitcoinCoreNetwork, networkID, conf.Datadir, s.svcs.MiningPoolFetch)
+		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, pools, conf, s.Recycle)
 		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
 		register(path, h)
 	}

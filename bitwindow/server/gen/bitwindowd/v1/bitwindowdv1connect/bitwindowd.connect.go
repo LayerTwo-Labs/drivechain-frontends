@@ -84,6 +84,9 @@ const (
 	// BitwindowdServiceGetNetworkStatsProcedure is the fully-qualified name of the BitwindowdService's
 	// GetNetworkStats RPC.
 	BitwindowdServiceGetNetworkStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetNetworkStats"
+	// BitwindowdServiceListMiningPoolsProcedure is the fully-qualified name of the BitwindowdService's
+	// ListMiningPools RPC.
+	BitwindowdServiceListMiningPoolsProcedure = "/bitwindowd.v1.BitwindowdService/ListMiningPools"
 	// BitwindowdServiceUpdateNetworkProcedure is the fully-qualified name of the BitwindowdService's
 	// UpdateNetwork RPC.
 	BitwindowdServiceUpdateNetworkProcedure = "/bitwindowd.v1.BitwindowdService/UpdateNetwork"
@@ -122,6 +125,8 @@ type BitwindowdServiceClient interface {
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// Get network statistics
 	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
+	// Mining pools: which pools mined the recent blocks.
+	ListMiningPools(context.Context, *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error)
 	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
 	// (network-scoped folder) is co-located with the orchestrator update.
 	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
@@ -245,6 +250,12 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
 			connect.WithClientOptions(opts...),
 		),
+		listMiningPools: connect.NewClient[v1.ListMiningPoolsRequest, v1.ListMiningPoolsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceListMiningPoolsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ListMiningPools")),
+			connect.WithClientOptions(opts...),
+		),
 		updateNetwork: connect.NewClient[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse](
 			httpClient,
 			baseURL+BitwindowdServiceUpdateNetworkProcedure,
@@ -273,6 +284,7 @@ type bitwindowdServiceClient struct {
 	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
 	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
 	getNetworkStats        *connect.Client[emptypb.Empty, v1.GetNetworkStatsResponse]
+	listMiningPools        *connect.Client[v1.ListMiningPoolsRequest, v1.ListMiningPoolsResponse]
 	updateNetwork          *connect.Client[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse]
 }
 
@@ -361,6 +373,11 @@ func (c *bitwindowdServiceClient) GetNetworkStats(ctx context.Context, req *conn
 	return c.getNetworkStats.CallUnary(ctx, req)
 }
 
+// ListMiningPools calls bitwindowd.v1.BitwindowdService.ListMiningPools.
+func (c *bitwindowdServiceClient) ListMiningPools(ctx context.Context, req *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error) {
+	return c.listMiningPools.CallUnary(ctx, req)
+}
+
 // UpdateNetwork calls bitwindowd.v1.BitwindowdService.UpdateNetwork.
 func (c *bitwindowdServiceClient) UpdateNetwork(ctx context.Context, req *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {
 	return c.updateNetwork.CallUnary(ctx, req)
@@ -399,6 +416,8 @@ type BitwindowdServiceHandler interface {
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// Get network statistics
 	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
+	// Mining pools: which pools mined the recent blocks.
+	ListMiningPools(context.Context, *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error)
 	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
 	// (network-scoped folder) is co-located with the orchestrator update.
 	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
@@ -518,6 +537,12 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceListMiningPoolsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceListMiningPoolsProcedure,
+		svc.ListMiningPools,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ListMiningPools")),
+		connect.WithHandlerOptions(opts...),
+	)
 	bitwindowdServiceUpdateNetworkHandler := connect.NewUnaryHandler(
 		BitwindowdServiceUpdateNetworkProcedure,
 		svc.UpdateNetwork,
@@ -560,6 +585,8 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceListBlocksHandler.ServeHTTP(w, r)
 		case BitwindowdServiceGetNetworkStatsProcedure:
 			bitwindowdServiceGetNetworkStatsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceListMiningPoolsProcedure:
+			bitwindowdServiceListMiningPoolsHandler.ServeHTTP(w, r)
 		case BitwindowdServiceUpdateNetworkProcedure:
 			bitwindowdServiceUpdateNetworkHandler.ServeHTTP(w, r)
 		default:
@@ -637,6 +664,10 @@ func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *connec
 
 func (UnimplementedBitwindowdServiceHandler) GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetNetworkStats is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListMiningPools(context.Context, *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListMiningPools is not implemented"))
 }
 
 func (UnimplementedBitwindowdServiceHandler) UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {

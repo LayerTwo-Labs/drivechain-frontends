@@ -39,6 +39,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$3.ListRecentTransactionsResponse> listRecentTransactions($pb.ServerContext ctx, $3.ListRecentTransactionsRequest request);
   $async.Future<$3.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $3.ListBlocksRequest request);
   $async.Future<$3.GetNetworkStatsResponse> getNetworkStats($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$3.ListMiningPoolsResponse> listMiningPools($pb.ServerContext ctx, $3.ListMiningPoolsRequest request);
   $async.Future<$3.UpdateNetworkResponse> updateNetwork($pb.ServerContext ctx, $3.UpdateNetworkRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
@@ -60,6 +61,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'ListRecentTransactions': return $3.ListRecentTransactionsRequest();
       case 'ListBlocks': return $3.ListBlocksRequest();
       case 'GetNetworkStats': return $1.Empty();
+      case 'ListMiningPools': return $3.ListMiningPoolsRequest();
       case 'UpdateNetwork': return $3.UpdateNetworkRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -84,6 +86,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'ListRecentTransactions': return this.listRecentTransactions(ctx, request as $3.ListRecentTransactionsRequest);
       case 'ListBlocks': return this.listBlocks(ctx, request as $3.ListBlocksRequest);
       case 'GetNetworkStats': return this.getNetworkStats(ctx, request as $1.Empty);
+      case 'ListMiningPools': return this.listMiningPools(ctx, request as $3.ListMiningPoolsRequest);
       case 'UpdateNetwork': return this.updateNetwork(ctx, request as $3.UpdateNetworkRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }

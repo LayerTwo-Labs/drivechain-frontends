@@ -75,6 +75,23 @@ final $typed_data.Uint8List addressTypeDescriptor = $convert.base64Decode(
     'WVBFX0RSSVZFQ0hBSU5fREVQT1NJVBADEiMKH0FERFJFU1NfVFlQRV9CSVA0N19QQVlNRU5UX0'
     'NPREUQBA==');
 
+@$core.Deprecated('Use miningPoolWindowDescriptor instead')
+const MiningPoolWindow$json = {
+  '1': 'MiningPoolWindow',
+  '2': [
+    {'1': 'MINING_POOL_WINDOW_UNSPECIFIED', '2': 0},
+    {'1': 'MINING_POOL_WINDOW_24H', '2': 1},
+    {'1': 'MINING_POOL_WINDOW_3D', '2': 2},
+    {'1': 'MINING_POOL_WINDOW_1W', '2': 3},
+  ],
+};
+
+/// Descriptor for `MiningPoolWindow`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List miningPoolWindowDescriptor = $convert.base64Decode(
+    'ChBNaW5pbmdQb29sV2luZG93EiIKHk1JTklOR19QT09MX1dJTkRPV19VTlNQRUNJRklFRBAAEh'
+    'oKFk1JTklOR19QT09MX1dJTkRPV18yNEgQARIZChVNSU5JTkdfUE9PTF9XSU5ET1dfM0QQAhIZ'
+    'ChVNSU5JTkdfUE9PTF9XSU5ET1dfMVcQAw==');
+
 @$core.Deprecated('Use bitwindowdServiceStopRequestDescriptor instead')
 const BitwindowdServiceStopRequest$json = {
   '1': 'BitwindowdServiceStopRequest',
@@ -392,6 +409,83 @@ final $typed_data.Uint8List getFireplaceStatsResponseDescriptor = $convert.base6
     'EoA1ITdHJhbnNhY3Rpb25Db3VudDI0aBIqChFjb2lubmV3c19jb3VudF83ZBgCIAEoA1IPY29p'
     'bm5ld3NDb3VudDdkEiYKD2Jsb2NrX2NvdW50XzI0aBgDIAEoA1INYmxvY2tDb3VudDI0aA==');
 
+@$core.Deprecated('Use miningPoolDescriptor instead')
+const MiningPool$json = {
+  '1': 'MiningPool',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'slug', '3': 2, '4': 1, '5': 9, '10': 'slug'},
+    {'1': 'link', '3': 3, '4': 1, '5': 9, '10': 'link'},
+    {'1': 'operator', '3': 4, '4': 1, '5': 9, '10': 'operator'},
+    {'1': 'mode', '3': 5, '4': 1, '5': 9, '10': 'mode'},
+    {'1': 'fee_bps', '3': 6, '4': 1, '5': 13, '10': 'feeBps'},
+    {'1': 'stratum_url', '3': 7, '4': 1, '5': 9, '10': 'stratumUrl'},
+    {'1': 'payout', '3': 8, '4': 1, '5': 9, '10': 'payout'},
+  ],
+};
+
+/// Descriptor for `MiningPool`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List miningPoolDescriptor = $convert.base64Decode(
+    'CgpNaW5pbmdQb29sEhIKBG5hbWUYASABKAlSBG5hbWUSEgoEc2x1ZxgCIAEoCVIEc2x1ZxISCg'
+    'RsaW5rGAMgASgJUgRsaW5rEhoKCG9wZXJhdG9yGAQgASgJUghvcGVyYXRvchISCgRtb2RlGAUg'
+    'ASgJUgRtb2RlEhcKB2ZlZV9icHMYBiABKA1SBmZlZUJwcxIfCgtzdHJhdHVtX3VybBgHIAEoCV'
+    'IKc3RyYXR1bVVybBIWCgZwYXlvdXQYCCABKAlSBnBheW91dA==');
+
+@$core.Deprecated('Use miningPoolShareDescriptor instead')
+const MiningPoolShare$json = {
+  '1': 'MiningPoolShare',
+  '2': [
+    {'1': 'pool', '3': 1, '4': 1, '5': 11, '6': '.bitwindowd.v1.MiningPool', '10': 'pool'},
+    {'1': 'block_count', '3': 2, '4': 1, '5': 13, '10': 'blockCount'},
+    {'1': 'empty_blocks', '3': 3, '4': 1, '5': 13, '10': 'emptyBlocks'},
+    {'1': 'share', '3': 4, '4': 1, '5': 1, '10': 'share'},
+    {'1': 'estimated_hashrate', '3': 5, '4': 1, '5': 1, '10': 'estimatedHashrate'},
+  ],
+};
+
+/// Descriptor for `MiningPoolShare`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List miningPoolShareDescriptor = $convert.base64Decode(
+    'Cg9NaW5pbmdQb29sU2hhcmUSLQoEcG9vbBgBIAEoCzIZLmJpdHdpbmRvd2QudjEuTWluaW5nUG'
+    '9vbFIEcG9vbBIfCgtibG9ja19jb3VudBgCIAEoDVIKYmxvY2tDb3VudBIhCgxlbXB0eV9ibG9j'
+    'a3MYAyABKA1SC2VtcHR5QmxvY2tzEhQKBXNoYXJlGAQgASgBUgVzaGFyZRItChJlc3RpbWF0ZW'
+    'RfaGFzaHJhdGUYBSABKAFSEWVzdGltYXRlZEhhc2hyYXRl');
+
+@$core.Deprecated('Use listMiningPoolsRequestDescriptor instead')
+const ListMiningPoolsRequest$json = {
+  '1': 'ListMiningPoolsRequest',
+  '2': [
+    {'1': 'window', '3': 1, '4': 1, '5': 14, '6': '.bitwindowd.v1.MiningPoolWindow', '10': 'window'},
+  ],
+};
+
+/// Descriptor for `ListMiningPoolsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listMiningPoolsRequestDescriptor = $convert.base64Decode(
+    'ChZMaXN0TWluaW5nUG9vbHNSZXF1ZXN0EjcKBndpbmRvdxgBIAEoDjIfLmJpdHdpbmRvd2Qudj'
+    'EuTWluaW5nUG9vbFdpbmRvd1IGd2luZG93');
+
+@$core.Deprecated('Use listMiningPoolsResponseDescriptor instead')
+const ListMiningPoolsResponse$json = {
+  '1': 'ListMiningPoolsResponse',
+  '2': [
+    {'1': 'pools', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.MiningPoolShare', '10': 'pools'},
+    {'1': 'block_count', '3': 2, '4': 1, '5': 13, '10': 'blockCount'},
+    {'1': 'from_height', '3': 3, '4': 1, '5': 13, '10': 'fromHeight'},
+    {'1': 'to_height', '3': 4, '4': 1, '5': 13, '10': 'toHeight'},
+    {'1': 'network_hashrate', '3': 5, '4': 1, '5': 1, '10': 'networkHashrate'},
+    {'1': 'registry_available', '3': 6, '4': 1, '5': 8, '10': 'registryAvailable'},
+    {'1': 'registry_source', '3': 7, '4': 1, '5': 9, '10': 'registrySource'},
+  ],
+};
+
+/// Descriptor for `ListMiningPoolsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listMiningPoolsResponseDescriptor = $convert.base64Decode(
+    'ChdMaXN0TWluaW5nUG9vbHNSZXNwb25zZRI0CgVwb29scxgBIAMoCzIeLmJpdHdpbmRvd2Qudj'
+    'EuTWluaW5nUG9vbFNoYXJlUgVwb29scxIfCgtibG9ja19jb3VudBgCIAEoDVIKYmxvY2tDb3Vu'
+    'dBIfCgtmcm9tX2hlaWdodBgDIAEoDVIKZnJvbUhlaWdodBIbCgl0b19oZWlnaHQYBCABKA1SCH'
+    'RvSGVpZ2h0EikKEG5ldHdvcmtfaGFzaHJhdGUYBSABKAFSD25ldHdvcmtIYXNocmF0ZRItChJy'
+    'ZWdpc3RyeV9hdmFpbGFibGUYBiABKAhSEXJlZ2lzdHJ5QXZhaWxhYmxlEicKD3JlZ2lzdHJ5X3'
+    'NvdXJjZRgHIAEoCVIOcmVnaXN0cnlTb3VyY2U=');
+
 @$core.Deprecated('Use listRecentTransactionsRequestDescriptor instead')
 const ListRecentTransactionsRequest$json = {
   '1': 'ListRecentTransactionsRequest',
@@ -474,6 +568,7 @@ const Block$json = {
     {'1': 'size', '3': 14, '4': 1, '5': 5, '10': 'size'},
     {'1': 'weight', '3': 15, '4': 1, '5': 5, '10': 'weight'},
     {'1': 'txids', '3': 16, '4': 3, '5': 9, '10': 'txids'},
+    {'1': 'pool', '3': 17, '4': 1, '5': 11, '6': '.bitwindowd.v1.MiningPool', '10': 'pool'},
   ],
 };
 
@@ -488,7 +583,7 @@ final $typed_data.Uint8List blockDescriptor = $convert.base64Decode(
     'aGFzaBgLIAEoCVIRcHJldmlvdXNCbG9ja0hhc2gSJgoPbmV4dF9ibG9ja19oYXNoGAwgASgJUg'
     '1uZXh0QmxvY2tIYXNoEiMKDXN0cmlwcGVkX3NpemUYDSABKAVSDHN0cmlwcGVkU2l6ZRISCgRz'
     'aXplGA4gASgFUgRzaXplEhYKBndlaWdodBgPIAEoBVIGd2VpZ2h0EhQKBXR4aWRzGBAgAygJUg'
-    'V0eGlkcw==');
+    'V0eGlkcxItCgRwb29sGBEgASgLMhkuYml0d2luZG93ZC52MS5NaW5pbmdQb29sUgRwb29s');
 
 @$core.Deprecated('Use listBlocksResponseDescriptor instead')
 const ListBlocksResponse$json = {
@@ -604,6 +699,7 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'ListRecentTransactions', '2': '.bitwindowd.v1.ListRecentTransactionsRequest', '3': '.bitwindowd.v1.ListRecentTransactionsResponse'},
     {'1': 'ListBlocks', '2': '.bitwindowd.v1.ListBlocksRequest', '3': '.bitwindowd.v1.ListBlocksResponse'},
     {'1': 'GetNetworkStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetNetworkStatsResponse'},
+    {'1': 'ListMiningPools', '2': '.bitwindowd.v1.ListMiningPoolsRequest', '3': '.bitwindowd.v1.ListMiningPoolsResponse'},
     {'1': 'UpdateNetwork', '2': '.bitwindowd.v1.UpdateNetworkRequest', '3': '.bitwindowd.v1.UpdateNetworkResponse'},
   ],
 };
@@ -635,8 +731,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.ListBlocksRequest': ListBlocksRequest$json,
   '.bitwindowd.v1.ListBlocksResponse': ListBlocksResponse$json,
   '.bitwindowd.v1.Block': Block$json,
+  '.bitwindowd.v1.MiningPool': MiningPool$json,
   '.bitwindowd.v1.GetNetworkStatsResponse': GetNetworkStatsResponse$json,
   '.bitwindowd.v1.ProcessBandwidth': ProcessBandwidth$json,
+  '.bitwindowd.v1.ListMiningPoolsRequest': ListMiningPoolsRequest$json,
+  '.bitwindowd.v1.ListMiningPoolsResponse': ListMiningPoolsResponse$json,
+  '.bitwindowd.v1.MiningPoolShare': MiningPoolShare$json,
   '.bitwindowd.v1.UpdateNetworkRequest': UpdateNetworkRequest$json,
   '.bitwindowd.v1.UpdateNetworkResponse': UpdateNetworkResponse$json,
 };
@@ -669,7 +769,9 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'Vlc3QaLS5iaXR3aW5kb3dkLnYxLkxpc3RSZWNlbnRUcmFuc2FjdGlvbnNSZXNwb25zZRJRCgpM'
     'aXN0QmxvY2tzEiAuYml0d2luZG93ZC52MS5MaXN0QmxvY2tzUmVxdWVzdBohLmJpdHdpbmRvd2'
     'QudjEuTGlzdEJsb2Nrc1Jlc3BvbnNlElEKD0dldE5ldHdvcmtTdGF0cxIWLmdvb2dsZS5wcm90'
-    'b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuR2V0TmV0d29ya1N0YXRzUmVzcG9uc2USWgoNVX'
-    'BkYXRlTmV0d29yaxIjLmJpdHdpbmRvd2QudjEuVXBkYXRlTmV0d29ya1JlcXVlc3QaJC5iaXR3'
-    'aW5kb3dkLnYxLlVwZGF0ZU5ldHdvcmtSZXNwb25zZQ==');
+    'b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuR2V0TmV0d29ya1N0YXRzUmVzcG9uc2USYAoPTG'
+    'lzdE1pbmluZ1Bvb2xzEiUuYml0d2luZG93ZC52MS5MaXN0TWluaW5nUG9vbHNSZXF1ZXN0GiYu'
+    'Yml0d2luZG93ZC52MS5MaXN0TWluaW5nUG9vbHNSZXNwb25zZRJaCg1VcGRhdGVOZXR3b3JrEi'
+    'MuYml0d2luZG93ZC52MS5VcGRhdGVOZXR3b3JrUmVxdWVzdBokLmJpdHdpbmRvd2QudjEuVXBk'
+    'YXRlTmV0d29ya1Jlc3BvbnNl');
 

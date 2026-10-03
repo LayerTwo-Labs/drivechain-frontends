@@ -16,6 +16,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -38,6 +39,9 @@ type Services struct {
 	// eCash rows share one network, so without it the first request naming that
 	// id reads as a chain change and throws the database away.
 	ECashNetworkID string
+
+	// MiningPoolFetch downloads the pool registry. Nil uses HTTP; tests inject.
+	MiningPoolFetch miningpools.Fetch
 
 	BitcoindConnector service.Connector[corerpc.BitcoinServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
@@ -199,7 +203,7 @@ func New(
 
 	srv.networkID = svcs.ECashNetworkID
 
-	rt, err := srv.buildRuntime(ctx, conf)
+	rt, err := srv.buildRuntime(ctx, conf, svcs.ECashNetworkID)
 	if err != nil {
 		return nil, fmt.Errorf("build initial runtime: %w", err)
 	}
@@ -258,7 +262,7 @@ func (s *Server) Recycle(ctx context.Context, network config.Network, networkID 
 		}
 	}
 
-	rt, err := s.buildRuntime(ctx, newConf)
+	rt, err := s.buildRuntime(ctx, newConf, networkID)
 	if err != nil {
 		return fmt.Errorf("build runtime for %s: %w", network, err)
 	}

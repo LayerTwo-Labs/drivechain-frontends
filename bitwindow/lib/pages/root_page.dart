@@ -89,6 +89,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     (id: TabIndices.wallet, route: WalletRoute(), nav: TopNavRoute(label: 'Wallet')),
     if (_confProvider.drivechainFeaturesAvailable)
       (id: TabIndices.sidechains, route: SidechainsRoute(), nav: TopNavRoute(label: 'Sidechains')),
+    (id: TabIndices.mining, route: MiningRoute(), nav: TopNavRoute(label: 'Mining')),
     (id: TabIndices.learn, route: LearnRoute(), nav: TopNavRoute(label: 'Learn')),
     (id: TabIndices.console, route: ConsoleRoute(), nav: TopNavRoute(label: 'Console')),
     (id: TabIndices.chat, route: ChatRoute(), nav: TopNavRoute(label: 'Chat')),
@@ -326,6 +327,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
           category: 'Work for Bitcoin',
           onSelected: _openSoloMining,
         ),
+      CommandItem(
+        label: 'Mining Pools',
+        category: 'Work for Bitcoin',
+        onSelected: () {
+          final tabsRouter = _routerKey.currentState?.controller;
+          tabsRouter?.setActiveIndex(_tabIndex(TabIndices.mining));
+        },
+      ),
 
       // This Node
       CommandItem(
@@ -793,6 +802,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           context: context,
                           builder: (context) => const NetworkStatisticsPage(),
                         );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Mining Pools',
+                      onSelected: () {
+                        final tabsRouter = _routerKey.currentState?.controller;
+                        tabsRouter?.setActiveIndex(_tabIndex(TabIndices.mining));
                       },
                     ),
                     PlatformMenuItem(
@@ -1302,7 +1318,7 @@ class _StatusBarState extends State<StatusBar> {
         ResetButton(
           onTap: () async {
             final confProvider = GetIt.I.get<BitcoinConfProvider>();
-            final settingsTabIndex = confProvider.networkSupportsSidechains ? 6 : 5;
+            final settingsTabIndex = confProvider.networkSupportsSidechains ? 7 : 6;
             SettingsPage.setSection(5);
             final tabsRouter = AutoTabsRouter.of(context);
             tabsRouter.setActiveIndex(settingsTabIndex);

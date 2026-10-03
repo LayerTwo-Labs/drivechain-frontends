@@ -16,6 +16,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -24,6 +25,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -36,22 +38,25 @@ func NewBitcoind(
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
 	db *sql.DB,
 	conf config.Config,
+	chainParams *chaincfg.Params,
 ) *Parser {
 	return &Parser{
-		bitcoind: bitcoind,
-		enforcer: enforcer,
-		db:       db,
-		conf:     conf,
-		m4Engine: NewM4Engine(db),
+		bitcoind:    bitcoind,
+		enforcer:    enforcer,
+		db:          db,
+		conf:        conf,
+		chainParams: chainParams,
+		m4Engine:    NewM4Engine(db),
 	}
 }
 
 // Parser is responsible for parsing blocks from bitcoind and storing OP_RETURN data in SQLite
 type Parser struct {
-	bitcoind *service.Service[corerpc.BitcoinServiceClient]
-	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
-	db       *sql.DB
-	conf     config.Config
+	bitcoind    *service.Service[corerpc.BitcoinServiceClient]
+	enforcer    *service.Service[validatorrpc.ValidatorServiceClient]
+	db          *sql.DB
+	conf        config.Config
+	chainParams *chaincfg.Params
 
 	m4Engine *M4Engine
 	nodeMode *NodeMode
@@ -210,6 +215,9 @@ func purgeChainAtOrAbove(ctx context.Context, db *sql.DB, height uint32) (uint32
 	}
 	if err := blocks.DeleteProcessedBlocksAtOrAboveTx(ctx, tx, replayFrom); err != nil {
 		return 0, fmt.Errorf("delete processed blocks on fork: %w", err)
+	}
+	if err := coinbases.DeleteAtOrAboveTx(ctx, tx, height); err != nil {
+		return 0, fmt.Errorf("delete coinbases on fork: %w", err)
 	}
 	if err := purgeCoinNewsAtOrAboveTx(ctx, tx, height); err != nil {
 		return 0, fmt.Errorf("purge coinnews on fork: %w", err)
@@ -488,6 +496,12 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 	// indexCoinNewsBlocks for the spec rationale.
 	if err := p.indexCoinNewsBlocks(ctx, coreBlocks); err != nil {
 		return fmt.Errorf("index coinnews: %w", err)
+	}
+
+	if err := coinbases.Put(ctx, p.db, lo.Map(coreBlocks, func(t lo.Tuple2[uint32, *wire.MsgBlock], _ int) coinbases.Coinbase {
+		return coinbaseFacts(t.A, t.B, p.chainParams)
+	})); err != nil {
+		return fmt.Errorf("record coinbases: %w", err)
 	}
 
 	// Insert the processed blocks

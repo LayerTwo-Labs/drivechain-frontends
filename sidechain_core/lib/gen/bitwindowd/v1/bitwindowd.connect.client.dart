@@ -312,6 +312,24 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Mining pools: which pools mined the recent blocks.
+  Future<bitwindowdv1bitwindowd.ListMiningPoolsResponse> listMiningPools(
+    bitwindowdv1bitwindowd.ListMiningPoolsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.listMiningPools,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Swap bitcoind network. bitwindowd is the entry point so the DB swap
   /// (network-scoped folder) is co-located with the orchestrator update.
   /// Implementation: forward to orchestratord's SetBitcoinConfigNetwork

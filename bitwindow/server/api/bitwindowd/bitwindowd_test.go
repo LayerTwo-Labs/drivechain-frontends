@@ -14,6 +14,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
@@ -1231,7 +1232,7 @@ func TestService_ListBlocksInitialSync(t *testing.T) {
 			core := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
 				return mockBitcoind, nil
 			})
-			server := api_bitwindowd.New(nil, nil, core, nil, config.Config{BitcoinCoreNetwork: test.network}, nil)
+			server := api_bitwindowd.New(nil, database.Test(t), core, nil, miningpools.New(test.network, "", "", nil), config.Config{BitcoinCoreNetwork: test.network}, nil)
 
 			response, err := server.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
 			require.NoError(t, err)

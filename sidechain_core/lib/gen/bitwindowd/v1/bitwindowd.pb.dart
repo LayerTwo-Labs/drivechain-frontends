@@ -1600,6 +1600,447 @@ class GetFireplaceStatsResponse extends $pb.GeneratedMessage {
   void clearBlockCount24h() => clearField(3);
 }
 
+/// A pool from pool.drivechain.info, or "Unknown". The payout fields are
+/// empty on networks served by mempool's list.
+class MiningPool extends $pb.GeneratedMessage {
+  factory MiningPool({
+    $core.String? name,
+    $core.String? slug,
+    $core.String? link,
+    $core.String? operator,
+    $core.String? mode,
+    $core.int? feeBps,
+    $core.String? stratumUrl,
+    $core.String? payout,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (slug != null) {
+      $result.slug = slug;
+    }
+    if (link != null) {
+      $result.link = link;
+    }
+    if (operator != null) {
+      $result.operator = operator;
+    }
+    if (mode != null) {
+      $result.mode = mode;
+    }
+    if (feeBps != null) {
+      $result.feeBps = feeBps;
+    }
+    if (stratumUrl != null) {
+      $result.stratumUrl = stratumUrl;
+    }
+    if (payout != null) {
+      $result.payout = payout;
+    }
+    return $result;
+  }
+  MiningPool._() : super();
+  factory MiningPool.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MiningPool.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MiningPool', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'slug')
+    ..aOS(3, _omitFieldNames ? '' : 'link')
+    ..aOS(4, _omitFieldNames ? '' : 'operator')
+    ..aOS(5, _omitFieldNames ? '' : 'mode')
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'feeBps', $pb.PbFieldType.OU3)
+    ..aOS(7, _omitFieldNames ? '' : 'stratumUrl')
+    ..aOS(8, _omitFieldNames ? '' : 'payout')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MiningPool clone() => MiningPool()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MiningPool copyWith(void Function(MiningPool) updates) => super.copyWith((message) => updates(message as MiningPool)) as MiningPool;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MiningPool create() => MiningPool._();
+  MiningPool createEmptyInstance() => create();
+  static $pb.PbList<MiningPool> createRepeated() => $pb.PbList<MiningPool>();
+  @$core.pragma('dart2js:noInline')
+  static MiningPool getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MiningPool>(create);
+  static MiningPool? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get slug => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set slug($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSlug() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSlug() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get link => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set link($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasLink() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLink() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get operator => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set operator($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasOperator() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearOperator() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get mode => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set mode($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasMode() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMode() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get feeBps => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set feeBps($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFeeBps() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFeeBps() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get stratumUrl => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set stratumUrl($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasStratumUrl() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearStratumUrl() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get payout => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set payout($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasPayout() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearPayout() => clearField(8);
+}
+
+class MiningPoolShare extends $pb.GeneratedMessage {
+  factory MiningPoolShare({
+    MiningPool? pool,
+    $core.int? blockCount,
+    $core.int? emptyBlocks,
+    $core.double? share,
+    $core.double? estimatedHashrate,
+  }) {
+    final $result = create();
+    if (pool != null) {
+      $result.pool = pool;
+    }
+    if (blockCount != null) {
+      $result.blockCount = blockCount;
+    }
+    if (emptyBlocks != null) {
+      $result.emptyBlocks = emptyBlocks;
+    }
+    if (share != null) {
+      $result.share = share;
+    }
+    if (estimatedHashrate != null) {
+      $result.estimatedHashrate = estimatedHashrate;
+    }
+    return $result;
+  }
+  MiningPoolShare._() : super();
+  factory MiningPoolShare.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MiningPoolShare.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MiningPoolShare', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOM<MiningPool>(1, _omitFieldNames ? '' : 'pool', subBuilder: MiningPool.create)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'blockCount', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'emptyBlocks', $pb.PbFieldType.OU3)
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'share', $pb.PbFieldType.OD)
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'estimatedHashrate', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MiningPoolShare clone() => MiningPoolShare()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MiningPoolShare copyWith(void Function(MiningPoolShare) updates) => super.copyWith((message) => updates(message as MiningPoolShare)) as MiningPoolShare;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MiningPoolShare create() => MiningPoolShare._();
+  MiningPoolShare createEmptyInstance() => create();
+  static $pb.PbList<MiningPoolShare> createRepeated() => $pb.PbList<MiningPoolShare>();
+  @$core.pragma('dart2js:noInline')
+  static MiningPoolShare getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MiningPoolShare>(create);
+  static MiningPoolShare? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  MiningPool get pool => $_getN(0);
+  @$pb.TagNumber(1)
+  set pool(MiningPool v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPool() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPool() => clearField(1);
+  @$pb.TagNumber(1)
+  MiningPool ensurePool() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.int get blockCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set blockCount($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBlockCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBlockCount() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get emptyBlocks => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set emptyBlocks($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasEmptyBlocks() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEmptyBlocks() => clearField(3);
+
+  /// Fraction of the window's blocks, 0..1.
+  @$pb.TagNumber(4)
+  $core.double get share => $_getN(3);
+  @$pb.TagNumber(4)
+  set share($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasShare() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearShare() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get estimatedHashrate => $_getN(4);
+  @$pb.TagNumber(5)
+  set estimatedHashrate($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasEstimatedHashrate() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearEstimatedHashrate() => clearField(5);
+}
+
+class ListMiningPoolsRequest extends $pb.GeneratedMessage {
+  factory ListMiningPoolsRequest({
+    MiningPoolWindow? window,
+  }) {
+    final $result = create();
+    if (window != null) {
+      $result.window = window;
+    }
+    return $result;
+  }
+  ListMiningPoolsRequest._() : super();
+  factory ListMiningPoolsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListMiningPoolsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMiningPoolsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..e<MiningPoolWindow>(1, _omitFieldNames ? '' : 'window', $pb.PbFieldType.OE, defaultOrMaker: MiningPoolWindow.MINING_POOL_WINDOW_UNSPECIFIED, valueOf: MiningPoolWindow.valueOf, enumValues: MiningPoolWindow.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListMiningPoolsRequest clone() => ListMiningPoolsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListMiningPoolsRequest copyWith(void Function(ListMiningPoolsRequest) updates) => super.copyWith((message) => updates(message as ListMiningPoolsRequest)) as ListMiningPoolsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMiningPoolsRequest create() => ListMiningPoolsRequest._();
+  ListMiningPoolsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListMiningPoolsRequest> createRepeated() => $pb.PbList<ListMiningPoolsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListMiningPoolsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMiningPoolsRequest>(create);
+  static ListMiningPoolsRequest? _defaultInstance;
+
+  /// Unspecified means 24h.
+  @$pb.TagNumber(1)
+  MiningPoolWindow get window => $_getN(0);
+  @$pb.TagNumber(1)
+  set window(MiningPoolWindow v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWindow() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWindow() => clearField(1);
+}
+
+class ListMiningPoolsResponse extends $pb.GeneratedMessage {
+  factory ListMiningPoolsResponse({
+    $core.Iterable<MiningPoolShare>? pools,
+    $core.int? blockCount,
+    $core.int? fromHeight,
+    $core.int? toHeight,
+    $core.double? networkHashrate,
+    $core.bool? registryAvailable,
+    $core.String? registrySource,
+  }) {
+    final $result = create();
+    if (pools != null) {
+      $result.pools.addAll(pools);
+    }
+    if (blockCount != null) {
+      $result.blockCount = blockCount;
+    }
+    if (fromHeight != null) {
+      $result.fromHeight = fromHeight;
+    }
+    if (toHeight != null) {
+      $result.toHeight = toHeight;
+    }
+    if (networkHashrate != null) {
+      $result.networkHashrate = networkHashrate;
+    }
+    if (registryAvailable != null) {
+      $result.registryAvailable = registryAvailable;
+    }
+    if (registrySource != null) {
+      $result.registrySource = registrySource;
+    }
+    return $result;
+  }
+  ListMiningPoolsResponse._() : super();
+  factory ListMiningPoolsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListMiningPoolsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMiningPoolsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..pc<MiningPoolShare>(1, _omitFieldNames ? '' : 'pools', $pb.PbFieldType.PM, subBuilder: MiningPoolShare.create)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'blockCount', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'fromHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'toHeight', $pb.PbFieldType.OU3)
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'networkHashrate', $pb.PbFieldType.OD)
+    ..aOB(6, _omitFieldNames ? '' : 'registryAvailable')
+    ..aOS(7, _omitFieldNames ? '' : 'registrySource')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListMiningPoolsResponse clone() => ListMiningPoolsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListMiningPoolsResponse copyWith(void Function(ListMiningPoolsResponse) updates) => super.copyWith((message) => updates(message as ListMiningPoolsResponse)) as ListMiningPoolsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMiningPoolsResponse create() => ListMiningPoolsResponse._();
+  ListMiningPoolsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListMiningPoolsResponse> createRepeated() => $pb.PbList<ListMiningPoolsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListMiningPoolsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMiningPoolsResponse>(create);
+  static ListMiningPoolsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<MiningPoolShare> get pools => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.int get blockCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set blockCount($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBlockCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBlockCount() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get fromHeight => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set fromHeight($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFromHeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFromHeight() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get toHeight => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set toHeight($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasToHeight() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearToHeight() => clearField(4);
+
+  /// Work the window took over the time it spanned, in hashes per second.
+  @$pb.TagNumber(5)
+  $core.double get networkHashrate => $_getN(4);
+  @$pb.TagNumber(5)
+  set networkHashrate($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasNetworkHashrate() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearNetworkHashrate() => clearField(5);
+
+  /// False on networks without a pool registry; every block is then Unknown.
+  @$pb.TagNumber(6)
+  $core.bool get registryAvailable => $_getBF(5);
+  @$pb.TagNumber(6)
+  set registryAvailable($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasRegistryAvailable() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRegistryAvailable() => clearField(6);
+
+  /// The registry URL, or "built-in" while the compiled-in seed is in use.
+  @$pb.TagNumber(7)
+  $core.String get registrySource => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set registrySource($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasRegistrySource() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearRegistrySource() => clearField(7);
+}
+
 class ListRecentTransactionsRequest extends $pb.GeneratedMessage {
   factory ListRecentTransactionsRequest({
     $fixnum.Int64? count,
@@ -1885,6 +2326,7 @@ class Block extends $pb.GeneratedMessage {
     $core.int? size,
     $core.int? weight,
     $core.Iterable<$core.String>? txids,
+    MiningPool? pool,
   }) {
     final $result = create();
     if (blockTime != null) {
@@ -1935,6 +2377,9 @@ class Block extends $pb.GeneratedMessage {
     if (txids != null) {
       $result.txids.addAll(txids);
     }
+    if (pool != null) {
+      $result.pool = pool;
+    }
     return $result;
   }
   Block._() : super();
@@ -1958,6 +2403,7 @@ class Block extends $pb.GeneratedMessage {
     ..a<$core.int>(14, _omitFieldNames ? '' : 'size', $pb.PbFieldType.O3)
     ..a<$core.int>(15, _omitFieldNames ? '' : 'weight', $pb.PbFieldType.O3)
     ..pPS(16, _omitFieldNames ? '' : 'txids')
+    ..aOM<MiningPool>(17, _omitFieldNames ? '' : 'pool', subBuilder: MiningPool.create)
     ..hasRequiredFields = false
   ;
 
@@ -2121,6 +2567,18 @@ class Block extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(16)
   $core.List<$core.String> get txids => $_getList(15);
+
+  /// Unset when the block's coinbase was not recorded.
+  @$pb.TagNumber(17)
+  MiningPool get pool => $_getN(16);
+  @$pb.TagNumber(17)
+  set pool(MiningPool v) { setField(17, v); }
+  @$pb.TagNumber(17)
+  $core.bool hasPool() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearPool() => clearField(17);
+  @$pb.TagNumber(17)
+  MiningPool ensurePool() => $_ensure(16);
 }
 
 class ListBlocksResponse extends $pb.GeneratedMessage {
@@ -2723,6 +3181,9 @@ class BitwindowdServiceApi {
   ;
   $async.Future<GetNetworkStatsResponse> getNetworkStats($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<GetNetworkStatsResponse>(ctx, 'BitwindowdService', 'GetNetworkStats', request, GetNetworkStatsResponse())
+  ;
+  $async.Future<ListMiningPoolsResponse> listMiningPools($pb.ClientContext? ctx, ListMiningPoolsRequest request) =>
+    _client.invoke<ListMiningPoolsResponse>(ctx, 'BitwindowdService', 'ListMiningPools', request, ListMiningPoolsResponse())
   ;
   $async.Future<UpdateNetworkResponse> updateNetwork($pb.ClientContext? ctx, UpdateNetworkRequest request) =>
     _client.invoke<UpdateNetworkResponse>(ctx, 'BitwindowdService', 'UpdateNetwork', request, UpdateNetworkResponse())
