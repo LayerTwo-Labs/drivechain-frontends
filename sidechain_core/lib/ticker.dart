@@ -2,7 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// Currency naming for the active network. eCash is eCash, every other
-/// network is Bitcoin.
+/// network is Bitcoin. Each eCash test network prefixes its own letter.
 class Ticker {
   const Ticker._(this.symbol, this.subunit, this.subunitSingular, this.subunitLabel);
 
@@ -20,6 +20,8 @@ class Ticker {
 
   static const bitcoin = Ticker._('BTC', 'sats', 'sat', 'Satoshis');
   static const ecash = Ticker._('ECX', 'szats', 'szat', 'Szats');
+  static const alphanet = Ticker._('aECX', 'szats', 'szat', 'Szats');
+  static const betanet = Ticker._('bECX', 'szats', 'szat', 'Szats');
 
   /// Fee rate unit, e.g. "szat/vB".
   String get feeRate => '$subunitSingular/vB';
@@ -31,14 +33,17 @@ Ticker get activeTicker {
   if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
     return Ticker.bitcoin;
   }
-  return tickerForNetwork(GetIt.I.get<BitcoinConfProvider>().network);
+  return tickerForNetwork(GetIt.I.get<BitcoinConfProvider>().network, ecashNetworkId: ecashNetworkId());
 }
 
-Ticker tickerForNetwork(BitcoinNetwork network) {
-  switch (network) {
-    case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
-      return Ticker.ecash;
-    default:
-      return Ticker.bitcoin;
+/// [ecashNetworkId] is the catalog id of the live eCash network, e.g. "betanet".
+Ticker tickerForNetwork(BitcoinNetwork network, {String ecashNetworkId = ''}) {
+  if (network != BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
+    return Ticker.bitcoin;
   }
+  return switch (ecashNetworkId) {
+    'alphanet' => Ticker.alphanet,
+    'betanet' => Ticker.betanet,
+    _ => Ticker.ecash,
+  };
 }

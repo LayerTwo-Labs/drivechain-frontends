@@ -52,6 +52,9 @@ class _Conf extends ChangeNotifier implements BitcoinConfProvider {
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
 
   @override
+  String ecashNetworkId = '';
+
+  @override
   String? get detectedDataDir => null;
 
   @override
