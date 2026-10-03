@@ -50,6 +50,13 @@ abstract class RPCConnection extends ChangeNotifier implements DaemonState {
   /// The chain's own app window runs. It uses its own process slot, so a light
   /// install has a window with no daemon under it.
   bool windowOpen = false;
+
+  /// ID of the BitWindow wallet whose sidechain wallet the node holds. Empty
+  /// before the first start.
+  String loadedWalletId = '';
+
+  /// The node keeps a wallet aside that holds a seed no BitWindow wallet made.
+  bool hasExternalWallet = false;
   @override
   bool initializingBinary = false;
   @override

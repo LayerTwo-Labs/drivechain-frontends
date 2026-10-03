@@ -408,7 +408,13 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       }
       painter.text = TextSpan(text: sidechain.info.title, style: style);
       painter.layout();
-      width = max(width, painter.width + 8 + SailStyleValues.padding08 + _tightCellPadding.horizontal + 1);
+      var rowWidth = painter.width + 8 + SailStyleValues.padding08 + _tightCellPadding.horizontal + 1;
+      if (viewModel.hasExternalWallet(slot)) {
+        painter.text = TextSpan(text: _ExternalWalletBadge.label, style: style.copyWith(fontSize: 12));
+        painter.layout();
+        rowWidth += SailStyleValues.padding08 + painter.width + _ExternalWalletBadge.padding.horizontal + 2;
+      }
+      width = max(width, rowWidth);
     }
     painter.dispose();
     return width;
@@ -463,12 +469,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
                 alignment: Alignment.centerRight,
                 sortable: false,
               ),
-              const SailTableHeaderCell(
-                name: 'Your balance',
-                padding: _tightCellPadding,
-                alignment: Alignment.centerRight,
-                sortable: false,
-              ),
+              _LoadedWalletHeader(wallet: viewModel.loadedWallet),
               const SailTableHeaderCell(name: '', sortable: false),
             ],
             rowBuilder: (context, row, selected) =>
@@ -546,6 +547,10 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
             viewModel.sidechainStatusDot(context, slot) ?? const SizedBox(width: 8),
             const SizedBox(width: SailStyleValues.padding08),
             SailText.primary13(sidechain.info.title, color: colors.text, overflow: TextOverflow.clip),
+            if (viewModel.hasExternalWallet(slot)) ...[
+              const SizedBox(width: SailStyleValues.padding08),
+              const _ExternalWalletBadge(),
+            ],
           ],
         ),
       ),
@@ -577,6 +582,63 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
         child: _SidechainActions(viewModel: viewModel, slot: slot, sidechain: sidechain),
       ),
     ];
+  }
+}
+
+/// The balance column header: the wallet the sidechains hold.
+class _LoadedWalletHeader extends StatelessWidget {
+  final WalletData? wallet;
+
+  const _LoadedWalletHeader({required this.wallet});
+
+  @override
+  Widget build(BuildContext context) {
+    final wallet = this.wallet;
+    return Container(
+      width: double.infinity,
+      padding: _tightCellPadding,
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (wallet != null) ...[
+            WalletBlobAvatar(gradient: wallet.gradient, size: 12),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: SailText.primary13(
+              wallet?.name ?? 'Your balance',
+              bold: true,
+              overflow: TextOverflow.ellipsis,
+              color: context.sailTheme.colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Marks a sidechain that keeps aside a wallet no BitWindow wallet made.
+class _ExternalWalletBadge extends StatelessWidget {
+  static const label = 'External wallet';
+  static const padding = EdgeInsets.symmetric(horizontal: 6, vertical: 2);
+
+  const _ExternalWalletBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return SailTooltip(
+      message: 'This sidechain keeps a wallet that BitWindow did not make. It stays on disk.',
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          border: Border.all(color: context.sailTheme.colors.border),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: SailText.secondary12(label),
+      ),
+    );
   }
 }
 
@@ -953,6 +1015,28 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   bool isSidechainRunning(int slot) => _sidechainRPC(slot)?.connected ?? false;
+
+  /// The wallet the running sidechains hold, else the active wallet. A stopped
+  /// sidechain still names the wallet it held, but adds no balance. Null when no
+  /// one BitWindow wallet holds the running balances: the sidechains hold
+  /// different wallets, or one runs a wallet of its own and reports none.
+  WalletData? get loadedWallet {
+    final loadedIds = sidechains
+        .whereType<SidechainOverview>()
+        .map((s) => _sidechainRPC(s.info.slot))
+        .where((rpc) => rpc != null && rpc.connected)
+        .map((rpc) => rpc!.loadedWalletId)
+        .toSet();
+    if (loadedIds.isEmpty) {
+      return _walletReader.activeWallet;
+    }
+    if (loadedIds.length > 1 || loadedIds.single.isEmpty) {
+      return null;
+    }
+    return _walletReader.wallets.firstWhereOrNull((w) => w.id == loadedIds.single);
+  }
+
+  bool hasExternalWallet(int slot) => _sidechainRPC(slot)?.hasExternalWallet ?? false;
 
   /// The RPC connection for a slot, or null when this build has none.
   RPCConnection? _sidechainRPC(int slot) {
