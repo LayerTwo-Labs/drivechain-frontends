@@ -832,6 +832,7 @@ type walletCredit struct {
 // inputs it spent and the change it created (change is nil when none).
 type spendEffect struct {
 	spent      []electrumUTXO
+	external   []ExternalInput
 	change     *scannedAddr
 	changeSats int64
 	// evicted holds outputs the broadcast kills without spending them: the
@@ -942,14 +943,22 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 // history and walletRowsForTx render it exactly like the real tx will.
 func buildSentTx(txid string, effect *spendEffect, packet *psbt.Packet, net *chaincfg.Params, now int64) EsploraTx {
 	var inSum int64
-	vin := lo.Map(effect.spent, func(u electrumUTXO, _ int) EsploraVin {
+	vin := lo.Map(effect.external, func(ei ExternalInput, _ int) EsploraVin {
+		inSum += ei.AmountSats
+		return EsploraVin{
+			TxID:    ei.TxID,
+			Vout:    ei.Vout,
+			Prevout: &EsploraVout{ScriptPubKey: ei.ScriptPubKeyHex, Value: ei.AmountSats},
+		}
+	})
+	vin = append(vin, lo.Map(effect.spent, func(u electrumUTXO, _ int) EsploraVin {
 		inSum += u.amountSats
 		return EsploraVin{
 			TxID:    u.txid,
 			Vout:    u.vout,
 			Prevout: &EsploraVout{ScriptPubKeyAddress: u.address, Value: u.amountSats},
 		}
-	})
+	})...)
 	var outSum int64
 	vout := lo.Map(packet.UnsignedTx.TxOut, func(out *wire.TxOut, _ int) EsploraVout {
 		outSum += out.Value
@@ -957,7 +966,7 @@ func buildSentTx(txid string, effect *spendEffect, packet *psbt.Packet, net *cha
 		if _, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, net); err == nil && len(addrs) > 0 {
 			addr = addrs[0].EncodeAddress()
 		}
-		return EsploraVout{ScriptPubKeyAddress: addr, Value: out.Value}
+		return EsploraVout{ScriptPubKey: hex.EncodeToString(out.PkScript), ScriptPubKeyAddress: addr, Value: out.Value}
 	})
 	return EsploraTx{
 		TxID:   txid,
@@ -1138,7 +1147,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	if changeSats < 0 {
 		return nil, nil, nil, fmt.Errorf("insufficient funds: short %d sats", -changeSats)
 	}
-	effect := &spendEffect{spent: selected}
+	effect := &spendEffect{spent: selected, external: req.ExternalInputs}
 	// Pinned inputs that a mempool transaction already spends make this a
 	// replacement: the cache counts those inputs spent, so only the outputs
 	// move, and the transactions it evicts leave the cache with it.
@@ -3208,6 +3217,22 @@ func walletFlow(tx EsploraTx, scan *electrumScan) (ownIn, ownOut int64) {
 	return ownIn, ownOut
 }
 
+// foreignInputSats sums the inputs the wallet does not own that spend the
+// script an output pays. A deposit spends the slot's treasury and pays it back,
+// so only the rest of that output leaves the wallet.
+func foreignInputSats(tx EsploraTx, scan *electrumScan, script string) int64 {
+	if script == "" {
+		return 0
+	}
+	var sats int64
+	for _, vin := range tx.Vin {
+		if vin.Prevout != nil && vin.Prevout.ScriptPubKey == script && !scan.owns(vin.Prevout.ScriptPubKeyAddress) {
+			sats += vin.Prevout.Value
+		}
+	}
+	return sats
+}
+
 // txTime is the block time of a confirmed tx. An index reports no time for a
 // mempool tx, so an unconfirmed tx gets the time this process first listed it.
 func (p *ElectrumBackend) txTime(tx EsploraTx, now int64) int64 {
@@ -3244,7 +3269,7 @@ func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int, txTime int64) []
 			row := WalletTransaction{
 				Address:       vout.ScriptPubKeyAddress,
 				Category:      "send",
-				Amount:        -float64(vout.Value) / 1e8,
+				Amount:        -float64(vout.Value-foreignInputSats(tx, scan, vout.ScriptPubKey)) / 1e8,
 				Confirmations: confs,
 				BlockTime:     tx.Status.BlockTime,
 				Time:          txTime,
