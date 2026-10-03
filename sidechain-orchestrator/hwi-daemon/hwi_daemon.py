@@ -10,6 +10,13 @@ import json
 import os
 import sys
 
+if sys.platform.startswith("linux"):
+    # The default libusb backend must detach the kernel HID driver; hidraw only
+    # opens /dev/hidraw*, which the vendor udev rules grant.
+    import hidraw
+
+    sys.modules["hid"] = hidraw
+
 from hwilib import commands
 from hwilib.common import Chain
 from hwilib.errors import handle_errors
