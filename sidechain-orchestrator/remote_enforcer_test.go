@@ -432,6 +432,8 @@ func installRemoteTestDaemon(t *testing.T, o *Orchestrator) (BinaryConfig, map[s
 	path := BinaryPath(o.DataDir, cfg.BinaryName)
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 	require.NoError(t, os.WriteFile(path, []byte("#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$REMOTE_DAEMON_ARGS\"\nexec \"$REMOTE_DAEMON_TEST\" -test.run=^TestRemoteSidechainProcess$\n"), 0o755))
+	// A boot downloads a missing CLI, and a unit test must not reach the network.
+	require.NoError(t, os.WriteFile(BinaryPath(o.DataDir, cfg.CLIBinaryName), []byte("#!/bin/sh\n"), 0o755))
 	t.Cleanup(func() {
 		o.StopAllMonitors()
 		if o.process.IsRunning(cfg.Name) {
