@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -204,6 +205,7 @@ type Registry struct {
 	url   string
 	parse Parse
 	fetch Fetch
+	log   zerolog.Logger
 
 	mu         sync.Mutex
 	pools      []Pool
@@ -219,7 +221,8 @@ type Resolved struct {
 	Available bool
 }
 
-func New(network config.Network, ecashID, datadir string, fetch Fetch) *Registry {
+// New serves the registry of a network. A nil fetch uses DefaultFetch.
+func New(ctx context.Context, network config.Network, ecashID, datadir string, fetch Fetch) *Registry {
 	if fetch == nil {
 		fetch = DefaultFetch
 	}
@@ -228,6 +231,7 @@ func New(network config.Network, ecashID, datadir string, fetch Fetch) *Registry
 		url:   url,
 		parse: parse,
 		fetch: fetch,
+		log:   zerolog.Ctx(ctx).With().Str("registry", url).Logger(),
 		pools: seedFor(network, ecashID),
 	}
 	if len(r.pools) > 0 {
@@ -267,18 +271,21 @@ func (r *Registry) startRefresh() {
 }
 
 func (r *Registry) refresh() {
-	var (
-		pools []Pool
-		ok    bool
-	)
-	if body, err := r.fetch(context.Background(), r.url); err == nil {
-		pools, err = r.parse(body)
-		ok = err == nil
-	}
+	pools, err := r.read()
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.refreshing = false
-	if ok {
-		r.pools, r.source = pools, r.url
+	if err != nil {
+		r.log.Warn().Err(err).Str("source", r.source).Msg("refresh mining pool registry: keep the last list")
+		return
 	}
+	r.pools, r.source = pools, r.url
+}
+
+func (r *Registry) read() ([]Pool, error) {
+	body, err := r.fetch(context.Background(), r.url)
+	if err != nil {
+		return nil, err
+	}
+	return r.parse(body)
 }

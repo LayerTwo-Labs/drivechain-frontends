@@ -257,7 +257,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
 	// to current runtime via s.current at call time.
 	{
-		pools := miningpools.New(conf.BitcoinCoreNetwork, networkID, conf.Datadir, s.svcs.MiningPoolFetch)
+		pools := miningpools.New(ctx, conf.BitcoinCoreNetwork, networkID, conf.Datadir, s.svcs.MiningPoolFetch)
 		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, pools, conf, s.Recycle)
 		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
 		register(path, h)
