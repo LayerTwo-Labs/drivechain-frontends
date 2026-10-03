@@ -341,6 +341,8 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $fixnum.Int64? remoteTimestampUnix,
     $fixnum.Int64? downloadedTimestampUnix,
     $core.bool? windowOpen,
+    $core.String? loadedWalletId,
+    $core.bool? hasExternalWallet,
   }) {
     final $result = create();
     if (name != null) {
@@ -424,6 +426,12 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (windowOpen != null) {
       $result.windowOpen = windowOpen;
     }
+    if (loadedWalletId != null) {
+      $result.loadedWalletId = loadedWalletId;
+    }
+    if (hasExternalWallet != null) {
+      $result.hasExternalWallet = hasExternalWallet;
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -458,6 +466,8 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aInt64(25, _omitFieldNames ? '' : 'remoteTimestampUnix')
     ..aInt64(26, _omitFieldNames ? '' : 'downloadedTimestampUnix')
     ..aOB(27, _omitFieldNames ? '' : 'windowOpen')
+    ..aOS(29, _omitFieldNames ? '' : 'loadedWalletId')
+    ..aOB(30, _omitFieldNames ? '' : 'hasExternalWallet')
     ..hasRequiredFields = false
   ;
 
@@ -728,6 +738,28 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasWindowOpen() => $_has(26);
   @$pb.TagNumber(27)
   void clearWindowOpen() => clearField(27);
+
+  /// ID of the wallet whose sidechain wallet this binary holds. Empty for a
+  /// binary that keeps no wallet file, and before the first start.
+  @$pb.TagNumber(29)
+  $core.String get loadedWalletId => $_getSZ(27);
+  @$pb.TagNumber(29)
+  set loadedWalletId($core.String v) { $_setString(27, v); }
+  @$pb.TagNumber(29)
+  $core.bool hasLoadedWalletId() => $_has(27);
+  @$pb.TagNumber(29)
+  void clearLoadedWalletId() => clearField(29);
+
+  /// The sidechain keeps a wallet.mdb aside that holds a seed no wallet here
+  /// made, because its node refused it.
+  @$pb.TagNumber(30)
+  $core.bool get hasExternalWallet => $_getBF(28);
+  @$pb.TagNumber(30)
+  set hasExternalWallet($core.bool v) { $_setBool(28, v); }
+  @$pb.TagNumber(30)
+  $core.bool hasHasExternalWallet() => $_has(28);
+  @$pb.TagNumber(30)
+  void clearHasExternalWallet() => clearField(30);
 }
 
 class StartupLogEntryMsg extends $pb.GeneratedMessage {

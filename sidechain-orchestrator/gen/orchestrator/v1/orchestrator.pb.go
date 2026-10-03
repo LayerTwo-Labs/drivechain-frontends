@@ -672,9 +672,15 @@ type BinaryStatusMsg struct {
 	DownloadedTimestampUnix int64 `protobuf:"varint,26,opt,name=downloaded_timestamp_unix,json=downloadedTimestampUnix,proto3" json:"downloaded_timestamp_unix,omitempty"`
 	// The chain's own app window is open. It runs under its own process slot, so
 	// a light install has a window with no daemon under it.
-	WindowOpen    bool `protobuf:"varint,27,opt,name=window_open,json=windowOpen,proto3" json:"window_open,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	WindowOpen bool `protobuf:"varint,27,opt,name=window_open,json=windowOpen,proto3" json:"window_open,omitempty"`
+	// ID of the wallet whose sidechain wallet this binary holds. Empty for a
+	// binary that keeps no wallet file, and before the first start.
+	LoadedWalletId string `protobuf:"bytes,29,opt,name=loaded_wallet_id,json=loadedWalletId,proto3" json:"loaded_wallet_id,omitempty"`
+	// The sidechain keeps a wallet.mdb aside that holds a seed no wallet here
+	// made, because its node refused it.
+	HasExternalWallet bool `protobuf:"varint,30,opt,name=has_external_wallet,json=hasExternalWallet,proto3" json:"has_external_wallet,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *BinaryStatusMsg) Reset() {
@@ -892,6 +898,20 @@ func (x *BinaryStatusMsg) GetDownloadedTimestampUnix() int64 {
 func (x *BinaryStatusMsg) GetWindowOpen() bool {
 	if x != nil {
 		return x.WindowOpen
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetLoadedWalletId() string {
+	if x != nil {
+		return x.LoadedWalletId
+	}
+	return ""
+}
+
+func (x *BinaryStatusMsg) GetHasExternalWallet() bool {
+	if x != nil {
+		return x.HasExternalWallet
 	}
 	return false
 }
@@ -5802,7 +5822,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0fconvert_from_id\x18\f \x01(\tR\rconvertFromId\x12*\n" +
 	"\x11convert_from_name\x18\r \x01(\tR\x0fconvertFromName\x12\"\n" +
 	"\rconvert_to_id\x18\x0e \x01(\tR\vconvertToId\x12&\n" +
-	"\x0fconvert_to_name\x18\x0f \x01(\tR\rconvertToName\"\xd5\a\n" +
+	"\x0fconvert_to_name\x18\x0f \x01(\tR\rconvertToName\"\xaf\b\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
@@ -5836,7 +5856,9 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x15remote_timestamp_unix\x18\x19 \x01(\x03R\x13remoteTimestampUnix\x12:\n" +
 	"\x19downloaded_timestamp_unix\x18\x1a \x01(\x03R\x17downloadedTimestampUnix\x12\x1f\n" +
 	"\vwindow_open\x18\x1b \x01(\bR\n" +
-	"windowOpenJ\x04\b\x1c\x10\x1dR\x13serves_light_wallet\"U\n" +
+	"windowOpen\x12(\n" +
+	"\x10loaded_wallet_id\x18\x1d \x01(\tR\x0eloadedWalletId\x12.\n" +
+	"\x13has_external_wallet\x18\x1e \x01(\bR\x11hasExternalWalletJ\x04\b\x1c\x10\x1dR\x13serves_light_wallet\"U\n" +
 	"\x12StartupLogEntryMsg\x12%\n" +
 	"\x0etimestamp_unix\x18\x01 \x01(\x03R\rtimestampUnix\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\":\n" +

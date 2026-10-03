@@ -503,6 +503,26 @@ func (s *Service) primaryWallet() *WalletData {
 	return nil
 }
 
+// sidechainWallet returns the wallet the sidechains load: the active wallet
+// when it holds a seed, else the starter wallet. Must be called with mu held.
+func (s *Service) sidechainWallet() *WalletData {
+	if w := s.activeWallet(); w != nil && w.Master.Mnemonic != "" {
+		return w
+	}
+	return s.primaryWallet()
+}
+
+// SidechainWalletID names the wallet the sidechains load. Empty before any
+// seeded wallet exists.
+func (s *Service) SidechainWalletID() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if w := s.sidechainWallet(); w != nil {
+		return w.ID
+	}
+	return ""
+}
+
 // adoptStarterWallet pins the starter wallet when none is recorded yet, so the
 // first seeded wallet holds that role for the life of the install. Reports
 // whether it changed anything. Must be called with mu held.
@@ -591,7 +611,34 @@ func (s *Service) GetOrDeriveSidechainStarter(slot int, slotName string) (string
 	if w == nil {
 		return "", fmt.Errorf("no wallet holds a seed to derive the sidechain starter from")
 	}
+	return s.getOrDeriveSidechainStarter(w, slot, slotName)
+}
 
+// GetOrDeriveSidechainStarterFor is GetOrDeriveSidechainStarter for the wallet walletID.
+func (s *Service) GetOrDeriveSidechainStarterFor(walletID string, slot int, slotName string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	w := s.seededWallet(walletID)
+	if w == nil {
+		return "", fmt.Errorf("wallet %s holds no seed to derive the sidechain starter from", walletID)
+	}
+	return s.getOrDeriveSidechainStarter(w, slot, slotName)
+}
+
+// seededWallet returns the wallet walletID when it holds a seed. Must be called
+// with mu held.
+func (s *Service) seededWallet(walletID string) *WalletData {
+	for i := range s.wallets {
+		if s.wallets[i].ID == walletID && s.wallets[i].Master.Mnemonic != "" {
+			return &s.wallets[i]
+		}
+	}
+	return nil
+}
+
+// getOrDeriveSidechainStarter must be called with mu held.
+func (s *Service) getOrDeriveSidechainStarter(w *WalletData, slot int, slotName string) (string, error) {
 	for _, sc := range w.Sidechains {
 		if sc.Slot == slot && sc.Mnemonic != "" {
 			return sc.Mnemonic, nil
@@ -1131,6 +1178,8 @@ func (s *Service) UnlockWallet(password string) error {
 	}
 
 	s.log.Info().Int("wallet_count", len(s.wallets)).Str("active_id", s.activeWalletID).Msg("wallet unlocked successfully")
+	// The sidechains learn their wallet only now, so they reconcile on this.
+	s.notifyChanged()
 	return nil
 }
 
@@ -1625,13 +1674,29 @@ func (s *Service) WriteSidechainStarter(slot int) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	s.log.Info().Int("slot", slot).Msg("writing sidechain starter file")
-
 	starter := s.primaryWallet()
 	if starter == nil {
 		s.log.Warn().Int("wallet_count", len(s.wallets)).Msg("sidechain starter: no starter wallet")
 		return "", fmt.Errorf("no starter wallet")
 	}
+	return s.writeSidechainStarter(starter, slot)
+}
+
+// WriteSidechainStarterFor is WriteSidechainStarter for the wallet walletID.
+func (s *Service) WriteSidechainStarterFor(walletID string, slot int) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	starter := s.seededWallet(walletID)
+	if starter == nil {
+		return "", fmt.Errorf("wallet %s holds no seed for a sidechain starter", walletID)
+	}
+	return s.writeSidechainStarter(starter, slot)
+}
+
+// writeSidechainStarter must be called with mu held.
+func (s *Service) writeSidechainStarter(starter *WalletData, slot int) (string, error) {
+	s.log.Info().Int("slot", slot).Str("wallet_id", starter.ID).Msg("writing sidechain starter file")
 
 	var mnemonic string
 	for _, sc := range starter.Sidechains {
@@ -1650,7 +1715,8 @@ func (s *Service) WriteSidechainStarter(slot int) (string, error) {
 		return "", fmt.Errorf("create starter dir: %w", err)
 	}
 
-	path := filepath.Join(dir, fmt.Sprintf("sidechain_%d_starter.txt", slot))
+	// One file for each wallet, so a start never reads the seed of another wallet.
+	path := filepath.Join(dir, fmt.Sprintf("sidechain_%d_%s_starter.txt", slot, starter.ID))
 	if err := os.WriteFile(path, []byte(mnemonic), 0600); err != nil {
 		return "", fmt.Errorf("write sidechain starter: %w", err)
 	}

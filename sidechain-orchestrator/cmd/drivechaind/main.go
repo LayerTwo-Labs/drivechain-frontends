@@ -752,6 +752,10 @@ func run(cctx *cli.Context) error {
 		return err
 	}
 
+	// After the network, its parked state and the chain params are settled: a
+	// wallet swap parks wallet.mdb under the eCash network and may start L1.
+	orch.WatchSidechainWallets(ctx)
+
 	// Auto-boot sidechains specified via --binary flags
 	binariesToBoot := cctx.StringSlice("binary")
 	forceBackend := orch.BackendOnly()

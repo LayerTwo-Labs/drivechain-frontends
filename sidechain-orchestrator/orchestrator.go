@@ -71,6 +71,10 @@ type BinaryStatus struct {
 	UpdateAvailable bool      // a newer build is published than the one on disk
 	RemoteTimestamp time.Time // Last-Modified of the published download
 	LocalTimestamp  time.Time // mtime of the binary on disk
+	// LoadedWalletID names the wallet whose sidechain wallet the binary holds.
+	LoadedWalletID string
+	// HasExternalWallet says a wallet.mdb that no wallet here made is parked.
+	HasExternalWallet bool
 }
 
 // StartupProgress reports progress during StartWithL1. Download fields
@@ -271,6 +275,8 @@ type Orchestrator struct {
 	remoteEnforcer      *enforcerproxy.Remote
 	remoteNetwork       config.Network
 	remoteUpstream      string
+	// refusedRuns holds, per sidechain, the run whose seed refusal is handled.
+	refusedRuns sync.Map
 
 	// stopBinary is the Stop primitive used by SetCoreVariant. Production wires
 	// this to o.Stop; tests override it to inject force/graceful failures.
@@ -421,7 +427,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	orch.newCoreChecker = func(cfg BinaryConfig, opts HealthCheckOpts) HealthChecker {
 		return NewHealthChecker(cfg, opts)
 	}
-	orch.process.BeforeStart = orch.checkECashMigrationStart
+	orch.process.BeforeStart = orch.beforeStart
 	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
 	orch.coreReachable = orch.dialCoreRPC
 	orch.catalogURL = netcatalog.DefaultURL
@@ -630,7 +636,8 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 			})
 		}
 	}
-	if err := o.alignECashSidechainState(config); err != nil {
+	walletID, err := o.alignSidechainState(config)
+	if err != nil {
 		return 0, err
 	}
 	if !o.BackendOnly() {
@@ -640,14 +647,19 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	// --headless are part of it. This call takes no L1 boot, so nothing else
 	// adds them, and the node would then derive another wallet.
 	opts := StartOpts{TargetArgs: args, ForceBackend: true}
-	o.injectSidechainStarter(config, &opts)
+	o.injectSidechainStarter(config, &opts, walletID)
 	if err := o.prepareSidechainArgs(config, &opts); err != nil {
 		return 0, err
 	}
 	if err := o.appendSidechainArgs(ctx, config, &opts); err != nil {
 		return 0, err
 	}
-	return o.process.StartWithOptions(ctx, config, opts.TargetArgs, env, ProcessStartOptions{ForceBackend: true})
+	pid, err := o.process.StartWithOptions(ctx, config, opts.TargetArgs, env, ProcessStartOptions{ForceBackend: true})
+	if err != nil {
+		return 0, err
+	}
+	o.reloadIfWalletChanged(walletID)
+	return pid, nil
 }
 
 // Stop stops a running binary and marks its monitor as stopped so
@@ -788,6 +800,12 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 
 	if config.ChainLayer == 2 {
 		status.WindowOpen = o.process.IsRunning(sidechainGUIProcessName(config.Name))
+		loaded, err := o.LoadedSidechainWallet(config)
+		if err != nil {
+			status.Error = err.Error()
+		}
+		status.LoadedWalletID = loaded
+		status.HasExternalWallet = o.HasExternalWallet(config)
 	}
 
 	// Quick port probe if not already known to be running.
@@ -965,12 +983,13 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			}
 			o.prepareEnforcerArgs(&opts)
 		}
-		o.injectSidechainStarter(config, &opts)
-		if err := o.alignECashSidechainState(config); err != nil {
+		walletID, err := o.alignSidechainState(config)
+		if err != nil {
 			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 			failBoot(mon, ch, "start "+config.Name, err)
 			return
 		}
+		o.injectSidechainStarter(config, &opts, walletID)
 		if err := o.prepareSidechainArgs(config, &opts); err != nil {
 			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 			failBoot(mon, ch, "start "+config.Name, err)
@@ -979,6 +998,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 		if opts.Immediate {
 			o.startTargetOnly(ctx, config, opts, ch, nil)
+			o.reloadIfWalletChanged(walletID)
 			return
 		}
 
@@ -1028,6 +1048,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		}
 
 		o.startTargetOnly(ctx, config, opts, ch, targetPrefetch)
+		o.reloadIfWalletChanged(walletID)
 	}()
 
 	return ch, nil
@@ -1075,8 +1096,10 @@ func (o *Orchestrator) prepareEnforcerArgs(opts *StartOpts) {
 
 // injectSidechainStarter writes the sidechain seed to a temp file and appends
 // --mnemonic-seed-phrase-path=... to opts.TargetArgs for chainLayer==2 binaries.
+// walletID names the wallet whose wallet.mdb the sidechain holds; empty takes
+// the wallet the sidechains load.
 // Dart binary_provider.dart L314-326.
-func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOpts) {
+func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOpts, walletID string) {
 	if config.ChainLayer != 2 || config.Slot <= 0 || o.WalletSvc == nil {
 		return
 	}
@@ -1085,10 +1108,13 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 	if config.IsBitcoinCore {
 		return
 	}
-	if _, err := o.WalletSvc.GetOrDeriveSidechainStarter(config.Slot, config.DisplayName); err != nil {
+	if walletID == "" {
+		walletID = o.WalletSvc.SidechainWalletID()
+	}
+	if _, err := o.WalletSvc.GetOrDeriveSidechainStarterFor(walletID, config.Slot, config.DisplayName); err != nil {
 		o.log.Warn().Err(err).Int("slot", config.Slot).Msg("could not ensure sidechain starter")
 	}
-	scPath, err := o.WalletSvc.WriteSidechainStarter(config.Slot)
+	scPath, err := o.WalletSvc.WriteSidechainStarterFor(walletID, config.Slot)
 	if err != nil {
 		o.log.Warn().Err(err).Int("slot", config.Slot).Msg("failed to write sidechain starter")
 		return
@@ -1716,12 +1742,13 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 
 		default:
-			o.injectSidechainStarter(config, &opts)
-			if err := o.alignECashSidechainState(config); err != nil {
+			walletID, err := o.alignSidechainState(config)
+			if err != nil {
 				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 				failBoot(mon, ch, "start "+config.Name, err)
 				return
 			}
+			o.injectSidechainStarter(config, &opts, walletID)
 			if err := o.prepareSidechainArgs(config, &opts); err != nil {
 				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 				failBoot(mon, ch, "start "+config.Name, err)
@@ -1729,6 +1756,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 			}
 			// startTargetOnly emits its own "done" event.
 			o.startTargetOnly(ctx, config, opts, ch, nil)
+			o.reloadIfWalletChanged(walletID)
 		}
 	}()
 
@@ -1976,6 +2004,15 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 				failBoot(targetMon, ch, "restart "+config.Name, err)
 				return
 			}
+			if !o.process.WaitForExit(config.Name, walletSwapExitTimeout) {
+				failBoot(targetMon, ch, "restart "+config.Name, fmt.Errorf("%s did not stop", config.Name))
+				return
+			}
+			// The wallet swap skipped the daemon while it ran.
+			if err := o.realignSidechainWallet(config, &opts); err != nil {
+				failBoot(targetMon, ch, "restart "+config.Name, err)
+				return
+			}
 		}
 	}
 
@@ -2057,8 +2094,17 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 
 	targetMon.StartRestartTimer(ctx,
 		func(restartCtx context.Context) error {
-			_, err := o.process.StartWithOptions(restartCtx, config, targetArgs, targetEnv, procOpts)
-			return err
+			if _, err := o.process.StartWithOptions(restartCtx, config, targetArgs, targetEnv, procOpts); err != nil {
+				return err
+			}
+			// The old arguments name the old seed, and a wallet change while the
+			// daemon was down found it stopped.
+			loaded, err := o.LoadedSidechainWallet(config)
+			if err != nil {
+				return err
+			}
+			o.reloadIfWalletChanged(loaded)
+			return nil
 		},
 		o.exitedFunc(config.Name),
 	)
