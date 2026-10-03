@@ -17,11 +17,6 @@ if [[ "$os" == "windows" ]]; then
     exe=".exe"
 fi
 
-case "$(uname -m)" in
-    arm64|aarch64) host_goarch=arm64 ;;
-    *)             host_goarch=amd64 ;;
-esac
-
 # CI builds both macOS arches (suffixed -arm64 / -x86_64); dev builds host only.
 # BITWINDOW_HOST_ARCH_ONLY forces the dev behaviour for a CI job that runs the
 # app instead of releasing it.
@@ -68,16 +63,10 @@ build_orch_tool() {
 # the hwi-daemon is a persistent process to interact with the bitcoin core hwi cli.
 # Built as a standalone binary to be able to cancel ongoing operations etc.
 build_hwi_daemon() {
-    local goarch="$1" out="$2"
+    local arch="$1" out="$2"
     local src="$original_cwd/../sidechain-orchestrator/hwi-daemon"
     [[ "$out" -nt "$src/hwi_daemon.py" && "$out" -nt "$src/build.sh" ]] && { echo "hwi-daemon current ($out)"; return; }
-    # PyInstaller bundles the running interpreter, so it can only build for the
-    # host arch. Skip a mismatched cross target rather than fail.
-    if [[ -n "$goarch" && "$goarch" != "$host_goarch" ]]; then
-        echo "skipping hwi-daemon for $goarch (not host arch)"
-        return
-    fi
-    "$original_cwd/../sidechain-orchestrator/hwi-daemon/build.sh" "$out"
+    "$src/build.sh" "$out" ${arch:+"$arch"}
 }
 
 for target in "${targets[@]}"; do
@@ -90,7 +79,7 @@ for target in "${targets[@]}"; do
     build_bitwindowd "$goarch" "$assets_dir/bitwindowd${sfx}${exe}"
     build_orch_tool  "$goarch" drivechaind   "$assets_dir/drivechaind${sfx}${exe}"
     build_orch_tool  "$goarch" drivechain-cli "$assets_dir/drivechain-cli${sfx}${exe}"
-    build_hwi_daemon "$goarch" "$assets_dir/hwi-daemon${sfx}${exe}"
+    build_hwi_daemon "$token" "$assets_dir/hwi-daemon${sfx}${exe}"
 done
 
 # `just run` execs the daemons by their plain names, so stage host-arch copies.
