@@ -138,7 +138,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
       try {
         _amountSats = parseBurnAmount(value);
         if (_amountSats! < widget.minimumSats) {
-          _error = 'The burn must be at least ${formatBurnAmount(widget.minimumSats)}.';
+          _error = 'The burn must be at least ${formatBurnAmount(widget.minimumSats, activeTicker.symbol)}.';
           return;
         }
       } on FormatException catch (error) {
@@ -286,7 +286,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
           SailTextField(
             controller: _amountController,
             hintText: '0.00000000',
-            suffix: 'ECX',
+            suffix: activeTicker.symbol,
             monospace: true,
             maxLines: 1,
             enabled: !_sendBusy && _context.blocked == null,
@@ -338,11 +338,11 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
           spacing: SailStyleValues.padding08,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _row('To BitcoinEater', formatBurnAmount(amount)),
+            _row('To BitcoinEater', formatBurnAmount(amount, activeTicker.symbol)),
             SailText.primary12(widget.burnAddress, overflow: TextOverflow.visible),
             SailText.secondary12('This transaction burns the bitcoins on ${_network!.name}.'),
             Divider(height: 1, color: theme.colors.divider),
-            _row('OP_RETURN', '0 ECX'),
+            _row('OP_RETURN', '0 ${activeTicker.symbol}'),
             SailText.primary12(
               _address ?? 'The wallet will provide its first address.',
               overflow: TextOverflow.visible,
@@ -358,8 +358,8 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
     spacing: SailStyleValues.padding08,
     children: [
       Divider(height: 1, color: theme.colors.divider),
-      _row('Network fee', formatBurnAmount(fee)),
-      _row('Total from ${_network!.name}', formatBurnAmount(amount + fee)),
+      _row('Network fee', formatBurnAmount(fee, activeTicker.symbol)),
+      _row('Total from ${_network!.name}', formatBurnAmount(amount + fee, activeTicker.symbol)),
     ],
   );
 
@@ -373,7 +373,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.secondary12(_network!.name),
-              SailText.primary13(formatBurnAmount(amount, compact: true), bold: true),
+              SailText.primary13(formatBurnAmount(amount, activeTicker.symbol, compact: true), bold: true),
               SailText.secondary12(sent ? 'Burn sent' : 'Burn permanently'),
             ],
           ),
