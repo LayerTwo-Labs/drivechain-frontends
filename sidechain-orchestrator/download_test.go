@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -308,3 +310,37 @@ func TestResolveGitHubURLReportsAPatternNoAssetMatches(t *testing.T) {
 	_, err := dm.resolveGitHubURL(context.Background(), srv.URL, `nothing-matches\.zip`)
 	require.Error(t, err)
 }
+
+// The token goes to the GitHub API only: a config file can name any host.
+func TestResolveGitHubURLKeepsTheTokenFromOtherHosts(t *testing.T) {
+	t.Setenv("GITHUB_TOKEN", "ci-token")
+	var got string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Header.Get("Authorization")
+		_, _ = w.Write([]byte(`{"assets":[{"name":"thunder-0.18.1-x86_64-unknown-linux-gnu","browser_download_url":"https://example.invalid/t"}]}`))
+	}))
+	defer srv.Close()
+
+	dm, _ := newTestDownloadManager(t)
+	_, err := dm.resolveGitHubURL(context.Background(), srv.URL, `thunder-`)
+	require.NoError(t, err)
+	require.Empty(t, got)
+}
+
+func TestResolveGitHubURLSendsTheTokenToGitHub(t *testing.T) {
+	t.Setenv("GITHUB_TOKEN", "ci-token")
+	var got string
+	dm, _ := newTestDownloadManager(t)
+	dm.httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		got = r.Header.Get("Authorization")
+		body := `{"assets":[{"name":"thunder-0.18.1-x86_64-unknown-linux-gnu","browser_download_url":"https://example.invalid/t"}]}`
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Header: http.Header{}}, nil
+	})}
+	_, err := dm.resolveGitHubURL(context.Background(), "https://"+githubAPIHost+"/repos/LayerTwo-Labs/thunder-rust/releases/latest", `thunder-`)
+	require.NoError(t, err)
+	require.Equal(t, "Bearer ci-token", got)
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }

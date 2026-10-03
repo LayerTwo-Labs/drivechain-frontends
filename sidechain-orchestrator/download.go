@@ -438,6 +438,9 @@ func (d *DownloadManager) ClearState(name string) {
 	d.state.Delete(name)
 }
 
+// githubAPIHost is the only host that receives GITHUB_TOKEN.
+const githubAPIHost = "api.github.com"
+
 // resolveGitHubURL queries the GitHub releases API and finds the asset
 // matching the regex pattern.
 func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern string) (string, error) {
@@ -451,6 +454,11 @@ func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern 
 	}
 	req.Header.Set("User-Agent", "Drivechain-Frontends")
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	// CI runners share an address, so an anonymous call meets the rate limit.
+	// The URL comes from a config file a user edits, so the token goes to GitHub only.
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" && req.URL.Scheme == "https" && req.URL.Hostname() == githubAPIHost {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
