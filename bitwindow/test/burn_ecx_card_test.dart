@@ -347,6 +347,9 @@ void main() {
     expect(find.text('Total from Betanet'), findsOneWidget);
     expect(find.textContaining('1/50 of the amount'), findsOneWidget);
     expect(find.text('25 ECX'), findsOneWidget);
+    expect(find.text('0.00000452 bECX'), findsOneWidget);
+    expect(find.text('1,250.00000452 bECX'), findsOneWidget);
+    expect(find.textContaining('aECX'), findsNothing);
     expect(find.textContaining('Alphanet'), findsNothing);
     expect(rpc.amounts, [
       {_burnAddress: 125000000000},
@@ -461,13 +464,13 @@ void main() {
       expect(rpc.walletIds, everyElement('wallet-1'));
       expect(find.text(_burnAddress), findsOneWidget);
       expect(find.text(_walletAddress), findsOneWidget);
-      expect(find.text('0 ECX'), findsOneWidget);
+      expect(find.text('0 aECX'), findsOneWidget);
       expect(find.text('12.5 ECX'), findsOneWidget);
       expect(find.text('Real ECX'), findsOneWidget);
       expect(find.textContaining('1/100 of the amount'), findsOneWidget);
       expect(find.textContaining('Betanet'), findsNothing);
-      expect(find.text('0.00000452 ECX'), findsOneWidget);
-      expect(find.text('1,250.00000452 ECX'), findsOneWidget);
+      expect(find.text('0.00000452 aECX'), findsOneWidget);
+      expect(find.text('1,250.00000452 aECX'), findsOneWidget);
       expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
       expect(tester.takeException(), isNull);
     });
@@ -500,8 +503,8 @@ void main() {
     expect(rpc.opReturnAddresses.single, _walletAddress);
     expect(find.text('1BitcoinEaterAddressDontSendf59kuE'), findsOneWidget);
     expect(find.text('10.00000001 ECX'), findsOneWidget);
-    expect(find.text('0.00000452 ECX'), findsOneWidget);
-    expect(find.text('1,000.00000453 ECX'), findsOneWidget);
+    expect(find.text('0.00000452 aECX'), findsOneWidget);
+    expect(find.text('1,000.00000453 aECX'), findsOneWidget);
     expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
   });
 
@@ -520,9 +523,9 @@ void main() {
     expect(find.text(_walletAddress), findsOneWidget);
     expect(find.text('a' * 64), findsOneWidget);
     expect(find.text(_burnAddress), findsOneWidget);
-    expect(find.text('0 ECX'), findsOneWidget);
-    expect(find.text('0.00000452 ECX'), findsOneWidget);
-    expect(find.text('1,250.00000452 ECX'), findsOneWidget);
+    expect(find.text('0 aECX'), findsOneWidget);
+    expect(find.text('0.00000452 aECX'), findsOneWidget);
+    expect(find.text('1,250.00000452 aECX'), findsOneWidget);
     expect(find.text('View on the explorer'), findsWidgets);
   });
 

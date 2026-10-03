@@ -20,9 +20,9 @@ void main() {
 
   group('burn amounts', () {
     test('shows all eight decimal places without a double conversion', () {
-      expect(formatBurnAmount(125000000000), '1,250.00000000 ECX');
-      expect(formatBurnAmount(125000000452), '1,250.00000452 ECX');
-      expect(formatBurnAmount(9007199254740993), '90,071,992.54740993 ECX');
+      expect(formatBurnAmount(125000000000, 'bECX'), '1,250.00000000 bECX');
+      expect(formatBurnAmount(125000000452, 'bECX'), '1,250.00000452 bECX');
+      expect(formatBurnAmount(9007199254740993, 'bECX'), '90,071,992.54740993 bECX');
     });
 
     test('rounds one hundredth up to a whole ECX satoshi', () {
@@ -71,8 +71,8 @@ void main() {
     });
 
     test('omits only trailing zero decimals for the route', () {
-      expect(formatBurnAmount(125000000000, compact: true), '1,250 ECX');
-      expect(formatBurnAmount(125000000001, compact: true), '1,250.00000001 ECX');
+      expect(formatBurnAmount(125000000000, 'bECX', compact: true), '1,250 bECX');
+      expect(formatBurnAmount(125000000001, 'bECX', compact: true), '1,250.00000001 bECX');
       expect(formatEcxCredit(125000000000, 100, compact: true), '12.5 ECX');
       expect(formatEcxCredit(125000000001, 100, compact: true), '12.50000001 ECX');
     });

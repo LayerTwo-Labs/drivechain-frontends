@@ -18,15 +18,17 @@ int parseBurnAmount(String text) {
   return amount;
 }
 
-String formatBurnAmount(int amountSats, {bool compact = false}) => _formatAmount(amountSats, 8, compact: compact);
+/// [unit] names the burned coin, e.g. "bECX" on betanet.
+String formatBurnAmount(int amountSats, String unit, {bool compact = false}) =>
+    _formatAmount(amountSats, 8, unit, compact: compact);
 
 int calculateEcxCreditSats(int amountSats, int creditDivisor) =>
     amountSats ~/ creditDivisor + (amountSats % creditDivisor == 0 ? 0 : 1);
 
 String formatEcxCredit(int amountSats, int creditDivisor, {bool compact = false}) =>
-    _formatAmount(calculateEcxCreditSats(amountSats, creditDivisor), 8, compact: compact);
+    _formatAmount(calculateEcxCreditSats(amountSats, creditDivisor), 8, 'ECX', compact: compact);
 
-String _formatAmount(int amount, int decimals, {bool compact = false}) {
+String _formatAmount(int amount, int decimals, String unit, {bool compact = false}) {
   final digits = amount.toString().padLeft(decimals + 1, '0');
   final whole = digits
       .substring(0, digits.length - decimals)
@@ -38,5 +40,5 @@ String _formatAmount(int amount, int decimals, {bool compact = false}) {
   if (compact) {
     fraction = fraction.replaceFirst(RegExp(r'0+$'), '');
   }
-  return '$whole${fraction.isEmpty ? '' : '.$fraction'} ECX';
+  return '$whole${fraction.isEmpty ? '' : '.$fraction'} $unit';
 }
