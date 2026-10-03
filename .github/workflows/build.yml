@@ -215,6 +215,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      # Freezes the hwi-daemon.
+      - uses: actions/setup-python@v6
+        if: matrix.client == 'bitwindow'
+        with:
+          python-version: "3.12"
+
       - name: Setup build directory
         run: |
           # Create build directory name, isolated per OS AND client (AND variant, so

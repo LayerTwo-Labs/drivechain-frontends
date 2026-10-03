@@ -12,8 +12,21 @@ case "$(uname -s)" in
     *)                    os=linux ;;
 esac
 
-py="$(command -v python3 || command -v python)" || {
-    echo "python not found; cannot build hwi-daemon" >&2
+# hwi 3.x, which reads current Ledger and Trezor models, needs Python 3.9-3.12.
+supported() { "$1" -c 'import sys; sys.exit(not (3, 9) <= sys.version_info[:2] < (3, 13))' 2>/dev/null; }
+py=""
+for candidate in python3.12 python3.11 python3.10 python3.9 python3 python; do
+    if command -v "$candidate" >/dev/null && supported "$candidate"; then
+        py="$(command -v "$candidate")"
+        break
+    fi
+done
+if [[ -z "$py" ]] && command -v uv >/dev/null; then
+    uv python install --quiet 3.12
+    py="$(uv python find 3.12)"
+fi
+[[ -n "$py" ]] || {
+    echo "no Python 3.9-3.12 found; install Python 3.12 to build hwi-daemon" >&2
     exit 1
 }
 
@@ -27,7 +40,7 @@ echo "Building hwi-daemon — installs hwi + pyinstaller into a temp venv"
 "$py" -m venv "$tmp/venv"
 vpy="$tmp/venv/$bindir/python"
 "$vpy" -m pip install --quiet --upgrade pip
-"$vpy" -m pip install --quiet "hwi==2.1.1" pyinstaller libusb-package
+"$vpy" -m pip install --quiet "hwi==3.2.0" pyinstaller libusb-package
 
 # hwi dlopens libusb by name, which PyInstaller's import analysis never sees.
 # libusb-package ships it prebuilt, already under the name hwi asks for.
