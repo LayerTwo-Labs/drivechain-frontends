@@ -1072,6 +1072,79 @@ func TestElectrumBalanceSpendingUnconfirmedReceive(t *testing.T) {
 	assert.InDelta(t, 0.5, pending, 1e-9, "pending must be the net 0.5 BTC, not gross 1.5 BTC")
 }
 
+func TestElectrumBalanceTrustsChangeOfOwnSpend(t *testing.T) {
+	const (
+		fundTxID   = "1111111111111111111111111111111111111111111111111111111111111111"
+		spendTxID  = "2222222222222222222222222222222222222222222222222222222222222222"
+		foreignAdr = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	)
+
+	tests := []struct {
+		name          string
+		fundConfirmed bool
+		spendInputs   func(addr string) []EsploraVin
+		wantConfirmed float64
+		wantPending   float64
+	}{
+		{
+			name:          "change of a spend of a confirmed own coin is confirmed",
+			fundConfirmed: true,
+			spendInputs: func(addr string) []EsploraVin {
+				return []EsploraVin{{TxID: fundTxID, Vout: 0, Prevout: &EsploraVout{ScriptPubKeyAddress: addr, Value: 10_000_000}}}
+			},
+			wantConfirmed: 0.099,
+		},
+		{
+			name:          "change of a spend of an unconfirmed receive stays pending",
+			fundConfirmed: false,
+			spendInputs: func(addr string) []EsploraVin {
+				return []EsploraVin{{TxID: fundTxID, Vout: 0, Prevout: &EsploraVout{ScriptPubKeyAddress: addr, Value: 10_000_000}}}
+			},
+			wantPending: 0.099,
+		},
+		{
+			name:          "change of a spend with a foreign input stays pending",
+			fundConfirmed: true,
+			spendInputs: func(addr string) []EsploraVin {
+				return []EsploraVin{
+					{TxID: fundTxID, Vout: 0, Prevout: &EsploraVout{ScriptPubKeyAddress: addr, Value: 10_000_000}},
+					{TxID: fundTxID, Vout: 1, Prevout: &EsploraVout{ScriptPubKeyAddress: foreignAdr, Value: 50_000_000}},
+				}
+			},
+			wantPending: 0.099,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, fake, w, addr := newElectrumFixture(t)
+
+			fundTx := EsploraTx{
+				TxID:   fundTxID,
+				Vin:    []EsploraVin{{TxID: "00", Prevout: &EsploraVout{ScriptPubKeyAddress: foreignAdr}}},
+				Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 10_000_000}},
+				Status: EsploraStatus{Confirmed: tt.fundConfirmed, BlockHeight: 100},
+			}
+			spendTx := EsploraTx{
+				TxID: spendTxID,
+				Vin:  tt.spendInputs(addr),
+				Vout: []EsploraVout{
+					{ScriptPubKeyAddress: foreignAdr, Value: 999_000},
+					{ScriptPubKeyAddress: addr, Value: 9_900_000},
+				},
+			}
+			fake.stats[addr] = EsploraAddressStats{Address: addr, MempoolStats: EsploraTxoStats{TxCount: 2}}
+			fake.txs[addr] = []EsploraTx{spendTx, fundTx}
+			fake.utxos[addr] = []EsploraUTXO{{TxID: spendTxID, Vout: 1, Value: 9_900_000}}
+
+			confirmed, pending, err := p.Balance(context.Background(), w.ID)
+			require.NoError(t, err)
+			assert.InDelta(t, tt.wantConfirmed, confirmed, 1e-9)
+			assert.InDelta(t, tt.wantPending, pending, 1e-9)
+		})
+	}
+}
+
 // TestElectrumWatchOnlyNextReceiveAdvances guards address reuse: a watch-only
 // wallet has no private keys, but its derived chain addresses must still
 // advance past used ones instead of always handing out index 0.
