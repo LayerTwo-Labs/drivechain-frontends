@@ -313,11 +313,16 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 	if err != nil {
 		return 0, 0, err
 	}
+	trusted := trustedTxs(scan)
 	var confirmed, pending int64
 	for _, a := range scan.addrs {
 		for _, u := range a.utxos {
 			// An immature coinbase output cannot be spent yet, so it waits as pending.
-			if u.Status.Confirmed && !immature[fmt.Sprintf("%s:%d", u.TxID, u.Vout)] {
+			if immature[fmt.Sprintf("%s:%d", u.TxID, u.Vout)] {
+				pending += u.Value
+				continue
+			}
+			if u.Status.Confirmed || trusted(u.TxID) {
 				confirmed += u.Value
 				continue
 			}
@@ -325,6 +330,36 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 		}
 	}
 	return float64(confirmed) / 1e8, float64(pending) / 1e8, nil
+}
+
+// trustedTxs applies the trust rule of Core's getbalances: a mempool
+// transaction is trusted when it spends only trusted coins of this wallet.
+func trustedTxs(scan *electrumScan) func(txid string) bool {
+	txByID := map[string]EsploraTx{}
+	for _, a := range scan.addrs {
+		for _, tx := range a.txs {
+			txByID[tx.TxID] = tx
+		}
+	}
+	memo := map[string]bool{}
+	var isTrusted func(txid string) bool
+	isTrusted = func(txid string) bool {
+		if known, ok := memo[txid]; ok {
+			return known
+		}
+		tx, ok := txByID[txid]
+		if !ok {
+			return false
+		}
+		if tx.Status.Confirmed {
+			return true
+		}
+		memo[txid] = len(tx.Vin) > 0 && lo.EveryBy(tx.Vin, func(in EsploraVin) bool {
+			return in.Prevout != nil && scan.owns(in.Prevout.ScriptPubKeyAddress) && isTrusted(in.TxID)
+		})
+		return memo[txid]
+	}
+	return isTrusted
 }
 
 func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
