@@ -32,6 +32,7 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/m4_provider.dart';
 import 'package:bitwindow/providers/mempool_provider.dart';
+import 'package:bitwindow/providers/mempool_watch_provider.dart';
 import 'package:bitwindow/providers/mining_pools_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/notification_stream_provider.dart';
@@ -324,6 +325,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     )..startPolling(),
   );
   NetworkScopedRegistry.register<HDWalletProvider>(HDWalletProvider());
+  NetworkScopedRegistry.register<MempoolWatchProvider>(MempoolWatchProvider());
   NetworkScopedRegistry.register<MiningPoolsProvider>(MiningPoolsProvider());
   GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
   // Eager initialization so it can listen for wallet unlock events

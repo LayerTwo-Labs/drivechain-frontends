@@ -673,6 +673,22 @@ class TimestampDetailRouteArgs {
 }
 
 /// generated route for
+/// [TransactionCensorshipPage]
+class TransactionCensorshipRoute extends PageRouteInfo<void> {
+  const TransactionCensorshipRoute({List<PageRouteInfo>? children})
+    : super(TransactionCensorshipRoute.name, initialChildren: children);
+
+  static const String name = 'TransactionCensorshipRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const TransactionCensorshipPage();
+    },
+  );
+}
+
+/// generated route for
 /// [VerifyTimestampPage]
 class VerifyTimestampRoute extends PageRouteInfo<void> {
   const VerifyTimestampRoute({List<PageRouteInfo>? children})

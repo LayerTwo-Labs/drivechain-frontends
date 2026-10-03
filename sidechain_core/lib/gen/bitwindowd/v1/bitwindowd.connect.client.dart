@@ -312,6 +312,93 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Mempool watch: records every tx in the mempool and how long it has waited.
+  Future<googleprotobufempty.Empty> setMempoolWatch(
+    bitwindowdv1bitwindowd.SetMempoolWatchRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.setMempoolWatch,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Forgets everything recorded and starts over from the current mempool.
+  Future<googleprotobufempty.Empty> resetMempoolWatch(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.resetMempoolWatch,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.GetMempoolWatchStatusResponse> getMempoolWatchStatus(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.getMempoolWatchStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.ListMempoolTransactionsResponse> listMempoolTransactions(
+    bitwindowdv1bitwindowd.ListMempoolTransactionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.listMempoolTransactions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.ListBlockStatsResponse> listBlockStats(
+    bitwindowdv1bitwindowd.ListBlockStatsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.listBlockStats,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Mining pools: which pools mined the recent blocks.
   Future<bitwindowdv1bitwindowd.ListMiningPoolsResponse> listMiningPools(
     bitwindowdv1bitwindowd.ListMiningPoolsRequest input, {

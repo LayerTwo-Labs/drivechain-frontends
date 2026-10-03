@@ -8,6 +8,7 @@ import (
 
 const (
 	KeyCoinSelectionStrategy = "coin_selection_strategy"
+	KeyMempoolWatchEnabled   = "mempool_watch_enabled"
 )
 
 // Set stores a preference value

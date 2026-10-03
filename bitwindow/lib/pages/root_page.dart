@@ -252,6 +252,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.multisigLounge),
       ),
       CommandItem(
+        label: 'Transaction Censorship',
+        category: 'Banking',
+        onSelected: () => GetIt.I.get<AppRouter>().push(const TransactionCensorshipRoute()),
+      ),
+      CommandItem(
         label: 'Write a Check',
         category: 'Banking',
         onSelected: () => GetIt.I.get<AppRouter>().push(CreateCheckRoute()),
@@ -664,6 +669,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: () {
                         final windowProvider = GetIt.I.get<WindowProvider>();
                         windowProvider.open(SubWindowTypes.multisigLounge);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Transaction Censorship',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(const TransactionCensorshipRoute());
                       },
                     ),
                   ],

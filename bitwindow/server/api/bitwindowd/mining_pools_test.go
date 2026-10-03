@@ -79,7 +79,7 @@ func TestService_ListMiningPools(t *testing.T) {
 			coinbase(12, "h12", "/alpha/", now.Add(-2*time.Hour), 1),
 			coinbase(13, "h13", "/nobody/", now.Add(-1*time.Hour), 3),
 		}))
-		server := api_bitwindowd.New(nil, db, nil, nil, regtestRegistry(t), config.Config{}, nil)
+		server := api_bitwindowd.New(nil, db, nil, nil, nil, regtestRegistry(t), config.Config{}, nil)
 
 		response, err := server.ListMiningPools(context.Background(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
 		require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestService_ListMiningPools(t *testing.T) {
 			coinbase(10, "h10", "/beta/", now.Add(-48*time.Hour), 2),
 			coinbase(11, "h11", "/alpha/", now.Add(-time.Hour), 2),
 		}))
-		server := api_bitwindowd.New(nil, db, nil, nil, regtestRegistry(t), config.Config{}, nil)
+		server := api_bitwindowd.New(nil, db, nil, nil, nil, regtestRegistry(t), config.Config{}, nil)
 
 		response, err := server.ListMiningPools(context.Background(), connect.NewRequest(&v1.ListMiningPoolsRequest{
 			Window: v1.MiningPoolWindow_MINING_POOL_WINDOW_1W,
@@ -134,7 +134,7 @@ func TestService_ListMiningPools(t *testing.T) {
 			coinbase(10, "h10", "/alpha/", time.Now(), 2),
 		}))
 		registry := miningpools.New(context.Background(), config.NetworkSignet, "", "", offlineRegistry)
-		server := api_bitwindowd.New(nil, db, nil, nil, registry, config.Config{}, nil)
+		server := api_bitwindowd.New(nil, db, nil, nil, nil, registry, config.Config{}, nil)
 
 		response, err := server.ListMiningPools(context.Background(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
 		require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestService_ListBlocksNamesThePool(t *testing.T) {
 				return mockBitcoind, nil
 			})
 			conf := config.Config{BitcoinCoreNetwork: config.NetworkRegtest}
-			server := api_bitwindowd.New(nil, db, core, nil, regtestRegistry(t), conf, nil)
+			server := api_bitwindowd.New(nil, db, core, nil, nil, regtestRegistry(t), conf, nil)
 
 			response, err := server.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
 			require.NoError(t, err)

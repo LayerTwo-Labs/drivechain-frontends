@@ -1600,6 +1600,612 @@ class GetFireplaceStatsResponse extends $pb.GeneratedMessage {
   void clearBlockCount24h() => clearField(3);
 }
 
+class SetMempoolWatchRequest extends $pb.GeneratedMessage {
+  factory SetMempoolWatchRequest({
+    $core.bool? enabled,
+  }) {
+    final $result = create();
+    if (enabled != null) {
+      $result.enabled = enabled;
+    }
+    return $result;
+  }
+  SetMempoolWatchRequest._() : super();
+  factory SetMempoolWatchRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetMempoolWatchRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetMempoolWatchRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetMempoolWatchRequest clone() => SetMempoolWatchRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetMempoolWatchRequest copyWith(void Function(SetMempoolWatchRequest) updates) => super.copyWith((message) => updates(message as SetMempoolWatchRequest)) as SetMempoolWatchRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetMempoolWatchRequest create() => SetMempoolWatchRequest._();
+  SetMempoolWatchRequest createEmptyInstance() => create();
+  static $pb.PbList<SetMempoolWatchRequest> createRepeated() => $pb.PbList<SetMempoolWatchRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetMempoolWatchRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetMempoolWatchRequest>(create);
+  static SetMempoolWatchRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => clearField(1);
+}
+
+class GetMempoolWatchStatusResponse extends $pb.GeneratedMessage {
+  factory GetMempoolWatchStatusResponse({
+    $core.bool? enabled,
+    $core.bool? running,
+    $core.String? error,
+    $core.int? tipHeight,
+    $fixnum.Int64? pendingCount,
+  }) {
+    final $result = create();
+    if (enabled != null) {
+      $result.enabled = enabled;
+    }
+    if (running != null) {
+      $result.running = running;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    if (tipHeight != null) {
+      $result.tipHeight = tipHeight;
+    }
+    if (pendingCount != null) {
+      $result.pendingCount = pendingCount;
+    }
+    return $result;
+  }
+  GetMempoolWatchStatusResponse._() : super();
+  factory GetMempoolWatchStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetMempoolWatchStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetMempoolWatchStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..aOB(2, _omitFieldNames ? '' : 'running')
+    ..aOS(3, _omitFieldNames ? '' : 'error')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'tipHeight', $pb.PbFieldType.OU3)
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'pendingCount', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetMempoolWatchStatusResponse clone() => GetMempoolWatchStatusResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetMempoolWatchStatusResponse copyWith(void Function(GetMempoolWatchStatusResponse) updates) => super.copyWith((message) => updates(message as GetMempoolWatchStatusResponse)) as GetMempoolWatchStatusResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetMempoolWatchStatusResponse create() => GetMempoolWatchStatusResponse._();
+  GetMempoolWatchStatusResponse createEmptyInstance() => create();
+  static $pb.PbList<GetMempoolWatchStatusResponse> createRepeated() => $pb.PbList<GetMempoolWatchStatusResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetMempoolWatchStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetMempoolWatchStatusResponse>(create);
+  static GetMempoolWatchStatusResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get running => $_getBF(1);
+  @$pb.TagNumber(2)
+  set running($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasRunning() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRunning() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get error => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set error($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasError() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearError() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get tipHeight => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set tipHeight($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasTipHeight() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTipHeight() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get pendingCount => $_getI64(4);
+  @$pb.TagNumber(5)
+  set pendingCount($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasPendingCount() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPendingCount() => clearField(5);
+}
+
+/// Pages are ordered oldest first.
+class ListMempoolTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListMempoolTransactionsRequest({
+    $core.String? txid,
+    $core.int? limit,
+    $core.int? offset,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (limit != null) {
+      $result.limit = limit;
+    }
+    if (offset != null) {
+      $result.offset = offset;
+    }
+    return $result;
+  }
+  ListMempoolTransactionsRequest._() : super();
+  factory ListMempoolTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListMempoolTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMempoolTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'limit', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'offset', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListMempoolTransactionsRequest clone() => ListMempoolTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListMempoolTransactionsRequest copyWith(void Function(ListMempoolTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListMempoolTransactionsRequest)) as ListMempoolTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMempoolTransactionsRequest create() => ListMempoolTransactionsRequest._();
+  ListMempoolTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListMempoolTransactionsRequest> createRepeated() => $pb.PbList<ListMempoolTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListMempoolTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMempoolTransactionsRequest>(create);
+  static ListMempoolTransactionsRequest? _defaultInstance;
+
+  /// Prefix of the txid to match.
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get limit => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set limit($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasLimit() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLimit() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get offset => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set offset($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasOffset() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearOffset() => clearField(3);
+}
+
+class MempoolTransaction extends $pb.GeneratedMessage {
+  factory MempoolTransaction({
+    $core.String? txid,
+    $fixnum.Int64? feeSats,
+    $core.int? vsize,
+    $core.double? feeRate,
+    $0.Timestamp? firstSeen,
+    $core.int? firstSeenHeight,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (vsize != null) {
+      $result.vsize = vsize;
+    }
+    if (feeRate != null) {
+      $result.feeRate = feeRate;
+    }
+    if (firstSeen != null) {
+      $result.firstSeen = firstSeen;
+    }
+    if (firstSeenHeight != null) {
+      $result.firstSeenHeight = firstSeenHeight;
+    }
+    return $result;
+  }
+  MempoolTransaction._() : super();
+  factory MempoolTransaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MempoolTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MempoolTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'vsize', $pb.PbFieldType.OU3)
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
+    ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'firstSeen', subBuilder: $0.Timestamp.create)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'firstSeenHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MempoolTransaction clone() => MempoolTransaction()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MempoolTransaction copyWith(void Function(MempoolTransaction) updates) => super.copyWith((message) => updates(message as MempoolTransaction)) as MempoolTransaction;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MempoolTransaction create() => MempoolTransaction._();
+  MempoolTransaction createEmptyInstance() => create();
+  static $pb.PbList<MempoolTransaction> createRepeated() => $pb.PbList<MempoolTransaction>();
+  @$core.pragma('dart2js:noInline')
+  static MempoolTransaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MempoolTransaction>(create);
+  static MempoolTransaction? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get feeSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set feeSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFeeSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFeeSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get vsize => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set vsize($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasVsize() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearVsize() => clearField(3);
+
+  /// The rate a block template weighs it at: ancestor package fee over
+  /// package vsize, in sat/vB.
+  @$pb.TagNumber(4)
+  $core.double get feeRate => $_getN(3);
+  @$pb.TagNumber(4)
+  set feeRate($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFeeRate() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFeeRate() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $0.Timestamp get firstSeen => $_getN(4);
+  @$pb.TagNumber(5)
+  set firstSeen($0.Timestamp v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasFirstSeen() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearFirstSeen() => clearField(5);
+  @$pb.TagNumber(5)
+  $0.Timestamp ensureFirstSeen() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $core.int get firstSeenHeight => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set firstSeenHeight($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFirstSeenHeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFirstSeenHeight() => clearField(6);
+}
+
+class ListMempoolTransactionsResponse extends $pb.GeneratedMessage {
+  factory ListMempoolTransactionsResponse({
+    $core.Iterable<MempoolTransaction>? transactions,
+    $fixnum.Int64? total,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    if (total != null) {
+      $result.total = total;
+    }
+    return $result;
+  }
+  ListMempoolTransactionsResponse._() : super();
+  factory ListMempoolTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListMempoolTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMempoolTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..pc<MempoolTransaction>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: MempoolTransaction.create)
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'total', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListMempoolTransactionsResponse clone() => ListMempoolTransactionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListMempoolTransactionsResponse copyWith(void Function(ListMempoolTransactionsResponse) updates) => super.copyWith((message) => updates(message as ListMempoolTransactionsResponse)) as ListMempoolTransactionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMempoolTransactionsResponse create() => ListMempoolTransactionsResponse._();
+  ListMempoolTransactionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListMempoolTransactionsResponse> createRepeated() => $pb.PbList<ListMempoolTransactionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListMempoolTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMempoolTransactionsResponse>(create);
+  static ListMempoolTransactionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<MempoolTransaction> get transactions => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get total => $_getI64(1);
+  @$pb.TagNumber(2)
+  set total($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTotal() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTotal() => clearField(2);
+}
+
+class ListBlockStatsRequest extends $pb.GeneratedMessage {
+  factory ListBlockStatsRequest({
+    $core.int? fromHeight,
+    $core.int? toHeight,
+  }) {
+    final $result = create();
+    if (fromHeight != null) {
+      $result.fromHeight = fromHeight;
+    }
+    if (toHeight != null) {
+      $result.toHeight = toHeight;
+    }
+    return $result;
+  }
+  ListBlockStatsRequest._() : super();
+  factory ListBlockStatsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListBlockStatsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListBlockStatsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'fromHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'toHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListBlockStatsRequest clone() => ListBlockStatsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListBlockStatsRequest copyWith(void Function(ListBlockStatsRequest) updates) => super.copyWith((message) => updates(message as ListBlockStatsRequest)) as ListBlockStatsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListBlockStatsRequest create() => ListBlockStatsRequest._();
+  ListBlockStatsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListBlockStatsRequest> createRepeated() => $pb.PbList<ListBlockStatsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListBlockStatsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListBlockStatsRequest>(create);
+  static ListBlockStatsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get fromHeight => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set fromHeight($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFromHeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFromHeight() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get toHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set toHeight($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasToHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearToHeight() => clearField(2);
+}
+
+/// What a connected block showed about the fee market.
+class BlockStats extends $pb.GeneratedMessage {
+  factory BlockStats({
+    $core.int? height,
+    $core.double? minFeeRate,
+    $fixnum.Int64? totalFeeSats,
+  }) {
+    final $result = create();
+    if (height != null) {
+      $result.height = height;
+    }
+    if (minFeeRate != null) {
+      $result.minFeeRate = minFeeRate;
+    }
+    if (totalFeeSats != null) {
+      $result.totalFeeSats = totalFeeSats;
+    }
+    return $result;
+  }
+  BlockStats._() : super();
+  factory BlockStats.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BlockStats.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BlockStats', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'minFeeRate', $pb.PbFieldType.OD)
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'totalFeeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BlockStats clone() => BlockStats()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BlockStats copyWith(void Function(BlockStats) updates) => super.copyWith((message) => updates(message as BlockStats)) as BlockStats;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BlockStats create() => BlockStats._();
+  BlockStats createEmptyInstance() => create();
+  static $pb.PbList<BlockStats> createRepeated() => $pb.PbList<BlockStats>();
+  @$core.pragma('dart2js:noInline')
+  static BlockStats getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BlockStats>(create);
+  static BlockStats? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get height => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set height($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasHeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHeight() => clearField(1);
+
+  /// Lowest fee rate the block included, in sat/vB.
+  @$pb.TagNumber(2)
+  $core.double get minFeeRate => $_getN(1);
+  @$pb.TagNumber(2)
+  set minFeeRate($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMinFeeRate() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMinFeeRate() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get totalFeeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set totalFeeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTotalFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTotalFeeSats() => clearField(3);
+}
+
+class ListBlockStatsResponse extends $pb.GeneratedMessage {
+  factory ListBlockStatsResponse({
+    $core.Iterable<BlockStats>? blocks,
+  }) {
+    final $result = create();
+    if (blocks != null) {
+      $result.blocks.addAll(blocks);
+    }
+    return $result;
+  }
+  ListBlockStatsResponse._() : super();
+  factory ListBlockStatsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListBlockStatsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListBlockStatsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..pc<BlockStats>(1, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.PM, subBuilder: BlockStats.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListBlockStatsResponse clone() => ListBlockStatsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListBlockStatsResponse copyWith(void Function(ListBlockStatsResponse) updates) => super.copyWith((message) => updates(message as ListBlockStatsResponse)) as ListBlockStatsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListBlockStatsResponse create() => ListBlockStatsResponse._();
+  ListBlockStatsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListBlockStatsResponse> createRepeated() => $pb.PbList<ListBlockStatsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListBlockStatsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListBlockStatsResponse>(create);
+  static ListBlockStatsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<BlockStats> get blocks => $_getList(0);
+}
+
 /// A pool from pool.drivechain.info, or "Unknown". The payout fields are
 /// empty on networks served by mempool's list.
 class MiningPool extends $pb.GeneratedMessage {
@@ -3181,6 +3787,21 @@ class BitwindowdServiceApi {
   ;
   $async.Future<GetNetworkStatsResponse> getNetworkStats($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<GetNetworkStatsResponse>(ctx, 'BitwindowdService', 'GetNetworkStats', request, GetNetworkStatsResponse())
+  ;
+  $async.Future<$1.Empty> setMempoolWatch($pb.ClientContext? ctx, SetMempoolWatchRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'SetMempoolWatch', request, $1.Empty())
+  ;
+  $async.Future<$1.Empty> resetMempoolWatch($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'ResetMempoolWatch', request, $1.Empty())
+  ;
+  $async.Future<GetMempoolWatchStatusResponse> getMempoolWatchStatus($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetMempoolWatchStatusResponse>(ctx, 'BitwindowdService', 'GetMempoolWatchStatus', request, GetMempoolWatchStatusResponse())
+  ;
+  $async.Future<ListMempoolTransactionsResponse> listMempoolTransactions($pb.ClientContext? ctx, ListMempoolTransactionsRequest request) =>
+    _client.invoke<ListMempoolTransactionsResponse>(ctx, 'BitwindowdService', 'ListMempoolTransactions', request, ListMempoolTransactionsResponse())
+  ;
+  $async.Future<ListBlockStatsResponse> listBlockStats($pb.ClientContext? ctx, ListBlockStatsRequest request) =>
+    _client.invoke<ListBlockStatsResponse>(ctx, 'BitwindowdService', 'ListBlockStats', request, ListBlockStatsResponse())
   ;
   $async.Future<ListMiningPoolsResponse> listMiningPools($pb.ClientContext? ctx, ListMiningPoolsRequest request) =>
     _client.invoke<ListMiningPoolsResponse>(ctx, 'BitwindowdService', 'ListMiningPools', request, ListMiningPoolsResponse())

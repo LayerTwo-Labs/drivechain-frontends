@@ -49,6 +49,14 @@ service BitwindowdService {
   // Get network statistics
   rpc GetNetworkStats(google.protobuf.Empty) returns (GetNetworkStatsResponse);
 
+  // Mempool watch: records every tx in the mempool and how long it has waited.
+  rpc SetMempoolWatch(SetMempoolWatchRequest) returns (google.protobuf.Empty);
+  // Forgets everything recorded and starts over from the current mempool.
+  rpc ResetMempoolWatch(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc GetMempoolWatchStatus(google.protobuf.Empty) returns (GetMempoolWatchStatusResponse);
+  rpc ListMempoolTransactions(ListMempoolTransactionsRequest) returns (ListMempoolTransactionsResponse);
+  rpc ListBlockStats(ListBlockStatsRequest) returns (ListBlockStatsResponse);
+
   // Mining pools: which pools mined the recent blocks.
   rpc ListMiningPools(ListMiningPoolsRequest) returns (ListMiningPoolsResponse);
 
@@ -227,6 +235,59 @@ message GetFireplaceStatsResponse {
   int64 transaction_count_24h = 1;
   int64 coinnews_count_7d = 2;
   int64 block_count_24h = 3;
+}
+
+message SetMempoolWatchRequest {
+  bool enabled = 1;
+}
+
+message GetMempoolWatchStatusResponse {
+  bool enabled = 1;
+  bool running = 2;
+  string error = 3;
+  uint32 tip_height = 4;
+  uint64 pending_count = 5;
+}
+
+// Pages are ordered oldest first.
+message ListMempoolTransactionsRequest {
+  // Prefix of the txid to match.
+  string txid = 1;
+  uint32 limit = 2;
+  uint32 offset = 3;
+}
+
+message MempoolTransaction {
+  string txid = 1;
+  uint64 fee_sats = 2;
+  uint32 vsize = 3;
+  // The rate a block template weighs it at: ancestor package fee over
+  // package vsize, in sat/vB.
+  double fee_rate = 4;
+  google.protobuf.Timestamp first_seen = 5;
+  uint32 first_seen_height = 6;
+}
+
+message ListMempoolTransactionsResponse {
+  repeated MempoolTransaction transactions = 1;
+  uint64 total = 2;
+}
+
+message ListBlockStatsRequest {
+  uint32 from_height = 1;
+  uint32 to_height = 2;
+}
+
+// What a connected block showed about the fee market.
+message BlockStats {
+  uint32 height = 1;
+  // Lowest fee rate the block included, in sat/vB.
+  double min_fee_rate = 2;
+  uint64 total_fee_sats = 3;
+}
+
+message ListBlockStatsResponse {
+  repeated BlockStats blocks = 1;
 }
 
 enum MiningPoolWindow {

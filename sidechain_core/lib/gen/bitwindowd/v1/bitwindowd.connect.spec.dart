@@ -144,6 +144,43 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.GetNetworkStatsResponse.new,
   );
 
+  /// Mempool watch: records every tx in the mempool and how long it has waited.
+  static const setMempoolWatch = connect.Spec(
+    '/$name/SetMempoolWatch',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.SetMempoolWatchRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  /// Forgets everything recorded and starts over from the current mempool.
+  static const resetMempoolWatch = connect.Spec(
+    '/$name/ResetMempoolWatch',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const getMempoolWatchStatus = connect.Spec(
+    '/$name/GetMempoolWatchStatus',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.GetMempoolWatchStatusResponse.new,
+  );
+
+  static const listMempoolTransactions = connect.Spec(
+    '/$name/ListMempoolTransactions',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListMempoolTransactionsRequest.new,
+    bitwindowdv1bitwindowd.ListMempoolTransactionsResponse.new,
+  );
+
+  static const listBlockStats = connect.Spec(
+    '/$name/ListBlockStats',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListBlockStatsRequest.new,
+    bitwindowdv1bitwindowd.ListBlockStatsResponse.new,
+  );
+
   /// Mining pools: which pools mined the recent blocks.
   static const listMiningPools = connect.Spec(
     '/$name/ListMiningPools',
