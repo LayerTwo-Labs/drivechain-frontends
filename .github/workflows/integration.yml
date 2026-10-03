@@ -136,6 +136,12 @@ jobs:
         working-directory: sidechain-orchestrator
         run: go test -v -tags integration -timeout 10m ./wallet/
 
+      - name: Run sidechain wallet integration tests
+        working-directory: sidechain-orchestrator
+        run: go test -v -tags integration -run TestSidechainWalletSwapWithTheRealNode -timeout 10m .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run bitwindow wallet integration tests
         working-directory: bitwindow/server
         run: go test -v -tags integration -timeout 10m ./integrationtest/
