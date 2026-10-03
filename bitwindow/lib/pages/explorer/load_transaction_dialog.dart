@@ -1,21 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
-Future<void> showLoadTransactionDialog(BuildContext context) async {
+/// With [txid], opens on that transaction, wallet-owned or not.
+Future<void> showLoadTransactionDialog(BuildContext context, {String? txid}) async {
   await showThemedDialog<void>(
     context: context,
-    builder: (_) => const SailModal(
-      constraints: BoxConstraints(maxWidth: 900, maxHeight: 760),
-      child: LoadTransactionDialog(),
+    builder: (_) => SailModal(
+      constraints: const BoxConstraints(maxWidth: 900, maxHeight: 760),
+      child: LoadTransactionDialog(txid: txid),
     ),
   );
 }
 
 class LoadTransactionDialog extends StatefulWidget {
-  const LoadTransactionDialog({super.key});
+  final String? txid;
+
+  const LoadTransactionDialog({super.key, this.txid});
 
   @override
   State<LoadTransactionDialog> createState() => _LoadTransactionDialogState();
@@ -26,10 +31,18 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   Logger get _log => GetIt.I.get<Logger>();
 
-  final _controller = TextEditingController();
+  late final _controller = TextEditingController(text: widget.txid);
   DecodedTransaction? _decoded;
   String? _error;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.txid != null) {
+      unawaited(_decode());
+    }
+  }
 
   @override
   void dispose() {
@@ -90,33 +103,37 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final fixed = widget.txid != null;
     return SailCard(
-      title: 'Load Transaction',
-      subtitle: 'Paste a txid, raw transaction hex, or base64 PSBT',
+      title: fixed ? 'Transaction' : 'Load Transaction',
+      subtitle: fixed ? widget.txid! : 'Paste a txid, raw transaction hex, or base64 PSBT',
       error: _error,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SailTextField(
-            controller: _controller,
-            hintText: 'txid / transaction hex / base64 PSBT',
-            minLines: 3,
-            maxLines: 6,
-          ),
-          const SailSpacing(SailStyleValues.padding08),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              SailButton(
-                onPressed: _isLoading ? null : _decode,
-                label: 'Decode',
-                variant: ButtonVariant.primary,
-                loading: _isLoading,
-              ),
-            ],
-          ),
-          const SailSpacing(SailStyleValues.padding16),
+          if (!fixed) ...[
+            SailTextField(
+              controller: _controller,
+              hintText: 'txid / transaction hex / base64 PSBT',
+              minLines: 3,
+              maxLines: 6,
+            ),
+            const SailSpacing(SailStyleValues.padding08),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SailButton(
+                  onPressed: _isLoading ? null : _decode,
+                  label: 'Decode',
+                  variant: ButtonVariant.primary,
+                  loading: _isLoading,
+                ),
+              ],
+            ),
+            const SailSpacing(SailStyleValues.padding16),
+          ],
+          if (fixed && _isLoading) const Center(child: SailCircularProgressIndicator()),
           if (_decoded != null) Expanded(child: _DecodedView(decoded: _decoded!)),
         ],
       ),
@@ -177,13 +194,6 @@ class _DecodedView extends StatelessWidget {
               TabItem(
                 label: 'Outputs (${details.outputs.length})',
                 child: _OutputsTable(decoded: decoded),
-              ),
-              TabItem(
-                label: 'Diagram',
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(SailStyleValues.padding16),
-                  child: TransactionDiagram(details: details, hasFee: decoded.hasFee),
-                ),
               ),
               TabItem(
                 label: 'Bytes',
