@@ -75,6 +75,19 @@ class MiningPoolsProvider extends ChangeNotifier implements NetworkScoped {
     }
   }
 
+  /// The registered pool that serves [stratumUrl], or null.
+  MiningPoolShare? shareFor(String stratumUrl) {
+    if (stratumUrl.trim().isEmpty) {
+      return null;
+    }
+    for (final share in pools) {
+      if (samePoolUrl(share.pool.stratumUrl, stratumUrl)) {
+        return share;
+      }
+    }
+    return null;
+  }
+
   void setWindow(MiningPoolWindow value) {
     window = value;
     notifyListeners();
@@ -87,4 +100,27 @@ class MiningPoolsProvider extends ChangeNotifier implements NetworkScoped {
     _timer = null;
     super.dispose();
   }
+}
+
+/// Two stratum URLs name the same pool when they differ only in case,
+/// whitespace, or a trailing slash.
+bool samePoolUrl(String a, String b) {
+  String normal(String url) {
+    var out = url.trim().toLowerCase();
+    while (out.endsWith('/')) {
+      out = out.substring(0, out.length - 1);
+    }
+    return out;
+  }
+
+  return normal(a).isNotEmpty && normal(a) == normal(b);
+}
+
+/// The short label of a window, as the Pools tab and the pool menu show it.
+String miningPoolWindowLabel(MiningPoolWindow window) {
+  return switch (window) {
+    MiningPoolWindow.MINING_POOL_WINDOW_3D => '3 d',
+    MiningPoolWindow.MINING_POOL_WINDOW_1W => '7 d',
+    _ => '24 h',
+  };
 }

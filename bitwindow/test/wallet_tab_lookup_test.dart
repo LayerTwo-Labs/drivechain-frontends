@@ -39,8 +39,8 @@ void main() {
     // never built, and the tab bar has no state to set.
     expect(WalletPage.tabKey.currentState, isNull);
 
-    WalletPage.openSubtab(WalletPage.soloMiningSubtabLabel);
+    WalletPage.openSubtab(WalletPage.consolidateSubtabLabel);
 
-    expect(WalletPage.pendingSubtab, WalletPage.soloMiningSubtabLabel);
+    expect(WalletPage.pendingSubtab, WalletPage.consolidateSubtabLabel);
   });
 }

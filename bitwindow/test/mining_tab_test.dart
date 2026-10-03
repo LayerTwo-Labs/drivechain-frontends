@@ -1,5 +1,7 @@
 import 'package:bitwindow/dialogs/mining_settings_dialog.dart';
-import 'package:bitwindow/pages/wallet/wallet_solo_mining.dart';
+import 'package:bitwindow/pages/mining/mining_page.dart';
+import 'package:bitwindow/pages/mining/mining_tab.dart';
+import 'package:bitwindow/providers/mining_pools_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -8,6 +10,7 @@ import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart' as wkt;
 import 'package:sidechain_core/gen/stratum/v1/stratum.pb.dart';
 import 'package:sidechain_core/rpcs/orchestrator_stratum_rpc.dart';
 
+import 'mocks/mining_pools_mock.dart';
 import 'test_utils.dart';
 
 class _FakeStratum implements OrchestratorStratumRPC {
@@ -66,15 +69,20 @@ class _FakeOrchestrator implements OrchestratorRPC {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Future<_FakeStratum> _pump(WidgetTester tester, void Function(_FakeStratum) setUp) async {
+Future<_FakeStratum> _pump(
+  WidgetTester tester,
+  void Function(_FakeStratum) setUp, {
+  List<MiningPoolShare> shares = const [],
+}) async {
   await GetIt.I.reset();
   final stratum = _FakeStratum();
   setUp(stratum);
   GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator(stratum));
+  GetIt.I.registerSingleton<MiningPoolsProvider>(FakeMiningPools(shares));
   final provider = StratumProvider();
   GetIt.I.registerSingleton<StratumProvider>(provider);
   await provider.refresh();
-  await tester.pumpSailPage(const SoloMiningTab());
+  await tester.pumpSailPage(const MiningTab());
   await tester.pump();
   return stratum;
 }
@@ -83,6 +91,7 @@ wkt.Timestamp _ago(Duration d) => wkt.Timestamp.fromDateTime(DateTime.now().subt
 
 void main() {
   tearDown(() async {
+    MiningPage.requestedPoolUrl.value = null;
     await GetIt.I.reset();
   });
 
@@ -435,6 +444,83 @@ void main() {
 
     expect(find.text('stratum+tcp://pool.example.com:3333'), findsOneWidget);
     expect(find.text('bc1qme.rig'), findsOneWidget);
+  });
+
+  testWidgets('the pool menu sorts the pools by their share of blocks', (tester) async {
+    await _pump(
+      tester,
+      (stratum) {
+        stratum.pools = [
+          CatalogPool(
+            id: 'bip300',
+            name: 'bip300 pool',
+            url: 'stratum+tcp://stratum.beta.bip300.xyz:3334',
+            fee: '1%',
+            hashrate: 16.5e12,
+          ),
+        ];
+        stratum.next = GetStratumStatusResponse(
+          running: true,
+          target: Target(kind: TargetKind.TARGET_KIND_POOL, poolId: 'bip300'),
+          settings: MiningSettings(port: 3333),
+        );
+      },
+      shares: [
+        poolShare('eCPool.tech', 'stratum+tcp://mining.ecpool.tech:3334', 70, feeBps: 50),
+        poolShare('bip300.xyz', 'STRATUM+TCP://stratum.beta.bip300.xyz:3334/', 61),
+        poolShare('Unknown', '', 13),
+      ],
+    );
+    const selected = 'bip300 pool  ·  42% of blocks · 24 h  ·  1% fee';
+
+    expect(find.text(selected), findsOneWidget);
+
+    await tester.tap(find.text(selected));
+    await tester.pumpAndSettle();
+
+    final ecpool = find.text('eCPool.tech');
+    expect(ecpool, findsOneWidget);
+    expect(find.text('49% of blocks · 24 h'), findsOneWidget);
+    expect(find.text('0.5% fee'), findsOneWidget);
+    expect(find.text('Unknown'), findsNothing);
+    expect(find.text('bip300.xyz'), findsNothing);
+    expect(tester.getTopLeft(ecpool).dy, lessThan(tester.getTopLeft(find.text('bip300 pool').last).dy));
+  });
+
+  testWidgets('a pool from the registry fills the custom pool form', (tester) async {
+    const url = 'stratum+tcp://mining.ecpool.tech:3334';
+    await _pump(
+      tester,
+      (stratum) {
+        stratum.next = GetStratumStatusResponse(
+          running: true,
+          target: Target(kind: TargetKind.TARGET_KIND_SOLO),
+          settings: MiningSettings(port: 3333),
+        );
+      },
+      shares: [poolShare('eCPool.tech', url, 43, feeBps: 50)],
+    );
+
+    await tester.tap(find.text('Solo, your node  ·  No fee'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('eCPool.tech'));
+    await tester.pumpAndSettle();
+
+    expect(find.byWidgetPredicate((w) => w is SailButton && w.label == 'Mine to this pool'), findsOneWidget);
+    expect(find.text(url), findsOneWidget);
+  });
+
+  testWidgets('a pool that the Pools tab asks for fills the custom pool form', (tester) async {
+    const url = 'stratum+tcp://mine.ecash.epool.cash:3334';
+    MiningPage.requestedPoolUrl.value = url;
+
+    await _pump(tester, (stratum) {
+      stratum.next = GetStratumStatusResponse(target: Target(kind: TargetKind.TARGET_KIND_SOLO));
+    });
+
+    expect(find.text(url), findsOneWidget);
+    expect(find.text('Custom pool'), findsOneWidget);
+    expect(MiningPage.requestedPoolUrl.value, isNull);
   });
 
   test('block status', () {
