@@ -73,7 +73,9 @@ class BackendStateProvider extends ChangeNotifier {
     }
     _polling = true;
     try {
-      final resp = await _orchestrator.listBinaries(forceBackend: Binary.isSidechainApp);
+      final resp = await _orchestrator.listBinaries(
+        forceBackend: Binary.isSidechainApp,
+      );
       _consecutiveFailures = 0;
       orchestratorReachable = true;
       orchestratorAnswered = true;
@@ -83,7 +85,9 @@ class BackendStateProvider extends ChangeNotifier {
       // unreachable must stop reading as a healthy stack.
       _consecutiveFailures++;
       if (_consecutiveFailures == _failuresBeforeDisconnected) {
-        _log.w('BackendStateProvider: orchestrator unreachable, marking binaries disconnected: $e');
+        _log.w(
+          'BackendStateProvider: orchestrator unreachable, marking binaries disconnected: $e',
+        );
         orchestratorReachable = false;
         _markAllDisconnected();
       }
@@ -151,6 +155,8 @@ class BackendStateProvider extends ChangeNotifier {
     // Check if anything actually changed to avoid unnecessary rebuilds
     if (rpc.connected == status.connected &&
         rpc.windowOpen == status.windowOpen &&
+        rpc.loadedWalletId == status.loadedWalletId &&
+        rpc.hasExternalWallet == status.hasExternalWallet &&
         rpc.stoppingBinary == status.stopping &&
         rpc.initializingBinary == status.initializing &&
         rpc.connectModeOnly == status.connectModeOnly &&
@@ -161,6 +167,8 @@ class BackendStateProvider extends ChangeNotifier {
 
     rpc.connected = status.connected;
     rpc.windowOpen = status.windowOpen;
+    rpc.loadedWalletId = status.loadedWalletId;
+    rpc.hasExternalWallet = status.hasExternalWallet;
     rpc.stoppingBinary = status.stopping;
     rpc.initializingBinary = status.initializing;
     rpc.connectModeOnly = status.connectModeOnly;

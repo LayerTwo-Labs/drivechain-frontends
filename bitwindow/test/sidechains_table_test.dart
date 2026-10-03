@@ -55,7 +55,15 @@ class _Sidechains extends ChangeNotifier implements SidechainProvider {
 
 class _Wallet extends ChangeNotifier implements WalletReaderProvider {
   @override
-  String? get activeWalletId => null;
+  List<WalletData> wallets = [];
+
+  String? activeId;
+
+  @override
+  String? get activeWalletId => activeId;
+
+  @override
+  WalletData? get activeWallet => wallets.where((w) => w.id == activeId).firstOrNull;
 
   @override
   String? resolveFundingWalletId(String? walletId) => null;
@@ -63,6 +71,18 @@ class _Wallet extends ChangeNotifier implements WalletReaderProvider {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+WalletData _wallet(String id, String name) => WalletData(
+  version: 1,
+  master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: ''),
+  l1: L1Wallet(mnemonic: ''),
+  sidechains: const [],
+  id: id,
+  name: name,
+  gradient: WalletGradient.fromWalletId(id),
+  createdAt: DateTime(2026),
+  walletType: BinaryType.BINARY_TYPE_ENFORCER,
+);
 
 class _Transactions implements TransactionProvider {
   @override
@@ -164,6 +184,7 @@ SailButton _buttonWidget(WidgetTester tester, String label) => tester.widget<Sai
 
 void main() {
   late _ThunderRPC thunderRPC;
+  late _Wallet walletReader;
   late _CoinShiftRPC coinShiftRPC;
   late _Downloads downloads;
   late BalanceProvider balances;
@@ -197,7 +218,8 @@ void main() {
     GetIt.I.registerSingleton<BitcoinConfProvider>(_Conf());
     GetIt.I.registerSingleton<SyncProvider>(sync);
     GetIt.I.registerSingleton<SidechainProvider>(sidechains);
-    GetIt.I.registerSingleton<WalletReaderProvider>(_Wallet());
+    walletReader = _Wallet();
+    GetIt.I.registerSingleton<WalletReaderProvider>(walletReader);
     GetIt.I.registerSingleton<TransactionProvider>(_Transactions());
     GetIt.I.registerSingleton<LogProvider>(LogProvider());
     GetIt.I.registerSingleton<DownloadProvider>(downloads);
@@ -898,6 +920,98 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the balance header names the wallet the sidechain holds', (tester) async {
+    setUpChain(_thunder());
+    walletReader.wallets = [_wallet('a', 'Main wallet'), _wallet('b', 'Savings')];
+    walletReader.activeId = 'a';
+    thunderRPC.loadedWalletId = 'b';
+    thunderRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester);
+
+    expect(find.text('Savings'), findsOneWidget);
+    expect(find.text('Main wallet'), findsNothing);
+    expect(find.text('Your balance'), findsNothing);
+    expect(find.byType(WalletBlobAvatar), findsOneWidget);
+  });
+
+  testWidgets('sidechains on different wallets name no one wallet in the header', (tester) async {
+    final coinShift = CoinShift();
+    GetIt.I.registerSingleton<BinaryProvider>(
+      _Binaries([
+        _thunder(),
+        coinShift.copyWith(
+          metadata: coinShift.metadata.copyWith(
+            remoteTimestamp: null,
+            downloadedTimestamp: DateTime(2026, 1),
+            binaryPath: File('/tmp/coinshift'),
+            updateable: true,
+          ),
+        ),
+      ]),
+    );
+    GetIt.I.get<SidechainProvider>().sidechains[255] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'CoinShift', slot: 255),
+      [],
+      [],
+    );
+    walletReader.wallets = [_wallet('a', 'Main wallet'), _wallet('b', 'Savings')];
+    walletReader.activeId = 'b';
+    thunderRPC.loadedWalletId = 'b';
+    thunderRPC.setConnected(true);
+    coinShiftRPC.loadedWalletId = 'a';
+    coinShiftRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester);
+
+    expect(find.text('Your balance'), findsOneWidget);
+    expect(find.text('Savings'), findsNothing);
+    expect(find.text('Main wallet'), findsNothing);
+  });
+
+  // FreeBank keeps a wallet of its own, which no BitWindow wallet holds.
+  testWidgets('a running sidechain with a wallet of its own names no wallet in the header', (tester) async {
+    setUpChain(_thunder());
+    walletReader.wallets = [_wallet('a', 'Main wallet')];
+    walletReader.activeId = 'a';
+    thunderRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester);
+
+    expect(find.text('Your balance'), findsOneWidget);
+    expect(find.text('Main wallet'), findsNothing);
+  });
+
+  // A stopped sidechain adds no balance, so its old wallet must not name the column.
+  testWidgets('a stopped sidechain does not name the balance column', (tester) async {
+    setUpChain(_thunder());
+    walletReader.wallets = [_wallet('a', 'Main wallet'), _wallet('b', 'Savings')];
+    walletReader.activeId = 'a';
+    thunderRPC.loadedWalletId = 'b';
+    await pumpTable(tester);
+
+    expect(find.text('Main wallet'), findsOneWidget);
+    expect(find.text('Savings'), findsNothing);
+  });
+
+  testWidgets('before a sidechain reports a wallet, the header names the active wallet', (tester) async {
+    setUpChain(_thunder());
+    walletReader.wallets = [_wallet('a', 'Main wallet')];
+    walletReader.activeId = 'a';
+    await pumpTable(tester);
+
+    expect(find.text('Main wallet'), findsOneWidget);
+    expect(find.text('External wallet'), findsNothing);
+  });
+
+  testWidgets('a sidechain that keeps an outside wallet shows the External wallet badge', (tester) async {
+    setUpChain(_thunder());
+    thunderRPC.hasExternalWallet = true;
+    await pumpTable(tester);
+
+    expect(find.text('External wallet'), findsOneWidget);
   });
 
   // Adding confirmed and pending into one figure made the cell disagree with
