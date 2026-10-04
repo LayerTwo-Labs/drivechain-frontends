@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:connectrpc/connect.dart' show ConnectException;
 import 'package:connectrpc/protobuf.dart';
 import 'package:sidechain_core/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
@@ -99,6 +100,10 @@ abstract class TruthcoinRPC extends SidechainRPC {
 
   /// Get a specific market
   Future<Map<String, dynamic>?> marketGet(String marketId);
+
+  /// Price history of a market, oldest point first. Null when the node has no
+  /// market_price_history method.
+  Future<List<Map<String, dynamic>>?> marketPriceHistory(String marketId);
 
   /// Buy shares in a market (with dry_run support for cost calculation)
   Future<Map<String, dynamic>> marketBuy({
@@ -581,6 +586,20 @@ class TruthcoinLive extends TruthcoinRPC {
       return null;
     }
     return jsonDecode(resp.marketJson) as Map<String, dynamic>;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>?> marketPriceHistory(String marketId) async {
+    try {
+      final result = await callRAW('market_price_history', [marketId]);
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } on ConnectException catch (e) {
+      // JSON-RPC "method not found": a release from before the method.
+      if (e.message.contains('-32601')) {
+        return null;
+      }
+      rethrow;
+    }
   }
 
   @override

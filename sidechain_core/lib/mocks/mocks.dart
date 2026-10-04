@@ -733,6 +733,11 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
+  Future<List<Map<String, dynamic>>?> marketPriceHistory(String marketId) {
+    return Future.value(null);
+  }
+
+  @override
   Future<Map<String, dynamic>> marketBuy({
     required String marketId,
     required int outcomeIndex,

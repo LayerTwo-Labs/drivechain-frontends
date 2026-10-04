@@ -2,8 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/providers/price_history_provider.dart';
 
-/// Draws the recorded price of one outcome. The chart holds the readings the
-/// app took, because the node serves no price history.
+/// Draws the price series of one outcome.
 class PriceChart extends StatelessWidget {
   final List<PricePoint> points;
   final Color color;

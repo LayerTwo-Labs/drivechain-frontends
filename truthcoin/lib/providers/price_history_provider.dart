@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:sail_ui/sail_ui.dart';
 
 /// One price reading of one outcome.
 class PricePoint {
@@ -37,13 +38,21 @@ enum PriceRange {
   const PriceRange(this.label, this.window);
 }
 
-/// Keeps the price the node reports for each market, so the chart draws a real
-/// series. The node serves no price history, so the app records its own.
+/// Keeps the price series of each market outcome for the chart. The node
+/// rebuilds the series from the chain. A node without that method leaves the
+/// series the app records from each read.
 class PriceHistoryProvider extends ChangeNotifier {
   static const int _maxPoints = 2000;
   static const Duration _minGap = Duration(seconds: 30);
 
   final Map<String, List<PricePoint>> _series = {};
+
+  /// The node series per outcome key. It wins over the recorded series.
+  final Map<String, List<PricePoint>> _chainSeries = {};
+  final Map<String, int> _lastTradeHeight = {};
+
+  /// Counts the node loads per market, so a late answer never wins.
+  final Map<String, int> _nodeLoads = {};
   final File? file;
 
   /// Every save joins this chain, so two readings never write at the same
@@ -61,6 +70,8 @@ class PriceHistoryProvider extends ChangeNotifier {
   }
 
   List<PricePoint> seriesFor(String marketId, {PriceRange range = PriceRange.all}) {
+    final chain = _chainSeries[marketId];
+    if (chain != null) return List.unmodifiable(_chainSteps(chain, range));
     final points = _series[marketId] ?? const <PricePoint>[];
     final window = range.window;
     if (window == null) return List.unmodifiable(points);
@@ -72,7 +83,7 @@ class PriceHistoryProvider extends ChangeNotifier {
   /// the newest reading at or before the cutoff, so the newest reading never
   /// stands against itself.
   double? dayChangePoints(String marketId) {
-    final points = _series[marketId] ?? const <PricePoint>[];
+    final points = _chainSeries[marketId] ?? _series[marketId] ?? const <PricePoint>[];
     if (points.length < 2) return null;
     final cutoff = DateTime.now().subtract(const Duration(days: 1));
     var earlier = points.first;
@@ -82,6 +93,66 @@ class PriceHistoryProvider extends ChangeNotifier {
     }
     if (identical(earlier, points.last)) return null;
     return (points.last.price - earlier.price) * 100;
+  }
+
+  /// Height of the newest block with a trade in the market, from the node.
+  int? lastTradeHeight(String marketId) => _lastTradeHeight[marketId];
+
+  /// A chain price holds until the next trade, so the series steps at each
+  /// point and runs on to now.
+  static List<PricePoint> _chainSteps(List<PricePoint> points, PriceRange range) {
+    final now = DateTime.now();
+    final steps = <PricePoint>[];
+    for (final point in points) {
+      if (steps.isNotEmpty) steps.add(PricePoint(point.at, steps.last.price));
+      steps.add(point);
+    }
+    steps.add(PricePoint(now, points.last.price));
+
+    final window = range.window;
+    if (window == null) return steps;
+    final from = now.subtract(window);
+    PricePoint? before;
+    for (final point in steps) {
+      if (point.at.isAfter(from)) break;
+      before = point;
+    }
+    return [
+      if (before != null) PricePoint(from, before.price),
+      ...steps.where((point) => point.at.isAfter(from)),
+    ];
+  }
+
+  /// Reads the series the node rebuilds from the chain. A node without the
+  /// method keeps the recorded series.
+  Future<void> loadFromNode(TruthcoinRPC rpc, String marketId) async {
+    final load = _nodeLoads[marketId] = (_nodeLoads[marketId] ?? 0) + 1;
+    final points = await rpc.marketPriceHistory(marketId);
+    if (load != _nodeLoads[marketId]) return;
+    if (points == null || points.isEmpty) {
+      _chainSeries.removeWhere((key, _) => key.startsWith('$marketId:'));
+      _lastTradeHeight.remove(marketId);
+      notifyListeners();
+      return;
+    }
+
+    final series = <String, List<PricePoint>>{};
+    for (final point in points) {
+      final at = DateTime.fromMillisecondsSinceEpoch((point['timestamp'] as num).toInt() * 1000);
+      final prices = point['prices'] as List<dynamic>;
+      for (var i = 0; i < prices.length; i++) {
+        series.putIfAbsent('$marketId:$i', () => <PricePoint>[]).add(PricePoint(at, (prices[i] as num).toDouble()));
+      }
+    }
+    _chainSeries.addAll(series);
+
+    // The first point is the creation block, not a trade.
+    if (points.length > 1) {
+      _lastTradeHeight[marketId] = (points.last['height'] as num).toInt();
+    } else {
+      _lastTradeHeight.remove(marketId);
+    }
+    notifyListeners();
   }
 
   /// Writes one reading. A price that moves always adds a point, so a trade

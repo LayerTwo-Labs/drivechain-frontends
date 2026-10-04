@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truthcoin/providers/price_history_provider.dart';
+
+import '../mocks/mock_truthcoin_rpc.dart';
+import '../test_utils.dart';
 
 void main() {
   group('PriceHistoryProvider', () {
@@ -205,6 +209,154 @@ void main() {
 
       expect(history.dayChangePoints('m:1'), isNull);
       await dir.delete(recursive: true);
+    });
+  });
+
+  group('PriceHistoryProvider node history', () {
+    late TestTruthcoinRPC rpc;
+
+    setUp(() async {
+      rpc = await setupMarketVotingTests();
+    });
+
+    tearDown(() async {
+      await resetGetIt();
+    });
+
+    int secondsAgo(Duration age) => DateTime.now().subtract(age).millisecondsSinceEpoch ~/ 1000;
+
+    test('maps each node point to the series of each outcome', () async {
+      final created = secondsAgo(const Duration(days: 3));
+      final traded = secondsAgo(const Duration(hours: 2));
+      rpc.marketPriceHistoryResponse = [
+        {
+          'height': 410,
+          'block_hash': 'aa',
+          'timestamp': created,
+          'prices': [0.5, 0.5],
+        },
+        {
+          'height': 416,
+          'block_hash': 'bb',
+          'timestamp': traded,
+          'prices': [0.635, 0.365],
+        },
+      ];
+      final history = PriceHistoryProvider();
+
+      await history.loadFromNode(rpc, 'm');
+
+      expect(history.lastTradeHeight('m'), 416);
+      final yes = history.seriesFor('m:1');
+      expect(yes.first.at.millisecondsSinceEpoch, created * 1000);
+      // The price holds until the trade, then steps and runs on to now.
+      expect(yes.map((point) => point.price), [0.5, 0.5, 0.365, 0.365]);
+      expect(yes[1].at.millisecondsSinceEpoch, traded * 1000);
+      expect(history.seriesFor('m:0').last.price, 0.635);
+      expect(history.dayChangePoints('m:1')!.round(), -14);
+    });
+
+    test('a range starts at the price that held at its start', () async {
+      rpc.marketPriceHistoryResponse = [
+        {
+          'height': 410,
+          'block_hash': 'aa',
+          'timestamp': secondsAgo(const Duration(days: 3)),
+          'prices': [0.15, 0.85],
+        },
+      ];
+      final history = PriceHistoryProvider();
+
+      await history.loadFromNode(rpc, 'm');
+
+      final day = history.seriesFor('m:1', range: PriceRange.day);
+      expect(day.map((point) => point.price), [0.85, 0.85]);
+      expect(history.lastTradeHeight('m'), isNull);
+    });
+
+    test('the node series wins over the recorded one', () async {
+      rpc.marketPriceHistoryResponse = [
+        {
+          'height': 410,
+          'block_hash': 'aa',
+          'timestamp': secondsAgo(const Duration(hours: 1)),
+          'prices': [0.4, 0.6],
+        },
+      ];
+      final history = PriceHistoryProvider();
+      history.record('m:1', 0.9);
+
+      await history.loadFromNode(rpc, 'm');
+
+      expect(history.seriesFor('m:1').map((point) => point.price), [0.6, 0.6]);
+    });
+
+    test('a node without the method drops an earlier node series', () async {
+      rpc.marketPriceHistoryResponse = [
+        {
+          'height': 410,
+          'block_hash': 'aa',
+          'timestamp': secondsAgo(const Duration(hours: 1)),
+          'prices': [0.4, 0.6],
+        },
+      ];
+      final history = PriceHistoryProvider();
+      history.record('m:1', 0.9);
+      await history.loadFromNode(rpc, 'm');
+
+      rpc.marketPriceHistoryResponse = null;
+      await history.loadFromNode(rpc, 'm');
+
+      expect(history.seriesFor('m:1').single.price, 0.9);
+    });
+
+    test('a late node answer never replaces a newer one', () async {
+      final slow = Completer<List<Map<String, dynamic>>?>();
+      final answers = [
+        slow.future,
+        Future.value(<Map<String, dynamic>>[
+          {
+            'height': 410,
+            'block_hash': 'aa',
+            'timestamp': secondsAgo(const Duration(hours: 2)),
+            'prices': [0.5, 0.5],
+          },
+          {
+            'height': 416,
+            'block_hash': 'bb',
+            'timestamp': secondsAgo(const Duration(hours: 1)),
+            'prices': [0.6, 0.4],
+          },
+        ]),
+      ];
+      rpc.marketPriceHistoryAnswer = () => answers.removeAt(0);
+      final history = PriceHistoryProvider();
+
+      final first = history.loadFromNode(rpc, 'm');
+      await history.loadFromNode(rpc, 'm');
+      slow.complete([
+        {
+          'height': 410,
+          'block_hash': 'aa',
+          'timestamp': secondsAgo(const Duration(hours: 2)),
+          'prices': [0.5, 0.5],
+        },
+      ]);
+      await first;
+
+      expect(history.lastTradeHeight('m'), 416);
+    });
+
+    test('a node without the method keeps the recorded series', () async {
+      rpc.marketPriceHistoryResponse = null;
+      final history = PriceHistoryProvider();
+      history.record('m:1', 0.3);
+      history.record('m:1', 0.7);
+
+      await history.loadFromNode(rpc, 'm');
+
+      expect(history.seriesFor('m:1').map((point) => point.price), [0.3, 0.7]);
+      expect(history.lastTradeHeight('m'), isNull);
     });
   });
 }

@@ -235,6 +235,19 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     return marketGetResponse;
   }
 
+  /// Null stands for a node without the market_price_history method.
+  List<Map<String, dynamic>>? marketPriceHistoryResponse;
+
+  /// Answers each call in place of [marketPriceHistoryResponse] when set.
+  Future<List<Map<String, dynamic>>?> Function()? marketPriceHistoryAnswer;
+
+  @override
+  Future<List<Map<String, dynamic>>?> marketPriceHistory(String marketId) async {
+    final answer = marketPriceHistoryAnswer;
+    if (answer != null) return answer();
+    return marketPriceHistoryResponse;
+  }
+
   @override
   Future<Map<String, dynamic>> marketBuy({
     required String marketId,
