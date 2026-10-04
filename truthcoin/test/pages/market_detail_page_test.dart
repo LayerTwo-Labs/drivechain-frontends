@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -102,6 +104,38 @@ void main() {
 
       // Restore for other tests
       mockRpc.marketGetResponse = TestData.sampleMarketDetail;
+    });
+  });
+
+  group('MarketDetailViewModel price history', () {
+    test('a load during a load runs one more load after it', () async {
+      Map<String, dynamic> point(int height, double yes) => {
+        'height': height,
+        'block_hash': 'aa',
+        'timestamp': 1700000000 + height,
+        'prices': [1 - yes, yes],
+      };
+      final slow = Completer<List<Map<String, dynamic>>?>();
+      var calls = 0;
+      mockRpc.marketPriceHistoryAnswer = () {
+        calls++;
+        return calls == 1 ? slow.future : Future.value([point(410, 0.5), point(416, 0.4)]);
+      };
+      final model = MarketDetailViewModel(marketId: 'm');
+
+      final first = model.loadPriceHistory();
+      await model.loadPriceHistory();
+      await model.loadPriceHistory();
+      expect(calls, 1);
+
+      slow.complete([point(410, 0.5)]);
+      await first;
+
+      expect(calls, 2);
+      expect(GetIt.I.get<PriceHistoryProvider>().lastTradeHeight('m'), 416);
+      expect(model.priceHistoryError, isNull);
+      mockRpc.marketPriceHistoryAnswer = null;
+      model.dispose();
     });
   });
 }

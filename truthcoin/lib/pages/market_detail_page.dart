@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -852,8 +855,7 @@ class _FactRow extends StatelessWidget {
   }
 }
 
-/// The headline price of the market, with the chart of the readings the app
-/// recorded. The node serves no price history, so the series starts empty.
+/// The headline price of the market, with the chart of its price series.
 class _PriceCard extends StatefulWidget {
   final MarketDetailViewModel model;
   final MarketData market;
@@ -893,6 +895,12 @@ class _PriceCardState extends State<_PriceCard> {
         listenable: history,
         builder: (context, _) {
           final change = history.dayChangePoints(seriesKey);
+          final lastTrade = history.lastTradeHeight(widget.market.marketId);
+          final tip = widget.model.tipHeight;
+          final blocksAgo = lastTrade == null || tip == null ? null : max(0, tip - lastTrade);
+          final age = blocksAgo == null
+              ? 'created at block ${widget.market.createdAtHeight}'
+              : 'last trade $blocksAgo block${blocksAgo == 1 ? '' : 's'} ago';
 
           final priceBlock = SailColumn(
             spacing: SailStyleValues.padding04,
@@ -915,9 +923,7 @@ class _PriceCardState extends State<_PriceCard> {
                 ],
               ),
               SailText.secondary12(
-                other == null
-                    ? 'created at block ${widget.market.createdAtHeight}'
-                    : '${shortOutcomeLabel(other.name)} ${formatChance(other.currentPrice)}  ·  created at block ${widget.market.createdAtHeight}',
+                other == null ? age : '${shortOutcomeLabel(other.name)} ${formatChance(other.currentPrice)}  ·  $age',
               ),
             ],
           );
@@ -954,6 +960,7 @@ class _PriceCardState extends State<_PriceCard> {
                     children: [priceBlock, const Spacer(), ranges],
                   ),
                 chart,
+                if (widget.model.priceHistoryError != null) SailText.secondary12(widget.model.priceHistoryError!),
               ],
             ),
           );
@@ -1011,6 +1018,12 @@ class MarketDetailViewModel extends BaseViewModel {
   final MarketProvider _marketProvider = GetIt.I.get<MarketProvider>();
   final BalanceProvider _balanceProvider = GetIt.I.get<BalanceProvider>();
   final TruthcoinRPC _rpc = GetIt.I.get<TruthcoinRPC>();
+  final PriceHistoryProvider _priceHistory = GetIt.I.get<PriceHistoryProvider>();
+  SyncProvider? get _sync => GetIt.I.isRegistered<SyncProvider>() ? GetIt.I.get<SyncProvider>() : null;
+
+  /// Sidechain tip height from the sync poll.
+  int? tipHeight;
+  String? priceHistoryError;
 
   final TextEditingController sharesController = TextEditingController();
   final TextEditingController sellSharesController = TextEditingController();
@@ -1075,7 +1088,46 @@ class MarketDetailViewModel extends BaseViewModel {
   void init() {
     _marketProvider.addListener(_onProviderChange);
     _balanceProvider.addListener(_onProviderChange);
+    _sync?.addListener(_onSyncChange);
+    tipHeight = _truthcoinTip();
     load();
+  }
+
+  int? _truthcoinTip() {
+    final info = _sync?.sidechains[SidechainType.SIDECHAIN_TYPE_TRUTHCOIN];
+    if (info == null || info.mainchainSyncing) return tipHeight;
+    return info.progressCurrent.toInt();
+  }
+
+  void _onSyncChange() {
+    final tip = _truthcoinTip();
+    if (tip == tipHeight) return;
+    tipHeight = tip;
+    notifyListeners();
+    unawaited(loadPriceHistory());
+  }
+
+  bool _historyLoading = false;
+  bool _historyStale = false;
+
+  /// Runs one load at a time. A call during a load runs one more load after it.
+  Future<void> loadPriceHistory() async {
+    if (_historyLoading) {
+      _historyStale = true;
+      return;
+    }
+    _historyLoading = true;
+    do {
+      _historyStale = false;
+      try {
+        await _priceHistory.loadFromNode(_rpc, marketId);
+        priceHistoryError = null;
+      } catch (e) {
+        priceHistoryError = 'Could not load the price history: $e';
+      }
+    } while (_historyStale);
+    _historyLoading = false;
+    notifyListeners();
   }
 
   Future<void> load() async {
@@ -1095,6 +1147,7 @@ class MarketDetailViewModel extends BaseViewModel {
 
     await loadWalletAddresses();
     await loadMarket();
+    await loadPriceHistory();
   }
 
   void _onProviderChange() {
@@ -1362,6 +1415,7 @@ class MarketDetailViewModel extends BaseViewModel {
   void dispose() {
     _marketProvider.removeListener(_onProviderChange);
     _balanceProvider.removeListener(_onProviderChange);
+    _sync?.removeListener(_onSyncChange);
     sharesController.dispose();
     sellSharesController.dispose();
     super.dispose();
