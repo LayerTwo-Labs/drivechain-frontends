@@ -398,6 +398,19 @@ func (h *BMMHandler) TemplateOnTip(
 	return node.TemplateOnTip(ctx, json.RawMessage(blockJSON))
 }
 
+// TemplateWorth reports the fees a fresh block template collects, in sats.
+func (h *BMMHandler) TemplateWorth(ctx context.Context, sidechainType pb.BinaryType) (int64, error) {
+	_, node, err := h.sidechainTarget(sidechainType)
+	if err != nil {
+		return 0, err
+	}
+	template, err := node.GetBlockTemplate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return template.FeesSats, nil
+}
+
 // CreateBid assembles a sidechain block and broadcasts an M8 bid for it. The
 // bid is the transaction's fee, which is the only thing a miner can collect.
 func (h *BMMHandler) CreateBid(

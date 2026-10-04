@@ -94,6 +94,8 @@ type BmmBackend interface {
 	// TemplateOnTip reports whether a block template still builds on the
 	// sidechain tip.
 	TemplateOnTip(ctx context.Context, sidechain pb.BinaryType, blockJSON string) (bool, error)
+	// TemplateWorth reports the fees a fresh block template collects, in sats.
+	TemplateWorth(ctx context.Context, sidechain pb.BinaryType) (int64, error)
 }
 
 // MainchainTip reports the mainchain tip the enforcer has validated, and the
@@ -152,6 +154,8 @@ type BmmEngine struct {
 	preparedTip string
 	// prepareTries counts the coin counts preparedTip already paid for.
 	prepareTries int
+	// refusedRebuilds holds, per sidechain, the worth a fee rebuild failed at.
+	refusedRebuilds map[pb.BinaryType]refusedRebuild
 
 	wake chan struct{}
 }
@@ -176,6 +180,8 @@ func NewBmmEngine(
 		unconnected: make(map[pb.BinaryType][]*bmmstate.Round),
 		subs:        make(map[chan struct{}]struct{}),
 		wake:        make(chan struct{}, 1),
+
+		refusedRebuilds: make(map[pb.BinaryType]refusedRebuild),
 	}
 }
 
@@ -1088,15 +1094,24 @@ func (e *BmmEngine) maybeRaise(ctx context.Context, sidechain pb.BinaryType, tar
 }
 
 // rebuildStaleBid replaces the live bid when the sidechain tip moved after its
-// template, and reports whether it tried. A sidechain that syncs from its peers
-// refuses a won block on a tip it left.
+// template, or when a fresh template collects more fees, and reports whether it
+// tried. A sidechain that syncs from its peers refuses a won block on a tip it
+// left.
 func (e *BmmEngine) rebuildStaleBid(ctx context.Context, sidechain pb.BinaryType, target bmmTarget) bool {
 	e.mu.Lock()
 	round := e.current[sidechain]
-	var live bmmstate.Bid
+	var (
+		live  bmmstate.Bid
+		worth int64
+	)
 	if round != nil {
 		if bid := liveBid(round); bid != nil {
 			live = *bid
+		}
+		worth = round.BlockWorthSats
+		// A refused replacement costs the same on the next tick.
+		if refused := e.refusedRebuilds[sidechain]; refused.round == round.PrevMainHash && refused.worth > worth {
+			worth = refused.worth
 		}
 	}
 	e.mu.Unlock()
@@ -1109,25 +1124,44 @@ func (e *BmmEngine) rebuildStaleBid(ctx context.Context, sidechain pb.BinaryType
 		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read the sidechain tip")
 		return false
 	}
+	reason := "the sidechain tip moved, rebuilding the bmm bid"
+	var fresh int64
 	if onTip {
-		return false
+		fresh, err = e.backend.TemplateWorth(ctx, sidechain)
+		if err != nil {
+			e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read the sidechain block worth")
+			return false
+		}
+		if fresh <= worth {
+			return false
+		}
+		reason = "the sidechain block collects more fees, rebuilding the bmm bid"
 	}
 
 	walletID := live.WalletID
 	if walletID == "" {
 		walletID = target.walletID
 	}
-	e.log.Info().Stringer("sidechain", sidechain).Str("txid", live.Txid).
-		Msg("the sidechain tip moved, rebuilding the bmm bid")
+	e.log.Info().Stringer("sidechain", sidechain).Str("txid", live.Txid).Msg(reason)
 	if err := e.placeBid(ctx, sidechain, round, walletID, live.BidSats, 0,
 		target.maxBidSats, live.Txid, target.capToBlockWorth); err != nil {
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
 			Msg("rebuilding bmm bid failed, keeping the live bid")
+		if onTip {
+			e.mu.Lock()
+			e.refusedRebuilds[sidechain] = refusedRebuild{round: round.PrevMainHash, worth: fresh}
+			e.mu.Unlock()
+		}
 		e.notify()
 		return true
 	}
 	e.save(round)
 	return true
+}
+
+type refusedRebuild struct {
+	round string
+	worth int64
 }
 
 func liveBid(round *bmmstate.Round) *bmmstate.Bid {
