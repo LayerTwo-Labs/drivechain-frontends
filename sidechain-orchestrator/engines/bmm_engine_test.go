@@ -215,6 +215,12 @@ func (f *fakeBackend) TemplateOnTip(_ context.Context, _ pb.BinaryType, blockJSO
 	return blockJSON == "side:"+f.sideTip, nil
 }
 
+func (f *fakeBackend) TemplateWorth(_ context.Context, _ pb.BinaryType) (int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.feesSats, nil
+}
+
 func (f *fakeBackend) moveSideTip(tip string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -2017,4 +2023,72 @@ func TestBmmEngineKeepsTheBidWhenTheSidechainTipCannotBeRead(t *testing.T) {
 
 	require.Equal(t, 2, backend.bids, "the raise still goes out")
 	assert.Equal(t, int64(13_000), backend.lastBidSats, "a raise, not a rebuild")
+}
+
+// A transaction that enters the sidechain mempool mid-round must reach the
+// block of this round, not the next one.
+func TestBmmEngineRebuildsABidWhenTheFeesRise(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 30_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	backend.feesSats = 13_500
+	engine.tick(ctx)
+
+	require.Equal(t, 2, backend.bids, "the richer template rebuilds the bid")
+	assert.Equal(t, "txid-1", backend.lastReplace, "the rebuild replaces our own bid")
+	assert.Equal(t, "block-1", backend.lastExpectTip, "the rebuild stays in the same round")
+	round := engine.Current(testSidechain)
+	require.Len(t, round.OurBids, 2)
+	assert.Equal(t, BidReplaced, round.OurBids[0].State)
+	assert.Equal(t, int64(13_500), round.BlockWorthSats)
+
+	engine.tick(ctx)
+	assert.Equal(t, 2, backend.bids, "a bid on the richest template stands")
+}
+
+func TestBmmEngineKeepsTheBidWhenTheFeesDoNotRise(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 30_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	engine.tick(ctx)
+	assert.Equal(t, 1, backend.bids, "the same worth keeps the bid")
+
+	backend.feesSats = 11_500
+	engine.tick(ctx)
+	assert.Equal(t, 1, backend.bids, "a lower worth keeps the bid")
+}
+
+func TestBmmEngineRetriesARefusedFeeRebuildOnlyWhenTheFeesRiseAgain(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 30_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	backend.feesSats = 13_500
+	backend.bidErr = connect.NewError(connect.CodeFailedPrecondition, errors.New("over the ceiling"))
+	engine.tick(ctx)
+	engine.tick(ctx)
+
+	round := engine.Current(testSidechain)
+	require.Len(t, round.OurBids, 2, "one refused rebuild, no retry every tick")
+	assert.Equal(t, BidLive, round.OurBids[0].State, "the live bid stands")
+	assert.Equal(t, BidFailed, round.OurBids[1].State)
+
+	backend.feesSats = 14_500
+	backend.bidErr = nil
+	engine.tick(ctx)
+
+	require.Equal(t, 2, backend.bids, "a higher worth tries again")
+	assert.Equal(t, "txid-1", backend.lastReplace)
+	assert.Equal(t, int64(14_500), engine.Current(testSidechain).BlockWorthSats)
 }
