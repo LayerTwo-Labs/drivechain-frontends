@@ -382,15 +382,31 @@ func TestSyncReplacesAnotherNetworksPort(t *testing.T) {
 // network than the mainchain runs.
 func TestGetCliArgsGivesTruthcoinTheNetwork(t *testing.T) {
 	m := sidechainConfFor(t, "truthcoin", NetworkSignet, map[string]string{
-		"net-addr": "0.0.0.0:34013",
-		"zmq-addr": "127.0.0.1:58013",
+		"net-addr":           "0.0.0.0:34013",
+		"mainchain-grpc-url": "http://localhost:50051",
 	})
 
 	args := m.GetCliArgs()
 
-	for _, want := range []string{"--network=signet", "--net-addr=0.0.0.0:34013", "--zmq-addr=127.0.0.1:58013"} {
+	for _, want := range []string{"--network=signet", "--net-addr=0.0.0.0:34013", "--mainchain-grpc-url=http://localhost:50051"} {
 		if !slices.Contains(args, want) {
 			t.Errorf("args = %v, want %s", args, want)
+		}
+	}
+}
+
+// Truthcoin 0.20 has no --zmq-addr and no --rpc-port, so a conf from an older
+// release must not pass them.
+func TestGetCliArgsDropsTheOldTruthcoinFlags(t *testing.T) {
+	m := sidechainConfFor(t, "truthcoin", NetworkSignet, map[string]string{
+		"net-addr": "0.0.0.0:34013",
+		"rpc-port": "36013",
+		"zmq-addr": "127.0.0.1:58013",
+	})
+
+	for _, arg := range m.GetCliArgs() {
+		if strings.HasPrefix(arg, "--zmq-addr") || strings.HasPrefix(arg, "--rpc-port") {
+			t.Errorf("args hold %s, which truthcoin 0.20 does not accept", arg)
 		}
 	}
 }

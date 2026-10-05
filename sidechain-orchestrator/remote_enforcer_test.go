@@ -211,7 +211,7 @@ func TestRemoteSidechainArgsMatchEachDaemon(t *testing.T) {
 			require.Contains(t, opts.TargetArgs, "--network=signet")
 			require.NotContains(t, strings.Join(opts.TargetArgs, " "), "localhost")
 			switch name {
-			case "bitnames", "bitassets", "truthcoin":
+			case "bitnames", "bitassets":
 				require.Contains(t, opts.TargetArgs, "--mainchain-grpc-host="+u.Hostname())
 				require.Contains(t, opts.TargetArgs, "--mainchain-grpc-port="+u.Port())
 				require.False(t, hasCLIFlag(opts.TargetArgs, "--mainchain-grpc-url"))
@@ -232,6 +232,7 @@ func TestRemoteSidechainArgsPassTheBoundPorts(t *testing.T) {
 		"bitnames":  {"--net-addr=0.0.0.0:34002", "--zmq-addr=127.0.0.1:58002"},
 		"bitassets": {"--net-addr=0.0.0.0:34004", "--zmq-addr=127.0.0.1:58004"},
 		"photon":    {"--net-addr=0.0.0.0:34099"},
+		"truthcoin": {"--net-addr=0.0.0.0:34013"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			cfg, err := o.getConfig(name)
@@ -241,7 +242,7 @@ func TestRemoteSidechainArgsPassTheBoundPorts(t *testing.T) {
 			for _, arg := range want {
 				require.Contains(t, opts.TargetArgs, arg)
 			}
-			if name == "photon" {
+			if name == "photon" || name == "truthcoin" {
 				require.False(t, hasCLIFlag(opts.TargetArgs, "--zmq-addr"))
 			}
 		})
@@ -288,7 +289,7 @@ func TestRemoteSidechainECashArgs(t *testing.T) {
 			require.Contains(t, opts.TargetArgs, "--network="+entry.ID)
 			require.NotContains(t, strings.Join(opts.TargetArgs, " "), "localhost")
 			switch name {
-			case "bitnames", "bitassets", "truthcoin":
+			case "bitnames", "bitassets":
 				require.Contains(t, opts.TargetArgs, "--mainchain-grpc-host="+u.Hostname())
 				require.Contains(t, opts.TargetArgs, "--mainchain-grpc-port="+u.Port())
 				require.False(t, hasCLIFlag(opts.TargetArgs, "--mainchain-grpc-url"))
