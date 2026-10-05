@@ -418,6 +418,33 @@ func TestNodeTransactionReadsBothLayouts(t *testing.T) {
 	}
 }
 
+// A utreexo chain pairs each input with the hash of the coin it spends.
+func TestNodeTransactionReadsUtreexoInputs(t *testing.T) {
+	const body = `{"block_hash":"bb","tx":{
+		"inputs":[[{"Regular":{"txid":"prev","vout":3}},"aaaa"],[{"Coinbase":{"txid":"cb","vout":0}},"bbbb"],[{"Deposit":"maintx:1"},"cccc"]],
+		"proof":{"targets":[],"proof":[]},
+		"outputs":[{"address":"s1","content":{"Value":40000}}]}}`
+	node := &recordingNode{answers: map[string]string{"get_transaction": body}}
+	src := source{name: "truthcoin", node: node}
+
+	out, err := nodeTransaction(context.Background(), src, "abc")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if len(out.GetInputs()) != 3 {
+		t.Fatalf("the transaction reads %d inputs, want 3", len(out.GetInputs()))
+	}
+	if in := out.GetInputs()[0]; in.GetTxid() != "prev" || in.GetVout() != 3 || in.GetOutpointKind() != "regular" {
+		t.Errorf("input 0 reads %+v, want prev:3 regular", in)
+	}
+	if in := out.GetInputs()[1]; in.GetTxid() != "cb" || in.GetOutpointKind() != "coinbase" {
+		t.Errorf("input 1 reads %+v, want the coinbase cb", in)
+	}
+	if in := out.GetInputs()[2]; in.GetTxid() != "maintx" || in.GetVout() != 1 || in.GetOutpointKind() != "deposit" {
+		t.Errorf("input 2 reads %+v, want the deposit maintx:1", in)
+	}
+}
+
 // A Core derived chain reads a transaction with Core's own RPC.
 func TestCoreTransactionReadsCoreShapes(t *testing.T) {
 	node := &recordingNode{answers: map[string]string{

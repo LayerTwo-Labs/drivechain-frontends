@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -125,9 +126,9 @@ func readCoreBlock(ctx context.Context, src source, hash string) (*pb.Block, []*
 	return out, activity, nil
 }
 
-// nodeTxEnvelope is what get_transaction returns on thunder and photon: the
-// transaction, and the block that carries it. Every other CUSF chain returns
-// the transaction alone.
+// nodeTxEnvelope is what get_transaction returns on thunder, photon and
+// truthcoin: the transaction, and the block that carries it. Every other CUSF
+// chain returns the transaction alone.
 type nodeTxEnvelope struct {
 	BlockHash *string          `json:"block_hash"`
 	Tx        *json.RawMessage `json:"tx"`
@@ -136,23 +137,42 @@ type nodeTxEnvelope struct {
 // nodeTx is a transaction as a sidechain node writes it. A node holds no
 // previous outputs, so an input names only the coin it spends.
 type nodeTx struct {
-	Inputs []struct {
-		Regular *struct {
-			Txid string `json:"txid"`
-			Vout uint32 `json:"vout"`
-		} `json:"Regular"`
-		Deposit *string `json:"Deposit"`
-		// An older node names a coinbase by the block's merkle root.
-		Coinbase *struct {
-			Txid       string `json:"txid"`
-			MerkleRoot string `json:"merkle_root"`
-			Vout       uint32 `json:"vout"`
-		} `json:"Coinbase"`
-	} `json:"inputs"`
+	Inputs  []nodeTxInput `json:"inputs"`
 	Outputs []struct {
 		Address string          `json:"address"`
 		Content json.RawMessage `json:"content"`
 	} `json:"outputs"`
+}
+
+type nodeTxInput struct {
+	Regular *struct {
+		Txid string `json:"txid"`
+		Vout uint32 `json:"vout"`
+	} `json:"Regular"`
+	Deposit *string `json:"Deposit"`
+	// An older node names a coinbase by the block's merkle root.
+	Coinbase *struct {
+		Txid       string `json:"txid"`
+		MerkleRoot string `json:"merkle_root"`
+		Vout       uint32 `json:"vout"`
+	} `json:"Coinbase"`
+}
+
+// UnmarshalJSON reads an input alone, or the [outpoint, utxo hash] pair a
+// utreexo chain writes.
+func (in *nodeTxInput) UnmarshalJSON(raw []byte) error {
+	if bytes.HasPrefix(bytes.TrimSpace(raw), []byte("[")) {
+		var pair []json.RawMessage
+		if err := json.Unmarshal(raw, &pair); err != nil {
+			return err
+		}
+		if len(pair) != 2 {
+			return fmt.Errorf("a transaction input holds an outpoint and a hash, got %d parts", len(pair))
+		}
+		raw = pair[0]
+	}
+	type input nodeTxInput
+	return json.Unmarshal(raw, (*input)(in))
 }
 
 // nodeTxInfo is what get_transaction_info returns. The chains that send a
