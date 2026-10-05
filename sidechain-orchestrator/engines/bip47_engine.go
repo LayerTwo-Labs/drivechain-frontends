@@ -60,6 +60,9 @@ type BIP47Engine struct {
 	// notification from a known sender, and a malformed one, would otherwise be
 	// fetched and decoded on every pass.
 	scanned map[string]map[string]bool
+	// restored records the senders, keyed by wallet and payment code, whose
+	// imported window this process registered with the backend again.
+	restored map[string]bool
 }
 
 func NewBIP47Engine(log zerolog.Logger, svc *wallet.Service, walletEngine *wallet.WalletEngine, inbound *bip47state.InboundStore) *BIP47Engine {
@@ -70,6 +73,7 @@ func NewBIP47Engine(log zerolog.Logger, svc *wallet.Service, walletEngine *walle
 		inbound:      inbound,
 		notifWatched: make(map[string]bool),
 		scanned:      make(map[string]map[string]bool),
+		restored:     make(map[string]bool),
 	}
 }
 
@@ -81,6 +85,7 @@ func (e *BIP47Engine) ResetForNetwork(networkDir string) {
 	defer e.mu.Unlock()
 	e.notifWatched = make(map[string]bool)
 	e.scanned = make(map[string]map[string]bool)
+	e.restored = make(map[string]bool)
 }
 
 // Run loops until ctx is cancelled. Errors from a single tick are logged and
@@ -282,10 +287,8 @@ func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, walletID, txid s
 	}
 
 	var payload []byte
+	// Only Core labels the output "nulldata"; the light chain sources do not.
 	for _, out := range raw.Vout {
-		if out.ScriptPubKey.Type != "nulldata" {
-			continue
-		}
 		scriptBytes, err := hex.DecodeString(out.ScriptPubKey.Hex)
 		if err != nil {
 			continue
@@ -355,6 +358,10 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 		return fmt.Errorf("recover sender notification pubkey: %w", err)
 	}
 
+	if err := e.restoreWindow(ctx, walletID, seedHex, n, senderNotifPub, net); err != nil {
+		return err
+	}
+
 	// After the initial gapLimit bootstrap, only extend when the trailing
 	// probe address (ImportedThroughIndex - bip47TrailingBuffer) has received
 	// coins. Otherwise the window grows forever at every tick.
@@ -371,25 +378,9 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 
 	start := n.ImportedThroughIndex
 	end := start + bip47GapLimit
-	keys := make([]wallet.WatchKey, 0, end-start)
-	for i := start; i < end; i++ {
-		_, priv, err := bip47.DeriveReceivedPaymentAddress(seedHex, senderNotifPub, i, net, bip47.AddressP2PKH)
-		if err != nil {
-			// Shouldn't happen for non-pathological keys; log and skip.
-			e.log.Warn().Err(err).Uint32("index", i).Msg("derive received payment address failed")
-			continue
-		}
-		wif, err := btcutil.NewWIF(priv, net, true)
-		if err != nil {
-			return fmt.Errorf("encode wif index %d: %w", i, err)
-		}
-		// If we know the notification block time the provider only scans
-		// forward from there (tight, fast); 0 requests a full rescan so the
-		// eventual payment to an unconfirmed notification is picked up.
-		keys = append(keys, wallet.WatchKey{
-			WIF:        wif.String(),
-			RescanFrom: n.FirstSeenBlockTime,
-		})
+	keys, err := e.windowKeys(seedHex, senderNotifPub, start, end, n.FirstSeenBlockTime, net)
+	if err != nil {
+		return err
 	}
 	if len(keys) == 0 {
 		return nil
@@ -407,6 +398,56 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 		Uint32("to", end).
 		Msg("imported per-payment descriptors")
 	return nil
+}
+
+// restoreWindow registers the sender's imported window with the backend once
+// per process. An electrum backend forgets watch keys on a restart, and the
+// probe never reads as used while its key is not watched.
+func (e *BIP47Engine) restoreWindow(ctx context.Context, walletID, seedHex string, n *bip47state.InboundNotification, senderNotifPub *btcec.PublicKey, net *chaincfg.Params) error {
+	id := walletID + "/" + n.SenderPaymentCode
+	e.mu.Lock()
+	done := e.restored[id]
+	e.mu.Unlock()
+	if done || n.ImportedThroughIndex == 0 {
+		return nil
+	}
+	backend, ok := e.engine.Bip47BackendFor(walletID)
+	if !ok {
+		return nil
+	}
+	keys, err := e.windowKeys(seedHex, senderNotifPub, 0, n.ImportedThroughIndex, n.FirstSeenBlockTime, net)
+	if err != nil {
+		return err
+	}
+	if err := backend.RestoreWatchKeys(ctx, walletID, keys); err != nil {
+		return fmt.Errorf("restore watch keys: %w", err)
+	}
+	e.mu.Lock()
+	e.restored[id] = true
+	e.mu.Unlock()
+	return nil
+}
+
+// windowKeys derives the per-payment keys [start, end) for a sender.
+func (e *BIP47Engine) windowKeys(seedHex string, senderNotifPub *btcec.PublicKey, start, end uint32, rescanFrom int64, net *chaincfg.Params) ([]wallet.WatchKey, error) {
+	keys := make([]wallet.WatchKey, 0, end-start)
+	for i := start; i < end; i++ {
+		_, priv, err := bip47.DeriveReceivedPaymentAddress(seedHex, senderNotifPub, i, net, bip47.AddressP2PKH)
+		if err != nil {
+			// Shouldn't happen for non-pathological keys; log and skip.
+			e.log.Warn().Err(err).Uint32("index", i).Msg("derive received payment address failed")
+			continue
+		}
+		wif, err := btcutil.NewWIF(priv, net, true)
+		if err != nil {
+			return nil, fmt.Errorf("encode wif index %d: %w", i, err)
+		}
+		// If we know the notification block time the provider only scans
+		// forward from there (tight, fast); 0 requests a full rescan so the
+		// eventual payment to an unconfirmed notification is picked up.
+		keys = append(keys, wallet.WatchKey{WIF: wif.String(), RescanFrom: rescanFrom})
+	}
+	return keys, nil
 }
 
 // extractInputPubKey recovers the spending pubkey from a transaction input.

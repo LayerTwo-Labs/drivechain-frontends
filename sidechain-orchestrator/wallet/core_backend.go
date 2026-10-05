@@ -653,6 +653,11 @@ func (p *CoreBackend) EnsureNotificationWatched(ctx context.Context, walletID st
 	return err
 }
 
+// RestoreWatchKeys does nothing: the Core wallet keeps imported descriptors.
+func (p *CoreBackend) RestoreWatchKeys(context.Context, string, []WatchKey) error {
+	return nil
+}
+
 // Send routes simple sends through Core's own coin selection
 // (sendtoaddress/sendmany) and everything else — fee control, OP_RETURN,
 // pinned inputs, replay protection — through the raw-tx path: build, fund,
