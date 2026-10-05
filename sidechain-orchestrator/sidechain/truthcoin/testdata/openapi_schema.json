@@ -53,9 +53,10 @@
         }
       }
     },
-    "bitcoin_balance": {
+    "balance": {
       "post": {
-        "operationId": "bitcoin_balance",
+        "description": "Get balance in sats",
+        "operationId": "balance",
         "responses": {
           "200": {
             "description": "",
@@ -173,7 +174,7 @@
     },
     "connect_block": {
       "post": {
-        "description": "Connect a block for which a BMM request was included in the specified\nmainchain block. Returns `true` if it was accepted as the new tip.",
+        "description": "Connect a block template for which a BMM request was included in the\nspecified mainchain block. Returns `true` if it was accepted as the new\ntip.",
         "operationId": "connect_block",
         "requestBody": {
           "content": {
@@ -185,8 +186,7 @@
                     "type": "object",
                     "required": [
                       "header",
-                      "body",
-                      "height"
+                      "body"
                     ],
                     "properties": {
                       "body": {
@@ -194,11 +194,6 @@
                       },
                       "header": {
                         "$ref": "#/components/schemas/Header"
-                      },
-                      "height": {
-                        "type": "integer",
-                        "format": "u-int32",
-                        "minimum": 0
                       }
                     }
                   },
@@ -226,6 +221,7 @@
     },
     "connect_peer": {
       "post": {
+        "description": "Connect to a peer",
         "operationId": "connect_peer",
         "requestBody": {
           "content": {
@@ -252,6 +248,7 @@
     },
     "create_deposit": {
       "post": {
+        "description": "Deposit to address",
         "operationId": "create_deposit",
         "requestBody": {
           "content": {
@@ -365,6 +362,141 @@
                       "type": "string"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "create_transfer": {
+      "post": {
+        "description": "Create a tx that transfers funds to the specified address",
+        "operationId": "create_transfer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dest": {
+                    "type": "string"
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "value_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "create_transfer_many": {
+      "post": {
+        "description": "Create a tx that transfers funds to each address in `dests`,\nwhich maps an address to a value in sats",
+        "operationId": "create_transfer_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dests": {
+                    "type": "object",
+                    "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    }
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "create_withdrawal": {
+      "post": {
+        "description": "Creates a tx that initiates a withdrawal to the specified mainchain\naddress",
+        "operationId": "create_withdrawal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "mainchain_address": {
+                    "type": "string"
+                  },
+                  "mainchain_fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -868,6 +1000,7 @@
     },
     "format_deposit_address": {
       "post": {
+        "description": "Format a deposit address",
         "operationId": "format_deposit_address",
         "requestBody": {
           "content": {
@@ -894,6 +1027,7 @@
     },
     "generate_mnemonic": {
       "post": {
+        "description": "Generate a mnemonic seed phrase",
         "operationId": "generate_mnemonic",
         "responses": {
           "200": {
@@ -936,7 +1070,7 @@
     },
     "get_best_sidechain_block_hash": {
       "post": {
-        "description": "Get the best sidechain block hash known by Truthcoin",
+        "description": "Get the best sidechain block hash known by Thunder",
         "operationId": "get_best_sidechain_block_hash",
         "responses": {
           "200": {
@@ -961,13 +1095,28 @@
     },
     "get_block": {
       "post": {
-        "description": "Get block data",
+        "description": "Get the block with specified block hash, if it exists",
         "operationId": "get_block",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "block_hash": {
+                    "type": "string"
+                  },
+                  "verbose": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  }
+                }
               }
             }
           }
@@ -978,25 +1127,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "header",
-                    "body",
-                    "height"
-                  ],
-                  "properties": {
-                    "body": {
-                      "$ref": "#/components/schemas/Body"
+                  "oneOf": [
+                    {
+                      "type": "null"
                     },
-                    "header": {
-                      "$ref": "#/components/schemas/Header"
-                    },
-                    "height": {
-                      "type": "integer",
-                      "format": "u-int32",
-                      "minimum": 0
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Block"
+                        },
+                        {
+                          "$ref": "#/components/schemas/BlockVerbose"
+                        }
+                      ]
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -1006,7 +1151,7 @@
     },
     "get_block_hash": {
       "post": {
-        "description": "Get the block hash at the specified height in the current chain,\nif it exists",
+        "description": "Get the block hash at the specified height in the active chain,\nif it exists",
         "operationId": "get_block_hash",
         "requestBody": {
           "content": {
@@ -1164,7 +1309,7 @@
     },
     "get_new_address": {
       "post": {
-        "description": "Generate a new address",
+        "description": "Get a new address",
         "operationId": "get_new_address",
         "responses": {
           "200": {
@@ -1244,7 +1389,6 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "description": "A spent output, and the outpoint that created it",
                     "required": [
                       "outpoint",
                       "output"
@@ -1291,179 +1435,22 @@
                     {
                       "type": "object",
                       "required": [
-                        "inputs",
-                        "outputs",
-                        "memo"
+                        "tx"
                       ],
                       "properties": {
-                        "data": {
+                        "block_hash": {
                           "oneOf": [
                             {
                               "type": "null"
                             },
                             {
-                              "$ref": "#/components/schemas/TxData"
+                              "$ref": "#/components/schemas/BlockHash",
+                              "description": "Block hash, if in the active chain"
                             }
                           ]
                         },
-                        "inputs": {
-                          "type": "array",
-                          "items": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Regular"
-                                ],
-                                "properties": {
-                                  "Regular": {
-                                    "type": "object",
-                                    "required": [
-                                      "txid",
-                                      "vout"
-                                    ],
-                                    "properties": {
-                                      "txid": {
-                                        "$ref": "#/components/schemas/Txid"
-                                      },
-                                      "vout": {
-                                        "type": "integer",
-                                        "format": "u-int32",
-                                        "minimum": 0
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Coinbase"
-                                ],
-                                "properties": {
-                                  "Coinbase": {
-                                    "type": "object",
-                                    "required": [
-                                      "merkle_root",
-                                      "vout"
-                                    ],
-                                    "properties": {
-                                      "merkle_root": {
-                                        "$ref": "#/components/schemas/MerkleRoot"
-                                      },
-                                      "vout": {
-                                        "type": "integer",
-                                        "format": "u-int32",
-                                        "minimum": 0
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Deposit"
-                                ],
-                                "properties": {
-                                  "Deposit": {
-                                    "$ref": "#/components/schemas/bitcoin.OutPoint"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
-                                "required": [
-                                  "MarketFunds"
-                                ],
-                                "properties": {
-                                  "MarketFunds": {
-                                    "type": "object",
-                                    "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
-                                    "required": [
-                                      "market_id",
-                                      "block_height",
-                                      "is_fee"
-                                    ],
-                                    "properties": {
-                                      "block_height": {
-                                        "type": "integer",
-                                        "format": "u-int32",
-                                        "minimum": 0
-                                      },
-                                      "is_fee": {
-                                        "type": "boolean"
-                                      },
-                                      "market_id": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "integer",
-                                          "format": "u-int8",
-                                          "minimum": 0
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Payout"
-                                ],
-                                "properties": {
-                                  "Payout": {
-                                    "type": "object",
-                                    "required": [
-                                      "hash",
-                                      "vout"
-                                    ],
-                                    "properties": {
-                                      "hash": {
-                                        "$ref": "#/components/schemas/MerkleRoot"
-                                      },
-                                      "vout": {
-                                        "type": "integer",
-                                        "format": "u-int32",
-                                        "minimum": 0
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "memo": {
-                          "type": "string"
-                        },
-                        "outputs": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "address",
-                              "content",
-                              "memo"
-                            ],
-                            "properties": {
-                              "address": {
-                                "$ref": "#/components/schemas/Address"
-                              },
-                              "content": {
-                                "$ref": "#/components/schemas/OutputContent"
-                              },
-                              "memo": {
-                                "type": "array",
-                                "items": {
-                                  "type": "integer",
-                                  "format": "u-int8",
-                                  "minimum": 0
-                                }
-                              }
-                            }
-                          }
+                        "tx": {
+                          "$ref": "#/components/schemas/Transaction"
                         }
                       }
                     }
@@ -1500,6 +1487,7 @@
                     },
                     {
                       "type": "object",
+                      "description": "Fee and position of a transaction in the active chain",
                       "required": [
                         "fee_sats"
                       ],
@@ -1572,86 +1560,7 @@
                         "$ref": "#/components/schemas/OutPoint"
                       },
                       "output": {
-                        "type": "object",
-                        "required": [
-                          "address",
-                          "content",
-                          "memo"
-                        ],
-                        "properties": {
-                          "address": {
-                            "$ref": "#/components/schemas/Address"
-                          },
-                          "content": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "required": [
-                                  "BitcoinSats"
-                                ],
-                                "properties": {
-                                  "BitcoinSats": {
-                                    "$ref": "#/components/schemas/BitcoinContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "BitcoinWithdrawal"
-                                ],
-                                "properties": {
-                                  "BitcoinWithdrawal": {
-                                    "$ref": "#/components/schemas/WithdrawalOutputContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                                "required": [
-                                  "MarketFunds"
-                                ],
-                                "properties": {
-                                  "MarketFunds": {
-                                    "type": "object",
-                                    "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                                    "required": [
-                                      "market_id",
-                                      "amount",
-                                      "is_fee"
-                                    ],
-                                    "properties": {
-                                      "amount": {
-                                        "$ref": "#/components/schemas/BitcoinContent"
-                                      },
-                                      "is_fee": {
-                                        "type": "boolean"
-                                      },
-                                      "market_id": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "integer",
-                                          "format": "u-int8",
-                                          "minimum": 0
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Representation of Output Content that includes asset type and/or\nreservation commitment"
-                          },
-                          "memo": {
-                            "type": "array",
-                            "items": {
-                              "type": "integer",
-                              "format": "u-int8",
-                              "minimum": 0
-                            }
-                          }
-                        }
+                        "$ref": "#/components/schemas/Output"
                       }
                     }
                   }
@@ -1723,89 +1632,56 @@
                         "$ref": "#/components/schemas/OutPoint"
                       },
                       "output": {
-                        "type": "object",
-                        "required": [
-                          "address",
-                          "content",
-                          "memo"
-                        ],
-                        "properties": {
-                          "address": {
-                            "$ref": "#/components/schemas/Address"
-                          },
-                          "content": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "required": [
-                                  "BitcoinSats"
-                                ],
-                                "properties": {
-                                  "BitcoinSats": {
-                                    "$ref": "#/components/schemas/BitcoinContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "BitcoinWithdrawal"
-                                ],
-                                "properties": {
-                                  "BitcoinWithdrawal": {
-                                    "$ref": "#/components/schemas/WithdrawalOutputContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                                "required": [
-                                  "MarketFunds"
-                                ],
-                                "properties": {
-                                  "MarketFunds": {
-                                    "type": "object",
-                                    "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                                    "required": [
-                                      "market_id",
-                                      "amount",
-                                      "is_fee"
-                                    ],
-                                    "properties": {
-                                      "amount": {
-                                        "$ref": "#/components/schemas/BitcoinContent"
-                                      },
-                                      "is_fee": {
-                                        "type": "boolean"
-                                      },
-                                      "market_id": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "integer",
-                                          "format": "u-int8",
-                                          "minimum": 0
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Representation of Output Content that includes asset type and/or\nreservation commitment"
-                          },
-                          "memo": {
-                            "type": "array",
-                            "items": {
-                              "type": "integer",
-                              "format": "u-int8",
-                              "minimum": 0
-                            }
-                          }
-                        }
+                        "$ref": "#/components/schemas/Output"
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_withdrawal_bundle": {
+      "post": {
+        "description": "Get withdrawal bundle by M6id",
+        "operationId": "get_withdrawal_bundle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "info",
+                        "status"
+                      ],
+                      "properties": {
+                        "info": {
+                          "$ref": "#/components/schemas/WithdrawalBundleInfo"
+                        },
+                        "status": {
+                          "$ref": "#/components/schemas/WithdrawalBundleStatus"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1835,7 +1711,7 @@
     },
     "invalidate_block": {
       "post": {
-        "description": "Invalidate a block and its descendants. If the tip descends from the\nblock, re-org to the parent of the block.",
+        "description": "Invalidate a block, potentially re-orging to a valid ancestor of\nthe current tip.",
         "operationId": "invalidate_block",
         "requestBody": {
           "content": {
@@ -1904,8 +1780,8 @@
                     "required": [
                       "txid",
                       "size",
-                      "tx",
-                      "raw"
+                      "raw",
+                      "tx"
                     ],
                     "properties": {
                       "raw": {
@@ -1915,7 +1791,7 @@
                       "size": {
                         "type": "integer",
                         "format": "u-int64",
-                        "description": "Borsh size in bytes",
+                        "description": "Canonical size in bytes",
                         "minimum": 0
                       },
                       "tx": {
@@ -1923,7 +1799,7 @@
                       },
                       "txid": {
                         "$ref": "#/components/schemas/Txid",
-                        "description": "Blake3 over the borsh encoding"
+                        "description": "Blake3 over the canonical encoding"
                       }
                     }
                   }
@@ -2002,6 +1878,7 @@
                   "type": "array",
                   "items": {
                     "type": "object",
+                    "description": "RPC output representation for peer + state",
                     "required": [
                       "address",
                       "status"
@@ -2044,86 +1921,7 @@
                         "$ref": "#/components/schemas/OutPoint"
                       },
                       "output": {
-                        "type": "object",
-                        "required": [
-                          "address",
-                          "content",
-                          "memo"
-                        ],
-                        "properties": {
-                          "address": {
-                            "$ref": "#/components/schemas/Address"
-                          },
-                          "content": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "required": [
-                                  "BitcoinSats"
-                                ],
-                                "properties": {
-                                  "BitcoinSats": {
-                                    "$ref": "#/components/schemas/BitcoinContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "BitcoinWithdrawal"
-                                ],
-                                "properties": {
-                                  "BitcoinWithdrawal": {
-                                    "$ref": "#/components/schemas/WithdrawalOutputContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                                "required": [
-                                  "MarketFunds"
-                                ],
-                                "properties": {
-                                  "MarketFunds": {
-                                    "type": "object",
-                                    "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                                    "required": [
-                                      "market_id",
-                                      "amount",
-                                      "is_fee"
-                                    ],
-                                    "properties": {
-                                      "amount": {
-                                        "$ref": "#/components/schemas/BitcoinContent"
-                                      },
-                                      "is_fee": {
-                                        "type": "boolean"
-                                      },
-                                      "market_id": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "integer",
-                                          "format": "u-int8",
-                                          "minimum": 0
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Representation of Output Content that includes asset type and/or\nreservation commitment"
-                          },
-                          "memo": {
-                            "type": "array",
-                            "items": {
-                              "type": "integer",
-                              "format": "u-int8",
-                              "minimum": 0
-                            }
-                          }
-                        }
+                        "$ref": "#/components/schemas/Output"
                       }
                     }
                   }
@@ -2136,7 +1934,7 @@
     },
     "mainchain_sync_progress": {
       "post": {
-        "description": "Get the progress of the sync with the mainchain",
+        "description": "Get the progress of the startup sync with the mainchain",
         "operationId": "mainchain_sync_progress",
         "responses": {
           "200": {
@@ -2145,7 +1943,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "Progress of the sync with the mainchain",
+                  "description": "Progress of the startup sync with the mainchain",
                   "required": [
                     "phase",
                     "done",
@@ -2164,7 +1962,7 @@
                     "tip_height": {
                       "type": "integer",
                       "format": "u-int32",
-                      "description": "Height of the mainchain block that the sync moves to",
+                      "description": "Height of the mainchain tip that the sync moves to",
                       "minimum": 0
                     },
                     "total": {
@@ -2729,6 +2527,67 @@
         }
       }
     },
+    "market_price_history": {
+      "post": {
+        "description": "Get the price history of a market from the active chain: one point\nfor the creation block and one for each block that changed its\nprices, oldest first",
+        "operationId": "market_price_history",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "Outcome prices of a market after a block of the active chain.",
+                    "required": [
+                      "height",
+                      "block_hash",
+                      "timestamp",
+                      "prices"
+                    ],
+                    "properties": {
+                      "block_hash": {
+                        "$ref": "#/components/schemas/BlockHash"
+                      },
+                      "height": {
+                        "type": "integer",
+                        "format": "u-int32",
+                        "minimum": 0
+                      },
+                      "prices": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "format": "double"
+                        },
+                        "description": "Price of each tradeable outcome, by outcome index."
+                      },
+                      "timestamp": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "description": "Unix time of the mainchain block that holds the BMM commitment.",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "market_sell": {
       "post": {
         "description": "Sell shares (with dry_run support for proceeds calculation)\nPayout is created during block connection from market treasury",
@@ -2891,85 +2750,7 @@
                         "$ref": "#/components/schemas/OutPoint"
                       },
                       "output": {
-                        "type": "object",
-                        "required": [
-                          "address",
-                          "content",
-                          "memo"
-                        ],
-                        "properties": {
-                          "address": {
-                            "$ref": "#/components/schemas/Address"
-                          },
-                          "content": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "required": [
-                                  "BitcoinSats"
-                                ],
-                                "properties": {
-                                  "BitcoinSats": {
-                                    "$ref": "#/components/schemas/BitcoinContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "required": [
-                                  "Withdrawal"
-                                ],
-                                "properties": {
-                                  "Withdrawal": {
-                                    "$ref": "#/components/schemas/WithdrawalOutputContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "description": "Market funds output - treasury (is_fee=false) or author fees (is_fee=true)",
-                                "required": [
-                                  "MarketFunds"
-                                ],
-                                "properties": {
-                                  "MarketFunds": {
-                                    "type": "object",
-                                    "description": "Market funds output - treasury (is_fee=false) or author fees (is_fee=true)",
-                                    "required": [
-                                      "market_id",
-                                      "amount",
-                                      "is_fee"
-                                    ],
-                                    "properties": {
-                                      "amount": {
-                                        "$ref": "#/components/schemas/BitcoinContent"
-                                      },
-                                      "is_fee": {
-                                        "type": "boolean"
-                                      },
-                                      "market_id": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "integer",
-                                          "format": "u-int8",
-                                          "minimum": 0
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          },
-                          "memo": {
-                            "type": "array",
-                            "items": {
-                              "type": "integer",
-                              "format": "u-int8",
-                              "minimum": 0
-                            }
-                          }
-                        }
+                        "$ref": "#/components/schemas/Output"
                       }
                     }
                   }
@@ -2982,7 +2763,7 @@
     },
     "openapi_schema": {
       "post": {
-        "description": "Get OpenRPC schema",
+        "description": "Get OpenAPI schema",
         "operationId": "openapi_schema",
         "responses": {
           "200": {
@@ -3061,12 +2842,12 @@
                                       "Coinbase": {
                                         "type": "object",
                                         "required": [
-                                          "merkle_root",
+                                          "txid",
                                           "vout"
                                         ],
                                         "properties": {
-                                          "merkle_root": {
-                                            "$ref": "#/components/schemas/MerkleRoot"
+                                          "txid": {
+                                            "$ref": "#/components/schemas/CoinbaseTxid"
                                           },
                                           "vout": {
                                             "type": "integer",
@@ -3090,14 +2871,14 @@
                                   },
                                   {
                                     "type": "object",
-                                    "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
+                                    "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
                                     "required": [
                                       "MarketFunds"
                                     ],
                                     "properties": {
                                       "MarketFunds": {
                                         "type": "object",
-                                        "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
+                                        "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
                                         "required": [
                                           "market_id",
                                           "block_height",
@@ -3126,12 +2907,14 @@
                                   },
                                   {
                                     "type": "object",
+                                    "description": "Created by market trades and market settlement",
                                     "required": [
                                       "Payout"
                                     ],
                                     "properties": {
                                       "Payout": {
                                         "type": "object",
+                                        "description": "Created by market trades and market settlement",
                                         "required": [
                                           "hash",
                                           "vout"
@@ -3155,23 +2938,14 @@
                                 "type": "object",
                                 "required": [
                                   "address",
-                                  "content",
-                                  "memo"
+                                  "content"
                                 ],
                                 "properties": {
                                   "address": {
                                     "$ref": "#/components/schemas/Address"
                                   },
                                   "content": {
-                                    "$ref": "#/components/schemas/FilledOutputContent"
-                                  },
-                                  "memo": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "integer",
-                                      "format": "u-int8",
-                                      "minimum": 0
-                                    }
+                                    "$ref": "#/components/schemas/OutputContent"
                                   }
                                 }
                               }
@@ -3291,7 +3065,7 @@
     },
     "sidechain_wealth_sats": {
       "post": {
-        "description": "Get total sidechain wealth in sats",
+        "description": "Get total sidechain wealth",
         "operationId": "sidechain_wealth_sats",
         "responses": {
           "200": {
@@ -3416,8 +3190,8 @@
                     "type": "object",
                     "required": [
                       "inputs",
-                      "outputs",
-                      "memo"
+                      "proof",
+                      "outputs"
                     ],
                     "properties": {
                       "data": {
@@ -3433,161 +3207,149 @@
                       "inputs": {
                         "type": "array",
                         "items": {
-                          "oneOf": [
+                          "type": "array",
+                          "items": false,
+                          "prefixItems": [
                             {
-                              "type": "object",
-                              "required": [
-                                "Regular"
-                              ],
-                              "properties": {
-                                "Regular": {
+                              "oneOf": [
+                                {
                                   "type": "object",
                                   "required": [
-                                    "txid",
-                                    "vout"
+                                    "Regular"
                                   ],
                                   "properties": {
-                                    "txid": {
-                                      "$ref": "#/components/schemas/Txid"
-                                    },
-                                    "vout": {
-                                      "type": "integer",
-                                      "format": "u-int32",
-                                      "minimum": 0
+                                    "Regular": {
+                                      "type": "object",
+                                      "required": [
+                                        "txid",
+                                        "vout"
+                                      ],
+                                      "properties": {
+                                        "txid": {
+                                          "$ref": "#/components/schemas/Txid"
+                                        },
+                                        "vout": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "minimum": 0
+                                        }
+                                      }
                                     }
                                   }
-                                }
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "required": [
-                                "Coinbase"
-                              ],
-                              "properties": {
-                                "Coinbase": {
+                                },
+                                {
                                   "type": "object",
                                   "required": [
-                                    "merkle_root",
-                                    "vout"
+                                    "Coinbase"
                                   ],
                                   "properties": {
-                                    "merkle_root": {
-                                      "$ref": "#/components/schemas/MerkleRoot"
-                                    },
-                                    "vout": {
-                                      "type": "integer",
-                                      "format": "u-int32",
-                                      "minimum": 0
+                                    "Coinbase": {
+                                      "type": "object",
+                                      "required": [
+                                        "txid",
+                                        "vout"
+                                      ],
+                                      "properties": {
+                                        "txid": {
+                                          "$ref": "#/components/schemas/CoinbaseTxid"
+                                        },
+                                        "vout": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "minimum": 0
+                                        }
+                                      }
                                     }
                                   }
-                                }
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "required": [
-                                "Deposit"
-                              ],
-                              "properties": {
-                                "Deposit": {
-                                  "$ref": "#/components/schemas/bitcoin.OutPoint"
-                                }
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
-                              "required": [
-                                "MarketFunds"
-                              ],
-                              "properties": {
-                                "MarketFunds": {
+                                },
+                                {
                                   "type": "object",
-                                  "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
                                   "required": [
-                                    "market_id",
-                                    "block_height",
-                                    "is_fee"
+                                    "Deposit"
                                   ],
                                   "properties": {
-                                    "block_height": {
-                                      "type": "integer",
-                                      "format": "u-int32",
-                                      "minimum": 0
-                                    },
-                                    "is_fee": {
-                                      "type": "boolean"
-                                    },
-                                    "market_id": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "integer",
-                                        "format": "u-int8",
-                                        "minimum": 0
+                                    "Deposit": {
+                                      "$ref": "#/components/schemas/bitcoin.OutPoint"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                                  "required": [
+                                    "MarketFunds"
+                                  ],
+                                  "properties": {
+                                    "MarketFunds": {
+                                      "type": "object",
+                                      "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                                      "required": [
+                                        "market_id",
+                                        "block_height",
+                                        "is_fee"
+                                      ],
+                                      "properties": {
+                                        "block_height": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "minimum": 0
+                                        },
+                                        "is_fee": {
+                                          "type": "boolean"
+                                        },
+                                        "market_id": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "integer",
+                                            "format": "u-int8",
+                                            "minimum": 0
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "description": "Created by market trades and market settlement",
+                                  "required": [
+                                    "Payout"
+                                  ],
+                                  "properties": {
+                                    "Payout": {
+                                      "type": "object",
+                                      "description": "Created by market trades and market settlement",
+                                      "required": [
+                                        "hash",
+                                        "vout"
+                                      ],
+                                      "properties": {
+                                        "hash": {
+                                          "$ref": "#/components/schemas/MerkleRoot"
+                                        },
+                                        "vout": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "minimum": 0
+                                        }
                                       }
                                     }
                                   }
                                 }
-                              }
+                              ]
                             },
                             {
-                              "type": "object",
-                              "required": [
-                                "Payout"
-                              ],
-                              "properties": {
-                                "Payout": {
-                                  "type": "object",
-                                  "required": [
-                                    "hash",
-                                    "vout"
-                                  ],
-                                  "properties": {
-                                    "hash": {
-                                      "$ref": "#/components/schemas/MerkleRoot"
-                                    },
-                                    "vout": {
-                                      "type": "integer",
-                                      "format": "u-int32",
-                                      "minimum": 0
-                                    }
-                                  }
-                                }
-                              }
+                              "type": "string"
                             }
                           ]
                         }
                       },
-                      "memo": {
-                        "type": "string"
-                      },
                       "outputs": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": [
-                            "address",
-                            "content",
-                            "memo"
-                          ],
-                          "properties": {
-                            "address": {
-                              "$ref": "#/components/schemas/Address"
-                            },
-                            "content": {
-                              "$ref": "#/components/schemas/OutputContent"
-                            },
-                            "memo": {
-                              "type": "array",
-                              "items": {
-                                "type": "integer",
-                                "format": "u-int8",
-                                "minimum": 0
-                              }
-                            }
-                          }
-                        }
+                        "$ref": "#/components/schemas/Outputs"
+                      },
+                      "proof": {
+                        "$ref": "#/components/schemas/utreexo.Proof",
+                        "description": "Utreexo proof for inputs"
                       }
                     }
                   }
@@ -3614,7 +3376,8 @@
                           "type": "null"
                         },
                         {
-                          "$ref": "#/components/schemas/Authorization"
+                          "$ref": "#/components/schemas/Authorization",
+                          "description": "Signature of the market actor (trader, voter or sender) when no input\nbelongs to that actor"
                         }
                       ]
                     },
@@ -3663,7 +3426,8 @@
                         "type": "null"
                       },
                       {
-                        "$ref": "#/components/schemas/Authorization"
+                        "$ref": "#/components/schemas/Authorization",
+                        "description": "Signature of the market actor (trader, voter or sender) when no input\nbelongs to that actor"
                       }
                     ]
                   },
@@ -3723,104 +3487,6 @@
         }
       }
     },
-    "transfer": {
-      "post": {
-        "description": "Transfer funds to the specified address",
-        "operationId": "transfer",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "dest": {
-                    "type": "string"
-                  },
-                  "fee": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  },
-                  "memo": {
-                    "oneOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "value": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "transfer_many": {
-      "post": {
-        "description": "Transfer funds to each address in `dests`, which maps an address to a\nvalue in sats",
-        "operationId": "transfer_many",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "dests": {
-                    "type": "object",
-                    "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
-                    "additionalProperties": {
-                      "type": "integer",
-                      "format": "u-int64",
-                      "minimum": 0
-                    },
-                    "propertyNames": {
-                      "type": "string"
-                    }
-                  },
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "transfer_votecoin": {
       "post": {
         "description": "Transfer votecoin to the specified address",
@@ -3842,16 +3508,6 @@
                     "type": "integer",
                     "format": "u-int64",
                     "minimum": 0
-                  },
-                  "memo": {
-                    "oneOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
                   }
                 }
               }
@@ -4315,53 +3971,6 @@
           }
         }
       }
-    },
-    "withdraw": {
-      "post": {
-        "description": "Initiate a withdrawal to the specified mainchain address",
-        "operationId": "withdraw",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  },
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  },
-                  "mainchain_address": {
-                    "type": "string"
-                  },
-                  "mainchain_fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -4402,17 +4011,11 @@
           }
         }
       },
-      "BitcoinContent": {
-        "type": "integer",
-        "format": "u-int64",
-        "minimum": 0
-      },
       "Block": {
         "type": "object",
         "required": [
           "header",
-          "body",
-          "height"
+          "body"
         ],
         "properties": {
           "body": {
@@ -4420,11 +4023,6 @@
           },
           "header": {
             "$ref": "#/components/schemas/Header"
-          },
-          "height": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
           }
         }
       },
@@ -4479,11 +4077,26 @@
           "size": {
             "type": "integer",
             "format": "u-int64",
-            "description": "Borsh size in bytes",
+            "description": "Canonical size in bytes",
             "minimum": 0
           },
           "txid": {
             "$ref": "#/components/schemas/Txid"
+          }
+        }
+      },
+      "BlockVerbose": {
+        "type": "object",
+        "required": [
+          "header",
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BodyVerbose"
+          },
+          "header": {
+            "$ref": "#/components/schemas/Header"
           }
         }
       },
@@ -4506,6 +4119,46 @@
                   "$ref": "#/components/schemas/Authorization"
                 }
               ]
+            },
+            "description": "One optional actor proof per transaction"
+          },
+          "authorizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Authorization"
+            }
+          },
+          "coinbase": {
+            "$ref": "#/components/schemas/Coinbase"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          }
+        }
+      },
+      "BodyVerbose": {
+        "type": "object",
+        "required": [
+          "coinbase",
+          "transactions",
+          "authorizations",
+          "actor_proofs"
+        ],
+        "properties": {
+          "actor_proofs": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/Authorization"
+                }
+              ]
             }
           },
           "authorizations": {
@@ -4515,15 +4168,12 @@
             }
           },
           "coinbase": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Output"
-            }
+            "$ref": "#/components/schemas/Coinbase"
           },
           "transactions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Transaction"
+              "$ref": "#/components/schemas/TransactionVerbose"
             }
           }
         }
@@ -4568,6 +4218,29 @@
             "minimum": 0
           }
         }
+      },
+      "Coinbase": {
+        "type": "object",
+        "required": [
+          "memo",
+          "outputs"
+        ],
+        "properties": {
+          "memo": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "u-int8",
+              "minimum": 0
+            }
+          },
+          "outputs": {
+            "$ref": "#/components/schemas/Outputs"
+          }
+        }
+      },
+      "CoinbaseTxid": {
+        "type": "string"
       },
       "ConsensusResults": {
         "type": "object",
@@ -5009,72 +4682,12 @@
         ],
         "description": "Per-dimension input for `market_create`. Each dimension is either\na reference to an already-claimed decision (`Existing`) or a request to\nclaim a new decision (`New`). The wallet derives the `Single` vs\n`Categorical` `DimensionSpec` from the decision's type."
       },
-      "FilledOutputContent": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "BitcoinSats"
-            ],
-            "properties": {
-              "BitcoinSats": {
-                "$ref": "#/components/schemas/BitcoinContent"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "BitcoinWithdrawal"
-            ],
-            "properties": {
-              "BitcoinWithdrawal": {
-                "$ref": "#/components/schemas/WithdrawalOutputContent"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-            "required": [
-              "MarketFunds"
-            ],
-            "properties": {
-              "MarketFunds": {
-                "type": "object",
-                "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                "required": [
-                  "market_id",
-                  "amount",
-                  "is_fee"
-                ],
-                "properties": {
-                  "amount": {
-                    "$ref": "#/components/schemas/BitcoinContent"
-                  },
-                  "is_fee": {
-                    "type": "boolean"
-                  },
-                  "market_id": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "format": "u-int8",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          }
-        ],
-        "description": "Representation of Output Content that includes asset type and/or\nreservation commitment"
-      },
       "Header": {
         "type": "object",
         "required": [
           "merkle_root",
-          "prev_main_hash"
+          "prev_main_hash",
+          "roots"
         ],
         "properties": {
           "merkle_root": {
@@ -5092,6 +4705,13 @@
                 "$ref": "#/components/schemas/BlockHash"
               }
             ]
+          },
+          "roots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/utreexo.NodeHash"
+            },
+            "description": "Utreexo roots"
           }
         }
       },
@@ -5145,7 +4765,7 @@
           },
           {
             "type": "string",
-            "description": "Consumed by system operations (wallet sync for stale UTXOs)",
+            "description": "Removed from the state without a spend (wallet sync for stale UTXOs)",
             "enum": [
               "Redistribution"
             ]
@@ -5158,11 +4778,12 @@
       },
       "MainchainSyncPhase": {
         "type": "string",
-        "description": "Step of the sync with the mainchain",
+        "description": "Step of the startup sync with the mainchain",
         "enum": [
           "idle",
           "headers",
-          "writing"
+          "writing",
+          "state"
         ]
       },
       "MarketDimension": {
@@ -5402,12 +5023,12 @@
               "Coinbase": {
                 "type": "object",
                 "required": [
-                  "merkle_root",
+                  "txid",
                   "vout"
                 ],
                 "properties": {
-                  "merkle_root": {
-                    "$ref": "#/components/schemas/MerkleRoot"
+                  "txid": {
+                    "$ref": "#/components/schemas/CoinbaseTxid"
                   },
                   "vout": {
                     "type": "integer",
@@ -5431,14 +5052,14 @@
           },
           {
             "type": "object",
-            "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
+            "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
             "required": [
               "MarketFunds"
             ],
             "properties": {
               "MarketFunds": {
                 "type": "object",
-                "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
+                "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
                 "required": [
                   "market_id",
                   "block_height",
@@ -5467,12 +5088,14 @@
           },
           {
             "type": "object",
+            "description": "Created by market trades and market settlement",
             "required": [
               "Payout"
             ],
             "properties": {
               "Payout": {
                 "type": "object",
+                "description": "Created by market trades and market settlement",
                 "required": [
                   "hash",
                   "vout"
@@ -5496,8 +5119,7 @@
         "type": "object",
         "required": [
           "address",
-          "content",
-          "memo"
+          "content"
         ],
         "properties": {
           "address": {
@@ -5505,14 +5127,6 @@
           },
           "content": {
             "$ref": "#/components/schemas/OutputContent"
-          },
-          "memo": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "u-int8",
-              "minimum": 0
-            }
           }
         }
       },
@@ -5521,11 +5135,13 @@
           {
             "type": "object",
             "required": [
-              "BitcoinSats"
+              "Value"
             ],
             "properties": {
-              "BitcoinSats": {
-                "$ref": "#/components/schemas/BitcoinContent"
+              "Value": {
+                "type": "integer",
+                "format": "u-int64",
+                "minimum": 0
               }
             }
           },
@@ -5536,20 +5152,38 @@
             ],
             "properties": {
               "Withdrawal": {
-                "$ref": "#/components/schemas/WithdrawalOutputContent"
+                "type": "object",
+                "required": [
+                  "value_sats",
+                  "main_fee_sats",
+                  "main_address"
+                ],
+                "properties": {
+                  "main_address": {
+                    "$ref": "#/components/schemas/bitcoin.Address"
+                  },
+                  "main_fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "value_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
               }
             }
           },
           {
             "type": "object",
-            "description": "Market funds output - treasury (is_fee=false) or author fees (is_fee=true)",
             "required": [
               "MarketFunds"
             ],
             "properties": {
               "MarketFunds": {
                 "type": "object",
-                "description": "Market funds output - treasury (is_fee=false) or author fees (is_fee=true)",
                 "required": [
                   "market_id",
                   "amount",
@@ -5557,7 +5191,9 @@
                 ],
                 "properties": {
                   "amount": {
-                    "$ref": "#/components/schemas/BitcoinContent"
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
                   },
                   "is_fee": {
                     "type": "boolean"
@@ -5574,7 +5210,14 @@
               }
             }
           }
-        ]
+        ],
+        "description": ""
+      },
+      "Outputs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Output"
+        }
       },
       "ParticipationStats": {
         "type": "object",
@@ -5725,86 +5368,7 @@
             "$ref": "#/components/schemas/InPoint"
           },
           "output": {
-            "type": "object",
-            "required": [
-              "address",
-              "content",
-              "memo"
-            ],
-            "properties": {
-              "address": {
-                "$ref": "#/components/schemas/Address"
-              },
-              "content": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "required": [
-                      "BitcoinSats"
-                    ],
-                    "properties": {
-                      "BitcoinSats": {
-                        "$ref": "#/components/schemas/BitcoinContent"
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "BitcoinWithdrawal"
-                    ],
-                    "properties": {
-                      "BitcoinWithdrawal": {
-                        "$ref": "#/components/schemas/WithdrawalOutputContent"
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                    "required": [
-                      "MarketFunds"
-                    ],
-                    "properties": {
-                      "MarketFunds": {
-                        "type": "object",
-                        "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
-                        "required": [
-                          "market_id",
-                          "amount",
-                          "is_fee"
-                        ],
-                        "properties": {
-                          "amount": {
-                            "$ref": "#/components/schemas/BitcoinContent"
-                          },
-                          "is_fee": {
-                            "type": "boolean"
-                          },
-                          "market_id": {
-                            "type": "array",
-                            "items": {
-                              "type": "integer",
-                              "format": "u-int8",
-                              "minimum": 0
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                ],
-                "description": "Representation of Output Content that includes asset type and/or\nreservation commitment"
-              },
-              "memo": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "format": "u-int8",
-                  "minimum": 0
-                }
-              }
-            }
+            "$ref": "#/components/schemas/Output"
           }
         }
       },
@@ -5812,8 +5376,8 @@
         "type": "object",
         "required": [
           "inputs",
-          "outputs",
-          "memo"
+          "proof",
+          "outputs"
         ],
         "properties": {
           "data": {
@@ -5829,163 +5393,174 @@
           "inputs": {
             "type": "array",
             "items": {
-              "oneOf": [
+              "type": "array",
+              "items": false,
+              "prefixItems": [
                 {
-                  "type": "object",
-                  "required": [
-                    "Regular"
-                  ],
-                  "properties": {
-                    "Regular": {
+                  "oneOf": [
+                    {
                       "type": "object",
                       "required": [
-                        "txid",
-                        "vout"
+                        "Regular"
                       ],
                       "properties": {
-                        "txid": {
-                          "$ref": "#/components/schemas/Txid"
-                        },
-                        "vout": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
+                        "Regular": {
+                          "type": "object",
+                          "required": [
+                            "txid",
+                            "vout"
+                          ],
+                          "properties": {
+                            "txid": {
+                              "$ref": "#/components/schemas/Txid"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
                         }
                       }
-                    }
-                  }
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "Coinbase"
-                  ],
-                  "properties": {
-                    "Coinbase": {
+                    },
+                    {
                       "type": "object",
                       "required": [
-                        "merkle_root",
-                        "vout"
+                        "Coinbase"
                       ],
                       "properties": {
-                        "merkle_root": {
-                          "$ref": "#/components/schemas/MerkleRoot"
-                        },
-                        "vout": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
+                        "Coinbase": {
+                          "type": "object",
+                          "required": [
+                            "txid",
+                            "vout"
+                          ],
+                          "properties": {
+                            "txid": {
+                              "$ref": "#/components/schemas/CoinbaseTxid"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
                         }
                       }
-                    }
-                  }
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "Deposit"
-                  ],
-                  "properties": {
-                    "Deposit": {
-                      "$ref": "#/components/schemas/bitcoin.OutPoint"
-                    }
-                  }
-                },
-                {
-                  "type": "object",
-                  "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
-                  "required": [
-                    "MarketFunds"
-                  ],
-                  "properties": {
-                    "MarketFunds": {
+                    },
+                    {
                       "type": "object",
-                      "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)\nUnified type that replaces the separate Market and MarketAuthorFee variants",
                       "required": [
-                        "market_id",
-                        "block_height",
-                        "is_fee"
+                        "Deposit"
                       ],
                       "properties": {
-                        "block_height": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
-                        },
-                        "is_fee": {
-                          "type": "boolean"
-                        },
-                        "market_id": {
-                          "type": "array",
-                          "items": {
-                            "type": "integer",
-                            "format": "u-int8",
-                            "minimum": 0
+                        "Deposit": {
+                          "$ref": "#/components/schemas/bitcoin.OutPoint"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                      "required": [
+                        "MarketFunds"
+                      ],
+                      "properties": {
+                        "MarketFunds": {
+                          "type": "object",
+                          "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                          "required": [
+                            "market_id",
+                            "block_height",
+                            "is_fee"
+                          ],
+                          "properties": {
+                            "block_height": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            },
+                            "is_fee": {
+                              "type": "boolean"
+                            },
+                            "market_id": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "format": "u-int8",
+                                "minimum": 0
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Created by market trades and market settlement",
+                      "required": [
+                        "Payout"
+                      ],
+                      "properties": {
+                        "Payout": {
+                          "type": "object",
+                          "description": "Created by market trades and market settlement",
+                          "required": [
+                            "hash",
+                            "vout"
+                          ],
+                          "properties": {
+                            "hash": {
+                              "$ref": "#/components/schemas/MerkleRoot"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
                           }
                         }
                       }
                     }
-                  }
+                  ]
                 },
                 {
-                  "type": "object",
-                  "required": [
-                    "Payout"
-                  ],
-                  "properties": {
-                    "Payout": {
-                      "type": "object",
-                      "required": [
-                        "hash",
-                        "vout"
-                      ],
-                      "properties": {
-                        "hash": {
-                          "$ref": "#/components/schemas/MerkleRoot"
-                        },
-                        "vout": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
-                        }
-                      }
-                    }
-                  }
+                  "type": "string"
                 }
               ]
             }
           },
-          "memo": {
-            "type": "string"
-          },
           "outputs": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "address",
-                "content",
-                "memo"
-              ],
-              "properties": {
-                "address": {
-                  "$ref": "#/components/schemas/Address"
-                },
-                "content": {
-                  "$ref": "#/components/schemas/OutputContent"
-                },
-                "memo": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer",
-                    "format": "u-int8",
-                    "minimum": 0
-                  }
+            "$ref": "#/components/schemas/Outputs"
+          },
+          "proof": {
+            "$ref": "#/components/schemas/utreexo.Proof",
+            "description": "Utreexo proof for inputs"
+          }
+        }
+      },
+      "TransactionVerbose": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Transaction"
+          },
+          {
+            "type": "object",
+            "required": [
+              "canonical_bytes"
+            ],
+            "properties": {
+              "canonical_bytes": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "u-int8",
+                  "minimum": 0
                 }
               }
             }
           }
-        }
+        ]
       },
       "TxData": {
         "oneOf": [
@@ -6304,28 +5879,357 @@
           }
         }
       },
-      "WithdrawalOutputContent": {
+      "WithdrawalBundle": {
         "type": "object",
         "required": [
-          "value_sats",
-          "main_fee_sats",
-          "main_address"
+          "spend_utxos",
+          "tx"
         ],
         "properties": {
-          "main_address": {
-            "$ref": "#/components/schemas/bitcoin.Address"
+          "spend_utxos": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "Regular"
+                      ],
+                      "properties": {
+                        "Regular": {
+                          "type": "object",
+                          "required": [
+                            "txid",
+                            "vout"
+                          ],
+                          "properties": {
+                            "txid": {
+                              "$ref": "#/components/schemas/Txid"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Coinbase"
+                      ],
+                      "properties": {
+                        "Coinbase": {
+                          "type": "object",
+                          "required": [
+                            "txid",
+                            "vout"
+                          ],
+                          "properties": {
+                            "txid": {
+                              "$ref": "#/components/schemas/CoinbaseTxid"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Deposit"
+                      ],
+                      "properties": {
+                        "Deposit": {
+                          "$ref": "#/components/schemas/bitcoin.OutPoint"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                      "required": [
+                        "MarketFunds"
+                      ],
+                      "properties": {
+                        "MarketFunds": {
+                          "type": "object",
+                          "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                          "required": [
+                            "market_id",
+                            "block_height",
+                            "is_fee"
+                          ],
+                          "properties": {
+                            "block_height": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            },
+                            "is_fee": {
+                              "type": "boolean"
+                            },
+                            "market_id": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "format": "u-int8",
+                                "minimum": 0
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Created by market trades and market settlement",
+                      "required": [
+                        "Payout"
+                      ],
+                      "properties": {
+                        "Payout": {
+                          "type": "object",
+                          "description": "Created by market trades and market settlement",
+                          "required": [
+                            "hash",
+                            "vout"
+                          ],
+                          "properties": {
+                            "hash": {
+                              "$ref": "#/components/schemas/MerkleRoot"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "address",
+                    "content"
+                  ],
+                  "properties": {
+                    "address": {
+                      "$ref": "#/components/schemas/Address"
+                    },
+                    "content": {
+                      "$ref": "#/components/schemas/OutputContent"
+                    }
+                  }
+                }
+              ]
+            }
           },
-          "main_fee_sats": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
-          },
-          "value_sats": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
+          "tx": {
+            "$ref": "#/components/schemas/bitcoin.Transaction"
           }
         }
+      },
+      "WithdrawalBundleInfo": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Withdrawal bundle is known",
+            "required": [
+              "Known"
+            ],
+            "properties": {
+              "Known": {
+                "$ref": "#/components/schemas/WithdrawalBundle",
+                "description": "Withdrawal bundle is known"
+              }
+            }
+          },
+          {
+            "type": "string",
+            "description": "Withdrawal bundle is unknown but unconfirmed / failed",
+            "enum": [
+              "Unknown"
+            ]
+          },
+          {
+            "type": "object",
+            "description": "If an unknown withdrawal bundle is confirmed, ALL UTXOs are\nconsidered spent.",
+            "required": [
+              "UnknownConfirmed"
+            ],
+            "properties": {
+              "UnknownConfirmed": {
+                "type": "object",
+                "description": "If an unknown withdrawal bundle is confirmed, ALL UTXOs are\nconsidered spent.",
+                "required": [
+                  "spend_utxos"
+                ],
+                "properties": {
+                  "spend_utxos": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/Output"
+                    },
+                    "propertyNames": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "Regular"
+                          ],
+                          "properties": {
+                            "Regular": {
+                              "type": "object",
+                              "required": [
+                                "txid",
+                                "vout"
+                              ],
+                              "properties": {
+                                "txid": {
+                                  "$ref": "#/components/schemas/Txid"
+                                },
+                                "vout": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "Coinbase"
+                          ],
+                          "properties": {
+                            "Coinbase": {
+                              "type": "object",
+                              "required": [
+                                "txid",
+                                "vout"
+                              ],
+                              "properties": {
+                                "txid": {
+                                  "$ref": "#/components/schemas/CoinbaseTxid"
+                                },
+                                "vout": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "Deposit"
+                          ],
+                          "properties": {
+                            "Deposit": {
+                              "$ref": "#/components/schemas/bitcoin.OutPoint"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                          "required": [
+                            "MarketFunds"
+                          ],
+                          "properties": {
+                            "MarketFunds": {
+                              "type": "object",
+                              "description": "Market funds: the treasury (`is_fee == false`) or the author fees\n(`is_fee == true`)",
+                              "required": [
+                                "market_id",
+                                "block_height",
+                                "is_fee"
+                              ],
+                              "properties": {
+                                "block_height": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "minimum": 0
+                                },
+                                "is_fee": {
+                                  "type": "boolean"
+                                },
+                                "market_id": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer",
+                                    "format": "u-int8",
+                                    "minimum": 0
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "description": "Created by market trades and market settlement",
+                          "required": [
+                            "Payout"
+                          ],
+                          "properties": {
+                            "Payout": {
+                              "type": "object",
+                              "description": "Created by market trades and market settlement",
+                              "required": [
+                                "hash",
+                                "vout"
+                              ],
+                              "properties": {
+                                "hash": {
+                                  "$ref": "#/components/schemas/MerkleRoot"
+                                },
+                                "vout": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Information we have regarding a withdrawal bundle"
+      },
+      "WithdrawalBundleStatus": {
+        "type": "string",
+        "enum": [
+          "Confirmed",
+          "Dropped",
+          "Failed",
+          "Pending",
+          "Submitted",
+          "SubmittedUnexpected"
+        ]
       },
       "bitcoin.Address": {
         "type": "string"
@@ -6341,6 +6245,12 @@
       },
       "net.SocketAddr": {
         "type": "string"
+      },
+      "utreexo.NodeHash": {
+        "type": "string"
+      },
+      "utreexo.Proof": {
+        "type": "object"
       }
     }
   }

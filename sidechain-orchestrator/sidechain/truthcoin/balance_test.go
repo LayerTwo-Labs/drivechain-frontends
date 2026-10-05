@@ -15,7 +15,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
-func TestWalletBalanceReadsBitcoinBalance(t *testing.T) {
+func TestWalletBalanceReadsBalance(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Method string `json:"method"`
@@ -24,7 +24,7 @@ func TestWalletBalanceReadsBitcoinBalance(t *testing.T) {
 			t.Errorf("decode request: %v", err)
 			return
 		}
-		if req.Method != "bitcoin_balance" {
+		if req.Method != "balance" {
 			http.Error(w, "Method not found: "+req.Method, http.StatusBadRequest)
 			return
 		}

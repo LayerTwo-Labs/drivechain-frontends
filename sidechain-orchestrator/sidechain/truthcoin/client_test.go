@@ -41,7 +41,7 @@ func clientFromServer(srv *httptest.Server) *Client {
 
 func TestBalance(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{
-		"bitcoin_balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
+		"balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
 	})
 	defer srv.Close()
 
