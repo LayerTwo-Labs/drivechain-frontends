@@ -62,3 +62,19 @@ func TestTransferBitAssetSendsDestBeforeAssetID(t *testing.T) {
 		nil,
 	}, *params)
 }
+
+// The node signature is verify_signature(signature, verifying_key, dst, msg).
+func TestVerifySignatureSendsSignatureFirst(t *testing.T) {
+	proxy, params := paramsNode(t, `true`)
+
+	resp, err := NewHandler(proxy).VerifySignature(context.Background(),
+		connect.NewRequest(&pb.VerifySignatureRequest{
+			Msg:          "the message",
+			Signature:    "0xsig",
+			VerifyingKey: "ba-svk1key",
+		}))
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Valid)
+
+	assert.Equal(t, []any{"0xsig", "ba-svk1key", "arbitrary", "the message"}, *params)
+}
