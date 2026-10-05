@@ -165,7 +165,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
             final fetchedTransactions = await orchestratorWallet.listTransactions(
               walletId: walletId,
             );
+            // Core gives a replaced or conflicted tx a negative count. It never
+            // confirms, and the unsigned height field cannot hold it.
             final transactions = fetchedTransactions.transactions
+                .where((tx) => tx.confirmations >= 0)
                 .map(
                   (tx) => WalletTransaction(
                     txid: tx.txid,
