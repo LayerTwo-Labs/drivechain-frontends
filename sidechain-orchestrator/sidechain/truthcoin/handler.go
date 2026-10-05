@@ -614,7 +614,7 @@ func (h *Handler) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Reque
 
 func (h *Handler) VerifySignature(ctx context.Context, req *connect.Request[pb.VerifySignatureRequest]) (*connect.Response[pb.VerifySignatureResponse], error) {
 	var valid bool
-	params := []any{req.Msg.Msg, req.Msg.Signature, req.Msg.VerifyingKey, req.Msg.Dst}
+	params := []any{req.Msg.Signature, req.Msg.VerifyingKey, req.Msg.Dst, req.Msg.Msg}
 	if err := h.proxy.Client.Call(ctx, "verify_signature", params, &valid); err != nil {
 		return nil, err
 	}

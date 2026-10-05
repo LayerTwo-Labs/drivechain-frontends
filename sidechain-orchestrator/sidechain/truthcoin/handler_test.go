@@ -141,3 +141,20 @@ func TestMarketSellSendsRequestObject(t *testing.T) {
 		"min_proceeds": 50
 	}]`, string((*params)[0]))
 }
+
+// The node signature is verify_signature(signature, verifying_key, dst, msg).
+func TestVerifySignatureSendsSignatureFirst(t *testing.T) {
+	h, params := capturingRPC(t, `true`)
+
+	resp, err := h.VerifySignature(context.Background(), connect.NewRequest(&pb.VerifySignatureRequest{
+		Msg:          "the message",
+		Signature:    "0xsig",
+		VerifyingKey: "ba-svk1key",
+		Dst:          "arbitrary",
+	}))
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Valid)
+
+	require.Len(t, *params, 1)
+	assert.JSONEq(t, `["0xsig","ba-svk1key","arbitrary","the message"]`, string((*params)[0]))
+}
