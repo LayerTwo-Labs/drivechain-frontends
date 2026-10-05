@@ -31,7 +31,7 @@ class Outpoint {
     }
     final coinbase = json['Coinbase'];
     if (coinbase is Map<String, dynamic>) {
-      return Outpoint('${coinbase['merkle_root']}:${coinbase['vout']}', OutpointType.coinbase);
+      return Outpoint('${coinbase['txid'] ?? coinbase['merkle_root']}:${coinbase['vout']}', OutpointType.coinbase);
     }
     return Outpoint(json['Deposit'] as String, OutpointType.deposit);
   }

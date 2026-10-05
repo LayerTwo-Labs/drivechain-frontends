@@ -63,6 +63,21 @@ void main() {
     expect(utxo.outpoint, 'bb:2');
   });
 
+  test('a utreexo chain names a coinbase outpoint by its txid', () {
+    final utxo = SidechainUTXO.fromJson({
+      'outpoint': {
+        'Coinbase': {'txid': 'cc', 'vout': 1},
+      },
+      'output': {
+        'address': 'mine',
+        'content': {'Value': 5000},
+      },
+    });
+
+    expect(utxo.type, OutpointType.coinbase);
+    expect(utxo.outpoint, 'cc:1');
+  });
+
   test('a bitnames coin reads its own value key and its pending flag', () {
     final utxo = BitnamesUTXO.fromJson({
       'outpoint': {'Deposit': 'abcd:0'},
