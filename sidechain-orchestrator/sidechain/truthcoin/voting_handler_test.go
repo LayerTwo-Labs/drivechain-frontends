@@ -207,7 +207,7 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 				return resp.Msg.Txid, nil
 			},
 			wantMethod: "transfer_votecoin",
-			wantParams: `["tNdest",5,1000,null]`,
+			wantParams: `["tNdest",5,1000]`,
 			wantResult: `vctx`,
 		},
 	}

@@ -31,7 +31,7 @@ func (h *Handler) WalletBalance(ctx context.Context) (total, available int64, er
 		TotalSats     int64 `json:"total_sats"`
 		AvailableSats int64 `json:"available_sats"`
 	}
-	if err := h.proxy.Client.Call(ctx, "bitcoin_balance", nil, &result); err != nil {
+	if err := h.proxy.Client.Call(ctx, "balance", nil, &result); err != nil {
 		return 0, 0, err
 	}
 	return result.TotalSats, result.AvailableSats, nil
@@ -74,16 +74,18 @@ func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.Get
 }
 
 func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.WithdrawRequest]) (*connect.Response[pb.WithdrawResponse], error) {
-	txid, err := h.proxy.Withdraw(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats)
-	if err != nil {
+	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats}
+	var txid string
+	if err := h.proxy.Client.Call(ctx, "create_withdrawal", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.WithdrawResponse{Txid: txid}), nil
 }
 
 func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
-	txid, err := h.proxy.Transfer(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats)
-	if err != nil {
+	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
+	var txid string
+	if err := h.proxy.Client.Call(ctx, "create_transfer", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.TransferResponse{Txid: txid}), nil
@@ -204,7 +206,7 @@ func (h *Handler) GetBlock(ctx context.Context, req *connect.Request[pb.GetBlock
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBlockResponse{BlockJson: string(raw)}), nil
+	return connect.NewResponse(&pb.GetBlockResponse{BlockJson: optionalJSON(raw)}), nil
 }
 
 func (h *Handler) GetBestMainchainBlockHash(ctx context.Context, req *connect.Request[pb.GetBestMainchainBlockHashRequest]) (*connect.Response[pb.GetBestMainchainBlockHashResponse], error) {
@@ -528,7 +530,7 @@ func (h *Handler) VotePeriod(ctx context.Context, req *connect.Request[pb.VotePe
 
 func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.VotecoinTransferRequest]) (*connect.Response[pb.VotecoinTransferResponse], error) {
 	var txid string
-	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats, req.Msg.Memo}
+	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats}
 	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}
@@ -545,7 +547,7 @@ func (h *Handler) VotecoinBalance(ctx context.Context, req *connect.Request[pb.V
 
 func (h *Handler) TransferVotecoin(ctx context.Context, req *connect.Request[pb.TransferVotecoinRequest]) (*connect.Response[pb.TransferVotecoinResponse], error) {
 	var txid string
-	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats, req.Msg.Memo}
+	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats}
 	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}

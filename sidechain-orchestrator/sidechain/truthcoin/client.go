@@ -112,7 +112,7 @@ func unmarshal[T any](c *Client, ctx context.Context, method string, params inte
 
 // Balance returns the node wallet balance.
 func (c *Client) Balance(ctx context.Context) (*BalanceResponse, error) {
-	r, err := unmarshal[BalanceResponse](c, ctx, "bitcoin_balance", nil)
+	r, err := unmarshal[BalanceResponse](c, ctx, "balance", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -140,9 +140,9 @@ func (c *Client) ListUTXOs(ctx context.Context) (json.RawMessage, error) {
 }
 
 // Transfer sends funds.
-func (c *Client) Transfer(ctx context.Context, dest string, valueSats, feeSats int64, memo *string) (string, error) {
-	params := []interface{}{dest, valueSats, feeSats, memo}
-	return unmarshal[string](c, ctx, "transfer", params)
+func (c *Client) Transfer(ctx context.Context, dest string, valueSats, feeSats int64) (string, error) {
+	params := []interface{}{dest, valueSats, feeSats}
+	return unmarshal[string](c, ctx, "create_transfer", params)
 }
 
 // CreateDeposit creates a deposit transaction.
@@ -152,7 +152,7 @@ func (c *Client) CreateDeposit(ctx context.Context, address string, valueSats, f
 
 // Withdraw initiates a withdrawal to the mainchain.
 func (c *Client) Withdraw(ctx context.Context, mainchainAddr string, amountSats, sidechainFeeSats, mainchainFeeSats int64) (string, error) {
-	return unmarshal[string](c, ctx, "withdraw", []interface{}{mainchainAddr, amountSats, sidechainFeeSats, mainchainFeeSats})
+	return unmarshal[string](c, ctx, "create_withdrawal", []interface{}{mainchainAddr, amountSats, sidechainFeeSats, mainchainFeeSats})
 }
 
 // SidechainWealthSats returns the total sidechain wealth in satoshis.
