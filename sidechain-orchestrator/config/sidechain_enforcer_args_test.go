@@ -7,12 +7,12 @@ import (
 )
 
 func TestSidechainEnforcerArgsUseTheDaemonFlags(t *testing.T) {
-	for _, name := range []string{"thunder", "photon", "coinshift", "zside"} {
+	for _, name := range []string{"thunder", "photon", "coinshift", "zside", "truthcoin"} {
 		args, err := KnownSidechainSpecs[name].EnforcerArgs("http://127.0.0.1:32123")
 		require.NoError(t, err)
 		require.Equal(t, []string{"--mainchain-grpc-url=http://127.0.0.1:32123"}, args)
 	}
-	for _, name := range []string{"bitnames", "bitassets", "truthcoin"} {
+	for _, name := range []string{"bitnames", "bitassets"} {
 		args, err := KnownSidechainSpecs[name].EnforcerArgs("http://127.0.0.1:32123")
 		require.NoError(t, err)
 		require.Equal(t, []string{"--mainchain-grpc-host=127.0.0.1", "--mainchain-grpc-port=32123"}, args)
