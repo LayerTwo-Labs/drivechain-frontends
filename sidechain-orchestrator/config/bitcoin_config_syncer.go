@@ -59,6 +59,21 @@ func isForknetConfig(config *BitcoinConfig) bool {
 	return config.GetEffectiveSetting("drivechain", "main") == "1"
 }
 
+const generatedRawBlockPublisher = "tcp://127.0.0.1:29003"
+
+// dropRawBlockPublisher removes the raw block publisher that BitWindow wrote.
+// Nothing reads it, and Core reads each block from disk again to publish it.
+func dropRawBlockPublisher(config *BitcoinConfig) bool {
+	changed := false
+	for _, section := range []string{"", "main", "test", "signet", "regtest"} {
+		if config.GetSetting("zmqpubrawblock", section) == generatedRawBlockPublisher {
+			config.RemoveSetting("zmqpubrawblock", section)
+			changed = true
+		}
+	}
+	return changed
+}
+
 var bitcoinConfMigrations = []BitcoinConfMigration{
 	{
 		Version: 1,
@@ -150,7 +165,6 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			"": {
 				"zmqpubhashblock": "tcp://127.0.0.1:29001",
 				"zmqpubhashtx":    "tcp://127.0.0.1:29002",
-				"zmqpubrawblock":  "tcp://127.0.0.1:29003",
 				"zmqpubrawtx":     "tcp://127.0.0.1:29004",
 			},
 		},
@@ -200,10 +214,14 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 		Version: 12,
 		Apply:   moveForknetToSignet,
 	},
+	{
+		Version: 13,
+		Apply:   dropRawBlockPublisher,
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 12
+var BitcoinConfMigrationsVersion = 13
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // Returns whether any migration was applied, plus the networks whose chain

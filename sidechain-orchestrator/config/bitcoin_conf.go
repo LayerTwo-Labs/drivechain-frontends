@@ -335,7 +335,6 @@ txindex=1
 zmqpubsequence=tcp://127.0.0.1:29000
 zmqpubhashblock=tcp://127.0.0.1:29001
 zmqpubhashtx=tcp://127.0.0.1:29002
-zmqpubrawblock=tcp://127.0.0.1:29003
 zmqpubrawtx=tcp://127.0.0.1:29004
 rpcthreads=10
 rpcworkqueue=50
