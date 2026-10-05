@@ -103,9 +103,6 @@ class SyncConnection {
 /// of mainchain + enforcer + every known sidechain (including bitwindowd).
 /// Carries chain-tip state only — download progress is owned by the
 /// [DownloadProvider] which polls its own RPC on a separate cadence.
-///
-/// Cadence is 100 ms while any tracked connection is still syncing, then
-/// drops to 1 s once everything is fully caught up.
 class SyncProvider extends ChangeNotifier implements NetworkScoped {
   @override
   Future<void> onNetworkChanged() async {
@@ -130,43 +127,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   /// daemon (read [bitwindowdSyncInfo] or [sidechains] directly).
   bool get isSynced => (mainchainSyncInfo?.isSynced ?? false) && (enforcerSyncInfo?.isSynced ?? false);
 
-  /// Per-connection vote on whether the global poll cadence should stay at
-  /// the aggressive 100 ms interval. A connection votes yes only if it's
-  /// running but not yet synced. Absent or errored connections vote no —
-  /// otherwise an unstarted sidechain pins the whole app at 100 ms forever
-  /// and chews ~37% CPU on the Flutter side (issue #1754). Download
-  /// progress runs on its own DownloadProvider timer.
-  static bool connectionWantsAggressivePoll(SyncInfo? info, String? error) {
-    if (info == null) {
-      return false;
-    }
-    if (error != null && error.isNotEmpty) {
-      return false;
-    }
-    return !info.isSynced;
-  }
-
-  /// True when *any* tracked connection wants aggressive (100 ms) polling.
-  /// Built from the per-connection helper so an absent sidechain with
-  /// `error="not running"` doesn't drag the cadence down.
-  bool get _wantsAggressivePoll {
-    if (connectionWantsAggressivePoll(mainchainSyncInfo, mainchainError)) {
-      return true;
-    }
-    if (connectionWantsAggressivePoll(enforcerSyncInfo, enforcerError)) {
-      return true;
-    }
-    if (connectionWantsAggressivePoll(bitwindowdSyncInfo, bitwindowdError)) {
-      return true;
-    }
-    for (final entry in sidechains.entries) {
-      if (connectionWantsAggressivePoll(entry.value, sidechainErrors[entry.key])) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /// True while bitcoind is still pulling its initial header set.
   bool get inHeaderSync {
     final m = mainchainSyncInfo;
@@ -176,8 +136,7 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
     return m.progressGoal < 10;
   }
 
-  static const Duration AGGRESSIVE_INTERVAL = Duration(milliseconds: 100);
-  static const Duration PASSIVE_INTERVAL = Duration(seconds: 1);
+  static const Duration POLL_INTERVAL = Duration(seconds: 1);
 
   SyncInfo? mainchainSyncInfo;
   String? mainchainError;
@@ -213,7 +172,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
 
   Timer? _timer;
   bool _isFetching = false;
-  Duration _currentInterval = AGGRESSIVE_INTERVAL;
 
   /// Last seen mainchain block height. Drives the new-block broadcast — every
   /// _fetch() compares this against the freshly-polled value and, on a strict
@@ -277,14 +235,9 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
 
   SyncProvider({this.additionalConnection, bool startTimer = true}) {
     if (startTimer && !Environment.isInTest) {
-      _scheduleNextTick();
+      _timer = Timer.periodic(POLL_INTERVAL, (_) => _tick());
       fetch();
     }
-  }
-
-  void _scheduleNextTick() {
-    _timer?.cancel();
-    _timer = Timer.periodic(_currentInterval, (_) => _tick());
   }
 
   Future<void> _tick() async {
@@ -295,16 +248,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
 
     try {
       await _fetch();
-
-      // Aggregate per-connection votes — see [connectionWantsAggressivePoll].
-      // Catches user-triggered CLI downloads of sidechains too, while
-      // ignoring absent ("not running") sidechains that should not drive
-      // the cadence.
-      final nextInterval = _wantsAggressivePoll ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL;
-      if (nextInterval != _currentInterval) {
-        _currentInterval = nextInterval;
-        _scheduleNextTick();
-      }
     } catch (_) {
       // swallow — _fetch() already records errors per-chain
     } finally {
@@ -404,9 +347,8 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
     }
 
     if (bitwindowFuture == null) {
-      // A skipped poll leaves the last snapshot behind. An unsynced one holds
-      // the aggressive cadence at 100 ms for the rest of the session, and the
-      // daemon card keeps full-mode progress that no longer moves.
+      // A skipped poll leaves the last snapshot behind, and the daemon card
+      // keeps full-mode progress that no longer moves.
       if (bitwindowdSyncInfo != null || bitwindowdError != null) {
         bitwindowdSyncInfo = null;
         bitwindowdError = null;
