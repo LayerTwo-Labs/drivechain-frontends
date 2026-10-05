@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/utils/converter.dart';
 import 'package:convert/convert.dart' as conv;
+import 'package:dart_bip32_bip44/dart_bip32_bip44.dart' show Chain, ExtendedPrivateKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -161,5 +163,48 @@ void main() {
     final result = convert('satoshi', ConverterFormat.passphrase, mainnet);
     expect(_row(result, 'Private key (hex)'), conv.hex.encode(sha256Bytes(utf8.encode('satoshi'))));
     expect(_row(result, 'P2PKH address').startsWith('1'), isTrue);
+  });
+
+  group('HD explorer addresses', () {
+    const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+    final chain = Chain.seed(conv.hex.encode(Mnemonic.fromSentence(mnemonic, Language.english).seed));
+
+    List<int> pubKeyAt(String path) => (chain.forPath(path) as ExtendedPrivateKey).publicKey().q!.getEncoded(true);
+
+    test('the address type follows the path purpose', () {
+      const vectors = {
+        "m/44'/0'/0'/0/0": '1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA',
+        "m/49'/0'/0'/0/0": '37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf',
+        "m/84'/0'/0'/0/0": 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+        "m/86'/0'/0'/0/0": 'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr',
+      };
+      vectors.forEach((path, want) {
+        expect(addressForPurpose(pubKeyAt(path), purposeOf(path), mainnet), want, reason: path);
+      });
+    });
+
+    test('eCash gets the mainnet segwit address', () {
+      const path = "m/84'/0'/0'/0/0";
+      expect(
+        addressForPurpose(pubKeyAt(path), purposeOf(path), BitcoinNetwork.BITCOIN_NETWORK_ECASH),
+        'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+      );
+    });
+
+    test('a test network gets a tb1 address', () {
+      const path = "m/84'/1'/0'/0/0";
+      expect(addressForPurpose(pubKeyAt(path), purposeOf(path), signet).startsWith('tb1q'), isTrue);
+    });
+
+    test('the WIF follows the network', () {
+      final secret = (chain.forPath("m/84'/0'/0'/0/0") as ExtendedPrivateKey).key!.toRadixString(16).padLeft(64, '0');
+      expect(compressedWif(conv.hex.decode(secret), mainnet), 'KyZpNDKnfs94vbrwhJneDi77V6jF64PWPF8x5cdJb8ifgg2DUc9d');
+    });
+
+    test('purposeOf reads the purpose level', () {
+      expect(purposeOf("m/84'/0'/0'/0"), 84);
+      expect(purposeOf('m/44h/1h/0h/0'), 44);
+      expect(purposeOf('m'), 0);
+    });
   });
 }

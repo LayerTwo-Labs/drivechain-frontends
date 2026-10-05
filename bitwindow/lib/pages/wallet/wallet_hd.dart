@@ -1,5 +1,6 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/utils/converter.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -7,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -126,7 +126,7 @@ class _ControlsCard extends StatelessWidget {
                 child: SailTextField(
                   label: 'Derivation Path',
                   controller: model.derivationPathController,
-                  hintText: "m/84'/1'/0'/0/0",
+                  hintText: model.defaultDerivationPath,
                   size: TextFieldSize.small,
                 ),
               ),
@@ -256,7 +256,11 @@ class _AddressesSection extends StatelessWidget {
 class HDWalletViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
   final TextEditingController mnemonicController = TextEditingController();
-  final TextEditingController derivationPathController = TextEditingController(text: "m/84'/1'/0'/0/0");
+  BitcoinConfProvider get _conf => GetIt.I.get<BitcoinConfProvider>();
+  late final TextEditingController derivationPathController = TextEditingController(text: defaultDerivationPath);
+
+  /// The BIP84 receive chain of the wallet on the active network.
+  String get defaultDerivationPath => "m/84'/${_conf.usesMainnetParams ? 0 : 1}'/0'/0";
 
   List<HDWalletEntry> _derivedEntries = [];
   String? _errorMessage;
@@ -418,7 +422,13 @@ class HDWalletViewModel extends BaseViewModel {
   Future<void> _deriveEntries(String mnemonic) async {
     try {
       final basePath = derivationPathController.text.trim();
-      final entries = await compute(_deriveEntriesInBackground, [mnemonic, basePath, _currentPage, _entriesPerPage]);
+      final entries = await compute(_deriveEntriesInBackground, [
+        mnemonic,
+        basePath,
+        _currentPage,
+        _entriesPerPage,
+        _conf.network,
+      ]);
 
       _derivedEntries = entries;
     } catch (e) {
@@ -431,6 +441,7 @@ class HDWalletViewModel extends BaseViewModel {
     final basePath = params[1] as String;
     final currentPage = params[2] as int;
     final entriesPerPage = params[3] as int;
+    final network = params[4] as BitcoinNetwork;
 
     final entries = <HDWalletEntry>[];
 
@@ -438,19 +449,7 @@ class HDWalletViewModel extends BaseViewModel {
       final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
       final seedHex = hex.encode(mnemonicObj.seed);
       final chain = Chain.seed(seedHex);
-
-      final sha256Digest = SHA256Digest();
-      final ripemd160Digest = RIPEMD160Digest();
-      final pubKeyHash = Uint8List(20);
-      final versionedHash = Uint8List(21);
-      versionedHash[0] = 0x00;
-      final shaOutput = Uint8List(32);
-      final doubleSHAOutput = Uint8List(32);
-      final addressBytes = Uint8List(25);
-      final wifBytes = Uint8List(38);
-      final wifBuffer = Uint8List(34);
-      wifBuffer[0] = 0x80;
-      wifBuffer[33] = 0x01;
+      final purpose = purposeOf(basePath);
 
       final startIndex = currentPage * entriesPerPage;
 
@@ -460,57 +459,20 @@ class HDWalletViewModel extends BaseViewModel {
           final path = basePath.endsWith('/') ? '$basePath$derivationIndex' : '$basePath/$derivationIndex';
           final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
           final privateKeyHex = extendedPrivateKey.privateKeyHex();
-          final publicKey = extendedPrivateKey.publicKey();
-
-          final q = publicKey.q;
+          final q = extendedPrivateKey.publicKey().q;
           if (q == null) {
             continue;
           }
 
           final pubKeyBytes = q.getEncoded(true);
-          final pubKeyHex = hex.encode(pubKeyBytes);
-
-          sha256Digest.reset();
-          ripemd160Digest.reset();
-          final sha256Result = sha256Digest.process(Uint8List.fromList(pubKeyBytes));
-          final ripemdResult = ripemd160Digest.process(sha256Result);
-          pubKeyHash.setRange(0, 20, ripemdResult);
-          versionedHash.setRange(1, 21, pubKeyHash);
-
-          sha256Digest.reset();
-          sha256Digest.update(versionedHash, 0, versionedHash.length);
-          sha256Digest.doFinal(shaOutput, 0);
-
-          sha256Digest.reset();
-          sha256Digest.update(shaOutput, 0, shaOutput.length);
-          sha256Digest.doFinal(doubleSHAOutput, 0);
-
-          addressBytes.setRange(0, 21, versionedHash);
-          addressBytes.setRange(21, 25, doubleSHAOutput.sublist(0, 4));
-          final address = base58.encode(addressBytes);
-
           final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
-          final privateKeyBytes = hex.decode(cleanHex);
-          wifBuffer.setRange(1, 33, privateKeyBytes);
-
-          sha256Digest.reset();
-          sha256Digest.update(wifBuffer, 0, wifBuffer.length);
-          sha256Digest.doFinal(shaOutput, 0);
-
-          sha256Digest.reset();
-          sha256Digest.update(shaOutput, 0, shaOutput.length);
-          sha256Digest.doFinal(doubleSHAOutput, 0);
-
-          wifBytes.setRange(0, 34, wifBuffer);
-          wifBytes.setRange(34, 38, doubleSHAOutput.sublist(0, 4));
-          final wif = base58.encode(wifBytes);
 
           entries.add(
             HDWalletEntry(
               path: path,
-              address: address,
-              publicKey: pubKeyHex,
-              privateKey: wif,
+              address: addressForPurpose(pubKeyBytes, purpose, network),
+              publicKey: hex.encode(pubKeyBytes),
+              privateKey: compressedWif(hex.decode(cleanHex), network),
             ),
           );
         } catch (e) {
