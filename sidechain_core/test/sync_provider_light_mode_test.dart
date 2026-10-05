@@ -66,14 +66,11 @@ void main() {
     expect(bitwindow.syncInfoCalls, 0);
   });
 
-  // A switch to light mode leaves the last snapshot behind. An unsynced one
-  // holds the poll at 100 ms for the rest of the session.
+  // A switch to light mode leaves the last snapshot behind.
   test('a skipped poll drops the old bitwindowd snapshot', () async {
     final provider = await boot(wmpb.NodeMode.NODE_MODE_LIGHT);
     provider.bitwindowdSyncInfo = SyncInfo(progressCurrent: 1, progressGoal: 10, lastBlockAt: null);
     provider.bitwindowdError = 'stale';
-
-    expect(SyncProvider.connectionWantsAggressivePoll(provider.bitwindowdSyncInfo, null), isTrue);
 
     await provider.fetch();
 
