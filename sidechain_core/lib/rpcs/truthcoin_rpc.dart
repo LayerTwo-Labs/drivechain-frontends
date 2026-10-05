@@ -915,10 +915,12 @@ class TruthcoinLive extends TruthcoinRPC {
 }
 
 final truthcoinRPCMethods = [
-  'bitcoin_balance',
+  'balance',
   'calculate_initial_liquidity',
   'connect_peer',
   'create_deposit',
+  'create_transfer',
+  'create_withdrawal',
   'decision_claim',
   'decision_get',
   'decision_list',
@@ -959,7 +961,6 @@ final truthcoinRPCMethods = [
   'sign_arbitrary_msg',
   'sign_arbitrary_msg_as_addr',
   'stop',
-  'transfer',
   'transfer_votecoin',
   'verify_signature',
   'vote_list',
@@ -968,5 +969,4 @@ final truthcoinRPCMethods = [
   'vote_voter',
   'vote_voters',
   'votecoin_balance',
-  'withdraw',
 ];
