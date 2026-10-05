@@ -71,6 +71,45 @@ _NetworkPrefixes _prefixesFor(BitcoinNetwork network) {
   };
 }
 
+/// The purpose level of a BIP32 path such as m/84'/0'/0'/0, or 0 when the
+/// path has none.
+int purposeOf(String path) {
+  final levels = path.trim().split('/');
+  if (levels.length < 2) {
+    return 0;
+  }
+  return int.tryParse(levels[1].replaceAll(RegExp(r"['hH]$"), '')) ?? 0;
+}
+
+/// The address that a BIP32 purpose (44, 49, 84 or 86) uses for a compressed
+/// public key. Any other purpose gets P2PKH.
+String addressForPurpose(List<int> compressedPubKey, int purpose, BitcoinNetwork network) {
+  final prefixes = _prefixesFor(network);
+  final pubKeyHash = hash160(compressedPubKey);
+  return switch (purpose) {
+    49 => _base58Check(prefixes.p2sh, hash160([0x00, 0x14, ...pubKeyHash])),
+    84 => bu.SegwitBech32Encoder.encode(prefixes.hrp, 0, pubKeyHash),
+    86 => bu.SegwitBech32Encoder.encode(
+      prefixes.hrp,
+      1,
+      conv.hex.decode(bb.ECPublic.fromBytes(compressedPubKey).toTaprootAddress().addressProgram),
+    ),
+    _ => _base58Check(prefixes.p2pkh, pubKeyHash),
+  };
+}
+
+/// The compressed-key WIF of a 32-byte secret on the network.
+String compressedWif(List<int> secret, BitcoinNetwork network) =>
+    _base58Check(_prefixesFor(network).wif, [...secret, 0x01]);
+
+String _base58Check(int version, List<int> payload) {
+  final encoded = Base58Check.encode(version, payload);
+  if (encoded == null) {
+    throw const FormatException('Base58Check encoding failed');
+  }
+  return encoded;
+}
+
 Uint8List sha256Bytes(List<int> data) => Uint8List.fromList(sha256.convert(data).bytes);
 
 Uint8List doubleSha256(List<int> data) => sha256Bytes(sha256Bytes(data));
