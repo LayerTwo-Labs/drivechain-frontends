@@ -728,6 +728,40 @@ func TestNodeTransactionNamesACoinbaseInputByTxid(t *testing.T) {
 	}
 }
 
+// A node names a deposit input as a "txid:vout" string. The body is a real
+// truthcoin 0.19 transaction from alphanet block 207.
+func TestNodeTransactionReadsADepositInput(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{
+		"get_transaction": `{"inputs":[{"Deposit":"ba4ce57f4c5fff32deac1b7e8ad2a4325e8f012061d741793d41016a178ccb2e:0"}],` +
+			`"outputs":[],"memo":"","data":{"Trade":{"market_id":[49,54,120,67,13,152],"outcome_index":1,` +
+			`"shares":28500,"trader":"3VydCT3fpNEheSB4k8M1u8fNUVcu","limit_sats":23442,"tx_pow_nonce":null,` +
+			`"prev_block_hash":"a42693b969adbb608294f9195206097eacc117b1038586fe078290ca553b763b"}}}`,
+		"get_transaction_info": `null`,
+	}}
+	src := source{name: "truthcoin", node: node}
+
+	tx, err := nodeTransaction(context.Background(), src, "abc")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if got := len(tx.GetInputs()); got != 1 {
+		t.Fatalf("the transaction holds %d inputs, want 1", got)
+	}
+	in := tx.GetInputs()[0]
+	if got := in.GetOutpointKind(); got != "deposit" {
+		t.Errorf("the input reads as %q, want deposit", got)
+	}
+	if got := in.GetTxid(); got != "ba4ce57f4c5fff32deac1b7e8ad2a4325e8f012061d741793d41016a178ccb2e" {
+		t.Errorf("the input names %q", got)
+	}
+	if got := in.GetVout(); got != 0 {
+		t.Errorf("the input names output %d, want 0", got)
+	}
+	if got := tx.GetKind(); got != pb.Kind_KIND_DEPOSIT {
+		t.Errorf("the transaction reads as %v, want a deposit", got)
+	}
+}
+
 // A wrapped transaction names its block. The view reads a height, so the
 // block hash must resolve to one.
 func TestWrappedTransactionResolvesItsHeight(t *testing.T) {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 
 	"connectrpc.com/connect"
 
@@ -139,10 +141,7 @@ type nodeTx struct {
 			Txid string `json:"txid"`
 			Vout uint32 `json:"vout"`
 		} `json:"Regular"`
-		Deposit *struct {
-			Txid string `json:"txid"`
-			Vout uint32 `json:"vout"`
-		} `json:"Deposit"`
+		Deposit *string `json:"Deposit"`
 		// An older node names a coinbase by the block's merkle root.
 		Coinbase *struct {
 			Txid       string `json:"txid"`
@@ -205,8 +204,13 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 	for _, in := range tx.Inputs {
 		switch {
 		case in.Deposit != nil:
+			mainTxid, vout, err := parseMainchainOutpoint(*in.Deposit)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInternal,
+					fmt.Errorf("read transaction %s: %w", txid, err))
+			}
 			out.Inputs = append(out.Inputs, &pb.Coin{
-				Txid: in.Deposit.Txid, Vout: in.Deposit.Vout, OutpointKind: "deposit",
+				Txid: mainTxid, Vout: vout, OutpointKind: "deposit",
 			})
 			out.Kind = pb.Kind_KIND_DEPOSIT
 		case in.Regular != nil:
@@ -237,6 +241,19 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 		out.Outputs = append(out.Outputs, coin)
 	}
 	return out, nil
+}
+
+// parseMainchainOutpoint reads a "txid:vout" outpoint.
+func parseMainchainOutpoint(outpoint string) (string, uint32, error) {
+	txid, vout, ok := strings.Cut(outpoint, ":")
+	if !ok || txid == "" {
+		return "", 0, fmt.Errorf("deposit outpoint %q is not txid:vout", outpoint)
+	}
+	n, err := strconv.ParseUint(vout, 10, 32)
+	if err != nil {
+		return "", 0, fmt.Errorf("deposit outpoint %q: %w", outpoint, err)
+	}
+	return txid, uint32(n), nil
 }
 
 // nodeTransactionInfo reads the confirmation and the fee a bare transaction
