@@ -487,14 +487,19 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 	out := make([]ReceivedByAddress, 0, len(scan.addrs))
 	for _, a := range scan.addrs {
 		if a.hdPath == "" {
-			continue
-		}
-		limit := highestReceived[chainKey{a.kind, a.change}]
-		if !a.change {
-			limit++ // external: also show the next unused receive address
-		}
-		if int(a.index) > limit {
-			continue
+			// A watch key, such as a BIP47 payment address, shows once it received,
+			// as Core lists an imported key. The BIP47 window grows on that row.
+			if a.stats.ChainStats.FundedTxoCount == 0 && a.stats.MempoolStats.FundedTxoCount == 0 {
+				continue
+			}
+		} else {
+			limit := highestReceived[chainKey{a.kind, a.change}]
+			if !a.change {
+				limit++ // external: also show the next unused receive address
+			}
+			if int(a.index) > limit {
+				continue
+			}
 		}
 		// Amount counts every coin the address received, on-chain and in the
 		// mempool. BalanceSats is what it still holds. The receive column reads
@@ -732,6 +737,12 @@ func (p *ElectrumBackend) WatchKeys(ctx context.Context, walletID string, keys [
 // in ListTransactionsRange.
 func (p *ElectrumBackend) EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error {
 	return p.WatchKeys(ctx, walletID, []WatchKey{notifKey})
+}
+
+// RestoreWatchKeys registers the keys again, because watch keys live only in
+// memory.
+func (p *ElectrumBackend) RestoreWatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
+	return p.WatchKeys(ctx, walletID, keys)
 }
 
 func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
@@ -3377,6 +3388,7 @@ func esploraTxToRaw(tx EsploraTx, rawHex string, tip int) *RawTransaction {
 			in.Coinbase = vin.ScriptSig
 		} else {
 			in.TxID = vin.TxID
+			in.ScriptSig = &ScriptSig{Hex: vin.ScriptSig}
 		}
 		raw.Vin = append(raw.Vin, in)
 	}

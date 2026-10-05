@@ -15,6 +15,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -3872,4 +3873,49 @@ func TestElectrumOwnedAddressesSeparatesChangeFromReceive(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, map[string]bool{recv: false, change: true}, owned)
+}
+
+// The BIP47 engine reads the sender key out of a P2PKH input's scriptSig.
+func TestEsploraTxToRawKeepsTheScriptSig(t *testing.T) {
+	tx := EsploraTx{
+		TxID: "spend",
+		Vin:  []EsploraVin{{TxID: "funding", Vout: 1, ScriptSig: "47304402aa"}},
+	}
+
+	raw := esploraTxToRaw(tx, "", 0)
+
+	require.Len(t, raw.Vin, 1)
+	require.NotNil(t, raw.Vin[0].ScriptSig)
+	require.Equal(t, "47304402aa", raw.Vin[0].ScriptSig.Hex)
+}
+
+// The BIP47 engine grows a sender's window when the probe key has received.
+func TestElectrumListReceivedIncludesFundedWatchKeys(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	p, fake, w, _ := newElectrumFixture(t)
+
+	watchAddr := func(seed byte) (WatchKey, string) {
+		priv, _ := btcec.PrivKeyFromBytes(bytes.Repeat([]byte{seed}, 32))
+		wif, err := btcutil.NewWIF(priv, net, true)
+		require.NoError(t, err)
+		addr, err := btcutil.NewAddressPubKeyHash(btcutil.Hash160(priv.PubKey().SerializeCompressed()), net)
+		require.NoError(t, err)
+		return WatchKey{WIF: wif.String()}, addr.EncodeAddress()
+	}
+	fundedKey, fundedAddr := watchAddr(0x21)
+	unusedKey, unusedAddr := watchAddr(0x22)
+	require.NoError(t, p.WatchKeys(ctx, w.ID, []WatchKey{fundedKey, unusedKey}))
+	fake.stats[fundedAddr] = EsploraAddressStats{Address: fundedAddr, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 5_000, TxCount: 1}}
+
+	recv, err := p.ListReceivedByAddress(ctx, w.ID)
+	require.NoError(t, err)
+	byAddr := map[string]ReceivedByAddress{}
+	for _, r := range recv {
+		byAddr[r.Address] = r
+	}
+	require.Contains(t, byAddr, fundedAddr)
+	assert.Empty(t, byAddr[fundedAddr].HDPath)
+	assert.InDelta(t, 5_000.0/1e8, byAddr[fundedAddr].Amount, 1e-9)
+	assert.NotContains(t, byAddr, unusedAddr)
 }

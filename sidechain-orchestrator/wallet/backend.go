@@ -84,6 +84,10 @@ type Bip47Backend interface {
 	// notifKey.RescanFrom so past notifications surface in ListTransactionsRange.
 	// Idempotent.
 	EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error
+	// RestoreWatchKeys registers again the per-payment keys that WatchKeys added
+	// in an earlier process. A backend that keeps them across restarts does
+	// nothing. Idempotent.
+	RestoreWatchKeys(ctx context.Context, walletID string, keys []WatchKey) error
 }
 
 // SendFeeTarget is the confirmation target, in blocks, a send prices at when

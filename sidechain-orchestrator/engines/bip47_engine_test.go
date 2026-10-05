@@ -191,6 +191,75 @@ func TestScanWalletFindsNotificationAfterCompletedPass(t *testing.T) {
 	require.Equal(t, 1, chain.fetch)
 }
 
+// restoreBackend records the keys the engine registers again. No probe
+// address has received, so the window never grows.
+type restoreBackend struct {
+	wallet.Bip47Backend
+	restored [][]wallet.WatchKey
+	watched  int
+}
+
+func (r *restoreBackend) RestoreWatchKeys(_ context.Context, _ string, keys []wallet.WatchKey) error {
+	r.restored = append(r.restored, keys)
+	return nil
+}
+
+func (r *restoreBackend) WatchKeys(context.Context, string, []wallet.WatchKey) error {
+	r.watched++
+	return nil
+}
+
+func (r *restoreBackend) ListReceivedByAddress(context.Context, string) ([]wallet.ReceivedByAddress, error) {
+	return nil, nil
+}
+
+// An electrum backend forgets its watch keys on a restart. The new process
+// registers the imported window again, one time, without a probe hit.
+func TestExtendImportsRestoresTheWindowAfterARestart(t *testing.T) {
+	net := &chaincfg.MainNetParams
+	const walletID = "W1"
+	alice, err := bip47.PaymentCodeFromSeed(aliceSeedHex, net)
+	require.NoError(t, err)
+
+	store := bip47state.NewInboundStore(t.TempDir())
+	require.NoError(t, store.RecordInbound(walletID, alice.Base58(), "notification-txid", 100, 1700000000))
+	require.NoError(t, store.BumpImportedIndex(walletID, alice.Base58(), bip47GapLimit))
+
+	backend := &restoreBackend{}
+	e := NewBIP47Engine(zerolog.Nop(), nil, wallet.NewWalletEngine(nil, backend, func() *chaincfg.Params { return net }, zerolog.Nop()), store)
+
+	require.NoError(t, e.extendImports(context.Background(), walletID, bobSeedHex, net))
+	require.NoError(t, e.extendImports(context.Background(), walletID, bobSeedHex, net))
+
+	require.Len(t, backend.restored, 1, "the window is registered again one time per process")
+	require.Len(t, backend.restored[0], bip47GapLimit)
+	require.Equal(t, int64(1700000000), backend.restored[0][0].RescanFrom)
+	require.Zero(t, backend.watched, "an unused probe does not grow the window")
+}
+
+// A light chain source does not label the OP_RETURN output the way Core does.
+func TestDecodeNotificationTxReadsAnyOutputLabel(t *testing.T) {
+	net := &chaincfg.MainNetParams
+	notifPriv, notifAddr, err := bip47.DeriveOwnNotificationKey(bobSeedHex, net)
+	require.NoError(t, err)
+	alice, err := bip47.PaymentCodeFromSeed(aliceSeedHex, net)
+	require.NoError(t, err)
+
+	for _, label := range []string{"", "op_return"} {
+		t.Run(fmt.Sprintf("label %q", label), func(t *testing.T) {
+			_, raw := buildNotificationTx(t, bobSeedHex, notifAddr.EncodeAddress())
+			raw.Vout[0].ScriptPubKey.Type = label
+			chain := &stubChain{txs: map[string]*wallet.RawTransaction{raw.TxID: raw}}
+			backend := &stubBackend{chain: chain}
+			e := NewBIP47Engine(zerolog.Nop(), nil, wallet.NewWalletEngine(nil, backend, func() *chaincfg.Params { return net }, zerolog.Nop()), bip47state.NewInboundStore(t.TempDir()))
+
+			sender, _, err := e.decodeNotificationTx(context.Background(), "W1", raw.TxID, notifPriv)
+			require.NoError(t, err)
+			require.Equal(t, alice.Base58(), sender)
+		})
+	}
+}
+
 func TestParseOpReturnPayload_PushData1(t *testing.T) {
 	// OP_RETURN OP_PUSHDATA1 0x50 <80 bytes of 0xAA>
 	body := bytes.Repeat([]byte{0xAA}, 80)
