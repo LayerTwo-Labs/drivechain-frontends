@@ -16,7 +16,7 @@ dependencies:
   sidechain_core:
     path: ../sidechain_core
 
-  cupertino_icons: ^1.0.9
+  cupertino_icons: ^2.0.0
   dart_coin_rpc:
     git:
       url: https://github.com/barebitcoin/dart_coin_rpc.git
