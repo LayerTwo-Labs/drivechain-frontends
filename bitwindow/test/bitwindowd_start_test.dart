@@ -94,7 +94,7 @@ class _FakeBinaries extends BinaryProvider {
   Future<bool> ownerAlive(Binary binary) async => liveOwner;
 
   @override
-  Future<void> start(Binary binary) async => calls.add('start');
+  Future<void> start(Binary binary, {bool background = false}) async => calls.add('start');
 
   @override
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {

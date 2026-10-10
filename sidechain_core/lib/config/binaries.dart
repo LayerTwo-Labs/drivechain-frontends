@@ -1400,7 +1400,9 @@ class MetadataConfig {
   DownloadConfig get downloadConfig =>
       Binary.isSidechainApp ? _downloadConfig : _alternativeDownloadConfig ?? _downloadConfig;
 
-  bool get hasAlternativeDownloadConfig => _alternativeDownloadConfig != null;
+  /// True when a sidechain app download exists for this OS.
+  bool get hasAlternativeDownloadForThisOS =>
+      _alternativeDownloadConfig?.files.values.any((files) => files[OS.current]?.isNotEmpty ?? false) ?? false;
 
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // Local file timestamp
