@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
@@ -41,6 +42,36 @@ func TestOpenDir_CreatesDirectory(t *testing.T) {
 	}
 	if !info.IsDir() {
 		t.Fatal("expected target path to be a directory")
+	}
+}
+
+func TestOpenDir_OpenerOutlivesRequestContext(t *testing.T) {
+	dir := t.TempDir()
+	marker := filepath.Join(dir, "opened")
+
+	original := dirOpenCommand
+	dirOpenCommand = func(dir string) (string, []string) {
+		return "sh", []string{"-c", `sleep 0.3 && touch "$1"`, "sh", marker}
+	}
+	t.Cleanup(func() { dirOpenCommand = original })
+
+	engine := &BitDriveEngine{bitdriveDir: dir}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := engine.OpenDir(ctx); err != nil {
+		t.Fatalf("OpenDir: %v", err)
+	}
+	cancel()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if _, err := os.Stat(marker); err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the opener stopped when the request context ended")
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
