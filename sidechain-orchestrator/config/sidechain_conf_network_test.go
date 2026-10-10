@@ -410,3 +410,19 @@ func TestGetCliArgsDropsTheOldTruthcoinFlags(t *testing.T) {
 		}
 	}
 }
+
+// A full node starts zSide from its conf, and zSide 0.18 defaults to betanet.
+func TestGetCliArgsGivesZSideTheNetwork(t *testing.T) {
+	m := sidechainConfFor(t, "zside", NetworkSignet, map[string]string{
+		"net-addr":           "0.0.0.0:34098",
+		"mainchain-grpc-url": "http://localhost:50051",
+	})
+
+	args := m.GetCliArgs()
+
+	for _, want := range []string{"--network=signet", "--net-addr=0.0.0.0:34098", "--mainchain-grpc-url=http://localhost:50051"} {
+		if !slices.Contains(args, want) {
+			t.Errorf("args = %v, want %s", args, want)
+		}
+	}
+}

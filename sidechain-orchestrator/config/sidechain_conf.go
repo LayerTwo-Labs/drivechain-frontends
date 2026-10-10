@@ -648,6 +648,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "ZSide",
 		ConfigFilename: "zside.conf",
 		BasePort:       6098,
+		CliArgKeys:     []string{"net-addr", "mainchain-grpc-url"},
 		PortStyle:      "grpc",
 		RPCKey:         "rpc-addr",
 		DirKey:         "zside",

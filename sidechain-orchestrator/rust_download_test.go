@@ -82,42 +82,53 @@ func TestRawBinaryTakesTheLaunchName(t *testing.T) {
 	require.Equal(t, "truthcoin", rawBinaryName("truthcoin", "linux"))
 }
 
-func TestRustDownloadsSelectForkArchives(t *testing.T) {
-	for _, cfg := range AllDefaults() {
-		if cfg.Name != "zside" {
-			continue
+// The octobocto fork release has no betanet, so zSide reads the upstream
+// release, which publishes a bare daemon and a bare CLI beside it.
+func TestZSideDownloadsTheUpstreamBinary(t *testing.T) {
+	var cfg BinaryConfig
+	for _, c := range AllDefaults() {
+		if c.Name == "zside" {
+			cfg = c
 		}
-		t.Run(cfg.Name, func(t *testing.T) {
-			repo, version := "thunder-orchard", "0.17.3"
-			require.Empty(t, cfg.Files["windows-x86_64"])
-			require.Equal(t, "https://api.github.com/repos/octobocto/"+repo+"/releases/latest", cfg.DownloadURLs["default"])
-			platforms := map[string]string{
-				"linux-x86_64": "x86_64-unknown-linux-gnu",
-				"macos-x86_64": "x86_64-apple-darwin",
-				"macos-arm64":  "aarch64-apple-darwin",
-			}
-			var assets []map[string]string
-			for _, target := range platforms {
-				name := cfg.BinaryName + "-" + version + "-" + target
-				for _, suffix := range []string{"", ".zip"} {
-					assets = append(assets, map[string]string{
-						"name": name + suffix, "browser_download_url": "https://example.invalid/" + name + suffix,
-					})
-				}
-			}
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				if err := json.NewEncoder(w).Encode(map[string]any{"assets": assets}); err != nil {
-					t.Error(err)
-				}
-			}))
-			defer server.Close()
-			dm, _ := newTestDownloadManager(t)
-			for platform, target := range platforms {
-				got, err := dm.resolveGitHubURL(context.Background(), server.URL, cfg.Files[platform])
-				require.NoError(t, err)
-				require.Equal(t, "https://example.invalid/"+cfg.BinaryName+"-"+version+"-"+target+".zip", got)
-			}
-		})
+	}
+	require.Equal(t, "https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest", cfg.DownloadURLs["default"])
+	require.Empty(t, cfg.Files["windows-x86_64"])
+	require.Equal(t, "thunder-orchard-cli", cfg.CLIBinaryName)
+	require.Empty(t, cfg.CLIFiles["windows-x86_64"])
+
+	const version = "0.18.1"
+	platforms := map[string]string{
+		"linux-x86_64": "x86_64-unknown-linux-gnu",
+		"macos-x86_64": "x86_64-apple-darwin",
+		"macos-arm64":  "aarch64-apple-darwin",
+	}
+	var assets []map[string]string
+	for _, target := range platforms {
+		for _, name := range []string{
+			cfg.BinaryName + "-" + version + "-" + target,
+			cfg.BinaryName + "-cli-" + version + "-" + target,
+		} {
+			assets = append(assets, map[string]string{
+				"name": name, "browser_download_url": "https://example.invalid/" + name,
+			})
+		}
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if err := json.NewEncoder(w).Encode(map[string]any{"assets": assets}); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer server.Close()
+
+	dm, _ := newTestDownloadManager(t)
+	for platform, target := range platforms {
+		got, err := dm.resolveGitHubURL(context.Background(), server.URL, cfg.Files[platform])
+		require.NoError(t, err, platform)
+		require.Equal(t, "https://example.invalid/"+cfg.BinaryName+"-"+version+"-"+target, got, platform)
+
+		gotCLI, err := dm.resolveGitHubURL(context.Background(), server.URL, cfg.CLIFiles[platform])
+		require.NoError(t, err, platform)
+		require.Equal(t, "https://example.invalid/"+cfg.CLIBinaryName+"-"+version+"-"+target, gotCLI, platform)
 	}
 }
 

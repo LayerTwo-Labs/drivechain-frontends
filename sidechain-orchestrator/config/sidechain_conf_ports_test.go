@@ -16,11 +16,12 @@ var provedChainFlags = map[string][]string{
 	"bitnames":  {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "zmq-addr"},
 	"photon":    {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "rpc-addr"},
 	"truthcoin": {"add-peer", "datadir", "decision-config-testing", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "server-name", "wallet-dir"},
+	"zside":     {"add-peer", "datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "server-name", "wallet-dir"},
 	"coinshift": {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-addr", "l1-signet", "l1-bch-testnet4"},
 }
 
 // unprovedChains ship no binary here, so nobody read their flags.
-var unprovedChains = []string{"zside", "liquid-signet"}
+var unprovedChains = []string{"liquid-signet"}
 
 // A flag the daemon does not know stops it on the first boot.
 func TestCliArgKeysNameOnlyFlagsTheBinaryAccepts(t *testing.T) {
@@ -60,6 +61,7 @@ func TestRpcEndpointFollowsTheBinary(t *testing.T) {
 		"photon":    "127.0.0.1:36099",
 		"coinshift": "127.0.0.1:36255",
 		"truthcoin": "127.0.0.1:36013",
+		"zside":     "127.0.0.1:36098",
 	} {
 		m := sidechainConfFor(t, name, NetworkSignet, nil)
 		key := KnownSidechainSpecs[name].rpcEndpointKey()
@@ -144,6 +146,7 @@ func TestECashKeepsTheDaemonDefaults(t *testing.T) {
 		"photon":    {"rpc-addr": "127.0.0.1:6099", "net-addr": "0.0.0.0:4099"},
 		"coinshift": {"rpc-addr": "127.0.0.1:6255", "net-addr": "0.0.0.0:4255"},
 		"truthcoin": {"rpc-addr": "127.0.0.1:6013", "net-addr": "0.0.0.0:4013"},
+		"zside":     {"rpc-addr": "127.0.0.1:6098", "net-addr": "0.0.0.0:4098"},
 	} {
 		m := sidechainConfFor(t, name, NetworkECash, nil)
 		ports := m.getNetworkPorts("ecash")

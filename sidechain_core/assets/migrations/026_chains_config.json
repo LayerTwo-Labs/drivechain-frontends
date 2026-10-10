@@ -1,0 +1,29 @@
+{
+  "version": 26,
+  "migration": "patch",
+  "binaries": {
+    "zside": {
+      "download": {
+        "binary": "thunder-orchard",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest",
+            "linux-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu$",
+            "macos-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
+            "macos-arm64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
+            "windows-x86_64": ""
+          }
+        },
+        "cli": {
+          "binary": "thunder-orchard-cli",
+          "files": {
+            "linux-x86_64": "thunder-orchard-cli-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu$",
+            "macos-x86_64": "thunder-orchard-cli-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin$",
+            "macos-arm64": "thunder-orchard-cli-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin$",
+            "windows-x86_64": ""
+          }
+        }
+      }
+    }
+  }
+}
