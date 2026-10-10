@@ -1375,12 +1375,6 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 
 	walletId := c.Msg.WalletId
 
-	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
 	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))

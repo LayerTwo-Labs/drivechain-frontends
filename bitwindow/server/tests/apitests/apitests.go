@@ -16,6 +16,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -45,6 +46,7 @@ type configg struct {
 	// starts no local node, so a test opts in to Core only when it needs one.
 	walletType string
 	network    config.Network
+	encrypted  bool
 }
 
 type ServerOpt func(opt *configg)
@@ -99,6 +101,12 @@ func WithCoreWallet() ServerOpt {
 	return func(opt *configg) { opt.walletType = "bitcoinCore" }
 }
 
+// WithEncryptedWallet marks the fixture wallet as encrypted, so the server
+// starts with it locked.
+func WithEncryptedWallet() ServerOpt {
+	return func(opt *configg) { opt.encrypted = true }
+}
+
 // WithOrchestrator injects the wallet-manager client cheque reads go through.
 func WithOrchestrator(client orchrpc.WalletManagerServiceClient) ServerOpt {
 	return func(opt *configg) { opt.orchestrator = client }
@@ -137,6 +145,9 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	// Create a temporary directory with a valid wallet.json for tests
 	walletDir := t.TempDir()
 	createTestWalletJSON(t, walletDir, conf.walletType)
+	if conf.encrypted {
+		markWalletEncrypted(t, walletDir)
+	}
 
 	// Create connectors that return our mock clients
 	services := api.Services{
@@ -241,6 +252,14 @@ func createTestWalletJSON(t *testing.T, walletDir, walletType string) {
 	walletPath := filepath.Join(walletDir, "wallet.json")
 	err = os.WriteFile(walletPath, data, 0600)
 	require.NoError(t, err)
+}
+
+func markWalletEncrypted(t *testing.T, walletDir string) {
+	t.Helper()
+
+	data, err := json.Marshal(wallet.EncryptionMetadata{Encrypted: true})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), data, 0600))
 }
 
 func serve(t *testing.T, server *api.Server) (connect.HTTPClient, string) {
