@@ -16,6 +16,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:stacked/stacked.dart';
 
+import 'mocks/store_mock.dart';
 import 'test_utils.dart';
 
 class _Conf extends ChangeNotifier implements BitcoinConfProvider {
@@ -250,6 +251,12 @@ void main() {
     GetIt.I.registerSingleton<CoinShiftRPC>(coinShiftRPC);
     balances = BalanceProvider(connections: [thunderRPC, coinShiftRPC]);
     GetIt.I.registerSingleton<BalanceProvider>(balances);
+    GetIt.I.registerSingleton<ClientSettings>(
+      ClientSettings(
+        store: MockStore(),
+        log: Logger(level: Level.off),
+      ),
+    );
   });
 
   tearDown(() async {
@@ -731,7 +738,7 @@ void main() {
 
     final slot = tester.getRect(_cell('255'));
     final name = tester.getRect(_cell('CoinShift'));
-    expect(slot.width, lessThanOrEqualTo(_headerWidth('Slot') + 25));
+    expect(slot.width, lessThanOrEqualTo(_headerWidth('Slot') + _pinWidth + 25));
     expect(name.left - slot.right, lessThanOrEqualTo(8));
   });
 
@@ -1170,6 +1177,123 @@ void main() {
     expect(find.text(formatter.formatBTC(2.01999)), findsOneWidget);
     expect(_tooltip('Pending ${formatter.formatBTC(0.0)}'), findsNothing);
   });
+
+  group('pins', () {
+    void addChains() {
+      final provider = GetIt.I.get<SidechainProvider>() as _Sidechains;
+      provider.addChain(2, 'BitNames');
+      provider.addChain(3, 'RISCy');
+      provider.addChain(13, 'Truthcoin');
+    }
+
+    Future<void> pin(int slot) => GetIt.I.get<ClientSettings>().setValue(PinnedSidechainsSetting(newValue: [slot]));
+
+    testWidgets('a pinned chain and a chain with a balance go above All slots', (tester) async {
+      setUpChain(_thunder());
+      addChains();
+      walletReader.wallets = [_wallet('a', 'Main wallet')];
+      thunderRPC.loadedWalletId = 'a';
+      thunderRPC.wallet = (4.1, 0.0);
+      thunderRPC.setConnected(true);
+      await balances.fetch();
+      await pin(13);
+      await pumpTable(tester);
+
+      expect(find.text('Pinned, or a balance in Main wallet'), findsOneWidget);
+      expect(_top(tester, 'Your sidechains'), lessThan(_top(tester, 'Thunder')));
+      expect(_top(tester, 'Thunder'), lessThan(_top(tester, 'Truthcoin')));
+      expect(_top(tester, 'Truthcoin'), lessThan(_top(tester, 'All slots')));
+      expect(_top(tester, 'All slots'), lessThan(_top(tester, 'BitNames')));
+      expect(_top(tester, 'BitNames'), lessThan(_top(tester, 'RISCy')));
+      expect(_pin(tester, 13).pinned, isTrue);
+      expect(_pin(tester, 9).pinned, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('with no pin and no balance the table shows no groups', (tester) async {
+      setUpChain(_thunder());
+      addChains();
+      await pumpTable(tester);
+
+      expect(find.text('Your sidechains'), findsNothing);
+      expect(find.text('All slots'), findsNothing);
+      expect(_top(tester, 'BitNames'), lessThan(_top(tester, 'Thunder')));
+    });
+
+    testWidgets('a click on the pin moves the chain to the top and saves the pin', (tester) async {
+      setUpChain(_thunder());
+      addChains();
+      await pumpTable(tester);
+
+      await tester.tap(find.byWidget(_pin(tester, 13)));
+      await tester.pump(kDoubleTapTimeout);
+      await tester.pumpAndSettle();
+
+      expect(_pin(tester, 13).pinned, isTrue);
+      expect(_top(tester, 'Truthcoin'), lessThan(_top(tester, 'All slots')));
+      expect(_top(tester, 'All slots'), lessThan(_top(tester, 'BitNames')));
+      expect((await GetIt.I.get<ClientSettings>().getValue(PinnedSidechainsSetting())).value, [13]);
+
+      await tester.tap(find.byWidget(_pin(tester, 13)));
+      await tester.pump(kDoubleTapTimeout);
+      await tester.pumpAndSettle();
+
+      expect(_pin(tester, 13).pinned, isFalse);
+      expect(find.text('Your sidechains'), findsNothing);
+      expect((await GetIt.I.get<ClientSettings>().getValue(PinnedSidechainsSetting())).value, isEmpty);
+    });
+
+    testWidgets('a pin stays when the page opens again', (tester) async {
+      setUpChain(_thunder());
+      addChains();
+      await pumpTable(tester);
+      await tester.tap(find.byWidget(_pin(tester, 3)));
+      await tester.pump(kDoubleTapTimeout);
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox());
+      await pumpTable(tester);
+
+      expect(_pin(tester, 3).pinned, isTrue);
+      expect(_top(tester, 'RISCy'), lessThan(_top(tester, 'All slots')));
+    });
+
+    testWidgets('the row menu says Pin to top, and Unpin for a pinned chain', (tester) async {
+      setUpChain(_thunder());
+      addChains();
+      await pumpTable(tester);
+
+      await _rightClick(tester, find.text('Thunder'));
+      expect(find.text('Pin to top'), findsOneWidget);
+      expect(find.text('Unpin'), findsNothing);
+
+      await tester.tap(find.text('Pin to top'));
+      await tester.pumpAndSettle();
+      expect(_pin(tester, 9).pinned, isTrue);
+
+      await _rightClick(tester, find.text('Thunder'));
+      expect(find.text('Unpin'), findsOneWidget);
+      expect(find.text('Pin to top'), findsNothing);
+    });
+  });
+}
+
+const double _pinWidth = 28;
+
+double _top(WidgetTester tester, String text) => tester.getTopLeft(find.text(text)).dy;
+
+SidechainPinButton _pin(WidgetTester tester, int slot) => tester.widget<SidechainPinButton>(
+  find.byWidgetPredicate((widget) => widget is SidechainPinButton && widget.slot == slot),
+);
+
+Future<void> _rightClick(WidgetTester tester, Finder finder) async {
+  final gesture = await tester.startGesture(
+    tester.getCenter(finder),
+    kind: PointerDeviceKind.mouse,
+    buttons: kSecondaryMouseButton,
+  );
+  await gesture.up();
+  await tester.pumpAndSettle();
 }
 
 Future<void> _captureTable(WidgetTester tester, String name) async {
