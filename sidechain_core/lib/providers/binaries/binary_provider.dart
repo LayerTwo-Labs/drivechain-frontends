@@ -150,7 +150,8 @@ class BinaryProvider extends ChangeNotifier {
   /// everything else is delegated to the orchestrator. The L1 boot stream
   /// is drained for stage logs + done/error — download bytes come through
   /// SyncProvider's polled GetSyncStatus, not this stream.
-  Future<void> start(Binary binary) async {
+  /// A [background] start runs the sidechain node and opens no app window.
+  Future<void> start(Binary binary, {bool background = false}) async {
     if (_isDaemonBinary(binary)) {
       await _startDaemonBinary(binary);
       return;
@@ -162,9 +163,8 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    // Only force --headless when we *are* the sidechain GUI. BitWindow
-    // wants Start to lift the full Thunder.app for the user.
-    final forceBackend = isSidechainApp && binary.chainLayer == 2;
+    // A sidechain app is the window itself, so it asks only for the node.
+    final forceBackend = background || (isSidechainApp && binary.chainLayer == 2);
 
     log.i('BinaryProvider: starting $name via orchestrator (forceBackend=$forceBackend)');
     // Fire-and-forget: orch dispatches boot in the background. Connection
@@ -583,8 +583,15 @@ class BinaryProvider extends ChangeNotifier {
 
   /// True when the daemon connects or the app window is open.
   bool isSidechainUp(Binary binary) {
-    return isConnected(binary) || (_rpcFor(binary)?.windowOpen ?? false);
+    return isConnected(binary) || isWindowOpen(binary);
   }
+
+  /// True when the app window of the sidechain [binary] is open.
+  bool isWindowOpen(Binary binary) => _rpcFor(binary)?.windowOpen ?? false;
+
+  /// True when a start of [binary] from this app can open a sidechain app window.
+  bool hasWindow(Binary binary) =>
+      !isSidechainApp && binary.chainLayer == 2 && binary.metadata.hasAlternativeDownloadForThisOS;
 
   /// True when [binary] runs from a previous session of the app.
   bool isAdopted(Binary binary) => _processManager.runningProcesses[binary.name]?.adopted ?? false;
