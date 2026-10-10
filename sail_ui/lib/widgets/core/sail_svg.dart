@@ -623,6 +623,7 @@ enum SailSVGAsset {
   fileWarning,
   discAlbum,
   pin,
+  pinFilled,
   arrowUpAZ,
   squareCheck,
   barChartHorizontalBig,
@@ -2744,6 +2745,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/disc-album.svg';
       case SailSVGAsset.pin:
         return 'assets/svgs/pin.svg';
+      case SailSVGAsset.pinFilled:
+        return 'assets/svgs/pin-filled.svg';
       case SailSVGAsset.arrowUpAZ:
         return 'assets/svgs/arrow-up-a-z.svg';
       case SailSVGAsset.squareCheck:
