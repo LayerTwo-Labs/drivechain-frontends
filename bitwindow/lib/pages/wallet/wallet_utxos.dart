@@ -185,13 +185,13 @@ class _UTXOTableState extends State<UTXOTable> {
   static const _columns = [
     'frozen',
     'date',
-    'output',
-    'address',
-    'path',
+    'value',
     'label',
     'deniability',
     'splittable',
-    'value',
+    'output',
+    'address',
+    'path',
   ];
 
   String sortColumn = 'date';
@@ -438,13 +438,13 @@ class _UTXOTableState extends State<UTXOTable> {
                 onSort: () => onSort('date'),
                 filterWidget: DateFilter(range: widget.model.dateRange, onChanged: widget.model.setDateRange),
               ),
+              SailTableHeaderCell(name: 'Amount', alignment: Alignment.centerRight, onSort: () => onSort('value')),
+              SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
+              SailTableHeaderCell(name: 'Deniability', onSort: () => onSort('deniability')),
+              SailTableHeaderCell(name: 'Split', onSort: () => onSort('splittable')),
               SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
               SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
               SailTableHeaderCell(name: 'Path', onSort: () => onSort('path')),
-              SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-              SailTableHeaderCell(name: 'Deniability', onSort: () => onSort('deniability')),
-              SailTableHeaderCell(name: 'Splittable', onSort: () => onSort('splittable')),
-              SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
             ],
             rowBuilder: (context, row, selected) {
               final utxo = sortedEntries[row];
@@ -466,18 +466,8 @@ class _UTXOTableState extends State<UTXOTable> {
                   textColor: utxo.confirmations == 0 ? theme.colors.orange : null,
                 ),
                 SailTableCell(
-                  value: '',
-                  copyValue: utxo.output,
-                  child: _OutputCell(utxo.output),
-                ),
-                SailTableCell(
-                  value: utxo.address,
-                  copyValue: utxo.address,
-                  monospace: true,
-                ),
-                SailTableCell(
-                  value: utxo.derivationPath.isEmpty ? '—' : utxo.derivationPath,
-                  copyValue: utxo.derivationPath,
+                  value: formattedAmount,
+                  alignment: Alignment.centerRight,
                   monospace: true,
                 ),
                 SailTableCell(
@@ -500,7 +490,18 @@ class _UTXOTableState extends State<UTXOTable> {
                         ),
                 ),
                 SailTableCell(
-                  value: formattedAmount,
+                  value: '',
+                  copyValue: utxo.output,
+                  child: _OutputCell(utxo.output),
+                ),
+                SailTableCell(
+                  value: shortenId(utxo.address),
+                  copyValue: utxo.address,
+                  monospace: true,
+                ),
+                SailTableCell(
+                  value: utxo.derivationPath.isEmpty ? '—' : utxo.derivationPath,
+                  copyValue: utxo.derivationPath,
                   monospace: true,
                 ),
               ];
