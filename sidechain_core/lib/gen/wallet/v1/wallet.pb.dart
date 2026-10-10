@@ -583,6 +583,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   factory GetBalanceResponse({
     $fixnum.Int64? confirmedSatoshi,
     $fixnum.Int64? pendingSatoshi,
+    $fixnum.Int64? immatureSatoshi,
   }) {
     final $result = create();
     if (confirmedSatoshi != null) {
@@ -590,6 +591,9 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
     }
     if (pendingSatoshi != null) {
       $result.pendingSatoshi = pendingSatoshi;
+    }
+    if (immatureSatoshi != null) {
+      $result.immatureSatoshi = immatureSatoshi;
     }
     return $result;
   }
@@ -600,6 +604,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'confirmedSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'pendingSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'immatureSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -641,6 +646,16 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   $core.bool hasPendingSatoshi() => $_has(1);
   @$pb.TagNumber(2)
   void clearPendingSatoshi() => clearField(2);
+
+  /// Coinbase outputs that cannot be spent yet. Not part of the other two.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get immatureSatoshi => $_getI64(2);
+  @$pb.TagNumber(3)
+  set immatureSatoshi($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasImmatureSatoshi() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearImmatureSatoshi() => clearField(3);
 }
 
 class ListTransactionsResponse extends $pb.GeneratedMessage {
@@ -1198,6 +1213,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     Confirmation? confirmationTime,
     BmmBid? bmmBid,
     $core.String? warningMessage,
+    $core.bool? immature,
   }) {
     final $result = create();
     if (txid != null) {
@@ -1230,6 +1246,9 @@ class WalletTransaction extends $pb.GeneratedMessage {
     if (warningMessage != null) {
       $result.warningMessage = warningMessage;
     }
+    if (immature != null) {
+      $result.immature = immature;
+    }
     return $result;
   }
   WalletTransaction._() : super();
@@ -1247,6 +1266,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     ..aOM<Confirmation>(8, _omitFieldNames ? '' : 'confirmationTime', subBuilder: Confirmation.create)
     ..aOM<BmmBid>(9, _omitFieldNames ? '' : 'bmmBid', subBuilder: BmmBid.create)
     ..aOS(10, _omitFieldNames ? '' : 'warningMessage')
+    ..aOB(11, _omitFieldNames ? '' : 'immature')
     ..hasRequiredFields = false
   ;
 
@@ -1366,6 +1386,16 @@ class WalletTransaction extends $pb.GeneratedMessage {
   $core.bool hasWarningMessage() => $_has(9);
   @$pb.TagNumber(10)
   void clearWarningMessage() => clearField(10);
+
+  /// True for a coinbase transaction whose outputs cannot be spent yet.
+  @$pb.TagNumber(11)
+  $core.bool get immature => $_getBF(10);
+  @$pb.TagNumber(11)
+  set immature($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasImmature() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearImmature() => clearField(11);
 }
 
 /// BmmBid names the BMM request one wallet transaction carries.

@@ -7,6 +7,7 @@ Future<void> pumpBalance(
   required double balance,
   required double pendingBalance,
   required bool showUnconfirmed,
+  double maturingBalance = 0,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1400, 400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -18,6 +19,7 @@ Future<void> pumpBalance(
           body: BalanceDisplay(
             balance: balance,
             pendingBalance: pendingBalance,
+            maturingBalance: maturingBalance,
             balanceSyncing: false,
             showUnconfirmed: showUnconfirmed,
             onToggleUnconfirmed: () {},
@@ -57,6 +59,20 @@ void main() {
     await pumpBalance(tester, balance: 1.5, pendingBalance: 0, showUnconfirmed: true);
 
     expect(unconfirmed, findsOneWidget);
+  });
+
+  testWidgets('maturing coinbase coins show as a third balance, apart from the confirmed one', (tester) async {
+    await pumpBalance(tester, balance: 1.245, pendingBalance: 0.025, maturingBalance: 6.25, showUnconfirmed: false);
+
+    expect(find.text('${formatBitcoin(6.25)} maturing'), findsOneWidget);
+    expect(find.textContaining(formatBitcoin(1.245)), findsOneWidget);
+    expect(find.text(formatBitcoin(0.025)), findsOneWidget);
+  });
+
+  testWidgets('no maturing coins shows no maturing balance', (tester) async {
+    await pumpBalance(tester, balance: 1.5, pendingBalance: 0, showUnconfirmed: false);
+
+    expect(find.textContaining('maturing'), findsNothing);
   });
 
   // One number over L1 and the sidechains together reads as mainchain money

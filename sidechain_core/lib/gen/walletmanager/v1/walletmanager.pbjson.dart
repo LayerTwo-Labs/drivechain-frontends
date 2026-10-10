@@ -1138,13 +1138,15 @@ const GetBalanceResponse$json = {
   '2': [
     {'1': 'confirmed_sats', '3': 1, '4': 1, '5': 1, '10': 'confirmedSats'},
     {'1': 'unconfirmed_sats', '3': 2, '4': 1, '5': 1, '10': 'unconfirmedSats'},
+    {'1': 'immature_sats', '3': 3, '4': 1, '5': 1, '10': 'immatureSats'},
   ],
 };
 
 /// Descriptor for `GetBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
     'ChJHZXRCYWxhbmNlUmVzcG9uc2USJQoOY29uZmlybWVkX3NhdHMYASABKAFSDWNvbmZpcm1lZF'
-    'NhdHMSKQoQdW5jb25maXJtZWRfc2F0cxgCIAEoAVIPdW5jb25maXJtZWRTYXRz');
+    'NhdHMSKQoQdW5jb25maXJtZWRfc2F0cxgCIAEoAVIPdW5jb25maXJtZWRTYXRzEiMKDWltbWF0'
+    'dXJlX3NhdHMYAyABKAFSDGltbWF0dXJlU2F0cw==');
 
 @$core.Deprecated('Use getNewAddressRequestDescriptor instead')
 const GetNewAddressRequest$json = {

@@ -213,6 +213,49 @@ void main() {
     });
   }
 
+  testWidgets('a maturing coinbase shows its confirmations and an hourglass, never Confirmed', (tester) async {
+    final entry = walletpb.WalletTransaction(
+      txid: 'cd' * 32,
+      immature: true,
+      confirmationTime: walletpb.Confirmation(height: 10),
+      receivedSatoshi: Int64(312500000),
+    );
+    await tester.pumpSailPage(TransactionTable(searchWidget: const SizedBox.shrink(), model: _Overview([entry])));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Maturing (10/100)'), findsOneWidget);
+    expect(find.text('Confirmed'), findsNothing);
+    final statusRow = find.ancestor(of: find.text('Maturing (10/100)'), matching: find.byType(Row)).first;
+    expect(
+      find.descendant(of: statusRow, matching: find.byWidgetPredicate((w) => w.runtimeType.toString() == 'SvgPicture')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  test('the transaction provider marks an immature coinbase', () async {
+    orchestrator.wallet.transactions = [
+      wmpb.TransactionEntry(txid: 'maturing', category: 'immature', confirmations: 10, amountSats: Int64(1000)),
+      wmpb.TransactionEntry(txid: 'mature', category: 'generate', confirmations: 150, amountSats: Int64(1000)),
+      wmpb.TransactionEntry(txid: 'payment', category: 'receive', confirmations: 3, amountSats: Int64(1000)),
+    ];
+    final provider = TransactionProvider();
+    addTearDown(provider.dispose);
+    final loaded = Completer<void>();
+    provider.addListener(() {
+      if ((provider.initialized || provider.error != null) && !loaded.isCompleted) {
+        loaded.complete();
+      }
+    });
+    await loaded.future;
+
+    expect(provider.error, isNull);
+    expect(
+      {for (final transaction in provider.walletTransactions) transaction.txid: transaction.immature},
+      {'maturing': true, 'mature': false, 'payment': false},
+    );
+  });
+
   test('the transaction provider keeps the RPC warning in history', () async {
     orchestrator.wallet.transactions = [
       for (final message in _messages.entries)

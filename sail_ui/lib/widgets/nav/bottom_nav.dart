@@ -109,6 +109,7 @@ class BottomNav extends StatelessWidget {
                 return BalanceDisplay(
                   balance: model.balance,
                   pendingBalance: model.pendingBalance,
+                  maturingBalance: model.maturingBalance,
                   balanceSyncing: model.balanceSyncing,
                   showUnconfirmed: model.showUnconfirmed,
                   onToggleUnconfirmed: model.toggleUnconfirmed,
@@ -809,6 +810,7 @@ class ChainLoader extends StatelessWidget {
 class BalanceDisplay extends StatelessWidget {
   final double balance;
   final double pendingBalance;
+  final double maturingBalance;
   final bool balanceSyncing;
   final bool showUnconfirmed;
   final VoidCallback onToggleUnconfirmed;
@@ -818,6 +820,7 @@ class BalanceDisplay extends StatelessWidget {
     super.key,
     required this.balance,
     required this.pendingBalance,
+    required this.maturingBalance,
     required this.balanceSyncing,
     required this.showUnconfirmed,
     required this.onToggleUnconfirmed,
@@ -873,6 +876,21 @@ class BalanceDisplay extends StatelessWidget {
                   ),
                 ),
               ),
+            if (maturingBalance > 0) ...[
+              const DividerDot(),
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailSVG.icon(
+                    SailSVGAsset.hourglass,
+                    color: SailColorScheme.orange,
+                    width: SailStyleValues.iconSizeSecondary,
+                    height: SailStyleValues.iconSizeSecondary,
+                  ),
+                  SailText.secondary12('${formatBitcoin(maturingBalance)} maturing', color: SailColorScheme.orange),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -893,6 +911,7 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   void _onChange() {
     track('balance', balance);
     track('pendingBalance', pendingBalance);
+    track('maturingBalance', maturingBalance);
     track('balanceSyncing', balanceSyncing);
     track('showUnconfirmed', showUnconfirmed);
     notifyIfChanged();
@@ -900,6 +919,7 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
+  double get maturingBalance => _balanceProvider.maturingBalance;
   bool get balanceSyncing => !_balanceProvider.initialized;
   bool get showUnconfirmed => _showUnconfirmed;
   double? get usdBalance => _priceProvider.btcToUsd(balance);
