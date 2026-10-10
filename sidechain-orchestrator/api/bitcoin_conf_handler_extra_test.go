@@ -118,7 +118,10 @@ func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
 
 	orch := orchestrator.New(t.TempDir(), "signet", bitwindowDir, []orchestrator.BinaryConfig{}, zerolog.New(io.Discard))
 	require.NotNil(t, orch.BitcoinConf)
-	orch.ResolveNetworkCatalog(context.Background())
+	// A cancelled context keeps the live catalog out of the package globals.
+	offline, cancel := context.WithCancel(context.Background())
+	cancel()
+	orch.ResolveNetworkCatalog(offline)
 
 	// Two eCash rows, so the request names a network the pick is not already on.
 	orch.Catalog = netcatalog.Catalog{Networks: []netcatalog.Network{
