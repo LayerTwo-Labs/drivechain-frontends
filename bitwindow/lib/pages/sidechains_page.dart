@@ -13,7 +13,7 @@ import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -433,15 +433,19 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       if (sidechain == null) {
         return width;
       }
+      final openWindow = viewModel._offersOpenWindow(sidechain)
+          ? _openWindowButtonWidth + SailStyleValues.padding08
+          : 0.0;
       if (viewModel._binaryProvider.isInitializing(sidechain) ||
           viewModel._binaryProvider.isStopping(sidechain) ||
           viewModel._downloadProgressFor(sidechain) != null ||
           (viewModel._binaryProvider.isSidechainUp(sidechain) &&
               viewModel._syncingWidget(context, sidechain) != null)) {
-        return max(width, 400);
+        return max(width, 400 + openWindow);
       }
       final update = sidechain.updateAvailable ? _updateButtonWidth + SailStyleValues.padding08 : 0.0;
-      return max(width, (sidechain.isDownloaded ? 220 : 240) + update);
+      final startMenu = viewModel._offersStartMenu(sidechain) ? _startMenuButtonWidth : 0.0;
+      return max(width, (sidechain.isDownloaded ? 220 : 240) + update + openWindow + startMenu);
     });
 
     return LayoutBuilder(
@@ -648,6 +652,10 @@ const double _slotColumnWidth = 48;
 /// The Update control is an icon, so an update keeps the actions column short.
 const double _updateButtonWidth = 32;
 
+const double _openWindowButtonWidth = 120;
+
+const double _startMenuButtonWidth = 32;
+
 /// A balance cell carries a long number and its unit, so it keeps less padding
 /// than the rest of the row.
 const EdgeInsets _tightCellPadding = EdgeInsets.symmetric(horizontal: SailStyleValues.padding08);
@@ -721,6 +729,125 @@ class _SidechainActions extends StatelessWidget {
       label: 'Deposit',
       variant: ButtonVariant.outline,
       onPressed: () => showDepositModal(context, slot, sidechain.info.title),
+    );
+  }
+}
+
+/// Start, and a chevron that opens a menu to start the sidechain with or without its app window.
+class _StartMenuButton extends StatefulWidget {
+  final Sidechain sidechain;
+  final Widget start;
+  final Future<void> Function({required bool background}) onStart;
+
+  const _StartMenuButton({required this.sidechain, required this.start, required this.onStart});
+
+  @override
+  State<_StartMenuButton> createState() => _StartMenuButtonState();
+}
+
+class _StartMenuButtonState extends State<_StartMenuButton> {
+  final _menu = MenuController();
+
+  void _select({required bool background}) {
+    _menu.close();
+    unawaited(widget.onStart(background: background));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    final sidechain = widget.sidechain;
+
+    return MenuAnchor(
+      controller: _menu,
+      style: const MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+        padding: WidgetStatePropertyAll(EdgeInsets.zero),
+        elevation: WidgetStatePropertyAll(0),
+      ),
+      menuChildren: [
+        Container(
+          width: 320,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: theme.colors.background,
+            borderRadius: SailStyleValues.borderRadius,
+            border: Border.all(color: theme.colors.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _StartMenuItem(
+                icon: SailSVGAsset.externalLink,
+                title: 'Start with window',
+                subtitle: 'Opens the ${sidechain.name} app.',
+                onSelected: () => _select(background: false),
+              ),
+              _StartMenuItem(
+                icon: SailSVGAsset.server,
+                title: 'Start in background',
+                subtitle: 'Runs the node only. Open the window later.',
+                onSelected: () => _select(background: true),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          widget.start,
+          const SizedBox(width: 1),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colors.secondaryButtonBackground,
+              borderRadius: theme.chrome.radius,
+            ),
+            child: SailButton(
+              key: ValueKey('start_menu_slot_${sidechain.slot}_${sidechain.name}'),
+              variant: ButtonVariant.icon,
+              icon: SailSVGAsset.chevronDown,
+              small: true,
+              onPressed: () async => _menu.isOpen ? _menu.close() : _menu.open(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StartMenuItem extends StatelessWidget {
+  final SailSVGAsset icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onSelected;
+
+  const _StartMenuItem({required this.icon, required this.title, required this.subtitle, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailMenuItem(
+      height: 44,
+      onSelected: onSelected,
+      child: SailRow(
+        spacing: SailStyleValues.padding12,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          SailSVG.fromAsset(icon, height: 13, color: context.sailTheme.colors.text),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13(title),
+                SailText.secondary12(subtitle),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1122,6 +1249,15 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (isRunning) {
+      final openWindow = _offersOpenWindow(sidechain)
+          ? SailButton(
+              key: ValueKey('open_window_slot_${sidechain.slot}_${sidechain.name}'),
+              label: 'Open window',
+              icon: SailSVGAsset.externalLink,
+              variant: ButtonVariant.outline,
+              onPressed: () async => _binaryProvider.start(sidechain),
+            )
+          : null;
       // A sync must never take the place of Stop: closing the chain's own
       // window would then leave no way to stop the node.
       final stop = SailButton(
@@ -1131,7 +1267,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         onPressed: () async => _binaryProvider.stop(sidechain),
       );
       final syncing = _syncingWidget(context, sidechain);
-      if (syncing == null) {
+      if (syncing == null && openWindow == null) {
         return _withUpdate(context, sidechain, stop);
       }
       return _withUpdate(
@@ -1140,9 +1276,15 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (openWindow != null) ...[
+              openWindow,
+              const SizedBox(width: SailStyleValues.padding08),
+            ],
             stop,
-            const SizedBox(width: SailStyleValues.padding08),
-            syncing,
+            if (syncing != null) ...[
+              const SizedBox(width: SailStyleValues.padding08),
+              syncing,
+            ],
           ],
         ),
       );
@@ -1172,17 +1314,35 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       );
     }
 
+    final start = SailButton(
+      key: ValueKey('start_slot_${sidechain.slot}_${sidechain.name}'),
+      label: 'Start',
+      variant: ButtonVariant.primary,
+      onPressed: () async => await _binaryProvider.start(sidechain),
+    );
+    if (!_binaryProvider.hasWindow(sidechain)) {
+      return _withUpdate(context, sidechain, start);
+    }
     return _withUpdate(
       context,
       sidechain,
-      SailButton(
-        key: ValueKey('start_slot_${sidechain.slot}_${sidechain.name}'),
-        label: 'Start',
-        variant: ButtonVariant.primary,
-        onPressed: () async => await _binaryProvider.start(sidechain),
+      _StartMenuButton(
+        sidechain: sidechain,
+        start: start,
+        onStart: ({required background}) => _binaryProvider.start(sidechain, background: background),
       ),
     );
   }
+
+  /// The node runs, but the app window of the sidechain is closed.
+  bool _offersOpenWindow(Sidechain sidechain) =>
+      _binaryProvider.hasWindow(sidechain) &&
+      _binaryProvider.isConnected(sidechain) &&
+      !_binaryProvider.isWindowOpen(sidechain) &&
+      !_binaryProvider.isStopping(sidechain);
+
+  bool _offersStartMenu(Sidechain sidechain) =>
+      sidechain.isDownloaded && _binaryProvider.hasWindow(sidechain) && !_binaryProvider.isSidechainUp(sidechain);
 
   /// The sync bar that sits beside Stop, or null when the chain follows the tip.
   Widget? _syncingWidget(BuildContext context, Sidechain sidechain) {

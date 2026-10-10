@@ -129,6 +129,7 @@ class _CoinShiftRPC extends MockCoinShiftRPC {
 
 class _Orchestrator implements OrchestratorRPC {
   final balanceReads = <BinaryType>[];
+  final starts = <(String, bool)>[];
   GetSidechainBalanceResponse balance = GetSidechainBalanceResponse();
 
   @override
@@ -140,6 +141,20 @@ class _Orchestrator implements OrchestratorRPC {
   @override
   Future<GetBinaryVersionResponse> getBinaryVersion(String name, {bool forceBackend = false}) async =>
       GetBinaryVersionResponse(version: '$name 1.0');
+
+  @override
+  Future<StartWithL1Response> startWithL1(
+    String target, {
+    List<String>? targetArgs,
+    Map<String, String>? targetEnv,
+    List<String>? coreArgs,
+    List<String>? enforcerArgs,
+    bool immediate = false,
+    bool forceBackend = false,
+  }) async {
+    starts.add((target, forceBackend));
+    return StartWithL1Response();
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -181,6 +196,10 @@ final Finder _updateButton = find.byWidgetPredicate(
 
 final Finder _bidButton = find.byWidgetPredicate(
   (widget) => widget is SailButton && widget.icon == SailSVGAsset.iconTabBmm,
+);
+
+final Finder _startMenuButton = find.byWidgetPredicate(
+  (widget) => widget is SailButton && widget.icon == SailSVGAsset.chevronDown,
 );
 
 SailButton _buttonWidget(WidgetTester tester, String label) => tester.widget<SailButton>(_button(label));
@@ -300,6 +319,114 @@ void main() {
     expect(_buttonWidget(tester, 'Deposit').disabled, isFalse);
     expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(4.1)), findsOneWidget);
     expect(find.text('—'), findsNothing);
+  });
+
+  group('app window', () {
+    late _Orchestrator orchestrator;
+
+    setUp(() {
+      orchestrator = _Orchestrator();
+      GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+    });
+
+    Future<void> tapButton(WidgetTester tester, Finder button) async {
+      await tester.tap(button);
+      await tester.pump(kDoubleTapTimeout);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a running chain with its window open offers no Open window', (tester) async {
+      setUpChain(_thunder());
+      thunderRPC.setConnected(true);
+      thunderRPC.windowOpen = true;
+      await pumpTable(tester);
+
+      expect(_button('Stop'), findsOneWidget);
+      expect(_button('Open window'), findsNothing);
+      expect(_startMenuButton, findsNothing);
+    });
+
+    testWidgets('a running chain with its window closed offers Open window before Stop', (tester) async {
+      setUpChain(_thunder());
+      thunderRPC.setConnected(true);
+      await pumpTable(tester);
+
+      final openWindow = _buttonWidget(tester, 'Open window');
+      expect(openWindow.variant, ButtonVariant.outline);
+      expect(openWindow.icon, SailSVGAsset.externalLink);
+      expect(tester.getRect(_button('Open window')).right, lessThan(tester.getRect(_button('Stop')).left));
+      expect(tester.getRect(_button('Deposit')).right, lessThanOrEqualTo(tester.getRect(find.byType(SailTable)).right));
+      expect(tester.takeException(), isNull);
+
+      await tapButton(tester, _button('Open window'));
+      expect(orchestrator.starts, [('thunder', false)]);
+    });
+
+    testWidgets('a stopped chain offers a chevron after Start that opens the start menu', (tester) async {
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      expect(_button('Start'), findsOneWidget);
+      expect(_startMenuButton, findsOneWidget);
+      expect(tester.getRect(_button('Start')).right, lessThan(tester.getRect(_startMenuButton).left));
+      expect(find.text('Start with window'), findsNothing);
+
+      await tapButton(tester, _startMenuButton);
+      expect(find.text('Start with window'), findsOneWidget);
+      expect(find.text('Opens the Thunder app.'), findsOneWidget);
+      expect(find.text('Start in background'), findsOneWidget);
+      expect(find.text('Runs the node only. Open the window later.'), findsOneWidget);
+      expect(orchestrator.starts, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Start in background starts the node and opens no window', (tester) async {
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      await tapButton(tester, _startMenuButton);
+      await tapButton(tester, find.text('Start in background'));
+
+      expect(orchestrator.starts, [('thunder', true)]);
+      expect(find.text('Start in background'), findsNothing);
+    });
+
+    testWidgets('Start with window starts the chain with its window', (tester) async {
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      await tapButton(tester, _startMenuButton);
+      await tapButton(tester, find.text('Start with window'));
+
+      expect(orchestrator.starts, [('thunder', false)]);
+      expect(find.text('Start with window'), findsNothing);
+    });
+
+    testWidgets('a plain Start still opens the window', (tester) async {
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      await tapButton(tester, _button('Start'));
+
+      expect(orchestrator.starts, [('thunder', false)]);
+    });
+
+    for (final running in [false, true]) {
+      testWidgets('a chain with no app window offers ${running ? 'no Open window' : 'no start menu'}', (tester) async {
+        GetIt.I.registerSingleton<BinaryProvider>(_Binaries([_freeBank()]));
+        GetIt.I.registerSingleton<FreeBankRPC>(FreeBankLive()..connected = running);
+        GetIt.I.get<SidechainProvider>().sidechains[130] = SidechainOverview(
+          ListSidechainsResponse_Sidechain(title: 'FreeBank', slot: 130, balanceSatoshi: Int64.ZERO),
+          [],
+          [],
+        );
+        await pumpTable(tester);
+
+        expect(_button(running ? 'Stop' : 'Start'), findsOneWidget);
+        expect(_startMenuButton, findsNothing);
+        expect(_button('Open window'), findsNothing);
+      });
+    }
   });
 
   testWidgets('a running CoinShift shows its balance, not a dash', (tester) async {
