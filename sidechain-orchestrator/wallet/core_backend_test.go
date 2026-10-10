@@ -2000,10 +2000,10 @@ func TestBalanceReloadsRatherThanReadAStaleWallet(t *testing.T) {
 	fake.stubEnsureFlowBip47Unloaded()
 	backend.bip47NotifRetry[coreID] = time.Now().Add(-time.Second)
 
-	_, _, err = backend.Balance(context.Background(), coreID)
-	require.Error(t, err, "a stale name must not reach getbalance")
+	_, _, _, err = backend.Balance(context.Background(), coreID)
+	require.Error(t, err, "a stale name must not reach getbalances")
 
-	assert.Empty(t, fake.callsFor("getbalance"), "no balance call may go to a wallet Core does not hold")
+	assert.Empty(t, fake.callsFor("getbalances"), "no balance call may go to a wallet Core does not hold")
 	_, cached := backend.coreWallets[coreID]
 	assert.False(t, cached, "the stale entry must be dropped")
 }
@@ -2465,10 +2465,10 @@ func TestAnyWalletCallDropsAWalletCoreUnloaded(t *testing.T) {
 	require.Empty(t, backend.bip47NotifRetry, "the happy path leaves no retry to hang the eviction on")
 
 	// Core unloads the wallet, so the next balance read meets -18.
-	fake.handle("getbalance", func(bitcoindCall) (any, string) {
+	fake.handle("getbalances", func(bitcoindCall) (any, string) {
 		return nil, "Requested wallet does not exist or is not loaded"
 	})
-	_, _, err = backend.Balance(context.Background(), coreID)
+	_, _, _, err = backend.Balance(context.Background(), coreID)
 	require.Error(t, err)
 
 	// Core holds it again. The next call must load it rather than read the
@@ -2758,4 +2758,44 @@ func TestCoreBackendLegacyReceiveSkipsTheBip47Key(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, minted, addr)
 	assert.Equal(t, "legacy", mintedType)
+}
+
+func TestCoreBalanceSplitsImmatureCoinbase(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("getbalances", func(bitcoindCall) (any, string) {
+		return map[string]any{"mine": map[string]any{
+			"trusted":           1.5,
+			"untrusted_pending": 0.25,
+			"immature":          6.25,
+		}}, ""
+	})
+
+	confirmed, unconfirmed, immature, err := backend.Balance(context.Background(), coreID)
+	require.NoError(t, err)
+	assert.Equal(t, 1.5, confirmed)
+	assert.Equal(t, 0.25, unconfirmed)
+	assert.Equal(t, 6.25, immature)
+}
+
+// A watch-only wallet holds its coins under watchonly, not mine.
+func TestCoreBalanceCountsWatchOnlyCoins(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("getbalances", func(bitcoindCall) (any, string) {
+		return map[string]any{
+			"mine": map[string]any{"trusted": 0.0, "untrusted_pending": 0.0, "immature": 0.0},
+			"watchonly": map[string]any{
+				"trusted":           2.0,
+				"untrusted_pending": 0.5,
+				"immature":          3.125,
+			},
+		}, ""
+	})
+
+	confirmed, unconfirmed, immature, err := backend.Balance(context.Background(), coreID)
+	require.NoError(t, err)
+	assert.Equal(t, 2.0, confirmed)
+	assert.Equal(t, 0.5, unconfirmed)
+	assert.Equal(t, 3.125, immature)
 }

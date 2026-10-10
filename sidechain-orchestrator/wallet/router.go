@@ -132,10 +132,10 @@ func (r *BackendRouter) EnsureAll(ctx context.Context) (int, error) {
 	return r.chain.EnsureAll(ctx)
 }
 
-func (r *BackendRouter) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (r *BackendRouter) Balance(ctx context.Context, walletID string) (float64, float64, float64, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	return p.Balance(ctx, walletID)
 }

@@ -23,12 +23,12 @@ type balanceBackend struct {
 	gotWalletID string
 }
 
-func (b *balanceBackend) Balance(_ context.Context, walletID string) (float64, float64, error) {
+func (b *balanceBackend) Balance(_ context.Context, walletID string) (float64, float64, float64, error) {
 	b.gotWalletID = walletID
 	if b.err != nil {
-		return 0, 0, b.err
+		return 0, 0, 0, b.err
 	}
-	return b.confirmed, b.unconfirmed, nil
+	return b.confirmed, b.unconfirmed, 0, nil
 }
 
 func newBalanceWalletService(t *testing.T) *wallet.Service {

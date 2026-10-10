@@ -18,9 +18,9 @@ type fakeBackend struct {
 	calls []string
 }
 
-func (f *fakeBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (f *fakeBackend) Balance(ctx context.Context, walletID string) (float64, float64, float64, error) {
 	f.calls = append(f.calls, "Balance:"+walletID)
-	return 1, 2, nil
+	return 1, 2, 0, nil
 }
 
 func (f *fakeBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
@@ -60,7 +60,7 @@ func TestBackendRouterDispatchesByWalletType(t *testing.T) {
 	router, elecFake, chainFake, firstID, secondID := newRouterFixture(t)
 	ctx := context.Background()
 
-	_, _, err := router.Balance(ctx, firstID)
+	_, _, _, err := router.Balance(ctx, firstID)
 	require.NoError(t, err)
 	_, err = router.Send(ctx, secondID, SendRequest{})
 	require.NoError(t, err)
@@ -74,7 +74,7 @@ func TestBackendRouterDispatchesByWalletType(t *testing.T) {
 func TestBackendRouterUnknownWallet(t *testing.T) {
 	router, _, _, _, _ := newRouterFixture(t)
 
-	_, _, err := router.Balance(context.Background(), "nope")
+	_, _, _, err := router.Balance(context.Background(), "nope")
 	require.ErrorContains(t, err, "not found")
 }
 
@@ -90,9 +90,9 @@ func TestBackendRouterMissingSides(t *testing.T) {
 	router := NewBackendRouter(svc, nil, nil)
 	ctx := context.Background()
 
-	_, _, err = router.Balance(ctx, core.ID)
+	_, _, _, err = router.Balance(ctx, core.ID)
 	require.ErrorContains(t, err, "bitcoin Core RPC not configured")
-	_, _, err = router.Balance(ctx, elec.ID)
+	_, _, _, err = router.Balance(ctx, elec.ID)
 	require.ErrorContains(t, err, "electrum wallet backend not configured")
 
 	_, err = router.Chain().Broadcast(ctx, "00")
@@ -129,7 +129,7 @@ func TestBackendRouterRefusesElectrumWithoutChainSource(t *testing.T) {
 	}, log)
 	router := NewBackendRouter(svc, nil, NewElectrumBackend(svc, source, params, log))
 
-	_, _, err = router.Balance(context.Background(), elec.ID)
+	_, _, _, err = router.Balance(context.Background(), elec.ID)
 	require.ErrorContains(t, err, "has no chain source on this network")
 
 	_, ok := router.Bip47BackendFor(elec.ID)

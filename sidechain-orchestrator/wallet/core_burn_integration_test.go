@@ -250,7 +250,7 @@ func requireBurnOutputs(t *testing.T, outputs []wallet.DecodedOutput, burnScript
 func waitForCoreBalance(t *testing.T, ctx context.Context, backend *wallet.CoreBackend, walletID string) {
 	t.Helper()
 	for {
-		confirmed, _, err := backend.Balance(ctx, walletID)
+		confirmed, _, _, err := backend.Balance(ctx, walletID)
 		if err == nil && confirmed > 0 {
 			return
 		}

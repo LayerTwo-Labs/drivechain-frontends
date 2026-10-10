@@ -28,8 +28,9 @@ type Backend interface {
 	// keeps the wallet files on disk.
 	Forget(ctx context.Context, walletID string) error
 
-	// Balance returns confirmed and unconfirmed BTC.
-	Balance(ctx context.Context, walletID string) (confirmed, unconfirmed float64, err error)
+	// Balance returns confirmed, unconfirmed and immature BTC. Immature is
+	// coinbase that cannot be spent yet, and the other two exclude it.
+	Balance(ctx context.Context, walletID string) (confirmed, unconfirmed, immature float64, err error)
 	ListUnspent(ctx context.Context, walletID string) ([]UTXO, error)
 	ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error)
 	ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error)

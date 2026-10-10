@@ -248,46 +248,33 @@ func (c *CoreRPCClient) importDescriptors(ctx context.Context, client *http.Clie
 // Balance/Address/Transaction RPCs
 // ============================================================================
 
-// GetBalance returns the wallet balance.
-func (c *CoreRPCClient) GetBalance(ctx context.Context, walletName string) (float64, error) {
-	result, err := c.call(ctx, walletName, "getbalance")
-	if err != nil {
-		return 0, err
-	}
-	var balance float64
-	if err := json.Unmarshal(result, &balance); err != nil {
-		return 0, fmt.Errorf("decode getbalance: %w", err)
-	}
-	return balance, nil
+// WalletBalances is the wallet balance from getbalances, in BTC.
+type WalletBalances struct {
+	Trusted          float64 `json:"trusted"`
+	UntrustedPending float64 `json:"untrusted_pending"`
+	Immature         float64 `json:"immature"`
 }
 
-// GetUnconfirmedBalance returns the unconfirmed balance.
-// Falls back to getbalances RPC if the deprecated getunconfirmedbalance is
-// not available (removed in Bitcoin Core v30+).
-func (c *CoreRPCClient) GetUnconfirmedBalance(ctx context.Context, walletName string) (float64, error) {
-	result, err := c.call(ctx, walletName, "getunconfirmedbalance")
-	if err == nil {
-		var balance float64
-		if err := json.Unmarshal(result, &balance); err != nil {
-			return 0, fmt.Errorf("decode getunconfirmedbalance: %w", err)
-		}
-		return balance, nil
-	}
-
-	// Fallback: use getbalances (available since Core v0.19).
-	result, err = c.call(ctx, walletName, "getbalances")
+// GetBalances returns the wallet balance split into trusted, untrusted
+// pending and immature coins.
+func (c *CoreRPCClient) GetBalances(ctx context.Context, walletName string) (WalletBalances, error) {
+	result, err := c.call(ctx, walletName, "getbalances")
 	if err != nil {
-		return 0, fmt.Errorf("getbalances fallback: %w", err)
+		return WalletBalances{}, err
 	}
 	var balances struct {
-		Mine struct {
-			UntrustedPending float64 `json:"untrusted_pending"`
-		} `json:"mine"`
+		Mine      WalletBalances `json:"mine"`
+		WatchOnly WalletBalances `json:"watchonly"`
 	}
 	if err := json.Unmarshal(result, &balances); err != nil {
-		return 0, fmt.Errorf("decode getbalances: %w", err)
+		return WalletBalances{}, fmt.Errorf("decode getbalances: %w", err)
 	}
-	return balances.Mine.UntrustedPending, nil
+	// A watch-only wallet reports its coins under watchonly, any other under mine.
+	return WalletBalances{
+		Trusted:          balances.Mine.Trusted + balances.WatchOnly.Trusted,
+		UntrustedPending: balances.Mine.UntrustedPending + balances.WatchOnly.UntrustedPending,
+		Immature:         balances.Mine.Immature + balances.WatchOnly.Immature,
+	}, nil
 }
 
 // GetNewAddress generates a new address.

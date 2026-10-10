@@ -773,7 +773,7 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	confirmed, unconfirmed, err := h.engine.Backend().Balance(ctx, walletID)
+	confirmed, unconfirmed, immature, err := h.engine.Backend().Balance(ctx, walletID)
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -785,6 +785,7 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 	return connect.NewResponse(&pb.GetBalanceResponse{
 		ConfirmedSats:   confirmedSats,
 		UnconfirmedSats: unconfirmedSats,
+		ImmatureSats:    btcToSats(immature),
 	}), nil
 }
 

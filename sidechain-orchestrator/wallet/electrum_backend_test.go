@@ -197,7 +197,7 @@ func TestElectrumBalanceAndUnspent(t *testing.T) {
 		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
 	}}
 
-	confirmed, unconfirmed, err := p.Balance(ctx, w.ID)
+	confirmed, unconfirmed, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.001, confirmed, 1e-9)
 	assert.Zero(t, unconfirmed)
@@ -213,7 +213,7 @@ func TestElectrumNextReceiveSkipsUsed(t *testing.T) {
 	p, fake, w, addr := newElectrumFixture(t)
 	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{TxCount: 1}}
 
-	_, _, err := p.Balance(context.Background(), w.ID) // warm the scan so usage is known
+	_, _, _, err := p.Balance(context.Background(), w.ID) // warm the scan so usage is known
 	require.NoError(t, err)
 
 	next, err := nextAddr(p, context.Background(), w.ID, ScriptUnknown)
@@ -636,7 +636,7 @@ func TestElectrumSendUpdatesCacheInstantly(t *testing.T) {
 	}}
 
 	// Warm the cache: confirmed reflects the single 200k UTXO, nothing pending.
-	confirmed, pending, err := p.Balance(ctx, w.ID)
+	confirmed, pending, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 0.002, confirmed, 1e-9)
 	require.Zero(t, pending)
@@ -648,7 +648,7 @@ func TestElectrumSendUpdatesCacheInstantly(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	confirmed, pending, err = p.Balance(ctx, w.ID)
+	confirmed, pending, _, err = p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.Zero(t, confirmed, "spent input no longer counts as confirmed")
 	assert.Greater(t, pending, 0.0, "change returns as pending")
@@ -858,7 +858,7 @@ func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 70_000, TxCount: 1},
 	}
 
-	confirmed, _, err := p.Balance(ctx, woWallet.ID)
+	confirmed, _, _, err := p.Balance(ctx, woWallet.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.0007, confirmed, 1e-9, "watch-only must derive the same address as the seed")
 
@@ -879,7 +879,7 @@ func TestElectrumBalanceMempoolSpendStaysNonNegative(t *testing.T) {
 		MempoolStats: EsploraTxoStats{FundedTxoSum: 30_000, SpentTxoSum: 100_000, TxCount: 1},
 	}
 
-	confirmed, pending, err := p.Balance(context.Background(), w.ID)
+	confirmed, pending, _, err := p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, confirmed, 0.0, "confirmed must never be negative")
 	assert.GreaterOrEqual(t, pending, 0.0, "pending must never be negative")
@@ -898,7 +898,7 @@ func TestElectrumBalanceIgnoresAStaleTotal(t *testing.T) {
 	}
 	fake.utxos[addr] = []EsploraUTXO{}
 
-	confirmed, pending, err := p.Balance(context.Background(), w.ID)
+	confirmed, pending, _, err := p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 	assert.Zero(t, confirmed, "a spent coin does not count")
 	assert.Zero(t, pending)
@@ -924,7 +924,7 @@ func TestElectrumBalanceRefreshesCoinsWhenTotalsStayStale(t *testing.T) {
 		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
 	}}
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 0.001, confirmed, 1e-9)
 
@@ -936,7 +936,7 @@ func TestElectrumBalanceRefreshesCoinsWhenTotalsStayStale(t *testing.T) {
 	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
 	p.mu.Unlock()
 
-	confirmed, pending, err := p.Balance(ctx, w.ID)
+	confirmed, pending, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.Zero(t, confirmed, "a stale total must not keep a spent coin")
 	assert.Zero(t, pending)
@@ -985,7 +985,7 @@ func TestElectrumRefreshReadsCoinsDespiteAFrozenPushStatus(t *testing.T) {
 	p := NewElectrumBackend(svc, push, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	ctx := context.Background()
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 0.001, confirmed, 1e-9)
 
@@ -996,7 +996,7 @@ func TestElectrumRefreshReadsCoinsDespiteAFrozenPushStatus(t *testing.T) {
 	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
 	p.mu.Unlock()
 
-	confirmed, pending, err := p.Balance(ctx, w.ID)
+	confirmed, pending, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.Zero(t, confirmed, "a frozen push status must not keep a spent coin")
 	assert.Zero(t, pending)
@@ -1038,7 +1038,7 @@ func TestElectrumRefreshReadsCoinsButKeepsHistory(t *testing.T) {
 	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	ctx := context.Background()
 
-	_, _, err = p.Balance(ctx, w.ID)
+	_, _, _, err = p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	firstUTXO := atomic.LoadInt32(&counting.utxoCalls)
 	firstTxs := atomic.LoadInt32(&counting.txCalls)
@@ -1049,7 +1049,7 @@ func TestElectrumRefreshReadsCoinsButKeepsHistory(t *testing.T) {
 	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
 	p.mu.Unlock()
 
-	_, _, err = p.Balance(ctx, w.ID)
+	_, _, _, err = p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.Greater(t, atomic.LoadInt32(&counting.utxoCalls), firstUTXO, "the refresh reads the coins again")
 	assert.Equal(t, firstTxs, atomic.LoadInt32(&counting.txCalls), "the refresh keeps the cached history")
@@ -1067,7 +1067,7 @@ func TestElectrumBalanceSpendingUnconfirmedReceive(t *testing.T) {
 		MempoolStats: EsploraTxoStats{FundedTxoSum: 150_000_000, SpentTxoSum: 100_000_000, TxCount: 2},
 	}
 
-	confirmed, pending, err := p.Balance(context.Background(), w.ID)
+	confirmed, pending, _, err := p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.0, confirmed, 1e-9)
 	assert.InDelta(t, 0.5, pending, 1e-9, "pending must be the net 0.5 BTC, not gross 1.5 BTC")
@@ -1138,7 +1138,7 @@ func TestElectrumBalanceTrustsChangeOfOwnSpend(t *testing.T) {
 			fake.txs[addr] = []EsploraTx{spendTx, fundTx}
 			fake.utxos[addr] = []EsploraUTXO{{TxID: spendTxID, Vout: 1, Value: 9_900_000}}
 
-			confirmed, pending, err := p.Balance(context.Background(), w.ID)
+			confirmed, pending, _, err := p.Balance(context.Background(), w.ID)
 			require.NoError(t, err)
 			assert.InDelta(t, tt.wantConfirmed, confirmed, 1e-9)
 			assert.InDelta(t, tt.wantPending, pending, 1e-9)
@@ -1167,7 +1167,7 @@ func TestElectrumWatchOnlyNextReceiveAdvances(t *testing.T) {
 	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[used] = EsploraAddressStats{Address: used, ChainStats: EsploraTxoStats{TxCount: 1}}
 
-	_, _, err = p.Balance(ctx, wo.ID) // warm the scan so usage is known
+	_, _, _, err = p.Balance(ctx, wo.ID) // warm the scan so usage is known
 	require.NoError(t, err)
 
 	got, err := nextAddr(p, ctx, wo.ID, ScriptUnknown)
@@ -1261,7 +1261,7 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 55_000, TxCount: 1},
 	}
 
-	confirmed, _, err := p.Balance(ctx, wo.ID)
+	confirmed, _, _, err := p.Balance(ctx, wo.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.00055, confirmed, 1e-9, "descriptor must watch the address it derives")
 
@@ -1334,7 +1334,7 @@ func TestElectrumWatchOnlyAllScriptTypesScanCorrectly(t *testing.T) {
 				ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 42_000, TxCount: 1},
 			}
 
-			confirmed, _, err := p.Balance(ctx, wo.ID)
+			confirmed, _, _, err := p.Balance(ctx, wo.ID)
 			require.NoError(t, err)
 			assert.InDelta(t, 0.00042, confirmed, 1e-9, "%s descriptor must scan its derived address", kind)
 		})
@@ -1540,7 +1540,7 @@ func TestElectrumDualKindServesAndSpendsTaproot(t *testing.T) {
 		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
 	}}
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.002, confirmed, 1e-9, "taproot funds must count toward the segwit wallet's balance")
 
@@ -1582,7 +1582,7 @@ func TestElectrumStandardPathFindsSegwitChange(t *testing.T) {
 		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
 	}}
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 2889.00017262, confirmed, 1e-9)
 }
@@ -1771,7 +1771,7 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
 	}}
 
-	confirmed, _, err := p.Balance(ctx, w.ID) // live scan → persists to disk
+	confirmed, _, _, err := p.Balance(ctx, w.ID) // live scan → persists to disk
 	require.NoError(t, err)
 	require.InDelta(t, 0.0025, confirmed, 1e-9)
 
@@ -1780,7 +1780,7 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
 	p2 := NewElectrumBackend(p.svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
-	confirmed2, _, err := p2.Balance(ctx, w.ID)
+	confirmed2, _, _, err := p2.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.0025, confirmed2, 1e-9, "cold boot returns the cached balance")
 	assert.Zero(t, atomic.LoadInt32(&counting.statsCalls), "cold boot must not query Esplora")
@@ -1788,7 +1788,7 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 	// The next call this session is served from the in-memory cache: no new
 	// block has arrived, so it does not re-query Esplora and returns the same
 	// balance.
-	confirmed3, _, err := p2.Balance(ctx, w.ID)
+	confirmed3, _, _, err := p2.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.0025, confirmed3, 1e-9, "served from warm cache while tip unchanged")
 	assert.Zero(t, atomic.LoadInt32(&counting.statsCalls), "no re-query without a new block")
@@ -1868,7 +1868,7 @@ func TestElectrumScanReportsProgress(t *testing.T) {
 	rec := &recordingEsplora{ChainDataSource: fake, svc: p.svc}
 	p2 := NewElectrumBackend(p.svc, rec, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
-	_, _, err := p2.Balance(ctx, w.ID) // live scan
+	_, _, _, err := p2.Balance(ctx, w.ID) // live scan
 	require.NoError(t, err)
 
 	var sawExternal, sawChange bool
@@ -2631,7 +2631,7 @@ func TestElectrumScanFollowsALongRunOfUsedAddresses(t *testing.T) {
 
 	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
-	balance, _, err := p.Balance(context.Background(), w.ID)
+	balance, _, _, err := p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 0.001, balance, 1e-9, "the walk reaches the coin past the old ceiling")
 }
@@ -2665,7 +2665,7 @@ func TestElectrumScanStopsAtItsCeiling(t *testing.T) {
 	counting := &countingEsplora{ChainDataSource: allUsedEsplora{fakeEsplora: newFakeEsplora()}}
 	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
-	_, _, err = p.Balance(context.Background(), w.ID)
+	_, _, _, err = p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 	calls := int(atomic.LoadInt32(&counting.statsCalls))
 	require.Positive(t, calls)
@@ -2682,7 +2682,7 @@ func TestElectrumScanHoldsItsWalkBudget(t *testing.T) {
 	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	p.maxWalk = 40
 
-	_, _, err = p.Balance(context.Background(), w.ID)
+	_, _, _, err = p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 	require.LessOrEqual(t, int(atomic.LoadInt32(&counting.statsCalls)), p.maxWalk*4)
 }
@@ -2697,7 +2697,7 @@ func TestElectrumScanKeepsTheDeepGapAfterACeiling(t *testing.T) {
 	p := NewElectrumBackend(svc, allUsedEsplora{fakeEsplora: newFakeEsplora()}, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	p.maxWalk = 40
 
-	_, _, err = p.Balance(context.Background(), w.ID)
+	_, _, _, err = p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 
 	p.mu.Lock()
@@ -2740,7 +2740,7 @@ func TestElectrumScanCarriesTheChainForward(t *testing.T) {
 
 	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	ctx := context.Background()
-	first, _, err := p.Balance(ctx, w.ID)
+	first, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 0.001, first, 1e-9)
 
@@ -2756,7 +2756,7 @@ func TestElectrumScanCarriesTheChainForward(t *testing.T) {
 	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
 	p.mu.Unlock()
 
-	second, _, err := p.Balance(ctx, w.ID)
+	second, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 0.001, second, 1e-9, "the next walk reaches the newer coin")
 }
@@ -2771,7 +2771,7 @@ func TestElectrumScanStopsOnAnEmptyChain(t *testing.T) {
 	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
 	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
-	balance, _, err := p.Balance(context.Background(), w.ID)
+	balance, _, _, err := p.Balance(context.Background(), w.ID)
 	require.NoError(t, err)
 	require.Zero(t, balance)
 	require.Less(t, int(atomic.LoadInt32(&counting.statsCalls)), electrumMaxChainScan)
@@ -2803,7 +2803,7 @@ func TestElectrumRefreshWalksAShortLookahead(t *testing.T) {
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
 	}
 
-	_, _, err = p.Balance(ctx, w.ID)
+	_, _, _, err = p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	deepCalls := atomic.LoadInt32(&counting.statsCalls)
 	require.Positive(t, deepCalls)
@@ -2815,7 +2815,7 @@ func TestElectrumRefreshWalksAShortLookahead(t *testing.T) {
 	p.deepAt[w.ID] = time.Now()
 	p.mu.Unlock()
 
-	_, _, err = p.Balance(ctx, w.ID)
+	_, _, _, err = p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	refreshCalls := atomic.LoadInt32(&counting.statsCalls) - deepCalls
 
@@ -2851,7 +2851,7 @@ func TestElectrumRefreshKeepsAnAddressPastTheLookahead(t *testing.T) {
 	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	ctx := context.Background()
 
-	deep, _, err := p.Balance(ctx, w.ID)
+	deep, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 0.002, deep, 1e-9, "the deep scan finds both coins")
 
@@ -2862,7 +2862,7 @@ func TestElectrumRefreshKeepsAnAddressPastTheLookahead(t *testing.T) {
 	p.deepAt[w.ID] = time.Now()
 	p.mu.Unlock()
 
-	refresh, _, err := p.Balance(ctx, w.ID)
+	refresh, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	require.InDelta(t, deep, refresh, 1e-9, "a refresh must not lose the far coin")
 }
@@ -2897,7 +2897,7 @@ func TestElectrumRescanWalksTheFullGap(t *testing.T) {
 	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	ctx := context.Background()
 
-	_, _, err = p.Balance(ctx, w.ID)
+	_, _, _, err = p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 
 	// A payment lands far past the refresh lookahead, and the deep walk just ran.
@@ -3227,13 +3227,13 @@ func TestElectrumBumpFeeMovesTheBalanceByTheFeeOnly(t *testing.T) {
 	delete(p.warmScan, w.ID)
 	p.mu.Unlock()
 
-	confirmedBefore, pendingBefore, err := p.Balance(ctx, w.ID)
+	confirmedBefore, pendingBefore, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 
 	_, err = p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
 	require.NoError(t, err)
 
-	confirmedAfter, pendingAfter, err := p.Balance(ctx, w.ID)
+	confirmedAfter, pendingAfter, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 
 	before := confirmedBefore + pendingBefore
@@ -3746,10 +3746,20 @@ func TestElectrumSendSkipsImmatureCoinbase(t *testing.T) {
 	listed := lo.Map(utxos, func(u UTXO, _ int) string { return u.TxID })
 	assert.ElementsMatch(t, []string{matureCoin, regularCoin}, listed, "99 confirmations is immature, 100 is mature")
 
-	confirmed, pending, err := p.Balance(ctx, w.ID)
+	confirmed, pending, immature, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.003, confirmed, 1e-9)
-	assert.InDelta(t, 0.05, pending, 1e-9)
+	assert.Zero(t, pending, "an immature coinbase output is not pending")
+	assert.InDelta(t, 0.05, immature, 1e-9)
+
+	txs, err := p.ListTransactions(ctx, w.ID, 10)
+	require.NoError(t, err)
+	categories := lo.SliceToMap(txs, func(tx WalletTransaction) (string, string) { return tx.TxID, tx.Category })
+	assert.Equal(t, map[string]string{
+		immatureCoin: "immature",
+		matureCoin:   "generate",
+		regularCoin:  "receive",
+	}, categories)
 
 	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
 	_, err = p.Send(ctx, w.ID, SendRequest{
@@ -3801,7 +3811,7 @@ func TestElectrumMaturityCheckSkipsTipWithoutCoinbase(t *testing.T) {
 	require.NoError(t, err)
 	fake.tipErr = errors.New("tip unavailable")
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.002, confirmed, 1e-9)
 
@@ -3846,7 +3856,7 @@ func TestElectrumReplacementSparesASiblingOnAnotherCoin(t *testing.T) {
 		},
 	}
 
-	_, _, err := p.Balance(ctx, w.ID)
+	_, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	p.mu.Lock()
 	scan := p.warmScan[w.ID]

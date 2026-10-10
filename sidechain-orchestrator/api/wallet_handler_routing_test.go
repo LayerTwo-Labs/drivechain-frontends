@@ -40,8 +40,8 @@ func (f *recordingProvider) Send(ctx context.Context, walletID string, req walle
 	return "fake-txid", nil
 }
 
-func (f *recordingProvider) Balance(ctx context.Context, walletID string) (float64, float64, error) {
-	return 1.5, 0.25, nil
+func (f *recordingProvider) Balance(ctx context.Context, walletID string) (float64, float64, float64, error) {
+	return 1.5, 0.25, 6.25, nil
 }
 
 // newRoutedHandler builds the real Service + BackendRouter + WalletEngine
@@ -141,6 +141,7 @@ func TestGetBalanceUsesProviderAndConvertsToSats(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(150_000_000), resp.Msg.ConfirmedSats)
 	assert.Equal(t, float64(25_000_000), resp.Msg.UnconfirmedSats)
+	assert.Equal(t, float64(625_000_000), resp.Msg.ImmatureSats)
 }
 
 func TestGetBalanceEmptyWalletIDResolvesActive(t *testing.T) {
