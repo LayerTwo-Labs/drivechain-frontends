@@ -664,19 +664,19 @@ func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletId stri
 	return resp.Msg.Addresses, nil
 }
 
-// GetElectrumBalance returns the confirmed and pending balance (in sats) for
-// an electrum wallet from the orchestrator's Esplora-backed provider.
-func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) (confirmed, pending uint64, err error) {
+// GetElectrumBalance returns the confirmed, pending and immature balance (in
+// sats) for an electrum wallet from the orchestrator's Esplora-backed provider.
+func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) (confirmed, pending, immature uint64, err error) {
 	if e.orchClient == nil {
-		return 0, 0, fmt.Errorf("orchestrator wallet client not connected")
+		return 0, 0, 0, fmt.Errorf("orchestrator wallet client not connected")
 	}
 	resp, err := e.orchClient.GetBalance(ctx, connect.NewRequest(&orchpb.GetBalanceRequest{
 		WalletId: walletId,
 	}))
 	if err != nil {
-		return 0, 0, fmt.Errorf("electrum: get balance: %w", err)
+		return 0, 0, 0, fmt.Errorf("electrum: get balance: %w", err)
 	}
-	return uint64(math.Round(resp.Msg.ConfirmedSats)), uint64(math.Round(resp.Msg.UnconfirmedSats)), nil
+	return uint64(math.Round(resp.Msg.ConfirmedSats)), uint64(math.Round(resp.Msg.UnconfirmedSats)), uint64(math.Round(resp.Msg.ImmatureSats)), nil
 }
 
 // CreatePsbt builds an unsigned PSBT for an electrum-wallet send via the

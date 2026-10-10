@@ -356,28 +356,32 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 
 		// An imported descriptor's funds report under `watchonly`; a
 		// seed-derived wallet's under `mine`.
-		var confirmedSats, pendingSats uint64
+		var confirmedSats, pendingSats, immatureSats uint64
 		if watchOnly {
 			confirmedSats = uint64(balancesResp.Msg.Watchonly.Trusted * 100_000_000)
 			pendingSats = uint64(balancesResp.Msg.Watchonly.UntrustedPending * 100_000_000)
+			immatureSats = uint64(balancesResp.Msg.Watchonly.Immature * 100_000_000)
 		} else {
 			confirmedSats = uint64(balancesResp.Msg.Mine.Trusted * 100_000_000)
 			pendingSats = uint64(balancesResp.Msg.Mine.UntrustedPending * 100_000_000)
+			immatureSats = uint64(balancesResp.Msg.Mine.Immature * 100_000_000)
 		}
 
 		return connect.NewResponse(&pb.GetBalanceResponse{
 			ConfirmedSatoshi: confirmedSats,
 			PendingSatoshi:   pendingSats,
+			ImmatureSatoshi:  immatureSats,
 		}), nil
 
 	case engines.WalletTypeElectrum:
-		confirmedSats, pendingSats, err := s.walletEngine.GetElectrumBalance(ctx, walletId)
+		confirmedSats, pendingSats, immatureSats, err := s.walletEngine.GetElectrumBalance(ctx, walletId)
 		if err != nil {
 			return nil, err
 		}
 		return connect.NewResponse(&pb.GetBalanceResponse{
 			ConfirmedSatoshi: confirmedSats,
 			PendingSatoshi:   pendingSats,
+			ImmatureSatoshi:  immatureSats,
 		}), nil
 
 	default:
@@ -445,6 +449,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 				AddressLabel:     lbl,
 				Note:             noteMap[t.Txid],
 				ConfirmationTime: confirmation,
+				Immature:         t.Category == "immature",
 			})
 		}
 		return connect.NewResponse(&pb.ListTransactionsResponse{Transactions: out}), nil
@@ -548,6 +553,9 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 				AddressLabel:     matchAddressLabel(address),
 				Note:             noteMap[tx.Txid],
 				ConfirmationTime: confirmation,
+				Immature: lo.ContainsBy(tx.Details, func(d *corepb.GetTransactionResponse_Details) bool {
+					return d.Category == corepb.GetTransactionResponse_CATEGORY_IMMATURE
+				}),
 			}
 		} else {
 			// Update existing entry with additional info
