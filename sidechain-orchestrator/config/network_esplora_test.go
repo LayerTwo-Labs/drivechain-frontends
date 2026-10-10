@@ -24,6 +24,7 @@ func TestSidechainEsploraURLForNetwork(t *testing.T) {
 		"bitassets": "https://seed.beta.ecash.eu.com/bitassets",
 		"photon":    "https://seed.beta.ecash.eu.com/photon",
 		"coinshift": "https://seed.beta.ecash.eu.com/coinshift",
+		"truthcoin": "https://seed.beta.ecash.eu.com/truthcoin",
 	} {
 		if got := SidechainEsploraURLForNetwork(chain, NetworkECash); got != want {
 			t.Errorf("%s ecash index = %q, want %q", chain, got, want)
@@ -39,7 +40,7 @@ func TestSidechainEsploraURLForNetwork(t *testing.T) {
 // A chain with no hosted index must answer empty, or the explorer would read
 // another chain's coins.
 func TestSidechainEsploraURLRefusesAnUnhostedChain(t *testing.T) {
-	for _, chain := range []string{"truthcoin", "zside", "bbc", ""} {
+	for _, chain := range []string{"zside", "bbc", ""} {
 		if got := SidechainEsploraURLForNetwork(chain, NetworkECash); got != "" {
 			t.Errorf("%q index = %q, want none hosted", chain, got)
 		}
