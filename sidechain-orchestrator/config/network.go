@@ -297,7 +297,7 @@ func ecashIndexHost(n Network, generation string) string {
 // these chains keeps no address history of its own, so a wallet reads it here
 // instead.
 var indexedSidechains = []string{
-	"thunder", "bitnames", "bitassets", "photon", "coinshift",
+	"thunder", "bitnames", "bitassets", "photon", "coinshift", "truthcoin",
 }
 
 // SidechainEsploraURLForNetwork returns the address index hosted for one
