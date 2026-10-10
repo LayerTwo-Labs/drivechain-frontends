@@ -641,31 +641,34 @@ func (e *BitDriveEngine) OpenDir(ctx context.Context) error {
 		return fmt.Errorf("ensure bitdrive dir: %w", err)
 	}
 
-	var cmd string
-	var args []string
+	name, args := dirOpenCommand(dir)
 
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = "open"
-		args = []string{dir}
-	case "windows":
-		cmd = "explorer"
-		args = []string{strings.ReplaceAll(dir, "/", "\\")}
-	default: // linux / freebsd / etc.
-		cmd = "xdg-open"
-		args = []string{dir}
-	}
+	log := zerolog.Ctx(ctx).With().Str("cmd", name).Strs("args", args).Logger()
+	log.Info().Msg("opening bitdrive directory")
 
-	zerolog.Ctx(ctx).Info().
-		Str("cmd", cmd).
-		Strs("args", args).
-		Msg("opening bitdrive directory")
-
-	if err := exec.CommandContext(ctx, cmd, args...).Start(); err != nil {
+	// The RPC context ends at handler return, so a CommandContext kills the opener.
+	cmd := exec.Command(name, args...)
+	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("open directory: %w", err)
 	}
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			log.Warn().Err(err).Msg("bitdrive directory opener exited with error")
+		}
+	}()
 
 	return nil
+}
+
+var dirOpenCommand = func(dir string) (string, []string) {
+	switch runtime.GOOS {
+	case "darwin":
+		return "open", []string{dir}
+	case "windows":
+		return "explorer", []string{strings.ReplaceAll(dir, "/", "\\")}
+	default:
+		return "xdg-open", []string{dir}
+	}
 }
 
 // EncodeMultisigData encodes multisig group data with optional encryption
