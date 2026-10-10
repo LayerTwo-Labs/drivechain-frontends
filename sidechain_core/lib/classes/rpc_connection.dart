@@ -37,6 +37,13 @@ abstract class RPCConnection extends ChangeNotifier implements DaemonState {
   /// Returns confirmed and unconfirmed balance.
   Future<(double, double)> balance();
 
+  /// Returns confirmed, unconfirmed and maturing balance. Maturing coins come
+  /// from a coinbase that cannot be spent yet.
+  Future<(double, double, double)> balances() async {
+    final (confirmed, pending) = await balance();
+    return (confirmed, pending, 0.0);
+  }
+
   /// Fetches the latest blockchain info.
   Future<BlockchainInfo> getBlockchainInfo();
 

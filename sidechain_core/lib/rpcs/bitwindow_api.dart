@@ -109,6 +109,12 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<(double, double)> balance() async {
+    final (confirmed, pending, _) = await balances();
+    return (confirmed, pending);
+  }
+
+  @override
+  Future<(double, double, double)> balances() async {
     return await _withRecreate(() async {
       // Route through orchestrator — balance is a shared wallet primitive.
       // Prefer the cached activeWalletId from the wallet-data stream, but
@@ -128,6 +134,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       return (
         satoshiToBTC(resp.confirmedSats.round()),
         satoshiToBTC(resp.unconfirmedSats.round()),
+        satoshiToBTC(resp.immatureSats.round()),
       );
     });
   }

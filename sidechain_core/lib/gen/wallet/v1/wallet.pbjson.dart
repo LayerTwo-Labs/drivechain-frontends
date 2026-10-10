@@ -211,13 +211,15 @@ const GetBalanceResponse$json = {
   '2': [
     {'1': 'confirmed_satoshi', '3': 1, '4': 1, '5': 4, '10': 'confirmedSatoshi'},
     {'1': 'pending_satoshi', '3': 2, '4': 1, '5': 4, '10': 'pendingSatoshi'},
+    {'1': 'immature_satoshi', '3': 3, '4': 1, '5': 4, '10': 'immatureSatoshi'},
   ],
 };
 
 /// Descriptor for `GetBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
     'ChJHZXRCYWxhbmNlUmVzcG9uc2USKwoRY29uZmlybWVkX3NhdG9zaGkYASABKARSEGNvbmZpcm'
-    '1lZFNhdG9zaGkSJwoPcGVuZGluZ19zYXRvc2hpGAIgASgEUg5wZW5kaW5nU2F0b3NoaQ==');
+    '1lZFNhdG9zaGkSJwoPcGVuZGluZ19zYXRvc2hpGAIgASgEUg5wZW5kaW5nU2F0b3NoaRIpChBp'
+    'bW1hdHVyZV9zYXRvc2hpGAMgASgEUg9pbW1hdHVyZVNhdG9zaGk=');
 
 @$core.Deprecated('Use listTransactionsResponseDescriptor instead')
 const ListTransactionsResponse$json = {
@@ -342,6 +344,7 @@ const WalletTransaction$json = {
     {'1': 'confirmation_time', '3': 8, '4': 1, '5': 11, '6': '.wallet.v1.Confirmation', '10': 'confirmationTime'},
     {'1': 'bmm_bid', '3': 9, '4': 1, '5': 11, '6': '.wallet.v1.BmmBid', '10': 'bmmBid'},
     {'1': 'warning_message', '3': 10, '4': 1, '5': 9, '10': 'warningMessage'},
+    {'1': 'immature', '3': 11, '4': 1, '5': 8, '10': 'immature'},
   ],
 };
 
@@ -353,7 +356,8 @@ final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'Jlc3MSIwoNYWRkcmVzc19sYWJlbBgGIAEoCVIMYWRkcmVzc0xhYmVsEhIKBG5vdGUYByABKAlS'
     'BG5vdGUSRAoRY29uZmlybWF0aW9uX3RpbWUYCCABKAsyFy53YWxsZXQudjEuQ29uZmlybWF0aW'
     '9uUhBjb25maXJtYXRpb25UaW1lEioKB2JtbV9iaWQYCSABKAsyES53YWxsZXQudjEuQm1tQmlk'
-    'UgZibW1CaWQSJwoPd2FybmluZ19tZXNzYWdlGAogASgJUg53YXJuaW5nTWVzc2FnZQ==');
+    'UgZibW1CaWQSJwoPd2FybmluZ19tZXNzYWdlGAogASgJUg53YXJuaW5nTWVzc2FnZRIaCghpbW'
+    '1hdHVyZRgLIAEoCFIIaW1tYXR1cmU=');
 
 @$core.Deprecated('Use bmmBidDescriptor instead')
 const BmmBid$json = {

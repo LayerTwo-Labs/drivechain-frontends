@@ -4870,6 +4870,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   factory GetBalanceResponse({
     $core.double? confirmedSats,
     $core.double? unconfirmedSats,
+    $core.double? immatureSats,
   }) {
     final $result = create();
     if (confirmedSats != null) {
@@ -4877,6 +4878,9 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
     }
     if (unconfirmedSats != null) {
       $result.unconfirmedSats = unconfirmedSats;
+    }
+    if (immatureSats != null) {
+      $result.immatureSats = immatureSats;
     }
     return $result;
   }
@@ -4887,6 +4891,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..a<$core.double>(1, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OD)
     ..a<$core.double>(2, _omitFieldNames ? '' : 'unconfirmedSats', $pb.PbFieldType.OD)
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'immatureSats', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -4928,6 +4933,16 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   $core.bool hasUnconfirmedSats() => $_has(1);
   @$pb.TagNumber(2)
   void clearUnconfirmedSats() => clearField(2);
+
+  /// Coinbase outputs that cannot be spent yet. Not part of the other two.
+  @$pb.TagNumber(3)
+  $core.double get immatureSats => $_getN(2);
+  @$pb.TagNumber(3)
+  set immatureSats($core.double v) { $_setDouble(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasImmatureSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearImmatureSats() => clearField(3);
 }
 
 class GetNewAddressRequest extends $pb.GeneratedMessage {

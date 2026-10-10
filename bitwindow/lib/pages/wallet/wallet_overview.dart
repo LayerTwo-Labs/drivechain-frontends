@@ -149,10 +149,16 @@ bool canBumpFee(WalletTransaction tx) => tx.confirmationTime.height == 0 && !can
 /// can take it. A replacement is the only way back to the coins.
 bool canCancelBid(WalletTransaction tx) => tx.hasBmmBid() && tx.bmmBid.lost;
 
+/// Confirmations a coinbase output needs before it can be spent.
+const int coinbaseMaturity = 100;
+
 /// What the status column says about one transaction.
 String transactionStatus(WalletTransaction tx) {
   if (tx.hasBmmBid()) {
     return tx.bmmBid.lost ? 'BMM bid \u00b7 lost' : 'BMM bid \u00b7 slot ${tx.bmmBid.slot}';
+  }
+  if (tx.immature) {
+    return 'Maturing (${tx.confirmationTime.height}/$coinbaseMaturity)';
   }
   return tx.confirmationTime.height == 0 ? 'Unconfirmed' : 'Confirmed';
 }
@@ -308,6 +314,7 @@ class _TransactionTableState extends State<TransactionTable> {
                       rowBuilder: (context, row, selected) {
                         final entry = entries[row];
                         final unconfirmed = entry.confirmationTime.height == 0;
+                        final statusColor = unconfirmed || entry.immature ? context.sailTheme.colors.orange : null;
                         final replaceable = canBumpFee(entry);
                         final cancellable = canCancelBid(entry);
 
@@ -332,28 +339,38 @@ class _TransactionTableState extends State<TransactionTable> {
                           ),
                           SailTableCell(
                             value: transactionStatus(entry),
-                            textColor: unconfirmed ? context.sailTheme.colors.orange : null,
-                            child: entry.warningMessage.trim().isEmpty
+                            textColor: statusColor,
+                            child: entry.warningMessage.trim().isEmpty && !entry.immature
                                 ? null
                                 : Row(
                                     children: [
-                                      SailTooltip(
-                                        message: entry.warningMessage,
-                                        maxWidth: 320,
-                                        child: Semantics(
-                                          label: entry.warningMessage,
-                                          child: SailSVG.icon(
-                                            SailSVGAsset.triangleAlert,
-                                            width: 14,
-                                            color: context.sailTheme.colors.orange,
+                                      if (entry.warningMessage.trim().isNotEmpty) ...[
+                                        SailTooltip(
+                                          message: entry.warningMessage,
+                                          maxWidth: 320,
+                                          child: Semantics(
+                                            label: entry.warningMessage,
+                                            child: SailSVG.icon(
+                                              SailSVGAsset.triangleAlert,
+                                              width: 14,
+                                              color: context.sailTheme.colors.orange,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const SailSpacing(SailStyleValues.padding04),
+                                        const SailSpacing(SailStyleValues.padding04),
+                                      ],
+                                      if (entry.immature) ...[
+                                        SailSVG.icon(
+                                          SailSVGAsset.hourglass,
+                                          width: 14,
+                                          color: context.sailTheme.colors.orange,
+                                        ),
+                                        const SailSpacing(SailStyleValues.padding08),
+                                      ],
                                       Flexible(
                                         child: SailText.primary13(
                                           transactionStatus(entry),
-                                          color: unconfirmed ? context.sailTheme.colors.orange : null,
+                                          color: statusColor,
                                         ),
                                       ),
                                     ],

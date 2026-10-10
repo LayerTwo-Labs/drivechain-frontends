@@ -4,6 +4,11 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
+class _MaturingMainchain extends MockBitwindowRPC {
+  @override
+  Future<(double, double, double)> balances() async => (1.245, 0.025, 6.25);
+}
+
 void main() {
   late MockBitwindowRPC mainchain;
   late MockThunderRPC thunder;
@@ -67,5 +72,17 @@ void main() {
     expect(chainProvider.balance, 4);
     expect(chainProvider.pendingBalance, 2);
     expect(chainProvider.sidechainBalance, 0);
+  });
+
+  test('maturing coins stay out of the confirmed and pending balance', () async {
+    final rpc = _MaturingMainchain()..setConnected(true);
+    final chainProvider = BalanceProvider(connections: [rpc]);
+    addTearDown(chainProvider.dispose);
+
+    await pumpEventQueue();
+
+    expect(chainProvider.balance, 1.245);
+    expect(chainProvider.pendingBalance, 0.025);
+    expect(chainProvider.maturingBalance, 6.25);
   });
 }

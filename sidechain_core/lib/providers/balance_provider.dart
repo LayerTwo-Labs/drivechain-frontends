@@ -23,6 +23,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   late final RPCConnection mainConnection;
 
   final Map<RPCConnection, (double confirmed, double pending)> _balances = {};
+  final Map<RPCConnection, double> _maturing = {};
   String? error;
 
   final Set<RPCConnection> _reported = {};
@@ -49,6 +50,9 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
 
   double get balance => balanceFor(mainConnection).$1;
   double get pendingBalance => balanceFor(mainConnection).$2;
+
+  /// Coinbase coins of the headline wallet that cannot be spent yet.
+  double get maturingBalance => _maturing[mainConnection] ?? 0.0;
 
   double get sidechainBalance => _otherConnections.fold(0.0, (sum, rpc) => sum + balanceFor(rpc).$1);
   double get sidechainPendingBalance => _otherConnections.fold(0.0, (sum, rpc) => sum + balanceFor(rpc).$2);
@@ -103,6 +107,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     for (final rpc in connections) {
       _balances[rpc] = (0.0, 0.0);
     }
+    _maturing.clear();
     _reported.clear();
     _loggedError.clear();
     _lastWalletId = _walletReader?.activeWalletId;
@@ -126,9 +131,9 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
           // dont bother fetching balance if connection is down
           continue;
         }
-        final (double confirmed, double pending) balances;
+        final (double confirmed, double pending, double maturing) balances;
         try {
-          balances = await rpc.balance().timeout(_fetchTimeout);
+          balances = await rpc.balances().timeout(_fetchTimeout);
         } catch (err) {
           // One unreachable chain must not stop the others from reporting.
           final text = err.toString();
@@ -140,14 +145,15 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
           continue;
         }
         _loggedError.remove(rpc);
-        final (confirmed, pending) = balances;
+        final (confirmed, pending, maturing) = balances;
         if (_reported.add(rpc)) {
           // wen't from not initialized to initialized, make sure to notify
           changed = true;
         }
 
-        if (_balances[rpc] != (confirmed, pending)) {
+        if (_balances[rpc] != (confirmed, pending) || _maturing[rpc] != maturing) {
           _balances[rpc] = (confirmed, pending);
+          _maturing[rpc] = maturing;
           changed = true;
         }
       }

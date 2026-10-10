@@ -100,6 +100,9 @@ class _Balance extends ChangeNotifier implements BalanceProvider {
   double pendingBalance = 0;
 
   @override
+  double maturingBalance = 0;
+
+  @override
   double sidechainBalance = 2.5;
 
   @override
