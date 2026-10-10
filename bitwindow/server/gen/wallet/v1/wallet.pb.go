@@ -650,8 +650,10 @@ type GetBalanceResponse struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	ConfirmedSatoshi uint64                 `protobuf:"varint,1,opt,name=confirmed_satoshi,json=confirmedSatoshi,proto3" json:"confirmed_satoshi,omitempty"`
 	PendingSatoshi   uint64                 `protobuf:"varint,2,opt,name=pending_satoshi,json=pendingSatoshi,proto3" json:"pending_satoshi,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Coinbase outputs that cannot be spent yet. Not part of the other two.
+	ImmatureSatoshi uint64 `protobuf:"varint,3,opt,name=immature_satoshi,json=immatureSatoshi,proto3" json:"immature_satoshi,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetBalanceResponse) Reset() {
@@ -694,6 +696,13 @@ func (x *GetBalanceResponse) GetConfirmedSatoshi() uint64 {
 func (x *GetBalanceResponse) GetPendingSatoshi() uint64 {
 	if x != nil {
 		return x.PendingSatoshi
+	}
+	return 0
+}
+
+func (x *GetBalanceResponse) GetImmatureSatoshi() uint64 {
+	if x != nil {
+		return x.ImmatureSatoshi
 	}
 	return 0
 }
@@ -1127,8 +1136,10 @@ type WalletTransaction struct {
 	BmmBid *BmmBid `protobuf:"bytes,9,opt,name=bmm_bid,json=bmmBid,proto3" json:"bmm_bid,omitempty"`
 	// A backend warning for this transaction. Empty means no warning.
 	WarningMessage string `protobuf:"bytes,10,opt,name=warning_message,json=warningMessage,proto3" json:"warning_message,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// True for a coinbase transaction whose outputs cannot be spent yet.
+	Immature      bool `protobuf:"varint,11,opt,name=immature,proto3" json:"immature,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WalletTransaction) Reset() {
@@ -1229,6 +1240,13 @@ func (x *WalletTransaction) GetWarningMessage() string {
 		return x.WarningMessage
 	}
 	return ""
+}
+
+func (x *WalletTransaction) GetImmature() bool {
+	if x != nil {
+		return x.Immature
+	}
+	return false
 }
 
 // BmmBid names the BMM request one wallet transaction carries.
@@ -4401,10 +4419,11 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x04R\x05value:\x028\x01\"-\n" +
 	"\x17SendTransactionResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\"j\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x95\x01\n" +
 	"\x12GetBalanceResponse\x12+\n" +
 	"\x11confirmed_satoshi\x18\x01 \x01(\x04R\x10confirmedSatoshi\x12'\n" +
-	"\x0fpending_satoshi\x18\x02 \x01(\x04R\x0ependingSatoshi\"\\\n" +
+	"\x0fpending_satoshi\x18\x02 \x01(\x04R\x0ependingSatoshi\x12)\n" +
+	"\x10immature_satoshi\x18\x03 \x01(\x04R\x0fimmatureSatoshi\"\\\n" +
 	"\x18ListTransactionsResponse\x12@\n" +
 	"\ftransactions\x18\x01 \x03(\v2\x1c.wallet.v1.WalletTransactionR\ftransactions\"\xea\x03\n" +
 	"\rUnspentOutput\x12\x16\n" +
@@ -4442,7 +4461,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x0fderivation_path\x18\x06 \x01(\tR\x0ederivationPath\"`\n" +
 	"\fConfirmation\x12\x16\n" +
 	"\x06height\x18\x01 \x01(\rR\x06height\x128\n" +
-	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xfe\x02\n" +
+	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\x9a\x03\n" +
 	"\x11WalletTransaction\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x19\n" +
 	"\bfee_sats\x18\x02 \x01(\x04R\afeeSats\x12)\n" +
@@ -4454,7 +4473,8 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x11confirmation_time\x18\b \x01(\v2\x17.wallet.v1.ConfirmationR\x10confirmationTime\x12*\n" +
 	"\abmm_bid\x18\t \x01(\v2\x11.wallet.v1.BmmBidR\x06bmmBid\x12'\n" +
 	"\x0fwarning_message\x18\n" +
-	" \x01(\tR\x0ewarningMessage\"{\n" +
+	" \x01(\tR\x0ewarningMessage\x12\x1a\n" +
+	"\bimmature\x18\v \x01(\bR\bimmature\"{\n" +
 	"\x06BmmBid\x12\x12\n" +
 	"\x04slot\x18\x01 \x01(\rR\x04slot\x12#\n" +
 	"\rcritical_hash\x18\x02 \x01(\tR\fcriticalHash\x12$\n" +

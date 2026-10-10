@@ -132,6 +132,9 @@ message GetBalanceResponse {
   uint64 confirmed_satoshi = 1;
 
   uint64 pending_satoshi = 2;
+
+  // Coinbase outputs that cannot be spent yet. Not part of the other two.
+  uint64 immature_satoshi = 3;
 }
 
 message ListTransactionsResponse {
@@ -205,6 +208,8 @@ message WalletTransaction {
   BmmBid bmm_bid = 9;
   // A backend warning for this transaction. Empty means no warning.
   string warning_message = 10;
+  // True for a coinbase transaction whose outputs cannot be spent yet.
+  bool immature = 11;
 }
 
 // BmmBid names the BMM request one wallet transaction carries.
