@@ -81,7 +81,7 @@ func TestTickWarmsWalletsBehindTheActiveOne(t *testing.T) {
 	require.Positive(t, chain.statCalls.Load(), "the pass must scan both wallets")
 
 	afterTick := chain.statCalls.Load()
-	_, _, err := engine.Backend().Balance(ctx, background.ID)
+	_, _, _, err := engine.Backend().Balance(ctx, background.ID)
 	require.NoError(t, err)
 
 	assert.Equal(t, afterTick, chain.statCalls.Load(),

@@ -272,20 +272,16 @@ func (p *CoreBackend) walletName(ctx context.Context, walletID string) (string, 
 	return p.Ensure(ctx, walletID)
 }
 
-func (p *CoreBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (p *CoreBackend) Balance(ctx context.Context, walletID string) (float64, float64, float64, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
-	confirmed, err := p.rpc.GetBalance(ctx, name)
+	b, err := p.rpc.GetBalances(ctx, name)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
-	unconfirmed, err := p.rpc.GetUnconfirmedBalance(ctx, name)
-	if err != nil {
-		return 0, 0, err
-	}
-	return confirmed, unconfirmed, nil
+	return b.Trusted, b.UntrustedPending, b.Immature, nil
 }
 
 func (p *CoreBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {

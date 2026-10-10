@@ -4301,8 +4301,10 @@ type GetBalanceResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ConfirmedSats   float64                `protobuf:"fixed64,1,opt,name=confirmed_sats,json=confirmedSats,proto3" json:"confirmed_sats,omitempty"`
 	UnconfirmedSats float64                `protobuf:"fixed64,2,opt,name=unconfirmed_sats,json=unconfirmedSats,proto3" json:"unconfirmed_sats,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Coinbase outputs that cannot be spent yet. Not part of the other two.
+	ImmatureSats  float64 `protobuf:"fixed64,3,opt,name=immature_sats,json=immatureSats,proto3" json:"immature_sats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetBalanceResponse) Reset() {
@@ -4345,6 +4347,13 @@ func (x *GetBalanceResponse) GetConfirmedSats() float64 {
 func (x *GetBalanceResponse) GetUnconfirmedSats() float64 {
 	if x != nil {
 		return x.UnconfirmedSats
+	}
+	return 0
+}
+
+func (x *GetBalanceResponse) GetImmatureSats() float64 {
+	if x != nil {
+		return x.ImmatureSats
 	}
 	return 0
 }
@@ -10682,10 +10691,11 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\vconf_target\x18\x01 \x01(\x05R\n" +
 	"confTarget\"9\n" +
 	"\x13EstimateFeeResponse\x12\"\n" +
-	"\rsat_per_vbyte\x18\x01 \x01(\x01R\vsatPerVbyte\"f\n" +
+	"\rsat_per_vbyte\x18\x01 \x01(\x01R\vsatPerVbyte\"\x8b\x01\n" +
 	"\x12GetBalanceResponse\x12%\n" +
 	"\x0econfirmed_sats\x18\x01 \x01(\x01R\rconfirmedSats\x12)\n" +
-	"\x10unconfirmed_sats\x18\x02 \x01(\x01R\x0funconfirmedSats\"u\n" +
+	"\x10unconfirmed_sats\x18\x02 \x01(\x01R\x0funconfirmedSats\x12#\n" +
+	"\rimmature_sats\x18\x03 \x01(\x01R\fimmatureSats\"u\n" +
 	"\x14GetNewAddressRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12@\n" +
 	"\faddress_type\x18\x02 \x01(\x0e2\x1d.walletmanager.v1.AddressTypeR\vaddressType\"p\n" +

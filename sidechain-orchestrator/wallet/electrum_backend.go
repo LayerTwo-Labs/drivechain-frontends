@@ -300,10 +300,10 @@ func (p *ElectrumBackend) EnsureAll(ctx context.Context) (int, error) {
 	}), nil
 }
 
-func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64, float64, float64, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	// The coins the wallet holds are the balance, so this and ListUnspent
 	// answer from one set. A funded-minus-spent total from the index inflates
@@ -311,15 +311,14 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 	// nonstandard outputs that an index can miss.
 	immature, err := p.immatureCoinbase(ctx, scan)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	trusted := trustedTxs(scan)
-	var confirmed, pending int64
+	var confirmed, pending, maturing int64
 	for _, a := range scan.addrs {
 		for _, u := range a.utxos {
-			// An immature coinbase output cannot be spent yet, so it waits as pending.
 			if immature[fmt.Sprintf("%s:%d", u.TxID, u.Vout)] {
-				pending += u.Value
+				maturing += u.Value
 				continue
 			}
 			if u.Status.Confirmed || trusted(u.TxID) {
@@ -329,7 +328,7 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 			pending += u.Value
 		}
 	}
-	return float64(confirmed) / 1e8, float64(pending) / 1e8, nil
+	return float64(confirmed) / 1e8, float64(pending) / 1e8, float64(maturing) / 1e8, nil
 }
 
 // trustedTxs applies the trust rule of Core's getbalances: a mempool
@@ -3349,13 +3348,20 @@ func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int, txTime int64) []
 		return rows
 	}
 
+	category := "receive"
+	if len(tx.Vin) > 0 && tx.Vin[0].IsCoinbase {
+		category = "generate"
+		if confs < coinbaseMaturity {
+			category = "immature"
+		}
+	}
 	for n, vout := range tx.Vout {
 		if !scan.owns(vout.ScriptPubKeyAddress) {
 			continue
 		}
 		rows = append(rows, WalletTransaction{
 			Address:       vout.ScriptPubKeyAddress,
-			Category:      "receive",
+			Category:      category,
 			Amount:        float64(vout.Value) / 1e8,
 			Vout:          n,
 			Confirmations: confs,

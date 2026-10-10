@@ -647,6 +647,8 @@ message EstimateFeeResponse {
 message GetBalanceResponse {
   double confirmed_sats = 1;
   double unconfirmed_sats = 2;
+  // Coinbase outputs that cannot be spent yet. Not part of the other two.
+  double immature_sats = 3;
 }
 
 enum AddressType {

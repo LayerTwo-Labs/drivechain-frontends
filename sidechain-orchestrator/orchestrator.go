@@ -4066,7 +4066,7 @@ func (o *Orchestrator) GetMainchainBalance(ctx context.Context) (*MainchainBalan
 		return nil, fmt.Errorf("mainchain balance: %w", err)
 	}
 
-	confirmed, unconfirmed, err := o.walletEngine.Backend().Balance(ctx, walletID)
+	confirmed, unconfirmed, _, err := o.walletEngine.Backend().Balance(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("mainchain balance for wallet %s: %w", walletID, err)
 	}

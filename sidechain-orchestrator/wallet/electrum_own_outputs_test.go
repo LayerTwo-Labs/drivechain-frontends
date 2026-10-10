@@ -60,7 +60,7 @@ func TestElectrumKeepsChangePastTheGap(t *testing.T) {
 
 	fundedSend(fake, addr, far.address, 400_000, 90_000, 300_000)
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.003, confirmed, 1e-9)
 
@@ -123,7 +123,7 @@ func TestElectrumKeepsChangeTheFirstWindowMisses(t *testing.T) {
 		fake.txs[coin.address] = []EsploraTx{tx}
 	}
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.003, confirmed, 1e-9)
 }
@@ -151,7 +151,7 @@ func TestElectrumKeepsNearChangeOnce(t *testing.T) {
 	}
 	assert.Equal(t, 1, count)
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.003, confirmed, 1e-9)
 }
@@ -183,7 +183,7 @@ func TestElectrumLeavesAStrangerOut(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, scan.owns(strangerAddr))
 
-	confirmed, _, err := p.Balance(ctx, w.ID)
+	confirmed, _, _, err := p.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.Zero(t, confirmed)
 
