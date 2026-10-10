@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
@@ -420,10 +421,28 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
     return width;
   }
 
+  List<_SidechainRow> _rows(SidechainsViewModel viewModel) {
+    final yours = {...slots.where(viewModel.isYourSidechain)};
+    if (yours.isEmpty) {
+      return [for (final slot in slots) _SlotRow(slot)];
+    }
+    final rest = slots.where((slot) => !yours.contains(slot));
+    return [
+      _GroupLabelRow(
+        'Your sidechains',
+        subtitle: 'Pinned, or a balance in ${viewModel.loadedWallet?.name ?? 'your wallet'}',
+      ),
+      for (final slot in yours) _SlotRow(slot),
+      if (rest.isNotEmpty) const _GroupLabelRow('All slots'),
+      for (final slot in rest) _SlotRow(slot),
+    ];
+  }
+
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final formatter = GetIt.I<FormatterProvider>();
     final colors = context.sailTheme.colors;
+    final rows = _rows(viewModel);
     final textScaler = MediaQuery.textScalerOf(context);
     final textScale = max(1.0, textScaler.clamp(maxScaleFactor: 2).scale(12) / 12);
     final controlScale = context.sailTheme.chrome.terminalStyle ? max(1.0, textScaler.scale(12) / 12) : textScale;
@@ -450,7 +469,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
 
     return LayoutBuilder(
       builder: (context, constraints) => Container(
-        height: min(constraints.maxHeight, _tableHeight(slots.length, textScale, controlScale)),
+        height: min(constraints.maxHeight, _tableHeight(rows.length, textScale, controlScale)),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           border: Border.all(color: colors.border),
@@ -460,12 +479,15 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
           listenable: formatter,
           builder: (context, child) => SailTable(
             key: ValueKey(actionsWidth),
-            getRowId: (index) => slots[index].toString(),
+            getRowId: (index) => switch (rows[index]) {
+              _SlotRow(:final slot) => '$slot',
+              _GroupLabelRow(:final title) => 'group:$title',
+            },
             cellHeight: 40 * controlScale,
             minColumnWidths: {1: nameWidth},
             headerBackgroundColor: colors.backgroundSecondary,
             headerBuilder: (context) => [
-              const SailTableHeaderCell(name: 'Slot', padding: _tightCellPadding, sortable: false),
+              const SailTableHeaderCell(name: 'Slot', padding: _slotHeaderPadding, sortable: false),
               const SailTableHeaderCell(name: 'Name', padding: _tightCellPadding, sortable: false),
               const SailTableHeaderCell(
                 name: 'Sidechain Balance',
@@ -476,15 +498,32 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
               _LoadedWalletHeader(wallet: viewModel.loadedWallet),
               const SailTableHeaderCell(name: '', sortable: false),
             ],
-            rowBuilder: (context, row, selected) =>
-                _sidechainRow(context, viewModel, formatter, slots[row], nameWidth, actionsWidth * controlScale),
-            rowCount: slots.length,
+            rowBuilder: (context, row, selected) => switch (rows[row]) {
+              _SlotRow(:final slot) => _sidechainRow(
+                context,
+                viewModel,
+                formatter,
+                slot,
+                nameWidth,
+                actionsWidth * controlScale,
+              ),
+              final _GroupLabelRow label => _groupLabelRow(label, nameWidth, actionsWidth * controlScale),
+            },
+            rowCount: rows.length,
             emptyPlaceholder: emptyPlaceholder,
             selectedRowId: viewModel.selectedIndex?.toString(),
             // rowId is the SLOT NUMBER (e.g., "2", "4", "98") from getRowId
-            onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
+            onSelectedRow: (rowId) {
+              final slot = int.tryParse(rowId ?? '0');
+              if (slot == null) {
+                viewModel.restoreSelection();
+                return;
+              }
+              viewModel.toggleSelection(slot);
+            },
             onDoubleTap: (rowId) {
-              final sidechain = viewModel.sidechains[int.parse(rowId)];
+              final slot = int.tryParse(rowId);
+              final sidechain = slot == null ? null : viewModel.sidechains[slot];
               if (sidechain == null || sidechain.info.chaintipTxid == '') {
                 return;
               }
@@ -492,16 +531,40 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
               showTransactionDetails(context, sidechain.info.chaintipTxid);
             },
             contextMenuItems: (rowId) {
-              final sidechain = viewModel.sidechains[int.parse(rowId)];
-              if (sidechain == null || sidechain.info.chaintipTxid == '') {
+              final slot = int.tryParse(rowId);
+              if (slot == null) {
                 return [];
               }
+              final sidechain = viewModel.sidechains[slot];
+              if (sidechain == null) {
+                return [];
+              }
+              final pinned = viewModel.isPinned(slot);
 
               return [
                 SailMenuItem(
-                  onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
-                  child: SailText.primary12('Show Chaintip Transaction'),
+                  onSelected: () {
+                    Navigator.of(context).pop();
+                    unawaited(_togglePin(context, viewModel, slot));
+                  },
+                  child: Row(
+                    children: [
+                      SailSVG.fromAsset(
+                        pinned ? SailSVGAsset.pinOff : SailSVGAsset.pin,
+                        width: 12,
+                        height: 12,
+                        color: colors.text,
+                      ),
+                      const SizedBox(width: SailStyleValues.padding08),
+                      SailText.primary12(pinned ? 'Unpin' : 'Pin to top'),
+                    ],
+                  ),
                 ),
+                if (sidechain.info.chaintipTxid != '')
+                  SailMenuItem(
+                    onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
+                    child: SailText.primary12('Show Chaintip Transaction'),
+                  ),
               ];
             },
           ),
@@ -524,7 +587,20 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       value: '$slot',
       width: _slotColumnWidth,
       padding: _tightCellPadding,
-      textColor: colors.textSecondary,
+      child: Row(
+        children: [
+          if (sidechain == null)
+            const SizedBox(width: _pinWidth)
+          else
+            SidechainPinButton(
+              slot: slot,
+              pinned: viewModel.isPinned(slot),
+              onPressed: () => _togglePin(context, viewModel, slot),
+            ),
+          const SizedBox(width: SailStyleValues.padding08),
+          SailText.primary13('$slot', color: colors.textSecondary, overflow: null),
+        ],
+      ),
     );
 
     if (sidechain == null) {
@@ -587,6 +663,91 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       ),
     ];
   }
+
+  List<Widget> _groupLabelRow(_GroupLabelRow label, double nameWidth, double actionsWidth) {
+    final subtitle = label.subtitle;
+    return [
+      SailTableCell(
+        value: '',
+        width: _slotColumnWidth,
+        padding: const EdgeInsets.only(left: SailStyleValues.padding12),
+        // The label spans the row, past the narrow slot column.
+        child: OverflowBox(
+          alignment: Alignment.centerLeft,
+          maxWidth: double.infinity,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailText.primary12(label.title),
+              if (subtitle != null) ...[
+                const SizedBox(width: SailStyleValues.padding08),
+                SailText.secondary12(subtitle),
+              ],
+            ],
+          ),
+        ),
+      ),
+      SailTableCell(value: '', width: nameWidth),
+      SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
+      SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
+      SailTableCell(value: '', width: actionsWidth),
+    ];
+  }
+}
+
+Future<void> _togglePin(BuildContext context, SidechainsViewModel viewModel, int slot) async {
+  try {
+    await viewModel.togglePin(slot);
+  } catch (error) {
+    if (context.mounted) {
+      showSailToast(context, 'Could not save the pin: $error', variant: SailToastVariant.destructive);
+    }
+  }
+}
+
+sealed class _SidechainRow {
+  const _SidechainRow();
+}
+
+class _SlotRow extends _SidechainRow {
+  final int slot;
+
+  const _SlotRow(this.slot);
+}
+
+class _GroupLabelRow extends _SidechainRow {
+  final String title;
+  final String? subtitle;
+
+  const _GroupLabelRow(this.title, {this.subtitle});
+}
+
+/// The pin at the start of a sidechain row: filled when the slot is pinned.
+class SidechainPinButton extends StatelessWidget {
+  final int slot;
+  final bool pinned;
+  final VoidCallback onPressed;
+
+  const SidechainPinButton({super.key, required this.slot, required this.pinned, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.sailTheme.colors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onPressed,
+      child: SizedBox.square(
+        dimension: _pinWidth,
+        child: Center(
+          child: SailSVG.fromAsset(
+            pinned ? SailSVGAsset.pinFilled : SailSVGAsset.pin,
+            height: 14,
+            color: pinned ? colors.text : colors.textTertiary,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The balance column header: the wallet the sidechains hold.
@@ -646,8 +807,16 @@ class _ExternalWalletBadge extends StatelessWidget {
   }
 }
 
-/// Slot holds 1 to 3 digits, so it never needs the table's default minimum.
-const double _slotColumnWidth = 48;
+const double _pinWidth = 20;
+
+/// Slot holds the pin and 1 to 3 digits, so it never needs the table's default minimum.
+const double _slotColumnWidth = 48 + _pinWidth + SailStyleValues.padding08;
+
+/// Puts the Slot header above the slot number, past the pin.
+const EdgeInsets _slotHeaderPadding = EdgeInsets.only(
+  left: SailStyleValues.padding08 + _pinWidth + SailStyleValues.padding08,
+  right: SailStyleValues.padding08,
+);
 
 /// The Update control is an icon, so an update keeps the actions column short.
 const double _updateButtonWidth = 32;
@@ -920,7 +1089,34 @@ String progressPercent(double current, double goal) {
   return current < goal ? '${min(percent, 99)}%' : '$percent%';
 }
 
+/// Slot numbers the user pinned to the top of the sidechains table.
+class PinnedSidechainsSetting extends SettingValue<List<int>> {
+  @override
+  String get key => 'pinned_sidechain_slots';
+
+  PinnedSidechainsSetting({super.newValue});
+
+  @override
+  List<int> defaultValue() => [];
+
+  @override
+  List<int>? fromJson(String jsonString) {
+    try {
+      return [for (final slot in json.decode(jsonString) as List) slot as int];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  String toJson() => json.encode(value);
+
+  @override
+  SettingValue<List<int>> withValue([List<int>? value]) => PinnedSidechainsSetting(newValue: value);
+}
+
 class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
+  final ClientSettings _settings = GetIt.I.get<ClientSettings>();
   final BalanceProvider _balanceProvider = GetIt.I.get<BalanceProvider>();
   final SidechainProvider _sidechainProvider = GetIt.I.get<SidechainProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
@@ -961,6 +1157,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   SidechainsViewModel() {
     initChangeTracker();
+    unawaited(_loadPinnedSlots());
 
     _sidechainProvider.addListener(_onChange);
     _sidechainProvider.fetch();
@@ -1080,6 +1277,37 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool showOnlyFilled = true;
   void setShowOnlyFilled(bool value) {
     showOnlyFilled = value;
+    notifyListeners();
+  }
+
+  Set<int> _pinnedSlots = {};
+
+  bool isPinned(int slot) => _pinnedSlots.contains(slot);
+
+  /// True when [slot] holds a sidechain that the user pinned, or that holds coins of the loaded wallet.
+  bool isYourSidechain(int slot) {
+    if (sidechains[slot] == null) {
+      return false;
+    }
+    if (isPinned(slot)) {
+      return true;
+    }
+    final balance = yourBalance(slot);
+    return balance != null && (balance.confirmed > 0 || balance.pending > 0);
+  }
+
+  Future<void> _loadPinnedSlots() async {
+    final setting = await _settings.getValue(PinnedSidechainsSetting());
+    _pinnedSlots = setting.value.toSet();
+    notifyListeners();
+  }
+
+  Future<void> togglePin(int slot) async {
+    final setting = await _settings.mergeValue(
+      PinnedSidechainsSetting(),
+      (current) => current.contains(slot) ? [...current.where((pinned) => pinned != slot)] : [...current, slot],
+    );
+    _pinnedSlots = setting.value.toSet();
     notifyListeners();
   }
 
@@ -1462,6 +1690,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   int? _selectedIndex;
 
   int? get selectedIndex => _selectedIndex;
+
+  /// Makes the table show [selectedIndex] again after a click on a row that holds no slot.
+  void restoreSelection() => notifyListeners();
 
   void toggleSelection(int index) {
     if (_selectedIndex == index) {
