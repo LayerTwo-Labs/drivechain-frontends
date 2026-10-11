@@ -374,3 +374,41 @@ func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
 		"the wallet must keep reading the network whose blocks are on disk",
 	)
 }
+
+// ecashOnNetworkWithLead puts an eCash install on betanet, with a published
+// document that leads with alphanet at the fork height given.
+func ecashOnNetworkWithLead(t *testing.T, leadForkHeight int) *Orchestrator {
+	t.Helper()
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(catalogWithECash(t, "betanet"), "betanet")
+
+	published := catalogWithECashRows(t, "alphanet", "betanet")
+	for i, n := range published.Networks {
+		switch n.ID {
+		case "alphanet":
+			published.Networks[i].ForkHeight = leadForkHeight
+		case "betanet":
+			published.Networks[i].ForkHeight = 967680
+		}
+	}
+	o.adoptCatalogRows(published, "betanet")
+	return o
+}
+
+func TestAnOlderLeadIsNotOffered(t *testing.T) {
+	o := ecashOnNetworkWithLead(t, 963648)
+
+	require.Empty(t, o.PendingECashUpgrade().ID, "alphanet forks before betanet, so it is no upgrade")
+	require.Error(t, o.ConfirmPendingECashNetwork(context.Background()))
+	require.Equal(t, "betanet", config.ECashNetworkID())
+}
+
+func TestANewerLeadIsOffered(t *testing.T) {
+	o := ecashOnNetworkWithLead(t, 970000)
+
+	require.Equal(t, "alphanet", o.PendingECashUpgrade().ID)
+}
