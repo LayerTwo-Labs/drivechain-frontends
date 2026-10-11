@@ -57,10 +57,8 @@ func (o *Orchestrator) PendingECashUpgrade() PendingECashUpgrade {
 	o.mu.RLock()
 	published := o.Catalog
 	o.mu.RUnlock()
-	// The document's first row against the network this install runs. A pick
-	// says which network runs, not that the user heard about the newer one.
-	id := published.ECashID()
-	if id == "" || id == o.RunningECashID(published) {
+	id := o.newerECashID(published)
+	if id == "" {
 		return PendingECashUpgrade{}
 	}
 	entry, _ := published.ByID(id)
@@ -74,6 +72,22 @@ func (o *Orchestrator) PendingECashUpgrade() PendingECashUpgrade {
 		Snapshot:        entry.AssumeUTXO,
 		UserManagedConf: o.ecashSwitchIsManual(),
 	}
+}
+
+// newerECashID returns the document's first eCash row when it is newer than the
+// network this install runs, or "". A network that forks at a lower height is
+// older, whatever the document order says.
+func (o *Orchestrator) newerECashID(published netcatalog.Catalog) string {
+	id := published.ECashID()
+	running := o.RunningECashID(published)
+	if id == "" || id == running {
+		return ""
+	}
+	lead, _ := published.ByID(id)
+	if current, ok := published.ByID(running); ok && current.ForkHeight > lead.ForkHeight {
+		return ""
+	}
+	return id
 }
 
 // ecashSwitchIsManual reports whether the user's own bitcoin.conf decides which
@@ -91,14 +105,14 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 	o.mu.RLock()
 	published := o.Catalog
 	o.mu.RUnlock()
-	target := published.ECashID()
-	if target == "" || target == o.RunningECashID(published) {
+	target := o.newerECashID(published)
+	if target == "" {
 		// A previous confirm moved the chain but stopped before it finished. The
 		// same target is that retry, not a request for work already done.
-		if target != "" && o.pendingECashSwap() {
-			return o.ApplyECashSwitch(ctx, target)
+		if lead := published.ECashID(); lead != "" && lead == o.RunningECashID(published) && o.pendingECashSwap() {
+			return o.ApplyECashSwitch(ctx, lead)
 		}
-		return fmt.Errorf("no new eCash network to switch to")
+		return fmt.Errorf("no newer eCash network to switch to")
 	}
 	if o.ecashSwitchIsManual() {
 		return fmt.Errorf("your own bitcoin.conf decides which eCash network this node runs, so the switch has to be made there")
