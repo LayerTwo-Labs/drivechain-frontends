@@ -178,3 +178,27 @@ func TestQuietWalletAdvancesCheckpoint(t *testing.T) {
 	assert.Equal(t, fake.tip, second, "an unchanged scan must still record the new tip")
 	assert.Zero(t, p.blocksBehind(ctx, p.svc.Network(), w.ID))
 }
+
+// A send the network dropped leaves its change address with no history on the
+// server, so the scan must drop the send it cached for that address.
+func TestEmptyStatusDropsACachedSendNoServerHolds(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	counting := &countingChain{fakeEsplora: fake}
+	p.client = &subscribingChain{countingChain: counting, status: map[string]string{}}
+
+	dropped := EsploraTx{TxID: "dropped", Status: EsploraStatus{BlockTime: 1}}
+	prior := &electrumScan{byAddr: map[string]scannedAddr{addr: {
+		address: addr,
+		stats:   EsploraAddressStats{Address: addr, MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 42, TxCount: 1}},
+		utxos:   []EsploraUTXO{{TxID: "dropped", Value: 42}},
+		txs:     []EsploraTx{dropped},
+	}}}
+
+	a := scannedAddr{address: addr}
+	require.NoError(t, p.hydrate(ctx, w.ID, &a, prior))
+	assert.Empty(t, a.txs)
+	assert.Empty(t, a.utxos)
+	assert.False(t, a.stats.Used())
+}
