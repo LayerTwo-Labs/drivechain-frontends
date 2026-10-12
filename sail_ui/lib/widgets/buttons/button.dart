@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'dart:async';
 
@@ -362,10 +364,26 @@ _ButtonVariantStyle _getTerminalVariantStyle(
   }
 }
 
+/// Copies [text] to the clipboard and clears it after [clearAfter], unless the clipboard holds other text by then.
+Future<void> copySecretToClipboard(String text, {Duration clearAfter = const Duration(seconds: 60)}) async {
+  await Clipboard.setData(ClipboardData(text: text));
+  Timer(clearAfter, () async {
+    try {
+      final current = await Clipboard.getData(Clipboard.kTextPlain);
+      if (current?.text == text) {
+        await Clipboard.setData(const ClipboardData(text: ''));
+      }
+    } catch (e) {
+      GetIt.I.get<Logger>().e('could not clear secret from clipboard: $e');
+    }
+  });
+}
+
 class CopyButton extends StatefulWidget {
   final String text;
+  final bool secret;
 
-  const CopyButton({super.key, required this.text});
+  const CopyButton({super.key, required this.text, this.secret = false});
 
   @override
   State<CopyButton> createState() => _CopyButtonState();
@@ -404,7 +422,7 @@ class _CopyButtonState extends State<CopyButton> {
       textColor: _copied ? SailColorScheme.green : null,
       padding: EdgeInsets.all(9.5),
       onPressed: () async {
-        await Clipboard.setData(ClipboardData(text: widget.text))
+        await (widget.secret ? copySecretToClipboard(widget.text) : Clipboard.setData(ClipboardData(text: widget.text)))
             .then((_) {
               if (mounted) {
                 setState(() {

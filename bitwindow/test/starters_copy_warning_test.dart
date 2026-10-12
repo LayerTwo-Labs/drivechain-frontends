@@ -69,6 +69,9 @@ void main() {
       if (call.method == 'Clipboard.setData') {
         copied.add((call.arguments as Map)['text'] as String);
       }
+      if (call.method == 'Clipboard.getData' && copied.isNotEmpty) {
+        return {'text': copied.last};
+      }
       return null;
     });
     addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
@@ -118,6 +121,7 @@ void main() {
     expect(find.byType(RevealSeedWarningDialog), findsNothing);
     expect(copied, [_mnemonic]);
 
-    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 60));
+    expect(copied, [_mnemonic, '']);
   });
 }

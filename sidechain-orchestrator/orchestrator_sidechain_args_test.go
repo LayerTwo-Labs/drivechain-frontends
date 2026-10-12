@@ -423,3 +423,48 @@ func TestBootArgsAreNotAddedTwice(t *testing.T) {
 		BinaryConfig{Name: "thunder", ChainLayer: 2, Port: 6009}, &opts))
 	assert.Equal(t, []string{"--headless"}, opts.TargetArgs)
 }
+
+func TestRedactArgs(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{"double dash with value", []string{"--node-rpc-pass=hunter2"}, []string{"--node-rpc-pass=<redacted>"}},
+		{"single dash with value", []string{"-rpcpassword=x"}, []string{"-rpcpassword=<redacted>"}},
+		{"separate value", []string{"--rpc-pass", "x", "--foo"}, []string{"--rpc-pass", "<redacted>", "--foo"}},
+		{"secret flag before next flag", []string{"--rpc-pass", "--foo"}, []string{"--rpc-pass", "--foo"}},
+		{"upper case name", []string{"--RPC-Token=abc"}, []string{"--RPC-Token=<redacted>"}},
+		{"privkey", []string{"-privkey=cVt4"}, []string{"-privkey=<redacted>"}},
+		{"path flag", []string{"--mnemonic-seed-phrase-path=/tmp/a"}, []string{"--mnemonic-seed-phrase-path=/tmp/a"}},
+		{"cookie file", []string{"-rpccookiefile=/tmp/.cookie"}, []string{"-rpccookiefile=/tmp/.cookie"}},
+		{"rpcauth", []string{"-rpcauth=u:salt$hash"}, []string{"-rpcauth=u:salt$hash"}},
+		{"rpc user", []string{"--node-rpc-user=bob"}, []string{"--node-rpc-user=bob"}},
+		{"positional", []string{"password"}, []string{"password"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := append([]string(nil), tt.in...)
+			assert.Equal(t, tt.want, redactArgs(in))
+			assert.Equal(t, tt.in, in)
+		})
+	}
+}
+
+func TestRedactArgsEnforcerCliArgs(t *testing.T) {
+	dir := t.TempDir()
+	bitcoinConf, err := config.NewBitcoinConfManager(dir, config.NetworkSignet, zerolog.Nop())
+	require.NoError(t, err)
+	bitcoinConf.Config.SetSetting("rpcuser", "bob")
+	bitcoinConf.Config.SetSetting("rpcpassword", "hunter2")
+	enforcerConf, err := config.NewEnforcerConfManager(bitcoinConf, dir, zerolog.Nop())
+	require.NoError(t, err)
+
+	args := enforcerConf.GetCliArgs()
+	require.Contains(t, args, "--node-rpc-pass=hunter2")
+
+	redacted := redactArgs(args)
+	assert.NotContains(t, strings.Join(redacted, " "), "hunter2")
+	assert.Contains(t, redacted, "--node-rpc-pass=<redacted>")
+	assert.Contains(t, redacted, "--node-rpc-user=bob")
+}

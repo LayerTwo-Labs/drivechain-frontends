@@ -29,7 +29,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
 
   List<WalletData> wallets = [];
   String? activeWalletId;
-  String? unlockedPassword;
   Duration unlockStateWait = Environment.isInTest ? const Duration(milliseconds: 10) : const Duration(seconds: 3);
 
   /// Mirrors `has_wallet` from the WatchWalletData stream. Distinct from
@@ -372,7 +371,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
         );
         return false;
       }
-      unlockedPassword = password;
       notifyListeners();
       return true;
     } catch (e) {
@@ -385,7 +383,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     try {
       await _client.lockWallet();
       wallets = [];
-      unlockedPassword = null;
       notifyListeners();
     } catch (e) {
       _logger.e('WalletReaderProvider: lock failed: $e');
@@ -395,7 +392,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   Future<void> encryptWallet(String password) async {
     try {
       await _client.encryptWallet(password);
-      unlockedPassword = password;
       // Stream will push updated state automatically.
     } catch (e) {
       _logger.e('WalletReaderProvider: encrypt failed: $e');
@@ -406,7 +402,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   Future<void> changePassword(String oldPassword, String newPassword) async {
     try {
       await _client.changePassword(oldPassword, newPassword);
-      unlockedPassword = newPassword;
     } catch (e) {
       _logger.e('WalletReaderProvider: change password failed: $e');
       rethrow;
@@ -416,7 +411,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   Future<void> removeEncryption(String password) async {
     try {
       await _client.removeEncryption(password);
-      unlockedPassword = null;
       // Stream will push updated state automatically.
     } catch (e) {
       _logger.e('WalletReaderProvider: remove encryption failed: $e');
@@ -510,7 +504,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   void clearState() {
     wallets = [];
     activeWalletId = null;
-    unlockedPassword = null;
     notifyListeners();
   }
 

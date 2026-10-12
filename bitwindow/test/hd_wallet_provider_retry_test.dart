@@ -87,4 +87,34 @@ void main() {
     expect(hd.isInitialized, isFalse);
     expect(hd.mnemonic, isNull);
   });
+
+  test('HDWalletProvider drops the seed on lock and loads it again on unlock', () async {
+    final reader = GetIt.I.get<WalletReaderProvider>();
+    final hd = HDWalletProvider();
+
+    reader.wallets = [_enforcer(l1Mnemonic: _validMnemonic)];
+    reader.activeWalletId = 'enf';
+    reader.notifyListeners();
+    for (int i = 0; i < 20 && !hd.isInitialized; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(hd.mnemonic, _validMnemonic);
+    expect(hd.seedHex, isNotNull);
+
+    reader.wallets = [];
+    reader.notifyListeners();
+
+    expect(hd.isInitialized, isFalse);
+    expect(hd.mnemonic, isNull);
+    expect(hd.seedHex, isNull);
+    expect(hd.masterKey, isNull);
+    expect(hd.error, isNull);
+
+    reader.wallets = [_enforcer(l1Mnemonic: _validMnemonic)];
+    reader.notifyListeners();
+    for (int i = 0; i < 20 && !hd.isInitialized; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(hd.mnemonic, _validMnemonic);
+  });
 }

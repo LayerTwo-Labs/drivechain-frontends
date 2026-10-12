@@ -1269,7 +1269,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  CopyButton(text: k.mnemonic ?? ''),
+                  CopyButton(secret: true, text: k.mnemonic ?? ''),
                   const SizedBox(width: 8),
                   SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop()),
                 ],

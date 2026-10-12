@@ -1100,7 +1100,49 @@ func (o *Orchestrator) prepareEnforcerArgs(opts *StartOpts) {
 		return
 	}
 	opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
-	o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
+	o.log.Info().Strs("enforcer_args", redactArgs(opts.EnforcerArgs)).Msg("auto-built enforcer args from config")
+}
+
+const redactedValue = "<redacted>"
+
+// redactArgs returns a copy of args for log lines, with secret flag values replaced.
+func redactArgs(args []string) []string {
+	out := make([]string, len(args))
+	copy(out, args)
+	for i := 0; i < len(out); i++ {
+		arg := out[i]
+		if !strings.HasPrefix(arg, "-") {
+			continue
+		}
+		flag, _, hasValue := strings.Cut(arg, "=")
+		if !isSecretFlag(strings.TrimLeft(flag, "-")) {
+			continue
+		}
+		if hasValue {
+			out[i] = flag + "=" + redactedValue
+			continue
+		}
+		if i+1 < len(out) && !strings.HasPrefix(out[i+1], "-") {
+			out[i+1] = redactedValue
+			i++
+		}
+	}
+	return out
+}
+
+func isSecretFlag(name string) bool {
+	name = strings.ToLower(name)
+	for _, suffix := range []string{"path", "file", "dir"} {
+		if strings.HasSuffix(name, suffix) {
+			return false
+		}
+	}
+	for _, word := range []string{"pass", "secret", "token", "privkey"} {
+		if strings.Contains(name, word) {
+			return true
+		}
+	}
+	return false
 }
 
 // injectSidechainStarter writes the sidechain seed to a temp file and appends
@@ -1299,7 +1341,7 @@ func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) e
 		added = append(added, arg)
 	}
 	if len(added) > 0 {
-		o.log.Info().Str("binary", cfg.Name).Strs("args", added).
+		o.log.Info().Str("binary", cfg.Name).Strs("args", redactArgs(added)).
 			Msg("auto-built sidechain args from config")
 	}
 	return nil
@@ -1339,7 +1381,7 @@ func (o *Orchestrator) appendSidechainArgs(ctx context.Context, cfg BinaryConfig
 		}
 	}
 	if len(extra) > 0 {
-		o.log.Info().Str("binary", cfg.Name).Strs("args", extra).Msg("sidechain asked for boot arguments")
+		o.log.Info().Str("binary", cfg.Name).Strs("args", redactArgs(extra)).Msg("sidechain asked for boot arguments")
 	}
 	return nil
 }
@@ -1961,7 +2003,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	// prepareEnforcerArgs fires before the seed args are stripped. Helps
 	// diagnose "precisely one of rpc user and cookie must be set" -class errors
 	// (#1712), where the question is whether --node-rpc-user reaches the binary.
-	o.log.Info().Strs("argv", opts.EnforcerArgs).Msg("starting enforcer with final argv")
+	o.log.Info().Strs("argv", redactArgs(opts.EnforcerArgs)).Msg("starting enforcer with final argv")
 
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); errors.Is(err, ErrAlreadyRunning) {
 		return
@@ -2092,7 +2134,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 
 	ch <- StartupProgress{Stage: "starting-" + config.Name, Message: fmt.Sprintf("starting %s...", config.DisplayName)}
-	o.log.Info().Str("binary", config.Name).Strs("args", opts.TargetArgs).Msg("starting target binary")
+	o.log.Info().Str("binary", config.Name).Strs("args", redactArgs(opts.TargetArgs)).Msg("starting target binary")
 
 	targetArgs := append([]string{}, opts.TargetArgs...)
 	targetEnv := map[string]string{}
