@@ -174,6 +174,10 @@ class ChainsConfigProvider extends ChangeNotifier {
     final binaries = _rawConfig['binaries'] as Map<String, dynamic>? ?? {};
     final result = <Binary>[];
     for (final entry in binaries.entries) {
+      // The apps show no external node. Only the orchestrator drives it.
+      if ((entry.value as Map<String, dynamic>)['external'] == true) {
+        continue;
+      }
       try {
         result.add(
           binaryFromJson(entry.key, entry.value as Map<String, dynamic>),
