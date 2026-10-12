@@ -586,6 +586,7 @@ enum BinaryType {
   BINARY_TYPE_LIQUID_SIGNET = 14;
   BINARY_TYPE_BBC = 15;
   BINARY_TYPE_FREEBANK = 16;
+  BINARY_TYPE_SOLANA = 17;
 }
 
 message SidechainStatus {

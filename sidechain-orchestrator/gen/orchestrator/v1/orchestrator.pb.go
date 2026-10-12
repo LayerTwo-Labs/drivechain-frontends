@@ -117,6 +117,7 @@ const (
 	BinaryType_BINARY_TYPE_LIQUID_SIGNET BinaryType = 14
 	BinaryType_BINARY_TYPE_BBC           BinaryType = 15
 	BinaryType_BINARY_TYPE_FREEBANK      BinaryType = 16
+	BinaryType_BINARY_TYPE_SOLANA        BinaryType = 17
 )
 
 // Enum value maps for BinaryType.
@@ -139,6 +140,7 @@ var (
 		14: "BINARY_TYPE_LIQUID_SIGNET",
 		15: "BINARY_TYPE_BBC",
 		16: "BINARY_TYPE_FREEBANK",
+		17: "BINARY_TYPE_SOLANA",
 	}
 	BinaryType_value = map[string]int32{
 		"BINARY_TYPE_UNSPECIFIED":   0,
@@ -158,6 +160,7 @@ var (
 		"BINARY_TYPE_LIQUID_SIGNET": 14,
 		"BINARY_TYPE_BBC":           15,
 		"BINARY_TYPE_FREEBANK":      16,
+		"BINARY_TYPE_SOLANA":        17,
 	}
 )
 
@@ -6221,7 +6224,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x18SIDECHAIN_TYPE_TRUTHCOIN\x10\x05\x12\x19\n" +
 	"\x15SIDECHAIN_TYPE_PHOTON\x10\x06\x12\x1c\n" +
 	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a\x12\x1b\n" +
-	"\x17SIDECHAIN_TYPE_FREEBANK\x10\b*\xc8\x03\n" +
+	"\x17SIDECHAIN_TYPE_FREEBANK\x10\b*\xe0\x03\n" +
 	"\n" +
 	"BinaryType\x12\x1b\n" +
 	"\x17BINARY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
@@ -6241,7 +6244,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x12BINARY_TYPE_ZSIDED\x10\r\x12\x1d\n" +
 	"\x19BINARY_TYPE_LIQUID_SIGNET\x10\x0e\x12\x13\n" +
 	"\x0fBINARY_TYPE_BBC\x10\x0f\x12\x18\n" +
-	"\x14BINARY_TYPE_FREEBANK\x10\x10*\xbe\x01\n" +
+	"\x14BINARY_TYPE_FREEBANK\x10\x10\x12\x16\n" +
+	"\x12BINARY_TYPE_SOLANA\x10\x11*\xbe\x01\n" +
 	"\x12MainchainSyncPhase\x12$\n" +
 	" MAINCHAIN_SYNC_PHASE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cMAINCHAIN_SYNC_PHASE_HEADERS\x10\x01\x12\x1e\n" +
