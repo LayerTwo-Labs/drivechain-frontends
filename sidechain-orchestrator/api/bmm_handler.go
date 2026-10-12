@@ -88,6 +88,8 @@ type BMMHandler struct {
 	core CoreRawCaller
 	// chainTip reads the mainchain tip. A test supplies its own.
 	chainTip func(context.Context) (string, error)
+	// syncStatus reads the sync status. A test supplies its own.
+	syncStatus func(context.Context) (*orchestrator.SyncStatus, error)
 
 	splitMu sync.Mutex
 	// splits names the coin split each wallet waits for. Bitcoin Core lists no
@@ -144,7 +146,11 @@ func (h *BMMHandler) mainchainTip(ctx context.Context) (string, error) {
 // controls unlock: GetSyncStatus fills the enforcer's Headers from the
 // mainchain tip, leaving Blocks == Headers as "level with Core".
 func (h *BMMHandler) requireEnforcerSynced(ctx context.Context) error {
-	status, err := h.orch.GetSyncStatus(ctx)
+	read := h.orch.GetSyncStatus
+	if h.syncStatus != nil {
+		read = h.syncStatus
+	}
+	status, err := read(ctx)
 	if err != nil {
 		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read sync status: %w", err))
 	}
