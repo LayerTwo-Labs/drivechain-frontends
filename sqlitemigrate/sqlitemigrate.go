@@ -62,13 +62,27 @@ func Run(ctx context.Context, db *sql.DB, fsys fs.FS, dir string) ([]string, err
 		if err != nil {
 			return applied, fmt.Errorf("read migration %s: %w", name, err)
 		}
-		if _, err := db.ExecContext(ctx, string(body)); err != nil {
-			return applied, fmt.Errorf("apply migration %s: %w", name, err)
-		}
-		if _, err := db.ExecContext(ctx, `REPLACE INTO migrations (id, latest_version) VALUES (1, ?)`, name); err != nil {
-			return applied, fmt.Errorf("record migration %s: %w", name, err)
+		if err := applyOne(ctx, db, name, string(body)); err != nil {
+			return applied, err
 		}
 		applied = append(applied, name)
 	}
 	return applied, nil
+}
+
+func applyOne(ctx context.Context, db *sql.DB, name, body string) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin migration %s: %w", name, err)
+	}
+	if _, err := tx.ExecContext(ctx, body); err != nil {
+		return errors.Join(fmt.Errorf("apply migration %s: %w", name, err), tx.Rollback())
+	}
+	if _, err := tx.ExecContext(ctx, `REPLACE INTO migrations (id, latest_version) VALUES (1, ?)`, name); err != nil {
+		return errors.Join(fmt.Errorf("record migration %s: %w", name, err), tx.Rollback())
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit migration %s: %w", name, err)
+	}
+	return nil
 }
