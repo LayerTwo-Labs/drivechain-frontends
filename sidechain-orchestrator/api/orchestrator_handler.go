@@ -595,6 +595,8 @@ func binaryTypeFromName(name string) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_BBC
 	case "freebank":
 		return pb.BinaryType_BINARY_TYPE_FREEBANK
+	case "solana":
+		return pb.BinaryType_BINARY_TYPE_SOLANA
 	case "thunder":
 		return pb.BinaryType_BINARY_TYPE_THUNDER
 	case "zside":
@@ -699,6 +701,8 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 		return "bbc", "Big Block Covenant", nil
 	case pb.BinaryType_BINARY_TYPE_FREEBANK:
 		return "freebank", "FreeBank", nil
+	case pb.BinaryType_BINARY_TYPE_SOLANA:
+		return "solana", "Solana", nil
 	default:
 		return "", "", fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
