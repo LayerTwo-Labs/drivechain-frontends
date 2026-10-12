@@ -6,6 +6,9 @@ on:
       - "bitwindow/server/**"
       - "sidechain-orchestrator/**"
       - "dc-hub/server/**"
+      - "sqlitemigrate/**"
+      - "coinnews/codec/**"
+      - "coinnews/server/**"
       - "sidechain_core/assets/chains_config.json"
       - ".github/workflows/go.yml"
 
@@ -37,6 +40,9 @@ jobs:
           - bitwindow/server
           - sidechain-orchestrator
           - dc-hub/server
+          - sqlitemigrate
+          - coinnews/codec
+          - coinnews/server
         include:
           - module: bitwindow/server
             install-sqlite: true

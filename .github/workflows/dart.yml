@@ -58,10 +58,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Check migration registrations
-        if: matrix.package == 'sidechain_core'
-        run: ../scripts/check-migrations.sh
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
