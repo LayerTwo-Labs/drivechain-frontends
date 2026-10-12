@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:connectrpc/connect.dart' show Code, ConnectException;
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
@@ -2114,6 +2115,9 @@ class _MultisigAPILive implements MultisigAPI {
         multisigpb.GetTransactionRequest(transactionId: transactionId),
       );
     } catch (e) {
+      if (e is ConnectException && e.code == Code.notFound) {
+        rethrow;
+      }
       throw MultisigException('could not get transaction: ${extractConnectException(e)}');
     }
   }
@@ -2125,6 +2129,9 @@ class _MultisigAPILive implements MultisigAPI {
         multisigpb.GetTransactionByTxidRequest(txid: txid),
       );
     } catch (e) {
+      if (e is ConnectException && e.code == Code.notFound) {
+        rethrow;
+      }
       throw MultisigException('could not get transaction by txid: ${extractConnectException(e)}');
     }
   }

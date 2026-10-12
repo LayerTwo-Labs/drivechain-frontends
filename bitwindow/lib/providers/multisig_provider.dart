@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
+import 'package:connectrpc/connect.dart' show Code, ConnectException;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -128,55 +129,11 @@ class PSBTValidator {
 
   /// Checks if any partial signatures are present on the PSBT.
   static Future<bool> hasAnySignatures(String psbtBase64, int totalKeysInGroup) async {
-    try {
-      final res = await _validate(psbtBase64, totalKeysInGroup);
-      if (res.error.isNotEmpty) {
-        return false;
-      }
-      return res.hasSignatures;
-    } catch (e) {
-      GetIt.I.get<Logger>().e('Error in hasAnySignatures: $e');
-      return false;
+    final res = await _validate(psbtBase64, totalKeysInGroup);
+    if (res.error.isNotEmpty) {
+      throw Exception('invalid PSBT: ${res.error}');
     }
-  }
-
-  /// Checks if the PSBT has at least requiredSigs signatures (or is finalizable).
-  static Future<bool> hasValidSignatures(String psbtBase64, int requiredSigs, {int? totalKeys}) async {
-    try {
-      final res = await _validate(psbtBase64, requiredSigs);
-      if (res.error.isNotEmpty) {
-        return false;
-      }
-      return res.finalizable || res.signatureCount >= requiredSigs;
-    } catch (e) {
-      GetIt.I.get<Logger>().e('Error checking valid signatures: $e');
-      return false;
-    }
-  }
-
-  static Future<bool> isReadyForBroadcast(String psbtBase64, int requiredSigs) async {
-    try {
-      final res = await _validate(psbtBase64, requiredSigs);
-      if (res.error.isNotEmpty) {
-        return false;
-      }
-      return res.finalizable;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  static Future<int> countSignatures(String psbtBase64, {int? totalKeys}) async {
-    try {
-      final res = await _validate(psbtBase64, totalKeys ?? 0);
-      if (res.error.isNotEmpty) {
-        return 0;
-      }
-      return res.signatureCount;
-    } catch (e) {
-      GetIt.I.get<Logger>().e('Error counting signatures: $e');
-      return 0;
-    }
+    return res.hasSignatures;
   }
 }
 
@@ -463,8 +420,11 @@ class TransactionStorage {
     try {
       final pb = await _api.getTransaction(transactionId);
       return _protoToTransaction(pb);
-    } catch (e) {
-      return null;
+    } on ConnectException catch (e) {
+      if (e.code == Code.notFound) {
+        return null;
+      }
+      rethrow;
     }
   }
 
@@ -477,8 +437,11 @@ class TransactionStorage {
     try {
       final pb = await _api.getTransactionByTxid(txid);
       return _protoToTransaction(pb);
-    } catch (e) {
-      return null;
+    } on ConnectException catch (e) {
+      if (e.code == Code.notFound) {
+        return null;
+      }
+      rethrow;
     }
   }
 
@@ -544,41 +507,37 @@ class TransactionStorage {
     String initialPSBT,
     String signedPSBT,
   ) async {
-    try {
-      final groups = await MultisigStorage.loadGroups();
-      bool groupUpdated = false;
+    final groups = await MultisigStorage.loadGroups();
+    bool groupUpdated = false;
 
-      final updatedGroups = groups.map((group) {
-        if (group.transactionIds.contains(transactionId)) {
-          final updatedKeys = group.keys.map((key) {
-            if (key.xpub == keyId && key.isWallet) {
-              final currentActivePSBTs = Map<String, String>.from(key.activePSBTs ?? {});
-              final currentInitialPSBTs = Map<String, String>.from(key.initialPSBTs ?? {});
+    final updatedGroups = groups.map((group) {
+      if (group.transactionIds.contains(transactionId)) {
+        final updatedKeys = group.keys.map((key) {
+          if (key.xpub == keyId && key.isWallet) {
+            final currentActivePSBTs = Map<String, String>.from(key.activePSBTs ?? {});
+            final currentInitialPSBTs = Map<String, String>.from(key.initialPSBTs ?? {});
 
-              currentActivePSBTs[transactionId] = signedPSBT;
-              currentInitialPSBTs[transactionId] = initialPSBT;
+            currentActivePSBTs[transactionId] = signedPSBT;
+            currentInitialPSBTs[transactionId] = initialPSBT;
 
-              groupUpdated = true;
-              return key.copyWith(
-                activePSBTs: currentActivePSBTs,
-                initialPSBTs: currentInitialPSBTs,
-              );
-            }
-            return key;
-          }).toList();
-
-          if (groupUpdated) {
-            return group.copyWith(keys: updatedKeys);
+            groupUpdated = true;
+            return key.copyWith(
+              activePSBTs: currentActivePSBTs,
+              initialPSBTs: currentInitialPSBTs,
+            );
           }
-        }
-        return group;
-      }).toList();
+          return key;
+        }).toList();
 
-      if (groupUpdated) {
-        await MultisigStorage.saveGroups(updatedGroups);
+        if (groupUpdated) {
+          return group.copyWith(keys: updatedKeys);
+        }
       }
-    } catch (e) {
-      GetIt.I.get<Logger>().e('Failed to store PSBT data: $e');
+      return group;
+    }).toList();
+
+    if (groupUpdated) {
+      await MultisigStorage.saveGroups(updatedGroups);
     }
   }
 

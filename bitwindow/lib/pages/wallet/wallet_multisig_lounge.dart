@@ -1214,7 +1214,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   Future<Map<String, String>?> _tryDeriveKeyAtIndex(MultisigKey targetKey, String mnemonic, int accountIndex) async {
     try {
-      bool isMainnet = false;
+      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
       final keyInfo = await _hdWalletProvider.generateWalletXpub(accountIndex, isMainnet);
 
       if (keyInfo.isEmpty || keyInfo['xpub'] == null) {

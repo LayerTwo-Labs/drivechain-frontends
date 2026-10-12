@@ -753,7 +753,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
     if (!_isValidMnemonic(_mnemonicController.text)) {
       if (mounted) {
-        setState(() => _error = 'Invalid mnemonic format. Please enter 12 or 24 words.');
+        setState(() => _error = 'Invalid mnemonic format. Enter 12, 15, 18, 21 or 24 words.');
       }
       return;
     }
@@ -784,7 +784,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   bool _isValidMnemonic(String mnemonic) {
     final words = mnemonic.trim().split(RegExp(r'\s+'));
-    return words.length == 12 || words.length == 24;
+    return const {12, 15, 18, 21, 24}.contains(words.length);
   }
 
   void _handleContinue() {

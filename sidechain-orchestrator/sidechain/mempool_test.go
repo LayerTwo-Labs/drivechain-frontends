@@ -3,6 +3,7 @@ package sidechain
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 )
 
 // fakeNode answers the mempool listing and counts each template request.
@@ -21,6 +24,7 @@ type fakeNode struct {
 	addresses string
 	utxos     string
 	stxos     string
+	missing   error
 	called    []string
 }
 
@@ -41,7 +45,28 @@ func (n *fakeNode) CallRaw(_ context.Context, method string, _ any) (json.RawMes
 	if method == "get_stxos" && n.stxos != "" {
 		return json.RawMessage(n.stxos), nil
 	}
+	if n.missing != nil {
+		return nil, n.missing
+	}
 	return nil, fmt.Errorf("this node serves no %s", method)
+}
+
+// methodNotFound is the error a real node gives for a method it does not serve.
+func methodNotFound(t *testing.T) error {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"Method not found"}}`))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(srv.Close)
+	host, portText, err := net.SplitHostPort(srv.Listener.Addr().String())
+	require.NoError(t, err)
+	port, err := strconv.Atoi(portText)
+	require.NoError(t, err)
+
+	_, err = NewJSONRPCProxy(host, port).CallRaw(t.Context(), "list_mempool", nil)
+	require.True(t, rpc.LacksMethod(err))
+	return err
 }
 
 func (n *fakeNode) GetBlockTemplate(_ context.Context) (*BlockTemplate, error) {
@@ -59,7 +84,8 @@ const listMempoolAnswer = `[
 func TestMempoolReadsTheNodeListing(t *testing.T) {
 	node := &fakeNode{mempool: listMempoolAnswer}
 
-	txs := Mempool(context.Background(), node)
+	txs, err := Mempool(context.Background(), node)
+	require.NoError(t, err)
 	require.Len(t, txs, 1)
 	assert.Equal(t, "aa", txs[0].Txid)
 	assert.Equal(t, int64(240), txs[0].SizeBytes)
@@ -70,10 +96,25 @@ func TestMempoolReadsTheNodeListing(t *testing.T) {
 // A thunder node stops its wallet update task when it serves a template, so
 // a node with no list_mempool gets no template request.
 func TestMempoolAsksNoTemplateWithoutTheNodeListing(t *testing.T) {
-	node := &fakeNode{}
+	node := &fakeNode{missing: methodNotFound(t)}
 
-	assert.Empty(t, Mempool(context.Background(), node))
+	txs, err := Mempool(t.Context(), node)
+	require.NoError(t, err)
+	assert.Empty(t, txs)
 	assert.Equal(t, []string{"list_mempool"}, node.called)
+}
+
+func TestMempoolReportsAFault(t *testing.T) {
+	for name, node := range map[string]*fakeNode{
+		"node error": {missing: errors.New("connection reset by peer")},
+		"bad reply":  {mempool: `{"not":"a list"}`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			txs, err := Mempool(t.Context(), node)
+			require.ErrorContains(t, err, "read the mempool")
+			assert.Nil(t, txs)
+		})
+	}
 }
 
 func TestMempoolReadsThunderInputPairs(t *testing.T) {
@@ -83,7 +124,8 @@ func TestMempoolReadsThunderInputPairs(t *testing.T) {
 	],"outputs":[{"address":"mine","content":{"Value":9000}}]}`
 	node := &fakeNode{mempool: `[{"txid":"spend","size":240,"tx":` + transaction + `}]`}
 
-	txs := Mempool(context.Background(), node)
+	txs, err := Mempool(context.Background(), node)
+	require.NoError(t, err)
 	require.Len(t, txs, 1)
 	assert.Equal(t, "spend", txs[0].Txid)
 	assert.Equal(t, []MempoolInput{{Key: "old:2"}, {Key: "maintxid:0"}}, txs[0].Inputs)
@@ -170,7 +212,8 @@ func TestWithMempoolUTXOsAppendsTheUnconfirmedCoins(t *testing.T) {
 	confirmed := json.RawMessage(`[{"outpoint":{"Regular":{"txid":"old","vout":0}},` +
 		`"output":{"address":"mine","content":{"Value":2000}}}]`)
 
-	merged := WithMempoolUTXOs(context.Background(), node, confirmed)
+	merged, err := WithMempoolUTXOs(context.Background(), node, confirmed)
+	require.NoError(t, err)
 	var rows []map[string]any
 	require.NoError(t, json.Unmarshal(merged, &rows))
 	require.Len(t, rows, 2, "the mined coin keeps its place, and the new one follows")
@@ -186,10 +229,31 @@ func TestWithMempoolUTXOsAppendsTheUnconfirmedCoins(t *testing.T) {
 }
 
 func TestWithMempoolUTXOsKeepsTheListingWhenTheWalletHasNoAddress(t *testing.T) {
-	node := &fakeNode{mempool: listMempoolAnswer}
 	confirmed := json.RawMessage(`[{"outpoint":{"Regular":{"txid":"old","vout":0}}}]`)
+	for name, node := range map[string]*fakeNode{
+		"empty address list": {mempool: listMempoolAnswer, addresses: `[]`},
+		"no address method":  {mempool: listMempoolAnswer, missing: methodNotFound(t)},
+		"no mempool method":  {addresses: `["mine"]`, missing: methodNotFound(t)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			merged, err := WithMempoolUTXOs(t.Context(), node, confirmed)
+			require.NoError(t, err)
+			assert.JSONEq(t, string(confirmed), string(merged))
+		})
+	}
+}
 
-	assert.JSONEq(t, string(confirmed), string(WithMempoolUTXOs(context.Background(), node, confirmed)))
+func TestWithMempoolUTXOsReportsAMempoolFault(t *testing.T) {
+	for name, node := range map[string]*fakeNode{
+		"node error": {addresses: `["mine"]`, missing: errors.New("context deadline exceeded")},
+		"bad reply":  {addresses: `["mine"]`, mempool: `not json`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			merged, err := WithMempoolUTXOs(t.Context(), node, json.RawMessage(`[]`))
+			require.ErrorContains(t, err, "read the mempool")
+			assert.Nil(t, merged)
+		})
+	}
 }
 
 // A wallet can hold a deposit coin as well as a regular one, so both count.
@@ -205,7 +269,8 @@ func TestSpendsNamesEveryCoinAnInputTakes(t *testing.T) {
 	     "outputs":[{"address":"mine","content":{"Value":10}}]}}
 	]`}
 
-	txs := Mempool(context.Background(), node)
+	txs, err := Mempool(context.Background(), node)
+	require.NoError(t, err)
 	require.Len(t, txs[0].Inputs, 2, "a regular input and a deposit both name a coin")
 	assert.Equal(t, MempoolInput{Key: "old:2"}, txs[0].Inputs[0])
 }
@@ -308,7 +373,9 @@ func TestWithMempoolUTXOsDropsWhatTheMempoolSpends(t *testing.T) {
 	]`)
 
 	var rows []map[string]any
-	require.NoError(t, json.Unmarshal(WithMempoolUTXOs(context.Background(), node, confirmed), &rows))
+	merged, err := WithMempoolUTXOs(context.Background(), node, confirmed)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(merged, &rows))
 
 	keys := make([]string, 0, len(rows))
 	for _, row := range rows {
@@ -334,8 +401,9 @@ func TestWithMempoolUTXOsDropsAParentOutputAChildSpends(t *testing.T) {
 	}
 
 	var rows []map[string]any
-	require.NoError(t, json.Unmarshal(
-		WithMempoolUTXOs(context.Background(), node, json.RawMessage(`[]`)), &rows))
+	merged, err := WithMempoolUTXOs(context.Background(), node, json.RawMessage(`[]`))
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(merged, &rows))
 	require.Len(t, rows, 1)
 	key, ok := outpointKey(mustJSON(t, rows[0]))
 	require.True(t, ok)
@@ -362,7 +430,8 @@ func TestDeltaDoesNotCreditAWithdrawal(t *testing.T) {
 		    ]}}]`,
 	}
 
-	txs := Mempool(context.Background(), node)
+	txs, err := Mempool(context.Background(), node)
+	require.NoError(t, err)
 	require.True(t, txs[0].Outputs[0].Withdrawal)
 	require.False(t, txs[0].Outputs[1].Withdrawal)
 
@@ -383,8 +452,9 @@ func TestWithMempoolUTXOsSkipsAWithdrawalOutput(t *testing.T) {
 	}
 
 	var rows []map[string]any
-	require.NoError(t, json.Unmarshal(
-		WithMempoolUTXOs(context.Background(), node, json.RawMessage(`[]`)), &rows))
+	merged, err := WithMempoolUTXOs(context.Background(), node, json.RawMessage(`[]`))
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(merged, &rows))
 	require.Len(t, rows, 1)
 	key, ok := outpointKey(mustJSON(t, rows[0]))
 	require.True(t, ok)

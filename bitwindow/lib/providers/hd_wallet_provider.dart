@@ -210,15 +210,20 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
     }
   }
 
-  bool _canDeriveChild(String extendedKey) {
-    try {
-      final chain = Chain.import(extendedKey);
-      final childKey = chain.forPath('0/0');
-      childKey.publicKey();
-      return true;
-    } catch (e) {
-      return false;
+  String _withVersion(String extendedKey, int version) {
+    final decoded = base58.decode(extendedKey);
+    if (decoded.length != 82) {
+      throw FormatException('extended key has ${decoded.length} bytes, want 82');
     }
+    decoded[0] = (version >> 24) & 0xff;
+    decoded[1] = (version >> 16) & 0xff;
+    decoded[2] = (version >> 8) & 0xff;
+    decoded[3] = version & 0xff;
+
+    final sha256Digest = SHA256Digest();
+    final checksum = sha256Digest.process(sha256Digest.process(decoded.sublist(0, 78))).sublist(0, 4);
+    decoded.setRange(78, 82, checksum);
+    return base58.encode(decoded);
   }
 
   Future<Map<String, String>> deriveExtendedKeyInfo(
@@ -227,193 +232,84 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
     bool isMainnet = false,
     String passphrase = '',
   ]) async {
-    try {
-      String adjustedPath = path;
-      if (isMainnet && path.contains("'1'/")) {
-        adjustedPath = path.replaceAll("'1'/", "'0'/");
-      } else if (!isMainnet && path.contains("'0'/")) {
-        adjustedPath = path.replaceAll("'0'/", "'1'/");
-      }
+    final mnemonicObj = Mnemonic.fromSentence(
+      mnemonic,
+      Language.english,
+      passphrase: passphrase,
+    );
+    final seedHex = hex.encode(mnemonicObj.seed);
+    final chain = Chain.seed(seedHex);
 
-      final mnemonicObj = Mnemonic.fromSentence(
-        mnemonic,
-        Language.english,
-        passphrase: passphrase,
-      );
-      final seedHex = hex.encode(mnemonicObj.seed);
-      final chain = Chain.seed(seedHex);
-
-      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
-      final masterPubKey = masterKey.publicKey();
-      final masterQ = masterPubKey.q;
-      if (masterQ == null) {
-        return {};
-      }
-
-      final masterPubBytes = masterQ.getEncoded(true);
-      final fingerprintBytes = hash160(Uint8List.fromList(masterPubBytes));
-      final fingerprint = hex.encode(fingerprintBytes.sublist(0, 4));
-
-      final extendedPrivateKey = chain.forPath(adjustedPath) as ExtendedPrivateKey;
-      final extendedPublicKey = extendedPrivateKey.publicKey();
-
-      var xprv = extendedPrivateKey.toString();
-      var xpub = extendedPublicKey.toString();
-
-      if (!isMainnet && xpub.startsWith('xpub')) {
-        try {
-          final decoded = base58.decode(xpub);
-          if (decoded.length == 82) {
-            decoded[0] = 0x04;
-            decoded[1] = 0x35;
-            decoded[2] = 0x87;
-            decoded[3] = 0xcf;
-
-            final payload = decoded.sublist(0, 78);
-            final sha256Digest = SHA256Digest();
-            final hash1 = sha256Digest.process(payload);
-            final hash2 = sha256Digest.process(hash1);
-            final newChecksum = hash2.sublist(0, 4);
-
-            decoded.setRange(78, 82, newChecksum);
-            xpub = base58.encode(decoded);
-          }
-        } catch (e) {
-          // do nothing
-        }
-
-        if (xprv.startsWith('xprv')) {
-          try {
-            final decodedPriv = base58.decode(xprv);
-            if (decodedPriv.length == 82) {
-              decodedPriv[0] = 0x04;
-              decodedPriv[1] = 0x35;
-              decodedPriv[2] = 0x83;
-              decodedPriv[3] = 0x94;
-
-              // Recalculate checksum
-              final payload = decodedPriv.sublist(0, 78);
-              final sha256Digest = SHA256Digest();
-              final hash1 = sha256Digest.process(payload);
-              final hash2 = sha256Digest.process(hash1);
-              final newChecksum = hash2.sublist(0, 4);
-
-              decodedPriv.setRange(78, 82, newChecksum);
-              xprv = base58.encode(decodedPriv);
-            }
-          } catch (e) {
-            // do nothing
-          }
-        }
-      } else if (isMainnet && xpub.startsWith('tpub')) {
-        try {
-          final decoded = base58.decode(xpub);
-          if (decoded.length == 82) {
-            decoded[0] = 0x04;
-            decoded[1] = 0x88;
-            decoded[2] = 0xb2;
-            decoded[3] = 0x1e;
-
-            final payload = decoded.sublist(0, 78);
-            final sha256Digest = SHA256Digest();
-            final hash1 = sha256Digest.process(payload);
-            final hash2 = sha256Digest.process(hash1);
-            final newChecksum = hash2.sublist(0, 4);
-
-            decoded.setRange(78, 82, newChecksum);
-            xpub = base58.encode(decoded);
-          }
-        } catch (e) {
-          // do nothing
-        }
-
-        if (xprv.startsWith('tprv')) {
-          try {
-            final decodedPriv = base58.decode(xprv);
-            if (decodedPriv.length == 82) {
-              decodedPriv[0] = 0x04;
-              decodedPriv[1] = 0x88;
-              decodedPriv[2] = 0xad;
-              decodedPriv[3] = 0xe4;
-
-              // Recalculate checksum
-              final payload = decodedPriv.sublist(0, 78);
-              final sha256Digest = SHA256Digest();
-              final hash1 = sha256Digest.process(payload);
-              final hash2 = sha256Digest.process(hash1);
-              final newChecksum = hash2.sublist(0, 4);
-
-              decodedPriv.setRange(78, 82, newChecksum);
-              xprv = base58.encode(decodedPriv);
-            }
-          } catch (e) {
-            // do nothing
-          }
-        }
-      }
-
-      if (!_validateExtendedKey(xpub)) {
-        throw Exception('Generated extended key is invalid');
-      }
-
-      if (isMainnet || xpub.startsWith('xpub')) {
-        if (!_canDeriveChild(xpub)) {}
-      }
-      final q = extendedPublicKey.q;
-      if (q == null) {
-        return {};
-      }
-      final pubKeyBytes = q.getEncoded(true);
-      final pubKeyHex = hex.encode(pubKeyBytes);
-
-      final pubKeyHash = hash160(Uint8List.fromList(pubKeyBytes));
-      final versionedHash = Uint8List(21);
-      versionedHash[0] = isMainnet ? 0x00 : 0x6F;
-      versionedHash.setRange(1, 21, pubKeyHash);
-
-      final sha256Digest = SHA256Digest();
-      final hash1 = sha256Digest.process(versionedHash);
-      final hash2 = sha256Digest.process(hash1);
-      final checksum = hash2.sublist(0, 4);
-
-      final addressBytes = Uint8List(25);
-      addressBytes.setRange(0, 21, versionedHash);
-      addressBytes.setRange(21, 25, checksum);
-      final address = base58.encode(addressBytes);
-
-      final privateKeyHex = extendedPrivateKey.privateKeyHex();
-      final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
-      final privateKeyBytes = hex.decode(cleanHex);
-
-      final wifBuffer = Uint8List(34);
-      wifBuffer[0] = isMainnet ? 0x80 : 0xEF;
-      wifBuffer.setRange(1, 33, privateKeyBytes);
-      wifBuffer[33] = 0x01;
-
-      final wifHash1 = sha256Digest.process(wifBuffer);
-      final wifHash2 = sha256Digest.process(wifHash1);
-      final wifChecksum = wifHash2.sublist(0, 4);
-
-      final wifBytes = Uint8List(38);
-      wifBytes.setRange(0, 34, wifBuffer);
-      wifBytes.setRange(34, 38, wifChecksum);
-      final wif = base58.encode(wifBytes);
-
-      return {
-        'xprv': xprv,
-        'xpub': xpub,
-        'fingerprint': fingerprint,
-        'privateKey': privateKeyHex,
-        'publicKey': pubKeyHex,
-        'address': address,
-        'wif': wif,
-        // The path the key was actually derived from (after any network fixup),
-        // so callers store an origin that matches the derived xpub.
-        'derivation_path': adjustedPath,
-      };
-    } catch (e) {
-      return {};
+    final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+    final masterQ = masterKey.publicKey().q;
+    if (masterQ == null) {
+      throw StateError('master public key has no point');
     }
+
+    final masterPubBytes = masterQ.getEncoded(true);
+    final fingerprintBytes = hash160(Uint8List.fromList(masterPubBytes));
+    final fingerprint = hex.encode(fingerprintBytes.sublist(0, 4));
+
+    final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
+    final extendedPublicKey = extendedPrivateKey.publicKey();
+
+    final xpub = _withVersion(extendedPublicKey.toString(), isMainnet ? 0x0488b21e : 0x043587cf);
+    final xprv = _withVersion(extendedPrivateKey.toString(), isMainnet ? 0x0488ade4 : 0x04358394);
+
+    if (!_validateExtendedKey(xpub)) {
+      throw Exception('Generated extended key is invalid');
+    }
+
+    final q = extendedPublicKey.q;
+    if (q == null) {
+      throw StateError('public key at $path has no point');
+    }
+    final pubKeyBytes = q.getEncoded(true);
+    final pubKeyHex = hex.encode(pubKeyBytes);
+
+    final pubKeyHash = hash160(Uint8List.fromList(pubKeyBytes));
+    final versionedHash = Uint8List(21);
+    versionedHash[0] = isMainnet ? 0x00 : 0x6F;
+    versionedHash.setRange(1, 21, pubKeyHash);
+
+    final sha256Digest = SHA256Digest();
+    final hash1 = sha256Digest.process(versionedHash);
+    final hash2 = sha256Digest.process(hash1);
+    final checksum = hash2.sublist(0, 4);
+
+    final addressBytes = Uint8List(25);
+    addressBytes.setRange(0, 21, versionedHash);
+    addressBytes.setRange(21, 25, checksum);
+    final address = base58.encode(addressBytes);
+
+    final privateKeyHex = extendedPrivateKey.privateKeyHex();
+    final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
+    final privateKeyBytes = hex.decode(cleanHex);
+
+    final wifBuffer = Uint8List(34);
+    wifBuffer[0] = isMainnet ? 0x80 : 0xEF;
+    wifBuffer.setRange(1, 33, privateKeyBytes);
+    wifBuffer[33] = 0x01;
+
+    final wifHash1 = sha256Digest.process(wifBuffer);
+    final wifHash2 = sha256Digest.process(wifHash1);
+    final wifChecksum = wifHash2.sublist(0, 4);
+
+    final wifBytes = Uint8List(38);
+    wifBytes.setRange(0, 34, wifBuffer);
+    wifBytes.setRange(34, 38, wifChecksum);
+    final wif = base58.encode(wifBytes);
+
+    return {
+      'xprv': xprv,
+      'xpub': xpub,
+      'fingerprint': fingerprint,
+      'privateKey': privateKeyHex,
+      'publicKey': pubKeyHex,
+      'address': address,
+      'wif': wif,
+      'derivation_path': path,
+    };
   }
 
   Future<Map<String, String>> generateWalletXpub(
@@ -424,10 +320,6 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
     final path = "m/84'/$coinType/$accountIndex'";
 
     final info = await deriveExtendedKeyInfo(_mnemonic ?? '', path, isMainnet);
-
-    if (info.isEmpty) {
-      return {};
-    }
 
     final originPath = path.replaceFirst('m/', '');
     info['xpub_with_origin'] = "[${info['fingerprint']}/$originPath]${info['xpub']}";

@@ -38,9 +38,8 @@ type MempoolTx struct {
 //
 // The block template holds the same transactions, and it is not read here:
 // a thunder node stops its wallet update task when it serves one.
-func Mempool(ctx context.Context, node Node) []MempoolTx {
-	txs, _ := listMempool(ctx, node)
-	return txs
+func Mempool(ctx context.Context, node Node) ([]MempoolTx, error) {
+	return listMempool(ctx, node)
 }
 
 // MempoolDelta is what the mempool does to this wallet, in sats.
@@ -239,12 +238,18 @@ func (w withdrawalAmounts) total() int64 {
 	return max(w.Value, w.ValueSats) + max(w.MainFee, w.MainFeeSats)
 }
 
-// listMempool reads the node's own mempool listing. It answers false on a
-// node that serves no such method.
-func listMempool(ctx context.Context, node Node) ([]MempoolTx, bool) {
+// listMempool reads the node's own mempool listing. A node that serves no
+// such method answers nothing.
+func listMempool(ctx context.Context, node Node) ([]MempoolTx, error) {
 	raw, err := node.CallRaw(ctx, "list_mempool", nil)
-	if err != nil || len(raw) == 0 || string(raw) == "null" {
-		return nil, false
+	if rpc.LacksMethod(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read the mempool: %w", err)
+	}
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
 	}
 	var rows []struct {
 		Txid string      `json:"txid"`
@@ -252,7 +257,7 @@ func listMempool(ctx context.Context, node Node) ([]MempoolTx, bool) {
 		Tx   mempoolBody `json:"tx"`
 	}
 	if err := json.Unmarshal(raw, &rows); err != nil {
-		return nil, false
+		return nil, fmt.Errorf("read the mempool: %w", err)
 	}
 	out := make([]MempoolTx, 0, len(rows))
 	for _, row := range rows {
@@ -263,7 +268,7 @@ func listMempool(ctx context.Context, node Node) ([]MempoolTx, bool) {
 			Outputs:   row.Tx.outputs(),
 		})
 	}
-	return out, true
+	return out, nil
 }
 
 // WithMempoolUTXOs appends the wallet's unconfirmed coins to a node's own
@@ -271,18 +276,27 @@ func listMempool(ctx context.Context, node Node) ([]MempoolTx, bool) {
 //
 // Only a node that names its mempool txids contributes rows: a coin with no
 // outpoint is not a coin. The balance counts those payments regardless.
-func WithMempoolUTXOs(ctx context.Context, node Node, confirmed json.RawMessage) json.RawMessage {
+func WithMempoolUTXOs(ctx context.Context, node Node, confirmed json.RawMessage) (json.RawMessage, error) {
 	owned, err := WalletAddresses(ctx, node)
-	if err != nil || len(owned) == 0 {
-		return confirmed
+	if rpc.LacksMethod(err) {
+		return confirmed, nil
 	}
-	txs := Mempool(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+	if len(owned) == 0 {
+		return confirmed, nil
+	}
+	txs, err := Mempool(ctx, node)
+	if err != nil {
+		return nil, err
+	}
 	rows := mempoolUTXORows(OwnedOutputs(txs, owned))
 
 	var listing []json.RawMessage
 	if len(confirmed) > 0 {
 		if err := json.Unmarshal(confirmed, &listing); err != nil {
-			return confirmed
+			return nil, fmt.Errorf("read the wallet coins: %w", err)
 		}
 	}
 	// A coin an unconfirmed transaction spends is no longer spendable, so it
@@ -291,9 +305,9 @@ func WithMempoolUTXOs(ctx context.Context, node Node, confirmed json.RawMessage)
 	kept := dropSpent(append(listing, rows...), spentKeys(txs))
 	merged, err := json.Marshal(kept)
 	if err != nil {
-		return confirmed
+		return nil, fmt.Errorf("write the wallet coins: %w", err)
 	}
-	return merged
+	return merged, nil
 }
 
 // spentKeys names every coin the mempool spends.

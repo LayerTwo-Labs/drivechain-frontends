@@ -122,6 +122,7 @@ func TestOverviewWalksPastTheBlockWindowForRows(t *testing.T) {
 		count: tip + 1,
 		answers: map[string]string{
 			"get_best_sidechain_block_hash": `"b39"`,
+			"list_mempool":                  `[]`,
 		},
 		byHash: map[string]string{},
 		index:  map[string]string{},
@@ -165,6 +166,7 @@ func TestOverviewStopsAtTheScanDepth(t *testing.T) {
 		count: height + 1,
 		answers: map[string]string{
 			"get_best_sidechain_block_hash": `"b0"`,
+			"list_mempool":                  `[]`,
 		},
 		byHash: map[string]string{},
 		index:  map[string]string{},
@@ -195,6 +197,7 @@ func TestOverviewAsksNoBlockTemplate(t *testing.T) {
 		count: 1,
 		answers: map[string]string{
 			"get_best_sidechain_block_hash": `"b0"`,
+			"list_mempool":                  `[]`,
 		},
 		byHash: map[string]string{
 			"b0": `{"header":{"merkle_root":"m","prev_main_hash":"x"},"body":{"transactions":[]}}`,
@@ -303,7 +306,7 @@ func TestOverviewResolvesOnlyTheBlocksThePageUses(t *testing.T) {
 	const tip = 39
 	node := &recordingNode{
 		count:   tip + 1,
-		answers: map[string]string{"get_best_sidechain_block_hash": `"b39"`},
+		answers: map[string]string{"get_best_sidechain_block_hash": `"b39"`, "list_mempool": `[]`},
 		byHash:  map[string]string{},
 		index:   map[string]string{},
 	}
@@ -387,7 +390,7 @@ func TestOverviewStopsAtTheStripWithoutABlockIndex(t *testing.T) {
 	const tip = 99
 	node := &recordingNode{
 		count:   tip + 1,
-		answers: map[string]string{"get_best_sidechain_block_hash": `"b99"`},
+		answers: map[string]string{"get_best_sidechain_block_hash": `"b99"`, "list_mempool": `[]`},
 		byHash:  map[string]string{},
 		index:   map[string]string{},
 	}
