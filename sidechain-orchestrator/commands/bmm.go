@@ -39,6 +39,8 @@ func sidechainType(name string) (pb.BinaryType, error) {
 	return pb.BinaryType(value), nil
 }
 
+var walletFlag = &cli.StringFlag{Name: "wallet", Usage: "id of the wallet that pays the bids (default: the active wallet)"}
+
 // Flags go before the sidechain name: urfave/cli stops parsing them at the
 // first positional argument.
 var bmmCommand = &cli.Command{
@@ -60,6 +62,7 @@ var bmmMineCommand = &cli.Command{
 		&cli.Int64Flag{Name: "bid", Value: 1000, Usage: "sats to bid per block"},
 		&cli.DurationFlag{Name: "timeout", Value: 60 * time.Second, Usage: "how long to wait for each bid to be taken"},
 		&cli.BoolFlag{Name: "generate", Usage: "also mine the mainchain block that takes the bid (regtest)"},
+		walletFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
@@ -74,6 +77,7 @@ var bmmMineCommand = &cli.Command{
 		for i := 1; i <= cctx.Int("blocks"); i++ {
 			bid, err := client.CreateBid(cctx.Context, connect.NewRequest(&bmmpb.CreateBidRequest{
 				Sidechain: sidechain,
+				WalletId:  cctx.String("wallet"),
 				BidSats:   cctx.Int64("bid"),
 			}))
 			if err != nil {
@@ -146,6 +150,7 @@ var bmmStartCommand = &cli.Command{
 			Usage: "hold every bid at or under what the sidechain block collects in fees; " +
 				"a chain with cheap blocks then loses every round",
 		},
+		walletFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
@@ -157,6 +162,7 @@ var bmmStartCommand = &cli.Command{
 		}
 		if _, err := newBMMClient(cctx).Start(cctx.Context, connect.NewRequest(&bmmpb.StartRequest{
 			Sidechain:       sidechain,
+			WalletId:        cctx.String("wallet"),
 			MaxBidSats:      cctx.Int64("max-bid"),
 			CapToBlockWorth: cctx.Bool("cap-to-block-worth"),
 		})); err != nil {
