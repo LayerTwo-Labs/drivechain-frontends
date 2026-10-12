@@ -12,6 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/elements"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/solana"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
@@ -26,6 +27,8 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 			return zside.NewNode(host, port), nil
 		case "thunder":
 			return thunder.NewNode(host, port, config.CusfNetworkName(network, config.ECashNetworkID())), nil
+		case "solana":
+			return solana.NewClient(host, port), nil
 		case "bitassets", "photon":
 			return selfMinedNode{sidechain.NewJSONRPCProxy(host, port)}, nil
 		default:
