@@ -56,6 +56,10 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
       _loadMnemonic().then((_) => notifyListeners());
       return;
     }
+    if (_initialized && (mnemonic == null || mnemonic.isEmpty)) {
+      _seedHex = _masterKey = _mnemonic = null;
+      _initialized = false;
+    }
     notifyListeners();
   }
 

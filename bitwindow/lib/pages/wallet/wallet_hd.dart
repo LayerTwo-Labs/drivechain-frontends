@@ -167,7 +167,12 @@ class _ControlsCard extends StatelessWidget {
                       label: 'Copy',
                       onPressed: item['value']!.isEmpty
                           ? null
-                          : () async => await model.copyToClipboard(context, item['value']!, item['label']!),
+                          : () async => await model.copyToClipboard(
+                              context,
+                              item['value']!,
+                              item['label']!,
+                              secret: item['label'] == 'Master Seed:' || item['label'] == 'XPRIV:',
+                            ),
                       variant: ButtonVariant.secondary,
                       small: true,
                     ),
@@ -521,14 +526,18 @@ class HDWalletViewModel extends BaseViewModel {
   }
 
   Future<void> copyMnemonic(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: mnemonicController.text));
+    await copySecretToClipboard(mnemonicController.text);
     if (context.mounted) {
       showSailToast(context, 'Mnemonic copied to clipboard');
     }
   }
 
-  Future<void> copyToClipboard(BuildContext context, String text, String label) async {
-    await Clipboard.setData(ClipboardData(text: text));
+  Future<void> copyToClipboard(BuildContext context, String text, String label, {bool secret = false}) async {
+    if (secret) {
+      await copySecretToClipboard(text);
+    } else {
+      await Clipboard.setData(ClipboardData(text: text));
+    }
     if (context.mounted) {
       showSailToast(context, '${label.replaceAll(':', '')} copied to clipboard');
     }

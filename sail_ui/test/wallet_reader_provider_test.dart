@@ -171,7 +171,6 @@ void main() {
     expect(provider.activeWalletId, 'core-1');
     expect(provider.isWalletUnlocked, isTrue, reason: 'PasswordGuard checks this — must be true after unlock');
     expect(notifications, greaterThanOrEqualTo(1), reason: 'listeners must fire so guards re-evaluate');
-    expect(provider.unlockedPassword, 'hunter2');
   });
 
   test('unlockWallet does not report success until wallet state is loaded', () async {
@@ -189,7 +188,6 @@ void main() {
     expect(fake.statusCalls, 1);
     expect(provider.isWalletUnlocked, isFalse);
     expect(provider.wallets, isEmpty);
-    expect(provider.unlockedPassword, isNull);
   });
 
   test('isWatchOnly is carried as its own flag, independent of walletType', () {

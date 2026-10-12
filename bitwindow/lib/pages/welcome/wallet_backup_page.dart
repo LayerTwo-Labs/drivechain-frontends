@@ -718,9 +718,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                     label: 'Copy Mnemonic',
                     variant: ButtonVariant.secondary,
                     disabled: _words.isEmpty,
-                    onPressed: () async => Clipboard.setData(
-                      ClipboardData(text: _words.join(' ')),
-                    ),
+                    onPressed: () async => copySecretToClipboard(_words.join(' ')),
                   ),
                 ],
               ),

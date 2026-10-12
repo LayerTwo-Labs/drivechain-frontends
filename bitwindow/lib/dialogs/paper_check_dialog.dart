@@ -128,8 +128,12 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
     }
   }
 
-  void _copyToClipboard(String text, String label) {
-    Clipboard.setData(ClipboardData(text: text));
+  void _copyToClipboard(String text, String label, {bool secret = false}) {
+    if (secret) {
+      copySecretToClipboard(text);
+    } else {
+      Clipboard.setData(ClipboardData(text: text));
+    }
     showSailToast(context, '$label copied to clipboard');
   }
 
@@ -523,7 +527,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                                       _showPrivateKey = !_showPrivateKey;
                                     });
                                   },
-                                  onCopy: () => _copyToClipboard(_keypair!.privateKeyWIF, 'Private key'),
+                                  onCopy: () => _copyToClipboard(_keypair!.privateKeyWIF, 'Private key', secret: true),
                                 ),
                               ),
                             ],

@@ -428,7 +428,7 @@ class CheckDetailPage extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                      CopyButton(text: check.privateKeyWif),
+                                      CopyButton(secret: true, text: check.privateKeyWif),
                                     ],
                                   ),
                                 ],

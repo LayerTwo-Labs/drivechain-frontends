@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -492,7 +491,7 @@ class StartersPageViewModel extends BaseViewModel {
       return;
     }
     try {
-      await Clipboard.setData(ClipboardData(text: mnemonic));
+      await copySecretToClipboard(mnemonic);
     } catch (e) {
       if (context.mounted) {
         showSailToast(context, 'Could not copy the seed phrase: $e', variant: SailToastVariant.destructive);
