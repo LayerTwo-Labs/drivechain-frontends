@@ -65,4 +65,21 @@ func TestDepositDestination(t *testing.T) {
 		_, err := depositDestination(9, "s9_a_b_c")
 		assert.Error(t, err)
 	})
+
+	t.Run("client error text fails", func(t *testing.T) {
+		_, err := depositDestination(8, "Exception: Solana is not running. Paste a deposit address.")
+		assert.ErrorContains(t, err, "only letters")
+	})
+
+	t.Run("bare solana pubkey passes through", func(t *testing.T) {
+		const pubkey = "4Nd1mBQtrMJVYVfKf2PJy9NZUZdTAsp7D4xWLs4gDB4T"
+		got, err := depositDestination(8, pubkey)
+		require.NoError(t, err)
+		assert.Equal(t, pubkey, got)
+	})
+
+	t.Run("whitespace around a valid form fails", func(t *testing.T) {
+		_, err := depositDestination(9, " s9_"+addr+"\n")
+		assert.ErrorContains(t, err, "only letters")
+	})
 }
