@@ -61,6 +61,15 @@ func LacksMethod(err error) bool {
 	return errors.As(err, &rpcErr) && rpcErr.Code == methodNotFound
 }
 
+// ErrorCode returns the JSON-RPC error code that err carries.
+func ErrorCode(err error) (int, bool) {
+	var rpcErr *rpcError
+	if !errors.As(err, &rpcErr) {
+		return 0, false
+	}
+	return rpcErr.Code, true
+}
+
 // Call invokes a JSON-RPC method. params can be nil, a slice, a map, or a
 // single value. out can be nil if the caller doesn't need the result.
 func (c *Client) Call(ctx context.Context, method string, params any, out any) error {
