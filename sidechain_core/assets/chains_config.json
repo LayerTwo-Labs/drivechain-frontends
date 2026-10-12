@@ -1,5 +1,5 @@
 {
-  "version": 26,
+  "version": 27,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -923,6 +923,19 @@
         }
       },
       "hashes": {}
+    },
+    "solana": {
+      "type": "sidechain",
+      "slot": 8,
+      "name": "Solana",
+      "description": "Solana sidechain. Its node runs outside the orchestrator.",
+      "port": 6008,
+      "chain_layer": 2,
+      "is_bitcoin_core": false,
+      "external": true,
+      "health_check": {
+        "type": "tcp"
+      }
     }
   }
 }
