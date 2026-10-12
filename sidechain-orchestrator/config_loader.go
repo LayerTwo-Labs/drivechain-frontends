@@ -35,6 +35,7 @@ type jsonBinaryConf struct {
 	Color       string `json:"color"`
 
 	IsBitcoinCore bool `json:"is_bitcoin_core"`
+	External      bool `json:"external"`
 
 	HealthCheck *struct {
 		Type      string `json:"type"`
@@ -272,6 +273,7 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		ChainLayer:         jb.ChainLayer,
 		Slot:               jb.Slot,
 		IsBitcoinCore:      jb.IsBitcoinCore,
+		External:           jb.External,
 		Dependencies:       jb.Dependencies,
 		StartupLogPatterns: jb.StartupLogPatterns,
 	}

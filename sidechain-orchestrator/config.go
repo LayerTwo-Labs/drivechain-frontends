@@ -42,6 +42,9 @@ type BinaryConfig struct {
 	Host        string // RPC host; empty = 127.0.0.1
 	ChainLayer  int    // Dart: Binary.chainLayer (0=utility, 1=L1, 2=sidechain)
 	Slot        int    // Dart: Sidechain.slot (0 for non-sidechains)
+	// External names a node that runs outside the orchestrator. The
+	// orchestrator only calls its RPC.
+	External bool
 
 	// Directory configuration — Dart: DirectoryConfig class
 	DataDir        map[string]string // os -> subdir under AppDir() (default for all networks)
@@ -343,11 +346,12 @@ func AllDefaults() []BinaryConfig {
 	return configs
 }
 
-// AllSidechains returns configs for all sidechain binaries (ChainLayer == 2).
+// AllSidechains returns configs for all sidechain binaries (ChainLayer == 2)
+// that the orchestrator runs itself.
 // Dart: Sidechain.all (sidechains.dart L49-57)
 func AllSidechains() []BinaryConfig {
 	return lo.Filter(AllDefaults(), func(c BinaryConfig, _ int) bool {
-		return c.ChainLayer == 2
+		return c.ChainLayer == 2 && !c.External
 	})
 }
 
@@ -365,6 +369,14 @@ func BinaryConfigBySlot(slot int) (BinaryConfig, bool) {
 	return lo.Find(AllDefaults(), func(c BinaryConfig) bool {
 		return c.Slot == slot && c.ChainLayer == 2
 	})
+}
+
+// refuseExternal returns an error for a node that runs outside the orchestrator.
+func (c BinaryConfig) refuseExternal() error {
+	if !c.External {
+		return nil
+	}
+	return fmt.Errorf("%s runs outside the orchestrator: use its own launcher", c.Name)
 }
 
 // IsSidechain returns true if this binary is a sidechain (ChainLayer == 2).
