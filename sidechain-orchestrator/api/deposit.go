@@ -152,6 +152,9 @@ func (h *WalletHandler) CreateDeposit(
 // the bare address. The OP_RETURN must carry the bare address: the sidechain
 // cannot parse the wrapped form and credits the coins to an unspendable address.
 func depositDestination(slot uint8, destination string) (string, error) {
+	if err := orchestrator.CheckDepositDestination(destination); err != nil {
+		return "", err
+	}
 	if !strings.Contains(destination, "_") {
 		return destination, nil
 	}
