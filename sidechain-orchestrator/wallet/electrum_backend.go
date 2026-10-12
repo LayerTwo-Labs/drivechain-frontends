@@ -2967,7 +2967,9 @@ func (p *ElectrumBackend) hydrate(ctx context.Context, walletID string, a *scann
 	// Read before any fetch: data gathered after a status can only be newer.
 	status, hasStatus := p.statusFor(ctx, walletID, a.address)
 	if hasStatus && prior != nil {
-		if prev, ok := prior.byAddr[a.address]; ok && prev.status == status {
+		// An empty status means the server holds no history, so a used prior
+		// holds a send that no server took.
+		if prev, ok := prior.byAddr[a.address]; ok && prev.status == status && (status != "" || !prev.stats.Used()) {
 			a.status = prev.status
 			a.stats = prev.stats
 			a.txs = prev.txs
