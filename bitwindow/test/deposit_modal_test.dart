@@ -119,4 +119,22 @@ void main() {
 
     expect(tester.widget<SailButton>(_depositButton()).disabled, isFalse);
   });
+
+  testWidgets('a pasted error text never reaches the deposit call', (tester) async {
+    await pumpModal(tester);
+
+    await tester.enterText(
+      find.byType(SailTextField).first,
+      'Exception: Solana is not running. Paste a deposit address.',
+    );
+    await tester.enterText(find.widgetWithText(NumericField, 'Deposit Amount').first, '0.005');
+    await tester.enterText(find.widgetWithText(NumericField, 'Fee').first, '0.0001');
+    await tester.pump();
+    await tester.ensureVisible(_depositButton());
+    await tester.tap(_depositButton());
+    await tester.pump();
+
+    expect(find.byType(SailInlineError), findsOneWidget);
+    expect(find.textContaining('Invalid deposit address'), findsOneWidget);
+  });
 }

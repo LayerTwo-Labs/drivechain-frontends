@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 )
 
 // DecodeDepositAddress decodes a deposit address string into its components.
@@ -16,6 +18,9 @@ import (
 // 3. Full format with checksum (e.g. "s9_13tqn1jxdcrbDycej4bp5S5PcffYtdGNPy_checksum")
 // Returns slot number (or 0), address, checksum (or empty), and any error.
 func DecodeDepositAddress(depositAddress string) (*int64, string, *string, error) {
+	if err := orchestrator.CheckDepositDestination(depositAddress); err != nil {
+		return nil, "", nil, err
+	}
 	parts := strings.Split(depositAddress, "_")
 
 	// Case 1: Just Bitcoin address

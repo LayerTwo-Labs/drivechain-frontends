@@ -2076,6 +2076,8 @@ class DepositModal extends StatefulWidget {
   State<DepositModal> createState() => _DepositModalState();
 }
 
+final _depositAddressPattern = RegExp(r'^[A-Za-z0-9_]{1,80}$');
+
 class _DepositModalState extends State<DepositModal> {
   final TextEditingController addressController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
@@ -2190,6 +2192,10 @@ class _DepositModalState extends State<DepositModal> {
   Future<void> _deposit() async {
     if (addressController.text.isEmpty) {
       setState(() => depositError = 'No deposit address available');
+      return;
+    }
+    if (!_depositAddressPattern.hasMatch(addressController.text)) {
+      setState(() => depositError = 'Invalid deposit address, use only letters, digits and _ (80 characters max)');
       return;
     }
     if (double.tryParse(amountController.text) == null) {
