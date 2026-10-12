@@ -194,6 +194,7 @@ type jsonDirBinaryEntry struct {
 	ChainLayer    int    `json:"chain_layer"`
 	Port          int    `json:"port"`
 	IsBitcoinCore bool   `json:"is_bitcoin_core"`
+	External      bool   `json:"external"`
 
 	Directories struct {
 		Binary          map[string]map[string]string `json:"binary"`
@@ -220,6 +221,11 @@ func loadDirConfigs() map[string]BinaryDirConfig {
 
 		result := make(map[string]BinaryDirConfig, len(raw.Binaries))
 		for key, jb := range raw.Binaries {
+			// An external node keeps its data where its own launcher puts it, so
+			// no reset or wipe may resolve a directory for it.
+			if jb.External {
+				continue
+			}
 			binaryName := key
 			if jb.Download != nil && jb.Download.Binary != "" {
 				binaryName = jb.Download.Binary

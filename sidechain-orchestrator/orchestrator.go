@@ -614,6 +614,9 @@ func (o *Orchestrator) Download(ctx context.Context, name string, force bool, op
 	if err != nil {
 		return nil, err
 	}
+	if err := config.refuseExternal(); err != nil {
+		return nil, err
+	}
 	return o.download.DownloadWithOptions(ctx, config, o.Network, force, opts)
 }
 
@@ -621,6 +624,9 @@ func (o *Orchestrator) Download(ctx context.Context, name string, force bool, op
 func (o *Orchestrator) Start(ctx context.Context, name string, args []string, env map[string]string) (int, error) {
 	config, err := o.getConfig(name)
 	if err != nil {
+		return 0, err
+	}
+	if err := config.refuseExternal(); err != nil {
 		return 0, err
 	}
 	// A layer-2 binary starts its frontend, which then asks for the backend slot
@@ -927,6 +933,9 @@ func (o *Orchestrator) prefetchBinary(ctx context.Context, cfg BinaryConfig, for
 func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts StartOpts) (<-chan StartupProgress, error) {
 	config, err := o.getConfig(target)
 	if err != nil {
+		return nil, err
+	}
+	if err := config.refuseExternal(); err != nil {
 		return nil, err
 	}
 	if err := o.checkECashMigrationStart(ctx, config); err != nil {
