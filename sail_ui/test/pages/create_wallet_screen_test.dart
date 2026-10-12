@@ -113,6 +113,45 @@ void main() {
     expect(writer.restored, pasted);
   });
 
+  testWidgets('an 18-word seed reaches the backend', (tester) async {
+    final writer = _RecordingWriter();
+    GetIt.I.unregister<WalletWriterProvider>();
+    GetIt.I.registerSingleton<WalletWriterProvider>(writer);
+    await _pumpPage(tester);
+    await tester.tap(find.text('Paste a seed phrase'));
+    await tester.pumpAndSettle();
+
+    final pasted = List.filled(18, 'abandon').join(' ');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Paste your seed phrase — 12 or 24 words, separated by spaces'),
+      pasted,
+    );
+    await tester.tap(find.widgetWithText(SailButton, 'Restore').first);
+    await tester.pump();
+
+    expect(find.textContaining('Invalid mnemonic format'), findsNothing);
+    expect(writer.restored, pasted);
+  });
+
+  testWidgets('a 13-word seed does not reach the backend', (tester) async {
+    final writer = _RecordingWriter();
+    GetIt.I.unregister<WalletWriterProvider>();
+    GetIt.I.registerSingleton<WalletWriterProvider>(writer);
+    await _pumpPage(tester);
+    await tester.tap(find.text('Paste a seed phrase'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Paste your seed phrase — 12 or 24 words, separated by spaces'),
+      List.filled(13, 'abandon').join(' '),
+    );
+    await tester.tap(find.widgetWithText(SailButton, 'Restore').first);
+    await tester.pump();
+
+    expect(find.text('Invalid mnemonic format. Enter 12, 15, 18, 21 or 24 words.'), findsOneWidget);
+    expect(writer.restored, isNull);
+  });
+
   // Electrum takes a passphrase like every other backend; the field used to be
   // disabled there, which made a typed value unclearable and every restore fail.
   testWidgets('the passphrase field stays usable on electrum', (tester) async {

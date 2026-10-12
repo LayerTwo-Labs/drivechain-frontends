@@ -206,7 +206,10 @@ class MultisigKeyModalViewModel extends BaseViewModel {
 
       final accountIndex = await _hdWalletProvider.getNextAccountIndex(<int>{});
 
-      final keyInfoResult = await _hdWalletProvider.generateWalletXpub(accountIndex, false);
+      final keyInfoResult = await _hdWalletProvider.generateWalletXpub(
+        accountIndex,
+        GetIt.I.get<BitcoinConfProvider>().usesMainnetParams,
+      );
 
       if (keyInfoResult.isEmpty) {
         throw Exception('Failed to generate xPub');

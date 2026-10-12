@@ -383,26 +383,28 @@ func (e *WalletEngine) IsUnlocked() bool {
 // sidechain starters. BitDrive and ChequeEngine key off it, so it must name the
 // same wallet for the life of the install.
 func (e *WalletEngine) GetStarterSeed() (string, error) {
-	// Try orchestrator first. GetWalletSeed names its wallet, so resolve the
-	// starter's id before asking for its seed.
+	// GetWalletSeed names its wallet, so resolve the starter's id before
+	// asking for its seed.
 	if e.orchClient != nil {
 		ctx := context.Background()
 		list, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
-		if err == nil {
-			starter, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
-				return w.IsStarter
-			})
-			if found {
-				resp, err := e.orchClient.GetWalletSeed(
-					ctx,
-					connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: starter.Id}),
-				)
-				if err == nil {
-					return resp.Msg.SeedHex, nil
-				}
-			}
+		if err != nil {
+			return "", fmt.Errorf("list wallets: %w", err)
 		}
-		// Fall through to local on error
+		starter, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
+			return w.IsStarter
+		})
+		if !found {
+			return "", errors.New("no starter wallet")
+		}
+		resp, err := e.orchClient.GetWalletSeed(
+			ctx,
+			connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: starter.Id}),
+		)
+		if err != nil {
+			return "", fmt.Errorf("get seed of starter wallet %s: %w", starter.Id, err)
+		}
+		return resp.Msg.SeedHex, nil
 	}
 
 	wallets, err := e.loadAllWallets()
@@ -422,15 +424,14 @@ func (e *WalletEngine) GetStarterSeed() (string, error) {
 // GetWalletSeed returns the seed hex for a specific wallet by ID
 // Used by ChequeEngine for per-wallet cheque address derivation
 func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
-	// Try orchestrator first
 	if e.orchClient != nil {
 		resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{
 			WalletId: walletId,
 		}))
-		if err == nil {
-			return resp.Msg.SeedHex, nil
+		if err != nil {
+			return "", fmt.Errorf("get seed of wallet %s: %w", walletId, err)
 		}
-		// Fall through to local on error
+		return resp.Msg.SeedHex, nil
 	}
 
 	wallets, err := e.loadAllWallets()

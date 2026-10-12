@@ -297,7 +297,10 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 	}
 
 	// The unconfirmed rows lead the mined ones, the way an explorer reads.
-	pool := sidechain.Mempool(ctx, src.node)
+	pool, err := sidechain.Mempool(ctx, src.node)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
 	out.Mempool.TxCount = uint32(len(pool))
 	out.Recent = append(mempoolActivity(pool), out.Recent...)
 	if len(out.Recent) > activityListSize {

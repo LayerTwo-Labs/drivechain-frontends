@@ -18,6 +18,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	jsonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
@@ -651,9 +652,11 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	}
 	// A node counts a coin once a block carries it, so a payment on its way
 	// reads as nothing at all until the next block.
-	confirmedSats, pendingSats = applyMempoolDelta(
-		confirmedSats, pendingSats, h.mempoolDelta(ctx, cfg),
-	)
+	delta, err := h.mempoolDelta(ctx, cfg)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	confirmedSats, pendingSats = applyMempoolDelta(confirmedSats, pendingSats, delta)
 	// Read the deposits last. The sidechain credits a deposit into the balance
 	// above, so a deposit that lands between the two reads counts in neither
 	// for one poll, and never in both.
@@ -664,13 +667,15 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	pendingSats += depositSats
 
 	if h.orch.WalletSvc != nil {
-		_ = h.orch.WalletSvc.SyncBalance(
+		if err := h.orch.WalletSvc.SyncBalance(
 			req.Msg.Sidechain,
 			h.orch.WalletSvc.ActiveWalletID(),
 			uint64(confirmedSats),
 			uint64(pendingSats),
 			displayName,
-		)
+		); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
 	}
 
 	return connect.NewResponse(&pb.GetSidechainBalanceResponse{
@@ -731,25 +736,37 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, cfg orchestrator.Bi
 }
 
 // mempoolDelta is what the sidechain mempool does to this wallet. A chain that
-// answers neither its mempool nor its addresses changes nothing.
-func (h *Handler) mempoolDelta(ctx context.Context, cfg orchestrator.BinaryConfig) sidechain.MempoolDelta {
+// serves neither its mempool nor its addresses changes nothing.
+func (h *Handler) mempoolDelta(ctx context.Context, cfg orchestrator.BinaryConfig) (sidechain.MempoolDelta, error) {
 	if cfg.IsBitcoinCore {
-		return sidechain.MempoolDelta{}
+		return sidechain.MempoolDelta{}, nil
 	}
 	node, err := sidechainNode(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
 	if err != nil {
-		return sidechain.MempoolDelta{}
+		return sidechain.MempoolDelta{}, fmt.Errorf("mempool delta of %s: %w", cfg.Name, err)
 	}
 	owned, err := sidechain.WalletAddresses(ctx, node)
-	if err != nil || len(owned) == 0 {
-		return sidechain.MempoolDelta{}
+	if jsonrpc.LacksMethod(err) {
+		return sidechain.MempoolDelta{}, nil
 	}
-	txs := sidechain.Mempool(ctx, node)
-	ourCoins, err := sidechain.OurCoins(ctx, node)
 	if err != nil {
-		return sidechain.MempoolDelta{}
+		return sidechain.MempoolDelta{}, fmt.Errorf("mempool delta of %s: %w", cfg.Name, err)
 	}
-	return sidechain.DeltaFor(txs, owned, ourCoins)
+	if len(owned) == 0 {
+		return sidechain.MempoolDelta{}, nil
+	}
+	txs, err := sidechain.Mempool(ctx, node)
+	if err != nil {
+		return sidechain.MempoolDelta{}, fmt.Errorf("mempool delta of %s: %w", cfg.Name, err)
+	}
+	ourCoins, err := sidechain.OurCoins(ctx, node)
+	if jsonrpc.LacksMethod(err) {
+		return sidechain.MempoolDelta{}, nil
+	}
+	if err != nil {
+		return sidechain.MempoolDelta{}, fmt.Errorf("mempool delta of %s: %w", cfg.Name, err)
+	}
+	return sidechain.DeltaFor(txs, owned, ourCoins), nil
 }
 
 // applyMempoolDelta moves what the mempool does into the confirmed and pending

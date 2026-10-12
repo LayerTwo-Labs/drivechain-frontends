@@ -3,6 +3,8 @@ package engines
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -84,4 +86,80 @@ func TestEnsureWatchOnlyWalletPropagatesLegacyLoadError(t *testing.T) {
 
 	_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 	require.ErrorContains(t, err, "load legacy watch-only wallet")
+}
+
+const (
+	localSeedHex   = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+	starterSeedHex = "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100"
+)
+
+func newSeedTestEngine(t *testing.T) (*WalletEngine, *mocks.MockWalletManagerServiceClient) {
+	t.Helper()
+
+	walletDir := t.TempDir()
+	walletJSON := `{
+		"version": 1,
+		"activeWalletId": "local",
+		"wallets": [
+			{
+				"id": "local",
+				"name": "local",
+				"wallet_type": "bitcoinCore",
+				"master": {"seed_hex": "` + localSeedHex + `"}
+			}
+		]
+	}`
+	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(walletJSON), 0o600))
+
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	return &WalletEngine{walletDir: walletDir, orchClient: orch}, orch
+}
+
+func TestGetStarterSeed(t *testing.T) {
+	t.Run("list wallets error does not fall back to local seed", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(nil, errors.New("orchestrator down"))
+
+		seed, err := engine.GetStarterSeed()
+		require.ErrorContains(t, err, "orchestrator down")
+		require.Empty(t, seed)
+	})
+
+	t.Run("no starter wallet returns error", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+			Wallets: []*orchpb.WalletMetadata{{Id: "local"}},
+		}), nil)
+
+		seed, err := engine.GetStarterSeed()
+		require.Error(t, err)
+		require.Empty(t, seed)
+	})
+
+	t.Run("returns seed of starter, not first wallet", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+			Wallets: []*orchpb.WalletMetadata{{Id: "local"}, {Id: "starter", IsStarter: true}},
+		}), nil)
+		orch.EXPECT().GetWalletSeed(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ any, req *connect.Request[orchpb.GetWalletSeedRequest]) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+				require.Equal(t, "starter", req.Msg.WalletId)
+				return connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: starterSeedHex}), nil
+			})
+
+		seed, err := engine.GetStarterSeed()
+		require.NoError(t, err)
+		require.Equal(t, starterSeedHex, seed)
+	})
+}
+
+func TestGetWalletSeed(t *testing.T) {
+	t.Run("orchestrator error does not fall back to local seed", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().GetWalletSeed(gomock.Any(), gomock.Any()).Return(nil, errors.New("orchestrator down"))
+
+		seed, err := engine.GetWalletSeed("local")
+		require.ErrorContains(t, err, "orchestrator down")
+		require.Empty(t, seed)
+	})
 }

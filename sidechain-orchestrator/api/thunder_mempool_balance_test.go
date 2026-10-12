@@ -121,3 +121,47 @@ func TestThunderBalanceTracksMempoolSpendAndReceipt(t *testing.T) {
 		})
 	}
 }
+
+func TestThunderBalanceReportsAMempoolFault(t *testing.T) {
+	node := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			ID     json.RawMessage `json:"id"`
+			Method string          `json:"method"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		response := map[string]any{"jsonrpc": "2.0", "id": request.ID}
+		switch request.Method {
+		case "balance":
+			response["result"] = map[string]int64{"total_sats": 10000, "available_sats": 10000}
+		case "get_wallet_addresses":
+			response["result"] = []string{"sender"}
+		case "get_wallet_utxos":
+			response["result"] = json.RawMessage(`[{"outpoint":{"Regular":{"txid":"old","vout":0}},"output":{"address":"sender","content":{"Value":10000}}}]`)
+		case "list_mempool":
+			response["error"] = map[string]any{"code": -32000, "message": "request timed out"}
+		default:
+			response["error"] = map[string]any{"code": -32601, "message": "method not found"}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer node.Close()
+	host, port := hostPort(t, node)
+	cfg := orchestrator.BinaryConfig{Name: "thunder", DisplayName: "Thunder", Host: host, Port: port}
+	orch := orchestrator.New(t.TempDir(), string(config.NetworkECash), t.TempDir(), []orchestrator.BinaryConfig{cfg}, zerolog.New(io.Discard))
+	handler := NewHandler(orch)
+	handler.SetSidechainBalance("thunder", sidechain.NewJSONRPCProxy(host, port).GetBalance)
+
+	response, err := handler.GetSidechainBalance(t.Context(), connect.NewRequest(&pb.GetSidechainBalanceRequest{
+		Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER,
+	}))
+	require.ErrorContains(t, err, "request timed out")
+	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	assert.Nil(t, response)
+}

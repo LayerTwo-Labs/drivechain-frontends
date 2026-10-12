@@ -178,13 +178,12 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 	logger := zerolog.Ctx(ctx)
 
 	for _, denial := range denials {
-		walletId := ""
-		if denial.WalletID != nil {
-			walletId = *denial.WalletID
+		walletId, err := e.resolveDenialWallet(denial)
+		if err != nil {
+			continue
 		}
 
-		// If we don't have UTXOs for this wallet, it means the wallet failed
-		// and the denial was already cancelled in CleanupDenials
+		// No UTXO list means the wallet read failed this cycle; it retries next cycle.
 		utxos, hasWallet := walletUTXOs[walletId]
 		if !hasWallet {
 			continue

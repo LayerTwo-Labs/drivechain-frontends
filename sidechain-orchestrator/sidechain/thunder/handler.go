@@ -121,7 +121,10 @@ func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.Ge
 	if err != nil {
 		return nil, err
 	}
-	raw = sidechain.WithMempoolUTXOs(ctx, h.proxy, raw)
+	raw, err = sidechain.WithMempoolUTXOs(ctx, h.proxy, raw)
+	if err != nil {
+		return nil, err
+	}
 	return connect.NewResponse(&pb.GetWalletUtxosResponse{UtxosJson: string(raw)}), nil
 }
 

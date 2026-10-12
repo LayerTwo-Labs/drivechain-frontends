@@ -111,6 +111,59 @@ func TestDeniabilityEngine(t *testing.T) {
 		assert.Equal(t, "cancelled due to UTXO being moved", *denial.CancelReason)
 	})
 
+	t.Run("legacy denial without wallet_id", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name          string
+			unspentTxid   string
+			wantCancelled bool
+		}{
+			{name: "tip spent is cancelled", unspentTxid: "different-txid", wantCancelled: true},
+			{name: "tip present stays active", unspentTxid: "test-txid", wantCancelled: false},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				db := database.Test(t)
+				mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+				apitests.ExpectCoreWalletSetup(mockBitcoind)
+				bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+					return mockBitcoind, nil
+				})
+				engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, nil))
+
+				denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+				require.NoError(t, err)
+				_, err = db.ExecContext(ctx, `UPDATE denials SET wallet_id = NULL WHERE id = ?`, denial.ID)
+				require.NoError(t, err)
+
+				mockBitcoind.EXPECT().
+					ListUnspent(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(&connect.Response[corepb.ListUnspentResponse]{
+						Msg: &corepb.ListUnspentResponse{
+							Unspent: []*corepb.UnspentOutput{
+								{Txid: tt.unspentTxid, Vout: 0, Amount: 0.01, Confirmations: 6},
+							},
+						},
+					}, nil)
+
+				_, _, err = engine.CleanupDenials(ctx)
+				require.NoError(t, err)
+
+				active, err := deniability.List(ctx, db, deniability.WithExcludeCancelled())
+				require.NoError(t, err)
+				if tt.wantCancelled {
+					assert.Empty(t, active)
+				} else {
+					require.Len(t, active, 1)
+					assert.Equal(t, denial.ID, active[0].ID)
+				}
+			})
+		}
+	})
+
 	t.Run("executeDenial", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)

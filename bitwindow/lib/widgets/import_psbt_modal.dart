@@ -118,7 +118,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         await _hdWallet.init();
       }
 
-      bool isMainnet = false;
+      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
       final keyInfo = await _hdWallet.generateWalletXpub(derivationIndex, isMainnet);
 
       return keyInfo['xpub'];
@@ -133,7 +133,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         await _hdWallet.init();
       }
 
-      bool isMainnet = false;
+      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
 
       final keyInfo = await _hdWallet.generateWalletXpub(derivationIndex, isMainnet);
 
