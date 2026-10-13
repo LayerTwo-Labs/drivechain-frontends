@@ -39,7 +39,7 @@ class SendOnSidechainAction extends StatelessWidget {
               disabled: model.bitcoinAddressController.text.isEmpty || model.bitcoinAmountController.text.isEmpty,
               loading: model.isBusy,
               onPressed: () async {
-                model.executeSendOnSidechain(context);
+                await model.executeSendOnSidechain(context);
               },
             ),
             children: [
@@ -82,7 +82,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount {
     final formatter = GetIt.I<FormatterProvider>();
-    return formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0));
+    return formatter.formatBTC(
+      (double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0),
+    );
   }
 
   String get ticker => _rpc.chain.ticker;
@@ -93,10 +95,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final Future<String> Function(String address, double amount)? customSendAction;
   final double? maxAmount;
 
-  SendOnSidechainViewModel({
-    this.customSendAction,
-    this.maxAmount,
-  }) {
+  SendOnSidechainViewModel({this.customSendAction, this.maxAmount}) {
     bitcoinAddressController.addListener(notifyListeners);
     bitcoinAmountController.addListener(_capAmount);
     init();
@@ -119,10 +118,16 @@ class SendOnSidechainViewModel extends BaseViewModel {
     await estimateFee();
   }
 
-  void executeSendOnSidechain(BuildContext context) async {
+  Future<void> executeSendOnSidechain(BuildContext context) async {
+    if (isBusy) {
+      return;
+    }
     setBusy(true);
-    onSidechainSend(context);
-    setBusy(false);
+    try {
+      await onSidechainSend(context);
+    } finally {
+      setBusy(false);
+    }
   }
 
   Future<void> estimateFee() async {
@@ -131,7 +136,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void onSidechainSend(BuildContext context) async {
+  Future<void> onSidechainSend(BuildContext context) async {
     if (sendAmount == null) {
       log.e('withdrawal amount was empty');
       return;
@@ -150,14 +155,10 @@ class SendOnSidechainViewModel extends BaseViewModel {
       return;
     }
 
-    _doSidechainSend(
-      context,
-      address,
-      sendAmount!,
-    );
+    await _doSidechainSend(context, address, sendAmount!);
   }
 
-  void _doSidechainSend(
+  Future<void> _doSidechainSend(
     BuildContext context,
     String address,
     double amount,
@@ -201,19 +202,12 @@ class SendOnSidechainViewModel extends BaseViewModel {
     }
   }
 
-  Future<String> _send(
-    String address,
-    double amount,
-  ) async {
+  Future<String> _send(String address, double amount) async {
     if (customSendAction != null) {
       return await customSendAction!(address, amount);
     }
 
-    return await _rpc.sideSend(
-      address,
-      amount,
-      false,
-    );
+    return await _rpc.sideSend(address, amount, false);
   }
 }
 
@@ -272,10 +266,7 @@ class ReceiveViewModel extends BaseViewModel {
   final String? initialAddress;
   String get address => sidechainAddress ?? initialAddress ?? '';
 
-  ReceiveViewModel({
-    this.customReceiveAction,
-    this.initialAddress,
-  }) {
+  ReceiveViewModel({this.customReceiveAction, this.initialAddress}) {
     if (initialAddress == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await generateSidechainAddress();
