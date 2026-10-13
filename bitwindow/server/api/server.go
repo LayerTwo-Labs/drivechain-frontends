@@ -22,6 +22,7 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -322,7 +323,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 		ConnState: s.leaseConnState,
 		// A dropped HTTP/2 frame is console noise; a handler panic is not.
 		ErrorLog:  logfile.StdLogger(*log, logfile.TransportNoise),
-		Handler:   s.Handler(),
+		Handler:   localauth.LoopbackHost(address, s.Handler()),
 		Protocols: protocols,
 		HTTP2:     &http.HTTP2Config{SendPingTimeout: 30 * time.Second},
 		// A socket that never sends a request would hold the lease forever.

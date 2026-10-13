@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
 // fakeRPC returns an httptest.Server that dispatches on the JSON-RPC method.
@@ -174,4 +178,49 @@ func TestSingleParamCallsSendAnArray(t *testing.T) {
 			assert.JSONEq(t, tc.want, string(seen))
 		})
 	}
+}
+
+func TestClientSendsTheCookie(t *testing.T) {
+	var got []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = append(got, r.Header.Get("Authorization"))
+		_, _ = w.Write([]byte(`{"result":1}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	clientWith := func(cookieFile string) *Client {
+		return &Client{baseURL: srv.URL, http: srv.Client(), cookieFile: cookieFile}
+	}
+
+	t.Run("the cookie exists", func(t *testing.T) {
+		got = nil
+		cookie := filepath.Join(t.TempDir(), ".cookie")
+		require.NoError(t, os.WriteFile(cookie, []byte("abc123\n"), 0o600))
+
+		_, err := clientWith(cookie).GetBlockCount(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, []string{"Bearer abc123"}, got)
+	})
+
+	t.Run("the cookie is missing", func(t *testing.T) {
+		got = nil
+
+		_, err := clientWith(filepath.Join(t.TempDir(), ".cookie")).GetBlockCount(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, []string{""}, got)
+	})
+
+	t.Run("the cookie is unreadable", func(t *testing.T) {
+		got = nil
+
+		_, err := clientWith(t.TempDir()).GetBlockCount(t.Context())
+		require.ErrorContains(t, err, "read rpc cookie")
+		assert.Empty(t, got)
+	})
+}
+
+func TestCookieFileIsInTheNodeDatadir(t *testing.T) {
+	cookie := CookieFile(config.NetworkSignet)
+	assert.Equal(t, ".cookie", filepath.Base(cookie))
+	assert.Equal(t, "truthcoin_dc", filepath.Base(filepath.Dir(cookie)))
 }

@@ -137,10 +137,20 @@ Future<BackupValidationResult> validateBackupZip({
     tempDir = await Directory.systemTemp.createTemp('wallet_restore_');
 
     for (final file in archive) {
-      final filename = file.name;
+      final filePath = path.normalize(path.join(tempDir.path, file.name));
+      if (!path.isWithin(tempDir.path, filePath)) {
+        await tempDir.delete(recursive: true);
+        return BackupValidationResult(
+          isValid: false,
+          errorMessage: 'Backup holds a file outside the archive: ${file.name}',
+        );
+      }
+    }
+
+    for (final file in archive) {
       if (file.isFile) {
         final data = file.content as List<int>;
-        final filePath = path.join(tempDir.path, filename);
+        final filePath = path.normalize(path.join(tempDir.path, file.name));
 
         // Create parent directories if needed
         final fileDir = Directory(path.dirname(filePath));

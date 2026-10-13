@@ -49,11 +49,11 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	bbcsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	coinshiftsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/nodes"
 	photonsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	thundersvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -644,7 +644,7 @@ func run(cctx *cli.Context) error {
 
 	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
 	for name, cfg := range orch.Configs() {
-		proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
+		proxy := nodes.Proxy(name, cfg.RPCHost(), cfg.Port, config.Network(orch.Network))
 		switch name {
 		case "thunder":
 			h := thundersvc.NewHandlerWithIndex(proxy, cctx.String("thunder-esplora-url"))
@@ -718,7 +718,7 @@ func run(cctx *cli.Context) error {
 	srv := &http.Server{
 		ConnState: clients.ConnState,
 		ErrorLog:  transportLog,
-		Handler:   mux,
+		Handler:   localauth.LoopbackHost(listenAddr, mux),
 		Protocols: protocols,
 		HTTP2:     &http.HTTP2Config{SendPingTimeout: 30 * time.Second},
 		// A socket that never sends a request would hold the lease forever.

@@ -242,7 +242,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		if err != nil {
 			return nil, fmt.Errorf("truthcoin.addr: %w", err)
 		}
-		return dial.Truthcoin(ctx, host, port)
+		return dial.Truthcoin(ctx, host, port, truthcoin.CookieFile(orchconfig.Network(network)))
 	}
 	photonConnector := func(ctx context.Context) (*photon.Client, error) {
 		host, port, err := splitAddr(conf.PhotonAddr)
@@ -256,7 +256,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		if err != nil {
 			return nil, fmt.Errorf("coinshift.addr: %w", err)
 		}
-		return dial.CoinShift(ctx, host, port)
+		return dial.CoinShift(ctx, host, port, coinshift.CookieFile(orchconfig.Network(network)))
 	}
 
 	services := api.Services{
@@ -301,13 +301,14 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
-	go func() {
-		pprofAddr := "localhost:6060"
-		log.Info().Msgf("pprof: listening on %s", pprofAddr)
-		if err := http.ListenAndServe(pprofAddr, nil); err != nil {
-			log.Error().Err(err).Msg("pprof server failed")
-		}
-	}()
+	if conf.PprofAddr != "" {
+		go func() {
+			log.Info().Msgf("pprof: listening on %s", conf.PprofAddr)
+			if err := http.ListenAndServe(conf.PprofAddr, nil); err != nil {
+				log.Error().Err(err).Msg("pprof server failed")
+			}
+		}()
+	}
 
 	errs := make(chan error, 1)
 	go func() {

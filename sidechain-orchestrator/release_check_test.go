@@ -42,7 +42,7 @@ func TestReleaseCheckerComparesLastModified(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(binPath), 0o755))
 	require.NoError(t, os.WriteFile(binPath, []byte("binary"), 0o755))
 
-	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
+	checker := NewReleaseChecker(NewDownloadManager(dataDir, zerolog.Nop()), zerolog.Nop())
 
 	// Downloaded after the release: nothing to update.
 	require.NoError(t, os.Chtimes(binPath, published.Add(time.Hour), published.Add(time.Hour)))
@@ -74,7 +74,7 @@ func TestReleaseCheckerStaysQuietWhenTheProbeFails(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(binPath), 0o755))
 	require.NoError(t, os.WriteFile(binPath, []byte("binary"), 0o755))
 
-	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
+	checker := NewReleaseChecker(NewDownloadManager(dataDir, zerolog.Nop()), zerolog.Nop())
 	checker.Refresh(context.Background(), config, "signet")
 
 	_, ok := checker.Check(config, "signet", binPath)
@@ -90,7 +90,7 @@ func TestReleaseCheckerNeedsALocalBinary(t *testing.T) {
 	defer server.Close()
 
 	dataDir := t.TempDir()
-	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
+	checker := NewReleaseChecker(NewDownloadManager(dataDir, zerolog.Nop()), zerolog.Nop())
 	config := releaseTestConfig(server.URL + "/")
 	checker.Refresh(context.Background(), config, "signet")
 
@@ -110,7 +110,7 @@ func TestReleaseCheckerFollowsTheCoreVariant(t *testing.T) {
 	defer server.Close()
 
 	dataDir := t.TempDir()
-	downloads := NewDownloadManager(dataDir, "", zerolog.Nop())
+	downloads := NewDownloadManager(dataDir, zerolog.Nop())
 	variant := CoreVariantSpec{
 		ID:      "patched",
 		BaseURL: server.URL + "/",
@@ -164,7 +164,7 @@ func TestReleaseCheckerResolvesAGitHubAsset(t *testing.T) {
 	require.NoError(t, os.WriteFile(binPath, []byte("zside"), 0o755))
 	require.NoError(t, os.Chtimes(binPath, published.Add(-time.Hour), published.Add(-time.Hour)))
 
-	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
+	checker := NewReleaseChecker(NewDownloadManager(dataDir, zerolog.Nop()), zerolog.Nop())
 	checker.Refresh(context.Background(), config, "signet")
 
 	check, ok := checker.Check(config, "signet", binPath)
@@ -184,7 +184,7 @@ func TestReleaseCheckerDropsTheCheckWhenTheVariantChanges(t *testing.T) {
 	defer server.Close()
 
 	dataDir := t.TempDir()
-	downloads := NewDownloadManager(dataDir, "", zerolog.Nop())
+	downloads := NewDownloadManager(dataDir, zerolog.Nop())
 	config := BinaryConfig{Name: "bitcoind", BinaryName: "bitcoind", IsBitcoinCore: true, ChainLayer: 1}
 
 	newVariant := func(id string) CoreVariantSpec {
@@ -233,7 +233,7 @@ func TestReleaseCheckerRunFollowsANetworkSwap(t *testing.T) {
 	defer server.Close()
 
 	dataDir := t.TempDir()
-	downloads := NewDownloadManager(dataDir, "", zerolog.Nop())
+	downloads := NewDownloadManager(dataDir, zerolog.Nop())
 	config := releaseTestConfig(server.URL + "/")
 
 	network := "signet"
@@ -273,7 +273,7 @@ func TestReleaseCheckerSeparatesTheTestBuildFromTheBackend(t *testing.T) {
 	defer server.Close()
 
 	dataDir := t.TempDir()
-	downloads := NewDownloadManager(dataDir, "", zerolog.Nop())
+	downloads := NewDownloadManager(dataDir, zerolog.Nop())
 	config := makeSidechainConfig(server.URL + "/")
 	downloads.SidechainVariant = func(c BinaryConfig) (sidechainVariantSpec, bool) {
 		return sidechainVariantSpec{
@@ -321,7 +321,7 @@ func TestReleaseCheckerReadsTheLocalTimeLive(t *testing.T) {
 	require.NoError(t, os.WriteFile(binPath, []byte("binary"), 0o755))
 	require.NoError(t, os.Chtimes(binPath, published.Add(-time.Hour), published.Add(-time.Hour)))
 
-	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
+	checker := NewReleaseChecker(NewDownloadManager(dataDir, zerolog.Nop()), zerolog.Nop())
 	checker.Refresh(context.Background(), config, "signet")
 
 	check, ok := checker.Check(config, "signet", binPath)

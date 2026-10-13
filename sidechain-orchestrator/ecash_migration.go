@@ -638,7 +638,7 @@ func (o *Orchestrator) migrationBinary(ctx context.Context, cfg BinaryConfig, re
 	if !ok {
 		return "", fmt.Errorf("ECX Core variant is unavailable")
 	}
-	download := NewDownloadManager(o.DataDir, o.download.configFilePath, o.log)
+	download := NewDownloadManager(o.DataDir, o.log)
 	download.CoreVariant = func() (CoreVariantSpec, bool) { return variant, true }
 	progress, err := download.Download(ctx, cfg, string(config.NetworkECash), false)
 	if err != nil {

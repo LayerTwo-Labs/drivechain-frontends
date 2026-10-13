@@ -41,8 +41,9 @@ type Config struct {
 	PhotonAddr    string `long:"photon.addr" description:"host:port for connecting to the photon sidechain" default:"localhost:6099"`
 	CoinshiftAddr string `long:"coinshift.addr" description:"host:port for connecting to the coinshift sidechain" default:"localhost:6255"`
 
-	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:30301"`
-	Datadir string `long:"datadir" env:"BITWINDOWD_DATADIR" description:"Path to the data directory"`
+	APIHost   string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:30301"`
+	Datadir   string `long:"datadir" env:"BITWINDOWD_DATADIR" description:"Path to the data directory"`
+	PprofAddr string `long:"pprof.addr" env:"BITWINDOWD_PPROF_ADDR" description:"host:port for the pprof debug server; empty disables it"`
 
 	LogPath  string `long:"log.path" description:"Path to write logs to"`
 	LogLevel string `long:"log.level" description:"Log level" default:"info" env:"LOG_LEVEL"`

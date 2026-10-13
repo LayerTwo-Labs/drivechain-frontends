@@ -144,7 +144,7 @@ func installSidechain(t *testing.T, cfg BinaryConfig, dataDir string) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	progress, err := NewDownloadManager(cache, "", zerolog.Nop()).Download(ctx, cfg, "default", false)
+	progress, err := NewDownloadManager(cache, zerolog.Nop()).Download(ctx, cfg, "default", false)
 	require.NoError(t, err)
 	for p := range progress {
 		require.NoError(t, p.Error)

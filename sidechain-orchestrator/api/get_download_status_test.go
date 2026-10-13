@@ -113,6 +113,7 @@ func TestGetDownloadStatus_ReportsInFlightDownload(t *testing.T) {
 	)
 
 	releaseOnce.Do(func() { close(hold) })
+	waitForDownloadEnd(t, orch, "streamtest")
 }
 
 // TestGetDownloadStatus_KnownBinaryReportsTypedEnum is the typed-name guard:
@@ -171,6 +172,19 @@ func TestGetDownloadStatus_KnownBinaryReportsTypedEnum(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.Msg.Downloads, 1)
 	require.Equal(t, pb.BinaryType_BINARY_TYPE_THUNDER, resp.Msg.Downloads[0].Binary)
+
+	releaseOnce.Do(func() { close(hold) })
+	waitForDownloadEnd(t, orch, "thunder")
+}
+
+// waitForDownloadEnd keeps the test alive until the download goroutine stops
+// writing into the temp dir that the test cleanup removes.
+func waitForDownloadEnd(t *testing.T, orch *orchestrator.Orchestrator, name string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		_, running := orch.DownloadStateForTest(name)
+		return !running
+	}, eventuallyTimeout, eventuallyPoll, "download never ended")
 }
 
 // startTestOrchService stands up a connect server backed by `orch` and

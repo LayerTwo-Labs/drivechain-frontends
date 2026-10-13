@@ -82,7 +82,7 @@ func TestHandlerSendsTheCreateMethods(t *testing.T) {
 
 func TestClientSendsTheCreateMethods(t *testing.T) {
 	host, port, calls := callRecorder(t, `"txid1"`)
-	c := NewClient(host, port)
+	c := NewClient(host, port, "")
 
 	_, err := c.Transfer(context.Background(), "dest", 5000, 100)
 	require.NoError(t, err)

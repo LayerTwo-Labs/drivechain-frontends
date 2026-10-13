@@ -196,12 +196,12 @@ func BitAssets(ctx context.Context, host string, port int) (*bitassets.Client, e
 }
 
 // Truthcoin creates a Truthcoin sidechain client
-func Truthcoin(ctx context.Context, host string, port int) (*truthcoin.Client, error) {
+func Truthcoin(ctx context.Context, host string, port int, cookieFile string) (*truthcoin.Client, error) {
 	if host == "" {
 		return nil, errors.New("empty truthcoin host")
 	}
 
-	client := truthcoin.NewClient(host, port)
+	client := truthcoin.NewClient(host, port, cookieFile)
 
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)
@@ -230,12 +230,12 @@ func Photon(ctx context.Context, host string, port int) (*photon.Client, error) 
 }
 
 // CoinShift creates a CoinShift sidechain client
-func CoinShift(ctx context.Context, host string, port int) (*coinshift.Client, error) {
+func CoinShift(ctx context.Context, host string, port int, cookieFile string) (*coinshift.Client, error) {
 	if host == "" {
 		return nil, errors.New("empty coinshift host")
 	}
 
-	client := coinshift.NewClient(host, port)
+	client := coinshift.NewClient(host, port, cookieFile)
 
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)

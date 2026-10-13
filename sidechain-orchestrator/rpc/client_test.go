@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -140,4 +142,43 @@ func TestMethodTimeoutGivesConnectBlockTheLongOne(t *testing.T) {
 	assert.Equal(t, CallTimeout, MethodTimeout("get_block_template"))
 	assert.Equal(t, CallTimeout, MethodTimeout("balance"))
 	assert.Greater(t, ConnectBlockTimeout, CallTimeout)
+}
+
+func TestCallSendsTheCookie(t *testing.T) {
+	var got []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = append(got, r.Header.Get("Authorization"))
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":1}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	t.Run("the cookie exists", func(t *testing.T) {
+		got = nil
+		cookie := filepath.Join(t.TempDir(), ".cookie")
+		require.NoError(t, os.WriteFile(cookie, []byte("abc123\n"), 0o600))
+		client := clientFor(t, srv).WithCookie(cookie)
+
+		require.NoError(t, client.Call(t.Context(), "balance", nil, nil))
+		_, err := client.CallRaw(t.Context(), "balance", nil)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"Bearer abc123", "Bearer abc123"}, got)
+	})
+
+	t.Run("the cookie is missing", func(t *testing.T) {
+		got = nil
+		client := clientFor(t, srv).WithCookie(filepath.Join(t.TempDir(), ".cookie"))
+
+		require.NoError(t, client.Call(t.Context(), "balance", nil, nil))
+		assert.Equal(t, []string{""}, got)
+	})
+
+	t.Run("the cookie is unreadable", func(t *testing.T) {
+		got = nil
+		client := clientFor(t, srv).WithCookie(t.TempDir())
+
+		require.ErrorContains(t, client.Call(t.Context(), "balance", nil, nil), "read rpc cookie")
+		_, err := client.CallRaw(t.Context(), "balance", nil)
+		require.ErrorContains(t, err, "read rpc cookie")
+		assert.Empty(t, got)
+	})
 }

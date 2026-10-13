@@ -86,7 +86,7 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 		t.Fatal("testharness: bitcoind not configured in orchestrator — cannot download")
 	}
 
-	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
+	dm := orchestrator.NewDownloadManager(dataDir, log)
 	dm.CoreVariant = func() (orchestrator.CoreVariantSpec, bool) {
 		v, ok := bitcoindConfig.Variants[orchestrator.DefaultCoreVariantID]
 		return v, ok

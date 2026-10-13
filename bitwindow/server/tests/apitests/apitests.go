@@ -47,6 +47,7 @@ type configg struct {
 	walletType string
 	network    config.Network
 	encrypted  bool
+	authDir    string
 }
 
 type ServerOpt func(opt *configg)
@@ -122,6 +123,11 @@ func WithNetwork(network config.Network) ServerOpt {
 	return func(opt *configg) { opt.network = network }
 }
 
+// WithLocalAuth makes every route require the local-auth cookie in dir.
+func WithLocalAuth(dir string) ServerOpt {
+	return func(opt *configg) { opt.authDir = dir }
+}
+
 // API creates a new external API Connect server that we can send test requests to
 func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClient, string) {
 	ctrl := gomock.NewController(t)
@@ -189,6 +195,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		WalletDir:          walletDir,
 		DataDir:            walletDir,
 		OrchestratorClient: conf.orchestrator,
+		BitwindowDir:       conf.authDir,
 	}
 
 	srv, err := api.New(ctx, services, config.Config{
@@ -263,7 +270,12 @@ func markWalletEncrypted(t *testing.T, walletDir string) {
 }
 
 func serve(t *testing.T, server *api.Server) (connect.HTTPClient, string) {
-	testServer := httptest.NewServer(server.Handler())
+	testServer := httptest.NewUnstartedServer(server.Handler())
+	// Bidi streams such as gRPC reflection need HTTP/2, as Server.Serve allows.
+	testServer.Config.Protocols = new(http.Protocols)
+	testServer.Config.Protocols.SetHTTP1(true)
+	testServer.Config.Protocols.SetUnencryptedHTTP2(true)
+	testServer.Start()
 	t.Cleanup(testServer.Close)
 
 	client := testServer.Client()

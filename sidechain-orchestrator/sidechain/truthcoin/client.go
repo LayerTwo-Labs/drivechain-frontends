@@ -7,22 +7,34 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 )
 
 // Client is a JSON-RPC client for the Truthcoin sidechain node.
 // It mirrors the RPC surface exposed in the Dart TruthcoinRPC class.
 type Client struct {
-	baseURL string
-	http    *http.Client
+	baseURL    string
+	http       *http.Client
+	cookieFile string
 }
 
-// NewClient creates a Truthcoin RPC client pointed at host:port.
-func NewClient(host string, port int) *Client {
+// NewClient creates a Truthcoin RPC client pointed at host:port. It sends the
+// token in cookieFile as a bearer token.
+func NewClient(host string, port int, cookieFile string) *Client {
 	return &Client{
-		baseURL: fmt.Sprintf("http://%s:%d", host, port),
-		http:    &http.Client{Timeout: 30 * time.Second},
+		baseURL:    fmt.Sprintf("http://%s:%d", host, port),
+		http:       &http.Client{Timeout: 30 * time.Second},
+		cookieFile: cookieFile,
 	}
+}
+
+// CookieFile is the RPC cookie the Truthcoin node writes in its datadir.
+func CookieFile(network config.Network) string {
+	return filepath.Join(config.TruthcoinDirs.DatadirNetwork(network, ""), ".cookie")
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +80,9 @@ func (c *Client) call(ctx context.Context, method string, params interface{}) (j
 		return nil, fmt.Errorf("create %s request: %w", method, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if err := rpc.SetBearerCookie(req, c.cookieFile); err != nil {
+		return nil, err
+	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
