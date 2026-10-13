@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -81,14 +82,14 @@ Keep this file secure. Anyone with access can control ALL your funds.
 
 	// wallet.json
 	walletPath := filepath.Join(e.walletDir, "wallet.json")
-	if data, err := os.ReadFile(walletPath); err == nil {
-		if err := addToZip(zw, "wallet.json", data); err != nil {
-			return nil, "", fmt.Errorf("write wallet.json: %w", err)
-		}
-		log.Info().Msg("backup: added wallet.json")
-	} else {
-		log.Warn().Err(err).Msg("backup: wallet.json not found")
+	walletData, err := os.ReadFile(walletPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("read wallet.json: %w", err)
 	}
+	if err := addToZip(zw, "wallet.json", walletData); err != nil {
+		return nil, "", fmt.Errorf("write wallet.json: %w", err)
+	}
+	log.Info().Msg("backup: added wallet.json")
 
 	encryptionPath := filepath.Join(e.walletDir, "wallet_encryption.json")
 	if data, err := os.ReadFile(encryptionPath); err == nil {
@@ -186,6 +187,10 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		return fmt.Errorf("backup does not contain wallet.json")
 	}
 
+	if err := snapshotCurrentWallet(e.walletDir); err != nil {
+		return fmt.Errorf("back up the current wallet: %w", err)
+	}
+
 	// Import into the DB before touching the wallet files, so a backup that
 	// fails to import leaves the current wallet in place.
 	if multisigJSON != nil {
@@ -218,26 +223,94 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	log.Info().Msg("restore: wrote wallet.json")
 
 	encryptionPath := filepath.Join(e.walletDir, "wallet_encryption.json")
+	var encryptionErr error
 	switch {
 	case encryptionJSON != nil:
-		if err := os.WriteFile(encryptionPath, encryptionJSON, 0600); err != nil {
-			return fmt.Errorf("write wallet_encryption.json: %w", err)
+		if err := walletfile.AtomicWrite(encryptionPath, encryptionJSON); err != nil {
+			encryptionErr = fmt.Errorf("write wallet_encryption.json: %w", err)
 		}
-		log.Info().Msg("restore: wrote wallet_encryption.json")
 	case validateWalletJSON(walletJSON) == nil:
 		if err := os.Remove(encryptionPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("remove wallet_encryption.json: %w", err)
+			encryptionErr = fmt.Errorf("remove wallet_encryption.json: %w", err)
 		}
+	}
+	if encryptionErr != nil {
+		if current == nil {
+			return encryptionErr
+		}
+		if err := walletfile.AtomicWrite(walletPath, current); err != nil {
+			return fmt.Errorf("%w, and the previous wallet.json did not go back: %w", encryptionErr, err)
+		}
+		return fmt.Errorf("%w, the previous wallet.json went back in place", encryptionErr)
+	}
+	if encryptionJSON != nil {
+		log.Info().Msg("restore: wrote wallet_encryption.json")
 	}
 
 	if metadataJSON != nil {
 		metadataPath := filepath.Join(e.walletDir, "metadata.json")
-		if err := os.WriteFile(metadataPath, metadataJSON, 0600); err != nil {
+		if err := walletfile.AtomicWrite(metadataPath, metadataJSON); err != nil {
 			return fmt.Errorf("write metadata.json: %w", err)
 		}
 		log.Info().Msg("restore: wrote metadata.json")
 	}
 
+	return nil
+}
+
+// snapshotCurrentWallet copies the master wallet files into a new
+// wallet_backups/<ts> dir. It does nothing when there is no wallet.json.
+func snapshotCurrentWallet(walletDir string) error {
+	if _, err := os.Stat(filepath.Join(walletDir, walletfile.Name)); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("stat wallet.json: %w", err)
+	}
+
+	root := filepath.Join(walletDir, "wallet_backups")
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return fmt.Errorf("create wallet_backups: %w", err)
+	}
+	name := time.Now().UTC().Format("20060102-150405")
+	// ListWalletBackups skips hidden dirs, so a partial copy never shows as a backup.
+	hidden, err := os.MkdirTemp(root, "."+name+"-")
+	if err != nil {
+		return fmt.Errorf("create the snapshot dir: %w", err)
+	}
+	if err := fillSnapshot(walletDir, hidden, root, name); err != nil {
+		return errors.Join(err, os.RemoveAll(hidden))
+	}
+	return nil
+}
+
+func fillSnapshot(walletDir, hidden, root, name string) error {
+	for _, file := range []string{walletfile.Name, "wallet_encryption.json", "metadata.json"} {
+		data, err := os.ReadFile(filepath.Join(walletDir, file))
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("read %s: %w", file, err)
+		}
+		if err := walletfile.AtomicWrite(filepath.Join(hidden, file), data); err != nil {
+			return fmt.Errorf("copy %s: %w", file, err)
+		}
+	}
+
+	dest := filepath.Join(root, name)
+	for i := 1; ; i++ {
+		_, err := os.Stat(dest)
+		if os.IsNotExist(err) {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("stat %s: %w", dest, err)
+		}
+		dest = filepath.Join(root, fmt.Sprintf("%s-%d", name, i))
+	}
+	if err := os.Rename(hidden, dest); err != nil {
+		return fmt.Errorf("move the snapshot in place: %w", err)
+	}
 	return nil
 }
 

@@ -202,7 +202,6 @@ func TestWriteKeepsTheFileItReplaces(t *testing.T) {
 func TestWriteOverwritesAFileThatDoesNotParse(t *testing.T) {
 	t.Parallel()
 
-	// A wallet file already lost to a bad write must not block the repair.
 	path := filepath.Join(t.TempDir(), "wallet.json")
 	require.NoError(t, os.WriteFile(path, []byte("data"), 0600))
 	content := walletFileWith("A")
@@ -213,7 +212,13 @@ func TestWriteOverwritesAFileThatDoesNotParse(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, content, got)
 	_, statErr := os.Stat(path + PreviousSuffix)
-	assert.True(t, errors.Is(statErr, os.ErrNotExist), "an unreadable file is not worth keeping")
+	assert.ErrorIs(t, statErr, os.ErrNotExist)
+	backups, err := filepath.Glob(path + UnreadableSuffix + "*")
+	require.NoError(t, err)
+	require.Len(t, backups, 1)
+	kept, err := os.ReadFile(backups[0])
+	require.NoError(t, err)
+	assert.Equal(t, []byte("data"), kept)
 }
 
 func TestWriteKeepsNoPlaintextOnceEncrypted(t *testing.T) {

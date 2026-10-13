@@ -397,8 +397,9 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 const wipingSuffix = ".wiping"
 
 // WipeChainData deletes on-disk chain state for network across all known
-// binaries. Wallet files are preserved. bitcoinDatadirOverride is the user's
-// datadir= setting for bitcoind, empty for the platform default.
+// binaries. Wallet files and the bitwindowd database are preserved. bitcoinDatadirOverride is the user's
+// datadir= setting for bitcoind, empty for the platform default. active is the
+// network whose chain the shared sidechain datadirs hold.
 //
 // The whole operation runs in the background and returns immediately. It must
 // never block the caller: the chain datadir can be large, slow, or on an
@@ -409,8 +410,8 @@ const wipingSuffix = ".wiping"
 // renamed aside first — atomic and O(1) on the same filesystem — so a freshly
 // started bitcoind never sees half-deleted data, then deleted; leftover
 // ".wiping" siblings from an interrupted prior wipe are swept into the delete.
-func WipeChainData(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
-	go WipeChainDataSync(network, bitcoinDatadirOverride, log)
+func WipeChainData(network, active Network, bitcoinDatadirOverride string, log zerolog.Logger) {
+	go WipeChainDataSync(network, active, bitcoinDatadirOverride, log)
 }
 
 // SidechainChainDataNames are the entries a sidechain keeps its chain in. The
@@ -478,9 +479,12 @@ func WipeEnforcerChainDataSync(network Network, log zerolog.Logger) error {
 // Only safe off the startup critical path. The rename is O(1) on the same
 // filesystem but can still stall on an unresponsive volume, which is why
 // startup keeps WipeChainData.
-func WipeChainDataSync(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
+func WipeChainDataSync(network, active Network, bitcoinDatadirOverride string, log zerolog.Logger) {
 	var doomed []string
 	for _, dc := range AllDirConfigs() {
+		if dc.layoutKey() == "bitwindowd" || (dc.ChainLayer == 2 && network != active) {
+			continue
+		}
 		networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
 		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
 			orphans, _ := filepath.Glob(p + wipingSuffix + "*")

@@ -505,61 +505,62 @@ var wipeCommand = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "include-wallets",
-			Usage: "also delete wallet files",
+			Usage: "also move wallet files to wallet_backups/",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		if cctx.NArg() < 1 {
-			return printUsageWithBinaries(cctx, "wipe")
-		}
-
-		name := cctx.Args().First()
-		network := config.Network(cctx.String("network"))
-
-		dirConfig, ok := config.DirConfigByName(name)
-		if !ok {
-			return fmt.Errorf("unknown binary: %s", name)
-		}
-
-		// Stop the binary if possible.
-		client := newClient(cctx)
-		_, _ = client.StopBinary(cctx.Context, connect.NewRequest(&pb.StopBinaryRequest{Name: name, Force: true}))
-
-		// Delete the downloaded binary.
-		dataDir := cctx.String("datadir")
-		if dataDir == "" {
-			dataDir = orchestrator.DefaultDataDir()
-		}
-		binPath := binaryPathFor(cctx, dataDir, name)
-		if err := os.Remove(binPath); err == nil {
-			fmt.Printf("removed %s\n", binPath)
-		}
-
-		// Delete blockchain data, logs, settings.
-		log := zerolog.Nop()
-		networkDir := dirConfig.RootDirNetwork(network)
-		for _, p := range dirConfig.GetBlockchainDataPaths(networkDir, network, log) {
-			if err := os.RemoveAll(p); err == nil {
-				fmt.Printf("removed %s\n", p)
-			}
-		}
-		for _, p := range dirConfig.GetSettingsPaths(networkDir, network, log) {
-			if err := os.RemoveAll(p); err == nil {
-				fmt.Printf("removed %s\n", p)
-			}
-		}
-
-		if cctx.Bool("include-wallets") {
-			for _, p := range dirConfig.GetWalletPaths(networkDir, network, log) {
-				if err := os.RemoveAll(p); err == nil {
-					fmt.Printf("removed %s\n", p)
-				}
-			}
-		}
-
-		fmt.Printf("\nwiped %s\n", name)
-		return nil
+		return runWipe(cctx, newClient(cctx))
 	},
+}
+
+func runWipe(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
+	if cctx.NArg() < 1 {
+		return printUsageWithBinaries(cctx, "wipe")
+	}
+
+	name := cctx.Args().First()
+	binary, err := sidechainType(name)
+	if err != nil {
+		return err
+	}
+
+	if _, err := client.StopBinary(cctx.Context, connect.NewRequest(&pb.StopBinaryRequest{Name: name, Force: true})); err != nil {
+		return fmt.Errorf("stop %s: %w", name, err)
+	}
+
+	deletions := []pb.DeletionType{
+		pb.DeletionType_DELETION_TYPE_DATA,
+		pb.DeletionType_DELETION_TYPE_SOFTWARE,
+		pb.DeletionType_DELETION_TYPE_SETTINGS,
+	}
+	if cctx.Bool("include-wallets") {
+		deletions = append(deletions, pb.DeletionType_DELETION_TYPE_WALLET)
+	}
+	stream, err := client.DeleteFiles(cctx.Context, connect.NewRequest(&pb.DeleteFilesRequest{
+		Items: []*pb.SingleDeletion{{Binary: binary, Deletions: deletions}},
+	}))
+	if err != nil {
+		return err
+	}
+
+	var failed []string
+	for stream.Receive() {
+		msg := stream.Msg()
+		if msg.Error != "" {
+			failed = append(failed, fmt.Sprintf("%s: %s", msg.Path, msg.Error))
+			continue
+		}
+		fmt.Printf("removed %s\n", msg.Path)
+	}
+	if err := stream.Err(); err != nil {
+		return err
+	}
+	if len(failed) > 0 {
+		return fmt.Errorf("wipe %s: %s", name, strings.Join(failed, "; "))
+	}
+
+	fmt.Printf("\nwiped %s\n", name)
+	return nil
 }
 
 var infoCommand = &cli.Command{

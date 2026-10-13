@@ -5,15 +5,23 @@ import (
 	"errors"
 	"flag"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 	"testing"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
+
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 // binaryLayers holds the chain layer of every binary the fake reports.
@@ -380,4 +388,63 @@ func TestBinariesToStopOrdersL1Last(t *testing.T) {
 			require.Equal(t, tt.want, binariesToStop(tt.target, tt.withDeps, tt.before, tt.now))
 		})
 	}
+}
+
+func wipeContext(t *testing.T, argv ...string) *cli.Context {
+	t.Helper()
+
+	fs := flag.NewFlagSet("wipe", flag.ContinueOnError)
+	for _, f := range wipeCommand.Flags {
+		require.NoError(t, f.Apply(fs))
+	}
+	require.NoError(t, fs.Parse(argv))
+
+	cctx := cli.NewContext(cli.NewApp(), fs, nil)
+	cctx.Context = t.Context()
+	return cctx
+}
+
+func TestWipe(t *testing.T) {
+	t.Run("moves wallets to wallet_backups and deletes chain data", func(t *testing.T) {
+		config.SetHomeDir(t.TempDir())
+		t.Cleanup(func() { config.SetHomeDir("") })
+
+		dir := t.TempDir()
+		orch := orchestrator.New(dir, "signet", dir, orchestrator.AllDefaults(), zerolog.Nop())
+		t.Cleanup(orch.StopAllMonitors)
+		orch.WalletSvc = wallet.NewService(dir, zerolog.Nop())
+
+		networkDir := config.ThunderDirs.DatadirNetwork(config.NetworkSignet, "")
+		walletPath := filepath.Join(networkDir, "wallet.mdb")
+		dataPath := filepath.Join(networkDir, "data.mdb")
+		require.NoError(t, os.MkdirAll(networkDir, 0o755))
+		require.NoError(t, os.WriteFile(walletPath, []byte("keys"), 0o600))
+		require.NoError(t, os.WriteFile(dataPath, []byte("chain"), 0o600))
+
+		_, handler := rpc.NewOrchestratorServiceHandler(api.NewHandler(orch))
+		server := httptest.NewServer(handler)
+		t.Cleanup(server.Close)
+		client := rpc.NewOrchestratorServiceClient(server.Client(), server.URL)
+
+		require.NoError(t, runWipe(wipeContext(t, "--include-wallets", "thunder"), client))
+
+		require.NoFileExists(t, dataPath)
+		require.NoFileExists(t, walletPath)
+		backups, err := filepath.Glob(filepath.Join(networkDir, "wallet_backups", "*", "wallet.mdb"))
+		require.NoError(t, err)
+		require.Len(t, backups, 1)
+		keys, err := os.ReadFile(backups[0])
+		require.NoError(t, err)
+		require.Equal(t, "keys", string(keys))
+	})
+
+	t.Run("a stop failure aborts before anything is deleted", func(t *testing.T) {
+		fake, client := newFakeOrchestrator(t, "thunder")
+		fake.stopFailures["thunder"] = true
+
+		err := runWipe(wipeContext(t, "--include-wallets", "thunder"), client)
+
+		require.ErrorContains(t, err, "stop timed out")
+		require.Equal(t, []string{"thunder"}, fake.stopped)
+	})
 }

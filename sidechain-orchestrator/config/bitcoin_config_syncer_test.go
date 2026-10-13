@@ -119,7 +119,7 @@ func TestWipeChainDataPreservesWallets(t *testing.T) {
 	seed(filepath.Join(bcNet, "peers.dat"))
 	seed(filepath.Join(bcNet, "wallets", "wallet.dat"))
 
-	WipeChainData(NetworkSignet, "", zerolog.Nop())
+	WipeChainData(NetworkSignet, NetworkSignet, "", zerolog.Nop())
 
 	require.Eventually(t, func() bool {
 		for _, gone := range []string{"blocks", "chainstate", "indexes", "mempool.dat", "fee_estimates.dat", "peers.dat"} {
@@ -133,6 +133,61 @@ func TestWipeChainDataPreservesWallets(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(bcNet, "wallets", "wallet.dat")); err != nil {
 		t.Error("wallets must survive a chain data wipe")
 	}
+}
+
+func TestWipeChainDataKeepsBitwindowData(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	bcNet := BitcoinCoreDirs.DatadirNetwork(NetworkSignet, "")
+	bwNet := BitWindowDirs.DatadirNetwork(NetworkSignet, "")
+	seed := func(path string) {
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
+	}
+	seed(filepath.Join(bcNet, "blocks", "blk00000.dat"))
+	seed(filepath.Join(bwNet, "bitwindow.db"))
+	seed(filepath.Join(bwNet, "bitdrive", "file.txt"))
+
+	WipeChainData(NetworkSignet, NetworkSignet, "", zerolog.Nop())
+
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(filepath.Join(bcNet, "blocks"))
+		return os.IsNotExist(err)
+	}, 5*time.Second, 20*time.Millisecond)
+
+	require.Never(t, func() bool {
+		_, err := os.Stat(filepath.Join(bwNet, "bitwindow.db"))
+		return err != nil
+	}, 500*time.Millisecond, 50*time.Millisecond, "bitwindow.db must survive a chain data wipe")
+
+	_, err := os.Stat(filepath.Join(bwNet, "bitdrive", "file.txt"))
+	require.NoError(t, err, "bitdrive must survive a chain data wipe")
+	aside, err := filepath.Glob(filepath.Join(bwNet, "bitwindow.db"+wipingSuffix+"*"))
+	require.NoError(t, err)
+	require.Empty(t, aside)
+}
+
+func TestWipeStaleChainDataKeepsBitwindowData(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
+
+	bwDB := filepath.Join(BitWindowDirs.DatadirNetwork(NetworkSignet, ""), "bitwindow.db")
+	require.NoError(t, os.MkdirAll(filepath.Dir(bwDB), 0o755))
+	require.NoError(t, os.WriteFile(bwDB, []byte("stub"), 0o644))
+
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+
+	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkSignet}))
+
+	require.Never(t, func() bool {
+		_, err := os.Stat(bwDB)
+		return err != nil
+	}, 500*time.Millisecond, 50*time.Millisecond, "signet bitwindow.db must survive a migration wipe")
 }
 
 // Regression: a migration armed for eCash, applied while the user is sitting
@@ -281,7 +336,7 @@ func TestWipeChainDataDeletesInBackground(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(blocks), 0o755))
 	require.NoError(t, os.WriteFile(blocks, []byte("stub"), 0o644))
 
-	WipeChainData(NetworkSignet, "", zerolog.Nop())
+	WipeChainData(NetworkSignet, NetworkSignet, "", zerolog.Nop())
 
 	require.Eventually(t, func() bool {
 		_, err := os.Stat(filepath.Join(bcNet, "blocks"))
@@ -301,7 +356,7 @@ func TestWipeChainDataHonoursDatadirOverride(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(blocks), 0o755))
 	require.NoError(t, os.WriteFile(blocks, []byte("stub"), 0o644))
 
-	WipeChainData(NetworkSignet, custom, zerolog.Nop())
+	WipeChainData(NetworkSignet, NetworkSignet, custom, zerolog.Nop())
 
 	require.Eventually(t, func() bool {
 		_, err := os.Stat(filepath.Join(custom, "signet", "blocks"))

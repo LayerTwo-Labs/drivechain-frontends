@@ -232,8 +232,7 @@ func GenerateFullWallet(name string, customMnemonic string, passphrase string, s
 	for _, slot := range slots {
 		scMnemonic, err := DeriveStarter(seedHex, fmt.Sprintf("m/44'/0'/%d'", slot.Slot))
 		if err != nil {
-			// Log but continue - match Dart behavior
-			continue
+			return nil, fmt.Errorf("derive starter for slot %d: %w", slot.Slot, err)
 		}
 		sidechains = append(sidechains, SidechainWallet{
 			Slot:     slot.Slot,

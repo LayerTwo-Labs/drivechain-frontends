@@ -3,6 +3,8 @@ package wallet
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 )
@@ -63,4 +65,54 @@ func (s *Service) restoreWalletFileLocked(src string) error {
 		return fmt.Errorf("read the wallet file before the restore: %w", err)
 	}
 	return s.writeWalletFileAllowingDropLocked(content)
+}
+
+const leftoverMetadataSuffix = ".encryption.json"
+
+// protectPlaintextLeftoversLocked encrypts the plaintext copies an older EncryptWallet left beside wallet.json.
+func (s *Service) protectPlaintextLeftoversLocked(key []byte) error {
+	paths, err := filepath.Glob(s.walletFilePath() + ".backup_before_encryption_*")
+	if err != nil {
+		return fmt.Errorf("find plaintext wallet copies: %w", err)
+	}
+	for _, path := range paths {
+		if strings.HasSuffix(path, ".tmp") || strings.HasSuffix(path, leftoverMetadataSuffix) {
+			continue
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", path, err)
+		}
+		if walletfile.IsEncrypted(content) {
+			continue
+		}
+		if err := s.encryptLeftover(path, content, key); err != nil {
+			return err
+		}
+		s.log.Info().Str("path", path).Msg("encrypted a plaintext wallet copy")
+	}
+	return nil
+}
+
+func (s *Service) encryptLeftover(path string, content, key []byte) error {
+	meta, err := s.loadMetadata()
+	if err != nil {
+		return fmt.Errorf("read encryption metadata: %w", err)
+	}
+	metaBytes, err := meta.Marshal()
+	if err != nil {
+		return fmt.Errorf("marshal metadata: %w", err)
+	}
+	// Own metadata, so the copy still opens after a later password change.
+	if err := walletfile.AtomicWrite(path+leftoverMetadataSuffix, metaBytes); err != nil {
+		return fmt.Errorf("write metadata of %s: %w", path, err)
+	}
+	encrypted, err := Encrypt(string(content), key)
+	if err != nil {
+		return fmt.Errorf("encrypt %s: %w", path, err)
+	}
+	if err := walletfile.AtomicWrite(path, []byte(encrypted)); err != nil {
+		return fmt.Errorf("write %s: %w", path, err)
+	}
+	return nil
 }

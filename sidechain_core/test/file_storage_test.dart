@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -78,4 +79,19 @@ void main() {
     expect(await store.getString('a'), isNull);
     expect(await store.getString('b'), '2');
   });
+
+  for (final (name, content) in [('not json', 'not json'), ('a JSON list', '["a", "b"]')]) {
+    test('a write keeps an unreadable file that holds $name', () async {
+      final settings = File('${dir.path}/settings.json');
+      await settings.writeAsString(content);
+      final store = FileStorage.fromDirectory(dir);
+
+      await store.setString('a', '1');
+
+      expect(jsonDecode(await settings.readAsString()), {'a': '1'});
+      final kept = dir.listSync().whereType<File>().where((f) => f.path.contains('settings.json.unreadable-')).toList();
+      expect(kept, hasLength(1));
+      expect(await kept.single.readAsString(), content);
+    });
+  }
 }

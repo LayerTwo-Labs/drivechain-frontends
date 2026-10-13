@@ -181,7 +181,7 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 	if o.BitcoinConf != nil {
 		bitcoinOverride = o.BitcoinConf.DetectedDataDir
 	}
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 
 	var files []ResetFileInfo
 	seen := make(map[string]bool)

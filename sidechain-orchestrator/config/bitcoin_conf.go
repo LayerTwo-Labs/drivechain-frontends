@@ -448,10 +448,9 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 			}
 			content = config.Serialize()
 			if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
-				m.log.Error().Err(err).Msg("failed to write migrated config")
-			} else {
-				m.log.Info().Int("version", config.ConfigVersion).Msg("migrated bitwindow-bitcoin.conf")
+				return "", fmt.Errorf("write migrated bitcoin config %s: %w", confPath, err)
 			}
+			m.log.Info().Int("version", config.ConfigVersion).Msg("migrated bitwindow-bitcoin.conf")
 		}
 		return content, nil
 	}
@@ -507,7 +506,8 @@ func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks 
 	}
 	// m.Network is still the CLI/build seed here, so the live network comes from
 	// the config being migrated.
-	activeGroup := DatadirGroupForNetwork(NetworkFromConfig(config, NetworkSignet))
+	activeNetwork := NetworkFromConfig(config, NetworkSignet)
+	activeGroup := DatadirGroupForNetwork(activeNetwork)
 
 	for _, n := range networks {
 		group := DatadirGroupForNetwork(n)
@@ -521,7 +521,7 @@ func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks 
 
 		m.log.Info().Str("network", string(n)).Str("datadir", override).
 			Msg("migration invalidated chain data, wiping")
-		WipeChainData(n, override, m.log)
+		WipeChainData(n, activeNetwork, override, m.log)
 	}
 	return nil
 }

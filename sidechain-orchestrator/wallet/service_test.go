@@ -4,8 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"testing"
 
@@ -30,6 +32,20 @@ func newTestService(t *testing.T) *Service {
 var testSlots = []SidechainSlot{
 	{Slot: 9, Name: "Thunder"},
 	{Slot: 5, Name: "BitNames"},
+}
+
+func TestServiceInitFailsOnAWalletFileThatDoesNotParse(t *testing.T) {
+	dir := t.TempDir()
+	corrupt := []byte(`{"version":1,"wallets":[`)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), corrupt, 0600))
+	svc := NewService(dir, zerolog.New(zerolog.NewTestWriter(t)))
+	t.Cleanup(svc.Close)
+
+	require.ErrorContains(t, svc.Init(), "parse wallet file")
+
+	got, err := os.ReadFile(filepath.Join(dir, "wallet.json"))
+	require.NoError(t, err)
+	assert.Equal(t, corrupt, got)
 }
 
 func TestServiceGenerateWallet(t *testing.T) {
@@ -206,29 +222,50 @@ func TestServiceLocksWhenARestoreReplacesTheWallet(t *testing.T) {
 }
 
 func TestServiceChangePassword(t *testing.T) {
-	svc := newTestService(t)
+	t.Run("new password replaces old", func(t *testing.T) {
+		svc := newTestService(t)
 
-	_, err := svc.GenerateWallet("PW Change", "", "", testSlots)
-	require.NoError(t, err)
+		_, err := svc.GenerateWallet("PW Change", "", "", testSlots)
+		require.NoError(t, err)
 
-	require.NoError(t, svc.EncryptWallet("oldpass"))
+		require.NoError(t, svc.EncryptWallet("oldpass"))
 
-	// Change with wrong old password
-	err = svc.ChangePassword("wrongold", "newpass")
-	assert.Error(t, err)
+		err = svc.ChangePassword("wrongold", "newpass")
+		require.ErrorContains(t, err, "incorrect old password")
 
-	// Change with correct old password
-	require.NoError(t, svc.ChangePassword("oldpass", "newpass"))
+		require.NoError(t, svc.ChangePassword("oldpass", "newpass"))
 
-	// Lock and unlock with new password
-	svc.LockWallet()
-	require.NoError(t, svc.UnlockWallet("newpass"))
-	assert.True(t, svc.IsUnlocked())
+		svc.LockWallet()
+		require.NoError(t, svc.UnlockWallet("newpass"))
+		assert.True(t, svc.IsUnlocked())
 
-	// Old password should no longer work
-	svc.LockWallet()
-	err = svc.UnlockWallet("oldpass")
-	assert.Error(t, err)
+		svc.LockWallet()
+		err = svc.UnlockWallet("oldpass")
+		assert.Error(t, err)
+	})
+
+	t.Run("failed metadata write keeps old password", func(t *testing.T) {
+		svc := newTestService(t)
+
+		_, err := svc.GenerateWallet("PW Change", "", "", testSlots)
+		require.NoError(t, err)
+		require.NoError(t, svc.EncryptWallet("oldpass"))
+		svc.LockWallet()
+
+		metaPath := svc.metadataFilePath()
+		require.NoError(t, os.Chmod(metaPath, 0400))
+		require.NoError(t, os.Mkdir(metaPath+".tmp", 0700))
+
+		err = svc.ChangePassword("oldpass", "newpass")
+		require.ErrorContains(t, err, "write encryption metadata: ")
+		require.ErrorContains(t, err, "; the old password still opens the wallet")
+
+		require.NoError(t, svc.UnlockWallet("oldpass"))
+		assert.Equal(t, "PW Change", svc.ActiveWalletName())
+
+		svc.LockWallet()
+		assert.Error(t, svc.UnlockWallet("newpass"))
+	})
 }
 
 func TestServiceRemoveEncryption(t *testing.T) {
@@ -1053,6 +1090,30 @@ func TestServiceSyncBalanceWritesLatestKnownBalanceAndSkipsEqual(t *testing.T) {
 	assert.Equal(t, uint64(124), meta.LatestKnownBalance["bitcoind"].ConfirmedSats)
 }
 
+func TestServiceSyncBalanceIgnoresNonActiveWallet(t *testing.T) {
+	svc := newTestService(t)
+	a, err := svc.GenerateWallet("A", "", "", testSlots)
+	require.NoError(t, err)
+	b, err := svc.GenerateWallet("B", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.SwitchWallet(a.ID))
+
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, a.ID, 100, 1, "Bitcoin"))
+	before, err := os.ReadFile(svc.WalletMetadataFilePath())
+	require.NoError(t, err)
+
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, b.ID, 999, 9, "Bitcoin"))
+
+	after, err := os.ReadFile(svc.WalletMetadataFilePath())
+	require.NoError(t, err)
+	assert.Equal(t, before, after)
+	meta, err := svc.loadWalletMetadataFile()
+	require.NoError(t, err)
+	assert.Equal(t, a.ID, meta.ActiveWalletID)
+	assert.Equal(t, uint64(100), meta.LatestKnownBalance["bitcoind"].ConfirmedSats)
+	assert.Equal(t, uint64(1), meta.LatestKnownBalance["bitcoind"].PendingSats)
+}
+
 func TestServiceListWalletBackupsReadsUnencryptedMetadataForEncryptedBackup(t *testing.T) {
 	svc := newTestService(t)
 	w, err := svc.GenerateWallet("Encrypted metadata", "", "", testSlots)
@@ -1216,4 +1277,155 @@ func TestRebindNetworkRetriesFailedOpen(t *testing.T) {
 
 	require.NoError(t, svc.RebindNetwork("signet"))
 	require.NotNil(t, svc.db(), "same-network rebind must reopen a missing handle")
+}
+
+func skipWithoutPermissionChecks(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("windows ignores directory mode bits")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory mode bits")
+	}
+}
+
+func readOnlyDir(t *testing.T, dir string) {
+	t.Helper()
+	require.NoError(t, os.Chmod(dir, 0o500))
+	t.Cleanup(func() { require.NoError(t, os.Chmod(dir, 0o700)) })
+}
+
+func TestServiceDeleteAllWalletsErrors(t *testing.T) {
+	t.Run("stop error leaves the wallets in place", func(t *testing.T) {
+		svc := newTestService(t)
+		_, err := svc.GenerateWallet("A", "", "", testSlots)
+		require.NoError(t, err)
+		stopErr := errors.New("bitcoind still runs")
+		svc.OnStopAllBinaries = func() error { return stopErr }
+
+		require.ErrorIs(t, svc.DeleteAllWallets(nil, nil), stopErr)
+
+		_, err = os.Stat(svc.walletFilePath())
+		require.NoError(t, err)
+		require.True(t, svc.HasWallet())
+	})
+
+	t.Run("binary wallet path that cannot move", func(t *testing.T) {
+		skipWithoutPermissionChecks(t)
+		svc := newTestService(t)
+		_, err := svc.GenerateWallet("A", "", "", testSlots)
+		require.NoError(t, err)
+		binDir := t.TempDir()
+		binaryWallet := filepath.Join(binDir, "wallets")
+		require.NoError(t, os.MkdirAll(binaryWallet, 0o700))
+		readOnlyDir(t, binDir)
+		svc.GetBinaryWalletPaths = func() []string { return []string{binaryWallet} }
+
+		require.ErrorContains(t, svc.DeleteAllWallets(nil, nil), "create backup root")
+
+		require.NotEmpty(t, findBackup(t, filepath.Join(svc.bitwindowDir, "wallet_backups"), "wallet.json"))
+		require.False(t, svc.HasWallet())
+		require.Empty(t, svc.ActiveWalletID())
+		_, err = os.Stat(binaryWallet)
+		require.NoError(t, err)
+	})
+
+	t.Run("core data dir that does not exist", func(t *testing.T) {
+		svc := newTestService(t)
+		_, err := svc.GenerateWallet("A", "", "", testSlots)
+		require.NoError(t, err)
+		svc.CoreDataDir = filepath.Join(t.TempDir(), "never-ran")
+
+		require.NoError(t, svc.DeleteAllWallets(nil, nil))
+	})
+
+	t.Run("before boot error", func(t *testing.T) {
+		svc := newTestService(t)
+		bootErr := errors.New("boot failed")
+
+		require.ErrorIs(t, svc.DeleteAllWallets(nil, func() error { return bootErr }), bootErr)
+	})
+}
+
+func TestDeleteCoreMultisigWallets(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t))
+
+	t.Run("moves multisig dirs to wallet_backups", func(t *testing.T) {
+		coreDir := t.TempDir()
+		multisig := filepath.Join(coreDir, "multisig_abc")
+		require.NoError(t, os.MkdirAll(multisig, 0o700))
+		require.NoError(t, os.WriteFile(filepath.Join(multisig, "wallet.dat"), []byte("keys"), 0o600))
+		other := filepath.Join(coreDir, "wallets")
+		require.NoError(t, os.MkdirAll(other, 0o700))
+
+		require.NoError(t, DeleteCoreMultisigWallets(coreDir, log))
+
+		_, err := os.Stat(multisig)
+		require.ErrorIs(t, err, os.ErrNotExist)
+		_, err = os.Stat(other)
+		require.NoError(t, err)
+		backup := findBackup(t, filepath.Join(coreDir, "wallet_backups"), "multisig_abc")
+		require.NotEmpty(t, backup)
+		keys, err := os.ReadFile(filepath.Join(backup, "wallet.dat"))
+		require.NoError(t, err)
+		require.Equal(t, []byte("keys"), keys)
+	})
+
+	t.Run("missing core data dir", func(t *testing.T) {
+		require.NoError(t, DeleteCoreMultisigWallets(filepath.Join(t.TempDir(), "never-ran"), log))
+	})
+
+	t.Run("rename fails", func(t *testing.T) {
+		skipWithoutPermissionChecks(t)
+		coreDir := t.TempDir()
+		multisig := filepath.Join(coreDir, "multisig_abc")
+		require.NoError(t, os.MkdirAll(multisig, 0o700))
+		require.NoError(t, os.MkdirAll(filepath.Join(coreDir, "wallet_backups"), 0o700))
+		readOnlyDir(t, coreDir)
+
+		require.ErrorContains(t, DeleteCoreMultisigWallets(coreDir, log), "back up multisig wallet")
+
+		_, err := os.Stat(multisig)
+		require.NoError(t, err)
+	})
+}
+
+func TestServiceEncryptWalletMetadataWriteFails(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("A", "", "", testSlots)
+	require.NoError(t, err)
+	plaintext, err := os.ReadFile(svc.walletFilePath())
+	require.NoError(t, err)
+	require.NoError(t, os.MkdirAll(svc.metadataFilePath(), 0o700))
+
+	err = svc.EncryptWallet("pw")
+	require.ErrorContains(t, err, "write encryption metadata: ")
+	require.ErrorContains(t, err, "; the wallet stays unencrypted")
+
+	got, err := os.ReadFile(svc.walletFilePath())
+	require.NoError(t, err)
+	require.Equal(t, plaintext, got)
+	require.NoError(t, os.Remove(svc.metadataFilePath()))
+	svc2 := NewService(svc.bitwindowDir, zerolog.New(zerolog.NewTestWriter(t)))
+	require.NoError(t, svc2.Init())
+	t.Cleanup(svc2.Close)
+	require.True(t, svc2.HasWallet())
+}
+
+func TestServiceUnlockWithUnreadableMetadata(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*Service) error
+	}{
+		{"unlock", func(s *Service) error { return s.UnlockWallet("pw") }},
+		{"change password", func(s *Service) error { return s.ChangePassword("pw", "pw2") }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := newTestService(t)
+			require.NoError(t, os.WriteFile(svc.metadataFilePath(), []byte("not json"), 0o600))
+
+			require.ErrorContains(t, tt.call(svc), "read encryption metadata")
+		})
+	}
 }

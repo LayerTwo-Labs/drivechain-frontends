@@ -2,10 +2,13 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 // newTestConfManager builds a manager pointed at a temp BitwindowDir without
@@ -90,4 +93,66 @@ func TestLoadOrCreate_UnreadableFailsClosed(t *testing.T) {
 	if !info.IsDir() {
 		t.Error("confPath was overwritten with a default file instead of failing closed")
 	}
+}
+
+func TestLoadOrCreate_SignetChallengeWipeKeepsSharedSidechainData(t *testing.T) {
+	const preV10 = "# bitwindow-bitcoin-conf-version=9\n\n"
+	const oldChallenge = "[signet]\nsignetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987\n"
+
+	for _, tc := range []struct {
+		name           string
+		conf           string
+		keepsSidechain bool
+	}{
+		{"regtest", "chain=regtest\n" + oldChallenge, true},
+		{"ecash", "chain=main\n" + oldChallenge + "[main]\ndrivechain=1\nuacomment=" + ECashUAComment("alphanet") + "\n", true},
+		{"signet", "chain=signet\n" + oldChallenge, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+
+			signetBlocks := filepath.Join(BitcoinCoreDirs.DatadirNetwork(NetworkSignet, ""), "blocks")
+			sidechainDB := filepath.Join(ThunderDirs.DatadirNetwork(NetworkSignet, ""), "data.mdb")
+			for _, p := range []string{filepath.Join(signetBlocks, "blk00000.dat"), sidechainDB} {
+				require.NoError(t, os.MkdirAll(filepath.Dir(p), 0o755))
+				require.NoError(t, os.WriteFile(p, []byte("stub"), 0o644))
+			}
+
+			m := newTestConfManager(t)
+			require.NoError(t, os.WriteFile(m.getBitWindowConfigPath(), []byte(preV10+tc.conf), 0o644))
+
+			_, err := m.loadOrCreateConfigContent()
+			require.NoError(t, err)
+
+			require.Eventually(t, func() bool {
+				_, err := os.Stat(signetBlocks)
+				return os.IsNotExist(err)
+			}, 5*time.Second, 20*time.Millisecond)
+
+			if !tc.keepsSidechain {
+				require.Eventually(t, func() bool {
+					_, err := os.Stat(sidechainDB)
+					return os.IsNotExist(err)
+				}, 5*time.Second, 20*time.Millisecond)
+				return
+			}
+			_, err = os.Stat(sidechainDB)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestLoadOrCreate_MigratedConfWriteFailureReturnsError(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	m := newTestConfManager(t)
+	confPath := m.getBitWindowConfigPath()
+	require.NoError(t, os.WriteFile(confPath, []byte("# bitwindow-bitcoin-conf-version=9\n\nchain=signet\n"), 0o444))
+
+	_, err := m.loadOrCreateConfigContent()
+	require.ErrorIs(t, err, os.ErrPermission)
 }

@@ -37,7 +37,19 @@ class FileStorage implements KeyValueStore {
     try {
       return Map<String, String>.from(jsonDecode(await file.readAsString()));
     } catch (e) {
-      // If file is corrupted, start fresh
+      // A read never throws; _write moves the unreadable file aside before it writes.
+      return {};
+    }
+  }
+
+  Future<Map<String, String>> _readForWrite() async {
+    if (!await file.exists()) {
+      return {};
+    }
+    try {
+      return Map<String, String>.from(jsonDecode(await file.readAsString()));
+    } catch (e) {
+      await file.rename('${file.path}.unreadable-${DateTime.now().millisecondsSinceEpoch}');
       return {};
     }
   }
@@ -50,10 +62,10 @@ class FileStorage implements KeyValueStore {
       final lock = await File('${file.path}.lock').open(mode: FileMode.write);
       try {
         await lock.lock(FileLock.blockingExclusive);
-        final values = await _read();
+        final values = await _readForWrite();
         change(values);
         final temp = File('${file.path}.$pid.tmp');
-        await temp.writeAsString(jsonEncode(values));
+        await temp.writeAsString(jsonEncode(values), flush: true);
         await temp.rename(file.path);
       } finally {
         await lock.close();

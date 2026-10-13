@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // Name of the wallet file inside the bitwindow directory.
@@ -22,9 +23,12 @@ const Name = "wallet.json"
 
 // LockSuffix names the lock file [Write] takes before it touches the wallet
 // file. PreviousSuffix names the copy of the file each write replaces.
+// UnreadableSuffix starts the name of a timestamped copy of a replaced file
+// that did not read as a wallet file.
 const (
-	LockSuffix     = ".lock"
-	PreviousSuffix = ".prev"
+	LockSuffix       = ".lock"
+	PreviousSuffix   = ".prev"
+	UnreadableSuffix = ".unreadable-"
 )
 
 // ErrChanged reports that the wallet file on disk no longer holds what the
@@ -155,10 +159,11 @@ func DroppedWalletIDs(current, next []byte) []string {
 //     processes take turns.
 //  3. The file on disk still holds what the caller read, and a file another
 //     process removed counts as a change.
-//  4. The write keeps every wallet the current file holds, unless the caller
-//     asks to drop one.
+//  4. A plaintext write keeps every wallet the current plaintext file holds,
+//     unless the caller asks to drop one.
 //  5. The replaced file stays at path+[PreviousSuffix], and never as plaintext
-//     beside an encrypted wallet.
+//     beside an encrypted wallet. A replaced file that does not read as a
+//     wallet file stays at path+[UnreadableSuffix]+timestamp.
 //  6. The written file parses; a file that does not is rolled back.
 func Write(path string, content []byte, opts Options) error {
 	if err := Validate(content); err != nil {
@@ -197,7 +202,7 @@ func Write(path string, content []byte, opts Options) error {
 		return fmt.Errorf("read the wallet file before the write: %w", err)
 	}
 
-	if err := atomicWrite(path, content); err != nil {
+	if err := AtomicWrite(path, content); err != nil {
 		return err
 	}
 
@@ -214,9 +219,13 @@ func Write(path string, content []byte, opts Options) error {
 }
 
 // keepPrevious stores the file the write replaces, so a bad write leaves a way
-// back. It stores nothing that would leave a seed in the clear.
+// back. It keeps no plaintext copy of a readable wallet beside an encrypted one.
 func keepPrevious(path string, current, content []byte, currentValid bool) error {
 	if !currentValid {
+		// It can hold the only copy of a seed, so it stays even when encrypted.
+		if err := AtomicWrite(path+UnreadableSuffix+time.Now().UTC().Format("20060102T150405Z"), current); err != nil {
+			return fmt.Errorf("keep the unreadable wallet file: %w", err)
+		}
 		return nil
 	}
 	if IsEncrypted(content) && !IsEncrypted(current) {
@@ -227,7 +236,7 @@ func keepPrevious(path string, current, content []byte, currentValid bool) error
 		}
 		return nil
 	}
-	if err := atomicWrite(path+PreviousSuffix, current); err != nil {
+	if err := AtomicWrite(path+PreviousSuffix, current); err != nil {
 		return fmt.Errorf("keep the previous wallet file: %w", err)
 	}
 	return nil
@@ -240,15 +249,27 @@ func rollback(path string, cause error) error {
 	if err != nil || Validate(previous) != nil {
 		return cause
 	}
-	if err := atomicWrite(path, previous); err != nil {
+	if err := AtomicWrite(path, previous); err != nil {
 		return fmt.Errorf("%w, and the previous file did not go back: %v", cause, err)
 	}
 	return fmt.Errorf("%w, the previous wallet file went back in place", cause)
 }
 
-func atomicWrite(path string, content []byte) error {
+// AtomicWrite replaces path with content through a synced temp file and a
+// rename, so path holds either the old or the new content.
+func AtomicWrite(path string, content []byte) error {
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, content, 0600); err != nil {
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(content); err != nil {
+		return errors.Join(err, f.Close())
+	}
+	if err := f.Sync(); err != nil {
+		return errors.Join(err, f.Close())
+	}
+	if err := f.Close(); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)

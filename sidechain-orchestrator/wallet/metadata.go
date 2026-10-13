@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 	"github.com/samber/lo"
 
 	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -91,6 +92,10 @@ func (s *Service) SyncBalance(binary orchestratorpb.BinaryType, walletID string,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.activeWalletID != "" && walletID != "" && walletID != s.activeWalletID {
+		return nil
+	}
+
 	meta, err := s.loadWalletMetadataFile()
 	if err != nil {
 		return err
@@ -103,16 +108,9 @@ func (s *Service) SyncBalance(binary orchestratorpb.BinaryType, walletID string,
 	}
 
 	dirty := false
-	if walletID != "" {
-		if meta.ActiveWalletID != walletID {
-			meta.ActiveWalletID = walletID
-			dirty = true
-		}
-	} else if s.activeWalletID != "" {
-		if meta.ActiveWalletID != s.activeWalletID {
-			meta.ActiveWalletID = s.activeWalletID
-			dirty = true
-		}
+	if s.activeWalletID != "" && meta.ActiveWalletID != s.activeWalletID {
+		meta.ActiveWalletID = s.activeWalletID
+		dirty = true
 	}
 	if len(s.wallets) > 0 {
 		summaries := walletSummaries(s.wallets)
@@ -269,10 +267,6 @@ func (s *Service) restoreWalletBackup(backupID, password string, progress Restor
 		s.wallets = nil
 		s.activeWalletID = ""
 		s.encryptionKey = unlockKey
-		s.unlockedPass = ""
-		if encrypted {
-			s.unlockedPass = password
-		}
 		if err := s.loadWalletFile(); err != nil {
 			return fmt.Errorf("load restored wallet: %w", err)
 		}
@@ -370,7 +364,7 @@ func (s *Service) writeWalletMetadataFile(meta WalletMetadataFile) error {
 	if err != nil {
 		return fmt.Errorf("marshal metadata.json: %w", err)
 	}
-	return atomicWrite(s.WalletMetadataFilePath(), data)
+	return walletfile.AtomicWrite(s.WalletMetadataFilePath(), data)
 }
 
 func (s *Service) readWalletBackupInfo(dir string) WalletBackupInfo {

@@ -245,19 +245,20 @@ func coreWalletNames(walletID string) []string {
 func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 	wallets := p.svc.GetAllWallets()
 	synced := 0
+	var errs []error
 
 	for _, w := range wallets {
 		if w.WalletType != WalletTypeBitcoinCore {
 			continue
 		}
 		if _, err := p.Ensure(ctx, w.ID); err != nil {
-			p.log.Warn().Err(err).Str("wallet_id", w.ID).Msg("failed to ensure core wallet")
+			errs = append(errs, fmt.Errorf("ensure core wallet %s: %w", w.ID, err))
 			continue
 		}
 		synced++
 	}
 
-	return synced, nil
+	return synced, errors.Join(errs...)
 }
 
 // walletName returns the Core wallet name for a wallet ID, ensuring it exists.
