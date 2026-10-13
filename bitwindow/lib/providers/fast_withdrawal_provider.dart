@@ -170,7 +170,7 @@ class FastWithdrawalProvider extends ChangeNotifier implements NetworkScoped {
 
   /// Send L2 coins automatically and complete, or complete with a manual txid.
   /// If [manualTxid] is non-null, uses that txid directly (manual paste flow).
-  /// If null, auto-sends via sidechain RPC.
+  /// If null, auto-sends via sidechain RPC once and reuses that txid on retry.
   Future<void> sendL2AndComplete(String? manualTxid) async {
     if (withdrawalHash == null || l2Address == null || l2Amount == null) {
       errorMessage = 'No pending withdrawal to complete';
@@ -180,9 +180,15 @@ class FastWithdrawalProvider extends ChangeNotifier implements NetworkScoped {
 
     String txid;
 
-    if (manualTxid != null && manualTxid.trim().isNotEmpty) {
-      // Manual paste flow
+    if (manualTxid != null) {
+      if (manualTxid.trim().isEmpty) {
+        errorMessage = 'Paste the L2 txid first.';
+        notifyListeners();
+        return;
+      }
       txid = manualTxid.trim();
+    } else if (l2Txid != null) {
+      txid = l2Txid!;
     } else {
       // Auto-send flow
       final rpc = _getSidechainRPC();

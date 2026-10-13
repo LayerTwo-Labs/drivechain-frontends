@@ -25,6 +25,7 @@ class CheckDetailViewModel extends BaseViewModel {
   String? modelError;
   String? actionError;
   bool _funding = false;
+  bool _sweeping = false;
 
   Cheque? get check => _check;
   bool get isLoading => _isLoading;
@@ -117,6 +118,19 @@ class CheckDetailViewModel extends BaseViewModel {
   }
 
   Future<void> sweepCheck(BuildContext context) async {
+    if (_sweeping) {
+      return;
+    }
+
+    _sweeping = true;
+    try {
+      await _sweepOnce(context);
+    } finally {
+      _sweeping = false;
+    }
+  }
+
+  Future<void> _sweepOnce(BuildContext context) async {
     if (_check == null || _check!.fundedTxids.isEmpty) {
       return;
     }
@@ -167,7 +181,7 @@ class CheckDetailViewModel extends BaseViewModel {
             return;
           }
           if (_walletReader.isWalletUnlocked) {
-            await sweepCheck(context);
+            await _sweepOnce(context);
           }
         } else {
           _setActionError('Backend wallet not initialized. Please restart the app.');
