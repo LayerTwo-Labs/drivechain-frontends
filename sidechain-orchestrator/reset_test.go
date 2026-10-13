@@ -10,6 +10,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +81,7 @@ func TestGather_OnlyTargetsRequestedBinary(t *testing.T) {
 
 	// node_software lives in BinDir keyed by binary name. Seed bitcoind +
 	// thunder; gather only thunder and assert bitcoind never shows up.
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	seedFile(t, filepath.Join(binDir, "bitcoind"))
 	seedFile(t, filepath.Join(binDir, "thunder"))
 
@@ -93,6 +94,21 @@ func TestGather_OnlyTargetsRequestedBinary(t *testing.T) {
 		assert.NotEqual(t, "bitcoind", filepath.Base(f.Path),
 			"gather for thunder must not return bitcoind's software")
 	}
+}
+
+func TestGather_SoftwareComesFromTheDataDir(t *testing.T) {
+	dataDir, bitwindowDir := t.TempDir(), t.TempDir()
+	o := New(dataDir, "signet", bitwindowDir, AllDefaults(), testLogger(t))
+	installed := filepath.Join(BinDir(dataDir), "bitcoind")
+	seedFile(t, installed)
+
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catSoftware}},
+	})
+	require.NoError(t, err)
+
+	paths := lo.Map(files, func(f ResetFileInfo, _ int) string { return f.Path })
+	assert.Contains(t, paths, installed)
 }
 
 func TestGather_OnlyRequestedCategories(t *testing.T) {
@@ -112,7 +128,7 @@ func TestGather_OnlyRequestedCategories(t *testing.T) {
 func TestGather_StatsExistingFiles(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	seedFile(t, filepath.Join(binDir, "bitcoind"))
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
@@ -138,7 +154,7 @@ func TestGather_StatsExistingFiles(t *testing.T) {
 func TestGather_CollectsEveryCoreVariantFolder(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	variants := o.Configs()["bitcoind"].Variants
 	require.NotEmpty(t, variants)
 
@@ -189,7 +205,7 @@ func TestGather_DeduplicatesByPath(t *testing.T) {
 func TestGather_NeverWipesBundledBinarySoftware(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	seedFile(t, filepath.Join(binDir, "bitwindowd"))
 	seedFile(t, filepath.Join(binDir, "bitcoind"))
 
@@ -210,7 +226,7 @@ func TestGather_NeverWipesBundledBinarySoftware(t *testing.T) {
 func TestGather_NoSideEffects(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	testFile := filepath.Join(binDir, "bitcoind")
 	seedFile(t, testFile)
 
@@ -402,7 +418,7 @@ func TestResetRestart_AbortsWhenShutdownBeganAfterReset(t *testing.T) {
 func TestDeleteFiles_DeletesSeededFiles(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	a := filepath.Join(binDir, "bitcoind")
 	b := filepath.Join(binDir, "bip300301-enforcer")
 	seedFile(t, a)
@@ -429,7 +445,7 @@ func TestDeleteFiles_DeletesSeededFiles(t *testing.T) {
 func TestDeleteFiles_EmitsOneEventPerPath(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	paths := []string{
 		filepath.Join(binDir, "bitcoind"),
 		filepath.Join(binDir, "thunder"),
@@ -479,7 +495,7 @@ func TestDeleteFiles_Empty(t *testing.T) {
 func TestDeleteFiles_DeletesNestedDirectoryTree(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	binDir := BinDir(o.BitwindowDir)
+	binDir := BinDir(o.DataDir)
 	require.NoError(t, os.MkdirAll(binDir, 0o755))
 	nested := filepath.Join(binDir, "bitcoind")
 	deep := filepath.Join(nested, "Contents", "MacOS", "Resources", "en.lproj")

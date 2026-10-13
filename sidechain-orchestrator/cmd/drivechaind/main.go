@@ -276,7 +276,7 @@ func run(cctx *cli.Context) error {
 		walletSvc.CoreDataDir = config.BitcoinCoreDirs.RootDirNetwork(orch.BitcoinConf.Network)
 	}
 	if err := walletSvc.Init(); err != nil {
-		log.Warn().Err(err).Msg("wallet service init")
+		return fmt.Errorf("init wallet service: %w", err)
 	}
 	defer walletSvc.Close()
 	orch.WalletSvc = walletSvc

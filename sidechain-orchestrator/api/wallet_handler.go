@@ -780,7 +780,9 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 
 	confirmedSats := btcToSats(confirmed)
 	unconfirmedSats := btcToSats(unconfirmed)
-	_ = h.svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, walletID, uint64(math.Round(confirmedSats)), uint64(math.Round(unconfirmedSats)), "Bitcoin")
+	if err := h.svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, walletID, uint64(math.Round(confirmedSats)), uint64(math.Round(unconfirmedSats)), "Bitcoin"); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the balance snapshot: %w", err))
+	}
 
 	return connect.NewResponse(&pb.GetBalanceResponse{
 		ConfirmedSats:   confirmedSats,

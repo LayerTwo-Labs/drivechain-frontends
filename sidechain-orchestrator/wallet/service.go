@@ -46,7 +46,10 @@ type Service struct {
 	activeWalletID  string
 	starterWalletID string
 	encryptionKey   []byte
-	unlockedPass    string
+
+	// Separate from mu: starter writers hold mu.RLock and lockLocked holds mu.
+	starterMu      sync.Mutex
+	starterDirPath string
 
 	// The wallet file content this process last read. Every write compares
 	// against it, so a write can never drop a change made behind our back.
@@ -214,7 +217,6 @@ func (s *Service) ClearInMemoryState() {
 	s.wallets = nil
 	s.activeWalletID = ""
 	s.encryptionKey = nil
-	s.unlockedPass = ""
 	s.setWalletDigestLocked(nil)
 	s.mu.Unlock()
 }
@@ -305,14 +307,13 @@ func (s *Service) Init() error {
 	err := s.loadWalletFile()
 	s.mu.Unlock()
 	if err != nil {
-		s.log.Warn().Err(err).Msg("initial wallet load failed (may not exist yet)")
-	} else {
-		s.log.Info().
-			Int("wallet_count", len(s.wallets)).
-			Str("active_id", s.activeWalletID).
-			Bool("encrypted", s.isEncrypted()).
-			Msg("wallet service initialized")
+		return fmt.Errorf("load wallet file: %w", err)
 	}
+	s.log.Info().
+		Int("wallet_count", len(s.wallets)).
+		Str("active_id", s.activeWalletID).
+		Bool("encrypted", s.isEncrypted()).
+		Msg("wallet service initialized")
 
 	s.startWatcher()
 	return nil
@@ -551,7 +552,6 @@ func (s *Service) ClearState() {
 	s.log.Info().Msg("clearState: clearing all wallet state")
 	s.wallets = nil
 	s.encryptionKey = nil
-	s.unlockedPass = ""
 	s.activeWalletID = ""
 }
 
@@ -741,42 +741,40 @@ func (s *Service) LoadMasterStarter() map[string]interface{} {
 	}
 }
 
-// DeleteCoreMultisigWallets deletes multisig_* directories from Bitcoin Core datadir.
-// Dart: WalletWriterProvider._deleteCoreMultisigWallets (L533-552)
-// DeleteCoreMultisigWallets is retained for backwards compatibility but is
-// now a soft-delete: each `multisig_*` directory is moved to
-// `<coreDataDir>/wallet_backups/<ts>/` rather than removed. Multisig keys
-// are user-level secrets we can't reconstruct, so we never `os.RemoveAll`
-// them.
-func DeleteCoreMultisigWallets(coreDataDir string, log zerolog.Logger) {
+// DeleteCoreMultisigWallets moves the multisig_* dirs of coreDataDir to coreDataDir/wallet_backups/<ts>/.
+func DeleteCoreMultisigWallets(coreDataDir string, log zerolog.Logger) error {
 	entries, err := os.ReadDir(coreDataDir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
 	if err != nil {
-		log.Error().Err(err).Msg("error reading core data dir for multisig cleanup")
-		return
+		return fmt.Errorf("read core data dir: %w", err)
 	}
 	backupRoot := filepath.Join(coreDataDir, "wallet_backups", time.Now().UTC().Format("20060102-150405"))
+	var errs []error
 	for _, entry := range entries {
 		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "multisig_") {
 			continue
 		}
 		if err := os.MkdirAll(backupRoot, 0o700); err != nil {
-			log.Warn().Err(err).Str("backup", backupRoot).Msg("could not create multisig backup root")
-			return
+			errs = append(errs, fmt.Errorf("create multisig backup root: %w", err))
+			continue
 		}
 		src := filepath.Join(coreDataDir, entry.Name())
 		dst := filepath.Join(backupRoot, entry.Name())
 		if err := os.Rename(src, dst); err != nil {
-			log.Warn().Err(err).Str("path", src).Msg("could not back up multisig wallet")
-		} else {
-			log.Info().Str("from", src).Str("to", dst).Msg("multisig wallet moved to backup")
+			errs = append(errs, fmt.Errorf("back up multisig wallet: %w", err))
+			continue
 		}
+		log.Info().Str("from", src).Str("to", dst).Msg("multisig wallet moved to backup")
 	}
+	return errors.Join(errs...)
 }
 
 // softDeleteCoreMultisigWallets is the method form used by DeleteAllWallets
 // so the same backup logic flows through Service's logger context.
-func (s *Service) softDeleteCoreMultisigWallets() {
-	DeleteCoreMultisigWallets(s.CoreDataDir, s.log)
+func (s *Service) softDeleteCoreMultisigWallets() error {
+	return DeleteCoreMultisigWallets(s.CoreDataDir, s.log)
 }
 
 // CreateBitcoinCoreWallet creates a new Bitcoin Core wallet.
@@ -1140,6 +1138,9 @@ func (s *Service) UnlockWallet(password string) error {
 	s.log.Info().Msg("attempting to unlock wallet")
 
 	meta, err := s.loadMetadata()
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read encryption metadata: %w", err)
+	}
 	if err != nil || !meta.Encrypted {
 		s.log.Warn().Err(err).Bool("encrypted", meta.Encrypted).Msg("unlock failed: wallet is not encrypted")
 		return fmt.Errorf("wallet is not encrypted")
@@ -1168,8 +1169,11 @@ func (s *Service) UnlockWallet(password string) error {
 		return fmt.Errorf("incorrect password")
 	}
 
+	if err := s.protectPlaintextLeftoversLocked(key); err != nil {
+		return fmt.Errorf("unlock stopped: encrypt the plaintext wallet copy: %w", err)
+	}
+
 	s.encryptionKey = key
-	s.unlockedPass = password
 
 	// Reload with decryption
 	if err := s.loadWalletFile(); err != nil {
@@ -1196,7 +1200,6 @@ func (s *Service) LockWallet() {
 func (s *Service) lockLocked() {
 	s.wallets = nil
 	s.encryptionKey = nil
-	s.unlockedPass = ""
 	s.CleanupStarterFiles()
 }
 
@@ -1263,10 +1266,16 @@ func (s *Service) EncryptWallet(password string) error {
 		Encrypted:  true,
 		Version:    "1.0",
 	}
-	metaBytes, _ := meta.Marshal()
-	if err := os.WriteFile(s.metadataFilePath(), metaBytes, 0600); err != nil {
-		s.log.Error().Err(err).Msg("failed to write encryption metadata")
-		return fmt.Errorf("write metadata: %w", err)
+	metaBytes, err := meta.Marshal()
+	if err != nil {
+		return fmt.Errorf("marshal metadata: %w", err)
+	}
+	if err := walletfile.AtomicWrite(s.metadataFilePath(), metaBytes); err != nil {
+		// Without the salt no password opens the ciphertext, so put the plaintext back.
+		if restoreErr := s.writeWalletFileLocked(plaintext); restoreErr != nil {
+			return fmt.Errorf("write encryption metadata: %w; the plaintext wallet file did not go back: %v", err, restoreErr)
+		}
+		return fmt.Errorf("write encryption metadata: %w; the wallet stays unencrypted", err)
 	}
 
 	// Encryption fully succeeded — remove the plaintext backup so the
@@ -1276,7 +1285,9 @@ func (s *Service) EncryptWallet(password string) error {
 	}
 
 	s.encryptionKey = key
-	s.unlockedPass = password
+	if err := s.protectPlaintextLeftoversLocked(key); err != nil {
+		return fmt.Errorf("the wallet is encrypted, but a plaintext copy beside it is not: %w", err)
+	}
 
 	s.log.Info().Str("metadata_path", s.metadataFilePath()).Msg("wallet encrypted successfully")
 	return nil
@@ -1289,6 +1300,9 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 	s.log.Info().Msg("changing wallet password")
 
 	meta, err := s.loadMetadata()
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read encryption metadata: %w", err)
+	}
 	if err != nil || !meta.Encrypted {
 		s.log.Warn().Err(err).Msg("change password failed: wallet is not encrypted")
 		return fmt.Errorf("wallet is not encrypted")
@@ -1322,27 +1336,34 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		return fmt.Errorf("encrypt: %w", err)
 	}
 
-	s.setWalletDigestLocked(data)
-	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
-		return fmt.Errorf("write wallet: %w", err)
-	}
-
 	newMeta := EncryptionMetadata{
 		Salt:       base64.StdEncoding.EncodeToString(newSalt),
 		Iterations: DefaultIterations,
 		Encrypted:  true,
 		Version:    "1.0",
 	}
-	metaBytes, _ := newMeta.Marshal()
-	if err := os.WriteFile(s.metadataFilePath(), metaBytes, 0600); err != nil {
-		return fmt.Errorf("write metadata: %w", err)
+	metaBytes, err := newMeta.Marshal()
+	if err != nil {
+		return fmt.Errorf("marshal metadata: %w", err)
+	}
+
+	s.setWalletDigestLocked(data)
+	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
+		return fmt.Errorf("write wallet: %w", err)
+	}
+
+	if err := walletfile.AtomicWrite(s.metadataFilePath(), metaBytes); err != nil {
+		// The old metadata stays, so put back the wallet file that the old password opens.
+		if restoreErr := s.writeWalletFileLocked(data); restoreErr != nil {
+			return fmt.Errorf("write encryption metadata: %w; the old wallet file did not go back: %v", err, restoreErr)
+		}
+		return fmt.Errorf("write encryption metadata: %w; the old password still opens the wallet", err)
 	}
 
 	// Adopt the new key only if we already held one. While locked there is no
 	// key, and taking one would leave the service holding a key with no wallets.
 	if s.encryptionKey != nil {
 		s.encryptionKey = newKey
-		s.unlockedPass = newPassword
 	}
 
 	s.log.Info().Msg("password changed successfully")
@@ -1421,7 +1442,6 @@ func (s *Service) RemoveEncryption(password string) error {
 	}
 
 	s.encryptionKey = nil
-	s.unlockedPass = ""
 
 	// Reload
 	if err := s.loadWalletFile(); err != nil {
@@ -1547,19 +1567,16 @@ func (s *Service) DeleteWallet(walletID string) error {
 	return s.saveWalletFileAllowingDrop()
 }
 
-// DeleteAllWallets performs a full wallet wipe matching Dart's deleteAllWallets (L554-653).
-// Stops binaries, deletes all wallet files, clears multisig wallets, clears state.
+// DeleteAllWallets stops the binaries, moves every wallet file to wallet_backups and clears the wallet state.
 func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func() error) error {
-	// Dart L560: onStatusUpdate?.call('Stopping binaries')
 	if onStatusUpdate != nil {
 		onStatusUpdate("Stopping binaries")
 	}
 
-	// Dart L562-578: stop all binaries, then wait for them to exit. Without the
-	// callback nothing ran, so there is nothing to wait for.
+	// Without the callback nothing ran, so there is nothing to wait for.
 	if s.OnStopAllBinaries != nil {
 		if err := s.OnStopAllBinaries(); err != nil {
-			s.log.Error().Err(err).Msg("could not stop binaries")
+			return fmt.Errorf("stop binaries: %w", err)
 		}
 
 		if onStatusUpdate != nil {
@@ -1568,7 +1585,6 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 		time.Sleep(5 * time.Second)
 	}
 
-	// Dart L580: onStatusUpdate?.call('Backing up wallet files')
 	if onStatusUpdate != nil {
 		onStatusUpdate("Backing up wallet files")
 	}
@@ -1577,57 +1593,53 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 	// one <bitwindowDir>/wallet_backups/<ts>/ directory. Keeping the three
 	// master wallet files together is what makes the restore listing reliable.
 	if err := s.moveMasterWalletFilesToBackup(); err != nil {
-		s.log.Error().Err(err).Msg("could not back up master wallet files")
+		return err
 	}
+
+	if onStatusUpdate != nil {
+		onStatusUpdate("Clearing wallet state")
+	}
+
+	s.mu.Lock()
+	s.wallets = nil
+	s.activeWalletID = ""
+	s.encryptionKey = nil
+	s.setWalletDigestLocked(nil)
+	s.mu.Unlock()
+	s.wipeElectrumScans()
 
 	// Soft-delete per-binary wallet paths the same way: each lands under
 	// its own parent's wallet_backups/<ts>/, keeping bitcoind's wallets
 	// in the bitcoind datadir, the enforcer's under bip300301_enforcer,
 	// etc., and never touching the user's keys destructively.
 	if s.GetBinaryWalletPaths != nil {
-		paths := s.GetBinaryWalletPaths()
-		for _, p := range paths {
+		var errs []error
+		for _, p := range s.GetBinaryWalletPaths() {
 			if _, err := s.moveToBackup(p); err != nil {
-				s.log.Warn().Err(err).Str("path", p).Msg("could not back up binary wallet path")
+				errs = append(errs, err)
 			}
+		}
+		if err := errors.Join(errs...); err != nil {
+			return err
 		}
 	}
 
-	// Dart L610: onStatusUpdate?.call('Backing up multisig wallets')
 	if onStatusUpdate != nil {
 		onStatusUpdate("Backing up multisig wallets")
 	}
 
-	// Dart L618: soft-delete the per-network multisig dirs under Bitcoin
-	// Core's datadir. Same backup-not-delete rule: a multisig wallet may
-	// be mid-coordination and we can't recover keys we shred.
 	if s.CoreDataDir != "" {
-		s.softDeleteCoreMultisigWallets()
-	}
-
-	// Dart L623: onStatusUpdate?.call('Clearing wallet state')
-	if onStatusUpdate != nil {
-		onStatusUpdate("Clearing wallet state")
-	}
-
-	// Dart L626: _walletReader.clearState()
-	s.mu.Lock()
-	s.wallets = nil
-	s.activeWalletID = ""
-	s.encryptionKey = nil
-	s.unlockedPass = ""
-	s.setWalletDigestLocked(nil)
-	s.mu.Unlock()
-	s.wipeElectrumScans()
-
-	// Dart L642-648: beforeBoot callback
-	if beforeBoot != nil {
-		if err := beforeBoot(); err != nil {
-			s.log.Error().Err(err).Msg("could not run beforeBoot")
+		if err := s.softDeleteCoreMultisigWallets(); err != nil {
+			return fmt.Errorf("back up core multisig wallets: %w", err)
 		}
 	}
 
-	// Dart L650
+	if beforeBoot != nil {
+		if err := beforeBoot(); err != nil {
+			return fmt.Errorf("before boot: %w", err)
+		}
+	}
+
 	if onStatusUpdate != nil {
 		onStatusUpdate("Reset complete")
 	}
@@ -1655,13 +1667,8 @@ func (s *Service) WriteL1Starter() (string, error) {
 		return "", fmt.Errorf("no wallet holds an L1 mnemonic")
 	}
 
-	dir := s.starterDir()
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return "", fmt.Errorf("create starter dir: %w", err)
-	}
-
-	path := filepath.Join(dir, "l1_starter.txt")
-	if err := os.WriteFile(path, []byte(mnemonic), 0600); err != nil {
+	path, err := s.writeStarterFile("l1_starter.txt", mnemonic)
+	if err != nil {
 		return "", fmt.Errorf("write L1 starter: %w", err)
 	}
 
@@ -1710,14 +1717,9 @@ func (s *Service) writeSidechainStarter(starter *WalletData, slot int) (string, 
 		return "", fmt.Errorf("sidechain slot %d not found in starter wallet", slot)
 	}
 
-	dir := s.starterDir()
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return "", fmt.Errorf("create starter dir: %w", err)
-	}
-
 	// One file for each wallet, so a start never reads the seed of another wallet.
-	path := filepath.Join(dir, fmt.Sprintf("sidechain_%d_%s_starter.txt", slot, starter.ID))
-	if err := os.WriteFile(path, []byte(mnemonic), 0600); err != nil {
+	path, err := s.writeStarterFile(fmt.Sprintf("sidechain_%d_%s_starter.txt", slot, starter.ID), mnemonic)
+	if err != nil {
 		return "", fmt.Errorf("write sidechain starter: %w", err)
 	}
 
@@ -1725,10 +1727,36 @@ func (s *Service) writeSidechainStarter(starter *WalletData, slot int) (string, 
 	return path, nil
 }
 
+// writeStarterFile writes mnemonic to name in a private temp dir that this process created.
+func (s *Service) writeStarterFile(name, mnemonic string) (string, error) {
+	s.starterMu.Lock()
+	defer s.starterMu.Unlock()
+
+	if s.starterDirPath == "" {
+		dir, err := os.MkdirTemp("", "bitwindow_starters_")
+		if err != nil {
+			return "", fmt.Errorf("create starter dir: %w", err)
+		}
+		s.starterDirPath = dir
+	}
+
+	path := filepath.Join(s.starterDirPath, name)
+	if err := os.WriteFile(path, []byte(mnemonic), 0600); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 // CleanupStarterFiles removes all temporary starter files.
 func (s *Service) CleanupStarterFiles() {
-	dir := s.starterDir()
-	_ = os.RemoveAll(dir)
+	s.starterMu.Lock()
+	defer s.starterMu.Unlock()
+
+	if s.starterDirPath == "" {
+		return
+	}
+	_ = os.RemoveAll(s.starterDirPath)
+	s.starterDirPath = ""
 }
 
 // --- Internal helpers ---
@@ -1739,10 +1767,6 @@ func (s *Service) walletFilePath() string {
 
 func (s *Service) metadataFilePath() string {
 	return filepath.Join(s.bitwindowDir, "wallet_encryption.json")
-}
-
-func (s *Service) starterDir() string {
-	return filepath.Join(os.TempDir(), fmt.Sprintf("bitwindow_starters_%d", os.Getpid()))
 }
 
 func (s *Service) walletFileExists() bool {
@@ -1776,7 +1800,6 @@ func (s *Service) dropStaleEncryptionMetadata(walletData []byte) (bool, error) {
 		return true, fmt.Errorf("remove stale encryption metadata: %w", err)
 	}
 	s.encryptionKey = nil
-	s.unlockedPass = ""
 	s.log.Warn().Msg("wallet file is plaintext but metadata claimed encrypted; dropped stale encryption metadata")
 	return true, nil
 }
@@ -1907,7 +1930,7 @@ func (s *Service) loadWalletFile() error {
 		migrated = true
 	}
 	if migrated {
-		s.log.Info().Msg("backfilled missing wallet_type on legacy wallets")
+		s.log.Info().Msg("migrated the wallet file")
 		if err := s.saveWalletFile(); err != nil {
 			s.log.Warn().Err(err).Msg("save after wallet_type backfill failed")
 		}
@@ -2173,15 +2196,6 @@ func (s *Service) startWatcher() {
 			}
 		}
 	}()
-}
-
-// atomicWrite writes data to a temp file then renames it over target.
-func atomicWrite(path string, data []byte) error {
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
 }
 
 // generateWalletID creates a new wallet ID matching Dart's UUID format.

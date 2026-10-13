@@ -378,3 +378,24 @@ func itoa(n int) string {
 	}
 	return s
 }
+
+func TestGenerateFullWalletDerivesOneStarterPerSlot(t *testing.T) {
+	slots := []SidechainSlot{{Slot: 9, Name: "Thunder"}, {Slot: 2, Name: "BitNames"}, {Slot: 4, Name: "BitAssets"}}
+
+	wallet, err := GenerateFullWallet("Starters", "", "", slots, WalletTypeBitcoinCore)
+	require.NoError(t, err)
+
+	require.Len(t, wallet.Sidechains, len(slots))
+	for i, sc := range wallet.Sidechains {
+		assert.Equal(t, slots[i].Slot, sc.Slot)
+		assert.Len(t, strings.Fields(sc.Mnemonic), 12)
+	}
+}
+
+func TestGenerateFullWalletFailsOnBadStarterSlot(t *testing.T) {
+	slots := []SidechainSlot{{Slot: 9, Name: "Thunder"}, {Slot: -1, Name: "Bad"}}
+
+	wallet, err := GenerateFullWallet("Bad Slot", "", "", slots, WalletTypeBitcoinCore)
+	require.ErrorContains(t, err, "derive starter for slot -1")
+	assert.Nil(t, wallet)
+}

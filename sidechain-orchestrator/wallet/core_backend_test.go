@@ -2799,3 +2799,23 @@ func TestCoreBalanceCountsWatchOnlyCoins(t *testing.T) {
 	assert.Equal(t, 0.5, unconfirmed)
 	assert.Equal(t, 3.125, immature)
 }
+
+func TestCoreBackendEnsureAllReturnsEachFailure(t *testing.T) {
+	backend, fake, badID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	badName := "wallet_" + badID[:8]
+	fake.handle("createwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		_ = json.Unmarshal(c.Params[0], &name)
+		if name == badName {
+			return nil, "disk full"
+		}
+		return map[string]any{}, ""
+	})
+
+	synced, err := backend.EnsureAll(t.Context())
+
+	assert.Equal(t, 1, synced)
+	require.ErrorContains(t, err, "ensure core wallet "+badID)
+	assert.Len(t, fake.callsFor("createwallet"), 2)
+}
