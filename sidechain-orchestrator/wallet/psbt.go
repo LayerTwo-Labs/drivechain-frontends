@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/btcsuite/btcd/blockchain"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -358,6 +359,9 @@ func finalizeAndExtract(packet *psbt.Packet) (string, error) {
 	if err := verifySignatures(packet); err != nil {
 		return "", err
 	}
+	if err := requireSigHashAll(packet); err != nil {
+		return "", err
+	}
 	// tr(sortedmulti_a) inputs are finalized by assembling the tapscript witness
 	// ourselves; the generic finalizer then sees them as already final.
 	for i := range packet.Inputs {
@@ -376,6 +380,9 @@ func finalizeAndExtract(packet *psbt.Packet) (string, error) {
 	final, err := psbt.Extract(packet)
 	if err != nil {
 		return "", fmt.Errorf("extract psbt: %w", err)
+	}
+	if err := checkFeeCap(packet, final); err != nil {
+		return "", err
 	}
 	var buf bytes.Buffer
 	if err := final.Serialize(&buf); err != nil {
@@ -1153,4 +1160,73 @@ func outputToTxOut(out TxOutSpec, net *chaincfg.Params) (*wire.TxOut, error) {
 		return nil, fmt.Errorf("script for %q: %w", out.Address, err)
 	}
 	return wire.NewTxOut(int64(math.Round(out.AmountBTC*1e8)), script), nil
+}
+
+// MaxFeeRateSatPerVB is the highest fee rate the wallet broadcasts, Core's default maxfeerate.
+const MaxFeeRateSatPerVB = 10_000
+
+// MaxFeeSats is the highest fee the wallet broadcasts, Core's default -maxtxfee.
+const MaxFeeSats = 10_000_000
+
+func checkFeeCap(packet *psbt.Packet, final *wire.MsgTx) error {
+	var in int64
+	for i := range packet.Inputs {
+		out, err := authenticatedPrevOut(packet, i)
+		if err != nil {
+			return fmt.Errorf("psbt input %d %w", i, err)
+		}
+		if out == nil {
+			return fmt.Errorf("psbt input %d missing prevout", i)
+		}
+		in += out.Value
+	}
+	var out int64
+	for _, o := range final.TxOut {
+		out += o.Value
+	}
+	fee := in - out
+	if fee < 0 {
+		return fmt.Errorf("the transaction spends %d sats more than its inputs hold", -fee)
+	}
+	weight := blockchain.GetTransactionWeight(btcutil.NewTx(final))
+	vsize := (weight + blockchain.WitnessScaleFactor - 1) / blockchain.WitnessScaleFactor
+	if fee > MaxFeeSats || fee > MaxFeeRateSatPerVB*vsize {
+		return fmt.Errorf("refuse to broadcast a fee of %d sats at %.1f sat/vB: the limit is %d sats and %d sat/vB",
+			fee, float64(fee)/float64(vsize), MaxFeeSats, MaxFeeRateSatPerVB)
+	}
+	return nil
+}
+
+// A signature that does not commit to every output lets anybody redirect the funds.
+func requireSigHashAll(packet *psbt.Packet) error {
+	for i := range packet.Inputs {
+		in := &packet.Inputs[i]
+		for _, ps := range in.PartialSigs {
+			if len(ps.Signature) == 0 {
+				continue
+			}
+			if t := txscript.SigHashType(ps.Signature[len(ps.Signature)-1]); t != txscript.SigHashAll {
+				return fmt.Errorf("psbt input %d: a signature uses sighash type %#x, only ALL is accepted", i, byte(t))
+			}
+		}
+		if len(in.TaprootKeySpendSig) > 0 {
+			_, t, err := splitSchnorrSig(in.TaprootKeySpendSig)
+			if err != nil {
+				return fmt.Errorf("psbt input %d: %w", i, err)
+			}
+			if !taprootSigHashAll(t) {
+				return fmt.Errorf("psbt input %d: a signature uses sighash type %#x, only ALL is accepted", i, byte(t))
+			}
+		}
+		for _, s := range in.TaprootScriptSpendSig {
+			if !taprootSigHashAll(s.SigHash) {
+				return fmt.Errorf("psbt input %d: a signature uses sighash type %#x, only ALL is accepted", i, byte(s.SigHash))
+			}
+		}
+	}
+	return nil
+}
+
+func taprootSigHashAll(t txscript.SigHashType) bool {
+	return t == txscript.SigHashDefault || t == txscript.SigHashAll
 }

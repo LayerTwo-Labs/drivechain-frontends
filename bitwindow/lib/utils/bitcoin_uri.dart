@@ -1,13 +1,19 @@
+import 'package:sidechain_core/bitcoin.dart';
+
+final _bip21AmountPattern = RegExp(r'^\d+(\.\d{0,8})?$|^\.\d{1,8}$');
+
 class BitcoinURI {
   final String address;
   final double? amount;
   final String? label;
   final String? message;
   final Map<String, String> extraParams;
+  final int? amountSats;
 
   BitcoinURI({
     required this.address,
     this.amount,
+    this.amountSats,
     this.label,
     this.message,
     Map<String, String>? extraParams,
@@ -49,17 +55,20 @@ class BitcoinURI {
 
     // Parse amount if present
     double? amount;
+    int? amountSats;
     if (params.containsKey('amount')) {
-      try {
-        amount = double.parse(params['amount']!);
-      } catch (e) {
+      final amountText = params['amount']!;
+      if (!_bip21AmountPattern.hasMatch(amountText)) {
         throw const FormatException('Invalid amount format');
       }
+      amountSats = parseAmountToSatoshis(amountText, BitcoinUnit.btc);
+      amount = satoshiToBTC(amountSats);
     }
 
     return BitcoinURI(
       address: address,
       amount: amount,
+      amountSats: amountSats,
       label: params['label'],
       message: params['message'],
       extraParams: params

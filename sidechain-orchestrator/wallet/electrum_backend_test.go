@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -18,7 +19,9 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
@@ -55,6 +58,7 @@ func accountXpub(t *testing.T, seedHex string, net *chaincfg.Params) string {
 type fakeEsplora struct {
 	mu        sync.Mutex
 	stats     map[string]EsploraAddressStats
+	statsErr  map[string]error
 	utxos     map[string][]EsploraUTXO
 	txs       map[string][]EsploraTx
 	txByID    map[string]EsploraTx
@@ -71,19 +75,23 @@ var _ ChainDataSource = (*fakeEsplora)(nil)
 
 func newFakeEsplora() *fakeEsplora {
 	return &fakeEsplora{
-		stats:   map[string]EsploraAddressStats{},
-		utxos:   map[string][]EsploraUTXO{},
-		txs:     map[string][]EsploraTx{},
-		txByID:  map[string]EsploraTx{},
-		hexByID: map[string]string{},
-		tip:     110,
-		feeRate: 1,
+		stats:    map[string]EsploraAddressStats{},
+		statsErr: map[string]error{},
+		utxos:    map[string][]EsploraUTXO{},
+		txs:      map[string][]EsploraTx{},
+		txByID:   map[string]EsploraTx{},
+		hexByID:  map[string]string{},
+		tip:      110,
+		feeRate:  1,
 	}
 }
 
 func (f *fakeEsplora) AddressStats(_ context.Context, address string) (EsploraAddressStats, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if err := f.statsErr[address]; err != nil {
+		return EsploraAddressStats{}, err
+	}
 	if s, ok := f.stats[address]; ok {
 		return s, nil
 	}
@@ -207,6 +215,54 @@ func TestElectrumBalanceAndUnspent(t *testing.T) {
 	require.Len(t, utxos, 1)
 	assert.Equal(t, addr, utxos[0].Address)
 	assert.Equal(t, 11, utxos[0].Confirmations) // tip 110 - 100 + 1
+}
+
+func TestElectrumScanBIP47WatchKey(t *testing.T) {
+	newWatchKey := func(t *testing.T, p *ElectrumBackend, walletID string) string {
+		t.Helper()
+		priv, err := btcec.NewPrivateKey()
+		require.NoError(t, err)
+		wif, err := btcutil.NewWIF(priv, &chaincfg.SigNetParams, true)
+		require.NoError(t, err)
+		addr, err := btcutil.NewAddressPubKeyHash(btcutil.Hash160(priv.PubKey().SerializeCompressed()), &chaincfg.SigNetParams)
+		require.NoError(t, err)
+		p.mu.Lock()
+		p.watchKeys[walletID] = []WatchKey{{WIF: wif.String()}}
+		p.mu.Unlock()
+		return addr.EncodeAddress()
+	}
+	fund := func(fake *fakeEsplora, addr string) {
+		fake.mu.Lock()
+		defer fake.mu.Unlock()
+		fake.stats[addr] = EsploraAddressStats{
+			Address:    addr,
+			ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 50_000, TxCount: 1},
+		}
+	}
+
+	t.Run("hydrate error fails the scan and caches nothing", func(t *testing.T) {
+		p, fake, w, _ := newElectrumFixture(t)
+		ctx := context.Background()
+		watchAddr := newWatchKey(t, p, w.ID)
+		fund(fake, watchAddr)
+		fake.mu.Lock()
+		fake.statsErr[watchAddr] = errors.New("esplora down")
+		fake.mu.Unlock()
+
+		_, err := p.scan(ctx, w.ID, true)
+		require.ErrorContains(t, err, "scan bip47 watch key")
+
+		fake.mu.Lock()
+		delete(fake.statsErr, watchAddr)
+		fake.mu.Unlock()
+
+		scan, err := p.scan(ctx, w.ID, true)
+		require.NoError(t, err)
+		a, ok := lo.Find(scan.addrs, func(a scannedAddr) bool { return a.address == watchAddr })
+		require.True(t, ok)
+		require.Len(t, a.utxos, 1)
+		assert.Equal(t, int64(50_000), a.utxos[0].Value)
+	})
 }
 
 func TestElectrumNextReceiveSkipsUsed(t *testing.T) {
@@ -2930,12 +2986,10 @@ func bumpFeeFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, 
 	require.NoError(t, err)
 
 	const (
-		txid        = "3333333333333333333333333333333333333333333333333333333333333333"
 		fundingTxid = "1111111111111111111111111111111111111111111111111111111111111111"
 		paymentAddr = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
 	)
 	tx := EsploraTx{
-		TxID:   txid,
 		Weight: 601, // 151 vB
 		Fee:    151, // 1 sat/vB, deliberately too low
 		Status: EsploraStatus{Confirmed: false},
@@ -2949,7 +3003,8 @@ func bumpFeeFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, 
 			{ScriptPubKeyAddress: changeAddr, Value: 99_849},
 		},
 	}
-	fake.txByID[txid] = tx
+	tx = storeRawTx(t, fake, tx)
+	txid := tx.TxID
 
 	// The wallet already knows the transaction: the input is spent in the
 	// mempool, and the change waits there as a coin.
@@ -2966,6 +3021,31 @@ func bumpFeeFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, 
 	fake.utxos[changeAddr] = []EsploraUTXO{{TxID: txid, Vout: 1, Value: 99_849}}
 	fake.txs[changeAddr] = []EsploraTx{tx}
 	return p, fake, w, txid, changeAddr
+}
+
+// storeRawTx serializes tx's inputs, outputs and locktime into the raw hex the
+// fake serves, and stores tx under the hash of that raw tx.
+func storeRawTx(t *testing.T, fake *fakeEsplora, tx EsploraTx) EsploraTx {
+	t.Helper()
+	msg := wire.NewMsgTx(2)
+	msg.LockTime = uint32(tx.Locktime)
+	for _, vin := range tx.Vin {
+		h, err := chainhash.NewHashFromStr(vin.TxID)
+		require.NoError(t, err)
+		msg.AddTxIn(wire.NewTxIn(wire.NewOutPoint(h, uint32(vin.Vout)), nil, nil))
+	}
+	for i, vout := range tx.Vout {
+		addr, err := btcutil.DecodeAddress(vout.ScriptPubKeyAddress, &chaincfg.SigNetParams)
+		require.NoError(t, err)
+		script, err := txscript.PayToAddrScript(addr)
+		require.NoError(t, err)
+		tx.Vout[i].ScriptPubKey = hex.EncodeToString(script)
+		msg.AddTxOut(wire.NewTxOut(vout.Value, script))
+	}
+	tx.TxID = msg.TxHash().String()
+	fake.txByID[tx.TxID] = tx
+	fake.hexByID[tx.TxID] = txToHex(t, msg)
+	return tx
 }
 
 func TestElectrumBumpFeeTakesItFromChange(t *testing.T) {
@@ -3048,7 +3128,7 @@ func TestElectrumBumpFeeRefusesATransactionWithNoChange(t *testing.T) {
 	tx := fake.txByID[txid]
 	tx.Vout = tx.Vout[:1] // the payment alone, no change
 	tx.Fee = 100_151
-	fake.txByID[txid] = tx
+	txid = storeRawTx(t, fake, tx).TxID
 
 	preview, err := p.PreviewBumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
 	require.NoError(t, err)
@@ -3150,7 +3230,7 @@ func TestElectrumBumpFeeKeepsAReceiveBranchOutput(t *testing.T) {
 	tx := fake.txByID[txid]
 	receiveAddr := tx.Vin[0].Prevout.ScriptPubKeyAddress
 	tx.Vout[0].ScriptPubKeyAddress = receiveAddr
-	fake.txByID[txid] = tx
+	txid = storeRawTx(t, fake, tx).TxID
 
 	fake.stats[changeAddr] = EsploraAddressStats{
 		Address:      changeAddr,
@@ -3261,13 +3341,11 @@ func TestElectrumPreviewBumpFeeRefusesAWatchOnlyWallet(t *testing.T) {
 
 	fake := newFakeEsplora()
 	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
-	const txid = "6666666666666666666666666666666666666666666666666666666666666666"
 	fake.stats[addr] = EsploraAddressStats{
 		Address:      addr,
 		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 1},
 	}
-	fake.txByID[txid] = EsploraTx{
-		TxID:   txid,
+	txid := storeRawTx(t, fake, EsploraTx{
 		Weight: 600,
 		Fee:    150,
 		Status: EsploraStatus{Confirmed: false},
@@ -3280,7 +3358,7 @@ func TestElectrumPreviewBumpFeeRefusesAWatchOnlyWallet(t *testing.T) {
 			{ScriptPubKeyAddress: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", Value: 100_000},
 			{ScriptPubKeyAddress: addr, Value: 99_850},
 		},
-	}
+	}).TxID
 
 	preview, err := p.PreviewBumpFee(ctx, woWallet.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
 	require.NoError(t, err)
@@ -3329,7 +3407,8 @@ func TestElectrumBumpFeeDropsAReplacedSendWithNoChange(t *testing.T) {
 	inputAddr := fake.txByID[txid].Vin[0].Prevout.ScriptPubKeyAddress
 	tx := fake.txByID[txid]
 	tx.Vout = []EsploraVout{{ScriptPubKeyAddress: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", Value: 199_849}}
-	fake.txByID[txid] = tx
+	tx = storeRawTx(t, fake, tx)
+	txid = tx.TxID
 	fake.txs[inputAddr] = []EsploraTx{tx}
 	p.mu.Lock()
 	delete(p.warmScan, w.ID)
@@ -3359,7 +3438,7 @@ func TestElectrumBumpFeeDropsADustChangeOutput(t *testing.T) {
 
 	tx := fake.txByID[txid]
 	tx.Vout[1].Value = 1_500 // a change output the higher fee nearly consumes
-	fake.txByID[txid] = tx
+	txid = storeRawTx(t, fake, tx).TxID
 	fake.stats[changeAddr] = EsploraAddressStats{
 		Address:      changeAddr,
 		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 1_500, TxCount: 1},
@@ -3399,7 +3478,7 @@ func TestElectrumBumpFeeKeepsTheLockTime(t *testing.T) {
 
 	tx := fake.txByID[txid]
 	tx.Locktime = 499_999_999
-	fake.txByID[txid] = tx
+	txid = storeRawTx(t, fake, tx).TxID
 
 	_, err := p.BumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
 	require.NoError(t, err)
@@ -3929,3 +4008,108 @@ func TestElectrumListReceivedIncludesFundedWatchKeys(t *testing.T) {
 	assert.InDelta(t, 5_000.0/1e8, byAddr[fundedAddr].Amount, 1e-9)
 	assert.NotContains(t, byAddr, unusedAddr)
 }
+
+func TestElectrumBumpFeeRefusesJSONThatDiffersFromTheRawTx(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	tx := fake.txByID[txid]
+	tx.Vout = append([]EsploraVout(nil), tx.Vout...)
+	tx.Vout[0].ScriptPubKeyAddress = "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7"
+	fake.txByID[txid] = tx
+
+	_, err := p.PreviewBumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.ErrorContains(t, err, "output 0 address differs")
+
+	_, err = p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.ErrorContains(t, err, "output 0 address differs")
+	require.Empty(t, fake.broadcast)
+}
+
+func TestElectrumBumpFeeRefusesARawTxOfAnotherTxid(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+
+	other := wire.NewMsgTx(2)
+	other.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x22}}, nil, nil))
+	other.AddTxOut(wire.NewTxOut(1, []byte{txscript.OP_TRUE}))
+	fake.hexByID[txid] = txToHex(t, other)
+
+	_, err := p.BumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.ErrorContains(t, err, "server answered tx")
+	require.Empty(t, fake.broadcast)
+}
+
+func TestElectrumBumpFeeSignsWhenJSONMatchesTheRawTx(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+
+	_, err := p.BumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+}
+
+func TestElectrumClientFetchTxRefusesAnotherTx(t *testing.T) {
+	_, pkScript := signetAddr(t)
+	asked := wire.NewMsgTx(2)
+	asked.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x11}}, nil, nil))
+	asked.AddTxOut(wire.NewTxOut(100_000, pkScript))
+	served := wire.NewMsgTx(2)
+	served.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x11}}, nil, nil))
+	served.AddTxOut(wire.NewTxOut(100_000, []byte{txscript.OP_TRUE}))
+	servedHex := txToHex(t, served)
+
+	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+		if method == "blockchain.transaction.get" {
+			return servedHex
+		}
+		return nil
+	})
+	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+
+	_, err := c.fetchTx(context.Background(), asked.TxHash().String())
+	require.ErrorContains(t, err, "server answered tx")
+	_, err = c.Tx(context.Background(), asked.TxHash().String())
+	require.ErrorContains(t, err, "server answered tx")
+}
+
+func TestPrevTxFetcherRefusesAnotherTx(t *testing.T) {
+	p, fake, _, _ := newElectrumFixture(t)
+	served := wire.NewMsgTx(2)
+	served.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x11}}, nil, nil))
+	served.AddTxOut(wire.NewTxOut(100_000, []byte{txscript.OP_TRUE}))
+	asked := "5555555555555555555555555555555555555555555555555555555555555555"
+	fake.hexByID[asked] = txToHex(t, served)
+
+	_, err := p.prevTxFetcher(context.Background())(asked)
+	require.ErrorContains(t, err, "server answered tx")
+
+	fake.hexByID[served.TxHash().String()] = txToHex(t, served)
+	got, err := p.prevTxFetcher(context.Background())(served.TxHash().String())
+	require.NoError(t, err)
+	require.Equal(t, served.TxHash(), got.TxHash())
+}
+
+func TestElectrumSignPSBTRefusesAForeignPrevTx(t *testing.T) {
+	p, _, w, addr := newElectrumFixture(t)
+	pkScript := mustScript(t, addr, &chaincfg.SigNetParams)
+
+	funding := wire.NewMsgTx(2)
+	funding.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x11}}, nil, nil))
+	funding.AddTxOut(wire.NewTxOut(1_000, pkScript))
+	forged := wire.NewMsgTx(2)
+	forged.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x12}}, nil, nil))
+	forged.AddTxOut(wire.NewTxOut(5_000_000, pkScript))
+
+	spend := wire.NewMsgTx(2)
+	spend.AddTxIn(wire.NewTxIn(wire.NewOutPoint(ptrHash(funding.TxHash()), 0), nil, nil))
+	spend.AddTxOut(wire.NewTxOut(900, []byte{txscript.OP_TRUE}))
+	packet, err := psbt.NewFromUnsignedTx(spend)
+	require.NoError(t, err)
+	packet.Inputs[0].NonWitnessUtxo = forged
+	b64, err := packet.B64Encode()
+	require.NoError(t, err)
+
+	_, err = p.SignPSBT(context.Background(), w.ID, b64)
+	require.ErrorContains(t, err, "psbt input 0 carries a previous transaction that is not the one it spends")
+}
+
+func ptrHash(h chainhash.Hash) *chainhash.Hash { return &h }

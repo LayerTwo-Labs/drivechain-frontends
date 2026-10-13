@@ -101,7 +101,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
       }
 
       // Convert BTC to satoshis
-      final satoshis = (amount * 100000000).toInt();
+      final satoshis = btcToSatoshi(amount);
 
       // Send funds to the generated address
       final destinations = <String, int>{

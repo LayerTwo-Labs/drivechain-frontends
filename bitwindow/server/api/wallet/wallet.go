@@ -131,37 +131,21 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}
 	}
 
-	log := zerolog.Ctx(ctx)
-
-	// Get wallet type to determine routing
-
-	// Route to Bitcoin Core
-	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
-	}
-
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	// Convert satoshi amounts to BTC (Bitcoin Core uses BTC, not satoshis)
-	destinations := make(map[string]float64)
-	for addr, sats := range c.Msg.Destinations {
-		destinations[addr] = float64(sats) / 1e8
-	}
-
-	// If requiredInputs is specified, use raw transaction flow
-	if len(c.Msg.RequiredInputs) > 0 {
-		txid, err := s.sendWithRequiredInputs(ctx, bitcoind, coreWalletName, c.Msg.RequiredInputs, c.Msg.Destinations, c.Msg.FeeSatPerVbyte, c.Msg.FixedFeeSats)
-		if err != nil {
-			return nil, err
+	requiredInputs := make([]*orchpb.UnspentOutput, 0, len(c.Msg.RequiredInputs))
+	for _, input := range c.Msg.RequiredInputs {
+		txid, voutText, found := strings.Cut(input.Output, ":")
+		if !found {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid UTXO format: %s", input.Output))
 		}
-		log.Info().Msgf("send tx: broadcast transaction with required inputs (Bitcoin Core): %s", txid)
-		return connect.NewResponse(&pb.SendTransactionResponse{
-			Txid: txid,
-		}), nil
+		vout, err := strconv.ParseUint(voutText, 10, 31)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid vout in UTXO %s: %w", input.Output, err))
+		}
+		requiredInputs = append(requiredInputs, &orchpb.UnspentOutput{
+			Txid:       txid,
+			Vout:       int32(vout),
+			AmountSats: int64(input.ValueSats),
+		})
 	}
 
 	// Coin selection belongs to drivechaind, which locks the frozen coins for
@@ -173,13 +157,14 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}),
 		FeeRateSatPerVbyte: int64(c.Msg.FeeSatPerVbyte),
 		FixedFeeSats:       int64(c.Msg.FixedFeeSats),
+		RequiredInputs:     requiredInputs,
 	})
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction")
 		return nil, err
 	}
 
-	log.Info().Msgf("send tx: broadcast transaction: %s", txid)
+	zerolog.Ctx(ctx).Info().Msgf("send tx: broadcast transaction: %s", txid)
 
 	return connect.NewResponse(&pb.SendTransactionResponse{
 		Txid: txid,
@@ -199,33 +184,6 @@ func canonicalOutpoint(outpoint string) string {
 		return strings.ToLower(strings.TrimSpace(outpoint))
 	}
 	return fmt.Sprintf("%s:%d", txid, vout)
-}
-
-// sendWithRequiredInputs parses the "txid:vout" required inputs and broadcasts
-// a transaction spending exactly those UTXOs.
-func (s *Server) sendWithRequiredInputs(
-	ctx context.Context,
-	bitcoind corerpc.BitcoinServiceClient,
-	walletName string,
-	requiredInputs []*pb.UnspentOutput,
-	destinationsSats map[string]uint64,
-	feeSatPerVbyte uint64,
-	fixedFeeSats uint64,
-) (string, error) {
-	wanted := make([]engines.CoreOutpoint, 0, len(requiredInputs))
-	for _, utxo := range requiredInputs {
-		parts := strings.Split(utxo.Output, ":")
-		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid UTXO format: %s", utxo.Output)
-		}
-		vout, err := strconv.ParseUint(parts[1], 10, 32)
-		if err != nil {
-			return "", fmt.Errorf("invalid vout in UTXO %s: %w", utxo.Output, err)
-		}
-		wanted = append(wanted, engines.CoreOutpoint{Txid: parts[0], Vout: uint32(vout)})
-	}
-
-	return engines.SendCoreWithRequiredInputs(ctx, bitcoind, walletName, wanted, destinationsSats, feeSatPerVbyte, fixedFeeSats)
 }
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
@@ -613,6 +571,10 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	slot, depositAddress, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
 	if err != nil {
 		return nil, fmt.Errorf("invalid deposit address: %w", err)
+	}
+	if slot != nil && c.Msg.Slot != 0 && *slot != c.Msg.Slot {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("the deposit address is for slot %d, this deposit is for slot %d", *slot, c.Msg.Slot))
 	}
 	if slot == nil && c.Msg.Slot == 0 {
 		return nil, fmt.Errorf("address is not a sidechain deposit address, expected slot or format: s<slot>_<address> or s9_<address>_<checksum>")
@@ -1166,8 +1128,13 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
 	}
 
+	pbCheque, err := s.chequeToPb(cheque)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	return connect.NewResponse(&pb.GetChequeResponse{
-		Cheque: s.chequeToPb(cheque),
+		Cheque: pbCheque,
 	}), nil
 }
 
@@ -1223,7 +1190,10 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 
 	pbCheques := make([]*pb.Cheque, len(chequeList))
 	for i, ch := range chequeList {
-		pbCheques[i] = s.chequeToPb(&ch)
+		pbCheques[i], err = s.chequeToPb(&ch)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
 	}
 
 	return connect.NewResponse(&pb.ListChequesResponse{
@@ -1317,7 +1287,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		// Mark as swept - we know it was swept but don't know the exact txid
 		// Finding the spending tx from a watch-only wallet requires full blockchain scan
 		if err := cheques.UpdateSwept(ctx, s.database, walletId, c.Msg.Id, "swept_externally"); err != nil {
-			log.Error().Err(err).Msg("failed to mark cheque as externally swept")
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque swept: %w", err))
 		}
 	}
 
@@ -1505,7 +1475,7 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 }
 
 // Helper function to convert model Cheque to protobuf Cheque
-func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
+func (s *Server) chequeToPb(c *cheques.Cheque) (*pb.Cheque, error) {
 	pbCheque := &pb.Cheque{
 		Id:                 c.ID,
 		DerivationIndex:    c.DerivationIndex,
@@ -1532,12 +1502,13 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	// Only include private key if cheque is funded and wallet is unlocked
 	if c.IsFunded() && s.walletEngine.IsUnlocked() {
 		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.WalletID, c.DerivationIndex)
-		if err == nil {
-			pbCheque.PrivateKeyWif = &privateKeyWIF
+		if err != nil {
+			return nil, fmt.Errorf("derive cheque %d private key: %w", c.ID, err)
 		}
+		pbCheque.PrivateKeyWif = &privateKeyWIF
 	}
 
-	return pbCheque
+	return pbCheque, nil
 }
 
 // serializeTx serializes a transaction to hex string

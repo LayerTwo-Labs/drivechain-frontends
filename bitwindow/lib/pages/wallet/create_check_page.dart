@@ -92,7 +92,7 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
       return;
     }
 
-    final sats = (btcAmount * 100000000).toInt();
+    final sats = btcToSatoshi(btcAmount);
 
     setState(() {
       _isCreating = true;

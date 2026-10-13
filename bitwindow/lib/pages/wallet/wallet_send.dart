@@ -501,6 +501,9 @@ class _StateDot extends StatelessWidget {
   }
 }
 
+String amountTextInUnit(int sats, BitcoinUnit unit) =>
+    unit == BitcoinUnit.sats ? sats.toString() : satoshiToBTC(sats).toStringAsFixed(8);
+
 /// Orchestrator migration status:
 /// - Balance/UTXOs/transactions: routed via providers (already on orchestrator)
 /// - sendTransaction: routed via orchestrator shared wallet RPC
@@ -884,6 +887,13 @@ class SendPageViewModel extends BaseViewModel {
       return;
     }
 
+    final zeroAmount = recipients.indexWhere((r) => parseAmountToSatoshis(r.amountController.text, currentUnit) <= 0);
+    if (zeroAmount != -1) {
+      setSendError('Please enter a valid amount for all recipients.');
+      setBusy(false);
+      return;
+    }
+
     final feeSats = parseAmountToSatoshis(feeController.text, currentUnit);
     if (feeSats <= 0) {
       setSendError('Please enter a valid fee.');
@@ -1086,8 +1096,8 @@ class SendPageViewModel extends BaseViewModel {
     if (recipients.isNotEmpty) {
       final recipient = recipients.first;
       recipient.addressController.text = uri.address;
-      if (uri.amount != null) {
-        recipient.amountController.text = uri.amount!.toString();
+      if (uri.amountSats != null) {
+        recipient.amountController.text = amountTextInUnit(uri.amountSats!, currentUnit);
       }
     }
     notifyListeners();

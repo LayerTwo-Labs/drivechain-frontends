@@ -1,14 +1,21 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,6 +31,7 @@ type bip47TestChain struct {
 	addr      string
 	amount    int64
 	txid      string
+	rawHex    string
 	feeRate   float64
 	feeErr    error
 	broadcast []string
@@ -64,8 +72,31 @@ func (c *bip47TestChain) Tx(_ context.Context, txid string) (wallet.EsploraTx, e
 	}, nil
 }
 
-func (c *bip47TestChain) TxHex(context.Context, string) (string, error) {
-	return "", errors.New("tx hex not found")
+func (c *bip47TestChain) TxHex(_ context.Context, txid string) (string, error) {
+	if txid != c.txid {
+		return "", errors.New("tx hex not found")
+	}
+	return c.rawHex, nil
+}
+
+func newBip47TestChain(t *testing.T, addr string, amount int64, feeRate float64) *bip47TestChain {
+	t.Helper()
+	decoded, err := btcutil.DecodeAddress(addr, &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	script, err := txscript.PayToAddrScript(decoded)
+	require.NoError(t, err)
+	funding := wire.NewMsgTx(2)
+	funding.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{1}, 0), nil, nil))
+	funding.AddTxOut(wire.NewTxOut(amount, script))
+	var buf bytes.Buffer
+	require.NoError(t, funding.Serialize(&buf))
+	return &bip47TestChain{
+		addr:    addr,
+		amount:  amount,
+		txid:    funding.TxHash().String(),
+		rawHex:  hex.EncodeToString(buf.Bytes()),
+		feeRate: feeRate,
+	}
 }
 
 func (c *bip47TestChain) Broadcast(_ context.Context, rawHex string) (string, error) {
@@ -99,12 +130,8 @@ func TestSendTransactionBip47WithoutAFeeEstimateBroadcastsNothing(t *testing.T) 
 	addrs, err := wallet.DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 1)
 	require.NoError(t, err)
 
-	chain := &bip47TestChain{
-		addr:   addrs[0],
-		amount: 500_000,
-		txid:   "4444444444444444444444444444444444444444444444444444444444444444",
-		feeErr: errors.New("estimatefee: connection refused"),
-	}
+	chain := newBip47TestChain(t, addrs[0], 500_000, 0)
+	chain.feeErr = errors.New("estimatefee: connection refused")
 	eb := wallet.NewElectrumBackend(svc, chain, wallet.StaticParams(net), log)
 	engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log)
 	store := bip47state.NewStore(t.TempDir())
@@ -158,4 +185,82 @@ func TestSendTransactionBip47WithoutAFeeEstimateBroadcastsNothing(t *testing.T) 
 	require.NoError(t, err)
 	require.NotNil(t, state)
 	assert.Equal(t, nextIndex, state.NextSendIndex, "the reserved index comes back")
+}
+
+func TestSendTransactionBip47NotificationPaysTheSendRate(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	svc := wallet.NewService(t.TempDir(), log)
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	t.Cleanup(func() { svc.Close() })
+
+	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	net := &chaincfg.SigNetParams
+	addrs, err := wallet.DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 1)
+	require.NoError(t, err)
+
+	const fundedSats int64 = 500_000
+	chain := newBip47TestChain(t, addrs[0], fundedSats, 20)
+	eb := wallet.NewElectrumBackend(svc, chain, wallet.StaticParams(net), log)
+	engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log)
+	h := NewWalletHandler(svc)
+	h.SetEngine(engine)
+	h.SetBip47StateStore(bip47state.NewStore(t.TempDir()))
+
+	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
+	require.NoError(t, err)
+
+	_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+		WalletId:     w.ID,
+		Destinations: map[string]int64{recipient.Base58(): 50_000},
+	}))
+	require.NoError(t, err)
+	require.Len(t, chain.broadcast, 2)
+
+	raw, err := hex.DecodeString(chain.broadcast[0])
+	require.NoError(t, err)
+	var notification wire.MsgTx
+	require.NoError(t, notification.Deserialize(bytes.NewReader(raw)))
+	require.Len(t, notification.TxIn, 1)
+	require.Equal(t, chain.txid, notification.TxIn[0].PreviousOutPoint.Hash.String())
+
+	outSats := lo.SumBy(notification.TxOut, func(o *wire.TxOut) int64 { return o.Value })
+	vsize := int64(notification.SerializeSizeStripped()*3+notification.SerializeSize()+3) / 4
+	assert.GreaterOrEqual(t, fundedSats-outSats, 20*vsize)
+}
+
+func TestSendTransactionBip47AboveTheFeeCapBroadcastsNothing(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	svc := wallet.NewService(t.TempDir(), log)
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	t.Cleanup(func() { svc.Close() })
+
+	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	net := &chaincfg.SigNetParams
+	addrs, err := wallet.DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 1)
+	require.NoError(t, err)
+
+	chain := newBip47TestChain(t, addrs[0], 100_000_000, 20_000)
+	eb := wallet.NewElectrumBackend(svc, chain, wallet.StaticParams(net), log)
+	engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log)
+	h := NewWalletHandler(svc)
+	h.SetEngine(engine)
+	h.SetBip47StateStore(bip47state.NewStore(t.TempDir()))
+
+	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
+	require.NoError(t, err)
+
+	_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+		WalletId:     w.ID,
+		Destinations: map[string]int64{recipient.Base58(): 50_000},
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	assert.Contains(t, err.Error(), "above the limit")
+	assert.Empty(t, chain.broadcast)
 }

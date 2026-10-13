@@ -1338,7 +1338,10 @@ func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, ps
 		if err != nil {
 			return "", err
 		}
-		out := prevOutForInput(packet, i)
+		out, err := authenticatedPrevOut(packet, i)
+		if err != nil {
+			return "", fmt.Errorf("psbt input %d %w", i, err)
+		}
 		if out == nil {
 			return "", fmt.Errorf("psbt input %d missing prevout", i)
 		}
@@ -1478,7 +1481,10 @@ func (p *ElectrumBackend) psbtInputsFromPacket(packet *psbt.Packet, scan *electr
 	net := p.params()
 	inputs := make([]psbtInput, len(packet.Inputs))
 	for i := range packet.Inputs {
-		out := prevOutForInput(packet, i)
+		out, err := authenticatedPrevOut(packet, i)
+		if err != nil {
+			return nil, fmt.Errorf("psbt input %d %w", i, err)
+		}
 		if out == nil {
 			return nil, fmt.Errorf("psbt input %d missing prevout", i)
 		}
@@ -1515,16 +1521,76 @@ func (p *ElectrumBackend) prevTxFetcher(ctx context.Context) prevTxFunc {
 		if err != nil {
 			return nil, err
 		}
-		b, err := hex.DecodeString(rawHex)
-		if err != nil {
-			return nil, fmt.Errorf("decode prev tx hex: %w", err)
-		}
-		var tx wire.MsgTx
-		if err := tx.Deserialize(bytes.NewReader(b)); err != nil {
-			return nil, fmt.Errorf("deserialize prev tx: %w", err)
-		}
-		return &tx, nil
+		return decodeTxWithID(txid, rawHex)
 	}
+}
+
+// decodeTxWithID decodes rawHex and refuses it unless it hashes to txid.
+func decodeTxWithID(txid, rawHex string) (*wire.MsgTx, error) {
+	b, err := hex.DecodeString(strings.TrimSpace(rawHex))
+	if err != nil {
+		return nil, fmt.Errorf("decode tx hex %s: %w", txid, err)
+	}
+	var tx wire.MsgTx
+	if err := tx.Deserialize(bytes.NewReader(b)); err != nil {
+		return nil, fmt.Errorf("deserialize tx %s: %w", txid, err)
+	}
+	if got := tx.TxHash().String(); !strings.EqualFold(got, txid) {
+		return nil, fmt.Errorf("server answered tx %s with tx %s", txid, got)
+	}
+	return &tx, nil
+}
+
+// verifiedTx returns the server's JSON for txid after it checks that JSON
+// against the raw transaction, which itself must hash to txid.
+func (p *ElectrumBackend) verifiedTx(ctx context.Context, txid string) (EsploraTx, error) {
+	tx, err := p.client.Tx(ctx, txid)
+	if err != nil {
+		return EsploraTx{}, err
+	}
+	rawHex, err := p.client.TxHex(ctx, txid)
+	if err != nil {
+		return EsploraTx{}, err
+	}
+	msg, err := decodeTxWithID(txid, rawHex)
+	if err != nil {
+		return EsploraTx{}, err
+	}
+	if err := txJSONMatchesRaw(tx, msg, p.params()); err != nil {
+		return EsploraTx{}, fmt.Errorf("server tx %s: %w", txid, err)
+	}
+	return tx, nil
+}
+
+func txJSONMatchesRaw(tx EsploraTx, msg *wire.MsgTx, net *chaincfg.Params) error {
+	if !strings.EqualFold(tx.TxID, msg.TxHash().String()) {
+		return fmt.Errorf("json names tx %s", tx.TxID)
+	}
+	if uint32(tx.Locktime) != msg.LockTime {
+		return errors.New("json locktime differs from the raw tx")
+	}
+	if len(tx.Vin) != len(msg.TxIn) {
+		return errors.New("json input count differs from the raw tx")
+	}
+	for i, vin := range tx.Vin {
+		op := msg.TxIn[i].PreviousOutPoint
+		if !strings.EqualFold(vin.TxID, op.Hash.String()) || vin.Vout < 0 || uint32(vin.Vout) != op.Index {
+			return fmt.Errorf("json input %d differs from the raw tx", i)
+		}
+	}
+	if len(tx.Vout) != len(msg.TxOut) {
+		return errors.New("json output count differs from the raw tx")
+	}
+	for i, vout := range tx.Vout {
+		out := msg.TxOut[i]
+		if vout.Value != out.Value || !strings.EqualFold(vout.ScriptPubKey, hex.EncodeToString(out.PkScript)) {
+			return fmt.Errorf("json output %d differs from the raw tx", i)
+		}
+		if vout.ScriptPubKeyAddress != "" && vout.ScriptPubKeyAddress != scriptAddress(out.PkScript, net) {
+			return fmt.Errorf("json output %d address differs from the raw tx", i)
+		}
+	}
+	return nil
 }
 
 func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
@@ -1541,19 +1607,20 @@ func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex 
 	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
 		return nil, fmt.Errorf("deserialize tx: %w", err)
 	}
+	fetchPrev := p.prevTxFetcher(ctx)
 	prevOuts := make(map[wire.OutPoint]PrevOut, len(tx.TxIn))
 	for _, in := range tx.TxIn {
 		prevTxID := in.PreviousOutPoint.Hash.String()
-		prevTx, err := p.client.Tx(ctx, prevTxID)
+		prevTx, err := fetchPrev(prevTxID)
 		if err != nil {
 			return nil, fmt.Errorf("fetch prevout %s: %w", prevTxID, err)
 		}
 		idx := int(in.PreviousOutPoint.Index)
-		if idx >= len(prevTx.Vout) {
+		if idx >= len(prevTx.TxOut) {
 			return nil, fmt.Errorf("prevout %s:%d out of range", prevTxID, idx)
 		}
-		vout := prevTx.Vout[idx]
-		prevOuts[in.PreviousOutPoint] = PrevOut{Address: vout.ScriptPubKeyAddress, AmountSats: vout.Value}
+		out := prevTx.TxOut[idx]
+		prevOuts[in.PreviousOutPoint] = PrevOut{Address: scriptAddress(out.PkScript, net), AmountSats: out.Value}
 	}
 	return SignTransactionLocal(rawHex, prevOuts, scan.keys, net)
 }
@@ -1569,7 +1636,7 @@ func (p *ElectrumBackend) PreviewBumpFee(ctx context.Context, walletID string, r
 	if err != nil {
 		return nil, err
 	}
-	tx, err := p.client.Tx(ctx, req.TxID)
+	tx, err := p.verifiedTx(ctx, req.TxID)
 	if err != nil {
 		return nil, err
 	}
@@ -1679,7 +1746,7 @@ func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID string, req Bump
 	if scan.watchOnly {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("watch-only electrum wallet cannot sign or send"))
 	}
-	tx, err := p.client.Tx(ctx, req.TxID)
+	tx, err := p.verifiedTx(ctx, req.TxID)
 	if err != nil {
 		return nil, err
 	}
@@ -2501,7 +2568,6 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 			scan.addrs = append(scan.addrs, addrs...)
 		}
 	}
-	p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncDone, Message: "Up to date"})
 
 	p.mu.Lock()
 	watch := append([]WatchKey(nil), p.watchKeys[walletID]...)
@@ -2509,8 +2575,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	for _, k := range watch {
 		a, err := p.watchKeyAddr(ctx, walletID, k, prior)
 		if err != nil {
-			p.log.Warn().Err(err).Msg("electrum watch key derivation failed")
-			continue
+			return nil, fmt.Errorf("scan bip47 watch key: %w", err)
 		}
 		scan.addrs = append(scan.addrs, a)
 	}
@@ -2518,6 +2583,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	if err := p.addOwnOutputs(ctx, walletID, w, scan, prior); err != nil {
 		return nil, err
 	}
+	p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncDone, Message: "Up to date"})
 
 	finalizeScan(scan)
 	if gen != p.chainGeneration() {

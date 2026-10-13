@@ -2,7 +2,10 @@ package api_wallet_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
+	"fmt"
 	"testing"
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -440,4 +443,70 @@ func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
 	require.Len(t, resp.Msg.Deposits, 1)
 	require.Equal(t, "deadbeef", resp.Msg.Deposits[0].Txid)
 	require.Equal(t, int64(50_000), resp.Msg.Deposits[0].Amount)
+}
+
+const depositSidechainAddress = "2N4sbtVhMXbzwtNrfACjoGzGkQxSJ9Fz2eP"
+
+func checksummedDepositAddress(slot int, address string) string {
+	prefix := fmt.Sprintf("s%d_%s_", slot, address)
+	hash := sha256.Sum256([]byte(prefix))
+	return prefix + hex.EncodeToString(hash[:3])
+}
+
+func TestCreateSidechainDepositSlot(t *testing.T) {
+	db := database.Test(t)
+	ctrl := gomock.NewController(t)
+	mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+	apitests.ExpectOrchestratorReads(mockOrch)
+	var deposits []*orchpb.CreateDepositRequest
+	mockOrch.EXPECT().
+		CreateDeposit(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(
+			_ any, req *connect.Request[orchpb.CreateDepositRequest],
+		) (*connect.Response[orchpb.CreateDepositResponse], error) {
+			deposits = append(deposits, req.Msg)
+			return connect.NewResponse(&orchpb.CreateDepositResponse{Txid: "deposit-txid"}), nil
+		}).
+		AnyTimes()
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
+
+	createDeposit := func(t *testing.T, slot int64, destination string) error {
+		deposits = nil
+		_, err := cli.CreateSidechainDeposit(t.Context(), connect.NewRequest(&walletv1.CreateSidechainDepositRequest{
+			WalletId:    testWalletID,
+			Slot:        slot,
+			Destination: destination,
+			Amount:      0.001,
+			Fee:         0.0001,
+		}))
+		return err
+	}
+
+	t.Run("an address for another slot is refused", func(t *testing.T) {
+		err := createDeposit(t, 2, checksummedDepositAddress(9, depositSidechainAddress))
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		require.ErrorContains(t, err, "slot 9")
+		require.Empty(t, deposits)
+	})
+
+	t.Run("an address for the same slot deposits to that slot", func(t *testing.T) {
+		require.NoError(t, createDeposit(t, 2, checksummedDepositAddress(2, depositSidechainAddress)))
+		require.Len(t, deposits, 1)
+		require.Equal(t, int32(2), deposits[0].Slot)
+		require.Equal(t, depositSidechainAddress, deposits[0].Destination)
+	})
+
+	t.Run("no request slot uses the address slot", func(t *testing.T) {
+		require.NoError(t, createDeposit(t, 0, checksummedDepositAddress(9, depositSidechainAddress)))
+		require.Len(t, deposits, 1)
+		require.Equal(t, int32(9), deposits[0].Slot)
+		require.Equal(t, depositSidechainAddress, deposits[0].Destination)
+	})
+
+	t.Run("a bare address uses the request slot", func(t *testing.T) {
+		require.NoError(t, createDeposit(t, 2, depositSidechainAddress))
+		require.Len(t, deposits, 1)
+		require.Equal(t, int32(2), deposits[0].Slot)
+		require.Equal(t, depositSidechainAddress, deposits[0].Destination)
+	})
 }

@@ -716,6 +716,9 @@ func (c *ElectrumClient) fetchTx(ctx context.Context, txid string) (*wire.MsgTx,
 	if err := msg.Deserialize(bytes.NewReader(raw)); err != nil {
 		return nil, fmt.Errorf("deserialize tx %s: %w", txid, err)
 	}
+	if got := msg.TxHash().String(); !strings.EqualFold(got, txid) {
+		return nil, fmt.Errorf("server answered tx %s with tx %s", txid, got)
+	}
 	c.cacheMu.Lock()
 	c.txCache[txid] = msg
 	c.cacheMu.Unlock()

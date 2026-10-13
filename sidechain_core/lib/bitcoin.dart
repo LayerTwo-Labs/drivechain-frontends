@@ -43,7 +43,7 @@ double satoshiToBTC(int sats) {
 
 int btcToSatoshi(double btc) {
   const int satoshiPerBitcoin = 100000000;
-  return (btc * satoshiPerBitcoin).toInt();
+  return (btc * satoshiPerBitcoin).round();
 }
 
 /// Pass symbol: '' to omit the unit; omit it entirely for the active
@@ -155,9 +155,27 @@ int parseAmountToSatoshis(String input, BitcoinUnit unit) {
   String cleanInput = input.replaceAll(' ', '').replaceAll(',', '');
 
   if (unit == BitcoinUnit.btc) {
-    final btc = double.tryParse(cleanInput) ?? 0.0;
-    return btcToSatoshi(btc);
+    return _parseBtcToSatoshis(cleanInput) ?? 0;
   } else {
     return int.tryParse(cleanInput) ?? 0;
   }
+}
+
+final _btcAmountPattern = RegExp(r'^(\d*)(?:\.(\d{0,8}))?$');
+
+int? _parseBtcToSatoshis(String input) {
+  final match = _btcAmountPattern.firstMatch(input);
+  if (match == null) {
+    return null;
+  }
+  final whole = match.group(1)!;
+  final fraction = match.group(2) ?? '';
+  if (whole.isEmpty && fraction.isEmpty) {
+    return null;
+  }
+  final wholeBtc = int.tryParse(whole.isEmpty ? '0' : whole);
+  if (wholeBtc == null) {
+    return null;
+  }
+  return wholeBtc * 100000000 + int.parse(fraction.padRight(8, '0'));
 }

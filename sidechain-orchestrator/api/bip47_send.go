@@ -178,6 +178,17 @@ func (h *WalletHandler) buildBip47NotificationTx(
 
 	const dustSats int64 = 546
 	feeSats := bip47send.EstimateNotificationFee(2)
+	if rater, ok := h.engine.FeeRaterFor(walletID); ok {
+		rate, err := rater.FeeRateForTarget(ctx, wallet.SendFeeTarget)
+		if err != nil {
+			return "", "", connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the bip47 notification: %w", err))
+		}
+		if rate > wallet.MaxFeeRateSatPerVB {
+			return "", "", connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("the fee estimate of %.0f sat/vB for the bip47 notification is above the limit of %d sat/vB", rate, wallet.MaxFeeRateSatPerVB))
+		}
+		feeSats = bip47send.EstimateNotificationFee(int64(math.Ceil(rate)))
+	}
 	minRequired := dustSats + feeSats + dustSats
 
 	var picked *wallet.UTXO

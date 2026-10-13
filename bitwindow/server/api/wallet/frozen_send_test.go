@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -15,6 +16,7 @@ import (
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 // A send that names its inputs spends exactly those coins, so no lock reaches
@@ -89,5 +91,77 @@ func TestSendRefusesAFrozenInputInAnySpelling(t *testing.T) {
 		}))
 		require.Error(t, err, spelling)
 		assert.Contains(t, err.Error(), "is frozen", spelling)
+	}
+}
+
+func TestSendTransactionWithRequiredInputs(t *testing.T) {
+	const txid = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"
+
+	t.Run("sends the inputs through the orchestrator", func(t *testing.T) {
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
+		mockOrch.EXPECT().CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).Times(0)
+		var sent []*orchpb.SendTransactionRequest
+		mockOrch.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(
+				_ any, req *connect.Request[orchpb.SendTransactionRequest],
+			) (*connect.Response[orchpb.SendTransactionResponse], error) {
+				sent = append(sent, req.Msg)
+				return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: "sent"}), nil
+			}).
+			Times(1)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().GetRawMempool(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&corepb.GetRawMempoolResponse{}), nil).AnyTimes()
+		mockBitcoind.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).Times(0)
+		mockBitcoind.EXPECT().CreateRawTransaction(gomock.Any(), gomock.Any()).Times(0)
+		mockBitcoind.EXPECT().SignRawTransactionWithWallet(gomock.Any(), gomock.Any()).Times(0)
+		mockBitcoind.EXPECT().SendRawTransaction(gomock.Any(), gomock.Any()).Times(0)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db,
+			apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.SendTransaction(t.Context(), connect.NewRequest(&walletv1.SendTransactionRequest{
+			WalletId:       testWalletID,
+			Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
+			FixedFeeSats:   500,
+			RequiredInputs: []*walletv1.UnspentOutput{{Output: txid + ":1", ValueSats: 80_000}},
+		}))
+		require.NoError(t, err)
+		require.Equal(t, "sent", resp.Msg.Txid)
+
+		require.Len(t, sent, 1)
+		require.Equal(t, testWalletID, sent[0].WalletId)
+		require.Equal(t, map[string]int64{"bcrt1qdest": 50_000}, sent[0].Destinations)
+		require.EqualValues(t, 500, sent[0].FixedFeeSats)
+		require.Len(t, sent[0].RequiredInputs, 1)
+		require.Equal(t, txid, sent[0].RequiredInputs[0].Txid)
+		require.EqualValues(t, 1, sent[0].RequiredInputs[0].Vout)
+		require.EqualValues(t, 80_000, sent[0].RequiredInputs[0].AmountSats)
+	})
+
+	for name, outpoint := range map[string]string{
+		"no vout":       txid,
+		"text vout":     txid + ":x",
+		"negative vout": txid + ":-1",
+	} {
+		t.Run("refuses an outpoint with "+name, func(t *testing.T) {
+			db := database.Test(t)
+			ctrl := gomock.NewController(t)
+			mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+			apitests.ExpectOrchestratorReads(mockOrch)
+			mockOrch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Times(0)
+			cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
+
+			_, err := cli.SendTransaction(t.Context(), connect.NewRequest(&walletv1.SendTransactionRequest{
+				WalletId:       testWalletID,
+				Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
+				RequiredInputs: []*walletv1.UnspentOutput{{Output: outpoint}},
+			}))
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		})
 	}
 }

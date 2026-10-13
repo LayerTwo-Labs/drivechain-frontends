@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/bitcoin.dart';
 import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
 import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
 import 'package:sidechain_core/rpcs/thunder_rpc.dart';
@@ -156,7 +157,7 @@ class FastWithdrawalProvider extends ChangeNotifier implements NetworkScoped {
       withdrawalHash = result['hash'];
       serverFeeSats = result['server_fee_sats'] as int;
       l2Address = result['server_l2_address']['info'];
-      l2Amount = (amountValue + serverFeeSats! / 100000000).toString();
+      l2Amount = satoshiToBTC(btcToSatoshi(amountValue) + serverFeeSats!).toStringAsFixed(8);
 
       stage = FastWithdrawalStage.awaitingPayment;
       notifyListeners();
