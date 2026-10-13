@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -58,12 +59,11 @@ func toMB(bytes int64) int64 {
 }
 
 type DownloadManager struct {
-	dataDir        string
-	configFilePath string // path to chains_config.json for hash write-back
-	httpClient     *http.Client
-	log            zerolog.Logger
-	inFlight       sync.Map
-	claimMu        sync.Mutex
+	dataDir    string
+	httpClient *http.Client
+	log        zerolog.Logger
+	inFlight   sync.Map
+	claimMu    sync.Mutex
 	// state holds the latest DownloadState for each in-flight binary, keyed
 	// by the binary's logical name (e.g. "bitcoind", "thunder"). Updated on
 	// every progress event from downloadFile, deleted on Done/Error so a
@@ -111,14 +111,23 @@ type sidechainVariantSpec struct {
 	ExtractSubfolder string
 }
 
-func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *DownloadManager {
+func NewDownloadManager(dataDir string, log zerolog.Logger) *DownloadManager {
 	_ = os.MkdirAll(BinDir(dataDir), 0o755)
 	return &DownloadManager{
-		dataDir:        dataDir,
-		configFilePath: configFilePath,
-		httpClient:     &http.Client{},
-		log:            log.With().Str("component", "download").Logger(),
+		dataDir:    dataDir,
+		httpClient: &http.Client{CheckRedirect: refuseHTTPSDowngrade},
+		log:        log.With().Str("component", "download").Logger(),
 	}
+}
+
+func refuseHTTPSDowngrade(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if len(via) > 0 && via[len(via)-1].URL.Scheme == "https" && req.URL.Scheme != "https" {
+		return fmt.Errorf("refuse redirect from https to %s", req.URL.Scheme)
+	}
+	return nil
 }
 
 // DownloadOptions tweaks Download behaviour per-call. Defaults are the
@@ -202,7 +211,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 			// bytes without subscribing to this channel. Byte progress
 			// (MB fields) and status messages (Message field) flow as
 			// separate events — preserve the last byte counts across a
-			// message-only event so a "verifying hash..." update doesn't
+			// message-only event so an "extracting..." update doesn't
 			// snap the progress bar back to 0.
 			if p.Error == nil && !p.Done {
 				prev, _ := d.state.Load(stateKey)
@@ -346,26 +355,6 @@ func (d *DownloadManager) fetchArchive(ctx context.Context, config BinaryConfig,
 	if len(config.ArtifactPins) > 0 {
 		if err := verifyArtifactPin(config, savePath, true); err != nil {
 			return "", err
-		}
-		return savePath, nil
-	}
-	if target.IsCLI {
-		return savePath, nil
-	}
-
-	// Compute SHA256 hash and write back to config
-	if !send(DownloadProgress{Message: "verifying hash..."}) {
-		return "", ctx.Err()
-	}
-	archiveHash, archiveSize, err := hashFile(savePath)
-	if err != nil {
-		d.log.Warn().Err(err).Msg("failed to hash archive")
-	} else {
-		d.log.Info().Str("hash", archiveHash).Int64("size", archiveSize).Str("binary", config.Name).Msg("archive hash")
-		if d.configFilePath != "" {
-			if err := writeHashToConfig(d.configFilePath, config.Name, currentPlatform(), archiveHash, archiveSize); err != nil {
-				d.log.Warn().Err(err).Msg("failed to write hash to config")
-			}
 		}
 	}
 	return savePath, nil
@@ -650,7 +639,9 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 		}
 	}
 
-	_ = os.MkdirAll(destDir, 0o755)
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		return false, fmt.Errorf("create bin dir: %w", err)
+	}
 
 	lower := strings.ToLower(archivePath)
 	switch {
@@ -703,6 +694,12 @@ func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPr
 				continue
 			}
 		}
+		if !filepath.IsLocal(name) {
+			return false, fmt.Errorf("zip entry %q leaves the archive", f.Name)
+		}
+		if err := rejectSymlinkInPath(destDir, name); err != nil {
+			return false, err
+		}
 
 		destPath := filepath.Join(destDir, name)
 
@@ -731,6 +728,10 @@ func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPr
 			if err != nil {
 				return false, fmt.Errorf("read symlink %s: %w", f.Name, err)
 			}
+			linkTarget := string(target)
+			if filepath.IsAbs(linkTarget) || !filepath.IsLocal(filepath.Join(filepath.Dir(name), linkTarget)) {
+				return false, fmt.Errorf("zip symlink %q -> %q leaves the archive", f.Name, linkTarget)
+			}
 			_ = os.Remove(destPath)
 			if err := os.Symlink(string(target), destPath); err != nil {
 				return false, fmt.Errorf("create symlink %s -> %s: %w", destPath, string(target), err)
@@ -743,7 +744,7 @@ func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPr
 			return false, err
 		}
 		if err := chmod(destPath); err != nil {
-			d.log.Warn().Err(err).Str("file", destPath).Msg("chmod")
+			return false, fmt.Errorf("chmod %s: %w", destPath, err)
 		}
 		if strings.Contains(strings.ToLower(strings.TrimSuffix(filepath.Base(destPath), ".exe")), "-cli") {
 			hasCLI = true
@@ -756,6 +757,25 @@ func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPr
 	}
 
 	return hasCLI, nil
+}
+
+// A chain of in-tree links can resolve outside root, so no write may pass through an extracted link.
+func rejectSymlinkInPath(root, name string) error {
+	cur := root
+	for _, part := range strings.Split(filepath.Clean(name), string(filepath.Separator)) {
+		cur = filepath.Join(cur, part)
+		info, err := os.Lstat(cur)
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("stat %s: %w", cur, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("zip entry %q goes through symlink %s", name, cur)
+		}
+	}
+	return nil
 }
 
 // extractZip extracts a zip archive, flattening single-directory archives.
@@ -777,6 +797,9 @@ func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) (b
 			continue
 		}
 
+		if !filepath.IsLocal(f.Name) {
+			return false, fmt.Errorf("zip entry %q leaves the archive", f.Name)
+		}
 		destPath := filepath.Join(tmpDir, f.Name)
 		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 			return false, fmt.Errorf("create dir: %w", err)
@@ -938,7 +961,7 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 		}
 
 		if err := chmod(destPath); err != nil {
-			d.log.Warn().Err(err).Str("file", destPath).Msg("chmod")
+			return fmt.Errorf("chmod %s: %w", destPath, err)
 		}
 
 		moved++
@@ -1008,56 +1031,6 @@ func hashFile(path string) (string, int64, error) {
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), size, nil
-}
-
-// writeHashToConfig reads chains_config.json, updates the hash for a binary,
-// and writes it back. The file watcher will pick up the change.
-func writeHashToConfig(configPath, binaryName, osName, hash string, size int64) error {
-	// Map internal binary names to JSON keys
-	jsonKey := ""
-	for k, v := range jsonKeyToName {
-		if v == binaryName {
-			jsonKey = k
-			break
-		}
-	}
-	if jsonKey == "" {
-		jsonKey = binaryName
-	}
-
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return fmt.Errorf("read config: %w", err)
-	}
-
-	var raw map[string]any
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("unmarshal config: %w", err)
-	}
-
-	binaries, ok := raw["binaries"].(map[string]any)
-	if !ok {
-		return fmt.Errorf("binaries not found in config")
-	}
-
-	binaryConf, ok := binaries[jsonKey].(map[string]any)
-	if !ok {
-		return fmt.Errorf("binary %s not found in config", jsonKey)
-	}
-
-	hashes, ok := binaryConf["hashes"].(map[string]any)
-	if !ok {
-		hashes = make(map[string]any)
-	}
-	hashes[osName] = map[string]any{"sha256": hash, "size": size}
-	binaryConf["hashes"] = hashes
-
-	out, err := json.MarshalIndent(raw, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal config: %w", err)
-	}
-
-	return os.WriteFile(configPath, out, 0o644)
 }
 
 // Platform/architecture suffixes to strip from extracted filenames.

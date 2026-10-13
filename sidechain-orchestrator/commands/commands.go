@@ -827,6 +827,14 @@ var whichCommand = &cli.Command{
 	},
 }
 
+// activeNetwork returns the network the install records, else the --network flag.
+func activeNetwork(cctx *cli.Context) string {
+	if n, _, err := config.ResolveNetwork(cctx.String("bitwindow-dir")); err == nil {
+		return string(n)
+	}
+	return cctx.String("network")
+}
+
 // binaryPathFor returns the on-disk path the orchestrator currently uses for
 // a binary. For bitcoind it reads the persisted variant and the persisted
 // network, because a variant the network does not offer clamps to one it does;
@@ -836,10 +844,7 @@ func binaryPathFor(cctx *cli.Context, dataDir, name string) string {
 		return orchestrator.BinaryPath(dataDir, name)
 	}
 	bitwindowDir := cctx.String("bitwindow-dir")
-	network := cctx.String("network")
-	if n, _, err := config.ResolveNetwork(bitwindowDir); err == nil {
-		network = string(n)
-	}
+	network := activeNetwork(cctx)
 	return orchestrator.ActiveCoreBinaryPath(
 		dataDir,
 		bitwindowDir,
@@ -1092,7 +1097,7 @@ type SidechainClient interface {
 }
 
 // ClientFactory creates a new sidechain client for the given port
-type ClientFactory func(port int) SidechainClient
+type ClientFactory func(port int, network config.Network) SidechainClient
 
 // BitnamesClientWrapper adapts the bitnames.Client to SidechainClient interface
 type BitnamesClientWrapper struct {
@@ -1158,31 +1163,31 @@ func (w *ZsideClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage
 }
 
 // Client factory functions
-func newBitassetsClient(port int) SidechainClient {
+func newBitassetsClient(port int, _ config.Network) SidechainClient {
 	return &BitassetsClientWrapper{bitassets.NewClient("localhost", port)}
 }
 
-func newBitnamesClient(port int) SidechainClient {
+func newBitnamesClient(port int, _ config.Network) SidechainClient {
 	return &BitnamesClientWrapper{bitnames.NewClient("localhost", port)}
 }
 
-func newCoinshiftClient(port int) SidechainClient {
-	return &CoinshiftClientWrapper{coinshift.NewClient("localhost", port)}
+func newCoinshiftClient(port int, network config.Network) SidechainClient {
+	return &CoinshiftClientWrapper{coinshift.NewClient("localhost", port, coinshift.CookieFile(network))}
 }
 
-func newPhotonClient(port int) SidechainClient {
+func newPhotonClient(port int, _ config.Network) SidechainClient {
 	return &PhotonClientWrapper{photon.NewClient("localhost", port)}
 }
 
-func newThunderClient(port int) SidechainClient {
+func newThunderClient(port int, _ config.Network) SidechainClient {
 	return &ThunderClientWrapper{thunder.NewClient("localhost", port)}
 }
 
-func newTruthcoinClient(port int) SidechainClient {
-	return &TruthcoinClientWrapper{truthcoin.NewClient("localhost", port)}
+func newTruthcoinClient(port int, network config.Network) SidechainClient {
+	return &TruthcoinClientWrapper{truthcoin.NewClient("localhost", port, truthcoin.CookieFile(network))}
 }
 
-func newZsideClient(port int) SidechainClient {
+func newZsideClient(port int, _ config.Network) SidechainClient {
 	return &ZsideClientWrapper{zside.NewClient("localhost", port)}
 }
 
@@ -1233,7 +1238,7 @@ func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory C
 	}
 
 	// Create the sidechain client and call the method
-	sidechainClient := clientFactory(port)
+	sidechainClient := clientFactory(port, config.Network(activeNetwork(cctx)))
 	return callClientMethod(cctx.Context, sidechainClient, methodName)
 }
 

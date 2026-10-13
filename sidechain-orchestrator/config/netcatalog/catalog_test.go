@@ -1,10 +1,13 @@
 package netcatalog
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // embeddedGeneration is the eCash network networks.json ships with. Change it
@@ -213,4 +216,48 @@ func TestByMagicNamesTheNetwork(t *testing.T) {
 	if _, ok := c.ByMagic(""); ok {
 		t.Error("an empty magic must read as unknown")
 	}
+}
+
+func catalogWith(t *testing.T, id, address string) []byte {
+	raw, err := json.Marshal(map[string]any{
+		"schema_version": 1,
+		"networks": []map[string]any{{
+			"id":     id,
+			"family": FamilyECash,
+			"p2p":    map[string]any{"address": address},
+		}},
+	})
+	require.NoError(t, err)
+	return raw
+}
+
+func TestParseValidatesEntries(t *testing.T) {
+	for name, id := range map[string]string{
+		"parent path id":  "../x",
+		"slash id":        "a/b",
+		"upper case id":   "A",
+		"newline id":      "alpha\nrpcbind=0.0.0.0",
+		"empty id":        "",
+		"33 character id": strings.Repeat("a", 33),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := parse(catalogWith(t, id, ""))
+			require.ErrorContains(t, err, "parse catalog: network")
+		})
+	}
+	for name, address := range map[string]string{
+		"newline address": "1.2.3.4:8301\nrpcallowip=0.0.0.0/0",
+		"hash address":    "host #x",
+		"equals address":  "a=b",
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := parse(catalogWith(t, "alphanet", address))
+			require.ErrorContains(t, err, "p2p address")
+		})
+	}
+	t.Run("published shape", func(t *testing.T) {
+		c, err := parse(catalogWith(t, "alphanet", "seed.example.com:8301"))
+		require.NoError(t, err)
+		require.Equal(t, "seed.example.com:8301", c.Networks[0].P2P.Address)
+	})
 }

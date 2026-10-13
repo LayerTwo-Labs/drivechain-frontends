@@ -52,7 +52,6 @@ type jsonBinaryConf struct {
 
 	Download     *jsonDownloadConf      `json:"download"`
 	AltDownload  *jsonDownloadConf      `json:"alternative_download"`
-	Hashes       map[string]any         `json:"hashes"`
 	ArtifactPins map[string]ArtifactPin `json:"artifact_pins"`
 }
 

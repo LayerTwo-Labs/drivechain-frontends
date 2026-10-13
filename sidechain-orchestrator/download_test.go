@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -134,6 +137,50 @@ func TestDownload_Direct(t *testing.T) {
 	assert.True(t, last.Done)
 	_, err = os.Stat(BinaryPath(dir, "test-binary"))
 	require.NoError(t, err)
+}
+
+func TestDownload_LeavesChainsConfigUnchanged(t *testing.T) {
+	dir := t.TempDir()
+	dm := NewDownloadManager(dir, testLogger(t))
+	configJSON := []byte(`{"binaries": {"test": {"hashes": {}}}}`)
+	require.NoError(t, os.WriteFile(ConfigFilePath(dir), configJSON, 0o644))
+	zipContent := makeZipBytes(t, map[string][]byte{"test-binary": []byte("data")})
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(zipContent)
+	}))
+	defer srv.Close()
+	dm.httpClient = srv.Client()
+
+	ch, err := dm.Download(context.Background(), BinaryConfig{
+		Name:           "test",
+		BinaryName:     "test-binary",
+		DownloadSource: DownloadSourceDirect,
+		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
+		Files:          map[string]string{currentPlatform(): "test-binary.zip"},
+	}, "default", true)
+	require.NoError(t, err)
+	require.True(t, drainProgress(t, ch).Done)
+
+	got, err := os.ReadFile(ConfigFilePath(dir))
+	require.NoError(t, err)
+	assert.Equal(t, string(configJSON), string(got))
+}
+
+func TestExtractBinary_ReportsBinDirCreateFailure(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("needs unix permissions as a non-root user")
+	}
+	dm, dir := newTestDownloadManager(t)
+	archivePath := filepath.Join(dir, "test-binary")
+	require.NoError(t, os.WriteFile(archivePath, []byte("data"), 0o644))
+
+	parent := filepath.Join(t.TempDir(), "readonly")
+	require.NoError(t, os.Mkdir(parent, 0o500))
+	t.Cleanup(func() { _ = os.Chmod(parent, 0o755) })
+
+	_, err := dm.extractBinary(archivePath, BinaryConfig{Name: "test"}, DownloadTarget{ExtractName: "test-binary"}, filepath.Join(parent, "data"), "signet")
+	require.ErrorContains(t, err, "create bin dir")
 }
 
 func TestDownload_GitHub(t *testing.T) {
@@ -344,3 +391,169 @@ func TestResolveGitHubURLSendsTheTokenToGitHub(t *testing.T) {
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+type zipEntry struct {
+	name    string
+	body    string
+	symlink bool
+}
+
+func writeOrderedZip(t *testing.T, path string, entries []zipEntry) {
+	t.Helper()
+	f, err := os.Create(path)
+	require.NoError(t, err)
+	w := zip.NewWriter(f)
+	for _, e := range entries {
+		hdr := &zip.FileHeader{Name: e.name, Method: zip.Deflate}
+		if e.symlink {
+			hdr.SetMode(os.ModeSymlink | 0o777)
+		} else {
+			hdr.SetMode(0o755)
+		}
+		ew, err := w.CreateHeader(hdr)
+		require.NoError(t, err)
+		_, err = io.WriteString(ew, e.body)
+		require.NoError(t, err)
+	}
+	require.NoError(t, w.Close())
+	require.NoError(t, f.Close())
+}
+
+func TestExtractZip_RejectsEntryOutsideDest(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	parent := t.TempDir()
+	t.Setenv("TMPDIR", parent)
+
+	zipPath := filepath.Join(dir, "evil.zip")
+	writeOrderedZip(t, zipPath, []zipEntry{{name: "../escape", body: "x"}})
+
+	_, err := dm.extractZip(zipPath, BinDir(dir), "test-binary")
+	require.ErrorContains(t, err, "leaves the archive")
+	assert.NoFileExists(t, filepath.Join(filepath.Dir(parent), "escape"))
+	assert.NoFileExists(t, filepath.Join(parent, "escape"))
+}
+
+func TestExtractZipPreservingTree_RejectsTraversal(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	destDir := filepath.Join(dir, "test", "thunder")
+	require.NoError(t, os.MkdirAll(destDir, 0o755))
+
+	zipPath := filepath.Join(dir, "evil.zip")
+	writeOrderedZip(t, zipPath, []zipEntry{{name: "thunder/../../escape", body: "x"}})
+
+	_, err := dm.extractZipPreservingTree(zipPath, destDir, "thunder")
+	require.ErrorContains(t, err, "leaves the archive")
+	assert.NoFileExists(t, filepath.Join(dir, "test", "escape"))
+	assert.NoFileExists(t, filepath.Join(dir, "escape"))
+}
+
+func TestExtractZipPreservingTree_RejectsSymlinkOutside(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks need privileges on windows")
+	}
+	cases := []struct {
+		name    string
+		entries []zipEntry
+		wantErr string
+	}{
+		{
+			name:    "absolute target",
+			entries: []zipEntry{{name: "link", body: "/", symlink: true}},
+			wantErr: "leaves the archive",
+		},
+		{
+			name:    "parent target",
+			entries: []zipEntry{{name: "link", body: "../..", symlink: true}},
+			wantErr: "leaves the archive",
+		},
+		{
+			name: "write through link",
+			entries: []zipEntry{
+				{name: "sub/keep", body: "x"},
+				{name: "link", body: "sub", symlink: true},
+				{name: "link/file", body: "x"},
+			},
+			wantErr: "goes through symlink",
+		},
+		{
+			name: "chained links",
+			entries: []zipEntry{
+				{name: "b", body: ".", symlink: true},
+				{name: "c", body: "b/../escape", symlink: true},
+				{name: "c", body: "x"},
+			},
+			wantErr: "goes through symlink",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dm, dir := newTestDownloadManager(t)
+			root := t.TempDir()
+			destDir := filepath.Join(root, "dest")
+			require.NoError(t, os.MkdirAll(destDir, 0o755))
+			zipPath := filepath.Join(dir, "evil.zip")
+			writeOrderedZip(t, zipPath, tc.entries)
+
+			_, err := dm.extractZipPreservingTree(zipPath, destDir, "")
+			require.ErrorContains(t, err, tc.wantErr)
+
+			outside, err := os.ReadDir(root)
+			require.NoError(t, err)
+			require.Len(t, outside, 1)
+			assert.Equal(t, "dest", outside[0].Name())
+			assert.NoFileExists(t, filepath.Join(destDir, "sub", "file"))
+		})
+	}
+}
+
+func TestExtractZipPreservingTree_KeepsFrameworkSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks need privileges on windows")
+	}
+	dm, dir := newTestDownloadManager(t)
+	destDir := filepath.Join(dir, "test", "thunder")
+	require.NoError(t, os.MkdirAll(destDir, 0o755))
+
+	zipPath := filepath.Join(dir, "app.zip")
+	writeOrderedZip(t, zipPath, []zipEntry{
+		{name: "Foo.framework/Versions/A/Foo", body: "bin"},
+		{name: "Foo.framework/Versions/Current", body: "A", symlink: true},
+		{name: "Foo.framework/Foo", body: "Versions/Current/Foo", symlink: true},
+	})
+
+	_, err := dm.extractZipPreservingTree(zipPath, destDir, "")
+	require.NoError(t, err)
+
+	got, err := os.Readlink(filepath.Join(destDir, "Foo.framework", "Versions", "Current"))
+	require.NoError(t, err)
+	assert.Equal(t, "A", got)
+	got, err = os.Readlink(filepath.Join(destDir, "Foo.framework", "Foo"))
+	require.NoError(t, err)
+	assert.Equal(t, "Versions/Current/Foo", got)
+	body, err := os.ReadFile(filepath.Join(destDir, "Foo.framework", "Foo"))
+	require.NoError(t, err)
+	assert.Equal(t, "bin", string(body))
+}
+
+func TestDownloadRefusesHTTPSDowngrade(t *testing.T) {
+	var plainGets atomic.Int32
+	plain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			plainGets.Add(1)
+		}
+		_, _ = w.Write([]byte("evil"))
+	}))
+	t.Cleanup(plain.Close)
+	secure := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, plain.URL+"/bin", http.StatusFound)
+	}))
+	t.Cleanup(secure.Close)
+
+	dm, dir := newTestDownloadManager(t)
+	dm.httpClient.Transport = secure.Client().Transport
+
+	err := dm.downloadFile(t.Context(), secure.URL+"/bin", filepath.Join(dir, "bin.zip"), func(DownloadProgress) bool { return true })
+	require.ErrorContains(t, err, "refuse redirect from https to http")
+	assert.Zero(t, plainGets.Load())
+	assert.NoFileExists(t, filepath.Join(dir, "bin.zip"))
+}

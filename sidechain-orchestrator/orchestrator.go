@@ -362,7 +362,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		settings = &SettingsStore{bitwindowDir: bitwindowDir, current: defaultOrchestratorSettings()}
 	}
 
-	downloads := NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log)
+	downloads := NewDownloadManager(dataDir, log)
 
 	orch := &Orchestrator{
 		releases:     NewReleaseChecker(downloads, log),
@@ -3582,7 +3582,7 @@ func (c *sidechainSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, 
 		}
 		return &ChainSyncResult{Blocks: count}, nil
 	}
-	proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
+	proxy := nodes.Proxy(cfg.Name, cfg.RPCHost(), cfg.Port, config.Network(c.o.CurrentNetwork()))
 	progress, err := proxy.MainchainSyncProgress(ctx)
 	switch {
 	case rpc.LacksMethod(err):

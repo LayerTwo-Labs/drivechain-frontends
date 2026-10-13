@@ -64,7 +64,7 @@ func TestSidechainVariant_DownloadAndBoot(t *testing.T) {
 	dataDir := t.TempDir()
 	log := testLogger(t)
 
-	dm := NewDownloadManager(dataDir, "", log)
+	dm := NewDownloadManager(dataDir, log)
 	dm.httpClient = srv.Client()
 
 	cfg := makeSidechainConfig(srv.URL + "/")

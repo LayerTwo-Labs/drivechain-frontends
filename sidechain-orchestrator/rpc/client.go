@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -17,8 +19,9 @@ type Client struct {
 	http *http.Client
 	// timeout is the deadline one method gets. http.Client.Timeout would cap
 	// every method at the shortest of them.
-	timeout func(method string) time.Duration
-	nextID  atomic.Int64
+	timeout    func(method string) time.Duration
+	nextID     atomic.Int64
+	cookieFile string
 }
 
 // New creates a JSON-RPC client targeting the given host and port.
@@ -28,6 +31,33 @@ func New(host string, port int) *Client {
 		http:    &http.Client{},
 		timeout: MethodTimeout,
 	}
+}
+
+// WithCookie sends the token in cookieFile as a bearer token on each call.
+func (c *Client) WithCookie(cookieFile string) *Client {
+	c.cookieFile = cookieFile
+	return c
+}
+
+// SetBearerCookie sets the Authorization header to the token in cookieFile.
+// A missing file sets no header.
+func SetBearerCookie(req *http.Request, cookieFile string) error {
+	raw, err := os.ReadFile(cookieFile)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read rpc cookie: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(string(raw)))
+	return nil
+}
+
+func (c *Client) authorize(req *http.Request) error {
+	if c.cookieFile == "" {
+		return nil
+	}
+	return SetBearerCookie(req, c.cookieFile)
 }
 
 type request struct {
@@ -93,6 +123,9 @@ func (c *Client) Call(ctx context.Context, method string, params any, out any) e
 		return fmt.Errorf("create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if err := c.authorize(httpReq); err != nil {
+		return err
+	}
 
 	httpResp, err := c.http.Do(httpReq)
 	if err != nil {
@@ -140,6 +173,9 @@ func (c *Client) CallRaw(ctx context.Context, method string, params any) (json.R
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if err := c.authorize(httpReq); err != nil {
+		return nil, err
+	}
 
 	httpResp, err := c.http.Do(httpReq)
 	if err != nil {

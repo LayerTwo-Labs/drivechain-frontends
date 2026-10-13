@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -397,6 +398,13 @@ func fillForkParentHash(c, from Catalog) Catalog {
 	return c
 }
 
+// The id becomes a directory name and a conf value, and the address a conf value.
+var validNetworkID = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`)
+
+func unsafeConfRune(r rune) bool {
+	return r <= 0x20 || r == 0x7f || r == '#' || r == ';' || r == '='
+}
+
 // parse decodes a catalog document and rejects one that carries no networks or
 // an unreadable schema, so a garbage response never displaces a good cache.
 func parse(raw []byte) (Catalog, error) {
@@ -413,6 +421,12 @@ func parse(raw []byte) (Catalog, error) {
 	for _, n := range c.Networks {
 		if n.ID == "" || n.Family == "" {
 			return Catalog{}, fmt.Errorf("parse catalog: network missing id or family")
+		}
+		if !validNetworkID.MatchString(n.ID) {
+			return Catalog{}, fmt.Errorf("parse catalog: network id %q is not valid", n.ID)
+		}
+		if strings.ContainsFunc(n.P2P.Address, unsafeConfRune) {
+			return Catalog{}, fmt.Errorf("parse catalog: network %q p2p address %q is not valid", n.ID, n.P2P.Address)
 		}
 	}
 	return c, nil

@@ -360,7 +360,7 @@ func findEnforcer(t *testing.T) string {
 	}
 	require.NotNil(t, enforcerConfig)
 
-	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
+	dm := orchestrator.NewDownloadManager(dataDir, log)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	progressCh, err := dm.Download(ctx, *enforcerConfig, "regtest", true)
@@ -403,7 +403,7 @@ func findBitcoind(t *testing.T) string {
 		}
 	}
 
-	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
+	dm := orchestrator.NewDownloadManager(dataDir, log)
 	dm.CoreVariant = func() (orchestrator.CoreVariantSpec, bool) { return variant, true }
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()

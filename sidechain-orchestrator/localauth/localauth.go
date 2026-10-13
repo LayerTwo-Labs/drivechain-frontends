@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -216,4 +217,39 @@ func verify(ctx context.Context, h http.Header, dir string) (context.Context, er
 		return ctx, connect.NewError(connect.CodeUnauthenticated, errors.New(TokenRejectedMessage))
 	}
 	return WithToken(ctx, want), nil
+}
+
+// LoopbackHost rejects requests whose Host is not loopback or the host of listenAddr.
+func LoopbackHost(listenAddr string, next http.Handler) http.Handler {
+	listenHost := hostname(listenAddr)
+	if listenHost == "" || listenHost == "0.0.0.0" || listenHost == "::" {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A DNS-rebinding page reaches a loopback port with its own name in Host.
+		if !allowedHost(hostname(r.Host), listenHost) {
+			http.Error(w, "forbidden host", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func hostname(hostport string) string {
+	host, _, err := net.SplitHostPort(hostport)
+	if err != nil {
+		host = hostport
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(host, "["), "]")
+}
+
+func allowedHost(host, listenHost string) bool {
+	if host == "" {
+		return false
+	}
+	if strings.EqualFold(host, "localhost") || strings.EqualFold(host, listenHost) {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }

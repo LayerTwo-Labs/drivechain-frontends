@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/stretchr/testify/require"
 )
 
 // The GUI (and the e2e harness) isolate runs via the BITWINDOWD_DATADIR env
@@ -39,4 +40,20 @@ func TestBitwindowDirSurvivesFinalize(t *testing.T) {
 	if got := conf.BitwindowDir(); got != base {
 		t.Fatalf("after Finalize: BitwindowDir() = %q, want %q", got, base)
 	}
+}
+
+func TestPprofAddr(t *testing.T) {
+	t.Run("off by default", func(t *testing.T) {
+		var conf Config
+		_, err := flags.NewParser(&conf, flags.Default).ParseArgs([]string{})
+		require.NoError(t, err)
+		require.Empty(t, conf.PprofAddr)
+	})
+
+	t.Run("set by flag", func(t *testing.T) {
+		var conf Config
+		_, err := flags.NewParser(&conf, flags.Default).ParseArgs([]string{"--pprof.addr=localhost:6060"})
+		require.NoError(t, err)
+		require.Equal(t, "localhost:6060", conf.PprofAddr)
+	})
 }

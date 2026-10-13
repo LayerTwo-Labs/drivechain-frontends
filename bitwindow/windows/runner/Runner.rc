@@ -25,14 +25,6 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// WinSparkle
-//
-
-// And verify signature using DSA public key:
-DSAPub      DSAPEM      "../../dsa_pub.pem"
-
 1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
@@ -61,6 +53,9 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
+
+// WinSparkle update signature key.
+DSAPub      DSAPEM      "../../dsa_pub.pem"
 
 
 /////////////////////////////////////////////////////////////////////////////
