@@ -30,6 +30,7 @@ type fakeOrchestrator struct {
 	// perCall serves a different answer per poll, for the poll-after-send case.
 	perCall func(n int32) []*orchpb.AddressUnspentOutput
 	calls   atomic.Int32
+	seedHex string
 }
 
 // The runtime hands over the frozen coins on a timer, whatever else runs.
@@ -54,6 +55,9 @@ func (f *fakeOrchestrator) GetNodeMode(
 func (f *fakeOrchestrator) GetWalletSeed(
 	_ context.Context, _ *connect.Request[orchpb.GetWalletSeedRequest],
 ) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+	if f.seedHex != "" {
+		return connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: f.seedHex}), nil
+	}
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("no orchestrator seed in tests"))
 }
 
@@ -322,4 +326,62 @@ func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
 		Id:       chequeID,
 	}))
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+}
+
+func TestCheckChequeFunding_ReportsAFailedSweptMark(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	chequeAddr := "tb1qsweptmarktestaddr00000000000000000000000"
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr})),
+	)
+
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+	require.NoError(t, cheques.UpdateFunding(t.Context(), db, testWalletID, chequeID,
+		[]cheques.FundingOutput{{Txid: "cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000"}}, 100_000_000))
+	_, err = db.ExecContext(t.Context(), `
+		CREATE TRIGGER refuse_sweep BEFORE UPDATE OF swept_txid ON cheques
+		BEGIN SELECT RAISE(ABORT, 'sweep refused'); END`)
+	require.NoError(t, err)
+
+	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	require.ErrorContains(t, err, "mark cheque swept")
+}
+
+func TestChequeReads_ReportAFailedKeyDerivation(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	chequeAddr := "tb1qkeyfailtestaddr000000000000000000000000"
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr, seedHex: "not-hex"})),
+	)
+
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+	require.NoError(t, cheques.UpdateFunding(t.Context(), db, testWalletID, chequeID,
+		[]cheques.FundingOutput{{Txid: "f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000"}}, 100_000_000))
+
+	t.Run("GetCheque", func(t *testing.T) {
+		_, err := cli.GetCheque(t.Context(), connect.NewRequest(&walletv1.GetChequeRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		require.ErrorContains(t, err, "private key")
+	})
+
+	t.Run("ListCheques", func(t *testing.T) {
+		_, err := cli.ListCheques(t.Context(), connect.NewRequest(&walletv1.ListChequesRequest{
+			WalletId: testWalletID,
+		}))
+		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		require.ErrorContains(t, err, "private key")
+	})
 }

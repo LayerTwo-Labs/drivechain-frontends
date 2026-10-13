@@ -11,6 +11,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/stretchr/testify/require"
 )
 
 const destAddress = "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl"
@@ -240,6 +241,48 @@ func TestBuildSweepTxRejectsFeeAboveBalance(t *testing.T) {
 
 	if _, err := BuildSweepTx(source, destAddress, 10_000, &chaincfg.SigNetParams); err == nil {
 		t.Fatal("expected an error when the fee exceeds the balance")
+	}
+}
+
+func TestBuildSweepTxCapsTheFee(t *testing.T) {
+	wif := newWIF(t, true)
+	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
+	require.NoError(t, err)
+
+	oneBitcoin := func(inputs int) []ChequeUTXO {
+		utxos := make([]ChequeUTXO, inputs)
+		for i := range utxos {
+			utxos[i] = ChequeUTXO{
+				TxID:      "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+				Vout:      int32(i),
+				ValueSats: 100_000_000,
+			}
+		}
+		return utxos
+	}
+
+	tests := []struct {
+		name           string
+		inputs         int
+		feeSatPerVbyte uint64
+		wantErr        string
+	}{
+		{name: "rate at the cap builds", inputs: 1, feeSatPerVbyte: 10_000},
+		{name: "rate above the cap is refused", inputs: 1, feeSatPerVbyte: 10_001, wantErr: "fee rate 10001 sat/vB is above the cap"},
+		{name: "fee above the cap is refused", inputs: 30, feeSatPerVbyte: 5_000, wantErr: "is above the cap of 10000000 sats"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: oneBitcoin(tt.inputs)}
+
+			tx, err := BuildSweepTx(source, destAddress, tt.feeSatPerVbyte, &chaincfg.SigNetParams)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, tx.TxOut, 1)
+		})
 	}
 }
 

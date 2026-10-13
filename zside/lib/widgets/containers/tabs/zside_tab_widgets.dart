@@ -1099,7 +1099,7 @@ bool isCastAmount(double amount) {
     return false;
   }
 
-  final satAmount = (amount * 100000000).toInt();
+  final satAmount = btcToSatoshi(amount);
   if (satAmount <= 0) return false;
 
   // This checks if satAmount is a power of 2.

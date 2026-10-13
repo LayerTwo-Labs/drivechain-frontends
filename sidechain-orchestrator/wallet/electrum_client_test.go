@@ -178,20 +178,29 @@ func TestElectrumClientHeightCacheRevoked(t *testing.T) {
 	ctx := context.Background()
 	addr, pkScript := signetAddr(t)
 
+	prev := wire.NewMsgTx(2)
+	prev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x22}, Index: 0}, nil, nil))
+	prev.AddTxOut(wire.NewTxOut(80000, pkScript))
+	prevHex := txToHex(t, prev)
 	tx := wire.NewMsgTx(2)
-	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x22}, Index: 0}, nil, nil))
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: prev.TxHash(), Index: 0}, nil, nil))
 	tx.AddTxOut(wire.NewTxOut(70000, pkScript))
 	txHex := txToHex(t, tx)
 	txID := tx.TxHash().String()
 
 	var height atomic.Int64
 	height.Store(800000)
-	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+	url := startFakeElectrum(t, func(method string, params []json.RawMessage) interface{} {
 		switch method {
 		case "blockchain.scripthash.get_history":
 			return []map[string]interface{}{{"tx_hash": txID, "height": height.Load()}}
 		case "blockchain.transaction.get":
-			return txHex
+			var id string
+			_ = json.Unmarshal(params[0], &id)
+			if id == txID {
+				return txHex
+			}
+			return prevHex
 		case "blockchain.block.header":
 			return "00"
 		}

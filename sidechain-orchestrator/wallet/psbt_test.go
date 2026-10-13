@@ -1327,3 +1327,110 @@ func TestOwnedOutputTakesPathsAndScriptsTogether(t *testing.T) {
 	require.Equal(t, "x", got.Address, "describing an output keeps what it pays")
 	require.Equal(t, int64(5), got.AmountSats)
 }
+
+func singleSigPacket(t *testing.T, inputSats []int64, outSats int64) *psbt.Packet {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	acct, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, "")), ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptNativeSegwit, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	ds, pub, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+	require.NoError(t, err)
+	require.True(t, ok)
+	addr := scannedAddr{
+		address: ds.address.EncodeAddress(), priv: priv, pub: pub,
+		scriptPubKey: ds.scriptPubKey, kind: ScriptNativeSegwit,
+	}
+
+	prevTxs := map[string]*wire.MsgTx{}
+	var ins []psbtInput
+	for i, sats := range inputSats {
+		prevTx := wire.NewMsgTx(2)
+		prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: uint32(i)}, []byte{0x00}, nil))
+		prevTx.AddTxOut(wire.NewTxOut(sats, ds.scriptPubKey))
+		prevTxs[prevTx.TxHash().String()] = prevTx
+		ins = append(ins, psbtInput{outpoint: wire.OutPoint{Hash: prevTx.TxHash()}, amount: sats, addr: addr})
+	}
+	out := []TxOutSpec{{Address: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", AmountBTC: float64(outSats) / 1e8}}
+	packet, err := buildPSBT(ins, out, net, func(txid string) (*wire.MsgTx, error) { return prevTxs[txid], nil })
+	require.NoError(t, err)
+	n, err := signPSBT(packet, ins, net)
+	require.NoError(t, err)
+	require.Equal(t, len(ins), n)
+	return packet
+}
+
+func TestFinalizeFeeCap(t *testing.T) {
+	manyInputs := make([]int64, 20)
+	for i := range manyInputs {
+		manyInputs[i] = 600_000
+	}
+	tests := []struct {
+		name    string
+		inputs  []int64
+		outSats int64
+		wantErr string
+	}{
+		{name: "normal rate", inputs: []int64{2_000_000}, outSats: 1_999_000},
+		{name: "rate above the cap", inputs: []int64{2_000_000}, outSats: 1_000, wantErr: "sat/vB"},
+		{name: "fee above 0.1 BTC under the rate cap", inputs: manyInputs, outSats: 1_000_000, wantErr: "11000000 sats"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			packet := singleSigPacket(t, tt.inputs, tt.outSats)
+
+			_, err := finalizeAndExtract(packet)
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, tt.wantErr)
+			require.ErrorContains(t, err, "refuse to broadcast")
+		})
+	}
+}
+
+func TestFinalizeRefusesSigHashOtherThanAll(t *testing.T) {
+	tests := []struct {
+		name     string
+		hashType txscript.SigHashType
+	}{
+		{name: "none", hashType: txscript.SigHashNone},
+		{name: "single", hashType: txscript.SigHashSingle},
+		{name: "all anyonecanpay", hashType: txscript.SigHashAll | txscript.SigHashAnyOneCanPay},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			packet, ds, amount := multisigPacket(t)
+			net := &chaincfg.SigNetParams
+			acct, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, "b")), ScriptNativeSegwit, net)
+			require.NoError(t, err)
+			priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+			require.NoError(t, err)
+			require.True(t, ok)
+
+			fetcher := txscript.NewCannedPrevOutputFetcher(ds.scriptPubKey, amount)
+			sig, err := txscript.RawTxInWitnessSignature(packet.UnsignedTx, txscript.NewTxSigHashes(packet.UnsignedTx, fetcher),
+				0, amount, ds.witnessScript, tt.hashType, priv)
+			require.NoError(t, err)
+			replaceSig(t, packet, priv, sig)
+
+			_, err = finalizeAndExtract(packet)
+			require.ErrorContains(t, err, "psbt input 0: a signature uses sighash type")
+		})
+	}
+}
+
+func replaceSig(t *testing.T, packet *psbt.Packet, priv *btcec.PrivateKey, sig []byte) {
+	t.Helper()
+	pub := priv.PubKey().SerializeCompressed()
+	for _, ps := range packet.Inputs[0].PartialSigs {
+		if string(ps.PubKey) == string(pub) {
+			ps.Signature = sig
+			return
+		}
+	}
+	t.Fatal("the packet holds no signature for the key")
+}

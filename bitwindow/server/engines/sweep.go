@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -148,6 +149,10 @@ func BuildSweepTx(
 	feeSatPerVbyte uint64,
 	params *chaincfg.Params,
 ) (*wire.MsgTx, error) {
+	if feeSatPerVbyte > orchwallet.MaxFeeRateSatPerVB {
+		return nil, fmt.Errorf("fee rate %d sat/vB is above the cap of %d sat/vB", feeSatPerVbyte, orchwallet.MaxFeeRateSatPerVB)
+	}
+
 	destAddr, err := btcutil.DecodeAddress(destAddress, params)
 	if err != nil {
 		return nil, fmt.Errorf("decode destination address: %w", err)
@@ -163,6 +168,9 @@ func BuildSweepTx(
 
 	totalSats := source.TotalSats()
 	feeSats := SweepFeeSats(source, feeSatPerVbyte, ScriptOutputVbytes(pkScript))
+	if feeSats > orchwallet.MaxFeeSats {
+		return nil, fmt.Errorf("fee %d sats is above the cap of %d sats", feeSats, orchwallet.MaxFeeSats)
+	}
 	if totalSats <= feeSats {
 		return nil, fmt.Errorf("insufficient funds: total %d sats, fee %d sats", totalSats, feeSats)
 	}
