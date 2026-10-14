@@ -182,3 +182,16 @@ func TestCallSendsTheCookie(t *testing.T) {
 		assert.Empty(t, got)
 	})
 }
+
+// thunder-orchard names the field it cannot read in the error data.
+func TestCallKeepsTheErrorData(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Invalid params","data":"expected an array of length 32"}}`))
+		assert.NoError(t, err)
+	}))
+	defer srv.Close()
+
+	err := clientFor(t, srv).Call(context.Background(), "connect_block", nil, nil)
+	require.EqualError(t, err, `rpc error -32602: Invalid params: "expected an array of length 32"`)
+}
