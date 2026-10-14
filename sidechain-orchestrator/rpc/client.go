@@ -75,12 +75,17 @@ type response struct {
 }
 
 type rpcError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Data    json.RawMessage `json:"data"`
 }
 
+// Error keeps the data a node sends, because it names the field that failed.
 func (e *rpcError) Error() string {
-	return fmt.Sprintf("rpc error %d: %s", e.Code, e.Message)
+	if len(e.Data) == 0 || string(e.Data) == "null" {
+		return fmt.Sprintf("rpc error %d: %s", e.Code, e.Message)
+	}
+	return fmt.Sprintf("rpc error %d: %s: %s", e.Code, e.Message, e.Data)
 }
 
 const methodNotFound = -32601
