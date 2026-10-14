@@ -76,47 +76,12 @@ func TestBbcBMM(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	mainDir := filepath.Join(home, "mainchain")
-	require.NoError(t, os.MkdirAll(mainDir, 0o700))
-
 	// Consensus Cleanup is renounced because the enforcer's block producer
 	// builds a plain coinbase, which BIP54's nLockTime rule rejects; a real
 	// deployment runs stock Core as the mainchain.
-	startProcess(t, "mainchain", bitcoind,
-		"-regtest", "-datadir="+mainDir, "-server", "-rest", "-txindex",
-		fmt.Sprintf("-rpcport=%d", mainchainRPCPort), "-port=19444",
-		"-fallbackfee=0.0001", "-renounce=consensuscleanup",
-		fmt.Sprintf("-zmqpubsequence=tcp://127.0.0.1:%d", mainchainZMQPort),
-	)
-	cookiePath := filepath.Join(mainDir, "regtest", ".cookie")
-	waitFor(t, 60*time.Second, "mainchain cookie", func() bool {
-		_, err := os.Stat(cookiePath)
-		return err == nil
-	})
-	cookie, err := os.ReadFile(cookiePath)
-	require.NoError(t, err)
-	user, password, ok := bytes.Cut(cookie, []byte(":"))
-	require.True(t, ok, "malformed cookie %q", cookie)
+	mainDir, enforcer := startMainchain(ctx, t, home, bitcoind, enforcerBin, "-renounce=consensuscleanup")
 
-	enforcerDir := filepath.Join(home, "enforcer")
-	require.NoError(t, os.MkdirAll(enforcerDir, 0o700))
-	startProcess(t, "enforcer", enforcerBin,
-		"--data-dir="+enforcerDir,
-		fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", mainchainRPCPort),
-		"--node-rpc-user="+string(user), "--node-rpc-pass="+string(password),
-		fmt.Sprintf("--node-zmq-addr-sequence=tcp://127.0.0.1:%d", mainchainZMQPort),
-		fmt.Sprintf("--serve-grpc-addr=127.0.0.1:%d", enforcerPort),
-		"--enable-block-template-server",
-		// BDK syncs from an Esplora server we do not run; on regtest the ZMQ
-		// block stream is enough.
-		"--wallet-sync-source=disabled", "--wallet-auto-create",
-	)
-	enforcer := &jsonClient{base: fmt.Sprintf("http://127.0.0.1:%d/cusf.mainchain.v1.", enforcerPort)}
-	waitFor(t, 90*time.Second, "enforcer", func() bool {
-		return enforcer.call(ctx, "ValidatorService/GetChainTip", map[string]any{}, nil) == nil
-	})
-
-	activateSlot(ctx, t, enforcer)
+	activateSlot(ctx, t, enforcer, bbcSlot, "Big Block Covenant")
 
 	inqDir := config.BbcDirs.RootDir()
 	require.NoError(t, os.MkdirAll(inqDir, 0o700))
@@ -149,7 +114,7 @@ func TestBbcBMM(t *testing.T) {
 	// the bare scriptPubKey an M8 request needs, so bidding runs on a second.
 	generateWallet(ctx, t, wallets, "enforcer")
 	coreWallet := generateWallet(ctx, t, wallets, "core")
-	_, err = wallets.SwitchWallet(ctx, connect.NewRequest(&wmpb.SwitchWalletRequest{WalletId: coreWallet}))
+	_, err := wallets.SwitchWallet(ctx, connect.NewRequest(&wmpb.SwitchWalletRequest{WalletId: coreWallet}))
 	require.NoError(t, err)
 
 	addr, err := wallets.GetNewAddress(ctx, connect.NewRequest(&wmpb.GetNewAddressRequest{}))
@@ -271,7 +236,56 @@ func TestBbcBMM(t *testing.T) {
 	require.Zero(t, total, "sidechain coinbase must not mint")
 }
 
-func activateSlot(ctx context.Context, t *testing.T, enforcer *jsonClient) {
+// startMainchain boots a regtest mainchain node and an enforcer on the fixed
+// test ports.
+func startMainchain(
+	ctx context.Context, t *testing.T, home, bitcoind, enforcerBin string, extraArgs ...string,
+) (string, *jsonClient) {
+	t.Helper()
+
+	mainDir := filepath.Join(home, "mainchain")
+	require.NoError(t, os.MkdirAll(mainDir, 0o700))
+
+	args := []string{
+		"-regtest", "-datadir=" + mainDir, "-server", "-rest", "-txindex",
+		fmt.Sprintf("-rpcport=%d", mainchainRPCPort), "-port=19444",
+		"-fallbackfee=0.0001",
+		fmt.Sprintf("-zmqpubsequence=tcp://127.0.0.1:%d", mainchainZMQPort),
+	}
+	startProcess(t, "mainchain", bitcoind, append(args, extraArgs...)...)
+	cookiePath := filepath.Join(mainDir, "regtest", ".cookie")
+	waitFor(t, 60*time.Second, "mainchain cookie", func() bool {
+		_, err := os.Stat(cookiePath)
+		return err == nil
+	})
+	cookie, err := os.ReadFile(cookiePath)
+	require.NoError(t, err)
+	user, password, ok := bytes.Cut(cookie, []byte(":"))
+	require.True(t, ok, "malformed cookie %q", cookie)
+
+	enforcerDir := filepath.Join(home, "enforcer")
+	require.NoError(t, os.MkdirAll(enforcerDir, 0o700))
+	startProcess(t, "enforcer", enforcerBin,
+		"--data-dir="+enforcerDir,
+		fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", mainchainRPCPort),
+		"--node-rpc-user="+string(user), "--node-rpc-pass="+string(password),
+		fmt.Sprintf("--node-zmq-addr-sequence=tcp://127.0.0.1:%d", mainchainZMQPort),
+		fmt.Sprintf("--serve-grpc-addr=127.0.0.1:%d", enforcerPort),
+		"--enable-block-template-server", "--enable-mempool",
+		// drivechaind builds betanet treasury scripts; regtest defaults to OP_NOP5.
+		"--op-drivechain=nop8",
+		// BDK syncs from an Esplora server we do not run; on regtest the ZMQ
+		// block stream is enough.
+		"--enable-wallet", "--wallet-sync-source=disabled", "--wallet-auto-create",
+	)
+	enforcer := &jsonClient{base: fmt.Sprintf("http://127.0.0.1:%d/cusf.mainchain.v1.", enforcerPort)}
+	waitFor(t, 90*time.Second, "enforcer", func() bool {
+		return enforcer.call(ctx, "ValidatorService/GetChainTip", map[string]any{}, nil) == nil
+	})
+	return mainDir, enforcer
+}
+
+func activateSlot(ctx context.Context, t *testing.T, enforcer *jsonClient, slot int, title string) {
 	t.Helper()
 
 	address := struct {
@@ -281,11 +295,11 @@ func activateSlot(ctx context.Context, t *testing.T, enforcer *jsonClient) {
 	mineMainchain(ctx, t, enforcer, 101, address.Address)
 
 	require.NoError(t, enforcer.call(ctx, "BlockProducerService/SubmitSidechainProposal", map[string]any{
-		"sidechainId": bbcSlot,
+		"sidechainId": slot,
 		"declaration": map[string]any{
 			"v0": map[string]any{
-				"title":       "Big Block Covenant",
-				"description": "Covenant sidechain",
+				"title":       title,
+				"description": title,
 				"hashId1":     map[string]any{"hex": repeatHex("11", 32)},
 				"hashId2":     map[string]any{"hex": repeatHex("22", 20)},
 			},
@@ -305,12 +319,12 @@ func activateSlot(ctx context.Context, t *testing.T, enforcer *jsonClient) {
 		}
 		require.NoError(t, enforcer.call(ctx, "ValidatorService/GetSidechains", map[string]any{}, &active))
 		for _, s := range active.Sidechains {
-			if s.SidechainNumber == bbcSlot {
+			if s.SidechainNumber == slot {
 				return
 			}
 		}
 	}
-	t.Fatalf("slot %d never activated", bbcSlot)
+	t.Fatalf("slot %d never activated", slot)
 }
 
 // mineMainchain mines through the enforcer so coinbases carry its M1/M2 messages.
