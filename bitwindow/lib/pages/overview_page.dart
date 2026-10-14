@@ -67,6 +67,7 @@ class FireplaceViewModel extends BaseViewModel {
 
   String get priceLastUpdated => priceProvider.priceAge;
   String get price => priceProvider.formattedPrice;
+  String get priceTitle => activeTicker == Ticker.bitcoin ? 'Bitcoin Price' : '${activeTicker.symbol} Price';
 
   Timer? _timer;
 
@@ -114,6 +115,7 @@ class FireplaceStats extends StatelessWidget {
       builder: (context, model, child) => FireplaceStatsView(
         priceLastUpdated: model.priceLastUpdated,
         price: model.price,
+        priceTitle: model.priceTitle,
         stats: model.stats ?? GetFireplaceStatsResponse(),
         loading: model.loading,
       ),
@@ -1718,6 +1720,7 @@ class GraffitiTable extends StatelessWidget {
 class FireplaceStatsView extends StatelessWidget {
   final String priceLastUpdated;
   final String price;
+  final String priceTitle;
   final GetFireplaceStatsResponse stats;
   final bool loading;
 
@@ -1725,6 +1728,7 @@ class FireplaceStatsView extends StatelessWidget {
     super.key,
     required this.priceLastUpdated,
     required this.price,
+    required this.priceTitle,
     required this.stats,
     required this.loading,
   });
@@ -1743,7 +1747,7 @@ class FireplaceStatsView extends StatelessWidget {
 
         List<Widget> cardList = [
           FireplaceStat(
-            title: 'Bitcoin Price',
+            title: priceTitle,
             subtitle: 'Last updated $priceLastUpdated',
             value: price,
             bitcoinAmount: true,
