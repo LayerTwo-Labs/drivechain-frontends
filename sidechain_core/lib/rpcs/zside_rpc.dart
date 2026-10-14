@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:connectrpc/connect.dart' show Transport;
 import 'package:connectrpc/protobuf.dart';
 import 'package:sidechain_core/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
@@ -42,13 +43,15 @@ final zsideRPCMethods = [
   'openapi_schema',
   'remove_from_mempool',
   'set_seed_from_mnemonic',
-  'shield',
-  'shielded_transfer',
+  'create_shield',
+  'create_shielded_transfer',
   'sidechain_wealth',
   'stop',
-  'transparent_transfer',
-  'unshield',
-  'withdraw',
+  'create_transparent_transfer',
+  'create_unshield',
+  'create_withdrawal',
+  'get_wallet_utxos_unconfirmed',
+  'get_wallet_stxos',
   'help',
 ];
 
@@ -94,14 +97,16 @@ class ZSideLive extends ZSideRPC {
 
   late ZSideServiceClient _client;
 
-  ZSideLive() : super(binaryType: BinaryType.BINARY_TYPE_ZSIDE) {
-    final transport = connect.Transport(
-      baseUrl: OrchestratorEndpoint.url,
-      codec: const ProtoCodec(),
-      httpClient: unaryHttpClient(),
-      interceptors: [LocalAuth.interceptor()],
+  ZSideLive({Transport? transport}) : super(binaryType: BinaryType.BINARY_TYPE_ZSIDE) {
+    _client = ZSideServiceClient(
+      transport ??
+          connect.Transport(
+            baseUrl: OrchestratorEndpoint.url,
+            codec: const ProtoCodec(),
+            httpClient: unaryHttpClient(),
+            interceptors: [LocalAuth.interceptor()],
+          ),
     );
-    _client = ZSideServiceClient(transport);
   }
 
   @override
@@ -359,8 +364,8 @@ class ZSideLive extends ZSideRPC {
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
     final resp = await _client.shield(
       pb.ShieldRequest(
-        amountSats: Int64(utxo.amount.toInt()),
-        feeSats: Int64(zsideFee.toInt()),
+        amountSats: Int64(btcToSatoshi(amount).toInt()),
+        feeSats: Int64(btcToSatoshi(await sideEstimateFee()).toInt()),
       ),
     );
     return resp.txid;
@@ -394,8 +399,8 @@ class ZSideLive extends ZSideRPC {
   Future<String> deshield(ShieldedUTXO utxo, double amount) async {
     final resp = await _client.unshield(
       pb.UnshieldRequest(
-        amountSats: Int64(utxo.amount.toInt()),
-        feeSats: Int64(zsideFee.toInt()),
+        amountSats: Int64(btcToSatoshi(amount).toInt()),
+        feeSats: Int64(btcToSatoshi(await sideEstimateFee()).toInt()),
       ),
     );
     return resp.txid;
@@ -411,7 +416,22 @@ class ZSideLive extends ZSideRPC {
   Future<List<ShieldedUTXO>> listShieldedUTXOs() async => [];
 
   @override
-  Future<List<UnshieldedUTXO>> listUnshieldedUTXOs() async => [];
+  Future<List<UnshieldedUTXO>> listUnshieldedUTXOs() async {
+    final utxos = await listUTXOs();
+    return utxos
+        .where((utxo) => utxo.confirmed && !utxo.withdrawal)
+        .map(
+          (utxo) => UnshieldedUTXO(
+            txid: utxo.outpoint,
+            address: utxo.address,
+            amount: satoshiToBTC(utxo.valueSats),
+            confirmations: utxo.confirmed ? 1 : 0,
+            generated: utxo.type == OutpointType.coinbase,
+            raw: utxo.outpoint,
+          ),
+        )
+        .toList();
+  }
 }
 
 const zsideFee = 0.0001;

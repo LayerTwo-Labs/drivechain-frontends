@@ -48,22 +48,29 @@ class SidechainUTXO {
   /// lists only mined coins, so the orchestrator adds the rest.
   final bool confirmed;
 
+  /// withdrawal is true for an output a pending withdrawal bundle locks.
+  final bool withdrawal;
+
   SidechainUTXO({
     required this.outpoint,
     required this.address,
     required this.valueSats,
     required this.type,
     this.confirmed = true,
+    this.withdrawal = false,
   });
 
   factory SidechainUTXO.fromJson(Map<String, dynamic> json) {
     final outpoint = Outpoint.fromJson(json['outpoint'] as Map<String, dynamic>);
+    final content = json['output']['content'] as Map<String, dynamic>;
+    final withdrawal = content['Withdrawal'] as Map<String, dynamic>?;
     return SidechainUTXO(
       outpoint: outpoint.id,
       address: json['output']['address'] as String,
-      valueSats: json['output']['content']['Value'] as int,
+      valueSats: withdrawal == null ? content['Value'] as int : _withdrawalSats(withdrawal),
       type: outpoint.type,
       confirmed: json['confirmed'] as bool? ?? true,
+      withdrawal: withdrawal != null,
     );
   }
 
@@ -124,3 +131,8 @@ class BitnamesUTXO extends SidechainUTXO {
 /// The hashes of the BitNames that the coins hold.
 Set<String> ownedBitNames(Iterable<SidechainUTXO> utxos) =>
     utxos.whereType<BitnamesUTXO>().map((utxo) => utxo.bitNameHash).nonNulls.toSet();
+
+/// A withdrawal output locks its value and its mainchain fee, as the orchestrator counts it.
+int _withdrawalSats(Map<String, dynamic> withdrawal) =>
+    ((withdrawal['value_sats'] ?? withdrawal['value']) as int) +
+    ((withdrawal['main_fee_sats'] ?? withdrawal['main_fee'] ?? 0) as int);

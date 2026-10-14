@@ -228,4 +228,22 @@ void main() {
 
     expect(utxo.ammLpPair, isNull);
   });
+
+  test('an output a withdrawal bundle locks reads its value plus fee and is marked', () {
+    for (final withdrawal in [
+      {'value': 5000000, 'main_fee': 10000, 'main_address': 'bcrt1q'},
+      {'value_sats': 5000000, 'main_fee_sats': 10000, 'main_address': 'bcrt1q'},
+    ]) {
+      final utxo = SidechainUTXO.fromJson({
+        'outpoint': outpoint,
+        'output': {
+          'address': 'mine',
+          'content': {'Withdrawal': withdrawal},
+        },
+      });
+
+      expect(utxo.valueSats, 5010000);
+      expect(utxo.withdrawal, isTrue);
+    }
+  });
 }
