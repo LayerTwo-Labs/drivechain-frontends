@@ -850,7 +850,7 @@ class BalanceDisplay extends StatelessWidget {
                     description: 'Syncing wallet..',
                     enabled: balanceSyncing,
                     child: SailText.secondary12(
-                      '${formatBitcoin(balance)} ${usdBalance != null ? '(\$${formatWithThousandSpacers(usdBalance!.toInt())})' : ''}',
+                      '${formatBitcoin(balance)} ${usdBalance != null ? '(${formatUsd(usdBalance!)})' : ''}',
                     ),
                   ),
                 ],
@@ -906,10 +906,12 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   BalanceDisplayViewModel() {
     initChangeTracker();
     _balanceProvider.addListener(_onChange);
+    _priceProvider.addListener(_onChange);
   }
 
   void _onChange() {
     track('balance', balance);
+    track('usdBalance', usdBalance);
     track('pendingBalance', pendingBalance);
     track('maturingBalance', maturingBalance);
     track('balanceSyncing', balanceSyncing);
@@ -922,7 +924,7 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   double get maturingBalance => _balanceProvider.maturingBalance;
   bool get balanceSyncing => !_balanceProvider.initialized;
   bool get showUnconfirmed => _showUnconfirmed;
-  double? get usdBalance => _priceProvider.btcToUsd(balance);
+  double? get usdBalance => _priceProvider.toUsd(balance);
 
   void toggleUnconfirmed() {
     _showUnconfirmed = !_showUnconfirmed;
@@ -932,6 +934,7 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   void dispose() {
     _balanceProvider.removeListener(_onChange);
+    _priceProvider.removeListener(_onChange);
     super.dispose();
   }
 }

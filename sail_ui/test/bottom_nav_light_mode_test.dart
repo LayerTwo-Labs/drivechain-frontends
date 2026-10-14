@@ -117,7 +117,7 @@ class _Balance extends ChangeNotifier implements BalanceProvider {
 
 class _Price extends ChangeNotifier implements PriceProvider {
   @override
-  double btcToUsd(double amount) => amount * 100;
+  double toUsd(double amount) => amount * 100;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -403,7 +403,7 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.text('${formatBitcoin(1.5)} (\$150)'), findsOneWidget);
+      expect(find.text('${formatBitcoin(1.5)} (\$150.00)'), findsOneWidget);
       expect(find.textContaining('Sidechains '), findsNothing);
       expect(find.textContaining(formatBitcoin(2.5)), findsNothing);
       expect(find.text(formatBitcoin(0.75)), findsNothing);
