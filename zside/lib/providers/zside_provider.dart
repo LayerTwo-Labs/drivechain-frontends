@@ -14,6 +14,8 @@ class ZSideProvider extends ChangeNotifier {
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   String zsideAddress = '';
+  int shieldedSats = 0;
+  int transparentSats = 0;
   List<ShieldedUTXO> shieldedUTXOs = [];
   List<UnshieldedUTXO> unshieldedUTXOs = [];
   List<CoreTransaction> transparentTransactions = [];
@@ -39,13 +41,22 @@ class ZSideProvider extends ChangeNotifier {
       }
       _isFetching = true;
 
-      var newZcashAddress = await rpc.getNewShieldedAddress();
+      final ownedAddresses = await rpc.getShieldedWalletAddresses();
+      var newZcashAddress = ownedAddresses.contains(zsideAddress)
+          ? zsideAddress
+          : ownedAddresses.firstOrNull ?? await rpc.getNewShieldedAddress();
+      final breakdown = await rpc.getBalanceBreakdown();
       var newShieldedUTXOs = (await rpc.listShieldedUTXOs()).reversed.toList();
       var newUnshieldedUTXOs = (await rpc.listUnshieldedUTXOs()).reversed.toList();
       var newTransparentTXs = (await rpc.listTransactions()).reversed.toList();
       var newPrivateTXs = (await rpc.listPrivateTransactions()).reversed.toList();
       var newSideFee = await rpc.sideEstimateFee();
 
+      if (breakdown.availableShieldedSats != shieldedSats || breakdown.availableTransparentSats != transparentSats) {
+        shieldedSats = breakdown.availableShieldedSats;
+        transparentSats = breakdown.availableTransparentSats;
+        notifyListeners();
+      }
       if (_dataHasChanged(
         newZcashAddress,
         newShieldedUTXOs,

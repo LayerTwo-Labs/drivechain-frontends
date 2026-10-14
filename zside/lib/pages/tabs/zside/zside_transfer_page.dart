@@ -182,13 +182,20 @@ class ZSideTransferTabViewModel extends BaseViewModel {
   }
 
   Future<void> sendPrivate(BuildContext context) async {
-    final privateBalance = shieldedUTXOs.fold(0.0, (sum, elem) => sum + elem.amount);
+    final privateBalance = satoshiToBTC(_zsideProvider.shieldedSats);
 
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
         return SendOnSidechainAction(
           maxAmount: max(privateBalance - _zsideProvider.sideFee, 0),
+          customSendAction: (address, amount) async {
+            return await _zsideProvider.rpc.sendShielded(
+              address,
+              btcToSatoshi(amount).toDouble(),
+              btcToSatoshi(await _zsideProvider.rpc.sideEstimateFee()).toDouble(),
+            );
+          },
         );
       },
     );
@@ -216,12 +223,12 @@ class ZSideTransferTabViewModel extends BaseViewModel {
       context: context,
       builder: (BuildContext context) {
         return SendOnSidechainAction(
-          maxAmount: transparentBalance,
+          maxAmount: max(transparentBalance - _zsideProvider.sideFee, 0),
           customSendAction: (address, amount) async {
             return await _zsideProvider.rpc.sendTransparent(
               address,
-              amount,
-              zsideFee,
+              btcToSatoshi(amount).toDouble(),
+              btcToSatoshi(await _zsideProvider.rpc.sideEstimateFee()).toDouble(),
             );
           },
         );
