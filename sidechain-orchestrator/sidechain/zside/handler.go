@@ -1,6 +1,7 @@
 package zside
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -62,16 +63,19 @@ func (h *Handler) Stop(ctx context.Context, req *connect.Request[pb.StopRequest]
 }
 
 func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.WithdrawRequest]) (*connect.Response[pb.WithdrawResponse], error) {
-	txid, err := h.proxy.Withdraw(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats)
-	if err != nil {
+	var txid string
+	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats}
+	if err := h.proxy.Client.Call(ctx, "create_withdrawal", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.WithdrawResponse{Txid: txid}), nil
 }
 
+// Transfer sends transparent coins, the only kind a plain address holds.
 func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
-	txid, err := h.proxy.Transfer(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats)
-	if err != nil {
+	var txid string
+	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
+	if err := h.proxy.Client.Call(ctx, "create_transparent_transfer", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.TransferResponse{Txid: txid}), nil
@@ -93,12 +97,68 @@ func (h *Handler) GetPendingWithdrawalBundle(ctx context.Context, req *connect.R
 	return connect.NewResponse(&pb.GetPendingWithdrawalBundleResponse{BundleJson: string(raw)}), nil
 }
 
+// GetWalletUtxos lists the wallet coins as the mempool leaves them: a coin an
+// unconfirmed transaction spends drops out, and an unconfirmed coin is marked
+// "confirmed": false.
 func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.GetWalletUtxosRequest]) (*connect.Response[pb.GetWalletUtxosResponse], error) {
-	raw, err := h.proxy.GetWalletUtxos(ctx)
-	if err != nil {
+	var confirmed, unconfirmed []map[string]json.RawMessage
+	if err := h.proxy.Client.Call(ctx, "get_wallet_utxos", nil, &confirmed); err != nil {
 		return nil, err
 	}
+	if err := h.proxy.Client.Call(ctx, "get_wallet_utxos_unconfirmed", nil, &unconfirmed); err != nil {
+		return nil, err
+	}
+	var spent []struct {
+		Output struct {
+			Outpoint json.RawMessage `json:"outpoint"`
+		} `json:"output"`
+	}
+	if err := h.proxy.Client.Call(ctx, "get_wallet_stxos_unconfirmed", nil, &spent); err != nil {
+		return nil, err
+	}
+	spentKeys := make(map[string]bool, len(spent))
+	for _, stxo := range spent {
+		key, err := outpointKey(stxo.Output.Outpoint)
+		if err != nil {
+			return nil, err
+		}
+		spentKeys[key] = true
+	}
+
+	rows := make([]map[string]json.RawMessage, 0, len(confirmed)+len(unconfirmed))
+	for _, group := range []struct {
+		utxos     []map[string]json.RawMessage
+		confirmed bool
+	}{{confirmed, true}, {unconfirmed, false}} {
+		for _, utxo := range group.utxos {
+			key, err := outpointKey(utxo["outpoint"])
+			if err != nil {
+				return nil, err
+			}
+			if spentKeys[key] {
+				continue
+			}
+			if !group.confirmed {
+				utxo["confirmed"] = json.RawMessage("false")
+			}
+			rows = append(rows, utxo)
+		}
+	}
+	raw, err := json.Marshal(rows)
+	if err != nil {
+		return nil, fmt.Errorf("encode the zSide wallet coins: %w", err)
+	}
 	return connect.NewResponse(&pb.GetWalletUtxosResponse{UtxosJson: string(raw)}), nil
+}
+
+// outpointKey is the compact JSON of an outpoint, the same for each listing of
+// one coin.
+func outpointKey(outpoint json.RawMessage) (string, error) {
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, outpoint); err != nil {
+		return "", fmt.Errorf("read the outpoint of a zSide coin: %w", err)
+	}
+	return compact.String(), nil
 }
 
 func (h *Handler) ListUtxos(ctx context.Context, req *connect.Request[pb.ListUtxosRequest]) (*connect.Response[pb.ListUtxosResponse], error) {
@@ -212,11 +272,11 @@ func (h *Handler) GetBestSidechainBlockHash(ctx context.Context, req *connect.Re
 }
 
 func (h *Handler) GetBmmInclusions(ctx context.Context, req *connect.Request[pb.GetBmmInclusionsRequest]) (*connect.Response[pb.GetBmmInclusionsResponse], error) {
-	var inclusions string
-	if err := h.proxy.Client.Call(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash}, &inclusions); err != nil {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash})
+	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: inclusions}), nil
+	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: string(raw)}), nil
 }
 
 func (h *Handler) GetNewShieldedAddress(ctx context.Context, req *connect.Request[pb.GetNewShieldedAddressRequest]) (*connect.Response[pb.GetNewShieldedAddressResponse], error) {
@@ -254,7 +314,7 @@ func (h *Handler) GetTransparentWalletAddresses(ctx context.Context, req *connec
 func (h *Handler) Shield(ctx context.Context, req *connect.Request[pb.ShieldRequest]) (*connect.Response[pb.ShieldResponse], error) {
 	var txid string
 	params := []any{req.Msg.AmountSats, req.Msg.FeeSats}
-	if err := h.proxy.Client.Call(ctx, "shield", params, &txid); err != nil {
+	if err := h.proxy.Client.Call(ctx, "create_shield", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.ShieldResponse{Txid: txid}), nil
@@ -263,7 +323,7 @@ func (h *Handler) Shield(ctx context.Context, req *connect.Request[pb.ShieldRequ
 func (h *Handler) Unshield(ctx context.Context, req *connect.Request[pb.UnshieldRequest]) (*connect.Response[pb.UnshieldResponse], error) {
 	var txid string
 	params := []any{req.Msg.AmountSats, req.Msg.FeeSats}
-	if err := h.proxy.Client.Call(ctx, "unshield", params, &txid); err != nil {
+	if err := h.proxy.Client.Call(ctx, "create_unshield", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.UnshieldResponse{Txid: txid}), nil
@@ -272,7 +332,7 @@ func (h *Handler) Unshield(ctx context.Context, req *connect.Request[pb.Unshield
 func (h *Handler) ShieldedTransfer(ctx context.Context, req *connect.Request[pb.ShieldedTransferRequest]) (*connect.Response[pb.ShieldedTransferResponse], error) {
 	var txid string
 	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
-	if err := h.proxy.Client.Call(ctx, "shielded_transfer", params, &txid); err != nil {
+	if err := h.proxy.Client.Call(ctx, "create_shielded_transfer", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.ShieldedTransferResponse{Txid: txid}), nil
@@ -281,7 +341,7 @@ func (h *Handler) ShieldedTransfer(ctx context.Context, req *connect.Request[pb.
 func (h *Handler) TransparentTransfer(ctx context.Context, req *connect.Request[pb.TransparentTransferRequest]) (*connect.Response[pb.TransparentTransferResponse], error) {
 	var txid string
 	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
-	if err := h.proxy.Client.Call(ctx, "transparent_transfer", params, &txid); err != nil {
+	if err := h.proxy.Client.Call(ctx, "create_transparent_transfer", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.TransparentTransferResponse{Txid: txid}), nil
