@@ -8,6 +8,7 @@ Future<void> pumpBalance(
   required double pendingBalance,
   required bool showUnconfirmed,
   double maturingBalance = 0,
+  double? usdBalance,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1400, 400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -23,7 +24,7 @@ Future<void> pumpBalance(
             balanceSyncing: false,
             showUnconfirmed: showUnconfirmed,
             onToggleUnconfirmed: () {},
-            usdBalance: null,
+            usdBalance: usdBalance,
           ),
         ),
       ),
@@ -82,5 +83,11 @@ void main() {
 
     expect(find.textContaining(formatBitcoin(1.5)), findsOneWidget);
     expect(sidechainTotal, findsNothing);
+  });
+
+  testWidgets('the bottom nav shows the USD value of a small balance in cents', (tester) async {
+    await pumpBalance(tester, balance: 0.5, pendingBalance: 0, showUnconfirmed: false, usdBalance: 1.3);
+
+    expect(find.text('${formatBitcoin(0.5)} (\$1.30)'), findsOneWidget);
   });
 }

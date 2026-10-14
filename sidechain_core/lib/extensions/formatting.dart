@@ -6,6 +6,14 @@ extension FormatTime on DateTime {
   }
 }
 
+/// A USD amount: cents under \$1000, whole dollars from \$1000.
+String formatUsd(double usd) {
+  if (usd.abs() < 1000) {
+    return '\$${usd.toStringAsFixed(2)}';
+  }
+  return '\$${formatWithThousandSpacers(usd.round())}';
+}
+
 String formatWithThousandSpacers(dynamic value) {
   String stringValue = value.toString();
   return stringValue.replaceAllMapped(
