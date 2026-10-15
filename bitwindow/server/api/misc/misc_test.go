@@ -313,7 +313,23 @@ func TestService_VotesAndComments(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
 		_, err := cli.UpvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: "nothex"}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		assert.Contains(t, err.Error(), "item_id must be")
+	})
+
+	t.Run("comment rejects a short parent_id", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
+		_, err := cli.CommentNews(t.Context(), connect.NewRequest(&miscv1.CommentNewsRequest{ParentId: "abcd", Body: "hi"}))
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		assert.Contains(t, err.Error(), "parent_id must be")
+	})
+
+	t.Run("list comments rejects a malformed item_id", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
+		_, err := cli.ListComments(t.Context(), connect.NewRequest(&miscv1.ListCommentsRequest{ItemId: "nothex"}))
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		assert.Contains(t, err.Error(), "item_id must be")
 	})
 

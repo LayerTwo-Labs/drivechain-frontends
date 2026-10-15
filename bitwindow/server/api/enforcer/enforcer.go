@@ -2,6 +2,7 @@ package api_enforcer
 
 import (
 	"context"
+	"fmt"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -45,6 +46,16 @@ type Server struct {
 	walletEngine  *engines.WalletEngine
 }
 
+// forwardStream sends each message of in to out until in ends.
+func forwardStream[Res any](in *connect.ServerStreamForClient[Res], out *connect.ServerStream[Res]) error {
+	for in.Receive() {
+		if err := out.Send(in.Msg()); err != nil {
+			return fmt.Errorf("forward stream message: %w", err)
+		}
+	}
+	return in.Err()
+}
+
 // Stop implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) Stop(ctx context.Context, c *connect.Request[mainchainv1.StopRequest]) (*connect.Response[mainchainv1.StopResponse], error) {
 	validator, err := s.validator.Get(ctx)
@@ -55,7 +66,6 @@ func (s *Server) Stop(ctx context.Context, c *connect.Request[mainchainv1.StopRe
 }
 
 // SubscribeHeaderSyncProgress implements mainchainv1connect.ValidatorServiceHandler.
-// nolint:dupl
 func (s *Server) SubscribeHeaderSyncProgress(ctx context.Context, c *connect.Request[mainchainv1.SubscribeHeaderSyncProgressRequest], stream *connect.ServerStream[mainchainv1.SubscribeHeaderSyncProgressResponse]) error {
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
@@ -66,17 +76,10 @@ func (s *Server) SubscribeHeaderSyncProgress(ctx context.Context, c *connect.Req
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not subscribe to header sync progress")
 		return err
 	}
-	for clientStream.Receive() {
-		if err := stream.Send(clientStream.Msg()); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send header sync progress message")
-			return err
-		}
-	}
-	return clientStream.Err()
+	return forwardStream(clientStream, stream)
 }
 
 // CreateSidechainProposal implements mainchainv1connect.BlockProducerServiceHandler.
-// nolint:dupl
 func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request[mainchainv1.CreateSidechainProposalRequest], stream *connect.ServerStream[mainchainv1.CreateSidechainProposalResponse]) error {
 	if err := s.walletEngine.RequireFullNode(ctx, "creating a sidechain proposal"); err != nil {
 		return err
@@ -90,13 +93,7 @@ func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create sidechain proposal")
 		return err
 	}
-	for clientStream.Receive() {
-		if err := stream.Send(clientStream.Msg()); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send sidechain proposal message")
-			return err
-		}
-	}
-	return clientStream.Err()
+	return forwardStream(clientStream, stream)
 }
 
 // SubmitSidechainProposal implements mainchainv1connect.BlockProducerServiceHandler.
@@ -283,7 +280,6 @@ func (s *Server) GetTwoWayPegData(ctx context.Context, c *connect.Request[mainch
 }
 
 // SubscribeEvents implements mainchainv1connect.ValidatorServiceHandler.
-// nolint:dupl
 func (s *Server) SubscribeEvents(ctx context.Context, c *connect.Request[mainchainv1.SubscribeEventsRequest], stream *connect.ServerStream[mainchainv1.SubscribeEventsResponse]) error {
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
@@ -294,13 +290,7 @@ func (s *Server) SubscribeEvents(ctx context.Context, c *connect.Request[maincha
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not subscribe to events")
 		return err
 	}
-	for clientStream.Receive() {
-		if err := stream.Send(clientStream.Msg()); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send event message")
-			return err
-		}
-	}
-	return clientStream.Err()
+	return forwardStream(clientStream, stream)
 }
 
 // HmacSha512 implements cryptov1connect.CryptoServiceHandler.

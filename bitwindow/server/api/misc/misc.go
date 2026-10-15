@@ -3,7 +3,6 @@ package api_misc
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -156,16 +155,22 @@ func (s *Server) DownvoteNews(ctx context.Context, req *connect.Request[miscv1.U
 	return s.broadcastVote(ctx, req.Msg, codec.TypeDownvote)
 }
 
+func parseItemID(hexID, field string) (codec.ItemID, error) {
+	id, err := codec.ParseItemID(hexID)
+	if err != nil {
+		return codec.ItemID{}, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("%s must be %d-byte hex: %w", field, codec.ItemIDLen, err))
+	}
+	return id, nil
+}
+
 // broadcastVote signs a CoinNews Vote of the given kind over the target
 // story with this node's identity key and broadcasts it as an OP_RETURN.
 func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsRequest, kind codec.TypeTag) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
-	raw, err := hex.DecodeString(req.ItemId)
-	if err != nil || len(raw) != codec.ItemIDLen {
-		err := fmt.Errorf("item_id must be %d-byte hex", codec.ItemIDLen)
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	target, err := parseItemID(req.ItemId, "item_id")
+	if err != nil {
+		return nil, err
 	}
-	var target codec.ItemID
-	copy(target[:], raw)
 
 	priv, xpk, err := cnstore.LoadOrCreateIdentity(ctx, s.database)
 	if err != nil {
@@ -432,13 +437,10 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 // key and broadcasts it as an OP_RETURN. The body and optional url/lang/
 // reply_quote ride in the trailing TLV section (spec §7, §10).
 func (s *Server) CommentNews(ctx context.Context, req *connect.Request[miscv1.CommentNewsRequest]) (*connect.Response[miscv1.CommentNewsResponse], error) {
-	raw, err := hex.DecodeString(req.Msg.ParentId)
-	if err != nil || len(raw) != codec.ItemIDLen {
-		err := fmt.Errorf("parent_id must be %d-byte hex", codec.ItemIDLen)
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	parent, err := parseItemID(req.Msg.ParentId, "parent_id")
+	if err != nil {
+		return nil, err
 	}
-	var parent codec.ItemID
-	copy(parent[:], raw)
 
 	if strings.TrimSpace(req.Msg.Body) == "" && req.Msg.Url == "" {
 		err := errors.New("comment must have a body or url")
@@ -505,13 +507,10 @@ func commentTLVs(req *miscv1.CommentNewsRequest) []codec.TLV {
 
 // ListComments implements miscv1connect.MiscServiceHandler.
 func (s *Server) ListComments(ctx context.Context, req *connect.Request[miscv1.ListCommentsRequest]) (*connect.Response[miscv1.ListCommentsResponse], error) {
-	raw, err := hex.DecodeString(req.Msg.ItemId)
-	if err != nil || len(raw) != codec.ItemIDLen {
-		err := fmt.Errorf("item_id must be %d-byte hex", codec.ItemIDLen)
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	root, err := parseItemID(req.Msg.ItemId, "item_id")
+	if err != nil {
+		return nil, err
 	}
-	var root codec.ItemID
-	copy(root[:], raw)
 
 	comments, err := cnstore.ListThread(ctx, s.database, root)
 	if err != nil {

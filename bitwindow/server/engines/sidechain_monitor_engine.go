@@ -104,20 +104,20 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 
 	sidechains := []struct {
-		name    string
-		monitor func(context.Context) error
+		name   string
+		client func(context.Context) (sidechainRPC, error)
 	}{
-		{"thunder", e.monitorThunder},
-		{"bitnames", e.monitorBitnames},
-		{"bitassets", e.monitorBitassets},
-		{"truthcoin", e.monitorTruthcoin},
-		{"photon", e.monitorPhoton},
-		{"coinshift", e.monitorCoinshift},
+		{"thunder", rpcOf(e.thunder)},
+		{"bitnames", rpcOf(e.bitnames)},
+		{"bitassets", rpcOf(e.bitassets)},
+		{"truthcoin", rpcOf(e.truthcoin)},
+		{"photon", rpcOf(e.photon)},
+		{"coinshift", rpcOf(e.coinshift)},
 	}
 
 	for _, sc := range sidechains {
 		wg.Add(1)
-		go func(name string, monitor func(context.Context) error) {
+		go func(name string, client func(context.Context) (sidechainRPC, error)) {
 			defer wg.Done()
 			log := log.With().Str("sidechain", name).Logger()
 			ctx := log.WithContext(ctx)
@@ -128,7 +128,7 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 				case <-ctx.Done():
 					return
 				default:
-					if err := monitor(ctx); err != nil {
+					if err := e.monitor(ctx, name, client); err != nil {
 						log.Debug().Err(err).Msgf("%s monitor error, retrying", name)
 					}
 
@@ -149,7 +149,7 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 					}
 				}
 			}
-		}(sc.name, sc.monitor)
+		}(sc.name, sc.client)
 	}
 
 	wg.Wait()
@@ -200,7 +200,7 @@ func (e *SidechainMonitorEngine) GetPendingFastWithdrawals(ctx context.Context) 
 }
 
 // checkFastWithdrawalPayments checks if any pending fast withdrawals have been paid
-func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context, sidechain string) error {
+func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context, sidechain string, client sidechainRPC) error {
 	log := zerolog.Ctx(ctx)
 
 	// Get pending fast withdrawals for this sidechain
@@ -217,39 +217,11 @@ func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context
 		return nil // Nothing to check
 	}
 
-	// Get the sidechain client to check for transactions
-	var client interface{}
-	var err error
-
-	switch sidechain {
-	case "thunder":
-		client, err = e.thunder.Get(ctx)
-	case "bitnames":
-		client, err = e.bitnames.Get(ctx)
-	case "bitassets":
-		client, err = e.bitassets.Get(ctx)
-	case "truthcoin":
-		client, err = e.truthcoin.Get(ctx)
-	case "photon":
-		client, err = e.photon.Get(ctx)
-	case "coinshift":
-		client, err = e.coinshift.Get(ctx)
-	default:
-		return fmt.Errorf("unsupported sidechain: %s", sidechain)
-	}
-
-	if err != nil {
-		return fmt.Errorf("get %s client: %w", sidechain, err)
-	}
-
-	// TODO: Check for transactions to each pending withdrawal's server address
-	// This would require extending sidechain clients with a method to get transactions to specific addresses
-	// For now, this is a placeholder that shows the architecture
-
 	for _, pending := range pendingForSidechain {
-		// Check if transaction to pending.ServerAddress exists
-		// If found, auto-complete the withdrawal
-		txid := e.findTransactionToAddress(ctx, client, pending.ServerAddress, pending.ExpectedAmount)
+		txid, err := e.findTransactionToAddress(ctx, client, pending.ServerAddress, pending.ExpectedAmount, sidechain)
+		if err != nil {
+			return fmt.Errorf("find payment for withdrawal %s: %w", pending.Hash, err)
+		}
 		if txid != "" {
 			log.Info().
 				Str("hash", pending.Hash).
@@ -299,7 +271,7 @@ func (e *SidechainMonitorEngine) cleanupOldWithdrawals() {
 }
 
 // storeWithdrawal stores a detected withdrawal in memory only
-func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal DetectedWithdrawal) error {
+func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal DetectedWithdrawal) {
 	log := zerolog.Ctx(ctx)
 
 	e.mu.Lock()
@@ -307,7 +279,7 @@ func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal
 
 	// Check if already detected
 	if _, exists := e.detectedWithdrawals[withdrawal.Txid]; exists {
-		return nil // Already stored
+		return
 	}
 
 	// Store in memory only
@@ -337,186 +309,38 @@ func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal
 		Str("sidechain", withdrawal.Sidechain).
 		Int64("amount", withdrawal.Amount).
 		Msg("detected fast withdrawal transaction")
-
-	return nil
 }
 
-// monitorThunder monitors Thunder sidechain for withdrawal transactions
-func (e *SidechainMonitorEngine) monitorThunder(ctx context.Context) error {
-	log := zerolog.Ctx(ctx)
+// sidechainRPC is the part of a sidechain client that the monitor reads.
+type sidechainRPC interface {
+	PendingWithdrawalBundle(ctx context.Context) (json.RawMessage, error)
+	ListUTXOs(ctx context.Context) (json.RawMessage, error)
+}
 
-	client, err := e.thunder.Get(ctx)
+func rpcOf[C sidechainRPC](s *service.Service[C]) func(context.Context) (sidechainRPC, error) {
+	return func(ctx context.Context) (sidechainRPC, error) {
+		return s.Get(ctx)
+	}
+}
+
+// monitor reads the pending withdrawal bundle of one sidechain and checks the
+// pending fast withdrawals for a payment.
+func (e *SidechainMonitorEngine) monitor(ctx context.Context, name string, getClient func(context.Context) (sidechainRPC, error)) error {
+	client, err := getClient(ctx)
 	if err != nil {
-		return fmt.Errorf("get thunder client: %w", err)
+		return fmt.Errorf("get %s client: %w", name, err)
 	}
 
-	// Get pending withdrawal bundle (contains fast withdrawals)
 	bundleRaw, err := client.PendingWithdrawalBundle(ctx)
 	if err != nil {
 		return fmt.Errorf("get pending withdrawal bundle: %w", err)
 	}
 
-	// Parse the JSON response to extract withdrawal transactions
-	var bundle map[string]interface{}
-	if err := json.Unmarshal(bundleRaw, &bundle); err != nil {
-		return fmt.Errorf("parse withdrawal bundle: %w", err)
-	}
-
-	// Extract withdrawal transactions from bundle
-	// This depends on the actual Thunder withdrawal bundle format
-	if transactions, ok := bundle["transactions"].([]interface{}); ok {
-		for _, tx := range transactions {
-			if txMap, ok := tx.(map[string]interface{}); ok {
-				if txid, hasId := txMap["txid"].(string); hasId {
-					if amount, hasAmount := txMap["amount"].(float64); hasAmount {
-						if dest, hasDest := txMap["destination"].(string); hasDest {
-							withdrawal := DetectedWithdrawal{
-								Txid:        txid,
-								Sidechain:   "thunder",
-								Amount:      int64(amount),
-								Destination: dest,
-								DetectedAt:  time.Now(),
-							}
-
-							if err := e.storeWithdrawal(ctx, withdrawal); err != nil {
-								return fmt.Errorf("store thunder withdrawal %s: %w", txid, err)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Also check for transactions to pending fast withdrawal addresses
-	if err := e.checkFastWithdrawalPayments(ctx, "thunder"); err != nil {
-		log.Warn().Err(err).Msg("failed to check fast withdrawal payments")
-	}
-
-	return nil
-}
-
-// monitorBitnames monitors BitNames sidechain for withdrawal transactions
-func (e *SidechainMonitorEngine) monitorBitnames(ctx context.Context) error {
-	client, err := e.bitnames.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get bitnames client: %w", err)
-	}
-
-	// Get pending withdrawal bundle
-	bundleRaw, err := client.PendingWithdrawalBundle(ctx)
-	if err != nil {
-		return fmt.Errorf("get pending withdrawal bundle: %w", err)
-	}
-
-	// Parse similar to Thunder
-	err = e.parseWithdrawalBundle(ctx, bundleRaw, "bitnames")
-	if err != nil {
+	if err := e.parseWithdrawalBundle(ctx, bundleRaw, name); err != nil {
 		return err
 	}
 
-	// Also check for transactions to pending fast withdrawal addresses
-	if err := e.checkFastWithdrawalPayments(ctx, "bitnames"); err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to check fast withdrawal payments")
-	}
-
-	return nil
-}
-
-// monitorBitassets monitors BitAssets sidechain for withdrawal transactions
-func (e *SidechainMonitorEngine) monitorBitassets(ctx context.Context) error {
-	client, err := e.bitassets.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get bitassets client: %w", err)
-	}
-
-	bundleRaw, err := client.PendingWithdrawalBundle(ctx)
-	if err != nil {
-		return fmt.Errorf("get pending withdrawal bundle: %w", err)
-	}
-
-	err = e.parseWithdrawalBundle(ctx, bundleRaw, "bitassets")
-	if err != nil {
-		return err
-	}
-
-	// Also check for transactions to pending fast withdrawal addresses
-	if err := e.checkFastWithdrawalPayments(ctx, "bitassets"); err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to check fast withdrawal payments")
-	}
-
-	return nil
-}
-
-// monitorTruthcoin monitors Truthcoin sidechain for withdrawal transactions
-func (e *SidechainMonitorEngine) monitorTruthcoin(ctx context.Context) error {
-	client, err := e.truthcoin.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get truthcoin client: %w", err)
-	}
-
-	bundleRaw, err := client.PendingWithdrawalBundle(ctx)
-	if err != nil {
-		return fmt.Errorf("get pending withdrawal bundle: %w", err)
-	}
-
-	err = e.parseWithdrawalBundle(ctx, bundleRaw, "truthcoin")
-	if err != nil {
-		return err
-	}
-
-	// Also check for transactions to pending fast withdrawal addresses
-	if err := e.checkFastWithdrawalPayments(ctx, "truthcoin"); err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to check fast withdrawal payments")
-	}
-
-	return nil
-}
-
-// monitorPhoton monitors Photon sidechain for withdrawal transactions
-func (e *SidechainMonitorEngine) monitorPhoton(ctx context.Context) error {
-	client, err := e.photon.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get photon client: %w", err)
-	}
-
-	bundleRaw, err := client.PendingWithdrawalBundle(ctx)
-	if err != nil {
-		return fmt.Errorf("get pending withdrawal bundle: %w", err)
-	}
-
-	err = e.parseWithdrawalBundle(ctx, bundleRaw, "photon")
-	if err != nil {
-		return err
-	}
-
-	// Also check for transactions to pending fast withdrawal addresses
-	if err := e.checkFastWithdrawalPayments(ctx, "photon"); err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to check fast withdrawal payments")
-	}
-
-	return nil
-}
-
-// monitorCoinshift monitors CoinShift sidechain for withdrawal transactions
-func (e *SidechainMonitorEngine) monitorCoinshift(ctx context.Context) error {
-	client, err := e.coinshift.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get coinshift client: %w", err)
-	}
-
-	bundleRaw, err := client.PendingWithdrawalBundle(ctx)
-	if err != nil {
-		return fmt.Errorf("get pending withdrawal bundle: %w", err)
-	}
-
-	err = e.parseWithdrawalBundle(ctx, bundleRaw, "coinshift")
-	if err != nil {
-		return err
-	}
-
-	// Also check for transactions to pending fast withdrawal addresses
-	if err := e.checkFastWithdrawalPayments(ctx, "coinshift"); err != nil {
+	if err := e.checkFastWithdrawalPayments(ctx, name, client); err != nil {
 		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to check fast withdrawal payments")
 	}
 
@@ -546,9 +370,7 @@ func (e *SidechainMonitorEngine) parseWithdrawalBundle(ctx context.Context, bund
 								DetectedAt:  time.Now(),
 							}
 
-							if err := e.storeWithdrawal(ctx, withdrawal); err != nil {
-								return fmt.Errorf("store %s withdrawal %s: %w", sidechainName, txid, err)
-							}
+							e.storeWithdrawal(ctx, withdrawal)
 						}
 					}
 				}
@@ -557,32 +379,6 @@ func (e *SidechainMonitorEngine) parseWithdrawalBundle(ctx context.Context, bund
 	}
 
 	return nil
-}
-
-// findTransactionToAddress checks if there's a transaction to the given address
-func (e *SidechainMonitorEngine) findTransactionToAddress(ctx context.Context, client interface{}, address string, expectedAmount int64) string {
-	log := zerolog.Ctx(ctx)
-
-	// Try to get recent transactions and check if any are to our address
-	// This is a simplified implementation - in reality we'd need proper address-specific queries
-
-	switch c := client.(type) {
-	case *thunder.Client:
-		return e.findThunderTransactionToAddress(ctx, c, address, expectedAmount)
-	case *bitnames.Client:
-		return e.findBitnamesTransactionToAddress(ctx, c, address, expectedAmount)
-	case *bitassets.Client:
-		return e.findBitassetsTransactionToAddress(ctx, c, address, expectedAmount)
-	case *truthcoin.Client:
-		return e.findTruthcoinTransactionToAddress(ctx, c, address, expectedAmount)
-	case *photon.Client:
-		return e.findPhotonTransactionToAddress(ctx, c, address, expectedAmount)
-	case *coinshift.Client:
-		return e.findCoinshiftTransactionToAddress(ctx, c, address, expectedAmount)
-	default:
-		log.Warn().Str("address", address).Msg("unknown sidechain client type for transaction detection")
-		return ""
-	}
 }
 
 // completeWithdrawal automatically completes a fast withdrawal by calling the external server
@@ -648,70 +444,25 @@ func (e *SidechainMonitorEngine) completeWithdrawal(ctx context.Context, pending
 	return nil
 }
 
-// findThunderTransactionToAddress checks Thunder for transactions to specific address
-func (e *SidechainMonitorEngine) findThunderTransactionToAddress(ctx context.Context, client *thunder.Client, address string, expectedAmount int64) string {
-	return e.findTransactionToAddressViaUTXOs(ctx, func() (json.RawMessage, error) {
-		return client.ListUTXOs(ctx)
-	}, address, expectedAmount, "Thunder")
-}
-
-// findBitnamesTransactionToAddress checks BitNames for transactions to specific address
-func (e *SidechainMonitorEngine) findBitnamesTransactionToAddress(ctx context.Context, client *bitnames.Client, address string, expectedAmount int64) string {
-	return e.findTransactionToAddressViaUTXOs(ctx, func() (json.RawMessage, error) {
-		return client.ListUTXOs(ctx)
-	}, address, expectedAmount, "BitNames")
-}
-
-// findBitassetsTransactionToAddress checks BitAssets for transactions to specific address
-func (e *SidechainMonitorEngine) findBitassetsTransactionToAddress(ctx context.Context, client *bitassets.Client, address string, expectedAmount int64) string {
-	return e.findTransactionToAddressViaUTXOs(ctx, func() (json.RawMessage, error) {
-		return client.ListUTXOs(ctx)
-	}, address, expectedAmount, "BitAssets")
-}
-
-// findTruthcoinTransactionToAddress checks Truthcoin for transactions to specific address
-func (e *SidechainMonitorEngine) findTruthcoinTransactionToAddress(ctx context.Context, client *truthcoin.Client, address string, expectedAmount int64) string {
-	return e.findTransactionToAddressViaUTXOs(ctx, func() (json.RawMessage, error) {
-		return client.ListUTXOs(ctx)
-	}, address, expectedAmount, "Truthcoin")
-}
-
-// findPhotonTransactionToAddress checks Photon for transactions to specific address
-func (e *SidechainMonitorEngine) findPhotonTransactionToAddress(ctx context.Context, client *photon.Client, address string, expectedAmount int64) string {
-	return e.findTransactionToAddressViaUTXOs(ctx, func() (json.RawMessage, error) {
-		return client.ListUTXOs(ctx)
-	}, address, expectedAmount, "Photon")
-}
-
-// findCoinshiftTransactionToAddress checks CoinShift for transactions to specific address
-func (e *SidechainMonitorEngine) findCoinshiftTransactionToAddress(ctx context.Context, client *coinshift.Client, address string, expectedAmount int64) string {
-	return e.findTransactionToAddressViaUTXOs(ctx, func() (json.RawMessage, error) {
-		return client.ListUTXOs(ctx)
-	}, address, expectedAmount, "CoinShift")
-}
-
-// findTransactionToAddressViaUTXOs is a common helper for UTXO-based transaction detection
-func (e *SidechainMonitorEngine) findTransactionToAddressViaUTXOs(
+// findTransactionToAddress returns the txid of a UTXO at address that pays at
+// least 95% of expectedAmount, or "" when there is none.
+func (e *SidechainMonitorEngine) findTransactionToAddress(
 	ctx context.Context,
-	getUTXOs func() (json.RawMessage, error),
+	client sidechainRPC,
 	address string,
 	expectedAmount int64,
 	sidechainName string,
-) string {
+) (string, error) {
 	log := zerolog.Ctx(ctx)
 
-	// Get all UTXOs to check for transactions to our target address
-	utxosRaw, err := getUTXOs()
+	utxosRaw, err := client.ListUTXOs(ctx)
 	if err != nil {
-		log.Debug().Err(err).Str("address", address).Str("sidechain", sidechainName).Msg("failed to get UTXOs")
-		return ""
+		return "", fmt.Errorf("list UTXOs: %w", err)
 	}
 
-	// Parse UTXOs JSON to find transactions to our address
 	var utxos []map[string]interface{}
 	if err := json.Unmarshal(utxosRaw, &utxos); err != nil {
-		log.Debug().Err(err).Str("sidechain", sidechainName).Msg("failed to parse UTXOs")
-		return ""
+		return "", fmt.Errorf("parse UTXOs: %w", err)
 	}
 
 	// Look for UTXOs at our target address with expected amount
@@ -736,14 +487,14 @@ func (e *SidechainMonitorEngine) findTransactionToAddressViaUTXOs(
 							Int64("expected", expectedAmount).
 							Str("sidechain", sidechainName).
 							Msg("found transaction to fast withdrawal address")
-						return txid
+						return txid, nil
 					}
 				}
 			}
 		}
 	}
 
-	return "" // No matching transaction found
+	return "", nil
 }
 
 // createSecureHTTPClient creates an HTTP client with security timeouts and limits
