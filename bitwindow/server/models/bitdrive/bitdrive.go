@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
@@ -155,10 +156,9 @@ func Delete(ctx context.Context, db *sql.DB, id int64) error {
 }
 
 func Exists(ctx context.Context, db *sql.DB, txid string) (bool, error) {
-	var count int
-	err := db.QueryRowContext(ctx, `
+	count, err := database.Get[int64](ctx, db, `
 		SELECT COUNT(*) FROM bitdrive_files WHERE txid = ?
-	`, txid).Scan(&count)
+	`, txid)
 	if err != nil {
 		return false, fmt.Errorf("check bitdrive file exists: %w", err)
 	}

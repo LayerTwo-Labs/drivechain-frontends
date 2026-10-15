@@ -6,44 +6,32 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 type State struct {
-	WalletID                string
-	RecipientCode           string
-	NotificationTxID        *string
-	NotificationBroadcastAt *time.Time
-	NextSendIndex           uint32
+	WalletID                string     `db:"wallet_id"`
+	RecipientCode           string     `db:"recipient_payment_code"`
+	NotificationTxID        *string    `db:"notification_txid"`
+	NotificationBroadcastAt *time.Time `db:"notification_broadcast_at"`
+	NextSendIndex           uint32     `db:"next_send_index"`
 }
 
 // GetState returns the persisted send state for a (wallet, recipient) pair, or
 // nil if no row exists.
 func GetState(ctx context.Context, db *sql.DB, walletID, recipientCode string) (*State, error) {
-	var s State
-	var txid sql.NullString
-	var broadcastAt sql.NullTime
-
-	err := db.QueryRowContext(ctx, `
+	s, err := database.Get[State](ctx, db, `
 		SELECT wallet_id, recipient_payment_code, notification_txid, notification_broadcast_at, next_send_index
 		FROM bip47_send_state
 		WHERE wallet_id = ? AND recipient_payment_code = ?
-	`, walletID, recipientCode).Scan(&s.WalletID, &s.RecipientCode, &txid, &broadcastAt, &s.NextSendIndex)
-
+	`, walletID, recipientCode)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get bip47 send state: %w", err)
 	}
-
-	if txid.Valid {
-		s.NotificationTxID = &txid.String
-	}
-	if broadcastAt.Valid {
-		t := broadcastAt.Time
-		s.NotificationBroadcastAt = &t
-	}
-
 	return &s, nil
 }
 
@@ -88,13 +76,12 @@ func ReserveNextIndex(ctx context.Context, db *sql.DB, walletID, recipientCode s
 		return 0, fmt.Errorf("ensure bip47 send state row: %w", err)
 	}
 
-	var reserved uint32
-	err = tx.QueryRowContext(ctx, `
+	reserved, err := database.Get[uint32](ctx, tx, `
 		UPDATE bip47_send_state
 		SET next_send_index = next_send_index + 1, last_used_at = ?
 		WHERE wallet_id = ? AND recipient_payment_code = ?
 		RETURNING next_send_index - 1
-	`, time.Now(), walletID, recipientCode).Scan(&reserved)
+	`, time.Now(), walletID, recipientCode)
 	if err != nil {
 		return 0, fmt.Errorf("reserve bip47 send index: %w", err)
 	}

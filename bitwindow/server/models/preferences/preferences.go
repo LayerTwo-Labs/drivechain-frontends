@@ -3,7 +3,10 @@ package preferences
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 const (
@@ -25,13 +28,11 @@ func Set(ctx context.Context, db *sql.DB, key, value string) error {
 
 // Get retrieves a preference value, returning empty string if not found
 func Get(ctx context.Context, db *sql.DB, key string) (string, error) {
-	var value string
-	err := db.QueryRowContext(ctx,
+	value, err := database.Get[string](ctx, db,
 		`SELECT value FROM preferences WHERE key = ?`,
 		key,
-	).Scan(&value)
-
-	if err == sql.ErrNoRows {
+	)
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 	return value, err

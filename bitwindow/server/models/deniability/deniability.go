@@ -37,13 +37,13 @@ type Denial struct {
 
 // ExecutedDenial represents a completed denial transaction
 type ExecutedDenial struct {
-	ID        int64
-	DenialID  int64
-	FromTxID  string
-	FromVout  int32
-	ToTxID    string
-	ToVout    *string
-	CreatedAt time.Time
+	ID        int64     `db:"id"`
+	DenialID  int64     `db:"denial_id"`
+	FromTxID  string    `db:"from_txid"`
+	FromVout  int32     `db:"from_vout"`
+	ToTxID    string    `db:"to_txid"`
+	ToVout    *string   `db:"to_vout"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 // encodeTargetSizes converts []int64 to comma-separated string
@@ -60,8 +60,7 @@ func encodeTargetSizes(sizes []int64) *string {
 
 // Create creates a new denial plan
 func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout int32, delayDuration time.Duration, numHops int32, targetUTXOSizes []int64) (Denial, error) {
-	var id int64
-	err := db.QueryRowContext(ctx, `
+	id, err := database.Get[int64](ctx, db, `
 		INSERT INTO denials (
 			wallet_id,
 			initial_txid,
@@ -72,7 +71,7 @@ func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout 
 			created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
-	`, walletID, txid, vout, delayDuration, numHops, encodeTargetSizes(targetUTXOSizes), time.Now()).Scan(&id)
+	`, walletID, txid, vout, delayDuration, numHops, encodeTargetSizes(targetUTXOSizes), time.Now())
 	if err != nil {
 		return Denial{}, err
 	}
@@ -240,7 +239,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 
 // listExecutions returns all executed denials for a given deniability plan
 func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
-	rows, err := db.QueryContext(ctx, `
+	executions, err := database.Select[ExecutedDenial](ctx, db, `
 		SELECT id, denial_id, from_txid, from_vout, to_txid, to_vout, created_at
 		FROM executed_denials
 		WHERE denial_id = ?
@@ -249,97 +248,55 @@ func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 	if err != nil {
 		return nil, fmt.Errorf("could not query executed denials: %w", err)
 	}
-	defer database.SafeDefer(ctx, rows.Close)
-
-	var executions []ExecutedDenial
-	for rows.Next() {
-		var execution ExecutedDenial
-		err := rows.Scan(
-			&execution.ID,
-			&execution.DenialID,
-			&execution.FromTxID,
-			&execution.FromVout,
-			&execution.ToTxID,
-			&execution.ToVout,
-			&execution.CreatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("could not scan executed denial: %w", err)
-		}
-		executions = append(executions, execution)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("could not iterate over executed denials: %w", err)
-	}
-
 	return executions, nil
 }
 
 // Cancel marks a deniability plan as cancelled
 func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
-	rows, err := db.ExecContext(ctx, `
+	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
 			SET cancelled_at = ?,
 			cancelled_reason = ?
 		WHERE id = ?
-	`, time.Now(), reason, id)
-	if err != nil {
-		return fmt.Errorf("could not cancel deniability: %w", err)
-	}
-
-	n, err := rows.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("could not cancel deniability: %w", err)
-	}
-	if n == 0 {
+	`, time.Now(), reason, id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
-
+	if err != nil {
+		return fmt.Errorf("could not cancel deniability: %w", err)
+	}
 	return nil
 }
 
 // Pause marks a deniability plan as paused
 func Pause(ctx context.Context, db *sql.DB, id int64) error {
-	rows, err := db.ExecContext(ctx, `
+	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
 			SET paused_at = ?
 		WHERE id = ? AND paused_at IS NULL AND cancelled_at IS NULL
-	`, time.Now(), id)
-	if err != nil {
-		return fmt.Errorf("could not pause deniability: %w", err)
-	}
-
-	n, err := rows.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("could not pause deniability: %w", err)
-	}
-	if n == 0 {
+	`, time.Now(), id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("%w, or already paused or cancelled", ErrNotFound)
 	}
-
+	if err != nil {
+		return fmt.Errorf("could not pause deniability: %w", err)
+	}
 	return nil
 }
 
 // Resume resumes a paused deniability plan
 func Resume(ctx context.Context, db *sql.DB, id int64) error {
-	rows, err := db.ExecContext(ctx, `
+	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
 			SET paused_at = NULL
 		WHERE id = ? AND paused_at IS NOT NULL
-	`, id)
-	if err != nil {
-		return fmt.Errorf("could not resume deniability: %w", err)
-	}
-
-	n, err := rows.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("could not resume deniability: %w", err)
-	}
-	if n == 0 {
+	`, id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("%w, or not paused", ErrNotFound)
 	}
-
+	if err != nil {
+		return fmt.Errorf("could not resume deniability: %w", err)
+	}
 	return nil
 }
 

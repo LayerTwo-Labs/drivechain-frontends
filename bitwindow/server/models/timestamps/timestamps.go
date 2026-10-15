@@ -3,9 +3,11 @@ package timestamps
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
@@ -20,14 +22,14 @@ const (
 )
 
 type FileTimestamp struct {
-	ID          int64
-	Filename    string
-	FileHash    string
-	TxID        *string
-	BlockHeight *int64
-	Status      Status
-	CreatedAt   time.Time
-	ConfirmedAt *time.Time
+	ID          int64      `db:"id"`
+	Filename    string     `db:"filename"`
+	FileHash    string     `db:"file_hash"`
+	TxID        *string    `db:"txid"`
+	BlockHeight *int64     `db:"block_height"`
+	Status      Status     `db:"status"`
+	CreatedAt   time.Time  `db:"created_at"`
+	ConfirmedAt *time.Time `db:"confirmed_at"`
 }
 
 func Create(ctx context.Context, db *sql.DB, timestamp FileTimestamp) (int64, error) {
@@ -111,26 +113,10 @@ func List(ctx context.Context, db *sql.DB, opts ...func(*ListOpts)) ([]FileTimes
 	}
 
 	sql, args := query.MustSql()
-	rows, err := db.QueryContext(ctx, sql, args...)
+	timestamps, err := database.Select[FileTimestamp](ctx, db, sql, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list file timestamps: query: %w", err)
+		return nil, fmt.Errorf("list file timestamps: %w", err)
 	}
-	defer rows.Close()
-
-	var timestamps []FileTimestamp
-	for rows.Next() {
-		timestamp, err := scanTimestamp(rows)
-		if err != nil {
-			return nil, fmt.Errorf("scan file timestamp: %w", err)
-		}
-
-		timestamps = append(timestamps, timestamp)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate file timestamps: %w", err)
-	}
-
 	return timestamps, nil
 }
 
@@ -161,25 +147,10 @@ var selectTimestamp = sq.
 	From("file_timestamps").
 	PlaceholderFormat(sq.Question)
 
-func scanTimestamp(scanner interface{ Scan(dest ...any) error }) (FileTimestamp, error) {
-	var timestamp FileTimestamp
-	err := scanner.Scan(
-		&timestamp.ID,
-		&timestamp.Filename,
-		&timestamp.FileHash,
-		&timestamp.TxID,
-		&timestamp.BlockHeight,
-		&timestamp.Status,
-		&timestamp.CreatedAt,
-		&timestamp.ConfirmedAt,
-	)
-	return timestamp, err
-}
-
 func getTimestampWhere(ctx context.Context, db *sql.DB, where sq.Eq) (*FileTimestamp, error) {
 	query, args := selectTimestamp.Where(where).MustSql()
-	timestamp, err := scanTimestamp(db.QueryRowContext(ctx, query, args...))
-	if err == sql.ErrNoRows {
+	timestamp, err := database.Get[FileTimestamp](ctx, db, query, args...)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

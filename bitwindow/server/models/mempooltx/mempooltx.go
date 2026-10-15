@@ -24,9 +24,9 @@ type Tx struct {
 
 // BlockStats is what a connected block showed about the fee market.
 type BlockStats struct {
-	Height       uint32
-	MinFeeRate   float64
-	TotalFeeSats uint64
+	Height       uint32  `db:"height"`
+	MinFeeRate   float64 `db:"min_fee_rate"`
+	TotalFeeSats uint64  `db:"total_fee_sats"`
 }
 
 type Filter struct {
@@ -103,23 +103,9 @@ func PutBlockStats(ctx context.Context, db *sql.DB, height uint32, minFeeRate fl
 
 // ListBlockStats returns the recorded blocks with from <= height <= to.
 func ListBlockStats(ctx context.Context, db *sql.DB, from, to uint32) ([]BlockStats, error) {
-	rows, err := db.QueryContext(ctx, `
+	return database.Select[BlockStats](ctx, db, `
 		SELECT height, min_fee_rate, total_fee_sats FROM block_stats
 		WHERE height >= ? AND height <= ? ORDER BY height`, from, to)
-	if err != nil {
-		return nil, err
-	}
-	defer database.SafeDefer(ctx, rows.Close)
-
-	var out []BlockStats
-	for rows.Next() {
-		var b BlockStats
-		if err := rows.Scan(&b.Height, &b.MinFeeRate, &b.TotalFeeSats); err != nil {
-			return nil, err
-		}
-		out = append(out, b)
-	}
-	return out, rows.Err()
 }
 
 // DeleteBlockStatsAbove forgets blocks above height after a reorg.
@@ -180,9 +166,7 @@ func Clear(ctx context.Context, db *sql.DB) error {
 
 // Count returns how many txs are being watched.
 func Count(ctx context.Context, db *sql.DB) (uint64, error) {
-	var n uint64
-	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM mempool_transactions`).Scan(&n)
-	return n, err
+	return database.Get[uint64](ctx, db, `SELECT COUNT(*) FROM mempool_transactions`)
 }
 
 // List returns a page of txs matching f, oldest first, and the total match
@@ -198,8 +182,8 @@ func List(ctx context.Context, db *sql.DB, f Filter) ([]Tx, uint64, error) {
 		Where(match).
 		PlaceholderFormat(sq.Question).
 		MustSql()
-	var total uint64
-	if err := db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+	total, err := database.Get[uint64](ctx, db, countQuery, countArgs...)
+	if err != nil {
 		return nil, 0, err
 	}
 

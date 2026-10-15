@@ -9,22 +9,23 @@ import (
 	"slices"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
 )
 
 // Cheque represents a Bitcoin cheque in the database
 type Cheque struct {
-	ID                 int64
-	WalletID           string
-	DerivationIndex    uint32
-	ExpectedAmountSats uint64
-	Address            string
+	ID                 int64  `db:"id"`
+	WalletID           string `db:"wallet_id"`
+	DerivationIndex    uint32 `db:"derivation_index"`
+	ExpectedAmountSats uint64 `db:"expected_amount_sats"`
+	Address            string `db:"address"`
 	FundedTxids        []string
-	ActualAmountSats   *uint64
-	CreatedAt          time.Time
-	FundedAt           *time.Time
-	SweptTxid          *string
-	SweptAt            *time.Time
+	ActualAmountSats   *uint64    `db:"actual_amount_sats"`
+	CreatedAt          time.Time  `db:"created_at"`
+	FundedAt           *time.Time `db:"funded_at"`
+	SweptTxid          *string    `db:"swept_txid"`
+	SweptAt            *time.Time `db:"swept_at"`
 }
 
 // IsFunded returns true if actual funds meet or exceed the expected amount
@@ -89,94 +90,47 @@ func bumpIndexCounter(ctx context.Context, tx *sql.Tx, walletID string, index ui
 	return nil
 }
 
-// scanCheque scans a cheque row from the database
-func scanCheque(scanner interface {
-	Scan(dest ...interface{}) error
-}) (*Cheque, error) {
-	var cheque Cheque
-	var actualAmountSats sql.NullInt64
-	var fundedAt sql.NullTime
-	var sweptTxid sql.NullString
-	var sweptAt sql.NullTime
-
-	err := scanner.Scan(
-		&cheque.ID,
-		&cheque.WalletID,
-		&cheque.DerivationIndex,
-		&cheque.ExpectedAmountSats,
-		&cheque.Address,
-		&actualAmountSats,
-		&cheque.CreatedAt,
-		&fundedAt,
-		&sweptTxid,
-		&sweptAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if actualAmountSats.Valid {
-		amt := uint64(actualAmountSats.Int64)
-		cheque.ActualAmountSats = &amt
-	}
-	if fundedAt.Valid {
-		cheque.FundedAt = &fundedAt.Time
-	}
-	if sweptTxid.Valid {
-		cheque.SweptTxid = &sweptTxid.String
-	}
-	if sweptAt.Valid {
-		cheque.SweptAt = &sweptAt.Time
-	}
-
-	return &cheque, nil
-}
-
 // Get retrieves a cheque by ID for a specific wallet
 func Get(ctx context.Context, db *sql.DB, walletID string, id int64) (*Cheque, error) {
-	row := db.QueryRowContext(ctx, `
+	cheque, err := database.Get[Cheque](ctx, db, `
 		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
 		       actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
 		WHERE wallet_id = ? AND id = ?
 	`, walletID, id)
-
-	cheque, err := scanCheque(row)
 	if err != nil {
 		return nil, fmt.Errorf("get cheque: %w", err)
 	}
-	if err := attachFundingOutputs(ctx, db, []*Cheque{cheque}); err != nil {
+	if err := attachFundingOutputs(ctx, db, []*Cheque{&cheque}); err != nil {
 		return nil, err
 	}
 
-	return cheque, nil
+	return &cheque, nil
 }
 
 // GetByAddress retrieves a cheque by address for a specific wallet
 func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address string) (*Cheque, error) {
-	row := db.QueryRowContext(ctx, `
+	cheque, err := database.Get[Cheque](ctx, db, `
 		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
 		       actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
 		WHERE wallet_id = ? AND address = ?
 	`, walletID, address)
-
-	cheque, err := scanCheque(row)
 	if err != nil {
 		return nil, fmt.Errorf("get cheque by address: %w", err)
 	}
-	if err := attachFundingOutputs(ctx, db, []*Cheque{cheque}); err != nil {
+	if err := attachFundingOutputs(ctx, db, []*Cheque{&cheque}); err != nil {
 		return nil, err
 	}
 
-	return cheque, nil
+	return &cheque, nil
 }
 
 // List retrieves all cheques for a specific wallet
 func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
-	rows, err := db.QueryContext(ctx, `
+	cheques, err := database.Select[Cheque](ctx, db, `
 		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
 		       actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
@@ -187,21 +141,6 @@ func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list cheques: %w", err)
 	}
-	defer rows.Close()
-
-	var cheques []Cheque
-	for rows.Next() {
-		cheque, err := scanCheque(rows)
-		if err != nil {
-			return nil, fmt.Errorf("scan cheque: %w", err)
-		}
-
-		cheques = append(cheques, *cheque)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	rows.Close()
 
 	pointers := make([]*Cheque, len(cheques))
 	for i := range cheques {
@@ -233,23 +172,20 @@ func attachFundingOutputs(ctx context.Context, db *sql.DB, cheques []*Cheque) er
 		Where(sq.Eq{"cheque_id": slices.Collect(maps.Keys(byID))}).
 		PlaceholderFormat(sq.Question).
 		MustSql()
-	rows, err := db.QueryContext(ctx, query, args...)
+	type fundingOutput struct {
+		ChequeID int64  `db:"cheque_id"`
+		Txid     string `db:"txid"`
+	}
+	outputs, err := database.Select[fundingOutput](ctx, db, query, args...)
 	if err != nil {
 		return fmt.Errorf("list funding outputs: %w", err)
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var chequeID int64
-		var txid string
-		if err := rows.Scan(&chequeID, &txid); err != nil {
-			return fmt.Errorf("scan funding output: %w", err)
-		}
-		if c, ok := byID[chequeID]; ok && !slices.Contains(c.FundedTxids, txid) {
-			c.FundedTxids = append(c.FundedTxids, txid)
+	for _, out := range outputs {
+		if c, ok := byID[out.ChequeID]; ok && !slices.Contains(c.FundedTxids, out.Txid) {
+			c.FundedTxids = append(c.FundedTxids, out.Txid)
 		}
 	}
-	return rows.Err()
+	return nil
 }
 
 // FundingOutput is one transaction paying a cheque. BlockHeight is 0 while it
@@ -269,21 +205,12 @@ func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, o
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	result, err := tx.ExecContext(ctx, `
+	if err := database.CheckOne(tx.ExecContext(ctx, `
 		UPDATE cheques
 		SET actual_amount_sats = ?, funded_at = COALESCE(funded_at, ?)
 		WHERE wallet_id = ? AND id = ?
-	`, actualAmount, now, walletID, id)
-	if err != nil {
+	`, actualAmount, now, walletID, id)); err != nil {
 		return fmt.Errorf("failed to update funding: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-	if rows == 0 {
-		return sql.ErrNoRows
 	}
 
 	if err := recordFundingOutputs(ctx, tx, id, outputs); err != nil {
@@ -318,36 +245,22 @@ func recordFundingOutputs(ctx context.Context, tx *sql.Tx, chequeID int64, outpu
 func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txid string) error {
 	now := time.Now()
 
-	result, err := db.ExecContext(ctx, `
+	if err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE cheques
 		SET swept_txid = ?, swept_at = ?
 		WHERE wallet_id = ? AND id = ?
-	`, txid, now, walletID, id)
-
-	if err != nil {
+	`, txid, now, walletID, id)); err != nil {
 		return fmt.Errorf("failed to update swept: %w", err)
 	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
-		return sql.ErrNoRows
-	}
-
 	return nil
 }
 
 // GetNextIndex returns the next unused cheque index for a specific wallet.
 // A deleted cheque does not give its index back.
 func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, error) {
-	var nextIndex uint32
-
-	err := db.QueryRowContext(ctx, `
+	nextIndex, err := database.Get[uint32](ctx, db, `
 		SELECT next_index FROM cheque_index_counters WHERE wallet_id = ?
-	`, walletID).Scan(&nextIndex)
+	`, walletID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
@@ -360,23 +273,11 @@ func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, err
 
 // Delete deletes a cheque by ID for a specific wallet
 func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
-	result, err := db.ExecContext(ctx, `
+	if err := database.CheckOne(db.ExecContext(ctx, `
 		DELETE FROM cheques WHERE wallet_id = ? AND id = ?
-	`, walletID, id)
-
-	if err != nil {
+	`, walletID, id)); err != nil {
 		return fmt.Errorf("failed to delete cheque: %w", err)
 	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
-		return sql.ErrNoRows
-	}
-
 	return nil
 }
 

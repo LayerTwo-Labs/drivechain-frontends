@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	"github.com/btcsuite/btcd/wire"
@@ -122,26 +123,12 @@ func (e *M4Engine) ApplyPendingM4(
 }
 
 func (e *M4Engine) pendingM4Messages(ctx context.Context, height uint32) ([]m4.M4Message, error) {
-	rows, err := e.db.QueryContext(ctx, `
+	return database.Select[m4.M4Message](ctx, e.db, `
 		SELECT id, block_height, raw_bytes
 		FROM m4_messages
 		WHERE applied = 0 AND block_height <= ?
 		ORDER BY block_height
 	`, height)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var messages []m4.M4Message
-	for rows.Next() {
-		var msg m4.M4Message
-		if err := rows.Scan(&msg.ID, &msg.BlockHeight, &msg.RawBytes); err != nil {
-			return nil, err
-		}
-		messages = append(messages, msg)
-	}
-	return messages, rows.Err()
 }
 
 // activeSlotsAt lists the sidechain slots active at height, in ascending order.
@@ -222,7 +209,7 @@ func (e *M4Engine) persistM4Votes(ctx context.Context, msgID int64, votes []m4.M
 
 // GetM4History returns the last N M4 messages
 func (e *M4Engine) GetM4History(ctx context.Context, limit int) ([]m4.M4Message, error) {
-	rows, err := e.db.QueryContext(ctx, `
+	messages, err := database.Select[m4.M4Message](ctx, e.db, `
 		SELECT id, block_height, block_hash, block_time, raw_bytes, version, created_at
 		FROM m4_messages
 		ORDER BY block_height DESC
@@ -231,12 +218,7 @@ func (e *M4Engine) GetM4History(ctx context.Context, limit int) ([]m4.M4Message,
 	if err != nil {
 		return nil, fmt.Errorf("query M4 messages: %w", err)
 	}
-	messages, err := scanM4Messages(rows)
-	if err != nil {
-		return nil, err
-	}
 
-	// The database has one connection, so the votes query waits until the rows above close.
 	for i := range messages {
 		votes, err := e.getVotesForMessage(ctx, messages[i].ID)
 		if err != nil {
@@ -247,79 +229,23 @@ func (e *M4Engine) GetM4History(ctx context.Context, limit int) ([]m4.M4Message,
 	return messages, nil
 }
 
-func scanM4Messages(rows *sql.Rows) ([]m4.M4Message, error) {
-	defer rows.Close()
-
-	var messages []m4.M4Message
-	for rows.Next() {
-		var msg m4.M4Message
-		err := rows.Scan(
-			&msg.ID, &msg.BlockHeight, &msg.BlockHash, &msg.BlockTime,
-			&msg.RawBytes, &msg.Version, &msg.CreatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan M4 message: %w", err)
-		}
-		messages = append(messages, msg)
-	}
-	return messages, rows.Err()
-}
-
 // getVotesForMessage retrieves all votes for a specific M4 message
 func (e *M4Engine) getVotesForMessage(ctx context.Context, msgID int64) ([]m4.M4Vote, error) {
-	rows, err := e.db.QueryContext(ctx, `
+	return database.Select[m4.M4Vote](ctx, e.db, `
 		SELECT id, m4_message_id, sidechain_slot, vote_type, bundle_hash, bundle_index
 		FROM m4_votes
 		WHERE m4_message_id = ?
 		ORDER BY sidechain_slot
 	`, msgID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var votes []m4.M4Vote
-	for rows.Next() {
-		var vote m4.M4Vote
-		err := rows.Scan(
-			&vote.ID, &vote.M4MessageID, &vote.SidechainSlot,
-			&vote.VoteType, &vote.BundleHash, &vote.BundleIndex,
-		)
-		if err != nil {
-			return nil, err
-		}
-		votes = append(votes, vote)
-	}
-
-	return votes, rows.Err()
 }
 
 // ListSidechains returns all sidechains
 func (e *M4Engine) ListSidechains(ctx context.Context) ([]m4.Sidechain, error) {
-	rows, err := e.db.QueryContext(ctx, `
+	return database.Select[m4.Sidechain](ctx, e.db, `
 		SELECT slot, name, description, version, activated_height, created_at
 		FROM sidechains
 		ORDER BY slot
 	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var sidechains []m4.Sidechain
-	for rows.Next() {
-		var sc m4.Sidechain
-		err := rows.Scan(
-			&sc.Slot, &sc.Name, &sc.Description,
-			&sc.Version, &sc.ActivatedHeight, &sc.CreatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		sidechains = append(sidechains, sc)
-	}
-
-	return sidechains, rows.Err()
 }
 
 // extractM3FromCoinbase finds and parses M3 messages from coinbase OP_RETURNs
@@ -526,25 +452,5 @@ func (e *M4Engine) GetWithdrawalBundles(ctx context.Context, sidechainSlot *uint
 
 	query += " ORDER BY sidechain_slot, first_seen_height"
 
-	rows, err := e.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var bundles []m4.WithdrawalBundle
-	for rows.Next() {
-		var b m4.WithdrawalBundle
-		err := rows.Scan(
-			&b.ID, &b.SidechainSlot, &b.BundleHash, &b.WorkScore, &b.BlocksLeft,
-			&b.MaxAge, &b.FirstSeenHeight, &b.LastUpdatedHeight, &b.Status,
-			&b.CreatedAt, &b.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		bundles = append(bundles, b)
-	}
-
-	return bundles, rows.Err()
+	return database.Select[m4.WithdrawalBundle](ctx, e.db, query, args...)
 }
