@@ -9,8 +9,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // Cheque represents a Bitcoin cheque in the database

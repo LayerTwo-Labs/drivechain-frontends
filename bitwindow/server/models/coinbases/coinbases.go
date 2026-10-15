@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // Coinbase is what a block's coinbase shows about who mined it.

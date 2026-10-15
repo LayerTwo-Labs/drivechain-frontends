@@ -14,10 +14,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
-	"github.com/rs/zerolog"
 )
 
 // BackupEngine handles wallet backup and restore operations.

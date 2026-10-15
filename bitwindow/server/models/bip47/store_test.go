@@ -44,8 +44,7 @@ func TestReserveNextIndex_Concurrent(t *testing.T) {
 			defer wg.Done()
 			for i := 0; i < perGoroutine; i++ {
 				idx, err := bip47.ReserveNextIndex(ctx, db, "w1", "PMtest")
-				if err != nil {
-					t.Errorf("ReserveNextIndex: %v", err)
+				if !assert.NoError(t, err) {
 					return
 				}
 				results <- idx
@@ -57,9 +56,7 @@ func TestReserveNextIndex_Concurrent(t *testing.T) {
 
 	seen := make(map[uint32]bool, goroutines*perGoroutine)
 	for idx := range results {
-		if seen[idx] {
-			t.Fatalf("index %d was reserved twice", idx)
-		}
+		require.False(t, seen[idx])
 		seen[idx] = true
 	}
 

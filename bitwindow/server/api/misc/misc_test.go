@@ -11,9 +11,14 @@ import (
 	"testing"
 	"time"
 
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	miscv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
@@ -22,12 +27,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/emptypb"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 func TestService_ListOPReturn(t *testing.T) {
@@ -116,8 +116,7 @@ func TestService_BroadcastNews(t *testing.T) {
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "topic must be set")
+		require.ErrorContains(t, err, "topic must be set")
 	})
 
 	t.Run("broadcast news with invalid topic format", func(t *testing.T) {
@@ -131,8 +130,7 @@ func TestService_BroadcastNews(t *testing.T) {
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "is not 4 bytes")
+		require.ErrorContains(t, err, "is not 4 bytes")
 	})
 
 	t.Run("broadcast news with empty headline", func(t *testing.T) {
@@ -152,8 +150,7 @@ func TestService_BroadcastNews(t *testing.T) {
 			Headline: "",
 			Content:  "https://example.com/news",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "headline must be set")
+		require.ErrorContains(t, err, "headline must be set")
 	})
 
 	t.Run("broadcast news with whitespace-only headline", func(t *testing.T) {
@@ -169,13 +166,14 @@ func TestService_BroadcastNews(t *testing.T) {
 		// Whitespace-only headlines previously passed validation, got
 		// stored as spaces, and rendered blank in the UI Title column.
 		for _, h := range []string{"   ", "\t", "\n", " \t "} {
-			_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-				Topic:    topicID.String(),
-				Headline: h,
-				Content:  "content",
-			}))
-			require.Error(t, err, "whitespace-only headline %q must be rejected", h)
-			assert.Contains(t, err.Error(), "headline must be set")
+			t.Run(fmt.Sprintf("%q", h), func(t *testing.T) {
+				_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+					Topic:    topicID.String(),
+					Headline: h,
+					Content:  "content",
+				}))
+				require.ErrorContains(t, err, "headline must be set")
+			})
 		}
 	})
 
@@ -196,8 +194,7 @@ func TestService_BroadcastNews(t *testing.T) {
 			Headline: longHeadline,
 			Content:  "https://example.com/news",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "headline cannot be longer than 64 bytes")
+		require.ErrorContains(t, err, "headline cannot be longer than 64 bytes")
 	})
 
 	t.Run("broadcast news with non-existent topic", func(t *testing.T) {
@@ -211,8 +208,7 @@ func TestService_BroadcastNews(t *testing.T) {
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "topic does not exist")
+		require.ErrorContains(t, err, "topic does not exist")
 	})
 
 	t.Run("broadcast news with text content", func(t *testing.T) {
@@ -351,8 +347,7 @@ func TestService_VotesAndComments(t *testing.T) {
 			ParentId: validItemID,
 			Body:     "  ",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "body or url")
+		require.ErrorContains(t, err, "body or url")
 	})
 
 	t.Run("list comments empty", func(t *testing.T) {
@@ -401,8 +396,7 @@ func TestService_CreateTopic(t *testing.T) {
 			Topic: "",
 			Name:  "Test Topic",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "topic ID is empty")
+		require.ErrorContains(t, err, "topic ID is empty")
 	})
 
 	t.Run("create topic with invalid format", func(t *testing.T) {
@@ -415,8 +409,7 @@ func TestService_CreateTopic(t *testing.T) {
 			Topic: "123456", // Too short, should be 8 hex characters (4 bytes)
 			Name:  "Test Topic",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "is not 4 bytes")
+		require.ErrorContains(t, err, "is not 4 bytes")
 	})
 
 	t.Run("create topic with empty name", func(t *testing.T) {
@@ -429,8 +422,7 @@ func TestService_CreateTopic(t *testing.T) {
 			Topic: validTopicID().String(),
 			Name:  "",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "title must be set")
+		require.ErrorContains(t, err, "title must be set")
 	})
 
 	t.Run("create topic with name too long", func(t *testing.T) {
@@ -444,8 +436,7 @@ func TestService_CreateTopic(t *testing.T) {
 			Topic: validTopicID().String(),
 			Name:  string(longName),
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "title cannot be longer than 64 bytes")
+		require.ErrorContains(t, err, "title cannot be longer than 64 bytes")
 	})
 
 	t.Run("create duplicate topic", func(t *testing.T) {
@@ -462,8 +453,7 @@ func TestService_CreateTopic(t *testing.T) {
 			Topic: topicID.String(),
 			Name:  "New Topic",
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "topic already exists")
+		require.ErrorContains(t, err, "topic already exists")
 	})
 }
 
@@ -737,8 +727,7 @@ func TestService_TimestampFile(t *testing.T) {
 			Filename: "",
 			FileData: []byte("content"),
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "filename must be set")
+		require.ErrorContains(t, err, "filename must be set")
 	})
 
 	t.Run("timestamp file with empty file data", func(t *testing.T) {
@@ -751,8 +740,7 @@ func TestService_TimestampFile(t *testing.T) {
 			Filename: "test.pdf",
 			FileData: []byte{},
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "file data must be set")
+		require.ErrorContains(t, err, "file data must be set")
 	})
 
 	t.Run("timestamp same file twice returns same timestamp", func(t *testing.T) {
@@ -903,27 +891,12 @@ func TestService_ListTimestamps(t *testing.T) {
 func TestService_ListTimestampsBlockHeight(t *testing.T) {
 	t.Parallel()
 
-	expectWalletSetup := func(mockBitcoind *mocks.MockBitcoinServiceClient) {
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
-	}
-
 	t.Run("a failed Core read returns the error", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		expectWalletSetup(mockBitcoind)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("core is down"))).
@@ -948,7 +921,7 @@ func TestService_ListTimestampsBlockHeight(t *testing.T) {
 			AnyTimes()
 		apitests.ExpectOrchestratorReads(mockOrch)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		expectWalletSetup(mockBitcoind)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t),
 			apitests.WithOrchestrator(mockOrch),
@@ -985,8 +958,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		_, err := cli.VerifyTimestamp(context.Background(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
 			FileData: []byte{},
 		}))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "file data must be set")
+		require.ErrorContains(t, err, "file data must be set")
 	})
 
 	t.Run("verify existing timestamp", func(t *testing.T) {

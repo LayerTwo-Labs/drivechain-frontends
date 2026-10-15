@@ -10,14 +10,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
-	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -28,6 +20,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
 // seedTopic indexes a TopicCreation directly into cn_topics so stories

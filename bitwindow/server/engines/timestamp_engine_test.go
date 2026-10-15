@@ -7,6 +7,7 @@ import (
 	"time"
 
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -15,7 +16,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {

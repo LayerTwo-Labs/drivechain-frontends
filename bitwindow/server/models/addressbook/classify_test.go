@@ -23,9 +23,7 @@ const samouraiAlicePaymentCode = "PM8TJTLJbPRGxSbc8EJi42Wrr6QbNSaSSVJ5Y3E4pbCYiT
 // Used here to assert the new classifier rejects it.
 func buildLegacyBIP47V3(t *testing.T, compressedPubKey []byte) string {
 	t.Helper()
-	if len(compressedPubKey) != 33 {
-		t.Fatalf("pubkey must be 33 bytes, got %d", len(compressedPubKey))
-	}
+	require.Len(t, compressedPubKey, 33)
 	payload := make([]byte, 35)
 	payload[0] = 0x22
 	payload[1] = 0x03
@@ -91,9 +89,7 @@ func TestClassifyAddress(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := ClassifyAddress(tc.input)
-			if got != tc.want {
-				t.Fatalf("ClassifyAddress(%q) = %v, want %v", tc.input, got, tc.want)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }

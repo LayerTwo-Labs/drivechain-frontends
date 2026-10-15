@@ -12,6 +12,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -20,9 +21,12 @@ import (
 	"syscall"
 	"time"
 
-	"os/exec"
-
 	"connectrpc.com/connect"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/jessevdk/go-flags"
+	"github.com/rs/zerolog"
+	"github.com/samber/lo"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
@@ -41,10 +45,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/jessevdk/go-flags"
-	"github.com/rs/zerolog"
-	"github.com/samber/lo"
 )
 
 func main() {
@@ -500,7 +500,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	if err != nil {
 		return nil, fmt.Errorf("open drivechaind log %s: %w", orchLogPath, err)
 	}
-	defer orchLogFile.Close() //nolint:errcheck — child has its own fd post-spawn
+	defer orchLogFile.Close() //nolint:errcheck // the child has its own fd after the spawn
 
 	// Dev ergonomics: with ORCHESTRATORD_STDOUT=1, skip --logfile so drivechaind
 	// logs to its stdout (zerolog's default), and tee that into bitwindowd's own

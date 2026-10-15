@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // LoadOrCreateIdentity returns this node's CoinNews signing key, creating

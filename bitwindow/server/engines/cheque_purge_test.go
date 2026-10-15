@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAForkPurgeKeepsChequeHistoryBelowTheFork(t *testing.T) {

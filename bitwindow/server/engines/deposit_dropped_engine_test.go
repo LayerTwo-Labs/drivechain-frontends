@@ -5,10 +5,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/stretchr/testify/require"
 )
 
 type depositList struct {

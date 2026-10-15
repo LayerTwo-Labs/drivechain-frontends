@@ -8,9 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg"
-
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
@@ -19,12 +25,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const denialWalletID = "80CEBA2163224572BDEADD2D2181C51B"

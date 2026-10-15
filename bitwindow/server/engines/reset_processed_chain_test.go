@@ -6,8 +6,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // The chain reset replaces a delete of bitwindow.db, so it has to clear every

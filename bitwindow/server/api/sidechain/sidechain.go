@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1"
 )
 
 // Server implements the SidechainService

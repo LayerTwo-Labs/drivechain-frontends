@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 // SweepAddressKind is the script kind of an address a private key controls.

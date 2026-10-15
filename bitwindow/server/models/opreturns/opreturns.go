@@ -12,12 +12,13 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
-	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
 // Backstop TTL for cached List / ListCoinNews — the contract is that

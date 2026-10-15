@@ -11,6 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
@@ -19,9 +23,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
-	"github.com/rs/zerolog"
-	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // NotificationBroadcaster interface for testability

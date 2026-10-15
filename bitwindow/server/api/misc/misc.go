@@ -9,6 +9,14 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
+	"github.com/rs/zerolog"
+	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
@@ -17,13 +25,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/btcec/v2/schnorr"
-	"github.com/rs/zerolog"
-	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ rpc.MiscServiceHandler = new(Server)

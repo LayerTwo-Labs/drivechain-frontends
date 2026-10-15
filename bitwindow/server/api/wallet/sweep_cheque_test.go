@@ -6,6 +6,11 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
@@ -13,10 +18,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/stretchr/testify/require"
 )
 
 type broadcastOrchestrator struct {

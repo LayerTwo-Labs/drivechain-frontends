@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCheckChequeFunding_RecordsTheFundingBlock(t *testing.T) {

@@ -61,7 +61,7 @@ func TestParseM4Bytes_Version01(t *testing.T) {
 	assert.Equal(t, uint16(5), *votes[2].BundleIndex)
 
 	_, err = ParseM4Votes(msg.RawBytes, []uint8{0, 9})
-	assert.Error(t, err, "a vote count other than the active count is invalid")
+	assert.ErrorContains(t, err, "M4: 3 votes for 2 active sidechains")
 }
 
 func TestParseM4Bytes_Version02(t *testing.T) {
@@ -136,14 +136,12 @@ func TestParseM4Bytes_InvalidHeader(t *testing.T) {
 	payload = append(payload, 0x01, 0xFF)
 
 	_, err := ParseM4Bytes(opReturn(t, payload))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid header")
+	assert.ErrorContains(t, err, "invalid header")
 }
 
 func TestParseM4Bytes_TooShort(t *testing.T) {
 	_, err := ParseM4Bytes(opReturn(t, []byte{0x01, 0x02}))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "script too short")
+	assert.ErrorContains(t, err, "script too short")
 }
 
 func TestParseM4Bytes_NotOPReturn(t *testing.T) {
@@ -154,8 +152,7 @@ func TestParseM4Bytes_NotOPReturn(t *testing.T) {
 	script[0] = txscript.OP_DUP // Not OP_RETURN
 
 	_, err := ParseM4Bytes(script)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not an OP_RETURN")
+	assert.ErrorContains(t, err, "not an OP_RETURN")
 }
 
 func TestIsM4Commitment(t *testing.T) {
@@ -222,8 +219,7 @@ func TestParseM3Bytes_InvalidHeader(t *testing.T) {
 	payload = append(payload, make([]byte, 32)...)
 
 	_, err := ParseM3Bytes(opReturn(t, payload))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid header")
+	assert.ErrorContains(t, err, "invalid header")
 }
 
 func TestIsM3Commitment(t *testing.T) {

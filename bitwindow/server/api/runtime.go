@@ -14,9 +14,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-
 	"connectrpc.com/grpcreflect"
-	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/rs/zerolog"
+	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	api_bitdrive "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitdrive"
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
@@ -32,14 +36,10 @@ import (
 	api_utils "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/utils"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
 	api_walletpsbt "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/walletpsbt"
-
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
-
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1/bitdrivev1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
@@ -53,7 +53,9 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1/walletpsbtv1connect"
-
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -61,12 +63,6 @@ import (
 	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/rs/zerolog"
-	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // swappableHandler atomically swaps the http.Handler it dispatches to.

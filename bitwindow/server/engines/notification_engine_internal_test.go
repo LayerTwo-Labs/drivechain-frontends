@@ -8,17 +8,18 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/notifications"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // A wallet's transaction history must not be announced: on a fresh database

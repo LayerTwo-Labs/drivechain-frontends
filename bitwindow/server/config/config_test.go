@@ -16,30 +16,19 @@ func TestDatadirFromEnv(t *testing.T) {
 	t.Setenv("BITWINDOWD_DATADIR", dir)
 
 	var conf Config
-	if _, err := flags.NewParser(&conf, flags.Default).ParseArgs([]string{}); err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	if conf.Datadir != dir {
-		t.Fatalf("Datadir = %q, want %q (from BITWINDOWD_DATADIR)", conf.Datadir, dir)
-	}
+	_, err := flags.NewParser(&conf, flags.Default).ParseArgs([]string{})
+	require.NoError(t, err)
+	require.Equal(t, dir, conf.Datadir)
 }
 
 func TestBitwindowDirSurvivesFinalize(t *testing.T) {
 	base := t.TempDir()
 	conf := Config{Datadir: base}
 
-	if got := conf.BitwindowDir(); got != base {
-		t.Fatalf("before Finalize: BitwindowDir() = %q, want %q", got, base)
-	}
-	if err := conf.Finalize(NetworkSignet); err != nil {
-		t.Fatalf("Finalize: %v", err)
-	}
-	if got := conf.Datadir; got != filepath.Join(base, string(NetworkSignet)) {
-		t.Fatalf("Datadir = %q", got)
-	}
-	if got := conf.BitwindowDir(); got != base {
-		t.Fatalf("after Finalize: BitwindowDir() = %q, want %q", got, base)
-	}
+	require.Equal(t, base, conf.BitwindowDir())
+	require.NoError(t, conf.Finalize(NetworkSignet))
+	require.Equal(t, filepath.Join(base, string(NetworkSignet)), conf.Datadir)
+	require.Equal(t, base, conf.BitwindowDir())
 }
 
 func TestPprofAddr(t *testing.T) {

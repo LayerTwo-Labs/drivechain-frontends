@@ -11,9 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
 
 const onePool = `{"network": "betanet", "pools": [{"name": "Only Pool", "coinbase_tag": "/only/"}]}`

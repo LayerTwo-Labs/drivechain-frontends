@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -90,5 +91,5 @@ func TestValidateBackup_RejectsPlainWalletWithEncryptionMetadata(t *testing.T) {
 
 	e := &BackupEngine{}
 	_, err := e.ValidateBackup(testCtx(), buf.Bytes(), "backup.zip")
-	require.Error(t, err)
+	require.ErrorContains(t, err, "not an encrypted wallet")
 }

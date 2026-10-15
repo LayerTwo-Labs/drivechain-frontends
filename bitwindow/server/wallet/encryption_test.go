@@ -25,19 +25,13 @@ func TestEncryptionCompatibility(t *testing.T) {
 	// Test encryption
 	plaintext := `{"test":"data","master":{"seed_hex":"0123456789abcdef"}}`
 	encrypted, err := encrypt(plaintext, key)
-	if err != nil {
-		t.Fatalf("Encryption failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Test decryption
 	decrypted, err := Decrypt(encrypted, key)
-	if err != nil {
-		t.Fatalf("Decryption failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	if plaintext != decrypted {
-		t.Fatalf("Decrypted text doesn't match: got %s, want %s", decrypted, plaintext)
-	}
+	require.Equal(t, decrypted, plaintext)
 }
 
 func TestDecryptDartEncrypted(t *testing.T) {
@@ -50,16 +44,12 @@ func TestDecryptDartEncrypted(t *testing.T) {
 	iterations := 100000
 
 	salt, err := base64.StdEncoding.DecodeString(saltBase64)
-	if err != nil {
-		t.Fatalf("Invalid salt: %v", err)
-	}
+	require.NoError(t, err)
 
 	key := DeriveKey(password, salt, iterations)
 
 	decrypted, err := Decrypt(encryptedData, key)
-	if err != nil {
-		t.Fatalf("Decryption failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	t.Logf("Decrypted: %s", decrypted)
 }

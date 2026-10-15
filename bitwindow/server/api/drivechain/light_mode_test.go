@@ -6,15 +6,16 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	walletpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 func TestLightModeReadsTheRemoteValidator(t *testing.T) {

@@ -67,13 +67,13 @@ func TestParseRegistry(t *testing.T) {
 	t.Run("a document with no network is refused", func(t *testing.T) {
 		t.Parallel()
 		_, err := ParseRegistry([]byte(`{"pools": []}`))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "not a registry document")
 	})
 
 	t.Run("a document that is not JSON is refused", func(t *testing.T) {
 		t.Parallel()
 		_, err := ParseRegistry([]byte(`<html>`))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "invalid character")
 	})
 }
 
@@ -91,7 +91,7 @@ func TestParseMempool(t *testing.T) {
 	assert.Empty(t, pools[0].StratumURL)
 
 	_, err = ParseMempool([]byte(`[]`))
-	require.Error(t, err)
+	require.ErrorContains(t, err, "empty list")
 }
 
 func TestMatch(t *testing.T) {

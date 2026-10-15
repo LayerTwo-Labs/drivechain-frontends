@@ -5,16 +5,17 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 )
 
 // GetSyncInfo reports the wait the parser takes, so the daemon card says why

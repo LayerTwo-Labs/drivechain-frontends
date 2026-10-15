@@ -6,11 +6,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -435,7 +436,7 @@ func TestSaveTransactionAtomic_FKViolation(t *testing.T) {
 	err := store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
 		Transaction: tx,
 	})
-	require.Error(t, err, "FK constraint should reject orphan transaction")
+	require.ErrorContains(t, err, "FOREIGN KEY constraint failed")
 }
 
 func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
@@ -466,7 +467,7 @@ func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
 		KeyPSBTs: []multisig.TxKeyPSBT{{TransactionID: "tx-collide", KeyID: "key-b", PSBT: "unsigned-psbt-b"}},
 		Inputs:   []multisig.TxInput{{TransactionID: "tx-collide", Txid: "input-b", Vout: 0, Amount: 2.0}},
 	})
-	require.Error(t, err, "colliding tx id from a different group must be rejected")
+	require.ErrorContains(t, err, "already belongs to group")
 
 	// Group A's transaction, PSBT and input must be untouched.
 	got, err := store.GetTransaction(ctx, "tx-collide")

@@ -4,8 +4,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 )
 
 func mustHex(t *testing.T, s string) []byte {

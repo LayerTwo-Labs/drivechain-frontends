@@ -11,10 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/mempooltx"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/mempooltx"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
 )
 
 // RawCall runs a bitcoind JSON-RPC method and returns its raw result.

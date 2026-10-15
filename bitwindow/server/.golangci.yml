@@ -4,6 +4,7 @@ run:
 linters:
   enable:
     - copyloopvar
+    - depguard
     - dupl
     - exhaustive
     - forbidigo
@@ -15,6 +16,46 @@ linters:
     - unparam
     - zerologlint
   settings:
+    gocritic:
+      enabled-checks:
+        - deferInLoop
+
+    depguard:
+      rules:
+        all:
+          deny:
+            - pkg: log
+              desc: use zerolog
+
+            - pkg: github.com/rs/zerolog/log
+              desc: use zerolog.Ctx or a logger value
+
+            - pkg: github.com/btcsuite/btcutil
+              desc: use github.com/btcsuite/btcd/btcutil
+
+            - pkg: github.com/test-go/testify/require
+              desc: use github.com/stretchr/testify/require
+
+            - pkg: github.com/test-go/testify/assert
+              desc: use github.com/stretchr/testify/assert
+
+            - pkg: github.com/golang/protobuf
+              desc: use google.golang.org/protobuf
+
+    forbidigo:
+      forbid:
+        - pattern: assert.Error$
+          msg: use assert.ErrorIs or assert.ErrorContains
+        - pattern: require.Error$
+          msg: use require.ErrorIs or require.ErrorContains
+        - pattern: http.NewRequest$
+          msg: use http.NewRequestWithContext
+        - pattern: httptest.NewRequest$
+          msg: use httptest.NewRequestWithContext
+        - pattern: ^protojson\.Unmarshal$
+          msg: use protojson.UnmarshalOptions{DiscardUnknown true}
+      analyze-types: true
+
     staticcheck:
       checks:
         - "all"
@@ -49,6 +90,10 @@ formatters:
   enable:
     - gofmt
     - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/LayerTwo-Labs/sidesail
   exclusions:
     generated: lax
     paths:

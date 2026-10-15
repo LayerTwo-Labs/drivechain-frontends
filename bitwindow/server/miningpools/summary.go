@@ -6,8 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 	"github.com/btcsuite/btcd/blockchain"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 )
 
 // Share is one pool's slice of a window of blocks.

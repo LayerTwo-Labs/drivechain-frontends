@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 func nodeModeWith(t *testing.T, mode orchpb.NodeMode, err error) *engines.NodeMode {
@@ -140,7 +141,7 @@ func TestModeReReadsAfterTheCacheExpires(t *testing.T) {
 func TestRequireFullNodeNeedsAClient(t *testing.T) {
 	nodeMode := engines.NewNodeMode()
 	err := nodeMode.RequireFullNode(context.Background(), "proposing a sidechain")
-	require.Error(t, err)
+	require.ErrorContains(t, err, "orchestrator wallet client not connected")
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }
 

@@ -11,10 +11,11 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
-	"github.com/stretchr/testify/require"
 )
 
 // TestEnsureHTTPScheme guards the double-prefix regression. config.OrchestratorAddr
@@ -39,9 +40,7 @@ func TestEnsureHTTPScheme(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := ensureHTTPScheme(tc.in)
-			if got != tc.want {
-				t.Fatalf("ensureHTTPScheme(%q) = %q, want %q", tc.in, got, tc.want)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -50,18 +49,15 @@ func TestEnsureHTTPScheme(t *testing.T) {
 // mocking out connect's transport — empty addr must error rather than silently
 // dial nothing.
 func TestBitcoind_RejectsEmptyAddr(t *testing.T) {
-	if _, err := Bitcoind(t.Context(), ""); err == nil {
-		t.Fatal("Bitcoind(\"\") returned nil error")
-	}
+	_, err := Bitcoind(t.Context(), "")
+	require.ErrorContains(t, err, "empty orchestrator addr")
 }
 
 // TestSharedClientSpeaksH2C guards the transport rewrite: bitwindowd talks to
 // the orchestrator over plain TCP, and Connect needs HTTP/2 there.
 func TestSharedClientSpeaksH2C(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
+	require.NoError(t, err)
 	defer listener.Close()
 
 	serverProtocols := new(http.Protocols)
@@ -77,18 +73,12 @@ func TestSharedClientSpeaksH2C(t *testing.T) {
 	go func() { _ = server.Serve(listener) }()
 
 	response, err := getSharedClient(t.Context()).Get("http://" + listener.Addr().String())
-	if err != nil {
-		t.Fatalf("get: %v", err)
-	}
+	require.NoError(t, err)
 	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		t.Fatalf("read body: %v", err)
-	}
-	if got := string(body); got != "HTTP/2.0" {
-		t.Fatalf("server saw %q, want %q", got, "HTTP/2.0")
-	}
+	require.NoError(t, err)
+	require.Equal(t, "HTTP/2.0", string(body))
 }
 
 type fakeSidechain struct{ err error }
@@ -115,12 +105,18 @@ func TestDialSidechain(t *testing.T) {
 }
 
 func TestEnforcerDialers_RejectEmptyURL(t *testing.T) {
-	_, err := EnforcerBlockProducer(t.Context(), "")
-	require.EqualError(t, err, "empty block producer url")
-	_, err = EnforcerMining(t.Context(), "")
-	require.EqualError(t, err, "empty mining url")
-	_, err = EnforcerCrypto(t.Context(), "")
-	require.EqualError(t, err, "empty crypto url")
+	t.Run("block producer", func(t *testing.T) {
+		_, err := EnforcerBlockProducer(t.Context(), "")
+		require.EqualError(t, err, "empty block producer url")
+	})
+	t.Run("mining", func(t *testing.T) {
+		_, err := EnforcerMining(t.Context(), "")
+		require.EqualError(t, err, "empty mining url")
+	})
+	t.Run("crypto", func(t *testing.T) {
+		_, err := EnforcerCrypto(t.Context(), "")
+		require.EqualError(t, err, "empty crypto url")
+	})
 }
 
 type restartL1Handler struct {

@@ -54,5 +54,5 @@ func TestCalculateMerkleTreeRejectsEmpty(t *testing.T) {
 	t.Parallel()
 
 	_, err := CalculateMerkleTree(nil)
-	require.Error(t, err)
+	require.ErrorContains(t, err, "no transactions provided")
 }

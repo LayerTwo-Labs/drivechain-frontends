@@ -14,6 +14,17 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/rs/zerolog"
+	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
@@ -30,16 +41,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/rs/zerolog"
-	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ rpc.WalletServiceHandler = new(Server)

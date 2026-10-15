@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"embed"
 
-	"github.com/LayerTwo-Labs/sidesail/sqlitemigrate"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/sqlitemigrate"
 )
 
 //go:embed migrations/*.sql

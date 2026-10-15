@@ -5,20 +5,18 @@ package integrationtest
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+	"github.com/tyler-smith/go-bip32"
+
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
-	"github.com/stretchr/testify/require"
-	"github.com/tyler-smith/go-bip32"
 )
 
 // generateTestXpub creates a fresh BIP84 account-level tpub for watch-only testing.
@@ -40,35 +38,6 @@ func generateTestXpub(t *testing.T) string {
 	raw := serialized[:78]
 	copy(raw[0:4], []byte{0x04, 0x35, 0x87, 0xCF})
 	return wallet.Base58CheckEncode(raw)
-}
-
-// writeTestWalletJSON creates a wallet.json in walletDir with the given wallet ID and seed.
-func writeTestWalletJSON(t *testing.T, walletDir, walletID, seedHex string) {
-	t.Helper()
-
-	walletData := map[string]any{
-		"version":        1,
-		"activeWalletId": walletID,
-		"wallets": []map[string]any{
-			{
-				"id":          walletID,
-				"name":        "Test Enforcer",
-				"wallet_type": "enforcer",
-				"master": map[string]any{
-					"seed_hex": seedHex,
-				},
-				"l1": map[string]any{
-					"mnemonic": "",
-				},
-			},
-		},
-	}
-
-	data, err := json.MarshalIndent(walletData, "", "  ")
-	require.NoError(t, err)
-
-	err = os.WriteFile(filepath.Join(walletDir, "wallet.json"), data, 0600)
-	require.NoError(t, err)
 }
 
 // TestBitwindowWalletIntegration exercises the orchestrator's WalletManagerService
@@ -223,7 +192,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		_, err = client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
 			Destinations: map[string]int64{"bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080": 1_000_000},
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "Private keys are disabled for this wallet")
 		t.Logf("watch-only send correctly failed: %v", err)
 	})
 

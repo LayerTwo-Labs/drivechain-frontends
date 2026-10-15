@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
-	"github.com/stretchr/testify/require"
 )
 
 // The same transaction can appear in two of the user's wallets. A note written

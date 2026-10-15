@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 )
 
 // MockNotificationEngine for testing
@@ -76,9 +77,7 @@ func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
 				"info": "l1-withdrawal-txid-789",
 			},
 		}
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			t.Errorf("failed to encode response: %v", err)
-		}
+		assert.NoError(t, json.NewEncoder(w).Encode(response))
 	}))
 	defer mockServer.Close()
 

@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
-	"github.com/stretchr/testify/require"
 )
 
 // Exporting and re-importing transactions.json must preserve every field.

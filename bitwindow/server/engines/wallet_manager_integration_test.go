@@ -8,12 +8,14 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
+
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 // Test seed for reproducible testing (DO NOT USE IN PRODUCTION)
@@ -59,40 +61,28 @@ func TestDescriptorImportIntegration(t *testing.T) {
 		rpcUser,
 		rpcPass,
 	)
-	if err != nil {
-		t.Fatalf("create bitcoind client: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Test chain params (signet)
 	chainParams := &chaincfg.SigNetParams
 
 	// Decode test seed
 	seed, err := hex.DecodeString(testSeedHex)
-	if err != nil {
-		t.Fatalf("decode seed: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Derive master key
 	masterKey, err := hdkeychain.NewMaster(seed, chainParams)
-	if err != nil {
-		t.Fatalf("derive master key: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Derive to BIP84 account level: m/84'/1'/0' (1' for testnet/signet)
 	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
-	if err != nil {
-		t.Fatalf("derive purpose: %v", err)
-	}
+	require.NoError(t, err)
 
 	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + 1) // 1' for testnet/signet
-	if err != nil {
-		t.Fatalf("derive coin type: %v", err)
-	}
+	require.NoError(t, err)
 
 	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		t.Fatalf("derive account: %v", err)
-	}
+	require.NoError(t, err)
 
 	accountXprv := account.String()
 	t.Logf("Account xprv: %s", accountXprv)
@@ -121,9 +111,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 		Passphrase:         "",
 		AvoidReuse:         false,
 	}))
-	if err != nil {
-		t.Fatalf("create wallet: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Prepare descriptors
 	descriptors := []struct {
@@ -145,9 +133,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 		// Don't use GetDescriptorInfo - it strips private keys!
 		// Compute checksum ourselves to keep private keys intact
 		descriptorWithChecksum, err := orchwallet.AddDescriptorChecksum(d.desc)
-		if err != nil {
-			t.Fatalf("compute checksum: %v", err)
-		}
+		require.NoError(t, err)
 		t.Logf("Descriptor (with checksum): %s", descriptorWithChecksum)
 
 		// Use timestamp=nil for "now" to skip rescan (faster for empty wallet)
@@ -167,9 +153,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 		Wallet:   testWalletName,
 		Requests: requests,
 	}))
-	if err != nil {
-		t.Fatalf("import descriptors: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Check results
 	for i, result := range resp.Msg.Responses {
@@ -209,9 +193,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 		Wallet: testWalletName,
 		Label:  "", // Empty label for ranged descriptors
 	}))
-	if err != nil {
-		t.Fatalf("generate address: %v", err)
-	}
+	require.NoError(t, err)
 
 	t.Logf("Generated address: %s", addrResp.Msg.Address)
 
@@ -220,9 +202,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 	infoResp, err := bitcoindClient.GetWalletInfo(ctx, connect.NewRequest(&corepb.GetWalletInfoRequest{
 		Wallet: testWalletName,
 	}))
-	if err != nil {
-		t.Fatalf("get wallet info: %v", err)
-	}
+	require.NoError(t, err)
 
 	t.Logf("Wallet info:")
 	t.Logf("  Name: %s", infoResp.Msg.WalletName)

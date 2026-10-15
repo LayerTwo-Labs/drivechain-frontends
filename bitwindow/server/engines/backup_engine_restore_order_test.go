@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
-	"github.com/stretchr/testify/require"
 )
 
 // A backup whose multisig data cannot be imported must leave the current
@@ -33,7 +34,7 @@ func TestRestoreBackup_FailedImport_KeepsExistingWallet(t *testing.T) {
 	require.NoError(t, zw.Close())
 
 	err := e.RestoreBackup(ctx, buf.Bytes(), "backup.zip")
-	require.Error(t, err, "a backup that cannot be imported must fail")
+	require.ErrorContains(t, err, "import multisig data: unmarshal json", "a backup that cannot be imported must fail")
 
 	after, err := os.ReadFile(walletPath)
 	require.NoError(t, err)

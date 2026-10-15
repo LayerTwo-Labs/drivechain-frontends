@@ -13,16 +13,17 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 )
 
 const (

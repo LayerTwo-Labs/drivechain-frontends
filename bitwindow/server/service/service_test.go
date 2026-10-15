@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 )
 
 func TestConnect(t *testing.T) {

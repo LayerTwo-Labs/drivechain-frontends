@@ -17,6 +17,15 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/rs/zerolog"
+	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/pool"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -38,14 +47,6 @@ import (
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/rs/zerolog"
-	"github.com/samber/lo"
-	"github.com/sourcegraph/conc/pool"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ rpc.BitwindowdServiceHandler = new(Server)

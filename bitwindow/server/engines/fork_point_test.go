@@ -6,15 +6,15 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 )
 
 // hashAt is a distinct block hash per height and chain.

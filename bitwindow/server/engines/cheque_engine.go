@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 )
 
 // Derivation path for cheques: m/44'/0'/999'/{index}

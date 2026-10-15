@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
-	"github.com/stretchr/testify/require"
 )
 
 type validatorHandler struct {
@@ -49,6 +50,5 @@ func TestValidatorUsesTheOrchestratorCookie(t *testing.T) {
 
 	SetCookieDir("")
 	_, err = EnforcerValidator(t.Context(), server.URL)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "unauthenticated")
+	require.ErrorContains(t, err, "unauthenticated")
 }

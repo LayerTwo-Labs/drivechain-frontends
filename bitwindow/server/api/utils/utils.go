@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	"github.com/btcsuite/btcd/chaincfg"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	utilspb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
-	"github.com/btcsuite/btcd/chaincfg"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var _ rpc.UtilsServiceHandler = new(Server)

@@ -9,6 +9,11 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	m4pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1"
@@ -17,10 +22,6 @@ import (
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestService_GetM4History(t *testing.T) {

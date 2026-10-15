@@ -3,10 +3,11 @@ package engines
 import (
 	"slices"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 )
 
 // coinbaseFacts is what the block's coinbase shows about who mined it.

@@ -21,6 +21,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	healthv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1"
 	healthv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1/healthv1connect"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -31,9 +35,6 @@ import (
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const testEnforcerMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
@@ -92,11 +93,7 @@ func TestBackendRuntimeOwnershipSmoke(t *testing.T) {
 func buildBitwindowd(t *testing.T, outDir string) string {
 	t.Helper()
 
-	binName := "bitwindowd"
-	if runtime.GOOS == "windows" {
-		binName += ".exe"
-	}
-	binPath := filepath.Join(outDir, binName)
+	binPath := filepath.Join(outDir, "bitwindowd")
 
 	cmd := exec.Command("go", "build", "-o", binPath, ".")
 	cmd.Dir = filepath.Join(repoRoot(t), "bitwindow", "server")
@@ -324,13 +321,6 @@ func copyManagedBinary(t *testing.T, srcPath, dstPath string) {
 	require.NoError(t, os.WriteFile(dstPath, data, 0o755))
 }
 
-func homeDir(t *testing.T) string {
-	t.Helper()
-	home, err := os.UserHomeDir()
-	require.NoError(t, err)
-	return home
-}
-
 func (n *orchestratorOnlyNode) Close(t *testing.T) {
 	t.Helper()
 	if n.OrchdCmd != nil {
@@ -422,11 +412,7 @@ func findBitcoind(t *testing.T) string {
 
 func buildDrivechaind(t *testing.T, outDir string) string {
 	t.Helper()
-	binName := "drivechaind"
-	if runtime.GOOS == "windows" {
-		binName += ".exe"
-	}
-	binPath := filepath.Join(outDir, binName)
+	binPath := filepath.Join(outDir, "drivechaind")
 	cmd := exec.Command("go", "build", "-o", binPath, ".")
 	cmd.Dir = filepath.Join(repoRoot(t), "sidechain-orchestrator", "cmd", "drivechaind")
 	cmd.Stdout = os.Stdout

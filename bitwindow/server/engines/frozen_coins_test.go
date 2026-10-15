@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func engineWithClient(t *testing.T, client *mocks.MockWalletManagerServiceClient) *engines.WalletEngine {

@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // Group represents a multisig group stored in the DB.

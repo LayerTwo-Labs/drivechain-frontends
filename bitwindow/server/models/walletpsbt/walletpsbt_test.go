@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/walletpsbt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/walletpsbt"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -52,7 +53,7 @@ func TestSaveRequiresWalletID(t *testing.T) {
 	store := walletpsbt.NewStore(setupTestDB(t))
 
 	_, err := store.Save(context.Background(), walletpsbt.Draft{PSBTBase64: "cHNidP8B"})
-	require.Error(t, err)
+	require.ErrorContains(t, err, "wallet id is required")
 }
 
 func TestListByWallet(t *testing.T) {
