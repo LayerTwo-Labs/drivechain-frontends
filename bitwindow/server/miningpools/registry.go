@@ -206,7 +206,7 @@ type Registry struct {
 	url   string
 	parse Parse
 	fetch Fetch
-	log   zerolog.Logger
+	ctx   context.Context
 
 	mu         sync.Mutex
 	pools      []Pool
@@ -232,7 +232,7 @@ func New(ctx context.Context, network config.Network, ecashID, datadir string, f
 		url:   url,
 		parse: parse,
 		fetch: fetch,
-		log:   zerolog.Ctx(ctx).With().Str("registry", url).Logger(),
+		ctx:   zerolog.Ctx(ctx).With().Str("registry", url).Logger().WithContext(context.WithoutCancel(ctx)),
 		pools: seedFor(network, ecashID),
 	}
 	if len(r.pools) > 0 {
@@ -277,14 +277,14 @@ func (r *Registry) refresh() {
 	defer r.mu.Unlock()
 	r.refreshing = false
 	if err != nil {
-		r.log.Warn().Err(err).Str("source", r.source).Msg("refresh mining pool registry: keep the last list")
+		zerolog.Ctx(r.ctx).Warn().Err(err).Str("source", r.source).Msg("refresh mining pool registry: keep the last list")
 		return
 	}
 	r.pools, r.source = pools, r.url
 }
 
 func (r *Registry) read() ([]Pool, error) {
-	body, err := r.fetch(context.Background(), r.url)
+	body, err := r.fetch(r.ctx, r.url)
 	if err != nil {
 		return nil, err
 	}

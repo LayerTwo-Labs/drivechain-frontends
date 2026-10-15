@@ -77,6 +77,9 @@ type Services struct {
 	// auth disabled.
 	BitwindowDir string
 
+	// Lease tracks live client connections. Tests leave it nil.
+	Lease *lease.Lease
+
 	// Test overrides: when set, buildRuntime uses these instead of opening
 	// fresh from disk. Production callers leave these zero.
 	Database    *sql.DB
@@ -91,7 +94,6 @@ type Services struct {
 type Server struct {
 	// long-lived (stable across network swaps)
 	server  *http.Server
-	clients *lease.Lease
 	topSwap *swappableHandler
 
 	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
@@ -126,15 +128,9 @@ type Server struct {
 	rootCtx context.Context
 }
 
-// SetLease hands over the client lease so the server can report live
-// connections. Call before Serve.
-func (s *Server) SetLease(l *lease.Lease) {
-	s.clients = l
-}
-
 func (s *Server) leaseConnState(c net.Conn, state http.ConnState) {
-	if s.clients != nil {
-		s.clients.ConnState(c, state)
+	if s.svcs.Lease != nil {
+		s.svcs.Lease.ConnState(c, state)
 	}
 }
 

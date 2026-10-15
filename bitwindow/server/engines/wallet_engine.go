@@ -115,16 +115,19 @@ type WalletEngine struct {
 }
 
 func NewWalletEngine(
+	ctx context.Context,
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error),
 	orchClient orchrpc.WalletManagerServiceClient,
 	walletDir string,
 	chainParams *chaincfg.Params,
+	frozenCoins FrozenCoinsFunc,
 ) *WalletEngine {
 	e := &WalletEngine{
 		bitcoindConnector: bitcoindConnector,
 		orchClient:        orchClient,
 		walletDir:         walletDir,
 		chainParams:       chainParams,
+		frozenCoins:       frozenCoins,
 		isUnlocked:        false,
 		coreWallets:       make(map[string]string),
 		walletCache:       make(map[string]*WalletInfo),
@@ -137,27 +140,20 @@ func NewWalletEngine(
 		walletData, err := wallet.LoadUnencryptedWallet(walletDir)
 		switch {
 		case err == nil:
-			if unlockErr := e.Unlock(walletData); unlockErr != nil {
-				zerolog.Ctx(context.Background()).Warn().Err(unlockErr).Msg("unlock wallet engine")
+			if unlockErr := e.Unlock(ctx, walletData); unlockErr != nil {
+				zerolog.Ctx(ctx).Warn().Err(unlockErr).Msg("unlock wallet engine")
 			}
 		case !errors.Is(err, os.ErrNotExist):
-			zerolog.Ctx(context.Background()).Warn().Err(err).Msg("load wallet for the wallet engine")
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("load wallet for the wallet engine")
 		}
 	}
 
 	return e
 }
 
-// FrozenCoinsFunc names the coins the user froze, as txid:vout.
+// FrozenCoinsFunc names the coins the user froze, as txid:vout. Every send
+// this server makes leaves those coins alone.
 type FrozenCoinsFunc func(ctx context.Context) ([]string, error)
-
-// SetFrozenCoins wires the source that names the coins the user froze. Every
-// send this server makes leaves those coins alone.
-func (e *WalletEngine) SetFrozenCoins(fn FrozenCoinsFunc) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	e.frozenCoins = fn
-}
 
 // frozenCoinsInterval is how often the set goes over again. A drivechaind
 // restart drops the set it holds, and nothing here sees that restart. The
@@ -193,17 +189,10 @@ func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
 // One push runs at a time. The set is read and sent under the same lock, so a
 // slow push cannot land after a newer one and put the older set back.
 func (e *WalletEngine) pushFrozenCoins(ctx context.Context) error {
-	e.mu.RLock()
-	fn := e.frozenCoins
-	e.mu.RUnlock()
-	if fn == nil {
-		return nil
-	}
-
 	e.frozenPushMu.Lock()
 	defer e.frozenPushMu.Unlock()
 
-	outpoints, err := fn(ctx)
+	outpoints, err := e.frozenCoins(ctx)
 	if err != nil {
 		return fmt.Errorf("read the frozen coins: %w", err)
 	}
@@ -249,7 +238,7 @@ func (e *WalletEngine) NodeMode() *NodeMode {
 // ============================================================================
 
 // Unlock loads the seed into memory from decrypted wallet data
-func (e *WalletEngine) Unlock(walletData map[string]any) error {
+func (e *WalletEngine) Unlock(ctx context.Context, walletData map[string]any) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -316,7 +305,7 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	if !ok || seedHex == "" {
 		// Multisig and watch-only wallets have no master seed, so the cheque
 		// engine has nothing to unlock. Skip rather than fail.
-		zerolog.Ctx(context.Background()).Info().Msg("active wallet has no master seed (multisig/watch-only), skipping cheque engine unlock")
+		zerolog.Ctx(ctx).Info().Msg("active wallet has no master seed (multisig/watch-only), skipping cheque engine unlock")
 		return nil
 	}
 
@@ -326,7 +315,7 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	}
 
 	// Cache all wallet metadata for encrypted wallets
-	log := zerolog.Ctx(context.Background())
+	log := zerolog.Ctx(ctx)
 	walletCache := make(map[string]*WalletInfo)
 	for i, w := range wallets {
 		walletMap, ok := w.(map[string]any)
@@ -378,10 +367,9 @@ func (e *WalletEngine) IsUnlocked() bool {
 // GetStarterSeed returns the seed hex of the wallet that derives the L1 and
 // sidechain starters. BitDrive and ChequeEngine key off it, so it must name the
 // same wallet for the life of the install.
-func (e *WalletEngine) GetStarterSeed() (string, error) {
+func (e *WalletEngine) GetStarterSeed(ctx context.Context) (string, error) {
 	// GetWalletSeed names its wallet, so resolve the starter's id before
 	// asking for its seed.
-	ctx := context.Background()
 	list, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
 	if err != nil {
 		return "", fmt.Errorf("list wallets: %w", err)
@@ -404,8 +392,8 @@ func (e *WalletEngine) GetStarterSeed() (string, error) {
 
 // GetWalletSeed returns the seed hex for a specific wallet by ID
 // Used by ChequeEngine for per-wallet cheque address derivation
-func (e *WalletEngine) GetWalletSeed(walletID string) (string, error) {
-	resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{
+func (e *WalletEngine) GetWalletSeed(ctx context.Context, walletID string) (string, error) {
+	resp, err := e.orchClient.GetWalletSeed(ctx, connect.NewRequest(&orchpb.GetWalletSeedRequest{
 		WalletId: walletID,
 	}))
 	if err != nil {

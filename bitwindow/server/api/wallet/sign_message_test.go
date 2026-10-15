@@ -183,12 +183,14 @@ func TestSignAndVerifyMessageWithoutNode(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "wallet.json"), walletData, 0o600))
 
 	walletEngine := engines.NewWalletEngine(
+		t.Context(),
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return nil, errors.New("no bitcoind in light mode")
 		},
 		mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)),
 		tempDir,
 		&chaincfg.SigNetParams,
+		nil,
 	)
 	require.True(t, walletEngine.IsUnlocked(), "unencrypted wallets auto-unlock at startup")
 

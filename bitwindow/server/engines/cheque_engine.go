@@ -92,9 +92,9 @@ func (e *ChequeEngine) deriveChequeKey(seedHex string, index uint32) (*hdkeychai
 
 // DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
 // for a specific wallet
-func (e *ChequeEngine) DeriveChequeAddress(walletID string, index uint32) (string, error) {
+func (e *ChequeEngine) DeriveChequeAddress(ctx context.Context, walletID string, index uint32) (string, error) {
 	// Get seed from wallet engine for the specific wallet
-	seedHex, err := e.walletEngine.GetWalletSeed(walletID)
+	seedHex, err := e.walletEngine.GetWalletSeed(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
@@ -126,9 +126,9 @@ func (e *ChequeEngine) chequeAddress(seedHex string, index uint32) (string, erro
 
 // DeriveChequePrivateKey derives the WIF private key at m/44'/0'/999'/{index}
 // for a specific wallet
-func (e *ChequeEngine) DeriveChequePrivateKey(walletID string, index uint32) (string, error) {
+func (e *ChequeEngine) DeriveChequePrivateKey(ctx context.Context, walletID string, index uint32) (string, error) {
 	// Get seed from wallet engine for the specific wallet
-	seedHex, err := e.walletEngine.GetWalletSeed(walletID)
+	seedHex, err := e.walletEngine.GetWalletSeed(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
@@ -154,7 +154,7 @@ func (e *ChequeEngine) DeriveChequePrivateKey(walletID string, index uint32) (st
 // ScanForFunds scans the first count addresses for UTXOs for a specific wallet
 func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, count int) ([]ChequeRecovery, error) {
 	// Get seed from wallet engine for the specific wallet
-	seedHex, err := e.walletEngine.GetWalletSeed(walletID)
+	seedHex, err := e.walletEngine.GetWalletSeed(ctx, walletID)
 	if err != nil {
 		return nil, err
 	}

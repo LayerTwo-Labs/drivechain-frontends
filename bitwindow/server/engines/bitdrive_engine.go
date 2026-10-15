@@ -240,10 +240,10 @@ func (e *BitDriveEngine) DeriveKeyStream(ctx context.Context, nonce []byte, time
 }
 
 // getEncryptionPrivateKey derives the encryption key from path m/84'/1'/0'/0/4000
-func (e *BitDriveEngine) getEncryptionPrivateKey(_ context.Context) (string, error) {
-	seed, err := e.walletEngine.GetStarterSeed()
+func (e *BitDriveEngine) getEncryptionPrivateKey(ctx context.Context) (string, error) {
+	seed, err := e.walletEngine.GetStarterSeed(ctx)
 	if err != nil {
-		return "", fmt.Errorf("get enforcer seed: %w", err)
+		return "", fmt.Errorf("get starter seed: %w", err)
 	}
 
 	seedBytes, err := hex.DecodeString(seed)
@@ -296,10 +296,10 @@ func (e *BitDriveEngine) getEncryptionPrivateKey(_ context.Context) (string, err
 }
 
 // getAuthKey derives the authentication key from path m/84'/1'/0'/1/4000
-func (e *BitDriveEngine) getAuthKey(_ context.Context) ([]byte, error) {
-	seed, err := e.walletEngine.GetStarterSeed()
+func (e *BitDriveEngine) getAuthKey(ctx context.Context) ([]byte, error) {
+	seed, err := e.walletEngine.GetStarterSeed(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get enforcer seed: %w", err)
+		return nil, fmt.Errorf("get starter seed: %w", err)
 	}
 
 	seedBytes, err := hex.DecodeString(seed)

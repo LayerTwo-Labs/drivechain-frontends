@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
@@ -104,7 +105,7 @@ func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 		AnyTimes()
 
 	return &BitDriveEngine{
-		walletEngine: NewWalletEngine(nil, orch, t.TempDir(), &chaincfg.SigNetParams),
+		walletEngine: NewWalletEngine(t.Context(), nil, orch, t.TempDir(), &chaincfg.SigNetParams, nil),
 		chainParams:  &chaincfg.SigNetParams,
 	}
 }
@@ -444,9 +445,14 @@ func newStoreTestEngine(t *testing.T) (*BitDriveEngine, *[]string) {
 			return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: "txid"}), nil
 		}).
 		AnyTimes()
+	orch.EXPECT().
+		SetFrozenCoins(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(connect.NewResponse(&emptypb.Empty{}), nil)
 
+	noFrozenCoins := func(context.Context) ([]string, error) { return nil, nil }
 	return &BitDriveEngine{
-		walletEngine: NewWalletEngine(nil, orch, walletDir, &chaincfg.SigNetParams),
+		walletEngine: NewWalletEngine(t.Context(), nil, orch, walletDir, &chaincfg.SigNetParams, noFrozenCoins),
 		chainParams:  &chaincfg.SigNetParams,
 	}, &sent
 }

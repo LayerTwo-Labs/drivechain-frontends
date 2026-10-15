@@ -1,6 +1,7 @@
 package miningpools
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -146,6 +148,26 @@ func TestRegistry(t *testing.T) {
 		settle(t, r)
 
 		assert.EqualValues(t, 1, fetches.Load())
+	})
+
+	t.Run("the fetch gets the logger of New and outlives its cancel", func(t *testing.T) {
+		t.Parallel()
+		var logs bytes.Buffer
+		parent, cancel := context.WithCancel(zerolog.New(&logs).WithContext(ctx))
+		release := make(chan struct{})
+		var fetchErr error
+		r := New(parent, config.NetworkECash, "alphanet", "", func(ctx context.Context, _ string) ([]byte, error) {
+			<-release
+			fetchErr = ctx.Err()
+			zerolog.Ctx(ctx).Info().Msg("fetch")
+			return []byte(onePool), nil
+		})
+		cancel()
+		close(release)
+		settle(t, r)
+
+		require.NoError(t, fetchErr)
+		assert.Contains(t, logs.String(), `"registry":"https://pool.drivechain.info/networks/alphanet/pools.json"`)
 	})
 
 	t.Run("a network with no registry is not available", func(t *testing.T) {

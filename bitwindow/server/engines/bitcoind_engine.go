@@ -40,6 +40,8 @@ func NewBitcoind(
 	db *sql.DB,
 	conf config.Config,
 	chainParams *chaincfg.Params,
+	nodeMode *NodeMode,
+	coinnewsLog *zerolog.Logger,
 ) *Parser {
 	return &Parser{
 		bitcoind:    bitcoind,
@@ -48,6 +50,8 @@ func NewBitcoind(
 		conf:        conf,
 		chainParams: chainParams,
 		m4Engine:    NewM4Engine(db),
+		nodeMode:    nodeMode,
+		coinnewsLog: coinnewsLog,
 	}
 }
 
@@ -64,18 +68,6 @@ type Parser struct {
 
 	// Dedicated sink for coinnews sync events. Nil => logging disabled.
 	coinnewsLog *zerolog.Logger
-}
-
-// SetNodeMode gates the block tick on the node mode. Light mode runs no local
-// Bitcoin Core, so there is nothing to parse.
-func (p *Parser) SetNodeMode(nodeMode *NodeMode) {
-	p.nodeMode = nodeMode
-}
-
-// SetCoinnewsLogger attaches a dedicated logger for coinnews sync events.
-// Passing nil disables coinnews-sync logging.
-func (p *Parser) SetCoinnewsLogger(logger *zerolog.Logger) {
-	p.coinnewsLog = logger
 }
 
 // Run runs the engine. It checks if a new block has been mined,
@@ -941,7 +933,7 @@ func (p *Parser) scanFloor(currentHeight uint32) uint32 {
 
 // logCoinnews emits a detailed line to the dedicated coinnews-sync log when
 // the OP_RETURN's first 4 bytes match a known cn_topics entry.
-// No-op if no logger is attached (SetCoinnewsLogger not called).
+// No-op if no logger is attached.
 func (p *Parser) logCoinnews(ctx context.Context, txid string, vout int, data []byte, height *uint32) {
 	if p.coinnewsLog == nil || len(data) < 4 {
 		return

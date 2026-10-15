@@ -296,7 +296,7 @@ func TestVerifiedOrchestratorRunningSaysNoOnADeadPort(t *testing.T) {
 	addr := "http://" + listener.Addr().String()
 	require.NoError(t, listener.Close())
 
-	running, err := verifiedOrchestratorRunning(addr, t.TempDir())
+	running, err := verifiedOrchestratorRunning(t.Context(), addr, t.TempDir())
 
 	require.NoError(t, err)
 	assert.False(t, running)

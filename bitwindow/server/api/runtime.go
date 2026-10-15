@@ -120,6 +120,7 @@ type Runtime struct {
 	conf        config.Config
 	chainParams *chaincfg.Params
 	walletDir   string
+	coinnewsLog *os.File
 }
 
 // coinnewsLogPath returns the coinnews log of the active network.
@@ -178,30 +179,26 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		)
 	}
 	rt.walletEngine = engines.NewWalletEngine(
+		ctx,
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return s.Bitcoind.Get(ctx)
 		},
 		orchClient,
 		rt.walletDir,
 		rt.chainParams,
+		// A coin the user froze belongs to no send of ours: not a news
+		// broadcast, not a timestamp, not a BitDrive write.
+		func(ctx context.Context) ([]string, error) {
+			return utxometadata.FrozenOutpoints(ctx, rt.db)
+		},
 	)
-
-	// A coin the user froze belongs to no send of ours: not a news broadcast,
-	// not a timestamp, not a BitDrive write.
-	db := rt.db
-	rt.walletEngine.SetFrozenCoins(func(ctx context.Context) ([]string, error) {
-		return utxometadata.FrozenOutpoints(ctx, db)
-	})
 
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
 	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain)
 	walletAdapter := engines.NewWalletAdapter(rt.walletEngine)
-	timestampLogger := log.With().Str("component", "timestamp").Logger()
-	rt.timestampEngine = engines.NewTimestampEngine(rt.db, timestampLogger, walletAdapter, s.Bitcoind)
-	rt.timestampEngine.SetNodeMode(rt.walletEngine.NodeMode())
+	rt.timestampEngine = engines.NewTimestampEngine(rt.db, walletAdapter, s.Bitcoind, rt.walletEngine.NodeMode())
 	rt.m4Engine = engines.NewM4Engine(rt.db)
-	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind)
-	rt.notificationEngine.SetNodeMode(rt.walletEngine.NodeMode())
+	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind, rt.walletEngine.NodeMode())
 	bitdriveEngine, err := engines.NewBitDriveEngine(rt.db, rt.walletEngine, conf.Datadir, rt.chainParams)
 	if err != nil {
 		return nil, err
@@ -217,22 +214,23 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		rt.db, rt.walletEngine, rt.notificationEngine,
 		func(ctx context.Context) ([]uint32, error) { return activeSidechainSlots(ctx, s.Enforcer) },
 	)
-	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams)
-	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())
 
+	var coinnewsLogger *zerolog.Logger
 	coinnewsLogPath := coinnewsLogPath(conf)
 	if coinnewsFile, err := os.OpenFile(coinnewsLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
+		rt.coinnewsLog = coinnewsFile
 		coinnewsWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
 			w.Out = coinnewsFile
 			w.NoColor = true
 			w.TimeFormat = time.DateTime + ".000"
 		})
-		coinnewsLogger := zerolog.New(coinnewsWriter).With().Timestamp().Logger()
-		rt.bitcoinEngine.SetCoinnewsLogger(&coinnewsLogger)
+		logger := zerolog.New(coinnewsWriter).With().Timestamp().Logger()
+		coinnewsLogger = &logger
 		log.Info().Str("path", coinnewsLogPath).Msg("coinnews sync log enabled")
 	} else {
 		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("open coinnews-sync.log: skip the dedicated log")
 	}
+	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams, rt.walletEngine.NodeMode(), coinnewsLogger)
 
 	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
 	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, coreRawCall(s), func(ctx context.Context) (<-chan engines.SequenceMsg, func(), error) {
@@ -241,8 +239,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 			return nil, nil, err
 		}
 		return engines.NewZmqEngine(addr).SubscribeSequence(ctx)
-	})
-	rt.mempoolWatcher.SetNodeMode(rt.walletEngine.NodeMode())
+	}, rt.walletEngine.NodeMode())
 
 	// Register Connect sub-handlers on rt.mux. All registrations capture
 	// rt's db + engines, so when this runtime is replaced, none of these
@@ -376,14 +373,6 @@ func (rt *Runtime) Start(parent context.Context) {
 	go func() {
 		defer rt.wg.Done()
 		<-chequeDone
-	}()
-
-	// Auto-unlock any unencrypted wallet from disk. Mirrors the previous
-	// main.go startup logic; runs once per runtime.
-	rt.wg.Add(1)
-	go func() {
-		defer rt.wg.Done()
-		rt.autoUnlockWallet(rt.ctx)
 	}()
 
 	// Coin selection runs in drivechaind, and a restart of it drops the frozen
@@ -530,40 +519,6 @@ func zmqAddress(ctx context.Context, conf config.Config, notifType string) (stri
 	return notif.Address, nil
 }
 
-func (rt *Runtime) autoUnlockWallet(ctx context.Context) {
-	log := zerolog.Ctx(ctx)
-	walletPath := filepath.Join(rt.walletDir, "wallet.json")
-	encryptionMetadataPath := filepath.Join(rt.walletDir, "wallet_encryption.json")
-
-	if _, err := os.Stat(walletPath); err != nil {
-		return
-	}
-	if _, err := os.Stat(encryptionMetadataPath); err == nil {
-		log.Info().Msg("wallet is encrypted, skipping auto-unlock")
-		return
-	}
-
-	log.Info().Msg("unencrypted wallet detected, auto-unlocking cheque engine")
-
-	walletData, err := os.ReadFile(walletPath)
-	if err != nil {
-		log.Error().Err(err).Msg("auto-unlock: read wallet")
-		return
-	}
-
-	var walletMap map[string]any
-	if err := json.Unmarshal(walletData, &walletMap); err != nil {
-		log.Error().Err(err).Msg("auto-unlock: parse wallet")
-		return
-	}
-
-	if err := rt.walletEngine.Unlock(walletMap); err != nil {
-		log.Error().Err(err).Msg("auto-unlock wallet engine")
-		return
-	}
-	log.Info().Msg("wallet engine auto-unlocked successfully")
-}
-
 // Handler wraps the runtime mux so in-flight requests are tracked in
 // rt.inflight; Close drains them before closing the DB.
 func (rt *Runtime) Handler() http.Handler {
@@ -594,7 +549,15 @@ func (rt *Runtime) Close() {
 	case <-time.After(10 * time.Second):
 	}
 
-	_ = rt.db.Close()
+	log := zerolog.Ctx(rt.ctx)
+	if err := rt.db.Close(); err != nil {
+		log.Warn().Err(err).Str("datadir", rt.conf.Datadir).Msg("close runtime: close the database")
+	}
+	if rt.coinnewsLog != nil {
+		if err := rt.coinnewsLog.Close(); err != nil {
+			log.Warn().Err(err).Str("path", rt.coinnewsLog.Name()).Msg("close runtime: close the coinnews log")
+		}
+	}
 }
 
 func chainParamsFor(network config.Network) *chaincfg.Params {

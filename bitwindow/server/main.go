@@ -279,6 +279,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		OrchestratorAddr:    conf.OrchestratorAddr,
 		EnforcerJSONRPCAddr: conf.EnforcerJSONRPCAddr,
 		BitwindowDir:        bitwindowDir,
+		Lease:               clients,
 	}
 
 	// api.New builds the long-lived service connectors, then constructs the
@@ -297,7 +298,6 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	if err != nil {
 		return err
 	}
-	srv.SetLease(clients)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
@@ -425,7 +425,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	// sidechains stay up, and the fresh daemon adopts them by their RPC
 	// ports. Verify the cookie first: without it the stop RPC carries the
 	// bearer token to any listener on the port.
-	running, err := verifiedOrchestratorRunning(conf.OrchestratorAddr, bitwindowDir)
+	running, err := verifiedOrchestratorRunning(ctx, conf.OrchestratorAddr, bitwindowDir)
 	if err != nil {
 		return nil, err
 	}
@@ -690,7 +690,7 @@ func (s drivechaindSupervisor) stopOrphan(cmd *exec.Cmd) {
 	event.Msg("stopped the drivechaind started during the shutdown")
 }
 
-func verifiedOrchestratorRunning(addr, bitwindowDir string) (bool, error) {
+func verifiedOrchestratorRunning(ctx context.Context, addr, bitwindowDir string) (bool, error) {
 	hostPort, err := orchestratorHostPort(addr)
 	if err != nil {
 		return false, err
@@ -701,7 +701,7 @@ func verifiedOrchestratorRunning(addr, bitwindowDir string) (bool, error) {
 	}
 	_ = conn.Close()
 
-	ok, err := verifyExistingOrchestrator(addr, bitwindowDir)
+	ok, err := verifyExistingOrchestrator(ctx, addr, bitwindowDir)
 	if err != nil {
 		return false, fmt.Errorf("orchestrator RPC address %s is already in use by an unverified listener: %w", hostPort, err)
 	}
@@ -711,7 +711,7 @@ func verifiedOrchestratorRunning(addr, bitwindowDir string) (bool, error) {
 	return true, nil
 }
 
-func verifyExistingOrchestrator(addr, bitwindowDir string) (bool, error) {
+func verifyExistingOrchestrator(ctx context.Context, addr, bitwindowDir string) (bool, error) {
 	token, err := localauth.ReadCookie(bitwindowDir)
 	if err != nil {
 		return false, fmt.Errorf("read local auth cookie: %w", err)
@@ -735,7 +735,7 @@ func verifyExistingOrchestrator(addr, bitwindowDir string) (bool, error) {
 	q.Set("nonce", nonce)
 	u.RawQuery = q.Encode()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
