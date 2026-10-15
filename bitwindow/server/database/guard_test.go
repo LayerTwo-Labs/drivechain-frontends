@@ -1,13 +1,18 @@
 package database
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,4 +74,30 @@ func TestRecoversTransactionAfterDeletedDatabaseFile(t *testing.T) {
 	require.NoError(t, tx.Commit(), "a transaction must survive the database file being deleted")
 
 	require.FileExists(t, filepath.Join(dir, "bitwindow.db"))
+}
+
+func TestSafeDefer(t *testing.T) {
+	cases := []struct {
+		name    string
+		err     error
+		wantLog bool
+	}{
+		{name: "no error", err: nil, wantLog: false},
+		{name: "transaction done", err: fmt.Errorf("rollback: %w", sql.ErrTxDone), wantLog: false},
+		{name: "close error", err: errors.New("disk I/O error"), wantLog: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			ctx := zerolog.New(&buf).WithContext(t.Context())
+
+			SafeDefer(ctx, func() error { return tc.err })
+
+			if tc.wantLog {
+				require.Contains(t, buf.String(), "disk I/O error")
+			} else {
+				require.Empty(t, buf.String())
+			}
+		})
+	}
 }

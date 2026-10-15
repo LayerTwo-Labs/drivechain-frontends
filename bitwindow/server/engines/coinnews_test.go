@@ -3,6 +3,8 @@ package engines
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -414,5 +416,67 @@ func blockOfWithPrevHash(t *testing.T, datas [][]byte, blockTime time.Time, prev
 	return &wire.MsgBlock{
 		Header:       wire.BlockHeader{Timestamp: blockTime},
 		Transactions: []*wire.MsgTx{tx},
+	}
+}
+
+func TestInTx(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	insert := func(tx *sql.Tx, id string) error {
+		_, err := tx.ExecContext(ctx,
+			`INSERT INTO notified_events (event_type, event_id, notified_at) VALUES ('intx', ?, '')`, id)
+		return err
+	}
+	count := func() int {
+		var n int
+		require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM notified_events WHERE event_type = 'intx'`).Scan(&n))
+		return n
+	}
+
+	t.Run("error rolls back", func(t *testing.T) {
+		err := inTx(ctx, db, func(tx *sql.Tx) error {
+			require.NoError(t, insert(tx, "a"))
+			return errors.New("stop")
+		})
+		require.ErrorContains(t, err, "stop")
+		require.Zero(t, count())
+	})
+
+	t.Run("nil commits", func(t *testing.T) {
+		require.NoError(t, inTx(ctx, db, func(tx *sql.Tx) error {
+			return insert(tx, "b")
+		}))
+		require.Equal(t, 1, count())
+	})
+}
+
+func TestPurgeAtOrAbove_NamesTheFailedStatement(t *testing.T) {
+	cases := []struct {
+		name    string
+		drop    string
+		purge   func(context.Context, *sql.Tx) error
+		wantErr string
+	}{
+		{"coinnews", "cn_votes", func(ctx context.Context, tx *sql.Tx) error {
+			return purgeCoinNewsAtOrAboveTx(ctx, tx, 100)
+		}, "purge coinnews statement 2"},
+		{"m4", "m4_votes", func(ctx context.Context, tx *sql.Tx) error {
+			_, err := purgeM4AtOrAboveTx(ctx, tx, 100)
+			return err
+		}, "purge m4 statement 0"},
+		{"cheques", "cheque_funding_outputs", func(ctx context.Context, tx *sql.Tx) error {
+			return purgeChequesAtOrAboveTx(ctx, tx, 100)
+		}, "purge cheques statement 0"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			db := database.Test(t)
+			_, err := db.ExecContext(ctx, `DROP TABLE `+tc.drop)
+			require.NoError(t, err)
+
+			err = inTx(ctx, db, func(tx *sql.Tx) error { return tc.purge(ctx, tx) })
+			require.ErrorContains(t, err, tc.wantErr)
+		})
 	}
 }

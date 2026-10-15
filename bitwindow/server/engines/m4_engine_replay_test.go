@@ -302,3 +302,62 @@ func TestGenerateM4Bytes(t *testing.T) {
 		require.Equal(t, "02fe00ffff", hexStr)
 	})
 }
+
+func TestProcessBlocks_PersistFailureKeepsHeightUnprocessed(t *testing.T) {
+	blockTime := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name  string
+		table string
+		block func(t *testing.T) *wire.MsgBlock
+	}{
+		{"M3", "m3_messages", func(t *testing.T) *wire.MsgBlock {
+			return coinbaseBlockOf(m3ProposalScript(t, 0, [32]byte{0xab, 0xcd}), blockTime)
+		}},
+		{"M4", "m4_messages", func(t *testing.T) *wire.MsgBlock {
+			return coinbaseBlockOf(m4Script(t, 0x00), blockTime)
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			db := database.Test(t)
+			p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+			batch := []lo.Tuple2[uint32, *wire.MsgBlock]{lo.T2(uint32(100), tc.block(t))}
+
+			_, err := db.ExecContext(ctx, `CREATE TRIGGER fail_insert BEFORE INSERT ON `+tc.table+`
+				BEGIN SELECT RAISE(ABORT, 'insert refused'); END`)
+			require.NoError(t, err)
+
+			require.ErrorContains(t, p.processBlocks(ctx, batch), "insert refused")
+			tip, err := blocks.GetProcessedTip(ctx, db)
+			require.NoError(t, err)
+			require.Nil(t, tip)
+
+			_, err = db.ExecContext(ctx, `DROP TRIGGER fail_insert`)
+			require.NoError(t, err)
+
+			require.NoError(t, p.processBlocks(ctx, batch))
+			require.NoError(t, p.processBlocks(ctx, batch))
+			tip, err = blocks.GetProcessedTip(ctx, db)
+			require.NoError(t, err)
+			require.Equal(t, uint32(100), tip.Height)
+			var rows int
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+tc.table).Scan(&rows))
+			require.Equal(t, 1, rows)
+		})
+	}
+}
+
+func TestProcessBlock_SkipsMalformedM4(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	e := NewM4Engine(db)
+
+	payload := binary.BigEndian.AppendUint32(nil, m4.M4CommitmentHeader)
+	block := coinbaseBlockOf(opReturnScript(t, append(payload, 0x04)), time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC))
+
+	require.NoError(t, e.ProcessBlock(ctx, 100, block))
+	var rows int
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM m4_messages`).Scan(&rows))
+	require.Zero(t, rows)
+}

@@ -3,6 +3,7 @@ package engines
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
 // purgeChequesAtOrAboveTx drops the cheque fundings and sweeps confirmed in a
@@ -29,9 +30,9 @@ func purgeChequesAtOrAboveTx(ctx context.Context, tx *sql.Tx, height uint32) err
 		gone + `UPDATE cheques SET swept_txid = NULL, swept_at = NULL
 		WHERE swept_txid IN (SELECT txid FROM gone)`,
 	}
-	for _, q := range stmts {
+	for i, q := range stmts {
 		if _, err := tx.ExecContext(ctx, q, height); err != nil {
-			return err
+			return fmt.Errorf("purge cheques statement %d: %w", i, err)
 		}
 	}
 	return nil
