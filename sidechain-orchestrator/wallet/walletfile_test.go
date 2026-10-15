@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
@@ -72,7 +73,9 @@ func requireProtected(t *testing.T, path, password string, want []byte) {
 	require.True(t, walletfile.IsEncrypted(content))
 	info, err := os.Stat(path)
 	require.NoError(t, err)
-	require.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+	if runtime.GOOS != "windows" {
+		require.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+	}
 	require.Equal(t, want, decryptLeftover(t, path, password))
 }
 
@@ -109,7 +112,9 @@ func TestProtectPlaintextLeftovers(t *testing.T) {
 		require.Equal(t, seed, got)
 		info, err := os.Stat(path)
 		require.NoError(t, err)
-		require.Equal(t, os.FileMode(0o644), info.Mode().Perm())
+		if runtime.GOOS != "windows" {
+			require.Equal(t, os.FileMode(0o644), info.Mode().Perm())
+		}
 		require.NoFileExists(t, path+leftoverMetadataSuffix)
 	})
 
