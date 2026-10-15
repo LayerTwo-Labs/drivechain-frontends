@@ -592,29 +592,36 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 
 	slot, depositAddress, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
 	if err != nil {
-		return nil, fmt.Errorf("invalid deposit address: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deposit address: %w", err))
 	}
 	if slot != nil && c.Msg.Slot != 0 && *slot != c.Msg.Slot {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("the deposit address is for slot %d, this deposit is for slot %d", *slot, c.Msg.Slot))
 	}
 	if slot == nil && c.Msg.Slot == 0 {
-		return nil, fmt.Errorf("address is not a sidechain deposit address, expected slot or format: s<slot>_<address> or s9_<address>_<checksum>")
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			errors.New("address is not a sidechain deposit address, expected slot or format: s<slot>_<address> or s9_<address>_<checksum>"))
 	} else if slot == nil {
 		slot = &c.Msg.Slot
 	}
 	if *slot > 255 {
-		return nil, fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot))
 	}
 
 	amount, err := btcutil.NewAmount(c.Msg.Amount)
-	if err != nil || amount < 0 {
-		return nil, fmt.Errorf("invalid amount, must be a BTC-amount greater than zero")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parse amount: %w", err))
+	}
+	if amount <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid amount, must be a BTC-amount greater than zero"))
 	}
 
 	fee, err := btcutil.NewAmount(c.Msg.Fee)
-	if err != nil || fee < 0 {
-		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parse fee: %w", err))
+	}
+	if fee <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid fee, must be a BTC-amount greater than zero"))
 	}
 
 	txid, err := s.walletEngine.CreateDeposit(ctx, &orchpb.CreateDepositRequest{
@@ -1031,9 +1038,13 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 	}
 
 	walletData, err := wallet.DecryptWallet(s.walletDir, c.Msg.Password)
-	if err != nil {
+	if errors.Is(err, wallet.ErrIncorrectPassword) {
 		log.Warn().Err(err).Msg("failed to decrypt wallet")
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("incorrect password"))
+	}
+	if err != nil {
+		log.Error().Err(err).Msg("failed to decrypt wallet")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decrypt wallet: %w", err))
 	}
 
 	if err := s.walletEngine.Unlock(walletData); err != nil {
@@ -1382,11 +1393,15 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
 	}
 
-	// Try to find and mark the cheque as swept in database if it exists
 	cheque, err := cheques.GetByAddress(ctx, s.database, walletId, addressStr)
-	if err == nil && cheque.SweptTxid == nil {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		log.Debug().Str("address", addressStr).Msg("swept key is not a cheque of this wallet")
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque swept by %s: %w", txid, err))
+	case cheque.SweptTxid == nil:
 		if err := cheques.UpdateSwept(ctx, s.database, walletId, cheque.ID, txid); err != nil {
-			log.Warn().Err(err).Msg("failed to mark cheque as swept in database")
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque %d swept by %s: %w", cheque.ID, txid, err))
 		}
 	}
 
@@ -1579,9 +1594,11 @@ func (s *Server) GetCoinSelectionStrategy(ctx context.Context, c *connect.Reques
 
 	strategy := pb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST // default
 	if value != "" {
-		if parsed, err := strconv.Atoi(value); err == nil {
-			strategy = pb.CoinSelectionStrategy(parsed)
+		parsed, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("parse coin selection strategy %q: %w", value, err))
 		}
+		strategy = pb.CoinSelectionStrategy(parsed)
 	}
 
 	return connect.NewResponse(&pb.GetCoinSelectionStrategyResponse{
@@ -1939,6 +1956,7 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 		return nil, err
 	}
 	var resp *orchpb.BumpFeeResponse
+	var errs []error
 	for _, walletID := range append([]string{""}, wallets...) {
 		resp, err = s.walletEngine.BumpFee(ctx, &orchpb.BumpFeeRequest{
 			WalletId: walletID,
@@ -1947,9 +1965,10 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 		if err == nil {
 			break
 		}
+		errs = append(errs, fmt.Errorf("wallet %q: %w", walletID, err))
 	}
 	if resp == nil {
-		return nil, fmt.Errorf("could not bump fee: transaction not found in any wallet: %w", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("bump fee of %s: %w", c.Msg.Txid, errors.Join(errs...)))
 	}
 
 	log.Info().

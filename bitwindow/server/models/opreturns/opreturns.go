@@ -600,7 +600,11 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 	}
 	if hasContinuations {
 		for _, t := range toReassemble {
-			if body, ok := reassembledBody(ctx, db, t.itemID, t.rawTLV); ok {
+			body, ok, err := reassembledBody(ctx, db, t.itemID, t.rawTLV)
+			if err != nil {
+				return nil, fmt.Errorf("list coin news: %w", err)
+			}
+			if ok {
 				out[t.idx].Content = body
 			}
 		}
@@ -619,22 +623,25 @@ func anyContinuations(ctx context.Context, db *sql.DB) (bool, error) {
 // reassembledBody returns the spec §9 reassembled body for a story when
 // continuations extend it, and ok=false when there's nothing to splice
 // (no continuations, or no body TLV in the reassembled section).
-func reassembledBody(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV []byte) (string, bool) {
+func reassembledBody(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV []byte) (string, bool, error) {
 	raw, err := hex.DecodeString(itemIDHex)
-	if err != nil || len(raw) != codec.ItemIDLen {
-		return "", false
+	if err != nil {
+		return "", false, fmt.Errorf("decode item id %q: %w", itemIDHex, err)
+	}
+	if len(raw) != codec.ItemIDLen {
+		return "", false, fmt.Errorf("item id %q is %d bytes, want %d", itemIDHex, len(raw), codec.ItemIDLen)
 	}
 	var headID codec.ItemID
 	copy(headID[:], raw)
 
 	tlvs, err := cnstore.ReassembleTLVs(ctx, db, headID, rawTLV)
 	if err != nil {
-		return "", false
+		return "", false, fmt.Errorf("reassemble story %s: %w", itemIDHex, err)
 	}
 	if t := codec.FindFirst(tlvs, codec.TLVBody); t != nil {
-		return string(t.Value), true
+		return string(t.Value), true, nil
 	}
-	return "", false
+	return "", false, nil
 }
 
 // rankCoinNews orders the feed by descending §13 score, breaking ties

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"testing"
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -15,6 +16,7 @@ import (
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -476,6 +478,16 @@ func TestService_UnlockWallet(t *testing.T) {
 	})
 }
 
+func TestUnlockWalletReportsABadWalletFile(t *testing.T) {
+	t.Parallel()
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithEncryptedWallet()))
+
+	_, err := cli.UnlockWallet(t.Context(), connect.NewRequest(&walletv1.UnlockWalletRequest{Password: "anypassword"}))
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	require.ErrorContains(t, err, "invalid ciphertext format")
+}
+
 // The orchestrator records each deposit as it broadcasts it, because an M5 is
 // an ordinary transaction on the wire.
 func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
@@ -566,6 +578,28 @@ func TestCreateSidechainDepositSlot(t *testing.T) {
 		require.Equal(t, depositSidechainAddress, deposits[0].Destination)
 	})
 
+	t.Run("bad input is an invalid argument", func(t *testing.T) {
+		for _, tt := range []struct {
+			name string
+			req  *walletv1.CreateSidechainDepositRequest
+		}{
+			{name: "address", req: &walletv1.CreateSidechainDepositRequest{Destination: "s2_nonsense_000000", Amount: 0.001, Fee: 0.0001}},
+			{name: "no slot", req: &walletv1.CreateSidechainDepositRequest{Destination: depositSidechainAddress, Amount: 0.001, Fee: 0.0001}},
+			{name: "slot above 255", req: &walletv1.CreateSidechainDepositRequest{Slot: 256, Destination: depositSidechainAddress, Amount: 0.001, Fee: 0.0001}},
+			{name: "zero amount", req: &walletv1.CreateSidechainDepositRequest{Slot: 2, Destination: depositSidechainAddress, Amount: 0, Fee: 0.0001}},
+			{name: "negative amount", req: &walletv1.CreateSidechainDepositRequest{Slot: 2, Destination: depositSidechainAddress, Amount: -0.001, Fee: 0.0001}},
+			{name: "zero fee", req: &walletv1.CreateSidechainDepositRequest{Slot: 2, Destination: depositSidechainAddress, Amount: 0.001, Fee: 0}},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				deposits = nil
+				tt.req.WalletId = testWalletID
+				_, err := cli.CreateSidechainDeposit(t.Context(), connect.NewRequest(tt.req))
+				require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+				require.Empty(t, deposits)
+			})
+		}
+	})
+
 	t.Run("a bare address uses the request slot", func(t *testing.T) {
 		require.NoError(t, createDeposit(t, 2, depositSidechainAddress))
 		require.Len(t, deposits, 1)
@@ -619,5 +653,88 @@ func TestGetTransactionDetails(t *testing.T) {
 		_, err := details(t, connect.NewError(connect.CodeUnavailable, fmt.Errorf("node down")))
 		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 		require.ErrorContains(t, err, "node down")
+	})
+}
+
+type bumpOrchestrator struct {
+	*fakeOrchestrator
+
+	errs map[string]error
+}
+
+func (b *bumpOrchestrator) ListWallets(
+	context.Context, *connect.Request[orchpb.ListWalletsRequest],
+) (*connect.Response[orchpb.ListWalletsResponse], error) {
+	return connect.NewResponse(&orchpb.ListWalletsResponse{
+		Wallets: []*orchpb.WalletMetadata{{Id: "owner"}, {Id: "other"}},
+	}), nil
+}
+
+func (b *bumpOrchestrator) BumpFee(
+	_ context.Context, req *connect.Request[orchpb.BumpFeeRequest],
+) (*connect.Response[orchpb.BumpFeeResponse], error) {
+	if err, ok := b.errs[req.Msg.WalletId]; ok {
+		return nil, err
+	}
+	return connect.NewResponse(&orchpb.BumpFeeResponse{NewTxid: "replacement"}), nil
+}
+
+func TestBumpFee(t *testing.T) {
+	t.Parallel()
+
+	notFound := connect.NewError(connect.CodeInternal, fmt.Errorf("the chain holds no such transaction"))
+
+	bump := func(t *testing.T, errs map[string]error) (*connect.Response[walletv1.BumpFeeResponse], error) {
+		orchestrator := &bumpOrchestrator{fakeOrchestrator: &fakeOrchestrator{}, errs: errs}
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(orchestrator)))
+		return cli.BumpFee(t.Context(), connect.NewRequest(&walletv1.BumpFeeRequest{Txid: "original"}))
+	}
+
+	t.Run("the owner wallet bumps the fee", func(t *testing.T) {
+		resp, err := bump(t, map[string]error{"": notFound})
+		require.NoError(t, err)
+		require.Equal(t, "replacement", resp.Msg.Txid)
+	})
+
+	t.Run("the owner wallet error reaches the caller", func(t *testing.T) {
+		resp, err := bump(t, map[string]error{
+			"":      notFound,
+			"owner": connect.NewError(connect.CodeInternal, fmt.Errorf("insufficient fee")),
+			"other": notFound,
+		})
+		require.Nil(t, resp)
+		require.ErrorContains(t, err, "insufficient fee")
+		require.ErrorContains(t, err, `wallet "other"`)
+	})
+}
+
+func TestGetCoinSelectionStrategy(t *testing.T) {
+	t.Parallel()
+
+	get := func(t *testing.T, stored string) (*connect.Response[walletv1.GetCoinSelectionStrategyResponse], error) {
+		db := database.Test(t)
+		if stored != "" {
+			require.NoError(t, preferences.Set(t.Context(), db, preferences.KeyCoinSelectionStrategy, stored))
+		}
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db))
+		return cli.GetCoinSelectionStrategy(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+	}
+
+	t.Run("no value gives the default", func(t *testing.T) {
+		resp, err := get(t, "")
+		require.NoError(t, err)
+		require.Equal(t, walletv1.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST, resp.Msg.Strategy)
+	})
+
+	t.Run("a stored value reads back", func(t *testing.T) {
+		resp, err := get(t, strconv.Itoa(int(walletv1.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_SMALLEST_FIRST)))
+		require.NoError(t, err)
+		require.Equal(t, walletv1.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_SMALLEST_FIRST, resp.Msg.Strategy)
+	})
+
+	t.Run("a value that is no number fails", func(t *testing.T) {
+		_, err := get(t, "largest")
+		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		require.ErrorContains(t, err, `parse coin selection strategy "largest"`)
 	})
 }

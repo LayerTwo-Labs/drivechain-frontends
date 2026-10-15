@@ -570,7 +570,10 @@ func (s *Server) ListTimestamps(ctx context.Context, req *connect.Request[emptyp
 		return nil, fmt.Errorf("list timestamps: %w", err)
 	}
 
-	currentBlockHeight := s.getCurrentBlockHeight(ctx)
+	currentBlockHeight, err := s.getCurrentBlockHeight(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return connect.NewResponse(&miscv1.ListTimestampsResponse{
 		Timestamps: lo.Map(tsList, func(ts timestamps.FileTimestamp, _ int) *miscv1.FileTimestamp {
@@ -616,11 +619,17 @@ func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv
 	}
 
 	ts, err := s.timestampEngine.VerifyTimestamp(ctx, req.Msg.FileData, filename)
-	if err != nil {
+	if errors.Is(err, engines.ErrTimestampNotFound) {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("verify timestamp: %w", err))
+	}
 
-	currentBlockHeight := s.getCurrentBlockHeight(ctx)
+	currentBlockHeight, err := s.getCurrentBlockHeight(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return connect.NewResponse(&miscv1.VerifyTimestampResponse{
 		Timestamp: timestampToProto(*ts, currentBlockHeight),
@@ -628,14 +637,18 @@ func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv
 	}), nil
 }
 
-func (s *Server) getCurrentBlockHeight(ctx context.Context) int64 {
+// getCurrentBlockHeight gives 0 in light mode, which runs no local Bitcoin Core.
+func (s *Server) getCurrentBlockHeight(ctx context.Context) (int64, error) {
+	if !s.walletEngine.NodeMode().RunsLocalNode(ctx) {
+		return 0, nil
+	}
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	info, err := bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
 	if err != nil {
-		return 0
+		return 0, fmt.Errorf("get blockchain info: %w", err)
 	}
-	return int64(info.Msg.Blocks)
+	return int64(info.Msg.Blocks), nil
 }

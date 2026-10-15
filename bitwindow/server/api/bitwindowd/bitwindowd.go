@@ -4,9 +4,11 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -370,6 +372,9 @@ func (s *Server) CancelDenial(
 	req *connect.Request[pb.CancelDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Cancel(ctx, s.db, req.Msg.Id, "cancelled by user")
+	if errors.Is(err, deniability.ErrNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not cancel denial")
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -383,9 +388,12 @@ func (s *Server) PauseDenial(
 	req *connect.Request[pb.PauseDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Pause(ctx, s.db, req.Msg.Id)
+	if errors.Is(err, deniability.ErrNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not pause denial")
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pause denial %d: %w", req.Msg.Id, err))
 	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
@@ -396,9 +404,12 @@ func (s *Server) ResumeDenial(
 	req *connect.Request[pb.ResumeDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Resume(ctx, s.db, req.Msg.Id)
+	if errors.Is(err, deniability.ErrNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not resume denial")
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resume denial %d: %w", req.Msg.Id, err))
 	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
@@ -622,6 +633,9 @@ func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb
 	}
 
 	if err := transactions.SetNote(ctx, s.db, walletID, req.Msg.Txid, req.Msg.Note); err != nil {
+		if errors.Is(err, transactions.ErrEmptyTxID) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not set transaction note")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -687,7 +701,10 @@ func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.
 
 // ImportLabels implements bitwindowdv1connect.BitwindowdServiceHandler.
 func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.ImportLabelsRequest]) (*connect.Response[pb.ImportLabelsResponse], error) {
-	labels, skipped := bip329.Decode(req.Msg.Jsonl)
+	labels, skipped, err := bip329.Decode(req.Msg.Jsonl)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 
 	// A BIP329 file describes one wallet, so its notes belong to the active one.
 	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
@@ -1126,26 +1143,19 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("bitcoind: %w", err))
+		return nil, fmt.Errorf("bitcoind: %w", err)
 	}
 
 	// Fetch blockchain info
 	blockchainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
-		// -28 / wallet-loading errors mean bitcoind is still booting. Return
-		// Unavailable so the Dart caller treats this as "still warming up" and
-		// keeps its previous stats instead of toasting an Internal error.
-		if engines.IsBitcoinCoreStartupError(err.Error()) {
-			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get blockchain info: %w", err))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get blockchain info: %w", err))
+		return nil, coreError("get blockchain info", err)
 	}
 
 	// Calculate average block time from last 144 blocks
 	avgBlockTime, err := s.calculateAverageBlockTime(ctx, int64(blockchainInfo.Msg.Blocks))
 	if err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("calculate average block time")
-		avgBlockTime = 600.0 // Default to 10 minutes
+		return nil, coreError("calculate average block time", err)
 	}
 
 	// Get difficulty from latest block
@@ -1155,36 +1165,32 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 			Height: blockchainInfo.Msg.Blocks,
 		}))
 		if err != nil {
-			zerolog.Ctx(ctx).Warn().Err(err).Msg("get latest block hash for difficulty")
-		} else {
-			block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
-				Hash:      hash.Msg.Hash,
-				Verbosity: 1,
-			}))
-			if err != nil {
-				zerolog.Ctx(ctx).Warn().Err(err).Msg("get latest block for difficulty")
-			} else {
-				difficulty = block.Msg.Difficulty
-			}
+			return nil, coreError("get latest block hash", err)
 		}
+		block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+			Hash:      hash.Msg.Hash,
+			Verbosity: 1,
+		}))
+		if err != nil {
+			return nil, coreError("get latest block", err)
+		}
+		difficulty = block.Msg.Difficulty
 	}
 
-	// Get network info for version and subversion
 	networkInfo, err := bitcoind.GetNetworkInfo(ctx, connect.NewRequest(&corepb.GetNetworkInfoRequest{}))
 	if err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("get network info")
+		return nil, coreError("get network info", err)
 	}
 
-	// Get net totals for bandwidth statistics
 	netTotals, err := bitcoind.GetNetTotals(ctx, connect.NewRequest(&corepb.GetNetTotalsRequest{}))
 	if err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("get net totals")
+		return nil, coreError("get net totals", err)
 	}
 
 	// Get peer info
 	peerInfo, err := bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get peer info: %w", err))
+		return nil, coreError("get peer info", err)
 	}
 
 	// Count connections by direction
@@ -1198,67 +1204,25 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		}
 	}
 
-	// Extract network info fields
-	networkVersion := int32(0)
-	subversion := ""
-	if networkInfo != nil {
-		networkVersion = networkInfo.Msg.Version
-		subversion = networkInfo.Msg.Subversion
+	bitcoindBandwidth, err := s.processBandwidth("bitcoind")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-
-	// Extract bandwidth statistics
-	totalBytesReceived := uint64(0)
-	totalBytesSent := uint64(0)
-	if netTotals != nil {
-		totalBytesReceived = netTotals.Msg.TotalBytesRecv
-		totalBytesSent = netTotals.Msg.TotalBytesSent
-	}
-
-	// Get per-process bandwidth statistics
-	var bitcoindBandwidth *pb.ProcessBandwidth
-	bitcoindPID := findPIDByName("bitcoind")
-	if bitcoindPID > 0 {
-		stats, err := s.bandwidthTracker.GetStats(bitcoindPID, "bitcoind")
-		if err == nil {
-			bitcoindBandwidth = &pb.ProcessBandwidth{
-				ProcessName:     stats.ProcessName,
-				Pid:             int32(stats.PID),
-				RxBytesPerSec:   stats.RxBytesPerSec,
-				TxBytesPerSec:   stats.TxBytesPerSec,
-				TotalRxBytes:    stats.TotalRxBytes,
-				TotalTxBytes:    stats.TotalTxBytes,
-				ConnectionCount: stats.ConnectionCount,
-			}
-		}
-	}
-
-	var enforcerBandwidth *pb.ProcessBandwidth
-	enforcerPID := findPIDByName("bip300301-enforcer")
-	if enforcerPID > 0 {
-		stats, err := s.bandwidthTracker.GetStats(enforcerPID, "bip300301-enforcer")
-		if err == nil {
-			enforcerBandwidth = &pb.ProcessBandwidth{
-				ProcessName:     stats.ProcessName,
-				Pid:             int32(stats.PID),
-				RxBytesPerSec:   stats.RxBytesPerSec,
-				TxBytesPerSec:   stats.TxBytesPerSec,
-				TotalRxBytes:    stats.TotalRxBytes,
-				TotalTxBytes:    stats.TotalTxBytes,
-				ConnectionCount: stats.ConnectionCount,
-			}
-		}
+	enforcerBandwidth, err := s.processBandwidth("bip300301-enforcer")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&pb.GetNetworkStatsResponse{
 		NetworkHashrate:    0, // Requires getmininginfo (mining-specific)
 		Difficulty:         difficulty,
 		PeerCount:          int32(len(peerInfo.Msg.Peers)),
-		TotalBytesReceived: totalBytesReceived,
-		TotalBytesSent:     totalBytesSent,
+		TotalBytesReceived: netTotals.Msg.TotalBytesRecv,
+		TotalBytesSent:     netTotals.Msg.TotalBytesSent,
 		BlockHeight:        int64(blockchainInfo.Msg.Blocks),
 		AvgBlockTime:       avgBlockTime,
-		NetworkVersion:     networkVersion,
-		Subversion:         subversion,
+		NetworkVersion:     networkInfo.Msg.Version,
+		Subversion:         networkInfo.Msg.Subversion,
 		ConnectionsIn:      connectionsIn,
 		ConnectionsOut:     connectionsOut,
 		BitcoindBandwidth:  bitcoindBandwidth,
@@ -1266,27 +1230,50 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	}), nil
 }
 
-// findPIDByName finds a process PID by its name
-func findPIDByName(processName string) int {
-	cmd := exec.Command("pgrep", "-x", processName)
-	output, err := cmd.Output()
-	if err != nil {
-		return 0
+// coreError gives Unavailable while Bitcoin Core starts, so the caller keeps its last stats.
+func coreError(op string, err error) error {
+	code := connect.CodeInternal
+	if engines.IsBitcoinCoreStartupError(err.Error()) {
+		code = connect.CodeUnavailable
 	}
+	return connect.NewError(code, fmt.Errorf("%s: %w", op, err))
+}
 
-	pidStr := strings.TrimSpace(string(output))
-	if pidStr == "" {
-		return 0
+// processBandwidth gives nil when no process has the name.
+func (s *Server) processBandwidth(name string) (*pb.ProcessBandwidth, error) {
+	// Windows has no pgrep.
+	if runtime.GOOS == "windows" {
+		return nil, nil
+	}
+	output, err := exec.Command("pgrep", "-x", name).Output()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("pgrep %s: %w", name, err)
 	}
 
 	// pgrep may return multiple PIDs, take the first one
-	lines := strings.Split(pidStr, "\n")
-	pid, err := strconv.Atoi(lines[0])
+	first, _, _ := strings.Cut(strings.TrimSpace(string(output)), "\n")
+	pid, err := strconv.Atoi(first)
 	if err != nil {
-		return 0
+		return nil, fmt.Errorf("parse pid of %s: %w", name, err)
 	}
 
-	return pid
+	stats, err := s.bandwidthTracker.GetStats(pid, name)
+	if err != nil {
+		return nil, fmt.Errorf("bandwidth of %s: %w", name, err)
+	}
+	return &pb.ProcessBandwidth{
+		ProcessName:     stats.ProcessName,
+		Pid:             int32(stats.PID),
+		RxBytesPerSec:   stats.RxBytesPerSec,
+		TxBytesPerSec:   stats.TxBytesPerSec,
+		TotalRxBytes:    stats.TotalRxBytes,
+		TotalTxBytes:    stats.TotalTxBytes,
+		ConnectionCount: stats.ConnectionCount,
+	}, nil
 }
 
 func (s *Server) calculateAverageBlockTime(ctx context.Context, currentHeight int64) (float64, error) {

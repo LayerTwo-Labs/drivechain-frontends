@@ -222,6 +222,35 @@ func TestListCoinNews_ReassemblesContinuationBody(t *testing.T) {
 	assert.Equal(t, longBody, news[0].Content, "continuation chunks reassemble into the full body")
 }
 
+func TestListCoinNews_ReturnsReassemblyError(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	topic := mustTopicID(t, "a2a2a2a2")
+	db := database.Test(t)
+	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
+	seedCurrentNews(t, ctx, db, topic, "Headline", "", "story1", 0, 100, time.Now())
+
+	var itemID []byte
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT item_id FROM cn_stories`).Scan(&itemID))
+	var head codec.ItemID
+	copy(head[:], itemID)
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: 100,
+			VoutIndex:   1,
+			BlockTime:   time.Now(),
+			TxID:        fmt.Sprintf("%064x", 6000),
+		},
+		TypeTag: codec.TypeContinuation,
+		Msg:     &codec.Continuation{Head: head, Seq: 0, Chunk: []byte{0x01}},
+	}))
+	_, err := db.ExecContext(ctx, `UPDATE cn_stories SET raw_tlv = x'ff'`)
+	require.NoError(t, err)
+
+	_, err = ListCoinNews(ctx, db)
+	require.ErrorContains(t, err, "decode head tlv")
+}
+
 // TestListCoinNews_RanksByScoreAndCountsDownvotes proves spec §13: the
 // feed is ordered by HN score, and downvotes (kind=5) are tallied.
 func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {

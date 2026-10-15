@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 // Group represents a multisig group stored in the DB.
@@ -674,17 +676,19 @@ func (s *Store) AddSoloKey(ctx context.Context, k SoloKey) error {
 func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (int, error) {
 	maxIndex := 7999
 
-	// Check keys
-	rows, err := s.db.QueryContext(ctx, `SELECT derivation_path FROM multisig_keys WHERE is_wallet = 1`)
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT derivation_path FROM multisig_keys WHERE is_wallet = 1
+		UNION ALL
+		SELECT derivation_path FROM multisig_solo_keys`)
 	if err != nil {
-		return 8000, err
+		return 0, fmt.Errorf("query derivation paths: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var path string
 		if err := rows.Scan(&path); err != nil {
-			continue
+			return 0, fmt.Errorf("scan derivation path: %w", err)
 		}
 		idx := extractAccountIndex(path)
 		if idx > maxIndex {
@@ -692,28 +696,7 @@ func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return 8000, err
-	}
-
-	// Check solo keys
-	soloRows, err := s.db.QueryContext(ctx, `SELECT derivation_path FROM multisig_solo_keys`)
-	if err != nil {
-		return maxIndex + 1, err
-	}
-	defer soloRows.Close()
-
-	for soloRows.Next() {
-		var path string
-		if err := soloRows.Scan(&path); err != nil {
-			continue
-		}
-		idx := extractAccountIndex(path)
-		if idx > maxIndex {
-			maxIndex = idx
-		}
-	}
-	if err := soloRows.Err(); err != nil {
-		return maxIndex + 1, err
+		return 0, fmt.Errorf("iterate derivation paths: %w", err)
 	}
 
 	for _, idx := range additionalUsed {
@@ -770,7 +753,7 @@ func (s *Store) SaveGroupAtomic(ctx context.Context, p SaveGroupAtomicParams) er
 		for xpub, psbts := range p.XpubToPSBTs {
 			keyID, ok := xpubToID[xpub]
 			if !ok {
-				continue
+				return fmt.Errorf("psbt xpub %s has no key in group %s", xpub, p.Group.ID)
 			}
 			for _, kp := range psbts {
 				kp.KeyID = keyID
@@ -842,7 +825,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 	for _, groupRaw := range raw.Groups {
 		var gj map[string]interface{}
 		if err := json.Unmarshal(groupRaw, &gj); err != nil {
-			continue
+			return fmt.Errorf("unmarshal group: %w", err)
 		}
 
 		g := Group{
@@ -952,6 +935,15 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 	return nil
 }
 
+func parseImportTime(ctx context.Context, txID, field, value string) (int64, bool) {
+	t, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Str("tx_id", txID).Str("field", field).Msg("skip bad time in multisig import")
+		return 0, false
+	}
+	return t.Unix(), true
+}
+
 // ImportTransactionsFromJSON imports transactions from the old transactions.json format.
 func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) error {
 	var txns []map[string]interface{}
@@ -987,17 +979,14 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 
 		var broadcastTime *int64
 		if bt := getString(tj, "broadcastTime"); bt != "" {
-			if t, err := time.Parse(time.RFC3339, bt); err == nil {
-				unix := t.Unix()
+			if unix, ok := parseImportTime(ctx, getString(tj, "id"), "broadcastTime", bt); ok {
 				broadcastTime = &unix
 			}
 		}
 
 		var created int64
 		if c := getString(tj, "created"); c != "" {
-			if t, err := time.Parse(time.RFC3339, c); err == nil {
-				created = t.Unix()
-			}
+			created, _ = parseImportTime(ctx, getString(tj, "id"), "created", c)
 		}
 
 		t := Transaction{
@@ -1040,8 +1029,7 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 				}
 				var signedAt *int64
 				if sa := getString(kpMap, "signedAt"); sa != "" {
-					if t, err := time.Parse(time.RFC3339, sa); err == nil {
-						unix := t.Unix()
+					if unix, ok := parseImportTime(ctx, t.ID, "signedAt", sa); ok {
 						signedAt = &unix
 					}
 				}

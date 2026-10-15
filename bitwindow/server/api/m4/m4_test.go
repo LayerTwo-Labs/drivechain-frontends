@@ -150,7 +150,7 @@ func TestService_SetVotePreference(t *testing.T) {
 			SidechainSlot: 0,
 			VoteType:      "invalid_type",
 		}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
 	t.Run("updates existing preference", func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestService_SetVotePreference(t *testing.T) {
 			SidechainSlot: 256,
 			VoteType:      "alarm",
 		}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 
 		// No preference should have been stored for the wrapped slot 0.
 		prefs, err := cli.GetVotePreferences(context.Background(), connect.NewRequest(&m4pb.GetVotePreferencesRequest{}))

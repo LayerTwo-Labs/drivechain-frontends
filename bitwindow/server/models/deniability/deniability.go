@@ -3,15 +3,18 @@ package deniability
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/samber/lo"
 )
+
+// ErrNotFound is returned when no denial matches the ID and state of the call.
+var ErrNotFound = errors.New("denial not found")
 
 // Denial represents a deniability plan
 type Denial struct {
@@ -278,8 +281,12 @@ func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 		return fmt.Errorf("could not cancel deniability: %w", err)
 	}
 
-	if rows, _ := rows.RowsAffected(); rows == 0 {
-		return connect.NewError(connect.CodeNotFound, fmt.Errorf("denial not found"))
+	n, err := rows.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not cancel deniability: %w", err)
+	}
+	if n == 0 {
+		return ErrNotFound
 	}
 
 	return nil
@@ -296,8 +303,12 @@ func Pause(ctx context.Context, db *sql.DB, id int64) error {
 		return fmt.Errorf("could not pause deniability: %w", err)
 	}
 
-	if rows, _ := rows.RowsAffected(); rows == 0 {
-		return connect.NewError(connect.CodeNotFound, fmt.Errorf("denial not found or already paused/cancelled"))
+	n, err := rows.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not pause deniability: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("%w, or already paused or cancelled", ErrNotFound)
 	}
 
 	return nil
@@ -314,8 +325,12 @@ func Resume(ctx context.Context, db *sql.DB, id int64) error {
 		return fmt.Errorf("could not resume deniability: %w", err)
 	}
 
-	if rows, _ := rows.RowsAffected(); rows == 0 {
-		return connect.NewError(connect.CodeNotFound, fmt.Errorf("denial not found or not paused"))
+	n, err := rows.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not resume deniability: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("%w, or not paused", ErrNotFound)
 	}
 
 	return nil

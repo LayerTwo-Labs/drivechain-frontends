@@ -40,7 +40,7 @@ func droppedEngine(t *testing.T, list DepositLister, sink *recorder) *DepositDro
 	if sink.listeners == 0 {
 		sink.listeners = 1
 	}
-	return NewDepositDroppedEngine(database.Test(t), list, sink, func() []uint32 { return []uint32{2} })
+	return NewDepositDroppedEngine(database.Test(t), list, sink, func() ([]uint32, error) { return []uint32{2}, nil })
 }
 
 func deposit(txid string, droppedAt string) *orchpb.SidechainDeposit {
@@ -90,12 +90,24 @@ func TestDepositDroppedEngineStaysQuietWhenItCannotRead(t *testing.T) {
 	require.Empty(t, sink.events)
 }
 
+func TestDepositDroppedEngineStaysQuietWhenTheSlotsFail(t *testing.T) {
+	sink := &recorder{listeners: 1}
+	list := depositList{deposits: []*orchpb.SidechainDeposit{deposit("lost", "2026-09-26T10:00:00Z")}}
+	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func() ([]uint32, error) {
+		return nil, errors.New("enforcer unavailable")
+	})
+
+	engine.tick(t.Context())
+
+	require.Empty(t, sink.events)
+}
+
 // BitWindow is closed, so a broadcast reaches nobody. The news must survive
 // until a frontend attaches rather than get consumed in silence.
 func TestDepositDroppedEngineHoldsTheNewsWithNoListener(t *testing.T) {
 	sink := &recorder{listeners: 0}
 	list := depositList{deposits: []*orchpb.SidechainDeposit{deposit("lost", "2026-09-26T10:00:00Z")}}
-	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func() []uint32 { return []uint32{2} })
+	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func() ([]uint32, error) { return []uint32{2}, nil })
 
 	engine.tick(context.Background())
 	require.Empty(t, sink.events)
@@ -111,7 +123,7 @@ func TestDepositDroppedEngineHoldsTheNewsWithNoListener(t *testing.T) {
 func TestDepositDroppedEngineReportsASecondEpisode(t *testing.T) {
 	sink := &recorder{listeners: 1}
 	list := &mutableList{deposits: []*orchpb.SidechainDeposit{deposit("flaky", "2026-09-26T10:00:00Z")}}
-	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func() []uint32 { return []uint32{2} })
+	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func() ([]uint32, error) { return []uint32{2}, nil })
 
 	engine.tick(context.Background())
 	require.Len(t, sink.events, 1)
@@ -132,7 +144,7 @@ func TestDepositDroppedEngineReportsASecondEpisode(t *testing.T) {
 func TestDepositDroppedEngineReportsAnEpisodeItNeverSawReturn(t *testing.T) {
 	sink := &recorder{listeners: 1}
 	list := &mutableList{deposits: []*orchpb.SidechainDeposit{deposit("flaky", "2026-09-26T10:00:00Z")}}
-	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func() []uint32 { return []uint32{2} })
+	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func() ([]uint32, error) { return []uint32{2}, nil })
 
 	engine.tick(context.Background())
 	require.Len(t, sink.events, 1)

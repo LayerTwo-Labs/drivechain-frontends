@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func zipWith(t *testing.T, name string, data []byte) []byte {
@@ -45,5 +47,24 @@ func TestBackupZipEntryCapped(t *testing.T) {
 	}
 	if _, err := e.validateZIP(ok); err != nil {
 		t.Fatalf("validateZIP rejected a valid backup: %v", err)
+	}
+}
+
+func TestValidateZIP_OptionalEntryReadFails(t *testing.T) {
+	orig := maxBackupEntrySize
+	maxBackupEntrySize = 1 << 10
+	defer func() { maxBackupEntrySize = orig }()
+
+	for _, name := range []string{"multisig/multisig.json", "transactions.json"} {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			zw := zip.NewWriter(&buf)
+			require.NoError(t, addToZip(zw, "wallet.json", []byte(`{"master":"x","l1":"y"}`)))
+			require.NoError(t, addToZip(zw, name, bytes.Repeat([]byte("a"), 8<<10)))
+			require.NoError(t, zw.Close())
+
+			_, err := (&BackupEngine{}).validateZIP(buf.Bytes())
+			require.ErrorContains(t, err, "read "+name+" in zip")
+		})
 	}
 }

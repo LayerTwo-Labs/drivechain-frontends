@@ -900,6 +900,67 @@ func TestService_ListTimestamps(t *testing.T) {
 	})
 }
 
+func TestService_ListTimestampsBlockHeight(t *testing.T) {
+	t.Parallel()
+
+	expectWalletSetup := func(mockBitcoind *mocks.MockBitcoinServiceClient) {
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).
+			AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
+			}, nil).
+			AnyTimes()
+	}
+
+	t.Run("a failed Core read returns the error", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		expectWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("core is down"))).
+			AnyTimes()
+
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		require.ErrorContains(t, err, "core is down")
+	})
+
+	t.Run("light mode reads no Core", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			GetNodeMode(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[orchpb.GetNodeModeResponse]{
+				Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
+			}, nil).
+			AnyTimes()
+		apitests.ExpectOrchestratorReads(mockOrch)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		expectWalletSetup(mockBitcoind)
+
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t),
+			apitests.WithOrchestrator(mockOrch),
+			apitests.WithBitcoind(mockBitcoind),
+		))
+
+		resp, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		assert.Empty(t, resp.Msg.Timestamps)
+	})
+}
+
 func TestService_VerifyTimestamp(t *testing.T) {
 	t.Parallel()
 
@@ -912,7 +973,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		_, err := cli.VerifyTimestamp(context.Background(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
 			FileData: []byte("unknown content"),
 		}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
 	t.Run("verify with empty file data", func(t *testing.T) {

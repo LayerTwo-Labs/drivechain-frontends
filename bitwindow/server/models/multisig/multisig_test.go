@@ -1,12 +1,14 @@
 package multisig_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -543,6 +545,11 @@ func TestGetNextAccountIndex(t *testing.T) {
 	next, err = store.GetNextAccountIndex(ctx, []int{9000})
 	require.NoError(t, err)
 	assert.Equal(t, 9001, next)
+
+	require.NoError(t, store.AddSoloKey(ctx, multisig.SoloKey{Xpub: "solo1", DerivationPath: "m/84'/1'/8010'"}))
+	next, err = store.GetNextAccountIndex(ctx, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 8011, next)
 }
 
 func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
@@ -565,4 +572,51 @@ func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
 	second, err := store.GetNextAccountIndex(ctx, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 8001, second, "second allocation reused the first account index")
+}
+
+func TestSaveGroupAtomic_UnknownPSBTXpub(t *testing.T) {
+	ctx := t.Context()
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	err := store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
+		Group: g,
+		Keys: []multisig.Key{
+			{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/8000'"},
+		},
+		XpubToPSBTs: map[string][]multisig.KeyPSBT{
+			"xpub-unknown": {{TransactionID: "tx-a", ActivePSBT: "psbt"}},
+		},
+	})
+	require.ErrorContains(t, err, "psbt xpub xpub-unknown has no key")
+
+	groups, err := store.ListGroups(ctx)
+	require.NoError(t, err)
+	require.Empty(t, groups)
+}
+
+func TestImportFromJSON_BadGroup(t *testing.T) {
+	store := multisig.NewStore(setupTestDB(t))
+
+	err := store.ImportFromJSON(t.Context(), []byte(`{"groups":[[1,2]]}`))
+	require.ErrorContains(t, err, "unmarshal group")
+}
+
+func TestImportTransactionsFromJSON_BadTime(t *testing.T) {
+	var logs bytes.Buffer
+	ctx := zerolog.New(&logs).WithContext(t.Context())
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, g))
+
+	data := `[{"id":"tx-1","groupId":"` + g.ID + `","created":"yesterday","broadcastTime":"2024-01-02T03:04:05Z"}]`
+	require.NoError(t, store.ImportTransactionsFromJSON(ctx, []byte(data)))
+
+	got, err := store.GetTransaction(ctx, "tx-1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), got.Created)
+	require.NotNil(t, got.BroadcastTime)
+	assert.Equal(t, int64(1704164645), *got.BroadcastTime)
+	assert.Contains(t, logs.String(), `"field":"created"`)
 }

@@ -17,6 +17,9 @@ import (
 
 const keyLength = 32
 
+// ErrIncorrectPassword is the error of a password that does not open the wallet.
+var ErrIncorrectPassword = errors.New("incorrect password or corrupted wallet")
+
 // EncryptionMetadata stores encryption parameters
 type EncryptionMetadata struct {
 	Salt       string `json:"salt"`
@@ -74,7 +77,7 @@ func Decrypt(ciphertext string, key []byte) (string, error) {
 
 	plaintext, err := gcm.Open(nil, ivBytes, encryptedBytes, nil)
 	if err != nil {
-		return "", fmt.Errorf("decryption failed: %w", err)
+		return "", ErrIncorrectPassword
 	}
 
 	return string(plaintext), nil
@@ -129,7 +132,7 @@ func DecryptWallet(appDir, password string) (map[string]interface{}, error) {
 
 	decrypted, err := Decrypt(string(encryptedData), key)
 	if err != nil {
-		return nil, errors.New("incorrect password or corrupted wallet")
+		return nil, fmt.Errorf("decrypt wallet: %w", err)
 	}
 
 	var walletData map[string]interface{}

@@ -446,7 +446,7 @@ func TestService_CancelDenial(t *testing.T) {
 		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 999,
 		}))
-		assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
 	t.Run("zero denial id", func(t *testing.T) {
@@ -458,7 +458,7 @@ func TestService_CancelDenial(t *testing.T) {
 		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 0,
 		}))
-		assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
 	t.Run("negative denial id", func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestService_CancelDenial(t *testing.T) {
 		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: -1,
 		}))
-		assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
 	t.Run("cancel existing denial", func(t *testing.T) {
@@ -1124,7 +1124,7 @@ func TestService_PauseDenial(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
 
 		_, err := cli.PauseDenial(context.Background(), connect.NewRequest(&v1.PauseDenialRequest{Id: 99999}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
 
@@ -1187,7 +1187,7 @@ func TestService_ResumeDenial(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
 
 		_, err := cli.ResumeDenial(context.Background(), connect.NewRequest(&v1.ResumeDenialRequest{Id: 99999}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
 
@@ -1814,6 +1814,47 @@ func TestService_GetNetworkStats(t *testing.T) {
 		assert.Equal(t, "/Satoshi:25.0.0/", resp.Msg.Subversion)
 		assert.Equal(t, 12345.67, resp.Msg.Difficulty)
 	})
+
+	for _, tc := range []struct {
+		name string
+		err  error
+		code connect.Code
+	}{
+		{"a failed network info read returns Internal", fmt.Errorf("rpc broke"), connect.CodeInternal},
+		{"a startup error returns Unavailable", fmt.Errorf("-28: Loading block index"), connect.CodeUnavailable},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+			apitests.ExpectCoreWalletSetup(mockBitcoind)
+			mockBitcoind.EXPECT().
+				GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 2, Chain: "signet"},
+				}, nil)
+			mockBitcoind.EXPECT().
+				GetBlockHash(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: "latesthash"},
+				}, nil).AnyTimes()
+			mockBitcoind.EXPECT().
+				GetBlock(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{Hash: "latesthash", Time: timestamppb.Now(), Difficulty: 1},
+				}, nil).AnyTimes()
+			mockBitcoind.EXPECT().
+				GetNetworkInfo(gomock.Any(), gomock.Any()).
+				Return(nil, tc.err)
+
+			cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+
+			_, err := cli.GetNetworkStats(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+			require.ErrorContains(t, err, tc.err.Error())
+			require.Equal(t, tc.code, connect.CodeOf(err))
+		})
+	}
 }
 
 func TestService_Labels(t *testing.T) {

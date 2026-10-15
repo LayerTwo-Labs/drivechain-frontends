@@ -52,6 +52,6 @@ func TestSetNote_RequiresWalletAndTxid(t *testing.T) {
 	ctx := context.Background()
 	db := database.Test(t)
 
-	require.Error(t, transactions.SetNote(ctx, db, "", "txid-1", "note"))
-	require.Error(t, transactions.SetNote(ctx, db, "wallet-a", "", "note"))
+	require.Panics(t, func() { _ = transactions.SetNote(ctx, db, "", "txid-1", "note") })
+	require.ErrorIs(t, transactions.SetNote(ctx, db, "wallet-a", "", "note"), transactions.ErrEmptyTxID)
 }

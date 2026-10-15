@@ -1,6 +1,8 @@
 package bip329_test
 
 import (
+	"bufio"
+	"strings"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bip329"
@@ -20,7 +22,8 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 	jsonl, err := bip329.Encode(in)
 	require.NoError(t, err)
 
-	out, skipped := bip329.Decode(jsonl)
+	out, skipped, err := bip329.Decode(jsonl)
+	require.NoError(t, err)
 	assert.Equal(t, 0, skipped)
 	assert.Equal(t, in, out)
 }
@@ -34,9 +37,19 @@ not json at all
 {"type":"addr","ref":"bc1q","label":"x","origin":"wpkh([d34db33f])","extra":true}
 ` // trailing newline + blank line + malformed line + unknown field
 
-	out, skipped := bip329.Decode(jsonl)
+	out, skipped, err := bip329.Decode(jsonl)
+	require.NoError(t, err)
 	assert.Equal(t, 1, skipped)
 	require.Len(t, out, 2)
 	assert.Equal(t, "coffee", out[0].Label)
 	assert.Equal(t, "wpkh([d34db33f])", out[1].Origin)
+}
+
+func TestDecodeReturnsErrorForOversizedLine(t *testing.T) {
+	t.Parallel()
+
+	jsonl := `{"type":"tx","ref":"abc","label":"` + strings.Repeat("x", 5*1024*1024) + `"}`
+
+	_, _, err := bip329.Decode(jsonl)
+	require.ErrorIs(t, err, bufio.ErrTooLong)
 }

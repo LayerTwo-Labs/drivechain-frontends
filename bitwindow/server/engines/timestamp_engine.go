@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -17,6 +18,9 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 )
+
+// ErrTimestampNotFound is returned when no timestamp matches the file.
+var ErrTimestampNotFound = errors.New("no timestamp found for this file")
 
 const (
 	// TimestampPrefix is prepended to SHA256 hash in OP_RETURN to identify timestamp transactions
@@ -348,7 +352,7 @@ func (e *TimestampEngine) VerifyTimestamp(ctx context.Context, fileData []byte, 
 		return nil, fmt.Errorf("lookup timestamp: %w", err)
 	}
 	if timestamp == nil {
-		return nil, fmt.Errorf("no timestamp found for this file")
+		return nil, ErrTimestampNotFound
 	}
 
 	// If this is a discovered timestamp with no filename, update it
