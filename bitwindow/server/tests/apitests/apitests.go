@@ -19,6 +19,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchctlrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
@@ -52,13 +53,9 @@ type configg struct {
 
 type ServerOpt func(opt *configg)
 
-func (o *configg) populate(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) {
+func (o *configg) populate(ctrl *gomock.Controller, options ...ServerOpt) {
 	for _, option := range options {
 		option(o)
-	}
-
-	if o.walletType == "bitcoinCore" && o.orchestrator == nil {
-		o.orchestrator = CoreWalletOrchestrator(t)
 	}
 
 	if o.enforcer == nil {
@@ -75,12 +72,12 @@ func (o *configg) populate(t *testing.T, ctrl *gomock.Controller, options ...Ser
 	}
 }
 
-func newConfig(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) configg {
+func newConfig(ctrl *gomock.Controller, options ...ServerOpt) configg {
 	var conf configg
 	for _, opt := range options {
 		opt(&conf)
 	}
-	conf.populate(t, ctrl)
+	conf.populate(ctrl)
 	return conf
 }
 
@@ -146,7 +143,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	ctx, cancel := context.WithCancel(logger.WithContext(context.Background()))
 	t.Cleanup(cancel)
 
-	conf := newConfig(t, ctrl, options...)
+	conf := newConfig(ctrl, options...)
 
 	// Create a temporary directory with a valid wallet.json for tests
 	walletDir := t.TempDir()
@@ -154,6 +151,11 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	if conf.encrypted {
 		markWalletEncrypted(t, walletDir)
 	}
+	if conf.orchestrator == nil {
+		conf.orchestrator = fixtureOrchestrator(t, walletDir)
+	}
+
+	orchestratorAddr := orchestratorServer(t)
 
 	// Create connectors that return our mock clients
 	services := api.Services{
@@ -166,6 +168,9 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 				return nil, fmt.Errorf("block producer not available in tests")
 			}
 			return conf.blockProducer, nil
+		},
+		MiningConnector: func(ctx context.Context) (mainchainv1connect.MiningServiceClient, error) {
+			return nil, fmt.Errorf("mining not available in tests")
 		},
 		CryptoConnector: func(ctx context.Context) (cryptov1connect.CryptoServiceClient, error) {
 			return conf.crypto, nil
@@ -193,6 +198,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		},
 		ChainParams:        &chaincfg.SigNetParams,
 		WalletDir:          walletDir,
+		OrchestratorAddr:   orchestratorAddr,
 		OrchestratorClient: conf.orchestrator,
 		BitwindowDir:       conf.authDir,
 	}
@@ -202,6 +208,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		// no hosted orchestrator, so every read stays on the mocks above. The
 		// ChainParams above pick the address encoding the fixtures use.
 		BitcoinCoreNetwork: conf.network,
+		OrchestratorAddr:   orchestratorAddr,
 		GuiBootedMainchain: false,
 		GuiBootedEnforcer:  false,
 	}, func(shutdownCtx context.Context) {
@@ -331,6 +338,17 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 	return mock
 }
 
+// orchestratorServer returns the address of a drivechaind whose
+// OrchestratorService answers every call as unimplemented.
+func orchestratorServer(t *testing.T) string {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle(orchctlrpc.NewOrchestratorServiceHandler(orchctlrpc.UnimplementedOrchestratorServiceHandler{}))
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	return server.URL
+}
+
 // CoreWalletOrchestrator returns an orchestrator client that names the Bitcoin
 // Core wallet of a wallet as the orchestrator does. Every other call answers
 // as unimplemented.
@@ -345,6 +363,86 @@ func CoreWalletOrchestrator(t *testing.T) orchrpc.WalletManagerServiceClient {
 
 type coreWalletManager struct {
 	orchrpc.UnimplementedWalletManagerServiceHandler
+}
+
+// fixtureOrchestrator returns an orchestrator client in full mode that also
+// serves the wallets and seeds of the wallet.json in walletDir. The first
+// wallet with a seed is the starter.
+func fixtureOrchestrator(t *testing.T, walletDir string) orchrpc.WalletManagerServiceClient {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle(orchrpc.NewWalletManagerServiceHandler(fixtureWalletManager{walletDir: walletDir}))
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	return orchrpc.NewWalletManagerServiceClient(server.Client(), server.URL)
+}
+
+type fixtureWalletManager struct {
+	coreWalletManager
+	walletDir string
+}
+
+type fixtureWallet struct {
+	ID     string `json:"id"`
+	Master struct {
+		SeedHex string `json:"seed_hex"`
+	} `json:"master"`
+}
+
+func (m fixtureWalletManager) wallets() ([]fixtureWallet, error) {
+	data, err := os.ReadFile(filepath.Join(m.walletDir, "wallet.json"))
+	if err != nil {
+		return nil, err
+	}
+	var file struct {
+		Wallets []fixtureWallet `json:"wallets"`
+	}
+	if err := json.Unmarshal(data, &file); err != nil {
+		return nil, err
+	}
+	return file.Wallets, nil
+}
+
+func (m fixtureWalletManager) ListWallets(
+	context.Context, *connect.Request[orchpb.ListWalletsRequest],
+) (*connect.Response[orchpb.ListWalletsResponse], error) {
+	wallets, err := m.wallets()
+	if err != nil {
+		return nil, err
+	}
+	resp := &orchpb.ListWalletsResponse{}
+	starter := false
+	for _, w := range wallets {
+		isStarter := !starter && w.Master.SeedHex != ""
+		starter = starter || isStarter
+		resp.Wallets = append(resp.Wallets, &orchpb.WalletMetadata{Id: w.ID, IsStarter: isStarter})
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (fixtureWalletManager) GetNodeMode(
+	context.Context, *connect.Request[orchpb.GetNodeModeRequest],
+) (*connect.Response[orchpb.GetNodeModeResponse], error) {
+	return connect.NewResponse(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}), nil
+}
+
+func (m fixtureWalletManager) GetWalletSeed(
+	_ context.Context, req *connect.Request[orchpb.GetWalletSeedRequest],
+) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+	wallets, err := m.wallets()
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range wallets {
+		if w.ID != req.Msg.WalletId {
+			continue
+		}
+		if w.Master.SeedHex == "" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s holds no master seed", w.ID))
+		}
+		return connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: w.Master.SeedHex}), nil
+	}
+	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", req.Msg.WalletId))
 }
 
 func (coreWalletManager) CreateBitcoinCoreWallet(

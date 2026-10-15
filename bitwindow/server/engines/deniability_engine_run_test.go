@@ -8,8 +8,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // Every other test calls a sub-method, so a field the constructor stopped
@@ -21,7 +23,7 @@ func TestDeniabilityEngineRunSurvivesItsFirstTick(t *testing.T) {
 		return nil, context.Canceled
 	})
 
-	e := engines.NewDeniability(bitcoind, db, nil)
+	e := engines.NewDeniability(bitcoind, db, testDenialWalletEngine(t, mocks.NewMockBitcoinServiceClient(gomock.NewController(t)), nil))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

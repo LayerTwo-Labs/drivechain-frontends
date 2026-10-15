@@ -259,13 +259,6 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 	var walletId string
 	var err error
 
-	// A denial names the wallet it spends from. Without one we cannot run the
-	// watch-only check, and an unnamed wallet reaches Core's loaded wallet —
-	// which is one the user never picked for this denial.
-	if e.walletEngine == nil {
-		return fmt.Errorf("denial %d: no wallet engine to resolve a wallet with", denial.ID)
-	}
-
 	walletId, err = e.resolveDenialWallet(denial)
 	if err != nil {
 		return fmt.Errorf("denial %d: %w", denial.ID, err)
@@ -446,9 +439,6 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 // rejectWatchOnly returns an error if the wallet has no signing key.
 // Deniability requires spending, which a watch-only wallet cannot do.
 func (e *DeniabilityEngine) rejectWatchOnly(ctx context.Context, walletId string) error {
-	if e.walletEngine == nil {
-		return errors.New("no wallet engine to check watch-only against")
-	}
 	if walletId == "" {
 		return errors.New("no wallet named, so watch-only cannot be ruled out")
 	}
@@ -615,9 +605,6 @@ func (e *DeniabilityEngine) resolveDenialWallet(denial deniability.Denial) (stri
 	if denial.WalletID != nil && *denial.WalletID != "" {
 		return *denial.WalletID, nil
 	}
-	if e.walletEngine == nil {
-		return "", errors.New("no wallet engine to resolve the active wallet with")
-	}
 	active, err := e.walletEngine.GetActiveWallet(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("get active wallet: %w", err)
@@ -630,11 +617,6 @@ func (e *DeniabilityEngine) resolveDenialWallet(denial deniability.Denial) (stri
 
 // listUTXOsForWallet gets UTXOs for a specific wallet ID
 func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId string) ([]*UTXO, error) {
-	// A denial from before wallet_id existed names no wallet, and so does a
-	// single-wallet install. Both read Bitcoin Core's loaded wallet.
-	if e.walletEngine == nil {
-		return nil, errors.New("no wallet engine to resolve the wallet with")
-	}
 	if walletId == "" {
 		return nil, errors.New("no wallet named to list unspent outputs for")
 	}

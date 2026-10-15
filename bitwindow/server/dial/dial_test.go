@@ -7,8 +7,13 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"connectrpc.com/connect"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/stretchr/testify/require"
 )
 
@@ -116,4 +121,33 @@ func TestEnforcerDialers_RejectEmptyURL(t *testing.T) {
 	require.EqualError(t, err, "empty mining url")
 	_, err = EnforcerCrypto(t.Context(), "")
 	require.EqualError(t, err, "empty crypto url")
+}
+
+type restartL1Handler struct {
+	orchrpc.UnimplementedOrchestratorServiceHandler
+}
+
+func (restartL1Handler) RestartL1(context.Context, *connect.Request[orchpb.RestartL1Request]) (*connect.Response[orchpb.RestartL1Response], error) {
+	return connect.NewResponse(&orchpb.RestartL1Response{}), nil
+}
+
+func TestOrchestrator(t *testing.T) {
+	dir := t.TempDir()
+	_, err := localauth.WriteCookie(dir)
+	require.NoError(t, err)
+
+	mux := http.NewServeMux()
+	mux.Handle(orchrpc.NewOrchestratorServiceHandler(restartL1Handler{}, connect.WithInterceptors(localauth.Interceptor(dir))))
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	t.Run("the cookie authenticates the call", func(t *testing.T) {
+		_, err := Orchestrator(server.URL, dir).RestartL1(t.Context(), connect.NewRequest(&orchpb.RestartL1Request{}))
+		require.NoError(t, err)
+	})
+
+	t.Run("no cookie fails the call", func(t *testing.T) {
+		_, err := Orchestrator(server.URL, t.TempDir()).RestartL1(t.Context(), connect.NewRequest(&orchpb.RestartL1Request{}))
+		require.ErrorContains(t, err, "unauthenticated")
+	})
 }

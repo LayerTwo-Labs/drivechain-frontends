@@ -15,6 +15,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -41,6 +42,17 @@ func Bitcoind(ctx context.Context, orchestratorAddr string) (corerpc.BitcoinServ
 		connect.WithGRPC(),
 		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
 	), nil
+}
+
+// Orchestrator returns an OrchestratorService client for drivechaind at addr,
+// with the local-auth cookie in cookieDir.
+func Orchestrator(addr, cookieDir string) orchrpc.OrchestratorServiceClient {
+	return orchrpc.NewOrchestratorServiceClient(
+		http.DefaultClient,
+		addr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+	)
 }
 
 // ensureHTTPScheme returns addr unchanged if it already has an http:// or

@@ -36,8 +36,7 @@ func TestEnsureWatchOnlyWalletTransientOrchestratorError(t *testing.T) {
 		connect.NewError(connect.CodeInternal, errors.New("-28: Verifying blocks…")),
 		connect.NewError(connect.CodeUnavailable, errors.New("connection refused")),
 	} {
-		e := NewWalletEngine(nil, t.TempDir(), &chaincfg.MainNetParams)
-		e.SetOrchestratorClient(stubOrchWalletClient{err: orchErr})
+		e := NewWalletEngine(nil, stubOrchWalletClient{err: orchErr}, t.TempDir(), &chaincfg.MainNetParams)
 
 		_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 		require.ErrorIs(t, err, orchErr)
@@ -58,7 +57,7 @@ func TestEnsureWatchOnlyWalletPrefersLegacyName(t *testing.T) {
 
 	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, t.TempDir(), &chaincfg.MainNetParams)
+	}, mocks.NewMockWalletManagerServiceClient(ctrl), t.TempDir(), &chaincfg.MainNetParams)
 
 	walletName, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 	require.NoError(t, err)
@@ -83,7 +82,7 @@ func TestEnsureWatchOnlyWalletPropagatesLegacyLoadError(t *testing.T) {
 
 	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, t.TempDir(), &chaincfg.MainNetParams)
+	}, mocks.NewMockWalletManagerServiceClient(ctrl), t.TempDir(), &chaincfg.MainNetParams)
 
 	_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 	require.ErrorContains(t, err, "load legacy watch-only wallet")
@@ -117,8 +116,7 @@ func TestCoreWalletName(t *testing.T) {
 
 	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, walletDir, &chaincfg.MainNetParams)
-	e.SetOrchestratorClient(orch)
+	}, orch, walletDir, &chaincfg.MainNetParams)
 
 	t.Run("a watch-only wallet uses the legacy wallet", func(t *testing.T) {
 		name, err := e.CoreWalletName(t.Context(), "deadbeefcafebabe")
@@ -204,11 +202,10 @@ func TestGetStarterSeed(t *testing.T) {
 }
 
 func TestGetWalletSeed(t *testing.T) {
-	t.Run("a local wallet with no seed fails the precondition", func(t *testing.T) {
-		walletDir := t.TempDir()
-		walletJSON := `{"version": 1, "activeWalletId": "watch", "wallets": [{"id": "watch", "wallet_type": "bitcoinCore"}]}`
-		require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(walletJSON), 0o600))
-		engine := &WalletEngine{walletDir: walletDir}
+	t.Run("a wallet with no seed fails the precondition", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().GetWalletSeed(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet watch holds no master seed")))
 
 		_, err := engine.GetWalletSeed("watch")
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
@@ -246,7 +243,7 @@ func TestGetWalletInfo(t *testing.T) {
 	t.Run("encrypted wallet reads the unlock cache", func(t *testing.T) {
 		walletDir := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), []byte(`{"encrypted":true}`), 0o600))
-		e := NewWalletEngine(nil, walletDir, &chaincfg.MainNetParams)
+		e := NewWalletEngine(nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), walletDir, &chaincfg.MainNetParams)
 
 		_, err := e.GetWalletInfo(t.Context(), "b")
 		require.ErrorContains(t, err, "wallet is encrypted and locked")
@@ -265,7 +262,7 @@ func TestGetWalletInfo(t *testing.T) {
 }
 
 func TestUnlock_BadWalletEntryFails(t *testing.T) {
-	e := NewWalletEngine(nil, t.TempDir(), &chaincfg.MainNetParams)
+	e := NewWalletEngine(nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), t.TempDir(), &chaincfg.MainNetParams)
 
 	var walletData map[string]any
 	require.NoError(t, json.Unmarshal([]byte(`{"activeWalletId":"a","wallets":[

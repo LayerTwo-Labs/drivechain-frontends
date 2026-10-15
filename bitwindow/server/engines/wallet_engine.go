@@ -68,14 +68,12 @@ func (w *WalletInfo) IsWatchOnly() bool {
 }
 
 // WalletEngine handles wallet unlock/lock, backend routing, and Bitcoin Core sync.
-// When an orchestrator client is set, core wallet operations are delegated to
-// the orchestrator's WalletManagerService.
+// Core wallet operations delegate to the orchestrator's WalletManagerService.
 type WalletEngine struct {
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error)
 	walletDir         string
 	chainParams       *chaincfg.Params
 
-	// Orchestrator client — when set, core wallet operations delegate here
 	orchClient orchrpc.WalletManagerServiceClient
 
 	// The one node-mode source every poller and gated RPC reads.
@@ -118,11 +116,13 @@ type WalletEngine struct {
 // NewWalletEngine creates a new unified wallet engine
 func NewWalletEngine(
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error),
+	orchClient orchrpc.WalletManagerServiceClient,
 	walletDir string,
 	chainParams *chaincfg.Params,
 ) *WalletEngine {
 	e := &WalletEngine{
 		bitcoindConnector: bitcoindConnector,
+		orchClient:        orchClient,
 		walletDir:         walletDir,
 		chainParams:       chainParams,
 		isUnlocked:        false,
@@ -131,8 +131,7 @@ func NewWalletEngine(
 		nodeMode:          NewNodeMode(),
 	}
 	e.unlockCond = sync.NewCond(&e.mu)
-
-	// The orchestrator client is set via SetOrchestratorClient after construction.
+	e.nodeMode.SetClient(orchClient)
 
 	// Auto-unlock unencrypted wallets at startup
 	if !wallet.IsWalletEncrypted(walletDir) {
@@ -198,7 +197,7 @@ func (e *WalletEngine) pushFrozenCoins(ctx context.Context) error {
 	e.mu.RLock()
 	fn := e.frozenCoins
 	e.mu.RUnlock()
-	if fn == nil || e.orchClient == nil {
+	if fn == nil {
 		return nil
 	}
 
@@ -239,13 +238,6 @@ func splitOutpoint(outpoint string) (string, int, bool) {
 		return "", 0, false
 	}
 	return txid, vout, true
-}
-
-// SetOrchestratorClient sets the orchestrator WalletManagerService client.
-// When set, core wallet operations delegate to the orchestrator.
-func (e *WalletEngine) SetOrchestratorClient(client orchrpc.WalletManagerServiceClient) {
-	e.orchClient = client
-	e.nodeMode.SetClient(client)
 }
 
 // NodeMode hands out the shared node-mode source.
@@ -388,78 +380,37 @@ func (e *WalletEngine) IsUnlocked() bool {
 func (e *WalletEngine) GetStarterSeed() (string, error) {
 	// GetWalletSeed names its wallet, so resolve the starter's id before
 	// asking for its seed.
-	if e.orchClient != nil {
-		ctx := context.Background()
-		list, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
-		if err != nil {
-			return "", fmt.Errorf("list wallets: %w", err)
-		}
-		starter, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
-			return w.IsStarter
-		})
-		if !found {
-			return "", errors.New("no starter wallet")
-		}
-		resp, err := e.orchClient.GetWalletSeed(
-			ctx,
-			connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: starter.Id}),
-		)
-		if err != nil {
-			return "", fmt.Errorf("get seed of starter wallet %s: %w", starter.Id, err)
-		}
-		return resp.Msg.SeedHex, nil
-	}
-
-	wallets, err := e.GetAllWallets(context.Background())
+	ctx := context.Background()
+	list, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
 	if err != nil {
-		return "", fmt.Errorf("load wallets: %w", err)
+		return "", fmt.Errorf("list wallets: %w", err)
 	}
-
-	seeded := lo.Filter(wallets, func(w WalletInfo, _ int) bool {
-		return w.Master.SeedHex != ""
+	starter, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
+		return w.IsStarter
 	})
-	if len(seeded) == 0 {
-		return "", errors.New("no wallet holds a seed")
+	if !found {
+		return "", errors.New("no starter wallet")
 	}
-	return seeded[0].Master.SeedHex, nil
+	resp, err := e.orchClient.GetWalletSeed(
+		ctx,
+		connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: starter.Id}),
+	)
+	if err != nil {
+		return "", fmt.Errorf("get seed of starter wallet %s: %w", starter.Id, err)
+	}
+	return resp.Msg.SeedHex, nil
 }
 
 // GetWalletSeed returns the seed hex for a specific wallet by ID
 // Used by ChequeEngine for per-wallet cheque address derivation
 func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
-	if e.orchClient != nil {
-		resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{
-			WalletId: walletId,
-		}))
-		if err != nil {
-			return "", fmt.Errorf("get seed of wallet %s: %w", walletId, err)
-		}
-		return resp.Msg.SeedHex, nil
-	}
-
-	wallets, err := e.GetAllWallets(context.Background())
+	resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{
+		WalletId: walletId,
+	}))
 	if err != nil {
-		return "", fmt.Errorf("load wallets: %w", err)
+		return "", fmt.Errorf("get seed of wallet %s: %w", walletId, err)
 	}
-
-	// Find wallet by ID
-	var targetWallet *WalletInfo
-	for _, w := range wallets {
-		if w.ID == walletId {
-			targetWallet = &w
-			break
-		}
-	}
-
-	if targetWallet == nil {
-		return "", fmt.Errorf("wallet not found: %s", walletId)
-	}
-
-	if targetWallet.Master.SeedHex == "" {
-		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s has no seed", walletId))
-	}
-
-	return targetWallet.Master.SeedHex, nil
+	return resp.Msg.SeedHex, nil
 }
 
 // GetActiveWallet returns the active wallet
@@ -578,9 +529,6 @@ func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletId str
 // ensureBitcoinCoreWalletLocked is the singleflight-wrapped body of
 // EnsureBitcoinCoreWallet. Don't call directly.
 func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, walletId string) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
 		WalletId: walletId,
 	}))
@@ -614,9 +562,6 @@ func (e *WalletEngine) CoreWalletName(ctx context.Context, walletId string) (str
 // GetNewAddress returns a receive address of the wallet. The orchestrator
 // derives it for Core and electrum wallets alike.
 func (e *WalletEngine) GetNewAddress(ctx context.Context, walletId string, addressType orchpb.AddressType) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.GetNewAddress(ctx, connect.NewRequest(&orchpb.GetNewAddressRequest{
 		WalletId:    walletId,
 		AddressType: addressType,
@@ -630,9 +575,6 @@ func (e *WalletEngine) GetNewAddress(ctx context.Context, walletId string, addre
 // DeriveReceiveAddresses returns the first count receive addresses of the
 // wallet, as the orchestrator derives them.
 func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletId string, count int) ([]string, error) {
-	if e.orchClient == nil {
-		return nil, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.DeriveAddresses(ctx, connect.NewRequest(&orchpb.DeriveAddressesRequest{
 		WalletId: walletId,
 		Count:    int32(count),
@@ -646,9 +588,6 @@ func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletId stri
 // GetElectrumBalance returns the confirmed, pending and immature balance (in
 // sats) for an electrum wallet from the orchestrator's Esplora-backed provider.
 func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) (confirmed, pending, immature uint64, err error) {
-	if e.orchClient == nil {
-		return 0, 0, 0, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.GetBalance(ctx, connect.NewRequest(&orchpb.GetBalanceRequest{
 		WalletId: walletId,
 	}))
@@ -661,9 +600,6 @@ func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) 
 // CreatePsbt builds an unsigned PSBT for an electrum-wallet send via the
 // orchestrator and returns it base64-encoded.
 func (e *WalletEngine) CreatePsbt(ctx context.Context, req *orchpb.CreatePsbtRequest) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.CreatePsbt(ctx, connect.NewRequest(req))
 	if err != nil {
 		return "", fmt.Errorf("electrum: create psbt: %w", err)
@@ -673,9 +609,6 @@ func (e *WalletEngine) CreatePsbt(ctx context.Context, req *orchpb.CreatePsbtReq
 
 // SignPsbt adds an electrum wallet's signatures to a base64 PSBT.
 func (e *WalletEngine) SignPsbt(ctx context.Context, walletId, psbtBase64 string) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.SignPsbt(ctx, connect.NewRequest(&orchpb.SignPsbtRequest{
 		WalletId: walletId, PsbtBase64: psbtBase64,
 	}))
@@ -687,9 +620,6 @@ func (e *WalletEngine) SignPsbt(ctx context.Context, walletId, psbtBase64 string
 
 // CombinePsbt merges cosigner PSBTs of the same transaction.
 func (e *WalletEngine) CombinePsbt(ctx context.Context, psbtsBase64 []string) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.CombinePsbt(ctx, connect.NewRequest(&orchpb.CombinePsbtRequest{
 		PsbtBase64: psbtsBase64,
 	}))
@@ -701,9 +631,6 @@ func (e *WalletEngine) CombinePsbt(ctx context.Context, psbtsBase64 []string) (s
 
 // FinalizePsbt extracts the raw transaction from a fully-signed PSBT.
 func (e *WalletEngine) FinalizePsbt(ctx context.Context, psbtBase64 string) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.FinalizePsbt(ctx, connect.NewRequest(&orchpb.FinalizePsbtRequest{
 		PsbtBase64: psbtBase64,
 	}))
@@ -746,9 +673,6 @@ func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSa
 // orchestrator wallet manager, which routes to the active wallet's backend
 // (electrum or Bitcoin Core). Used by server-side senders like news OP_RETURNs.
 func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTransactionRequest) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	if err := e.pushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
@@ -761,9 +685,6 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 
 // ListWalletIDs names every wallet the orchestrator holds.
 func (e *WalletEngine) ListWalletIDs(ctx context.Context) ([]string, error) {
-	if e.orchClient == nil {
-		return nil, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("list wallets: %w", err)
@@ -774,9 +695,6 @@ func (e *WalletEngine) ListWalletIDs(ctx context.Context) ([]string, error) {
 // BumpFee replaces a transaction with one that pays more. Coin selection runs
 // in the orchestrator, which locks the frozen coins for the length of the call.
 func (e *WalletEngine) BumpFee(ctx context.Context, req *orchpb.BumpFeeRequest) (*orchpb.BumpFeeResponse, error) {
-	if e.orchClient == nil {
-		return nil, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	if err := e.pushFrozenCoins(ctx); err != nil {
 		return nil, err
 	}
@@ -789,9 +707,6 @@ func (e *WalletEngine) BumpFee(ctx context.Context, req *orchpb.BumpFeeRequest) 
 
 // CreateDeposit builds and broadcasts a BIP300 M5 deposit from any wallet.
 func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepositRequest) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	if err := e.pushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
@@ -805,9 +720,6 @@ func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepo
 // GetElectrumUnspent returns an electrum wallet's UTXOs from the orchestrator,
 // which serves them over Esplora.
 func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletId string) ([]*orchpb.UnspentOutput, error) {
-	if e.orchClient == nil {
-		return nil, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.ListUnspent(ctx, connect.NewRequest(&orchpb.ListUnspentRequest{
 		WalletId: walletId,
 	}))
@@ -820,9 +732,6 @@ func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletId string) 
 // GetElectrumTransactions returns an electrum wallet's transactions from the
 // orchestrator, which serves them over Esplora.
 func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletId string) ([]*orchpb.TransactionEntry, error) {
-	if e.orchClient == nil {
-		return nil, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.ListTransactions(ctx, connect.NewRequest(&orchpb.ListTransactionsRequest{
 		WalletId: walletId,
 	}))
@@ -881,9 +790,6 @@ func (e *WalletEngine) SyncWallets(ctx context.Context) error {
 
 	log.Info().Msg("wallet sync: starting")
 
-	if e.orchClient == nil {
-		return fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.EnsureCoreWallets(ctx, connect.NewRequest(&orchpb.EnsureCoreWalletsRequest{}))
 	if err != nil {
 		return fmt.Errorf("wallet sync: %w", err)
@@ -936,9 +842,6 @@ func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) 
 // ChequeAddressUnspent reports a cheque address's UTXOs. Always electrum-backed
 // on the orchestrator side, whatever wallet the user has active.
 func (e *WalletEngine) ChequeAddressUnspent(ctx context.Context, address string) ([]*orchpb.AddressUnspentOutput, int32, error) {
-	if e.orchClient == nil {
-		return nil, 0, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.GetAddressUnspent(ctx, connect.NewRequest(&orchpb.GetAddressUnspentRequest{
 		Address: address,
 	}))
@@ -951,9 +854,6 @@ func (e *WalletEngine) ChequeAddressUnspent(ctx context.Context, address string)
 // BroadcastChequeTx broadcasts a cheque sweep over electrum, whatever wallet
 // the user has active.
 func (e *WalletEngine) BroadcastChequeTx(ctx context.Context, txHex string) (string, error) {
-	if e.orchClient == nil {
-		return "", fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.BroadcastElectrumTransaction(ctx, connect.NewRequest(&orchpb.BroadcastElectrumTransactionRequest{
 		TxHex: txHex,
 	}))
@@ -966,9 +866,6 @@ func (e *WalletEngine) BroadcastChequeTx(ctx context.Context, txHex string) (str
 // EstimateFeeRate returns the electrum fee estimate in sat/vB for a
 // confirmation target, floored at the 1 sat/vB relay minimum.
 func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int32) (float64, error) {
-	if e.orchClient == nil {
-		return 0, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.EstimateFee(ctx, connect.NewRequest(&orchpb.EstimateFeeRequest{
 		ConfTarget: confTarget,
 	}))
@@ -1061,9 +958,6 @@ func isWalletNotFoundError(msg string) bool {
 // SidechainDepositTotals sums this install's deposits: all time, and since
 // `since`. Both in sats. An empty walletID sums every wallet's.
 func (e *WalletEngine) SidechainDepositTotals(ctx context.Context, since time.Time, walletID string) (int64, int64, error) {
-	if e.orchClient == nil {
-		return 0, 0, errors.New("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.GetSidechainDepositTotals(ctx, connect.NewRequest(&orchpb.GetSidechainDepositTotalsRequest{
 		SinceUnix: since.Unix(),
 		WalletId:  walletID,
@@ -1078,9 +972,6 @@ func (e *WalletEngine) SidechainDepositTotals(ctx context.Context, since time.Ti
 // orchestrator records each one as it broadcasts it, because an M5 is an
 // ordinary transaction on the wire.
 func (e *WalletEngine) ListSidechainDeposits(ctx context.Context, slot uint32, walletID string) ([]*orchpb.SidechainDeposit, error) {
-	if e.orchClient == nil {
-		return nil, errors.New("orchestrator wallet client not connected")
-	}
 	resp, err := e.orchClient.ListSidechainDeposits(ctx, connect.NewRequest(&orchpb.ListSidechainDepositsRequest{
 		Slot:     slot,
 		WalletId: walletID,

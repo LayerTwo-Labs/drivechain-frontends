@@ -79,8 +79,8 @@ type Server struct {
 	walletEngine *engines.WalletEngine
 	backupEngine *engines.BackupEngine
 	walletDir    string
-	// restartL1 reboots the L1 stack (bitcoind + enforcer) via drivechaind;
-	// nil when no orchestrator is configured. Called after a backup restore.
+	// restartL1 reboots the L1 stack (bitcoind + enforcer) via drivechaind.
+	// Called after a backup restore.
 	restartL1 func(context.Context) error
 }
 
@@ -1972,10 +1972,8 @@ func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.Restor
 	}
 
 	// The enforcer reads the restored wallet only after a restart.
-	if s.restartL1 != nil {
-		if err := s.restartL1(ctx); err != nil {
-			return nil, fmt.Errorf("restore backup: restart L1 stack: %w", err)
-		}
+	if err := s.restartL1(ctx); err != nil {
+		return nil, fmt.Errorf("restore backup: restart L1 stack: %w", err)
 	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil

@@ -344,12 +344,10 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
-	if s.remoteCoinNews != nil {
-		res, err := s.listRemoteCoinNews(ctx, req.Msg.Topic)
-		// No published indexer for this network, so the local index answers.
-		if !errors.Is(err, engines.ErrNoIndexer) {
-			return res, err
-		}
+	res, err := s.listRemoteCoinNews(ctx, req.Msg.Topic)
+	// No published indexer for this network, so the local index answers.
+	if !errors.Is(err, engines.ErrNoIndexer) {
+		return res, err
 	}
 
 	news, err := opreturns.ListCoinNews(ctx, s.database)

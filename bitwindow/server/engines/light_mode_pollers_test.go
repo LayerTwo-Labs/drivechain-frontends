@@ -13,6 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -27,6 +28,12 @@ func countingBitcoind(dials *atomic.Int64) *service.Service[corerpc.BitcoinServi
 	return service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 		dials.Add(1)
 		return nil, context.Canceled
+	})
+}
+
+func unreachableEnforcer() *service.Service[validatorrpc.ValidatorServiceClient] {
+	return service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
+		return nil, errors.New("no enforcer")
 	})
 }
 
@@ -49,7 +56,7 @@ func runParserFor(t *testing.T, mode orchpb.NodeMode, window time.Duration) int6
 	t.Helper()
 
 	var dials atomic.Int64
-	parser := engines.NewBitcoind(countingBitcoind(&dials), nil, database.Test(t), config.Config{}, &chaincfg.RegressionNetParams)
+	parser := engines.NewBitcoind(countingBitcoind(&dials), unreachableEnforcer(), database.Test(t), config.Config{}, &chaincfg.RegressionNetParams)
 	parser.SetNodeMode(nodeModeSource(t, mode))
 
 	ctx, cancel := context.WithTimeout(context.Background(), window)
@@ -164,7 +171,7 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 	require.NoError(t, err)
 
 	var sweeps atomic.Int64
-	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), nil, db, config.Config{}, &chaincfg.RegressionNetParams)
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams)
 	parser.SetNodeMode(nodeMode)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
@@ -190,7 +197,7 @@ func TestParserRetriesTheStartupSweepAfterCoreIsReady(t *testing.T) {
 	require.NoError(t, err)
 
 	var sweeps atomic.Int64
-	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), nil, db, config.Config{}, &chaincfg.RegressionNetParams)
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams)
 	parser.SetNodeMode(nodeModeSource(t, orchpb.NodeMode_NODE_MODE_FULL))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
@@ -228,7 +235,7 @@ func TestTimestampEngineWatchesOnlyInFullMode(t *testing.T) {
 			require.NoError(t, err)
 
 			var dials atomic.Int64
-			engine := engines.NewTimestampEngine(db, zerolog.Nop(), nil, countingBitcoind(&dials))
+			engine := engines.NewTimestampEngine(db, zerolog.Nop(), &mockWallet{}, countingBitcoind(&dials))
 			engine.SetNodeMode(nodeModeSource(t, tc.mode))
 
 			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)

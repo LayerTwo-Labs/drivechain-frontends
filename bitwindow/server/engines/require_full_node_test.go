@@ -16,11 +16,6 @@ import (
 
 func engineWithMode(t *testing.T, mode orchpb.NodeMode, err error) *engines.WalletEngine {
 	t.Helper()
-	e := engines.NewWalletEngine(
-		func(context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
-		t.TempDir(),
-		&chaincfg.MainNetParams,
-	)
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
@@ -28,8 +23,12 @@ func engineWithMode(t *testing.T, mode orchpb.NodeMode, err error) *engines.Wall
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
 			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
 		}, err)
-	e.SetOrchestratorClient(orch)
-	return e
+	return engines.NewWalletEngine(
+		func(context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
+		orch,
+		t.TempDir(),
+		&chaincfg.MainNetParams,
+	)
 }
 
 // The one path this guard exists for. Nothing covered it before.
@@ -56,14 +55,4 @@ func TestRequireFullNodeReportsAnUnreadableMode(t *testing.T) {
 	err := e.RequireFullNode(context.Background(), "proposing a sidechain")
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
-}
-
-// No orchestrator client means no way to know, which is not the same as yes.
-func TestRequireFullNodeReportsAMissingClient(t *testing.T) {
-	e := engines.NewWalletEngine(
-		func(context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
-		t.TempDir(),
-		&chaincfg.MainNetParams,
-	)
-	require.Error(t, e.RequireFullNode(context.Background(), "proposing a sidechain"))
 }

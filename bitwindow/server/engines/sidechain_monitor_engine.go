@@ -286,23 +286,21 @@ func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal
 	e.detectedWithdrawals[withdrawal.Txid] = withdrawal
 
 	// Broadcast notification to frontend
-	if e.notificationEngine != nil {
-		event := &notificationv1.WatchResponse{
-			Timestamp: timestamppb.Now(),
-			Event: &notificationv1.WatchResponse_SidechainWithdrawal{
-				SidechainWithdrawal: &notificationv1.SidechainWithdrawalEvent{
-					Type:        notificationv1.SidechainWithdrawalEvent_TYPE_DETECTED,
-					Txid:        withdrawal.Txid,
-					Sidechain:   withdrawal.Sidechain,
-					Amount:      withdrawal.Amount,
-					Destination: withdrawal.Destination,
-					DetectedAt:  timestamppb.New(withdrawal.DetectedAt),
-					BlockHash:   withdrawal.BlockHash,
-				},
+	event := &notificationv1.WatchResponse{
+		Timestamp: timestamppb.Now(),
+		Event: &notificationv1.WatchResponse_SidechainWithdrawal{
+			SidechainWithdrawal: &notificationv1.SidechainWithdrawalEvent{
+				Type:        notificationv1.SidechainWithdrawalEvent_TYPE_DETECTED,
+				Txid:        withdrawal.Txid,
+				Sidechain:   withdrawal.Sidechain,
+				Amount:      withdrawal.Amount,
+				Destination: withdrawal.Destination,
+				DetectedAt:  timestamppb.New(withdrawal.DetectedAt),
+				BlockHash:   withdrawal.BlockHash,
 			},
-		}
-		e.notificationEngine.Broadcast(ctx, event)
+		},
 	}
+	e.notificationEngine.Broadcast(ctx, event)
 
 	log.Info().
 		Str("txid", withdrawal.Txid).

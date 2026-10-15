@@ -18,6 +18,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
@@ -143,12 +144,6 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 	if req.Msg.Network == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network required"))
 	}
-	if s.config.OrchestratorAddr == "" {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("orchestrator.addr not configured"))
-	}
-	if s.recycle == nil {
-		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("recycle callback not wired"))
-	}
 
 	network := config.Network(req.Msg.Network)
 	if !isKnownNetwork(network) {
@@ -180,12 +175,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 			resetFrom = plan.Msg.RewindHeight + 1
 		} else {
 			// A completed migration already moved Core, so the switch plan has no rollback.
-			client := orchrpc.NewOrchestratorServiceClient(
-				http.DefaultClient,
-				s.config.OrchestratorAddr,
-				connect.WithGRPC(),
-				connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
-			)
+			client := dial.Orchestrator(s.config.OrchestratorAddr, s.config.BitwindowDir())
 			status, err := client.GetECashMigrationStatus(ctx, connect.NewRequest(&orchpb.GetECashMigrationStatusRequest{}))
 			if err != nil {
 				return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.GetECashMigrationStatus: %w", err))
@@ -231,13 +221,8 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 
 	if req.Msg.SkipDownstream {
 		log.Info().Msg("skip_downstream=true, bitwindowd-only exit (drivechaind stays running)")
-	} else if s.config.OrchestratorAddr != "" {
-		client := orchrpc.NewOrchestratorServiceClient(
-			http.DefaultClient,
-			s.config.OrchestratorAddr,
-			connect.WithGRPC(),
-			connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
-		)
+	} else {
+		client := dial.Orchestrator(s.config.OrchestratorAddr, s.config.BitwindowDir())
 		// Fresh context — the inbound ctx may be cancelled by the frontend
 		// the moment we return. Short timeout because drivechaind acks
 		// immediately (the drain runs in its own goroutine).
