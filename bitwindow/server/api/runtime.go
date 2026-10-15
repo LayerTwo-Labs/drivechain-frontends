@@ -303,7 +303,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		register(path, h)
 	}
 	{
-		bitdriveSvc := api_bitdrive.New(rt.db, rt.bitdriveEngine, rt.walletEngine)
+		bitdriveSvc := api_bitdrive.New(rt.db, rt.bitdriveEngine)
 		path, h := bitdrivev1connect.NewBitDriveServiceHandler(bitdriveSvc, stdOpts...)
 		register(path, h)
 	}

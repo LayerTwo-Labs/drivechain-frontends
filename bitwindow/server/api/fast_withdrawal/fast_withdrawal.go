@@ -1,13 +1,8 @@
 package fast_withdrawal
 
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
@@ -22,16 +17,10 @@ import (
 type Server struct {
 	// Monitor engine for withdrawal detection
 	monitor *engines.SidechainMonitorEngine
-
-	// Secure HTTP client
-	httpClient *http.Client
 }
 
 func New(monitor *engines.SidechainMonitorEngine) *Server {
-	return &Server{
-		monitor:    monitor,
-		httpClient: createSecureHTTPClient(),
-	}
+	return &Server{monitor: monitor}
 }
 
 // InitiateFastWithdrawal starts a fast withdrawal and streams status updates
@@ -56,7 +45,7 @@ func (s *Server) InitiateFastWithdrawal(
 	}
 
 	// Initiate withdrawal on sidechain
-	txid, err := s.initiateSidechainWithdrawal(ctx, fastWithdrawalServerURL, req.Msg.Sidechain, req.Msg.Amount, req.Msg.Destination)
+	txid, err := s.monitor.InitiateFastWithdrawal(ctx, fastWithdrawalServerURL, req.Msg.Sidechain, req.Msg.Amount, req.Msg.Destination)
 	if err != nil {
 		log.Error().Err(err).Msg("initiate sidechain withdrawal")
 		errorMsg := err.Error()
@@ -83,93 +72,6 @@ func (s *Server) InitiateFastWithdrawal(
 
 // TODO: Make this configurable or try multiple servers
 const fastWithdrawalServerURL = "https://fw1.drivechain.info"
-
-type withdrawResponse struct {
-	Status string `json:"status"`
-	Error  string `json:"error"`
-	Data   *struct {
-		Hash            string `json:"hash"`
-		ServerL2Address *struct {
-			Info string `json:"info"`
-		} `json:"server_l2_address"`
-		ServerFeeSats *int64 `json:"server_fee_sats"`
-	} `json:"data"`
-}
-
-// initiateSidechainWithdrawal calls external fast withdrawal server
-func (s *Server) initiateSidechainWithdrawal(ctx context.Context, serverURL string, sidechain string, amount int64, destination string) (string, error) {
-	log := zerolog.Ctx(ctx)
-
-	// Call external fast withdrawal server (like fw1.drivechain.info)
-	withdrawalRequest := map[string]interface{}{
-		"withdrawal_destination": destination,
-		"withdrawal_amount":      float64(amount) / 100000000.0, // Convert sats to BTC
-		"layer_2_chain_name":     sidechain,
-	}
-
-	log.Info().Interface("request", withdrawalRequest).Str("server", serverURL).Msg("requesting fast withdrawal from external server")
-
-	// Make actual HTTP call to external server
-	jsonPayload, err := json.Marshal(withdrawalRequest)
-	if err != nil {
-		return "", fmt.Errorf("marshal request: %w", err)
-	}
-
-	withdrawURL := serverURL + "/withdraw"
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawURL, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return "", fmt.Errorf("build request to %s: %w", withdrawURL, err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := s.httpClient.Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("http request to %s: %w", withdrawURL, err)
-	}
-	defer resp.Body.Close()
-
-	var result withdrawResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("decode response: %w", err)
-	}
-
-	if result.Status != "success" {
-		return "", fmt.Errorf("withdrawal request failed: %s", result.Error)
-	}
-
-	data := result.Data
-	if data == nil {
-		return "", errors.New("invalid response format: missing data")
-	}
-	if data.Hash == "" {
-		return "", errors.New("invalid response format: missing hash")
-	}
-	if data.ServerL2Address == nil {
-		return "", errors.New("invalid response format: missing server_l2_address")
-	}
-	if data.ServerL2Address.Info == "" {
-		return "", errors.New("invalid response format: missing server L2 address info")
-	}
-	if data.ServerFeeSats == nil {
-		return "", errors.New("invalid response format: missing server_fee_sats")
-	}
-	withdrawalHash := data.Hash
-	serverAddress := data.ServerL2Address.Info
-	serverFeeSats := *data.ServerFeeSats
-
-	// Register this pending withdrawal for monitoring
-	pending := engines.PendingFastWithdrawal{
-		Hash:           withdrawalHash,
-		Sidechain:      sidechain,
-		ServerAddress:  serverAddress,
-		ExpectedAmount: amount + serverFeeSats,
-		ServerURL:      serverURL,
-		CreatedAt:      time.Now(),
-	}
-
-	s.monitor.RegisterPendingFastWithdrawal(ctx, pending)
-
-	return withdrawalHash, nil
-}
 
 // monitorWithdrawal monitors for withdrawal detection and confirmation
 func (s *Server) monitorWithdrawal(ctx context.Context, stream *connect.ServerStream[pb.FastWithdrawalUpdate], sidechain string, expectedTxid string) error {
@@ -272,19 +174,5 @@ func (s *Server) monitorConfirmation(ctx context.Context, stream *connect.Server
 				})
 			}
 		}
-	}
-}
-
-// createSecureHTTPClient creates an HTTP client with security timeouts and limits
-func createSecureHTTPClient() *http.Client {
-	return &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			},
-			MaxResponseHeaderBytes: 4096,
-			ResponseHeaderTimeout:  10 * time.Second,
-		},
 	}
 }

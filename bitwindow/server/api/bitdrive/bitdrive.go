@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -24,64 +23,32 @@ var _ rpc.BitDriveServiceHandler = new(Server)
 func New(
 	database *sql.DB,
 	bitdriveEngine *engines.BitDriveEngine,
-	walletEngine *engines.WalletEngine,
 ) *Server {
 	return &Server{
 		database:       database,
 		bitdriveEngine: bitdriveEngine,
-		walletEngine:   walletEngine,
 	}
 }
 
 type Server struct {
 	database       *sql.DB
 	bitdriveEngine *engines.BitDriveEngine
-	walletEngine   *engines.WalletEngine
 }
 
 // StoreFile implements bitdrivev1connect.BitDriveServiceHandler.
 func (s *Server) StoreFile(ctx context.Context, req *connect.Request[bitdrivev1.StoreFileRequest]) (*connect.Response[bitdrivev1.StoreFileResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	content := req.Msg.Content
-	if len(content) == 0 {
+	if len(req.Msg.Content) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("content is required"))
 	}
 
-	if err := engines.ValidateFileSize(content); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	// Encode for OP_RETURN
-	metadataB64, contentStr, timestamp, err := s.bitdriveEngine.EncodeOPReturnData(ctx, content, req.Msg.Encrypt)
+	txid, fileType, err := s.bitdriveEngine.StoreFile(ctx, req.Msg.Content, req.Msg.Encrypt, req.Msg.FeeSatPerVbyte)
 	if err != nil {
-		return nil, fmt.Errorf("encode OP_RETURN data: %w", err)
+		return nil, err
 	}
-
-	metadata, err := engines.ParseMetadata(metadataB64)
-	if err != nil {
-		return nil, fmt.Errorf("parse encoded metadata: %w", err)
-	}
-
-	opReturnData := engines.FormatOPReturnData(metadataB64, contentStr)
-
-	// Broadcast the OP_RETURN through the active wallet's backend (electrum or
-	// enforcer) so BitDrive works regardless of whether a local enforcer runs.
-	txid, err := s.walletEngine.BroadcastOpReturn(ctx, []byte(opReturnData), req.Msg.FeeSatPerVbyte, 0)
-	if err != nil {
-		return nil, fmt.Errorf("send transaction: %w", err)
-	}
-
-	log.Info().
-		Str("txid", txid).
-		Bool("encrypted", req.Msg.Encrypt).
-		Int("size", len(content)).
-		Uint32("timestamp", timestamp).
-		Msg("stored BitDrive file")
 
 	return connect.NewResponse(&bitdrivev1.StoreFileResponse{
 		Txid:      txid,
-		FileType:  metadata.FileType,
+		FileType:  fileType,
 		Encrypted: req.Msg.Encrypt,
 	}), nil
 }
@@ -225,30 +192,14 @@ func (s *Server) DeleteFile(ctx context.Context, req *connect.Request[bitdrivev1
 
 // StoreMultisigData implements bitdrivev1connect.BitDriveServiceHandler.
 func (s *Server) StoreMultisigData(ctx context.Context, req *connect.Request[bitdrivev1.StoreMultisigDataRequest]) (*connect.Response[bitdrivev1.StoreMultisigDataResponse], error) {
-	log := zerolog.Ctx(ctx)
-
 	if len(req.Msg.JsonData) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("json_data is required"))
 	}
 
-	// Encode multisig data
-	opReturnData, err := s.bitdriveEngine.EncodeMultisigData(ctx, req.Msg.JsonData, req.Msg.Encrypt)
+	txid, err := s.bitdriveEngine.StoreMultisigData(ctx, req.Msg.JsonData, req.Msg.Encrypt, req.Msg.FeeSatPerVbyte)
 	if err != nil {
-		return nil, fmt.Errorf("encode multisig data: %w", err)
+		return nil, err
 	}
-
-	// Broadcast the OP_RETURN through the active wallet's backend (electrum or
-	// enforcer) so BitDrive works regardless of whether a local enforcer runs.
-	txid, err := s.walletEngine.BroadcastOpReturn(ctx, []byte(opReturnData), req.Msg.FeeSatPerVbyte, 0)
-	if err != nil {
-		return nil, fmt.Errorf("send transaction: %w", err)
-	}
-
-	log.Info().
-		Str("txid", txid).
-		Bool("encrypted", req.Msg.Encrypt).
-		Int("size", len(req.Msg.JsonData)).
-		Msg("stored multisig data")
 
 	return connect.NewResponse(&bitdrivev1.StoreMultisigDataResponse{
 		Txid: txid,
