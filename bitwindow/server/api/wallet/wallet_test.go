@@ -177,6 +177,24 @@ func TestService_GetNewAddress(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "bc1qtest123456789", resp.Msg.Address)
 	})
+
+	t.Run("an address the book holds returns again", func(t *testing.T) {
+		t.Parallel()
+
+		mockOrch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+		apitests.ExpectOrchestratorReads(mockOrch)
+		mockOrch.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&orchpb.GetNewAddressResponse{Address: "bc1qtest123456789"}), nil).
+			Times(2)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(mockOrch)))
+
+		for range 2 {
+			resp, err := cli.GetNewAddress(t.Context(), connect.NewRequest(&walletv1.GetNewAddressRequest{WalletId: testWalletID}))
+			require.NoError(t, err)
+			require.Equal(t, "bc1qtest123456789", resp.Msg.Address)
+		}
+	})
 }
 
 func TestService_ListCheques(t *testing.T) {

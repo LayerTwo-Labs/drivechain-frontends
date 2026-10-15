@@ -423,60 +423,23 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 	}
 
 	addr := strings.TrimSpace(req.Msg.Address)
-	kind := addressbook.ClassifyAddress(addr)
-	if kind == pb.AddressType_ADDRESS_TYPE_UNKNOWN || kind == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
-		err := fmt.Errorf(
-			"invalid address %q: must be (1) a Bitcoin address on any network, "+
-				"(2) a Drivechain deposit address s<slot>_<addr>_<checksum>, or "+
-				"(3) a BIP47 v3 payment code", addr,
-		)
+	if err := validateAddressBookAddress(addr); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid address format")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	// A label must map to a single address — reject collisions with a
-	// different address (re-saving the same address still upserts below).
-	label := strings.TrimSpace(req.Msg.Label)
-	if label != "" {
-		existing, err := addressbook.List(ctx, s.db)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
-		for _, entry := range existing {
-			if strings.EqualFold(strings.TrimSpace(entry.Label), label) && entry.Address != addr {
-				err := fmt.Errorf("an address book entry with label %q already exists", label)
-				return nil, connect.NewError(connect.CodeAlreadyExists, err)
-			}
-		}
+	// A label must map to a single address. Saving the same address again
+	// sets its label.
+	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Msg.Label), func(entry addressbook.Entry) bool {
+		return entry.Address == addr
+	}); err != nil {
+		return nil, err
 	}
 
 	// User-added addresses don't belong to a specific wallet (nil walletId)
-	if err := addressbook.Create(ctx, s.db, nil, req.Msg.Label, addr, direction); err != nil {
-		// Check if this is a unique constraint error for address+direction
-		if err.Error() == addressbook.ErrUniqueAddress {
-			// Get the existing entry to update
-			entries, err := addressbook.List(ctx, s.db)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
-				return nil, connect.NewError(connect.CodeInternal, err)
-			}
-
-			// Find the entry with matching address and direction
-			for _, entry := range entries {
-				if entry.Address == addr && entry.Direction == direction {
-					// Update its label instead
-					if err := addressbook.UpdateLabel(ctx, s.db, entry.ID, req.Msg.Label); err != nil {
-						zerolog.Ctx(ctx).Error().Err(err).Msg("could not update address book entry label")
-						return nil, connect.NewError(connect.CodeInternal, err)
-					}
-					break // this break will move us to the list --> find --> return
-				}
-			}
-		} else {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not create address book entry")
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
+	if err := addressbook.Upsert(ctx, s.db, nil, req.Msg.Label, addr, direction); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not save address book entry")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	entries, err := addressbook.List(ctx, s.db)
@@ -489,6 +452,7 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return entry.Address == addr && entry.Direction == direction
 	})
 	if !ok {
+		err := fmt.Errorf("entry %s/%s missing after save", addr, direction)
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not find newly created address book entry")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -496,6 +460,36 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 	return connect.NewResponse(&pb.CreateAddressBookEntryResponse{
 		Entry: EntryToProto(&entry),
 	}), nil
+}
+
+func validateAddressBookAddress(addr string) error {
+	kind := addressbook.ClassifyAddress(addr)
+	if kind == pb.AddressType_ADDRESS_TYPE_UNKNOWN || kind == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
+		return fmt.Errorf(
+			"invalid address %q: must be (1) a Bitcoin address on any network, "+
+				"(2) a Drivechain deposit address s<slot>_<addr>_<checksum>, or "+
+				"(3) a BIP47 v3 payment code", addr,
+		)
+	}
+	return nil
+}
+
+// checkLabelFree refuses a label that an entry other than self holds.
+func (s *Server) checkLabelFree(ctx context.Context, label string, self func(addressbook.Entry) bool) error {
+	if label == "" {
+		return nil
+	}
+	entries, err := addressbook.List(ctx, s.db)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if lo.ContainsBy(entries, func(entry addressbook.Entry) bool {
+		return !self(entry) && strings.EqualFold(strings.TrimSpace(entry.Label), label)
+	}) {
+		return connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("an address book entry with label %q already exists", label))
+	}
+	return nil
 }
 
 func EntryToProto(entry *addressbook.Entry) *pb.AddressBookEntry {
@@ -532,19 +526,10 @@ func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[empty
 }
 
 func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Request[pb.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	label := strings.TrimSpace(req.Msg.Label)
-	if label != "" {
-		existing, err := addressbook.List(ctx, s.db)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
-		for _, entry := range existing {
-			if entry.ID != req.Msg.Id && strings.EqualFold(strings.TrimSpace(entry.Label), label) {
-				err := fmt.Errorf("an address book entry with label %q already exists", label)
-				return nil, connect.NewError(connect.CodeAlreadyExists, err)
-			}
-		}
+	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Msg.Label), func(entry addressbook.Entry) bool {
+		return entry.ID == req.Msg.Id
+	}); err != nil {
+		return nil, err
 	}
 
 	if err := addressbook.UpdateLabel(ctx, s.db, req.Msg.Id, req.Msg.Label); err != nil {
@@ -761,9 +746,8 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 // addresses are rejected so a bad ref is skipped rather than stored.
 func (s *Server) importAddressLabel(ctx context.Context, address, label string) error {
 	addr := strings.TrimSpace(address)
-	kind := addressbook.ClassifyAddress(addr)
-	if kind == pb.AddressType_ADDRESS_TYPE_UNKNOWN || kind == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
-		return fmt.Errorf("invalid address %q", addr)
+	if err := validateAddressBookAddress(addr); err != nil {
+		return err
 	}
 
 	entries, err := addressbook.List(ctx, s.db)

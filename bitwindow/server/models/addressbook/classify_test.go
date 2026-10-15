@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil/base58"
+	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 )
 
@@ -93,4 +96,99 @@ func TestClassifyAddress(t *testing.T) {
 			}
 		})
 	}
+}
+
+const bookAddress = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+
+func TestCreate(t *testing.T) {
+	db := database.Test(t)
+	walletID := "wallet-a"
+
+	t.Run("a new entry saves", func(t *testing.T) {
+		require.NoError(t, Create(t.Context(), db, &walletID, "rent", bookAddress, DirectionSend))
+	})
+
+	t.Run("the same address and direction is a duplicate", func(t *testing.T) {
+		err := Create(t.Context(), db, &walletID, "other", bookAddress, DirectionSend)
+		require.ErrorIs(t, err, ErrDuplicateAddress)
+	})
+
+	t.Run("the same address in the other direction saves", func(t *testing.T) {
+		require.NoError(t, Create(t.Context(), db, nil, "", bookAddress, DirectionReceive))
+	})
+}
+
+func TestUpsert(t *testing.T) {
+	db := database.Test(t)
+
+	require.NoError(t, Upsert(t.Context(), db, nil, "first", bookAddress, DirectionSend))
+	require.NoError(t, Upsert(t.Context(), db, nil, "second", bookAddress, DirectionSend))
+
+	entries, err := List(t.Context(), db)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	require.Equal(t, "second", entries[0].Label)
+	require.Equal(t, DirectionSend, entries[0].Direction)
+}
+
+func TestLabelsByAddress(t *testing.T) {
+	db := database.Test(t)
+	require.NoError(t, Create(t.Context(), db, nil, "first", bookAddress, DirectionSend))
+	require.NoError(t, Create(t.Context(), db, nil, "second", bookAddress, DirectionReceive))
+	require.NoError(t, Create(t.Context(), db, nil, "", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", DirectionReceive))
+
+	labels, err := LabelsByAddress(t.Context(), db)
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{
+		bookAddress: "first",
+		"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq": "",
+	}, labels)
+}
+
+func TestUpdateLabel(t *testing.T) {
+	db := database.Test(t)
+	require.NoError(t, Create(t.Context(), db, nil, "old", bookAddress, DirectionSend))
+	entries, err := List(t.Context(), db)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+
+	t.Run("an entry gets the new label", func(t *testing.T) {
+		require.NoError(t, UpdateLabel(t.Context(), db, entries[0].ID, "new"))
+		updated, err := List(t.Context(), db)
+		require.NoError(t, err)
+		require.Equal(t, "new", updated[0].Label)
+	})
+
+	t.Run("a missing entry is not found", func(t *testing.T) {
+		err := UpdateLabel(t.Context(), db, entries[0].ID+1, "new")
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	})
+}
+
+func TestDelete(t *testing.T) {
+	db := database.Test(t)
+	require.NoError(t, Create(t.Context(), db, nil, "", bookAddress, DirectionSend))
+	entries, err := List(t.Context(), db)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+
+	t.Run("an entry deletes", func(t *testing.T) {
+		require.NoError(t, Delete(t.Context(), db, entries[0].ID))
+		left, err := List(t.Context(), db)
+		require.NoError(t, err)
+		require.Empty(t, left)
+	})
+
+	t.Run("a missing entry is not found", func(t *testing.T) {
+		err := Delete(t.Context(), db, entries[0].ID)
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	})
+
+	t.Run("a failed delete returns the error", func(t *testing.T) {
+		closed := database.Test(t)
+		require.NoError(t, closed.Close())
+
+		err := Delete(t.Context(), closed, 1)
+		require.ErrorContains(t, err, "database is closed")
+	})
 }
