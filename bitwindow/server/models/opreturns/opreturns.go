@@ -338,9 +338,8 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	var topics []Topic
 	for rows.Next() {
 		var topic Topic
-		var rawTopicID []byte
 		var createdAt sql.NullTime
-		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &createdAt)
+		err := rows.Scan(&topic.ID, &topic.Topic, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &createdAt)
 		if err != nil {
 			return nil, fmt.Errorf("list topics: scan: %w", err)
 		}
@@ -349,11 +348,6 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 		} else {
 			topic.CreatedAt = time.Now()
 		}
-
-		if len(rawTopicID) != TopicIdLength {
-			return nil, fmt.Errorf("list topics: topic ID %x is %d bytes, want %d", rawTopicID, len(rawTopicID), TopicIdLength)
-		}
-		topic.Topic = TopicID(rawTopicID)
 
 		topics = append(topics, topic)
 	}
@@ -440,6 +434,18 @@ func (t TopicID) String() string {
 	return hex.EncodeToString(t[:])
 }
 
+func (t *TopicID) Scan(src any) error {
+	b, ok := src.([]byte)
+	if !ok {
+		return fmt.Errorf("topic ID is %T, want []byte", src)
+	}
+	if len(b) != TopicIdLength {
+		return fmt.Errorf("topic ID %x is %d bytes, want %d", b, len(b), TopicIdLength)
+	}
+	copy(t[:], b)
+	return nil
+}
+
 // ListCoinNews returns articles from the canonical CoinNews tables.
 func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 	coinNewsCacheMu.RLock()
@@ -467,22 +473,38 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 }
 
 func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
-	rows, err := db.QueryContext(ctx, `
+	type storyRow struct {
+		ID        int64          `db:"id"`
+		Topic     TopicID        `db:"topic"`
+		TopicName string         `db:"topic_name"`
+		Headline  string         `db:"headline"`
+		Content   string         `db:"content"`
+		Fee       btcutil.Amount `db:"fee"`
+		BlockTime time.Time      `db:"block_time"`
+		ItemID    string         `db:"item_id"`
+		Upvotes   int64          `db:"upvotes"`
+		Downvotes int64          `db:"downvotes"`
+		RawTLV    []byte         `db:"raw_tlv"`
+		URL       string         `db:"url"`
+		Subtype   int32          `db:"subtype"`
+		NSFW      bool           `db:"nsfw"`
+	}
+	rows, err := database.Select[storyRow](ctx, db, `
 		SELECT
-			i.rowid,
-			s.topic,
-			COALESCE(ct.name, ''),
-			s.headline,
-			COALESCE(s.body, ''),
-			COALESCE(o.fee_sats, 0),
-			i.block_time,
-			lower(hex(s.item_id)),
-			COALESCE(v.upvotes, 0),
-			COALESCE(v.downvotes, 0),
-			COALESCE(s.raw_tlv, x''),
-			COALESCE(s.url, ''),
-			s.subtype,
-			s.nsfw
+			i.rowid AS id,
+			s.topic AS topic,
+			COALESCE(ct.name, '') AS topic_name,
+			s.headline AS headline,
+			COALESCE(s.body, '') AS content,
+			COALESCE(o.fee_sats, 0) AS fee,
+			i.block_time AS block_time,
+			lower(hex(s.item_id)) AS item_id,
+			COALESCE(v.upvotes, 0) AS upvotes,
+			COALESCE(v.downvotes, 0) AS downvotes,
+			COALESCE(s.raw_tlv, x'') AS raw_tlv,
+			COALESCE(s.url, '') AS url,
+			s.subtype AS subtype,
+			s.nsfw AS nsfw
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
 		LEFT JOIN cn_topics ct ON ct.topic = s.topic
@@ -501,7 +523,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 	if err != nil {
 		return nil, fmt.Errorf("list coin news: query new-format stories: %w", err)
 	}
-	defer database.SafeDefer(ctx, rows.Close)
 
 	type continuationTarget struct {
 		idx    int
@@ -510,60 +531,29 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 	}
 	var out []CoinNews
 	var toReassemble []continuationTarget
-	for rows.Next() {
-		var (
-			id        int64
-			rawTopic  []byte
-			topicName string
-			headline  string
-			content   string
-			fee       btcutil.Amount
-			blockTime time.Time
-			itemID    string
-			upvotes   int64
-			downvotes int64
-			rawTLV    []byte
-			url       string
-			subtype   int32
-			nsfw      bool
-		)
-		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes, &downvotes, &rawTLV, &url, &subtype, &nsfw); err != nil {
-			return nil, fmt.Errorf("list coin news: scan new-format story: %w", err)
-		}
-		if len(rawTopic) != TopicIdLength {
-			return nil, fmt.Errorf("list coin news: invalid new-format topic length: %d", len(rawTopic))
-		}
-		if strings.TrimSpace(headline) == "" {
+	for _, row := range rows {
+		if strings.TrimSpace(row.Headline) == "" {
 			continue
 		}
-		var topic TopicID
-		copy(topic[:], rawTopic)
+		blockTime := row.BlockTime
 		out = append(out, CoinNews{
-			ID:        id,
-			Topic:     topic,
-			TopicName: topicName,
-			Headline:  headline,
-			Content:   content,
-			Fee:       fee,
-			ItemID:    itemID,
-			Upvotes:   upvotes,
-			Downvotes: downvotes,
-			Score:     cnstore.HNScore(upvotes, downvotes, blockTime),
-			URL:       url,
-			Subtype:   subtype,
-			NSFW:      nsfw,
+			ID:        row.ID,
+			Topic:     row.Topic,
+			TopicName: row.TopicName,
+			Headline:  row.Headline,
+			Content:   row.Content,
+			Fee:       row.Fee,
+			ItemID:    row.ItemID,
+			Upvotes:   row.Upvotes,
+			Downvotes: row.Downvotes,
+			Score:     cnstore.HNScore(row.Upvotes, row.Downvotes, row.BlockTime),
+			URL:       row.URL,
+			Subtype:   row.Subtype,
+			NSFW:      row.NSFW,
 			CreatedAt: &blockTime,
 		})
-		toReassemble = append(toReassemble, continuationTarget{idx: len(out) - 1, itemID: itemID, rawTLV: rawTLV})
+		toReassemble = append(toReassemble, continuationTarget{idx: len(out) - 1, itemID: row.ItemID, rawTLV: row.RawTLV})
 	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list coin news: iterate new-format stories: %w", err)
-	}
-	// Release the single DB connection this result set holds before issuing
-	// any follow-up query. The pool is MaxOpenConns(1): querying continuations
-	// while these rows are still open deadlocks — the follow-up waits forever
-	// for the one connection this result set is holding.
-	rows.Close()
 
 	// §9: splice in any Continuation chunks to recover long bodies that didn't
 	// fit in the head's 80-byte OP_RETURN.

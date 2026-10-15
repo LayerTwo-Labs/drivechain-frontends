@@ -1466,23 +1466,14 @@ func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetU
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("outpoint is required"))
 	}
 
-	var isFrozen *bool
-	if c.Msg.IsFrozen != nil {
-		isFrozen = c.Msg.IsFrozen
-	}
-	var label *string
-	if c.Msg.Label != nil {
-		label = c.Msg.Label
-	}
-
-	if err := utxometadata.Set(ctx, s.database, c.Msg.Outpoint, isFrozen, label); err != nil {
+	if err := utxometadata.Set(ctx, s.database, c.Msg.Outpoint, c.Msg.IsFrozen, c.Msg.Label); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("set UTXO metadata: %w", err))
 	}
 
 	// Coin selection runs in drivechaind, so a freeze reaches it only when we
 	// hand the new set over. A caller that reads success must be able to
 	// believe the coin is safe.
-	if isFrozen != nil {
+	if c.Msg.IsFrozen != nil {
 		if err := s.walletEngine.PushFrozenCoins(ctx); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}

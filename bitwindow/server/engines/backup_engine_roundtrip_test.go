@@ -16,10 +16,10 @@ func TestExportTransactionsJSON_RoundTrip(t *testing.T) {
 	store := multisig.NewStore(db)
 	e := &BackupEngine{db: db, walletDir: t.TempDir(), multisigStore: store}
 
-	require.NoError(t, store.SaveGroup(ctx, multisig.Group{
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: multisig.Group{
 		ID:   "group-1",
 		Name: "Test Group",
-	}))
+	}}))
 
 	broadcastTime := int64(1751600000)
 	signedAt := int64(1751500000)

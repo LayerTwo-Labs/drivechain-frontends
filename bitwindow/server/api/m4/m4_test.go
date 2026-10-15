@@ -15,7 +15,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	m4pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
@@ -51,52 +50,6 @@ func TestService_GetM4History(t *testing.T) {
 		require.NoError(t, err)
 		// With no data, it will just be empty
 		assert.Empty(t, resp.Msg.History)
-	})
-}
-
-func TestM4Engine_GetM4History(t *testing.T) {
-	t.Parallel()
-
-	t.Run("empty history", func(t *testing.T) {
-		t.Parallel()
-
-		db := database.Test(t)
-		ctx := t.Context()
-		engine := engines.NewM4Engine(db)
-
-		history, err := engine.GetM4History(ctx, 10)
-		require.NoError(t, err)
-		assert.Empty(t, history)
-	})
-}
-
-func TestM4Engine_GetWithdrawalBundles(t *testing.T) {
-	t.Parallel()
-
-	t.Run("empty bundles", func(t *testing.T) {
-		t.Parallel()
-
-		db := database.Test(t)
-		ctx := t.Context()
-		engine := engines.NewM4Engine(db)
-
-		bundles, err := engine.GetWithdrawalBundles(ctx, nil)
-		require.NoError(t, err)
-		assert.Empty(t, bundles)
-	})
-
-	t.Run("filter by sidechain slot", func(t *testing.T) {
-		t.Parallel()
-
-		db := database.Test(t)
-		ctx := t.Context()
-		engine := engines.NewM4Engine(db)
-
-		// Query for specific sidechain (should be empty)
-		slot := uint8(0)
-		bundles, err := engine.GetWithdrawalBundles(ctx, &slot)
-		require.NoError(t, err)
-		assert.Empty(t, bundles)
 	})
 }
 

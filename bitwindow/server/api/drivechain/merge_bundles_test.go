@@ -3,7 +3,9 @@ package drivechain
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 )
@@ -80,4 +82,30 @@ func TestMergeBundlesSortsByHeight(t *testing.T) {
 	merged := s.mergeBundles(nil, scanned)
 	require.Len(t, merged, 3)
 	require.Equal(t, []string{"a", "b", "c"}, []string{merged[0].M6Id, merged[1].M6Id, merged[2].M6Id})
+}
+
+func TestUpdateBundleAges(t *testing.T) {
+	s := &Server{}
+
+	cached := &pb.WithdrawalBundle{
+		M6Id:           "abc123",
+		SidechainId:    9,
+		BlockHeight:    100,
+		Status:         "pending",
+		MaxAge:         withdrawalVerificationPeriod,
+		SequenceNumber: 4,
+		TransactionHex: "beef",
+		Age:            1,
+		BlocksLeft:     withdrawalVerificationPeriod - 1,
+	}
+	before := proto.Clone(cached)
+
+	aged := s.updateBundleAges([]*pb.WithdrawalBundle{cached}, 110)
+
+	want := proto.Clone(cached).(*pb.WithdrawalBundle)
+	want.Age = 10
+	want.BlocksLeft = withdrawalVerificationPeriod - 10
+	require.Len(t, aged, 1)
+	assert.True(t, proto.Equal(want, aged[0]))
+	assert.True(t, proto.Equal(before, cached))
 }

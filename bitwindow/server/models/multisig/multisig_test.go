@@ -152,7 +152,7 @@ func TestSaveAndListGroups(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	groups, err := store.ListGroups(ctx)
 	require.NoError(t, err)
@@ -168,11 +168,11 @@ func TestSaveGroupUpsert(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	g.Name = "Updated Name"
 	g.Balance = 1.5
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	groups, err := store.ListGroups(ctx)
 	require.NoError(t, err)
@@ -186,10 +186,8 @@ func TestDeleteGroupCascades(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
-
 	keys := []multisig.Key{{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"}}
-	require.NoError(t, store.ReplaceKeysForGroup(ctx, g.ID, keys))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g, Keys: keys}))
 
 	require.NoError(t, store.DeleteGroup(ctx, g.ID))
 
@@ -202,38 +200,12 @@ func TestDeleteGroupCascades(t *testing.T) {
 	assert.Empty(t, dbKeys)
 }
 
-func TestReplaceKeysForGroup(t *testing.T) {
-	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
-
-	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
-
-	keys := []multisig.Key{
-		{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"},
-		{GroupID: g.ID, Owner: "bob", Xpub: "xpub2", DerivationPath: "m/48'/0'/1'"},
-	}
-	require.NoError(t, store.ReplaceKeysForGroup(ctx, g.ID, keys))
-
-	dbKeys, err := store.ListKeysForGroup(ctx, g.ID)
-	require.NoError(t, err)
-	require.Len(t, dbKeys, 2)
-	assert.Equal(t, "alice", dbKeys[0].Owner)
-	assert.Equal(t, "bob", dbKeys[1].Owner)
-
-	// Replace with fewer keys
-	require.NoError(t, store.ReplaceKeysForGroup(ctx, g.ID, keys[:1]))
-	dbKeys, err = store.ListKeysForGroup(ctx, g.ID)
-	require.NoError(t, err)
-	assert.Len(t, dbKeys, 1)
-}
-
 func TestSaveAndGetTransaction(t *testing.T) {
 	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	bt := int64(1700001000)
 	tx := multisig.Transaction{
@@ -248,7 +220,7 @@ func TestSaveAndGetTransaction(t *testing.T) {
 		Destination:   "bc1qtest",
 		Fee:           0.0001,
 	}
-	require.NoError(t, store.SaveTransaction(ctx, tx))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{Transaction: tx}))
 
 	got, err := store.GetTransaction(ctx, "tx-1")
 	require.NoError(t, err)
@@ -265,7 +237,7 @@ func TestGetTransactionByTxid(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	tx := multisig.Transaction{
 		ID:      "tx-2",
@@ -275,7 +247,7 @@ func TestGetTransactionByTxid(t *testing.T) {
 		Type:    1,
 		Created: 1700000500,
 	}
-	require.NoError(t, store.SaveTransaction(ctx, tx))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{Transaction: tx}))
 
 	got, err := store.GetTransactionByTxid(ctx, "abc123")
 	require.NoError(t, err)
@@ -374,7 +346,7 @@ func TestSaveTransactionAtomic(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	bt := int64(1700001000)
 	tx := multisig.Transaction{
@@ -443,11 +415,11 @@ func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	groupA := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, groupA))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: groupA}))
 	groupB := sampleGroup()
 	groupB.ID = "grp-2"
 	groupB.Name = "Other Group"
-	require.NoError(t, store.SaveGroup(ctx, groupB))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: groupB}))
 
 	// Group A saves a transaction with a signed PSBT and an input.
 	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
@@ -528,14 +500,13 @@ func TestGetNextAccountIndex(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
 
 	// The shipped path shape is m/84'/coin'/account'.
 	keys := []multisig.Key{
 		{GroupID: g.ID, Owner: "a", Xpub: "x1", DerivationPath: "m/84'/1'/8000'", IsWallet: true},
 		{GroupID: g.ID, Owner: "b", Xpub: "x2", DerivationPath: "m/84'/1'/8005'", IsWallet: true},
 	}
-	require.NoError(t, store.ReplaceKeysForGroup(ctx, g.ID, keys))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g, Keys: keys}))
 
 	next, err := store.GetNextAccountIndex(ctx, nil)
 	require.NoError(t, err)
@@ -557,7 +528,7 @@ func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	first, err := store.GetNextAccountIndex(ctx, nil)
 	require.NoError(t, err)
@@ -565,9 +536,9 @@ func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
 
 	// A key stored at the allocated index must push the next allocation forward,
 	// even though the caller passes no additionally used indices.
-	require.NoError(t, store.ReplaceKeysForGroup(ctx, g.ID, []multisig.Key{
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g, Keys: []multisig.Key{
 		{GroupID: g.ID, Owner: "a", Xpub: "x1", DerivationPath: "m/84'/1'/8000'", IsWallet: true},
-	}))
+	}}))
 
 	second, err := store.GetNextAccountIndex(ctx, nil)
 	require.NoError(t, err)
@@ -602,13 +573,61 @@ func TestImportFromJSON_BadGroup(t *testing.T) {
 	require.ErrorContains(t, err, "unmarshal group")
 }
 
+func TestImportFromJSON_FailedImportWritesNothing(t *testing.T) {
+	ctx := t.Context()
+	store := multisig.NewStore(setupTestDB(t))
+
+	data := `{
+		"groups": [{
+			"id": "grp-1", "name": "G", "n": 2, "m": 3,
+			"keys": [{"owner": "alice", "xpub": "xpub1", "path": "m/48'/0'/0'"}],
+			"addresses": {"receive": [{"index": 0, "address": "bc1q1"}, {"index": 0, "address": "bc1q2"}]}
+		}],
+		"solo_keys": [{"xpub": "solo1", "path": "m/84'/0'/0'"}]
+	}`
+	err := store.ImportFromJSON(ctx, []byte(data))
+	require.ErrorContains(t, err, "UNIQUE constraint failed")
+
+	groups, err := store.ListGroups(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, groups)
+	keys, err := store.ListKeysForGroup(ctx, "grp-1")
+	require.NoError(t, err)
+	assert.Empty(t, keys)
+	soloKeys, err := store.ListSoloKeys(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, soloKeys)
+}
+
+func TestImportTransactionsFromJSON_FailedImportWritesNothing(t *testing.T) {
+	ctx := t.Context()
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
+
+	data := `[
+		{"id": "tx-1", "groupId": "` + g.ID + `", "inputs": [{"txid": "in-1", "vout": 0}]},
+		{"id": "tx-2", "groupId": "` + g.ID + `", "keyPSBTs": [{"keyId": "k1"}, {"keyId": "k1"}]}
+	]`
+	err := store.ImportTransactionsFromJSON(ctx, []byte(data))
+	require.ErrorContains(t, err, "UNIQUE constraint failed")
+
+	txns, err := store.ListTransactions(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Empty(t, txns)
+	inputs, err := store.ListTxInputs(ctx, "tx-1")
+	require.NoError(t, err)
+	assert.Empty(t, inputs)
+}
+
 func TestImportTransactionsFromJSON_BadTime(t *testing.T) {
 	var logs bytes.Buffer
 	ctx := zerolog.New(&logs).WithContext(t.Context())
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 
 	data := `[{"id":"tx-1","groupId":"` + g.ID + `","created":"yesterday","broadcastTime":"2024-01-02T03:04:05Z"}]`
 	require.NoError(t, store.ImportTransactionsFromJSON(ctx, []byte(data)))
@@ -626,14 +645,14 @@ func TestListTransactions(t *testing.T) {
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
-	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
 	other := sampleGroup()
 	other.ID = "group-other"
-	require.NoError(t, store.SaveGroup(ctx, other))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: other}))
 
-	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-late", GroupID: g.ID, Status: 1, Type: 1, Created: 20}))
-	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-early", GroupID: g.ID, Status: 1, Type: 1, Created: 10}))
-	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-other", GroupID: other.ID, Status: 1, Type: 1, Created: 5}))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{Transaction: multisig.Transaction{ID: "tx-late", GroupID: g.ID, Status: 1, Type: 1, Created: 20}}))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{Transaction: multisig.Transaction{ID: "tx-early", GroupID: g.ID, Status: 1, Type: 1, Created: 10}}))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{Transaction: multisig.Transaction{ID: "tx-other", GroupID: other.ID, Status: 1, Type: 1, Created: 5}}))
 
 	t.Run("one group, oldest first", func(t *testing.T) {
 		txns, err := store.ListTransactions(t.Context(), g.ID)

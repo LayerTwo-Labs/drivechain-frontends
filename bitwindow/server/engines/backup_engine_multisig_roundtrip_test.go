@@ -32,21 +32,21 @@ func TestExportMultisigJSON_RoundTrip(t *testing.T) {
 		NextReceiveIndex:  7,
 		NextChangeIndex:   3,
 	}
-	require.NoError(t, store.SaveGroup(ctx, wantGroup))
-
 	wantKeys := []multisig.Key{
 		{GroupID: "group-1", Owner: "me", Xpub: "tpubA", DerivationPath: "m/48'/1'/0'/2'", Fingerprint: "aabbccdd", OriginPath: "48h/1h/0h/2h", IsWallet: true, SortOrder: 0},
 		{GroupID: "group-1", Owner: "alice", Xpub: "tpubB", DerivationPath: "m/48'/1'/1'/2'", Fingerprint: "11223344", OriginPath: "48h/1h/1h/2h", IsWallet: false, SortOrder: 1},
 	}
-	require.NoError(t, store.ReplaceKeysForGroup(ctx, "group-1", wantKeys))
-
 	wantAddrs := []multisig.Address{
 		{GroupID: "group-1", AddrType: "receive", Index: 0, Addr: "bc1qreceive0", Used: true},
 		{GroupID: "group-1", AddrType: "receive", Index: 1, Addr: "bc1qreceive1", Used: false},
 		{GroupID: "group-1", AddrType: "change", Index: 0, Addr: "bc1qchange0", Used: true},
 	}
-	require.NoError(t, store.ReplaceAddresses(ctx, "group-1", wantAddrs))
-	require.NoError(t, store.ReplaceGroupTransactionIDs(ctx, "group-1", []string{"tx-a", "tx-b"}))
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
+		Group:          wantGroup,
+		Keys:           wantKeys,
+		Addresses:      wantAddrs,
+		TransactionIDs: []string{"tx-a", "tx-b"},
+	}))
 
 	wantSolo := multisig.SoloKey{
 		Xpub: "tpubSolo", DerivationPath: "m/84'/1'/0'", Fingerprint: "deadbeef", OriginPath: "84h/1h/0h", Owner: "me",
