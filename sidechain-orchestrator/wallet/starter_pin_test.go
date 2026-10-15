@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,7 +54,9 @@ func TestStarterDir(t *testing.T) {
 	require.Equal(t, dir, filepath.Dir(second))
 	info, err := os.Stat(dir)
 	require.NoError(t, err)
-	require.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+	if runtime.GOOS != "windows" {
+		require.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+	}
 
 	svc.CleanupStarterFiles()
 	require.NoDirExists(t, dir)

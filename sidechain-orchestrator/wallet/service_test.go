@@ -1396,7 +1396,7 @@ func TestServiceEncryptWalletMetadataWriteFails(t *testing.T) {
 	require.NoError(t, err)
 	plaintext, err := os.ReadFile(svc.walletFilePath())
 	require.NoError(t, err)
-	require.NoError(t, os.MkdirAll(svc.metadataFilePath(), 0o700))
+	require.NoError(t, os.MkdirAll(svc.metadataFilePath()+".tmp", 0o700))
 
 	err = svc.EncryptWallet("pw")
 	require.ErrorContains(t, err, "write encryption metadata: ")
@@ -1405,7 +1405,6 @@ func TestServiceEncryptWalletMetadataWriteFails(t *testing.T) {
 	got, err := os.ReadFile(svc.walletFilePath())
 	require.NoError(t, err)
 	require.Equal(t, plaintext, got)
-	require.NoError(t, os.Remove(svc.metadataFilePath()))
 	svc2 := NewService(svc.bitwindowDir, zerolog.New(zerolog.NewTestWriter(t)))
 	require.NoError(t, svc2.Init())
 	t.Cleanup(svc2.Close)
