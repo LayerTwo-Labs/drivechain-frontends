@@ -9,20 +9,25 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
@@ -195,6 +200,19 @@ func TestService_GetNewAddress(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, "bc1qtest123456789", resp.Msg.Address)
 		}
+	})
+}
+
+func TestService_CreateCheque(t *testing.T) {
+	t.Parallel()
+
+	t.Run("an empty wallet id is an invalid argument", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithEncryptedWallet()))
+
+		_, err := cli.CreateCheque(t.Context(), connect.NewRequest(&walletv1.CreateChequeRequest{ExpectedAmountSats: 1000}))
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }
 
@@ -754,5 +772,168 @@ func TestGetCoinSelectionStrategy(t *testing.T) {
 		_, err := get(t, "largest")
 		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 		require.ErrorContains(t, err, `parse coin selection strategy "largest"`)
+	})
+}
+
+type statsOrchestrator struct {
+	*fakeOrchestrator
+
+	transactions []*orchpb.TransactionEntry
+	unspent      []*orchpb.UnspentOutput
+}
+
+func (s *statsOrchestrator) ListTransactions(
+	context.Context, *connect.Request[orchpb.ListTransactionsRequest],
+) (*connect.Response[orchpb.ListTransactionsResponse], error) {
+	return connect.NewResponse(&orchpb.ListTransactionsResponse{Transactions: s.transactions}), nil
+}
+
+func (s *statsOrchestrator) ListUnspent(
+	context.Context, *connect.Request[orchpb.ListUnspentRequest],
+) (*connect.Response[orchpb.ListUnspentResponse], error) {
+	return connect.NewResponse(&orchpb.ListUnspentResponse{Utxos: s.unspent}), nil
+}
+
+func (s *statsOrchestrator) GetSidechainDepositTotals(
+	context.Context, *connect.Request[orchpb.GetSidechainDepositTotalsRequest],
+) (*connect.Response[orchpb.GetSidechainDepositTotalsResponse], error) {
+	return connect.NewResponse(&orchpb.GetSidechainDepositTotalsResponse{TotalSats: 7, RecentSats: 3}), nil
+}
+
+func chainTipValidator(t *testing.T, height uint32) *mocks.MockValidatorServiceClient {
+	validator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
+	validator.EXPECT().
+		GetChainTip(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&mainchainv1.GetChainTipResponse{
+			BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{Height: height},
+		}), nil)
+	return validator
+}
+
+func TestGetStats(t *testing.T) {
+	t.Parallel()
+
+	const address = "bcrt1qstats"
+	blockTime := time.Now().Add(-time.Hour).Unix()
+
+	t.Run("an electrum wallet reports the block of its newest transaction", func(t *testing.T) {
+		t.Parallel()
+
+		orchestrator := &statsOrchestrator{
+			fakeOrchestrator: &fakeOrchestrator{address: address},
+			transactions: []*orchpb.TransactionEntry{
+				{Txid: "old", Address: address, AmountSats: 1_000, Confirmations: 10, BlockTime: blockTime - 600},
+				{Txid: "new", Address: address, AmountSats: -500, Fee: 0.00000200, Confirmations: 3, BlockTime: blockTime},
+				{Txid: "pending", Address: address, AmountSats: 100},
+			},
+			unspent: []*orchpb.UnspentOutput{
+				{Txid: "old", Address: address, AmountSats: 500},
+				{Txid: "pending", Vout: 1, Address: address, AmountSats: 100},
+			},
+		}
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t),
+			apitests.WithOrchestrator(orchestrator), apitests.WithValidator(chainTipValidator(t, 100))))
+
+		resp, err := cli.GetStats(t.Context(), connect.NewRequest(&walletv1.GetStatsRequest{WalletId: testWalletID}))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(98), resp.Msg.LastTxBlockHeight)
+		assert.Equal(t, blockTime, resp.Msg.LastTxAt.Seconds)
+		assert.Equal(t, uint64(2), resp.Msg.UtxosCurrent)
+		assert.Equal(t, uint64(1), resp.Msg.UtxosUniqueAddresses)
+		assert.Equal(t, int64(3), resp.Msg.TransactionCountTotal)
+		assert.Equal(t, int64(200), resp.Msg.TotalFeesSats)
+		assert.Equal(t, int64(7), resp.Msg.SidechainDepositVolume)
+		assert.Equal(t, int64(3), resp.Msg.SidechainDepositVolumeLast_30Days)
+	})
+
+	t.Run("a down enforcer gives stats with no block height", func(t *testing.T) {
+		t.Parallel()
+
+		orchestrator := &statsOrchestrator{
+			fakeOrchestrator: &fakeOrchestrator{address: address},
+			transactions: []*orchpb.TransactionEntry{
+				{Txid: "new", Address: address, AmountSats: 1_000, Confirmations: 3, BlockTime: blockTime},
+			},
+		}
+		validator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
+		validator.EXPECT().
+			GetChainTip(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("enforcer restarts")))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t),
+			apitests.WithOrchestrator(orchestrator), apitests.WithValidator(validator)))
+
+		resp, err := cli.GetStats(t.Context(), connect.NewRequest(&walletv1.GetStatsRequest{WalletId: testWalletID}))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(0), resp.Msg.LastTxBlockHeight)
+		assert.Equal(t, int64(1), resp.Msg.TransactionCountTotal)
+	})
+
+	t.Run("a core wallet reports the block of its newest transaction", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListTransactions(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&bitcoindv1alpha.ListTransactionsResponse{
+				Transactions: []*bitcoindv1alpha.GetTransactionResponse{
+					{Txid: "new", Amount: 0.001, Confirmations: 2, Time: timestamppb.New(time.Unix(blockTime, 0))},
+				},
+			}), nil)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&bitcoindv1alpha.ListUnspentResponse{
+				Unspent: []*bitcoindv1alpha.UnspentOutput{{Txid: "new", Address: address, Amount: 0.001}},
+			}), nil)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			GetSidechainDepositTotals(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&orchpb.GetSidechainDepositTotalsResponse{}), nil)
+		mockOrch.EXPECT().
+			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "core"}), nil).
+			AnyTimes()
+		mockOrch.EXPECT().
+			DeriveAddresses(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&orchpb.DeriveAddressesResponse{}), nil).
+			AnyTimes()
+		apitests.ExpectOrchestratorReads(mockOrch)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t),
+			apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch),
+			apitests.WithValidator(chainTipValidator(t, 500))))
+
+		resp, err := cli.GetStats(t.Context(), connect.NewRequest(&walletv1.GetStatsRequest{WalletId: testWalletID}))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(499), resp.Msg.LastTxBlockHeight)
+		assert.Equal(t, uint64(1), resp.Msg.UtxosCurrent)
+		assert.Equal(t, int64(1), resp.Msg.TransactionCountTotal)
+	})
+}
+
+func TestListReceiveAddresses(t *testing.T) {
+	t.Parallel()
+
+	t.Run("an electrum wallet sums its UTXOs per address", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		require.NoError(t, addressbook.Create(t.Context(), db, nil, "savings", "bcrt1qone", addressbook.DirectionReceive))
+		orchestrator := &statsOrchestrator{
+			fakeOrchestrator: &fakeOrchestrator{},
+			unspent: []*orchpb.UnspentOutput{
+				{Txid: "a", Address: "bcrt1qone", AmountSats: 1_000},
+				{Txid: "b", Address: "bcrt1qone", AmountSats: 500},
+				{Txid: "c", Address: "bcrt1qtwo", AmountSats: 7},
+			},
+		}
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(orchestrator)))
+
+		resp, err := cli.ListReceiveAddresses(t.Context(), connect.NewRequest(&walletv1.ListReceiveAddressesRequest{WalletId: testWalletID}))
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []*walletv1.ReceiveAddress{
+			{Address: "bcrt1qone", Label: "savings", CurrentBalanceSat: 1_500},
+			{Address: "bcrt1qtwo", CurrentBalanceSat: 7},
+		}, resp.Msg.Addresses)
 	})
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/samber/lo"
 )
 
 // BitcoinURI represents a parsed BIP-0021 Bitcoin URI
@@ -377,25 +378,29 @@ func GeneratePaperWallet(chainParams *chaincfg.Params) (*PaperWalletKeypair, err
 	}, nil
 }
 
-// ValidateWIF validates a WIF private key
+// ValidateWIF reports whether wif is a valid private key for chainParams.
 func ValidateWIF(wif string, chainParams *chaincfg.Params) bool {
-	_, err := btcutil.DecodeWIF(wif)
-	return err == nil
+	w, err := btcutil.DecodeWIF(wif)
+	return err == nil && w.IsForNet(chainParams)
 }
 
-// WIFToAddress converts a WIF private key to its corresponding address
+// WIFToAddress returns the P2PKH address of a WIF private key on chainParams.
 func WIFToAddress(wifStr string, chainParams *chaincfg.Params) (string, error) {
 	wif, err := btcutil.DecodeWIF(wifStr)
 	if err != nil {
 		return "", fmt.Errorf("invalid WIF: %w", err)
 	}
-
-	// Generate P2PKH address
-	pubKeyHash := btcutil.Hash160(wif.PrivKey.PubKey().SerializeCompressed())
-	address, err := btcutil.NewAddressPubKeyHash(pubKeyHash, chainParams)
-	if err != nil {
-		return "", fmt.Errorf("create address: %w", err)
+	if !wif.IsForNet(chainParams) {
+		return "", fmt.Errorf("WIF is not for network %s", chainParams.Name)
 	}
 
-	return address.EncodeAddress(), nil
+	candidates, err := SweepCandidates(wif, chainParams)
+	if err != nil {
+		return "", err
+	}
+	legacy, ok := lo.Find(candidates, func(c SweepCandidate) bool { return c.Kind == SweepAddressP2PKH })
+	if !ok {
+		panic("sweep candidates have no p2pkh address")
+	}
+	return legacy.Address, nil
 }

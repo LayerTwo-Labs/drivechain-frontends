@@ -64,7 +64,7 @@ func TestImmatureCoinbase(t *testing.T) {
 				},
 			}), nil)
 		apitests.ExpectOrchestratorReads(mockOrch)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch), apitests.WithValidator(chainTipValidator(t, 200))))
 
 		resp, err := cli.ListTransactions(t.Context(), connect.NewRequest(&walletv1.ListTransactionsRequest{WalletId: testWalletID}))
 		require.NoError(t, err)
@@ -110,7 +110,8 @@ func TestImmatureCoinbase(t *testing.T) {
 			}), nil).
 			AnyTimes()
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind),
+			apitests.WithValidator(chainTipValidator(t, 200))))
 
 		resp, err := cli.ListTransactions(t.Context(), connect.NewRequest(&walletv1.ListTransactionsRequest{WalletId: testWalletID}))
 		require.NoError(t, err)

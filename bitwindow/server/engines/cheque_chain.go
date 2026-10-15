@@ -47,12 +47,14 @@ func (c *ElectrumChequeChain) AddressUnspent(ctx context.Context, address string
 			Vout:          u.Vout,
 			ValueSats:     u.ValueSats,
 			Confirmations: u.Confirmations,
-			Height:        confirmedHeight(tip, u.Confirmations),
+			Height:        ConfirmedHeight(tip, u.Confirmations),
 		}
 	}), nil
 }
 
-func confirmedHeight(tip, confirmations int32) uint32 {
+// ConfirmedHeight is the block that holds a transaction with this many
+// confirmations, or 0 while it is unconfirmed.
+func ConfirmedHeight(tip, confirmations int32) uint32 {
 	if confirmations <= 0 || tip < confirmations {
 		return 0
 	}

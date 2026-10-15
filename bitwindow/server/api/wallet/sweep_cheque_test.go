@@ -9,6 +9,7 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -82,7 +83,7 @@ func TestSweepChequeMarksTheCheque(t *testing.T) {
 	candidates, err := engines.SweepCandidates(wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
 
-	sweep := func(t *testing.T, db *sql.DB) error {
+	sweep := func(t *testing.T, db *sql.DB) (*broadcastOrchestrator, error) {
 		orchestrator := &broadcastOrchestrator{fakeOrchestrator: &fakeOrchestrator{
 			address: candidates[0].Address,
 			utxos: []*orchpb.AddressUnspentOutput{{
@@ -98,7 +99,7 @@ func TestSweepChequeMarksTheCheque(t *testing.T) {
 			DestinationAddress: candidates[0].Address,
 			FeeSatPerVbyte:     1,
 		}))
-		return err
+		return orchestrator, err
 	}
 
 	t.Run("the cheque reads as swept", func(t *testing.T) {
@@ -106,7 +107,8 @@ func TestSweepChequeMarksTheCheque(t *testing.T) {
 		id, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000, candidates[0].Address)
 		require.NoError(t, err)
 
-		require.NoError(t, sweep(t, db))
+		_, err = sweep(t, db)
+		require.NoError(t, err)
 
 		cheque, err := cheques.Get(t.Context(), db, testWalletID, id)
 		require.NoError(t, err)
@@ -115,16 +117,18 @@ func TestSweepChequeMarksTheCheque(t *testing.T) {
 	})
 
 	t.Run("a key that is no cheque sweeps", func(t *testing.T) {
-		require.NoError(t, sweep(t, database.Test(t)))
+		_, err := sweep(t, database.Test(t))
+		require.NoError(t, err)
 	})
 
-	t.Run("a failed cheque read returns the error", func(t *testing.T) {
+	t.Run("a failed cheque read stops the sweep before the broadcast", func(t *testing.T) {
 		db := database.Test(t)
 		_, err := db.ExecContext(t.Context(), `DROP TABLE cheques`)
 		require.NoError(t, err)
 
-		err = sweep(t, db)
+		orchestrator, err := sweep(t, db)
 		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 		require.ErrorContains(t, err, "no such table")
+		assert.Empty(t, orchestrator.broadcasts)
 	})
 }
