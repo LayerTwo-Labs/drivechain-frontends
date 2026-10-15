@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"sync/atomic"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
@@ -261,7 +261,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 		for _, wallet := range pending {
 			recoveries, err := e.ScanForFunds(ctx, wallet.ID, 20)
 			if err != nil {
-				if strings.Contains(err.Error(), "has no seed") {
+				if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 					continue
 				}
 				// The chain source refuses reads while it boots, so scan again

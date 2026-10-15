@@ -137,10 +137,13 @@ func NewWalletEngine(
 	// Auto-unlock unencrypted wallets at startup
 	if !wallet.IsWalletEncrypted(walletDir) {
 		walletData, err := wallet.LoadUnencryptedWallet(walletDir)
-		if err == nil {
+		switch {
+		case err == nil:
 			if unlockErr := e.Unlock(walletData); unlockErr != nil {
 				zerolog.Ctx(context.Background()).Warn().Err(unlockErr).Msg("failed to unlock wallet engine")
 			}
+		case !errors.Is(err, os.ErrNotExist):
+			zerolog.Ctx(context.Background()).Warn().Err(err).Msg("failed to load wallet for the wallet engine")
 		}
 	}
 
@@ -332,26 +335,26 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	}
 
 	// Cache all wallet metadata for encrypted wallets
-	e.walletCache = make(map[string]*WalletInfo)
+	walletCache := make(map[string]*WalletInfo)
 	for _, w := range wallets {
 		walletMap, ok := w.(map[string]any)
 		if !ok {
 			continue
 		}
 
-		// Parse wallet info
 		walletBytes, err := json.Marshal(walletMap)
 		if err != nil {
-			continue
+			return fmt.Errorf("encode wallet for cache: %w", err)
 		}
 
 		var walletInfo WalletInfo
 		if err := json.Unmarshal(walletBytes, &walletInfo); err != nil {
-			continue
+			return fmt.Errorf("parse wallet for cache: %w", err)
 		}
 
-		e.walletCache[walletInfo.ID] = &walletInfo
+		walletCache[walletInfo.ID] = &walletInfo
 	}
+	e.walletCache = walletCache
 
 	e.seedHex = seedHex
 	e.activeWalletId = activeWalletId
@@ -407,7 +410,7 @@ func (e *WalletEngine) GetStarterSeed() (string, error) {
 		return resp.Msg.SeedHex, nil
 	}
 
-	wallets, err := e.loadAllWallets()
+	wallets, err := e.GetAllWallets(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("load wallets: %w", err)
 	}
@@ -434,7 +437,7 @@ func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
 		return resp.Msg.SeedHex, nil
 	}
 
-	wallets, err := e.loadAllWallets()
+	wallets, err := e.GetAllWallets(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("load wallets: %w", err)
 	}
@@ -453,7 +456,7 @@ func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
 	}
 
 	if targetWallet.Master.SeedHex == "" {
-		return "", fmt.Errorf("wallet %s has no seed", walletId)
+		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s has no seed", walletId))
 	}
 
 	return targetWallet.Master.SeedHex, nil
@@ -503,51 +506,19 @@ func (e *WalletEngine) GetChainParams() *chaincfg.Params {
 
 // GetWalletInfo reads wallet.json and returns info for the specified walletId
 func (e *WalletEngine) GetWalletInfo(ctx context.Context, walletId string) (*WalletInfo, error) {
-	// Check if wallet is encrypted
-	if wallet.IsWalletEncrypted(e.walletDir) {
-		// For encrypted wallets, use the cache populated during unlock
-		e.mu.RLock()
-		defer e.mu.RUnlock()
-
-		if !e.isUnlocked {
-			return nil, errors.New("wallet is encrypted and locked")
-		}
-
-		walletInfo, exists := e.walletCache[walletId]
-		if !exists {
-			return nil, fmt.Errorf("wallet %s not found in cache", walletId)
-		}
-
-		return walletInfo, nil
-	}
-
-	// For unencrypted wallets, read from file
-	walletFile := filepath.Join(e.walletDir, "wallet.json")
-
-	data, err := os.ReadFile(walletFile)
+	wallets, err := e.GetAllWallets(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("read wallet.json: %w", err)
+		return nil, err
 	}
 
-	var walletData struct {
-		Version        int          `json:"version"`
-		ActiveWalletId string       `json:"activeWalletId"`
-		Wallets        []WalletInfo `json:"wallets"`
-	}
-
-	if err := json.Unmarshal(data, &walletData); err != nil {
-		return nil, fmt.Errorf("parse wallet.json: %w", err)
-	}
-
-	walletInfo := lo.Filter(walletData.Wallets, func(w WalletInfo, _ int) bool {
+	walletInfo, ok := lo.Find(wallets, func(w WalletInfo) bool {
 		return w.ID == walletId
 	})
-
-	if len(walletInfo) == 0 {
+	if !ok {
 		return nil, fmt.Errorf("wallet %s not found", walletId)
 	}
 
-	return &walletInfo[0], nil
+	return &walletInfo, nil
 }
 
 // GetWalletBackendType returns the backend type for a wallet
@@ -624,6 +595,19 @@ func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, wallet
 
 // GetBitcoinCoreWalletName returns the Bitcoin Core wallet name for a walletId
 func (e *WalletEngine) GetBitcoinCoreWalletName(ctx context.Context, walletId string) (string, error) {
+	return e.EnsureBitcoinCoreWallet(ctx, walletId)
+}
+
+// CoreWalletName returns the Bitcoin Core wallet that holds the wallet's coins.
+// A watch-only wallet can live in a legacy watch_<prefix> wallet.
+func (e *WalletEngine) CoreWalletName(ctx context.Context, walletId string) (string, error) {
+	watchOnly, err := e.IsWatchOnly(ctx, walletId)
+	if err != nil {
+		return "", err
+	}
+	if watchOnly {
+		return e.EnsureWatchOnlyWallet(ctx, walletId)
+	}
 	return e.EnsureBitcoinCoreWallet(ctx, walletId)
 }
 
@@ -908,7 +892,7 @@ func (e *WalletEngine) SyncWallets(ctx context.Context) error {
 	return nil
 }
 
-func (e *WalletEngine) loadAllWallets() ([]WalletInfo, error) {
+func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) {
 	// Check if wallet is encrypted
 	if wallet.IsWalletEncrypted(e.walletDir) {
 		// For encrypted wallets, use the cache populated during unlock
@@ -947,10 +931,6 @@ func (e *WalletEngine) loadAllWallets() ([]WalletInfo, error) {
 	}
 
 	return walletData.Wallets, nil
-}
-
-func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) {
-	return e.loadAllWallets()
 }
 
 // ChequeAddressUnspent reports a cheque address's UTXOs. Always electrum-backed
