@@ -226,8 +226,11 @@ func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 func registerItem(ctx context.Context, tx *sql.Tx, env IndexEnv) (codec.ItemID, error) {
 	var txidBytes [32]byte
 	raw, err := hex.DecodeString(env.Pos.TxID)
-	if err != nil || len(raw) != 32 {
-		return codec.ItemID{}, fmt.Errorf("coinnews: invalid txid %q: %w", env.Pos.TxID, err)
+	if err != nil {
+		return codec.ItemID{}, fmt.Errorf("coinnews: decode txid %q: %w", env.Pos.TxID, err)
+	}
+	if len(raw) != 32 {
+		return codec.ItemID{}, fmt.Errorf("coinnews: txid %q is %d bytes, want 32", env.Pos.TxID, len(raw))
 	}
 	// Bitcoin Core gives us txids in display (reversed) hex; reverse
 	// to natural byte order for the SHA-256 input the spec defines.

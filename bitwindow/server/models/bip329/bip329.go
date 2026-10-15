@@ -5,6 +5,7 @@ package bip329
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -41,9 +42,8 @@ func Encode(labels []Label) (string, error) {
 }
 
 // Decode parses BIP329 JSONL, returning the well-formed labels and a count of
-// skipped lines (blank or malformed JSON). A single malformed line never
-// aborts the whole parse.
-func Decode(jsonl string) (labels []Label, skipped int) {
+// malformed lines that it skipped. It ignores blank lines.
+func Decode(jsonl string) (labels []Label, skipped int, err error) {
 	scanner := bufio.NewScanner(strings.NewReader(jsonl))
 	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
 	for scanner.Scan() {
@@ -58,5 +58,8 @@ func Decode(jsonl string) (labels []Label, skipped int) {
 		}
 		labels = append(labels, l)
 	}
-	return labels, skipped
+	if err := scanner.Err(); err != nil {
+		return nil, 0, fmt.Errorf("read bip329 line: %w", err)
+	}
+	return labels, skipped, nil
 }

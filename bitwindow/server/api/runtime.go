@@ -221,7 +221,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	// app reports it. The enforcer names the slots worth reading.
 	rt.depositDropped = engines.NewDepositDroppedEngine(
 		rt.db, rt.walletEngine, rt.notificationEngine,
-		func() []uint32 { return activeSidechainSlots(rt.ctx, s.Enforcer) },
+		func() ([]uint32, error) { return activeSidechainSlots(rt.ctx, s.Enforcer) },
 	)
 	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams)
 	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())
@@ -647,18 +647,18 @@ func chainParamsFor(network config.Network) *chaincfg.Params {
 
 // activeSidechainSlots names the slots that hold a sidechain. The deposit
 // watch reads deposits per slot, and every slot the enforcer omits holds none.
-func activeSidechainSlots(ctx context.Context, enforcer *service.Service[validatorrpc.ValidatorServiceClient]) []uint32 {
+func activeSidechainSlots(ctx context.Context, enforcer *service.Service[validatorrpc.ValidatorServiceClient]) ([]uint32, error) {
 	client, err := enforcer.Get(ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	resp, err := client.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("get sidechains: %w", err)
 	}
 	slots := make([]uint32, 0, len(resp.Msg.GetSidechains()))
 	for _, sc := range resp.Msg.GetSidechains() {
 		slots = append(slots, sc.GetSidechainNumber().GetValue())
 	}
-	return slots
+	return slots, nil
 }

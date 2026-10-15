@@ -58,6 +58,11 @@ func (s *Server) StoreFile(ctx context.Context, req *connect.Request[bitdrivev1.
 		return nil, fmt.Errorf("encode OP_RETURN data: %w", err)
 	}
 
+	metadata, err := engines.ParseMetadata(metadataB64)
+	if err != nil {
+		return nil, fmt.Errorf("parse encoded metadata: %w", err)
+	}
+
 	opReturnData := engines.FormatOPReturnData(metadataB64, contentStr)
 
 	// Broadcast the OP_RETURN through the active wallet's backend (electrum or
@@ -74,16 +79,9 @@ func (s *Server) StoreFile(ctx context.Context, req *connect.Request[bitdrivev1.
 		Uint32("timestamp", timestamp).
 		Msg("stored BitDrive file")
 
-	// Parse metadata to get file type
-	metadata, _ := engines.ParseMetadata(metadataB64)
-	fileType := ""
-	if metadata != nil {
-		fileType = metadata.FileType
-	}
-
 	return connect.NewResponse(&bitdrivev1.StoreFileResponse{
 		Txid:      txid,
-		FileType:  fileType,
+		FileType:  metadata.FileType,
 		Encrypted: req.Msg.Encrypt,
 	}), nil
 }

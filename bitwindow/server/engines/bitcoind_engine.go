@@ -634,25 +634,36 @@ func (p *Parser) handleTimestamp(
 	var blockHeight *int64
 
 	bitcoind, err := p.bitcoind.Get(ctx)
-	if err == nil {
-		resp, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-			Txid:      txid,
-			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+	if err != nil {
+		return fmt.Errorf("get bitcoind: %w", err)
+	}
+	resp, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid:      txid,
+		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+	}))
+	switch {
+	case err != nil && height != nil && isTxIndexMiss(err.Error()):
+		zerolog.Ctx(ctx).Warn().
+			Str("txid", txid).
+			Msg("bitcoind_engine/parser: no txindex entry, recording timestamp without a block time")
+
+	case err != nil:
+		return fmt.Errorf("get raw transaction %q: %w", txid, err)
+
+	case resp.Msg.Blockhash != "":
+		blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+			Hash:      resp.Msg.Blockhash,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 		}))
-		if err == nil && resp.Msg.Blockhash != "" {
-			blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
-				Hash:      resp.Msg.Blockhash,
-				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
-			}))
-			if err == nil {
-				if blockResp.Msg.Time != nil {
-					t := blockResp.Msg.Time.AsTime()
-					confirmedAt = &t
-				}
-				h := int64(blockResp.Msg.Height)
-				blockHeight = &h
-			}
+		if err != nil {
+			return fmt.Errorf("get block %q: %w", resp.Msg.Blockhash, err)
 		}
+		if blockResp.Msg.Time != nil {
+			t := blockResp.Msg.Time.AsTime()
+			confirmedAt = &t
+		}
+		h := int64(blockResp.Msg.Height)
+		blockHeight = &h
 	}
 
 	// Fallback to passed height if we couldn't fetch

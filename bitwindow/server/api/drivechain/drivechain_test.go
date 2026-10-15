@@ -195,6 +195,42 @@ func TestService_ListSidechains(t *testing.T) {
 		assert.Empty(t, resp.Msg.Sidechains)
 	})
 
+	t.Run("a failed ctip read returns the error", func(t *testing.T) {
+		t.Parallel()
+
+		mockValidator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
+		mockValidator.EXPECT().
+			GetChainTip(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
+				Msg: &mainchainv1.GetChainTipResponse{
+					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+						Height: 100,
+						BlockHash: &commonv1.ReverseHex{
+							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
+						},
+					},
+				},
+			}, nil)
+		mockValidator.EXPECT().
+			GetSidechains(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
+				Msg: &mainchainv1.GetSidechainsResponse{
+					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
+						{SidechainNumber: wrapperspb.UInt32(2)},
+					},
+				},
+			}, nil)
+		mockValidator.EXPECT().
+			GetCtip(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("enforcer went away")))
+
+		cli := rpc.NewDrivechainServiceClient(apitests.API(t, database.Test(t), apitests.WithValidator(mockValidator)))
+
+		_, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		require.ErrorContains(t, err, "enforcer went away")
+		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	})
+
 	t.Run("handles GetChainTip error", func(t *testing.T) {
 		t.Parallel()
 
@@ -210,7 +246,7 @@ func TestService_ListSidechains(t *testing.T) {
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
 		_, err := cli.ListSidechains(context.Background(), connect.NewRequest(&pb.ListSidechainsRequest{}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	})
 }
 

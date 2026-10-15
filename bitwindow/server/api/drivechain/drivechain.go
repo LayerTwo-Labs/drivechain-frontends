@@ -77,31 +77,35 @@ type Server struct {
 	proposalsCache   *proposalsCache
 }
 
+// chainTip gives the enforcer client and its chain tip. Errors keep the code of the enforcer.
+func (s *Server) chainTip(ctx context.Context) (validatorrpc.ValidatorServiceClient, *validatorpb.BlockHeaderInfo, error) {
+	enforcer, err := s.enforcer.Get(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("enforcer: %w", err)
+	}
+
+	chainTipResp, err := enforcer.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	if err != nil {
+		return nil, nil, fmt.Errorf("get chain tip: %w", err)
+	}
+
+	tip := chainTipResp.Msg.BlockHeaderInfo
+	if tip.GetBlockHash().GetHex() == nil {
+		return nil, nil, connect.NewError(connect.CodeInternal, fmt.Errorf("chain tip missing block hash"))
+	}
+	return enforcer, tip, nil
+}
+
 // ListSidechainProposals implements drivechainv1connect.DrivechainServiceHandler.
 // Uses caching to avoid repeated enforcer calls.
 func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
 	log := zerolog.Ctx(ctx)
 
-	enforcer, err := s.enforcer.Get(ctx)
+	enforcer, tip, err := s.chainTip(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer: %w", err))
+		return nil, err
 	}
-
-	// Get current block hash to check cache validity
-	chainTipResp, err := enforcer.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("get chain tip: %w", err))
-	}
-
-	if chainTipResp.Msg.BlockHeaderInfo == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("chain tip missing block hash"))
-	}
-
-	currentBlockHash := chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex.Value
+	currentBlockHash := tip.BlockHash.Hex.Value
 
 	// Check if we have a valid cache
 	s.proposalsCacheMu.RLock()
@@ -156,27 +160,11 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
 	log := zerolog.Ctx(ctx)
 
-	enforcer, err := s.enforcer.Get(ctx)
+	enforcer, tip, err := s.chainTip(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer: %w", err))
+		return nil, err
 	}
-
-	// Get current block hash to check cache validity
-	chainTipResp, err := enforcer.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("get chain tip: %w", err))
-	}
-
-	if chainTipResp.Msg.BlockHeaderInfo == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
-		log.Error().Msg("chain tip missing block hash")
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("chain tip missing block hash"))
-	}
-
-	currentBlockHash := chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex.Value
+	currentBlockHash := tip.BlockHash.Hex.Value
 
 	// Check if we have a valid cache
 	s.sidechainsCacheMu.RLock()
@@ -215,18 +203,24 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			DescriptionHex:   sidechain.GetDescription().GetHex().GetValue(),
 		}
 
-		// Try to get ctip (may not exist if no deposits yet)
+		// A sidechain with no deposits has no ctip.
 		ctipResponse, err := enforcer.GetCtip(ctx,
 			connect.NewRequest(&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sc.Slot)}),
 		)
-		if err == nil && ctipResponse.Msg.Ctip != nil && ctipResponse.Msg.Ctip.Txid != nil {
-			txidHash, err := chainhash.NewHashFromStr(ctipResponse.Msg.Ctip.Txid.Hex.Value)
-			if err == nil {
-				sc.Nversion = uint32(ctipResponse.Msg.Ctip.SequenceNumber)
-				sc.BalanceSatoshi = int64(ctipResponse.Msg.Ctip.Value)
-				sc.ChaintipTxid = txidHash.String()
-				sc.ChaintipVout = ctipResponse.Msg.Ctip.Vout
+		switch {
+		case err != nil && connect.CodeOf(err) == connect.CodeNotFound:
+		case err != nil:
+			return nil, fmt.Errorf("get ctip of sidechain %d: %w", sc.Slot, err)
+		case ctipResponse.Msg.Ctip != nil:
+			ctip := ctipResponse.Msg.Ctip
+			txidHash, err := chainhash.NewHashFromStr(ctip.GetTxid().GetHex().GetValue())
+			if err != nil {
+				return nil, fmt.Errorf("parse ctip txid of sidechain %d: %w", sc.Slot, err)
 			}
+			sc.Nversion = uint32(ctip.SequenceNumber)
+			sc.BalanceSatoshi = int64(ctip.Value)
+			sc.ChaintipTxid = txidHash.String()
+			sc.ChaintipVout = ctip.Vout
 		}
 
 		sidechainList = append(sidechainList, sc)
@@ -326,27 +320,12 @@ func (s *Server) ListWithdrawals(
 
 	sidechainId := c.Msg.SidechainId
 
-	enforcer, err := s.enforcer.Get(ctx)
+	enforcer, tip, err := s.chainTip(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer: %w", err))
+		return nil, err
 	}
-
-	// Get chain tip
-	chainTipResp, err := enforcer.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("get chain tip: %w", err))
-	}
-
-	if chainTipResp.Msg.BlockHeaderInfo == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("chain tip missing block hash"))
-	}
-
-	currentHeight := chainTipResp.Msg.BlockHeaderInfo.Height
-	currentBlockHash := chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex.Value
+	currentHeight := tip.Height
+	currentBlockHash := tip.BlockHash.Hex.Value
 
 	// Check if we have a valid cache
 	s.withdrawalCacheMu.RLock()
@@ -397,7 +376,7 @@ func (s *Server) ListWithdrawals(
 		cache.lastBlockHeight > 0 && cache.lastBlockHeight <= currentHeight {
 		ancestors := currentHeight - cache.lastBlockHeight
 		headersResp, err := enforcer.GetBlockHeaderInfo(ctx, connect.NewRequest(&validatorpb.GetBlockHeaderInfoRequest{
-			BlockHash:    chainTipResp.Msg.BlockHeaderInfo.BlockHash,
+			BlockHash:    tip.BlockHash,
 			MaxAncestors: &ancestors,
 		}))
 		if err != nil {
@@ -430,7 +409,7 @@ func (s *Server) ListWithdrawals(
 		// Get the activation block hash
 		ancestorsNeeded := currentHeight - activationHeight
 		activationBlockResp, err := enforcer.GetBlockHeaderInfo(ctx, connect.NewRequest(&validatorpb.GetBlockHeaderInfoRequest{
-			BlockHash:    chainTipResp.Msg.BlockHeaderInfo.BlockHash,
+			BlockHash:    tip.BlockHash,
 			MaxAncestors: &ancestorsNeeded,
 		}))
 		if err != nil {

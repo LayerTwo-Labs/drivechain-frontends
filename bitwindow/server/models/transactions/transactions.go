@@ -3,10 +3,8 @@ package transactions
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 	"time"
-
-	"connectrpc.com/connect"
 )
 
 type TransactionNote struct {
@@ -35,12 +33,15 @@ func ListByWallet(ctx context.Context, db *sql.DB, walletID string) ([]Transacti
 	return notes, rows.Err()
 }
 
+// ErrEmptyTxID is the SetNote error for an empty txid.
+var ErrEmptyTxID = errors.New("txid cannot be empty")
+
 func SetNote(ctx context.Context, db *sql.DB, walletID string, txid string, note string) error {
 	if walletID == "" {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wallet id cannot be empty"))
+		panic("transactions: SetNote called with an empty wallet id")
 	}
 	if txid == "" {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid cannot be empty"))
+		return ErrEmptyTxID
 	}
 
 	_, err := db.ExecContext(ctx, `

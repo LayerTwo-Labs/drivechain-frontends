@@ -140,6 +140,28 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, reason, *denial.CancelReason)
 	})
 
+	t.Run("Cancel, Pause and Resume of an unknown ID return ErrNotFound", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		require.ErrorIs(t, Cancel(ctx, db, 999, "reason"), ErrNotFound)
+		require.ErrorIs(t, Pause(ctx, db, 999), ErrNotFound)
+		require.ErrorIs(t, Resume(ctx, db, 999), ErrNotFound)
+	})
+
+	t.Run("Pause of a paused denial and Resume of an active denial return ErrNotFound", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		denial, err := Create(ctx, db, "test-wallet", "txid", 0, time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		require.ErrorIs(t, Resume(ctx, db, denial.ID), ErrNotFound)
+		require.NoError(t, Pause(ctx, db, denial.ID))
+		require.ErrorIs(t, Pause(ctx, db, denial.ID), ErrNotFound)
+		require.NoError(t, Resume(ctx, db, denial.ID))
+	})
+
 	t.Run("NextExecution", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)

@@ -108,12 +108,12 @@ func (s *Server) SetVotePreference(
 	if voteType != m4models.VoteTypeAbstain &&
 		voteType != m4models.VoteTypeAlarm &&
 		voteType != m4models.VoteTypeUpvote {
-		return nil, fmt.Errorf("invalid vote type: %s", req.Msg.VoteType)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid vote type: %s", req.Msg.VoteType))
 	}
 
 	// Validate sidechain slot (0-255) before narrowing to uint8
 	if req.Msg.SidechainSlot > 255 {
-		return nil, fmt.Errorf("invalid sidechain slot: %d (must be 0-255)", req.Msg.SidechainSlot)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid sidechain slot: %d (must be 0-255)", req.Msg.SidechainSlot))
 	}
 
 	var bundleHash *string

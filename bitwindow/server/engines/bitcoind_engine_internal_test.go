@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -233,6 +234,87 @@ func TestHandleTimestamp_DiscoveredStatus(t *testing.T) {
 				require.NotNil(t, got.BlockHeight)
 				assert.Equal(t, tc.wantHeight, *got.BlockHeight)
 			}
+		})
+	}
+}
+
+func TestHandleTimestamp_CoreErrors(t *testing.T) {
+	t.Parallel()
+
+	height := uint32(101)
+	cases := []struct {
+		name       string
+		height     *uint32
+		rawTxErr   error
+		blockErr   error
+		wantErr    string
+		wantHeight int64
+	}{
+		{
+			name:       "txindex miss in a block falls back to the block height",
+			height:     &height,
+			rawTxErr:   errors.New(txIndexMissErr),
+			wantHeight: 101,
+		},
+		{
+			name:     "txindex miss in the mempool fails",
+			rawTxErr: errors.New(txIndexMissErr),
+			wantErr:  "No such mempool",
+		},
+		{
+			name:     "raw transaction error fails",
+			height:   &height,
+			rawTxErr: errors.New("connection refused"),
+			wantErr:  "connection refused",
+		},
+		{
+			name:     "block error fails",
+			height:   &height,
+			blockErr: errors.New("block not found"),
+			wantErr:  "block not found",
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			db := database.Test(t)
+
+			core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+			parser := &Parser{
+				db: db,
+				bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+					return core, nil
+				}),
+			}
+
+			if tc.rawTxErr != nil {
+				core.EXPECT().GetRawTransaction(gomock.Any(), gomock.Any()).Return(nil, tc.rawTxErr)
+			} else {
+				core.EXPECT().GetRawTransaction(gomock.Any(), gomock.Any()).
+					Return(connect.NewResponse(&corepb.GetRawTransactionResponse{
+						Blockhash: "0000000000000000000000000000000000000000000000000000000000000abc",
+					}), nil)
+				core.EXPECT().GetBlock(gomock.Any(), gomock.Any()).Return(nil, tc.blockErr)
+			}
+
+			hash := chainhash.Hash{byte(i + 1)}
+			data := append([]byte(TimestampPrefix), hash[:]...)
+			txid := fmt.Sprintf("%064x", i+1)
+
+			err := parser.handleTimestamp(ctx, data, txid, tc.height)
+			got, getErr := timestamps.GetByHash(ctx, db, fmt.Sprintf("%x", hash[:]))
+			require.NoError(t, getErr)
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+				require.Nil(t, got)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			require.NotNil(t, got.BlockHeight)
+			assert.Equal(t, tc.wantHeight, *got.BlockHeight)
+			assert.Nil(t, got.ConfirmedAt)
 		})
 	}
 }

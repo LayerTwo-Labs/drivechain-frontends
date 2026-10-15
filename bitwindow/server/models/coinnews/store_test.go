@@ -369,3 +369,27 @@ func TestStore_Item_RegistersTxidVoutWithCanonicalOrder(t *testing.T) {
 	assert.Equal(t, 2, gotVoutIx)
 	assert.Equal(t, int(codec.TypeStory), gotType)
 }
+
+func TestStore_Item_RejectsBadTxid(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	cases := []struct {
+		name    string
+		txid    string
+		wantErr string
+	}{
+		{name: "not hex", txid: "zz", wantErr: "decode txid"},
+		{name: "short", txid: "0123", wantErr: `txid "0123" is 2 bytes, want 32`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := Index(t.Context(), db, IndexEnv{
+				Pos:     BlockPos{BlockHeight: 9, BlockTime: time.Now().UTC(), TxID: tc.txid},
+				TypeTag: codec.TypeStory,
+				Msg:     &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "h"},
+			})
+			require.ErrorContains(t, err, tc.wantErr)
+		})
+	}
+}
