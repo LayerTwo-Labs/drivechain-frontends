@@ -83,6 +83,18 @@ func (s *Server) InitiateFastWithdrawal(
 // TODO: Make this configurable or try multiple servers
 const fastWithdrawalServerURL = "https://fw1.drivechain.info"
 
+type withdrawResponse struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+	Data   *struct {
+		Hash            string `json:"hash"`
+		ServerL2Address *struct {
+			Info string `json:"info"`
+		} `json:"server_l2_address"`
+		ServerFeeSats *int64 `json:"server_fee_sats"`
+	} `json:"data"`
+}
+
 // initiateSidechainWithdrawal calls external fast withdrawal server
 func (s *Server) initiateSidechainWithdrawal(ctx context.Context, serverURL string, sidechain string, amount int64, destination string) (string, error) {
 	log := zerolog.Ctx(ctx)
@@ -114,42 +126,34 @@ func (s *Server) initiateSidechainWithdrawal(ctx context.Context, serverURL stri
 	}
 	defer resp.Body.Close()
 
-	var result map[string]interface{}
+	var result withdrawResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
 	}
 
-	if status, ok := result["status"].(string); !ok || status != "success" {
-		errorMsg, _ := result["error"].(string)
-		return "", fmt.Errorf("withdrawal request failed: %s", errorMsg)
+	if result.Status != "success" {
+		return "", fmt.Errorf("withdrawal request failed: %s", result.Error)
 	}
 
-	// Extract response data
-	data, ok := result["data"].(map[string]interface{})
-	if !ok {
+	data := result.Data
+	if data == nil {
 		return "", fmt.Errorf("invalid response format: missing data")
 	}
-
-	withdrawalHash, ok := data["hash"].(string)
-	if !ok {
+	if data.Hash == "" {
 		return "", fmt.Errorf("invalid response format: missing hash")
 	}
-
-	serverL2AddressInfo, ok := data["server_l2_address"].(map[string]interface{})
-	if !ok {
+	if data.ServerL2Address == nil {
 		return "", fmt.Errorf("invalid response format: missing server_l2_address")
 	}
-
-	serverAddress, ok := serverL2AddressInfo["info"].(string)
-	if !ok {
+	if data.ServerL2Address.Info == "" {
 		return "", fmt.Errorf("invalid response format: missing server L2 address info")
 	}
-
-	serverFeeSatsFloat, ok := data["server_fee_sats"].(float64)
-	if !ok {
+	if data.ServerFeeSats == nil {
 		return "", fmt.Errorf("invalid response format: missing server_fee_sats")
 	}
-	serverFeeSats := int64(serverFeeSatsFloat)
+	withdrawalHash := data.Hash
+	serverAddress := data.ServerL2Address.Info
+	serverFeeSats := *data.ServerFeeSats
 
 	// Register this pending withdrawal for monitoring
 	pending := engines.PendingFastWithdrawal{

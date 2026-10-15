@@ -76,6 +76,59 @@ func TestService_GetBalance(t *testing.T) {
 
 }
 
+func TestGetBalanceRoundsBTCToSats(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		btc  float64
+		sats uint64
+	}{
+		{btc: 0, sats: 0},
+		{btc: 0.29, sats: 29_000_000},
+		{btc: 2.01, sats: 201_000_000},
+		{btc: 21e6, sats: 2_100_000_000_000_000},
+	} {
+		t.Run(fmt.Sprintf("%v BTC", tt.btc), func(t *testing.T) {
+			t.Parallel()
+
+			db := database.Test(t)
+			mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+			mockBitcoind.EXPECT().
+				GetBalances(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&bitcoindv1alpha.GetBalancesResponse{
+					Mine: &bitcoindv1alpha.GetBalancesResponse_Mine{Trusted: tt.btc, UntrustedPending: tt.btc, Immature: tt.btc},
+				}), nil)
+			apitests.ExpectCoreWalletSetup(mockBitcoind)
+			cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+
+			resp, err := cli.GetBalance(t.Context(), connect.NewRequest(&walletv1.GetBalanceRequest{WalletId: testWalletID}))
+			require.NoError(t, err)
+			require.Equal(t, tt.sats, resp.Msg.ConfirmedSatoshi)
+			require.Equal(t, tt.sats, resp.Msg.PendingSatoshi)
+			require.Equal(t, tt.sats, resp.Msg.ImmatureSatoshi)
+		})
+	}
+}
+
+func TestListUnspentRoundsBTCToSats(t *testing.T) {
+	t.Parallel()
+
+	db := database.Test(t)
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	mockBitcoind.EXPECT().
+		ListUnspent(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&bitcoindv1alpha.ListUnspentResponse{
+			Unspent: []*bitcoindv1alpha.UnspentOutput{{Txid: "aa", Vout: 1, Address: "bcrt1qtest", Amount: 0.29}},
+		}), nil)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+
+	resp, err := cli.ListUnspent(t.Context(), connect.NewRequest(&walletv1.ListUnspentRequest{WalletId: testWalletID}))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Utxos, 1)
+	require.Equal(t, uint64(29_000_000), resp.Msg.Utxos[0].ValueSats)
+}
+
 func TestService_GetNewAddress(t *testing.T) {
 	t.Parallel()
 
@@ -508,5 +561,53 @@ func TestCreateSidechainDepositSlot(t *testing.T) {
 		require.Len(t, deposits, 1)
 		require.Equal(t, int32(2), deposits[0].Slot)
 		require.Equal(t, depositSidechainAddress, deposits[0].Destination)
+	})
+}
+
+func TestGetTransactionDetails(t *testing.T) {
+	t.Parallel()
+
+	spend := &bitcoindv1alpha.GetRawTransactionResponse{
+		Txid:    "spend",
+		Vsize:   100,
+		Inputs:  []*bitcoindv1alpha.Input{{Txid: "parent", Vout: 1}},
+		Outputs: []*bitcoindv1alpha.Output{{Amount: 0.28}},
+	}
+	parent := &bitcoindv1alpha.GetRawTransactionResponse{
+		Txid:    "parent",
+		Outputs: []*bitcoindv1alpha.Output{{Amount: 1}, {Amount: 0.29}},
+	}
+
+	details := func(t *testing.T, parentErr error) (*connect.Response[walletv1.GetTransactionDetailsResponse], error) {
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+		mockBitcoind.EXPECT().
+			GetRawTransaction(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[bitcoindv1alpha.GetRawTransactionRequest]) (*connect.Response[bitcoindv1alpha.GetRawTransactionResponse], error) {
+				if req.Msg.Txid == "spend" {
+					return connect.NewResponse(spend), nil
+				}
+				if parentErr != nil {
+					return nil, parentErr
+				}
+				return connect.NewResponse(parent), nil
+			}).
+			AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+		return cli.GetTransactionDetails(t.Context(), connect.NewRequest(&walletv1.GetTransactionDetailsRequest{Txid: "spend"}))
+	}
+
+	t.Run("the fee is inputs less outputs", func(t *testing.T) {
+		resp, err := details(t, nil)
+		require.NoError(t, err)
+		require.Equal(t, int64(29_000_000), resp.Msg.TotalInputSats)
+		require.Equal(t, int64(28_000_000), resp.Msg.TotalOutputSats)
+		require.Equal(t, int64(1_000_000), resp.Msg.FeeSats)
+	})
+
+	t.Run("a prevout read that fails returns the error", func(t *testing.T) {
+		_, err := details(t, connect.NewError(connect.CodeUnavailable, fmt.Errorf("node down")))
+		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+		require.ErrorContains(t, err, "node down")
 	})
 }

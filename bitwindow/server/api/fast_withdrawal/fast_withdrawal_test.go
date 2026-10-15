@@ -82,6 +82,16 @@ func TestInitiateSidechainWithdrawal(t *testing.T) {
 		require.ErrorContains(t, err, "missing server_l2_address")
 	})
 
+	t.Run("a fractional fee fails", func(t *testing.T) {
+		t.Parallel()
+
+		srv := withdrawServer(t, `{"status":"success","data":{"hash":"test-hash",`+
+			`"server_l2_address":{"info":"thunder1serveraddress456"},"server_fee_sats":5000.5}}`)
+
+		_, err := newServer().initiateSidechainWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
+		require.ErrorContains(t, err, "decode response")
+	})
+
 	t.Run("a cancelled context stops the request", func(t *testing.T) {
 		t.Parallel()
 

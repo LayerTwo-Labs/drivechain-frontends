@@ -34,12 +34,7 @@ func (k SweepAddressKind) String() string {
 	}
 }
 
-const (
-	p2wpkhInputVbytes   = 68
-	p2pkhInputVbytes    = 148
-	SweepOutputVbytes   = 31
-	sweepOverheadVbytes = 11
-)
+const p2pkhInputVbytes = 148
 
 // ScriptOutputVbytes is what one output costs: 8 value + the script length
 // prefix + the script. A taproot output is 12 vbytes wider than a segwit one.
@@ -127,16 +122,16 @@ func ResolveSweepSource(
 // SweepVbytes is the size of a sweep that spends inputs of one kind into a
 // single output of outputVbytes.
 func SweepVbytes(kind SweepAddressKind, inputs int, outputVbytes uint64) uint64 {
-	perInput := p2wpkhInputVbytes
+	perInput := InputVbytes
 	if kind == SweepAddressP2PKH {
 		perInput = p2pkhInputVbytes
 	}
-	return uint64(inputs*perInput+sweepOverheadVbytes) + outputVbytes
+	return uint64(inputs*perInput+OverheadVbytes) + outputVbytes
 }
 
 // SweepFeeSats is what a sweep of the source costs at the given rate, paying to
-// an output of outputVbytes. Pass DefaultOutputVbytes when the destination is
-// not chosen yet: SweepOutputVbytes sizes the narrowest one.
+// an output of outputVbytes. Pass OutputVbytes when the destination is not
+// chosen yet: it sizes the narrowest one.
 func SweepFeeSats(source SweepSource, feeSatPerVbyte uint64, outputVbytes uint64) uint64 {
 	return SweepVbytes(source.Kind, len(source.UTXOs), outputVbytes) * feeSatPerVbyte
 }

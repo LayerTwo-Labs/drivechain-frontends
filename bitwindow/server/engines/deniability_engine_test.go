@@ -111,6 +111,32 @@ func TestDeniabilityEngine(t *testing.T) {
 		assert.Equal(t, "cancelled due to UTXO being moved", *denial.CancelReason)
 	})
 
+	t.Run("a Core UTXO value rounds to whole sats", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, nil))
+
+		_, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			Times(1).
+			Return(connect.NewResponse(&corepb.ListUnspentResponse{
+				Unspent: []*corepb.UnspentOutput{{Txid: "test-txid", Vout: 0, Amount: 0.29, Confirmations: 6}},
+			}), nil)
+
+		utxos, _, err := engine.CleanupDenials(ctx)
+		require.NoError(t, err)
+		require.Len(t, utxos, 1)
+		require.Equal(t, uint64(29_000_000), utxos[0].ValueSats)
+	})
+
 	t.Run("legacy denial without wallet_id", func(t *testing.T) {
 		t.Parallel()
 

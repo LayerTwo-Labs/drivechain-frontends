@@ -13,7 +13,7 @@ import (
 const (
 	InputVbytes    = 68
 	OutputVbytes   = 31
-	OverheadVbytes = 10
+	OverheadVbytes = 11
 )
 
 // CoinSelectionResult holds the result of coin selection
