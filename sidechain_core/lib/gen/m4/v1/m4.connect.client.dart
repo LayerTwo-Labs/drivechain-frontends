@@ -27,16 +27,16 @@ extension type M4ServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Get user's vote preferences
-  Future<m4v1m4.GetVotePreferencesResponse> getVotePreferences(
-    m4v1m4.GetVotePreferencesRequest input, {
+  /// Get the votes the enforcer puts in the next block it builds.
+  Future<m4v1m4.GetVotesResponse> getVotes(
+    m4v1m4.GetVotesRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.M4Service.getVotePreferences,
+      specs.M4Service.getVotes,
       input,
       signal: signal,
       headers: headers,
@@ -45,16 +45,16 @@ extension type M4ServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Set user's vote preference for a sidechain
-  Future<m4v1m4.SetVotePreferenceResponse> setVotePreference(
-    m4v1m4.SetVotePreferenceRequest input, {
+  /// Upvote one pending bundle of a sidechain, or clear the upvote.
+  Future<m4v1m4.SetBundleUpvoteResponse> setBundleUpvote(
+    m4v1m4.SetBundleUpvoteRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.M4Service.setVotePreference,
+      specs.M4Service.setBundleUpvote,
       input,
       signal: signal,
       headers: headers,
@@ -63,16 +63,16 @@ extension type M4ServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Generate M4 bytes from current preferences
-  Future<m4v1m4.GenerateM4BytesResponse> generateM4Bytes(
-    m4v1m4.GenerateM4BytesRequest input, {
+  /// Set the vote for a sidechain that has no upvote.
+  Future<m4v1m4.SetVotePolicyResponse> setVotePolicy(
+    m4v1m4.SetVotePolicyRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.M4Service.generateM4Bytes,
+      specs.M4Service.setVotePolicy,
       input,
       signal: signal,
       headers: headers,

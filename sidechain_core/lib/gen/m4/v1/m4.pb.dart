@@ -15,6 +15,10 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'm4.pbenum.dart';
+
+export 'm4.pbenum.dart';
+
 class M4Vote extends $pb.GeneratedMessage {
   factory M4Vote({
     $core.int? sidechainSlot,
@@ -301,108 +305,27 @@ class GetM4HistoryResponse extends $pb.GeneratedMessage {
   $core.List<M4HistoryEntry> get history => $_getList(0);
 }
 
-class GetVotePreferencesRequest extends $pb.GeneratedMessage {
-  factory GetVotePreferencesRequest() => create();
-  GetVotePreferencesRequest._() : super();
-  factory GetVotePreferencesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetVotePreferencesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetVotePreferencesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetVotePreferencesRequest clone() => GetVotePreferencesRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetVotePreferencesRequest copyWith(void Function(GetVotePreferencesRequest) updates) => super.copyWith((message) => updates(message as GetVotePreferencesRequest)) as GetVotePreferencesRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetVotePreferencesRequest create() => GetVotePreferencesRequest._();
-  GetVotePreferencesRequest createEmptyInstance() => create();
-  static $pb.PbList<GetVotePreferencesRequest> createRepeated() => $pb.PbList<GetVotePreferencesRequest>();
-  @$core.pragma('dart2js:noInline')
-  static GetVotePreferencesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetVotePreferencesRequest>(create);
-  static GetVotePreferencesRequest? _defaultInstance;
-}
-
-class GetVotePreferencesResponse extends $pb.GeneratedMessage {
-  factory GetVotePreferencesResponse({
-    $core.Iterable<M4Vote>? preferences,
-  }) {
-    final $result = create();
-    if (preferences != null) {
-      $result.preferences.addAll(preferences);
-    }
-    return $result;
-  }
-  GetVotePreferencesResponse._() : super();
-  factory GetVotePreferencesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetVotePreferencesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetVotePreferencesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
-    ..pc<M4Vote>(1, _omitFieldNames ? '' : 'preferences', $pb.PbFieldType.PM, subBuilder: M4Vote.create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetVotePreferencesResponse clone() => GetVotePreferencesResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetVotePreferencesResponse copyWith(void Function(GetVotePreferencesResponse) updates) => super.copyWith((message) => updates(message as GetVotePreferencesResponse)) as GetVotePreferencesResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetVotePreferencesResponse create() => GetVotePreferencesResponse._();
-  GetVotePreferencesResponse createEmptyInstance() => create();
-  static $pb.PbList<GetVotePreferencesResponse> createRepeated() => $pb.PbList<GetVotePreferencesResponse>();
-  @$core.pragma('dart2js:noInline')
-  static GetVotePreferencesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetVotePreferencesResponse>(create);
-  static GetVotePreferencesResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.List<M4Vote> get preferences => $_getList(0);
-}
-
-class SetVotePreferenceRequest extends $pb.GeneratedMessage {
-  factory SetVotePreferenceRequest({
+class BundleUpvote extends $pb.GeneratedMessage {
+  factory BundleUpvote({
     $core.int? sidechainSlot,
-    $core.String? voteType,
-    $core.String? bundleHash,
+    $core.String? m6id,
   }) {
     final $result = create();
     if (sidechainSlot != null) {
       $result.sidechainSlot = sidechainSlot;
     }
-    if (voteType != null) {
-      $result.voteType = voteType;
-    }
-    if (bundleHash != null) {
-      $result.bundleHash = bundleHash;
+    if (m6id != null) {
+      $result.m6id = m6id;
     }
     return $result;
   }
-  SetVotePreferenceRequest._() : super();
-  factory SetVotePreferenceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SetVotePreferenceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  BundleUpvote._() : super();
+  factory BundleUpvote.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BundleUpvote.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetVotePreferenceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BundleUpvote', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'sidechainSlot', $pb.PbFieldType.OU3)
-    ..aOS(2, _omitFieldNames ? '' : 'voteType')
-    ..aOS(3, _omitFieldNames ? '' : 'bundleHash')
+    ..aOS(2, _omitFieldNames ? '' : 'm6id')
     ..hasRequiredFields = false
   ;
 
@@ -410,22 +333,22 @@ class SetVotePreferenceRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  SetVotePreferenceRequest clone() => SetVotePreferenceRequest()..mergeFromMessage(this);
+  BundleUpvote clone() => BundleUpvote()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SetVotePreferenceRequest copyWith(void Function(SetVotePreferenceRequest) updates) => super.copyWith((message) => updates(message as SetVotePreferenceRequest)) as SetVotePreferenceRequest;
+  BundleUpvote copyWith(void Function(BundleUpvote) updates) => super.copyWith((message) => updates(message as BundleUpvote)) as BundleUpvote;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SetVotePreferenceRequest create() => SetVotePreferenceRequest._();
-  SetVotePreferenceRequest createEmptyInstance() => create();
-  static $pb.PbList<SetVotePreferenceRequest> createRepeated() => $pb.PbList<SetVotePreferenceRequest>();
+  static BundleUpvote create() => BundleUpvote._();
+  BundleUpvote createEmptyInstance() => create();
+  static $pb.PbList<BundleUpvote> createRepeated() => $pb.PbList<BundleUpvote>();
   @$core.pragma('dart2js:noInline')
-  static SetVotePreferenceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetVotePreferenceRequest>(create);
-  static SetVotePreferenceRequest? _defaultInstance;
+  static BundleUpvote getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BundleUpvote>(create);
+  static BundleUpvote? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.int get sidechainSlot => $_getIZ(0);
@@ -437,40 +360,68 @@ class SetVotePreferenceRequest extends $pb.GeneratedMessage {
   void clearSidechainSlot() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get voteType => $_getSZ(1);
+  $core.String get m6id => $_getSZ(1);
   @$pb.TagNumber(2)
-  set voteType($core.String v) { $_setString(1, v); }
+  set m6id($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasVoteType() => $_has(1);
+  $core.bool hasM6id() => $_has(1);
   @$pb.TagNumber(2)
-  void clearVoteType() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.String get bundleHash => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set bundleHash($core.String v) { $_setString(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasBundleHash() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearBundleHash() => clearField(3);
+  void clearM6id() => clearField(2);
 }
 
-class SetVotePreferenceResponse extends $pb.GeneratedMessage {
-  factory SetVotePreferenceResponse({
-    $core.bool? success,
+class GetVotesRequest extends $pb.GeneratedMessage {
+  factory GetVotesRequest() => create();
+  GetVotesRequest._() : super();
+  factory GetVotesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetVotesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetVotesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetVotesRequest clone() => GetVotesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetVotesRequest copyWith(void Function(GetVotesRequest) updates) => super.copyWith((message) => updates(message as GetVotesRequest)) as GetVotesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetVotesRequest create() => GetVotesRequest._();
+  GetVotesRequest createEmptyInstance() => create();
+  static $pb.PbList<GetVotesRequest> createRepeated() => $pb.PbList<GetVotesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetVotesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetVotesRequest>(create);
+  static GetVotesRequest? _defaultInstance;
+}
+
+class GetVotesResponse extends $pb.GeneratedMessage {
+  factory GetVotesResponse({
+    VotePolicy? policy,
+    $core.Iterable<BundleUpvote>? upvotes,
   }) {
     final $result = create();
-    if (success != null) {
-      $result.success = success;
+    if (policy != null) {
+      $result.policy = policy;
+    }
+    if (upvotes != null) {
+      $result.upvotes.addAll(upvotes);
     }
     return $result;
   }
-  SetVotePreferenceResponse._() : super();
-  factory SetVotePreferenceResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SetVotePreferenceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  GetVotesResponse._() : super();
+  factory GetVotesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetVotesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetVotePreferenceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
-    ..aOB(1, _omitFieldNames ? '' : 'success')
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetVotesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
+    ..e<VotePolicy>(1, _omitFieldNames ? '' : 'policy', $pb.PbFieldType.OE, defaultOrMaker: VotePolicy.VOTE_POLICY_UNSPECIFIED, valueOf: VotePolicy.valueOf, enumValues: VotePolicy.values)
+    ..pc<BundleUpvote>(2, _omitFieldNames ? '' : 'upvotes', $pb.PbFieldType.PM, subBuilder: BundleUpvote.create)
     ..hasRequiredFields = false
   ;
 
@@ -478,86 +429,57 @@ class SetVotePreferenceResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  SetVotePreferenceResponse clone() => SetVotePreferenceResponse()..mergeFromMessage(this);
+  GetVotesResponse clone() => GetVotesResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SetVotePreferenceResponse copyWith(void Function(SetVotePreferenceResponse) updates) => super.copyWith((message) => updates(message as SetVotePreferenceResponse)) as SetVotePreferenceResponse;
+  GetVotesResponse copyWith(void Function(GetVotesResponse) updates) => super.copyWith((message) => updates(message as GetVotesResponse)) as GetVotesResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SetVotePreferenceResponse create() => SetVotePreferenceResponse._();
-  SetVotePreferenceResponse createEmptyInstance() => create();
-  static $pb.PbList<SetVotePreferenceResponse> createRepeated() => $pb.PbList<SetVotePreferenceResponse>();
+  static GetVotesResponse create() => GetVotesResponse._();
+  GetVotesResponse createEmptyInstance() => create();
+  static $pb.PbList<GetVotesResponse> createRepeated() => $pb.PbList<GetVotesResponse>();
   @$core.pragma('dart2js:noInline')
-  static SetVotePreferenceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetVotePreferenceResponse>(create);
-  static SetVotePreferenceResponse? _defaultInstance;
+  static GetVotesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetVotesResponse>(create);
+  static GetVotesResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.bool get success => $_getBF(0);
+  VotePolicy get policy => $_getN(0);
   @$pb.TagNumber(1)
-  set success($core.bool v) { $_setBool(0, v); }
+  set policy(VotePolicy v) { setField(1, v); }
   @$pb.TagNumber(1)
-  $core.bool hasSuccess() => $_has(0);
+  $core.bool hasPolicy() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSuccess() => clearField(1);
+  void clearPolicy() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.List<BundleUpvote> get upvotes => $_getList(1);
 }
 
-class GenerateM4BytesRequest extends $pb.GeneratedMessage {
-  factory GenerateM4BytesRequest() => create();
-  GenerateM4BytesRequest._() : super();
-  factory GenerateM4BytesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GenerateM4BytesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateM4BytesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GenerateM4BytesRequest clone() => GenerateM4BytesRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GenerateM4BytesRequest copyWith(void Function(GenerateM4BytesRequest) updates) => super.copyWith((message) => updates(message as GenerateM4BytesRequest)) as GenerateM4BytesRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GenerateM4BytesRequest create() => GenerateM4BytesRequest._();
-  GenerateM4BytesRequest createEmptyInstance() => create();
-  static $pb.PbList<GenerateM4BytesRequest> createRepeated() => $pb.PbList<GenerateM4BytesRequest>();
-  @$core.pragma('dart2js:noInline')
-  static GenerateM4BytesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateM4BytesRequest>(create);
-  static GenerateM4BytesRequest? _defaultInstance;
-}
-
-class GenerateM4BytesResponse extends $pb.GeneratedMessage {
-  factory GenerateM4BytesResponse({
-    $core.String? hex,
-    $core.String? interpretation,
+class SetBundleUpvoteRequest extends $pb.GeneratedMessage {
+  factory SetBundleUpvoteRequest({
+    $core.int? sidechainSlot,
+    $core.String? m6id,
   }) {
     final $result = create();
-    if (hex != null) {
-      $result.hex = hex;
+    if (sidechainSlot != null) {
+      $result.sidechainSlot = sidechainSlot;
     }
-    if (interpretation != null) {
-      $result.interpretation = interpretation;
+    if (m6id != null) {
+      $result.m6id = m6id;
     }
     return $result;
   }
-  GenerateM4BytesResponse._() : super();
-  factory GenerateM4BytesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GenerateM4BytesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  SetBundleUpvoteRequest._() : super();
+  factory SetBundleUpvoteRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetBundleUpvoteRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateM4BytesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'hex')
-    ..aOS(2, _omitFieldNames ? '' : 'interpretation')
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetBundleUpvoteRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'sidechainSlot', $pb.PbFieldType.OU3)
+    ..aOS(2, _omitFieldNames ? '' : 'm6id')
     ..hasRequiredFields = false
   ;
 
@@ -565,40 +487,155 @@ class GenerateM4BytesResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  GenerateM4BytesResponse clone() => GenerateM4BytesResponse()..mergeFromMessage(this);
+  SetBundleUpvoteRequest clone() => SetBundleUpvoteRequest()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  GenerateM4BytesResponse copyWith(void Function(GenerateM4BytesResponse) updates) => super.copyWith((message) => updates(message as GenerateM4BytesResponse)) as GenerateM4BytesResponse;
+  SetBundleUpvoteRequest copyWith(void Function(SetBundleUpvoteRequest) updates) => super.copyWith((message) => updates(message as SetBundleUpvoteRequest)) as SetBundleUpvoteRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GenerateM4BytesResponse create() => GenerateM4BytesResponse._();
-  GenerateM4BytesResponse createEmptyInstance() => create();
-  static $pb.PbList<GenerateM4BytesResponse> createRepeated() => $pb.PbList<GenerateM4BytesResponse>();
+  static SetBundleUpvoteRequest create() => SetBundleUpvoteRequest._();
+  SetBundleUpvoteRequest createEmptyInstance() => create();
+  static $pb.PbList<SetBundleUpvoteRequest> createRepeated() => $pb.PbList<SetBundleUpvoteRequest>();
   @$core.pragma('dart2js:noInline')
-  static GenerateM4BytesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateM4BytesResponse>(create);
-  static GenerateM4BytesResponse? _defaultInstance;
+  static SetBundleUpvoteRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetBundleUpvoteRequest>(create);
+  static SetBundleUpvoteRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get hex => $_getSZ(0);
+  $core.int get sidechainSlot => $_getIZ(0);
   @$pb.TagNumber(1)
-  set hex($core.String v) { $_setString(0, v); }
+  set sidechainSlot($core.int v) { $_setUnsignedInt32(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasHex() => $_has(0);
+  $core.bool hasSidechainSlot() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHex() => clearField(1);
+  void clearSidechainSlot() => clearField(1);
 
+  /// Unset clears the upvote, so the sidechain gets the policy vote.
   @$pb.TagNumber(2)
-  $core.String get interpretation => $_getSZ(1);
+  $core.String get m6id => $_getSZ(1);
   @$pb.TagNumber(2)
-  set interpretation($core.String v) { $_setString(1, v); }
+  set m6id($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasInterpretation() => $_has(1);
+  $core.bool hasM6id() => $_has(1);
   @$pb.TagNumber(2)
-  void clearInterpretation() => clearField(2);
+  void clearM6id() => clearField(2);
+}
+
+class SetBundleUpvoteResponse extends $pb.GeneratedMessage {
+  factory SetBundleUpvoteResponse() => create();
+  SetBundleUpvoteResponse._() : super();
+  factory SetBundleUpvoteResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetBundleUpvoteResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetBundleUpvoteResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetBundleUpvoteResponse clone() => SetBundleUpvoteResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetBundleUpvoteResponse copyWith(void Function(SetBundleUpvoteResponse) updates) => super.copyWith((message) => updates(message as SetBundleUpvoteResponse)) as SetBundleUpvoteResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetBundleUpvoteResponse create() => SetBundleUpvoteResponse._();
+  SetBundleUpvoteResponse createEmptyInstance() => create();
+  static $pb.PbList<SetBundleUpvoteResponse> createRepeated() => $pb.PbList<SetBundleUpvoteResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SetBundleUpvoteResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetBundleUpvoteResponse>(create);
+  static SetBundleUpvoteResponse? _defaultInstance;
+}
+
+class SetVotePolicyRequest extends $pb.GeneratedMessage {
+  factory SetVotePolicyRequest({
+    VotePolicy? policy,
+  }) {
+    final $result = create();
+    if (policy != null) {
+      $result.policy = policy;
+    }
+    return $result;
+  }
+  SetVotePolicyRequest._() : super();
+  factory SetVotePolicyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetVotePolicyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetVotePolicyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
+    ..e<VotePolicy>(1, _omitFieldNames ? '' : 'policy', $pb.PbFieldType.OE, defaultOrMaker: VotePolicy.VOTE_POLICY_UNSPECIFIED, valueOf: VotePolicy.valueOf, enumValues: VotePolicy.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetVotePolicyRequest clone() => SetVotePolicyRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetVotePolicyRequest copyWith(void Function(SetVotePolicyRequest) updates) => super.copyWith((message) => updates(message as SetVotePolicyRequest)) as SetVotePolicyRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetVotePolicyRequest create() => SetVotePolicyRequest._();
+  SetVotePolicyRequest createEmptyInstance() => create();
+  static $pb.PbList<SetVotePolicyRequest> createRepeated() => $pb.PbList<SetVotePolicyRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetVotePolicyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetVotePolicyRequest>(create);
+  static SetVotePolicyRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  VotePolicy get policy => $_getN(0);
+  @$pb.TagNumber(1)
+  set policy(VotePolicy v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPolicy() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPolicy() => clearField(1);
+}
+
+class SetVotePolicyResponse extends $pb.GeneratedMessage {
+  factory SetVotePolicyResponse() => create();
+  SetVotePolicyResponse._() : super();
+  factory SetVotePolicyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetVotePolicyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetVotePolicyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'm4.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetVotePolicyResponse clone() => SetVotePolicyResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetVotePolicyResponse copyWith(void Function(SetVotePolicyResponse) updates) => super.copyWith((message) => updates(message as SetVotePolicyResponse)) as SetVotePolicyResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetVotePolicyResponse create() => SetVotePolicyResponse._();
+  SetVotePolicyResponse createEmptyInstance() => create();
+  static $pb.PbList<SetVotePolicyResponse> createRepeated() => $pb.PbList<SetVotePolicyResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SetVotePolicyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetVotePolicyResponse>(create);
+  static SetVotePolicyResponse? _defaultInstance;
 }
 
 class M4ServiceApi {
@@ -608,14 +645,14 @@ class M4ServiceApi {
   $async.Future<GetM4HistoryResponse> getM4History($pb.ClientContext? ctx, GetM4HistoryRequest request) =>
     _client.invoke<GetM4HistoryResponse>(ctx, 'M4Service', 'GetM4History', request, GetM4HistoryResponse())
   ;
-  $async.Future<GetVotePreferencesResponse> getVotePreferences($pb.ClientContext? ctx, GetVotePreferencesRequest request) =>
-    _client.invoke<GetVotePreferencesResponse>(ctx, 'M4Service', 'GetVotePreferences', request, GetVotePreferencesResponse())
+  $async.Future<GetVotesResponse> getVotes($pb.ClientContext? ctx, GetVotesRequest request) =>
+    _client.invoke<GetVotesResponse>(ctx, 'M4Service', 'GetVotes', request, GetVotesResponse())
   ;
-  $async.Future<SetVotePreferenceResponse> setVotePreference($pb.ClientContext? ctx, SetVotePreferenceRequest request) =>
-    _client.invoke<SetVotePreferenceResponse>(ctx, 'M4Service', 'SetVotePreference', request, SetVotePreferenceResponse())
+  $async.Future<SetBundleUpvoteResponse> setBundleUpvote($pb.ClientContext? ctx, SetBundleUpvoteRequest request) =>
+    _client.invoke<SetBundleUpvoteResponse>(ctx, 'M4Service', 'SetBundleUpvote', request, SetBundleUpvoteResponse())
   ;
-  $async.Future<GenerateM4BytesResponse> generateM4Bytes($pb.ClientContext? ctx, GenerateM4BytesRequest request) =>
-    _client.invoke<GenerateM4BytesResponse>(ctx, 'M4Service', 'GenerateM4Bytes', request, GenerateM4BytesResponse())
+  $async.Future<SetVotePolicyResponse> setVotePolicy($pb.ClientContext? ctx, SetVotePolicyRequest request) =>
+    _client.invoke<SetVotePolicyResponse>(ctx, 'M4Service', 'SetVotePolicy', request, SetVotePolicyResponse())
   ;
 }
 

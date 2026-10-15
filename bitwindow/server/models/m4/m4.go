@@ -68,14 +68,6 @@ type Sidechain struct {
 	CreatedAt       time.Time
 }
 
-// VotePreference represents user's desired vote
-type VotePreference struct {
-	SidechainSlot uint8
-	VoteType      VoteType
-	BundleHash    *string
-	UpdatedAt     time.Time
-}
-
 // M3Message represents a withdrawal bundle proposal
 type M3Message struct {
 	ID            int64

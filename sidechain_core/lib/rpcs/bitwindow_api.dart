@@ -220,10 +220,10 @@ class BitwindowRPCLive extends BitwindowRPC {
       'misc.v1.MiscService/ListCoinNews',
       'misc.v1.MiscService/ListOPReturn',
       'misc.v1.MiscService/ListTopics',
-      'm4.v1.M4Service/GenerateM4Bytes',
       'm4.v1.M4Service/GetM4History',
-      'm4.v1.M4Service/GetVotePreferences',
-      'm4.v1.M4Service/SetVotePreference',
+      'm4.v1.M4Service/GetVotes',
+      'm4.v1.M4Service/SetBundleUpvote',
+      'm4.v1.M4Service/SetVotePolicy',
       'notification.v1.NotificationService/Watch',
       'wallet.v1.WalletService/CreateSidechainDeposit',
       'wallet.v1.WalletService/GetBalance',
@@ -1755,13 +1755,9 @@ class _MiscAPILive implements MiscAPI {
 
 abstract class M4API {
   Future<List<m4pb.M4HistoryEntry>> getM4History({int limit = 6});
-  Future<List<m4pb.M4Vote>> getVotePreferences();
-  Future<void> setVotePreference({
-    required int sidechainSlot,
-    required String voteType,
-    String? bundleHash,
-  });
-  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes();
+  Future<m4pb.GetVotesResponse> getVotes();
+  Future<void> setBundleUpvote({required int sidechainSlot, String? m6id});
+  Future<void> setVotePolicy(m4pb.VotePolicy policy);
 }
 
 class _M4APILive implements M4API {
@@ -1784,49 +1780,35 @@ class _M4APILive implements M4API {
   }
 
   @override
-  Future<List<m4pb.M4Vote>> getVotePreferences() async {
+  Future<m4pb.GetVotesResponse> getVotes() async {
     try {
-      final response = await _client.getVotePreferences(
-        m4pb.GetVotePreferencesRequest(),
-      );
-      return response.preferences;
+      return await _client.getVotes(m4pb.GetVotesRequest());
     } catch (e) {
-      final error = 'could not get vote preferences: ${extractConnectException(e)}';
+      final error = 'could not get votes: ${extractConnectException(e)}';
       throw BitwindowException(error);
     }
   }
 
   @override
-  Future<void> setVotePreference({
-    required int sidechainSlot,
-    required String voteType,
-    String? bundleHash,
-  }) async {
+  Future<void> setBundleUpvote({required int sidechainSlot, String? m6id}) async {
     try {
-      final request = m4pb.SetVotePreferenceRequest()
-        ..sidechainSlot = sidechainSlot
-        ..voteType = voteType;
-
-      if (bundleHash != null) {
-        request.bundleHash = bundleHash;
+      final request = m4pb.SetBundleUpvoteRequest()..sidechainSlot = sidechainSlot;
+      if (m6id != null) {
+        request.m6id = m6id;
       }
-
-      await _client.setVotePreference(request);
+      await _client.setBundleUpvote(request);
     } catch (e) {
-      final error = 'could not set vote preference: ${extractConnectException(e)}';
+      final error = 'could not set upvote: ${extractConnectException(e)}';
       throw BitwindowException(error);
     }
   }
 
   @override
-  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes() async {
+  Future<void> setVotePolicy(m4pb.VotePolicy policy) async {
     try {
-      final response = await _client.generateM4Bytes(
-        m4pb.GenerateM4BytesRequest(),
-      );
-      return response;
+      await _client.setVotePolicy(m4pb.SetVotePolicyRequest()..policy = policy);
     } catch (e) {
-      final error = 'could not generate M4 bytes: ${extractConnectException(e)}';
+      final error = 'could not set vote policy: ${extractConnectException(e)}';
       throw BitwindowException(error);
     }
   }

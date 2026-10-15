@@ -9,14 +9,14 @@ service M4Service {
   // Get M4 voting history
   rpc GetM4History(GetM4HistoryRequest) returns (GetM4HistoryResponse);
 
-  // Get user's vote preferences
-  rpc GetVotePreferences(GetVotePreferencesRequest) returns (GetVotePreferencesResponse);
+  // Get the votes the enforcer puts in the next block it builds.
+  rpc GetVotes(GetVotesRequest) returns (GetVotesResponse);
 
-  // Set user's vote preference for a sidechain
-  rpc SetVotePreference(SetVotePreferenceRequest) returns (SetVotePreferenceResponse);
+  // Upvote one pending bundle of a sidechain, or clear the upvote.
+  rpc SetBundleUpvote(SetBundleUpvoteRequest) returns (SetBundleUpvoteResponse);
 
-  // Generate M4 bytes from current preferences
-  rpc GenerateM4Bytes(GenerateM4BytesRequest) returns (GenerateM4BytesResponse);
+  // Set the vote for a sidechain that has no upvote.
+  rpc SetVotePolicy(SetVotePolicyRequest) returns (SetVotePolicyResponse);
 }
 
 message M4Vote {
@@ -42,23 +42,36 @@ message GetM4HistoryResponse {
   repeated M4HistoryEntry history = 1;
 }
 
-message GetVotePreferencesRequest {}
-message GetVotePreferencesResponse {
-  repeated M4Vote preferences = 1;
+// The vote for a sidechain that has no upvote.
+enum VotePolicy {
+  VOTE_POLICY_UNSPECIFIED = 0;
+  VOTE_POLICY_ABSTAIN = 1;
+  // Upvote the first pending bundle that this enforcer proposed.
+  VOTE_POLICY_UPVOTE_KNOWN = 2;
+  // Upvote the first pending bundle.
+  VOTE_POLICY_UPVOTE_ALL = 3;
+  VOTE_POLICY_ALARM = 4;
 }
 
-message SetVotePreferenceRequest {
+message BundleUpvote {
   uint32 sidechain_slot = 1;
-  string vote_type = 2;
-  optional string bundle_hash = 3;
+  string m6id = 2;
 }
 
-message SetVotePreferenceResponse {
-  bool success = 1;
+message GetVotesRequest {}
+message GetVotesResponse {
+  VotePolicy policy = 1;
+  repeated BundleUpvote upvotes = 2;
 }
 
-message GenerateM4BytesRequest {}
-message GenerateM4BytesResponse {
-  string hex = 1; // Hex-encoded M4 bytes
-  string interpretation = 2; // Human-readable description
+message SetBundleUpvoteRequest {
+  uint32 sidechain_slot = 1;
+  // Unset clears the upvote, so the sidechain gets the policy vote.
+  optional string m6id = 2;
 }
+message SetBundleUpvoteResponse {}
+
+message SetVotePolicyRequest {
+  VotePolicy policy = 1;
+}
+message SetVotePolicyResponse {}
