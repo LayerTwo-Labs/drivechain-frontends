@@ -12,8 +12,6 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1/bitdrivev1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
-	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -25,13 +23,11 @@ var _ rpc.BitDriveServiceHandler = new(Server)
 // New creates a new BitDrive API server
 func New(
 	database *sql.DB,
-	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	bitdriveEngine *engines.BitDriveEngine,
 	walletEngine *engines.WalletEngine,
 ) *Server {
 	return &Server{
 		database:       database,
-		bitcoind:       bitcoind,
 		bitdriveEngine: bitdriveEngine,
 		walletEngine:   walletEngine,
 	}
@@ -39,7 +35,6 @@ func New(
 
 type Server struct {
 	database       *sql.DB
-	bitcoind       *service.Service[corerpc.BitcoinServiceClient]
 	bitdriveEngine *engines.BitDriveEngine
 	walletEngine   *engines.WalletEngine
 }

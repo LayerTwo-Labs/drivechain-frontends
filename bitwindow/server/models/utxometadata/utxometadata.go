@@ -111,36 +111,6 @@ func Get(ctx context.Context, db *sql.DB, outpoints []string) (map[string]*Entry
 	return result, nil
 }
 
-// Delete removes metadata for a specific outpoint
-func Delete(ctx context.Context, db *sql.DB, outpoint string) error {
-	_, err := db.ExecContext(ctx,
-		`DELETE FROM utxo_metadata WHERE outpoint = ?`,
-		outpoint,
-	)
-	return err
-}
-
-// GetFrozenOutpoints returns all frozen outpoints
-func GetFrozenOutpoints(ctx context.Context, db *sql.DB) ([]string, error) {
-	rows, err := db.QueryContext(ctx,
-		`SELECT outpoint FROM utxo_metadata WHERE is_frozen = 1`,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer database.SafeDefer(ctx, rows.Close)
-
-	var outpoints []string
-	for rows.Next() {
-		var outpoint string
-		if err := rows.Scan(&outpoint); err != nil {
-			return nil, err
-		}
-		outpoints = append(outpoints, outpoint)
-	}
-	return outpoints, rows.Err()
-}
-
 // FrozenOutpoints names every outpoint the user froze, as txid:vout.
 func FrozenOutpoints(ctx context.Context, db *sql.DB) ([]string, error) {
 	rows, err := db.QueryContext(ctx,

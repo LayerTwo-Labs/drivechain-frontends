@@ -193,7 +193,6 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		},
 		ChainParams:        &chaincfg.SigNetParams,
 		WalletDir:          walletDir,
-		DataDir:            walletDir,
 		OrchestratorClient: conf.orchestrator,
 		BitwindowDir:       conf.authDir,
 	}

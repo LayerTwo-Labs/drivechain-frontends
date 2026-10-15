@@ -52,25 +52,6 @@ func List(ctx context.Context, db *sql.DB) ([]Entry, error) {
 	return entries, rows.Err()
 }
 
-// ListByWallet returns address book entries for a specific wallet
-func ListByWallet(ctx context.Context, db *sql.DB, walletID string) ([]Entry, error) {
-	rows, err := db.QueryContext(ctx, `SELECT id, label, address, direction, COALESCE(wallet_id, ''), created_at FROM address_book WHERE wallet_id = ?`, walletID)
-	if err != nil {
-		return nil, err
-	}
-	defer database.SafeDefer(ctx, rows.Close)
-
-	var entries []Entry
-	for rows.Next() {
-		var entry Entry
-		if err := rows.Scan(&entry.ID, &entry.Label, &entry.Address, &entry.Direction, &entry.WalletID, &entry.CreatedAt); err != nil {
-			return nil, err
-		}
-		entries = append(entries, entry)
-	}
-	return entries, rows.Err()
-}
-
 func UpdateLabel(ctx context.Context, db *sql.DB, id int64, newLabel string) error {
 	rows, err := db.ExecContext(ctx,
 		`UPDATE address_book SET label = ? WHERE id = ?`,

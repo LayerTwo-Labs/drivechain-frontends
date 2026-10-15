@@ -126,7 +126,7 @@ func (p *Parser) Run(ctx context.Context) error {
 			}
 			if tickErr != nil {
 				// Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
-				if !isBitcoinCoreStartupError(tickErr.Error()) {
+				if !IsBitcoinCoreStartupError(tickErr.Error()) {
 					zerolog.Ctx(ctx).Err(tickErr).Msgf("unable to handle block tick")
 				}
 				continue
@@ -713,12 +713,6 @@ func (p *Parser) handleTimestamp(
 		Msg("discovered timestamp on blockchain")
 
 	return nil
-}
-
-// isBitcoinCoreStartupError is kept as a package-private alias of the shared
-// helper so existing call sites in this file don't need to change.
-func isBitcoinCoreStartupError(errMsg string) bool {
-	return IsBitcoinCoreStartupError(errMsg)
 }
 
 // currentChainState returns the tip plus the IBD flag in one RPC. Callers

@@ -550,12 +550,6 @@ func (e *WalletEngine) GetWalletInfo(ctx context.Context, walletId string) (*Wal
 	return &walletInfo[0], nil
 }
 
-// GetActiveWalletInfo returns the WalletInfo for the currently active wallet
-// This is an alias for GetActiveWallet for backwards compatibility
-func (e *WalletEngine) GetActiveWalletInfo(ctx context.Context) (*WalletInfo, error) {
-	return e.GetActiveWallet(ctx)
-}
-
 // GetWalletBackendType returns the backend type for a wallet
 func (e *WalletEngine) GetWalletBackendType(ctx context.Context, walletId string) (WalletType, error) {
 	if walletId == "" {
@@ -957,12 +951,6 @@ func (e *WalletEngine) loadAllWallets() ([]WalletInfo, error) {
 
 func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) {
 	return e.loadAllWallets()
-}
-
-// HasOrchestratorClient reports whether the orchestrator's electrum surface is
-// reachable at all — false in dev setups that never dialled it.
-func (e *WalletEngine) HasOrchestratorClient() bool {
-	return e.orchClient != nil
 }
 
 // ChequeAddressUnspent reports a cheque address's UTXOs. Always electrum-backed

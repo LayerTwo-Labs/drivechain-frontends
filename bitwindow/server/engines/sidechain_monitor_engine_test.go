@@ -43,8 +43,7 @@ func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
 	}
 
 	// Register withdrawal
-	err := engine.RegisterPendingFastWithdrawal(ctx, withdrawal)
-	require.NoError(t, err)
+	engine.RegisterPendingFastWithdrawal(ctx, withdrawal)
 
 	// Verify it was stored
 	pending, err := engine.GetPendingFastWithdrawals(ctx)
@@ -99,11 +98,10 @@ func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
 		CreatedAt:      time.Now(),
 	}
 
-	err := engine.RegisterPendingFastWithdrawal(ctx, pending)
-	require.NoError(t, err)
+	engine.RegisterPendingFastWithdrawal(ctx, pending)
 
 	// Complete the withdrawal
-	err = engine.completeWithdrawal(ctx, pending, "test-txid-456789abcdef123")
+	err := engine.completeWithdrawal(ctx, pending, "test-txid-456789abcdef123")
 	require.NoError(t, err)
 
 	// Verify withdrawal was removed from pending

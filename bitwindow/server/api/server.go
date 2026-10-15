@@ -80,7 +80,6 @@ type Services struct {
 	Database    *sql.DB
 	ChainParams *chaincfg.Params
 	WalletDir   string
-	DataDir     string
 }
 
 // Server hosts bitwindowd's HTTP/Connect surface. Long-lived service

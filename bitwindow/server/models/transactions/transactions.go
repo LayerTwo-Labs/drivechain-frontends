@@ -15,17 +15,6 @@ type TransactionNote struct {
 	SetAt time.Time
 }
 
-func Get(ctx context.Context, db *sql.DB, walletID string, txid string) (TransactionNote, error) {
-	var note TransactionNote
-	err := db.QueryRowContext(ctx, `SELECT txid, note, set_at FROM transaction_notes WHERE wallet_id = ? AND txid = ?`, walletID, txid).
-		Scan(&note.TxID, &note.Note, &note.SetAt)
-	if err != nil {
-		return TransactionNote{}, err
-	}
-
-	return note, nil
-}
-
 func ListByWallet(ctx context.Context, db *sql.DB, walletID string) ([]TransactionNote, error) {
 	rows, err := db.QueryContext(ctx, `SELECT txid, note, set_at FROM transaction_notes WHERE wallet_id = ?`, walletID)
 	if err != nil {
