@@ -167,8 +167,8 @@ func TestResolveSweepSourceReturnsChainError(t *testing.T) {
 }
 
 func TestSweepVbytesChargesMoreForLegacyInputs(t *testing.T) {
-	witness := SweepVbytes(SweepAddressP2WPKH, 1, SweepOutputVbytes)
-	legacy := SweepVbytes(SweepAddressP2PKH, 1, SweepOutputVbytes)
+	witness := SweepVbytes(SweepAddressP2WPKH, 1, OutputVbytes)
+	legacy := SweepVbytes(SweepAddressP2PKH, 1, OutputVbytes)
 
 	if witness != 110 {
 		t.Errorf("expected 110 vbytes for one witness input, got %d", witness)

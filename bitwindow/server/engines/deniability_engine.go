@@ -15,6 +15,7 @@ import (
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
@@ -697,14 +698,19 @@ func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId s
 		return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
 	}
 
-	outputs := lo.Map(resp.Msg.Unspent, func(utxo *corepb.UnspentOutput, _ int) *UTXO {
-		return &UTXO{
+	outputs := make([]*UTXO, 0, len(resp.Msg.Unspent))
+	for _, utxo := range resp.Msg.Unspent {
+		amount, err := btcutil.NewAmount(utxo.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("value of %s:%d: %w", utxo.Txid, utxo.Vout, err)
+		}
+		outputs = append(outputs, &UTXO{
 			Txid:      utxo.Txid,
 			Vout:      utxo.Vout,
 			Address:   utxo.Address,
-			ValueSats: uint64(utxo.Amount * 100000000),
-		}
-	})
+			ValueSats: uint64(amount),
+		})
+	}
 
 	return outputs, nil
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	walletpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
+	"github.com/stretchr/testify/require"
 )
 
 func bnbUTXOs(values ...int64) []*walletpb.UnspentOutput {
@@ -250,4 +251,28 @@ func TestBranchAndBoundRequiredInputsOverpayBounded(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEstimateFee(t *testing.T) {
+	cases := []struct {
+		name     string
+		inputs   int
+		outputs  int
+		rate     int64
+		wantSats int64
+	}{
+		{"one input two outputs", 1, 2, 1, 11 + 68 + 2*31},
+		{"no outputs counts two", 1, 0, 1, 11 + 68 + 2*31},
+		{"rate scales the size", 2, 1, 5, 5 * (11 + 2*68 + 31)},
+		{"zero rate", 1, 2, 0, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.wantSats, EstimateFee(tc.inputs, tc.outputs, tc.rate))
+		})
+	}
+
+	t.Run("a one-output sweep and an estimate agree", func(t *testing.T) {
+		require.Equal(t, uint64(EstimateFee(1, 1, 1)), SweepVbytes(SweepAddressP2WPKH, 1, OutputVbytes))
+	})
 }

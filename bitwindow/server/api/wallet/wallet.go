@@ -171,6 +171,17 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	}), nil
 }
 
+func btcToSats(btc float64) (uint64, error) {
+	amount, err := btcutil.NewAmount(btc)
+	if err != nil {
+		return 0, fmt.Errorf("convert %v BTC to sats: %w", btc, err)
+	}
+	if amount < 0 {
+		return 0, fmt.Errorf("negative amount: %v BTC", btc)
+	}
+	return uint64(amount), nil
+}
+
 // canonicalOutpoint reads a txid:vout pair into one spelling: the txid in
 // lower case, and the vout with no leading zero. A string it cannot read comes
 // back trimmed and lowered, so two unreadable spellings still match.
@@ -314,15 +325,21 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 
 		// An imported descriptor's funds report under `watchonly`; a
 		// seed-derived wallet's under `mine`.
-		var confirmedSats, pendingSats, immatureSats uint64
+		trusted, pending, immature := balancesResp.Msg.Mine.Trusted, balancesResp.Msg.Mine.UntrustedPending, balancesResp.Msg.Mine.Immature
 		if watchOnly {
-			confirmedSats = uint64(balancesResp.Msg.Watchonly.Trusted * 100_000_000)
-			pendingSats = uint64(balancesResp.Msg.Watchonly.UntrustedPending * 100_000_000)
-			immatureSats = uint64(balancesResp.Msg.Watchonly.Immature * 100_000_000)
-		} else {
-			confirmedSats = uint64(balancesResp.Msg.Mine.Trusted * 100_000_000)
-			pendingSats = uint64(balancesResp.Msg.Mine.UntrustedPending * 100_000_000)
-			immatureSats = uint64(balancesResp.Msg.Mine.Immature * 100_000_000)
+			trusted, pending, immature = balancesResp.Msg.Watchonly.Trusted, balancesResp.Msg.Watchonly.UntrustedPending, balancesResp.Msg.Watchonly.Immature
+		}
+		confirmedSats, err := btcToSats(trusted)
+		if err != nil {
+			return nil, fmt.Errorf("confirmed balance: %w", err)
+		}
+		pendingSats, err := btcToSats(pending)
+		if err != nil {
+			return nil, fmt.Errorf("pending balance: %w", err)
+		}
+		immatureSats, err := btcToSats(immature)
+		if err != nil {
+			return nil, fmt.Errorf("immature balance: %w", err)
 		}
 
 		return connect.NewResponse(&pb.GetBalanceResponse{
@@ -394,13 +411,17 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			if t.Confirmations > 0 {
 				confirmation = &pb.Confirmation{Timestamp: &timestamppb.Timestamp{Seconds: t.BlockTime}}
 			}
+			feeSats, err := btcToSats(math.Abs(t.Fee))
+			if err != nil {
+				return nil, fmt.Errorf("electrum: fee of %s: %w", t.Txid, err)
+			}
 			lbl := t.Label
 			if lbl == "" {
 				lbl = label(t.Address)
 			}
 			out = append(out, &pb.WalletTransaction{
 				Txid:             t.Txid,
-				FeeSats:          uint64(math.Round(math.Abs(t.Fee) * 1e8)),
+				FeeSats:          feeSats,
 				ReceivedSatoshi:  received,
 				SentSatoshi:      sent,
 				Address:          t.Address,
@@ -492,14 +513,20 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 
 			feeSats := uint64(0)
 			if tx.Fee < 0 {
-				feeSats = uint64(-tx.Fee * 100_000_000)
+				feeSats, err = btcToSats(-tx.Fee)
+				if err != nil {
+					return nil, fmt.Errorf("fee of %s: %w", tx.Txid, err)
+				}
 			}
 
 			var receivedSats, sentSats uint64
 			if tx.Amount > 0 {
-				receivedSats = uint64(tx.Amount * 100_000_000)
+				receivedSats, err = btcToSats(tx.Amount)
 			} else {
-				sentSats = uint64(-tx.Amount * 100_000_000)
+				sentSats, err = btcToSats(-tx.Amount)
+			}
+			if err != nil {
+				return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
 			}
 
 			txMap[tx.Txid] = &pb.WalletTransaction{
@@ -518,9 +545,17 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		} else {
 			// Update existing entry with additional info
 			if tx.Amount > 0 {
-				existing.ReceivedSatoshi += uint64(tx.Amount * 100_000_000)
+				sats, err := btcToSats(tx.Amount)
+				if err != nil {
+					return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
+				}
+				existing.ReceivedSatoshi += sats
 			} else {
-				existing.SentSatoshi += uint64(-tx.Amount * 100_000_000)
+				sats, err := btcToSats(-tx.Amount)
+				if err != nil {
+					return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
+				}
+				existing.SentSatoshi += sats
 			}
 		}
 	}
@@ -776,7 +811,10 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, ge
 
 	var utxosWithInfo []*pb.UnspentOutput
 	for _, utxo := range resp.Msg.Unspent {
-		valueSats := uint64(utxo.Amount * 100000000)
+		valueSats, err := btcToSats(utxo.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("value of %s:%d: %w", utxo.Txid, utxo.Vout, err)
+		}
 
 		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
 			Output:     fmt.Sprintf("%s:%d", utxo.Txid, utxo.Vout),
@@ -917,13 +955,18 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 			continue
 		}
 
+		valueSats, err := btcToSats(utxo.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("value of %s:%d: %w", utxo.Txid, utxo.Vout, err)
+		}
+
 		if existing, found := addressMap[utxo.Address]; found {
-			existing.CurrentBalanceSat += uint64(utxo.Amount * 100_000_000)
+			existing.CurrentBalanceSat += valueSats
 		} else {
 			addressMap[utxo.Address] = &pb.ReceiveAddress{
 				Address:           utxo.Address,
 				Label:             getLabel(utxo.Address),
-				CurrentBalanceSat: uint64(utxo.Amount * 100_000_000),
+				CurrentBalanceSat: valueSats,
 				IsChange:          false, // Bitcoin Core doesn't expose this easily
 			}
 		}
@@ -1315,7 +1358,7 @@ func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.Preview
 	}
 
 	amountSats := source.TotalSats()
-	feeSats := engines.SweepFeeSats(source, feeSatPerVbyte, engines.SweepOutputVbytes)
+	feeSats := engines.SweepFeeSats(source, feeSatPerVbyte, engines.OutputVbytes)
 
 	var receiveSats uint64
 	if amountSats > feeSats {
@@ -1625,9 +1668,11 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 	// Build enriched inputs by fetching referenced transactions
 	var inputs []*pb.TransactionInput
 	var totalInputSats int64
+	var isCoinbaseTx bool
 
 	for i, vin := range rawTx.Msg.Inputs {
 		isCoinbase := vin.Coinbase != ""
+		isCoinbaseTx = isCoinbaseTx || isCoinbase
 
 		var scriptSigAsm, scriptSigHex string
 		if vin.ScriptSig != nil {
@@ -1652,14 +1697,22 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 				Txid:      vin.Txid,
 				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 			}))
-			if err == nil && int(vin.Vout) < len(prevTx.Msg.Outputs) {
-				prevOut := prevTx.Msg.Outputs[vin.Vout]
-				input.ValueSats = int64(prevOut.Amount * 100_000_000)
-				if prevOut.ScriptPubKey != nil {
-					input.Address = prevOut.ScriptPubKey.Address
-				}
-				totalInputSats += input.ValueSats
+			if err != nil {
+				return nil, fmt.Errorf("get prevout %s:%d: %w", vin.Txid, vin.Vout, err)
 			}
+			if int(vin.Vout) >= len(prevTx.Msg.Outputs) {
+				return nil, fmt.Errorf("prevout %s:%d: transaction has %d outputs", vin.Txid, vin.Vout, len(prevTx.Msg.Outputs))
+			}
+			prevOut := prevTx.Msg.Outputs[vin.Vout]
+			valueSats, err := btcToSats(prevOut.Amount)
+			if err != nil {
+				return nil, fmt.Errorf("value of %s:%d: %w", vin.Txid, vin.Vout, err)
+			}
+			input.ValueSats = int64(valueSats)
+			if prevOut.ScriptPubKey != nil {
+				input.Address = prevOut.ScriptPubKey.Address
+			}
+			totalInputSats += input.ValueSats
 		}
 
 		inputs = append(inputs, input)
@@ -1670,7 +1723,11 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 	var totalOutputSats int64
 
 	for i, vout := range rawTx.Msg.Outputs {
-		valueSats := int64(vout.Amount * 100_000_000)
+		sats, err := btcToSats(vout.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("value of output %d: %w", i, err)
+		}
+		valueSats := int64(sats)
 		totalOutputSats += valueSats
 
 		var address, scriptType, scriptAsm, scriptHex string
@@ -1691,10 +1748,9 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 		})
 	}
 
-	// Compute fee (inputs - outputs)
-	feeSats := totalInputSats - totalOutputSats
-	if feeSats < 0 {
-		feeSats = 0 // Coinbase transactions have no inputs
+	var feeSats int64
+	if !isCoinbaseTx {
+		feeSats = totalInputSats - totalOutputSats
 	}
 
 	var feeRate float64
