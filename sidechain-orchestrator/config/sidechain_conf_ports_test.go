@@ -11,13 +11,23 @@ import (
 // binaries that ship with BitWindow. A flag outside this set stops the daemon
 // on its first boot.
 var provedChainFlags = map[string][]string{
-	"thunder":   {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr"},
-	"bitassets": {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-host", "rpc-port", "zmq-addr"},
-	"bitnames":  {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "zmq-addr"},
+	"thunder":   {"add-peer", "datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "server-name", "wallet-dir"},
+	"bitassets": {"add-peer", "datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-host", "private-rpc-port", "rpc-host", "rpc-port", "server-name", "wallet-dir", "zmq-addr"},
+	"bitnames":  {"add-peer", "datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "server-name", "wallet-dir", "zmq-addr"},
 	"photon":    {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "rpc-addr"},
 	"truthcoin": {"add-peer", "datadir", "decision-config-testing", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "server-name", "wallet-dir"},
 	"zside":     {"add-peer", "datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "server-name", "wallet-dir"},
-	"coinshift": {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-addr", "l1-signet", "l1-bch-testnet4"},
+	"coinshift": {"add-peer", "datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "rpc-addr", "server-name", "l1-signet", "l1-bch-testnet4"},
+}
+
+// A seeded chain gets --add-peer on every betanet boot, so a chain whose node
+// lacks the flag never starts.
+func TestSeededChainsTakeAddPeer(t *testing.T) {
+	for _, chain := range seededSidechains {
+		if !slices.Contains(provedChainFlags[chain], "add-peer") {
+			t.Errorf("%s gets the betanet seed, but its node lists no --add-peer", chain)
+		}
+	}
 }
 
 // unprovedChains ship no binary here, so nobody read their flags.

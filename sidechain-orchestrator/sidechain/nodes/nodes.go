@@ -14,7 +14,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/elements"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/solana"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
@@ -26,13 +25,13 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 	if !isBitcoinCore {
 		switch name {
 		case "zside":
-			return zside.NewNode(host, port), nil
-		case "thunder":
-			return thunder.NewNode(host, port, config.CusfNetworkName(network, config.ECashNetworkID())), nil
+			node := zside.NewNode(host, port)
+			node.SeedPeer = config.SidechainSeedPeerForNetwork(name, network)
+			return node, nil
 		case "solana":
 			return solana.NewClient(host, port), nil
 		case "bitassets", "photon":
-			return selfMinedNode{sidechain.NewJSONRPCProxy(host, port)}, nil
+			return selfMinedNode{Proxy(name, host, port, network)}, nil
 		default:
 			return Proxy(name, host, port, network), nil
 		}
@@ -58,6 +57,7 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 // coinshift send the cookie their node writes.
 func Proxy(name, host string, port int, network config.Network) *sidechain.JSONRPCProxy {
 	proxy := sidechain.NewJSONRPCProxy(host, port)
+	proxy.SeedPeer = config.SidechainSeedPeerForNetwork(name, network)
 	switch name {
 	case "truthcoin":
 		proxy.Client.WithCookie(truthcoin.CookieFile(network))
