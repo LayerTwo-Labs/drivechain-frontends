@@ -10,6 +10,7 @@ import (
 	"time"
 
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/samber/lo"
 )
 
@@ -100,30 +101,56 @@ func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID s
 	return err
 }
 
-// selectDenialQuery returns the common SELECT part of denial queries
-func selectDenialQuery() string {
-	return `
-		SELECT
-			d.id,
-			d.wallet_id,
-			d.delay_duration,
-			d.num_hops,
-			d.target_utxo_sizes,
-			d.created_at,
-			d.updated_at,
-			d.cancelled_at,
-			d.cancelled_reason,
-			d.paused_at,
-			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
-			COALESCE(e.to_vout, d.initial_vout) as tip_vout
-		FROM denials d
-		LEFT JOIN (
-			SELECT * FROM executed_denials ed
-			WHERE ed.id = (
-				SELECT MAX(id) FROM executed_denials
-				WHERE denial_id = ed.denial_id
-			)
-		) e ON e.denial_id = d.id`
+var selectDenial = sq.
+	Select(
+		"d.id",
+		"d.wallet_id",
+		"d.delay_duration",
+		"d.num_hops",
+		"d.target_utxo_sizes",
+		"d.created_at",
+		"d.updated_at",
+		"d.cancelled_at",
+		"d.cancelled_reason",
+		"d.paused_at",
+		"COALESCE(e.to_txid, d.initial_txid) AS tip_txid",
+		"COALESCE(e.to_vout, d.initial_vout) AS tip_vout",
+	).
+	From("denials d").
+	LeftJoin(`(
+		SELECT * FROM executed_denials ed
+		WHERE ed.id = (
+			SELECT MAX(id) FROM executed_denials
+			WHERE denial_id = ed.denial_id
+		)
+	) e ON e.denial_id = d.id`).
+	PlaceholderFormat(sq.Question)
+
+func scanDenial(scanner interface{ Scan(dest ...any) error }) (Denial, error) {
+	var denial Denial
+	var targetSizes *string
+	if err := scanner.Scan(
+		&denial.ID,
+		&denial.WalletID,
+		&denial.DelayDuration,
+		&denial.NumHops,
+		&targetSizes,
+		&denial.CreatedAt,
+		&denial.UpdatedAt,
+		&denial.CancelledAt,
+		&denial.CancelReason,
+		&denial.PausedAt,
+		&denial.TipTXID,
+		&denial.TipVout,
+	); err != nil {
+		return Denial{}, err
+	}
+	sizes, err := parseTargetUTXOSizes(targetSizes)
+	if err != nil {
+		return Denial{}, fmt.Errorf("could not parse target sizes: %w", err)
+	}
+	denial.TargetUTXOSizes = sizes
+	return denial, nil
 }
 
 type config struct {
@@ -172,13 +199,13 @@ func parseTargetUTXOSizes(data *string) ([]int64, error) {
 func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	conf := newConfig(opts)
 
-	query := selectDenialQuery()
+	builder := selectDenial.OrderBy("d.updated_at ASC")
 	if conf.excludeCancelled {
-		query += ` WHERE d.cancelled_at IS NULL`
+		builder = builder.Where("d.cancelled_at IS NULL")
 	}
-	query += ` ORDER BY d.updated_at ASC`
+	query, args := builder.MustSql()
 
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("could not query deniabilities: %w", err)
 	}
@@ -186,30 +213,10 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	// First, collect all denials from the query (don't do nested queries while rows are open)
 	var deniabilities []Denial
 	for rows.Next() {
-		var denial Denial
-		var targetSizesJSON *string
-		err := rows.Scan(
-			&denial.ID,
-			&denial.WalletID,
-			&denial.DelayDuration,
-			&denial.NumHops,
-			&targetSizesJSON,
-			&denial.CreatedAt,
-			&denial.UpdatedAt,
-			&denial.CancelledAt,
-			&denial.CancelReason,
-			&denial.PausedAt,
-			&denial.TipTXID,
-			&denial.TipVout,
-		)
+		denial, err := scanDenial(rows)
 		if err != nil {
 			rows.Close()
 			return nil, fmt.Errorf("could not scan deniability: %w", err)
-		}
-		denial.TargetUTXOSizes, err = parseTargetUTXOSizes(targetSizesJSON)
-		if err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("could not parse target sizes: %w", err)
 		}
 		deniabilities = append(deniabilities, denial)
 	}
@@ -388,42 +395,19 @@ func lastExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 
 // GetByTip retrieves a deniability plan by its tip txid+vout
 func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (*Denial, error) {
-	query := selectDenialQuery() + `
-		WHERE COALESCE(e.to_txid, d.initial_txid) = ? `
-	args := []any{tipTxID}
-
+	builder := selectDenial.Where(sq.Eq{"COALESCE(e.to_txid, d.initial_txid)": tipTxID})
 	if tipVout != nil {
 		// Same tip semantics as the txid filter, so both match a single outpoint.
-		query += ` AND COALESCE(e.to_vout, d.initial_vout) = ? `
-		args = append(args, tipVout)
+		builder = builder.Where(sq.Eq{"COALESCE(e.to_vout, d.initial_vout)": *tipVout})
 	}
-	row := db.QueryRowContext(ctx, query, args...)
+	query, args := builder.MustSql()
 
-	var denial Denial
-	var targetSizesJSON *string
-	err := row.Scan(
-		&denial.ID,
-		&denial.WalletID,
-		&denial.DelayDuration,
-		&denial.NumHops,
-		&targetSizesJSON,
-		&denial.CreatedAt,
-		&denial.UpdatedAt,
-		&denial.CancelledAt,
-		&denial.CancelReason,
-		&denial.PausedAt,
-		&denial.TipTXID,
-		&denial.TipVout,
-	)
+	denial, err := scanDenial(db.QueryRowContext(ctx, query, args...))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // No matching record found, but that's okay
 		}
 		return nil, fmt.Errorf("could not get deniability by tip: %w", err)
-	}
-	denial.TargetUTXOSizes, err = parseTargetUTXOSizes(targetSizesJSON)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse target sizes: %w", err)
 	}
 
 	d, err := denial.addExecutionData(ctx, db)
@@ -449,35 +433,14 @@ func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numH
 
 // Get retrieves a deniability plan by its ID
 func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
-	row := db.QueryRowContext(ctx,
-		selectDenialQuery()+` WHERE d.id = ?`,
-		id)
+	query, args := selectDenial.Where(sq.Eq{"d.id": id}).MustSql()
 
-	var denial Denial
-	var targetSizesJSON *string
-	err := row.Scan(
-		&denial.ID,
-		&denial.WalletID,
-		&denial.DelayDuration,
-		&denial.NumHops,
-		&targetSizesJSON,
-		&denial.CreatedAt,
-		&denial.UpdatedAt,
-		&denial.CancelledAt,
-		&denial.CancelReason,
-		&denial.PausedAt,
-		&denial.TipTXID,
-		&denial.TipVout,
-	)
+	denial, err := scanDenial(db.QueryRowContext(ctx, query, args...))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return Denial{}, nil // No matching record found, but that's okay
 		}
 		return Denial{}, fmt.Errorf("could not get deniability: %w", err)
-	}
-	denial.TargetUTXOSizes, err = parseTargetUTXOSizes(targetSizesJSON)
-	if err != nil {
-		return Denial{}, fmt.Errorf("could not parse target sizes: %w", err)
 	}
 
 	return denial.addExecutionData(ctx, db)

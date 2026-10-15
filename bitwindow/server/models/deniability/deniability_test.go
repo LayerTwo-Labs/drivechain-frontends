@@ -103,6 +103,27 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, int32(4), denials[1].NumHops)
 	})
 
+	t.Run("List excludes cancelled and reads target sizes", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		kept, err := Create(ctx, db, "test-wallet", "txid1", 0, time.Hour, 2, []int64{1000, 2000})
+		require.NoError(t, err)
+		cancelled, err := Create(ctx, db, "test-wallet", "txid2", 0, time.Hour, 2, nil)
+		require.NoError(t, err)
+		require.NoError(t, Cancel(ctx, db, cancelled.ID, "test"))
+
+		all, err := List(ctx, db)
+		require.NoError(t, err)
+		require.Len(t, all, 2)
+
+		active, err := List(ctx, db, WithExcludeCancelled())
+		require.NoError(t, err)
+		require.Len(t, active, 1)
+		require.Equal(t, kept.ID, active[0].ID)
+		require.Equal(t, []int64{1000, 2000}, active[0].TargetUTXOSizes)
+	})
+
 	t.Run("Cancel", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)

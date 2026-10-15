@@ -26,6 +26,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bip329"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/mempooltx"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
@@ -766,19 +767,19 @@ func (s *Server) importAddressLabel(ctx context.Context, address, label string) 
 // GetFireplaceStats implements bitwindowdv1connect.BitwindowdServiceHandler.
 func (s *Server) GetFireplaceStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetFireplaceStatsResponse], error) {
 	// Calculate block count in last 24 hours
-	blockCount24h, err := s.getBlockCount24h(ctx)
+	blockCount24h, err := blocks.CountSince(ctx, s.db, time.Now().Add(-24*time.Hour))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get block count: %w", err))
 	}
 
 	// Calculate transaction count in last 24 hours
-	txCount24h, err := s.getTransactionCount24h(ctx)
+	txCount24h, err := blocks.TxCountSince(ctx, s.db, time.Now().Add(-24*time.Hour))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get transaction count: %w", err))
 	}
 
 	// Calculate coinnews count in last 7 days
-	coinnewsCount7d, err := s.getCoinnewsCount7d(ctx)
+	coinnewsCount7d, err := cnstore.CountStoriesSince(ctx, s.db, time.Now().Add(-7*24*time.Hour))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get coinnews count: %w", err))
 	}
@@ -788,64 +789,6 @@ func (s *Server) GetFireplaceStats(ctx context.Context, req *connect.Request[emp
 		CoinnewsCount_7D:     coinnewsCount7d,
 		BlockCount_24H:       blockCount24h,
 	}), nil
-}
-
-// getBlockCount24h returns the number of blocks in the last 24 hours
-func (s *Server) getBlockCount24h(ctx context.Context) (int64, error) {
-	cutoffTime := time.Now().Add(-24 * time.Hour)
-
-	var count int64
-	err := s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) 
-		FROM processed_blocks 
-		WHERE block_time >= ?
-	`, cutoffTime).Scan(&count)
-
-	if err != nil {
-		return 0, fmt.Errorf("query block count: %w", err)
-	}
-
-	return count, nil
-}
-
-// getTransactionCount24h returns the total number of transactions in the last 24 hours
-func (s *Server) getTransactionCount24h(ctx context.Context) (int64, error) {
-	cutoffTime := time.Now().Add(-24 * time.Hour)
-
-	// Count total txids and subtract number of blocks (thereby excluding coinbase transactions)
-	var count int64
-	err := s.db.QueryRowContext(ctx, `
-		SELECT 
-			COALESCE(SUM(json_array_length(txids)) - COUNT(*), 0)
-		FROM processed_blocks 
-		WHERE block_time >= ?
-	`, cutoffTime).Scan(&count)
-
-	if err != nil {
-		return 0, fmt.Errorf("query transaction count: %w", err)
-	}
-
-	return count, nil
-}
-
-// getCoinnewsCount7d returns the number of coin news entries in the last 7 days
-func (s *Server) getCoinnewsCount7d(ctx context.Context) (int64, error) {
-	cutoffTime := time.Now().Add(-7 * 24 * time.Hour)
-
-	var count int64
-	err := s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*)
-		FROM cn_stories s
-		JOIN cn_items i ON i.item_id = s.item_id
-		WHERE i.block_time >= ?
-		  AND trim(s.headline) != ''
-	`, cutoffTime).Scan(&count)
-
-	if err != nil {
-		return 0, fmt.Errorf("query coinnews count: %w", err)
-	}
-
-	return count, nil
 }
 
 func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlocksRequest]) (*connect.Response[pb.ListBlocksResponse], error) {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // Coinbase is what a block's coinbase shows about who mined it.
@@ -66,18 +67,23 @@ func Put(ctx context.Context, db *sql.DB, rows []Coinbase) error {
 
 // ListSince returns the coinbases of blocks timestamped at or after from.
 func ListSince(ctx context.Context, db *sql.DB, from time.Time) ([]Coinbase, error) {
-	return list(ctx, db, `WHERE block_time >= ?`, from.Unix())
+	return list(ctx, db, sq.GtOrEq{"block_time": from.Unix()})
 }
 
 // ListRange returns the coinbases with from <= height <= to.
 func ListRange(ctx context.Context, db *sql.DB, from, to uint32) ([]Coinbase, error) {
-	return list(ctx, db, `WHERE height >= ? AND height <= ?`, from, to)
+	return list(ctx, db, sq.And{sq.GtOrEq{"height": from}, sq.LtOrEq{"height": to}})
 }
 
-func list(ctx context.Context, db *sql.DB, where string, args ...any) ([]Coinbase, error) {
-	rows, err := db.QueryContext(ctx, `
-		SELECT height, hash, block_time, bits, tx_count, coinbase_script, coinbase_addresses
-		FROM block_coinbases `+where+` ORDER BY height`, args...)
+func list(ctx context.Context, db *sql.DB, where sq.Sqlizer) ([]Coinbase, error) {
+	query, args := sq.
+		Select("height", "hash", "block_time", "bits", "tx_count", "coinbase_script", "coinbase_addresses").
+		From("block_coinbases").
+		Where(where).
+		OrderBy("height").
+		PlaceholderFormat(sq.Question).
+		MustSql()
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

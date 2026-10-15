@@ -620,3 +620,37 @@ func TestImportTransactionsFromJSON_BadTime(t *testing.T) {
 	assert.Equal(t, int64(1704164645), *got.BroadcastTime)
 	assert.Contains(t, logs.String(), `"field":"created"`)
 }
+
+func TestListTransactions(t *testing.T) {
+	ctx := t.Context()
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, g))
+	other := sampleGroup()
+	other.ID = "group-other"
+	require.NoError(t, store.SaveGroup(ctx, other))
+
+	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-late", GroupID: g.ID, Status: 1, Type: 1, Created: 20}))
+	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-early", GroupID: g.ID, Status: 1, Type: 1, Created: 10}))
+	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-other", GroupID: other.ID, Status: 1, Type: 1, Created: 5}))
+
+	t.Run("one group, oldest first", func(t *testing.T) {
+		txns, err := store.ListTransactions(t.Context(), g.ID)
+		require.NoError(t, err)
+		require.Len(t, txns, 2)
+		assert.Equal(t, "tx-early", txns[0].ID)
+		assert.Equal(t, "tx-late", txns[1].ID)
+	})
+	t.Run("all groups", func(t *testing.T) {
+		txns, err := store.ListTransactions(t.Context(), "")
+		require.NoError(t, err)
+		require.Len(t, txns, 3)
+		assert.Equal(t, "tx-other", txns[0].ID)
+	})
+	t.Run("get missing id", func(t *testing.T) {
+		got, err := store.GetTransaction(t.Context(), "missing")
+		require.NoError(t, err)
+		assert.Nil(t, got)
+	})
+}

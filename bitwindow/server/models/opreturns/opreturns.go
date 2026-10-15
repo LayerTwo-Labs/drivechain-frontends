@@ -264,35 +264,26 @@ func ReapExpiredMempool(ctx context.Context, db *sql.DB, mempoolTxIDs func() ([]
 func OPReturnToReadable(data []byte) string {
 	// First try to decode as hex
 	decoded, err := hex.DecodeString(string(data))
-	if err == nil {
-		// Check if decoded data is human readable
-		isHumanReadable := true
-		for _, r := range string(decoded) {
-			if !unicode.IsPrint(r) || r > 127 {
-				isHumanReadable = false
-				break
-			}
-		}
-		if isHumanReadable {
-			return string(decoded)
-		}
+	if err == nil && isPrintableASCII(string(decoded)) {
+		return string(decoded)
 	}
 
 	// If not hex or not human readable when decoded, try direct string
-	str := string(data)
-	isHumanReadable := true
-	for _, r := range str {
-		if !unicode.IsPrint(r) || r > 127 {
-			isHumanReadable = false
-			break
-		}
-	}
-	if isHumanReadable {
-		return str
+	if isPrintableASCII(string(data)) {
+		return string(data)
 	}
 
 	// If all else fails, return as hex
 	return hex.EncodeToString(data)
+}
+
+func isPrintableASCII(s string) bool {
+	for _, r := range s {
+		if !unicode.IsPrint(r) || r > 127 {
+			return false
+		}
+	}
+	return true
 }
 
 func ValidNewsTopicID(topic string) (TopicID, error) {
@@ -345,7 +336,7 @@ type CoinNews struct {
 
 func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	rows, err := db.QueryContext(ctx, `
-	SELECT 0, lower(hex(topic)), name, 1, COALESCE(txid, ''), retention_days,
+	SELECT 0, topic, name, 1, COALESCE(txid, ''), retention_days,
 		(SELECT i.block_time FROM cn_items i WHERE i.txid = cn_topics.txid ORDER BY i.block_time ASC LIMIT 1) AS created_at
 	FROM cn_topics
 	ORDER BY created_at ASC
@@ -358,7 +349,7 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	var topics []Topic
 	for rows.Next() {
 		var topic Topic
-		var rawTopicID string
+		var rawTopicID []byte
 		var createdAt sql.NullTime
 		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &createdAt)
 		if err != nil {
@@ -370,11 +361,10 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 			topic.CreatedAt = time.Now()
 		}
 
-		topicID, err := ValidNewsTopicID(rawTopicID)
-		if err != nil {
-			return nil, fmt.Errorf("list topics: invalid topic ID: %w", err)
+		if len(rawTopicID) != TopicIdLength {
+			return nil, fmt.Errorf("list topics: topic ID %x is %d bytes, want %d", rawTopicID, len(rawTopicID), TopicIdLength)
 		}
-		topic.Topic = topicID
+		topic.Topic = TopicID(rawTopicID)
 
 		topics = append(topics, topic)
 	}
@@ -389,8 +379,8 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 func TopicExists(ctx context.Context, db *sql.DB, topic TopicID) (bool, error) {
 	var exists bool
 	err := db.QueryRowContext(ctx, `
-		SELECT EXISTS(SELECT 1 FROM cn_topics WHERE lower(hex(topic)) = ?)
-	`, topic.String()).Scan(&exists)
+		SELECT EXISTS(SELECT 1 FROM cn_topics WHERE topic = ?)
+	`, topic[:]).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("topic exists: %w", err)
 	}
@@ -509,12 +499,7 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		JOIN cn_items i ON i.item_id = s.item_id
 		LEFT JOIN cn_topics ct ON ct.topic = s.topic
 		LEFT JOIN op_returns o ON o.txid = i.txid AND o.vout = i.vout
-		LEFT JOIN (
-			SELECT target_id,
-				SUM(CASE WHEN kind = 4 THEN 1 ELSE 0 END) AS upvotes,
-				SUM(CASE WHEN kind = 5 THEN 1 ELSE 0 END) AS downvotes
-			FROM cn_votes GROUP BY target_id
-		) v ON v.target_id = s.item_id
+		LEFT JOIN (`+cnstore.VoteTally+`) v ON v.target_id = s.item_id
 		WHERE
 			trim(s.headline) != ''
 			AND

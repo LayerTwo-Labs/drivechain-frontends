@@ -9,40 +9,56 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 )
 
 func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
-	var (
-		pb           ProcessedBlock
-		txidsJSON    string
-		rawBlockHash string
-	)
-
-	err := db.QueryRowContext(ctx, `
-	SELECT height, block_hash, txids, block_time, processed_at
-	FROM processed_blocks 
-	ORDER BY height DESC 
-	LIMIT 1
-	`).Scan(&pb.Height, &rawBlockHash, &txidsJSON, &pb.BlockTime, &pb.ProcessedAt)
+	query, args := selectProcessedBlock.OrderBy("height DESC").Limit(1).MustSql()
+	pb, err := scanProcessedBlock(db.QueryRowContext(ctx, query, args...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("query processed tip: %w", err)
 	}
+	return &pb, nil
+}
+
+var selectProcessedBlock = sq.
+	Select("height", "block_hash", "txids", "block_time", "processed_at").
+	From("processed_blocks").
+	PlaceholderFormat(sq.Question)
+
+func scanProcessedBlock(scanner interface{ Scan(dest ...any) error }) (ProcessedBlock, error) {
+	var (
+		pb           ProcessedBlock
+		rawBlockHash string
+		txidsJSON    string
+	)
+	if err := scanner.Scan(&pb.Height, &rawBlockHash, &txidsJSON, &pb.BlockTime, &pb.ProcessedAt); err != nil {
+		return ProcessedBlock{}, err
+	}
 
 	hash, err := chainhash.NewHashFromStr(rawBlockHash)
 	if err != nil {
-		return nil, err
+		return ProcessedBlock{}, fmt.Errorf("parse block hash: %w", err)
 	}
 	pb.Hash = *hash
 
-	if err := json.Unmarshal([]byte(txidsJSON), &pb.Txids); err != nil {
-		return nil, fmt.Errorf("unmarshal txids: %w", err)
+	var rawTxids []string
+	if err := json.Unmarshal([]byte(txidsJSON), &rawTxids); err != nil {
+		return ProcessedBlock{}, fmt.Errorf("unmarshal txids: %w", err)
+	}
+	for _, rawTXID := range rawTxids {
+		txid, err := chainhash.NewHashFromStr(rawTXID)
+		if err != nil {
+			return ProcessedBlock{}, fmt.Errorf("parse txid: %w", err)
+		}
+		pb.Txids = append(pb.Txids, *txid)
 	}
 
-	return &pb, nil
+	return pb, nil
 }
 
 // MarkBlocksProcessed marks multiple blocks as processed in a single transaction (safe, no string concatenation)
@@ -114,44 +130,39 @@ type ProcessedBlock struct {
 }
 
 func GetProcessedBlock(ctx context.Context, db *sql.DB, height uint32) (ProcessedBlock, error) {
-	var (
-		pb           ProcessedBlock
-		rawBlockHash string
-		// JSON-encoded array of strings, nice
-		rawJsonTxids string
-	)
-	const query = `
-		SELECT height, block_hash, txids, block_time, processed_at 
-		FROM processed_blocks 
-		WHERE height = ?
-	`
-	err := db.
-		QueryRowContext(ctx, query, height).
-		Scan(&pb.Height, &rawBlockHash, &rawJsonTxids, &pb.BlockTime, &pb.ProcessedAt)
+	query, args := selectProcessedBlock.Where(sq.Eq{"height": height}).MustSql()
+	pb, err := scanProcessedBlock(db.QueryRowContext(ctx, query, args...))
 	if err != nil {
 		return ProcessedBlock{}, fmt.Errorf("get processed block: %w", err)
 	}
-
-	hash, err := chainhash.NewHashFromStr(rawBlockHash)
-	if err != nil {
-		return ProcessedBlock{}, fmt.Errorf("parse block hash: %w", err)
-	}
-	pb.Hash = *hash
-
-	var rawTxids []string
-	if err := json.Unmarshal([]byte(rawJsonTxids), &rawTxids); err != nil {
-		return ProcessedBlock{}, fmt.Errorf("unmarshal txids: %w", err)
-	}
-
-	var parsedTXIDs []chainhash.Hash
-	for _, rawTXID := range rawTxids {
-		txid, err := chainhash.NewHashFromStr(rawTXID)
-		if err != nil {
-			return ProcessedBlock{}, fmt.Errorf("parse txid: %w", err)
-		}
-		parsedTXIDs = append(parsedTXIDs, *txid)
-	}
-	pb.Txids = parsedTXIDs
-
 	return pb, nil
+}
+
+// CountSince returns the number of processed blocks with a block time at or after since.
+func CountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error) {
+	var count int64
+	err := db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM processed_blocks
+		WHERE block_time >= ?
+	`, since).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count blocks since %s: %w", since, err)
+	}
+	return count, nil
+}
+
+// TxCountSince returns the number of non-coinbase transactions in the processed
+// blocks with a block time at or after since.
+func TxCountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error) {
+	var count int64
+	err := db.QueryRowContext(ctx, `
+		SELECT COALESCE(SUM(json_array_length(txids)) - COUNT(*), 0)
+		FROM processed_blocks
+		WHERE block_time >= ?
+	`, since).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count transactions since %s: %w", since, err)
+	}
+	return count, nil
 }

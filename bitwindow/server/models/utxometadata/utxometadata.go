@@ -6,6 +6,7 @@ import (
 	"time"
 
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	sq "github.com/Masterminds/squirrel"
 )
 
 type Entry struct {
@@ -61,54 +62,35 @@ func Set(ctx context.Context, db *sql.DB, outpoint string, isFrozen *bool, label
 	return err
 }
 
-// Get retrieves metadata for specific outpoints
+// Get retrieves metadata for specific outpoints, or for all outpoints when outpoints is empty.
 func Get(ctx context.Context, db *sql.DB, outpoints []string) (map[string]*Entry, error) {
-	result := make(map[string]*Entry)
-
-	if len(outpoints) == 0 {
-		// Get all metadata
-		rows, err := db.QueryContext(ctx,
-			`SELECT outpoint, is_frozen, label, created_at, updated_at FROM utxo_metadata`,
-		)
-		if err != nil {
-			return nil, err
-		}
-		defer database.SafeDefer(ctx, rows.Close)
-
-		for rows.Next() {
-			var entry Entry
-			var createdAt, updatedAt int64
-			if err := rows.Scan(&entry.Outpoint, &entry.IsFrozen, &entry.Label, &createdAt, &updatedAt); err != nil {
-				return nil, err
-			}
-			entry.CreatedAt = time.Unix(createdAt, 0)
-			entry.UpdatedAt = time.Unix(updatedAt, 0)
-			result[entry.Outpoint] = &entry
-		}
-		return result, rows.Err()
+	builder := sq.
+		Select("outpoint", "is_frozen", "label", "created_at", "updated_at").
+		From("utxo_metadata").
+		PlaceholderFormat(sq.Question)
+	if len(outpoints) > 0 {
+		builder = builder.Where(sq.Eq{"outpoint": outpoints})
 	}
+	query, args := builder.MustSql()
 
-	// Get specific outpoints
-	for _, outpoint := range outpoints {
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer database.SafeDefer(ctx, rows.Close)
+
+	result := make(map[string]*Entry)
+	for rows.Next() {
 		var entry Entry
 		var createdAt, updatedAt int64
-		err := db.QueryRowContext(ctx,
-			`SELECT outpoint, is_frozen, label, created_at, updated_at FROM utxo_metadata WHERE outpoint = ?`,
-			outpoint,
-		).Scan(&entry.Outpoint, &entry.IsFrozen, &entry.Label, &createdAt, &updatedAt)
-
-		if err == sql.ErrNoRows {
-			continue
-		} else if err != nil {
+		if err := rows.Scan(&entry.Outpoint, &entry.IsFrozen, &entry.Label, &createdAt, &updatedAt); err != nil {
 			return nil, err
 		}
-
 		entry.CreatedAt = time.Unix(createdAt, 0)
 		entry.UpdatedAt = time.Unix(updatedAt, 0)
 		result[entry.Outpoint] = &entry
 	}
-
-	return result, nil
+	return result, rows.Err()
 }
 
 // FrozenOutpoints names every outpoint the user froze, as txid:vout.

@@ -46,6 +46,13 @@ type Comment struct {
 	CreatedAt  time.Time
 }
 
+// VoteTally is a subquery that gives the upvotes and downvotes of each target_id.
+var VoteTally = fmt.Sprintf(`
+	SELECT target_id,
+		SUM(CASE WHEN kind = %d THEN 1 ELSE 0 END) AS upvotes,
+		SUM(CASE WHEN kind = %d THEN 1 ELSE 0 END) AS downvotes
+	FROM cn_votes GROUP BY target_id`, codec.TypeUpvote, codec.TypeDownvote)
+
 // ListThread returns every Comment transitively rooted at `root` (a
 // story or comment ItemID), ranked by descending §13 score. Callers
 // build the reply tree from each Comment's ParentID.
@@ -70,12 +77,7 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]Comment, 
 		FROM thread t
 		JOIN cn_comments cm ON cm.item_id = t.item_id
 		JOIN cn_items i ON i.item_id = cm.item_id
-		LEFT JOIN (
-			SELECT target_id,
-				SUM(CASE WHEN kind = 4 THEN 1 ELSE 0 END) AS upvotes,
-				SUM(CASE WHEN kind = 5 THEN 1 ELSE 0 END) AS downvotes
-			FROM cn_votes GROUP BY target_id
-		) v ON v.target_id = cm.item_id
+		LEFT JOIN (`+VoteTally+`) v ON v.target_id = cm.item_id
 	`, root[:])
 	if err != nil {
 		return nil, fmt.Errorf("coinnews: query thread: %w", err)
@@ -326,6 +328,23 @@ func indexContinuation(ctx context.Context, tx *sql.Tx, pos BlockPos, c *codec.C
 		return fmt.Errorf("coinnews: insert cn_continuations: %w", err)
 	}
 	return nil
+}
+
+// CountStoriesSince returns the number of stories with a headline in blocks
+// with a block time at or after since.
+func CountStoriesSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error) {
+	var count int64
+	err := db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM cn_stories s
+		JOIN cn_items i ON i.item_id = s.item_id
+		WHERE i.block_time >= ?
+		  AND trim(s.headline) != ''
+	`, since).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count stories since %s: %w", since, err)
+	}
+	return count, nil
 }
 
 // ReassembleTLVs returns the full TLV list for a head Item, splicing in
