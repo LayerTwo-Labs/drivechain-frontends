@@ -66,7 +66,8 @@
                   "type": "object",
                   "required": [
                     "total_sats",
-                    "available_sats"
+                    "available_sats",
+                    "unconfirmed_sats"
                   ],
                   "properties": {
                     "available_sats": {
@@ -77,6 +78,12 @@
                     "total_sats": {
                       "type": "integer",
                       "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "unconfirmed_sats": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "description": "Value in outputs that the mempool holds and no block carries yet. It\nalways counts toward `total`. It counts toward `available` only when\n`--spend-zero-conf-change` lets the wallet take it.",
                       "minimum": 0
                     }
                   }
@@ -413,7 +420,7 @@
     },
     "create_transfer_many": {
       "post": {
-        "description": "Create a tx that transfers funds to each address in `dests`,\nwhich maps an address to a value in sats",
+        "description": "Create a tx that transfers funds to each address in `dests`,\nwhich maps an address to a value in sats. The outputs come in\naddress order, and the change output comes last.",
         "operationId": "create_transfer_many",
         "requestBody": {
           "content": {
@@ -1518,6 +1525,150 @@
                       }
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_two_way_peg_events": {
+      "post": {
+        "description": "Get the coin movements that a block applied outside its body: a\nmainchain deposit, a withdrawal bundle spend, and the outputs a\nfailed bundle returned. The list keeps the order the node applied.",
+        "operationId": "get_two_way_peg_events",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "description": "A mainchain deposit created this output",
+                        "required": [
+                          "Deposit"
+                        ],
+                        "properties": {
+                          "Deposit": {
+                            "type": "object",
+                            "description": "A mainchain deposit created this output",
+                            "required": [
+                              "outpoint",
+                              "output"
+                            ],
+                            "properties": {
+                              "outpoint": {
+                                "$ref": "#/components/schemas/OutPoint"
+                              },
+                              "output": {
+                                "$ref": "#/components/schemas/Output"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "description": "A withdrawal bundle spent this output",
+                        "required": [
+                          "BundleSpend"
+                        ],
+                        "properties": {
+                          "BundleSpend": {
+                            "type": "object",
+                            "description": "A withdrawal bundle spent this output",
+                            "required": [
+                              "outpoint",
+                              "m6id"
+                            ],
+                            "properties": {
+                              "m6id": {
+                                "$ref": "#/components/schemas/M6id"
+                              },
+                              "outpoint": {
+                                "$ref": "#/components/schemas/OutPoint"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "description": "A failed withdrawal bundle returned this output to the UTXO set",
+                        "required": [
+                          "BundleReturn"
+                        ],
+                        "properties": {
+                          "BundleReturn": {
+                            "type": "object",
+                            "description": "A failed withdrawal bundle returned this output to the UTXO set",
+                            "required": [
+                              "outpoint",
+                              "output",
+                              "m6id"
+                            ],
+                            "properties": {
+                              "m6id": {
+                                "$ref": "#/components/schemas/M6id"
+                              },
+                              "outpoint": {
+                                "$ref": "#/components/schemas/OutPoint"
+                              },
+                              "output": {
+                                "$ref": "#/components/schemas/Output"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "description": "A coin movement that a block applied outside its body"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_unconfirmed_wallet_utxos": {
+      "post": {
+        "description": "Get the unconfirmed wallet UTXOs that the wallet may spend. The\n`--spend-unconfirmed` option decides which ones qualify.",
+        "operationId": "get_unconfirmed_wallet_utxos",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "outpoint",
+                      "output"
+                    ],
+                    "properties": {
+                      "outpoint": {
+                        "$ref": "#/components/schemas/OutPoint"
+                      },
+                      "output": {
+                        "$ref": "#/components/schemas/Output"
+                      }
+                    }
+                  }
                 }
               }
             }
