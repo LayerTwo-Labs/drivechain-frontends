@@ -169,7 +169,7 @@ func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 	if err != nil {
 		return fmt.Errorf("coinnews: begin tx: %w", err)
 	}
-	defer tx.Rollback() //nolint:errcheck // committed on success path
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	itemID, err := registerItem(ctx, tx, env)
 	if err != nil {

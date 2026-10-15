@@ -260,6 +260,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 			recoveries, err := e.ScanForFunds(ctx, wallet.ID, 20)
 			if err != nil {
 				if connect.CodeOf(err) == connect.CodeFailedPrecondition {
+					log.Debug().Str("wallet_id", wallet.ID).Msg("cheque recovery: skip wallet with no seed")
 					continue
 				}
 				// The chain source refuses reads while it boots, so scan again

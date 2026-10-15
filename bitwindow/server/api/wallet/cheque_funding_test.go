@@ -386,3 +386,34 @@ func TestChequeReads_ReportAFailedKeyDerivation(t *testing.T) {
 		require.ErrorContains(t, err, "private key")
 	})
 }
+
+type downOrchestrator struct {
+	*fakeOrchestrator
+}
+
+func (d *downOrchestrator) GetAddressUnspent(
+	context.Context, *connect.Request[orchpb.GetAddressUnspentRequest],
+) (*connect.Response[orchpb.GetAddressUnspentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnavailable, errors.New("esplora down"))
+}
+
+func TestCheckChequeFunding_FailedQueryNamesTheAddress(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	chequeAddr := "tb1qtestaddress000000000000000000000000000"
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&downOrchestrator{&fakeOrchestrator{address: chequeAddr}})),
+	)
+
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+
+	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	require.ErrorContains(t, err, "query UTXOs of "+chequeAddr)
+	require.ErrorContains(t, err, "esplora down")
+}

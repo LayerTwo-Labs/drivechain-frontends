@@ -493,6 +493,24 @@ func TestService_ListWithdrawals(t *testing.T) {
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
+	t.Run("keeps the code of an enforcer fault", func(t *testing.T) {
+		t.Parallel()
+
+		mockValidator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
+		mockValidator.EXPECT().
+			GetChainTip(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(100, activationHash)}), nil)
+		mockValidator.EXPECT().
+			GetSidechains(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("enforcer went away")))
+
+		cli := rpc.NewDrivechainServiceClient(apitests.API(t, database.Test(t), apitests.WithValidator(mockValidator)))
+
+		_, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{SidechainId: 0}))
+		require.ErrorContains(t, err, "enforcer went away")
+		assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	})
+
 	t.Run("returns empty withdrawals for new sidechain", func(t *testing.T) {
 		t.Parallel()
 

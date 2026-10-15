@@ -500,7 +500,11 @@ func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return nil, err
 	}
 
-	if err := addressbook.UpdateLabel(ctx, s.db, req.Msg.Id, req.Msg.Label); err != nil {
+	err := addressbook.UpdateLabel(ctx, s.db, req.Msg.Id, req.Msg.Label)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -508,7 +512,11 @@ func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Reques
 }
 
 func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *connect.Request[pb.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	if err := addressbook.Delete(ctx, s.db, req.Msg.Id); err != nil {
+	err := addressbook.Delete(ctx, s.db, req.Msg.Id)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -583,10 +591,11 @@ func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb
 		walletID = activeWallet.ID
 	}
 
-	if err := transactions.SetNote(ctx, s.db, walletID, req.Msg.Txid, req.Msg.Note); err != nil {
-		if errors.Is(err, transactions.ErrEmptyTxID) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
+	err := transactions.SetNote(ctx, s.db, walletID, req.Msg.Txid, req.Msg.Note)
+	switch {
+	case errors.Is(err, transactions.ErrEmptyTxID):
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -670,27 +679,26 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 
 		switch l.Type {
 		case bip329.TypeAddr:
-			if err := s.importAddressLabel(ctx, ref, l.Label); err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("import address label")
+			if err := validateAddressBookAddress(ref); err != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).Str("ref", ref).Msg("import labels: skip address")
 				resp.Skipped++
 				continue
+			}
+			if err := s.importAddressLabel(ctx, ref, l.Label); err != nil {
+				return nil, fmt.Errorf("import address label %s: %w", ref, err)
 			}
 			resp.ImportedAddresses++
 
 		case bip329.TypeTx:
 			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, l.Label); err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("import transaction note")
-				resp.Skipped++
-				continue
+				return nil, fmt.Errorf("import transaction note %s: %w", ref, err)
 			}
 			resp.ImportedTransactions++
 
 		case bip329.TypeOutput:
 			lbl := l.Label
 			if err := utxometadata.Set(ctx, s.db, ref, nil, &lbl); err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("import utxo label")
-				resp.Skipped++
-				continue
+				return nil, fmt.Errorf("import utxo label %s: %w", ref, err)
 			}
 			resp.ImportedOutputs++
 
@@ -702,15 +710,8 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 	return connect.NewResponse(resp), nil
 }
 
-// importAddressLabel upserts an address-book label for an address, classifying
-// the address the same way CreateAddressBookEntry does. Unclassifiable
-// addresses are rejected so a bad ref is skipped rather than stored.
-func (s *Server) importAddressLabel(ctx context.Context, address, label string) error {
-	addr := strings.TrimSpace(address)
-	if err := validateAddressBookAddress(addr); err != nil {
-		return err
-	}
-
+// importAddressLabel upserts an address-book label for a valid address.
+func (s *Server) importAddressLabel(ctx context.Context, addr, label string) error {
 	entries, err := addressbook.List(ctx, s.db)
 	if err != nil {
 		return err

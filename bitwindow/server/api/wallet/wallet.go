@@ -980,8 +980,6 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
 	log := zerolog.Ctx(ctx)
 
-	log.Info().Msg("attempting to unlock wallet")
-
 	// Unencrypted wallets cannot be unlocked (they have no password)
 	if !wallet.IsWalletEncrypted(s.walletDir) {
 		log.Info().Msg("wallet is not encrypted, no unlock needed")
@@ -991,14 +989,13 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 	walletData, err := wallet.DecryptWallet(s.walletDir, c.Msg.Password)
 	switch {
 	case errors.Is(err, wallet.ErrIncorrectPassword):
-		log.Warn().Err(err).Msg("decrypt wallet")
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("incorrect password"))
 	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	if err := s.walletEngine.Unlock(walletData); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unlock cheque engine: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unlock wallet engine: %w", err))
 	}
 
 	// Sync wallets after unlock to ensure all wallets exist in their backends
@@ -1011,7 +1008,7 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		}
 	}()
 
-	log.Info().Msg("wallet unlocked successfully for cheque operations")
+	log.Info().Msg("unlock wallet")
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
@@ -1161,8 +1158,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 	utxos, err := s.chequeChain.AddressUnspent(ctx, cheque.Address)
 	if err != nil {
-		log.Error().Err(err).Str("address", cheque.Address).Msg("query UTXOs")
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs of %s: %w", cheque.Address, err))
 	}
 
 	log.Debug().

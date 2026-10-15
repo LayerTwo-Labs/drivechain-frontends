@@ -12,6 +12,17 @@ import (
 
 const testWalletID = "wallet-1"
 
+func TestCreate_PanicsOnEmptyInput(t *testing.T) {
+	db := database.Test(t)
+
+	t.Run("empty wallet id", func(t *testing.T) {
+		require.Panics(t, func() { _, _ = cheques.Create(t.Context(), db, "", 0, 1000, "addr-0") })
+	})
+	t.Run("empty address", func(t *testing.T) {
+		require.Panics(t, func() { _, _ = cheques.Create(t.Context(), db, testWalletID, 0, 1000, "") })
+	})
+}
+
 func TestGetNextIndex_SkipsDeletedSweptIndex(t *testing.T) {
 	db := database.Test(t)
 	ctx := t.Context()

@@ -358,10 +358,10 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	query, args := builder.MustSql()
 
 	denial, err := scanDenial(db.QueryRowContext(ctx, query, args...))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil // No matching record found, but that's okay
-		}
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, nil
+	case err != nil:
 		return nil, fmt.Errorf("get deniability by tip: %w", err)
 	}
 
@@ -391,10 +391,10 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 	query, args := selectDenial.Where(sq.Eq{"d.id": id}).MustSql()
 
 	denial, err := scanDenial(db.QueryRowContext(ctx, query, args...))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return Denial{}, nil // No matching record found, but that's okay
-		}
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return Denial{}, ErrNotFound
+	case err != nil:
 		return Denial{}, fmt.Errorf("get deniability: %w", err)
 	}
 

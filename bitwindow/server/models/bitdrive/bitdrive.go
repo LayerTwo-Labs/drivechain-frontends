@@ -95,7 +95,7 @@ func List(ctx context.Context, db *sql.DB) ([]File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list bitdrive files: query: %w", err)
 	}
-	defer rows.Close()
+	defer database.SafeDefer(ctx, rows.Close)
 
 	var files []File
 	for rows.Next() {

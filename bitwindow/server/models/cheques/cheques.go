@@ -40,10 +40,10 @@ func (c *Cheque) IsPartiallyFunded() bool {
 
 func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expectedAmount uint64, address string) (int64, error) {
 	if walletID == "" {
-		return 0, errors.New("wallet_id cannot be empty")
+		panic("cheques: Create called with an empty wallet id")
 	}
 	if address == "" {
-		return 0, errors.New("address cannot be empty")
+		panic("cheques: Create called with an empty address")
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -281,14 +281,12 @@ func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 }
 
 func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, outputs []FundingOutput, amount uint64) error {
-	// Check if cheque already exists
 	existing, err := GetByAddress(ctx, db, walletID, address)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("check existing cheque: %w", err)
-	}
-
-	if existing != nil {
+	switch {
+	case err == nil:
 		return UpdateFunding(ctx, db, walletID, existing.ID, outputs, amount)
+	case !errors.Is(err, sql.ErrNoRows):
+		return fmt.Errorf("check existing cheque: %w", err)
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
