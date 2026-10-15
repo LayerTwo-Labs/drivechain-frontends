@@ -717,7 +717,7 @@ func verifyExistingOrchestrator(addr, bitwindowDir string) (bool, error) {
 		return false, fmt.Errorf("read local auth cookie: %w", err)
 	}
 	if token == "" {
-		return false, fmt.Errorf("local auth cookie is missing")
+		return false, errors.New("local auth cookie is missing")
 	}
 
 	nonceBytes := make([]byte, 32)
@@ -760,7 +760,7 @@ func verifyExistingOrchestrator(addr, bitwindowDir string) (bool, error) {
 func orchestratorURL(addr string) (*url.URL, error) {
 	raw := strings.TrimSpace(addr)
 	if raw == "" {
-		return nil, fmt.Errorf("orchestrator.addr not configured")
+		return nil, errors.New("orchestrator.addr not configured")
 	}
 	if !strings.Contains(raw, "://") {
 		raw = "http://" + raw
@@ -857,7 +857,7 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 // the id tells two of them apart.
 func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, log zerolog.Logger) (string, string, error) {
 	if addr == "" {
-		return "", "", fmt.Errorf("orchestrator.addr not configured")
+		return "", "", errors.New("orchestrator.addr not configured")
 	}
 
 	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
@@ -867,7 +867,7 @@ func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, 
 		if err == nil {
 			network := resp.Msg.GetNetwork()
 			if network == "" {
-				return "", "", fmt.Errorf("drivechaind returned empty network")
+				return "", "", errors.New("drivechaind returned empty network")
 			}
 			log.Info().Str("network", network).Int("attempts", i+1).Msg("aligned to drivechaind network")
 			return network, resp.Msg.GetEcashNetworkId(), nil
@@ -881,7 +881,7 @@ func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, 
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
-	return "", "", fmt.Errorf("drivechaind did not become ready in time")
+	return "", "", errors.New("drivechaind did not become ready in time")
 }
 
 // splitAddr parses a host:port flag value.

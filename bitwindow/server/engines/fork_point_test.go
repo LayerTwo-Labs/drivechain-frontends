@@ -59,7 +59,7 @@ func seedProcessed(t *testing.T, ctx context.Context, p *Parser, tip uint32, cha
 // A datadir regenerated from scratch differs from block 1 up. Anchoring the
 // search at height 1 would assume it matches and keep that marker for good.
 func TestForkPointFindsADivergenceAtBlockOne(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := forkParser(t, 'b')
 	seedProcessed(t, ctx, p, 10, 'a')
 
@@ -70,7 +70,7 @@ func TestForkPointFindsADivergenceAtBlockOne(t *testing.T) {
 
 // The ordinary case: the chains agree below the fork and part above it.
 func TestForkPointFindsTheFirstDivergentBlock(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 	p := &Parser{
 		db: database.Test(t),
@@ -98,7 +98,7 @@ func TestForkPointFindsTheFirstDivergentBlock(t *testing.T) {
 
 // Core still holds everything we processed, so there is no fork and no purge.
 func TestForkPointReportsNoneWhenTheChainsAgree(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := forkParser(t, 'a')
 	seedProcessed(t, ctx, p, 10, 'a')
 
@@ -133,7 +133,7 @@ func shortCoreParser(t *testing.T, chain byte, tip uint32) *Parser {
 // A Core shorter than our processed chain needs no height compare: the hash
 // search alone lands the purge right above the blocks Core still holds.
 func TestForkPointFindsTheTipOfAShorterCore(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	// A wide gap, so the hash search walks several steps down to Core's tip.
 	p := shortCoreParser(t, 'c', 6)
 	seedProcessed(t, ctx, p, 40, 'c')

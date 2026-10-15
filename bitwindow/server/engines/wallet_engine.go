@@ -83,7 +83,7 @@ type WalletEngine struct {
 	// Unlocked wallet state (in memory)
 	mu             sync.RWMutex
 	seedHex        string
-	activeWalletId string
+	activeWalletID string
 	isUnlocked     bool
 	unlockCond     *sync.Cond
 
@@ -92,7 +92,7 @@ type WalletEngine struct {
 	// frozenPushMu runs one hand-over at a time, newest set last.
 	frozenPushMu sync.Mutex
 
-	// Maps walletId -> Bitcoin Core wallet name (cache)
+	// Maps walletID -> Bitcoin Core wallet name (cache)
 	coreWallets map[string]string
 
 	// Wallet ids already checked for a pre-rename watch_<prefix> wallet. The
@@ -101,7 +101,7 @@ type WalletEngine struct {
 	legacyChecked map[string]bool
 
 	// Coalesces concurrent EnsureBitcoinCoreWallet calls for the same
-	// walletId into a single in-flight execution. The frontend polls
+	// walletID into a single in-flight execution. The frontend polls
 	// listTransactions every 5s, and each call before the cache populates
 	// would otherwise issue its own loadwallet RPC against bitcoind —
 	// causing a queue of "wallet already loading" -4s while Core is busy.
@@ -114,7 +114,6 @@ type WalletEngine struct {
 	lastSync time.Time
 }
 
-// NewWalletEngine creates a new unified wallet engine
 func NewWalletEngine(
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error),
 	orchClient orchrpc.WalletManagerServiceClient,
@@ -129,10 +128,9 @@ func NewWalletEngine(
 		isUnlocked:        false,
 		coreWallets:       make(map[string]string),
 		walletCache:       make(map[string]*WalletInfo),
-		nodeMode:          NewNodeMode(),
+		nodeMode:          NewNodeMode(orchClient),
 	}
 	e.unlockCond = sync.NewCond(&e.mu)
-	e.nodeMode.SetClient(orchClient)
 
 	// Auto-unlock unencrypted wallets at startup
 	if !wallet.IsWalletEncrypted(walletDir) {
@@ -140,10 +138,10 @@ func NewWalletEngine(
 		switch {
 		case err == nil:
 			if unlockErr := e.Unlock(walletData); unlockErr != nil {
-				zerolog.Ctx(context.Background()).Warn().Err(unlockErr).Msg("failed to unlock wallet engine")
+				zerolog.Ctx(context.Background()).Warn().Err(unlockErr).Msg("unlock wallet engine")
 			}
 		case !errors.Is(err, os.ErrNotExist):
-			zerolog.Ctx(context.Background()).Warn().Err(err).Msg("failed to load wallet for the wallet engine")
+			zerolog.Ctx(context.Background()).Warn().Err(err).Msg("load wallet for the wallet engine")
 		}
 	}
 
@@ -174,7 +172,7 @@ func (e *WalletEngine) KeepFrozenCoins(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		if err := e.PushFrozenCoins(ctx); err != nil {
-			zerolog.Ctx(ctx).Debug().Err(err).Msg("could not hand over the frozen coins")
+			zerolog.Ctx(ctx).Debug().Err(err).Msg("hand over the frozen coins")
 		}
 		select {
 		case <-ctx.Done():
@@ -255,7 +253,7 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	// Handle multi-wallet structure: { version, activeWalletId, wallets: [...] }
+	// Handle multi-wallet structure: { version, activeWalletID, wallets: [...] }
 	wallets, ok := walletData["wallets"].([]any)
 	if !ok {
 		return errors.New("invalid wallet structure: missing wallets array")
@@ -265,42 +263,42 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 		return errors.New("no wallets found in wallet.json")
 	}
 
-	// Get activeWalletId if present
-	activeWalletId, _ := walletData["activeWalletId"].(string)
+	// Get activeWalletID if present
+	activeWalletID, _ := walletData["activeWalletId"].(string)
 
 	// Find active wallet
 	var activeWallet map[string]any
 	var firstWallet map[string]any
-	var firstWalletId string
+	var firstWalletID string
 	for _, w := range wallets {
 		wallet, ok := w.(map[string]any)
 		if !ok {
 			continue
 		}
 
-		walletId, _ := wallet["id"].(string)
+		walletID, _ := wallet["id"].(string)
 
 		// Track first wallet as fallback
 		if firstWallet == nil {
 			firstWallet = wallet
-			firstWalletId = walletId
+			firstWalletID = walletID
 		}
 
-		// If activeWalletId is set, use that specific wallet
-		if activeWalletId != "" && walletId == activeWalletId {
+		// If activeWalletID is set, use that specific wallet
+		if activeWalletID != "" && walletID == activeWalletID {
 			activeWallet = wallet
 			break
 		}
 	}
 
-	// The explicitly set activeWalletId wins; otherwise take the first wallet.
+	// The explicitly set activeWalletID wins; otherwise take the first wallet.
 	switch {
 	case activeWallet != nil:
-		// Already found by activeWalletId
+		// Already found by activeWalletID
 
 	case firstWallet != nil:
 		activeWallet = firstWallet
-		activeWalletId = firstWalletId
+		activeWalletID = firstWalletID
 
 	}
 
@@ -353,7 +351,7 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	e.walletCache = walletCache
 
 	e.seedHex = seedHex
-	e.activeWalletId = activeWalletId
+	e.activeWalletID = activeWalletID
 	e.isUnlocked = true
 	e.unlockCond.Broadcast()
 	return nil
@@ -366,12 +364,11 @@ func (e *WalletEngine) Lock() {
 	defer e.mu.Unlock()
 
 	e.seedHex = ""
-	e.activeWalletId = ""
+	e.activeWalletID = ""
 	e.isUnlocked = false
 	e.walletCache = make(map[string]*WalletInfo)
 }
 
-// IsUnlocked returns whether the engine is unlocked
 func (e *WalletEngine) IsUnlocked() bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -407,12 +404,12 @@ func (e *WalletEngine) GetStarterSeed() (string, error) {
 
 // GetWalletSeed returns the seed hex for a specific wallet by ID
 // Used by ChequeEngine for per-wallet cheque address derivation
-func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
+func (e *WalletEngine) GetWalletSeed(walletID string) (string, error) {
 	resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{
-		WalletId: walletId,
+		WalletId: walletID,
 	}))
 	if err != nil {
-		return "", fmt.Errorf("get seed of wallet %s: %w", walletId, err)
+		return "", fmt.Errorf("get seed of wallet %s: %w", walletID, err)
 	}
 	return resp.Msg.SeedHex, nil
 }
@@ -421,7 +418,7 @@ func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
 // If the wallet is encrypted, it uses the unlocked data from memory
 // If the wallet is unencrypted, it reads directly from wallet.json
 func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error) {
-	var activeWalletId string
+	var activeWalletID string
 
 	// Check if wallet is encrypted
 	if wallet.IsWalletEncrypted(e.walletDir) {
@@ -431,7 +428,7 @@ func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error)
 			e.mu.RUnlock()
 			return nil, errors.New("wallet is encrypted and locked")
 		}
-		activeWalletId = e.activeWalletId
+		activeWalletID = e.activeWalletID
 		e.mu.RUnlock()
 	} else {
 		// For unencrypted wallets, read directly from wallet.json
@@ -442,46 +439,44 @@ func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error)
 
 		id, ok := walletData["activeWalletId"].(string)
 		if !ok || id == "" {
-			return nil, fmt.Errorf("no active wallet ID found in wallet.json")
+			return nil, errors.New("no active wallet ID found in wallet.json")
 		}
-		activeWalletId = id
+		activeWalletID = id
 	}
 
-	return e.GetWalletInfo(ctx, activeWalletId)
+	return e.GetWalletInfo(ctx, activeWalletID)
 }
 
 // ============================================================================
 // Wallet Info & Backend Routing
 // ============================================================================
 
-// GetChainParams returns the chain parameters for this wallet engine
 func (e *WalletEngine) GetChainParams() *chaincfg.Params {
 	return e.chainParams
 }
 
-// GetWalletInfo reads wallet.json and returns info for the specified walletId
-func (e *WalletEngine) GetWalletInfo(ctx context.Context, walletId string) (*WalletInfo, error) {
+// GetWalletInfo reads wallet.json and returns info for the specified walletID
+func (e *WalletEngine) GetWalletInfo(ctx context.Context, walletID string) (*WalletInfo, error) {
 	wallets, err := e.GetAllWallets(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	walletInfo, ok := lo.Find(wallets, func(w WalletInfo) bool {
-		return w.ID == walletId
+		return w.ID == walletID
 	})
 	if !ok {
-		return nil, fmt.Errorf("wallet %s not found", walletId)
+		return nil, fmt.Errorf("wallet %s not found", walletID)
 	}
 
 	return &walletInfo, nil
 }
 
-// GetWalletBackendType returns the backend type for a wallet
-func (e *WalletEngine) GetWalletBackendType(ctx context.Context, walletId string) (WalletType, error) {
-	if walletId == "" {
-		return "", fmt.Errorf("wallet_id required")
+func (e *WalletEngine) GetWalletBackendType(ctx context.Context, walletID string) (WalletType, error) {
+	if walletID == "" {
+		return "", errors.New("wallet_id required")
 	}
-	wallet, err := e.GetWalletInfo(ctx, walletId)
+	wallet, err := e.GetWalletInfo(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
@@ -490,11 +485,11 @@ func (e *WalletEngine) GetWalletBackendType(ctx context.Context, walletId string
 
 // IsWatchOnly reports whether the wallet has no signing key (watch-only),
 // orthogonal to its provider type.
-func (e *WalletEngine) IsWatchOnly(ctx context.Context, walletId string) (bool, error) {
-	if walletId == "" {
-		return false, fmt.Errorf("wallet_id required")
+func (e *WalletEngine) IsWatchOnly(ctx context.Context, walletID string) (bool, error) {
+	if walletID == "" {
+		return false, errors.New("wallet_id required")
 	}
-	wallet, err := e.GetWalletInfo(ctx, walletId)
+	wallet, err := e.GetWalletInfo(ctx, walletID)
 	if err != nil {
 		return false, err
 	}
@@ -505,24 +500,24 @@ func (e *WalletEngine) IsWatchOnly(ctx context.Context, walletId string) (bool, 
 // Bitcoin Core Wallet Management
 // ============================================================================
 
-// EnsureBitcoinCoreWallet ensures a Bitcoin Core wallet exists for the given walletId
+// EnsureBitcoinCoreWallet ensures a Bitcoin Core wallet exists for the given walletID
 // Creates it from the seed if it doesn't exist (lazy loading).
 //
-// Concurrent callers for the same walletId are coalesced via singleflight so
+// Concurrent callers for the same walletID are coalesced via singleflight so
 // only one CreateWallet/LoadWallet against bitcoind is in flight at a time.
 // Without this, each frontend poll would queue another loadwallet RPC and
 // hit "-4: Wallet already loading" while Core was busy.
-func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletId string) (string, error) {
+func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletID string) (string, error) {
 	// Fast path — cache hit, no need to coalesce.
 	e.mu.RLock()
-	if walletName, exists := e.coreWallets[walletId]; exists {
+	if walletName, exists := e.coreWallets[walletID]; exists {
 		e.mu.RUnlock()
 		return walletName, nil
 	}
 	e.mu.RUnlock()
 
-	v, err, _ := e.ensureGroup.Do(walletId, func() (interface{}, error) {
-		return e.ensureBitcoinCoreWalletLocked(ctx, walletId)
+	v, err, _ := e.ensureGroup.Do(walletID, func() (interface{}, error) {
+		return e.ensureBitcoinCoreWalletLocked(ctx, walletID)
 	})
 	if err != nil {
 		return "", err
@@ -532,37 +527,37 @@ func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletId str
 
 // ensureBitcoinCoreWalletLocked is the singleflight-wrapped body of
 // EnsureBitcoinCoreWallet. Don't call directly.
-func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, walletId string) (string, error) {
+func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, walletID string) (string, error) {
 	resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
-		WalletId: walletId,
+		WalletId: walletID,
 	}))
 	if err != nil {
 		return "", err
 	}
 	e.mu.Lock()
-	e.coreWallets[walletId] = resp.Msg.CoreWalletName
+	e.coreWallets[walletID] = resp.Msg.CoreWalletName
 	e.mu.Unlock()
 	return resp.Msg.CoreWalletName, nil
 }
 
 // CoreWalletName returns the Bitcoin Core wallet that holds the wallet's coins.
 // A watch-only wallet can live in a legacy watch_<prefix> wallet.
-func (e *WalletEngine) CoreWalletName(ctx context.Context, walletId string) (string, error) {
-	watchOnly, err := e.IsWatchOnly(ctx, walletId)
+func (e *WalletEngine) CoreWalletName(ctx context.Context, walletID string) (string, error) {
+	watchOnly, err := e.IsWatchOnly(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
 	if watchOnly {
-		return e.EnsureWatchOnlyWallet(ctx, walletId)
+		return e.EnsureWatchOnlyWallet(ctx, walletID)
 	}
-	return e.EnsureBitcoinCoreWallet(ctx, walletId)
+	return e.EnsureBitcoinCoreWallet(ctx, walletID)
 }
 
 // GetNewAddress returns a receive address of the wallet. The orchestrator
 // derives it for Core and electrum wallets alike.
-func (e *WalletEngine) GetNewAddress(ctx context.Context, walletId string, addressType orchpb.AddressType) (string, error) {
+func (e *WalletEngine) GetNewAddress(ctx context.Context, walletID string, addressType orchpb.AddressType) (string, error) {
 	resp, err := e.orchClient.GetNewAddress(ctx, connect.NewRequest(&orchpb.GetNewAddressRequest{
-		WalletId:    walletId,
+		WalletId:    walletID,
 		AddressType: addressType,
 	}))
 	if err != nil {
@@ -573,9 +568,9 @@ func (e *WalletEngine) GetNewAddress(ctx context.Context, walletId string, addre
 
 // DeriveReceiveAddresses returns the first count receive addresses of the
 // wallet, as the orchestrator derives them.
-func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletId string, count int) ([]string, error) {
+func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletID string, count int) ([]string, error) {
 	resp, err := e.orchClient.DeriveAddresses(ctx, connect.NewRequest(&orchpb.DeriveAddressesRequest{
-		WalletId: walletId,
+		WalletId: walletID,
 		Count:    int32(count),
 	}))
 	if err != nil {
@@ -586,9 +581,9 @@ func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletId stri
 
 // GetElectrumBalance returns the confirmed, pending and immature balance (in
 // sats) for an electrum wallet from the orchestrator's Esplora-backed provider.
-func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) (confirmed, pending, immature uint64, err error) {
+func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletID string) (confirmed, pending, immature uint64, err error) {
 	resp, err := e.orchClient.GetBalance(ctx, connect.NewRequest(&orchpb.GetBalanceRequest{
-		WalletId: walletId,
+		WalletId: walletID,
 	}))
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("electrum: get balance: %w", err)
@@ -607,9 +602,9 @@ func (e *WalletEngine) CreatePsbt(ctx context.Context, req *orchpb.CreatePsbtReq
 }
 
 // SignPsbt adds an electrum wallet's signatures to a base64 PSBT.
-func (e *WalletEngine) SignPsbt(ctx context.Context, walletId, psbtBase64 string) (string, error) {
+func (e *WalletEngine) SignPsbt(ctx context.Context, walletID, psbtBase64 string) (string, error) {
 	resp, err := e.orchClient.SignPsbt(ctx, connect.NewRequest(&orchpb.SignPsbtRequest{
-		WalletId: walletId, PsbtBase64: psbtBase64,
+		WalletId: walletID, PsbtBase64: psbtBase64,
 	}))
 	if err != nil {
 		return "", fmt.Errorf("electrum: sign psbt: %w", err)
@@ -718,9 +713,9 @@ func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepo
 
 // GetElectrumUnspent returns an electrum wallet's UTXOs from the orchestrator,
 // which serves them over Esplora.
-func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletId string) ([]*orchpb.UnspentOutput, error) {
+func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletID string) ([]*orchpb.UnspentOutput, error) {
 	resp, err := e.orchClient.ListUnspent(ctx, connect.NewRequest(&orchpb.ListUnspentRequest{
-		WalletId: walletId,
+		WalletId: walletID,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("electrum: list unspent: %w", err)
@@ -730,9 +725,9 @@ func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletId string) 
 
 // GetElectrumTransactions returns an electrum wallet's transactions from the
 // orchestrator, which serves them over Esplora.
-func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletId string) ([]*orchpb.TransactionEntry, error) {
+func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletID string) ([]*orchpb.TransactionEntry, error) {
 	resp, err := e.orchClient.ListTransactions(ctx, connect.NewRequest(&orchpb.ListTransactionsRequest{
-		WalletId: walletId,
+		WalletId: walletID,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("electrum: list transactions: %w", err)
@@ -741,31 +736,31 @@ func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletId str
 }
 
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core
-func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
+func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletID string) (string, error) {
 	// This path named the wallet watch_<prefix> before it was aligned with the
 	// orchestrator, and that wallet holds the scan state for this wallet's
 	// history. Check it before delegation: the orchestrator only ever derives
 	// wallet_<prefix>, so it would create an empty wallet beside the populated
 	// one and the balance would read as zero until a manual rescan.
 	e.mu.RLock()
-	cached, ok := e.coreWallets[walletId]
+	cached, ok := e.coreWallets[walletID]
 	e.mu.RUnlock()
 	if ok {
 		return cached, nil
 	}
 
-	legacy, err := e.legacyWatchOnlyWallet(ctx, walletId)
+	legacy, err := e.legacyWatchOnlyWallet(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
 	if legacy != "" {
 		e.mu.Lock()
-		e.coreWallets[walletId] = legacy
+		e.coreWallets[walletID] = legacy
 		e.mu.Unlock()
 		return legacy, nil
 	}
 
-	return e.EnsureBitcoinCoreWallet(ctx, walletId)
+	return e.EnsureBitcoinCoreWallet(ctx, walletID)
 }
 
 // ============================================================================
@@ -827,7 +822,7 @@ func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) 
 
 	var walletData struct {
 		Version        int          `json:"version"`
-		ActiveWalletId string       `json:"activeWalletId"`
+		ActiveWalletID string       `json:"activeWalletId"`
 		Wallets        []WalletInfo `json:"wallets"`
 	}
 
@@ -883,13 +878,13 @@ func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int32) (f
 // that does not say the wallet is absent returns an error instead: to treat it
 // as absent would create a second wallet and hide the first one's scan state.
 // The answer is remembered, because the frontend polls this path.
-func (e *WalletEngine) legacyWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
-	if e.bitcoindConnector == nil || len(walletId) < 8 {
+func (e *WalletEngine) legacyWatchOnlyWallet(ctx context.Context, walletID string) (string, error) {
+	if e.bitcoindConnector == nil || len(walletID) < 8 {
 		return "", nil
 	}
 
 	e.mu.RLock()
-	checked := e.legacyChecked[walletId]
+	checked := e.legacyChecked[walletID]
 	e.mu.RUnlock()
 	if checked {
 		return "", nil
@@ -898,8 +893,8 @@ func (e *WalletEngine) legacyWatchOnlyWallet(ctx context.Context, walletId strin
 	// Two polls that both find the wallet unloaded would both call loadwallet,
 	// and the loser gets an "already loading" error. Coalesce them, as the
 	// wallet-ensure path beside this one already does.
-	found, err, _ := e.ensureGroup.Do("legacy:"+walletId, func() (interface{}, error) {
-		return e.probeLegacyWatchOnlyWallet(ctx, walletId)
+	found, err, _ := e.ensureGroup.Do("legacy:"+walletID, func() (interface{}, error) {
+		return e.probeLegacyWatchOnlyWallet(ctx, walletID)
 	})
 	if err != nil {
 		return "", err
@@ -907,8 +902,8 @@ func (e *WalletEngine) legacyWatchOnlyWallet(ctx context.Context, walletId strin
 	return found.(string), nil
 }
 
-func (e *WalletEngine) probeLegacyWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
-	name := fmt.Sprintf("watch_%s", walletId[:8])
+func (e *WalletEngine) probeLegacyWatchOnlyWallet(ctx context.Context, walletID string) (string, error) {
+	name := fmt.Sprintf("watch_%s", walletID[:8])
 
 	// A failure here is not proof that the legacy wallet is absent. To read it
 	// that way lets the orchestrator create wallet_<prefix> beside a populated
@@ -928,7 +923,7 @@ func (e *WalletEngine) probeLegacyWatchOnlyWallet(ctx context.Context, walletId 
 
 	if _, err := bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{Filename: name})); err != nil {
 		if isWalletNotFoundError(err.Error()) {
-			e.markLegacyChecked(walletId)
+			e.markLegacyChecked(walletID)
 			return "", nil
 		}
 		return "", fmt.Errorf("load legacy watch-only wallet %s: %w", name, err)
@@ -936,13 +931,13 @@ func (e *WalletEngine) probeLegacyWatchOnlyWallet(ctx context.Context, walletId 
 	return name, nil
 }
 
-func (e *WalletEngine) markLegacyChecked(walletId string) {
+func (e *WalletEngine) markLegacyChecked(walletID string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.legacyChecked == nil {
 		e.legacyChecked = make(map[string]bool)
 	}
-	e.legacyChecked[walletId] = true
+	e.legacyChecked[walletID] = true
 }
 
 // isWalletNotFoundError reports whether Core says the wallet does not exist,

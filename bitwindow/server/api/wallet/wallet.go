@@ -1,4 +1,4 @@
-package api_wallet
+package wallet
 
 import (
 	"bytes"
@@ -87,17 +87,15 @@ type Server struct {
 
 // SendTransaction implements walletv1connect.WalletServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
 	if len(c.Msg.Destinations) == 0 {
 		err := errors.New("must provide a destination")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: no destination provided")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	if c.Msg.FeeSatPerVbyte > 0 && c.Msg.FixedFeeSats > 0 {
 		err := errors.New("cannot provide both fee rate and fee amount")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: both fee rate and fee amount provided")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -108,7 +106,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 				"amount to %s is below dust limit (%s): %s",
 				destination, btcutil.Amount(dustLimit), btcutil.Amount(amount),
 			)
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: amount below dust limit")
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
@@ -151,7 +148,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	// Coin selection belongs to drivechaind, which locks the frozen coins for
 	// the length of a send. A second selector here would spend them.
 	txid, err := s.walletEngine.SendTransaction(ctx, &orchpb.SendTransactionRequest{
-		WalletId: walletId,
+		WalletId: walletID,
 		Destinations: lo.MapValues(c.Msg.Destinations, func(sats uint64, _ string) int64 {
 			return int64(sats)
 		}),
@@ -160,7 +157,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		RequiredInputs:     requiredInputs,
 	})
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction")
 		return nil, err
 	}
 
@@ -199,7 +195,7 @@ func canonicalOutpoint(outpoint string) string {
 
 // GetNewAddress implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 	var addressType orchpb.AddressType
 	switch c.Msg.AddressType {
 	case pb.AddressType_ADDRESS_TYPE_UNSPECIFIED:
@@ -209,12 +205,12 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 	case pb.AddressType_ADDRESS_TYPE_TAPROOT:
 		addressType = orchpb.AddressType_ADDRESS_TYPE_TAPROOT
 	}
-	address, err := s.walletEngine.GetNewAddress(ctx, walletId, addressType)
+	address, err := s.walletEngine.GetNewAddress(ctx, walletID, addressType)
 	if err != nil {
 		return nil, err
 	}
 
-	err = addressbook.Create(ctx, s.database, &walletId, "", address, addressbook.DirectionReceive)
+	err = addressbook.Create(ctx, s.database, &walletID, "", address, addressbook.DirectionReceive)
 	if err != nil && !errors.Is(err, addressbook.ErrDuplicateAddress) {
 		return nil, fmt.Errorf("save address %s to addressbook: %w", address, err)
 	}
@@ -281,19 +277,19 @@ func (s *Server) startAddressSyncLoop(ctx context.Context) {
 
 // GetBalance implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
-	walletId := c.Msg.WalletId
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	walletID := c.Msg.WalletId
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	switch walletType {
 	case engines.WalletTypeBitcoinCore:
-		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
+		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletID)
 		if err != nil {
 			return nil, err
 		}
-		coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
+		coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
 		if err != nil {
 			return nil, fmt.Errorf("ensure core wallet: %w", err)
 		}
@@ -336,7 +332,7 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		}), nil
 
 	case engines.WalletTypeElectrum:
-		confirmedSats, pendingSats, immatureSats, err := s.walletEngine.GetElectrumBalance(ctx, walletId)
+		confirmedSats, pendingSats, immatureSats, err := s.walletEngine.GetElectrumBalance(ctx, walletID)
 		if err != nil {
 			return nil, err
 		}
@@ -353,25 +349,25 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 
 // ListTransactions implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
-	walletId := c.Msg.WalletId
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	walletID := c.Msg.WalletId
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	if walletType == engines.WalletTypeElectrum {
-		entries, err := s.walletEngine.GetElectrumTransactions(ctx, walletId)
+		entries, err := s.walletEngine.GetElectrumTransactions(ctx, walletID)
 		if err != nil {
 			return nil, err
 		}
 
 		labels, err := addressbook.LabelsByAddress(ctx, s.database)
 		if err != nil {
-			return nil, fmt.Errorf("electrum: could not list addressbook: %w", err)
+			return nil, fmt.Errorf("electrum: list addressbook: %w", err)
 		}
-		notes, err := transactions.ListByWallet(ctx, s.database, walletId)
+		notes, err := transactions.ListByWallet(ctx, s.database, walletID)
 		if err != nil {
-			return nil, fmt.Errorf("electrum: could not list notes: %w", err)
+			return nil, fmt.Errorf("electrum: list notes: %w", err)
 		}
 		noteMap := make(map[string]string, len(notes))
 		for _, n := range notes {
@@ -413,7 +409,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return connect.NewResponse(&pb.ListTransactionsResponse{Transactions: out}), nil
 	}
 
-	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
+	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
@@ -436,7 +432,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
 
-	notes, err := transactions.ListByWallet(ctx, s.database, walletId)
+	notes, err := transactions.ListByWallet(ctx, s.database, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("list transactions: %w", err)
 	}
@@ -533,7 +529,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 // transaction on the wire, so nothing on chain marks one after the fact.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
 	if c.Msg.Slot < 0 || c.Msg.Slot > 255 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("slot must be 0-255"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("slot must be 0-255"))
 	}
 	deposits, err := s.walletEngine.ListSidechainDeposits(ctx, uint32(c.Msg.Slot), c.Msg.WalletId)
 	if err != nil {
@@ -554,8 +550,8 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
-	walletId := c.Msg.WalletId
-	if _, err := s.walletEngine.GetWalletBackendType(ctx, walletId); err != nil {
+	walletID := c.Msg.WalletId
+	if _, err := s.walletEngine.GetWalletBackendType(ctx, walletID); err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
@@ -595,7 +591,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 
 	txid, err := s.walletEngine.CreateDeposit(ctx, &orchpb.CreateDepositRequest{
 		Slot:        int32(*slot),
-		WalletId:    walletId,
+		WalletId:    walletID,
 		Destination: depositAddress,
 		AmountSats:  int64(amount),
 		FeeSats:     int64(fee),
@@ -690,24 +686,24 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 	return connect.NewResponse(&pb.ListUnspentResponse{Utxos: utxos}), nil
 }
 
-func (s *Server) listUnspent(ctx context.Context, walletId string, labels map[string]string) ([]*pb.UnspentOutput, error) {
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+func (s *Server) listUnspent(ctx context.Context, walletID string, labels map[string]string) ([]*pb.UnspentOutput, error) {
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	switch walletType {
 	case engines.WalletTypeElectrum:
-		return s.listUnspentElectrum(ctx, walletId, labels)
+		return s.listUnspentElectrum(ctx, walletID, labels)
 	case engines.WalletTypeBitcoinCore:
-		return s.listUnspentBitcoinCore(ctx, walletId, labels)
+		return s.listUnspentBitcoinCore(ctx, walletID, labels)
 	default:
 		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
 	}
 }
 
-func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, labels map[string]string) ([]*pb.UnspentOutput, error) {
-	raw, err := s.walletEngine.GetElectrumUnspent(ctx, walletId)
+func (s *Server) listUnspentElectrum(ctx context.Context, walletID string, labels map[string]string) ([]*pb.UnspentOutput, error) {
+	raw, err := s.walletEngine.GetElectrumUnspent(ctx, walletID)
 	if err != nil {
 		return nil, err
 	}
@@ -723,8 +719,8 @@ func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, label
 	return utxos, nil
 }
 
-func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, labels map[string]string) ([]*pb.UnspentOutput, error) {
-	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
+func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletID string, labels map[string]string) ([]*pb.UnspentOutput, error) {
+	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
@@ -743,7 +739,7 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, la
 
 	denials, err := deniability.List(ctx, s.database)
 	if err != nil {
-		return nil, fmt.Errorf("bitcoin core: could not list denials: %w", err)
+		return nil, fmt.Errorf("bitcoin core: list denials: %w", err)
 	}
 
 	var utxosWithInfo []*pb.UnspentOutput
@@ -849,10 +845,10 @@ func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial
 
 // ListReceiveAddresses implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
 	// Bitcoin Core version
-	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
+	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
 	}
@@ -909,9 +905,9 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 
 // GetStats implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
-	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
+	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletID}))
 	if err != nil {
 		return nil, err
 	}
@@ -923,7 +919,7 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	}
 	uniqueAddressCount := uint64(len(addressSet))
 
-	txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletId}))
+	txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
 	if err != nil {
 		return nil, err
 	}
@@ -953,7 +949,7 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	}
 
 	// Only our own record knows this: an M5 looks like any other send on chain.
-	depositVolume, depositVolume30d, err := s.walletEngine.SidechainDepositTotals(ctx, now.AddDate(0, 0, -30), walletId)
+	depositVolume, depositVolume30d, err := s.walletEngine.SidechainDepositTotals(ctx, now.AddDate(0, 0, -30), walletID)
 	if err != nil {
 		return nil, fmt.Errorf("sum sidechain deposits: %w", err)
 	}
@@ -984,23 +980,21 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 	}
 
 	walletData, err := wallet.DecryptWallet(s.walletDir, c.Msg.Password)
-	if errors.Is(err, wallet.ErrIncorrectPassword) {
-		log.Warn().Err(err).Msg("failed to decrypt wallet")
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("incorrect password"))
-	}
-	if err != nil {
-		log.Error().Err(err).Msg("failed to decrypt wallet")
+	switch {
+	case errors.Is(err, wallet.ErrIncorrectPassword):
+		log.Warn().Err(err).Msg("decrypt wallet")
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("incorrect password"))
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	if err := s.walletEngine.Unlock(walletData); err != nil {
-		log.Error().Err(err).Msg("failed to unlock cheque engine")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to unlock cheque engine: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unlock cheque engine: %w", err))
 	}
 
 	// Sync wallets after unlock to ensure all wallets exist in their backends
 	go func() {
-		syncCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		syncCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 		defer cancel()
 
 		if err := s.walletEngine.SyncWallets(syncCtx); err != nil {
@@ -1031,10 +1025,10 @@ func (s *Server) IsWalletUnlocked(ctx context.Context, c *connect.Request[emptyp
 func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateChequeRequest]) (*connect.Response[pb.CreateChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
 
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1043,22 +1037,19 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletId)
+	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletID)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get next cheque index")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get next index: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get next index: %w", err))
 	}
 
-	address, err := s.chequeEngine.DeriveChequeAddress(walletId, nextIndex)
+	address, err := s.chequeEngine.DeriveChequeAddress(walletID, nextIndex)
 	if err != nil {
-		log.Error().Err(err).Uint32("index", nextIndex).Msg("failed to derive cheque address")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive address: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive address %d: %w", nextIndex, err))
 	}
 
-	id, err := cheques.Create(ctx, s.database, walletId, nextIndex, c.Msg.ExpectedAmountSats, address)
+	id, err := cheques.Create(ctx, s.database, walletID, nextIndex, c.Msg.ExpectedAmountSats, address)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create cheque in database")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create cheque: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create cheque: %w", err))
 	}
 
 	log.Info().
@@ -1077,9 +1068,9 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 
 // GetCheque implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeRequest]) (*connect.Response[pb.GetChequeResponse], error) {
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
-	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
+	cheque, err := s.getCheque(ctx, walletID, c.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -1096,23 +1087,20 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 
 // GetChequePrivateKey implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.GetChequePrivateKeyRequest]) (*connect.Response[pb.GetChequePrivateKeyResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
 	if !s.walletEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
+	cheque, err := s.getCheque(ctx, walletID, c.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(walletId, cheque.DerivationIndex)
+	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(walletID, cheque.DerivationIndex)
 	if err != nil {
-		log.Error().Err(err).Uint32("index", cheque.DerivationIndex).Msg("failed to derive private key")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive private key: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive private key %d: %w", cheque.DerivationIndex, err))
 	}
 
 	return connect.NewResponse(&pb.GetChequePrivateKeyResponse{
@@ -1122,17 +1110,17 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 
 // ListCheques implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListChequesRequest]) (*connect.Response[pb.ListChequesResponse], error) {
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	chequeList, err := cheques.List(ctx, s.database, walletId)
+	chequeList, err := cheques.List(ctx, s.database, walletID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list cheques: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list cheques: %w", err))
 	}
 
 	pbCheques := make([]*pb.Cheque, len(chequeList))
@@ -1152,17 +1140,17 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.CheckChequeFundingRequest]) (*connect.Response[pb.CheckChequeFundingResponse], error) {
 	log := zerolog.Ctx(ctx)
 
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
-	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
+	cheque, err := s.getCheque(ctx, walletID, c.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
 
 	utxos, err := s.chequeChain.AddressUnspent(ctx, cheque.Address)
 	if err != nil {
-		log.Error().Err(err).Str("address", cheque.Address).Msg("failed to query UTXOs")
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
+		log.Error().Err(err).Str("address", cheque.Address).Msg("query UTXOs")
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
 	}
 
 	log.Debug().
@@ -1185,9 +1173,8 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		}
 
 		// Always update — handles new fundings arriving after first one
-		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, outputs, amountSats); err != nil {
-			log.Error().Err(err).Msg("failed to update cheque funding")
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
+		if err := cheques.UpdateFunding(ctx, s.database, walletID, c.Msg.Id, outputs, amountSats); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update funding: %w", err))
 		}
 
 		log.Info().
@@ -1198,9 +1185,9 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 			Msg("cheque funded")
 
 		// Re-fetch to get updated funded_at timestamp
-		cheque, err = cheques.Get(ctx, s.database, walletId, c.Msg.Id)
+		cheque, err = cheques.Get(ctx, s.database, walletID, c.Msg.Id)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch cheque: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("refetch cheque: %w", err))
 		}
 
 		resp := &pb.CheckChequeFundingResponse{
@@ -1224,7 +1211,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 		// Mark as swept - we know it was swept but don't know the exact txid
 		// Finding the spending tx from a watch-only wallet requires full blockchain scan
-		if err := cheques.UpdateSwept(ctx, s.database, walletId, c.Msg.Id, "swept_externally"); err != nil {
+		if err := cheques.UpdateSwept(ctx, s.database, walletID, c.Msg.Id, "swept_externally"); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque swept: %w", err))
 		}
 	}
@@ -1244,7 +1231,7 @@ func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.Preview
 
 	source, err := engines.ResolveSweepSource(ctx, s.chequeChain, wifKey, s.chequeEngine.GetChainParams())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
 	}
 
 	feeSatPerVbyte, err := s.chequeSweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
@@ -1289,7 +1276,7 @@ func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
 
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
 	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
 	if err != nil {
@@ -1300,7 +1287,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 
 	source, err := engines.ResolveSweepSource(ctx, s.chequeChain, wifKey, params)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
 	}
 	if len(source.UTXOs) == 0 {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
@@ -1336,14 +1323,14 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
 	}
 
-	cheque, err := cheques.GetByAddress(ctx, s.database, walletId, addressStr)
+	cheque, err := cheques.GetByAddress(ctx, s.database, walletID, addressStr)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		log.Debug().Str("address", addressStr).Msg("swept key is not a cheque of this wallet")
 	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque swept by %s: %w", txid, err))
 	case cheque.SweptTxid == nil:
-		if err := cheques.UpdateSwept(ctx, s.database, walletId, cheque.ID, txid); err != nil {
+		if err := cheques.UpdateSwept(ctx, s.database, walletID, cheque.ID, txid); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque %d swept by %s: %w", cheque.ID, txid, err))
 		}
 	}
@@ -1379,9 +1366,9 @@ func (s *Server) chequeSweepFeeRate(ctx context.Context, requested uint64) (uint
 func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error) {
 	log := zerolog.Ctx(ctx)
 
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
-	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
+	cheque, err := s.getCheque(ctx, walletID, c.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -1391,9 +1378,9 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot delete funded cheque"))
 	}
 
-	err = cheques.Delete(ctx, s.database, walletId, c.Msg.Id)
+	err = cheques.Delete(ctx, s.database, walletID, c.Msg.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete cheque: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("delete cheque: %w", err))
 	}
 
 	log.Info().
@@ -1404,17 +1391,17 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
-func (s *Server) getCheque(ctx context.Context, walletId string, id int64) (*cheques.Cheque, error) {
-	if _, err := s.walletEngine.GetWalletBackendType(ctx, walletId); err != nil {
+func (s *Server) getCheque(ctx context.Context, walletID string, id int64) (*cheques.Cheque, error) {
+	if _, err := s.walletEngine.GetWalletBackendType(ctx, walletID); err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	cheque, err := cheques.Get(ctx, s.database, walletId, id)
-	if errors.Is(err, sql.ErrNoRows) {
+	cheque, err := cheques.Get(ctx, s.database, walletID, id)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
-	}
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get cheque: %w", err))
 	}
 	return cheque, nil
 }
@@ -1479,7 +1466,7 @@ func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetU
 	}
 
 	if err := utxometadata.Set(ctx, s.database, c.Msg.Outpoint, isFrozen, label); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set UTXO metadata: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("set UTXO metadata: %w", err))
 	}
 
 	// Coin selection runs in drivechaind, so a freeze reaches it only when we
@@ -1498,7 +1485,7 @@ func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetU
 func (s *Server) GetUTXOMetadata(ctx context.Context, c *connect.Request[pb.GetUTXOMetadataRequest]) (*connect.Response[pb.GetUTXOMetadataResponse], error) {
 	metadata, err := utxometadata.Get(ctx, s.database, c.Msg.Outpoints)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get UTXO metadata: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get UTXO metadata: %w", err))
 	}
 
 	result := make(map[string]*pb.UTXOMetadata)
@@ -1519,7 +1506,7 @@ func (s *Server) GetUTXOMetadata(ctx context.Context, c *connect.Request[pb.GetU
 func (s *Server) SetCoinSelectionStrategy(ctx context.Context, c *connect.Request[pb.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error) {
 	strategyStr := strconv.Itoa(int(c.Msg.Strategy))
 	if err := preferences.Set(ctx, s.database, preferences.KeyCoinSelectionStrategy, strategyStr); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set coin selection strategy: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("set coin selection strategy: %w", err))
 	}
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
@@ -1528,7 +1515,7 @@ func (s *Server) SetCoinSelectionStrategy(ctx context.Context, c *connect.Reques
 func (s *Server) GetCoinSelectionStrategy(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetCoinSelectionStrategyResponse], error) {
 	value, err := preferences.Get(ctx, s.database, preferences.KeyCoinSelectionStrategy)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get coin selection strategy: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get coin selection strategy: %w", err))
 	}
 
 	strategy := pb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST // default
@@ -1550,7 +1537,7 @@ func (s *Server) GetCoinSelectionStrategy(ctx context.Context, c *connect.Reques
 func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[pb.GetTransactionDetailsRequest]) (*connect.Response[pb.GetTransactionDetailsResponse], error) {
 	txid := c.Msg.Txid
 	if txid == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("txid required"))
 	}
 
 	bitcoind, err := s.bitcoind.Get(ctx)
@@ -1690,14 +1677,14 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 // GetUTXODistribution implements walletv1connect.WalletServiceHandler.
 // Returns UTXO distribution data for chart visualization.
 func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.GetUTXODistributionRequest]) (*connect.Response[pb.GetUTXODistributionResponse], error) {
-	walletId := c.Msg.WalletId
+	walletID := c.Msg.WalletId
 
 	maxBuckets := int(c.Msg.MaxBuckets)
 	if maxBuckets <= 0 {
 		maxBuckets = 6
 	}
 
-	utxos, err := s.listUnspent(ctx, walletId, nil)
+	utxos, err := s.listUnspent(ctx, walletID, nil)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
 	}
@@ -1858,7 +1845,7 @@ func formatBucketRange(minSats, maxSats uint64) string {
 func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeRequest]) (*connect.Response[pb.BumpFeeResponse], error) {
 	log := zerolog.Ctx(ctx)
 	if c.Msg.Txid == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("txid required"))
 	}
 
 	// The caller names a txid alone, so try every wallet until one owns it.
@@ -1962,10 +1949,10 @@ func (s *Server) CreateBackup(ctx context.Context, _ *connect.Request[emptypb.Em
 // RestoreBackup implements walletv1connect.WalletServiceHandler.
 func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.RestoreBackupRequest]) (*connect.Response[emptypb.Empty], error) {
 	if len(c.Msg.BackupData) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("backup_data is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_data is required"))
 	}
 	if c.Msg.Filename == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("filename is required"))
 	}
 
 	if err := s.backupEngine.RestoreBackup(ctx, c.Msg.BackupData, c.Msg.Filename); err != nil {
@@ -1983,10 +1970,10 @@ func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.Restor
 // ValidateBackup implements walletv1connect.WalletServiceHandler.
 func (s *Server) ValidateBackup(ctx context.Context, c *connect.Request[pb.ValidateBackupRequest]) (*connect.Response[pb.ValidateBackupResponse], error) {
 	if len(c.Msg.BackupData) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("backup_data is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_data is required"))
 	}
 	if c.Msg.Filename == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("filename is required"))
 	}
 
 	contents, err := s.backupEngine.ValidateBackup(ctx, c.Msg.BackupData, c.Msg.Filename)

@@ -60,14 +60,14 @@ func actualGetDatabase(
 	// Create a unique database file for this package
 	tmpfile, err := os.CreateTemp("", fmt.Sprintf("%s-*.db", name))
 	if err != nil {
-		return nil, "", fmt.Errorf("could not create temp file: %w", err)
+		return nil, "", fmt.Errorf("create temp file: %w", err)
 	}
 
 	// Open the database with SQLite3 configuration
 	db, err := sql.Open("sqlite3", tmpfile.Name())
 	if err != nil {
 		os.Remove(tmpfile.Name()) // Clean up if we fail to open
-		return nil, "", fmt.Errorf("could not open database: %w", err)
+		return nil, "", fmt.Errorf("open database: %w", err)
 	}
 
 	// Run migrations
@@ -75,7 +75,7 @@ func actualGetDatabase(
 	if err := runMigrations(migrateCtx, db); err != nil {
 		db.Close()
 		os.Remove(tmpfile.Name()) // Clean up if migrations fail
-		return nil, "", fmt.Errorf("could not run migrations: %w", err)
+		return nil, "", fmt.Errorf("run migrations: %w", err)
 	}
 
 	log.Info().Msgf("finished creating test database %q in %s", name, time.Since(start))

@@ -1,4 +1,4 @@
-package api_bitwindowd_test
+package bitwindowd_test
 
 import (
 	"context"

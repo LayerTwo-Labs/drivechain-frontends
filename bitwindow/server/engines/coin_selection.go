@@ -16,7 +16,6 @@ const (
 	OverheadVbytes = 11
 )
 
-// CoinSelectionResult holds the result of coin selection
 type CoinSelectionResult struct {
 	SelectedUTXOs  []*walletpb.UnspentOutput
 	TotalInputSats int64

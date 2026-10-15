@@ -33,7 +33,7 @@ func pos(height, txIdx, voutIdx uint32) BlockPos {
 // ListThread returns the full transitive thread rooted at the story.
 func TestStore_ListThread(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	require.NoError(t, Index(ctx, db, IndexEnv{
@@ -69,7 +69,7 @@ func TestStore_ListThread(t *testing.T) {
 // votes (spec §8) are tallied and ranked in ListThread (spec §13).
 func TestStore_ListThread_CountsCommentVotes(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	require.NoError(t, Index(ctx, db, IndexEnv{
@@ -122,7 +122,7 @@ func itemIDOf(t *testing.T, ctx context.Context, db *sql.DB, table string) codec
 // what `INSERT OR IGNORE` against the PRIMARY KEY gives us.
 func TestStore_TopicCreation_EarliestWins(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	first := &codec.TopicCreation{
@@ -159,7 +159,7 @@ func TestStore_TopicCreation_EarliestWins(t *testing.T) {
 // upgrades can re-derive new fields without a chain rescan).
 func TestStore_Story_HoistsCommonTLVs(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	// Topic must exist in cn_topics first; while the spec doesn't
@@ -225,7 +225,7 @@ func TestStore_Story_HoistsCommonTLVs(t *testing.T) {
 // MUST leave the original row untouched.
 func TestStore_Vote_DedupByAuthorAndTarget(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	var target codec.ItemID
@@ -259,7 +259,7 @@ func TestStore_Vote_DedupByAuthorAndTarget(t *testing.T) {
 // rendering query that fetches a comment by item_id.
 func TestStore_Comment_PersistsAllExtractedFields(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	var parent codec.ItemID
@@ -304,7 +304,7 @@ func TestStore_Comment_PersistsAllExtractedFields(t *testing.T) {
 // for the same head MUST leave the original chunk in place.
 func TestStore_Continuation_StoresChunksByHeadAndSeq(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	var head codec.ItemID
@@ -341,7 +341,7 @@ func TestStore_Continuation_StoresChunksByHeadAndSeq(t *testing.T) {
 // every feed query depends on for stable ordering across indexers.
 func TestStore_Item_RegistersTxidVoutWithCanonicalOrder(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	story := &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "h"}

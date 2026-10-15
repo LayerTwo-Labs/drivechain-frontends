@@ -1,8 +1,9 @@
-package api_bitwindowd_test
+package bitwindowd_test
 
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -43,7 +44,7 @@ func TestService_Stop(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.Stop(context.Background(), connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
+		_, err := cli.Stop(t.Context(), connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
 		require.NoError(t, err)
 	})
 
@@ -53,7 +54,7 @@ func TestService_Stop(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		ctx, cancel := context.WithTimeout(context.Background(), 0)
+		ctx, cancel := context.WithTimeout(t.Context(), 0)
 		defer cancel()
 
 		_, err := cli.Stop(ctx, connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
@@ -91,7 +92,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 0,
@@ -128,7 +129,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: -10,
@@ -165,7 +166,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
@@ -202,7 +203,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
@@ -235,7 +236,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "",
 			Vout:         0,
 			DelaySeconds: 60,
@@ -272,7 +273,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "nonexistent",
 			Vout:         0,
 			DelaySeconds: 60,
@@ -309,7 +310,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
@@ -317,7 +318,7 @@ func TestService_CreateDenial(t *testing.T) {
 		}))
 		require.NoError(t, err)
 
-		denials, err := deniability.List(context.Background(), database)
+		denials, err := deniability.List(t.Context(), database)
 		require.NoError(t, err)
 		assert.Len(t, denials, 1)
 		assert.EqualValues(t, 1, denials[0].ID)
@@ -327,7 +328,7 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.Equal(t, int32(1), denials[0].NumHops)
 
 		// creating again updates
-		_, err = cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 120,
@@ -335,7 +336,7 @@ func TestService_CreateDenial(t *testing.T) {
 		}))
 		require.NoError(t, err)
 
-		denials, err = deniability.List(context.Background(), database)
+		denials, err = deniability.List(t.Context(), database)
 		require.NoError(t, err)
 		assert.Len(t, denials, 1)
 		assert.EqualValues(t, int32(120), denials[0].DelayDuration.Seconds())
@@ -370,7 +371,7 @@ func TestService_CreateDenial(t *testing.T) {
 			))
 
 		// Create first denial
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
@@ -379,7 +380,7 @@ func TestService_CreateDenial(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create second denial
-		_, err = cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "def456",
 			Vout:         1,
 			DelaySeconds: 120,
@@ -387,7 +388,7 @@ func TestService_CreateDenial(t *testing.T) {
 		}))
 		require.NoError(t, err)
 
-		denials, err := deniability.List(context.Background(), database)
+		denials, err := deniability.List(t.Context(), database)
 		require.NoError(t, err)
 		assert.Len(t, denials, 2)
 	})
@@ -419,7 +420,7 @@ func TestService_CreateDenial(t *testing.T) {
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 86400, // 24 hours
@@ -427,7 +428,7 @@ func TestService_CreateDenial(t *testing.T) {
 		}))
 		require.NoError(t, err)
 
-		denials, err := deniability.List(context.Background(), database)
+		denials, err := deniability.List(t.Context(), database)
 		require.NoError(t, err)
 		assert.Len(t, denials, 1)
 		assert.EqualValues(t, int32(86400), denials[0].DelayDuration.Seconds())
@@ -444,7 +445,7 @@ func TestService_CancelDenial(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
 
-		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
+		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 999,
 		}))
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -456,7 +457,7 @@ func TestService_CancelDenial(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
 
-		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
+		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 0,
 		}))
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -468,7 +469,7 @@ func TestService_CancelDenial(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
 
-		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
+		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: -1,
 		}))
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -502,7 +503,7 @@ func TestService_CancelDenial(t *testing.T) {
 			))
 
 		// First create a denial
-		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
@@ -511,18 +512,18 @@ func TestService_CancelDenial(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the denial ID from the database
-		denials, err := deniability.List(context.Background(), database)
+		denials, err := deniability.List(t.Context(), database)
 		require.NoError(t, err)
 		require.Len(t, denials, 1)
 
 		// Then cancel it
-		_, err = cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
+		_, err = cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: denials[0].ID,
 		}))
 		require.NoError(t, err)
 
 		// Verify it's cancelled
-		denials, err = deniability.List(context.Background(), database)
+		denials, err = deniability.List(t.Context(), database)
 		require.NoError(t, err)
 		assert.Len(t, denials, 1)
 		assert.NotNil(t, denials[0].CancelledAt)
@@ -538,7 +539,7 @@ func TestService_AddressBook(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -552,7 +553,7 @@ func TestService_AddressBook(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -566,7 +567,7 @@ func TestService_AddressBook(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Invalid Address",
 			Address:   "invalid-bitcoin-address",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -580,7 +581,7 @@ func TestService_AddressBook(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Send Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_SEND,
@@ -595,7 +596,7 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Create first entry
-		_, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "First Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -603,14 +604,14 @@ func TestService_AddressBook(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to create duplicate
-		_, err = cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err = cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Second Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
 		}))
 		require.NoError(t, err)
 		// If it succeeds, verify we have 2 entries
-		resp, err := cli.ListAddressBook(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListAddressBook(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		assert.Len(t, resp.Msg.Entries, 1)
 		// Label should be updated
@@ -658,14 +659,14 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Create an entry first
-		_, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
 		}))
 		require.NoError(t, err)
 
-		resp, err := cli.ListAddressBook(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListAddressBook(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Msg.Entries)
 	})
@@ -677,7 +678,7 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Original Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -685,7 +686,7 @@ func TestService_AddressBook(t *testing.T) {
 		require.NoError(t, err)
 
 		// Update the entry
-		_, err = cli.UpdateAddressBookEntry(context.Background(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
+		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
 			Id:    createResp.Msg.Entry.Id,
 			Label: "Updated Label",
 		}))
@@ -699,7 +700,7 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Original Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -707,7 +708,7 @@ func TestService_AddressBook(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to update with empty label
-		_, err = cli.UpdateAddressBookEntry(context.Background(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
+		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
 			Id:    createResp.Msg.Entry.Id,
 			Label: "",
 		}))
@@ -721,7 +722,7 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Try to update non-existent entry
-		_, err := cli.UpdateAddressBookEntry(context.Background(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
+		_, err := cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
 			Id:    99999,
 			Label: "New Label",
 		}))
@@ -735,7 +736,7 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -743,7 +744,7 @@ func TestService_AddressBook(t *testing.T) {
 		require.NoError(t, err)
 
 		// Delete the entry
-		_, err = cli.DeleteAddressBookEntry(context.Background(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
+		_, err = cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
 			Id: createResp.Msg.Entry.Id,
 		}))
 		require.NoError(t, err)
@@ -756,7 +757,7 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Try to delete non-existent entry
-		_, err := cli.DeleteAddressBookEntry(context.Background(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
+		_, err := cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
 			Id: 99999,
 		}))
 		require.ErrorContains(t, err, "address book entry not found")
@@ -769,7 +770,7 @@ func TestService_AddressBook(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(context.Background(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
@@ -777,13 +778,13 @@ func TestService_AddressBook(t *testing.T) {
 		require.NoError(t, err)
 
 		// Delete the entry
-		_, err = cli.DeleteAddressBookEntry(context.Background(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
+		_, err = cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
 			Id: createResp.Msg.Entry.Id,
 		}))
 		require.NoError(t, err)
 
 		// Try to delete again
-		_, err = cli.DeleteAddressBookEntry(context.Background(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
+		_, err = cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
 			Id: createResp.Msg.Entry.Id,
 		}))
 		require.ErrorContains(t, err, "address book entry not found")
@@ -830,7 +831,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.GetSyncInfo(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		assert.NotNil(t, resp.Msg)
 		assert.GreaterOrEqual(t, resp.Msg.TipBlockHeight, int64(0))
@@ -872,7 +873,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.GetSyncInfo(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	})
 
@@ -913,7 +914,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.GetSyncInfo(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		assert.NotNil(t, resp.Msg)
 	})
@@ -928,7 +929,7 @@ func TestService_SetTransactionNote(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.SetTransactionNote(context.Background(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "Test note",
 		}))
@@ -941,7 +942,7 @@ func TestService_SetTransactionNote(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.SetTransactionNote(context.Background(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "",
 		}))
@@ -954,7 +955,7 @@ func TestService_SetTransactionNote(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.SetTransactionNote(context.Background(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
 			Txid: "",
 			Note: "Test note",
 		}))
@@ -972,7 +973,7 @@ func TestService_SetTransactionNote(t *testing.T) {
 			longNote += "This is a very long note. "
 		}
 
-		_, err := cli.SetTransactionNote(context.Background(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: longNote,
 		}))
@@ -988,14 +989,14 @@ func TestService_SetTransactionNote(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
 		// Set initial note
-		_, err := cli.SetTransactionNote(context.Background(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "Initial note",
 		}))
 		require.NoError(t, err)
 
 		// Update the note
-		_, err = cli.SetTransactionNote(context.Background(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err = cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "Updated note",
 		}))
@@ -1006,7 +1007,7 @@ func TestService_SetTransactionNote(t *testing.T) {
 func TestService_GetFireplaceStats(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	database := database.Test(t)
 	cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
@@ -1110,7 +1111,7 @@ func TestService_PauseDenial(t *testing.T) {
 	t.Run("pause existing denial", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := context.Background()
+		ctx := t.Context()
 		db := database.Test(t)
 
 		ctrl := gomock.NewController(t)
@@ -1158,7 +1159,7 @@ func TestService_PauseDenial(t *testing.T) {
 		db := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
 
-		_, err := cli.PauseDenial(context.Background(), connect.NewRequest(&v1.PauseDenialRequest{Id: 99999}))
+		_, err := cli.PauseDenial(t.Context(), connect.NewRequest(&v1.PauseDenialRequest{Id: 99999}))
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
@@ -1169,7 +1170,7 @@ func TestService_ResumeDenial(t *testing.T) {
 	t.Run("resume paused denial", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := context.Background()
+		ctx := t.Context()
 		db := database.Test(t)
 
 		ctrl := gomock.NewController(t)
@@ -1221,7 +1222,7 @@ func TestService_ResumeDenial(t *testing.T) {
 		db := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
 
-		_, err := cli.ResumeDenial(context.Background(), connect.NewRequest(&v1.ResumeDenialRequest{Id: 99999}))
+		_, err := cli.ResumeDenial(t.Context(), connect.NewRequest(&v1.ResumeDenialRequest{Id: 99999}))
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
@@ -1267,9 +1268,9 @@ func TestService_ListBlocksInitialSync(t *testing.T) {
 			core := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
 				return mockBitcoind, nil
 			})
-			server := api_bitwindowd.New(nil, database.Test(t), core, nil, nil, miningpools.New(context.Background(), test.network, "", "", offlineRegistry), config.Config{BitcoinCoreNetwork: test.network}, nil)
+			server := api_bitwindowd.New(nil, database.Test(t), core, nil, nil, miningpools.New(t.Context(), test.network, "", "", offlineRegistry), config.Config{BitcoinCoreNetwork: test.network}, nil)
 
-			response, err := server.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
+			response, err := server.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
 			require.NoError(t, err)
 			assert.Len(t, response.Msg.RecentBlocks, int(test.blockCount))
 			assert.Equal(t, test.blockCount > 0, response.Msg.HasMore)
@@ -1332,7 +1333,7 @@ func TestService_ListBlocks(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{}))
+		resp, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{}))
 		require.NoError(t, err)
 		assert.Len(t, resp.Msg.RecentBlocks, 50)
 		assert.True(t, resp.Msg.HasMore)
@@ -1390,7 +1391,7 @@ func TestService_ListBlocks(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{
+		resp, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{
 			PageSize: 5,
 		}))
 		require.NoError(t, err)
@@ -1419,7 +1420,7 @@ func TestService_ListBlocks(t *testing.T) {
 			GetBlockHash(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
 				if req.Msg.Height > tipAfterReorg {
-					return nil, fmt.Errorf("unknown: -8: Block height out of range")
+					return nil, errors.New("unknown: -8: Block height out of range")
 				}
 				return &connect.Response[corepb.GetBlockHashResponse]{
 					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
@@ -1444,7 +1445,7 @@ func TestService_ListBlocks(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{
+		resp, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{
 			PageSize: 5,
 		}))
 		require.NoError(t, err)
@@ -1480,11 +1481,11 @@ func TestService_ListBlocks(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
 		req := connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5})
-		first, err := cli.ListBlocks(context.Background(), req)
+		first, err := cli.ListBlocks(t.Context(), req)
 		require.NoError(t, err)
 		require.Len(t, first.Msg.RecentBlocks, 5)
 
-		second, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		second, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
 		require.NoError(t, err)
 		require.Len(t, second.Msg.RecentBlocks, 5)
 	})
@@ -1521,9 +1522,9 @@ func TestService_ListBlocks(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
 		require.NoError(t, err)
-		_, err = cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err = cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
 		require.NoError(t, err)
 	})
 
@@ -1551,7 +1552,7 @@ func TestService_ListBlocks(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		first, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
+		first, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
 		require.NoError(t, err)
 		require.Len(t, first.Msg.RecentBlocks, 3)
 
@@ -1560,7 +1561,7 @@ func TestService_ListBlocks(t *testing.T) {
 		first.Msg.RecentBlocks[0] = nil
 		first.Msg.RecentBlocks = append(first.Msg.RecentBlocks, nil, nil, nil, nil)
 
-		second, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
+		second, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
 		require.NoError(t, err)
 		require.Len(t, second.Msg.RecentBlocks, 3, "cache must hand out a fresh slice")
 		require.NotNil(t, second.Msg.RecentBlocks[0])
@@ -1607,9 +1608,9 @@ func TestService_ListBlocks(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
 		require.NoError(t, err)
-		_, err = cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err = cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
 		require.NoError(t, err)
 	})
 }
@@ -1679,7 +1680,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListRecentTransactions(context.Background(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
+		resp, err := cli.ListRecentTransactions(t.Context(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
 			Count: 10,
 		}))
 		require.NoError(t, err)
@@ -1741,7 +1742,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListRecentTransactions(context.Background(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
+		resp, err := cli.ListRecentTransactions(t.Context(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
 			Count: 10,
 		}))
 		require.NoError(t, err)
@@ -1836,7 +1837,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.GetNetworkStats(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.GetNetworkStats(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 
 		assert.Equal(t, int64(1000), resp.Msg.BlockHeight)
@@ -1855,8 +1856,8 @@ func TestService_GetNetworkStats(t *testing.T) {
 		err  error
 		code connect.Code
 	}{
-		{"a failed network info read returns Internal", fmt.Errorf("rpc broke"), connect.CodeInternal},
-		{"a startup error returns Unavailable", fmt.Errorf("-28: Loading block index"), connect.CodeUnavailable},
+		{"a failed network info read returns Internal", errors.New("rpc broke"), connect.CodeInternal},
+		{"a startup error returns Unavailable", errors.New("-28: Loading block index"), connect.CodeUnavailable},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -1904,7 +1905,7 @@ func TestService_Labels(t *testing.T) {
 
 		db := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
-		ctx := context.Background()
+		ctx := t.Context()
 
 		_, err := cli.CreateAddressBookEntry(ctx, connect.NewRequest(&v1.CreateAddressBookEntryRequest{
 			Label:     "donations",
@@ -1946,7 +1947,7 @@ func TestService_Labels(t *testing.T) {
 
 		db := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
-		ctx := context.Background()
+		ctx := t.Context()
 
 		sample := `{"type":"tx","ref":"` + txid + `","label":"Restaurant"}
 {"type":"addr","ref":"` + addr + `","label":"Savings","origin":"wpkh([d34db33f/84'/0'/0'])"}

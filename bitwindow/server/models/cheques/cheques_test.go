@@ -1,7 +1,6 @@
 package cheques_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,7 @@ const testWalletID = "wallet-1"
 
 func TestGetNextIndex_SkipsDeletedSweptIndex(t *testing.T) {
 	db := database.Test(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	first, err := cheques.GetNextIndex(ctx, db, testWalletID)
 	require.NoError(t, err)
@@ -39,7 +38,7 @@ func TestGetNextIndex_SkipsDeletedSweptIndex(t *testing.T) {
 
 func TestGetNextIndex_SkipsDeletedRecoveredIndex(t *testing.T) {
 	db := database.Test(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	txid := "aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000"
 	require.NoError(t, cheques.CreateOrUpdateFromRecovery(ctx, db, testWalletID, 4, "addr-4", []cheques.FundingOutput{{Txid: txid}}, 1000))
@@ -55,7 +54,7 @@ func TestGetNextIndex_SkipsDeletedRecoveredIndex(t *testing.T) {
 
 func TestGetNextIndex_PerWallet(t *testing.T) {
 	db := database.Test(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := cheques.Create(ctx, db, testWalletID, 0, 1000, "addr-0")
 	require.NoError(t, err)

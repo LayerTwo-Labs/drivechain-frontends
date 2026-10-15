@@ -157,32 +157,26 @@ func EnforcerCrypto(ctx context.Context, url string) (
 	return client, nil
 }
 
-// Thunder creates a Thunder sidechain client
 func Thunder(ctx context.Context, host string, port int) (*thunder.Client, error) {
 	return dialSidechain(ctx, "thunder", host, thunder.NewClient(host, port))
 }
 
-// BitNames creates a BitNames sidechain client
 func BitNames(ctx context.Context, host string, port int) (*bitnames.Client, error) {
 	return dialSidechain(ctx, "bitnames", host, bitnames.NewClient(host, port))
 }
 
-// BitAssets creates a BitAssets sidechain client
 func BitAssets(ctx context.Context, host string, port int) (*bitassets.Client, error) {
 	return dialSidechain(ctx, "bitassets", host, bitassets.NewClient(host, port))
 }
 
-// Truthcoin creates a Truthcoin sidechain client
 func Truthcoin(ctx context.Context, host string, port int, cookieFile string) (*truthcoin.Client, error) {
 	return dialSidechain(ctx, "truthcoin", host, truthcoin.NewClient(host, port, cookieFile))
 }
 
-// Photon creates a Photon sidechain client
 func Photon(ctx context.Context, host string, port int) (*photon.Client, error) {
 	return dialSidechain(ctx, "photon", host, photon.NewClient(host, port))
 }
 
-// CoinShift creates a CoinShift sidechain client
 func CoinShift(ctx context.Context, host string, port int, cookieFile string) (*coinshift.Client, error) {
 	return dialSidechain(ctx, "coinshift", host, coinshift.NewClient(host, port, cookieFile))
 }

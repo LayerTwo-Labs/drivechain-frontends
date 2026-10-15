@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -54,7 +55,7 @@ func (s *Store) List(ctx context.Context, walletID string) ([]Draft, error) {
 // gets a server-generated one. Timestamps are set here, never by the caller.
 func (s *Store) Save(ctx context.Context, d Draft) (Draft, error) {
 	if d.WalletID == "" {
-		return Draft{}, fmt.Errorf("wallet id is required")
+		return Draft{}, errors.New("wallet id is required")
 	}
 
 	nowMs := s.now().UnixMilli()

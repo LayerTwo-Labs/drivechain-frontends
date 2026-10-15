@@ -35,7 +35,7 @@ func mustTopicID(t *testing.T, hex string) TopicID {
 
 func seedTopicAndNews(t *testing.T, topic TopicID, topicName, headline, content string) *sql.DB {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	seedCurrentTopic(t, ctx, db, topic, topicName, 7, 99)
 	seedCurrentNews(t, ctx, db, topic, headline, content, "news_txid", 0, 100, time.Now())
@@ -117,7 +117,7 @@ func seedVote(
 // ListTopics and satisfies TopicExists.
 func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	external := mustTopicID(t, "beefbeef")
@@ -152,7 +152,7 @@ func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 // TLVs (spec §10) round-trip through ListCoinNews.
 func TestListCoinNews_SurfacesStoryTLVs(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	topic := mustTopicID(t, "a1a1a1a1")
 	db := database.Test(t)
 	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
@@ -185,7 +185,7 @@ func TestListCoinNews_SurfacesStoryTLVs(t *testing.T) {
 // body TLV is rendered with the full reassembled body.
 func TestListCoinNews_ReassemblesContinuationBody(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	topic := mustTopicID(t, "a1a1a1a1")
 	db := database.Test(t)
 	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
@@ -260,7 +260,7 @@ func TestListCoinNews_ReturnsReassemblyError(t *testing.T) {
 // feed is ordered by HN score, and downvotes (kind=5) are tallied.
 func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	topic := mustTopicID(t, "a1a1a1a1")
 	db := database.Test(t)
 	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
@@ -303,7 +303,7 @@ func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {
 // to the hex column the UI votes against.
 func TestListCoinNews_CountsUpvotes(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	topic := mustTopicID(t, "a1a1a1a1")
 	db := database.Test(t)
 	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
@@ -358,7 +358,7 @@ func TestListCoinNews_RoundTripHeadlines(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			db := seedTopicAndNews(t, mustTopicID(t, "deadbeef"), "Test Topic", tc.headline, tc.content)
 
-			news, err := ListCoinNews(context.Background(), db)
+			news, err := ListCoinNews(t.Context(), db)
 			require.NoError(t, err)
 			require.Len(t, news, 1, "expected one news row for headline %q", tc.headline)
 			assert.Equal(t, tc.headline, news[0].Headline,
@@ -377,7 +377,7 @@ func TestListCoinNews_FullWidth64ByteHeadline(t *testing.T) {
 
 	db := seedTopicAndNews(t, topic, "Test Topic", full, "body")
 
-	news, err := ListCoinNews(context.Background(), db)
+	news, err := ListCoinNews(t.Context(), db)
 	require.NoError(t, err)
 	require.Len(t, news, 1)
 	assert.Equal(t, full, news[0].Headline)
@@ -396,7 +396,7 @@ func TestListCoinNews_HeadlineStartingWithNewIsNotTopicCreation(t *testing.T) {
 	headline := "news flash about drivechain"
 	db := seedTopicAndNews(t, topic, "US Weekly", headline, "body")
 
-	news, err := ListCoinNews(context.Background(), db)
+	news, err := ListCoinNews(t.Context(), db)
 	require.NoError(t, err)
 	require.Len(t, news, 1, "news message with 'new'-prefixed headline must not be dropped as a topic-creation")
 	assert.Equal(t, headline, news[0].Headline)
@@ -410,7 +410,7 @@ func TestListCoinNews_WhitespaceOnlyHeadline(t *testing.T) {
 	topic := mustTopicID(t, "deadbeef")
 	db := seedTopicAndNews(t, topic, "Test Topic", "   ", "body")
 
-	news, err := ListCoinNews(context.Background(), db)
+	news, err := ListCoinNews(t.Context(), db)
 	require.NoError(t, err)
 	assert.Empty(t, news)
 }
@@ -421,7 +421,7 @@ func TestListCoinNews_EmptyHeadline(t *testing.T) {
 	topic := mustTopicID(t, "deadbeef")
 	db := seedTopicAndNews(t, topic, "Test Topic", "", "body")
 
-	news, err := ListCoinNews(context.Background(), db)
+	news, err := ListCoinNews(t.Context(), db)
 	require.NoError(t, err)
 	assert.Empty(t, news)
 }
@@ -432,7 +432,7 @@ func TestListCoinNews_ShortMessageBelowHeadlineEnd(t *testing.T) {
 	topic := mustTopicID(t, "deadbeef")
 	db := seedTopicAndNews(t, topic, "Test Topic", "short!!!", "")
 
-	news, err := ListCoinNews(context.Background(), db)
+	news, err := ListCoinNews(t.Context(), db)
 	require.NoError(t, err)
 	require.Len(t, news, 1)
 	assert.Equal(t, "short!!!", news[0].Headline)
@@ -447,7 +447,7 @@ func TestListCoinNews_NewPrefixedHeadlineSurvivesDecode(t *testing.T) {
 	headline := "new partnership announced"
 	db := seedTopicAndNews(t, topic, "US Weekly", headline, "body")
 
-	news, err := ListCoinNews(context.Background(), db)
+	news, err := ListCoinNews(t.Context(), db)
 	require.NoError(t, err)
 	require.Len(t, news, 1)
 	assert.Equal(t, headline, news[0].Headline)
@@ -462,7 +462,7 @@ func TestListCoinNews_NewPrefixedHeadlineSurvivesDecode(t *testing.T) {
 // SQL is duplicated from migrations/033_coin_news_block_time_backfill.sql —
 // keep them in sync.
 func TestBackfillCoinNewsBlockTime(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	confirmedHeight := uint32(800000)
@@ -516,7 +516,7 @@ func TestBackfillCoinNewsBlockTime(t *testing.T) {
 // A mempool OP_RETURN that never got mined must stop being listed once
 // it is past the point where any mempool could still be holding it.
 func TestReapExpiredMempool(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	height := uint32(800000)
@@ -541,7 +541,7 @@ func TestReapExpiredMempool(t *testing.T) {
 }
 
 func TestPersistConfirmedConflictUpdatesCreateTimeToBlockTime(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	height := uint32(800000)

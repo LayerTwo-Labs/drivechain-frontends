@@ -15,7 +15,7 @@ import (
 // block-derived row. op_returns keeps its old height on re-insert, so a row
 // left behind names a block the new chain never had.
 func TestResetProcessedChainClearsOPReturns(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -40,7 +40,7 @@ func TestResetProcessedChainClearsOPReturns(t *testing.T) {
 // The user's own rows are not chain data. The reset that a network change now
 // relies on must leave every one of them in place.
 func TestResetProcessedChainKeepsTheUsersRows(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -88,7 +88,7 @@ func bundleAggregate(t *testing.T, ctx context.Context, db *sql.DB, hash string)
 // the score is a running count with a floor. The purge takes the replay back to
 // the bundle's own first block instead, and clears what the branch left.
 func TestForkPurgeReplaysFromABundleTheOrphanBranchScored(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -123,7 +123,7 @@ func TestForkPurgeReplaysFromABundleTheOrphanBranchScored(t *testing.T) {
 // With no bundle for the orphan branch to have scored, the replay starts at the
 // fork and no aggregate moves.
 func TestForkPurgeStaysAtTheForkWithNoTouchedBundle(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -142,7 +142,7 @@ func TestForkPurgeStaysAtTheForkWithNoTouchedBundle(t *testing.T) {
 // No block replays them, so a purge that takes them loses them for good — the
 // migration is already recorded and never runs again.
 func TestForkPurgeKeepsTheBootstrapTopics(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -169,7 +169,7 @@ func TestForkPurgeKeepsTheBootstrapTopics(t *testing.T) {
 // transition has to stamp its height, or the purge cannot tell a bundle that
 // failed on the branch that went away from one that failed below the fork.
 func TestBundleAgeingStampsTheHeightSoAForkPurgeSeesIt(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -197,7 +197,7 @@ func TestBundleAgeingStampsTheHeightSoAForkPurgeSeesIt(t *testing.T) {
 // only its last vote. The replay cannot repair it — every update guards on
 // status = 'pending' — so the purge has to take it.
 func TestForkPurgeTakesLegacyTerminalBundles(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -219,7 +219,7 @@ func TestForkPurgeTakesLegacyTerminalBundles(t *testing.T) {
 // One that aged out below the window stays: blocks_left reaches 0 only at
 // first_seen_height + max_age, and that is under the fork.
 func TestForkPurgeKeepsABundleThatAgedOutBelowTheWindow(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 
@@ -240,7 +240,7 @@ func TestForkPurgeKeepsABundleThatAgedOutBelowTheWindow(t *testing.T) {
 // the conservative fallback must not reach it. Without that guard every
 // approved bundle pulls the window back and a one-block reorg rescans years.
 func TestForkPurgeLeavesStampedTerminalBundlesAlone(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
 

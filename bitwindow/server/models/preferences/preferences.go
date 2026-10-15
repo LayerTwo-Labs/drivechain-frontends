@@ -14,7 +14,6 @@ const (
 	KeyMempoolWatchEnabled   = "mempool_watch_enabled"
 )
 
-// Set stores a preference value
 func Set(ctx context.Context, db *sql.DB, key, value string) error {
 	now := time.Now().Unix()
 

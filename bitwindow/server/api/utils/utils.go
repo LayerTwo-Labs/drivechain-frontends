@@ -1,4 +1,4 @@
-package api_utils
+package utils
 
 import (
 	"context"
@@ -19,7 +19,6 @@ type Server struct {
 	chainParams *chaincfg.Params
 }
 
-// New creates a new Utils API server
 func New(chainParams *chaincfg.Params) *Server {
 	return &Server{
 		chainParams: chainParams,

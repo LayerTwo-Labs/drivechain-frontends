@@ -36,7 +36,7 @@ func DecodeDepositAddress(depositAddress string) (*int64, string, *string, error
 			return nil, "", nil, fmt.Errorf("slot must be a whole number between 0 and 255: %w", err)
 		}
 		if slot < 0 || slot > 255 {
-			return nil, "", nil, fmt.Errorf("slot must be a whole number between 0 and 255")
+			return nil, "", nil, errors.New("slot must be a whole number between 0 and 255")
 		}
 
 		return &slot, parts[1], nil, nil
@@ -50,7 +50,7 @@ func DecodeDepositAddress(depositAddress string) (*int64, string, *string, error
 			return nil, "", nil, fmt.Errorf("slot must be a whole number between 0 and 255: %w", err)
 		}
 		if slot < 0 || slot > 255 {
-			return nil, "", nil, fmt.Errorf("slot must be a whole number between 0 and 255")
+			return nil, "", nil, errors.New("slot must be a whole number between 0 and 255")
 		}
 
 		address := parts[1]

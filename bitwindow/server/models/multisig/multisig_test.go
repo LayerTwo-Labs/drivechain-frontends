@@ -2,7 +2,6 @@ package multisig_test
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"testing"
 
@@ -149,7 +148,7 @@ func sampleGroup() multisig.Group {
 // ─── Basic CRUD ────────────────────────────────────────────────────
 
 func TestSaveAndListGroups(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -165,7 +164,7 @@ func TestSaveAndListGroups(t *testing.T) {
 }
 
 func TestSaveGroupUpsert(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -183,7 +182,7 @@ func TestSaveGroupUpsert(t *testing.T) {
 }
 
 func TestDeleteGroupCascades(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -204,7 +203,7 @@ func TestDeleteGroupCascades(t *testing.T) {
 }
 
 func TestReplaceKeysForGroup(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -230,7 +229,7 @@ func TestReplaceKeysForGroup(t *testing.T) {
 }
 
 func TestSaveAndGetTransaction(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -262,7 +261,7 @@ func TestSaveAndGetTransaction(t *testing.T) {
 }
 
 func TestGetTransactionByTxid(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -290,7 +289,7 @@ func TestGetTransactionByTxid(t *testing.T) {
 }
 
 func TestSoloKeys(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	sk := multisig.SoloKey{Xpub: "xpub-solo", DerivationPath: "m/84'/0'/0'", Owner: "alice"}
@@ -308,7 +307,7 @@ func TestSoloKeys(t *testing.T) {
 // ─── Atomic operations ─────────────────────────────────────────────
 
 func TestSaveGroupAtomic(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -371,7 +370,7 @@ func TestSaveGroupAtomic(t *testing.T) {
 }
 
 func TestSaveTransactionAtomic(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -422,7 +421,7 @@ func TestSaveTransactionAtomic(t *testing.T) {
 }
 
 func TestSaveTransactionAtomic_FKViolation(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	// Try saving a transaction with non-existent group_id — should fail due to FK.
@@ -440,7 +439,7 @@ func TestSaveTransactionAtomic_FKViolation(t *testing.T) {
 }
 
 func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	groupA := sampleGroup()
@@ -494,7 +493,7 @@ func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
 }
 
 func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -525,7 +524,7 @@ func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
 }
 
 func TestGetNextAccountIndex(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()
@@ -554,7 +553,7 @@ func TestGetNextAccountIndex(t *testing.T) {
 }
 
 func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := multisig.NewStore(setupTestDB(t))
 
 	g := sampleGroup()

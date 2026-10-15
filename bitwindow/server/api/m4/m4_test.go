@@ -33,7 +33,7 @@ func TestService_GetM4History(t *testing.T) {
 		db := database.Test(t)
 		cli := m4v1connect.NewM4ServiceClient(apitests.API(t, db))
 
-		resp, err := cli.GetM4History(context.Background(), connect.NewRequest(&m4pb.GetM4HistoryRequest{}))
+		resp, err := cli.GetM4History(t.Context(), connect.NewRequest(&m4pb.GetM4HistoryRequest{}))
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.History)
 	})
@@ -45,7 +45,7 @@ func TestService_GetM4History(t *testing.T) {
 		cli := m4v1connect.NewM4ServiceClient(apitests.API(t, db))
 
 		// Request with limit=0 (should default to 6)
-		resp, err := cli.GetM4History(context.Background(), connect.NewRequest(&m4pb.GetM4HistoryRequest{
+		resp, err := cli.GetM4History(t.Context(), connect.NewRequest(&m4pb.GetM4HistoryRequest{
 			Limit: 0,
 		}))
 		require.NoError(t, err)
@@ -61,7 +61,7 @@ func TestM4Engine_GetM4History(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		engine := engines.NewM4Engine(db)
 
 		history, err := engine.GetM4History(ctx, 10)
@@ -77,7 +77,7 @@ func TestM4Engine_GetWithdrawalBundles(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		engine := engines.NewM4Engine(db)
 
 		bundles, err := engine.GetWithdrawalBundles(ctx, nil)
@@ -89,7 +89,7 @@ func TestM4Engine_GetWithdrawalBundles(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		engine := engines.NewM4Engine(db)
 
 		// Query for specific sidechain (should be empty)
@@ -165,7 +165,7 @@ func TestService_GetVotes(t *testing.T) {
 		policy: mainchainv1.WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_ALARM,
 		acks:   []*mainchainv1.WithdrawalBundleAck{ack(9, m6idA)},
 	}
-	resp, err := newClient(t, producer).GetVotes(context.Background(), connect.NewRequest(&m4pb.GetVotesRequest{}))
+	resp, err := newClient(t, producer).GetVotes(t.Context(), connect.NewRequest(&m4pb.GetVotesRequest{}))
 	require.NoError(t, err)
 	assert.Equal(t, m4pb.VotePolicy_VOTE_POLICY_ALARM, resp.Msg.Policy)
 	require.Len(t, resp.Msg.Upvotes, 1)
@@ -187,7 +187,7 @@ func TestService_SetBundleUpvote(t *testing.T) {
 
 		producer := &fakeProducer{}
 		m6id := m6idA
-		_, err := newClient(t, producer).SetBundleUpvote(context.Background(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
 			M6Id:          &m6id,
 		}))
@@ -200,7 +200,7 @@ func TestService_SetBundleUpvote(t *testing.T) {
 
 		producer := &fakeProducer{acks: []*mainchainv1.WithdrawalBundleAck{ack(9, m6idA), ack(2, m6idB)}}
 		m6id := m6idB
-		_, err := newClient(t, producer).SetBundleUpvote(context.Background(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
 			M6Id:          &m6id,
 		}))
@@ -217,7 +217,7 @@ func TestService_SetBundleUpvote(t *testing.T) {
 		for i := range 20 {
 			m6id := []string{m6idA, m6idB}[i%2]
 			wg.Go(func() {
-				_, err := cli.SetBundleUpvote(context.Background(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+				_, err := cli.SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
 					SidechainSlot: 9,
 					M6Id:          &m6id,
 				}))
@@ -232,7 +232,7 @@ func TestService_SetBundleUpvote(t *testing.T) {
 		t.Parallel()
 
 		producer := &fakeProducer{acks: []*mainchainv1.WithdrawalBundleAck{ack(9, m6idA), ack(2, m6idB)}}
-		_, err := newClient(t, producer).SetBundleUpvote(context.Background(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
 		}))
 		require.NoError(t, err)
@@ -243,7 +243,7 @@ func TestService_SetBundleUpvote(t *testing.T) {
 		t.Parallel()
 
 		m6id := "bundle-a"
-		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(context.Background(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
 			M6Id:          &m6id,
 		}))
@@ -253,7 +253,7 @@ func TestService_SetBundleUpvote(t *testing.T) {
 	t.Run("rejects a slot above 255", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(context.Background(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 256,
 		}))
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -267,7 +267,7 @@ func TestService_SetVotePolicy(t *testing.T) {
 		t.Parallel()
 
 		producer := &fakeProducer{}
-		_, err := newClient(t, producer).SetVotePolicy(context.Background(), connect.NewRequest(&m4pb.SetVotePolicyRequest{
+		_, err := newClient(t, producer).SetVotePolicy(t.Context(), connect.NewRequest(&m4pb.SetVotePolicyRequest{
 			Policy: m4pb.VotePolicy_VOTE_POLICY_UPVOTE_ALL,
 		}))
 		require.NoError(t, err)
@@ -277,7 +277,7 @@ func TestService_SetVotePolicy(t *testing.T) {
 	t.Run("rejects an unspecified policy", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := newClient(t, &fakeProducer{}).SetVotePolicy(context.Background(), connect.NewRequest(&m4pb.SetVotePolicyRequest{}))
+		_, err := newClient(t, &fakeProducer{}).SetVotePolicy(t.Context(), connect.NewRequest(&m4pb.SetVotePolicyRequest{}))
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }

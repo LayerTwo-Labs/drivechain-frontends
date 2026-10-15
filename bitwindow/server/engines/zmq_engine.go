@@ -233,7 +233,7 @@ func (bc *zmqEngine) SubscribeRawTx(ctx context.Context) (chan RawMsg, func(), e
 
 	cancel := func() {
 		if err := sub.Close(); err != nil {
-			zerolog.Ctx(ctx).Err(err).Msg("engines/zmq: unable to close rawtx subscription")
+			zerolog.Ctx(ctx).Err(err).Msg("engines/zmq: close rawtx subscription")
 		}
 	}
 	return subCh, cancel, nil
@@ -278,7 +278,7 @@ func (bc *zmqEngine) SubscribeSequence(ctx context.Context) (chan SequenceMsg, f
 
 	cancel := func() {
 		if err := sub.Close(); err != nil {
-			zerolog.Ctx(ctx).Err(err).Msg("engines/zmq: unable to close sequence subscription")
+			zerolog.Ctx(ctx).Err(err).Msg("engines/zmq: close sequence subscription")
 		}
 	}
 	return subCh, cancel, nil

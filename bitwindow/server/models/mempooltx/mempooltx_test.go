@@ -1,7 +1,6 @@
 package mempooltx_test
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"testing"
@@ -43,13 +42,13 @@ func heights(stats []mempooltx.BlockStats) []uint32 {
 
 func listAll(t *testing.T, db *sql.DB) []mempooltx.Tx {
 	t.Helper()
-	txs, _, err := mempooltx.List(context.Background(), db, mempooltx.Filter{})
+	txs, _, err := mempooltx.List(t.Context(), db, mempooltx.Filter{})
 	require.NoError(t, err)
 	return txs
 }
 
 func TestMempoolTxUpsert(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("stores every field", func(t *testing.T) {
 		db := database.Test(t)
@@ -88,7 +87,7 @@ func TestMempoolTxUpsert(t *testing.T) {
 }
 
 func TestMempoolTxForget(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	require.NoError(t, mempooltx.Upsert(ctx, db, []mempooltx.Tx{newTx("aa", 1, 1), newTx("bb", 2, 1), newTx("cc", 3, 1)}))
 
@@ -99,7 +98,7 @@ func TestMempoolTxForget(t *testing.T) {
 }
 
 func TestMempoolTxBlockStats(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("put overwrites a height and list returns the range in order", func(t *testing.T) {
 		db := database.Test(t)
@@ -129,7 +128,7 @@ func TestMempoolTxBlockStats(t *testing.T) {
 }
 
 func TestMempoolTxPruneBlockStats(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	tests := []struct {
 		name    string
 		pending []mempooltx.Tx
@@ -172,7 +171,7 @@ func TestMempoolTxPruneBlockStats(t *testing.T) {
 }
 
 func TestMempoolTxDeleteNotIn(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("drops rows not in the list", func(t *testing.T) {
 		db := database.Test(t)
@@ -204,7 +203,7 @@ func TestMempoolTxDeleteNotIn(t *testing.T) {
 }
 
 func TestMempoolTxClearAndCount(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	require.NoError(t, mempooltx.Upsert(ctx, db, []mempooltx.Tx{newTx("aa", 1, 1), newTx("bb", 2, 1)}))
 	require.NoError(t, mempooltx.PutBlockStats(ctx, db, 100, 1, 1))
@@ -224,7 +223,7 @@ func TestMempoolTxClearAndCount(t *testing.T) {
 }
 
 func TestMempoolTxList(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	require.NoError(t, mempooltx.Upsert(ctx, db, []mempooltx.Tx{
 		newTx("ab02", 300, 1),
@@ -288,7 +287,7 @@ func TestMempoolTxList(t *testing.T) {
 }
 
 func TestMempoolTxListCapsTheLimit(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	txs := make([]mempooltx.Tx, 0, mempooltx.MaxLimit+5)
 	for i := range mempooltx.MaxLimit + 5 {

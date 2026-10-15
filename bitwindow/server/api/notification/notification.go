@@ -1,4 +1,4 @@
-package api_notification
+package notification
 
 import (
 	"context"

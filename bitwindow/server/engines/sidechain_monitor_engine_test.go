@@ -26,7 +26,7 @@ func (m *MockNotificationEngine) Broadcast(ctx context.Context, event *notificat
 }
 
 func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	engine := NewSidechainMonitorEngine(
 		nil, nil, nil, nil, nil, nil, // sidechain services not needed for this test
@@ -56,7 +56,7 @@ func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
 }
 
 func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
-	ctx := zerolog.New(zerolog.NewTestWriter(t)).WithContext(context.Background())
+	ctx := zerolog.New(zerolog.NewTestWriter(t)).WithContext(t.Context())
 
 	// Mock external fast withdrawal server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +110,7 @@ func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
 }
 
 func TestSidechainMonitorEngine_StoreWithdrawal(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mockNotification := &MockNotificationEngine{}
 

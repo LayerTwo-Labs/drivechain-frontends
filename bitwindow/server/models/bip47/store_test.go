@@ -1,7 +1,6 @@
 package bip47_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 
@@ -14,7 +13,7 @@ import (
 
 func TestReserveNextIndex_Sequential(t *testing.T) {
 	db := database.Test(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	for want := uint32(0); want < 5; want++ {
 		got, err := bip47.ReserveNextIndex(ctx, db, "w1", "PMtest")
@@ -30,7 +29,7 @@ func TestReserveNextIndex_Sequential(t *testing.T) {
 
 func TestReserveNextIndex_Concurrent(t *testing.T) {
 	db := database.Test(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	const goroutines = 16
 	const perGoroutine = 8
@@ -67,7 +66,7 @@ func TestReserveNextIndex_Concurrent(t *testing.T) {
 
 func TestMarkNotifiedAndGetState(t *testing.T) {
 	db := database.Test(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	state, err := bip47.GetState(ctx, db, "w1", "PMtest")
 	require.NoError(t, err)
@@ -102,7 +101,7 @@ func TestMarkNotifiedAndGetState(t *testing.T) {
 
 func TestGetState_DistinctRecipients(t *testing.T) {
 	db := database.Test(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := bip47.ReserveNextIndex(ctx, db, "w1", "PMtest1")
 	require.NoError(t, err)

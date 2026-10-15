@@ -67,13 +67,13 @@ func (e *DepositDroppedEngine) tick(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 	slots, err := e.slots(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("could not read the sidechain slots")
+		log.Warn().Err(err).Msg("read the sidechain slots")
 		return
 	}
 	for _, slot := range slots {
 		deposits, err := e.deposits.ListSidechainDeposits(ctx, slot, "")
 		if err != nil {
-			log.Warn().Err(err).Uint32("slot", slot).Msg("could not read the deposits of the slot")
+			log.Warn().Err(err).Uint32("slot", slot).Msg("read the deposits of the slot")
 			continue
 		}
 		for _, d := range deposits {
@@ -81,7 +81,7 @@ func (e *DepositDroppedEngine) tick(ctx context.Context) {
 				continue
 			}
 			if err := e.report(ctx, slot, d); err != nil {
-				log.Warn().Err(err).Str("txid", d.GetTxid()).Msg("could not report the dropped deposit")
+				log.Warn().Err(err).Str("txid", d.GetTxid()).Msg("report the dropped deposit")
 			}
 		}
 	}

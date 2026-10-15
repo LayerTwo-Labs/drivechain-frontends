@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestAForkPurgeKeepsChequeHistoryBelowTheFork(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	const wallet = "w1"
 

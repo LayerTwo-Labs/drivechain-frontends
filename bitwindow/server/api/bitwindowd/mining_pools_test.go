@@ -1,4 +1,4 @@
-package api_bitwindowd_test
+package bitwindowd_test
 
 import (
 	"context"
@@ -49,7 +49,7 @@ func regtestRegistry(t *testing.T) *miningpools.Registry {
 	path := filepath.Join(datadir, miningpools.RegtestFile)
 	require.NoError(t, os.WriteFile(path, []byte(regtestPools), 0o600))
 
-	registry := miningpools.New(context.Background(), config.NetworkRegtest, "", datadir, nil)
+	registry := miningpools.New(t.Context(), config.NetworkRegtest, "", datadir, nil)
 	require.Eventually(t, func() bool {
 		return registry.Pools().Source == "file://"+path
 	}, 5*time.Second, 10*time.Millisecond)
@@ -74,7 +74,7 @@ func TestService_ListMiningPools(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
 		now := time.Now()
-		require.NoError(t, coinbases.Put(context.Background(), db, []coinbases.Coinbase{
+		require.NoError(t, coinbases.Put(t.Context(), db, []coinbases.Coinbase{
 			coinbase(10, "old", "/alpha/", now.Add(-48*time.Hour), 2),
 			coinbase(11, "h11", "/alpha/", now.Add(-3*time.Hour), 2),
 			coinbase(12, "h12", "/alpha/", now.Add(-2*time.Hour), 1),
@@ -82,7 +82,7 @@ func TestService_ListMiningPools(t *testing.T) {
 		}))
 		server := api_bitwindowd.New(nil, db, nil, nil, nil, regtestRegistry(t), config.Config{}, nil)
 
-		response, err := server.ListMiningPools(context.Background(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
+		response, err := server.ListMiningPools(t.Context(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
 		require.NoError(t, err)
 
 		msg := response.Msg
@@ -114,13 +114,13 @@ func TestService_ListMiningPools(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
 		now := time.Now()
-		require.NoError(t, coinbases.Put(context.Background(), db, []coinbases.Coinbase{
+		require.NoError(t, coinbases.Put(t.Context(), db, []coinbases.Coinbase{
 			coinbase(10, "h10", "/beta/", now.Add(-48*time.Hour), 2),
 			coinbase(11, "h11", "/alpha/", now.Add(-time.Hour), 2),
 		}))
 		server := api_bitwindowd.New(nil, db, nil, nil, nil, regtestRegistry(t), config.Config{}, nil)
 
-		response, err := server.ListMiningPools(context.Background(), connect.NewRequest(&v1.ListMiningPoolsRequest{
+		response, err := server.ListMiningPools(t.Context(), connect.NewRequest(&v1.ListMiningPoolsRequest{
 			Window: v1.MiningPoolWindow_MINING_POOL_WINDOW_1W,
 		}))
 		require.NoError(t, err)
@@ -131,13 +131,13 @@ func TestService_ListMiningPools(t *testing.T) {
 	t.Run("a network with no registry lists only Unknown", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
-		require.NoError(t, coinbases.Put(context.Background(), db, []coinbases.Coinbase{
+		require.NoError(t, coinbases.Put(t.Context(), db, []coinbases.Coinbase{
 			coinbase(10, "h10", "/alpha/", time.Now(), 2),
 		}))
-		registry := miningpools.New(context.Background(), config.NetworkSignet, "", "", offlineRegistry)
+		registry := miningpools.New(t.Context(), config.NetworkSignet, "", "", offlineRegistry)
 		server := api_bitwindowd.New(nil, db, nil, nil, nil, registry, config.Config{}, nil)
 
-		response, err := server.ListMiningPools(context.Background(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
+		response, err := server.ListMiningPools(t.Context(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
 		require.NoError(t, err)
 		assert.False(t, response.Msg.RegistryAvailable)
 		require.Len(t, response.Msg.Pools, 1)
@@ -159,7 +159,7 @@ func TestService_ListBlocksNamesThePool(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			db := database.Test(t)
-			require.NoError(t, coinbases.Put(context.Background(), db, []coinbases.Coinbase{
+			require.NoError(t, coinbases.Put(t.Context(), db, []coinbases.Coinbase{
 				coinbase(100, test.hash, "/alpha/", time.Now(), 2),
 			}))
 
@@ -180,7 +180,7 @@ func TestService_ListBlocksNamesThePool(t *testing.T) {
 			conf := config.Config{BitcoinCoreNetwork: config.NetworkRegtest}
 			server := api_bitwindowd.New(nil, db, core, nil, nil, regtestRegistry(t), conf, nil)
 
-			response, err := server.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
+			response, err := server.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
 			require.NoError(t, err)
 			require.Len(t, response.Msg.RecentBlocks, 1)
 			assert.Equal(t, test.wantPool, response.Msg.RecentBlocks[0].GetPool().GetName())

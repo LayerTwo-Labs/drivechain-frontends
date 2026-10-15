@@ -110,8 +110,11 @@ func (s *Server) SetBundleUpvote(
 	}
 	if req.Msg.M6Id != nil {
 		m6id, err := hex.DecodeString(req.Msg.GetM6Id())
-		if err != nil || len(m6id) != 32 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid m6id: %q", req.Msg.GetM6Id()))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("decode m6id %q: %w", req.Msg.GetM6Id(), err))
+		}
+		if len(m6id) != 32 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("m6id %q is %d bytes, want 32", req.Msg.GetM6Id(), len(m6id)))
 		}
 	}
 

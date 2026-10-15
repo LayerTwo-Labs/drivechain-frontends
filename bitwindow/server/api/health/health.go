@@ -1,4 +1,4 @@
-package api_health
+package health
 
 import (
 	"context"
@@ -27,7 +27,6 @@ import (
 
 var _ rpc.HealthServiceHandler = new(Server)
 
-// New creates a new Server
 func New(
 	database *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
@@ -232,7 +231,7 @@ func (s *Server) getServiceStatuses(ctx context.Context) ([]*healthv1.CheckRespo
 
 	statuses, err := pool.Wait(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get service statuses")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get service statuses")
 		return nil, err
 	}
 

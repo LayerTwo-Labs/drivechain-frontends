@@ -1,4 +1,4 @@
-package api_drivechain_test
+package drivechain_test
 
 import (
 	"context"
@@ -97,7 +97,7 @@ func TestService_ListSidechains(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechains(context.Background(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		resp, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.Sidechains, 1)
 		assert.Equal(t, "Test Sidechain", resp.Msg.Sidechains[0].Title)
@@ -152,7 +152,7 @@ func TestService_ListSidechains(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechains(context.Background(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		resp, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.Sidechains, 1)
 		assert.Empty(t, resp.Msg.Sidechains[0].Title)
@@ -191,7 +191,7 @@ func TestService_ListSidechains(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechains(context.Background(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		resp, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.Sidechains)
 	})
@@ -246,7 +246,7 @@ func TestService_ListSidechains(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		_, err := cli.ListSidechains(context.Background(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		_, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
 		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	})
 }
@@ -298,7 +298,7 @@ func TestService_ListSidechainProposals(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechainProposals(context.Background(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
+		resp, err := cli.ListSidechainProposals(t.Context(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.Proposals, 1)
 		assert.Equal(t, uint32(5), resp.Msg.Proposals[0].Slot)
@@ -336,7 +336,7 @@ func TestService_ListSidechainProposals(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechainProposals(context.Background(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
+		resp, err := cli.ListSidechainProposals(t.Context(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.Proposals)
 	})
@@ -351,7 +351,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 		db := database.Test(t)
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
 
-		_, err := cli.ProposeSidechain(context.Background(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
 			Slot:  256, // invalid, must be 0-255
 			Title: "Test",
 		}))
@@ -365,7 +365,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 		db := database.Test(t)
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
 
-		_, err := cli.ProposeSidechain(context.Background(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
 			Slot:  0,
 			Title: "", // empty title
 		}))
@@ -379,7 +379,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 		db := database.Test(t)
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
 
-		_, err := cli.ProposeSidechain(context.Background(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
 			Slot:    0,
 			Title:   "Test",
 			Hashid1: "tooshort", // must be 64 hex chars
@@ -394,7 +394,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 		db := database.Test(t)
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
 
-		_, err := cli.ProposeSidechain(context.Background(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
 			Slot:    0,
 			Title:   "Test",
 			Hashid2: "tooshort", // must be 40 hex chars
@@ -410,7 +410,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 			apitests.WithOrchestrator(orchestrator),
 			apitests.WithBlockProducer(producer),
 		))
-		return cli.ProposeSidechain(context.Background(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		return cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
 			Slot:  3,
 			Title: "RISCy",
 		}))
@@ -486,7 +486,7 @@ func TestService_ListWithdrawals(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		_, err := cli.ListWithdrawals(context.Background(), connect.NewRequest(&pb.ListWithdrawalsRequest{
+		_, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{
 			SidechainId: 99, // non-existent
 		}))
 		require.ErrorContains(t, err, "sidechain 99 not found")
@@ -561,7 +561,7 @@ func TestService_ListWithdrawals(t *testing.T) {
 
 		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListWithdrawals(context.Background(), connect.NewRequest(&pb.ListWithdrawalsRequest{
+		resp, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{
 			SidechainId: 0,
 		}))
 		require.NoError(t, err)
@@ -637,7 +637,7 @@ func listWithdrawalsTwice(t *testing.T, ancestorAt100 string) []string {
 
 	cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
 	for range 2 {
-		_, err := cli.ListWithdrawals(context.Background(), connect.NewRequest(&pb.ListWithdrawalsRequest{SidechainId: 0}))
+		_, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{SidechainId: 0}))
 		require.NoError(t, err)
 	}
 	return starts

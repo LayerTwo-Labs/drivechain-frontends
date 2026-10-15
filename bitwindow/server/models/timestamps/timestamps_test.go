@@ -1,7 +1,6 @@
 package timestamps_test
 
 import (
-	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -37,7 +36,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 }
 
 func TestCreate(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := setupTestDB(t)
 	defer db.Close()
 
@@ -64,7 +63,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := setupTestDB(t)
 	defer db.Close()
 
@@ -144,7 +143,7 @@ func TestList(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := setupTestDB(t)
 	defer db.Close()
 
@@ -176,7 +175,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetByHash(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := setupTestDB(t)
 	defer db.Close()
 
@@ -208,7 +207,7 @@ func TestGetByHash(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := setupTestDB(t)
 	defer db.Close()
 

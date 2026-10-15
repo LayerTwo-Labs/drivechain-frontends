@@ -260,8 +260,6 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 		return existing, nil
 	}
 
-	// Create Bitcoin OP_RETURN transaction with prefixed file hash
-	// Prepend TMSTAMP prefix to hash for protocol identification
 	opReturnData := append([]byte(TimestampPrefix), hash[:]...)
 
 	txid, err := e.wallet.SendTransaction(ctx, opReturnData)
@@ -332,7 +330,7 @@ func (e *TimestampEngine) GetTimestamp(ctx context.Context, id int64) (*timestam
 		return nil, fmt.Errorf("get timestamp: %w", err)
 	}
 	if timestamp == nil {
-		return nil, fmt.Errorf("timestamp not found")
+		return nil, errors.New("timestamp not found")
 	}
 
 	return timestamp, nil

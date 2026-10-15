@@ -1,7 +1,6 @@
-package api_wallet_test
+package wallet_test
 
 import (
-	"context"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -28,7 +27,7 @@ func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 	apitests.ExpectOrchestratorReads(mockOrch)
 	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
 
-	ctx := context.Background()
+	ctx := t.Context()
 	frozen := true
 	_, err := cli.SetUTXOMetadata(ctx, connect.NewRequest(&walletv1.SetUTXOMetadataRequest{
 		Outpoint: "frozen:0",
@@ -58,7 +57,7 @@ func TestSetUTXOMetadataReportsAFailedPush(t *testing.T) {
 	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
 
 	frozen := true
-	_, err := cli.SetUTXOMetadata(context.Background(), connect.NewRequest(&walletv1.SetUTXOMetadataRequest{
+	_, err := cli.SetUTXOMetadata(t.Context(), connect.NewRequest(&walletv1.SetUTXOMetadataRequest{
 		Outpoint: "aa:0",
 		IsFrozen: &frozen,
 	}))
@@ -73,7 +72,7 @@ func TestSendRefusesAFrozenInputInAnySpelling(t *testing.T) {
 	apitests.ExpectOrchestratorReads(mockOrch)
 	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
 
-	ctx := context.Background()
+	ctx := t.Context()
 	frozen := true
 	_, err := cli.SetUTXOMetadata(ctx, connect.NewRequest(&walletv1.SetUTXOMetadataRequest{
 		Outpoint: "abcdef:1",

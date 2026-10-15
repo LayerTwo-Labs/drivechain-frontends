@@ -39,7 +39,7 @@ func TestEnsureWatchOnlyWalletTransientOrchestratorError(t *testing.T) {
 	} {
 		e := NewWalletEngine(nil, stubOrchWalletClient{err: orchErr}, t.TempDir(), &chaincfg.MainNetParams)
 
-		_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
+		_, err := e.EnsureWatchOnlyWallet(t.Context(), "deadbeefcafebabe")
 		require.ErrorIs(t, err, orchErr)
 	}
 }
@@ -60,7 +60,7 @@ func TestEnsureWatchOnlyWalletPrefersLegacyName(t *testing.T) {
 		return mockBitcoind, nil
 	}, mocks.NewMockWalletManagerServiceClient(ctrl), t.TempDir(), &chaincfg.MainNetParams)
 
-	walletName, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
+	walletName, err := e.EnsureWatchOnlyWallet(t.Context(), "deadbeefcafebabe")
 	require.NoError(t, err)
 	require.Equal(t, "watch_deadbeef", walletName)
 }
@@ -85,7 +85,7 @@ func TestEnsureWatchOnlyWalletPropagatesLegacyLoadError(t *testing.T) {
 		return mockBitcoind, nil
 	}, mocks.NewMockWalletManagerServiceClient(ctrl), t.TempDir(), &chaincfg.MainNetParams)
 
-	_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
+	_, err := e.EnsureWatchOnlyWallet(t.Context(), "deadbeefcafebabe")
 	require.ErrorContains(t, err, "load legacy watch-only wallet")
 }
 

@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -36,7 +35,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 
 	// Setup logger
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-	ctx := logger.WithContext(context.Background())
+	ctx := logger.WithContext(t.Context())
 
 	// Get Bitcoin Core connection params from env or use defaults
 	host := os.Getenv("BITCOIND_HOST")

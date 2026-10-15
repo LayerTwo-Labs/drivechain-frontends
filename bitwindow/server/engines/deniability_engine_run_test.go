@@ -26,7 +26,7 @@ func TestDeniabilityEngineRunSurvivesItsFirstTick(t *testing.T) {
 
 	e := engines.NewDeniability(bitcoind, db, testDenialWalletEngine(t, mocks.NewMockBitcoinServiceClient(gomock.NewController(t)), nil))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 
 	done := make(chan error, 1)

@@ -1,4 +1,4 @@
-package api_bitwindowd
+package bitwindowd
 
 import (
 	"cmp"
@@ -143,7 +143,7 @@ func (s *Server) observeTip(height uint32, hash string) (changed bool) {
 //  3. Return success.
 func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.UpdateNetworkRequest]) (*connect.Response[pb.UpdateNetworkResponse], error) {
 	if req.Msg.Network == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("network required"))
 	}
 
 	network := config.Network(req.Msg.Network)
@@ -227,7 +227,7 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 		// Fresh context — the inbound ctx may be cancelled by the frontend
 		// the moment we return. Short timeout because drivechaind acks
 		// immediately (the drain runs in its own goroutine).
-		rpcCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		rpcCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		// only_if_last: a sidechain frontend may hold drivechaind directly.
 		if _, err := client.Shutdown(rpcCtx, connect.NewRequest(&orchpb.ShutdownRequest{OnlyIfLast: true})); err != nil {
@@ -252,28 +252,24 @@ func (s *Server) CreateDenial(
 	req *connect.Request[pb.CreateDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	if req.Msg.DelaySeconds <= 0 {
-		err := fmt.Errorf("delay_seconds must be positive")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid delay_seconds")
+		err := errors.New("delay_seconds must be positive")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	if req.Msg.NumHops <= 0 {
-		err := fmt.Errorf("num_hops must be positive")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid num_hops")
+		err := errors.New("num_hops must be positive")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	// Get active wallet to determine routing
 	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get active wallet")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not get active wallet: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get active wallet: %w", err))
 	}
 
 	// Deniability requires spending, which a watch-only wallet cannot do.
 	if activeWallet.IsWatchOnly() {
-		err := fmt.Errorf("deniability is not supported for watch-only wallets")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("unsupported wallet type")
+		err := errors.New("deniability is not supported for watch-only wallets")
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
@@ -289,20 +285,17 @@ func (s *Server) CreateDenial(
 	}
 
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not check UTXO")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	if !utxoExists {
 		err := fmt.Errorf("utxo %s:%d not found in wallet", req.Msg.Txid, req.Msg.Vout)
-		zerolog.Ctx(ctx).Error().Err(err).Msg("utxo not found in wallet")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	denial, err := deniability.GetByTip(ctx, s.db, req.Msg.Txid, lo.ToPtr(int32(req.Msg.Vout)))
 	if err != nil {
-		err = fmt.Errorf("could not get by tip: %w", err)
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get denial by tip")
+		err = fmt.Errorf("get by tip: %w", err)
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -319,7 +312,6 @@ func (s *Server) CreateDenial(
 		if err := deniability.Update(
 			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops, req.Msg.Txid, int32(req.Msg.Vout),
 		); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not update denial")
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 
@@ -347,7 +339,6 @@ func (s *Server) CreateDenial(
 		req.Msg.TargetUtxoSizes,
 	)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create denial")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -359,11 +350,10 @@ func (s *Server) CancelDenial(
 	req *connect.Request[pb.CancelDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Cancel(ctx, s.db, req.Msg.Id, "cancelled by user")
-	if errors.Is(err, deniability.ErrNotFound) {
+	switch {
+	case errors.Is(err, deniability.ErrNotFound):
 		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not cancel denial")
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -375,11 +365,10 @@ func (s *Server) PauseDenial(
 	req *connect.Request[pb.PauseDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Pause(ctx, s.db, req.Msg.Id)
-	if errors.Is(err, deniability.ErrNotFound) {
+	switch {
+	case errors.Is(err, deniability.ErrNotFound):
 		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not pause denial")
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pause denial %d: %w", req.Msg.Id, err))
 	}
 
@@ -391,11 +380,10 @@ func (s *Server) ResumeDenial(
 	req *connect.Request[pb.ResumeDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Resume(ctx, s.db, req.Msg.Id)
-	if errors.Is(err, deniability.ErrNotFound) {
+	switch {
+	case errors.Is(err, deniability.ErrNotFound):
 		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not resume denial")
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resume denial %d: %w", req.Msg.Id, err))
 	}
 
@@ -405,13 +393,11 @@ func (s *Server) ResumeDenial(
 func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Request[pb.CreateAddressBookEntryRequest]) (*connect.Response[pb.CreateAddressBookEntryResponse], error) {
 	direction, err := addressbook.DirectionFromProto(req.Msg.Direction)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid direction")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	addr := strings.TrimSpace(req.Msg.Address)
 	if err := validateAddressBookAddress(addr); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid address format")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -423,15 +409,13 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return nil, err
 	}
 
-	// User-added addresses don't belong to a specific wallet (nil walletId)
+	// User-added addresses don't belong to a specific wallet (nil walletID)
 	if err := addressbook.Upsert(ctx, s.db, nil, req.Msg.Label, addr, direction); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not save address book entry")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	entries, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get address book entry")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -440,7 +424,6 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 	})
 	if !ok {
 		err := fmt.Errorf("entry %s/%s missing after save", addr, direction)
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not find newly created address book entry")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -479,9 +462,9 @@ func (s *Server) checkLabelFree(ctx context.Context, label string, self func(add
 }
 
 func EntryToProto(entry *addressbook.Entry) *pb.AddressBookEntry {
-	walletId := ""
+	walletID := ""
 	if entry.WalletID != nil {
-		walletId = *entry.WalletID
+		walletID = *entry.WalletID
 	}
 	return &pb.AddressBookEntry{
 		Id:         entry.ID,
@@ -489,7 +472,7 @@ func EntryToProto(entry *addressbook.Entry) *pb.AddressBookEntry {
 		Address:    entry.Address,
 		Direction:  addressbook.DirectionToProto(entry.Direction),
 		CreateTime: timestamppb.New(entry.CreatedAt),
-		WalletId:   walletId,
+		WalletId:   walletID,
 		Type:       addressbook.ClassifyAddress(entry.Address),
 	}
 }
@@ -497,7 +480,6 @@ func EntryToProto(entry *addressbook.Entry) *pb.AddressBookEntry {
 func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListAddressBookResponse], error) {
 	entries, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -519,7 +501,6 @@ func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Reques
 	}
 
 	if err := addressbook.UpdateLabel(ctx, s.db, req.Msg.Id, req.Msg.Label); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not update address book entry")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -528,7 +509,6 @@ func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Reques
 
 func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *connect.Request[pb.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
 	if err := addressbook.Delete(ctx, s.db, req.Msg.Id); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not delete address book entry")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -558,7 +538,7 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 
 	processedTip, err := blocks.GetProcessedTip(ctx, s.db)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get processed tip")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get processed tip")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -607,7 +587,6 @@ func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb
 		if errors.Is(err, transactions.ErrEmptyTxID) {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not set transaction note")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -618,7 +597,6 @@ func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb
 func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.ExportLabelsResponse], error) {
 	addrs, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -631,13 +609,11 @@ func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.
 
 	notes, err := transactions.ListByWallet(ctx, s.db, activeWallet.ID)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list transaction notes")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	utxos, err := utxometadata.Get(ctx, s.db, nil)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list utxo metadata")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -663,7 +639,6 @@ func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.
 
 	jsonl, err := bip329.Encode(labels)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not encode labels")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -696,7 +671,7 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 		switch l.Type {
 		case bip329.TypeAddr:
 			if err := s.importAddressLabel(ctx, ref, l.Label); err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import address label")
+				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("import address label")
 				resp.Skipped++
 				continue
 			}
@@ -704,7 +679,7 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 
 		case bip329.TypeTx:
 			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, l.Label); err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import transaction note")
+				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("import transaction note")
 				resp.Skipped++
 				continue
 			}
@@ -713,7 +688,7 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 		case bip329.TypeOutput:
 			lbl := l.Label
 			if err := utxometadata.Set(ctx, s.db, ref, nil, &lbl); err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import utxo label")
+				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("import utxo label")
 				resp.Skipped++
 				continue
 			}
@@ -754,19 +729,19 @@ func (s *Server) GetFireplaceStats(ctx context.Context, req *connect.Request[emp
 	// Calculate block count in last 24 hours
 	blockCount24h, err := blocks.CountSince(ctx, s.db, time.Now().Add(-24*time.Hour))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get block count: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get block count: %w", err))
 	}
 
 	// Calculate transaction count in last 24 hours
 	txCount24h, err := blocks.TxCountSince(ctx, s.db, time.Now().Add(-24*time.Hour))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get transaction count: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get transaction count: %w", err))
 	}
 
 	// Calculate coinnews count in last 7 days
 	coinnewsCount7d, err := cnstore.CountStoriesSince(ctx, s.db, time.Now().Add(-7*24*time.Hour))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get coinnews count: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get coinnews count: %w", err))
 	}
 
 	return connect.NewResponse(&pb.GetFireplaceStatsResponse{
@@ -784,7 +759,7 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 
 	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
+		return nil, fmt.Errorf("bitcoind: get blockchain info: %w", err)
 	}
 	if info.Msg.InitialBlockDownload && config.IsFullChainNetwork(s.config.BitcoinCoreNetwork) {
 		return connect.NewResponse(&pb.ListBlocksResponse{}), nil
@@ -848,7 +823,7 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 				return nil, nil
 
 			case err != nil:
-				return nil, fmt.Errorf("bitcoind: could not get block hash %d: %w", height, err)
+				return nil, fmt.Errorf("bitcoind: get block hash %d: %w", height, err)
 			}
 
 			block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
@@ -856,7 +831,7 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 				Hash:      hash.Msg.Hash,
 			}))
 			if err != nil {
-				return nil, fmt.Errorf("bitcoind: could not get block %s: %w", hash.Msg.Hash, err)
+				return nil, fmt.Errorf("bitcoind: get block %s: %w", hash.Msg.Hash, err)
 			}
 
 			return &pb.Block{
@@ -923,7 +898,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		Verbose: true,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: could not get mempool: %w", err)
+		return nil, fmt.Errorf("bitcoind: get mempool: %w", err)
 	}
 
 	var transactions []*pb.RecentTransaction
@@ -932,7 +907,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	for txid, tx := range mempoolRes.Msg.Transactions {
 		fee, err := btcutil.NewAmount(tx.Fees.Base)
 		if err != nil {
-			return nil, fmt.Errorf("could not parse fee: %w", err)
+			return nil, fmt.Errorf("parse fee: %w", err)
 		}
 
 		transactions = append(transactions, &pb.RecentTransaction{
@@ -945,7 +920,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	}
 	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
+		return nil, fmt.Errorf("bitcoind: get blockchain info: %w", err)
 	}
 
 	// While Core is in IBD on a populated chain (mainnet / eCash), the
@@ -974,7 +949,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: could not get block at height %d: %w", info.Msg.Blocks, err)
+		return nil, fmt.Errorf("bitcoind: get block at height %d: %w", info.Msg.Blocks, err)
 	}
 
 	// Walk recent blocks, fetching per-tx fee info, until we have `count`
@@ -992,7 +967,7 @@ walkBlocks:
 			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
 		}))
 		if err != nil {
-			return nil, fmt.Errorf("bitcoind: could not get block: %w", err)
+			return nil, fmt.Errorf("bitcoind: get block: %w", err)
 		}
 		for idx, txid := range blockRes.Msg.Txids {
 			// Skip coinbase before we pay for GetRawTransaction.
@@ -1005,7 +980,7 @@ walkBlocks:
 				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 			}))
 			if err != nil {
-				return nil, fmt.Errorf("bitcoind: could not get transaction %s: %w", txid, err)
+				return nil, fmt.Errorf("bitcoind: get transaction %s: %w", txid, err)
 			}
 
 			fee, err := btcutil.NewAmount(txRes.Msg.Fee)
@@ -1050,7 +1025,7 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	// caller gets one clear reason instead of a connection error each tick.
 	if !s.walletEngine.NodeMode().RunsLocalNode(ctx) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("network stats need full mode, which runs a local Bitcoin node"))
+			errors.New("network stats need full mode, which runs a local Bitcoin node"))
 	}
 
 	bitcoind, err := s.bitcoind.Get(ctx)

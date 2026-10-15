@@ -20,7 +20,6 @@ type Entry struct {
 	UpdatedAt time.Time
 }
 
-// Set creates or updates UTXO metadata
 func Set(ctx context.Context, db *sql.DB, outpoint string, isFrozen *bool, label *string) error {
 	now := time.Now().Unix()
 
@@ -29,7 +28,8 @@ func Set(ctx context.Context, db *sql.DB, outpoint string, isFrozen *bool, label
 		`SELECT outpoint, is_frozen, label FROM utxo_metadata WHERE outpoint = ?`,
 		outpoint,
 	)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		// Insert new entry
 		frozen := false
 		if isFrozen != nil {
@@ -44,7 +44,7 @@ func Set(ctx context.Context, db *sql.DB, outpoint string, isFrozen *bool, label
 			outpoint, frozen, lbl, now, now,
 		)
 		return err
-	} else if err != nil {
+	case err != nil:
 		return err
 	}
 

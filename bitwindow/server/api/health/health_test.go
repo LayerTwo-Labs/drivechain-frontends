@@ -1,7 +1,6 @@
-package api_health_test
+package health_test
 
 import (
-	"context"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -76,7 +75,7 @@ func TestService_Check(t *testing.T) {
 			apitests.WithCrypto(mockCrypto),
 		))
 
-		resp, err := cli.Check(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.Check(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		require.NotEmpty(t, resp.Msg.ServiceStatuses)
 
@@ -122,7 +121,7 @@ func TestService_Check(t *testing.T) {
 
 		cli := rpc.NewHealthServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.Check(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.Check(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 
 		// Find database status
@@ -167,7 +166,7 @@ func TestService_Check(t *testing.T) {
 
 		cli := rpc.NewHealthServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.Check(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.Check(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 
 		// Find bitcoind status
@@ -222,7 +221,7 @@ func TestService_Check(t *testing.T) {
 			apitests.WithValidator(mockValidator),
 		))
 
-		resp, err := cli.Check(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.Check(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 
 		// Find enforcer status
@@ -278,7 +277,7 @@ func TestService_Check(t *testing.T) {
 			apitests.WithCrypto(mockCrypto),
 		))
 
-		resp, err := cli.Check(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.Check(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 
 		// Find crypto status
@@ -341,7 +340,7 @@ func TestService_Check(t *testing.T) {
 			apitests.WithCrypto(mockCrypto),
 		))
 
-		resp, err := cli.Check(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.Check(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 
 		// Check statuses

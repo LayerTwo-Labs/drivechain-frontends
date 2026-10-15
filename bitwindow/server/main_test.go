@@ -96,7 +96,7 @@ func TestSupervisorLogsTheExitCode(t *testing.T) {
 
 	supervisor := testSupervisor(&log, func(context.Context) (*exec.Cmd, error) { return nil, nil })
 	supervisor.maxRestarts = 0
-	supervisor.run(context.Background(), startedCommand(t, "exit 7"))
+	supervisor.run(t.Context(), startedCommand(t, "exit 7"))
 
 	require.Contains(t, out.String(), `"exit_code":7`)
 	require.Contains(t, out.String(), "drivechaind exited")
@@ -115,7 +115,7 @@ func TestSupervisorStartsDrivechaindAgainAfterAKill(t *testing.T) {
 		starts++
 		return startedCommand(t, "exit 0"), nil
 	})
-	supervisor.run(context.Background(), startedCommand(t, "kill -9 $$"))
+	supervisor.run(t.Context(), startedCommand(t, "kill -9 $$"))
 
 	require.Equal(t, 2, starts, "the supervisor gave up before it reached the restart limit")
 	require.Contains(t, out.String(), "its RPC port stays dead until BitWindow restarts")
@@ -129,7 +129,7 @@ func TestSupervisorLeavesADeliberateShutdownAlone(t *testing.T) {
 	out := &strings.Builder{}
 	log := zerolog.New(out)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	starts := 0
@@ -158,7 +158,7 @@ func TestSupervisorWatchesThePortOfAnAdoptedDaemon(t *testing.T) {
 		return startedCommand(t, "exit 0"), nil
 	})
 	supervisor.watchPort = func(context.Context) { polls++ }
-	supervisor.run(context.Background(), nil)
+	supervisor.run(t.Context(), nil)
 
 	require.Positive(t, polls, "the supervisor never watched the port of the adopted daemon")
 	require.Positive(t, starts, "the supervisor never started drivechaind after the adopted one died")
@@ -176,7 +176,7 @@ func TestSupervisorKeepsWatchingAfterItAdoptsAnotherInstance(t *testing.T) {
 	polls := 0
 	supervisor := testSupervisor(&log, func(context.Context) (*exec.Cmd, error) { return nil, nil })
 	supervisor.watchPort = func(context.Context) { polls++ }
-	supervisor.run(context.Background(), startedCommand(t, "exit 1"))
+	supervisor.run(t.Context(), startedCommand(t, "exit 1"))
 
 	require.Positive(t, polls, "the supervisor dropped the watch after it adopted another instance")
 }
@@ -189,7 +189,7 @@ func TestOrchestratorPortWatcherReturnsOnADeadPort(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		orchestratorPortWatcher(addr, time.Millisecond)(context.Background())
+		orchestratorPortWatcher(addr, time.Millisecond)(t.Context())
 		close(done)
 	}()
 
@@ -214,7 +214,7 @@ func TestOrchestratorPortWatcherStaysOnALivePort(t *testing.T) {
 		}
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 	orchestratorPortWatcher("http://"+listener.Addr().String(), time.Millisecond)(ctx)
 
@@ -229,7 +229,7 @@ func TestSupervisorStopsADrivechaindStartedDuringAShutdown(t *testing.T) {
 	out := &strings.Builder{}
 	log := zerolog.New(out)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	var orphan *exec.Cmd
 	supervisor := testSupervisor(&log, func(context.Context) (*exec.Cmd, error) {
 		cancel()
@@ -252,7 +252,7 @@ func TestSupervisorReturnsWhileDrivechaindStillRuns(t *testing.T) {
 	out := &strings.Builder{}
 	log := zerolog.New(out)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	supervisor := testSupervisor(&log, func(context.Context) (*exec.Cmd, error) { return nil, nil })
 	alive := startedCommand(t, "sleep 30")
 
@@ -284,7 +284,7 @@ func TestSupervisorStopsOnAStartError(t *testing.T) {
 		starts++
 		return nil, errors.New("drivechaind not found")
 	})
-	supervisor.run(context.Background(), startedCommand(t, "exit 1"))
+	supervisor.run(t.Context(), startedCommand(t, "exit 1"))
 
 	require.Equal(t, 1, starts)
 	require.Contains(t, out.String(), "drivechaind restart failed")
@@ -313,7 +313,7 @@ func TestRetireOrchestratorReturnsOnceTheDaemonLetsThePortGo(t *testing.T) {
 
 	log := zerolog.Nop()
 	done := make(chan error, 1)
-	go func() { done <- retireOrchestrator(context.Background(), addr, t.TempDir(), &log) }()
+	go func() { done <- retireOrchestrator(t.Context(), addr, t.TempDir(), &log) }()
 
 	select {
 	case err := <-done:
@@ -329,7 +329,7 @@ func TestRetireOrchestratorStopsWhenTheContextEnds(t *testing.T) {
 	t.Cleanup(func() { _ = listener.Close() })
 	addr := "http://" + listener.Addr().String()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
 	log := zerolog.Nop()

@@ -36,7 +36,7 @@ func engineWithMode(t *testing.T, mode orchpb.NodeMode, err error) *engines.Wall
 func TestRequireFullNodeRefusesLightMode(t *testing.T) {
 	e := engineWithMode(t, orchpb.NodeMode_NODE_MODE_LIGHT, nil)
 
-	err := e.RequireFullNode(context.Background(), "proposing a sidechain")
+	err := e.RequireFullNode(t.Context(), "proposing a sidechain")
 	require.ErrorContains(t, err, "needs full mode")
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	require.Contains(t, err.Error(), "full mode")
@@ -44,7 +44,7 @@ func TestRequireFullNodeRefusesLightMode(t *testing.T) {
 
 func TestRequireFullNodeAllowsFullMode(t *testing.T) {
 	e := engineWithMode(t, orchpb.NodeMode_NODE_MODE_FULL, nil)
-	require.NoError(t, e.RequireFullNode(context.Background(), "proposing a sidechain"))
+	require.NoError(t, e.RequireFullNode(t.Context(), "proposing a sidechain"))
 }
 
 // An unreadable mode must not read as full. Failing open would let the call
@@ -53,7 +53,7 @@ func TestRequireFullNodeReportsAnUnreadableMode(t *testing.T) {
 	boom := connect.NewError(connect.CodeInternal, context.DeadlineExceeded)
 	e := engineWithMode(t, orchpb.NodeMode_NODE_MODE_UNSPECIFIED, boom)
 
-	err := e.RequireFullNode(context.Background(), "proposing a sidechain")
-	require.ErrorContains(t, err, "could not read the node mode")
+	err := e.RequireFullNode(t.Context(), "proposing a sidechain")
+	require.ErrorContains(t, err, "read the node mode")
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }

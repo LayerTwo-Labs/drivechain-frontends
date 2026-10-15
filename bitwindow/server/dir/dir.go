@@ -1,6 +1,7 @@
 package dir
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,7 +69,7 @@ func DefaultDataDir() (string, error) {
 
 		appData, ok := os.LookupEnv("APPDATA")
 		if !ok {
-			return "", fmt.Errorf("APPDATA environment variable not set")
+			return "", errors.New("APPDATA environment variable not set")
 		}
 		// Match Flutter's path_provider which uses CompanyName\ProductName from Runner.rc
 		dir = filepath.Join(appData, "10520LayertwoLabs", windowsAppName)

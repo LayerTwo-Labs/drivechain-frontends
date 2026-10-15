@@ -232,7 +232,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		rt.bitcoinEngine.SetCoinnewsLogger(&coinnewsLogger)
 		log.Info().Str("path", coinnewsLogPath).Msg("coinnews sync log enabled")
 	} else {
-		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("could not open coinnews-sync.log, skipping dedicated log")
+		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("open coinnews-sync.log: skip the dedicated log")
 	}
 
 	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
@@ -448,7 +448,7 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 				engines.IsBitcoinCoreStartupError(err.Error()) {
 				log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
 			} else {
-				log.Error().Err(err).Msg("unable to acquire ZMQ engine")
+				log.Error().Err(err).Msg("acquire ZMQ engine")
 			}
 			select {
 			case <-ctx.Done():
@@ -550,18 +550,18 @@ func (rt *Runtime) autoUnlockWallet(ctx context.Context) {
 
 	walletData, err := os.ReadFile(walletPath)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to read wallet for auto-unlock")
+		log.Error().Err(err).Msg("auto-unlock: read wallet")
 		return
 	}
 
 	var walletMap map[string]any
 	if err := json.Unmarshal(walletData, &walletMap); err != nil {
-		log.Error().Err(err).Msg("failed to parse wallet for auto-unlock")
+		log.Error().Err(err).Msg("auto-unlock: parse wallet")
 		return
 	}
 
 	if err := rt.walletEngine.Unlock(walletMap); err != nil {
-		log.Error().Err(err).Msg("failed to auto-unlock wallet engine")
+		log.Error().Err(err).Msg("auto-unlock wallet engine")
 		return
 	}
 	log.Info().Msg("wallet engine auto-unlocked successfully")

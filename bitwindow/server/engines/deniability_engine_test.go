@@ -67,7 +67,7 @@ func testDenialWalletEngine(
 func TestDeniabilityEngine(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

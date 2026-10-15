@@ -1,4 +1,4 @@
-package api_misc
+package misc
 
 import (
 	"context"
@@ -64,7 +64,6 @@ const listOPReturnLimit = 1000
 func (s *Server) ListOPReturn(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListOPReturnResponse], error) {
 	opReturns, err := opreturns.List(ctx, s.database, listOPReturnLimit)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list op returns")
 		return nil, err
 	}
 
@@ -539,10 +538,10 @@ func commentToProto(c cnstore.Comment, _ int) *miscv1.Comment {
 // TimestampFile implements miscv1connect.MiscServiceHandler.
 func (s *Server) TimestampFile(ctx context.Context, req *connect.Request[miscv1.TimestampFileRequest]) (*connect.Response[miscv1.TimestampFileResponse], error) {
 	if req.Msg.Filename == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename must be set"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("filename must be set"))
 	}
 	if len(req.Msg.FileData) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("file data must be set"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file data must be set"))
 	}
 
 	ts, err := s.timestampEngine.TimestampFile(ctx, req.Msg.Filename, req.Msg.FileData)
@@ -609,7 +608,7 @@ func timestampToProto(ts timestamps.FileTimestamp, currentBlockHeight int64) *mi
 // VerifyTimestamp implements miscv1connect.MiscServiceHandler.
 func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv1.VerifyTimestampRequest]) (*connect.Response[miscv1.VerifyTimestampResponse], error) {
 	if len(req.Msg.FileData) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("file data must be set"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file data must be set"))
 	}
 
 	filename := ""
@@ -618,10 +617,10 @@ func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv
 	}
 
 	ts, err := s.timestampEngine.VerifyTimestamp(ctx, req.Msg.FileData, filename)
-	if errors.Is(err, engines.ErrTimestampNotFound) {
+	switch {
+	case errors.Is(err, engines.ErrTimestampNotFound):
 		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	if err != nil {
+	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("verify timestamp: %w", err))
 	}
 

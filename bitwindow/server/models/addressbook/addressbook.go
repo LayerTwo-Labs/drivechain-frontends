@@ -82,7 +82,7 @@ func UpdateLabel(ctx context.Context, db *sql.DB, id int64, newLabel string) err
 		`UPDATE address_book SET label = ? WHERE id = ?`,
 		newLabel, id))
 	if errors.Is(err, sql.ErrNoRows) {
-		return connect.NewError(connect.CodeNotFound, fmt.Errorf("address book entry not found"))
+		return connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
 	}
 	return err
 }
@@ -92,7 +92,7 @@ func Delete(ctx context.Context, db *sql.DB, id int64) error {
 		`DELETE FROM address_book WHERE id = ?`,
 		id))
 	if errors.Is(err, sql.ErrNoRows) {
-		return connect.NewError(connect.CodeNotFound, fmt.Errorf("address book entry not found"))
+		return connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
 	}
 	return err
 }

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -32,7 +31,7 @@ var chainRows = map[string]string{
 }
 
 func TestAChainResetKeepsTheUserRows(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	conf := config.Config{Datadir: t.TempDir()}
 	require.NoError(t, conf.Finalize(config.NetworkECash))
 

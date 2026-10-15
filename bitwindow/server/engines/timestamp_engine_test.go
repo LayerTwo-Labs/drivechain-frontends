@@ -62,7 +62,7 @@ func (w *sequenceWallet) SendTransaction(ctx context.Context, opReturnData []byt
 // The file hash is unique, so a failed record that is never replaced makes the
 // file impossible to timestamp again.
 func TestTimestampEngine_TimestampFailedFileAgain(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := setupTestDB(t)
 	defer db.Close()
 
@@ -93,7 +93,7 @@ func TestTimestampEngine_TimestampFailedFileAgain(t *testing.T) {
 }
 
 func TestTimestampEngine_TimestampFile(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := setupTestDB(t)
 	defer db.Close()
 

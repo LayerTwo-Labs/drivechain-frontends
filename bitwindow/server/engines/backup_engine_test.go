@@ -25,7 +25,7 @@ func TestValidateBackup_JSON_Valid(t *testing.T) {
 	}
 	data, _ := json.Marshal(wallet)
 
-	contents, err := e.ValidateBackup(context.TODO(), data, "wallet.json")
+	contents, err := e.ValidateBackup(t.Context(), data, "wallet.json")
 	require.NoError(t, err)
 	require.True(t, contents.HasWallet)
 }
@@ -39,7 +39,7 @@ func TestValidateBackup_JSON_NewFormat(t *testing.T) {
 	}
 	data, _ := json.Marshal(wallet)
 
-	contents, err := e.ValidateBackup(context.TODO(), data, "backup.json")
+	contents, err := e.ValidateBackup(t.Context(), data, "backup.json")
 	require.NoError(t, err)
 	require.True(t, contents.HasWallet)
 }
@@ -51,7 +51,7 @@ func TestValidateBackup_JSON_Invalid(t *testing.T) {
 	}
 	data, _ := json.Marshal(wallet)
 
-	_, err := e.ValidateBackup(context.TODO(), data, "wallet.json")
+	_, err := e.ValidateBackup(t.Context(), data, "wallet.json")
 	require.ErrorContains(t, err, "invalid wallet.json")
 }
 
@@ -72,7 +72,7 @@ func TestValidateBackup_ZIP_Valid(t *testing.T) {
 	_, _ = w.Write(msData)
 	_ = zw.Close()
 
-	contents, err := e.ValidateBackup(context.TODO(), buf.Bytes(), "backup.zip")
+	contents, err := e.ValidateBackup(t.Context(), buf.Bytes(), "backup.zip")
 	require.NoError(t, err)
 	require.True(t, contents.HasWallet)
 	require.True(t, contents.HasMultisig)
@@ -87,14 +87,14 @@ func TestValidateBackup_ZIP_MissingWallet(t *testing.T) {
 	_, _ = w.Write([]byte("hello"))
 	_ = zw.Close()
 
-	_, err := e.ValidateBackup(context.TODO(), buf.Bytes(), "backup.zip")
+	_, err := e.ValidateBackup(t.Context(), buf.Bytes(), "backup.zip")
 	require.ErrorContains(t, err, "backup is missing wallet.json")
 }
 
 func TestValidateBackup_UnsupportedExtension(t *testing.T) {
 	e := &BackupEngine{}
 
-	_, err := e.ValidateBackup(context.TODO(), []byte("data"), "backup.tar.gz")
+	_, err := e.ValidateBackup(t.Context(), []byte("data"), "backup.tar.gz")
 	require.ErrorContains(t, err, "unsupported file type")
 }
 

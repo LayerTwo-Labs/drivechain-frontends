@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -52,7 +53,6 @@ type SidechainMonitorEngine struct {
 	httpClient *http.Client
 }
 
-// DetectedWithdrawal represents a detected fast withdrawal transaction
 type DetectedWithdrawal struct {
 	Txid        string    `json:"txid"`
 	Sidechain   string    `json:"sidechain"`
@@ -72,7 +72,6 @@ type PendingFastWithdrawal struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-// NewSidechainMonitorEngine creates a new sidechain monitoring engine
 func NewSidechainMonitorEngine(
 	thunder *service.Service[*thunder.Client],
 	bitnames *service.Service[*bitnames.Client],
@@ -157,7 +156,6 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 	return nil
 }
 
-// GetDetectedWithdrawals returns all detected withdrawals
 func (e *SidechainMonitorEngine) GetDetectedWithdrawals(ctx context.Context) ([]DetectedWithdrawal, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -165,7 +163,6 @@ func (e *SidechainMonitorEngine) GetDetectedWithdrawals(ctx context.Context) ([]
 	return lo.Values(e.detectedWithdrawals), nil
 }
 
-// GetWithdrawalByTxid returns a specific withdrawal by transaction ID
 func (e *SidechainMonitorEngine) GetWithdrawalByTxid(ctx context.Context, txid string) (*DetectedWithdrawal, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -192,7 +189,6 @@ func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Conte
 		Msg("registered pending fast withdrawal for monitoring")
 }
 
-// GetPendingFastWithdrawals returns all pending fast withdrawals
 func (e *SidechainMonitorEngine) GetPendingFastWithdrawals(ctx context.Context) ([]PendingFastWithdrawal, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -232,7 +228,7 @@ func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context
 
 			// Auto-complete the withdrawal
 			if err := e.completeWithdrawal(ctx, pending, txid); err != nil {
-				log.Error().Err(err).Str("hash", pending.Hash).Msg("failed to auto-complete withdrawal")
+				log.Error().Err(err).Str("hash", pending.Hash).Msg("auto-complete withdrawal")
 			}
 		}
 	}
@@ -340,7 +336,7 @@ func (e *SidechainMonitorEngine) monitor(ctx context.Context, name string, getCl
 	}
 
 	if err := e.checkFastWithdrawalPayments(ctx, name, client); err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to check fast withdrawal payments")
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("check fast withdrawal payments")
 	}
 
 	return nil
@@ -358,7 +354,7 @@ func (e *SidechainMonitorEngine) parseWithdrawalBundle(ctx context.Context, bund
 	if transactions, ok := bundle["transactions"].([]interface{}); ok {
 		for _, tx := range transactions {
 			if txMap, ok := tx.(map[string]interface{}); ok {
-				if txid, hasId := txMap["txid"].(string); hasId {
+				if txid, hasID := txMap["txid"].(string); hasID {
 					if amount, hasAmount := txMap["amount"].(float64); hasAmount {
 						if dest, hasDest := txMap["destination"].(string); hasDest {
 							withdrawal := DetectedWithdrawal{
@@ -517,7 +513,7 @@ func validateWithdrawalHash(hash string) error {
 	// Allow alphanumeric, dashes, and underscores (common in hashes and IDs)
 	matched, _ := regexp.MatchString(`^[a-zA-Z0-9\-_]+$`, hash)
 	if !matched {
-		return fmt.Errorf("invalid hash format: contains invalid characters")
+		return errors.New("invalid hash format: contains invalid characters")
 	}
 
 	return nil
@@ -531,7 +527,7 @@ func validateServerResponse(resp *http.Response, result map[string]interface{}) 
 
 	status, ok := result["status"].(string)
 	if !ok {
-		return fmt.Errorf("response missing 'status' field")
+		return errors.New("response missing 'status' field")
 	}
 
 	if status != "success" {

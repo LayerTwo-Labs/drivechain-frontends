@@ -14,7 +14,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
-// Group represents a multisig group stored in the DB.
 type Group struct {
 	ID                string  `db:"id"`
 	Name              string  `db:"name"`
@@ -358,10 +357,10 @@ func (s *Store) GetTransactionByTxid(ctx context.Context, txid string) (*Transac
 func (s *Store) getTransactionWhere(ctx context.Context, where sq.Eq) (*Transaction, error) {
 	query, args := selectTransaction.Where(where).Limit(1).MustSql()
 	t, err := database.Get[Transaction](ctx, s.db, query, args...)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
-	}
-	if err != nil {
+	case err != nil:
 		return nil, err
 	}
 	return &t, nil

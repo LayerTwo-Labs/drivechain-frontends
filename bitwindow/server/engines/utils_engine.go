@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -29,14 +30,14 @@ type BitcoinURI struct {
 func ParseBitcoinURI(uri string) (*BitcoinURI, error) {
 	lower := strings.ToLower(uri)
 	if !strings.HasPrefix(lower, "bitcoin:") {
-		return nil, fmt.Errorf("not a bitcoin URI")
+		return nil, errors.New("not a bitcoin URI")
 	}
 
 	// Split the URI into address and query parts
 	rest := uri[8:] // Remove "bitcoin:"
 	parts := strings.SplitN(rest, "?", 2)
 	if len(parts) == 0 || parts[0] == "" {
-		return nil, fmt.Errorf("no address specified")
+		return nil, errors.New("no address specified")
 	}
 
 	result := &BitcoinURI{
@@ -71,7 +72,7 @@ func ParseBitcoinURI(uri string) (*BitcoinURI, error) {
 			case "amount":
 				amount, err := strconv.ParseFloat(value, 64)
 				if err != nil {
-					return nil, fmt.Errorf("invalid amount format")
+					return nil, errors.New("invalid amount format")
 				}
 				result.Amount = amount
 			case "label":
@@ -106,11 +107,11 @@ type Base58DecodeResult struct {
 func DecodeBase58Check(input string) (*Base58DecodeResult, error) {
 	decoded := base58.Decode(input)
 	if len(decoded) == 0 && input != "" {
-		return nil, fmt.Errorf("invalid Base58 string")
+		return nil, errors.New("invalid Base58 string")
 	}
 
 	if len(decoded) < 5 {
-		return nil, fmt.Errorf("too short for valid Base58Check")
+		return nil, errors.New("too short for valid Base58Check")
 	}
 
 	// Split payload and checksum
@@ -168,7 +169,7 @@ type MerkleTreeResult struct {
 // CalculateMerkleTree calculates the Merkle tree from transaction IDs
 func CalculateMerkleTree(txids []string) (*MerkleTreeResult, error) {
 	if len(txids) == 0 {
-		return nil, fmt.Errorf("no transactions provided")
+		return nil, errors.New("no transactions provided")
 	}
 
 	// Parse hex strings to bytes
@@ -350,7 +351,7 @@ func GeneratePaperWallet(chainParams *chaincfg.Params) (*PaperWalletKeypair, err
 	privateKeyBytes := make([]byte, 32)
 	_, err := rand.Read(privateKeyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate random bytes: %w", err)
+		return nil, fmt.Errorf("generate random bytes: %w", err)
 	}
 
 	// Create private key from bytes
@@ -359,14 +360,14 @@ func GeneratePaperWallet(chainParams *chaincfg.Params) (*PaperWalletKeypair, err
 	// Create WIF
 	wif, err := btcutil.NewWIF(privateKey, chainParams, true) // compressed
 	if err != nil {
-		return nil, fmt.Errorf("failed to create WIF: %w", err)
+		return nil, fmt.Errorf("create WIF: %w", err)
 	}
 
 	// Generate P2PKH address
 	pubKeyHash := btcutil.Hash160(privateKey.PubKey().SerializeCompressed())
 	address, err := btcutil.NewAddressPubKeyHash(pubKeyHash, chainParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create address: %w", err)
+		return nil, fmt.Errorf("create address: %w", err)
 	}
 
 	return &PaperWalletKeypair{
@@ -393,7 +394,7 @@ func WIFToAddress(wifStr string, chainParams *chaincfg.Params) (string, error) {
 	pubKeyHash := btcutil.Hash160(wif.PrivKey.PubKey().SerializeCompressed())
 	address, err := btcutil.NewAddressPubKeyHash(pubKeyHash, chainParams)
 	if err != nil {
-		return "", fmt.Errorf("failed to create address: %w", err)
+		return "", fmt.Errorf("create address: %w", err)
 	}
 
 	return address.EncodeAddress(), nil

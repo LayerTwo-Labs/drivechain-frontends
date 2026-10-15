@@ -31,35 +31,23 @@ type NodeMode struct {
 	readAt time.Time
 }
 
-func NewNodeMode() *NodeMode {
-	return &NodeMode{}
-}
-
-func (n *NodeMode) SetClient(client orchrpc.WalletManagerServiceClient) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.client = client
-	n.cached = orchpb.NodeMode_NODE_MODE_UNSPECIFIED
-	n.readAt = time.Time{}
+func NewNodeMode(client orchrpc.WalletManagerServiceClient) *NodeMode {
+	return &NodeMode{client: client}
 }
 
 // Mode reads the mode the user picked. Repeat calls inside the TTL get the
 // cached answer.
 func (n *NodeMode) Mode(ctx context.Context) (orchpb.NodeMode, error) {
 	n.mu.Lock()
-	client := n.client
 	cached, readAt := n.cached, n.readAt
 	n.mu.Unlock()
 
-	if client == nil {
-		return orchpb.NodeMode_NODE_MODE_UNSPECIFIED, fmt.Errorf("orchestrator wallet client not connected")
-	}
 	if !readAt.IsZero() && time.Since(readAt) < nodeModeTTL {
 		return cached, nil
 	}
 
 	read, err, _ := n.reads.Do("mode", func() (any, error) {
-		resp, err := client.GetNodeMode(ctx, connect.NewRequest(&orchpb.GetNodeModeRequest{}))
+		resp, err := n.client.GetNodeMode(ctx, connect.NewRequest(&orchpb.GetNodeModeRequest{}))
 		if err != nil {
 			return orchpb.NodeMode_NODE_MODE_UNSPECIFIED, err
 		}
@@ -75,13 +63,6 @@ func (n *NodeMode) Mode(ctx context.Context) (orchpb.NodeMode, error) {
 	return read.(orchpb.NodeMode), nil
 }
 
-// hasClient reports whether this source can reach the orchestrator at all.
-func (n *NodeMode) hasClient() bool {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	return n.client != nil
-}
-
 // lastKnown gives the mode of the last successful read.
 func (n *NodeMode) lastKnown() orchpb.NodeMode {
 	n.mu.Lock()
@@ -95,7 +76,7 @@ func (n *NodeMode) lastKnown() orchpb.NodeMode {
 // unreadable mode keeps the last known answer, and an engine with no source
 // has no mode to obey.
 func (n *NodeMode) RunsLocalNode(ctx context.Context) bool {
-	if n == nil || !n.hasClient() {
+	if n == nil {
 		return true
 	}
 	mode, err := n.Mode(ctx)
@@ -121,7 +102,7 @@ func (n *NodeMode) RequireFullNode(ctx context.Context, op string) error {
 	mode, err := n.Mode(ctx)
 	if err != nil {
 		return connect.NewError(connect.CodeUnavailable,
-			fmt.Errorf("%s: could not read the node mode: %w", op, err))
+			fmt.Errorf("%s: read the node mode: %w", op, err))
 	}
 	if mode == orchpb.NodeMode_NODE_MODE_LIGHT {
 		return connect.NewError(connect.CodeFailedPrecondition,

@@ -11,11 +11,22 @@ linters:
     - gocritic
     - goprintffuncname
     - nakedret
+    - perfsprint
     - rowserrcheck
     - unconvert
     - unparam
     - zerologlint
   settings:
+    perfsprint:
+      integer-format: false
+      int-conversion: false
+      string-format: false
+      sprintf1: false
+      strconcat: false
+      bool-format: false
+      hex-format: false
+      concat-loop: false
+
     gocritic:
       enabled-checks:
         - deferInLoop

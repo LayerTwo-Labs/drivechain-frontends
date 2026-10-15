@@ -18,7 +18,7 @@ func TestGetM4History_OneConnection(t *testing.T) {
 	db.SetMaxOpenConns(1)
 	e := NewM4Engine(db)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	for height := uint32(100); height <= 101; height++ {

@@ -40,7 +40,7 @@ func TestOpenDir_CreatesDirectory(t *testing.T) {
 
 	// OpenDir will create the directory, then try to exec "open"/"xdg-open".
 	// The exec will likely fail in CI, but the dir should be created.
-	_ = engine.OpenDir(context.Background())
+	_ = engine.OpenDir(t.Context())
 
 	// Verify directory was created
 	info, err := os.Stat(targetDir)
@@ -60,7 +60,7 @@ func TestOpenDir_OpenerOutlivesRequestContext(t *testing.T) {
 
 	engine := &BitDriveEngine{bitdriveDir: dir}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	require.NoError(t, engine.OpenDir(ctx))
 	cancel()
 
@@ -112,7 +112,7 @@ func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 // keystreams, so the ciphertext is not a two-time pad, while still round-tripping
 // through Decrypt.
 func TestEncrypt_SameTimestampSameFileType_NoKeystreamReuse(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	engine := newEncryptTestEngine(t)
 
 	const timestamp = uint32(1800000000)
@@ -166,7 +166,7 @@ func TestEncrypt_SameTimestampSameFileType_NoKeystreamReuse(t *testing.T) {
 // type carried by that prefix, so a tag over nonce||ciphertext alone let an
 // attacker flip a metadata byte and have Decrypt return garbage with a nil error.
 func TestDecodeOPReturnData_MetadataTamperRejected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	engine := newEncryptTestEngine(t)
 
 	plain := []byte("BitDrive metadata binding probe payload")
@@ -208,7 +208,7 @@ func TestDecodeOPReturnData_MetadataTamperRejected(t *testing.T) {
 // sharing an identical timestamp and file type are written to distinct local
 // paths, so neither overwrites the other on disk.
 func TestSaveFile_SameSecondNoCollision(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	db, err := sql.Open("sqlite3", ":memory:")
 	require.NoError(t, err)
@@ -289,7 +289,7 @@ func TestDetectFileType_NonASCIIIsBinary(t *testing.T) {
 // chain, which OPReturnToReadable then hex-encoded, hiding the "|" separator
 // and making DecodeOPReturnData fail with "invalid format".
 func TestEncodeOPReturnData_NonASCIIRoundTrip(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	engine := &BitDriveEngine{}
 
 	contents := [][]byte{

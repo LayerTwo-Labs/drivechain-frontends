@@ -2,7 +2,6 @@ package database
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -24,7 +23,7 @@ func TestRecoversFromDeletedDatabaseFile(t *testing.T) {
 		t.Skip("windows locks open database files")
 	}
 	dir := t.TempDir()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	db, err := New(ctx, config.Config{Datadir: dir})
 	require.NoError(t, err)
@@ -54,7 +53,7 @@ func TestRecoversTransactionAfterDeletedDatabaseFile(t *testing.T) {
 		t.Skip("windows locks open database files")
 	}
 	dir := t.TempDir()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	db, err := New(ctx, config.Config{Datadir: dir})
 	require.NoError(t, err)

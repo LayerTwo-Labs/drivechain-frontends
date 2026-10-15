@@ -55,7 +55,7 @@ func Decrypt(ciphertext string, key []byte) (string, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", fmt.Errorf("failed to create cipher: %w", err)
+		return "", fmt.Errorf("create cipher: %w", err)
 	}
 
 	// Support both 12-byte (standard) and 16-byte (Dart default) IVs
@@ -68,7 +68,7 @@ func Decrypt(ciphertext string, key []byte) (string, error) {
 		gcm, err = cipher.NewGCM(block)
 	}
 	if err != nil {
-		return "", fmt.Errorf("failed to create GCM: %w", err)
+		return "", fmt.Errorf("create GCM: %w", err)
 	}
 
 	if len(ivBytes) != gcm.NonceSize() {
@@ -88,12 +88,12 @@ func LoadMetadata(appDir string) (*EncryptionMetadata, error) {
 	metadataPath := filepath.Join(appDir, "wallet_encryption.json")
 	data, err := os.ReadFile(metadataPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read metadata file: %w", err)
+		return nil, fmt.Errorf("read metadata file: %w", err)
 	}
 
 	var metadata EncryptionMetadata
 	if err := json.Unmarshal(data, &metadata); err != nil {
-		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+		return nil, fmt.Errorf("parse metadata: %w", err)
 	}
 
 	return &metadata, nil
@@ -110,7 +110,7 @@ func IsWalletEncrypted(appDir string) bool {
 func DecryptWallet(appDir, password string) (map[string]interface{}, error) {
 	metadata, err := LoadMetadata(appDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load metadata: %w", err)
+		return nil, fmt.Errorf("load metadata: %w", err)
 	}
 
 	if !metadata.Encrypted {
@@ -120,7 +120,7 @@ func DecryptWallet(appDir, password string) (map[string]interface{}, error) {
 	walletPath := filepath.Join(appDir, "wallet.json")
 	encryptedData, err := os.ReadFile(walletPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read wallet file: %w", err)
+		return nil, fmt.Errorf("read wallet file: %w", err)
 	}
 
 	salt, err := base64.StdEncoding.DecodeString(metadata.Salt)
@@ -137,7 +137,7 @@ func DecryptWallet(appDir, password string) (map[string]interface{}, error) {
 
 	var walletData map[string]interface{}
 	if err := json.Unmarshal([]byte(decrypted), &walletData); err != nil {
-		return nil, fmt.Errorf("failed to parse decrypted wallet: %w", err)
+		return nil, fmt.Errorf("parse decrypted wallet: %w", err)
 	}
 
 	return walletData, nil
@@ -148,12 +148,12 @@ func LoadUnencryptedWallet(appDir string) (map[string]interface{}, error) {
 	walletPath := filepath.Join(appDir, "wallet.json")
 	data, err := os.ReadFile(walletPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read wallet file: %w", err)
+		return nil, fmt.Errorf("read wallet file: %w", err)
 	}
 
 	var walletData map[string]interface{}
 	if err := json.Unmarshal(data, &walletData); err != nil {
-		return nil, fmt.Errorf("failed to parse wallet: %w", err)
+		return nil, fmt.Errorf("parse wallet: %w", err)
 	}
 
 	return walletData, nil

@@ -1,8 +1,9 @@
-package api_multisig
+package multisig
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -55,10 +56,10 @@ func (s *Server) SaveGroup(
 ) (*connect.Response[pb.SaveGroupResponse], error) {
 	pg := req.Msg.Group
 	if pg == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("group is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("group is required"))
 	}
 	if pg.Id == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("group id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("group id is required"))
 	}
 
 	g := multisig.Group{
@@ -242,7 +243,7 @@ func (s *Server) SaveTransaction(
 ) (*connect.Response[pb.SaveTransactionResponse], error) {
 	pt := req.Msg.Transaction
 	if pt == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("transaction is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("transaction is required"))
 	}
 
 	t := multisig.Transaction{
@@ -352,7 +353,7 @@ func (s *Server) AddSoloKey(
 ) (*connect.Response[emptypb.Empty], error) {
 	k := req.Msg.Key
 	if k == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("key is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("key is required"))
 	}
 
 	if err := s.store.AddSoloKey(ctx, multisig.SoloKey{

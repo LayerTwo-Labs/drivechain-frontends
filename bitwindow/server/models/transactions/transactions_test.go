@@ -1,7 +1,6 @@
 package transactions_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,7 +12,7 @@ import (
 // The same transaction can appear in two of the user's wallets. A note written
 // on one must not show up on the other.
 func TestSetNote_ScopedToWallet(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	const sharedTxid = "shared-txid"
@@ -37,7 +36,7 @@ func TestSetNote_ScopedToWallet(t *testing.T) {
 
 // Writing the same txid twice on one wallet updates rather than duplicates.
 func TestSetNote_UpsertsWithinWallet(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	require.NoError(t, transactions.SetNote(ctx, db, "wallet-a", "txid-1", "first"))
@@ -50,7 +49,7 @@ func TestSetNote_UpsertsWithinWallet(t *testing.T) {
 }
 
 func TestSetNote_RequiresWalletAndTxid(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	require.Panics(t, func() { _ = transactions.SetNote(ctx, db, "", "txid-1", "note") })

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -26,7 +27,6 @@ type Server struct {
 	httpClient *http.Client
 }
 
-// New creates a new fast withdrawal API server
 func New(monitor *engines.SidechainMonitorEngine) *Server {
 	return &Server{
 		monitor:    monitor,
@@ -58,7 +58,7 @@ func (s *Server) InitiateFastWithdrawal(
 	// Initiate withdrawal on sidechain
 	txid, err := s.initiateSidechainWithdrawal(ctx, fastWithdrawalServerURL, req.Msg.Sidechain, req.Msg.Amount, req.Msg.Destination)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to initiate sidechain withdrawal")
+		log.Error().Err(err).Msg("initiate sidechain withdrawal")
 		errorMsg := err.Error()
 		return stream.Send(&pb.FastWithdrawalUpdate{
 			Status:    pb.FastWithdrawalUpdate_STATUS_FAILED,
@@ -138,19 +138,19 @@ func (s *Server) initiateSidechainWithdrawal(ctx context.Context, serverURL stri
 
 	data := result.Data
 	if data == nil {
-		return "", fmt.Errorf("invalid response format: missing data")
+		return "", errors.New("invalid response format: missing data")
 	}
 	if data.Hash == "" {
-		return "", fmt.Errorf("invalid response format: missing hash")
+		return "", errors.New("invalid response format: missing hash")
 	}
 	if data.ServerL2Address == nil {
-		return "", fmt.Errorf("invalid response format: missing server_l2_address")
+		return "", errors.New("invalid response format: missing server_l2_address")
 	}
 	if data.ServerL2Address.Info == "" {
-		return "", fmt.Errorf("invalid response format: missing server L2 address info")
+		return "", errors.New("invalid response format: missing server L2 address info")
 	}
 	if data.ServerFeeSats == nil {
-		return "", fmt.Errorf("invalid response format: missing server_fee_sats")
+		return "", errors.New("invalid response format: missing server_fee_sats")
 	}
 	withdrawalHash := data.Hash
 	serverAddress := data.ServerL2Address.Info

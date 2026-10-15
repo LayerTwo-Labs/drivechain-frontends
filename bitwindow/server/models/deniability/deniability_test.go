@@ -1,7 +1,6 @@
 package deniability
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 
 func TestDeniability(t *testing.T) {
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("create denial", func(t *testing.T) {
 		t.Parallel()

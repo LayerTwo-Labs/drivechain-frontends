@@ -1,7 +1,6 @@
 package opreturns
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -15,7 +14,7 @@ import (
 // List(..., limit) must cap rows at the requested limit.
 func TestList_LimitCaps(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	const total = 50
@@ -42,7 +41,7 @@ func TestList_LimitCaps(t *testing.T) {
 // List(..., 0) is the explicit "full table" escape hatch (bitdrive).
 func TestList_LimitZeroIsUnbounded(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	const n = 50
@@ -69,7 +68,7 @@ func TestList_LimitZeroIsUnbounded(t *testing.T) {
 // purely from cache (a real query would fail).
 func TestListCache_HitAfterMiss(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	h := uint32(1)
@@ -93,7 +92,7 @@ func TestListCache_HitAfterMiss(t *testing.T) {
 // Persist must drop the cache so the next read sees the new row.
 func TestListCache_InvalidatedByPersist(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	first, err := List(ctx, db, 100)
@@ -114,7 +113,7 @@ func TestListCache_InvalidatedByPersist(t *testing.T) {
 // Cache must not bleed entries across DBs.
 func TestListCache_PerDBIsolation(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	dbA := database.Test(t)
 	dbB := database.Test(t)
 
@@ -137,7 +136,7 @@ func TestListCache_PerDBIsolation(t *testing.T) {
 // op_returns rows.
 func TestListCoinNews_ReadsCanonicalStories(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "abcd1234") // non-default so the seeded name wins
@@ -155,7 +154,7 @@ func TestListCoinNews_ReadsCanonicalStories(t *testing.T) {
 // Per-topic retention is applied at SQL time; rows past the cutoff drop.
 func TestListCoinNews_RetentionFilteredAtSQL(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "b2b2b2b2")
@@ -176,7 +175,7 @@ func TestListCoinNews_RetentionFilteredAtSQL(t *testing.T) {
 // A caller mutating the returned slice must not corrupt the cache.
 func TestList_CallerCannotPoisonCache(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	h := uint32(1)
@@ -202,7 +201,7 @@ func TestList_CallerCannotPoisonCache(t *testing.T) {
 // Same mutation guard for the ListCoinNews path.
 func TestListCoinNews_CallerCannotPoisonCache(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "d4d4d4d4")
@@ -226,7 +225,7 @@ func TestListCoinNews_CallerCannotPoisonCache(t *testing.T) {
 // surface as articles.
 func TestListCoinNews_TopicCreationRowFiltered(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "e5e5e5e5")
@@ -244,7 +243,7 @@ func TestListCoinNews_TopicCreationRowFiltered(t *testing.T) {
 // regressed to a strict cutoff the row would silently drop.
 func TestListCoinNews_ZeroRetentionKeepsForever(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "f6f6f6f6")
@@ -262,7 +261,7 @@ func TestListCoinNews_ZeroRetentionKeepsForever(t *testing.T) {
 // Junk rows where headline is blank-or-padding-only must not surface.
 func TestListCoinNews_EmptyPayloadFiltered(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "07070707")
@@ -281,7 +280,7 @@ func TestListCoinNews_EmptyPayloadFiltered(t *testing.T) {
 // topic). Catches a class of JOIN-mapping bug.
 func TestListCoinNews_TopicNameMatchesEachRow(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topicA := mustTopicID(t, "aaaaaaaa")
@@ -310,7 +309,7 @@ func TestListCoinNews_TopicNameMatchesEachRow(t *testing.T) {
 // the confirming write must not erase it.
 func TestConfirmingARowKeepsAFeeTheMempoolAlreadyGave(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	const txid = "a1b2c3"
@@ -336,7 +335,7 @@ func TestConfirmingARowKeepsAFeeTheMempoolAlreadyGave(t *testing.T) {
 // A fee the scan does read still replaces whatever the row held.
 func TestConfirmingARowStillWritesAKnownFee(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	const txid = "d4e5f6"
