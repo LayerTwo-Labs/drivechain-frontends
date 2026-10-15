@@ -34,11 +34,11 @@ type DepositDroppedEngine struct {
 	db            *sql.DB
 	deposits      DepositLister
 	notifications NotificationSink
-	slots         func() ([]uint32, error)
+	slots         func(context.Context) ([]uint32, error)
 }
 
 func NewDepositDroppedEngine(
-	db *sql.DB, deposits DepositLister, broadcaster NotificationSink, slots func() ([]uint32, error),
+	db *sql.DB, deposits DepositLister, broadcaster NotificationSink, slots func(context.Context) ([]uint32, error),
 ) *DepositDroppedEngine {
 	return &DepositDroppedEngine{db: db, deposits: deposits, notifications: broadcaster, slots: slots}
 }
@@ -64,7 +64,7 @@ func (e *DepositDroppedEngine) Run(ctx context.Context) error {
 
 func (e *DepositDroppedEngine) tick(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
-	slots, err := e.slots()
+	slots, err := e.slots(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("could not read the sidechain slots")
 		return
@@ -72,7 +72,7 @@ func (e *DepositDroppedEngine) tick(ctx context.Context) {
 	for _, slot := range slots {
 		deposits, err := e.deposits.ListSidechainDeposits(ctx, slot, "")
 		if err != nil {
-			log.Debug().Err(err).Uint32("slot", slot).Msg("could not read the deposits of the slot")
+			log.Warn().Err(err).Uint32("slot", slot).Msg("could not read the deposits of the slot")
 			continue
 		}
 		for _, d := range deposits {

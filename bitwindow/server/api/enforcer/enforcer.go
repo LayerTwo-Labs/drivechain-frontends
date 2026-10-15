@@ -47,9 +47,10 @@ type Server struct {
 }
 
 // forwardStream sends each message of in to out until in ends.
-func forwardStream[Res any](in *connect.ServerStreamForClient[Res], out *connect.ServerStream[Res]) error {
+func forwardStream[Res any](ctx context.Context, name string, in *connect.ServerStreamForClient[Res], out *connect.ServerStream[Res]) error {
 	for in.Receive() {
 		if err := out.Send(in.Msg()); err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Str("stream", name).Msg("could not send stream message")
 			return fmt.Errorf("forward stream message: %w", err)
 		}
 	}
@@ -76,7 +77,7 @@ func (s *Server) SubscribeHeaderSyncProgress(ctx context.Context, c *connect.Req
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not subscribe to header sync progress")
 		return err
 	}
-	return forwardStream(clientStream, stream)
+	return forwardStream(ctx, "header sync progress", clientStream, stream)
 }
 
 // CreateSidechainProposal implements mainchainv1connect.BlockProducerServiceHandler.
@@ -93,7 +94,7 @@ func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create sidechain proposal")
 		return err
 	}
-	return forwardStream(clientStream, stream)
+	return forwardStream(ctx, "sidechain proposal", clientStream, stream)
 }
 
 // SubmitSidechainProposal implements mainchainv1connect.BlockProducerServiceHandler.
@@ -290,7 +291,7 @@ func (s *Server) SubscribeEvents(ctx context.Context, c *connect.Request[maincha
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not subscribe to events")
 		return err
 	}
-	return forwardStream(clientStream, stream)
+	return forwardStream(ctx, "events", clientStream, stream)
 }
 
 // HmacSha512 implements cryptov1connect.CryptoServiceHandler.

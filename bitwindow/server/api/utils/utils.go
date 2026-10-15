@@ -78,15 +78,8 @@ func (s *Server) DecodeBase58Check(_ context.Context, req *connect.Request[utils
 
 // EncodeBase58Check implements utilsv1connect.UtilsServiceHandler
 func (s *Server) EncodeBase58Check(_ context.Context, req *connect.Request[utilspb.EncodeBase58CheckRequest]) (*connect.Response[utilspb.EncodeBase58CheckResponse], error) {
-	encoded, err := engines.EncodeBase58Check(int(req.Msg.VersionByte), req.Msg.Data)
-	if err != nil {
-		return connect.NewResponse(&utilspb.EncodeBase58CheckResponse{
-			Error: err.Error(),
-		}), nil
-	}
-
 	return connect.NewResponse(&utilspb.EncodeBase58CheckResponse{
-		Encoded: encoded,
+		Encoded: engines.EncodeBase58Check(int(req.Msg.VersionByte), req.Msg.Data),
 	}), nil
 }
 

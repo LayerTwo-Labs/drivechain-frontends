@@ -327,10 +327,12 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	}
 
 	// Cache all wallet metadata for encrypted wallets
+	log := zerolog.Ctx(context.Background())
 	walletCache := make(map[string]*WalletInfo)
-	for _, w := range wallets {
+	for i, w := range wallets {
 		walletMap, ok := w.(map[string]any)
 		if !ok {
+			log.Warn().Int("index", i).Msg("skip wallet entry that is not an object")
 			continue
 		}
 
@@ -341,7 +343,8 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 
 		var walletInfo WalletInfo
 		if err := json.Unmarshal(walletBytes, &walletInfo); err != nil {
-			return fmt.Errorf("parse wallet for cache: %w", err)
+			log.Warn().Err(err).Interface("wallet_id", walletMap["id"]).Msg("skip wallet entry that does not parse")
+			continue
 		}
 
 		walletCache[walletInfo.ID] = &walletInfo
@@ -539,11 +542,6 @@ func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, wallet
 	e.coreWallets[walletId] = resp.Msg.CoreWalletName
 	e.mu.Unlock()
 	return resp.Msg.CoreWalletName, nil
-}
-
-// GetBitcoinCoreWalletName returns the Bitcoin Core wallet name for a walletId
-func (e *WalletEngine) GetBitcoinCoreWalletName(ctx context.Context, walletId string) (string, error) {
-	return e.EnsureBitcoinCoreWallet(ctx, walletId)
 }
 
 // CoreWalletName returns the Bitcoin Core wallet that holds the wallet's coins.

@@ -467,8 +467,7 @@ func (s *Server) checkLabelFree(ctx context.Context, label string, self func(add
 	}
 	entries, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
-		return connect.NewError(connect.CodeInternal, err)
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("list address book entries: %w", err))
 	}
 	if lo.ContainsBy(entries, func(entry addressbook.Entry) bool {
 		return !self(entry) && strings.EqualFold(strings.TrimSpace(entry.Label), label)
@@ -1258,7 +1257,7 @@ func (s *Server) checkElectrumUTXO(ctx context.Context, walletID string, txid st
 
 // checkBitcoinCoreUTXO checks if a UTXO exists in a Bitcoin Core wallet
 func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {
-	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletID)
+	walletName, err := s.walletEngine.EnsureBitcoinCoreWallet(ctx, walletID)
 	if err != nil {
 		return false, fmt.Errorf("get wallet name: %w", err)
 	}

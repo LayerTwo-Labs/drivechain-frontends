@@ -134,8 +134,8 @@ func DecodeBase58Check(input string) (*Base58DecodeResult, error) {
 }
 
 // EncodeBase58Check encodes data to Base58Check format
-func EncodeBase58Check(versionByte int, data []byte) (string, error) {
-	return base58.CheckEncode(data, byte(versionByte)), nil
+func EncodeBase58Check(versionByte int, data []byte) string {
+	return base58.CheckEncode(data, byte(versionByte))
 }
 
 func getAddressType(versionByte int) string {

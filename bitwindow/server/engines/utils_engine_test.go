@@ -103,8 +103,7 @@ func TestEncodeBase58Check(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := engines.EncodeBase58Check(tc.version, mustHex(t, tc.data))
-			require.NoError(t, err)
+			got := engines.EncodeBase58Check(tc.version, mustHex(t, tc.data))
 			require.Equal(t, tc.want, got)
 
 			decoded, err := engines.DecodeBase58Check(got)

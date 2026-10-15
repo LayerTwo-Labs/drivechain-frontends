@@ -261,16 +261,20 @@ func TestGetWalletInfo(t *testing.T) {
 	})
 }
 
-func TestUnlock_BadWalletEntryFails(t *testing.T) {
+func TestUnlock_SkipsBadWalletEntries(t *testing.T) {
 	e := NewWalletEngine(nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), t.TempDir(), &chaincfg.MainNetParams)
 
 	var walletData map[string]any
 	require.NoError(t, json.Unmarshal([]byte(`{"activeWalletId":"a","wallets":[
 		{"id":"a","master":{"seed_hex":"00"}},
-		{"id":"b","name":7,"master":{"seed_hex":"01"}}
+		{"id":"b","name":7,"master":{"seed_hex":"01"}},
+		"not an object",
+		{"id":"c","master":{"seed_hex":"02"}}
 	]}`), &walletData))
 
-	require.ErrorContains(t, e.Unlock(walletData), "parse wallet for cache")
-	require.False(t, e.IsUnlocked())
-	require.Empty(t, e.walletCache)
+	require.NoError(t, e.Unlock(walletData))
+	require.True(t, e.IsUnlocked())
+	require.Contains(t, e.walletCache, "a")
+	require.Contains(t, e.walletCache, "c")
+	require.NotContains(t, e.walletCache, "b")
 }

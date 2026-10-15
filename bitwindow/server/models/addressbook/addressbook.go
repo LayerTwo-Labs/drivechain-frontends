@@ -51,7 +51,10 @@ func Upsert(ctx context.Context, db *sql.DB, walletID *string, label, address st
 		`INSERT INTO address_book (wallet_id, label, address, direction) VALUES (?, ?, ?, ?)
 		ON CONFLICT(address, direction) DO UPDATE SET label = excluded.label`,
 		walletID, label, address, direction)
-	return err
+	if err != nil {
+		return fmt.Errorf("upsert address book entry: %w", err)
+	}
+	return nil
 }
 
 func List(ctx context.Context, db *sql.DB) ([]Entry, error) {
