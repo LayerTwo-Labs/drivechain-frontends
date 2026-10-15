@@ -1,7 +1,6 @@
 // Package coinnews persists CoinNews messages decoded by the
-// `bitwindow/server/coinnews` codec. The two packages are deliberately
-// split: the codec is pure bytes, the store is database/SQL only. The
-// engine's parser glues them together (see `bitwindow/server/engines`).
+// `sidesail/coinnews/codec` package. The codec is pure bytes, the store is
+// database/SQL only. The engine's parser joins them (see `bitwindow/server/engines`).
 package coinnews
 
 import (
@@ -113,10 +112,8 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]Comment, 
 	return out, nil
 }
 
-// BlockPos locates an Item in canonical scan order (spec §4.2). Always
-// fully populated when an Item is being indexed — making this a value
-// type (not a pointer) prevents the partial-nil bug classes the
-// previous shape was vulnerable to.
+// BlockPos locates an Item in canonical scan order (spec §4.2). It is a value
+// type, so an indexed Item always has a full position.
 type BlockPos struct {
 	BlockHeight uint32
 	TxIndex     uint32

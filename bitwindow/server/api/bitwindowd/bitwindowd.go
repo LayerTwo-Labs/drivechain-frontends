@@ -1260,7 +1260,6 @@ func (s *Server) getBlockAtHeight(ctx context.Context, height int64) (int64, err
 	return block.Msg.Time.Seconds, nil
 }
 
-// checkBitcoinCoreUTXO checks if a UTXO exists in a Bitcoin Core wallet
 func (s *Server) checkElectrumUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {
 	utxos, err := s.walletEngine.GetElectrumUnspent(ctx, walletID)
 	if err != nil {
@@ -1272,6 +1271,7 @@ func (s *Server) checkElectrumUTXO(ctx context.Context, walletID string, txid st
 	}), nil
 }
 
+// checkBitcoinCoreUTXO checks if a UTXO exists in a Bitcoin Core wallet
 func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {
 	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletID)
 	if err != nil {

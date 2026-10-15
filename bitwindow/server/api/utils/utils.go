@@ -102,7 +102,6 @@ func (s *Server) CalculateMerkleTree(_ context.Context, req *connect.Request[uti
 		formatted = engines.FormatMerkleTree(result.Levels, nil)
 	}
 
-	// Convert levels to proto format
 	levels := make([]*utilspb.MerkleTreeLevel, len(result.Levels))
 	for i, level := range result.Levels {
 		var rcb []string

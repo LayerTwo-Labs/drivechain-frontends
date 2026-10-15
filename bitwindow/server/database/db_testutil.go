@@ -20,14 +20,11 @@ type TestingLog interface {
 	Cleanup(func())
 }
 
-// Test creates a database for the given test. It does this
-// by extracting the package under test, and creating and caching
-// a database. If two tests call the Database method, only a single
-// database is created.
+// Test creates a new migrated database for the given test, named after the
+// package under test.
 func Test(t TestingLog) *sql.DB {
 	pack := getPackageUnderTest()
 
-	// Create a new database for each test
 	database, tmpfile, err := actualGetDatabase(pack)
 	if err != nil {
 		t.Logf("unable to get database: %s", err)
@@ -63,14 +60,14 @@ func actualGetDatabase(
 	// Create a unique database file for this package
 	tmpfile, err := os.CreateTemp("", fmt.Sprintf("%s-*.db", name))
 	if err != nil {
-		return nil, "", fmt.Errorf("could not create temp file: %v", err)
+		return nil, "", fmt.Errorf("could not create temp file: %w", err)
 	}
 
 	// Open the database with SQLite3 configuration
 	db, err := sql.Open("sqlite3", tmpfile.Name())
 	if err != nil {
 		os.Remove(tmpfile.Name()) // Clean up if we fail to open
-		return nil, "", fmt.Errorf("could not open database: %v", err)
+		return nil, "", fmt.Errorf("could not open database: %w", err)
 	}
 
 	// Run migrations
@@ -78,7 +75,7 @@ func actualGetDatabase(
 	if err := runMigrations(migrateCtx, db); err != nil {
 		db.Close()
 		os.Remove(tmpfile.Name()) // Clean up if migrations fail
-		return nil, "", fmt.Errorf("could not run migrations: %v", err)
+		return nil, "", fmt.Errorf("could not run migrations: %w", err)
 	}
 
 	log.Info().Msgf("finished creating test database %q in %s", name, time.Since(start))

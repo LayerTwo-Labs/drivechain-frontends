@@ -61,7 +61,7 @@ func scanProcessedBlock(scanner interface{ Scan(dest ...any) error }) (Processed
 	return pb, nil
 }
 
-// MarkBlocksProcessed marks multiple blocks as processed in a single transaction (safe, no string concatenation)
+// MarkBlocksProcessed marks multiple blocks as processed in a single transaction.
 func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBlock) error {
 	if len(blocks) == 0 {
 		return nil

@@ -406,7 +406,6 @@ func isNoisyStartupMessage(msg string) bool {
 	return false
 }
 
-// startDrivechaind starts the orchestrator daemon as a subprocess.
 // drivechaindLogPath keeps the child on the same file as bitwindowd, so
 // --log.path holds the whole merged stream.
 func drivechaindLogPath(conf config.Config, bitwindowDir string) string {
@@ -416,6 +415,7 @@ func drivechaindLogPath(conf config.Config, bitwindowDir string) string {
 	return logfile.Path(bitwindowDir)
 }
 
+// startDrivechaind starts the orchestrator daemon as a subprocess.
 func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error) {
 	log := zerolog.Ctx(ctx)
 	bitwindowDir := conf.BitwindowDir()
@@ -475,8 +475,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	// Detached: drivechaind owns its own lifecycle and outlives bitwindowd.
 	// On window close, bitwindowd relays a Shutdown RPC and exits immediately,
 	// while drivechaind keeps draining bitcoind for up to ~90s in the
-	// background. See plan: "Detach drivechaind + bitwindowd-mediated
-	// shutdown with mid-shutdown recovery".
+	// background.
 	//
 	// - exec.Command (no Context): bitwindowd's ctx cancellation does NOT
 	//   propagate to drivechaind.
@@ -784,8 +783,6 @@ func orchestratorHostPort(addr string) (string, error) {
 	return u.Host, nil
 }
 
-// waitForOrchestratorNetwork polls drivechaind for the current network.
-// drivechaind owns the bitcoin.conf — bitwindowd is just a consumer of
 // relayShutdownToDrivechaind fires the drivechaind Shutdown RPC on
 // bitwindowd exit. Best-effort: drivechaind acks immediately (the drain
 // runs in its own goroutine), and Shutdown is idempotent so a duplicate call
@@ -854,10 +851,10 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 	return fmt.Errorf("drivechaind still holds %s after %s", hostPort, retireDrainWait)
 }
 
-// that view of the world. Retries for ~15s while drivechaind boots.
 // waitForOrchestratorNetwork returns the network drivechaind serves and, for
-// eCash, the catalog id inside it. The id seeds the runtime identity: the eCash
-// rows share one network, so only the id tells two of them apart.
+// eCash, the catalog id inside it. It retries for ~15s while drivechaind boots.
+// The id seeds the runtime identity: the eCash rows share one network, so only
+// the id tells two of them apart.
 func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, log zerolog.Logger) (string, string, error) {
 	if addr == "" {
 		return "", "", fmt.Errorf("orchestrator.addr not configured")
