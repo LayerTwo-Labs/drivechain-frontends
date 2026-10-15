@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -47,8 +49,15 @@ func NewWithResults[T any](ctx context.Context, poolLabel string) *ResultPool[T]
 type ResultPool[T any] struct {
 	pool *Pool
 
-	mu  sync.Mutex
-	out []T
+	mu   sync.Mutex
+	next int
+	out  []indexedResult[T]
+}
+
+// Callers read results by position, so the order must not depend on goroutine scheduling.
+type indexedResult[T any] struct {
+	idx int
+	val T
 }
 
 func (p *ResultPool[T]) WithJobCount(count int) *ResultPool[T] {
@@ -77,6 +86,11 @@ func (p *ResultPool[T]) WithLogLevel(level zerolog.Level) *ResultPool[T] {
 }
 
 func (p *ResultPool[T]) Go(jobLabel string, fn func(context.Context) (T, error)) {
+	p.mu.Lock()
+	idx := p.next
+	p.next++
+	p.mu.Unlock()
+
 	p.pool.Go(jobLabel, func(ctx context.Context) error {
 		res, err := fn(ctx)
 		if err != nil {
@@ -86,18 +100,25 @@ func (p *ResultPool[T]) Go(jobLabel string, fn func(context.Context) (T, error))
 		p.mu.Lock()
 		defer p.mu.Unlock()
 
-		p.out = append(p.out, res)
+		p.out = append(p.out, indexedResult[T]{idx: idx, val: res})
 		return nil
 	})
 }
 
+// Wait returns the results of the successful jobs, in the order of the Go calls.
 func (p *ResultPool[T]) Wait(ctx context.Context) ([]T, error) {
 	err := p.pool.Wait(ctx)
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	return p.out, err
+	slices.SortFunc(p.out, func(a, b indexedResult[T]) int {
+		return a.idx - b.idx
+	})
+
+	return lo.Map(p.out, func(r indexedResult[T], _ int) T {
+		return r.val
+	}), err
 }
 
 func New(ctx context.Context, poolLabel string) *Pool {
