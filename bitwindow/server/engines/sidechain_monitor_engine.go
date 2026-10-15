@@ -26,11 +26,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 )
 
-// NotificationBroadcaster interface for testability
-type NotificationBroadcaster interface {
-	Broadcast(ctx context.Context, event *notificationv1.WatchResponse)
-}
-
 // SidechainMonitorEngine monitors all sidechains for fast withdrawal transactions
 type SidechainMonitorEngine struct {
 	// Sidechain services
@@ -42,7 +37,7 @@ type SidechainMonitorEngine struct {
 	coinshift *service.Service[*coinshift.Client]
 
 	// Notification engine for streaming updates
-	notificationEngine NotificationBroadcaster
+	notificationEngine NotificationSink
 
 	// State tracking (in-memory only)
 	mu                     sync.RWMutex
@@ -78,7 +73,7 @@ func NewSidechainMonitorEngine(
 	truthcoin *service.Service[*truthcoin.Client],
 	photon *service.Service[*photon.Client],
 	coinshift *service.Service[*coinshift.Client],
-	notificationEngine NotificationBroadcaster,
+	notificationEngine NotificationSink,
 ) *SidechainMonitorEngine {
 	return &SidechainMonitorEngine{
 		thunder:                thunder,
@@ -186,13 +181,6 @@ func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Conte
 		Str("address", withdrawal.ServerAddress).
 		Int64("amount", withdrawal.ExpectedAmount).
 		Msg("registered pending fast withdrawal for monitoring")
-}
-
-func (e *SidechainMonitorEngine) GetPendingFastWithdrawals(ctx context.Context) ([]PendingFastWithdrawal, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	return lo.Values(e.pendingFastWithdrawals), nil
 }
 
 type withdrawResponse struct {
@@ -384,7 +372,7 @@ func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal
 			},
 		},
 	}
-	e.notificationEngine.Broadcast(ctx, event)
+	e.notificationEngine.Deliver(ctx, event)
 
 	log.Info().
 		Str("txid", withdrawal.Txid).

@@ -27,18 +27,10 @@ type Draft struct {
 // Store provides DB access for wallet PSBT drafts.
 type Store struct {
 	db *sql.DB
-
-	// now is replaceable in tests.
-	now func() time.Time
 }
 
 func NewStore(db *sql.DB) *Store {
-	return &Store{db: db, now: time.Now}
-}
-
-// SetClock replaces the store's clock. Test use only.
-func (s *Store) SetClock(now func() time.Time) {
-	s.now = now
+	return &Store{db: db}
 }
 
 func (s *Store) List(ctx context.Context, walletID string) ([]Draft, error) {
@@ -58,7 +50,7 @@ func (s *Store) Save(ctx context.Context, d Draft) (Draft, error) {
 		return Draft{}, errors.New("wallet id is required")
 	}
 
-	nowMs := s.now().UnixMilli()
+	nowMs := time.Now().UnixMilli()
 	if d.ID == "" {
 		id, err := newID()
 		if err != nil {

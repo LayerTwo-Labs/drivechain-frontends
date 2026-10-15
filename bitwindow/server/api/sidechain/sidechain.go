@@ -38,19 +38,7 @@ func (s *Server) GetDetectedWithdrawals(
 			continue
 		}
 
-		pbW := &pb.DetectedWithdrawal{
-			Txid:        w.Txid,
-			Sidechain:   w.Sidechain,
-			Amount:      w.Amount,
-			Destination: w.Destination,
-			DetectedAt:  timestamppb.New(w.DetectedAt),
-		}
-
-		if w.BlockHash != nil {
-			pbW.BlockHash = w.BlockHash
-		}
-
-		pbWithdrawals = append(pbWithdrawals, pbW)
+		pbWithdrawals = append(pbWithdrawals, withdrawalToProto(w))
 
 		// Apply limit if specified
 		if req.Msg.Limit != nil && len(pbWithdrawals) >= int(*req.Msg.Limit) {
@@ -75,20 +63,19 @@ func (s *Server) GetWithdrawalByTxid(
 	resp := &pb.GetWithdrawalByTxidResponse{}
 
 	if withdrawal != nil {
-		pbW := &pb.DetectedWithdrawal{
-			Txid:        withdrawal.Txid,
-			Sidechain:   withdrawal.Sidechain,
-			Amount:      withdrawal.Amount,
-			Destination: withdrawal.Destination,
-			DetectedAt:  timestamppb.New(withdrawal.DetectedAt),
-		}
-
-		if withdrawal.BlockHash != nil {
-			pbW.BlockHash = withdrawal.BlockHash
-		}
-
-		resp.Withdrawal = pbW
+		resp.Withdrawal = withdrawalToProto(*withdrawal)
 	}
 
 	return connect.NewResponse(resp), nil
+}
+
+func withdrawalToProto(w engines.DetectedWithdrawal) *pb.DetectedWithdrawal {
+	return &pb.DetectedWithdrawal{
+		Txid:        w.Txid,
+		Sidechain:   w.Sidechain,
+		Amount:      w.Amount,
+		Destination: w.Destination,
+		DetectedAt:  timestamppb.New(w.DetectedAt),
+		BlockHash:   w.BlockHash,
+	}
 }

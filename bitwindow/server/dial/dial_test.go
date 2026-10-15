@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -18,12 +19,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 )
 
-// TestEnsureHTTPScheme guards the double-prefix regression. config.OrchestratorAddr
-// defaults to a full URL ("http://localhost:30400"); dial.Bitcoind used to wrap
-// it in another fmt.Sprintf("http://%s", ...) and the resulting
-// "http://http://localhost:30400" tripped Connect's URL parser into dialing
-// "http" as a hostname ("dial tcp: lookup http: no such host"). Every
-// bitcoind-touching call from bitwindowd silently failed for the user.
 func TestEnsureHTTPScheme(t *testing.T) {
 	cases := []struct {
 		name string
@@ -144,6 +139,36 @@ func TestOrchestrator(t *testing.T) {
 
 	t.Run("no cookie fails the call", func(t *testing.T) {
 		_, err := Orchestrator(server.URL, t.TempDir()).RestartL1(t.Context(), connect.NewRequest(&orchpb.RestartL1Request{}))
+		require.ErrorContains(t, err, "unauthenticated")
+	})
+}
+
+type bitcoinConfHandler struct {
+	orchrpc.UnimplementedBitcoinConfServiceHandler
+}
+
+func (bitcoinConfHandler) GetBitcoinConfig(context.Context, *connect.Request[orchpb.GetBitcoinConfigRequest]) (*connect.Response[orchpb.GetBitcoinConfigResponse], error) {
+	return connect.NewResponse(&orchpb.GetBitcoinConfigResponse{Network: "signet"}), nil
+}
+
+func TestBitcoinConf(t *testing.T) {
+	dir := t.TempDir()
+	_, err := localauth.WriteCookie(dir)
+	require.NoError(t, err)
+
+	mux := http.NewServeMux()
+	mux.Handle(orchrpc.NewBitcoinConfServiceHandler(bitcoinConfHandler{}, connect.WithInterceptors(localauth.Interceptor(dir))))
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	t.Run("the cookie authenticates the call", func(t *testing.T) {
+		resp, err := BitcoinConf(server.URL, dir).GetBitcoinConfig(t.Context(), connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+		require.NoError(t, err)
+		assert.Equal(t, "signet", resp.Msg.GetNetwork())
+	})
+
+	t.Run("no cookie fails the call", func(t *testing.T) {
+		_, err := BitcoinConf(server.URL, t.TempDir()).GetBitcoinConfig(t.Context(), connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
 		require.ErrorContains(t, err, "unauthenticated")
 	})
 }

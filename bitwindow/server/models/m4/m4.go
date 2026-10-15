@@ -57,15 +57,6 @@ const (
 	VoteTypeUpvote  VoteType = "upvote"
 )
 
-type Sidechain struct {
-	Slot            uint8     `db:"slot"`
-	Name            string    `db:"name"`
-	Description     string    `db:"description"`
-	Version         string    `db:"version"`
-	ActivatedHeight *uint32   `db:"activated_height"`
-	CreatedAt       time.Time `db:"created_at"`
-}
-
 // M3Message represents a withdrawal bundle proposal
 type M3Message struct {
 	ID            int64

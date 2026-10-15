@@ -110,11 +110,7 @@ func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 		}
 		log.Info().Msgf("%s changed connected to: %t", s.name, val)
 
-		// Fan out to every subscriber. Each subscriber owns its own
-		// buffered-by-1 channel; we drop on full buffer rather than block,
-		// matching the original non-blocking-send semantics. A subscriber
-		// that's wedged on its receiver will just miss intermediate updates
-		// and pick up the next one.
+		// A full buffer drops the value, so a slow subscriber never blocks the fan-out.
 		s.subsMu.Lock()
 		for ch := range s.subs {
 			select {
@@ -133,10 +129,6 @@ func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 // The subscription is unwound automatically when ctx is canceled — callers
 // should pass a ctx scoped to the lifetime of their consumer (per-stream for
 // a Watch handler, the server ctx for engine-wide bootstrap goroutines).
-//
-// Returning a fresh channel per caller (rather than the legacy single shared
-// buffered channel) is load-bearing: with the shared channel, two consumers
-// racing for one buffered value meant the loser deadlocked indefinitely.
 func (s *Service[T]) ConnectedChan(ctx context.Context) <-chan bool {
 	ch := make(chan bool, 1)
 	ch <- s.connected.Load()

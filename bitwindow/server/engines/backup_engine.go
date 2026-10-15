@@ -598,55 +598,25 @@ func (e *BackupEngine) validateJSON(data []byte) (*BackupContents, error) {
 }
 
 func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
-	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	walletData, encData, _, msData, txData, err := extractZIP(data)
 	if err != nil {
-		return nil, fmt.Errorf("invalid zip: %w", err)
+		return nil, err
 	}
-
-	contents := &BackupContents{}
-	var walletData []byte
-	for _, f := range r.File {
-		switch f.Name {
-		case "wallet.json":
-			walletData, err = readZipEntry(f)
-			if err != nil {
-				return nil, fmt.Errorf("read wallet.json in zip: %w", err)
-			}
-			contents.HasWallet = true
-		case "wallet_encryption.json":
-			encData, err := readZipEntry(f)
-			if err != nil {
-				return nil, fmt.Errorf("read wallet_encryption.json in zip: %w", err)
-			}
-			var meta wallet.EncryptionMetadata
-			if err := json.Unmarshal(encData, &meta); err != nil {
-				return nil, fmt.Errorf("wallet_encryption.json invalid: %w", err)
-			}
-			contents.HasEncryptionMetadata = meta.Encrypted
-		case "multisig/multisig.json", "multisig\\multisig.json":
-			msData, err := readZipEntry(f)
-			if err != nil {
-				return nil, fmt.Errorf("read %s in zip: %w", f.Name, err)
-			}
-			var tmp interface{}
-			if json.Unmarshal(msData, &tmp) == nil {
-				contents.HasMultisig = true
-			}
-		case "transactions.json":
-			txData, err := readZipEntry(f)
-			if err != nil {
-				return nil, fmt.Errorf("read %s in zip: %w", f.Name, err)
-			}
-			var tmp interface{}
-			if json.Unmarshal(txData, &tmp) == nil {
-				contents.HasTransactions = true
-			}
-		}
-	}
-
-	if !contents.HasWallet {
+	if walletData == nil {
 		return nil, errors.New("backup is missing wallet.json")
 	}
+
+	contents := &BackupContents{HasWallet: true}
+	if encData != nil {
+		var meta wallet.EncryptionMetadata
+		if err := json.Unmarshal(encData, &meta); err != nil {
+			return nil, fmt.Errorf("wallet_encryption.json invalid: %w", err)
+		}
+		contents.HasEncryptionMetadata = meta.Encrypted
+	}
+	var tmp any
+	contents.HasMultisig = msData != nil && json.Unmarshal(msData, &tmp) == nil
+	contents.HasTransactions = txData != nil && json.Unmarshal(txData, &tmp) == nil
 
 	if contents.HasEncryptionMetadata {
 		if !walletfile.IsEncrypted(walletData) {

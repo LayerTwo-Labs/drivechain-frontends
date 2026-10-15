@@ -240,14 +240,6 @@ func (e *M4Engine) getVotesForMessage(ctx context.Context, msgID int64) ([]m4.M4
 	`, msgID)
 }
 
-func (e *M4Engine) ListSidechains(ctx context.Context) ([]m4.Sidechain, error) {
-	return database.Select[m4.Sidechain](ctx, e.db, `
-		SELECT slot, name, description, version, activated_height, created_at
-		FROM sidechains
-		ORDER BY slot
-	`)
-}
-
 // extractM3FromCoinbase finds and parses M3 messages from coinbase OP_RETURNs
 func (e *M4Engine) extractM3FromCoinbase(coinbase *wire.MsgTx) ([]*m4.M3Message, error) {
 	var (

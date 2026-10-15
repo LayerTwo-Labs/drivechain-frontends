@@ -56,10 +56,19 @@ func Orchestrator(addr, cookieDir string) orchrpc.OrchestratorServiceClient {
 	)
 }
 
-// ensureHTTPScheme returns addr unchanged if it already has an http:// or
-// https:// scheme; otherwise prefixes http://. Guards against the
-// double-prefix bug where callers passing a full URL ended up with
-// "http://http://..." which Connect dialed as if "http" were a hostname.
+// BitcoinConf returns a BitcoinConfService client for drivechaind at addr,
+// with the local-auth cookie in cookieDir.
+func BitcoinConf(addr, cookieDir string) orchrpc.BitcoinConfServiceClient {
+	return orchrpc.NewBitcoinConfServiceClient(
+		http.DefaultClient,
+		addr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+	)
+}
+
+// ensureHTTPScheme returns addr unchanged if it has an http or https scheme;
+// otherwise prefixes http://.
 func ensureHTTPScheme(addr string) string {
 	lower := strings.ToLower(addr)
 	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {

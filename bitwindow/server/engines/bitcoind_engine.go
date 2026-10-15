@@ -159,12 +159,6 @@ func (p *Parser) reapExpiredMempool(ctx context.Context) error {
 	return opreturns.ReapExpiredMempool(ctx, p.db, mempoolTxIDs)
 }
 
-// BlockResult represents the result of processing a single block
-type BlockResult struct {
-	Height int32
-	Error  error
-}
-
 // ResetChainData deletes every row derived from a block at or above height. It
 // keeps the rows the user made.
 func ResetChainData(ctx context.Context, db *sql.DB, height uint32) error {

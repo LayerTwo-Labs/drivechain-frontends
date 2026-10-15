@@ -35,7 +35,6 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
@@ -62,10 +61,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		if log := zerolog.Ctx(ctx); log != nil {
-			log.Error().Err(err).
-				Msgf("main: finished with error after %s", time.Since(start))
-		}
+		zerolog.Ctx(ctx).Error().Err(err).
+			Msgf("main: finished with error after %s", time.Since(start))
 
 		fmt.Fprintf(os.Stderr, "main: finished with error after %s: %s (%T)\n", time.Since(start), err, err)
 		cancel()
@@ -789,10 +786,7 @@ func orchestratorHostPort(addr string) (string, error) {
 // (Stop handler already relayed) is harmless. Short timeout so a dead/wedged
 // drivechaind doesn't keep bitwindowd hanging on shutdown.
 func relayShutdownToDrivechaind(addr, bitwindowDir string, log zerolog.Logger) {
-	if addr == "" {
-		return
-	}
-	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
+	client := dial.Orchestrator(addr, bitwindowDir)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	// only_if_last: we cannot see a sidechain frontend attached straight to
@@ -825,7 +819,7 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 	if err != nil {
 		return err
 	}
-	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
+	client := dial.Orchestrator(addr, bitwindowDir)
 	drainCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	// A daemon that takes this exits at once, so it often drops the answer.
@@ -856,11 +850,7 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 // The id seeds the runtime identity: the eCash rows share one network, so only
 // the id tells two of them apart.
 func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, log zerolog.Logger) (string, string, error) {
-	if addr == "" {
-		return "", "", errors.New("orchestrator.addr not configured")
-	}
-
-	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
+	confClient := dial.BitcoinConf(addr, bitwindowDir)
 
 	for i := 0; i < 30; i++ {
 		resp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))

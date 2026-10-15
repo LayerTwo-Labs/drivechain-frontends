@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,8 +22,9 @@ type MockNotificationEngine struct {
 	sentEvents []*notificationv1.WatchResponse
 }
 
-func (m *MockNotificationEngine) Broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
+func (m *MockNotificationEngine) Deliver(ctx context.Context, event *notificationv1.WatchResponse) int {
 	m.sentEvents = append(m.sentEvents, event)
+	return 1
 }
 
 func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
@@ -47,12 +49,7 @@ func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
 	engine.RegisterPendingFastWithdrawal(ctx, withdrawal)
 
 	// Verify it was stored
-	pending, err := engine.GetPendingFastWithdrawals(ctx)
-	require.NoError(t, err)
-	assert.Len(t, pending, 1)
-	assert.Equal(t, "test-hash-123456789abcdef", pending[0].Hash)
-	assert.Equal(t, "thunder", pending[0].Sidechain)
-	assert.Equal(t, "thunder1test456", pending[0].ServerAddress)
+	assert.Equal(t, map[string]PendingFastWithdrawal{withdrawal.Hash: withdrawal}, engine.pendingFastWithdrawals)
 }
 
 func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
@@ -104,9 +101,7 @@ func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify withdrawal was removed from pending
-	remaining, err := engine.GetPendingFastWithdrawals(ctx)
-	require.NoError(t, err)
-	assert.Len(t, remaining, 0)
+	assert.Empty(t, engine.pendingFastWithdrawals)
 }
 
 func TestSidechainMonitorEngine_StoreWithdrawal(t *testing.T) {
@@ -314,8 +309,7 @@ func TestSidechainMonitorEngine_InitiateFastWithdrawal(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "withdrawal-hash-123", hash)
 
-		pending, err := e.GetPendingFastWithdrawals(t.Context())
-		require.NoError(t, err)
+		pending := lo.Values(e.pendingFastWithdrawals)
 		require.Len(t, pending, 1)
 		assert.Equal(t, "withdrawal-hash-123", pending[0].Hash)
 		assert.Equal(t, "thunder", pending[0].Sidechain)
@@ -333,9 +327,7 @@ func TestSidechainMonitorEngine_InitiateFastWithdrawal(t *testing.T) {
 		require.ErrorContains(t, err, "insufficient server funds")
 		assert.Empty(t, hash)
 
-		pending, err := e.GetPendingFastWithdrawals(t.Context())
-		require.NoError(t, err)
-		assert.Empty(t, pending)
+		assert.Empty(t, e.pendingFastWithdrawals)
 	})
 
 	t.Run("missing fields fail", func(t *testing.T) {

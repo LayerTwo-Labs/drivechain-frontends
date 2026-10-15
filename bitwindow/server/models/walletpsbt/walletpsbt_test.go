@@ -3,7 +3,6 @@ package walletpsbt_test
 import (
 	"database/sql"
 	"testing"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -77,16 +76,16 @@ func TestListByWallet(t *testing.T) {
 }
 
 func TestSecondSaveReplacesPSBTAndMovesUpdatedAt(t *testing.T) {
-	store := walletpsbt.NewStore(setupTestDB(t))
+	db := setupTestDB(t)
+	store := walletpsbt.NewStore(db)
 	ctx := t.Context()
-
-	base := time.Now()
-	store.SetClock(func() time.Time { return base })
 
 	first, err := store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: "before"})
 	require.NoError(t, err)
 
-	store.SetClock(func() time.Time { return base.Add(5 * time.Second) })
+	const age = 5000
+	_, err = db.ExecContext(ctx, `UPDATE wallet_psbt_drafts SET updated_at = updated_at - ?`, age)
+	require.NoError(t, err)
 	first.PSBTBase64 = "after"
 	first.Label = "Rent for August"
 	second, err := store.Save(ctx, first)
@@ -96,11 +95,11 @@ func TestSecondSaveReplacesPSBTAndMovesUpdatedAt(t *testing.T) {
 	assert.Equal(t, "after", second.PSBTBase64)
 	assert.Equal(t, "Rent for August", second.Label)
 	assert.Equal(t, first.CreatedAt, second.CreatedAt)
-	assert.Greater(t, second.UpdatedAt, first.UpdatedAt)
 
 	drafts, err := store.List(ctx, "wallet-1")
 	require.NoError(t, err)
-	assert.Len(t, drafts, 1)
+	require.Len(t, drafts, 1)
+	assert.Greater(t, drafts[0].UpdatedAt, first.UpdatedAt-age)
 }
 
 func TestDelete(t *testing.T) {

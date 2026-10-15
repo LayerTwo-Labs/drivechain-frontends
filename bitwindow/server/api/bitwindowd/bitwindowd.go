@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/http"
 	"os/exec"
 	"runtime"
 	"slices"
@@ -44,9 +43,7 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 )
 
 var _ rpc.BitwindowdServiceHandler = new(Server)
@@ -151,12 +148,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network: %q", req.Msg.Network))
 	}
 
-	confClient := orchrpc.NewBitcoinConfServiceClient(
-		http.DefaultClient,
-		s.config.OrchestratorAddr,
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
-	)
+	confClient := dial.BitcoinConf(s.config.OrchestratorAddr, s.config.BitwindowDir())
 	// The orchestrator takes the catalog id; this server takes the network it
 	// belongs to, because its own runtime is per-network.
 	target := req.Msg.NetworkId
@@ -955,10 +947,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 
 	// Walk recent blocks, fetching per-tx fee info, until we have `count`
 	// non-coinbase transactions. Cap the walk at maxBlocks so an empty
-	// signet/regtest chain doesn't run away. Previously this always
-	// scanned 100 blocks regardless and threw away the surplus — on
-	// mainnet that meant ~300k GetRawTransaction RPCs per call, every
-	// 5s, all serialised behind cs_main on Core.
+	// signet/regtest chain doesn't run away.
 	const maxBlocks = 100
 	currentHash := blockHashRes.Msg.Hash
 walkBlocks:
