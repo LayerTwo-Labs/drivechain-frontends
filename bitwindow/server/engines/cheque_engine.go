@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -200,30 +199,17 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, count 
 	return recoveries, nil
 }
 
-// Start begins the cheque engine background monitoring. Returned channel
-// closes once both background goroutines have exited; runtime/test
-// shutdown should block on it so in-flight RPC calls don't race the
-// gomock controller's teardown (calling t.Fatalf from a goroutine after
-// the test ended panics).
+// Start runs cheque recovery in the background. The returned channel closes
+// when recovery exits.
 func (e *ChequeEngine) Start(ctx context.Context) <-chan struct{} {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("cheque engine started")
 
 	done := make(chan struct{})
-	var pending atomic.Int32
-	pending.Store(1)
-	finish := func() {
-		if pending.Add(-1) == 0 {
-			close(done)
-		}
-	}
-
-	// Cheque recovery waits for unlock since it needs to derive addresses
 	go func() {
-		defer finish()
+		defer close(done)
 		e.recoverChequesOnUnlock(ctx)
 	}()
-
 	return done
 }
 

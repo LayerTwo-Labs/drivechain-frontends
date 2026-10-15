@@ -216,15 +216,13 @@ func ReapExpiredMempool(ctx context.Context, db *sql.DB, mempoolTxIDs func() ([]
 		return nil
 	}
 
+	txids, err := mempoolTxIDs()
+	if err != nil {
+		return fmt.Errorf("read mempool: %w", err)
+	}
 	live := map[string]bool{}
-	if mempoolTxIDs != nil {
-		txids, err := mempoolTxIDs()
-		if err != nil {
-			return fmt.Errorf("read mempool: %w", err)
-		}
-		for _, txid := range txids {
-			live[txid] = true
-		}
+	for _, txid := range txids {
+		live[txid] = true
 	}
 
 	reaped := 0

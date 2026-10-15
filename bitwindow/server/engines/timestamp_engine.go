@@ -317,18 +317,6 @@ func (e *TimestampEngine) ListTimestamps(ctx context.Context) ([]timestamps.File
 	return timestamps.List(ctx, e.db)
 }
 
-func (e *TimestampEngine) GetTimestamp(ctx context.Context, id int64) (*timestamps.FileTimestamp, error) {
-	timestamp, err := timestamps.Get(ctx, e.db, id)
-	if err != nil {
-		return nil, fmt.Errorf("get timestamp: %w", err)
-	}
-	if timestamp == nil {
-		return nil, errors.New("timestamp not found")
-	}
-
-	return timestamp, nil
-}
-
 func (e *TimestampEngine) VerifyTimestamp(ctx context.Context, fileData []byte, filename string) (*timestamps.FileTimestamp, error) {
 	hash := sha256.Sum256(fileData)
 	fileHash := hex.EncodeToString(hash[:])

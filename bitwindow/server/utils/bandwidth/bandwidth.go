@@ -65,8 +65,6 @@ func (t *Tracker) updateStats(stats *Stats) error {
 		return t.updateStatsLinux(stats)
 	case "darwin":
 		return t.updateStatsDarwin(stats)
-	case "windows":
-		return t.updateStatsWindows(stats)
 	default:
 		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
 	}
@@ -188,24 +186,10 @@ func countSocketsIn(netFile string, socketInodes map[string]bool) int32 {
 	return count
 }
 
-// updateStatsDarwin updates stats on macOS using lsof
+// updateStatsDarwin counts the connections of a process on macOS. It reports
+// no byte rates.
 func (t *Tracker) updateStatsDarwin(stats *Stats) error {
-	// Use netstat to get per-process network stats on macOS
-	cmd := exec.Command("netstat", "-I", "en0", "-b")
-	output, err := cmd.Output()
-	if err != nil {
-		// Fallback: return zero stats instead of error
-		return nil
-	}
-
-	// Parse netstat output (simplified - actual implementation needs proper parsing)
-	lines := strings.Split(string(output), "\n")
-	if len(lines) > 1 {
-		// This is a simplified version - real implementation would parse the output properly
-		// For now, we'll use lsof to count connections
-		stats.ConnectionCount = t.countConnectionsDarwin(stats.PID)
-	}
-
+	stats.ConnectionCount = t.countConnectionsDarwin(stats.PID)
 	return nil
 }
 
@@ -225,27 +209,4 @@ func (t *Tracker) countConnectionsDarwin(pid int) int32 {
 	}
 
 	return int32(count)
-}
-
-// updateStatsWindows updates stats on Windows using netstat
-func (t *Tracker) updateStatsWindows(stats *Stats) error {
-	// Use netstat -ano to get connections by PID on Windows
-	cmd := exec.Command("netstat", "-ano")
-	output, err := cmd.Output()
-	if err != nil {
-		return nil // Return nil instead of error for graceful degradation
-	}
-
-	pidStr := strconv.Itoa(stats.PID)
-	count := int32(0)
-
-	lines := strings.Split(string(output), "\n")
-	for _, line := range lines {
-		if strings.Contains(line, pidStr) {
-			count++
-		}
-	}
-
-	stats.ConnectionCount = count
-	return nil
 }

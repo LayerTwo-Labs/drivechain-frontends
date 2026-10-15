@@ -89,12 +89,6 @@ func ParseBitcoinURI(uri string) (*BitcoinURI, error) {
 	return result, nil
 }
 
-// ValidateBitcoinURI checks if a string is a valid Bitcoin URI
-func ValidateBitcoinURI(uri string) bool {
-	_, err := ParseBitcoinURI(uri)
-	return err == nil
-}
-
 // Base58DecodeResult holds the result of Base58Check decoding
 type Base58DecodeResult struct {
 	VersionByte   int

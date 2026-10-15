@@ -311,7 +311,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 		log.Error().Err(err).Msg("close listener")
 	}()
 
-	// Serve HTTP/2 over plaintext (replaces the old h2c.NewHandler wrap).
+	// Serve HTTP/2 over plaintext.
 	// ConnectRPC clients negotiate HTTP/2 over h2c here.
 	protocols := new(http.Protocols)
 	protocols.SetHTTP1(true)

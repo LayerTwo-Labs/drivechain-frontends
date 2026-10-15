@@ -1,4 +1,4 @@
-package engines_test
+package engines
 
 import (
 	"context"
@@ -11,12 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
-func nodeModeWith(t *testing.T, mode orchpb.NodeMode, err error) *engines.NodeMode {
+func nodeModeWith(t *testing.T, mode orchpb.NodeMode) *NodeMode {
 	t.Helper()
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	client.EXPECT().
@@ -24,27 +23,27 @@ func nodeModeWith(t *testing.T, mode orchpb.NodeMode, err error) *engines.NodeMo
 		AnyTimes().
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
 			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
-		}, err)
+		}, nil)
 
-	return engines.NewNodeMode(client)
+	return NewNodeMode(client)
 }
 
 // The whole point of the gate: a light-mode install runs no Bitcoin Core, so
 // every poller must stop before it dials one.
 func TestRunsLocalNodeStopsOnLightMode(t *testing.T) {
-	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_LIGHT, nil)
+	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_LIGHT)
 	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 func TestRunsLocalNodeAllowsFullMode(t *testing.T) {
-	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_FULL, nil)
+	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_FULL)
 	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 // A fresh install reads an unpicked mode until the user chooses, and it starts
 // no daemon meanwhile. Polling there dials a Bitcoin Core that is not there.
 func TestRunsLocalNodeStopsOnAnUnpickedMode(t *testing.T) {
-	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_UNSPECIFIED, nil)
+	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_UNSPECIFIED)
 	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
@@ -52,7 +51,7 @@ func TestRunsLocalNodeStopsOnAnUnpickedMode(t *testing.T) {
 // stopped. The last known answer stands until a read succeeds.
 func TestRunsLocalNodeKeepsTheLastAnswer(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode(client)
+	nodeMode := NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
@@ -61,7 +60,7 @@ func TestRunsLocalNodeKeepsTheLastAnswer(t *testing.T) {
 		}, nil)
 	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 
-	engines.ExpireNodeModeCache(nodeMode)
+	nodeMode.expire()
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("orchestrator is restarting"))
@@ -71,7 +70,7 @@ func TestRunsLocalNodeKeepsTheLastAnswer(t *testing.T) {
 // A full-mode install keeps its pollers through an orchestrator restart.
 func TestRunsLocalNodeKeepsAFullAnswer(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode(client)
+	nodeMode := NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
@@ -80,7 +79,7 @@ func TestRunsLocalNodeKeepsAFullAnswer(t *testing.T) {
 		}, nil)
 	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 
-	engines.ExpireNodeModeCache(nodeMode)
+	nodeMode.expire()
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("orchestrator is restarting"))
@@ -90,7 +89,7 @@ func TestRunsLocalNodeKeepsAFullAnswer(t *testing.T) {
 // One read per TTL. Every engine ticks each second, and each tick asks.
 func TestModeCachesTheRead(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode(client)
+	nodeMode := NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
@@ -107,7 +106,7 @@ func TestModeCachesTheRead(t *testing.T) {
 // A user who switches to full mode gets the pollers back without a restart.
 func TestModeReReadsAfterTheCacheExpires(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode(client)
+	nodeMode := NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
@@ -116,7 +115,7 @@ func TestModeReReadsAfterTheCacheExpires(t *testing.T) {
 		}, nil)
 	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 
-	engines.ExpireNodeModeCache(nodeMode)
+	nodeMode.expire()
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
@@ -129,7 +128,7 @@ func TestModeReReadsAfterTheCacheExpires(t *testing.T) {
 // older answer cannot land last and overwrite a newer one.
 func TestModeCollapsesConcurrentReads(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode(client)
+	nodeMode := NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).

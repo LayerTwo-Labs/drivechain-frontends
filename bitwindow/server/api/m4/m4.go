@@ -49,9 +49,7 @@ func (s *Server) GetM4History(
 			pbVote := &m4pb.M4Vote{
 				SidechainSlot: uint32(vote.SidechainSlot),
 				VoteType:      string(vote.VoteType),
-			}
-			if vote.BundleHash != nil {
-				pbVote.BundleHash = vote.BundleHash
+				BundleHash:    vote.BundleHash,
 			}
 			if vote.BundleIndex != nil {
 				idx := uint32(*vote.BundleIndex)

@@ -33,19 +33,7 @@ func TestService_Check(t *testing.T) {
 		mockValidator := mocks.NewMockValidatorServiceClient(ctrl)
 		mockCrypto := mocks.NewMockCryptoServiceClient(ctrl)
 
-		// Background operations for bitcoind
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		// Health check calls
 		mockBitcoind.EXPECT().
@@ -99,18 +87,7 @@ func TestService_Check(t *testing.T) {
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		// Background operations
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		// Health check
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
@@ -145,18 +122,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 
 		// Background operations still need to work
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		// Health check fails
 		mockBitcoind.EXPECT().
@@ -189,18 +155,7 @@ func TestService_Check(t *testing.T) {
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		// Background operations
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		// Health check
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
@@ -244,18 +199,7 @@ func TestService_Check(t *testing.T) {
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		// Background operations
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		// Health check
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
@@ -300,18 +244,7 @@ func TestService_Check(t *testing.T) {
 
 		// bitcoind healthy
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{

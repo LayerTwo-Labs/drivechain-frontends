@@ -163,7 +163,7 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTimestamp, eventID); err != nil {
 				return fmt.Errorf("mark timestamp %d notified: %w", ts.ID, err)
 			}
-			e.broadcast(ctx, event)
+			e.Deliver(ctx, event)
 
 			log.Info().
 				Int64("id", ts.ID).
@@ -346,7 +346,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 				return fmt.Errorf("mark transaction %s notified: %w", txid, err)
 			}
-			e.broadcast(ctx, event)
+			e.Deliver(ctx, event)
 			log.Info().
 				Str("txid", txid).
 				Int64("amount_sats", int64(tx.amount)).
@@ -368,7 +368,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 				return fmt.Errorf("mark transaction %s notified: %w", txid, err)
 			}
-			e.broadcast(ctx, event)
+			e.Deliver(ctx, event)
 			log.Info().
 				Str("txid", txid).
 				Int64("amount_sats", int64(-tx.amount)).
@@ -396,7 +396,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
 				return fmt.Errorf("mark transaction %s confirmation notified: %w", txid, err)
 			}
-			e.broadcast(ctx, event)
+			e.Deliver(ctx, event)
 			log.Info().
 				Str("txid", txid).
 				Uint32("confirmations", confirmations).
@@ -438,14 +438,8 @@ func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notification
 	return ch
 }
 
-// Broadcast sends a notification event to all subscribers (public method)
-func (e *NotificationEngine) Broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
-	e.broadcast(ctx, event)
-}
-
-// Deliver broadcasts an event and reports how many subscribers took it. A
-// caller that records an event as reported uses this: a send to nobody, or to
-// a full channel, reaches nobody.
+// Deliver sends an event to each subscriber and reports how many took it. A
+// send to nobody, or to a full channel, reaches nobody.
 func (e *NotificationEngine) Deliver(ctx context.Context, event *notificationv1.WatchResponse) int {
 	log := zerolog.Ctx(ctx)
 	e.mu.RLock()
@@ -461,8 +455,4 @@ func (e *NotificationEngine) Deliver(ctx context.Context, event *notificationv1.
 		}
 	}
 	return delivered
-}
-
-func (e *NotificationEngine) broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
-	e.Deliver(ctx, event)
 }

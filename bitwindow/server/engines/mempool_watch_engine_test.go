@@ -14,12 +14,10 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/mempooltx"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
@@ -132,7 +130,7 @@ func newTestWatcher(t *testing.T, node *fakeNode) (*MempoolWatcher, *sql.DB) {
 	db := database.Test(t)
 	w := NewMempoolWatcher(db, node.call, func(context.Context) (<-chan SequenceMsg, func(), error) {
 		return nil, nil, errors.New("no subscription in this test")
-	}, testNodeMode(t, orchpb.NodeMode_NODE_MODE_FULL))
+	}, nodeModeWith(t, orchpb.NodeMode_NODE_MODE_FULL))
 	w.rebootstrapMinGap = 0
 	w.statsLookback = 0
 	return w, db
@@ -500,22 +498,10 @@ func TestMempoolWatchStopsWhenTheSubscriptionCloses(t *testing.T) {
 	assert.False(t, w.Status().Running)
 }
 
-func testNodeMode(t *testing.T, mode orchpb.NodeMode) *NodeMode {
-	t.Helper()
-	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	client.EXPECT().
-		GetNodeMode(gomock.Any(), gomock.Any()).
-		AnyTimes().
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
-		}, nil)
-	return NewNodeMode(client)
-}
-
 func TestMempoolWatchRequiresFullNode(t *testing.T) {
 	node := nodeAtTip(t, 1)
 	w, _ := newTestWatcher(t, node)
-	w.nodeMode = testNodeMode(t, orchpb.NodeMode_NODE_MODE_LIGHT)
+	w.nodeMode = nodeModeWith(t, orchpb.NodeMode_NODE_MODE_LIGHT)
 	subscribed := false
 	w.subscribe = func(context.Context) (<-chan SequenceMsg, func(), error) {
 		subscribed = true

@@ -178,17 +178,12 @@ func (e *WalletEngine) KeepFrozenCoins(ctx context.Context) {
 	}
 }
 
-// PushFrozenCoins hands over the whole frozen set of this install.
-func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
-	return e.pushFrozenCoins(ctx)
-}
-
-// pushFrozenCoins hands the orchestrator the coins no send may take. It runs
+// PushFrozenCoins hands the orchestrator the coins no send may take. It runs
 // before every send, so a drivechaind restart cannot leave the set behind.
 //
 // One push runs at a time. The set is read and sent under the same lock, so a
 // slow push cannot land after a newer one and put the older set back.
-func (e *WalletEngine) pushFrozenCoins(ctx context.Context) error {
+func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
 	e.frozenPushMu.Lock()
 	defer e.frozenPushMu.Unlock()
 
@@ -652,7 +647,7 @@ func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSa
 // orchestrator wallet manager, which routes to the active wallet's backend
 // (electrum or Bitcoin Core). Used by server-side senders like news OP_RETURNs.
 func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTransactionRequest) (string, error) {
-	if err := e.pushFrozenCoins(ctx); err != nil {
+	if err := e.PushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
 	resp, err := e.orchClient.SendTransaction(ctx, connect.NewRequest(req))
@@ -674,7 +669,7 @@ func (e *WalletEngine) ListWalletIDs(ctx context.Context) ([]string, error) {
 // BumpFee replaces a transaction with one that pays more. Coin selection runs
 // in the orchestrator, which locks the frozen coins for the length of the call.
 func (e *WalletEngine) BumpFee(ctx context.Context, req *orchpb.BumpFeeRequest) (*orchpb.BumpFeeResponse, error) {
-	if err := e.pushFrozenCoins(ctx); err != nil {
+	if err := e.PushFrozenCoins(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := e.orchClient.BumpFee(ctx, connect.NewRequest(req))
@@ -686,7 +681,7 @@ func (e *WalletEngine) BumpFee(ctx context.Context, req *orchpb.BumpFeeRequest) 
 
 // CreateDeposit builds and broadcasts a BIP300 M5 deposit from any wallet.
 func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepositRequest) (string, error) {
-	if err := e.pushFrozenCoins(ctx); err != nil {
+	if err := e.PushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
 	resp, err := e.orchClient.CreateDeposit(ctx, connect.NewRequest(req))
