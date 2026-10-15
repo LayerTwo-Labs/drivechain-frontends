@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -392,4 +393,24 @@ func TestStore_Item_RejectsBadTxid(t *testing.T) {
 			require.ErrorContains(t, err, tc.wantErr)
 		})
 	}
+}
+
+func TestCountStoriesSince(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+	now := time.Now()
+
+	story := func(height uint32, blockTime time.Time, headline string) IndexEnv {
+		p := pos(height, 0, 0)
+		p.BlockTime = blockTime
+		p.TxID = fmt.Sprintf("%064x", height)
+		return IndexEnv{Pos: p, TypeTag: codec.TypeStory, Msg: &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: headline}}
+	}
+	require.NoError(t, Index(t.Context(), db, story(1, now.Add(-8*24*time.Hour), "Old")))
+	require.NoError(t, Index(t.Context(), db, story(2, now.Add(-time.Hour), "New")))
+	require.NoError(t, Index(t.Context(), db, story(3, now, "   ")))
+
+	count, err := CountStoriesSince(t.Context(), db, now.Add(-7*24*time.Hour))
+	require.NoError(t, err)
+	require.Equal(t, int64(1), count)
 }

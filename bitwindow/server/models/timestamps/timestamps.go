@@ -104,10 +104,7 @@ func List(ctx context.Context, db *sql.DB, opts ...func(*ListOpts)) ([]FileTimes
 		opt(conf)
 	}
 
-	query := sq.
-		Select("id", "filename", "file_hash", "txid", "block_height", "status", "created_at", "confirmed_at").
-		From("file_timestamps").
-		OrderBy("created_at DESC")
+	query := selectTimestamp.OrderBy("created_at DESC")
 
 	if conf.Status != nil {
 		query = query.Where(sq.Eq{"status": *conf.Status})
@@ -122,17 +119,7 @@ func List(ctx context.Context, db *sql.DB, opts ...func(*ListOpts)) ([]FileTimes
 
 	var timestamps []FileTimestamp
 	for rows.Next() {
-		var timestamp FileTimestamp
-		err := rows.Scan(
-			&timestamp.ID,
-			&timestamp.Filename,
-			&timestamp.FileHash,
-			&timestamp.TxID,
-			&timestamp.BlockHeight,
-			&timestamp.Status,
-			&timestamp.CreatedAt,
-			&timestamp.ConfirmedAt,
-		)
+		timestamp, err := scanTimestamp(rows)
 		if err != nil {
 			return nil, fmt.Errorf("scan file timestamp: %w", err)
 		}
@@ -154,42 +141,29 @@ func WithStatus(status Status) func(*ListOpts) {
 }
 
 func Get(ctx context.Context, db *sql.DB, id int64) (*FileTimestamp, error) {
-	var timestamp FileTimestamp
-
-	err := db.QueryRowContext(ctx, `
-		SELECT id, filename, file_hash, txid, block_height,
-		       status, created_at, confirmed_at
-		FROM file_timestamps
-		WHERE id = ?
-	`, id).Scan(
-		&timestamp.ID,
-		&timestamp.Filename,
-		&timestamp.FileHash,
-		&timestamp.TxID,
-		&timestamp.BlockHeight,
-		&timestamp.Status,
-		&timestamp.CreatedAt,
-		&timestamp.ConfirmedAt,
-	)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+	timestamp, err := getTimestampWhere(ctx, db, sq.Eq{"id": id})
 	if err != nil {
 		return nil, fmt.Errorf("get file timestamp: %w", err)
 	}
-
-	return &timestamp, nil
+	return timestamp, nil
 }
 
 func GetByHash(ctx context.Context, db *sql.DB, fileHash string) (*FileTimestamp, error) {
-	var timestamp FileTimestamp
+	timestamp, err := getTimestampWhere(ctx, db, sq.Eq{"file_hash": fileHash})
+	if err != nil {
+		return nil, fmt.Errorf("get file timestamp by hash: %w", err)
+	}
+	return timestamp, nil
+}
 
-	err := db.QueryRowContext(ctx, `
-		SELECT id, filename, file_hash, txid, block_height,
-		       status, created_at, confirmed_at
-		FROM file_timestamps
-		WHERE file_hash = ?
-	`, fileHash).Scan(
+var selectTimestamp = sq.
+	Select("id", "filename", "file_hash", "txid", "block_height", "status", "created_at", "confirmed_at").
+	From("file_timestamps").
+	PlaceholderFormat(sq.Question)
+
+func scanTimestamp(scanner interface{ Scan(dest ...any) error }) (FileTimestamp, error) {
+	var timestamp FileTimestamp
+	err := scanner.Scan(
 		&timestamp.ID,
 		&timestamp.Filename,
 		&timestamp.FileHash,
@@ -199,13 +173,18 @@ func GetByHash(ctx context.Context, db *sql.DB, fileHash string) (*FileTimestamp
 		&timestamp.CreatedAt,
 		&timestamp.ConfirmedAt,
 	)
+	return timestamp, err
+}
+
+func getTimestampWhere(ctx context.Context, db *sql.DB, where sq.Eq) (*FileTimestamp, error) {
+	query, args := selectTimestamp.Where(where).MustSql()
+	timestamp, err := scanTimestamp(db.QueryRowContext(ctx, query, args...))
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get file timestamp by hash: %w", err)
+		return nil, err
 	}
-
 	return &timestamp, nil
 }
 

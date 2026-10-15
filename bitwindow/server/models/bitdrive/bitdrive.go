@@ -60,13 +60,34 @@ func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
 	return id, nil
 }
 
-func List(ctx context.Context, db *sql.DB) ([]File, error) {
-	query := sq.
-		Select("id", "txid", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
-		From("bitdrive_files").
-		OrderBy("created_at DESC")
+var selectFile = sq.
+	Select("id", "txid", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
+	From("bitdrive_files").
+	PlaceholderFormat(sq.Question)
 
-	sqlStr, args := query.MustSql()
+func scanFile(scanner interface{ Scan(dest ...any) error }) (File, error) {
+	var file File
+	var encrypted int64
+	var createdAt int64
+	if err := scanner.Scan(
+		&file.ID,
+		&file.TxID,
+		&file.Filename,
+		&file.FileType,
+		&file.SizeBytes,
+		&encrypted,
+		&file.Timestamp,
+		&createdAt,
+	); err != nil {
+		return File{}, err
+	}
+	file.Encrypted = encrypted == 1
+	file.CreatedAt = time.Unix(createdAt, 0)
+	return file, nil
+}
+
+func List(ctx context.Context, db *sql.DB) ([]File, error) {
+	sqlStr, args := selectFile.OrderBy("created_at DESC").MustSql()
 	rows, err := db.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list bitdrive files: query: %w", err)
@@ -75,26 +96,10 @@ func List(ctx context.Context, db *sql.DB) ([]File, error) {
 
 	var files []File
 	for rows.Next() {
-		var file File
-		var encrypted int64
-		var createdAt int64
-
-		err := rows.Scan(
-			&file.ID,
-			&file.TxID,
-			&file.Filename,
-			&file.FileType,
-			&file.SizeBytes,
-			&encrypted,
-			&file.Timestamp,
-			&createdAt,
-		)
+		file, err := scanFile(rows)
 		if err != nil {
 			return nil, fmt.Errorf("scan bitdrive file: %w", err)
 		}
-
-		file.Encrypted = encrypted == 1
-		file.CreatedAt = time.Unix(createdAt, 0)
 		files = append(files, file)
 	}
 
@@ -106,64 +111,30 @@ func List(ctx context.Context, db *sql.DB) ([]File, error) {
 }
 
 func GetByID(ctx context.Context, db *sql.DB, id int64) (*File, error) {
-	var file File
-	var encrypted int64
-	var createdAt int64
-
-	err := db.QueryRowContext(ctx, `
-		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at
-		FROM bitdrive_files
-		WHERE id = ?
-	`, id).Scan(
-		&file.ID,
-		&file.TxID,
-		&file.Filename,
-		&file.FileType,
-		&file.SizeBytes,
-		&encrypted,
-		&file.Timestamp,
-		&createdAt,
-	)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+	file, err := getFileWhere(ctx, db, sq.Eq{"id": id})
 	if err != nil {
 		return nil, fmt.Errorf("get bitdrive file by id: %w", err)
 	}
-
-	file.Encrypted = encrypted == 1
-	file.CreatedAt = time.Unix(createdAt, 0)
-	return &file, nil
+	return file, nil
 }
 
 func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*File, error) {
-	var file File
-	var encrypted int64
-	var createdAt int64
+	file, err := getFileWhere(ctx, db, sq.Eq{"txid": txid})
+	if err != nil {
+		return nil, fmt.Errorf("get bitdrive file by txid: %w", err)
+	}
+	return file, nil
+}
 
-	err := db.QueryRowContext(ctx, `
-		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at
-		FROM bitdrive_files
-		WHERE txid = ?
-	`, txid).Scan(
-		&file.ID,
-		&file.TxID,
-		&file.Filename,
-		&file.FileType,
-		&file.SizeBytes,
-		&encrypted,
-		&file.Timestamp,
-		&createdAt,
-	)
+func getFileWhere(ctx context.Context, db *sql.DB, where sq.Eq) (*File, error) {
+	sqlStr, args := selectFile.Where(where).MustSql()
+	file, err := scanFile(db.QueryRowContext(ctx, sqlStr, args...))
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get bitdrive file by txid: %w", err)
+		return nil, err
 	}
-
-	file.Encrypted = encrypted == 1
-	file.CreatedAt = time.Unix(createdAt, 0)
 	return &file, nil
 }
 

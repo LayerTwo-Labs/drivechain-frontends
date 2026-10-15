@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"time"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 // Cheque represents a Bitcoin cheque in the database
@@ -143,7 +146,7 @@ func Get(ctx context.Context, db *sql.DB, walletID string, id int64) (*Cheque, e
 	if err != nil {
 		return nil, fmt.Errorf("get cheque: %w", err)
 	}
-	if err := attachFundingOutputs(ctx, db, walletID, []*Cheque{cheque}); err != nil {
+	if err := attachFundingOutputs(ctx, db, []*Cheque{cheque}); err != nil {
 		return nil, err
 	}
 
@@ -164,7 +167,7 @@ func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address stri
 	if err != nil {
 		return nil, fmt.Errorf("get cheque by address: %w", err)
 	}
-	if err := attachFundingOutputs(ctx, db, walletID, []*Cheque{cheque}); err != nil {
+	if err := attachFundingOutputs(ctx, db, []*Cheque{cheque}); err != nil {
 		return nil, err
 	}
 
@@ -204,7 +207,7 @@ func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
 	for i := range cheques {
 		pointers[i] = &cheques[i]
 	}
-	if err := attachFundingOutputs(ctx, db, walletID, pointers); err != nil {
+	if err := attachFundingOutputs(ctx, db, pointers); err != nil {
 		return nil, err
 	}
 
@@ -213,7 +216,7 @@ func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
 
 // attachFundingOutputs fills in each cheque's funding txids with one flat
 // query. The db is MaxOpenConns(1), so this must never run inside an open rows.
-func attachFundingOutputs(ctx context.Context, db *sql.DB, walletID string, cheques []*Cheque) error {
+func attachFundingOutputs(ctx context.Context, db *sql.DB, cheques []*Cheque) error {
 	byID := make(map[int64]*Cheque, len(cheques))
 	for _, c := range cheques {
 		if c != nil {
@@ -224,12 +227,13 @@ func attachFundingOutputs(ctx context.Context, db *sql.DB, walletID string, cheq
 		return nil
 	}
 
-	rows, err := db.QueryContext(ctx, `
-		SELECT o.cheque_id, o.txid
-		FROM cheque_funding_outputs o
-		JOIN cheques c ON c.id = o.cheque_id
-		WHERE c.wallet_id = ?
-	`, walletID)
+	query, args := sq.
+		Select("cheque_id", "txid").
+		From("cheque_funding_outputs").
+		Where(sq.Eq{"cheque_id": slices.Collect(maps.Keys(byID))}).
+		PlaceholderFormat(sq.Question).
+		MustSql()
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("list funding outputs: %w", err)
 	}
@@ -259,7 +263,13 @@ type FundingOutput struct {
 func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, outputs []FundingOutput, actualAmount uint64) error {
 	now := time.Now()
 
-	result, err := db.ExecContext(ctx, `
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	result, err := tx.ExecContext(ctx, `
 		UPDATE cheques
 		SET actual_amount_sats = ?, funded_at = COALESCE(funded_at, ?)
 		WHERE wallet_id = ? AND id = ?
@@ -276,21 +286,31 @@ func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, o
 		return sql.ErrNoRows
 	}
 
+	if err := recordFundingOutputs(ctx, tx, id, outputs); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit funding: %w", err)
+	}
+	return nil
+}
+
+func recordFundingOutputs(ctx context.Context, tx *sql.Tx, chequeID int64, outputs []FundingOutput) error {
 	for _, out := range outputs {
 		var height sql.NullInt64
 		if out.BlockHeight > 0 {
 			height = sql.NullInt64{Int64: int64(out.BlockHeight), Valid: true}
 		}
-		if _, err := db.ExecContext(ctx, `
+		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats, block_height)
 			VALUES (?, ?, 0, 0, ?)
 			ON CONFLICT (cheque_id, txid, vout) DO UPDATE
 			SET block_height = COALESCE(excluded.block_height, block_height)
-		`, id, out.Txid, height); err != nil {
+		`, chequeID, out.Txid, height); err != nil {
 			return fmt.Errorf("record funding output: %w", err)
 		}
 	}
-
 	return nil
 }
 
@@ -392,17 +412,8 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 	if err != nil {
 		return fmt.Errorf("failed to get last insert id: %w", err)
 	}
-	for _, out := range outputs {
-		var height sql.NullInt64
-		if out.BlockHeight > 0 {
-			height = sql.NullInt64{Int64: int64(out.BlockHeight), Valid: true}
-		}
-		if _, err := tx.ExecContext(ctx, `
-			INSERT OR IGNORE INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats, block_height)
-			VALUES (?, ?, 0, 0, ?)
-		`, id, out.Txid, height); err != nil {
-			return fmt.Errorf("record recovered funding output: %w", err)
-		}
+	if err := recordFundingOutputs(ctx, tx, id, outputs); err != nil {
+		return err
 	}
 
 	if err := bumpIndexCounter(ctx, tx, walletID, index); err != nil {

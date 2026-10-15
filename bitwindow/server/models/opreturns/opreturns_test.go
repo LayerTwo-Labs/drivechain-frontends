@@ -141,6 +141,10 @@ func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 	exists, err := TopicExists(ctx, db, external)
 	require.NoError(t, err)
 	assert.True(t, exists, "chain-indexed topic must satisfy TopicExists so stories can target it")
+
+	exists, err = TopicExists(ctx, db, mustTopicID(t, "deaddead"))
+	require.NoError(t, err)
+	assert.False(t, exists)
 }
 
 // TestListCoinNews_SurfacesStoryTLVs proves a Story's url/subtype/nsfw
@@ -586,4 +590,22 @@ func TestPersistConfirmedConflictUpdatesCreateTimeToBlockTime(t *testing.T) {
 		"mempool replay must not overwrite a confirmed block timestamp")
 	require.True(t, gotHeight.Valid)
 	assert.Equal(t, int64(height), gotHeight.Int64)
+}
+
+func TestOPReturnToReadable(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []byte
+		want string
+	}{
+		{name: "hex of printable text", in: []byte(hex.EncodeToString([]byte("hello"))), want: "hello"},
+		{name: "printable text", in: []byte("hello world"), want: "hello world"},
+		{name: "binary", in: []byte{0x00, 0xff}, want: "00ff"},
+		{name: "non-ASCII text", in: []byte("blåbær"), want: hex.EncodeToString([]byte("blåbær"))},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, OPReturnToReadable(tc.in))
+		})
+	}
 }

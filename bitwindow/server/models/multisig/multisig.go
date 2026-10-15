@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
 
@@ -409,18 +410,35 @@ func replaceGroupTransactionIDsOn(ctx context.Context, e execer, groupID string,
 
 // ─── Transactions ──────────────────────────────────────────────────
 
-func (s *Store) ListTransactions(ctx context.Context, groupID string) ([]Transaction, error) {
-	query := `
-		SELECT id, group_id, initial_psbt, COALESCE(combined_psbt,''), COALESCE(final_hex,''),
-		       COALESCE(txid,''), status, type, created, broadcast_time, amount, destination, fee,
-		       confirmations, required_signatures
-		FROM multisig_transactions`
-	var args []interface{}
-	if groupID != "" {
-		query += ` WHERE group_id = ?`
-		args = append(args, groupID)
+var selectTransaction = sq.
+	Select(
+		"id", "group_id", "initial_psbt", "COALESCE(combined_psbt,'')", "COALESCE(final_hex,'')",
+		"COALESCE(txid,'')", "status", "type", "created", "broadcast_time", "amount", "destination", "fee",
+		"confirmations", "required_signatures",
+	).
+	From("multisig_transactions").
+	PlaceholderFormat(sq.Question)
+
+func scanTransaction(scanner interface{ Scan(dest ...any) error }) (Transaction, error) {
+	var t Transaction
+	var broadcastTime sql.NullInt64
+	if err := scanner.Scan(&t.ID, &t.GroupID, &t.InitialPSBT, &t.CombinedPSBT, &t.FinalHex,
+		&t.Txid, &t.Status, &t.Type, &t.Created, &broadcastTime, &t.Amount, &t.Destination,
+		&t.Fee, &t.Confirmations, &t.RequiredSignatures); err != nil {
+		return Transaction{}, err
 	}
-	query += ` ORDER BY created ASC`
+	if broadcastTime.Valid {
+		t.BroadcastTime = &broadcastTime.Int64
+	}
+	return t, nil
+}
+
+func (s *Store) ListTransactions(ctx context.Context, groupID string) ([]Transaction, error) {
+	builder := selectTransaction.OrderBy("created ASC")
+	if groupID != "" {
+		builder = builder.Where(sq.Eq{"group_id": groupID})
+	}
+	query, args := builder.MustSql()
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -430,15 +448,9 @@ func (s *Store) ListTransactions(ctx context.Context, groupID string) ([]Transac
 
 	var txns []Transaction
 	for rows.Next() {
-		var t Transaction
-		var broadcastTime sql.NullInt64
-		if err := rows.Scan(&t.ID, &t.GroupID, &t.InitialPSBT, &t.CombinedPSBT, &t.FinalHex,
-			&t.Txid, &t.Status, &t.Type, &t.Created, &broadcastTime, &t.Amount, &t.Destination,
-			&t.Fee, &t.Confirmations, &t.RequiredSignatures); err != nil {
+		t, err := scanTransaction(rows)
+		if err != nil {
 			return nil, err
-		}
-		if broadcastTime.Valid {
-			t.BroadcastTime = &broadcastTime.Int64
 		}
 		txns = append(txns, t)
 	}
@@ -446,47 +458,21 @@ func (s *Store) ListTransactions(ctx context.Context, groupID string) ([]Transac
 }
 
 func (s *Store) GetTransaction(ctx context.Context, id string) (*Transaction, error) {
-	var t Transaction
-	var broadcastTime sql.NullInt64
-	err := s.db.QueryRowContext(ctx, `
-		SELECT id, group_id, initial_psbt, COALESCE(combined_psbt,''), COALESCE(final_hex,''),
-		       COALESCE(txid,''), status, type, created, broadcast_time, amount, destination, fee,
-		       confirmations, required_signatures
-		FROM multisig_transactions WHERE id = ?`, id).
-		Scan(&t.ID, &t.GroupID, &t.InitialPSBT, &t.CombinedPSBT, &t.FinalHex,
-			&t.Txid, &t.Status, &t.Type, &t.Created, &broadcastTime, &t.Amount, &t.Destination,
-			&t.Fee, &t.Confirmations, &t.RequiredSignatures)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	if broadcastTime.Valid {
-		t.BroadcastTime = &broadcastTime.Int64
-	}
-	return &t, nil
+	return s.getTransactionWhere(ctx, sq.Eq{"id": id})
 }
 
 func (s *Store) GetTransactionByTxid(ctx context.Context, txid string) (*Transaction, error) {
-	var t Transaction
-	var broadcastTime sql.NullInt64
-	err := s.db.QueryRowContext(ctx, `
-		SELECT id, group_id, initial_psbt, COALESCE(combined_psbt,''), COALESCE(final_hex,''),
-		       COALESCE(txid,''), status, type, created, broadcast_time, amount, destination, fee,
-		       confirmations, required_signatures
-		FROM multisig_transactions WHERE txid = ?`, txid).
-		Scan(&t.ID, &t.GroupID, &t.InitialPSBT, &t.CombinedPSBT, &t.FinalHex,
-			&t.Txid, &t.Status, &t.Type, &t.Created, &broadcastTime, &t.Amount, &t.Destination,
-			&t.Fee, &t.Confirmations, &t.RequiredSignatures)
+	return s.getTransactionWhere(ctx, sq.Eq{"txid": txid})
+}
+
+func (s *Store) getTransactionWhere(ctx context.Context, where sq.Eq) (*Transaction, error) {
+	query, args := selectTransaction.Where(where).MustSql()
+	t, err := scanTransaction(s.db.QueryRowContext(ctx, query, args...))
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
-	}
-	if broadcastTime.Valid {
-		t.BroadcastTime = &broadcastTime.Int64
 	}
 	return &t, nil
 }

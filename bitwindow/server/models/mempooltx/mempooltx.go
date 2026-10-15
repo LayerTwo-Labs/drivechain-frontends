@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // Tx is a transaction still waiting in the mempool. A row lives exactly as
@@ -187,17 +188,18 @@ func Count(ctx context.Context, db *sql.DB) (uint64, error) {
 // List returns a page of txs matching f, oldest first, and the total match
 // count.
 func List(ctx context.Context, db *sql.DB, f Filter) ([]Tx, uint64, error) {
-	where := "1=1"
-	args := []any{}
+	match := sq.And{}
 	if f.TxidPrefix != "" {
-		where = "txid >= ? AND txid < ?"
-		args = append(args, f.TxidPrefix, f.TxidPrefix+"￿")
+		match = sq.And{sq.GtOrEq{"txid": f.TxidPrefix}, sq.Lt{"txid": f.TxidPrefix + "￿"}}
 	}
 
+	countQuery, countArgs := sq.Select("COUNT(*)").
+		From("mempool_transactions").
+		Where(match).
+		PlaceholderFormat(sq.Question).
+		MustSql()
 	var total uint64
-	if err := db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM mempool_transactions WHERE `+where, args...,
-	).Scan(&total); err != nil {
+	if err := db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -205,12 +207,15 @@ func List(ctx context.Context, db *sql.DB, f Filter) ([]Tx, uint64, error) {
 	if limit <= 0 || limit > MaxLimit {
 		limit = MaxLimit
 	}
-	rows, err := db.QueryContext(ctx, `
-		SELECT txid, fee_sats, vsize, fee_rate, first_seen_at, first_seen_height
-		FROM mempool_transactions
-		WHERE `+where+`
-		ORDER BY first_seen_at ASC, txid ASC
-		LIMIT ? OFFSET ?`, append(args, limit, f.Offset)...)
+	query, args := sq.Select("txid", "fee_sats", "vsize", "fee_rate", "first_seen_at", "first_seen_height").
+		From("mempool_transactions").
+		Where(match).
+		OrderBy("first_seen_at ASC", "txid ASC").
+		Limit(uint64(limit)).
+		Offset(uint64(f.Offset)).
+		PlaceholderFormat(sq.Question).
+		MustSql()
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, 0, err
 	}
