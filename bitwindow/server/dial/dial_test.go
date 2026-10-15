@@ -1,11 +1,15 @@
 package dial
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestEnsureHTTPScheme guards the double-prefix regression. config.OrchestratorAddr
@@ -80,4 +84,36 @@ func TestSharedClientSpeaksH2C(t *testing.T) {
 	if got := string(body); got != "HTTP/2.0" {
 		t.Fatalf("server saw %q, want %q", got, "HTTP/2.0")
 	}
+}
+
+type fakeSidechain struct{ err error }
+
+func (f *fakeSidechain) Balance(context.Context) (int, error) { return 0, f.err }
+
+func TestDialSidechain(t *testing.T) {
+	t.Run("empty host", func(t *testing.T) {
+		_, err := dialSidechain(t.Context(), "thunder", "", &fakeSidechain{})
+		require.EqualError(t, err, "empty thunder host")
+	})
+	t.Run("balance fails", func(t *testing.T) {
+		cause := errors.New("connection refused")
+		_, err := dialSidechain(t.Context(), "photon", "localhost", &fakeSidechain{err: cause})
+		require.ErrorIs(t, err, cause)
+		require.ErrorContains(t, err, "photon connection test")
+	})
+	t.Run("ok", func(t *testing.T) {
+		want := &fakeSidechain{}
+		got, err := dialSidechain(t.Context(), "photon", "localhost", want)
+		require.NoError(t, err)
+		require.Same(t, want, got)
+	})
+}
+
+func TestEnforcerDialers_RejectEmptyURL(t *testing.T) {
+	_, err := EnforcerBlockProducer(t.Context(), "")
+	require.EqualError(t, err, "empty block producer url")
+	_, err = EnforcerMining(t.Context(), "")
+	require.EqualError(t, err, "empty mining url")
+	_, err = EnforcerCrypto(t.Context(), "")
+	require.EqualError(t, err, "empty crypto url")
 }

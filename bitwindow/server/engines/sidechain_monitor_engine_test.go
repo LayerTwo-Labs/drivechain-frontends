@@ -3,6 +3,7 @@ package engines
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -130,8 +131,7 @@ func TestSidechainMonitorEngine_StoreWithdrawal(t *testing.T) {
 	}
 
 	// Store withdrawal
-	err := engine.storeWithdrawal(ctx, withdrawal)
-	require.NoError(t, err)
+	engine.storeWithdrawal(ctx, withdrawal)
 
 	// Verify it was stored
 	stored, err := engine.GetWithdrawalByTxid(ctx, "detected-txid-123")
@@ -193,4 +193,88 @@ func TestSidechainMonitorEngine_CleanupOldWithdrawals(t *testing.T) {
 	// Old withdrawal should be removed, new one should remain
 	assert.NotContains(t, engine.detectedWithdrawals, "old-txid")
 	assert.Contains(t, engine.detectedWithdrawals, "new-txid")
+}
+
+type fakeSidechainRPC struct {
+	bundle   string
+	utxos    string
+	utxosErr error
+}
+
+func (f fakeSidechainRPC) PendingWithdrawalBundle(context.Context) (json.RawMessage, error) {
+	return json.RawMessage(f.bundle), nil
+}
+
+func (f fakeSidechainRPC) ListUTXOs(context.Context) (json.RawMessage, error) {
+	return json.RawMessage(f.utxos), f.utxosErr
+}
+
+func TestSidechainMonitorEngine_FindTransactionToAddress(t *testing.T) {
+	cases := []struct {
+		name     string
+		client   fakeSidechainRPC
+		wantTxid string
+		wantErr  string
+	}{
+		{
+			name:     "payment at the address",
+			client:   fakeSidechainRPC{utxos: `[{"address":"addr","amount":96000,"txid":"paid"}]`},
+			wantTxid: "paid",
+		},
+		{
+			name:   "payment too small",
+			client: fakeSidechainRPC{utxos: `[{"address":"addr","amount":94000,"txid":"short"}]`},
+		},
+		{
+			name:   "other address",
+			client: fakeSidechainRPC{utxos: `[{"address":"other","amount":100000,"txid":"other"}]`},
+		},
+		{
+			name:    "UTXO read fails",
+			client:  fakeSidechainRPC{utxosErr: errors.New("connection refused")},
+			wantErr: "connection refused",
+		},
+		{
+			name:    "UTXO parse fails",
+			client:  fakeSidechainRPC{utxos: `{`},
+			wantErr: "parse UTXOs",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, nil)
+
+			txid, err := engine.findTransactionToAddress(t.Context(), tc.client, "addr", 100000, "thunder")
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantTxid, txid)
+		})
+	}
+}
+
+func TestSidechainMonitorEngine_Monitor(t *testing.T) {
+	ctx := t.Context()
+	engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
+	client := fakeSidechainRPC{
+		bundle: `{"transactions":[{"txid":"bundle-tx","amount":5000,"destination":"bc1qdest"}]}`,
+		utxos:  `[]`,
+	}
+
+	require.NoError(t, engine.monitor(ctx, "photon", func(context.Context) (sidechainRPC, error) {
+		return client, nil
+	}))
+
+	stored, err := engine.GetWithdrawalByTxid(ctx, "bundle-tx")
+	require.NoError(t, err)
+	require.NotNil(t, stored)
+	require.Equal(t, "photon", stored.Sidechain)
+	require.Equal(t, int64(5000), stored.Amount)
+
+	err = engine.monitor(ctx, "photon", func(context.Context) (sidechainRPC, error) {
+		return nil, errors.New("not running")
+	})
+	require.ErrorContains(t, err, "get photon client: not running")
 }

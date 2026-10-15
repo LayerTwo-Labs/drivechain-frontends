@@ -84,12 +84,12 @@ func EnforcerBlockProducer(ctx context.Context, url string) (
 	rpc.BlockProducerServiceClient, error,
 ) {
 	if url == "" {
-		return nil, errors.New("empty validator url")
+		return nil, errors.New("empty block producer url")
 	}
 
 	client := rpc.NewBlockProducerServiceClient(
 		getSharedClient(ctx),
-		fmt.Sprintf("http://%s", url),
+		ensureHTTPScheme(url),
 		connect.WithGRPC(),
 	)
 
@@ -107,12 +107,12 @@ func EnforcerMining(ctx context.Context, url string) (
 	rpc.MiningServiceClient, error,
 ) {
 	if url == "" {
-		return nil, errors.New("empty validator url")
+		return nil, errors.New("empty mining url")
 	}
 
 	return rpc.NewMiningServiceClient(
 		getSharedClient(ctx),
-		fmt.Sprintf("http://%s", url),
+		ensureHTTPScheme(url),
 		connect.WithGRPC(),
 	), nil
 }
@@ -122,12 +122,12 @@ func EnforcerCrypto(ctx context.Context, url string) (
 	cryptorpc.CryptoServiceClient, error,
 ) {
 	if url == "" {
-		return nil, errors.New("empty validator url")
+		return nil, errors.New("empty crypto url")
 	}
 
 	client := cryptorpc.NewCryptoServiceClient(
 		getSharedClient(ctx),
-		fmt.Sprintf("http://%s", url),
+		ensureHTTPScheme(url),
 		connect.WithGRPC(),
 	)
 
@@ -146,103 +146,47 @@ func EnforcerCrypto(ctx context.Context, url string) (
 
 // Thunder creates a Thunder sidechain client
 func Thunder(ctx context.Context, host string, port int) (*thunder.Client, error) {
-	if host == "" {
-		return nil, errors.New("empty thunder host")
-	}
-
-	client := thunder.NewClient(host, port)
-
-	// Test connection with a simple call
-	_, err := client.Balance(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("thunder connection test: %w", err)
-	}
-
-	return client, nil
+	return dialSidechain(ctx, "thunder", host, thunder.NewClient(host, port))
 }
 
 // BitNames creates a BitNames sidechain client
 func BitNames(ctx context.Context, host string, port int) (*bitnames.Client, error) {
-	if host == "" {
-		return nil, errors.New("empty bitnames host")
-	}
-
-	client := bitnames.NewClient(host, port)
-
-	// Test connection with a simple call
-	_, err := client.Balance(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("bitnames connection test: %w", err)
-	}
-
-	return client, nil
+	return dialSidechain(ctx, "bitnames", host, bitnames.NewClient(host, port))
 }
 
 // BitAssets creates a BitAssets sidechain client
 func BitAssets(ctx context.Context, host string, port int) (*bitassets.Client, error) {
-	if host == "" {
-		return nil, errors.New("empty bitassets host")
-	}
-
-	client := bitassets.NewClient(host, port)
-
-	// Test connection with a simple call
-	_, err := client.Balance(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("bitassets connection test: %w", err)
-	}
-
-	return client, nil
+	return dialSidechain(ctx, "bitassets", host, bitassets.NewClient(host, port))
 }
 
 // Truthcoin creates a Truthcoin sidechain client
 func Truthcoin(ctx context.Context, host string, port int, cookieFile string) (*truthcoin.Client, error) {
-	if host == "" {
-		return nil, errors.New("empty truthcoin host")
-	}
-
-	client := truthcoin.NewClient(host, port, cookieFile)
-
-	// Test connection with a simple call
-	_, err := client.Balance(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("truthcoin connection test: %w", err)
-	}
-
-	return client, nil
+	return dialSidechain(ctx, "truthcoin", host, truthcoin.NewClient(host, port, cookieFile))
 }
 
 // Photon creates a Photon sidechain client
 func Photon(ctx context.Context, host string, port int) (*photon.Client, error) {
-	if host == "" {
-		return nil, errors.New("empty photon host")
-	}
-
-	client := photon.NewClient(host, port)
-
-	// Test connection with a simple call
-	_, err := client.Balance(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("photon connection test: %w", err)
-	}
-
-	return client, nil
+	return dialSidechain(ctx, "photon", host, photon.NewClient(host, port))
 }
 
 // CoinShift creates a CoinShift sidechain client
 func CoinShift(ctx context.Context, host string, port int, cookieFile string) (*coinshift.Client, error) {
+	return dialSidechain(ctx, "coinshift", host, coinshift.NewClient(host, port, cookieFile))
+}
+
+type balancer[B any] interface {
+	Balance(ctx context.Context) (B, error)
+}
+
+func dialSidechain[C balancer[B], B any](ctx context.Context, name, host string, client C) (C, error) {
 	if host == "" {
-		return nil, errors.New("empty coinshift host")
+		var zero C
+		return zero, fmt.Errorf("empty %s host", name)
 	}
-
-	client := coinshift.NewClient(host, port, cookieFile)
-
-	// Test connection with a simple call
-	_, err := client.Balance(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("coinshift connection test: %w", err)
+	if _, err := client.Balance(ctx); err != nil {
+		var zero C
+		return zero, fmt.Errorf("%s connection test: %w", name, err)
 	}
-
 	return client, nil
 }
 

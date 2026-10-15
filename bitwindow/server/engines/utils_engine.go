@@ -1,22 +1,20 @@
 package engines
 
 import (
+	"bytes"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
-
-// Base58 alphabet
-const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 // BitcoinURI represents a parsed BIP-0021 Bitcoin URI
 type BitcoinURI struct {
@@ -106,10 +104,9 @@ type Base58DecodeResult struct {
 
 // DecodeBase58Check decodes a Base58Check string
 func DecodeBase58Check(input string) (*Base58DecodeResult, error) {
-	// Decode Base58 to bytes
-	decoded, err := base58Decode(input)
-	if err != nil {
-		return nil, err
+	decoded := base58.Decode(input)
+	if len(decoded) == 0 && input != "" {
+		return nil, fmt.Errorf("invalid Base58 string")
 	}
 
 	if len(decoded) < 5 {
@@ -121,8 +118,7 @@ func DecodeBase58Check(input string) (*Base58DecodeResult, error) {
 	checksum := decoded[len(decoded)-4:]
 
 	// Verify checksum
-	calculatedChecksum := doubleHash(payload)[:4]
-	checksumValid := bytesEqual(checksum, calculatedChecksum)
+	checksumValid := bytes.Equal(checksum, chainhash.DoubleHashB(payload)[:4])
 
 	// Extract version and data
 	versionByte := int(payload[0])
@@ -139,106 +135,7 @@ func DecodeBase58Check(input string) (*Base58DecodeResult, error) {
 
 // EncodeBase58Check encodes data to Base58Check format
 func EncodeBase58Check(versionByte int, data []byte) (string, error) {
-	// Combine version + data
-	payload := make([]byte, 1+len(data))
-	payload[0] = byte(versionByte)
-	copy(payload[1:], data)
-
-	// Calculate checksum
-	checksum := doubleHash(payload)[:4]
-
-	// Combine payload + checksum
-	combined := make([]byte, len(payload)+4)
-	copy(combined, payload)
-	copy(combined[len(payload):], checksum)
-
-	// Encode to Base58
-	return base58Encode(combined), nil
-}
-
-func base58Decode(input string) ([]byte, error) {
-	if input == "" {
-		return []byte{}, nil
-	}
-
-	// Count leading zeros
-	leadingZeros := 0
-	for leadingZeros < len(input) && input[leadingZeros] == '1' {
-		leadingZeros++
-	}
-
-	// Convert Base58 to BigInt
-	value := big.NewInt(0)
-	base := big.NewInt(58)
-
-	for i := 0; i < len(input); i++ {
-		char := input[i]
-		index := strings.IndexByte(base58Alphabet, char)
-		if index == -1 {
-			return nil, fmt.Errorf("invalid Base58 character: %c", char)
-		}
-		value.Mul(value, base)
-		value.Add(value, big.NewInt(int64(index)))
-	}
-
-	// Convert BigInt to bytes
-	bytes := value.Bytes()
-
-	// Add leading zeros
-	result := make([]byte, leadingZeros+len(bytes))
-	copy(result[leadingZeros:], bytes)
-
-	return result, nil
-}
-
-func base58Encode(input []byte) string {
-	if len(input) == 0 {
-		return ""
-	}
-
-	// Count leading zeros
-	leadingZeros := 0
-	for leadingZeros < len(input) && input[leadingZeros] == 0 {
-		leadingZeros++
-	}
-
-	// Convert bytes to BigInt
-	value := new(big.Int).SetBytes(input)
-
-	// Convert to Base58
-	base := big.NewInt(58)
-	var result []byte
-
-	for value.Cmp(big.NewInt(0)) > 0 {
-		mod := new(big.Int)
-		value.DivMod(value, base, mod)
-		result = append([]byte{base58Alphabet[mod.Int64()]}, result...)
-	}
-
-	// Add leading '1's for leading zeros
-	for i := 0; i < leadingZeros; i++ {
-		result = append([]byte{'1'}, result...)
-	}
-
-	return string(result)
-}
-
-func doubleHash(data []byte) []byte {
-	first := sha256.Sum256(data)
-	second := sha256.Sum256(first[:])
-	return second[:]
-}
-
-func bytesEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return base58.CheckEncode(data, byte(versionByte)), nil
 }
 
 func getAddressType(versionByte int) string {
@@ -314,7 +211,7 @@ func CalculateMerkleTree(txids []string) (*MerkleTreeResult, error) {
 			combined := make([]byte, len(hash1)+len(hash2))
 			copy(combined, hash1)
 			copy(combined[len(hash1):], hash2)
-			product := doubleHash(combined)
+			product := chainhash.DoubleHashB(combined)
 			nextLevel = append(nextLevel, product)
 		}
 

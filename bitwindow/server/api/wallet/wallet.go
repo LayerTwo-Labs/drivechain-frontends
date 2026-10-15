@@ -586,8 +586,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
 	walletId := c.Msg.WalletId
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
+	if _, err := s.walletEngine.GetWalletBackendType(ctx, walletId); err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
@@ -618,27 +617,8 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
 	}
 
-	// Electrum and Core wallets build the M5 deposit themselves (no local
-	// enforcer) and broadcast it through the orchestrator wallet manager.
-	if walletType == engines.WalletTypeElectrum || walletType == engines.WalletTypeBitcoinCore {
-		return s.createWalletSidechainDeposit(ctx, walletId, uint32(*slot), depositAddress, amount, fee)
-	}
-
-	return nil, connect.NewError(connect.CodeFailedPrecondition,
-		errors.New("this wallet backend cannot build a sidechain deposit"))
-}
-
-// createWalletSidechainDeposit delegates the M5 to the orchestrator, which
-// assembles it and funds it from the wallet, whatever backend serves it.
-func (s *Server) createWalletSidechainDeposit(
-	ctx context.Context,
-	walletId string,
-	slot uint32,
-	depositAddress string,
-	amount, fee btcutil.Amount,
-) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
 	txid, err := s.walletEngine.CreateDeposit(ctx, &orchpb.CreateDepositRequest{
-		Slot:        int32(slot),
+		Slot:        int32(*slot),
 		WalletId:    walletId,
 		Destination: depositAddress,
 		AmountSats:  int64(amount),
@@ -648,7 +628,7 @@ func (s *Server) createWalletSidechainDeposit(
 		return nil, fmt.Errorf("broadcast sidechain deposit: %w", err)
 	}
 
-	zerolog.Ctx(ctx).Info().Str("txid", txid).Uint32("slot", slot).Msg("create electrum deposit tx: broadcast")
+	zerolog.Ctx(ctx).Info().Str("txid", txid).Int64("slot", *slot).Msg("create sidechain deposit")
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{Txid: txid}), nil
 }
@@ -1145,18 +1125,9 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeRequest]) (*connect.Response[pb.GetChequeResponse], error) {
 	walletId := c.Msg.WalletId
 
-	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
 	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+		return nil, err
 	}
 
 	pbCheque, err := s.chequeToPb(cheque)
@@ -1175,22 +1146,13 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 
 	walletId := c.Msg.WalletId
 
-	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
 	if !s.walletEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
+	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+		return nil, err
 	}
 
 	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(walletId, cheque.DerivationIndex)
@@ -1238,18 +1200,9 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 	walletId := c.Msg.WalletId
 
-	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
 	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+		return nil, err
 	}
 
 	utxos, err := s.chequeChain.AddressUnspent(ctx, cheque.Address)
@@ -1470,19 +1423,9 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 
 	walletId := c.Msg.WalletId
 
-	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	cheque, err := s.getCheque(ctx, walletId, c.Msg.Id)
 	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	// Check if cheque exists
-	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+		return nil, err
 	}
 
 	// Only allow deletion of unfunded or swept cheques
@@ -1503,6 +1446,21 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 		Msg("cheque deleted")
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) getCheque(ctx context.Context, walletId string, id int64) (*cheques.Cheque, error) {
+	if _, err := s.walletEngine.GetWalletBackendType(ctx, walletId); err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	cheque, err := cheques.Get(ctx, s.database, walletId, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	}
+	return cheque, nil
 }
 
 // Helper function to convert model Cheque to protobuf Cheque
