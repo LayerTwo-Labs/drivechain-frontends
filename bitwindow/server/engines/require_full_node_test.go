@@ -25,10 +25,12 @@ func engineWithMode(t *testing.T, mode orchpb.NodeMode, err error) *engines.Wall
 			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
 		}, err)
 	return engines.NewWalletEngine(
+		t.Context(),
 		func(context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
 		orch,
 		t.TempDir(),
 		&chaincfg.MainNetParams,
+		nil,
 	)
 }
 

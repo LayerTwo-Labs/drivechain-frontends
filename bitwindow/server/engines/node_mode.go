@@ -73,12 +73,8 @@ func (n *NodeMode) lastKnown() orchpb.NodeMode {
 // RunsLocalNode reports whether a poller may talk to Bitcoin Core. Full mode
 // is the only mode that runs one: light mode starts no daemon, and an unpicked
 // mode starts nothing either while the welcome prompt waits for the user. An
-// unreadable mode keeps the last known answer, and an engine with no source
-// has no mode to obey.
+// unreadable mode keeps the last known answer.
 func (n *NodeMode) RunsLocalNode(ctx context.Context) bool {
-	if n == nil {
-		return true
-	}
 	mode, err := n.Mode(ctx)
 	if err != nil {
 		mode = n.lastKnown()

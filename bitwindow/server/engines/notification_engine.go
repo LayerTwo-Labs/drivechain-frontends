@@ -36,19 +36,15 @@ type NotificationEngine struct {
 	subscribers []chan *notificationv1.WatchResponse
 }
 
-// SetNodeMode gates both watches on the node mode. Light mode runs no local
-// Bitcoin Core, so there are no core wallets and no confirmations to read.
-func (e *NotificationEngine) SetNodeMode(nodeMode *NodeMode) {
-	e.nodeMode = nodeMode
-}
-
 func NewNotificationEngine(
 	db *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+	nodeMode *NodeMode,
 ) *NotificationEngine {
 	return &NotificationEngine{
 		db:          db,
 		bitcoind:    bitcoind,
+		nodeMode:    nodeMode,
 		subscribers: make([]chan *notificationv1.WatchResponse, 0),
 	}
 }

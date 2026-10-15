@@ -55,19 +55,16 @@ type MempoolWatcher struct {
 	tip     uint32
 }
 
-func NewMempoolWatcher(db *sql.DB, call RawCall, subscribe SequenceSubscribe) *MempoolWatcher {
+func NewMempoolWatcher(db *sql.DB, call RawCall, subscribe SequenceSubscribe, nodeMode *NodeMode) *MempoolWatcher {
 	return &MempoolWatcher{
 		db:                db,
 		call:              call,
 		subscribe:         subscribe,
+		nodeMode:          nodeMode,
 		retryDelay:        5 * time.Second,
 		rebootstrapMinGap: time.Minute,
 		statsLookback:     144,
 	}
-}
-
-func (w *MempoolWatcher) SetNodeMode(nodeMode *NodeMode) {
-	w.nodeMode = nodeMode
 }
 
 // Run starts the watcher if it was left enabled and blocks until ctx ends.
@@ -192,7 +189,7 @@ func (w *MempoolWatcher) loop(ctx context.Context, done chan struct{}) {
 }
 
 func (w *MempoolWatcher) watch(ctx context.Context) error {
-	if w.nodeMode != nil && !w.nodeMode.RunsLocalNode(ctx) {
+	if !w.nodeMode.RunsLocalNode(ctx) {
 		return errRequiresFullNode
 	}
 

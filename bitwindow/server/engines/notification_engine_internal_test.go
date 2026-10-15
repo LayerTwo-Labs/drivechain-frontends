@@ -28,7 +28,7 @@ func TestProcessWalletTransactions_HistoryIsNotAnnounced(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
 
-	engine := NewNotificationEngine(db, nil)
+	engine := NewNotificationEngine(db, nil, nil)
 	events := engine.Subscribe(ctx)
 
 	const txid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -63,7 +63,7 @@ func TestProcessWalletTransactions_DedupIsPerWallet(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
 
-	engine := NewNotificationEngine(db, nil)
+	engine := NewNotificationEngine(db, nil, nil)
 	events := engine.Subscribe(ctx)
 
 	const txid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -102,7 +102,7 @@ func TestProcessWalletTransactions_SumsOutputsWithSameTxid(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
 
-	engine := NewNotificationEngine(db, nil)
+	engine := NewNotificationEngine(db, nil, nil)
 	events := engine.Subscribe(ctx)
 
 	const txid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -133,7 +133,7 @@ func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
 
-	engine := NewNotificationEngine(db, nil)
+	engine := NewNotificationEngine(db, nil, nil)
 	events := engine.Subscribe(ctx)
 
 	const txid = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
@@ -168,7 +168,7 @@ func TestCheckTimestampConfirmations_SkipsDiscovered(t *testing.T) {
 	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 	engine := NewNotificationEngine(db, service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 		return core, nil
-	}))
+	}), nil)
 	events := engine.Subscribe(ctx)
 
 	require.NoError(t, engine.checkTimestampConfirmations(ctx))
@@ -227,7 +227,7 @@ func TestProcessWalletTransactions_AmountInSats(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
-			engine := NewNotificationEngine(database.Test(t), nil)
+			engine := NewNotificationEngine(database.Test(t), nil, nil)
 			events := engine.Subscribe(ctx)
 
 			require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", tc.rows))
@@ -241,7 +241,7 @@ func TestProcessWalletTransactions_AmountInSats(t *testing.T) {
 
 func TestProcessWalletTransactions_ConfirmedSendIsPositive(t *testing.T) {
 	ctx := t.Context()
-	engine := NewNotificationEngine(database.Test(t), nil)
+	engine := NewNotificationEngine(database.Test(t), nil, nil)
 	events := engine.Subscribe(ctx)
 
 	const txid = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -257,7 +257,7 @@ func TestProcessWalletTransactions_ConfirmedSendIsPositive(t *testing.T) {
 func TestProcessWalletTransactions_MarkFailureSendsNothing(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	engine := NewNotificationEngine(db, nil)
+	engine := NewNotificationEngine(db, nil, nil)
 	events := engine.Subscribe(ctx)
 
 	_, err := db.ExecContext(ctx, `CREATE TRIGGER fail_mark BEFORE INSERT ON notified_events
@@ -298,7 +298,7 @@ func TestCheckTimestampConfirmations_BlockErrorSendsNothing(t *testing.T) {
 	core.EXPECT().GetBlock(gomock.Any(), gomock.Any()).Return(nil, errors.New("block not found"))
 	engine := NewNotificationEngine(db, service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 		return core, nil
-	}))
+	}), nil)
 	events := engine.Subscribe(ctx)
 
 	require.NoError(t, engine.checkTimestampConfirmations(ctx))

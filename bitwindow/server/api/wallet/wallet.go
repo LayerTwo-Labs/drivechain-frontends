@@ -994,7 +994,7 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	if err := s.walletEngine.Unlock(walletData); err != nil {
+	if err := s.walletEngine.Unlock(ctx, walletData); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unlock wallet engine: %w", err))
 	}
 
@@ -1051,7 +1051,7 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get next index: %w", err))
 	}
 
-	address, err := s.chequeEngine.DeriveChequeAddress(walletID, nextIndex)
+	address, err := s.chequeEngine.DeriveChequeAddress(ctx, walletID, nextIndex)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive address %d: %w", nextIndex, err))
 	}
@@ -1084,7 +1084,7 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 		return nil, err
 	}
 
-	pbCheque, err := s.chequeToPb(cheque)
+	pbCheque, err := s.chequeToPb(ctx, cheque)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1107,7 +1107,7 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 		return nil, err
 	}
 
-	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(walletID, cheque.DerivationIndex)
+	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, walletID, cheque.DerivationIndex)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive private key %d: %w", cheque.DerivationIndex, err))
 	}
@@ -1134,7 +1134,7 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 
 	pbCheques := make([]*pb.Cheque, len(chequeList))
 	for i, ch := range chequeList {
-		pbCheques[i], err = s.chequeToPb(&ch)
+		pbCheques[i], err = s.chequeToPb(ctx, &ch)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
@@ -1416,7 +1416,7 @@ func (s *Server) getCheque(ctx context.Context, walletID string, id int64) (*che
 	return cheque, nil
 }
 
-func (s *Server) chequeToPb(c *cheques.Cheque) (*pb.Cheque, error) {
+func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque) (*pb.Cheque, error) {
 	pbCheque := &pb.Cheque{
 		Id:                 c.ID,
 		DerivationIndex:    c.DerivationIndex,
@@ -1442,7 +1442,7 @@ func (s *Server) chequeToPb(c *cheques.Cheque) (*pb.Cheque, error) {
 
 	// Only include private key if cheque is funded and wallet is unlocked
 	if c.IsFunded() && s.walletEngine.IsUnlocked() {
-		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.WalletID, c.DerivationIndex)
+		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, c.WalletID, c.DerivationIndex)
 		if err != nil {
 			return nil, fmt.Errorf("derive cheque %d private key: %w", c.ID, err)
 		}

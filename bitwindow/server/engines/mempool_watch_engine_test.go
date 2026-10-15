@@ -132,7 +132,7 @@ func newTestWatcher(t *testing.T, node *fakeNode) (*MempoolWatcher, *sql.DB) {
 	db := database.Test(t)
 	w := NewMempoolWatcher(db, node.call, func(context.Context) (<-chan SequenceMsg, func(), error) {
 		return nil, nil, errors.New("no subscription in this test")
-	})
+	}, testNodeMode(t, orchpb.NodeMode_NODE_MODE_FULL))
 	w.rebootstrapMinGap = 0
 	w.statsLookback = 0
 	return w, db
@@ -500,19 +500,22 @@ func TestMempoolWatchStopsWhenTheSubscriptionCloses(t *testing.T) {
 	assert.False(t, w.Status().Running)
 }
 
-func TestMempoolWatchRequiresFullNode(t *testing.T) {
+func testNodeMode(t *testing.T, mode orchpb.NodeMode) *NodeMode {
+	t.Helper()
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		AnyTimes().
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
+			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
 		}, nil)
-	nodeMode := NewNodeMode(client)
+	return NewNodeMode(client)
+}
 
+func TestMempoolWatchRequiresFullNode(t *testing.T) {
 	node := nodeAtTip(t, 1)
 	w, _ := newTestWatcher(t, node)
-	w.SetNodeMode(nodeMode)
+	w.nodeMode = testNodeMode(t, orchpb.NodeMode_NODE_MODE_LIGHT)
 	subscribed := false
 	w.subscribe = func(context.Context) (<-chan SequenceMsg, func(), error) {
 		subscribed = true

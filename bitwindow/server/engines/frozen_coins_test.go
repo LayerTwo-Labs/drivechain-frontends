@@ -18,17 +18,16 @@ import (
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
-func engineWithClient(t *testing.T, client *mocks.MockWalletManagerServiceClient) *engines.WalletEngine {
+func engineWithClient(t *testing.T, client *mocks.MockWalletManagerServiceClient, frozenCoins engines.FrozenCoinsFunc) *engines.WalletEngine {
 	t.Helper()
-	return engines.NewWalletEngine(nil, client, t.TempDir(), &chaincfg.RegressionNetParams)
+	return engines.NewWalletEngine(t.Context(), nil, client, t.TempDir(), &chaincfg.RegressionNetParams, frozenCoins)
 }
 
 // A send this server makes must never take a coin the user froze, so it hands
 // the orchestrator the whole frozen set first.
 func TestSendHandsOverTheFrozenCoins(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	engine := engineWithClient(t, client)
-	engine.SetFrozenCoins(func(context.Context) ([]string, error) {
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
 		return []string{"aa:0", "bb:12"}, nil
 	})
 
@@ -66,8 +65,7 @@ func TestSendHandsOverTheFrozenCoins(t *testing.T) {
 // protects, so the send stops instead.
 func TestSendStopsWhenTheFrozenSetFails(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	engine := engineWithClient(t, client)
-	engine.SetFrozenCoins(func(context.Context) ([]string, error) {
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
 		return nil, errors.New("the database is closed")
 	})
 
@@ -77,8 +75,7 @@ func TestSendStopsWhenTheFrozenSetFails(t *testing.T) {
 
 func TestSendStopsOnAnOutpointItCannotRead(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	engine := engineWithClient(t, client)
-	engine.SetFrozenCoins(func(context.Context) ([]string, error) {
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
 		return []string{"no-vout-here"}, nil
 	})
 
@@ -90,8 +87,7 @@ func TestSendStopsOnAnOutpointItCannotRead(t *testing.T) {
 // restart. The engine hands the set over again while it runs.
 func TestKeepFrozenCoinsHandsTheSetOverAgain(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	engine := engineWithClient(t, client)
-	engine.SetFrozenCoins(func(context.Context) ([]string, error) {
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
 		return []string{"aa:0"}, nil
 	})
 
@@ -119,8 +115,7 @@ func TestKeepFrozenCoinsHandsTheSetOverAgain(t *testing.T) {
 // over the same way a send does.
 func TestDepositHandsOverTheFrozenCoins(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	engine := engineWithClient(t, client)
-	engine.SetFrozenCoins(func(context.Context) ([]string, error) {
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
 		return []string{"aa:0"}, nil
 	})
 
@@ -144,8 +139,7 @@ func TestDepositHandsOverTheFrozenCoins(t *testing.T) {
 // hands the frozen set over first.
 func TestBumpFeeHandsOverTheFrozenCoins(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	engine := engineWithClient(t, client)
-	engine.SetFrozenCoins(func(context.Context) ([]string, error) {
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
 		return []string{"aa:0"}, nil
 	})
 
@@ -169,8 +163,7 @@ func TestBumpFeeHandsOverTheFrozenCoins(t *testing.T) {
 // coin. The job runs through the orchestrator, which refuses it there.
 func TestDeniabilitySendHandsOverTheFrozenCoins(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	engine := engineWithClient(t, client)
-	engine.SetFrozenCoins(func(context.Context) ([]string, error) {
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
 		return []string{"tip:0"}, nil
 	})
 

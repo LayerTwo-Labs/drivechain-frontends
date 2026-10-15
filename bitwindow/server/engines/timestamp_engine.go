@@ -60,16 +60,9 @@ func isTxNotFoundError(errMsg string) bool {
 
 type TimestampEngine struct {
 	db       *sql.DB
-	log      zerolog.Logger
 	wallet   WalletService
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	nodeMode *NodeMode
-}
-
-// SetNodeMode gates the confirmation watch on the node mode. Light mode runs no
-// local Bitcoin Core, so it holds no confirmations to read.
-func (e *TimestampEngine) SetNodeMode(nodeMode *NodeMode) {
-	e.nodeMode = nodeMode
 }
 
 // WalletService interface for sending transactions
@@ -79,15 +72,15 @@ type WalletService interface {
 
 func NewTimestampEngine(
 	db *sql.DB,
-	log zerolog.Logger,
 	wallet WalletService,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+	nodeMode *NodeMode,
 ) *TimestampEngine {
 	return &TimestampEngine{
 		db:       db,
-		log:      log.With().Str("component", "timestamp_engine").Logger(),
 		wallet:   wallet,
 		bitcoind: bitcoind,
+		nodeMode: nodeMode,
 	}
 }
 
@@ -95,19 +88,19 @@ func (e *TimestampEngine) Run(ctx context.Context) error {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
-	e.log.Info().Msg("timestamp engine started")
+	zerolog.Ctx(ctx).Info().Msg("timestamp engine started")
 
 	for {
 		select {
 		case <-ctx.Done():
-			e.log.Info().Msg("timestamp engine stopped")
+			zerolog.Ctx(ctx).Info().Msg("timestamp engine stopped")
 			return ctx.Err()
 		case <-ticker.C:
 			if !e.nodeMode.RunsLocalNode(ctx) {
 				continue
 			}
 			if err := e.checkConfirmations(ctx); err != nil {
-				e.log.Warn().Err(err).Msg("check confirmations")
+				zerolog.Ctx(ctx).Warn().Err(err).Msg("check confirmations")
 			}
 		}
 	}
@@ -134,7 +127,7 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 	}
 	inIBD := chainInfo.Msg.InitialBlockDownload
 
-	e.log.Debug().
+	zerolog.Ctx(ctx).Debug().
 		Int("count", len(confirmingTimestamps)).
 		Msg("checking confirmations for timestamps")
 
@@ -160,14 +153,14 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 					timestamps.StatusFailed,
 					nil,
 				); err != nil {
-					e.log.Warn().
+					zerolog.Ctx(ctx).Warn().
 						Err(err).
 						Int64("id", ts.ID).
 						Msg("update timestamp")
 					continue
 				}
 
-				e.log.Info().
+				zerolog.Ctx(ctx).Info().
 					Int64("id", ts.ID).
 					Str("txid", *ts.TxID).
 					Time("created_at", ts.CreatedAt).
@@ -175,7 +168,7 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 				continue
 			}
 
-			e.log.Warn().
+			zerolog.Ctx(ctx).Warn().
 				Err(err).
 				Str("txid", *ts.TxID).
 				Msg("get raw transaction")
@@ -195,7 +188,7 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 					Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 				}))
 				if err != nil {
-					e.log.Warn().
+					zerolog.Ctx(ctx).Warn().
 						Err(err).
 						Str("blockhash", resp.Msg.Blockhash).
 						Msg("get block")
@@ -218,14 +211,14 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 				timestamps.StatusConfirmed,
 				confirmedAt,
 			); err != nil {
-				e.log.Warn().
+				zerolog.Ctx(ctx).Warn().
 					Err(err).
 					Int64("id", ts.ID).
 					Msg("update timestamp")
 				continue
 			}
 
-			e.log.Info().
+			zerolog.Ctx(ctx).Info().
 				Int64("id", ts.ID).
 				Str("txid", *ts.TxID).
 				Uint32("confirmations", confirmations).
@@ -240,7 +233,7 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 	hash := sha256.Sum256(fileData)
 	fileHash := hex.EncodeToString(hash[:])
 
-	e.log.Info().
+	zerolog.Ctx(ctx).Info().
 		Str("filename", filename).
 		Str("hash", fileHash).
 		Int("size", len(fileData)).
@@ -252,7 +245,7 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 		return nil, fmt.Errorf("check existing timestamp: %w", err)
 	}
 	if existing != nil && existing.Status != timestamps.StatusFailed {
-		e.log.Info().
+		zerolog.Ctx(ctx).Info().
 			Str("filename", filename).
 			Str("hash", fileHash).
 			Int64("existing_id", existing.ID).
@@ -267,7 +260,7 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 		return nil, fmt.Errorf("send timestamp transaction: %w", err)
 	}
 
-	e.log.Info().
+	zerolog.Ctx(ctx).Info().
 		Str("txid", txid).
 		Str("hash", fileHash).
 		Msg("created timestamp transaction on blockchain")
@@ -285,7 +278,7 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 		existing.BlockHeight = nil
 		existing.ConfirmedAt = nil
 
-		e.log.Info().
+		zerolog.Ctx(ctx).Info().
 			Int64("id", existing.ID).
 			Str("filename", existing.Filename).
 			Str("txid", txid).
@@ -310,7 +303,7 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 
 	timestamp.ID = id
 
-	e.log.Info().
+	zerolog.Ctx(ctx).Info().
 		Int64("id", id).
 		Str("filename", filename).
 		Str("hash", fileHash).
@@ -352,16 +345,12 @@ func (e *TimestampEngine) VerifyTimestamp(ctx context.Context, fileData []byte, 
 	// If this is a discovered timestamp with no filename, update it
 	if timestamp.Filename == "" && filename != "" {
 		if err := timestamps.UpdateFilename(ctx, e.db, timestamp.ID, filename); err != nil {
-			e.log.Warn().
-				Err(err).
-				Int64("id", timestamp.ID).
-				Msg("update filename for discovered timestamp")
-		} else {
-			timestamp.Filename = filename
+			return nil, fmt.Errorf("set filename of timestamp %d: %w", timestamp.ID, err)
 		}
+		timestamp.Filename = filename
 	}
 
-	e.log.Info().
+	zerolog.Ctx(ctx).Info().
 		Str("hash", fileHash).
 		Str("txid", *timestamp.TxID).
 		Str("filename", timestamp.Filename).

@@ -61,10 +61,12 @@ func testChequeEngineWith(t *testing.T, chain ChequeChain, orch orchrpc.WalletMa
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), walletData, 0o600))
 
 	walletEngine := NewWalletEngine(
+		t.Context(),
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
 		orch,
 		dir,
 		&chaincfg.SigNetParams,
+		nil,
 	)
 	return NewChequeEngine(database.Test(t), walletEngine, &chaincfg.SigNetParams, chain)
 }
@@ -73,7 +75,7 @@ func TestScanForFundsReportsFundedIndex(t *testing.T) {
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
 	engine := testChequeEngine(t, chain)
 
-	address, err := engine.DeriveChequeAddress(chequeWalletID, 3)
+	address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 3)
 	require.NoError(t, err)
 	chain.funded[address] = testUTXOs()
 
@@ -92,7 +94,7 @@ func TestRecoverChequesOnUnlockPersistsFundedCheques(t *testing.T) {
 	engine := testChequeEngine(t, chain)
 	ctx := t.Context()
 
-	address, err := engine.DeriveChequeAddress(chequeWalletID, 0)
+	address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 0)
 	require.NoError(t, err)
 	chain.funded[address] = testUTXOs()
 
@@ -121,7 +123,7 @@ func TestRecoverChequesOnUnlockKeepsTheBlockHeight(t *testing.T) {
 	engine := testChequeEngine(t, chain)
 	ctx := t.Context()
 
-	address, err := engine.DeriveChequeAddress(chequeWalletID, 0)
+	address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 0)
 	require.NoError(t, err)
 	utxos := testUTXOs()
 	utxos[0].Height = 123
@@ -140,7 +142,7 @@ func TestRecoverChequesOnUnlockWaitsForTheChain(t *testing.T) {
 	engine.scanRetry = time.Millisecond
 	ctx := t.Context()
 
-	address, err := engine.DeriveChequeAddress(chequeWalletID, 0)
+	address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 0)
 	require.NoError(t, err)
 	chain.funded[address] = testUTXOs()
 

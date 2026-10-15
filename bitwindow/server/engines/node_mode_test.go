@@ -48,12 +48,6 @@ func TestRunsLocalNodeStopsOnAnUnpickedMode(t *testing.T) {
 	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
-// An engine with no source has no mode to obey. It keeps its old behaviour.
-func TestRunsLocalNodeAllowsANilSource(t *testing.T) {
-	var nodeMode *engines.NodeMode
-	require.True(t, nodeMode.RunsLocalNode(t.Context()))
-}
-
 // An orchestrator restart must not restart the pollers a light-mode user
 // stopped. The last known answer stands until a read succeeds.
 func TestRunsLocalNodeKeepsTheLastAnswer(t *testing.T) {

@@ -133,7 +133,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 		// A denial from before wallet_id existed names none, so it runs on the
 		// active wallet. Erroring instead would mark it failed on every cycle
 		// and strand it forever.
-		walletID, err := e.resolveDenialWallet(denial)
+		walletID, err := e.resolveDenialWallet(ctx, denial)
 		if err != nil {
 			logger.Warn().Err(err).Int64("denial", denial.ID).Msg("deniability: no wallet for this denial, will retry")
 			continue
@@ -180,7 +180,7 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 	logger := zerolog.Ctx(ctx)
 
 	for _, denial := range denials {
-		walletID, err := e.resolveDenialWallet(denial)
+		walletID, err := e.resolveDenialWallet(ctx, denial)
 		if err != nil {
 			continue
 		}
@@ -260,7 +260,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 	var walletID string
 	var err error
 
-	walletID, err = e.resolveDenialWallet(denial)
+	walletID, err = e.resolveDenialWallet(ctx, denial)
 	if err != nil {
 		return fmt.Errorf("denial %d: %w", denial.ID, err)
 	}
@@ -601,11 +601,11 @@ func (e *DeniabilityEngine) getBitcoinCoreNewAddress(ctx context.Context, wallet
 
 // resolveDenialWallet names the wallet a denial spends from: the one stored
 // with it, or the active wallet for a row from before wallet_id existed.
-func (e *DeniabilityEngine) resolveDenialWallet(denial deniability.Denial) (string, error) {
+func (e *DeniabilityEngine) resolveDenialWallet(ctx context.Context, denial deniability.Denial) (string, error) {
 	if denial.WalletID != nil && *denial.WalletID != "" {
 		return *denial.WalletID, nil
 	}
-	active, err := e.walletEngine.GetActiveWallet(context.Background())
+	active, err := e.walletEngine.GetActiveWallet(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get active wallet: %w", err)
 	}

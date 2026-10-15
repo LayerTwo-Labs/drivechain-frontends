@@ -210,6 +210,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		// no hosted orchestrator, so every read stays on the mocks above. The
 		// ChainParams above pick the address encoding the fixtures use.
 		BitcoinCoreNetwork: conf.network,
+		Datadir:            t.TempDir(),
 		OrchestratorAddr:   orchestratorAddr,
 		GuiBootedMainchain: false,
 		GuiBootedEnforcer:  false,

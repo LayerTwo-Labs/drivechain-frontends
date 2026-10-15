@@ -24,7 +24,7 @@ func TestLightModeReadsTheRemoteValidator(t *testing.T) {
 	walletClient.EXPECT().GetNodeMode(gomock.Any(), gomock.Any()).AnyTimes().Return(
 		connect.NewResponse(&walletpb.GetNodeModeResponse{Mode: walletpb.NodeMode_NODE_MODE_LIGHT}), nil,
 	)
-	walletEngine := engines.NewWalletEngine(nil, walletClient, t.TempDir(), &chaincfg.RegressionNetParams)
+	walletEngine := engines.NewWalletEngine(t.Context(), nil, walletClient, t.TempDir(), &chaincfg.RegressionNetParams, nil)
 	mode, err := walletEngine.NodeMode().Mode(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, walletpb.NodeMode_NODE_MODE_LIGHT, mode)

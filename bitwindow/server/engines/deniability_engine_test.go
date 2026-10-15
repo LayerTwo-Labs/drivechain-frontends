@@ -57,10 +57,12 @@ func testDenialWalletEngine(
 		orchestrator = apitests.CoreWalletOrchestrator(t)
 	}
 	return engines.NewWalletEngine(
+		t.Context(),
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return bitcoind, nil },
 		orchestrator,
 		dir,
 		&chaincfg.SigNetParams,
+		func(context.Context) ([]string, error) { return nil, nil },
 	)
 }
 
@@ -315,6 +317,10 @@ func TestDeniabilityEngine(t *testing.T) {
 		})
 		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
 		mockOrch.EXPECT().
+			SetFrozenCoins(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
 			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
@@ -422,6 +428,10 @@ func TestDeniabilityEngine(t *testing.T) {
 		})
 		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
 		mockOrch.EXPECT().
+			SetFrozenCoins(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
 			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
@@ -474,6 +484,10 @@ func TestDeniabilityEngine(t *testing.T) {
 			return mockBitcoind, nil
 		})
 		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			SetFrozenCoins(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
 		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().

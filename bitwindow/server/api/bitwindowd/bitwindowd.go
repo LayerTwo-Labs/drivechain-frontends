@@ -241,7 +241,7 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 	// frontend.
 	defer func() {
 		log.Info().Msg("bitwindowd shutting down")
-		s.onShutdown(context.Background())
+		s.onShutdown(context.WithoutCancel(ctx))
 	}()
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
