@@ -2,6 +2,8 @@ package utils
 
 import (
 	"context"
+	"fmt"
+	"math"
 
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -78,6 +80,9 @@ func (s *Server) DecodeBase58Check(_ context.Context, req *connect.Request[utils
 
 // EncodeBase58Check implements utilsv1connect.UtilsServiceHandler
 func (s *Server) EncodeBase58Check(_ context.Context, req *connect.Request[utilspb.EncodeBase58CheckRequest]) (*connect.Response[utilspb.EncodeBase58CheckResponse], error) {
+	if req.Msg.VersionByte < 0 || req.Msg.VersionByte > math.MaxUint8 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("version byte %d is not in the range 0 to 255", req.Msg.VersionByte))
+	}
 	return connect.NewResponse(&utilspb.EncodeBase58CheckResponse{
 		Encoded: engines.EncodeBase58Check(int(req.Msg.VersionByte), req.Msg.Data),
 	}), nil

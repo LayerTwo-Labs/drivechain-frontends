@@ -39,6 +39,8 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/signmessage"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
@@ -50,6 +52,7 @@ func New(
 	ctx context.Context,
 	database *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
 	chequeEngine *engines.ChequeEngine,
 	chequeChain engines.ChequeChain,
 	walletEngine *engines.WalletEngine,
@@ -60,6 +63,7 @@ func New(
 		database:     database,
 		chequeChain:  chequeChain,
 		bitcoind:     bitcoind,
+		enforcer:     enforcer,
 		chequeEngine: chequeEngine,
 		walletEngine: walletEngine,
 		backupEngine: engines.NewBackupEngine(database, walletDir),
@@ -75,6 +79,7 @@ func New(
 type Server struct {
 	database     *sql.DB
 	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+	enforcer     *service.Service[validatorrpc.ValidatorServiceClient]
 	chequeEngine *engines.ChequeEngine
 	chequeChain  engines.ChequeChain
 	walletEngine *engines.WalletEngine
@@ -374,6 +379,8 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			noteMap[n.TxID] = n.Note
 		}
 
+		tip := s.tipHeight(ctx, lo.SomeBy(entries, func(t *orchpb.TransactionEntry) bool { return t.Confirmations > 0 }))
+
 		out := make([]*pb.WalletTransaction, 0, len(entries))
 		for _, t := range entries {
 			var received, sent uint64
@@ -384,7 +391,10 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			}
 			var confirmation *pb.Confirmation
 			if t.Confirmations > 0 {
-				confirmation = &pb.Confirmation{Timestamp: &timestamppb.Timestamp{Seconds: t.BlockTime}}
+				confirmation = &pb.Confirmation{
+					Height:    engines.ConfirmedHeight(tip, t.Confirmations),
+					Timestamp: &timestamppb.Timestamp{Seconds: t.BlockTime},
+				}
 			}
 			feeSats, err := btcToSats(math.Abs(t.Fee))
 			if err != nil {
@@ -427,6 +437,8 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
 	}
 
+	tip := s.tipHeight(ctx, lo.SomeBy(txsResp.Msg.Transactions, func(tx *corepb.GetTransactionResponse) bool { return tx.Confirmations > 0 }))
+
 	labels, err := addressbook.LabelsByAddress(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
@@ -454,6 +466,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 				}
 				if timestamp != nil {
 					confirmation = &pb.Confirmation{
+						Height:    engines.ConfirmedHeight(tip, tx.Confirmations),
 						Timestamp: timestamp,
 					}
 				}
@@ -521,6 +534,24 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	return connect.NewResponse(&pb.ListTransactionsResponse{
 		Transactions: walletTxs,
 	}), nil
+}
+
+// A down enforcer gives no block heights; the transaction list must not depend on it.
+func (s *Server) tipHeight(ctx context.Context, anyConfirmed bool) int32 {
+	if !anyConfirmed {
+		return 0
+	}
+	enforcer, err := s.enforcer.Get(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("list transactions: no block heights, enforcer is down")
+		return 0
+	}
+	resp, err := enforcer.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("list transactions: no block heights, get chain tip")
+		return 0
+	}
+	return int32(resp.Msg.BlockHeaderInfo.GetHeight())
 }
 
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
@@ -845,50 +876,28 @@ func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial
 
 // ListReceiveAddresses implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
-	walletID := c.Msg.WalletId
-
-	// Bitcoin Core version
-	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
-	}
-
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	utxosResp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-		Wallet: coreWalletName,
-	}))
-	if err != nil {
-		return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
-	}
-
 	labels, err := addressbook.LabelsByAddress(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
 
+	utxos, err := s.listUnspent(ctx, c.Msg.WalletId, labels)
+	if err != nil {
+		return nil, err
+	}
+
 	addressMap := make(map[string]*pb.ReceiveAddress)
-	for _, utxo := range utxosResp.Msg.Unspent {
+	for _, utxo := range utxos {
 		if utxo.Address == "" {
 			continue
 		}
-
-		valueSats, err := btcToSats(utxo.Amount)
-		if err != nil {
-			return nil, fmt.Errorf("value of %s:%d: %w", utxo.Txid, utxo.Vout, err)
-		}
-
 		if existing, found := addressMap[utxo.Address]; found {
-			existing.CurrentBalanceSat += valueSats
+			existing.CurrentBalanceSat += utxo.ValueSats
 		} else {
 			addressMap[utxo.Address] = &pb.ReceiveAddress{
 				Address:           utxo.Address,
-				Label:             labels[utxo.Address],
-				CurrentBalanceSat: valueSats,
-				IsChange:          false, // Bitcoin Core doesn't expose this easily
+				Label:             utxo.Label,
+				CurrentBalanceSat: utxo.ValueSats,
 			}
 		}
 	}
@@ -907,14 +916,14 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
 	walletID := c.Msg.WalletId
 
-	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletID}))
+	utxos, err := s.listUnspent(ctx, walletID, nil)
 	if err != nil {
 		return nil, err
 	}
-	utxoCount := uint64(len(utxos.Msg.Utxos))
+	utxoCount := uint64(len(utxos))
 
 	addressSet := make(map[string]struct{})
-	for _, utxo := range utxos.Msg.Utxos {
+	for _, utxo := range utxos {
 		addressSet[utxo.Address] = struct{}{}
 	}
 	uniqueAddressCount := uint64(len(addressSet))
@@ -1026,6 +1035,9 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 	log := zerolog.Ctx(ctx)
 
 	walletID := c.Msg.WalletId
+	if walletID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet_id is required"))
+	}
 
 	// Wallet ID validation only - cheques work the same for all wallet types
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
@@ -1298,6 +1310,14 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 
 	log.Debug().Str("address", addressStr).Str("kind", source.Kind.String()).Msg("SweepCheque: sweeping")
 
+	cheque, err := cheques.GetByAddress(ctx, s.database, walletID, addressStr)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		log.Debug().Str("address", addressStr).Msg("swept key is not a cheque of this wallet")
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque at %s: %w", addressStr, err))
+	}
+
 	feeSatPerVbyte, err := s.chequeSweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
 	if err != nil {
 		return nil, err
@@ -1323,13 +1343,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
 	}
 
-	cheque, err := cheques.GetByAddress(ctx, s.database, walletID, addressStr)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		log.Debug().Str("address", addressStr).Msg("swept key is not a cheque of this wallet")
-	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque swept by %s: %w", txid, err))
-	case cheque.SweptTxid == nil:
+	if cheque != nil && cheque.SweptTxid == nil {
 		if err := cheques.UpdateSwept(ctx, s.database, walletID, cheque.ID, txid); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque %d swept by %s: %w", cheque.ID, txid, err))
 		}

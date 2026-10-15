@@ -46,9 +46,8 @@ func (t *Tracker) GetStats(pid int, processName string) (*Stats, error) {
 	stats, exists := t.stats[pid]
 	if !exists {
 		stats = &Stats{
-			PID:            pid,
-			ProcessName:    processName,
-			lastSampleTime: time.Now(),
+			PID:         pid,
+			ProcessName: processName,
 		}
 		t.stats[pid] = stats
 	}

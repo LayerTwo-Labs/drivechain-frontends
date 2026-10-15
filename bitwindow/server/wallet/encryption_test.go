@@ -34,26 +34,6 @@ func TestEncryptionCompatibility(t *testing.T) {
 	require.Equal(t, decrypted, plaintext)
 }
 
-func TestDecryptDartEncrypted(t *testing.T) {
-	// You can paste actual encrypted data from Dart here to test
-	t.Skip("Manual test - add encrypted data from Dart")
-
-	password := "YOUR_PASSWORD"
-	saltBase64 := "YOUR_SALT_BASE64"
-	encryptedData := "YOUR_IV:YOUR_ENCRYPTED_DATA"
-	iterations := 100000
-
-	salt, err := base64.StdEncoding.DecodeString(saltBase64)
-	require.NoError(t, err)
-
-	key := DeriveKey(password, salt, iterations)
-
-	decrypted, err := Decrypt(encryptedData, key)
-	require.NoError(t, err)
-
-	t.Logf("Decrypted: %s", decrypted)
-}
-
 // encrypt encrypts data using AES-256-GCM with a 12-byte nonce
 // Format matches Decrypt: "iv:encrypted" (both base64 encoded)
 func encrypt(plaintext string, key []byte) (string, error) {
@@ -103,6 +83,12 @@ func TestDecryptWallet(t *testing.T) {
 		data, err := DecryptWallet(writeWallet(t, saltBase64, encrypted), password)
 		require.NoError(t, err)
 		require.Equal(t, "a", data["activeWalletId"])
+	})
+
+	t.Run("a wallet with a 16-byte IV opens", func(t *testing.T) {
+		data, err := DecryptWallet(filepath.Join("testdata", "iv16"), password)
+		require.NoError(t, err)
+		require.Equal(t, "iv16", data["activeWalletId"])
 	})
 
 	t.Run("a wrong password is an incorrect password", func(t *testing.T) {

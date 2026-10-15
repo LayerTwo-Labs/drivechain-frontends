@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -110,6 +112,54 @@ func TestEncodeBase58Check(t *testing.T) {
 			decoded, err := engines.DecodeBase58Check(got)
 			require.NoError(t, err)
 			require.True(t, decoded.ChecksumValid)
+		})
+	}
+}
+
+func TestWIFToAddress(t *testing.T) {
+	cases := []struct {
+		name   string
+		wif    string
+		params *chaincfg.Params
+		want   string
+	}{
+		{"compressed mainnet", "KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617", &chaincfg.MainNetParams, "1LoVGDgRs9hTfTNJNuXKSpywcbdvwRXpmK"},
+		{"uncompressed mainnet", "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ", &chaincfg.MainNetParams, "1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S"},
+		{"compressed regtest", "cMzLdeGd5vEqxB8B6VFQoRopQ3sLAAvEzDAoQgvX54xwofSWj1fx", &chaincfg.RegressionNetParams, "n1KSZGmQgB8iSZqv6UVhGkCGUbEdw8Lm3Q"},
+		{"uncompressed regtest", "91gGn1HgSap6CbU12F6z3pJri26xzp7Ay1VW6NHCoEayNXwRpu2", &chaincfg.RegressionNetParams, "mvgbzkCSgKbYgaeG38auUzR7otscEGi8U7"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := engines.WIFToAddress(tc.wif, tc.params)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+
+	t.Run("wrong network", func(t *testing.T) {
+		_, err := engines.WIFToAddress("KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617", &chaincfg.RegressionNetParams)
+		require.ErrorContains(t, err, "WIF is not for network regtest")
+	})
+}
+
+func TestValidateWIF(t *testing.T) {
+	cases := []struct {
+		name   string
+		wif    string
+		params *chaincfg.Params
+		want   bool
+	}{
+		{"compressed mainnet", "KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617", &chaincfg.MainNetParams, true},
+		{"uncompressed mainnet", "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ", &chaincfg.MainNetParams, true},
+		{"compressed regtest", "cMzLdeGd5vEqxB8B6VFQoRopQ3sLAAvEzDAoQgvX54xwofSWj1fx", &chaincfg.RegressionNetParams, true},
+		{"uncompressed regtest", "91gGn1HgSap6CbU12F6z3pJri26xzp7Ay1VW6NHCoEayNXwRpu2", &chaincfg.RegressionNetParams, true},
+		{"mainnet WIF on regtest", "KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617", &chaincfg.RegressionNetParams, false},
+		{"regtest WIF on mainnet", "91gGn1HgSap6CbU12F6z3pJri26xzp7Ay1VW6NHCoEayNXwRpu2", &chaincfg.MainNetParams, false},
+		{"not a WIF", "not-a-wif", &chaincfg.MainNetParams, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, engines.ValidateWIF(tc.wif, tc.params))
 		})
 	}
 }
