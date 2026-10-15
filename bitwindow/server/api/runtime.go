@@ -259,7 +259,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 
 	// All bitwindowd endpoints require the local-auth cookie (one interceptor,
 	// every handler). Disabled automatically when no cookie exists.
-	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), localauth.Interceptor(s.svcs.BitwindowDir))}
+	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), recoverInterceptor{}, localauth.Interceptor(s.svcs.BitwindowDir))}
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds

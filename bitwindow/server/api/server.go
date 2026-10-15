@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -407,6 +408,43 @@ func logInterceptor() connect.UnaryInterceptorFunc {
 			return resp, handlerErr
 		}
 	}
+}
+
+type recoverInterceptor struct{}
+
+func (recoverInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				err = recoveredPanic(ctx, req.Spec().Procedure, r)
+			}
+		}()
+		return next(ctx, req)
+	}
+}
+
+func (recoverInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return next
+}
+
+func (recoverInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return func(ctx context.Context, conn connect.StreamingHandlerConn) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				err = recoveredPanic(ctx, conn.Spec().Procedure, r)
+			}
+		}()
+		return next(ctx, conn)
+	}
+}
+
+func recoveredPanic(ctx context.Context, procedure string, r any) error {
+	zerolog.Ctx(ctx).Error().
+		Str("procedure", procedure).
+		Interface("panic", r).
+		Str("stack", string(debug.Stack())).
+		Msg("recovered a panic in a handler")
+	return connect.NewError(connect.CodeInternal, fmt.Errorf("panic in %s", procedure))
 }
 
 func getLogLevel(procedure string, code connect.Code, err error) zerolog.Level {
