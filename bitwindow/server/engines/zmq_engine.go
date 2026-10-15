@@ -24,7 +24,6 @@ type ZMQ struct {
 	subscribers []chan *wire.MsgTx
 }
 
-// NewZMQ creates a new ZMQ engine for receiving Bitcoin Core raw transaction notifications
 func NewZMQ(endpoint string) (*ZMQ, error) {
 	if endpoint == "" {
 		return nil, errors.New("engines/zmq: endpoint is empty")
@@ -39,7 +38,6 @@ func NewZMQ(endpoint string) (*ZMQ, error) {
 	}, nil
 }
 
-// Subscribe returns a channel that will receive new transactions
 func (e *ZMQ) Subscribe() <-chan *wire.MsgTx {
 	e.mu.Lock()
 	defer e.mu.Unlock()

@@ -11,7 +11,6 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1"
 )
 
-// Server implements the SidechainService
 type Server struct {
 	monitor *engines.SidechainMonitorEngine
 }

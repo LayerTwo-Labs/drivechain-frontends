@@ -19,7 +19,6 @@ import (
 // ErrNotFound is returned when no denial matches the ID and state of the call.
 var ErrNotFound = errors.New("denial not found")
 
-// Denial represents a deniability plan
 type Denial struct {
 	ID              int64         `db:"id"`
 	WalletID        *string       `db:"wallet_id"`
@@ -37,7 +36,6 @@ type Denial struct {
 	ExecutedDenials []ExecutedDenial
 }
 
-// ExecutedDenial represents a completed denial transaction
 type ExecutedDenial struct {
 	ID        int64     `db:"id"`
 	DenialID  int64     `db:"denial_id"`
@@ -220,7 +218,6 @@ func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 	return executions, nil
 }
 
-// Cancel marks a deniability plan as cancelled
 func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
@@ -237,7 +234,6 @@ func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 	return nil
 }
 
-// Pause marks a deniability plan as paused
 func Pause(ctx context.Context, db *sql.DB, id int64) error {
 	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
@@ -283,8 +279,8 @@ func nextExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 	return &next
 }
 
-// LastExecution figures out when the previous execution was
-// Returns nil if no execution has been made
+// lastExecution returns the time that the next hop delay starts from, or nil
+// when the plan is cancelled, paused or done.
 func lastExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 
 	if denial.CancelledAt != nil {
@@ -319,7 +315,6 @@ func lastExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 	return &latestExecution.CreatedAt
 }
 
-// GetByTip retrieves a deniability plan by its tip txid+vout
 func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (*Denial, error) {
 	builder := selectDenial.Where(sq.Eq{"COALESCE(e.to_txid, d.initial_txid)": tipTxID})
 	if tipVout != nil {
@@ -344,7 +339,8 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	return &d, nil
 }
 
-// Update updates the number of hops and delay duration for a given deniability plan
+// Update adds numHops to a plan, sets its delay, moves its start to txid:vout
+// and clears its cancel.
 func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, txid string, vout int32) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE denials
@@ -357,7 +353,6 @@ func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numH
 	return nil
 }
 
-// Get retrieves a deniability plan by its ID
 func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 	query, args := selectDenial.Where(sq.Eq{"d.id": id}).MustSql()
 

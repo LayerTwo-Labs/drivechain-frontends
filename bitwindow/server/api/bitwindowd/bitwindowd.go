@@ -210,7 +210,7 @@ func isKnownNetwork(n config.Network) bool {
 	return false
 }
 
-// Stop implements drivechainv1connect.DrivechainServiceHandler.
+// Stop implements bitwindowdv1connect.BitwindowdServiceHandler.
 // Stop is the window-close hook + clean-exit entry point. Relays to
 // drivechaind.Shutdown — drivechaind is detached and drains
 // bitcoind/enforcer in the background over ~90s — then triggers bitwindowd's

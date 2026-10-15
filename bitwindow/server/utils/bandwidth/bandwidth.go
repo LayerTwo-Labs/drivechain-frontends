@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-// Stats represents network bandwidth statistics for a process
 type Stats struct {
 	PID             int
 	ProcessName     string
@@ -36,7 +35,6 @@ func NewTracker() *Tracker {
 	}
 }
 
-// GetStats returns bandwidth statistics for a process
 func (t *Tracker) GetStats(pid int, processName string) (*Stats, error) {
 	if pid <= 0 {
 		return nil, fmt.Errorf("invalid PID: %d", pid)

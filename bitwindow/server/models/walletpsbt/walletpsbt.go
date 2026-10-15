@@ -12,7 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
-// Draft is an in-progress multisig spend. The PSBT blob carries the
+// Draft is an in-progress multisig spend. The PSBT blob holds the
 // signatures; nothing else about signing state is stored.
 type Draft struct {
 	ID         string `db:"id"`

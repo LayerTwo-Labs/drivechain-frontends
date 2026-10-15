@@ -375,7 +375,7 @@ func EncodeNewsMessageNewFormat(topic TopicID, headline string, content string) 
 	return EncodeNewsMessageWithOptions(topic, headline, content, StoryOptions{})
 }
 
-// StoryOptions carries the optional Story TLVs (spec §6, §10): a link
+// StoryOptions holds the optional Story TLVs (spec §6, §10): a link
 // URL, language, content subtype, and the NSFW flag.
 type StoryOptions struct {
 	URL     string

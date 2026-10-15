@@ -20,7 +20,6 @@ const keyLength = 32
 // ErrIncorrectPassword is the error of a password that does not open the wallet.
 var ErrIncorrectPassword = errors.New("incorrect password or corrupted wallet")
 
-// EncryptionMetadata stores encryption parameters
 type EncryptionMetadata struct {
 	Salt       string `json:"salt"`
 	Iterations int    `json:"iterations"`
@@ -99,7 +98,6 @@ func LoadMetadata(appDir string) (*EncryptionMetadata, error) {
 	return &metadata, nil
 }
 
-// IsWalletEncrypted checks if the wallet is encrypted
 func IsWalletEncrypted(appDir string) bool {
 	metadata, err := LoadMetadata(appDir)
 	return err == nil && metadata.Encrypted
@@ -143,7 +141,6 @@ func DecryptWallet(appDir, password string) (map[string]interface{}, error) {
 	return walletData, nil
 }
 
-// LoadUnencryptedWallet loads wallet.json when it's not encrypted
 func LoadUnencryptedWallet(appDir string) (map[string]interface{}, error) {
 	walletPath := filepath.Join(appDir, "wallet.json")
 	data, err := os.ReadFile(walletPath)

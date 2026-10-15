@@ -18,7 +18,7 @@ import (
 	"github.com/samber/lo"
 )
 
-// BitcoinURI represents a parsed BIP-0021 Bitcoin URI
+// BitcoinURI is a parsed BIP-0021 URI.
 type BitcoinURI struct {
 	Address     string
 	Amount      float64
@@ -159,7 +159,6 @@ func getAddressType(versionByte int) string {
 	}
 }
 
-// MerkleTreeResult holds the result of Merkle tree calculation
 type MerkleTreeResult struct {
 	MerkleRoot    string
 	Levels        [][]string
@@ -339,7 +338,6 @@ func FormatMerkleTree(levels [][]string, rcbLevels [][]string) string {
 	return sb.String()
 }
 
-// PaperWalletKeypair holds a generated paper wallet keypair
 type PaperWalletKeypair struct {
 	PrivateKeyWIF string
 	PublicAddress string

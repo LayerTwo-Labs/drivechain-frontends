@@ -62,7 +62,7 @@ type WalletInfo struct {
 	ScriptType string `json:"script_type,omitempty"`
 }
 
-// IsWatchOnly reports whether the wallet holds no signing key — it carries an
+// IsWatchOnly reports whether the wallet holds no signing key — it holds an
 // xpub/descriptor payload instead of a seed. Orthogonal to the provider type.
 func (w *WalletInfo) IsWatchOnly() bool {
 	return w.WatchOnly != nil
@@ -242,7 +242,7 @@ func (e *WalletEngine) Unlock(ctx context.Context, walletData map[string]any) er
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	// Handle multi-wallet structure: { version, activeWalletID, wallets: [...] }
+	// Handle multi-wallet structure: { version, activeWalletId, wallets: [...] }
 	wallets, ok := walletData["wallets"].([]any)
 	if !ok {
 		return errors.New("invalid wallet structure: missing wallets array")
@@ -390,8 +390,6 @@ func (e *WalletEngine) GetStarterSeed(ctx context.Context) (string, error) {
 	return resp.Msg.SeedHex, nil
 }
 
-// GetWalletSeed returns the seed hex for a specific wallet by ID
-// Used by ChequeEngine for per-wallet cheque address derivation
 func (e *WalletEngine) GetWalletSeed(ctx context.Context, walletID string) (string, error) {
 	resp, err := e.orchClient.GetWalletSeed(ctx, connect.NewRequest(&orchpb.GetWalletSeedRequest{
 		WalletId: walletID,
@@ -402,9 +400,8 @@ func (e *WalletEngine) GetWalletSeed(ctx context.Context, walletID string) (stri
 	return resp.Msg.SeedHex, nil
 }
 
-// GetActiveWallet returns the active wallet
-// If the wallet is encrypted, it uses the unlocked data from memory
-// If the wallet is unencrypted, it reads directly from wallet.json
+// GetActiveWallet reads an encrypted wallet from the unlocked data in memory,
+// and an unencrypted wallet from wallet.json.
 func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error) {
 	var activeWalletID string
 

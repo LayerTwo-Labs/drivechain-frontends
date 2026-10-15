@@ -89,7 +89,7 @@ func (e *DepositDroppedEngine) tick(ctx context.Context) {
 
 // report tells the user one time per drop. The engine re-reads the same dropped
 // deposit every minute for as long as the row lives. A deposit that comes back
-// and drops again carries a new stamp, so its episode reports once too.
+// and drops again has a new stamp, so its episode reports once too.
 func (e *DepositDroppedEngine) report(ctx context.Context, slot uint32, d *orchpb.SidechainDeposit) error {
 	episode := d.GetTxid() + "@" + d.GetDroppedAt()
 	notified, err := notifications.HasBeenNotified(ctx, e.db, notifications.EventTypeDepositDropped, episode)

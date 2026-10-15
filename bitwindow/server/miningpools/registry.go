@@ -170,7 +170,7 @@ func DefaultFetch(ctx context.Context, url string) ([]byte, error) {
 	return body, nil
 }
 
-// RegtestFile is the registry a regtest datadir may carry, for a local stack
+// RegtestFile is the registry a regtest datadir can contain, for a local stack
 // that plays several pools.
 const RegtestFile = "mining-pools.json"
 

@@ -36,7 +36,7 @@ var cookieMissingReasons = []string{
 const cookieMessage = "Starting Bitcoin Core"
 
 // cookiePathMarkers name an auth cookie inside an error. The wrapper text
-// carries the first one whatever the file is called, because rpccookiefile
+// holds the first one whatever the file is called, because rpccookiefile
 // renames it; the second catches a bare stat of the default name.
 var cookiePathMarkers = []string{
 	"read rpc cookie ",

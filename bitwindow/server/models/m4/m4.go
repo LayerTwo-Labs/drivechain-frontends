@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// WithdrawalBundle represents a pending withdrawal from a sidechain
 type WithdrawalBundle struct {
 	ID                int64        `db:"id"`
 	SidechainSlot     uint8        `db:"sidechain_slot"`
@@ -58,7 +57,6 @@ const (
 	VoteTypeUpvote  VoteType = "upvote"
 )
 
-// Sidechain represents an active sidechain
 type Sidechain struct {
 	Slot            uint8     `db:"slot"`
 	Name            string    `db:"name"`

@@ -12,10 +12,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Connector represents a function that attempts to connect to a service
 type Connector[T any] func(ctx context.Context) (T, error)
 
-// Service wraps a connection to an external service with reconnection capabilities
 type Service[T any] struct {
 	mu sync.RWMutex
 
@@ -39,7 +37,6 @@ func New[T any](name string, connector Connector[T]) *Service[T] {
 	}
 }
 
-// Get returns the current client, attempting to connect if not connected
 func (s *Service[T]) Get(ctx context.Context) (T, error) {
 	if s.connected.Load() {
 		zerolog.Ctx(ctx).Trace().
@@ -56,7 +53,7 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 	return s.Connect(ctx)
 }
 
-// Connect attempts to connect to the service, retrying every 500ms for 3 seconds
+// Connect calls the connector one time and records the result.
 func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 	client, err := s.connector(ctx)
 	if err != nil {
