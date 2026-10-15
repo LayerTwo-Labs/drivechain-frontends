@@ -177,7 +177,7 @@ func (e *SidechainMonitorEngine) GetWithdrawalByTxid(ctx context.Context, txid s
 }
 
 // RegisterPendingFastWithdrawal adds a pending fast withdrawal to monitor for
-func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Context, withdrawal PendingFastWithdrawal) error {
+func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Context, withdrawal PendingFastWithdrawal) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -189,8 +189,6 @@ func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Conte
 		Str("address", withdrawal.ServerAddress).
 		Int64("amount", withdrawal.ExpectedAmount).
 		Msg("registered pending fast withdrawal for monitoring")
-
-	return nil
 }
 
 // GetPendingFastWithdrawals returns all pending fast withdrawals

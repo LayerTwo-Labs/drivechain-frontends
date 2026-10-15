@@ -12,27 +12,12 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/fast_withdrawal/v1"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Server implements the FastWithdrawalService
 type Server struct {
-	// Sidechain services
-	thunder   *service.Service[*thunder.Client]
-	bitnames  *service.Service[*bitnames.Client]
-	bitassets *service.Service[*bitassets.Client]
-	truthcoin *service.Service[*truthcoin.Client]
-	photon    *service.Service[*photon.Client]
-	coinshift *service.Service[*coinshift.Client]
-
 	// Monitor engine for withdrawal detection
 	monitor *engines.SidechainMonitorEngine
 
@@ -41,22 +26,8 @@ type Server struct {
 }
 
 // New creates a new fast withdrawal API server
-func New(
-	thunder *service.Service[*thunder.Client],
-	bitnames *service.Service[*bitnames.Client],
-	bitassets *service.Service[*bitassets.Client],
-	truthcoin *service.Service[*truthcoin.Client],
-	photon *service.Service[*photon.Client],
-	coinshift *service.Service[*coinshift.Client],
-	monitor *engines.SidechainMonitorEngine,
-) *Server {
+func New(monitor *engines.SidechainMonitorEngine) *Server {
 	return &Server{
-		thunder:    thunder,
-		bitnames:   bitnames,
-		bitassets:  bitassets,
-		truthcoin:  truthcoin,
-		photon:     photon,
-		coinshift:  coinshift,
 		monitor:    monitor,
 		httpClient: createSecureHTTPClient(),
 	}
@@ -84,7 +55,7 @@ func (s *Server) InitiateFastWithdrawal(
 	}
 
 	// Initiate withdrawal on sidechain
-	txid, err := s.initiateSidechainWithdrawal(ctx, req.Msg.Sidechain, req.Msg.Amount, req.Msg.Destination)
+	txid, err := s.initiateSidechainWithdrawal(ctx, fastWithdrawalServerURL, req.Msg.Sidechain, req.Msg.Amount, req.Msg.Destination)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to initiate sidechain withdrawal")
 		errorMsg := err.Error()
@@ -109,8 +80,11 @@ func (s *Server) InitiateFastWithdrawal(
 	return s.monitorWithdrawal(ctx, stream, req.Msg.Sidechain, txid)
 }
 
+// TODO: Make this configurable or try multiple servers
+const fastWithdrawalServerURL = "https://fw1.drivechain.info"
+
 // initiateSidechainWithdrawal calls external fast withdrawal server
-func (s *Server) initiateSidechainWithdrawal(ctx context.Context, sidechain string, amount int64, destination string) (string, error) {
+func (s *Server) initiateSidechainWithdrawal(ctx context.Context, serverURL string, sidechain string, amount int64, destination string) (string, error) {
 	log := zerolog.Ctx(ctx)
 
 	// Call external fast withdrawal server (like fw1.drivechain.info)
@@ -120,10 +94,7 @@ func (s *Server) initiateSidechainWithdrawal(ctx context.Context, sidechain stri
 		"layer_2_chain_name":     sidechain,
 	}
 
-	// TODO: Make this configurable or try multiple servers
-	fastWithdrawalServerURL := "https://fw1.drivechain.info"
-
-	log.Info().Interface("request", withdrawalRequest).Str("server", fastWithdrawalServerURL).Msg("requesting fast withdrawal from external server")
+	log.Info().Interface("request", withdrawalRequest).Str("server", serverURL).Msg("requesting fast withdrawal from external server")
 
 	// Make actual HTTP call to external server
 	jsonPayload, err := json.Marshal(withdrawalRequest)
@@ -131,8 +102,13 @@ func (s *Server) initiateSidechainWithdrawal(ctx context.Context, sidechain stri
 		return "", fmt.Errorf("marshal request: %w", err)
 	}
 
-	withdrawURL := fastWithdrawalServerURL + "/withdraw"
-	resp, err := http.Post(withdrawURL, "application/json", bytes.NewBuffer(jsonPayload))
+	withdrawURL := serverURL + "/withdraw"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawURL, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return "", fmt.Errorf("build request to %s: %w", withdrawURL, err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	resp, err := s.httpClient.Do(httpReq)
 	if err != nil {
 		return "", fmt.Errorf("http request to %s: %w", withdrawURL, err)
 	}
@@ -181,14 +157,11 @@ func (s *Server) initiateSidechainWithdrawal(ctx context.Context, sidechain stri
 		Sidechain:      sidechain,
 		ServerAddress:  serverAddress,
 		ExpectedAmount: amount + serverFeeSats,
-		ServerURL:      fastWithdrawalServerURL,
+		ServerURL:      serverURL,
 		CreatedAt:      time.Now(),
 	}
 
-	if err := s.monitor.RegisterPendingFastWithdrawal(ctx, pending); err != nil {
-		log.Error().Err(err).Msg("failed to register pending fast withdrawal")
-		// Continue anyway - this just means no auto-completion
-	}
+	s.monitor.RegisterPendingFastWithdrawal(ctx, pending)
 
 	return withdrawalHash, nil
 }

@@ -318,7 +318,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		register(path, h)
 	}
 	{
-		bitdriveSvc := api_bitdrive.New(rt.db, s.Bitcoind, rt.bitdriveEngine, rt.walletEngine)
+		bitdriveSvc := api_bitdrive.New(rt.db, rt.bitdriveEngine, rt.walletEngine)
 		path, h := bitdrivev1connect.NewBitDriveServiceHandler(bitdriveSvc, stdOpts...)
 		register(path, h)
 	}
@@ -343,7 +343,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		register(path, h)
 	}
 	{
-		fastSvc := api_fast_withdrawal.New(s.Thunder, s.BitNames, s.BitAssets, s.Truthcoin, s.Photon, s.CoinShift, rt.sidechainMonitor)
+		fastSvc := api_fast_withdrawal.New(rt.sidechainMonitor)
 		path, h := fast_withdrawalv1connect.NewFastWithdrawalServiceHandler(fastSvc, stdOpts...)
 		register(path, h)
 	}

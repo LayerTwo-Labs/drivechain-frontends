@@ -259,10 +259,6 @@ func (s *Store) ListKeyPSBTs(ctx context.Context, groupID string) ([]KeyPSBT, er
 	return psbts, rows.Err()
 }
 
-func (s *Store) SaveKeyPSBT(ctx context.Context, kp KeyPSBT) error {
-	return saveKeyPSBTOn(ctx, s.db, kp)
-}
-
 func saveKeyPSBTOn(ctx context.Context, e execer, kp KeyPSBT) error {
 	_, err := e.ExecContext(ctx, `
 		INSERT INTO multisig_key_psbts (key_id, transaction_id, active_psbt, initial_psbt)
@@ -270,11 +266,6 @@ func saveKeyPSBTOn(ctx context.Context, e execer, kp KeyPSBT) error {
 		ON CONFLICT(key_id, transaction_id) DO UPDATE SET
 		    active_psbt=excluded.active_psbt, initial_psbt=excluded.initial_psbt`,
 		kp.KeyID, kp.TransactionID, nullStr(kp.ActivePSBT), nullStr(kp.InitialPSBT))
-	return err
-}
-
-func (s *Store) DeleteKeyPSBTsForTransaction(ctx context.Context, transactionID string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM multisig_key_psbts WHERE transaction_id = ?`, transactionID)
 	return err
 }
 
@@ -350,19 +341,6 @@ func (s *Store) ListUtxoDetails(ctx context.Context, groupID string) ([]UtxoDeta
 		utxos = append(utxos, u)
 	}
 	return utxos, rows.Err()
-}
-
-func (s *Store) ReplaceUtxoDetails(ctx context.Context, groupID string, utxos []UtxoDetail) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	if err := replaceUtxoDetailsOn(ctx, tx, groupID, utxos); err != nil {
-		return err
-	}
-	return tx.Commit()
 }
 
 func replaceUtxoDetailsOn(ctx context.Context, e execer, groupID string, utxos []UtxoDetail) error {
@@ -755,7 +733,6 @@ func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (
 type SaveGroupAtomicParams struct {
 	Group          Group
 	Keys           []Key
-	KeyPSBTs       []KeyPSBT // KeyID is ignored; matched by xpub after key insert
 	Addresses      []Address
 	UtxoDetails    []UtxoDetail
 	TransactionIDs []string

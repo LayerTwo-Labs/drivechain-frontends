@@ -505,7 +505,6 @@ const withdrawalVerificationPeriod uint32 = 26300
 // processPegDataBlocks extracts withdrawal bundles from peg data blocks
 func (s *Server) processPegDataBlocks(blocks []*validatorpb.GetTwoWayPegDataResponse_ResponseItem, sidechainId uint32) []*pb.WithdrawalBundle {
 	bundles := make([]*pb.WithdrawalBundle, 0)
-	bundleSubmissionBlock := make(map[string]uint32)
 
 	for _, block := range blocks {
 		if block.BlockInfo == nil || block.BlockHeaderInfo == nil {
@@ -542,7 +541,6 @@ func (s *Server) processPegDataBlocks(blocks []*validatorpb.GetTwoWayPegDataResp
 				bundle.Status = "failed"
 			case *validatorpb.WithdrawalBundleEvent_Event_Submitted_:
 				bundle.Status = "pending"
-				bundleSubmissionBlock[m6id] = blockHeight
 			default:
 				bundle.Status = "pending"
 			}

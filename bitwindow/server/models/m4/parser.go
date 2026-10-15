@@ -153,33 +153,6 @@ func parseVersion02(vector []byte) ([]M4Vote, error) {
 	return votes, nil
 }
 
-// EncodeVotePreferences creates M4 bytes from user's vote preferences
-func EncodeVotePreferences(prefs []VotePreference) []byte {
-	// Use version 0x01 for simplicity (1 byte per sidechain)
-	// TODO: Switch to version 0x02 if >253 sidechains
-
-	version := byte(0x01)
-	vector := make([]byte, len(prefs))
-
-	for i, pref := range prefs {
-		switch pref.VoteType {
-		case VoteTypeAbstain:
-			vector[i] = 0xFF
-		case VoteTypeAlarm:
-			vector[i] = 0xFE
-		case VoteTypeUpvote:
-			// For now, just mark as abstain
-			// TODO: Lookup bundle index from hash when we have SCDB state
-			vector[i] = 0xFF
-		}
-	}
-
-	result := make([]byte, 1+len(vector))
-	result[0] = version
-	copy(result[1:], vector)
-	return result
-}
-
 // IsM4Commitment checks if the script is an M4 commitment
 func IsM4Commitment(script []byte) bool {
 	payload, err := opReturnPayload(script)

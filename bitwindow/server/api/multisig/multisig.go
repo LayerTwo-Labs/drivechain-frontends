@@ -25,11 +25,6 @@ func New(db *sql.DB) *Server {
 	return &Server{store: multisig.NewStore(db)}
 }
 
-// Store exposes the underlying store for migration use.
-func (s *Server) Store() *multisig.Store {
-	return s.store
-}
-
 // ─── Groups ────────────────────────────────────────────────────────
 
 func (s *Server) ListGroups(
