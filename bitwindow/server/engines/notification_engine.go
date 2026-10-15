@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -139,10 +139,15 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 					Hash:      resp.Msg.Blockhash,
 					Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 				}))
-				if err == nil {
-					height := int64(blockResp.Msg.Height)
-					blockHeight = &height
+				if err != nil {
+					log.Warn().
+						Err(err).
+						Str("txid", *ts.TxID).
+						Msg("get block for notification")
+					continue
 				}
+				height := int64(blockResp.Msg.Height)
+				blockHeight = &height
 			}
 
 			event := &notificationv1.WatchResponse{
@@ -158,12 +163,10 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 				},
 			}
 
-			e.broadcast(ctx, event)
-
-			// Mark as notified
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTimestamp, eventID); err != nil {
-				log.Warn().Err(err).Int64("id", ts.ID).Msg("mark timestamp notified")
+				return fmt.Errorf("mark timestamp %d notified: %w", ts.ID, err)
 			}
+			e.broadcast(ctx, event)
 
 			log.Info().
 				Int64("id", ts.ID).
@@ -228,7 +231,9 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 			continue
 		}
 
-		e.processWalletTransactions(ctx, walletName, resp.Msg.Transactions)
+		if err := e.processWalletTransactions(ctx, walletName, resp.Msg.Transactions); err != nil {
+			return fmt.Errorf("process transactions of wallet %s: %w", walletName, err)
+		}
 	}
 
 	return nil
@@ -237,14 +242,14 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 // walletTx is one transaction's wallet-relevant outputs in a single direction, summed.
 type walletTx struct {
 	txid          string
-	amount        float64
+	amount        btcutil.Amount
 	confirmations uint32
 	txTime        time.Time
 }
 
 // aggregateByTxid folds Core's per-output rows into one entry per txid and
 // direction; sends and receives stay apart so a self-send can't net to zero.
-func aggregateByTxid(transactions []*corepb.GetTransactionResponse) []walletTx {
+func aggregateByTxid(transactions []*corepb.GetTransactionResponse) ([]walletTx, error) {
 	type bucket struct {
 		txid     string
 		received bool
@@ -253,9 +258,13 @@ func aggregateByTxid(transactions []*corepb.GetTransactionResponse) []walletTx {
 	aggregated := make([]walletTx, 0, len(transactions))
 	seen := make(map[bucket]int, len(transactions))
 	for _, tx := range transactions {
-		key := bucket{txid: tx.Txid, received: tx.Amount >= 0}
+		amount, err := btcutil.NewAmount(tx.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
+		}
+		key := bucket{txid: tx.Txid, received: amount >= 0}
 		if idx, ok := seen[key]; ok {
-			aggregated[idx].amount += tx.Amount
+			aggregated[idx].amount += amount
 			continue
 		}
 
@@ -267,17 +276,21 @@ func aggregateByTxid(transactions []*corepb.GetTransactionResponse) []walletTx {
 		seen[key] = len(aggregated)
 		aggregated = append(aggregated, walletTx{
 			txid:          tx.Txid,
-			amount:        tx.Amount,
+			amount:        amount,
 			confirmations: uint32(tx.Confirmations),
 			txTime:        txTime,
 		})
 	}
-	return aggregated
+	return aggregated, nil
 }
 
-func (e *NotificationEngine) processWalletTransactions(ctx context.Context, walletName string, transactions []*corepb.GetTransactionResponse) {
+func (e *NotificationEngine) processWalletTransactions(ctx context.Context, walletName string, transactions []*corepb.GetTransactionResponse) error {
 	log := zerolog.Ctx(ctx)
-	for _, tx := range aggregateByTxid(transactions) {
+	aggregated, err := aggregateByTxid(transactions)
+	if err != nil {
+		return err
+	}
+	for _, tx := range aggregated {
 		txid := tx.txid
 		confirmations := tx.confirmations
 
@@ -308,13 +321,12 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 		if !tx.txTime.IsZero() && time.Since(tx.txTime) > notificationBacklog {
 			if !notified {
 				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
-					log.Warn().Err(err).Str("txid", txid).Msg("mark backlog transaction notified")
-					continue
+					return fmt.Errorf("mark backlog transaction %s notified: %w", txid, err)
 				}
 			}
 			if !confNotified && confirmations >= 1 {
 				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
-					log.Warn().Err(err).Str("txid", txid).Msg("mark backlog transaction confirmation notified")
+					return fmt.Errorf("mark backlog transaction %s confirmation notified: %w", txid, err)
 				}
 			}
 			continue
@@ -329,18 +341,18 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_RECEIVED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.amount * 100000000)),
+						AmountSats:    uint64(tx.amount),
 						Confirmations: confirmations,
 					},
 				},
 			}
-			e.broadcast(ctx, event)
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
-				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
+				return fmt.Errorf("mark transaction %s notified: %w", txid, err)
 			}
+			e.broadcast(ctx, event)
 			log.Info().
 				Str("txid", txid).
-				Float64("amount", tx.amount).
+				Int64("amount_sats", int64(tx.amount)).
 				Msg("received transaction notification sent")
 
 		case !notified && tx.amount < 0:
@@ -351,24 +363,24 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_SENT,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(-tx.amount * 100000000)),
+						AmountSats:    uint64(-tx.amount),
 						Confirmations: confirmations,
 					},
 				},
 			}
-			e.broadcast(ctx, event)
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
-				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
+				return fmt.Errorf("mark transaction %s notified: %w", txid, err)
 			}
+			e.broadcast(ctx, event)
 			log.Info().
 				Str("txid", txid).
-				Float64("amount", -tx.amount).
+				Int64("amount_sats", int64(-tx.amount)).
 				Msg("sent transaction notification sent")
 
 		case !notified:
 			// New transaction with zero amount - just mark as seen
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
-				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
+				return fmt.Errorf("mark transaction %s notified: %w", txid, err)
 			}
 
 		case !confNotified && confirmations >= 1:
@@ -379,21 +391,22 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_CONFIRMED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.amount * 100000000)),
+						AmountSats:    uint64(max(tx.amount, -tx.amount)),
 						Confirmations: confirmations,
 					},
 				},
 			}
-			e.broadcast(ctx, event)
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
-				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction confirmation notified")
+				return fmt.Errorf("mark transaction %s confirmation notified: %w", txid, err)
 			}
+			e.broadcast(ctx, event)
 			log.Info().
 				Str("txid", txid).
 				Uint32("confirmations", confirmations).
 				Msg("transaction confirmed notification sent")
 		}
 	}
+	return nil
 }
 
 func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notificationv1.WatchResponse {
