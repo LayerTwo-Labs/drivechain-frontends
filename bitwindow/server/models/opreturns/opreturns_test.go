@@ -609,3 +609,30 @@ func TestOPReturnToReadable(t *testing.T) {
 		})
 	}
 }
+
+func TestGetByTxID(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	now := time.Now()
+	require.NoError(t, Persist(t.Context(), db, []OPReturn{
+		{TxID: "tx-a", Vout: 1, Data: []byte("second"), CreatedAt: &now},
+		{TxID: "tx-a", Vout: 0, Data: []byte("first"), CreatedAt: &now},
+		{TxID: "tx-b", Vout: 0, Data: []byte("other"), CreatedAt: &now},
+	}))
+
+	t.Run("gives the lowest vout", func(t *testing.T) {
+		got, err := GetByTxID(t.Context(), db, "tx-a")
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		assert.Equal(t, "tx-a", got.TxID)
+		assert.Equal(t, int32(0), got.Vout)
+		assert.Equal(t, []byte("first"), got.Data)
+	})
+
+	t.Run("gives nil for an unknown txid", func(t *testing.T) {
+		got, err := GetByTxID(t.Context(), db, "tx-missing")
+		require.NoError(t, err)
+		assert.Nil(t, got)
+	})
+}

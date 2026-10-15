@@ -212,7 +212,11 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	rt.m4Engine = engines.NewM4Engine(rt.db)
 	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind)
 	rt.notificationEngine.SetNodeMode(rt.walletEngine.NodeMode())
-	rt.bitdriveEngine = engines.NewBitDriveEngine(rt.db, rt.walletEngine, conf.Datadir, rt.chainParams)
+	bitdriveEngine, err := engines.NewBitDriveEngine(rt.db, rt.walletEngine, conf.Datadir, rt.chainParams)
+	if err != nil {
+		return nil, err
+	}
+	rt.bitdriveEngine = bitdriveEngine
 	rt.sidechainMonitor = engines.NewSidechainMonitorEngine(
 		s.Thunder, s.BitNames, s.BitAssets, s.Truthcoin, s.Photon, s.CoinShift,
 		rt.notificationEngine,

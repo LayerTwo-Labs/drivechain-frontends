@@ -3,14 +3,20 @@ package engines
 import (
 	"context"
 	"database/sql"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"slices"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 )
 
 // M4Engine manages the SCDB state and M4 message processing
@@ -602,4 +608,111 @@ func (e *M4Engine) GetWithdrawalBundles(ctx context.Context, sidechainSlot *uint
 	}
 
 	return bundles, rows.Err()
+}
+
+// GenerateM4Bytes builds the M4 vote vector for the active sidechains from the
+// pending bundles and the vote preferences. It gives the hex and a readable
+// interpretation. The hex is empty when no bundle is pending.
+func (e *M4Engine) GenerateM4Bytes(
+	ctx context.Context, enforcer *service.Service[validatorrpc.ValidatorServiceClient],
+) (string, string, error) {
+	// Get all pending withdrawal bundles
+	bundles, err := e.GetWithdrawalBundles(ctx, nil)
+	if err != nil {
+		return "", "", fmt.Errorf("get withdrawal bundles: %w", err)
+	}
+
+	// Group bundles by sidechain
+	bundlesBySidechain := make(map[uint8][]m4.WithdrawalBundle)
+	for _, b := range bundles {
+		if b.Status == "pending" {
+			bundlesBySidechain[b.SidechainSlot] = append(bundlesBySidechain[b.SidechainSlot], b)
+		}
+	}
+
+	// If no pending bundles, M4 is not required
+	if len(bundlesBySidechain) == 0 {
+		return "", "Not required - no pending withdrawal bundles.", nil
+	}
+
+	// Get user's vote preferences
+	prefs, err := e.GetVotePreferences(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("get vote preferences: %w", err)
+	}
+
+	// Build preference map for quick lookup
+	prefMap := lo.KeyBy(prefs, func(p m4.VotePreference) uint8 {
+		return p.SidechainSlot
+	})
+
+	client, err := enforcer.Get(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("enforcer: %w", err)
+	}
+	sidechains, err := client.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	if err != nil {
+		return "", "", fmt.Errorf("get sidechains: %w", err)
+	}
+	slots := lo.Map(sidechains.Msg.GetSidechains(), func(sc *validatorpb.GetSidechainsResponse_SidechainInfo, _ int) uint8 {
+		return uint8(sc.GetSidechainNumber().GetValue())
+	})
+	slices.Sort(slots)
+
+	votes := make([]uint16, len(slots))
+	descs := make([]string, len(slots))
+	for i, slot := range slots {
+		sidechainBundles := bundlesBySidechain[slot]
+		pref, hasPreference := prefMap[slot]
+
+		votes[i] = m4.VoteAbstain
+		descs[i] = "Abstain from all withdrawals"
+		switch {
+		case !hasPreference || pref.VoteType == m4.VoteTypeAbstain:
+		case pref.VoteType == m4.VoteTypeAlarm:
+			votes[i] = m4.VoteAlarm
+			descs[i] = "Alarm - Downvote all withdrawals"
+		case pref.VoteType == m4.VoteTypeUpvote:
+			descs[i] = "Abstain (bundle not found)"
+			if pref.BundleHash == nil {
+				break
+			}
+			for j, b := range sidechainBundles {
+				if b.BundleHash != *pref.BundleHash {
+					continue
+				}
+				votes[i] = uint16(j)
+				hash := *pref.BundleHash
+				if len(hash) > 16 {
+					hash = hash[:16] + "..."
+				}
+				descs[i] = fmt.Sprintf("Upvote withdrawal #%d (%s)", j, hash)
+				break
+			}
+		}
+	}
+
+	// The enforcer rejects a two-byte vector when every vote fits in one byte.
+	oneByte := lo.EveryBy(votes, func(v uint16) bool {
+		return v <= 253 || v >= m4.VoteAlarm
+	})
+
+	m4Bytes := []byte{0x02}
+	if oneByte {
+		m4Bytes = []byte{0x01}
+	}
+	interpretation := "M4 Vote Bytes:\n\n"
+	for i, slot := range slots {
+		var voteBytes []byte
+		if oneByte {
+			voteBytes = []byte{byte(votes[i])}
+		} else {
+			voteBytes = binary.LittleEndian.AppendUint16(nil, votes[i])
+		}
+		m4Bytes = append(m4Bytes, voteBytes...)
+		interpretation += fmt.Sprintf("Sidechain #%d: %x\n  %s\n  (%d pending bundles)\n\n",
+			slot, voteBytes, descs[i], len(bundlesBySidechain[slot]))
+	}
+
+	return hex.EncodeToString(m4Bytes), interpretation, nil
 }

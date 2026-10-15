@@ -6,15 +6,18 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/binary"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/btcsuite/btcd/chaincfg"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOpenDir_CreatesDirectory(t *testing.T) {
@@ -350,7 +353,7 @@ func TestDetectFileType_NonASCIIIsBinary(t *testing.T) {
 // EncodeOPReturnData -> FormatOPReturnData -> OPReturnToReadable ->
 // DecodeOPReturnData. Storing such content as "txt" put raw high bytes on
 // chain, which OPReturnToReadable then hex-encoded, hiding the "|" separator
-// and making DecodeOPReturnData fail with "invalid OP_RETURN format".
+// and making DecodeOPReturnData fail with "invalid format".
 func TestEncodeOPReturnData_NonASCIIRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	engine := &BitDriveEngine{}
@@ -381,4 +384,131 @@ func TestEncodeOPReturnData_NonASCIIRoundTrip(t *testing.T) {
 			t.Fatalf("round trip mismatch: got %q, want %q", decoded, content)
 		}
 	}
+}
+
+func TestScanAndDownloadPendingFiles(t *testing.T) {
+	db := database.Test(t)
+	engine := &BitDriveEngine{db: db, bitdriveDir: t.TempDir()}
+
+	metadataB64, contentStr, _, err := engine.EncodeOPReturnData(t.Context(), []byte("hello"), false)
+	require.NoError(t, err)
+	now := time.Now()
+	require.NoError(t, opreturns.Persist(t.Context(), db, []opreturns.OPReturn{
+		{TxID: "tx-file", Vout: 0, Data: []byte(FormatOPReturnData(metadataB64, contentStr)), CreatedAt: &now},
+		{TxID: "tx-other", Vout: 0, Data: []byte("not bitdrive"), CreatedAt: &now},
+	}))
+
+	pending, scanned, err := engine.ScanForFiles(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 1, scanned)
+	require.Len(t, pending, 1)
+	require.Equal(t, "tx-file", pending[0].OPReturn.TxID)
+	require.Equal(t, "txt", pending[0].Metadata.FileType)
+
+	downloaded, failed, err := engine.DownloadPendingFiles(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, uint32(1), downloaded)
+	require.Equal(t, uint32(0), failed)
+
+	file, err := bitdrive.GetByTxID(t.Context(), db, "tx-file")
+	require.NoError(t, err)
+	require.NotNil(t, file)
+	content, err := engine.GetFileContent(t.Context(), file.Filename)
+	require.NoError(t, err)
+	require.Equal(t, []byte("hello"), content)
+
+	pending, _, err = engine.ScanForFiles(t.Context())
+	require.NoError(t, err)
+	require.Empty(t, pending)
+
+	_, err = db.ExecContext(t.Context(), "DROP TABLE bitdrive_files")
+	require.NoError(t, err)
+	_, _, err = engine.ScanForFiles(t.Context())
+	require.ErrorContains(t, err, "check file tx-file")
+}
+
+// The fixtures are encrypted messages from an earlier build. A change to the
+// encoder must still decode them.
+func TestDecodeOPReturnData_EncryptedFixtures(t *testing.T) {
+	cases := []struct {
+		name         string
+		message      string
+		want         string
+		wantMultisig bool
+	}{
+		{
+			name:         "multisig group",
+			message:      "A2rQ4HBqc29u|Syysu01BzpR+GNKcPU0eRqKQSFMxeeTOgNV9UDeCD+bfvIDikF3CTA==",
+			want:         `{"name":"group"}`,
+			wantMultisig: true,
+		},
+		{
+			name:    "text file",
+			message: "AWrQ4HB0eHQg|kn59tk+ayYN4Q4r1Cnsv8vig7KNKuYyNYkJD9B9L72P6lO/VRPgG0+d/tjW4",
+			want:    "bitdrive fixture text",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			engine := newEncryptTestEngine(t)
+			require.True(t, IsBitDriveTransaction(tc.message))
+
+			content, metadata, err := engine.DecodeOPReturnData(t.Context(), tc.message)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, string(content))
+			require.True(t, metadata.Encrypted)
+			require.Equal(t, tc.wantMultisig, metadata.IsMultisig)
+		})
+	}
+}
+
+func TestEncodeMultisigData_RoundTrip(t *testing.T) {
+	for _, encrypt := range []bool{false, true} {
+		t.Run(fmt.Sprintf("encrypt=%t", encrypt), func(t *testing.T) {
+			engine := newEncryptTestEngine(t)
+			message, err := engine.EncodeMultisigData(t.Context(), []byte(`{"m":2}`), encrypt)
+			require.NoError(t, err)
+			require.True(t, IsBitDriveTransaction(message))
+
+			content, err := engine.DecodeMultisigData(t.Context(), message)
+			require.NoError(t, err)
+			require.Equal(t, `{"m":2}`, string(content))
+		})
+	}
+}
+
+func TestIsBitDriveTransaction(t *testing.T) {
+	metadata := EncodeMetadata(false, false, 1800000000, "txt")
+	cases := []struct {
+		name    string
+		message string
+		want    bool
+	}{
+		{"metadata and content", metadata + "|hello", true},
+		{"no separator", metadata, false},
+		{"bad base64", "!!!|hello", false},
+		{"short metadata", base64.StdEncoding.EncodeToString([]byte{1, 2}) + "|hello", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, IsBitDriveTransaction(tc.message))
+		})
+	}
+}
+
+func TestNewBitDriveEngine(t *testing.T) {
+	t.Run("creates the bitdrive dir", func(t *testing.T) {
+		dataDir := t.TempDir()
+		engine, err := NewBitDriveEngine(nil, nil, dataDir, &chaincfg.SigNetParams)
+		require.NoError(t, err)
+		require.DirExists(t, engine.GetDir())
+	})
+
+	t.Run("fails when the datadir is a file", func(t *testing.T) {
+		dataDir := filepath.Join(t.TempDir(), "file")
+		require.NoError(t, os.WriteFile(dataDir, nil, 0o600))
+
+		_, err := NewBitDriveEngine(nil, nil, dataDir, &chaincfg.SigNetParams)
+		require.ErrorContains(t, err, "create bitdrive dir")
+	})
 }

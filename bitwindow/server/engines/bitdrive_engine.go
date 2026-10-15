@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -63,14 +64,10 @@ func NewBitDriveEngine(
 	walletEngine *WalletEngine,
 	dataDir string,
 	chainParams *chaincfg.Params,
-) *BitDriveEngine {
+) (*BitDriveEngine, error) {
 	bitdriveDir := filepath.Join(dataDir, "bitdrive")
-
-	// Ensure directory exists
 	if err := os.MkdirAll(bitdriveDir, 0755); err != nil {
-		zerolog.Ctx(context.Background()).Error().Err(err).
-			Str("dir", bitdriveDir).
-			Msg("failed to create bitdrive directory")
+		return nil, fmt.Errorf("create bitdrive dir %s: %w", bitdriveDir, err)
 	}
 
 	return &BitDriveEngine{
@@ -78,7 +75,7 @@ func NewBitDriveEngine(
 		walletEngine: walletEngine,
 		bitdriveDir:  bitdriveDir,
 		chainParams:  chainParams,
-	}
+	}, nil
 }
 
 // ParsedMetadata contains parsed BitDrive OP_RETURN metadata
@@ -377,21 +374,10 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 		encrypted[i] = content[i] ^ keyStream[i]
 	}
 
-	// Generate truncated authentication tag (first 8 bytes of HMAC-SHA256) over
-	// the metadata, nonce and ciphertext so metadata and nonce tampering is also
-	// detected. All three inputs are fixed-length or trailing, so the
-	// concatenation is unambiguous.
-	authKey, err := e.getAuthKey(ctx)
+	tag, err := e.authTag(ctx, metadata, nonce, encrypted)
 	if err != nil {
-		return nil, fmt.Errorf("get auth key: %w", err)
+		return nil, err
 	}
-
-	mac := hmac.New(sha256.New, authKey)
-	mac.Write(metadata)
-	mac.Write(nonce)
-	mac.Write(encrypted)
-	fullTag := mac.Sum(nil)
-	tag := fullTag[:AuthTagSize]
 
 	// Combine nonce, encrypted content, and tag
 	result := make([]byte, NonceSize+len(encrypted)+len(tag))
@@ -417,18 +403,10 @@ func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, time
 	encryptedContent := encryptedData[NonceSize : NonceSize+contentLen]
 	receivedTag := encryptedData[NonceSize+contentLen:]
 
-	// Verify authentication tag over the metadata, nonce and ciphertext
-	authKey, err := e.getAuthKey(ctx)
+	calculatedTag, err := e.authTag(ctx, metadata, nonce, encryptedContent)
 	if err != nil {
-		return nil, fmt.Errorf("get auth key: %w", err)
+		return nil, err
 	}
-
-	mac := hmac.New(sha256.New, authKey)
-	mac.Write(metadata)
-	mac.Write(nonce)
-	mac.Write(encryptedContent)
-	fullTag := mac.Sum(nil)
-	calculatedTag := fullTag[:AuthTagSize]
 
 	// Constant-time comparison
 	if subtle.ConstantTimeCompare(receivedTag, calculatedTag) != 1 {
@@ -450,48 +428,63 @@ func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, time
 	return decrypted, nil
 }
 
+// authTag is the first AuthTagSize bytes of an HMAC-SHA256 over the metadata,
+// nonce and ciphertext. All three are fixed-length or trailing, so the
+// concatenation is unambiguous.
+func (e *BitDriveEngine) authTag(ctx context.Context, metadata, nonce, ciphertext []byte) ([]byte, error) {
+	authKey, err := e.getAuthKey(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get auth key: %w", err)
+	}
+
+	mac := hmac.New(sha256.New, authKey)
+	mac.Write(metadata)
+	mac.Write(nonce)
+	mac.Write(ciphertext)
+	return mac.Sum(nil)[:AuthTagSize], nil
+}
+
 // EncodeOPReturnData encodes metadata and content for OP_RETURN storage
 func (e *BitDriveEngine) EncodeOPReturnData(ctx context.Context, content []byte, encrypt bool) (string, string, uint32, error) {
+	return e.encodeContent(ctx, content, encrypt, false, DetectFileType(content))
+}
+
+// encodeContent returns the base64 metadata, the content part and the
+// timestamp of a BitDrive OP_RETURN message.
+func (e *BitDriveEngine) encodeContent(
+	ctx context.Context, content []byte, encrypt, isMultisig bool, fileType string,
+) (string, string, uint32, error) {
 	timestamp := uint32(time.Now().Unix())
-	fileType := DetectFileType(content)
 
 	// Encode metadata up front so it can be authenticated with the ciphertext
-	metadataBytes := EncodeMetadataBytes(encrypt, false, timestamp, fileType)
+	metadataBytes := EncodeMetadataBytes(encrypt, isMultisig, timestamp, fileType)
+	metadataB64 := base64.StdEncoding.EncodeToString(metadataBytes)
 
-	var processedContent []byte
-	var err error
+	if !encrypt && fileType == "txt" {
+		// Store unencrypted text directly for readability
+		return metadataB64, string(content), timestamp, nil
+	}
 
+	processedContent := content
 	if encrypt {
+		var err error
 		processedContent, err = e.Encrypt(ctx, content, timestamp, fileType, metadataBytes)
 		if err != nil {
 			return "", "", 0, fmt.Errorf("encrypt content: %w", err)
 		}
-	} else {
-		processedContent = content
 	}
 
-	metadataB64 := base64.StdEncoding.EncodeToString(metadataBytes)
-
-	// Encode content
-	var contentStr string
-	if !encrypt && fileType == "txt" {
-		// Store unencrypted text directly for readability
-		contentStr = string(content)
-	} else {
-		contentStr = base64.StdEncoding.EncodeToString(processedContent)
-	}
-
-	return metadataB64, contentStr, timestamp, nil
+	return metadataB64, base64.StdEncoding.EncodeToString(processedContent), timestamp, nil
 }
 
 // DecodeOPReturnData decodes and optionally decrypts OP_RETURN data
 func (e *BitDriveEngine) DecodeOPReturnData(ctx context.Context, opReturnMessage string) ([]byte, *ParsedMetadata, error) {
-	parts := strings.SplitN(opReturnMessage, "|", 2)
-	if len(parts) != 2 {
-		return nil, nil, fmt.Errorf("invalid OP_RETURN format")
+	metadataB64, contentStr, err := ParseOPReturnParts(opReturnMessage)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	metadata, err := ParseMetadata(parts[0])
+	metadata, err := ParseMetadata(metadataB64)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parse metadata: %w", err)
 	}
@@ -499,9 +492,9 @@ func (e *BitDriveEngine) DecodeOPReturnData(ctx context.Context, opReturnMessage
 	var content []byte
 	if !metadata.Encrypted && metadata.FileType == "txt" {
 		// Unencrypted text stored directly
-		content = []byte(parts[1])
+		content = []byte(contentStr)
 	} else {
-		content, err = base64.StdEncoding.DecodeString(parts[1])
+		content, err = base64.StdEncoding.DecodeString(contentStr)
 		if err != nil {
 			return nil, nil, fmt.Errorf("decode content base64: %w", err)
 		}
@@ -560,6 +553,101 @@ func (e *BitDriveEngine) SaveFile(ctx context.Context, txid string, content []by
 	return nil
 }
 
+// PendingBitDriveFile is a BitDrive OP_RETURN that has no local file.
+type PendingBitDriveFile struct {
+	OPReturn opreturns.OPReturn
+	Metadata *ParsedMetadata
+}
+
+// ScanForFiles finds the BitDrive OP_RETURNs that have no local file. It also
+// gives the count of BitDrive OP_RETURNs it read. It skips multisig data.
+func (e *BitDriveEngine) ScanForFiles(ctx context.Context) ([]PendingBitDriveFile, int, error) {
+	log := zerolog.Ctx(ctx)
+
+	allOpReturns, err := opreturns.List(ctx, e.db, 0)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list OP_RETURNs: %w", err)
+	}
+
+	var pending []PendingBitDriveFile
+	scanned := 0
+	for _, opReturn := range allOpReturns {
+		opReturnMessage := opreturns.OPReturnToReadable(opReturn.Data)
+		if !IsBitDriveTransaction(opReturnMessage) {
+			continue
+		}
+		scanned++
+
+		metadataB64, _, err := ParseOPReturnParts(opReturnMessage)
+		if err != nil {
+			log.Warn().Err(err).Str("txid", opReturn.TxID).Msg("skip BitDrive OP_RETURN with bad parts")
+			continue
+		}
+		metadata, err := ParseMetadata(metadataB64)
+		if err != nil {
+			log.Warn().Err(err).Str("txid", opReturn.TxID).Msg("skip BitDrive OP_RETURN with bad metadata")
+			continue
+		}
+		if metadata.IsMultisig {
+			continue
+		}
+
+		exists, err := bitdrive.Exists(ctx, e.db, opReturn.TxID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("check file %s: %w", opReturn.TxID, err)
+		}
+		if exists {
+			continue
+		}
+
+		pending = append(pending, PendingBitDriveFile{OPReturn: opReturn, Metadata: metadata})
+	}
+
+	log.Info().
+		Int("pending", len(pending)).
+		Int("total_scanned", scanned).
+		Msg("scanned for BitDrive files")
+
+	return pending, scanned, nil
+}
+
+// DownloadPendingFiles saves each file that ScanForFiles finds. It gives the
+// counts of saved and failed files.
+func (e *BitDriveEngine) DownloadPendingFiles(ctx context.Context) (uint32, uint32, error) {
+	log := zerolog.Ctx(ctx)
+
+	pending, _, err := e.ScanForFiles(ctx)
+	if err != nil {
+		return 0, 0, fmt.Errorf("scan for files: %w", err)
+	}
+
+	var downloaded, failed uint32
+	for _, p := range pending {
+		txid := p.OPReturn.TxID
+		content, metadata, err := e.DecodeOPReturnData(ctx, opreturns.OPReturnToReadable(p.OPReturn.Data))
+		if err != nil {
+			log.Warn().Err(err).Str("txid", txid).Msg("failed to decode content")
+			failed++
+			continue
+		}
+
+		if err := e.SaveFile(ctx, txid, content, metadata); err != nil {
+			log.Warn().Err(err).Str("txid", txid).Msg("failed to save file")
+			failed++
+			continue
+		}
+
+		downloaded++
+	}
+
+	log.Info().
+		Uint32("downloaded", downloaded).
+		Uint32("failed", failed).
+		Msg("downloaded pending BitDrive files")
+
+	return downloaded, failed, nil
+}
+
 // GetFileContent reads a file from local storage
 func (e *BitDriveEngine) GetFileContent(ctx context.Context, filename string) ([]byte, error) {
 	filePath := filepath.Join(e.bitdriveDir, filename)
@@ -613,18 +701,13 @@ func (e *BitDriveEngine) WipeData(ctx context.Context) error {
 
 // IsBitDriveTransaction checks if an OP_RETURN message is a BitDrive transaction
 func IsBitDriveTransaction(opReturnMessage string) bool {
-	parts := strings.SplitN(opReturnMessage, "|", 2)
-	if len(parts) != 2 {
-		return false
-	}
-
-	// Try to parse metadata
-	metadataBytes, err := base64.StdEncoding.DecodeString(parts[0])
+	metadataB64, _, err := ParseOPReturnParts(opReturnMessage)
 	if err != nil {
 		return false
 	}
 
-	return len(metadataBytes) == MetadataSize
+	_, err = ParseMetadata(metadataB64)
+	return err == nil
 }
 
 // GetDir returns the BitDrive directory path
@@ -673,29 +756,11 @@ var dirOpenCommand = func(dir string) (string, []string) {
 
 // EncodeMultisigData encodes multisig group data with optional encryption
 func (e *BitDriveEngine) EncodeMultisigData(ctx context.Context, jsonData []byte, encrypt bool) (string, error) {
-	timestamp := uint32(time.Now().Unix())
-	fileType := "json"
-
-	// Encode metadata with multisig flag up front so it can be authenticated
-	// with the ciphertext
-	metadata := EncodeMetadataBytes(encrypt, true, timestamp, fileType)
-
-	var processedContent []byte
-	var err error
-
-	if encrypt {
-		processedContent, err = e.Encrypt(ctx, jsonData, timestamp, fileType, metadata)
-		if err != nil {
-			return "", fmt.Errorf("encrypt multisig data: %w", err)
-		}
-	} else {
-		processedContent = jsonData
+	metadataB64, contentStr, _, err := e.encodeContent(ctx, jsonData, encrypt, true, "json")
+	if err != nil {
+		return "", err
 	}
-
-	metadataB64 := base64.StdEncoding.EncodeToString(metadata)
-	contentB64 := base64.StdEncoding.EncodeToString(processedContent)
-
-	return fmt.Sprintf("%s|%s", metadataB64, contentB64), nil
+	return FormatOPReturnData(metadataB64, contentStr), nil
 }
 
 // DecodeMultisigData decodes multisig group data from OP_RETURN

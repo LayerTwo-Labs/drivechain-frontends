@@ -123,6 +123,29 @@ type OPReturn struct {
 	CreatedAt *time.Time
 }
 
+// GetByTxID returns the OP_RETURN of the transaction with the lowest vout, or nil
+// when the transaction has none.
+func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*OPReturn, error) {
+	var opReturn OPReturn
+	err := db.QueryRowContext(ctx, `
+		SELECT id, txid, vout, unhex(op_return_data), fee_sats, height, created_at
+		FROM op_returns
+		WHERE txid = ?
+		ORDER BY vout
+		LIMIT 1
+	`, txid).Scan(
+		&opReturn.ID, &opReturn.TxID, &opReturn.Vout,
+		&opReturn.Data, &opReturn.Fee, &opReturn.Height, &opReturn.CreatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get op_return %s: %w", txid, err)
+	}
+	return &opReturn, nil
+}
+
 // List returns the most-recent OP_RETURNs, ordered by created_at desc,
 // capped at `limit`. Pass 0 (or any value <= 0) to skip the cap — only
 // do that when the caller genuinely needs the full table; this table
