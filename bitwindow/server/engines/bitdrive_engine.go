@@ -356,7 +356,7 @@ func (e *BitDriveEngine) getAuthKey(ctx context.Context) ([]byte, error) {
 // random per-file nonce is mixed into the keystream so repeated (timestamp, fileType)
 // tuples never reuse the keystream. metadata is the 9-byte metadata prefix that
 // travels alongside the ciphertext; it is authenticated as associated data because
-// the keystream is derived from the timestamp and file type it carries.
+// the keystream is derived from the timestamp and file type it holds.
 func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp uint32, fileType string, metadata []byte) ([]byte, error) {
 	// Generate a random per-file nonce
 	nonce := make([]byte, NonceSize)
@@ -707,7 +707,6 @@ func (e *BitDriveEngine) DeleteFile(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ListFiles returns all files from the database
 func (e *BitDriveEngine) ListFiles(ctx context.Context) ([]bitdrive.File, error) {
 	return bitdrive.List(ctx, e.db)
 }
@@ -815,7 +814,6 @@ func (e *BitDriveEngine) DecodeMultisigData(ctx context.Context, opReturnMessage
 	return content, nil
 }
 
-// ValidateFileSize checks if file size is within limits
 func ValidateFileSize(content []byte) error {
 	if len(content) > MaxFileSize {
 		return fmt.Errorf("file size %d exceeds maximum %d bytes", len(content), MaxFileSize)

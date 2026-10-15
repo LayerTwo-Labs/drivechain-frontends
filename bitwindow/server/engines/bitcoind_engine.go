@@ -666,7 +666,7 @@ func (p *Parser) handleTimestamp(
 				newConfirmedAt = confirmedAt
 			}
 			// Record the transaction being processed, not the stored one. After
-			// a reorg the replacement branch can carry a different transaction
+			// a reorg the replacement branch can hold a different transaction
 			// for the same file hash, and the stored id then points at a
 			// transaction that no longer exists.
 			if err := timestamps.Update(ctx, p.db, existing.ID, &txid, blockHeight, timestamps.StatusConfirmed, newConfirmedAt); err != nil {
@@ -897,8 +897,8 @@ func (p *Parser) handleOpReturns(
 }
 
 // isTxIndexMiss reports whether getrawtransaction failed because the node
-// carries no txindex entry for the transaction, either because the index is
-// off or because Core still builds it after a reindex. Both shapes carry
+// has no txindex entry for the transaction, either because the index is
+// off or because Core still builds it after a reindex. Both shapes have
 // JSON-RPC code -5.
 func isTxIndexMiss(errMsg string) bool {
 	return strings.Contains(errMsg, "No such mempool or blockchain transaction") ||

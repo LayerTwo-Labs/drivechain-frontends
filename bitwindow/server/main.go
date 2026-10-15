@@ -95,7 +95,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	bitwindowDir := conf.BitwindowDir()
 	dial.SetCookieDir(bitwindowDir)
 
-	// drivechaind owns bitcoin.conf: the network identity and RPC creds both
+	// drivechaind writes bitcoin.conf: the network identity and RPC creds both
 	// live there. Start it, then ask it for the network.
 	bootLogger := zerolog.New(bootLogWriter(drivechaindLogPath(conf, bitwindowDir), os.Stderr)).
 		With().Timestamp().Logger()
@@ -161,8 +161,8 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		}
 	}
 
-	// Adopting a still-draining drivechaind (cancel its pending exit, await
-	// in-flight stops) is owned by Flutter — see bootBitwindowBackend in
+	// Flutter adopts a still-draining drivechaind (cancel its pending exit, await
+	// in-flight stops) — see bootBitwindowBackend in
 	// bitwindow/lib/main.dart. That way the UI loads immediately and shows a
 	// "waiting for previous shutdown" status instead of blocking bitwindowd's
 	// startup. bitwindowd doesn't need to wait: its own bitcoind connections
@@ -423,7 +423,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	// A running drivechaind keeps the build it started with, so an app start
 	// retires it and spawns a fresh one. bitcoind, the enforcer and the
 	// sidechains stay up, and the fresh daemon adopts them by their RPC
-	// ports. Verify the cookie first: without it the stop RPC carries the
+	// ports. Verify the cookie first: without it the stop RPC sends the
 	// bearer token to any listener on the port.
 	running, err := verifiedOrchestratorRunning(ctx, conf.OrchestratorAddr, bitwindowDir)
 	if err != nil {
@@ -441,7 +441,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	}
 
 	// Don't touch the cookie here: drivechaind overwrites it with a fresh
-	// token once it owns the listener. Deleting it from bitwindowd could yank
+	// token once it holds the listener. Deleting it from bitwindowd could yank
 	// the cookie out from under a still-live drivechaind we failed to adopt.
 
 	// Find the drivechaind binary next to our own binary.
@@ -458,7 +458,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 		return nil, fmt.Errorf("drivechaind not found at %s: %w", orchPath, err)
 	}
 
-	// drivechaind owns the bitcoin.conf — pick up network from there, not
+	// drivechaind writes the bitcoin.conf — pick up network from there, not
 	// from a CLI flag we'd have to keep aligned. conf.Datadir is the raw
 	// bitwindow base dir at this point (Finalize runs *after* we've queried
 	// drivechaind for the network).
@@ -466,13 +466,13 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
 	}
-	// The frontend owns the whole tree, not us: a bitwindowd restart must not
+	// The frontend starts the whole tree, not us: a bitwindowd restart must not
 	// drain the stack the frontend is still using.
 	if conf.OwnerPID > 0 {
 		args = append(args, "--owner-pid", strconv.Itoa(conf.OwnerPID))
 	}
 
-	// Detached: drivechaind owns its own lifecycle and outlives bitwindowd.
+	// Detached: drivechaind runs on its own and outlives bitwindowd.
 	// On window close, bitwindowd relays a Shutdown RPC and exits immediately,
 	// while drivechaind keeps draining bitcoind for up to ~90s in the
 	// background.

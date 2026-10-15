@@ -97,7 +97,6 @@ var selectCheque = sq.
 	From("cheques").
 	PlaceholderFormat(sq.Question)
 
-// Get retrieves a cheque by ID for a specific wallet
 func Get(ctx context.Context, db *sql.DB, walletID string, id int64) (*Cheque, error) {
 	query, args := selectCheque.Where(sq.Eq{"wallet_id": walletID, "id": id}).MustSql()
 	cheque, err := database.Get[Cheque](ctx, db, query, args...)
@@ -111,7 +110,6 @@ func Get(ctx context.Context, db *sql.DB, walletID string, id int64) (*Cheque, e
 	return &cheque, nil
 }
 
-// GetByAddress retrieves a cheque by address for a specific wallet
 func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address string) (*Cheque, error) {
 	query, args := selectCheque.Where(sq.Eq{"wallet_id": walletID, "address": address}).MustSql()
 	cheque, err := database.Get[Cheque](ctx, db, query, args...)
@@ -125,7 +123,6 @@ func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address stri
 	return &cheque, nil
 }
 
-// List retrieves all cheques for a specific wallet
 func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
 	query, args := selectCheque.Where(sq.Eq{"wallet_id": walletID}).OrderBy("created_at DESC").MustSql()
 	cheques, err := database.Select[Cheque](ctx, db, query, args...)
@@ -186,7 +183,6 @@ type FundingOutput struct {
 	BlockHeight uint32
 }
 
-// UpdateFunding updates a cheque's funding outputs and amount
 func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, outputs []FundingOutput, actualAmount uint64) error {
 	now := time.Now()
 
@@ -232,7 +228,6 @@ func recordFundingOutputs(ctx context.Context, tx *sql.Tx, chequeID int64, outpu
 	return nil
 }
 
-// UpdateSwept marks a cheque as swept
 func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txid string) error {
 	now := time.Now()
 

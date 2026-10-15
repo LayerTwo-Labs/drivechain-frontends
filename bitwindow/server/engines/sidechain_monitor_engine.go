@@ -62,7 +62,6 @@ type DetectedWithdrawal struct {
 	BlockHash   *string   `json:"block_hash,omitempty"`
 }
 
-// PendingFastWithdrawal represents a fast withdrawal waiting for L2 payment
 type PendingFastWithdrawal struct {
 	Hash           string    `json:"hash"`            // Withdrawal hash from server
 	Sidechain      string    `json:"sidechain"`       // Which sidechain

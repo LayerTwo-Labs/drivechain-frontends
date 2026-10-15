@@ -66,7 +66,7 @@ import (
 
 // swappableHandler atomically swaps the http.Handler it dispatches to.
 //
-// Lets the listener stay up across network swaps: each Runtime owns its own
+// Lets the listener stay up across network swaps: each Runtime has its own
 // mux, and the top-level server points at this swappable. Recycle stores
 // the new runtime's mux; in-flight requests on the old mux finish naturally
 // against their captured handler refs.
@@ -87,7 +87,7 @@ func (s *swappableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	(*cur).ServeHTTP(w, r)
 }
 
-// Runtime owns all per-network state. Each network swap builds a fresh
+// Runtime holds all per-network state. Each network swap builds a fresh
 // Runtime (new DB, new engines, new mux); the old Runtime is canceled
 // + closed after its handlers drain.
 type Runtime struct {

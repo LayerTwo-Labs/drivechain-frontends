@@ -13,7 +13,6 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/fast_withdrawal/v1"
 )
 
-// Server implements the FastWithdrawalService
 type Server struct {
 	// Monitor engine for withdrawal detection
 	monitor *engines.SidechainMonitorEngine

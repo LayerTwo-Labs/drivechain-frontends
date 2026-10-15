@@ -19,7 +19,6 @@ const (
 	EventTypeDepositDropped  = "deposit_dropped"
 )
 
-// HasBeenNotified checks if an event has already been notified
 func HasBeenNotified(ctx context.Context, db *sql.DB, eventType, eventID string) (bool, error) {
 	query, args := sq.
 		Select("1").
@@ -37,7 +36,6 @@ func HasBeenNotified(ctx context.Context, db *sql.DB, eventType, eventID string)
 	return true, nil
 }
 
-// MarkNotified marks an event as notified
 func MarkNotified(ctx context.Context, db *sql.DB, eventType, eventID string) error {
 	query, args := sq.
 		Insert("notified_events").

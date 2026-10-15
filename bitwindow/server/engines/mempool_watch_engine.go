@@ -297,7 +297,7 @@ func (e mempoolEntry) tx(txid string) (mempooltx.Tx, error) {
 
 // bootstrap replaces the watched set with the node's mempool and returns the
 // last mempool sequence the snapshot covers, so that older sequence events
-// can be skipped. Core reports the sequence the next event will carry, hence
+// can be skipped. Core reports the sequence of the next event, hence
 // the step back. A tx that leaves the mempool between the two reads is
 // skipped; its removal is announced or already was.
 func (w *MempoolWatcher) bootstrap(ctx context.Context) (uint64, error) {

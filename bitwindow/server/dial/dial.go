@@ -212,7 +212,6 @@ var (
 // (Bitcoind proxy) client. Call once at startup before the first dial.
 func SetCookieDir(dir string) { cookieDir = dir }
 
-// getSharedClient returns a singleton HTTP client for all connections
 func getSharedClient(ctx context.Context) *http.Client {
 	clientOnce.Do(func() {
 		protocols := new(http.Protocols)

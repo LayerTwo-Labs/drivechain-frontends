@@ -31,7 +31,7 @@ func TestEncryptionCompatibility(t *testing.T) {
 	decrypted, err := Decrypt(encrypted, key)
 	require.NoError(t, err)
 
-	require.Equal(t, decrypted, plaintext)
+	require.Equal(t, plaintext, decrypted)
 }
 
 // encrypt encrypts data using AES-256-GCM with a 12-byte nonce

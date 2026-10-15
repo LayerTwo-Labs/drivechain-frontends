@@ -211,7 +211,7 @@ func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error {
 // — without it, a bundle first seen in an orphaned block survives the replay
 // (its insert is ON CONFLICT DO NOTHING) and keeps voting.
 // It returns the height a replay has to start from to rebuild what survives.
-// A bundle the orphan branch scored carries a work_score, status and
+// A bundle the orphan branch scored has a work_score, status and
 // last_updated_height that no query rebuilds: the score is a running count with
 // a floor. Only a replay of the blocks does. So the bundle goes, and the
 // returned height takes the replay back to its first block.
@@ -222,7 +222,7 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 	replayFrom := fromHeight
 	for {
 		// A terminal bundle written before the transitions stamped their height
-		// carries only its last vote, so last_updated_height cannot say whether
+		// holds only its last vote, so last_updated_height cannot say whether
 		// the branch that went away is what ended it.
 		//
 		// Only a legacy row is ambiguous, and a legacy row is one whose stamp

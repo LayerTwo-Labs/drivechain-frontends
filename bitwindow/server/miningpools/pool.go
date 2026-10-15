@@ -170,9 +170,9 @@ func ScriptText(script []byte) string {
 	return string(runes)
 }
 
-// Match returns the first pool, in registry order, that owns an address the
+// Match returns the first pool, in registry order, that has an address the
 // coinbase pays. With none, it returns the first pool whose tag the coinbase
-// script carries, or Unknown.
+// script contains, or Unknown.
 func Match(script []byte, addresses []string, pools []Pool) Pool {
 	for _, pool := range pools {
 		if slices.ContainsFunc(pool.owned, func(a string) bool {

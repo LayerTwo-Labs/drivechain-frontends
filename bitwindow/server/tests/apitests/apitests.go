@@ -127,7 +127,6 @@ func WithLocalAuth(dir string) ServerOpt {
 	return func(opt *configg) { opt.authDir = dir }
 }
 
-// API creates a new external API Connect server that we can send test requests to
 func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClient, string) {
 	ctrl := gomock.NewController(t)
 
@@ -306,9 +305,7 @@ func (c ctxTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 var _ http.RoundTripper = new(ctxTransport)
 
-// defaultBitcoindMock creates a mock bitcoind client with default expectations
-// for the background operations the engines run. All AnyTimes — the goroutines
-// race the test, so the number of calls is non-deterministic.
+// Every expectation is AnyTimes: the engine goroutines race the test.
 func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.BitcoinServiceClient {
 	mock := mocks.NewMockBitcoinServiceClient(ctrl)
 	ExpectCoreWalletSetup(mock)
