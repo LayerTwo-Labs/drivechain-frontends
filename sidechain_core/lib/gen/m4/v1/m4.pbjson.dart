@@ -13,6 +13,24 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use votePolicyDescriptor instead')
+const VotePolicy$json = {
+  '1': 'VotePolicy',
+  '2': [
+    {'1': 'VOTE_POLICY_UNSPECIFIED', '2': 0},
+    {'1': 'VOTE_POLICY_ABSTAIN', '2': 1},
+    {'1': 'VOTE_POLICY_UPVOTE_KNOWN', '2': 2},
+    {'1': 'VOTE_POLICY_UPVOTE_ALL', '2': 3},
+    {'1': 'VOTE_POLICY_ALARM', '2': 4},
+  ],
+};
+
+/// Descriptor for `VotePolicy`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List votePolicyDescriptor = $convert.base64Decode(
+    'CgpWb3RlUG9saWN5EhsKF1ZPVEVfUE9MSUNZX1VOU1BFQ0lGSUVEEAASFwoTVk9URV9QT0xJQ1'
+    'lfQUJTVEFJThABEhwKGFZPVEVfUE9MSUNZX1VQVk9URV9LTk9XThACEhoKFlZPVEVfUE9MSUNZ'
+    'X1VQVk9URV9BTEwQAxIVChFWT1RFX1BPTElDWV9BTEFSTRAE');
+
 @$core.Deprecated('Use m4VoteDescriptor instead')
 const M4Vote$json = {
   '1': 'M4Vote',
@@ -79,89 +97,98 @@ final $typed_data.Uint8List getM4HistoryResponseDescriptor = $convert.base64Deco
     'ChRHZXRNNEhpc3RvcnlSZXNwb25zZRIvCgdoaXN0b3J5GAEgAygLMhUubTQudjEuTTRIaXN0b3'
     'J5RW50cnlSB2hpc3Rvcnk=');
 
-@$core.Deprecated('Use getVotePreferencesRequestDescriptor instead')
-const GetVotePreferencesRequest$json = {
-  '1': 'GetVotePreferencesRequest',
-};
-
-/// Descriptor for `GetVotePreferencesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getVotePreferencesRequestDescriptor = $convert.base64Decode(
-    'ChlHZXRWb3RlUHJlZmVyZW5jZXNSZXF1ZXN0');
-
-@$core.Deprecated('Use getVotePreferencesResponseDescriptor instead')
-const GetVotePreferencesResponse$json = {
-  '1': 'GetVotePreferencesResponse',
-  '2': [
-    {'1': 'preferences', '3': 1, '4': 3, '5': 11, '6': '.m4.v1.M4Vote', '10': 'preferences'},
-  ],
-};
-
-/// Descriptor for `GetVotePreferencesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getVotePreferencesResponseDescriptor = $convert.base64Decode(
-    'ChpHZXRWb3RlUHJlZmVyZW5jZXNSZXNwb25zZRIvCgtwcmVmZXJlbmNlcxgBIAMoCzINLm00Ln'
-    'YxLk00Vm90ZVILcHJlZmVyZW5jZXM=');
-
-@$core.Deprecated('Use setVotePreferenceRequestDescriptor instead')
-const SetVotePreferenceRequest$json = {
-  '1': 'SetVotePreferenceRequest',
+@$core.Deprecated('Use bundleUpvoteDescriptor instead')
+const BundleUpvote$json = {
+  '1': 'BundleUpvote',
   '2': [
     {'1': 'sidechain_slot', '3': 1, '4': 1, '5': 13, '10': 'sidechainSlot'},
-    {'1': 'vote_type', '3': 2, '4': 1, '5': 9, '10': 'voteType'},
-    {'1': 'bundle_hash', '3': 3, '4': 1, '5': 9, '9': 0, '10': 'bundleHash', '17': true},
+    {'1': 'm6id', '3': 2, '4': 1, '5': 9, '10': 'm6id'},
+  ],
+};
+
+/// Descriptor for `BundleUpvote`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bundleUpvoteDescriptor = $convert.base64Decode(
+    'CgxCdW5kbGVVcHZvdGUSJQoOc2lkZWNoYWluX3Nsb3QYASABKA1SDXNpZGVjaGFpblNsb3QSEg'
+    'oEbTZpZBgCIAEoCVIEbTZpZA==');
+
+@$core.Deprecated('Use getVotesRequestDescriptor instead')
+const GetVotesRequest$json = {
+  '1': 'GetVotesRequest',
+};
+
+/// Descriptor for `GetVotesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getVotesRequestDescriptor = $convert.base64Decode(
+    'Cg9HZXRWb3Rlc1JlcXVlc3Q=');
+
+@$core.Deprecated('Use getVotesResponseDescriptor instead')
+const GetVotesResponse$json = {
+  '1': 'GetVotesResponse',
+  '2': [
+    {'1': 'policy', '3': 1, '4': 1, '5': 14, '6': '.m4.v1.VotePolicy', '10': 'policy'},
+    {'1': 'upvotes', '3': 2, '4': 3, '5': 11, '6': '.m4.v1.BundleUpvote', '10': 'upvotes'},
+  ],
+};
+
+/// Descriptor for `GetVotesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getVotesResponseDescriptor = $convert.base64Decode(
+    'ChBHZXRWb3Rlc1Jlc3BvbnNlEikKBnBvbGljeRgBIAEoDjIRLm00LnYxLlZvdGVQb2xpY3lSBn'
+    'BvbGljeRItCgd1cHZvdGVzGAIgAygLMhMubTQudjEuQnVuZGxlVXB2b3RlUgd1cHZvdGVz');
+
+@$core.Deprecated('Use setBundleUpvoteRequestDescriptor instead')
+const SetBundleUpvoteRequest$json = {
+  '1': 'SetBundleUpvoteRequest',
+  '2': [
+    {'1': 'sidechain_slot', '3': 1, '4': 1, '5': 13, '10': 'sidechainSlot'},
+    {'1': 'm6id', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'm6id', '17': true},
   ],
   '8': [
-    {'1': '_bundle_hash'},
+    {'1': '_m6id'},
   ],
 };
 
-/// Descriptor for `SetVotePreferenceRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setVotePreferenceRequestDescriptor = $convert.base64Decode(
-    'ChhTZXRWb3RlUHJlZmVyZW5jZVJlcXVlc3QSJQoOc2lkZWNoYWluX3Nsb3QYASABKA1SDXNpZG'
-    'VjaGFpblNsb3QSGwoJdm90ZV90eXBlGAIgASgJUgh2b3RlVHlwZRIkCgtidW5kbGVfaGFzaBgD'
-    'IAEoCUgAUgpidW5kbGVIYXNoiAEBQg4KDF9idW5kbGVfaGFzaA==');
+/// Descriptor for `SetBundleUpvoteRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setBundleUpvoteRequestDescriptor = $convert.base64Decode(
+    'ChZTZXRCdW5kbGVVcHZvdGVSZXF1ZXN0EiUKDnNpZGVjaGFpbl9zbG90GAEgASgNUg1zaWRlY2'
+    'hhaW5TbG90EhcKBG02aWQYAiABKAlIAFIEbTZpZIgBAUIHCgVfbTZpZA==');
 
-@$core.Deprecated('Use setVotePreferenceResponseDescriptor instead')
-const SetVotePreferenceResponse$json = {
-  '1': 'SetVotePreferenceResponse',
+@$core.Deprecated('Use setBundleUpvoteResponseDescriptor instead')
+const SetBundleUpvoteResponse$json = {
+  '1': 'SetBundleUpvoteResponse',
+};
+
+/// Descriptor for `SetBundleUpvoteResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setBundleUpvoteResponseDescriptor = $convert.base64Decode(
+    'ChdTZXRCdW5kbGVVcHZvdGVSZXNwb25zZQ==');
+
+@$core.Deprecated('Use setVotePolicyRequestDescriptor instead')
+const SetVotePolicyRequest$json = {
+  '1': 'SetVotePolicyRequest',
   '2': [
-    {'1': 'success', '3': 1, '4': 1, '5': 8, '10': 'success'},
+    {'1': 'policy', '3': 1, '4': 1, '5': 14, '6': '.m4.v1.VotePolicy', '10': 'policy'},
   ],
 };
 
-/// Descriptor for `SetVotePreferenceResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setVotePreferenceResponseDescriptor = $convert.base64Decode(
-    'ChlTZXRWb3RlUHJlZmVyZW5jZVJlc3BvbnNlEhgKB3N1Y2Nlc3MYASABKAhSB3N1Y2Nlc3M=');
+/// Descriptor for `SetVotePolicyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setVotePolicyRequestDescriptor = $convert.base64Decode(
+    'ChRTZXRWb3RlUG9saWN5UmVxdWVzdBIpCgZwb2xpY3kYASABKA4yES5tNC52MS5Wb3RlUG9saW'
+    'N5UgZwb2xpY3k=');
 
-@$core.Deprecated('Use generateM4BytesRequestDescriptor instead')
-const GenerateM4BytesRequest$json = {
-  '1': 'GenerateM4BytesRequest',
+@$core.Deprecated('Use setVotePolicyResponseDescriptor instead')
+const SetVotePolicyResponse$json = {
+  '1': 'SetVotePolicyResponse',
 };
 
-/// Descriptor for `GenerateM4BytesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateM4BytesRequestDescriptor = $convert.base64Decode(
-    'ChZHZW5lcmF0ZU00Qnl0ZXNSZXF1ZXN0');
-
-@$core.Deprecated('Use generateM4BytesResponseDescriptor instead')
-const GenerateM4BytesResponse$json = {
-  '1': 'GenerateM4BytesResponse',
-  '2': [
-    {'1': 'hex', '3': 1, '4': 1, '5': 9, '10': 'hex'},
-    {'1': 'interpretation', '3': 2, '4': 1, '5': 9, '10': 'interpretation'},
-  ],
-};
-
-/// Descriptor for `GenerateM4BytesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateM4BytesResponseDescriptor = $convert.base64Decode(
-    'ChdHZW5lcmF0ZU00Qnl0ZXNSZXNwb25zZRIQCgNoZXgYASABKAlSA2hleBImCg5pbnRlcnByZX'
-    'RhdGlvbhgCIAEoCVIOaW50ZXJwcmV0YXRpb24=');
+/// Descriptor for `SetVotePolicyResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setVotePolicyResponseDescriptor = $convert.base64Decode(
+    'ChVTZXRWb3RlUG9saWN5UmVzcG9uc2U=');
 
 const $core.Map<$core.String, $core.dynamic> M4ServiceBase$json = {
   '1': 'M4Service',
   '2': [
     {'1': 'GetM4History', '2': '.m4.v1.GetM4HistoryRequest', '3': '.m4.v1.GetM4HistoryResponse'},
-    {'1': 'GetVotePreferences', '2': '.m4.v1.GetVotePreferencesRequest', '3': '.m4.v1.GetVotePreferencesResponse'},
-    {'1': 'SetVotePreference', '2': '.m4.v1.SetVotePreferenceRequest', '3': '.m4.v1.SetVotePreferenceResponse'},
-    {'1': 'GenerateM4Bytes', '2': '.m4.v1.GenerateM4BytesRequest', '3': '.m4.v1.GenerateM4BytesResponse'},
+    {'1': 'GetVotes', '2': '.m4.v1.GetVotesRequest', '3': '.m4.v1.GetVotesResponse'},
+    {'1': 'SetBundleUpvote', '2': '.m4.v1.SetBundleUpvoteRequest', '3': '.m4.v1.SetBundleUpvoteResponse'},
+    {'1': 'SetVotePolicy', '2': '.m4.v1.SetVotePolicyRequest', '3': '.m4.v1.SetVotePolicyResponse'},
   ],
 };
 
@@ -171,21 +198,21 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> M4ServiceB
   '.m4.v1.GetM4HistoryResponse': GetM4HistoryResponse$json,
   '.m4.v1.M4HistoryEntry': M4HistoryEntry$json,
   '.m4.v1.M4Vote': M4Vote$json,
-  '.m4.v1.GetVotePreferencesRequest': GetVotePreferencesRequest$json,
-  '.m4.v1.GetVotePreferencesResponse': GetVotePreferencesResponse$json,
-  '.m4.v1.SetVotePreferenceRequest': SetVotePreferenceRequest$json,
-  '.m4.v1.SetVotePreferenceResponse': SetVotePreferenceResponse$json,
-  '.m4.v1.GenerateM4BytesRequest': GenerateM4BytesRequest$json,
-  '.m4.v1.GenerateM4BytesResponse': GenerateM4BytesResponse$json,
+  '.m4.v1.GetVotesRequest': GetVotesRequest$json,
+  '.m4.v1.GetVotesResponse': GetVotesResponse$json,
+  '.m4.v1.BundleUpvote': BundleUpvote$json,
+  '.m4.v1.SetBundleUpvoteRequest': SetBundleUpvoteRequest$json,
+  '.m4.v1.SetBundleUpvoteResponse': SetBundleUpvoteResponse$json,
+  '.m4.v1.SetVotePolicyRequest': SetVotePolicyRequest$json,
+  '.m4.v1.SetVotePolicyResponse': SetVotePolicyResponse$json,
 };
 
 /// Descriptor for `M4Service`. Decode as a `google.protobuf.ServiceDescriptorProto`.
 final $typed_data.Uint8List m4ServiceDescriptor = $convert.base64Decode(
     'CglNNFNlcnZpY2USRwoMR2V0TTRIaXN0b3J5EhoubTQudjEuR2V0TTRIaXN0b3J5UmVxdWVzdB'
-    'obLm00LnYxLkdldE00SGlzdG9yeVJlc3BvbnNlElkKEkdldFZvdGVQcmVmZXJlbmNlcxIgLm00'
-    'LnYxLkdldFZvdGVQcmVmZXJlbmNlc1JlcXVlc3QaIS5tNC52MS5HZXRWb3RlUHJlZmVyZW5jZX'
-    'NSZXNwb25zZRJWChFTZXRWb3RlUHJlZmVyZW5jZRIfLm00LnYxLlNldFZvdGVQcmVmZXJlbmNl'
-    'UmVxdWVzdBogLm00LnYxLlNldFZvdGVQcmVmZXJlbmNlUmVzcG9uc2USUAoPR2VuZXJhdGVNNE'
-    'J5dGVzEh0ubTQudjEuR2VuZXJhdGVNNEJ5dGVzUmVxdWVzdBoeLm00LnYxLkdlbmVyYXRlTTRC'
-    'eXRlc1Jlc3BvbnNl');
+    'obLm00LnYxLkdldE00SGlzdG9yeVJlc3BvbnNlEjsKCEdldFZvdGVzEhYubTQudjEuR2V0Vm90'
+    'ZXNSZXF1ZXN0GhcubTQudjEuR2V0Vm90ZXNSZXNwb25zZRJQCg9TZXRCdW5kbGVVcHZvdGUSHS'
+    '5tNC52MS5TZXRCdW5kbGVVcHZvdGVSZXF1ZXN0Gh4ubTQudjEuU2V0QnVuZGxlVXB2b3RlUmVz'
+    'cG9uc2USSgoNU2V0Vm90ZVBvbGljeRIbLm00LnYxLlNldFZvdGVQb2xpY3lSZXF1ZXN0GhwubT'
+    'QudjEuU2V0Vm90ZVBvbGljeVJlc3BvbnNl');
 

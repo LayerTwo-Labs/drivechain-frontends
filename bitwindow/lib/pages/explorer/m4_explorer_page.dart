@@ -18,7 +18,7 @@ class M4ExplorerPage extends StatefulWidget {
 
 class _M4ExplorerPageState extends State<M4ExplorerPage> {
   int? _selectedSidechainSlot;
-  String? _generateError;
+  String? _voteError;
   M4Provider get _m4Provider => GetIt.I.get<M4Provider>();
   SidechainProvider get _sidechainProvider => GetIt.I.get<SidechainProvider>();
 
@@ -80,179 +80,191 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
         builder: (context, child) {
           return Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left side: Sidechains list
-                SizedBox(
-                  width: 220,
-                  child: Column(
+                Row(
+                  children: [
+                    SailText.primary13('Default vote for all sidechains'),
+                    const SizedBox(width: SailStyleValues.padding12),
+                    SailDropdownButton<m4pb.VotePolicy>(
+                      value: _m4Provider.votePolicy,
+                      items: const [
+                        SailDropdownItem(value: m4pb.VotePolicy.VOTE_POLICY_ABSTAIN, label: 'Abstain'),
+                        SailDropdownItem(
+                          value: m4pb.VotePolicy.VOTE_POLICY_UPVOTE_KNOWN,
+                          label: 'Upvote bundles from this node',
+                        ),
+                        SailDropdownItem(
+                          value: m4pb.VotePolicy.VOTE_POLICY_UPVOTE_ALL,
+                          label: 'Upvote the first bundle',
+                        ),
+                        SailDropdownItem(value: m4pb.VotePolicy.VOTE_POLICY_ALARM, label: 'Alarm'),
+                      ],
+                      onChanged: (policy) async {
+                        if (policy != null) {
+                          await _setVotePolicy(policy);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                if (_voteError != null) ...[
+                  const SizedBox(height: SailStyleValues.padding08),
+                  SailInlineError(_voteError!),
+                ],
+                const SizedBox(height: SailStyleValues.padding16),
+                Expanded(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SailText.primary12('Active Sidechains'),
-                      const SizedBox(height: SailStyleValues.padding08),
-                      Expanded(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: theme.colors.background,
-                            border: Border.all(color: theme.colors.divider),
-                            borderRadius: SailStyleValues.borderRadius,
-                          ),
-                          // Sidechains list
-                          child: Builder(
-                            builder: (context) {
-                              if (_sidechainProvider.sidechains.isEmpty) {
-                                return const Center(child: LoadingIndicator());
-                              }
+                      // Left side: Sidechains list
+                      SizedBox(
+                        width: 220,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SailText.primary12('Active Sidechains'),
+                            const SizedBox(height: SailStyleValues.padding08),
+                            Expanded(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: theme.colors.background,
+                                  border: Border.all(color: theme.colors.divider),
+                                  borderRadius: SailStyleValues.borderRadius,
+                                ),
+                                // Sidechains list
+                                child: Builder(
+                                  builder: (context) {
+                                    if (_sidechainProvider.sidechains.isEmpty) {
+                                      return const Center(child: LoadingIndicator());
+                                    }
 
-                              final activeSidechains = _activeSidechains;
+                                    final activeSidechains = _activeSidechains;
 
-                              return SailTable(
-                                getRowId: (index) => activeSidechains[index].toString(),
-                                selectedRowId: _selectedSidechainSlot?.toString(),
-                                headerBuilder: (context) => [
-                                  const SailTableHeaderCell(name: '#'),
-                                  const SailTableHeaderCell(name: 'Name'),
-                                ],
-                                rowBuilder: (context, row, selected) {
-                                  final slot = activeSidechains[row];
-                                  final sidechain = _sidechainProvider.sidechains[slot];
-                                  return [
-                                    SailTableCell(value: '$slot'),
-                                    SailTableCell(value: sidechain?.info.title ?? 'Sidechain $slot'),
-                                  ];
-                                },
-                                rowCount: activeSidechains.length,
-                                emptyPlaceholder: 'No active sidechains',
-                                onSelectedRow: (rowId) {
-                                  setState(() => _selectedSidechainSlot = rowId != null ? int.tryParse(rowId) : null);
-                                },
-                              );
-                            },
-                          ),
+                                    return SailTable(
+                                      getRowId: (index) => activeSidechains[index].toString(),
+                                      selectedRowId: _selectedSidechainSlot?.toString(),
+                                      headerBuilder: (context) => [
+                                        const SailTableHeaderCell(name: '#'),
+                                        const SailTableHeaderCell(name: 'Name'),
+                                      ],
+                                      rowBuilder: (context, row, selected) {
+                                        final slot = activeSidechains[row];
+                                        final sidechain = _sidechainProvider.sidechains[slot];
+                                        return [
+                                          SailTableCell(value: '$slot'),
+                                          SailTableCell(value: sidechain?.info.title ?? 'Sidechain $slot'),
+                                        ];
+                                      },
+                                      rowCount: activeSidechains.length,
+                                      emptyPlaceholder: 'No active sidechains',
+                                      onSelectedRow: (rowId) {
+                                        setState(
+                                          () => _selectedSidechainSlot = rowId != null ? int.tryParse(rowId) : null,
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: SailStyleValues.padding20),
-                // Right side: Details for selected sidechain
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                      const SizedBox(width: SailStyleValues.padding20),
+                      // Right side: Details for selected sidechain
                       Expanded(
-                        child: _selectedSidechainSlot == null
-                            ? Center(
-                                child: SailText.secondary13('Select a sidechain from the list'),
-                              )
-                            // M4 Details
-                            : Builder(
-                                builder: (context) {
-                                  final hasData =
-                                      _m4Provider.withdrawalBundlesBySidechain.isNotEmpty ||
-                                      _m4Provider.history.isNotEmpty;
-                                  if (_m4Provider.isLoading && !hasData) {
-                                    return const Center(child: LoadingIndicator());
-                                  }
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _selectedSidechainSlot == null
+                                  ? Center(
+                                      child: SailText.secondary13('Select a sidechain from the list'),
+                                    )
+                                  // M4 Details
+                                  : Builder(
+                                      builder: (context) {
+                                        final hasData =
+                                            _m4Provider.withdrawalBundlesBySidechain.isNotEmpty ||
+                                            _m4Provider.history.isNotEmpty;
+                                        if (_m4Provider.isLoading && !hasData) {
+                                          return const Center(child: LoadingIndicator());
+                                        }
 
-                                  if (_m4Provider.modelError != null) {
-                                    return Center(child: SailText.primary15('Error: ${_m4Provider.modelError}'));
-                                  }
+                                        if (_m4Provider.modelError != null) {
+                                          return Center(child: SailText.primary15('Error: ${_m4Provider.modelError}'));
+                                        }
 
-                                  final bundles = _m4Provider.getWithdrawalBundles(_selectedSidechainSlot!)
-                                    ..sort((a, b) => b.blockHeight.compareTo(a.blockHeight));
-                                  final history = _m4Provider.history;
+                                        final bundles = _m4Provider.getWithdrawalBundles(_selectedSidechainSlot!)
+                                          ..sort((a, b) => b.blockHeight.compareTo(a.blockHeight));
+                                        final history = _m4Provider.history;
+                                        final upvote = _m4Provider.upvotes[_selectedSidechainSlot];
 
-                                  return Padding(
-                                    padding: const EdgeInsets.all(SailStyleValues.padding16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        // Withdrawal Bundles section
-                                        Expanded(
-                                          flex: 3,
-                                          child: SailCard(
-                                            title: 'Pending Withdrawals',
-                                            subtitle: 'Withdrawal bundles waiting for votes',
-                                            child: bundles.isEmpty
-                                                ? Center(child: SailText.secondary13('No withdrawal bundles pending'))
-                                                : ListView(
-                                                    children: bundles
-                                                        .map(
-                                                          (bundle) => _BundleRow(
-                                                            bundle: bundle,
-                                                            onCopy: () {
-                                                              Clipboard.setData(ClipboardData(text: bundle.m6id));
-                                                              showSailToast(context, 'Copied M6 Bundle Hash');
-                                                            },
-                                                          ),
+                                        return Padding(
+                                          padding: const EdgeInsets.all(SailStyleValues.padding16),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                flex: 3,
+                                                child: SailCard(
+                                                  title: 'Pending Withdrawals',
+                                                  subtitle: 'Withdrawal bundles waiting for votes',
+                                                  child: bundles.isEmpty
+                                                      ? Center(
+                                                          child: SailText.secondary13('No withdrawal bundles pending'),
                                                         )
-                                                        .toList(),
-                                                  ),
+                                                      : ListView(
+                                                          children: bundles
+                                                              .map(
+                                                                (bundle) => _BundleRow(
+                                                                  bundle: bundle,
+                                                                  upvoted: upvote == bundle.m6id,
+                                                                  onCopy: () {
+                                                                    Clipboard.setData(ClipboardData(text: bundle.m6id));
+                                                                    showSailToast(context, 'Copied M6 Bundle Hash');
+                                                                  },
+                                                                  onUpvote: () => _setUpvote(
+                                                                    upvote == bundle.m6id ? null : bundle.m6id,
+                                                                  ),
+                                                                ),
+                                                              )
+                                                              .toList(),
+                                                        ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: SailStyleValues.padding08),
+
+                                              // Vote History section
+                                              Expanded(
+                                                flex: 2,
+                                                child: SailCard(
+                                                  title: 'Vote History',
+                                                  subtitle: 'Recent blocks showing withdrawal bundle votes',
+                                                  child: history.isEmpty
+                                                      ? Center(child: SailText.secondary13('No vote history available'))
+                                                      : ListView(
+                                                          children: history
+                                                              .map(
+                                                                (entry) => _HistoryEntry(
+                                                                  entry: entry,
+                                                                  selectedSidechainSlot: _selectedSidechainSlot!,
+                                                                ),
+                                                              )
+                                                              .toList(),
+                                                        ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                        const SizedBox(height: SailStyleValues.padding08),
-
-                                        // Vote Preferences row
-                                        Row(
-                                          children: [
-                                            SailText.primary13('Your Vote Preference: '),
-                                            if (_m4Provider.votePreferences.isEmpty)
-                                              SailText.secondary13('Abstain')
-                                            else
-                                              ..._m4Provider.votePreferences
-                                                  .where((v) => v.sidechainSlot == _selectedSidechainSlot)
-                                                  .map((vote) => SailText.primary13(vote.voteType.toUpperCase())),
-                                            const Spacer(),
-                                            SailButton(
-                                              label: 'Set Vote',
-                                              variant: ButtonVariant.secondary,
-                                              skipLoading: true,
-                                              onPressed: () async => await _showSetVoteDialog(),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: SailStyleValues.padding08),
-
-                                        // Vote History section
-                                        Expanded(
-                                          flex: 2,
-                                          child: SailCard(
-                                            title: 'Vote History',
-                                            subtitle: 'Recent blocks showing withdrawal bundle votes',
-                                            child: history.isEmpty
-                                                ? Center(child: SailText.secondary13('No vote history available'))
-                                                : ListView(
-                                                    children: history
-                                                        .map(
-                                                          (entry) => _HistoryEntry(
-                                                            entry: entry,
-                                                            selectedSidechainSlot: _selectedSidechainSlot!,
-                                                          ),
-                                                        )
-                                                        .toList(),
-                                                  ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: SailStyleValues.padding08),
-
-                                        // Generate M4 Bytes button
-                                        SailButton(
-                                          label: 'Generate M4 Bytes',
-                                          variant: ButtonVariant.secondary,
-                                          skipLoading: true,
-                                          onPressed: () async => await _showGenerateM4BytesDialog(),
-                                        ),
-                                        if (_generateError != null) ...[
-                                          const SizedBox(height: SailStyleValues.padding08),
-                                          SailInlineError(_generateError!),
-                                        ],
-                                      ],
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
-                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -275,177 +287,41 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
     return result;
   }
 
-  Future<void> _showSetVoteDialog() async {
-    String voteType = 'abstain';
-    String? voteError;
-    final bundleHashController = TextEditingController();
-
-    await widgetDialog(
-      context: context,
-      title: 'Set Vote Preference',
-      subtitle: 'Choose how you want to vote on withdrawal bundles for this sidechain.',
-      maxWidth: 400,
-      child: StatefulBuilder(
-        builder: (context, setState) {
-          return SailColumn(
-            spacing: SailStyleValues.padding16,
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SailDropdownButton<String>(
-                value: voteType,
-                items: const [
-                  SailDropdownItem(value: 'abstain', label: 'Abstain'),
-                  SailDropdownItem(value: 'alarm', label: 'Alarm (Downvote All)'),
-                  SailDropdownItem(value: 'upvote', label: 'Upvote Specific Bundle'),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      voteType = value;
-                      voteError = null;
-                    });
-                  }
-                },
-              ),
-              if (voteType == 'upvote')
-                SailTextField(
-                  controller: bundleHashController,
-                  label: 'Bundle Hash',
-                  hintText: 'Enter the bundle hash to upvote',
-                  onChanged: (_) {
-                    if (voteError != null) {
-                      setState(() => voteError = null);
-                    }
-                  },
-                ),
-              if (voteError != null) SailInlineError(voteError!),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SailButton(
-                    label: 'Cancel',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 8),
-                  SailButton(
-                    label: 'Set Vote',
-                    variant: ButtonVariant.primary,
-                    onPressed: () async {
-                      setState(() => voteError = null);
-                      try {
-                        await _m4Provider.setVotePreference(
-                          sidechainSlot: _selectedSidechainSlot!,
-                          voteType: voteType,
-                          bundleHash: bundleHashController.text.isEmpty ? null : bundleHashController.text,
-                        );
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          showSailToast(context, 'Vote preference updated');
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          setState(() => voteError = 'Failed to set vote: $e');
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
+  Future<void> _setUpvote(String? m6id) async {
+    setState(() => _voteError = null);
+    try {
+      await _m4Provider.setBundleUpvote(sidechainSlot: _selectedSidechainSlot!, m6id: m6id);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _voteError = 'Could not set the upvote: $e');
+      }
+    }
   }
 
-  Future<void> _showGenerateM4BytesDialog() async {
-    setState(() => _generateError = null);
-    final result = await _m4Provider.generateM4Bytes();
-    if (result == null) {
+  Future<void> _setVotePolicy(m4pb.VotePolicy policy) async {
+    setState(() => _voteError = null);
+    try {
+      await _m4Provider.setVotePolicy(policy);
+    } catch (e) {
       if (mounted) {
-        setState(() => _generateError = 'Failed to generate M4 bytes');
+        setState(() => _voteError = 'Could not set the default vote: $e');
       }
-      return;
     }
-
-    if (!mounted) {
-      return;
-    }
-
-    final textColor = context.sailTheme.colors.text;
-
-    await widgetDialog(
-      context: context,
-      title: 'M4 Commitment Bytes',
-      subtitle: 'The bytes to include in the coinbase transaction.',
-      maxWidth: 500,
-      child: SailColumn(
-        spacing: SailStyleValues.padding16,
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SailCard(
-            padding: true,
-            secondary: true,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.secondary12('Hex'),
-                const SizedBox(height: 4),
-                SailSelectableText(
-                  result.hex,
-                  style: TextStyle(
-                    fontFamily: 'IBM Plex Mono',
-                    fontSize: 12,
-                    color: textColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SailCard(
-            padding: true,
-            secondary: true,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.secondary12('Interpretation'),
-                const SizedBox(height: 4),
-                SailText.primary13(result.interpretation),
-              ],
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              SailButton(
-                label: 'Copy Hex',
-                variant: ButtonVariant.secondary,
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: result.hex));
-                  if (mounted) {
-                    showSailToast(context, 'Copied to clipboard');
-                  }
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 
 /// Widget for displaying a withdrawal bundle row
 class _BundleRow extends StatelessWidget {
   final drivechainpb.WithdrawalBundle bundle;
+  final bool upvoted;
   final VoidCallback onCopy;
+  final Future<void> Function() onUpvote;
 
   const _BundleRow({
     required this.bundle,
+    required this.upvoted,
     required this.onCopy,
+    required this.onUpvote,
   });
 
   @override
@@ -489,6 +365,14 @@ class _BundleRow extends StatelessWidget {
                   ),
                   child: SailText.secondary12(bundle.status.toUpperCase(), color: statusColor),
                 ),
+                if (isPending) ...[
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: upvoted ? 'Upvoted' : 'Upvote',
+                    variant: upvoted ? ButtonVariant.primary : ButtonVariant.secondary,
+                    onPressed: onUpvote,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 4),

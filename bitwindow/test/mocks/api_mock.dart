@@ -540,23 +540,15 @@ class MockM4API implements M4API {
   }
 
   @override
-  Future<List<m4pb.M4Vote>> getVotePreferences() async {
-    return [];
+  Future<m4pb.GetVotesResponse> getVotes() async {
+    return m4pb.GetVotesResponse();
   }
 
   @override
-  Future<void> setVotePreference({
-    required int sidechainSlot,
-    required String voteType,
-    String? bundleHash,
-  }) async {
-    return;
-  }
+  Future<void> setBundleUpvote({required int sidechainSlot, String? m6id}) async {}
 
   @override
-  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes() async {
-    return m4pb.GenerateM4BytesResponse();
-  }
+  Future<void> setVotePolicy(m4pb.VotePolicy policy) async {}
 }
 
 class MockNotificationAPI implements NotificationAPI {

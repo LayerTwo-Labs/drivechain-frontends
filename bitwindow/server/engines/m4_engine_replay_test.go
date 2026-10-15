@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -263,44 +262,6 @@ func TestPurgeM4AtOrAbove(t *testing.T) {
 	require.NoError(t, db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM withdrawal_bundles WHERE bundle_hash = ?`, "bundle-orphaned").Scan(&count))
 	require.Zero(t, count, "bundles born at or above the rewind target are wiped")
-}
-
-func TestGenerateM4Bytes(t *testing.T) {
-	t.Run("no pending bundle needs no M4", func(t *testing.T) {
-		e := NewM4Engine(database.Test(t))
-
-		hexStr, interpretation, err := e.GenerateM4Bytes(t.Context(), enforcerAt(t, 100, map[uint32]uint32{0: 10}))
-		require.NoError(t, err)
-		require.Empty(t, hexStr)
-		require.Contains(t, interpretation, "Not required")
-	})
-
-	t.Run("one byte per slot in slot order", func(t *testing.T) {
-		ctx := t.Context()
-		e := NewM4Engine(database.Test(t))
-		seedBundle(t, ctx, e, "bundle-a", 100)
-		bundleHash := "bundle-a"
-		require.NoError(t, e.SetVotePreference(ctx, 0, m4.VoteTypeUpvote, &bundleHash))
-		require.NoError(t, e.SetVotePreference(ctx, 1, m4.VoteTypeAlarm, nil))
-
-		hexStr, _, err := e.GenerateM4Bytes(ctx, enforcerAt(t, 100, map[uint32]uint32{2: 10, 0: 10, 1: 10}))
-		require.NoError(t, err)
-		require.Equal(t, "0100feff", hexStr)
-	})
-
-	t.Run("a bundle index above 253 needs two bytes per slot", func(t *testing.T) {
-		ctx := t.Context()
-		e := NewM4Engine(database.Test(t))
-		for i := range uint32(255) {
-			seedBundle(t, ctx, e, fmt.Sprintf("bundle-%d", i), 100+i)
-		}
-		bundleHash := "bundle-254"
-		require.NoError(t, e.SetVotePreference(ctx, 0, m4.VoteTypeUpvote, &bundleHash))
-
-		hexStr, _, err := e.GenerateM4Bytes(ctx, enforcerAt(t, 100, map[uint32]uint32{0: 10, 1: 10}))
-		require.NoError(t, err)
-		require.Equal(t, "02fe00ffff", hexStr)
-	})
 }
 
 func TestProcessBlocks_PersistFailureKeepsHeightUnprocessed(t *testing.T) {

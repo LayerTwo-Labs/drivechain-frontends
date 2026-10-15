@@ -21,6 +21,64 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// The vote for a sidechain that has no upvote.
+type VotePolicy int32
+
+const (
+	VotePolicy_VOTE_POLICY_UNSPECIFIED VotePolicy = 0
+	VotePolicy_VOTE_POLICY_ABSTAIN     VotePolicy = 1
+	// Upvote the first pending bundle that this enforcer proposed.
+	VotePolicy_VOTE_POLICY_UPVOTE_KNOWN VotePolicy = 2
+	// Upvote the first pending bundle.
+	VotePolicy_VOTE_POLICY_UPVOTE_ALL VotePolicy = 3
+	VotePolicy_VOTE_POLICY_ALARM      VotePolicy = 4
+)
+
+// Enum value maps for VotePolicy.
+var (
+	VotePolicy_name = map[int32]string{
+		0: "VOTE_POLICY_UNSPECIFIED",
+		1: "VOTE_POLICY_ABSTAIN",
+		2: "VOTE_POLICY_UPVOTE_KNOWN",
+		3: "VOTE_POLICY_UPVOTE_ALL",
+		4: "VOTE_POLICY_ALARM",
+	}
+	VotePolicy_value = map[string]int32{
+		"VOTE_POLICY_UNSPECIFIED":  0,
+		"VOTE_POLICY_ABSTAIN":      1,
+		"VOTE_POLICY_UPVOTE_KNOWN": 2,
+		"VOTE_POLICY_UPVOTE_ALL":   3,
+		"VOTE_POLICY_ALARM":        4,
+	}
+)
+
+func (x VotePolicy) Enum() *VotePolicy {
+	p := new(VotePolicy)
+	*p = x
+	return p
+}
+
+func (x VotePolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (VotePolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_m4_v1_m4_proto_enumTypes[0].Descriptor()
+}
+
+func (VotePolicy) Type() protoreflect.EnumType {
+	return &file_m4_v1_m4_proto_enumTypes[0]
+}
+
+func (x VotePolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use VotePolicy.Descriptor instead.
+func (VotePolicy) EnumDescriptor() ([]byte, []int) {
+	return file_m4_v1_m4_proto_rawDescGZIP(), []int{0}
+}
+
 type M4Vote struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SidechainSlot uint32                 `protobuf:"varint,1,opt,name=sidechain_slot,json=sidechainSlot,proto3" json:"sidechain_slot,omitempty"`
@@ -253,26 +311,28 @@ func (x *GetM4HistoryResponse) GetHistory() []*M4HistoryEntry {
 	return nil
 }
 
-type GetVotePreferencesRequest struct {
+type BundleUpvote struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	SidechainSlot uint32                 `protobuf:"varint,1,opt,name=sidechain_slot,json=sidechainSlot,proto3" json:"sidechain_slot,omitempty"`
+	M6Id          string                 `protobuf:"bytes,2,opt,name=m6id,proto3" json:"m6id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetVotePreferencesRequest) Reset() {
-	*x = GetVotePreferencesRequest{}
+func (x *BundleUpvote) Reset() {
+	*x = BundleUpvote{}
 	mi := &file_m4_v1_m4_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetVotePreferencesRequest) String() string {
+func (x *BundleUpvote) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetVotePreferencesRequest) ProtoMessage() {}
+func (*BundleUpvote) ProtoMessage() {}
 
-func (x *GetVotePreferencesRequest) ProtoReflect() protoreflect.Message {
+func (x *BundleUpvote) ProtoReflect() protoreflect.Message {
 	mi := &file_m4_v1_m4_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -284,136 +344,136 @@ func (x *GetVotePreferencesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetVotePreferencesRequest.ProtoReflect.Descriptor instead.
-func (*GetVotePreferencesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use BundleUpvote.ProtoReflect.Descriptor instead.
+func (*BundleUpvote) Descriptor() ([]byte, []int) {
 	return file_m4_v1_m4_proto_rawDescGZIP(), []int{4}
 }
 
-type GetVotePreferencesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Preferences   []*M4Vote              `protobuf:"bytes,1,rep,name=preferences,proto3" json:"preferences,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetVotePreferencesResponse) Reset() {
-	*x = GetVotePreferencesResponse{}
-	mi := &file_m4_v1_m4_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetVotePreferencesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetVotePreferencesResponse) ProtoMessage() {}
-
-func (x *GetVotePreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_m4_v1_m4_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetVotePreferencesResponse.ProtoReflect.Descriptor instead.
-func (*GetVotePreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_m4_v1_m4_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *GetVotePreferencesResponse) GetPreferences() []*M4Vote {
-	if x != nil {
-		return x.Preferences
-	}
-	return nil
-}
-
-type SetVotePreferenceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SidechainSlot uint32                 `protobuf:"varint,1,opt,name=sidechain_slot,json=sidechainSlot,proto3" json:"sidechain_slot,omitempty"`
-	VoteType      string                 `protobuf:"bytes,2,opt,name=vote_type,json=voteType,proto3" json:"vote_type,omitempty"`
-	BundleHash    *string                `protobuf:"bytes,3,opt,name=bundle_hash,json=bundleHash,proto3,oneof" json:"bundle_hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SetVotePreferenceRequest) Reset() {
-	*x = SetVotePreferenceRequest{}
-	mi := &file_m4_v1_m4_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetVotePreferenceRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetVotePreferenceRequest) ProtoMessage() {}
-
-func (x *SetVotePreferenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_m4_v1_m4_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetVotePreferenceRequest.ProtoReflect.Descriptor instead.
-func (*SetVotePreferenceRequest) Descriptor() ([]byte, []int) {
-	return file_m4_v1_m4_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *SetVotePreferenceRequest) GetSidechainSlot() uint32 {
+func (x *BundleUpvote) GetSidechainSlot() uint32 {
 	if x != nil {
 		return x.SidechainSlot
 	}
 	return 0
 }
 
-func (x *SetVotePreferenceRequest) GetVoteType() string {
+func (x *BundleUpvote) GetM6Id() string {
 	if x != nil {
-		return x.VoteType
+		return x.M6Id
 	}
 	return ""
 }
 
-func (x *SetVotePreferenceRequest) GetBundleHash() string {
-	if x != nil && x.BundleHash != nil {
-		return *x.BundleHash
-	}
-	return ""
-}
-
-type SetVotePreferenceResponse struct {
+type GetVotesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SetVotePreferenceResponse) Reset() {
-	*x = SetVotePreferenceResponse{}
+func (x *GetVotesRequest) Reset() {
+	*x = GetVotesRequest{}
+	mi := &file_m4_v1_m4_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetVotesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetVotesRequest) ProtoMessage() {}
+
+func (x *GetVotesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_m4_v1_m4_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetVotesRequest.ProtoReflect.Descriptor instead.
+func (*GetVotesRequest) Descriptor() ([]byte, []int) {
+	return file_m4_v1_m4_proto_rawDescGZIP(), []int{5}
+}
+
+type GetVotesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policy        VotePolicy             `protobuf:"varint,1,opt,name=policy,proto3,enum=m4.v1.VotePolicy" json:"policy,omitempty"`
+	Upvotes       []*BundleUpvote        `protobuf:"bytes,2,rep,name=upvotes,proto3" json:"upvotes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetVotesResponse) Reset() {
+	*x = GetVotesResponse{}
+	mi := &file_m4_v1_m4_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetVotesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetVotesResponse) ProtoMessage() {}
+
+func (x *GetVotesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_m4_v1_m4_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetVotesResponse.ProtoReflect.Descriptor instead.
+func (*GetVotesResponse) Descriptor() ([]byte, []int) {
+	return file_m4_v1_m4_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetVotesResponse) GetPolicy() VotePolicy {
+	if x != nil {
+		return x.Policy
+	}
+	return VotePolicy_VOTE_POLICY_UNSPECIFIED
+}
+
+func (x *GetVotesResponse) GetUpvotes() []*BundleUpvote {
+	if x != nil {
+		return x.Upvotes
+	}
+	return nil
+}
+
+type SetBundleUpvoteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SidechainSlot uint32                 `protobuf:"varint,1,opt,name=sidechain_slot,json=sidechainSlot,proto3" json:"sidechain_slot,omitempty"`
+	// Unset clears the upvote, so the sidechain gets the policy vote.
+	M6Id          *string `protobuf:"bytes,2,opt,name=m6id,proto3,oneof" json:"m6id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetBundleUpvoteRequest) Reset() {
+	*x = SetBundleUpvoteRequest{}
 	mi := &file_m4_v1_m4_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SetVotePreferenceResponse) String() string {
+func (x *SetBundleUpvoteRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SetVotePreferenceResponse) ProtoMessage() {}
+func (*SetBundleUpvoteRequest) ProtoMessage() {}
 
-func (x *SetVotePreferenceResponse) ProtoReflect() protoreflect.Message {
+func (x *SetBundleUpvoteRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_m4_v1_m4_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -425,38 +485,45 @@ func (x *SetVotePreferenceResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SetVotePreferenceResponse.ProtoReflect.Descriptor instead.
-func (*SetVotePreferenceResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetBundleUpvoteRequest.ProtoReflect.Descriptor instead.
+func (*SetBundleUpvoteRequest) Descriptor() ([]byte, []int) {
 	return file_m4_v1_m4_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *SetVotePreferenceResponse) GetSuccess() bool {
+func (x *SetBundleUpvoteRequest) GetSidechainSlot() uint32 {
 	if x != nil {
-		return x.Success
+		return x.SidechainSlot
 	}
-	return false
+	return 0
 }
 
-type GenerateM4BytesRequest struct {
+func (x *SetBundleUpvoteRequest) GetM6Id() string {
+	if x != nil && x.M6Id != nil {
+		return *x.M6Id
+	}
+	return ""
+}
+
+type SetBundleUpvoteResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GenerateM4BytesRequest) Reset() {
-	*x = GenerateM4BytesRequest{}
+func (x *SetBundleUpvoteResponse) Reset() {
+	*x = SetBundleUpvoteResponse{}
 	mi := &file_m4_v1_m4_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GenerateM4BytesRequest) String() string {
+func (x *SetBundleUpvoteResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GenerateM4BytesRequest) ProtoMessage() {}
+func (*SetBundleUpvoteResponse) ProtoMessage() {}
 
-func (x *GenerateM4BytesRequest) ProtoReflect() protoreflect.Message {
+func (x *SetBundleUpvoteResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_m4_v1_m4_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -468,33 +535,32 @@ func (x *GenerateM4BytesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GenerateM4BytesRequest.ProtoReflect.Descriptor instead.
-func (*GenerateM4BytesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetBundleUpvoteResponse.ProtoReflect.Descriptor instead.
+func (*SetBundleUpvoteResponse) Descriptor() ([]byte, []int) {
 	return file_m4_v1_m4_proto_rawDescGZIP(), []int{8}
 }
 
-type GenerateM4BytesResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Hex            string                 `protobuf:"bytes,1,opt,name=hex,proto3" json:"hex,omitempty"`                       // Hex-encoded M4 bytes
-	Interpretation string                 `protobuf:"bytes,2,opt,name=interpretation,proto3" json:"interpretation,omitempty"` // Human-readable description
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+type SetVotePolicyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policy        VotePolicy             `protobuf:"varint,1,opt,name=policy,proto3,enum=m4.v1.VotePolicy" json:"policy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GenerateM4BytesResponse) Reset() {
-	*x = GenerateM4BytesResponse{}
+func (x *SetVotePolicyRequest) Reset() {
+	*x = SetVotePolicyRequest{}
 	mi := &file_m4_v1_m4_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GenerateM4BytesResponse) String() string {
+func (x *SetVotePolicyRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GenerateM4BytesResponse) ProtoMessage() {}
+func (*SetVotePolicyRequest) ProtoMessage() {}
 
-func (x *GenerateM4BytesResponse) ProtoReflect() protoreflect.Message {
+func (x *SetVotePolicyRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_m4_v1_m4_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -506,23 +572,52 @@ func (x *GenerateM4BytesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GenerateM4BytesResponse.ProtoReflect.Descriptor instead.
-func (*GenerateM4BytesResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetVotePolicyRequest.ProtoReflect.Descriptor instead.
+func (*SetVotePolicyRequest) Descriptor() ([]byte, []int) {
 	return file_m4_v1_m4_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *GenerateM4BytesResponse) GetHex() string {
+func (x *SetVotePolicyRequest) GetPolicy() VotePolicy {
 	if x != nil {
-		return x.Hex
+		return x.Policy
 	}
-	return ""
+	return VotePolicy_VOTE_POLICY_UNSPECIFIED
 }
 
-func (x *GenerateM4BytesResponse) GetInterpretation() string {
+type SetVotePolicyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetVotePolicyResponse) Reset() {
+	*x = SetVotePolicyResponse{}
+	mi := &file_m4_v1_m4_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetVotePolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetVotePolicyResponse) ProtoMessage() {}
+
+func (x *SetVotePolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_m4_v1_m4_proto_msgTypes[10]
 	if x != nil {
-		return x.Interpretation
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return ""
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetVotePolicyResponse.ProtoReflect.Descriptor instead.
+func (*SetVotePolicyResponse) Descriptor() ([]byte, []int) {
+	return file_m4_v1_m4_proto_rawDescGZIP(), []int{10}
 }
 
 var File_m4_v1_m4_proto protoreflect.FileDescriptor
@@ -549,27 +644,34 @@ const file_m4_v1_m4_proto_rawDesc = "" +
 	"\x13GetM4HistoryRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\rR\x05limit\"G\n" +
 	"\x14GetM4HistoryResponse\x12/\n" +
-	"\ahistory\x18\x01 \x03(\v2\x15.m4.v1.M4HistoryEntryR\ahistory\"\x1b\n" +
-	"\x19GetVotePreferencesRequest\"M\n" +
-	"\x1aGetVotePreferencesResponse\x12/\n" +
-	"\vpreferences\x18\x01 \x03(\v2\r.m4.v1.M4VoteR\vpreferences\"\x94\x01\n" +
-	"\x18SetVotePreferenceRequest\x12%\n" +
-	"\x0esidechain_slot\x18\x01 \x01(\rR\rsidechainSlot\x12\x1b\n" +
-	"\tvote_type\x18\x02 \x01(\tR\bvoteType\x12$\n" +
-	"\vbundle_hash\x18\x03 \x01(\tH\x00R\n" +
-	"bundleHash\x88\x01\x01B\x0e\n" +
-	"\f_bundle_hash\"5\n" +
-	"\x19SetVotePreferenceResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x18\n" +
-	"\x16GenerateM4BytesRequest\"S\n" +
-	"\x17GenerateM4BytesResponse\x12\x10\n" +
-	"\x03hex\x18\x01 \x01(\tR\x03hex\x12&\n" +
-	"\x0einterpretation\x18\x02 \x01(\tR\x0einterpretation2\xd9\x02\n" +
+	"\ahistory\x18\x01 \x03(\v2\x15.m4.v1.M4HistoryEntryR\ahistory\"I\n" +
+	"\fBundleUpvote\x12%\n" +
+	"\x0esidechain_slot\x18\x01 \x01(\rR\rsidechainSlot\x12\x12\n" +
+	"\x04m6id\x18\x02 \x01(\tR\x04m6id\"\x11\n" +
+	"\x0fGetVotesRequest\"l\n" +
+	"\x10GetVotesResponse\x12)\n" +
+	"\x06policy\x18\x01 \x01(\x0e2\x11.m4.v1.VotePolicyR\x06policy\x12-\n" +
+	"\aupvotes\x18\x02 \x03(\v2\x13.m4.v1.BundleUpvoteR\aupvotes\"a\n" +
+	"\x16SetBundleUpvoteRequest\x12%\n" +
+	"\x0esidechain_slot\x18\x01 \x01(\rR\rsidechainSlot\x12\x17\n" +
+	"\x04m6id\x18\x02 \x01(\tH\x00R\x04m6id\x88\x01\x01B\a\n" +
+	"\x05_m6id\"\x19\n" +
+	"\x17SetBundleUpvoteResponse\"A\n" +
+	"\x14SetVotePolicyRequest\x12)\n" +
+	"\x06policy\x18\x01 \x01(\x0e2\x11.m4.v1.VotePolicyR\x06policy\"\x17\n" +
+	"\x15SetVotePolicyResponse*\x93\x01\n" +
+	"\n" +
+	"VotePolicy\x12\x1b\n" +
+	"\x17VOTE_POLICY_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13VOTE_POLICY_ABSTAIN\x10\x01\x12\x1c\n" +
+	"\x18VOTE_POLICY_UPVOTE_KNOWN\x10\x02\x12\x1a\n" +
+	"\x16VOTE_POLICY_UPVOTE_ALL\x10\x03\x12\x15\n" +
+	"\x11VOTE_POLICY_ALARM\x10\x042\xaf\x02\n" +
 	"\tM4Service\x12G\n" +
-	"\fGetM4History\x12\x1a.m4.v1.GetM4HistoryRequest\x1a\x1b.m4.v1.GetM4HistoryResponse\x12Y\n" +
-	"\x12GetVotePreferences\x12 .m4.v1.GetVotePreferencesRequest\x1a!.m4.v1.GetVotePreferencesResponse\x12V\n" +
-	"\x11SetVotePreference\x12\x1f.m4.v1.SetVotePreferenceRequest\x1a .m4.v1.SetVotePreferenceResponse\x12P\n" +
-	"\x0fGenerateM4Bytes\x12\x1d.m4.v1.GenerateM4BytesRequest\x1a\x1e.m4.v1.GenerateM4BytesResponseB\x8c\x01\n" +
+	"\fGetM4History\x12\x1a.m4.v1.GetM4HistoryRequest\x1a\x1b.m4.v1.GetM4HistoryResponse\x12;\n" +
+	"\bGetVotes\x12\x16.m4.v1.GetVotesRequest\x1a\x17.m4.v1.GetVotesResponse\x12P\n" +
+	"\x0fSetBundleUpvote\x12\x1d.m4.v1.SetBundleUpvoteRequest\x1a\x1e.m4.v1.SetBundleUpvoteResponse\x12J\n" +
+	"\rSetVotePolicy\x12\x1b.m4.v1.SetVotePolicyRequest\x1a\x1c.m4.v1.SetVotePolicyResponseB\x8c\x01\n" +
 	"\tcom.m4.v1B\aM4ProtoP\x01ZAgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1;m4v1\xa2\x02\x03MXX\xaa\x02\x05M4.V1\xca\x02\x05M4\\V1\xe2\x02\x11M4\\V1\\GPBMetadata\xea\x02\x06M4::V1b\x06proto3"
 
 var (
@@ -584,36 +686,41 @@ func file_m4_v1_m4_proto_rawDescGZIP() []byte {
 	return file_m4_v1_m4_proto_rawDescData
 }
 
-var file_m4_v1_m4_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_m4_v1_m4_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_m4_v1_m4_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_m4_v1_m4_proto_goTypes = []any{
-	(*M4Vote)(nil),                     // 0: m4.v1.M4Vote
-	(*M4HistoryEntry)(nil),             // 1: m4.v1.M4HistoryEntry
-	(*GetM4HistoryRequest)(nil),        // 2: m4.v1.GetM4HistoryRequest
-	(*GetM4HistoryResponse)(nil),       // 3: m4.v1.GetM4HistoryResponse
-	(*GetVotePreferencesRequest)(nil),  // 4: m4.v1.GetVotePreferencesRequest
-	(*GetVotePreferencesResponse)(nil), // 5: m4.v1.GetVotePreferencesResponse
-	(*SetVotePreferenceRequest)(nil),   // 6: m4.v1.SetVotePreferenceRequest
-	(*SetVotePreferenceResponse)(nil),  // 7: m4.v1.SetVotePreferenceResponse
-	(*GenerateM4BytesRequest)(nil),     // 8: m4.v1.GenerateM4BytesRequest
-	(*GenerateM4BytesResponse)(nil),    // 9: m4.v1.GenerateM4BytesResponse
+	(VotePolicy)(0),                 // 0: m4.v1.VotePolicy
+	(*M4Vote)(nil),                  // 1: m4.v1.M4Vote
+	(*M4HistoryEntry)(nil),          // 2: m4.v1.M4HistoryEntry
+	(*GetM4HistoryRequest)(nil),     // 3: m4.v1.GetM4HistoryRequest
+	(*GetM4HistoryResponse)(nil),    // 4: m4.v1.GetM4HistoryResponse
+	(*BundleUpvote)(nil),            // 5: m4.v1.BundleUpvote
+	(*GetVotesRequest)(nil),         // 6: m4.v1.GetVotesRequest
+	(*GetVotesResponse)(nil),        // 7: m4.v1.GetVotesResponse
+	(*SetBundleUpvoteRequest)(nil),  // 8: m4.v1.SetBundleUpvoteRequest
+	(*SetBundleUpvoteResponse)(nil), // 9: m4.v1.SetBundleUpvoteResponse
+	(*SetVotePolicyRequest)(nil),    // 10: m4.v1.SetVotePolicyRequest
+	(*SetVotePolicyResponse)(nil),   // 11: m4.v1.SetVotePolicyResponse
 }
 var file_m4_v1_m4_proto_depIdxs = []int32{
-	0, // 0: m4.v1.M4HistoryEntry.votes:type_name -> m4.v1.M4Vote
-	1, // 1: m4.v1.GetM4HistoryResponse.history:type_name -> m4.v1.M4HistoryEntry
-	0, // 2: m4.v1.GetVotePreferencesResponse.preferences:type_name -> m4.v1.M4Vote
-	2, // 3: m4.v1.M4Service.GetM4History:input_type -> m4.v1.GetM4HistoryRequest
-	4, // 4: m4.v1.M4Service.GetVotePreferences:input_type -> m4.v1.GetVotePreferencesRequest
-	6, // 5: m4.v1.M4Service.SetVotePreference:input_type -> m4.v1.SetVotePreferenceRequest
-	8, // 6: m4.v1.M4Service.GenerateM4Bytes:input_type -> m4.v1.GenerateM4BytesRequest
-	3, // 7: m4.v1.M4Service.GetM4History:output_type -> m4.v1.GetM4HistoryResponse
-	5, // 8: m4.v1.M4Service.GetVotePreferences:output_type -> m4.v1.GetVotePreferencesResponse
-	7, // 9: m4.v1.M4Service.SetVotePreference:output_type -> m4.v1.SetVotePreferenceResponse
-	9, // 10: m4.v1.M4Service.GenerateM4Bytes:output_type -> m4.v1.GenerateM4BytesResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1,  // 0: m4.v1.M4HistoryEntry.votes:type_name -> m4.v1.M4Vote
+	2,  // 1: m4.v1.GetM4HistoryResponse.history:type_name -> m4.v1.M4HistoryEntry
+	0,  // 2: m4.v1.GetVotesResponse.policy:type_name -> m4.v1.VotePolicy
+	5,  // 3: m4.v1.GetVotesResponse.upvotes:type_name -> m4.v1.BundleUpvote
+	0,  // 4: m4.v1.SetVotePolicyRequest.policy:type_name -> m4.v1.VotePolicy
+	3,  // 5: m4.v1.M4Service.GetM4History:input_type -> m4.v1.GetM4HistoryRequest
+	6,  // 6: m4.v1.M4Service.GetVotes:input_type -> m4.v1.GetVotesRequest
+	8,  // 7: m4.v1.M4Service.SetBundleUpvote:input_type -> m4.v1.SetBundleUpvoteRequest
+	10, // 8: m4.v1.M4Service.SetVotePolicy:input_type -> m4.v1.SetVotePolicyRequest
+	4,  // 9: m4.v1.M4Service.GetM4History:output_type -> m4.v1.GetM4HistoryResponse
+	7,  // 10: m4.v1.M4Service.GetVotes:output_type -> m4.v1.GetVotesResponse
+	9,  // 11: m4.v1.M4Service.SetBundleUpvote:output_type -> m4.v1.SetBundleUpvoteResponse
+	11, // 12: m4.v1.M4Service.SetVotePolicy:output_type -> m4.v1.SetVotePolicyResponse
+	9,  // [9:13] is the sub-list for method output_type
+	5,  // [5:9] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_m4_v1_m4_proto_init() }
@@ -622,19 +729,20 @@ func file_m4_v1_m4_proto_init() {
 		return
 	}
 	file_m4_v1_m4_proto_msgTypes[0].OneofWrappers = []any{}
-	file_m4_v1_m4_proto_msgTypes[6].OneofWrappers = []any{}
+	file_m4_v1_m4_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_m4_v1_m4_proto_rawDesc), len(file_m4_v1_m4_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   10,
+			NumEnums:      1,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_m4_v1_m4_proto_goTypes,
 		DependencyIndexes: file_m4_v1_m4_proto_depIdxs,
+		EnumInfos:         file_m4_v1_m4_proto_enumTypes,
 		MessageInfos:      file_m4_v1_m4_proto_msgTypes,
 	}.Build()
 	File_m4_v1_m4_proto = out.File

@@ -297,7 +297,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		register(path, h)
 	}
 	{
-		m4Svc := api_m4.NewServer(rt.m4Engine, s.Enforcer)
+		m4Svc := api_m4.NewServer(rt.m4Engine, s.BlockProducer)
 		path, h := m4v1connect.NewM4ServiceHandler(m4Svc, stdOpts...)
 		register(path, h)
 	}

@@ -15,33 +15,33 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'm4.pb.dart' as $7;
+import 'm4.pb.dart' as $0;
 import 'm4.pbjson.dart';
 
 export 'm4.pb.dart';
 
 abstract class M4ServiceBase extends $pb.GeneratedService {
-  $async.Future<$7.GetM4HistoryResponse> getM4History($pb.ServerContext ctx, $7.GetM4HistoryRequest request);
-  $async.Future<$7.GetVotePreferencesResponse> getVotePreferences($pb.ServerContext ctx, $7.GetVotePreferencesRequest request);
-  $async.Future<$7.SetVotePreferenceResponse> setVotePreference($pb.ServerContext ctx, $7.SetVotePreferenceRequest request);
-  $async.Future<$7.GenerateM4BytesResponse> generateM4Bytes($pb.ServerContext ctx, $7.GenerateM4BytesRequest request);
+  $async.Future<$0.GetM4HistoryResponse> getM4History($pb.ServerContext ctx, $0.GetM4HistoryRequest request);
+  $async.Future<$0.GetVotesResponse> getVotes($pb.ServerContext ctx, $0.GetVotesRequest request);
+  $async.Future<$0.SetBundleUpvoteResponse> setBundleUpvote($pb.ServerContext ctx, $0.SetBundleUpvoteRequest request);
+  $async.Future<$0.SetVotePolicyResponse> setVotePolicy($pb.ServerContext ctx, $0.SetVotePolicyRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetM4History': return $7.GetM4HistoryRequest();
-      case 'GetVotePreferences': return $7.GetVotePreferencesRequest();
-      case 'SetVotePreference': return $7.SetVotePreferenceRequest();
-      case 'GenerateM4Bytes': return $7.GenerateM4BytesRequest();
+      case 'GetM4History': return $0.GetM4HistoryRequest();
+      case 'GetVotes': return $0.GetVotesRequest();
+      case 'SetBundleUpvote': return $0.SetBundleUpvoteRequest();
+      case 'SetVotePolicy': return $0.SetVotePolicyRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetM4History': return this.getM4History(ctx, request as $7.GetM4HistoryRequest);
-      case 'GetVotePreferences': return this.getVotePreferences(ctx, request as $7.GetVotePreferencesRequest);
-      case 'SetVotePreference': return this.setVotePreference(ctx, request as $7.SetVotePreferenceRequest);
-      case 'GenerateM4Bytes': return this.generateM4Bytes(ctx, request as $7.GenerateM4BytesRequest);
+      case 'GetM4History': return this.getM4History(ctx, request as $0.GetM4HistoryRequest);
+      case 'GetVotes': return this.getVotes(ctx, request as $0.GetVotesRequest);
+      case 'SetBundleUpvote': return this.setBundleUpvote(ctx, request as $0.SetBundleUpvoteRequest);
+      case 'SetVotePolicy': return this.setVotePolicy(ctx, request as $0.SetVotePolicyRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

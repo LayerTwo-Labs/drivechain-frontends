@@ -18,13 +18,16 @@ class M4Provider extends ChangeNotifier {
   // M4 data per sidechain slot
   Map<int, List<drivechainpb.WithdrawalBundle>> withdrawalBundlesBySidechain = {};
   List<m4pb.M4HistoryEntry> history = [];
-  List<m4pb.M4Vote> votePreferences = [];
+  m4pb.VotePolicy votePolicy = m4pb.VotePolicy.VOTE_POLICY_UNSPECIFIED;
+  Map<int, String> upvotes = {};
   bool isLoading = false;
   String? modelError;
 
   Timer? _pollTimer;
   bool _disposed = false;
   bool _settingVote = false;
+  Future<void> _voteQueue = Future.value();
+  int _voteChanges = 0;
 
   M4Provider() {
     _bitwindowRPC.addListener(_onBitwindowConnectionChanged);
@@ -62,6 +65,7 @@ class M4Provider extends ChangeNotifier {
     isLoading = true;
     modelError = null;
     notifyListeners();
+    final voteChanges = _voteChanges;
 
     try {
       // Get list of active sidechains
@@ -82,18 +86,20 @@ class M4Provider extends ChangeNotifier {
         }
       });
 
-      // Fetch history and vote preferences
       final results = await Future.wait([
         Future.wait(bundleFutures),
         _bitwindowRPC.m4.getM4History(limit: 10),
-        _bitwindowRPC.m4.getVotePreferences(),
+        _bitwindowRPC.m4.getVotes(),
       ]);
 
       withdrawalBundlesBySidechain = Map.fromEntries(
         results[0] as List<MapEntry<int, List<drivechainpb.WithdrawalBundle>>>,
       );
       history = results[1] as List<m4pb.M4HistoryEntry>;
-      votePreferences = results[2] as List<m4pb.M4Vote>;
+      // A vote change after this fetch started holds newer votes.
+      if (voteChanges == _voteChanges) {
+        _applyVotes(results[2] as m4pb.GetVotesResponse);
+      }
       modelError = null;
     } catch (e) {
       if (!isExpectedBootError(e)) {
@@ -113,58 +119,42 @@ class M4Provider extends ChangeNotifier {
     return withdrawalBundlesBySidechain[sidechainSlot] ?? [];
   }
 
-  Future<void> setVotePreference({
-    required int sidechainSlot,
-    required String voteType,
-    String? bundleHash,
-  }) async {
+  void _applyVotes(m4pb.GetVotesResponse votes) {
+    votePolicy = votes.policy;
+    upvotes = {for (final upvote in votes.upvotes) upvote.sidechainSlot: upvote.m6id};
+  }
+
+  /// Upvotes [m6id] for [sidechainSlot], or clears the upvote when [m6id] is null.
+  Future<void> setBundleUpvote({required int sidechainSlot, String? m6id}) async {
+    await _changeVotes(() => _bitwindowRPC.m4.setBundleUpvote(sidechainSlot: sidechainSlot, m6id: m6id));
+  }
+
+  Future<void> setVotePolicy(m4pb.VotePolicy policy) async {
+    await _changeVotes(() => _bitwindowRPC.m4.setVotePolicy(policy));
+  }
+
+  Future<void> _changeVotes(Future<void> Function() change) {
+    final next = _voteQueue.then((_) => _applyChange(change));
+    _voteQueue = next.catchError((_) {});
+    return next;
+  }
+
+  Future<void> _applyChange(Future<void> Function() change) async {
     if (_disposed) {
       return;
     }
     _settingVote = true;
+    _voteChanges++;
     try {
-      await _bitwindowRPC.m4.setVotePreference(
-        sidechainSlot: sidechainSlot,
-        voteType: voteType,
-        bundleHash: bundleHash,
-      );
-
-      // Only refresh vote preferences, not all data
-      votePreferences = await _bitwindowRPC.m4.getVotePreferences();
+      await change();
+      final votes = await _bitwindowRPC.m4.getVotes();
       if (_disposed) {
         return;
       }
-      modelError = null;
+      _applyVotes(votes);
       notifyListeners();
-    } catch (e) {
-      log.e('Failed to set vote preference: $e');
-      if (_disposed) {
-        return;
-      }
-      modelError = e.toString();
-      notifyListeners();
-      rethrow;
     } finally {
       _settingVote = false;
-    }
-  }
-
-  Future<m4pb.GenerateM4BytesResponse?> generateM4Bytes() async {
-    if (_disposed) {
-      return null;
-    }
-    try {
-      final resp = await _bitwindowRPC.m4.generateM4Bytes();
-      modelError = null;
-      return resp;
-    } catch (e) {
-      log.e('Failed to generate M4 bytes: $e');
-      if (_disposed) {
-        return null;
-      }
-      modelError = e.toString();
-      notifyListeners();
-      return null;
     }
   }
 
