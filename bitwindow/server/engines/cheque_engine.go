@@ -20,7 +20,6 @@ import (
 // Derivation path for cheques: m/44'/0'/999'/{index}
 const chequeAccount = 999
 
-// ChequeRecovery represents a recovered cheque with funds
 type ChequeRecovery struct {
 	Index   uint32
 	Address string
@@ -38,7 +37,6 @@ type ChequeEngine struct {
 	scanRetry    time.Duration
 }
 
-// NewChequeEngine creates a new cheque engine
 func NewChequeEngine(db *sql.DB, walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain) *ChequeEngine {
 	return &ChequeEngine{
 		db:           db,
@@ -49,7 +47,6 @@ func NewChequeEngine(db *sql.DB, walletEngine *WalletEngine, chainParams *chainc
 	}
 }
 
-// GetChainParams returns the chain parameters
 func (e *ChequeEngine) GetChainParams() *chaincfg.Params {
 	return e.chainParams
 }
@@ -95,9 +92,9 @@ func (e *ChequeEngine) deriveChequeKey(seedHex string, index uint32) (*hdkeychai
 
 // DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
 // for a specific wallet
-func (e *ChequeEngine) DeriveChequeAddress(walletId string, index uint32) (string, error) {
+func (e *ChequeEngine) DeriveChequeAddress(walletID string, index uint32) (string, error) {
 	// Get seed from wallet engine for the specific wallet
-	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
+	seedHex, err := e.walletEngine.GetWalletSeed(walletID)
 	if err != nil {
 		return "", err
 	}
@@ -129,9 +126,9 @@ func (e *ChequeEngine) chequeAddress(seedHex string, index uint32) (string, erro
 
 // DeriveChequePrivateKey derives the WIF private key at m/44'/0'/999'/{index}
 // for a specific wallet
-func (e *ChequeEngine) DeriveChequePrivateKey(walletId string, index uint32) (string, error) {
+func (e *ChequeEngine) DeriveChequePrivateKey(walletID string, index uint32) (string, error) {
 	// Get seed from wallet engine for the specific wallet
-	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
+	seedHex, err := e.walletEngine.GetWalletSeed(walletID)
 	if err != nil {
 		return "", err
 	}
@@ -155,9 +152,9 @@ func (e *ChequeEngine) DeriveChequePrivateKey(walletId string, index uint32) (st
 }
 
 // ScanForFunds scans the first count addresses for UTXOs for a specific wallet
-func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, count int) ([]ChequeRecovery, error) {
+func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, count int) ([]ChequeRecovery, error) {
 	// Get seed from wallet engine for the specific wallet
-	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
+	seedHex, err := e.walletEngine.GetWalletSeed(walletID)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +247,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 
 	wallets, err := e.walletEngine.GetAllWallets(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get wallets for cheque recovery")
+		log.Error().Err(err).Msg("cheque recovery: get wallets")
 		return
 	}
 
@@ -272,7 +269,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 					level = zerolog.DebugLevel
 				}
 				warned[wallet.ID] = true
-				log.WithLevel(level).Err(err).Str("wallet_id", wallet.ID).Msg("failed to scan wallet for cheque funds")
+				log.WithLevel(level).Err(err).Str("wallet_id", wallet.ID).Msg("scan wallet for cheque funds")
 				failed = append(failed, wallet)
 				continue
 			}
@@ -284,7 +281,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 					log.Error().Err(err).
 						Str("wallet_id", wallet.ID).
 						Uint32("index", recovery.Index).
-						Msg("failed to save recovered cheque")
+						Msg("save recovered cheque")
 					return
 				}
 			}

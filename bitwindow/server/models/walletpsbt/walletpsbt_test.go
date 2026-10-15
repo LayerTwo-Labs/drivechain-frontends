@@ -1,7 +1,6 @@
 package walletpsbt_test
 
 import (
-	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -37,7 +36,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 func TestSaveGeneratesIDAndTimestamps(t *testing.T) {
 	store := walletpsbt.NewStore(setupTestDB(t))
-	ctx := context.Background()
+	ctx := t.Context()
 
 	saved, err := store.Save(ctx, walletpsbt.Draft{
 		WalletID:   "wallet-1",
@@ -52,13 +51,13 @@ func TestSaveGeneratesIDAndTimestamps(t *testing.T) {
 func TestSaveRequiresWalletID(t *testing.T) {
 	store := walletpsbt.NewStore(setupTestDB(t))
 
-	_, err := store.Save(context.Background(), walletpsbt.Draft{PSBTBase64: "cHNidP8B"})
+	_, err := store.Save(t.Context(), walletpsbt.Draft{PSBTBase64: "cHNidP8B"})
 	require.ErrorContains(t, err, "wallet id is required")
 }
 
 func TestListByWallet(t *testing.T) {
 	store := walletpsbt.NewStore(setupTestDB(t))
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: "aaa"})
 	require.NoError(t, err)
@@ -79,7 +78,7 @@ func TestListByWallet(t *testing.T) {
 
 func TestSecondSaveReplacesPSBTAndMovesUpdatedAt(t *testing.T) {
 	store := walletpsbt.NewStore(setupTestDB(t))
-	ctx := context.Background()
+	ctx := t.Context()
 
 	base := time.Now()
 	store.SetClock(func() time.Time { return base })
@@ -106,7 +105,7 @@ func TestSecondSaveReplacesPSBTAndMovesUpdatedAt(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	store := walletpsbt.NewStore(setupTestDB(t))
-	ctx := context.Background()
+	ctx := t.Context()
 
 	saved, err := store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: "aaa"})
 	require.NoError(t, err)

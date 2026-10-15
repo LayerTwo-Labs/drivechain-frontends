@@ -2,6 +2,7 @@ package m4
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/btcsuite/btcd/txscript"
@@ -11,14 +12,14 @@ import (
 func opReturnPayload(script []byte) ([]byte, error) {
 	tokenizer := txscript.MakeScriptTokenizer(0, script)
 	if !tokenizer.Next() || tokenizer.Opcode() != txscript.OP_RETURN {
-		return nil, fmt.Errorf("not an OP_RETURN")
+		return nil, errors.New("not an OP_RETURN")
 	}
 	if !tokenizer.Next() || tokenizer.Opcode() > txscript.OP_PUSHDATA4 {
-		return nil, fmt.Errorf("expected a data push after OP_RETURN")
+		return nil, errors.New("expected a data push after OP_RETURN")
 	}
 	payload := tokenizer.Data()
 	if tokenizer.Next() || tokenizer.Err() != nil {
-		return nil, fmt.Errorf("expected a single data push")
+		return nil, errors.New("expected a single data push")
 	}
 	return payload, nil
 }
@@ -58,7 +59,7 @@ func ParseM4Bytes(opReturnScript []byte) (*M4Message, error) {
 // Vote i belongs to activeSlots[i], the active sidechain slots in ascending order.
 func ParseM4Votes(raw []byte, activeSlots []uint8) ([]M4Vote, error) {
 	if len(raw) == 0 {
-		return nil, fmt.Errorf("M4: no version byte")
+		return nil, errors.New("M4: no version byte")
 	}
 	version := raw[0]
 	upvoteVector := raw[1:]

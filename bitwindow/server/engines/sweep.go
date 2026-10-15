@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/btcsuite/btcd/btcutil"
@@ -154,7 +155,7 @@ func BuildSweepTx(
 		return nil, fmt.Errorf("decode destination address: %w", err)
 	}
 	if !destAddr.IsForNet(params) {
-		return nil, fmt.Errorf("destination address is for another network")
+		return nil, errors.New("destination address is for another network")
 	}
 
 	pkScript, err := txscript.PayToAddrScript(destAddr)

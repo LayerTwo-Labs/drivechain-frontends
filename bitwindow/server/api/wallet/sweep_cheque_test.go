@@ -1,4 +1,4 @@
-package api_wallet_test
+package wallet_test
 
 import (
 	"context"
@@ -59,7 +59,7 @@ func TestSweepChequeOnALockedWallet(t *testing.T) {
 			apitests.API(t, db, apitests.WithEncryptedWallet(), apitests.WithOrchestrator(orchestrator)),
 		)
 
-		resp, err := cli.SweepCheque(context.Background(), connect.NewRequest(&walletv1.SweepChequeRequest{
+		resp, err := cli.SweepCheque(t.Context(), connect.NewRequest(&walletv1.SweepChequeRequest{
 			WalletId:           testWalletID,
 			PrivateKeyWif:      wif.String(),
 			DestinationAddress: candidates[0].Address,

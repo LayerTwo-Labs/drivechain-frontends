@@ -1,7 +1,6 @@
 package coinnews
 
 import (
-	"context"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -17,7 +16,7 @@ import (
 // the published x-only pubkey.
 func TestLoadOrCreateIdentity_StableAndSignable(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	priv1, xpk1, err := LoadOrCreateIdentity(ctx, db)

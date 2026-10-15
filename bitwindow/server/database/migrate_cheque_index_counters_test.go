@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"io/fs"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func TestMigration048SeedsChequeIndexCounters(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := Test(t)
 
 	_, err := db.ExecContext(ctx, `DROP TABLE cheque_index_counters`)

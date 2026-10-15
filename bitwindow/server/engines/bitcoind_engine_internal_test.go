@@ -53,7 +53,7 @@ func seedTopic(t *testing.T, ctx context.Context, parser *Parser, topic opreturn
 func TestOpReturnHandling(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	db := database.Test(t)
 
@@ -127,7 +127,7 @@ func TestOpReturnHandling(t *testing.T) {
 func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	parser := &Parser{db: db}
 
@@ -193,7 +193,7 @@ func TestHandleTimestamp_DiscoveredStatus(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			db := database.Test(t)
 
 			core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
@@ -333,7 +333,7 @@ func pkScript(t *testing.T, data []byte) []byte {
 func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topicID, err := opreturns.ValidNewsTopicID("a1a1a1a1")
@@ -442,7 +442,7 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	topicID, err := opreturns.ValidNewsTopicID("a1a1a1a1")

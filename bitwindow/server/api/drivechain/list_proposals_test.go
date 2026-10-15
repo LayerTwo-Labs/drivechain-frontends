@@ -1,4 +1,4 @@
-package api_drivechain
+package drivechain
 
 import (
 	"context"
@@ -45,7 +45,7 @@ func TestListSidechainProposalsReadsTheEnforcer(t *testing.T) {
 		}),
 	}
 
-	resp, err := s.ListSidechainProposals(context.Background(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
+	resp, err := s.ListSidechainProposals(t.Context(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Empty(t, resp.Msg.Proposals)

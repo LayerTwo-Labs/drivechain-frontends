@@ -40,7 +40,7 @@ import (
 const testEnforcerMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 func TestBackendRuntimeOwnershipSmoke(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 4*time.Minute)
 	defer cancel()
 
 	node := newOrchestratorOnlyNode(t)
@@ -351,7 +351,7 @@ func findEnforcer(t *testing.T) string {
 	require.NotNil(t, enforcerConfig)
 
 	dm := orchestrator.NewDownloadManager(dataDir, log)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()
 	progressCh, err := dm.Download(ctx, *enforcerConfig, "regtest", true)
 	require.NoError(t, err)
@@ -385,7 +385,7 @@ func findBitcoind(t *testing.T) string {
 	orchPath := orchestrator.CoreBinaryPath(dataDir, variant, "bitcoind")
 
 	if _, err := os.Stat(orchPath); err == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 		defer cancel()
 		if err := exec.CommandContext(ctx, orchPath, "--version").Run(); err == nil {
 			log.Info().Str("path", orchPath).Msg("found working bitcoind via orchestrator")
@@ -395,7 +395,7 @@ func findBitcoind(t *testing.T) string {
 
 	dm := orchestrator.NewDownloadManager(dataDir, log)
 	dm.CoreVariant = func() (orchestrator.CoreVariantSpec, bool) { return variant, true }
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()
 	progressCh, err := dm.Download(ctx, *bitcoindConfig, "regtest", true)
 	require.NoError(t, err)
@@ -404,7 +404,7 @@ func findBitcoind(t *testing.T) string {
 	}
 
 	downloadedPath := orchestrator.CoreBinaryPath(dataDir, variant, "bitcoind")
-	verifyCtx, verifyCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	verifyCtx, verifyCancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer verifyCancel()
 	require.NoError(t, exec.CommandContext(verifyCtx, downloadedPath, "--version").Run())
 	return downloadedPath

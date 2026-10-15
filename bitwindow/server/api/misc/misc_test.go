@@ -1,4 +1,4 @@
-package api_misc_test
+package misc_test
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -39,7 +40,7 @@ func TestService_ListOPReturn(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListOPReturn(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListOPReturn(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.OpReturns)
 	})
@@ -49,7 +50,7 @@ func TestService_ListOPReturn(t *testing.T) {
 
 		database := database.Test(t)
 		// Insert test data using the Persist function
-		ctx := context.Background()
+		ctx := t.Context()
 		height := uint32(100)
 		err := opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
@@ -63,7 +64,7 @@ func TestService_ListOPReturn(t *testing.T) {
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListOPReturn(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListOPReturn(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.OpReturns, 1)
 		assert.Equal(t, "test message", resp.Msg.OpReturns[0].Message)
@@ -90,13 +91,13 @@ func TestService_BroadcastNews(t *testing.T) {
 			}, nil)
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		resp, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
@@ -111,7 +112,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    "",
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
@@ -125,7 +126,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    "123456", // Too short, should be 8 hex characters (4 bytes)
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
@@ -138,14 +139,14 @@ func TestService_BroadcastNews(t *testing.T) {
 
 		database := database.Test(t)
 		// First create a topic
-		ctx := context.Background()
+		ctx := t.Context()
 
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "",
 			Content:  "https://example.com/news",
@@ -157,7 +158,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
@@ -182,14 +183,14 @@ func TestService_BroadcastNews(t *testing.T) {
 
 		database := database.Test(t)
 		// First create a topic
-		ctx := context.Background()
+		ctx := t.Context()
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		longHeadline := strings.Repeat("a", 65) // 65 characters, exceeds 64 limit
-		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: longHeadline,
 			Content:  "https://example.com/news",
@@ -203,7 +204,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    "87654321", // Non-existent topic (4 bytes)
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
@@ -227,12 +228,12 @@ func TestService_BroadcastNews(t *testing.T) {
 			}, nil)
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		resp, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  "This is the news content",
@@ -255,14 +256,14 @@ func TestService_BroadcastNews(t *testing.T) {
 			}, nil)
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		hexContent := hex.EncodeToString([]byte("hex content"))
-		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		resp, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  hexContent,
@@ -292,7 +293,7 @@ func TestService_VotesAndComments(t *testing.T) {
 	t.Run("upvote success", func(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.UpvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
+		resp, err := cli.UpvoteNews(t.Context(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Msg.Txid)
 	})
@@ -300,7 +301,7 @@ func TestService_VotesAndComments(t *testing.T) {
 	t.Run("downvote success", func(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.DownvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
+		resp, err := cli.DownvoteNews(t.Context(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Msg.Txid)
 	})
@@ -308,7 +309,7 @@ func TestService_VotesAndComments(t *testing.T) {
 	t.Run("vote rejects malformed item_id", func(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		_, err := cli.UpvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: "nothex"}))
+		_, err := cli.UpvoteNews(t.Context(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: "nothex"}))
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		assert.Contains(t, err.Error(), "item_id must be")
 	})
@@ -332,7 +333,7 @@ func TestService_VotesAndComments(t *testing.T) {
 	t.Run("comment success", func(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.CommentNews(context.Background(), connect.NewRequest(&miscv1.CommentNewsRequest{
+		resp, err := cli.CommentNews(t.Context(), connect.NewRequest(&miscv1.CommentNewsRequest{
 			ParentId: validItemID,
 			Body:     "great article",
 		}))
@@ -343,7 +344,7 @@ func TestService_VotesAndComments(t *testing.T) {
 	t.Run("comment rejects empty body and url", func(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		_, err := cli.CommentNews(context.Background(), connect.NewRequest(&miscv1.CommentNewsRequest{
+		_, err := cli.CommentNews(t.Context(), connect.NewRequest(&miscv1.CommentNewsRequest{
 			ParentId: validItemID,
 			Body:     "  ",
 		}))
@@ -353,7 +354,7 @@ func TestService_VotesAndComments(t *testing.T) {
 	t.Run("list comments empty", func(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		resp, err := cli.ListComments(context.Background(), connect.NewRequest(&miscv1.ListCommentsRequest{ItemId: validItemID}))
+		resp, err := cli.ListComments(t.Context(), connect.NewRequest(&miscv1.ListCommentsRequest{ItemId: validItemID}))
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.Comments)
 	})
@@ -378,7 +379,7 @@ func TestService_CreateTopic(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		resp, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
 			Topic: "deadbeef",
 			Name:  "Test Topic",
 		}))
@@ -392,7 +393,7 @@ func TestService_CreateTopic(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
 			Topic: "",
 			Name:  "Test Topic",
 		}))
@@ -405,7 +406,7 @@ func TestService_CreateTopic(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
 			Topic: "123456", // Too short, should be 8 hex characters (4 bytes)
 			Name:  "Test Topic",
 		}))
@@ -418,7 +419,7 @@ func TestService_CreateTopic(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
 			Topic: validTopicID().String(),
 			Name:  "",
 		}))
@@ -432,7 +433,7 @@ func TestService_CreateTopic(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		longName := bytes.Repeat(make([]byte, 65), 64) // 65 bytes, exceeds 64 limit
-		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
 			Topic: validTopicID().String(),
 			Name:  string(longName),
 		}))
@@ -443,13 +444,13 @@ func TestService_CreateTopic(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Existing Topic", 50)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
 			Topic: topicID.String(),
 			Name:  "New Topic",
 		}))
@@ -466,7 +467,7 @@ func TestService_ListTopics(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListTopics(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTopics(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		// A fresh DB ships the two bootstrap default topics.
 		require.Len(t, resp.Msg.Topics, 2)
@@ -478,7 +479,7 @@ func TestService_ListTopics(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		topicID1 := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID1, "Norway Weekly", 50)
 		topicID2 := validTopicID()
@@ -486,7 +487,7 @@ func TestService_ListTopics(t *testing.T) {
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListTopics(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTopics(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.Topics, 4) // 2 seeded + 2 bootstrap defaults
 
@@ -508,7 +509,7 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.CoinNews)
 	})
@@ -517,7 +518,7 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		topicID1 := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID1, "Test Topic 1", 1)
 		topicID2 := validTopicID()
@@ -531,7 +532,7 @@ func TestService_ListCoinNews(t *testing.T) {
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.CoinNews, 2)
 
@@ -549,7 +550,7 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 
 		firstTopicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 1)
@@ -567,7 +568,7 @@ func TestService_ListCoinNews(t *testing.T) {
 
 		// Filter by topic
 		topic := firstTopicID.String()
-		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{
+		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{
 			Topic: &topic,
 		}))
 		require.NoError(t, err)
@@ -580,7 +581,7 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		firstTopicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 1)
 		secondTopicID := validTopicID()
@@ -597,7 +598,7 @@ func TestService_ListCoinNews(t *testing.T) {
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.CoinNews, 3)
 
@@ -611,7 +612,7 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		firstTopicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 1)
 
@@ -625,7 +626,7 @@ func TestService_ListCoinNews(t *testing.T) {
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
 		require.NoError(t, err)
 		// Should be limited to 100 entries
 		assert.Len(t, resp.Msg.CoinNews, 100)
@@ -707,7 +708,7 @@ func TestService_TimestampFile(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		resp, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "test-document.pdf",
 			FileData: []byte("This is the content of the test document"),
 		}))
@@ -723,7 +724,7 @@ func TestService_TimestampFile(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "",
 			FileData: []byte("content"),
 		}))
@@ -736,7 +737,7 @@ func TestService_TimestampFile(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "test.pdf",
 			FileData: []byte{},
 		}))
@@ -764,14 +765,14 @@ func TestService_TimestampFile(t *testing.T) {
 		fileData := []byte("duplicate content")
 
 		// First timestamp
-		resp1, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		resp1, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "first.pdf",
 			FileData: fileData,
 		}))
 		require.NoError(t, err)
 
 		// Second timestamp with same content
-		resp2, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		resp2, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "second.pdf",
 			FileData: fileData,
 		}))
@@ -819,7 +820,7 @@ func TestService_ListTimestamps(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListTimestamps(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.Timestamps)
 	})
@@ -870,19 +871,19 @@ func TestService_ListTimestamps(t *testing.T) {
 		))
 
 		// Create some timestamps
-		_, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "file1.pdf",
 			FileData: []byte("content 1"),
 		}))
 		require.NoError(t, err)
 
-		_, err = cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err = cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "file2.pdf",
 			FileData: []byte("content 2"),
 		}))
 		require.NoError(t, err)
 
-		resp, err := cli.ListTimestamps(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.Timestamps, 2)
 	})
@@ -899,7 +900,7 @@ func TestService_ListTimestampsBlockHeight(t *testing.T) {
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("core is down"))).
+			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("core is down"))).
 			AnyTimes()
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
@@ -943,7 +944,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.VerifyTimestamp(context.Background(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
+		_, err := cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
 			FileData: []byte("unknown content"),
 		}))
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -955,7 +956,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		_, err := cli.VerifyTimestamp(context.Background(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
+		_, err := cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
 			FileData: []byte{},
 		}))
 		require.ErrorContains(t, err, "file data must be set")
@@ -1008,14 +1009,14 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		fileData := []byte("content to verify")
 
 		// First create the timestamp
-		_, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "verify-test.pdf",
 			FileData: fileData,
 		}))
 		require.NoError(t, err)
 
 		// Now verify it
-		resp, err := cli.VerifyTimestamp(context.Background(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
+		resp, err := cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
 			FileData: fileData,
 		}))
 		require.NoError(t, err)

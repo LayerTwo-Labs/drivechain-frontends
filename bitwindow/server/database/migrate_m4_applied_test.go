@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"io/fs"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func TestMigration049ReappliesEveryM4(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := Test(t)
 
 	_, err := db.ExecContext(ctx, `ALTER TABLE m4_messages DROP COLUMN applied`)

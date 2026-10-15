@@ -52,7 +52,7 @@ func deposit(txid string, droppedAt string) *orchpb.SidechainDeposit {
 func TestDepositDroppedEngineTellsTheUser(t *testing.T) {
 	sink := &recorder{}
 	list := depositList{deposits: []*orchpb.SidechainDeposit{deposit("lost", "2026-09-26T10:00:00Z")}}
-	droppedEngine(t, list, sink).tick(context.Background())
+	droppedEngine(t, list, sink).tick(t.Context())
 
 	require.Len(t, sink.events, 1)
 	system := sink.events[0].GetSystem()
@@ -67,9 +67,9 @@ func TestDepositDroppedEngineReportsOneDepositOnce(t *testing.T) {
 	list := depositList{deposits: []*orchpb.SidechainDeposit{deposit("lost", "2026-09-26T10:00:00Z")}}
 	engine := droppedEngine(t, list, sink)
 
-	engine.tick(context.Background())
-	engine.tick(context.Background())
-	engine.tick(context.Background())
+	engine.tick(t.Context())
+	engine.tick(t.Context())
+	engine.tick(t.Context())
 
 	require.Len(t, sink.events, 1)
 }
@@ -78,7 +78,7 @@ func TestDepositDroppedEngineReportsOneDepositOnce(t *testing.T) {
 func TestDepositDroppedEngineStaysQuietForALiveDeposit(t *testing.T) {
 	sink := &recorder{}
 	list := depositList{deposits: []*orchpb.SidechainDeposit{deposit("live", "")}}
-	droppedEngine(t, list, sink).tick(context.Background())
+	droppedEngine(t, list, sink).tick(t.Context())
 
 	require.Empty(t, sink.events)
 }
@@ -86,7 +86,7 @@ func TestDepositDroppedEngineStaysQuietForALiveDeposit(t *testing.T) {
 // The orchestrator is down, so the engine knows nothing and says nothing.
 func TestDepositDroppedEngineStaysQuietWhenItCannotRead(t *testing.T) {
 	sink := &recorder{}
-	droppedEngine(t, depositList{err: errors.New("orchestrator unavailable")}, sink).tick(context.Background())
+	droppedEngine(t, depositList{err: errors.New("orchestrator unavailable")}, sink).tick(t.Context())
 
 	require.Empty(t, sink.events)
 }
@@ -110,12 +110,12 @@ func TestDepositDroppedEngineHoldsTheNewsWithNoListener(t *testing.T) {
 	list := depositList{deposits: []*orchpb.SidechainDeposit{deposit("lost", "2026-09-26T10:00:00Z")}}
 	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func(context.Context) ([]uint32, error) { return []uint32{2}, nil })
 
-	engine.tick(context.Background())
+	engine.tick(t.Context())
 	require.Empty(t, sink.events)
 
 	// A frontend attaches, and the same deposit reports on the next pass.
 	sink.listeners = 1
-	engine.tick(context.Background())
+	engine.tick(t.Context())
 	require.Len(t, sink.events, 1)
 }
 
@@ -126,17 +126,17 @@ func TestDepositDroppedEngineReportsASecondEpisode(t *testing.T) {
 	list := &mutableList{deposits: []*orchpb.SidechainDeposit{deposit("flaky", "2026-09-26T10:00:00Z")}}
 	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func(context.Context) ([]uint32, error) { return []uint32{2}, nil })
 
-	engine.tick(context.Background())
+	engine.tick(t.Context())
 	require.Len(t, sink.events, 1)
 
 	// The orchestrator lifts the stamp: the deposit turned up again.
 	list.deposits = []*orchpb.SidechainDeposit{deposit("flaky", "")}
-	engine.tick(context.Background())
+	engine.tick(t.Context())
 	require.Len(t, sink.events, 1)
 
 	// It drops a second time.
 	list.deposits = []*orchpb.SidechainDeposit{deposit("flaky", "2026-09-26T12:00:00Z")}
-	engine.tick(context.Background())
+	engine.tick(t.Context())
 	require.Len(t, sink.events, 2, "a second loss must reach the user")
 }
 
@@ -147,11 +147,11 @@ func TestDepositDroppedEngineReportsAnEpisodeItNeverSawReturn(t *testing.T) {
 	list := &mutableList{deposits: []*orchpb.SidechainDeposit{deposit("flaky", "2026-09-26T10:00:00Z")}}
 	engine := NewDepositDroppedEngine(database.Test(t), list, sink, func(context.Context) ([]uint32, error) { return []uint32{2}, nil })
 
-	engine.tick(context.Background())
+	engine.tick(t.Context())
 	require.Len(t, sink.events, 1)
 
 	list.deposits = []*orchpb.SidechainDeposit{deposit("flaky", "2026-09-26T12:00:00Z")}
-	engine.tick(context.Background())
+	engine.tick(t.Context())
 
 	require.Len(t, sink.events, 2)
 }

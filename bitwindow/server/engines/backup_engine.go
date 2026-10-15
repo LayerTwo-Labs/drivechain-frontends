@@ -28,7 +28,6 @@ type BackupEngine struct {
 	multisigStore *multisig.Store
 }
 
-// NewBackupEngine creates a new BackupEngine.
 func NewBackupEngine(db *sql.DB, walletDir string) *BackupEngine {
 	return &BackupEngine{
 		db:            db,
@@ -185,7 +184,7 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	}
 
 	if walletJSON == nil {
-		return fmt.Errorf("backup does not contain wallet.json")
+		return errors.New("backup does not contain wallet.json")
 	}
 
 	if err := snapshotCurrentWallet(e.walletDir); err != nil {
@@ -568,23 +567,23 @@ func validateWalletJSON(data []byte) error {
 	isNewFormat := hasWallets
 
 	if !isOldFormat && !isNewFormat {
-		return fmt.Errorf("missing master/l1 or wallets array")
+		return errors.New("missing master/l1 or wallets array")
 	}
 
 	if isNewFormat {
 		walletsList, ok := wallets.([]interface{})
 		if !ok || len(walletsList) == 0 {
-			return fmt.Errorf("wallets array is empty")
+			return errors.New("wallets array is empty")
 		}
 		first, ok := walletsList[0].(map[string]interface{})
 		if !ok {
-			return fmt.Errorf("invalid wallet entry")
+			return errors.New("invalid wallet entry")
 		}
 		if _, ok := first["master"]; !ok {
-			return fmt.Errorf("wallet entry missing master")
+			return errors.New("wallet entry missing master")
 		}
 		if _, ok := first["l1"]; !ok {
-			return fmt.Errorf("wallet entry missing l1")
+			return errors.New("wallet entry missing l1")
 		}
 	}
 
@@ -646,12 +645,12 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 	}
 
 	if !contents.HasWallet {
-		return nil, fmt.Errorf("backup is missing wallet.json")
+		return nil, errors.New("backup is missing wallet.json")
 	}
 
 	if contents.HasEncryptionMetadata {
 		if !walletfile.IsEncrypted(walletData) {
-			return nil, fmt.Errorf("wallet.json invalid: not an encrypted wallet")
+			return nil, errors.New("wallet.json invalid: not an encrypted wallet")
 		}
 	} else if err := validateWalletJSON(walletData); err != nil {
 		return nil, fmt.Errorf("wallet.json invalid: %w", err)

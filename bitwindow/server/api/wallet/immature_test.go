@@ -1,7 +1,6 @@
-package api_wallet_test
+package wallet_test
 
 import (
-	"context"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -43,7 +42,7 @@ func TestImmatureCoinbase(t *testing.T) {
 		apitests.ExpectOrchestratorReads(mockOrch)
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.GetBalance(context.Background(), connect.NewRequest(&walletv1.GetBalanceRequest{WalletId: testWalletID}))
+		resp, err := cli.GetBalance(t.Context(), connect.NewRequest(&walletv1.GetBalanceRequest{WalletId: testWalletID}))
 		require.NoError(t, err)
 		require.Equal(t, uint64(100_000), resp.Msg.ConfirmedSatoshi)
 		require.Equal(t, uint64(50_000), resp.Msg.PendingSatoshi)
@@ -67,7 +66,7 @@ func TestImmatureCoinbase(t *testing.T) {
 		apitests.ExpectOrchestratorReads(mockOrch)
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.ListTransactions(context.Background(), connect.NewRequest(&walletv1.ListTransactionsRequest{WalletId: testWalletID}))
+		resp, err := cli.ListTransactions(t.Context(), connect.NewRequest(&walletv1.ListTransactionsRequest{WalletId: testWalletID}))
 		require.NoError(t, err)
 		require.Equal(t, map[string]bool{"maturing": true, "mature": false, "payment": false}, immatureByTxid(resp.Msg.Transactions))
 	})
@@ -85,7 +84,7 @@ func TestImmatureCoinbase(t *testing.T) {
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.GetBalance(context.Background(), connect.NewRequest(&walletv1.GetBalanceRequest{WalletId: testWalletID}))
+		resp, err := cli.GetBalance(t.Context(), connect.NewRequest(&walletv1.GetBalanceRequest{WalletId: testWalletID}))
 		require.NoError(t, err)
 		require.Equal(t, uint64(150_000_000), resp.Msg.ConfirmedSatoshi)
 		require.Equal(t, uint64(25_000_000), resp.Msg.PendingSatoshi)
@@ -113,7 +112,7 @@ func TestImmatureCoinbase(t *testing.T) {
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListTransactions(context.Background(), connect.NewRequest(&walletv1.ListTransactionsRequest{WalletId: testWalletID}))
+		resp, err := cli.ListTransactions(t.Context(), connect.NewRequest(&walletv1.ListTransactionsRequest{WalletId: testWalletID}))
 		require.NoError(t, err)
 		require.Equal(t, map[string]bool{"maturing": true, "mature": false, "payment": false}, immatureByTxid(resp.Msg.Transactions))
 	})

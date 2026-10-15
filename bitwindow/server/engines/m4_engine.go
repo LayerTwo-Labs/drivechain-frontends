@@ -33,7 +33,7 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 
 	// Extract M3 and M4 from coinbase (first transaction)
 	if len(block.Transactions) == 0 {
-		return fmt.Errorf("block has no transactions")
+		return errors.New("block has no transactions")
 	}
 
 	coinbase := block.Transactions[0]
@@ -240,7 +240,6 @@ func (e *M4Engine) getVotesForMessage(ctx context.Context, msgID int64) ([]m4.M4
 	`, msgID)
 }
 
-// ListSidechains returns all sidechains
 func (e *M4Engine) ListSidechains(ctx context.Context) ([]m4.Sidechain, error) {
 	return database.Select[m4.Sidechain](ctx, e.db, `
 		SELECT slot, name, description, version, activated_height, created_at

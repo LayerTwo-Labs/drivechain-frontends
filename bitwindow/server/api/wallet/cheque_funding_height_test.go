@@ -1,7 +1,6 @@
-package api_wallet_test
+package wallet_test
 
 import (
-	"context"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -31,17 +30,17 @@ func TestCheckChequeFunding_RecordsTheFundingBlock(t *testing.T) {
 		})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	_, err = cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
 	require.NoError(t, err)
 
 	var height int64
-	require.NoError(t, db.QueryRowContext(context.Background(),
+	require.NoError(t, db.QueryRowContext(t.Context(),
 		`SELECT block_height FROM cheque_funding_outputs WHERE cheque_id = ? AND txid = ?`,
 		chequeID, fundingTxid,
 	).Scan(&height))

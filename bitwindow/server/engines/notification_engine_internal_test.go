@@ -25,7 +25,7 @@ import (
 // A wallet's transaction history must not be announced: on a fresh database
 // every past transaction is unseen, and there can be a hundred of them.
 func TestProcessWalletTransactions_HistoryIsNotAnnounced(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	engine := NewNotificationEngine(db, nil)
@@ -60,7 +60,7 @@ func TestProcessWalletTransactions_HistoryIsNotAnnounced(t *testing.T) {
 // be per-wallet. Otherwise the first wallet we process swallows the
 // notification for all the others.
 func TestProcessWalletTransactions_DedupIsPerWallet(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	engine := NewNotificationEngine(db, nil)
@@ -99,7 +99,7 @@ func TestProcessWalletTransactions_DedupIsPerWallet(t *testing.T) {
 // paying us twice arrives as two rows sharing a txid. The notification has to
 // carry the summed amount, not just whichever output came first.
 func TestProcessWalletTransactions_SumsOutputsWithSameTxid(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	engine := NewNotificationEngine(db, nil)
@@ -130,7 +130,7 @@ func TestProcessWalletTransactions_SumsOutputsWithSameTxid(t *testing.T) {
 // A self-send inside one wallet produces both a send and a receive row for the
 // same txid. Summing across directions nets them to zero and notifies nothing.
 func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	engine := NewNotificationEngine(db, nil)
@@ -153,7 +153,7 @@ func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
 }
 
 func TestCheckTimestampConfirmations_SkipsDiscovered(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 
 	txid := "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"

@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,7 +11,7 @@ import (
 
 // Exporting and re-importing transactions.json must preserve every field.
 func TestExportTransactionsJSON_RoundTrip(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	store := multisig.NewStore(db)
 	e := &BackupEngine{db: db, walletDir: t.TempDir(), multisigStore: store}

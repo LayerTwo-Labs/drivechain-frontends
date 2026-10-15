@@ -77,7 +77,7 @@ func TestScanForFundsReportsFundedIndex(t *testing.T) {
 	require.NoError(t, err)
 	chain.funded[address] = testUTXOs()
 
-	recoveries, err := engine.ScanForFunds(context.Background(), chequeWalletID, 20)
+	recoveries, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
 	require.NoError(t, err)
 	require.Len(t, recoveries, 1)
 	require.Equal(t, uint32(3), recoveries[0].Index)
@@ -90,7 +90,7 @@ func TestScanForFundsReportsFundedIndex(t *testing.T) {
 func TestRecoverChequesOnUnlockPersistsFundedCheques(t *testing.T) {
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
 	engine := testChequeEngine(t, chain)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	address, err := engine.DeriveChequeAddress(chequeWalletID, 0)
 	require.NoError(t, err)
@@ -119,7 +119,7 @@ func TestRecoverChequesOnUnlockPersistsFundedCheques(t *testing.T) {
 func TestRecoverChequesOnUnlockKeepsTheBlockHeight(t *testing.T) {
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
 	engine := testChequeEngine(t, chain)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	address, err := engine.DeriveChequeAddress(chequeWalletID, 0)
 	require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestRecoverChequesOnUnlockWaitsForTheChain(t *testing.T) {
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{}, failures: 3}
 	engine := testChequeEngine(t, chain)
 	engine.scanRetry = time.Millisecond
-	ctx := context.Background()
+	ctx := t.Context()
 
 	address, err := engine.DeriveChequeAddress(chequeWalletID, 0)
 	require.NoError(t, err)
@@ -159,7 +159,7 @@ func TestRecoverChequesOnUnlockWarnsOneTime(t *testing.T) {
 	engine.scanRetry = time.Millisecond
 
 	var logs bytes.Buffer
-	ctx, cancel := context.WithCancel(zerolog.New(&logs).WithContext(context.Background()))
+	ctx, cancel := context.WithCancel(zerolog.New(&logs).WithContext(t.Context()))
 	done := make(chan struct{})
 	go func() {
 		engine.recoverChequesOnUnlock(ctx)
@@ -199,6 +199,6 @@ func TestScanForFundsReturnsChainError(t *testing.T) {
 	chain := &fakeChain{err: errors.New("electrum backend not configured")}
 	engine := testChequeEngine(t, chain)
 
-	_, err := engine.ScanForFunds(context.Background(), chequeWalletID, 20)
+	_, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
 	require.ErrorContains(t, err, "electrum backend not configured")
 }

@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -59,7 +60,6 @@ type BitDriveEngine struct {
 	chainParams  *chaincfg.Params
 }
 
-// NewBitDriveEngine creates a new BitDrive engine
 func NewBitDriveEngine(
 	db *sql.DB,
 	walletEngine *WalletEngine,
@@ -395,7 +395,7 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 // feeding a wrong keystream seed into DeriveKeyStream.
 func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, timestamp uint32, fileType string, metadata []byte) ([]byte, error) {
 	if len(encryptedData) <= NonceSize+AuthTagSize {
-		return nil, fmt.Errorf("encrypted data too short")
+		return nil, errors.New("encrypted data too short")
 	}
 
 	// Extract nonce, content, and tag
@@ -411,7 +411,7 @@ func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, time
 
 	// Constant-time comparison
 	if subtle.ConstantTimeCompare(receivedTag, calculatedTag) != 1 {
-		return nil, fmt.Errorf("authentication failed: data may be corrupted")
+		return nil, errors.New("authentication failed: data may be corrupted")
 	}
 
 	// Generate keystream
@@ -621,13 +621,13 @@ func (e *BitDriveEngine) DownloadPendingFiles(ctx context.Context) (uint32, uint
 		txid := p.OPReturn.TxID
 		content, metadata, err := e.DecodeOPReturnData(ctx, opreturns.OPReturnToReadable(p.OPReturn.Data))
 		if err != nil {
-			log.Warn().Err(err).Str("txid", txid).Msg("failed to decode content")
+			log.Warn().Err(err).Str("txid", txid).Msg("decode content")
 			failed++
 			continue
 		}
 
 		if err := e.SaveFile(ctx, txid, content, metadata); err != nil {
-			log.Warn().Err(err).Str("txid", txid).Msg("failed to save file")
+			log.Warn().Err(err).Str("txid", txid).Msg("save file")
 			failed++
 			continue
 		}
@@ -657,7 +657,7 @@ func (e *BitDriveEngine) DeleteFile(ctx context.Context, id int64) error {
 		return fmt.Errorf("get file: %w", err)
 	}
 	if file == nil {
-		return fmt.Errorf("file not found")
+		return errors.New("file not found")
 	}
 
 	// Delete from filesystem
@@ -694,7 +694,6 @@ func (e *BitDriveEngine) WipeData(ctx context.Context) error {
 	return nil
 }
 
-// GetDir returns the BitDrive directory path
 func (e *BitDriveEngine) GetDir() string {
 	return e.bitdriveDir
 }
@@ -755,7 +754,7 @@ func (e *BitDriveEngine) DecodeMultisigData(ctx context.Context, opReturnMessage
 	}
 
 	if !metadata.IsMultisig {
-		return nil, fmt.Errorf("not a multisig transaction")
+		return nil, errors.New("not a multisig transaction")
 	}
 
 	return content, nil
@@ -778,7 +777,7 @@ func FormatOPReturnData(metadataB64, contentStr string) string {
 func ParseOPReturnParts(opReturnMessage string) (metadataB64, contentStr string, err error) {
 	parts := strings.SplitN(opReturnMessage, "|", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("invalid format: expected metadata|content")
+		return "", "", errors.New("invalid format: expected metadata|content")
 	}
 	return parts[0], parts[1], nil
 }

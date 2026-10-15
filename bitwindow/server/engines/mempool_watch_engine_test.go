@@ -140,7 +140,7 @@ func newTestWatcher(t *testing.T, node *fakeNode) (*MempoolWatcher, *sql.DB) {
 
 func storedTxids(t *testing.T, db *sql.DB) []string {
 	t.Helper()
-	txs, _, err := mempooltx.List(context.Background(), db, mempooltx.Filter{})
+	txs, _, err := mempooltx.List(t.Context(), db, mempooltx.Filter{})
 	require.NoError(t, err)
 	out := []string{}
 	for _, tx := range txs {
@@ -151,7 +151,7 @@ func storedTxids(t *testing.T, db *sql.DB) []string {
 
 func storedHeights(t *testing.T, db *sql.DB) []uint32 {
 	t.Helper()
-	stats, err := mempooltx.ListBlockStats(context.Background(), db, 0, 1_000_000)
+	stats, err := mempooltx.ListBlockStats(t.Context(), db, 0, 1_000_000)
 	require.NoError(t, err)
 	out := []uint32{}
 	for _, s := range stats {
@@ -161,7 +161,7 @@ func storedHeights(t *testing.T, db *sql.DB) []uint32 {
 }
 
 func TestMempoolWatchBootstrap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("stores the snapshot and drops rows not in the mempool", func(t *testing.T) {
 		node := nodeAtTip(t, 50)
@@ -214,7 +214,7 @@ func TestMempoolWatchBootstrap(t *testing.T) {
 }
 
 func TestMempoolWatchHandleTransactionAdded(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("stores the tx with the ancestor package fee rate", func(t *testing.T) {
 		node := newFakeNode()
@@ -271,7 +271,7 @@ func TestMempoolWatchHandleTransactionAdded(t *testing.T) {
 }
 
 func TestMempoolWatchHandleTransactionRemoved(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	w, db := newTestWatcher(t, newFakeNode())
 	require.NoError(t, mempooltx.Upsert(ctx, db, []mempooltx.Tx{{Txid: hexOf(1)}, {Txid: hexOf(2)}}))
 
@@ -282,7 +282,7 @@ func TestMempoolWatchHandleTransactionRemoved(t *testing.T) {
 }
 
 func TestMempoolWatchHandleBlockConnected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("forgets the block txs, records stats, prunes and sets the tip", func(t *testing.T) {
 		node := newFakeNode()
@@ -350,7 +350,7 @@ func TestMempoolWatchHandleBlockConnected(t *testing.T) {
 }
 
 func TestMempoolWatchHandleBlockDisconnected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	node := newFakeNode()
 	node.set("getblock "+hexOf(9), blockJSON(t, 101))
 	w, db := newTestWatcher(t, node)
@@ -368,7 +368,7 @@ func TestMempoolWatchHandleBlockDisconnected(t *testing.T) {
 
 func TestMempoolWatchHandleInvalidEvent(t *testing.T) {
 	w, _ := newTestWatcher(t, newFakeNode())
-	_, err := w.handle(context.Background(), SequenceMsg{Event: Invalid})
+	_, err := w.handle(t.Context(), SequenceMsg{Event: Invalid})
 	require.ErrorContains(t, err, "invalid sequence event")
 }
 
@@ -384,7 +384,7 @@ func startWatch(t *testing.T, w *MempoolWatcher) *watchRun {
 	w.subscribe = func(context.Context) (<-chan SequenceMsg, func(), error) {
 		return run.events, func() {}, nil
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	run.cancel = cancel
 	go func() { run.done <- w.watch(ctx) }()
 	t.Cleanup(func() {
@@ -462,7 +462,7 @@ func TestMempoolWatchSequenceGap(t *testing.T) {
 			node.set("getblock "+hexOf(0xb1), blockJSON(t, 101, "x1", "x2"))
 			node.set("getblock "+hexOf(0xb2), blockJSON(t, 102, "y1", "y2"))
 			w, db := newTestWatcher(t, node)
-			require.NoError(t, mempooltx.Upsert(context.Background(), db, []mempooltx.Tx{{Txid: hexOf(0xee)}}))
+			require.NoError(t, mempooltx.Upsert(t.Context(), db, []mempooltx.Tx{{Txid: hexOf(0xee)}}))
 			run := startWatch(t, w)
 
 			for _, ev := range tt.events {
@@ -508,8 +508,7 @@ func TestMempoolWatchRequiresFullNode(t *testing.T) {
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
 			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
 		}, nil)
-	nodeMode := NewNodeMode()
-	nodeMode.SetClient(client)
+	nodeMode := NewNodeMode(client)
 
 	node := nodeAtTip(t, 1)
 	w, _ := newTestWatcher(t, node)
@@ -520,7 +519,7 @@ func TestMempoolWatchRequiresFullNode(t *testing.T) {
 		return nil, func() {}, nil
 	}
 
-	err := w.watch(context.Background())
+	err := w.watch(t.Context())
 
 	require.ErrorIs(t, err, errRequiresFullNode)
 	assert.False(t, subscribed)
@@ -528,7 +527,7 @@ func TestMempoolWatchRequiresFullNode(t *testing.T) {
 }
 
 func TestMempoolWatchSetEnabled(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("persists the preference", func(t *testing.T) {
 		w, db := newTestWatcher(t, newFakeNode())
@@ -573,7 +572,7 @@ func TestMempoolWatchSetEnabled(t *testing.T) {
 }
 
 func TestMempoolWatchReset(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	w, db := newTestWatcher(t, newFakeNode())
 	require.NoError(t, mempooltx.Upsert(ctx, db, []mempooltx.Tx{{Txid: "aa"}}))
 	require.NoError(t, mempooltx.PutBlockStats(ctx, db, 100, 1, 1))

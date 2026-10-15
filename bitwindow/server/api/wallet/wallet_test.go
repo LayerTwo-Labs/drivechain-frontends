@@ -1,10 +1,11 @@
-package api_wallet_test
+package wallet_test
 
 import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -68,7 +69,7 @@ func TestService_GetBalance(t *testing.T) {
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
 
 		// Use the test wallet ID from apitests.createTestWalletJSON
-		resp, err := cli.GetBalance(context.Background(), connect.NewRequest(&walletv1.GetBalanceRequest{
+		resp, err := cli.GetBalance(t.Context(), connect.NewRequest(&walletv1.GetBalanceRequest{
 			WalletId: "test-wallet-id-1234",
 		}))
 		require.NoError(t, err)
@@ -171,7 +172,7 @@ func TestService_GetNewAddress(t *testing.T) {
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
 
 		// Use the test wallet ID from apitests.createTestWalletJSON
-		resp, err := cli.GetNewAddress(context.Background(), connect.NewRequest(&walletv1.GetNewAddressRequest{
+		resp, err := cli.GetNewAddress(t.Context(), connect.NewRequest(&walletv1.GetNewAddressRequest{
 			WalletId: "test-wallet-id-1234",
 		}))
 		require.NoError(t, err)
@@ -220,7 +221,7 @@ func TestService_ListCheques(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListCheques(context.Background(), connect.NewRequest(&walletv1.ListChequesRequest{
+		resp, err := cli.ListCheques(t.Context(), connect.NewRequest(&walletv1.ListChequesRequest{
 			WalletId: "test-wallet-id-1234",
 		}))
 		require.NoError(t, err)
@@ -251,7 +252,7 @@ func TestService_GetCheque(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.GetCheque(context.Background(), connect.NewRequest(&walletv1.GetChequeRequest{
+		_, err := cli.GetCheque(t.Context(), connect.NewRequest(&walletv1.GetChequeRequest{
 			WalletId: "test-wallet-id-1234",
 			Id:       99999,
 		}))
@@ -285,7 +286,7 @@ func TestService_DeleteCheque(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+		_, err := cli.DeleteCheque(t.Context(), connect.NewRequest(&walletv1.DeleteChequeRequest{
 			WalletId: "test-wallet-id-1234",
 			Id:       99999,
 		}))
@@ -334,12 +335,12 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 		cli, db := deleteChequeClient(t)
 
 		// Cheque expects 1 BTC but only 0.5 BTC arrived: partially funded, unswept.
-		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qpartialdelete000000000000000000000000000")
+		chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, "tb1qpartialdelete000000000000000000000000000")
 		require.NoError(t, err)
-		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+		require.NoError(t, cheques.UpdateFunding(t.Context(), db, testWalletID, chequeID,
 			[]cheques.FundingOutput{{Txid: "partial0partial0partial0partial0partial0partial0partial0partial0"}}, 50_000_000))
 
-		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+		_, err = cli.DeleteCheque(t.Context(), connect.NewRequest(&walletv1.DeleteChequeRequest{
 			WalletId: testWalletID,
 			Id:       chequeID,
 		}))
@@ -347,7 +348,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 
 		// The row must survive — its recorded funds are still unswept.
-		_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+		_, err = cheques.Get(t.Context(), db, testWalletID, chequeID)
 		require.NoError(t, err)
 	})
 
@@ -356,19 +357,19 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 
 		cli, db := deleteChequeClient(t)
 
-		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qfulldelete0000000000000000000000000000000")
+		chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, "tb1qfulldelete0000000000000000000000000000000")
 		require.NoError(t, err)
-		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+		require.NoError(t, cheques.UpdateFunding(t.Context(), db, testWalletID, chequeID,
 			[]cheques.FundingOutput{{Txid: "full0000full0000full0000full0000full0000full0000full0000full0000"}}, 100_000_000))
 
-		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+		_, err = cli.DeleteCheque(t.Context(), connect.NewRequest(&walletv1.DeleteChequeRequest{
 			WalletId: testWalletID,
 			Id:       chequeID,
 		}))
 		require.ErrorContains(t, err, "cannot delete funded cheque")
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 
-		_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+		_, err = cheques.Get(t.Context(), db, testWalletID, chequeID)
 		require.NoError(t, err)
 	})
 
@@ -377,21 +378,21 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 
 		cli, db := deleteChequeClient(t)
 
-		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qsweptdelete000000000000000000000000000000")
+		chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, "tb1qsweptdelete000000000000000000000000000000")
 		require.NoError(t, err)
-		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+		require.NoError(t, cheques.UpdateFunding(t.Context(), db, testWalletID, chequeID,
 			[]cheques.FundingOutput{{Txid: "swept000swept000swept000swept000swept000swept000swept000swept000"}}, 100_000_000))
-		require.NoError(t, cheques.UpdateSwept(context.Background(), db, testWalletID, chequeID,
+		require.NoError(t, cheques.UpdateSwept(t.Context(), db, testWalletID, chequeID,
 			"deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef0"))
 
-		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+		_, err = cli.DeleteCheque(t.Context(), connect.NewRequest(&walletv1.DeleteChequeRequest{
 			WalletId: testWalletID,
 			Id:       chequeID,
 		}))
 		require.NoError(t, err)
 
 		// Once swept, the row is gone.
-		_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+		_, err = cheques.Get(t.Context(), db, testWalletID, chequeID)
 		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 }
@@ -419,7 +420,7 @@ func TestService_IsWalletUnlocked(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 	})
 
@@ -456,7 +457,7 @@ func TestService_LockWallet(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.LockWallet(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 
 		_, err = cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
@@ -488,7 +489,7 @@ func TestService_UnlockWallet(t *testing.T) {
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
 		// Test wallet is not encrypted, so unlock should fail
-		_, err := cli.UnlockWallet(context.Background(), connect.NewRequest(&walletv1.UnlockWalletRequest{
+		_, err := cli.UnlockWallet(t.Context(), connect.NewRequest(&walletv1.UnlockWalletRequest{
 			Password: "anypassword",
 		}))
 		require.ErrorContains(t, err, "not encrypted")
@@ -530,7 +531,7 @@ func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
 	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database,
 		apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
 
-	resp, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{Slot: 9}))
+	resp, err := cli.ListSidechainDeposits(t.Context(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{Slot: 9}))
 	require.NoError(t, err)
 	require.Len(t, resp.Msg.Deposits, 1)
 	require.Equal(t, "deadbeef", resp.Msg.Deposits[0].Txid)
@@ -667,7 +668,7 @@ func TestGetTransactionDetails(t *testing.T) {
 	})
 
 	t.Run("a prevout read that fails returns the error", func(t *testing.T) {
-		_, err := details(t, connect.NewError(connect.CodeUnavailable, fmt.Errorf("node down")))
+		_, err := details(t, connect.NewError(connect.CodeUnavailable, errors.New("node down")))
 		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 		require.ErrorContains(t, err, "node down")
 	})
@@ -699,7 +700,7 @@ func (b *bumpOrchestrator) BumpFee(
 func TestBumpFee(t *testing.T) {
 	t.Parallel()
 
-	notFound := connect.NewError(connect.CodeInternal, fmt.Errorf("the chain holds no such transaction"))
+	notFound := connect.NewError(connect.CodeInternal, errors.New("the chain holds no such transaction"))
 
 	bump := func(t *testing.T, errs map[string]error) (*connect.Response[walletv1.BumpFeeResponse], error) {
 		orchestrator := &bumpOrchestrator{fakeOrchestrator: &fakeOrchestrator{}, errs: errs}
@@ -716,7 +717,7 @@ func TestBumpFee(t *testing.T) {
 	t.Run("the owner wallet error reaches the caller", func(t *testing.T) {
 		resp, err := bump(t, map[string]error{
 			"":      notFound,
-			"owner": connect.NewError(connect.CodeInternal, fmt.Errorf("insufficient fee")),
+			"owner": connect.NewError(connect.CodeInternal, errors.New("insufficient fee")),
 			"other": notFound,
 		})
 		require.Nil(t, resp)

@@ -1,7 +1,6 @@
-package api_bitwindowd_test
+package bitwindowd_test
 
 import (
-	"context"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -69,7 +68,7 @@ func TestGetSyncInfoWaitsForCore(t *testing.T) {
 				apitests.WithNetwork(tc.network),
 			))
 
-			res, err := cli.GetSyncInfo(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+			res, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, res.Msg.WaitsForCore)
 			assert.Equal(t, int64(967_362), res.Msg.HeaderHeight)

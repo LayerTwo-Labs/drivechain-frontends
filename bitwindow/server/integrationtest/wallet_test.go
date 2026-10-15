@@ -59,7 +59,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 	// Phase 1: Wallet via Orchestrator gRPC
 	// =========================================================================
 	t.Run("Phase1_WalletViaOrchestrator", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
 		defer cancel()
 		client := nodeA.WalletClient
 
@@ -134,7 +134,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 	// Phase 2: Watch-Only via Orchestrator
 	// =========================================================================
 	t.Run("Phase2_WatchOnly", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 		defer cancel()
 		client := nodeA.WalletClient
 
@@ -200,7 +200,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 	// Phase 3: Seed Access
 	// =========================================================================
 	t.Run("Phase3_SeedAccess", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		defer cancel()
 		client := nodeA.WalletClient
 

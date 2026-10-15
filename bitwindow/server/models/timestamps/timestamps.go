@@ -151,10 +151,10 @@ var selectTimestamp = sq.
 func getTimestampWhere(ctx context.Context, db *sql.DB, where sq.Eq) (*FileTimestamp, error) {
 	query, args := selectTimestamp.Where(where).MustSql()
 	timestamp, err := database.Get[FileTimestamp](ctx, db, query, args...)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
-	}
-	if err != nil {
+	case err != nil:
 		return nil, err
 	}
 	return &timestamp, nil

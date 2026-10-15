@@ -1,4 +1,4 @@
-package api_wallet
+package wallet
 
 import (
 	"context"
@@ -163,7 +163,7 @@ func TestDeriveMessageSigningPrivateKeyHandlesTaproot(t *testing.T) {
 // Light mode has no enforcer and no bitcoind, so signing and verifying must
 // need neither.
 func TestSignAndVerifyMessageWithoutNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	const walletID = "80CEBA2163224572BDEADD2D2181C51B"
 

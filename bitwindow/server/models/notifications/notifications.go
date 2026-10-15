@@ -28,10 +28,10 @@ func HasBeenNotified(ctx context.Context, db *sql.DB, eventType, eventID string)
 		MustSql()
 
 	_, err := database.Get[int64](ctx, db, query, args...)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return false, nil
-	}
-	if err != nil {
+	case err != nil:
 		return false, fmt.Errorf("check notified event: %w", err)
 	}
 	return true, nil

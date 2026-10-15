@@ -59,7 +59,6 @@ func encodeTargetSizes(sizes []int64) *string {
 	return &result
 }
 
-// Create creates a new denial plan
 func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout int32, delayDuration time.Duration, numHops int32, targetUTXOSizes []int64) (Denial, error) {
 	id, err := database.Get[int64](ctx, db, `
 		INSERT INTO denials (
@@ -80,7 +79,7 @@ func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout 
 	// Get the created deniability plan
 	denial, err := Get(ctx, db, id)
 	if err != nil {
-		return Denial{}, fmt.Errorf("could not get created deniability: %w", err)
+		return Denial{}, fmt.Errorf("get created deniability: %w", err)
 	}
 
 	return denial, nil
@@ -147,7 +146,7 @@ func scanDenial(scanner interface{ Scan(dest ...any) error }) (Denial, error) {
 	}
 	sizes, err := parseTargetUTXOSizes(targetSizes)
 	if err != nil {
-		return Denial{}, fmt.Errorf("could not parse target sizes: %w", err)
+		return Denial{}, fmt.Errorf("parse target sizes: %w", err)
 	}
 	denial.TargetUTXOSizes = sizes
 	return denial, nil
@@ -195,7 +194,6 @@ func parseTargetUTXOSizes(data *string) ([]int64, error) {
 	return sizes, nil
 }
 
-// List returns all denial plans
 func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	conf := newConfig(opts)
 
@@ -207,7 +205,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("could not query deniabilities: %w", err)
+		return nil, fmt.Errorf("query deniabilities: %w", err)
 	}
 
 	// First, collect all denials from the query (don't do nested queries while rows are open)
@@ -216,14 +214,14 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 		denial, err := scanDenial(rows)
 		if err != nil {
 			rows.Close()
-			return nil, fmt.Errorf("could not scan deniability: %w", err)
+			return nil, fmt.Errorf("scan deniability: %w", err)
 		}
 		deniabilities = append(deniabilities, denial)
 	}
 
 	if err := rows.Err(); err != nil {
 		rows.Close()
-		return nil, fmt.Errorf("could not iterate over deniabilities: %w", err)
+		return nil, fmt.Errorf("iterate over deniabilities: %w", err)
 	}
 	rows.Close() // Close rows BEFORE doing nested queries
 
@@ -231,14 +229,13 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	for i := range deniabilities {
 		deniabilities[i], err = deniabilities[i].addExecutionData(ctx, db)
 		if err != nil {
-			return nil, fmt.Errorf("could not add execution data to deniability: %w", err)
+			return nil, fmt.Errorf("add execution data to deniability: %w", err)
 		}
 	}
 
 	return deniabilities, nil
 }
 
-// listExecutions returns all executed denials for a given deniability plan
 func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
 	executions, err := database.Select[ExecutedDenial](ctx, db, `
 		SELECT id, denial_id, from_txid, from_vout, to_txid, to_vout, created_at
@@ -247,7 +244,7 @@ func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 		ORDER BY created_at DESC
 	`, denialID)
 	if err != nil {
-		return nil, fmt.Errorf("could not query executed denials: %w", err)
+		return nil, fmt.Errorf("query executed denials: %w", err)
 	}
 	return executions, nil
 }
@@ -260,11 +257,11 @@ func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 			cancelled_reason = ?
 		WHERE id = ?
 	`, time.Now(), reason, id))
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return ErrNotFound
-	}
-	if err != nil {
-		return fmt.Errorf("could not cancel deniability: %w", err)
+	case err != nil:
+		return fmt.Errorf("cancel deniability: %w", err)
 	}
 	return nil
 }
@@ -276,11 +273,11 @@ func Pause(ctx context.Context, db *sql.DB, id int64) error {
 			SET paused_at = ?
 		WHERE id = ? AND paused_at IS NULL AND cancelled_at IS NULL
 	`, time.Now(), id))
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return fmt.Errorf("%w, or already paused or cancelled", ErrNotFound)
-	}
-	if err != nil {
-		return fmt.Errorf("could not pause deniability: %w", err)
+	case err != nil:
+		return fmt.Errorf("pause deniability: %w", err)
 	}
 	return nil
 }
@@ -292,11 +289,11 @@ func Resume(ctx context.Context, db *sql.DB, id int64) error {
 			SET paused_at = NULL
 		WHERE id = ? AND paused_at IS NOT NULL
 	`, id))
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return fmt.Errorf("%w, or not paused", ErrNotFound)
-	}
-	if err != nil {
-		return fmt.Errorf("could not resume deniability: %w", err)
+	case err != nil:
+		return fmt.Errorf("resume deniability: %w", err)
 	}
 	return nil
 }
@@ -365,12 +362,12 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 		if err == sql.ErrNoRows {
 			return nil, nil // No matching record found, but that's okay
 		}
-		return nil, fmt.Errorf("could not get deniability by tip: %w", err)
+		return nil, fmt.Errorf("get deniability by tip: %w", err)
 	}
 
 	d, err := denial.addExecutionData(ctx, db)
 	if err != nil {
-		return nil, fmt.Errorf("could not add execution data to deniability: %w", err)
+		return nil, fmt.Errorf("add execution data to deniability: %w", err)
 	}
 
 	return &d, nil
@@ -384,7 +381,7 @@ func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numH
 		WHERE id = ?
 	`, delay, numHops, txid, vout, time.Now(), id)
 	if err != nil {
-		return fmt.Errorf("could not update deniability: %w", err)
+		return fmt.Errorf("update deniability: %w", err)
 	}
 	return nil
 }
@@ -398,7 +395,7 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		if err == sql.ErrNoRows {
 			return Denial{}, nil // No matching record found, but that's okay
 		}
-		return Denial{}, fmt.Errorf("could not get deniability: %w", err)
+		return Denial{}, fmt.Errorf("get deniability: %w", err)
 	}
 
 	return denial.addExecutionData(ctx, db)
@@ -407,7 +404,7 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 func (d Denial) addExecutionData(ctx context.Context, db *sql.DB) (Denial, error) {
 	executions, err := listExecutions(ctx, db, d.ID)
 	if err != nil {
-		return Denial{}, fmt.Errorf("could not get executed denials: %w", err)
+		return Denial{}, fmt.Errorf("get executed denials: %w", err)
 	}
 	d.ExecutedDenials = executions
 	d.NextExecution = nextExecution(d, executions)

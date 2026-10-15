@@ -1,9 +1,9 @@
-package api_walletpsbt
+package walletpsbt
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 
 	"connectrpc.com/connect"
 	"github.com/samber/lo"
@@ -29,7 +29,7 @@ func (s *Server) ListDrafts(
 	req *connect.Request[pb.ListDraftsRequest],
 ) (*connect.Response[pb.ListDraftsResponse], error) {
 	if req.Msg.WalletId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wallet id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet id is required"))
 	}
 
 	drafts, err := s.store.List(ctx, req.Msg.WalletId)
@@ -50,13 +50,13 @@ func (s *Server) SaveDraft(
 ) (*connect.Response[pb.SaveDraftResponse], error) {
 	pd := req.Msg.Draft
 	if pd == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("draft is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("draft is required"))
 	}
 	if pd.WalletId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wallet id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet id is required"))
 	}
 	if pd.PsbtBase64 == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("psbt is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("psbt is required"))
 	}
 
 	saved, err := s.store.Save(ctx, walletpsbt.Draft{
@@ -78,7 +78,7 @@ func (s *Server) DeleteDraft(
 	req *connect.Request[pb.DeleteDraftRequest],
 ) (*connect.Response[emptypb.Empty], error) {
 	if req.Msg.Id == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("draft id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("draft id is required"))
 	}
 	if err := s.store.Delete(ctx, req.Msg.Id); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

@@ -12,7 +12,6 @@ var (
 	BuildDate = "unknown"
 )
 
-// String returns a formatted version string
 func String() string {
 	return fmt.Sprintf("bitwindowd %s\n commit: %s\n built: %s", Version, Commit, BuildDate)
 }

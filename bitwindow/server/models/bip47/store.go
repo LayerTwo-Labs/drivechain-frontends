@@ -26,10 +26,10 @@ func GetState(ctx context.Context, db *sql.DB, walletID, recipientCode string) (
 		FROM bip47_send_state
 		WHERE wallet_id = ? AND recipient_payment_code = ?
 	`, walletID, recipientCode)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
-	}
-	if err != nil {
+	case err != nil:
 		return nil, fmt.Errorf("get bip47 send state: %w", err)
 	}
 	return &s, nil

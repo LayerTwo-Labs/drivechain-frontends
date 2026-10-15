@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"io/fs"
 	"testing"
 
@@ -11,7 +10,7 @@ import (
 // Migration 013 recreated `denials` and reset its AUTOINCREMENT counter, so an
 // execution of a dropped denial can point at a new denial that reused its id.
 func TestMigration044DropsOrphanExecutedDenials(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := Test(t)
 
 	_, err := db.ExecContext(ctx, `INSERT INTO denials (id, wallet_id, initial_txid, initial_vout, delay_duration, num_hops, created_at)

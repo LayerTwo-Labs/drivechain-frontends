@@ -312,7 +312,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 			errors.Is(err, http.ErrServerClosed):
 			return
 		}
-		log.Error().Err(err).Msg("could not close listener")
+		log.Error().Err(err).Msg("close listener")
 	}()
 
 	// Serve HTTP/2 over plaintext (replaces the old h2c.NewHandler wrap).
@@ -352,14 +352,14 @@ func (s *Server) Shutdown(ctx context.Context) {
 			log.Printf("server: forcing stop after %s", timeout)
 			atomic.AddInt64(&forced, 1)
 			if err := s.server.Close(); err != nil {
-				log.Err(err).Msg("server: could not force stop HTTP server")
+				log.Err(err).Msg("server: force stop HTTP server")
 				return
 			}
 		})
 
 		log.Print("server: trying graceful stop")
 		if err := s.server.Shutdown(context.Background()); err != nil {
-			log.Err(err).Msg("server: could not gracefully stop HTTP server")
+			log.Err(err).Msg("server: gracefully stop HTTP server")
 		} else if atomic.LoadInt64(&forced) == 0 {
 			log.Info().Msg("server: successful graceful stop")
 		}

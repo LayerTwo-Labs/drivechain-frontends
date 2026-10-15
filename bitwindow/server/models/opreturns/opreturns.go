@@ -133,10 +133,10 @@ func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*OPReturn, error) 
 		ORDER BY vout
 		LIMIT 1
 	`, txid)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
-	}
-	if err != nil {
+	case err != nil:
 		return nil, fmt.Errorf("get op_return %s: %w", txid, err)
 	}
 	return &opReturn, nil

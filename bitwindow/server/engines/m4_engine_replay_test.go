@@ -48,7 +48,7 @@ func bundleState(t *testing.T, ctx context.Context, e *M4Engine, hash string) (w
 
 // Replaying the same height after a reorg must not age a bundle twice.
 func TestUpdateBundleStates_ReplayIsIdempotent(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	e := NewM4Engine(db)
 
@@ -66,7 +66,7 @@ func TestUpdateBundleStates_ReplayIsIdempotent(t *testing.T) {
 
 // An upvote replayed at a height already counted must not score twice.
 func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	e := NewM4Engine(db)
 
@@ -157,7 +157,7 @@ func workScoreOn(t *testing.T, ctx context.Context, p *Parser, slot uint8) int {
 }
 
 func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{db: db, m4Engine: NewM4Engine(db), enforcer: enforcerAt(t, 101, map[uint32]uint32{0: 10})}
 
@@ -183,7 +183,7 @@ func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
 // The scan never waits on the enforcer. The M4 waits, then its second vote
 // lands on slot 9, the second active slot. Slot 5 activates later.
 func TestApplyPendingM4_WaitsForEnforcerThenUsesActiveSlots(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 	p.m4Engine = NewM4Engine(p.db)
 	activations := map[uint32]uint32{0: 10, 9: 20, 5: 500}
@@ -219,7 +219,7 @@ func TestApplyPendingM4_WaitsForEnforcerThenUsesActiveSlots(t *testing.T) {
 }
 
 func TestApplyPendingM4_NoEnforcerKeepsParsing(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	p := &Parser{
 		db:       db,
@@ -244,7 +244,7 @@ func TestApplyPendingM4_NoEnforcerKeepsParsing(t *testing.T) {
 
 // A bundle first seen in an orphaned block must not survive the reorg purge.
 func TestPurgeM4AtOrAbove(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	e := NewM4Engine(db)
 	p := &Parser{db: db}

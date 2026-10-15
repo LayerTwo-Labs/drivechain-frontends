@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -72,7 +71,7 @@ func TestCoinbaseFacts(t *testing.T) {
 
 func TestAForkPurgeForgetsTheCoinbasesAboveTheFork(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := database.Test(t)
 	at := time.Unix(1_800_000_000, 0)
 	require.NoError(t, coinbases.Put(ctx, db, []coinbases.Coinbase{

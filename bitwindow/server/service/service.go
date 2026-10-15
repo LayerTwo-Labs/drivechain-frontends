@@ -31,7 +31,6 @@ type Service[T any] struct {
 	subs   map[chan bool]struct{}
 }
 
-// New creates a new service wrapper
 func New[T any](name string, connector Connector[T]) *Service[T] {
 	return &Service[T]{
 		name:      name,
@@ -74,7 +73,6 @@ func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 	return client, nil
 }
 
-// IsConnected returns whether the service is currently connected
 func (s *Service[T]) IsConnected() bool {
 	return s.connected.Load()
 }
@@ -96,7 +94,7 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 				if _, err := s.Connect(ctx); err != nil && connected {
 					zerolog.Ctx(ctx).Debug().
 						Err(err).
-						Msgf("reconnect loop: could not connect to %q", s.name)
+						Msgf("reconnect loop: connect to %q", s.name)
 				}
 			}
 		}

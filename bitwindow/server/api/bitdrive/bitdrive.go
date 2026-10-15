@@ -1,8 +1,9 @@
-package api_bitdrive
+package bitdrive
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -20,7 +21,6 @@ import (
 
 var _ rpc.BitDriveServiceHandler = new(Server)
 
-// New creates a new BitDrive API server
 func New(
 	database *sql.DB,
 	bitdriveEngine *engines.BitDriveEngine,
@@ -45,7 +45,7 @@ func (s *Server) StoreFile(ctx context.Context, req *connect.Request[bitdrivev1.
 
 	content := req.Msg.Content
 	if len(content) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("content is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("content is required"))
 	}
 
 	if err := engines.ValidateFileSize(content); err != nil {
@@ -89,7 +89,7 @@ func (s *Server) StoreFile(ctx context.Context, req *connect.Request[bitdrivev1.
 // RetrieveContent implements bitdrivev1connect.BitDriveServiceHandler.
 func (s *Server) RetrieveContent(ctx context.Context, req *connect.Request[bitdrivev1.RetrieveContentRequest]) (*connect.Response[bitdrivev1.RetrieveContentResponse], error) {
 	if req.Msg.Txid == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("txid is required"))
 	}
 
 	opReturn, err := opreturns.GetByTxID(ctx, s.database, req.Msg.Txid)
@@ -188,14 +188,14 @@ func (s *Server) GetFile(ctx context.Context, req *connect.Request[bitdrivev1.Ge
 	case req.Msg.Txid != "":
 		file, err = bitdrive.GetByTxID(ctx, s.database, req.Msg.Txid)
 	default:
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id or txid is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id or txid is required"))
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("get file: %w", err)
 	}
 	if file == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("file not found"))
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("file not found"))
 	}
 
 	// Read file content
@@ -213,7 +213,7 @@ func (s *Server) GetFile(ctx context.Context, req *connect.Request[bitdrivev1.Ge
 // DeleteFile implements bitdrivev1connect.BitDriveServiceHandler.
 func (s *Server) DeleteFile(ctx context.Context, req *connect.Request[bitdrivev1.DeleteFileRequest]) (*connect.Response[emptypb.Empty], error) {
 	if req.Msg.Id <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
 	}
 
 	if err := s.bitdriveEngine.DeleteFile(ctx, req.Msg.Id); err != nil {
@@ -228,7 +228,7 @@ func (s *Server) StoreMultisigData(ctx context.Context, req *connect.Request[bit
 	log := zerolog.Ctx(ctx)
 
 	if len(req.Msg.JsonData) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("json_data is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("json_data is required"))
 	}
 
 	// Encode multisig data

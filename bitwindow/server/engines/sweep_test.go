@@ -84,7 +84,7 @@ func TestResolveSweepSourceFindsLegacyFunds(t *testing.T) {
 
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{legacy.Address: testUTXOs()}}
 
-	source, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
+	source, err := ResolveSweepSource(t.Context(), chain, wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
 	assert.Equal(t, SweepAddressP2PKH, source.Kind)
 	assert.Equal(t, legacy.Address, source.Address)
@@ -101,7 +101,7 @@ func TestResolveSweepSourcePrefersWitnessWhenBothFunded(t *testing.T) {
 		candidates[1].Address: testUTXOs(),
 	}}
 
-	source, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
+	source, err := ResolveSweepSource(t.Context(), chain, wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
 	assert.Equal(t, SweepAddressP2WPKH, source.Kind)
 }
@@ -112,7 +112,7 @@ func TestResolveSweepSourceEmptyKeyReportsFirstCandidate(t *testing.T) {
 
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
 
-	source, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
+	source, err := ResolveSweepSource(t.Context(), chain, wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
 	assert.Empty(t, source.UTXOs)
 	assert.Equal(t, candidates[0].Address, source.Address)
@@ -122,7 +122,7 @@ func TestResolveSweepSourceReturnsChainError(t *testing.T) {
 	wif := newWIF(t, true)
 	chain := &fakeChain{err: errors.New("electrum down")}
 
-	_, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
+	_, err := ResolveSweepSource(t.Context(), chain, wif, &chaincfg.SigNetParams)
 	require.ErrorContains(t, err, "electrum down")
 }
 

@@ -123,12 +123,12 @@ func (p *Parser) Run(ctx context.Context) error {
 
 			tickErr := p.handleBlockTick(ctx)
 			if err := p.applyPendingM4(ctx); err != nil {
-				zerolog.Ctx(ctx).Err(err).Msgf("unable to apply M4 votes")
+				zerolog.Ctx(ctx).Err(err).Msgf("apply M4 votes")
 			}
 			if tickErr != nil {
 				// Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
 				if !IsBitcoinCoreStartupError(tickErr.Error()) {
-					zerolog.Ctx(ctx).Err(tickErr).Msgf("unable to handle block tick")
+					zerolog.Ctx(ctx).Err(tickErr).Msgf("handle block tick")
 				}
 				continue
 			}
@@ -145,7 +145,7 @@ func (p *Parser) Run(ctx context.Context) error {
 // unreachable, which the block tick reports on the same cadence.
 func (p *Parser) sweepMempool(ctx context.Context) bool {
 	if err := p.reapExpiredMempool(ctx); err != nil {
-		zerolog.Ctx(ctx).Debug().Err(err).Msg("could not reap expired mempool OP_RETURNs")
+		zerolog.Ctx(ctx).Debug().Err(err).Msg("reap expired mempool OP_RETURNs")
 		return false
 	}
 	return true
@@ -360,7 +360,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	switch fork, err := p.forkPoint(ctx, lastProcessedHeight, lastProcessedHash.String()); {
 	case err != nil:
 		zerolog.Ctx(ctx).Warn().Err(err).
-			Msg("bitcoind_engine/parser: could not check for a fork, retrying next tick")
+			Msg("bitcoind_engine/parser: check for a fork: retry next tick")
 		return nil
 
 	case fork > 0:
@@ -484,8 +484,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	return nil
 }
 
-// processBlock processes a single block: checks if it contains any OP_RETURN transactions, inserts any found into the database,
-// and marks the block as processed.
+// processBlocks stores the CoinNews, coinbase, M3 and M4 data of a batch, then marks the blocks processed.
 func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint32, *wire.MsgBlock]) error {
 	// CoinNews indexing must commit BEFORE the block is marked processed:
 	// if it fails, we want the next sync attempt to retry, not skip the
@@ -1113,11 +1112,11 @@ func (p *Parser) ensureSyncIsHealthy(ctx context.Context) error {
 	}
 
 	savedBlock1, err := blocks.GetProcessedBlock(ctx, p.db, 1)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		// Nothing processed yet — no health check to do.
 		return nil
-	}
-	if err != nil {
+	case err != nil:
 		return fmt.Errorf("detect chain deletion: get latest processed height: %w", err)
 	}
 

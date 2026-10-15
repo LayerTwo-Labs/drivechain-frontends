@@ -66,7 +66,7 @@ func TestSource(t *testing.T) {
 
 func TestRegistry(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("betanet serves the built-in list while the fetch fails", func(t *testing.T) {
 		t.Parallel()
@@ -165,7 +165,7 @@ func TestRegistry(t *testing.T) {
 
 func TestDefaultFetch(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("a status other than 200 is an error", func(t *testing.T) {
 		t.Parallel()

@@ -48,9 +48,7 @@ func nodeModeSource(t *testing.T, mode orchpb.NodeMode) *engines.NodeMode {
 			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
 		}, nil)
 
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(client)
-	return nodeMode
+	return engines.NewNodeMode(client)
 }
 
 func runParserFor(t *testing.T, mode orchpb.NodeMode, window time.Duration) int64 {
@@ -60,7 +58,7 @@ func runParserFor(t *testing.T, mode orchpb.NodeMode, window time.Duration) int6
 	parser := engines.NewBitcoind(countingBitcoind(&dials), unreachableEnforcer(), database.Test(t), config.Config{}, &chaincfg.RegressionNetParams)
 	parser.SetNodeMode(nodeModeSource(t, mode))
 
-	ctx, cancel := context.WithTimeout(context.Background(), window)
+	ctx, cancel := context.WithTimeout(t.Context(), window)
 	defer cancel()
 
 	done := make(chan error, 1)
@@ -105,7 +103,7 @@ func TestNotificationEngineWatchesOnlyInFullMode(t *testing.T) {
 			engine := engines.NewNotificationEngine(database.Test(t), countingBitcoind(&dials))
 			engine.SetNodeMode(nodeModeSource(t, tc.mode))
 
-			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 12*time.Second)
 			defer cancel()
 			_ = engine.Run(ctx)
 
@@ -160,12 +158,11 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 				Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
 			}, nil),
 	)
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(orch)
+	nodeMode := engines.NewNodeMode(orch)
 
 	// The sweep reads the mempool only when an expired row waits for it.
 	db := database.Test(t)
-	_, err := db.ExecContext(context.Background(), `
+	_, err := db.ExecContext(t.Context(), `
 		INSERT INTO op_returns (txid, vout, op_return_data, fee_sats, height, created_at)
 		VALUES ('dead', 0, 'beef', 1, NULL, datetime('now', '-30 days'))
 	`)
@@ -175,7 +172,7 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams)
 	parser.SetNodeMode(nodeMode)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 7*time.Second)
 	defer cancel()
 	require.NoError(t, parser.Run(ctx))
 
@@ -191,7 +188,7 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 // set before the sweep marks it done, and the rows then wait an hour.
 func TestParserRetriesTheStartupSweepAfterCoreIsReady(t *testing.T) {
 	db := database.Test(t)
-	_, err := db.ExecContext(context.Background(), `
+	_, err := db.ExecContext(t.Context(), `
 		INSERT INTO op_returns (txid, vout, op_return_data, fee_sats, height, created_at)
 		VALUES ('dead', 0, 'beef', 1, NULL, datetime('now', '-30 days'))
 	`)
@@ -201,7 +198,7 @@ func TestParserRetriesTheStartupSweepAfterCoreIsReady(t *testing.T) {
 	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams)
 	parser.SetNodeMode(nodeModeSource(t, orchpb.NodeMode_NODE_MODE_FULL))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 7*time.Second)
 	defer cancel()
 	require.NoError(t, parser.Run(ctx))
 
@@ -229,7 +226,7 @@ func TestTimestampEngineWatchesOnlyInFullMode(t *testing.T) {
 			t.Parallel()
 
 			db := database.Test(t)
-			_, err := db.ExecContext(context.Background(), `
+			_, err := db.ExecContext(t.Context(), `
 				INSERT INTO file_timestamps (filename, file_hash, txid, status)
 				VALUES ('note.txt', 'abc', 'dead', 'confirming')
 			`)
@@ -239,7 +236,7 @@ func TestTimestampEngineWatchesOnlyInFullMode(t *testing.T) {
 			engine := engines.NewTimestampEngine(db, zerolog.Nop(), &mockWallet{}, countingBitcoind(&dials))
 			engine.SetNodeMode(nodeModeSource(t, tc.mode))
 
-			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 12*time.Second)
 			defer cancel()
 			_ = engine.Run(ctx)
 

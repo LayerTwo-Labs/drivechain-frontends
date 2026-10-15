@@ -1,4 +1,4 @@
-package api_wallet_test
+package wallet_test
 
 import (
 	"context"
@@ -84,10 +84,10 @@ func TestCheckChequeFunding_UnfundedCheck(t *testing.T) {
 		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
@@ -111,10 +111,10 @@ func TestCheckChequeFunding_DetectsUnconfirmedTx(t *testing.T) {
 		})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
@@ -144,10 +144,10 @@ func TestCheckChequeFunding_DetectsConfirmedTx(t *testing.T) {
 		})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 50_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 50_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
@@ -173,17 +173,17 @@ func TestCheckChequeFunding_PersistsFundingToDatabase(t *testing.T) {
 		})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
 	require.NoError(t, err)
 	require.True(t, resp.Msg.Funded)
 
-	cheque, err := cheques.Get(context.Background(), db, testWalletID, chequeID)
+	cheque, err := cheques.Get(t.Context(), db, testWalletID, chequeID)
 	require.NoError(t, err)
 	require.Equal(t, []string{fundingTxid}, cheque.FundedTxids)
 	require.NotNil(t, cheque.ActualAmountSats)
@@ -209,10 +209,10 @@ func TestCheckChequeFunding_MultipleUTXOs(t *testing.T) {
 		})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 200_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 200_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
@@ -245,10 +245,10 @@ func TestCheckChequeFunding_PartialFunding(t *testing.T) {
 		})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
@@ -281,10 +281,10 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 		})),
 	)
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 210_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 210_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	respFirst, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	respFirst, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
@@ -292,7 +292,7 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 	require.False(t, respFirst.Msg.Funded)
 	require.Empty(t, respFirst.Msg.FundedTxids)
 
-	respSecond, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	respSecond, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
@@ -301,7 +301,7 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 	require.Equal(t, []string{fundingTxid}, respSecond.Msg.FundedTxids)
 	require.Equal(t, uint64(210_000_000), respSecond.Msg.ActualAmountSats)
 
-	persisted, err := cheques.Get(context.Background(), db, testWalletID, chequeID)
+	persisted, err := cheques.Get(t.Context(), db, testWalletID, chequeID)
 	require.NoError(t, err)
 	require.True(t, persisted.IsFunded())
 	require.NotNil(t, persisted.FundedAt)
@@ -319,10 +319,10 @@ func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
 	// No WithOrchestrator: cheques have no other chain source.
 	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db))
 
-	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	_, err = cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))

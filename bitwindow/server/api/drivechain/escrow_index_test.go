@@ -1,7 +1,6 @@
-package api_drivechain
+package drivechain
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,7 +24,7 @@ func TestEscrowIndexReadsTheChain(t *testing.T) {
 	}))
 	defer server.Close()
 
-	got, err := newEscrowIndex(server.URL).Sidechains(context.Background())
+	got, err := newEscrowIndex(server.URL).Sidechains(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, "/sidechains", path)
 	require.Len(t, got, 2)
@@ -51,6 +50,6 @@ func TestEscrowIndexReportsAFailure(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, err := newEscrowIndex(server.URL).Sidechains(context.Background())
+	_, err := newEscrowIndex(server.URL).Sidechains(t.Context())
 	require.ErrorContains(t, err, "the index answered 503")
 }

@@ -47,7 +47,7 @@ func TestSendHandsOverTheFrozenCoins(t *testing.T) {
 			Msg: &orchpb.SendTransactionResponse{Txid: "txid"},
 		}, nil)
 
-	txid, err := engine.SendTransaction(context.Background(), &orchpb.SendTransactionRequest{
+	txid, err := engine.SendTransaction(t.Context(), &orchpb.SendTransactionRequest{
 		WalletId:    "wallet-1",
 		OpReturnHex: "beef",
 	})
@@ -71,7 +71,7 @@ func TestSendStopsWhenTheFrozenSetFails(t *testing.T) {
 		return nil, errors.New("the database is closed")
 	})
 
-	_, err := engine.SendTransaction(context.Background(), &orchpb.SendTransactionRequest{WalletId: "wallet-1"})
+	_, err := engine.SendTransaction(t.Context(), &orchpb.SendTransactionRequest{WalletId: "wallet-1"})
 	require.ErrorContains(t, err, "read the frozen coins")
 }
 
@@ -82,7 +82,7 @@ func TestSendStopsOnAnOutpointItCannotRead(t *testing.T) {
 		return []string{"no-vout-here"}, nil
 	})
 
-	_, err := engine.SendTransaction(context.Background(), &orchpb.SendTransactionRequest{WalletId: "wallet-1"})
+	_, err := engine.SendTransaction(t.Context(), &orchpb.SendTransactionRequest{WalletId: "wallet-1"})
 	require.ErrorContains(t, err, "is not a txid:vout")
 }
 
@@ -104,7 +104,7 @@ func TestKeepFrozenCoinsHandsTheSetOverAgain(t *testing.T) {
 			return nil, nil
 		})
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	go engine.KeepFrozenCoins(ctx)
 
@@ -135,7 +135,7 @@ func TestDepositHandsOverTheFrozenCoins(t *testing.T) {
 			Msg: &orchpb.CreateDepositResponse{Txid: "deposit-txid"},
 		}, nil)
 
-	txid, err := engine.CreateDeposit(context.Background(), &orchpb.CreateDepositRequest{WalletId: "wallet-1"})
+	txid, err := engine.CreateDeposit(t.Context(), &orchpb.CreateDepositRequest{WalletId: "wallet-1"})
 	require.NoError(t, err)
 	assert.Equal(t, "deposit-txid", txid)
 }
@@ -160,7 +160,7 @@ func TestBumpFeeHandsOverTheFrozenCoins(t *testing.T) {
 			Msg: &orchpb.BumpFeeResponse{NewTxid: "bumped"},
 		}, nil)
 
-	resp, err := engine.BumpFee(context.Background(), &orchpb.BumpFeeRequest{Txid: "old"})
+	resp, err := engine.BumpFee(t.Context(), &orchpb.BumpFeeRequest{Txid: "old"})
 	require.NoError(t, err)
 	assert.Equal(t, "bumped", resp.NewTxid)
 }
@@ -189,7 +189,7 @@ func TestDeniabilitySendHandsOverTheFrozenCoins(t *testing.T) {
 			Msg: &orchpb.SendTransactionResponse{Txid: "denied"},
 		}, nil)
 
-	txid, err := engine.SendTransaction(context.Background(), &orchpb.SendTransactionRequest{
+	txid, err := engine.SendTransaction(t.Context(), &orchpb.SendTransactionRequest{
 		WalletId:       "wallet-1",
 		RequiredInputs: []*orchpb.UnspentOutput{{Txid: "tip", Vout: 0}},
 	})

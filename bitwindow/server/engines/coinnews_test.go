@@ -52,7 +52,7 @@ func newCoinNewsParser(t *testing.T) *Parser {
 // the spec §8 dedup invariant.
 func TestCoinNewsIndexer_StoryAndVoteAcrossBlocks(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	// Story (block N).
@@ -127,7 +127,7 @@ func TestCoinNewsIndexer_StoryAndVoteAcrossBlocks(t *testing.T) {
 // row regardless of input ordering.
 func TestCoinNewsIndexer_SortsBatchByHeight(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	topic := codec.Topic{0xaa, 0xaa, 0xaa, 0xaa}
@@ -154,7 +154,7 @@ func TestCoinNewsIndexer_SortsBatchByHeight(t *testing.T) {
 // signature verification gates persistence end to end.
 func TestCoinNewsIndexer_DropsBadSignature(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	var target codec.ItemID
@@ -185,7 +185,7 @@ func TestCoinNewsIndexer_DropsBadSignature(t *testing.T) {
 // §8) — no cn_votes row, no cn_items row.
 func TestCoinNewsIndexer_DropsUnresolvableVote(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	var target codec.ItemID
@@ -221,7 +221,7 @@ func TestCoinNewsIndexer_DropsUnresolvableVote(t *testing.T) {
 // whose parent_id was never indexed MUST be dropped (spec §4.1, §7).
 func TestCoinNewsIndexer_DropsUnresolvableComment(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	var parent codec.ItemID
@@ -260,7 +260,7 @@ func TestCoinNewsIndexer_DropsUnresolvableComment(t *testing.T) {
 // don't pollute cn_*; the legacy News Message path keeps working.
 func TestCoinNewsIndexer_SkipsNonCoinNewsTraffic(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	junk := make([]byte, 20)
@@ -277,7 +277,7 @@ func TestCoinNewsIndexer_SkipsNonCoinNewsTraffic(t *testing.T) {
 
 func TestCoinNewsIndexer_BroadcastBytesListAsCoinNews(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	topicID, err := opreturns.ValidNewsTopicID("a1a1a1a1")
@@ -315,7 +315,7 @@ func TestCoinNewsIndexer_BroadcastBytesListAsCoinNews(t *testing.T) {
 // uses. Only the commitment (0xaa21a9ed magic) may be skipped.
 func TestCoinNewsIndexer_Accepts36BytePayload(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	topic := codec.Topic{0x33, 0x33, 0x33, 0x33}
@@ -348,7 +348,7 @@ func TestCoinNewsIndexer_Accepts36BytePayload(t *testing.T) {
 // the replayed range.
 func TestCoinNewsIndexer_PurgeAtOrAbove(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	keepTopic := codec.Topic{0x11, 0x11, 0x11, 0x11}
@@ -381,7 +381,7 @@ func TestCoinNewsIndexer_PurgeAtOrAbove(t *testing.T) {
 // transaction fails to begin, and that error must reach the caller.
 func TestCoinNewsIndexer_ErrorsBubble(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
 	storyBytes, err := codec.EncodeStory(codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "h"})

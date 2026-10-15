@@ -122,9 +122,9 @@ func (p *ResultPool[T]) Wait(ctx context.Context) ([]T, error) {
 }
 
 func New(ctx context.Context, poolLabel string) *Pool {
-	poolId := ulid.Make().String()
+	poolID := ulid.Make().String()
 	log := zerolog.Ctx(ctx).With().
-		Str("poolId", poolId).
+		Str("poolId", poolID).
 		Str("poolName", poolLabel)
 
 	ctx = log.Logger().WithContext(ctx)
@@ -133,14 +133,14 @@ func New(ctx context.Context, poolLabel string) *Pool {
 
 	return &Pool{
 		poolLabel: poolLabel,
-		poolId:    poolId,
+		poolID:    poolID,
 		p:         pool.New().WithContext(ctx),
 		logLevel:  logLevel,
 	}
 }
 
 type Pool struct {
-	poolLabel, poolId string
+	poolLabel, poolID string
 	p                 *pool.ContextPool
 
 	totalJobs  int
@@ -206,7 +206,7 @@ func (p *Pool) Go(jobLabel string, fn func(context.Context) error) {
 			}
 
 			zerolog.Ctx(ctx).WithLevel(p.logLevel).Err(err).
-				Str("poolId", p.poolId).
+				Str("poolId", p.poolID).
 				Str("poolName", p.poolLabel).
 				Msgf("%s: ran %q in %s%s",
 					p.poolLabel, jobLabel, time.Since(start), suffix,

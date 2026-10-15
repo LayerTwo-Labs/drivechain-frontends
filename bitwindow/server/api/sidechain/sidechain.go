@@ -2,9 +2,9 @@ package sidechain
 
 import (
 	"context"
+	"fmt"
 
 	"connectrpc.com/connect"
-	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -16,23 +16,18 @@ type Server struct {
 	monitor *engines.SidechainMonitorEngine
 }
 
-// New creates a new sidechain API server
 func New(monitor *engines.SidechainMonitorEngine) *Server {
 	return &Server{
 		monitor: monitor,
 	}
 }
 
-// GetDetectedWithdrawals returns all detected fast withdrawal transactions
 func (s *Server) GetDetectedWithdrawals(
 	ctx context.Context,
 	req *connect.Request[pb.GetDetectedWithdrawalsRequest],
 ) (*connect.Response[pb.GetDetectedWithdrawalsResponse], error) {
-	log := zerolog.Ctx(ctx)
-
 	withdrawals, err := s.monitor.GetDetectedWithdrawals(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get detected withdrawals")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -69,17 +64,13 @@ func (s *Server) GetDetectedWithdrawals(
 	}), nil
 }
 
-// GetWithdrawalByTxid returns a specific withdrawal by transaction ID
 func (s *Server) GetWithdrawalByTxid(
 	ctx context.Context,
 	req *connect.Request[pb.GetWithdrawalByTxidRequest],
 ) (*connect.Response[pb.GetWithdrawalByTxidResponse], error) {
-	log := zerolog.Ctx(ctx)
-
 	withdrawal, err := s.monitor.GetWithdrawalByTxid(ctx, req.Msg.Txid)
 	if err != nil {
-		log.Error().Err(err).Str("txid", req.Msg.Txid).Msg("failed to get withdrawal by txid")
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get withdrawal %s: %w", req.Msg.Txid, err))
 	}
 
 	resp := &pb.GetWithdrawalByTxidResponse{}

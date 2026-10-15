@@ -1,7 +1,6 @@
 package coinbases_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -26,7 +25,7 @@ func row(height uint32, hash string, at time.Time) coinbases.Coinbase {
 
 func TestCoinbases(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	start := time.Unix(1_800_000_000, 0)
 
 	t.Run("a stored row reads back the same", func(t *testing.T) {

@@ -14,7 +14,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
-// Cheque represents a Bitcoin cheque in the database
 type Cheque struct {
 	ID                 int64  `db:"id"`
 	WalletID           string `db:"wallet_id"`
@@ -39,13 +38,12 @@ func (c *Cheque) IsPartiallyFunded() bool {
 	return len(c.FundedTxids) > 0 && !c.IsFunded()
 }
 
-// Create creates a new cheque in the database
 func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expectedAmount uint64, address string) (int64, error) {
 	if walletID == "" {
-		return 0, fmt.Errorf("wallet_id cannot be empty")
+		return 0, errors.New("wallet_id cannot be empty")
 	}
 	if address == "" {
-		return 0, fmt.Errorf("address cannot be empty")
+		return 0, errors.New("address cannot be empty")
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -59,12 +57,12 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 		VALUES (?, ?, ?, ?)
 	`, walletID, index, expectedAmount, address)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create cheque: %w", err)
+		return 0, fmt.Errorf("create cheque: %w", err)
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get last insert id: %w", err)
+		return 0, fmt.Errorf("get last insert id: %w", err)
 	}
 
 	if err := bumpIndexCounter(ctx, tx, walletID, index); err != nil {
@@ -86,7 +84,7 @@ func bumpIndexCounter(ctx context.Context, tx *sql.Tx, walletID string, index ui
 		ON CONFLICT (wallet_id) DO UPDATE
 		SET next_index = MAX(cheque_index_counters.next_index, excluded.next_index)
 	`, walletID, uint64(index)+1); err != nil {
-		return fmt.Errorf("failed to bump cheque index counter: %w", err)
+		return fmt.Errorf("bump cheque index counter: %w", err)
 	}
 	return nil
 }
@@ -211,7 +209,7 @@ func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, o
 		SET actual_amount_sats = ?, funded_at = COALESCE(funded_at, ?)
 		WHERE wallet_id = ? AND id = ?
 	`, actualAmount, now, walletID, id)); err != nil {
-		return fmt.Errorf("failed to update funding: %w", err)
+		return fmt.Errorf("update funding: %w", err)
 	}
 
 	if err := recordFundingOutputs(ctx, tx, id, outputs); err != nil {
@@ -251,7 +249,7 @@ func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txi
 		SET swept_txid = ?, swept_at = ?
 		WHERE wallet_id = ? AND id = ?
 	`, txid, now, walletID, id)); err != nil {
-		return fmt.Errorf("failed to update swept: %w", err)
+		return fmt.Errorf("update swept: %w", err)
 	}
 	return nil
 }
@@ -262,11 +260,11 @@ func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, err
 	nextIndex, err := database.Get[uint32](ctx, db, `
 		SELECT next_index FROM cheque_index_counters WHERE wallet_id = ?
 	`, walletID)
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return 0, nil
-	}
-	if err != nil {
-		return 0, fmt.Errorf("failed to get next index: %w", err)
+	case err != nil:
+		return 0, fmt.Errorf("get next index: %w", err)
 	}
 
 	return nextIndex, nil
@@ -277,17 +275,16 @@ func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 	if err := database.CheckOne(db.ExecContext(ctx, `
 		DELETE FROM cheques WHERE wallet_id = ? AND id = ?
 	`, walletID, id)); err != nil {
-		return fmt.Errorf("failed to delete cheque: %w", err)
+		return fmt.Errorf("delete cheque: %w", err)
 	}
 	return nil
 }
 
-// CreateOrUpdateFromRecovery creates or updates a cheque from recovery scan
 func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, outputs []FundingOutput, amount uint64) error {
 	// Check if cheque already exists
 	existing, err := GetByAddress(ctx, db, walletID, address)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("failed to check existing cheque: %w", err)
+		return fmt.Errorf("check existing cheque: %w", err)
 	}
 
 	if existing != nil {
@@ -307,12 +304,12 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 		VALUES (?, ?, ?, ?, ?, ?)
 	`, walletID, index, amount, address, amount, now)
 	if err != nil {
-		return fmt.Errorf("failed to create recovered cheque: %w", err)
+		return fmt.Errorf("create recovered cheque: %w", err)
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return fmt.Errorf("failed to get last insert id: %w", err)
+		return fmt.Errorf("get last insert id: %w", err)
 	}
 	if err := recordFundingOutputs(ctx, tx, id, outputs); err != nil {
 		return err

@@ -1,4 +1,4 @@
-package api_enforcer
+package enforcer
 
 import (
 	"context"
@@ -20,7 +20,6 @@ var _ validatorrpc.ValidatorServiceHandler = new(Server)
 var _ validatorrpc.BlockProducerServiceHandler = new(Server)
 var _ validatorrpc.MiningServiceHandler = new(Server)
 
-// New creates a new Server
 func New(
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
@@ -51,7 +50,7 @@ type Server struct {
 func forwardStream[Res any](ctx context.Context, name string, in *connect.ServerStreamForClient[Res], out *connect.ServerStream[Res]) error {
 	for in.Receive() {
 		if err := out.Send(in.Msg()); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Str("stream", name).Msg("could not send stream message")
+			zerolog.Ctx(ctx).Error().Err(err).Str("stream", name).Msg("send stream message")
 			return fmt.Errorf("forward stream message: %w", err)
 		}
 	}
@@ -75,7 +74,7 @@ func (s *Server) SubscribeHeaderSyncProgress(ctx context.Context, c *connect.Req
 	}
 	clientStream, err := validator.SubscribeHeaderSyncProgress(ctx, c)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not subscribe to header sync progress")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("subscribe to header sync progress")
 		return err
 	}
 	return forwardStream(ctx, "header sync progress", clientStream, stream)
@@ -92,7 +91,7 @@ func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request
 	}
 	clientStream, err := producer.CreateSidechainProposal(ctx, c)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create sidechain proposal")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("create sidechain proposal")
 		return err
 	}
 	return forwardStream(ctx, "sidechain proposal", clientStream, stream)
@@ -289,7 +288,7 @@ func (s *Server) SubscribeEvents(ctx context.Context, c *connect.Request[maincha
 	}
 	clientStream, err := validator.SubscribeEvents(ctx, c)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not subscribe to events")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("subscribe to events")
 		return err
 	}
 	return forwardStream(ctx, "events", clientStream, stream)

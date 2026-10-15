@@ -18,9 +18,10 @@ import (
 func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
 	query, args := selectProcessedBlock.OrderBy("height DESC").Limit(1).MustSql()
 	pb, err := scanProcessedBlock(db.QueryRowContext(ctx, query, args...))
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
-	} else if err != nil {
+	case err != nil:
 		return nil, fmt.Errorf("query processed tip: %w", err)
 	}
 	return &pb, nil

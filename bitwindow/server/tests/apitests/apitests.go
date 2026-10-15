@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -166,12 +167,12 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		},
 		BlockProducerConnector: func(ctx context.Context) (mainchainv1connect.BlockProducerServiceClient, error) {
 			if conf.blockProducer == nil {
-				return nil, fmt.Errorf("block producer not available in tests")
+				return nil, errors.New("block producer not available in tests")
 			}
 			return conf.blockProducer, nil
 		},
 		MiningConnector: func(ctx context.Context) (mainchainv1connect.MiningServiceClient, error) {
-			return nil, fmt.Errorf("mining not available in tests")
+			return nil, errors.New("mining not available in tests")
 		},
 		CryptoConnector: func(ctx context.Context) (cryptov1connect.CryptoServiceClient, error) {
 			return conf.crypto, nil
@@ -180,22 +181,22 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 			return conf.bitcoind, nil
 		},
 		ThunderConnector: func(ctx context.Context) (*thunder.Client, error) {
-			return nil, fmt.Errorf("thunder not available in tests")
+			return nil, errors.New("thunder not available in tests")
 		},
 		BitNamesConnector: func(ctx context.Context) (*bitnames.Client, error) {
-			return nil, fmt.Errorf("bitnames not available in tests")
+			return nil, errors.New("bitnames not available in tests")
 		},
 		BitAssetsConnector: func(ctx context.Context) (*bitassets.Client, error) {
-			return nil, fmt.Errorf("bitassets not available in tests")
+			return nil, errors.New("bitassets not available in tests")
 		},
 		TruthcoinConnector: func(ctx context.Context) (*truthcoin.Client, error) {
-			return nil, fmt.Errorf("truthcoin not available in tests")
+			return nil, errors.New("truthcoin not available in tests")
 		},
 		PhotonConnector: func(ctx context.Context) (*photon.Client, error) {
-			return nil, fmt.Errorf("photon not available in tests")
+			return nil, errors.New("photon not available in tests")
 		},
 		CoinShiftConnector: func(ctx context.Context) (*coinshift.Client, error) {
-			return nil, fmt.Errorf("coinshift not available in tests")
+			return nil, errors.New("coinshift not available in tests")
 		},
 		ChainParams:        &chaincfg.SigNetParams,
 		WalletDir:          walletDir,
@@ -316,7 +317,7 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 	// parser treats it as "nothing to do yet" and ends the tick.
 	mock.EXPECT().
 		GetBlockHash(gomock.Any(), gomock.Any()).
-		Return(nil, fmt.Errorf("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
+		Return(nil, errors.New("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
 		AnyTimes()
 
 	mock.EXPECT().
@@ -498,7 +499,7 @@ func ExpectCoreWalletSetup(mock *mocks.MockBitcoinServiceClient) {
 		GetBlockHash(gomock.Any(), gomock.Cond(func(req *connect.Request[corepb.GetBlockHashRequest]) bool {
 			return req.Msg.GetHeight() == 1
 		})).
-		Return(nil, fmt.Errorf("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
+		Return(nil, errors.New("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
 		AnyTimes()
 }
 

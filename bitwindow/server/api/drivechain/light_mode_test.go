@@ -1,8 +1,8 @@
-package api_drivechain
+package drivechain
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -31,7 +31,7 @@ func TestLightModeReadsTheRemoteValidator(t *testing.T) {
 
 	validator := mocks.NewMockValidatorServiceClient(ctrl)
 	validator.EXPECT().GetChainTip(gomock.Any(), gomock.Any()).Times(3).Return(
-		nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("remote validator is unavailable")),
+		nil, connect.NewError(connect.CodeUnavailable, errors.New("remote validator is unavailable")),
 	)
 	client := service.New("validator", func(context.Context) (enforcerrpc.ValidatorServiceClient, error) {
 		return validator, nil

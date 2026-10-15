@@ -61,7 +61,7 @@ func parserWithRawTxError(t *testing.T, errMsg string) *Parser {
 // Returning that error aborted the whole block batch, so processed_blocks
 // never advanced and the parser replayed the same batch every two seconds.
 func TestConfirmedOpReturnSurvivesAMissingTxIndexEntry(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := parserWithRawTxError(t, txIndexMissErr)
 
 	height := uint32(995432)
@@ -76,7 +76,7 @@ func TestConfirmedOpReturnSurvivesAMissingTxIndexEntry(t *testing.T) {
 // An unconfirmed miss means the transaction left the mempool. That row must
 // not land, so the caller still sees the error.
 func TestUnconfirmedOpReturnStillFailsOnAMissingTransaction(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := parserWithRawTxError(t, txIndexMissErr)
 
 	createdAt := time.Unix(1700000000, 0)
@@ -87,7 +87,7 @@ func TestUnconfirmedOpReturnStillFailsOnAMissingTransaction(t *testing.T) {
 
 // Any other getrawtransaction failure stays terminal.
 func TestConfirmedOpReturnStillFailsOnAnUnrelatedRpcError(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := parserWithRawTxError(t, "unavailable: unexpected EOF")
 
 	height := uint32(995432)

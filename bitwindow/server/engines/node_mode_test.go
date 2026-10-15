@@ -26,82 +26,77 @@ func nodeModeWith(t *testing.T, mode orchpb.NodeMode, err error) *engines.NodeMo
 			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
 		}, err)
 
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(client)
-	return nodeMode
+	return engines.NewNodeMode(client)
 }
 
 // The whole point of the gate: a light-mode install runs no Bitcoin Core, so
 // every poller must stop before it dials one.
 func TestRunsLocalNodeStopsOnLightMode(t *testing.T) {
 	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_LIGHT, nil)
-	require.False(t, nodeMode.RunsLocalNode(context.Background()))
+	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 func TestRunsLocalNodeAllowsFullMode(t *testing.T) {
 	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_FULL, nil)
-	require.True(t, nodeMode.RunsLocalNode(context.Background()))
+	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 // A fresh install reads an unpicked mode until the user chooses, and it starts
 // no daemon meanwhile. Polling there dials a Bitcoin Core that is not there.
 func TestRunsLocalNodeStopsOnAnUnpickedMode(t *testing.T) {
 	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_UNSPECIFIED, nil)
-	require.False(t, nodeMode.RunsLocalNode(context.Background()))
+	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 // An engine with no source has no mode to obey. It keeps its old behaviour.
 func TestRunsLocalNodeAllowsANilSource(t *testing.T) {
 	var nodeMode *engines.NodeMode
-	require.True(t, nodeMode.RunsLocalNode(context.Background()))
+	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 // An orchestrator restart must not restart the pollers a light-mode user
 // stopped. The last known answer stands until a read succeeds.
 func TestRunsLocalNodeKeepsTheLastAnswer(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(client)
+	nodeMode := engines.NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
 			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
 		}, nil)
-	require.False(t, nodeMode.RunsLocalNode(context.Background()))
+	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 
 	engines.ExpireNodeModeCache(nodeMode)
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("orchestrator is restarting"))
-	require.False(t, nodeMode.RunsLocalNode(context.Background()))
+	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 // A full-mode install keeps its pollers through an orchestrator restart.
 func TestRunsLocalNodeKeepsAFullAnswer(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(client)
+	nodeMode := engines.NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
 			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
 		}, nil)
-	require.True(t, nodeMode.RunsLocalNode(context.Background()))
+	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 
 	engines.ExpireNodeModeCache(nodeMode)
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("orchestrator is restarting"))
-	require.True(t, nodeMode.RunsLocalNode(context.Background()))
+	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 // One read per TTL. Every engine ticks each second, and each tick asks.
 func TestModeCachesTheRead(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(client)
+	nodeMode := engines.NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
@@ -111,22 +106,21 @@ func TestModeCachesTheRead(t *testing.T) {
 		}, nil)
 
 	for range 5 {
-		require.True(t, nodeMode.RunsLocalNode(context.Background()))
+		require.True(t, nodeMode.RunsLocalNode(t.Context()))
 	}
 }
 
 // A user who switches to full mode gets the pollers back without a restart.
 func TestModeReReadsAfterTheCacheExpires(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(client)
+	nodeMode := engines.NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
 			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
 		}, nil)
-	require.False(t, nodeMode.RunsLocalNode(context.Background()))
+	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 
 	engines.ExpireNodeModeCache(nodeMode)
 	client.EXPECT().
@@ -134,23 +128,14 @@ func TestModeReReadsAfterTheCacheExpires(t *testing.T) {
 		Return(&connect.Response[orchpb.GetNodeModeResponse]{
 			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
 		}, nil)
-	require.True(t, nodeMode.RunsLocalNode(context.Background()))
-}
-
-// A source with no client cannot answer, so a gated RPC must refuse.
-func TestRequireFullNodeNeedsAClient(t *testing.T) {
-	nodeMode := engines.NewNodeMode()
-	err := nodeMode.RequireFullNode(context.Background(), "proposing a sidechain")
-	require.ErrorContains(t, err, "orchestrator wallet client not connected")
-	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
 // Four pollers expire the cache together. One read serves them all, and an
 // older answer cannot land last and overwrite a newer one.
 func TestModeCollapsesConcurrentReads(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	nodeMode := engines.NewNodeMode()
-	nodeMode.SetClient(client)
+	nodeMode := engines.NewNodeMode(client)
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
@@ -168,7 +153,7 @@ func TestModeCollapsesConcurrentReads(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			answers[i] = nodeMode.RunsLocalNode(context.Background())
+			answers[i] = nodeMode.RunsLocalNode(t.Context())
 		}()
 	}
 	wg.Wait()

@@ -30,7 +30,6 @@ type Tracker struct {
 	stats map[int]*Stats
 }
 
-// NewTracker creates a new bandwidth tracker
 func NewTracker() *Tracker {
 	return &Tracker{
 		stats: make(map[int]*Stats),

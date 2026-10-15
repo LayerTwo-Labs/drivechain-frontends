@@ -132,10 +132,10 @@ func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*File, error) {
 func getFileWhere(ctx context.Context, db *sql.DB, where sq.Eq) (*File, error) {
 	sqlStr, args := selectFile.Where(where).MustSql()
 	file, err := scanFile(db.QueryRowContext(ctx, sqlStr, args...))
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
-	}
-	if err != nil {
+	case err != nil:
 		return nil, err
 	}
 	return &file, nil
