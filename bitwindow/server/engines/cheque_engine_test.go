@@ -16,6 +16,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -23,9 +25,23 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-const chequeWalletID = "80CEBA2163224572BDEADD2D2181C51B"
+const (
+	chequeWalletID = "80CEBA2163224572BDEADD2D2181C51B"
+	chequeSeedHex  = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+)
 
 func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
+	t.Helper()
+
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	orch.EXPECT().
+		GetWalletSeed(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: chequeSeedHex}), nil).
+		AnyTimes()
+	return testChequeEngineWith(t, chain, orch)
+}
+
+func testChequeEngineWith(t *testing.T, chain ChequeChain, orch orchrpc.WalletManagerServiceClient) *ChequeEngine {
 	t.Helper()
 
 	dir := t.TempDir()
@@ -34,7 +50,7 @@ func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
 		"activeWalletId": chequeWalletID,
 		"wallets": []map[string]any{{
 			"version":     1,
-			"master":      map[string]any{"seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"},
+			"master":      map[string]any{"seed_hex": chequeSeedHex},
 			"id":          chequeWalletID,
 			"name":        "test",
 			"wallet_type": "bitcoinCore",
@@ -45,6 +61,7 @@ func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
 
 	walletEngine := NewWalletEngine(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
+		orch,
 		dir,
 		&chaincfg.SigNetParams,
 	)
@@ -157,14 +174,13 @@ func TestRecoverChequesOnUnlockWarnsOneTime(t *testing.T) {
 // A wallet with no seed holds no cheques, so the scan skips it and never retries.
 func TestRecoverChequesOnUnlockSkipsASeedlessWallet(t *testing.T) {
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
-	engine := testChequeEngine(t, chain)
-	engine.scanRetry = time.Millisecond
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
 		GetWalletSeed(gomock.Any(), gomock.Any()).
 		Return(nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet holds no master seed"))).
 		AnyTimes()
-	engine.walletEngine.SetOrchestratorClient(orch)
+	engine := testChequeEngineWith(t, chain, orch)
+	engine.scanRetry = time.Millisecond
 
 	var logs bytes.Buffer
 	ctx, cancel := context.WithTimeout(zerolog.New(&logs).WithContext(t.Context()), 5*time.Second)

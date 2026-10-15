@@ -12,12 +12,16 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/btcsuite/btcd/chaincfg"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestOpenDir_CreatesDirectory(t *testing.T) {
@@ -87,37 +91,28 @@ func TestGetDir(t *testing.T) {
 	}
 }
 
-// newEncryptTestEngine builds a BitDriveEngine backed by an on-disk unencrypted
-// wallet.json holding a single enforcer wallet, so Encrypt/Decrypt can derive
-// their keys via WalletEngine.GetStarterSeed.
+// newEncryptTestEngine builds a BitDriveEngine whose orchestrator names one
+// starter wallet, so Encrypt/Decrypt can derive their keys via
+// WalletEngine.GetStarterSeed.
 func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 	t.Helper()
 
-	walletDir := t.TempDir()
-	walletJSON := `{
-		"version": 1,
-		"activeWalletId": "test-enforcer",
-		"wallets": [
-			{
-				"id": "test-enforcer",
-				"name": "primary",
-				"wallet_type": "bitcoinCore",
-				"master": {
-					"seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-				}
-			}
-		]
-	}`
-	if err := os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(walletJSON), 0644); err != nil {
-		t.Fatalf("write wallet.json: %v", err)
-	}
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	orch.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+			Wallets: []*orchpb.WalletMetadata{{Id: "test-enforcer", IsStarter: true}},
+		}), nil).
+		AnyTimes()
+	orch.EXPECT().
+		GetWalletSeed(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&orchpb.GetWalletSeedResponse{
+			SeedHex: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		}), nil).
+		AnyTimes()
 
-	walletEngine := &WalletEngine{
-		walletDir:   walletDir,
-		chainParams: &chaincfg.SigNetParams,
-	}
 	return &BitDriveEngine{
-		walletEngine: walletEngine,
+		walletEngine: NewWalletEngine(nil, orch, t.TempDir(), &chaincfg.SigNetParams),
 		chainParams:  &chaincfg.SigNetParams,
 	}
 }

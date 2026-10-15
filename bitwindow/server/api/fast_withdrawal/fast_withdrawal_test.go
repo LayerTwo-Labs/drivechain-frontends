@@ -8,9 +8,14 @@ import (
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type discardBroadcaster struct{}
+
+func (discardBroadcaster) Broadcast(context.Context, *notificationv1.WatchResponse) {}
 
 func withdrawServer(t *testing.T, response string) *httptest.Server {
 	t.Helper()
@@ -35,7 +40,7 @@ func TestInitiateSidechainWithdrawal(t *testing.T) {
 	t.Parallel()
 
 	newServer := func() *Server {
-		return New(engines.NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, nil))
+		return New(engines.NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, discardBroadcaster{}))
 	}
 
 	t.Run("success registers the pending withdrawal", func(t *testing.T) {

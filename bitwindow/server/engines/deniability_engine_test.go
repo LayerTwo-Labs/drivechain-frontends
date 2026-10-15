@@ -53,16 +53,15 @@ func testDenialWalletEngine(
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), walletData, 0o600))
 
-	engine := engines.NewWalletEngine(
-		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return bitcoind, nil },
-		dir,
-		&chaincfg.SigNetParams,
-	)
 	if orchestrator == nil {
 		orchestrator = apitests.CoreWalletOrchestrator(t)
 	}
-	engine.SetOrchestratorClient(orchestrator)
-	return engine
+	return engines.NewWalletEngine(
+		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return bitcoind, nil },
+		orchestrator,
+		dir,
+		&chaincfg.SigNetParams,
+	)
 }
 
 func TestDeniabilityEngine(t *testing.T) {

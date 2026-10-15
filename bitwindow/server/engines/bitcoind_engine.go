@@ -535,9 +535,6 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 // applyPendingM4 applies the M4 votes of processed blocks the enforcer has
 // reached. It waits, without error, while the enforcer is unreachable.
 func (p *Parser) applyPendingM4(ctx context.Context) error {
-	if p.enforcer == nil {
-		return nil
-	}
 	processed, err := blocks.GetProcessedTip(ctx, p.db)
 	if err != nil {
 		return fmt.Errorf("get processed tip: %w", err)

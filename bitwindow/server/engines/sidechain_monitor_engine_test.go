@@ -27,10 +27,9 @@ func (m *MockNotificationEngine) Broadcast(ctx context.Context, event *notificat
 func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
 	ctx := context.Background()
 
-	// Create engine with nil notification (not testing notifications here)
 	engine := NewSidechainMonitorEngine(
 		nil, nil, nil, nil, nil, nil, // sidechain services not needed for this test
-		nil, // notification engine not needed for this test
+		&MockNotificationEngine{},
 	)
 
 	// Create test withdrawal
@@ -86,7 +85,7 @@ func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
 	// Create engine
 	engine := NewSidechainMonitorEngine(
 		nil, nil, nil, nil, nil, nil,
-		nil,
+		&MockNotificationEngine{},
 	)
 
 	// Register pending withdrawal
@@ -149,7 +148,7 @@ func TestSidechainMonitorEngine_StoreWithdrawal(t *testing.T) {
 func TestSidechainMonitorEngine_GetPollInterval(t *testing.T) {
 	engine := NewSidechainMonitorEngine(
 		nil, nil, nil, nil, nil, nil,
-		nil,
+		&MockNotificationEngine{},
 	)
 
 	// When no withdrawals detected, should return 30 seconds
@@ -171,7 +170,7 @@ func TestSidechainMonitorEngine_GetPollInterval(t *testing.T) {
 func TestSidechainMonitorEngine_CleanupOldWithdrawals(t *testing.T) {
 	engine := NewSidechainMonitorEngine(
 		nil, nil, nil, nil, nil, nil,
-		nil,
+		&MockNotificationEngine{},
 	)
 
 	// Add old and new withdrawals
@@ -242,7 +241,7 @@ func TestSidechainMonitorEngine_FindTransactionToAddress(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, nil)
+			engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
 
 			txid, err := engine.findTransactionToAddress(t.Context(), tc.client, "addr", 100000, "thunder")
 			if tc.wantErr != "" {

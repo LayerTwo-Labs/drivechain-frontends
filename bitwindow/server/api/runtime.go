@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -60,7 +59,6 @@ import (
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	orchctlrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -175,33 +173,30 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	// WalletEngine wraps wallet.json on disk; auto-unlocks unencrypted wallets
 	// inside its constructor. Driven by walletDir which is shared across
 	// networks (not per-network).
+	orchClient := s.svcs.OrchestratorClient
+	if orchClient == nil {
+		// Seed-bearing client (GetWalletSeed) — attach the local-auth cookie.
+		orchClient = orchrpc.NewWalletManagerServiceClient(
+			http.DefaultClient,
+			s.svcs.OrchestratorAddr,
+			connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
+		)
+	}
 	rt.walletEngine = engines.NewWalletEngine(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return s.Bitcoind.Get(ctx)
 		},
+		orchClient,
 		rt.walletDir,
 		rt.chainParams,
 	)
-	switch {
-	case s.svcs.OrchestratorClient != nil:
-		rt.walletEngine.SetOrchestratorClient(s.svcs.OrchestratorClient)
-	case s.svcs.OrchestratorAddr != "":
-		// Seed-bearing client (GetWalletSeed) — attach the local-auth cookie.
-		rt.walletEngine.SetOrchestratorClient(orchrpc.NewWalletManagerServiceClient(
-			http.DefaultClient,
-			s.svcs.OrchestratorAddr,
-			connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
-		))
-	}
 
 	// A coin the user froze belongs to no send of ours: not a news broadcast,
 	// not a timestamp, not a BitDrive write.
-	if rt.db != nil {
-		db := rt.db
-		rt.walletEngine.SetFrozenCoins(func(ctx context.Context) ([]string, error) {
-			return utxometadata.FrozenOutpoints(ctx, db)
-		})
-	}
+	db := rt.db
+	rt.walletEngine.SetFrozenCoins(func(ctx context.Context) ([]string, error) {
+		return utxometadata.FrozenOutpoints(ctx, db)
+	})
 
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
 	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain)
@@ -281,20 +276,10 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		register(path, h)
 	}
 	{
-		var restartL1 func(context.Context) error
-		if s.svcs.OrchestratorAddr != "" {
-			orchAddr := s.svcs.OrchestratorAddr
-			orchDir := s.svcs.BitwindowDir
-			restartL1 = func(ctx context.Context) error {
-				client := orchctlrpc.NewOrchestratorServiceClient(
-					http.DefaultClient,
-					orchAddr,
-					connect.WithGRPC(),
-					connect.WithInterceptors(localauth.Interceptor(orchDir)),
-				)
-				_, err := client.RestartL1(ctx, connect.NewRequest(&orchctlpb.RestartL1Request{}))
-				return err
-			}
+		orchestrator := dial.Orchestrator(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
+		restartL1 := func(ctx context.Context) error {
+			_, err := orchestrator.RestartL1(ctx, connect.NewRequest(&orchctlpb.RestartL1Request{}))
+			return err
 		}
 		walletSvcImpl := api_wallet.New(ctx, rt.db, s.Bitcoind, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
 		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
@@ -514,17 +499,7 @@ func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error
 
 // coreRawCall routes raw bitcoind RPCs through the orchestrator.
 func coreRawCall(s *Server) engines.RawCall {
-	if s.svcs.OrchestratorAddr == "" {
-		return func(context.Context, string, ...any) (json.RawMessage, error) {
-			return nil, errors.New("no orchestrator configured")
-		}
-	}
-	client := orchctlrpc.NewOrchestratorServiceClient(
-		http.DefaultClient,
-		s.svcs.OrchestratorAddr,
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
-	)
+	client := dial.Orchestrator(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
 	return func(ctx context.Context, method string, params ...any) (json.RawMessage, error) {
 		paramsJSON, err := json.Marshal(params)
 		if err != nil {
@@ -626,9 +601,7 @@ func (rt *Runtime) Close() {
 	case <-time.After(10 * time.Second):
 	}
 
-	if rt.db != nil {
-		_ = rt.db.Close()
-	}
+	_ = rt.db.Close()
 }
 
 func chainParamsFor(network config.Network) *chaincfg.Params {

@@ -261,10 +261,6 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 	}
 
 	// Create Bitcoin OP_RETURN transaction with prefixed file hash
-	if e.wallet == nil {
-		return nil, fmt.Errorf("wallet service not available")
-	}
-
 	// Prepend TMSTAMP prefix to hash for protocol identification
 	opReturnData := append([]byte(TimestampPrefix), hash[:]...)
 
