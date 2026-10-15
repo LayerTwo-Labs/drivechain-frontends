@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -478,6 +479,38 @@ func (e *BitDriveEngine) encodeContent(
 	return metadataB64, base64.StdEncoding.EncodeToString(processedContent), timestamp, nil
 }
 
+// StoreFile writes content to an OP_RETURN through the active wallet. It
+// returns the txid and the file type.
+func (e *BitDriveEngine) StoreFile(ctx context.Context, content []byte, encrypt bool, feeSatPerVbyte uint64) (string, string, error) {
+	if err := ValidateFileSize(content); err != nil {
+		return "", "", connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	metadataB64, contentStr, timestamp, err := e.EncodeOPReturnData(ctx, content, encrypt)
+	if err != nil {
+		return "", "", fmt.Errorf("encode OP_RETURN data: %w", err)
+	}
+
+	metadata, err := ParseMetadata(metadataB64)
+	if err != nil {
+		return "", "", fmt.Errorf("parse encoded metadata: %w", err)
+	}
+
+	txid, err := e.walletEngine.BroadcastOpReturn(ctx, []byte(FormatOPReturnData(metadataB64, contentStr)), feeSatPerVbyte, 0)
+	if err != nil {
+		return "", "", fmt.Errorf("send transaction: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("txid", txid).
+		Bool("encrypted", encrypt).
+		Int("size", len(content)).
+		Uint32("timestamp", timestamp).
+		Msg("stored BitDrive file")
+
+	return txid, metadata.FileType, nil
+}
+
 // DecodeOPReturnData decodes and optionally decrypts OP_RETURN data
 func (e *BitDriveEngine) DecodeOPReturnData(ctx context.Context, opReturnMessage string) ([]byte, *ParsedMetadata, error) {
 	metadataB64, contentStr, err := ParseOPReturnParts(opReturnMessage)
@@ -744,6 +777,28 @@ func (e *BitDriveEngine) EncodeMultisigData(ctx context.Context, jsonData []byte
 		return "", err
 	}
 	return FormatOPReturnData(metadataB64, contentStr), nil
+}
+
+// StoreMultisigData writes multisig group data to an OP_RETURN through the
+// active wallet and returns the txid.
+func (e *BitDriveEngine) StoreMultisigData(ctx context.Context, jsonData []byte, encrypt bool, feeSatPerVbyte uint64) (string, error) {
+	opReturnData, err := e.EncodeMultisigData(ctx, jsonData, encrypt)
+	if err != nil {
+		return "", fmt.Errorf("encode multisig data: %w", err)
+	}
+
+	txid, err := e.walletEngine.BroadcastOpReturn(ctx, []byte(opReturnData), feeSatPerVbyte, 0)
+	if err != nil {
+		return "", fmt.Errorf("send transaction: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("txid", txid).
+		Bool("encrypted", encrypt).
+		Int("size", len(jsonData)).
+		Msg("stored multisig data")
+
+	return txid, nil
 }
 
 // DecodeMultisigData decodes multisig group data from OP_RETURN

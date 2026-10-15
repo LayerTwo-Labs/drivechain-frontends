@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/chaincfg"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
@@ -418,4 +420,72 @@ func TestNewBitDriveEngine(t *testing.T) {
 		_, err := NewBitDriveEngine(nil, nil, dataDir, &chaincfg.SigNetParams)
 		require.ErrorContains(t, err, "create bitdrive dir")
 	})
+}
+
+// newStoreTestEngine builds a BitDriveEngine whose active wallet sends through
+// orch. It returns the OP_RETURN data of each send.
+func newStoreTestEngine(t *testing.T) (*BitDriveEngine, *[]string) {
+	t.Helper()
+
+	walletDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"),
+		[]byte(`{"activeWalletId":"a","wallets":[{"id":"a","master":{"seed_hex":"00"}}]}`), 0o600))
+
+	var sent []string
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	orch.EXPECT().
+		SendTransaction(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
+			assert.Equal(t, "a", req.Msg.WalletId)
+			assert.Equal(t, int64(7), req.Msg.FeeRateSatPerVbyte)
+			data, err := hex.DecodeString(req.Msg.OpReturnHex)
+			require.NoError(t, err)
+			sent = append(sent, string(data))
+			return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: "txid"}), nil
+		}).
+		AnyTimes()
+
+	return &BitDriveEngine{
+		walletEngine: NewWalletEngine(nil, orch, walletDir, &chaincfg.SigNetParams),
+		chainParams:  &chaincfg.SigNetParams,
+	}, &sent
+}
+
+func TestStoreFile(t *testing.T) {
+	t.Run("broadcasts the file", func(t *testing.T) {
+		engine, sent := newStoreTestEngine(t)
+
+		txid, fileType, err := engine.StoreFile(t.Context(), []byte("hello"), false, 7)
+		require.NoError(t, err)
+		assert.Equal(t, "txid", txid)
+		assert.Equal(t, "txt", fileType)
+
+		require.Len(t, *sent, 1)
+		content, metadata, err := engine.DecodeOPReturnData(t.Context(), (*sent)[0])
+		require.NoError(t, err)
+		assert.Equal(t, "hello", string(content))
+		assert.False(t, metadata.IsMultisig)
+	})
+
+	t.Run("refuses a file above the limit", func(t *testing.T) {
+		engine, sent := newStoreTestEngine(t)
+
+		_, _, err := engine.StoreFile(t.Context(), make([]byte, MaxFileSize+1), false, 7)
+		require.ErrorContains(t, err, "exceeds maximum")
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		assert.Empty(t, *sent)
+	})
+}
+
+func TestStoreMultisigData(t *testing.T) {
+	engine, sent := newStoreTestEngine(t)
+
+	txid, err := engine.StoreMultisigData(t.Context(), []byte(`{"m":2}`), false, 7)
+	require.NoError(t, err)
+	assert.Equal(t, "txid", txid)
+
+	require.Len(t, *sent, 1)
+	content, err := engine.DecodeMultisigData(t.Context(), (*sent)[0])
+	require.NoError(t, err)
+	assert.Equal(t, `{"m":2}`, string(content))
 }

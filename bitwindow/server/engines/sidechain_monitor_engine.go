@@ -196,6 +196,94 @@ func (e *SidechainMonitorEngine) GetPendingFastWithdrawals(ctx context.Context) 
 	return lo.Values(e.pendingFastWithdrawals), nil
 }
 
+type withdrawResponse struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+	Data   *struct {
+		Hash            string `json:"hash"`
+		ServerL2Address *struct {
+			Info string `json:"info"`
+		} `json:"server_l2_address"`
+		ServerFeeSats *int64 `json:"server_fee_sats"`
+	} `json:"data"`
+}
+
+// InitiateFastWithdrawal asks the fast withdrawal server at serverURL to pay
+// destination, and registers the withdrawal for payment. It returns the withdrawal hash.
+func (e *SidechainMonitorEngine) InitiateFastWithdrawal(ctx context.Context, serverURL string, sidechain string, amount int64, destination string) (string, error) {
+	log := zerolog.Ctx(ctx)
+
+	// Call external fast withdrawal server (like fw1.drivechain.info)
+	withdrawalRequest := map[string]interface{}{
+		"withdrawal_destination": destination,
+		"withdrawal_amount":      float64(amount) / 100000000.0, // Convert sats to BTC
+		"layer_2_chain_name":     sidechain,
+	}
+
+	log.Info().Interface("request", withdrawalRequest).Str("server", serverURL).Msg("requesting fast withdrawal from external server")
+
+	// Make actual HTTP call to external server
+	jsonPayload, err := json.Marshal(withdrawalRequest)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	withdrawURL := serverURL + "/withdraw"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawURL, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return "", fmt.Errorf("build request to %s: %w", withdrawURL, err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	resp, err := e.httpClient.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("http request to %s: %w", withdrawURL, err)
+	}
+	defer resp.Body.Close()
+
+	var result withdrawResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+
+	if result.Status != "success" {
+		return "", fmt.Errorf("withdrawal request failed: %s", result.Error)
+	}
+
+	data := result.Data
+	if data == nil {
+		return "", errors.New("invalid response format: missing data")
+	}
+	if data.Hash == "" {
+		return "", errors.New("invalid response format: missing hash")
+	}
+	if data.ServerL2Address == nil {
+		return "", errors.New("invalid response format: missing server_l2_address")
+	}
+	if data.ServerL2Address.Info == "" {
+		return "", errors.New("invalid response format: missing server L2 address info")
+	}
+	if data.ServerFeeSats == nil {
+		return "", errors.New("invalid response format: missing server_fee_sats")
+	}
+	withdrawalHash := data.Hash
+	serverAddress := data.ServerL2Address.Info
+	serverFeeSats := *data.ServerFeeSats
+
+	// Register this pending withdrawal for monitoring
+	pending := PendingFastWithdrawal{
+		Hash:           withdrawalHash,
+		Sidechain:      sidechain,
+		ServerAddress:  serverAddress,
+		ExpectedAmount: amount + serverFeeSats,
+		ServerURL:      serverURL,
+		CreatedAt:      time.Now(),
+	}
+
+	e.RegisterPendingFastWithdrawal(ctx, pending)
+
+	return withdrawalHash, nil
+}
+
 // checkFastWithdrawalPayments checks if any pending fast withdrawals have been paid
 func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context, sidechain string, client sidechainRPC) error {
 	log := zerolog.Ctx(ctx)

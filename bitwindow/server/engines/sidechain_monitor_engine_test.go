@@ -276,3 +276,94 @@ func TestSidechainMonitorEngine_Monitor(t *testing.T) {
 	})
 	require.ErrorContains(t, err, "get photon client: not running")
 }
+
+func withdrawServer(t *testing.T, response string) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/withdraw", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		var req map[string]any
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		assert.Equal(t, "bc1qtest123", req["withdrawal_destination"])
+		assert.Equal(t, 0.001, req["withdrawal_amount"])
+		assert.Equal(t, "thunder", req["layer_2_chain_name"])
+
+		_, err := w.Write([]byte(response))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestSidechainMonitorEngine_InitiateFastWithdrawal(t *testing.T) {
+	t.Parallel()
+
+	newEngine := func() *SidechainMonitorEngine {
+		return NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
+	}
+
+	t.Run("success registers the pending withdrawal", func(t *testing.T) {
+		t.Parallel()
+
+		srv := withdrawServer(t, `{"status":"success","data":{"hash":"withdrawal-hash-123",`+
+			`"server_l2_address":{"info":"thunder1serveraddress456"},"server_fee_sats":5000}}`)
+		e := newEngine()
+
+		hash, err := e.InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
+		require.NoError(t, err)
+		assert.Equal(t, "withdrawal-hash-123", hash)
+
+		pending, err := e.GetPendingFastWithdrawals(t.Context())
+		require.NoError(t, err)
+		require.Len(t, pending, 1)
+		assert.Equal(t, "withdrawal-hash-123", pending[0].Hash)
+		assert.Equal(t, "thunder", pending[0].Sidechain)
+		assert.Equal(t, "thunder1serveraddress456", pending[0].ServerAddress)
+		assert.Equal(t, int64(105000), pending[0].ExpectedAmount)
+	})
+
+	t.Run("server error registers nothing", func(t *testing.T) {
+		t.Parallel()
+
+		srv := withdrawServer(t, `{"status":"error","error":"insufficient server funds"}`)
+		e := newEngine()
+
+		hash, err := e.InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
+		require.ErrorContains(t, err, "insufficient server funds")
+		assert.Empty(t, hash)
+
+		pending, err := e.GetPendingFastWithdrawals(t.Context())
+		require.NoError(t, err)
+		assert.Empty(t, pending)
+	})
+
+	t.Run("missing fields fail", func(t *testing.T) {
+		t.Parallel()
+
+		srv := withdrawServer(t, `{"status":"success","data":{"hash":"test-hash"}}`)
+
+		_, err := newEngine().InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
+		require.ErrorContains(t, err, "missing server_l2_address")
+	})
+
+	t.Run("a fractional fee fails", func(t *testing.T) {
+		t.Parallel()
+
+		srv := withdrawServer(t, `{"status":"success","data":{"hash":"test-hash",`+
+			`"server_l2_address":{"info":"thunder1serveraddress456"},"server_fee_sats":5000.5}}`)
+
+		_, err := newEngine().InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
+		require.ErrorContains(t, err, "decode response")
+	})
+
+	t.Run("a cancelled context stops the request", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		_, err := newEngine().InitiateFastWithdrawal(ctx, "http://127.0.0.1:1", "thunder", 100000, "bc1qtest123")
+		require.ErrorIs(t, err, context.Canceled)
+	})
+}
