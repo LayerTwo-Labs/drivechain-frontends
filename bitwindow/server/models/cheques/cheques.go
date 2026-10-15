@@ -89,15 +89,18 @@ func bumpIndexCounter(ctx context.Context, tx *sql.Tx, walletID string, index ui
 	return nil
 }
 
+var selectCheque = sq.
+	Select(
+		"id", "wallet_id", "derivation_index", "expected_amount_sats", "address",
+		"actual_amount_sats", "created_at", "funded_at", "swept_txid", "swept_at",
+	).
+	From("cheques").
+	PlaceholderFormat(sq.Question)
+
 // Get retrieves a cheque by ID for a specific wallet
 func Get(ctx context.Context, db *sql.DB, walletID string, id int64) (*Cheque, error) {
-	cheque, err := database.Get[Cheque](ctx, db, `
-		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
-		       actual_amount_sats, created_at, funded_at,
-		       swept_txid, swept_at
-		FROM cheques
-		WHERE wallet_id = ? AND id = ?
-	`, walletID, id)
+	query, args := selectCheque.Where(sq.Eq{"wallet_id": walletID, "id": id}).MustSql()
+	cheque, err := database.Get[Cheque](ctx, db, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("get cheque: %w", err)
 	}
@@ -110,13 +113,8 @@ func Get(ctx context.Context, db *sql.DB, walletID string, id int64) (*Cheque, e
 
 // GetByAddress retrieves a cheque by address for a specific wallet
 func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address string) (*Cheque, error) {
-	cheque, err := database.Get[Cheque](ctx, db, `
-		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
-		       actual_amount_sats, created_at, funded_at,
-		       swept_txid, swept_at
-		FROM cheques
-		WHERE wallet_id = ? AND address = ?
-	`, walletID, address)
+	query, args := selectCheque.Where(sq.Eq{"wallet_id": walletID, "address": address}).MustSql()
+	cheque, err := database.Get[Cheque](ctx, db, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("get cheque by address: %w", err)
 	}
@@ -129,14 +127,8 @@ func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address stri
 
 // List retrieves all cheques for a specific wallet
 func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
-	cheques, err := database.Select[Cheque](ctx, db, `
-		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
-		       actual_amount_sats, created_at, funded_at,
-		       swept_txid, swept_at
-		FROM cheques
-		WHERE wallet_id = ?
-		ORDER BY created_at DESC
-	`, walletID)
+	query, args := selectCheque.Where(sq.Eq{"wallet_id": walletID}).OrderBy("created_at DESC").MustSql()
+	cheques, err := database.Select[Cheque](ctx, db, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list cheques: %w", err)
 	}

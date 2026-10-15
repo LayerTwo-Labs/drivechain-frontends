@@ -3,6 +3,7 @@ package deniability
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"strconv"
@@ -20,18 +21,18 @@ var ErrNotFound = errors.New("denial not found")
 
 // Denial represents a deniability plan
 type Denial struct {
-	ID              int64
-	WalletID        *string
-	TipTXID         string
-	TipVout         int32
-	DelayDuration   time.Duration
-	NumHops         int32
-	TargetUTXOSizes []int64 // Target UTXO sizes to create, one per hop
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	CancelledAt     *time.Time
-	CancelReason    *string
-	PausedAt        *time.Time
+	ID              int64         `db:"id"`
+	WalletID        *string       `db:"wallet_id"`
+	TipTXID         string        `db:"tip_txid"`
+	TipVout         int32         `db:"tip_vout"`
+	DelayDuration   time.Duration `db:"delay_duration"`
+	NumHops         int32         `db:"num_hops"`
+	TargetUTXOSizes TargetSizes   `db:"target_utxo_sizes"`
+	CreatedAt       time.Time     `db:"created_at"`
+	UpdatedAt       time.Time     `db:"updated_at"`
+	CancelledAt     *time.Time    `db:"cancelled_at"`
+	CancelReason    *string       `db:"cancelled_reason"`
+	PausedAt        *time.Time    `db:"paused_at"`
 	NextExecution   *time.Time
 	ExecutedDenials []ExecutedDenial
 }
@@ -47,16 +48,52 @@ type ExecutedDenial struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-// encodeTargetSizes converts []int64 to comma-separated string
-func encodeTargetSizes(sizes []int64) *string {
-	if len(sizes) == 0 {
+// TargetSizes holds the UTXO sizes to create, one per hop. The database stores
+// them as comma-separated text.
+type TargetSizes []int64
+
+func (t *TargetSizes) Scan(src any) error {
+	var data string
+	switch v := src.(type) {
+	case nil:
+		*t = nil
+		return nil
+	case string:
+		data = v
+	case []byte:
+		data = string(v)
+	default:
+		return fmt.Errorf("scan target sizes: unsupported type %T", src)
+	}
+	if data == "" {
+		*t = nil
 		return nil
 	}
-	parts := lo.Map(sizes, func(s int64, _ int) string {
+	parts := strings.Split(data, ",")
+	sizes := make(TargetSizes, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		v, err := strconv.ParseInt(p, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid size %q: %w", p, err)
+		}
+		sizes = append(sizes, v)
+	}
+	*t = sizes
+	return nil
+}
+
+func (t TargetSizes) Value() (driver.Value, error) {
+	if len(t) == 0 {
+		return nil, nil
+	}
+	parts := lo.Map(t, func(s int64, _ int) string {
 		return strconv.FormatInt(s, 10)
 	})
-	result := strings.Join(parts, ",")
-	return &result
+	return strings.Join(parts, ","), nil
 }
 
 func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout int32, delayDuration time.Duration, numHops int32, targetUTXOSizes []int64) (Denial, error) {
@@ -71,7 +108,7 @@ func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout 
 			created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
-	`, walletID, txid, vout, delayDuration, numHops, encodeTargetSizes(targetUTXOSizes), time.Now())
+	`, walletID, txid, vout, delayDuration, numHops, TargetSizes(targetUTXOSizes), time.Now())
 	if err != nil {
 		return Denial{}, err
 	}
@@ -125,33 +162,6 @@ var selectDenial = sq.
 	) e ON e.denial_id = d.id`).
 	PlaceholderFormat(sq.Question)
 
-func scanDenial(scanner interface{ Scan(dest ...any) error }) (Denial, error) {
-	var denial Denial
-	var targetSizes *string
-	if err := scanner.Scan(
-		&denial.ID,
-		&denial.WalletID,
-		&denial.DelayDuration,
-		&denial.NumHops,
-		&targetSizes,
-		&denial.CreatedAt,
-		&denial.UpdatedAt,
-		&denial.CancelledAt,
-		&denial.CancelReason,
-		&denial.PausedAt,
-		&denial.TipTXID,
-		&denial.TipVout,
-	); err != nil {
-		return Denial{}, err
-	}
-	sizes, err := parseTargetUTXOSizes(targetSizes)
-	if err != nil {
-		return Denial{}, fmt.Errorf("parse target sizes: %w", err)
-	}
-	denial.TargetUTXOSizes = sizes
-	return denial, nil
-}
-
 type config struct {
 	excludeCancelled bool
 }
@@ -173,27 +183,6 @@ func newConfig(opts []Option) config {
 	return conf
 }
 
-// parseTargetUTXOSizes parses comma-separated target sizes from the database
-func parseTargetUTXOSizes(data *string) ([]int64, error) {
-	if data == nil || *data == "" {
-		return nil, nil
-	}
-	parts := strings.Split(*data, ",")
-	sizes := make([]int64, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-		v, err := strconv.ParseInt(p, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("invalid size %q: %w", p, err)
-		}
-		sizes = append(sizes, v)
-	}
-	return sizes, nil
-}
-
 func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	conf := newConfig(opts)
 
@@ -203,29 +192,11 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	}
 	query, args := builder.MustSql()
 
-	rows, err := db.QueryContext(ctx, query, args...)
+	deniabilities, err := database.Select[Denial](ctx, db, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query deniabilities: %w", err)
 	}
 
-	// First, collect all denials from the query (don't do nested queries while rows are open)
-	var deniabilities []Denial
-	for rows.Next() {
-		denial, err := scanDenial(rows)
-		if err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("scan deniability: %w", err)
-		}
-		deniabilities = append(deniabilities, denial)
-	}
-
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		return nil, fmt.Errorf("iterate over deniabilities: %w", err)
-	}
-	rows.Close() // Close rows BEFORE doing nested queries
-
-	// Now add execution data in a separate loop (safe to do nested queries now)
 	for i := range deniabilities {
 		deniabilities[i], err = deniabilities[i].addExecutionData(ctx, db)
 		if err != nil {
@@ -355,9 +326,9 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 		// Same tip semantics as the txid filter, so both match a single outpoint.
 		builder = builder.Where(sq.Eq{"COALESCE(e.to_vout, d.initial_vout)": *tipVout})
 	}
-	query, args := builder.MustSql()
+	query, args := builder.Limit(1).MustSql()
 
-	denial, err := scanDenial(db.QueryRowContext(ctx, query, args...))
+	denial, err := database.Get[Denial](ctx, db, query, args...)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return nil, nil
@@ -390,7 +361,7 @@ func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numH
 func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 	query, args := selectDenial.Where(sq.Eq{"d.id": id}).MustSql()
 
-	denial, err := scanDenial(db.QueryRowContext(ctx, query, args...))
+	denial, err := database.Get[Denial](ctx, db, query, args...)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return Denial{}, ErrNotFound

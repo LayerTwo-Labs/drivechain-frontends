@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,6 +41,21 @@ func TestDeniability(t *testing.T) {
 
 		_, err := Get(t.Context(), db, 42)
 		require.ErrorIs(t, err, ErrNotFound)
+	})
+
+	t.Run("GetByTip with a cancelled denial on the same tip", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		cancelled, err := Create(t.Context(), db, "test-wallet", "txid", 0, time.Hour, 2, nil)
+		require.NoError(t, err)
+		require.NoError(t, Cancel(t.Context(), db, cancelled.ID, "test"))
+		_, err = Create(t.Context(), db, "test-wallet", "txid", 0, time.Hour, 2, nil)
+		require.NoError(t, err)
+
+		got, err := GetByTip(t.Context(), db, "txid", lo.ToPtr(int32(0)))
+		require.NoError(t, err)
+		assert.NotNil(t, got)
 	})
 
 	t.Run("RecordExecution", func(t *testing.T) {
@@ -129,7 +145,7 @@ func TestDeniability(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, active, 1)
 		require.Equal(t, kept.ID, active[0].ID)
-		require.Equal(t, []int64{1000, 2000}, active[0].TargetUTXOSizes)
+		require.Equal(t, TargetSizes{1000, 2000}, active[0].TargetUTXOSizes)
 	})
 
 	t.Run("Cancel", func(t *testing.T) {

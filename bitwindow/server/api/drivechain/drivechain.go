@@ -573,19 +573,7 @@ func (s *Server) mergeBundles(existing, new []*pb.WithdrawalBundle) []*pb.Withdr
 func (s *Server) updateBundleAges(bundles []*pb.WithdrawalBundle, currentHeight uint32) []*pb.WithdrawalBundle {
 	result := make([]*pb.WithdrawalBundle, len(bundles))
 	for i, b := range bundles {
-		// Create a new proto message to avoid mutating cached data
-		// (protobuf messages contain sync.Mutex so we can't just copy them)
-		bundleCopy := &pb.WithdrawalBundle{
-			M6Id:           b.M6Id,
-			SidechainId:    b.SidechainId,
-			BlockHeight:    b.BlockHeight,
-			Status:         b.Status,
-			MaxAge:         b.MaxAge,
-			SequenceNumber: b.SequenceNumber,
-			TransactionHex: b.TransactionHex,
-			Age:            b.Age,
-			BlocksLeft:     b.BlocksLeft,
-		}
+		bundleCopy := proto.Clone(b).(*pb.WithdrawalBundle)
 		if bundleCopy.Status == "pending" {
 			bundleCopy.Age = currentHeight - bundleCopy.BlockHeight
 			if bundleCopy.Age < withdrawalVerificationPeriod {

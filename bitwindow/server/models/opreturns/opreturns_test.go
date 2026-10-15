@@ -148,6 +148,20 @@ func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 	assert.False(t, exists)
 }
 
+func TestListTopics_RefusesShortTopicID(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	db := database.Test(t)
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO cn_topics (topic, name, retention_days, created_height, txid)
+		VALUES (x'010203', 'Short', 0, 1, 'txid')`)
+	require.NoError(t, err)
+
+	_, err = ListTopics(ctx, db)
+	require.ErrorContains(t, err, "topic ID 010203 is 3 bytes, want 4")
+}
+
 // TestListCoinNews_SurfacesStoryTLVs proves a Story's url/subtype/nsfw
 // TLVs (spec §10) round-trip through ListCoinNews.
 func TestListCoinNews_SurfacesStoryTLVs(t *testing.T) {

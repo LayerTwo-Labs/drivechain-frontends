@@ -143,10 +143,6 @@ func (s *Store) ListGroups(ctx context.Context) ([]Group, error) {
 	return groups, nil
 }
 
-func (s *Store) SaveGroup(ctx context.Context, g Group) error {
-	return saveGroupOn(ctx, s.db, g)
-}
-
 func saveGroupOn(ctx context.Context, e execer, g Group) error {
 	_, err := e.ExecContext(ctx, `
 		INSERT INTO multisig_groups (id, name, n, m, created, txid, descriptor, descriptor_receive,
@@ -180,19 +176,6 @@ func listKeysForGroupOn(ctx context.Context, e execer, groupID string) ([]Key, e
 		SELECT id, group_id, owner, xpub, derivation_path, COALESCE(fingerprint,'') AS fingerprint,
 		       COALESCE(origin_path,'') AS origin_path, is_wallet, sort_order
 		FROM multisig_keys WHERE group_id = ? ORDER BY sort_order ASC`, groupID)
-}
-
-func (s *Store) ReplaceKeysForGroup(ctx context.Context, groupID string, keys []Key) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	if err := replaceKeysForGroupOn(ctx, tx, groupID, keys); err != nil {
-		return err
-	}
-	return tx.Commit()
 }
 
 func replaceKeysForGroupOn(ctx context.Context, e execer, groupID string, keys []Key) error {
@@ -240,19 +223,6 @@ func (s *Store) ListAddresses(ctx context.Context, groupID string) ([]Address, e
 		FROM multisig_addresses WHERE group_id = ? ORDER BY addr_type, addr_index`, groupID)
 }
 
-func (s *Store) ReplaceAddresses(ctx context.Context, groupID string, addrs []Address) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	if err := replaceAddressesOn(ctx, tx, groupID, addrs); err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
 func replaceAddressesOn(ctx context.Context, e execer, groupID string, addrs []Address) error {
 	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_addresses WHERE group_id = ?`, groupID); err != nil {
 		return err
@@ -297,19 +267,6 @@ func replaceUtxoDetailsOn(ctx context.Context, e execer, groupID string, utxos [
 
 func (s *Store) ListGroupTransactionIDs(ctx context.Context, groupID string) ([]string, error) {
 	return database.Select[string](ctx, s.db, `SELECT transaction_id FROM multisig_group_transactions WHERE group_id = ?`, groupID)
-}
-
-func (s *Store) ReplaceGroupTransactionIDs(ctx context.Context, groupID string, txIDs []string) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	if err := replaceGroupTransactionIDsOn(ctx, tx, groupID, txIDs); err != nil {
-		return err
-	}
-	return tx.Commit()
 }
 
 func replaceGroupTransactionIDsOn(ctx context.Context, e execer, groupID string, txIDs []string) error {
@@ -366,10 +323,6 @@ func (s *Store) getTransactionWhere(ctx context.Context, where sq.Eq) (*Transact
 	return &t, nil
 }
 
-func (s *Store) SaveTransaction(ctx context.Context, t Transaction) error {
-	return saveTransactionOn(ctx, s.db, t)
-}
-
 func saveTransactionOn(ctx context.Context, e execer, t Transaction) error {
 	// Transaction IDs are client-supplied (and derived from a short 32-bit content
 	// hash), so they can collide across multisig groups. multisig_transactions is
@@ -417,19 +370,6 @@ func (s *Store) ListTxKeyPSBTs(ctx context.Context, transactionID string) ([]TxK
 		FROM multisig_tx_key_psbts WHERE transaction_id = ?`, transactionID)
 }
 
-func (s *Store) ReplaceTxKeyPSBTs(ctx context.Context, transactionID string, psbts []TxKeyPSBT) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	if err := replaceTxKeyPSBTsOn(ctx, tx, transactionID, psbts); err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
 func replaceTxKeyPSBTsOn(ctx context.Context, e execer, transactionID string, psbts []TxKeyPSBT) error {
 	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_tx_key_psbts WHERE transaction_id = ?`, transactionID); err != nil {
 		return err
@@ -457,19 +397,6 @@ func (s *Store) ListTxInputs(ctx context.Context, transactionID string) ([]TxInp
 		FROM multisig_tx_inputs WHERE transaction_id = ?`, transactionID)
 }
 
-func (s *Store) ReplaceTxInputs(ctx context.Context, transactionID string, inputs []TxInput) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	if err := replaceTxInputsOn(ctx, tx, transactionID, inputs); err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
 func replaceTxInputsOn(ctx context.Context, e execer, transactionID string, inputs []TxInput) error {
 	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_tx_inputs WHERE transaction_id = ?`, transactionID); err != nil {
 		return err
@@ -494,7 +421,11 @@ func (s *Store) ListSoloKeys(ctx context.Context) ([]SoloKey, error) {
 }
 
 func (s *Store) AddSoloKey(ctx context.Context, k SoloKey) error {
-	_, err := s.db.ExecContext(ctx, `
+	return addSoloKeyOn(ctx, s.db, k)
+}
+
+func addSoloKeyOn(ctx context.Context, e execer, k SoloKey) error {
+	_, err := e.ExecContext(ctx, `
 		INSERT OR IGNORE INTO multisig_solo_keys (xpub, derivation_path, fingerprint, origin_path, owner)
 		VALUES (?, ?, ?, ?, ?)`, k.Xpub, k.DerivationPath, nullStr(k.Fingerprint), nullStr(k.OriginPath), nullStr(k.Owner))
 	return err
@@ -643,6 +574,12 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 		return fmt.Errorf("unmarshal json: %w", err)
 	}
 
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
+
 	for _, groupRaw := range raw.Groups {
 		var gj map[string]interface{}
 		if err := json.Unmarshal(groupRaw, &gj); err != nil {
@@ -669,7 +606,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 			continue
 		}
 
-		if err := s.SaveGroup(ctx, g); err != nil {
+		if err := saveGroupOn(ctx, tx, g); err != nil {
 			return fmt.Errorf("save group %s: %w", g.ID, err)
 		}
 
@@ -692,7 +629,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 					SortOrder:      i,
 				})
 			}
-			if err := s.ReplaceKeysForGroup(ctx, g.ID, keys); err != nil {
+			if err := replaceKeysForGroupOn(ctx, tx, g.ID, keys); err != nil {
 				return fmt.Errorf("replace keys for %s: %w", g.ID, err)
 			}
 		}
@@ -718,7 +655,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 				}
 			}
 			if len(addrs) > 0 {
-				if err := s.ReplaceAddresses(ctx, g.ID, addrs); err != nil {
+				if err := replaceAddressesOn(ctx, tx, g.ID, addrs); err != nil {
 					return fmt.Errorf("replace addresses for %s: %w", g.ID, err)
 				}
 			}
@@ -733,7 +670,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 				}
 			}
 			if len(ids) > 0 {
-				if err := s.ReplaceGroupTransactionIDs(ctx, g.ID, ids); err != nil {
+				if err := replaceGroupTransactionIDsOn(ctx, tx, g.ID, ids); err != nil {
 					return fmt.Errorf("replace tx ids for %s: %w", g.ID, err)
 				}
 			}
@@ -742,7 +679,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 
 	// Import solo keys
 	for _, sk := range raw.SoloKeys {
-		if err := s.AddSoloKey(ctx, SoloKey{
+		if err := addSoloKeyOn(ctx, tx, SoloKey{
 			Xpub:           getString(sk, "xpub"),
 			DerivationPath: getString(sk, "path"),
 			Fingerprint:    getString(sk, "fingerprint"),
@@ -753,7 +690,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 		}
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func parseImportTime(ctx context.Context, txID, field, value string) (int64, bool) {
@@ -771,6 +708,12 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 	if err := json.Unmarshal(data, &txns); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	statusMap := map[string]int{
 		"needsSignatures":     1,
@@ -836,7 +779,7 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 			continue
 		}
 
-		if err := s.SaveTransaction(ctx, t); err != nil {
+		if err := saveTransactionOn(ctx, tx, t); err != nil {
 			return fmt.Errorf("save tx %s: %w", t.ID, err)
 		}
 
@@ -863,7 +806,7 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 				})
 			}
 			if len(psbts) > 0 {
-				if err := s.ReplaceTxKeyPSBTs(ctx, t.ID, psbts); err != nil {
+				if err := replaceTxKeyPSBTsOn(ctx, tx, t.ID, psbts); err != nil {
 					return fmt.Errorf("replace key psbts for tx %s: %w", t.ID, err)
 				}
 			}
@@ -887,14 +830,14 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 				})
 			}
 			if len(txInputs) > 0 {
-				if err := s.ReplaceTxInputs(ctx, t.ID, txInputs); err != nil {
+				if err := replaceTxInputsOn(ctx, tx, t.ID, txInputs); err != nil {
 					return fmt.Errorf("replace inputs for tx %s: %w", t.ID, err)
 				}
 			}
 		}
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 // ─── helpers ───────────────────────────────────────────────────────

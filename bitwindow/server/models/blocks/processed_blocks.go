@@ -48,16 +48,8 @@ func scanProcessedBlock(scanner interface{ Scan(dest ...any) error }) (Processed
 	}
 	pb.Hash = *hash
 
-	var rawTxids []string
-	if err := json.Unmarshal([]byte(txidsJSON), &rawTxids); err != nil {
+	if err := json.Unmarshal([]byte(txidsJSON), &pb.Txids); err != nil {
 		return ProcessedBlock{}, fmt.Errorf("unmarshal txids: %w", err)
-	}
-	for _, rawTXID := range rawTxids {
-		txid, err := chainhash.NewHashFromStr(rawTXID)
-		if err != nil {
-			return ProcessedBlock{}, fmt.Errorf("parse txid: %w", err)
-		}
-		pb.Txids = append(pb.Txids, *txid)
 	}
 
 	return pb, nil

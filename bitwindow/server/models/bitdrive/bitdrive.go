@@ -25,11 +25,6 @@ type File struct {
 }
 
 func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
-	encrypted := 0
-	if file.Encrypted {
-		encrypted = 1
-	}
-
 	builder := sq.
 		Insert("bitdrive_files").
 		Columns("txid", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
@@ -38,7 +33,7 @@ func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
 			file.Filename,
 			file.FileType,
 			file.SizeBytes,
-			encrypted,
+			file.Encrypted,
 			file.Timestamp,
 			file.CreatedAt.Unix(),
 		)

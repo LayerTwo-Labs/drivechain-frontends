@@ -434,23 +434,14 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 	return nil
 }
 
-// GetWithdrawalBundles returns active withdrawal bundles for a sidechain
-func (e *M4Engine) GetWithdrawalBundles(ctx context.Context, sidechainSlot *uint8) ([]m4.WithdrawalBundle, error) {
-	query := `
+// GetPendingBundles returns the pending withdrawal bundles of every sidechain.
+func (e *M4Engine) GetPendingBundles(ctx context.Context) ([]m4.WithdrawalBundle, error) {
+	return database.Select[m4.WithdrawalBundle](ctx, e.db, `
 		SELECT id, sidechain_slot, bundle_hash, work_score, blocks_left,
 		       max_age, first_seen_height, last_updated_height, status,
 		       created_at, updated_at
 		FROM withdrawal_bundles
-		WHERE 1=1
-	`
-	args := []interface{}{}
-
-	if sidechainSlot != nil {
-		query += " AND sidechain_slot = ?"
-		args = append(args, *sidechainSlot)
-	}
-
-	query += " ORDER BY sidechain_slot, first_seen_height"
-
-	return database.Select[m4.WithdrawalBundle](ctx, e.db, query, args...)
+		WHERE status = 'pending'
+		ORDER BY sidechain_slot, first_seen_height
+	`)
 }
