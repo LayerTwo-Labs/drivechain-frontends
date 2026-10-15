@@ -3,13 +3,19 @@ package addressbook
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	"github.com/mattn/go-sqlite3"
 )
+
+// ErrDuplicateAddress is the error of Create when the book holds the address
+// and direction.
+var ErrDuplicateAddress = errors.New("address book already holds this address and direction")
 
 type Entry struct {
 	ID        int64
@@ -30,6 +36,20 @@ const (
 func Create(ctx context.Context, db *sql.DB, walletID *string, label, address string, direction Direction) error {
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO address_book (wallet_id, label, address, direction) VALUES (?, ?, ?, ?)`,
+		walletID, label, address, direction)
+	var sqliteErr sqlite3.Error
+	if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+		return ErrDuplicateAddress
+	}
+	return err
+}
+
+// Upsert adds an entry, or sets the label of the entry that holds the address
+// and direction.
+func Upsert(ctx context.Context, db *sql.DB, walletID *string, label, address string, direction Direction) error {
+	_, err := db.ExecContext(ctx,
+		`INSERT INTO address_book (wallet_id, label, address, direction) VALUES (?, ?, ?, ?)
+		ON CONFLICT(address, direction) DO UPDATE SET label = excluded.label`,
 		walletID, label, address, direction)
 	return err
 }
@@ -52,6 +72,21 @@ func List(ctx context.Context, db *sql.DB) ([]Entry, error) {
 	return entries, rows.Err()
 }
 
+// LabelsByAddress maps each address to the label of its first entry.
+func LabelsByAddress(ctx context.Context, db *sql.DB) (map[string]string, error) {
+	entries, err := List(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	labels := make(map[string]string, len(entries))
+	for _, entry := range entries {
+		if _, ok := labels[entry.Address]; !ok {
+			labels[entry.Address] = entry.Label
+		}
+	}
+	return labels, nil
+}
+
 func UpdateLabel(ctx context.Context, db *sql.DB, id int64, newLabel string) error {
 	rows, err := db.ExecContext(ctx,
 		`UPDATE address_book SET label = ? WHERE id = ?`,
@@ -60,7 +95,11 @@ func UpdateLabel(ctx context.Context, db *sql.DB, id int64, newLabel string) err
 		return err
 	}
 
-	if rows, _ := rows.RowsAffected(); rows == 0 {
+	n, err := rows.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count updated entries: %w", err)
+	}
+	if n == 0 {
 		return connect.NewError(connect.CodeNotFound, fmt.Errorf("address book entry not found"))
 	}
 
@@ -68,15 +107,22 @@ func UpdateLabel(ctx context.Context, db *sql.DB, id int64, newLabel string) err
 }
 
 func Delete(ctx context.Context, db *sql.DB, id int64) error {
-	rows, err := db.ExecContext(ctx,
+	res, err := db.ExecContext(ctx,
 		`DELETE FROM address_book WHERE id = ?`,
 		id)
+	if err != nil {
+		return err
+	}
 
-	if rows, _ := rows.RowsAffected(); rows == 0 {
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count deleted entries: %w", err)
+	}
+	if n == 0 {
 		return connect.NewError(connect.CodeNotFound, fmt.Errorf("address book entry not found"))
 	}
 
-	return err
+	return nil
 }
 
 func DirectionFromProto(d pb.Direction) (Direction, error) {
@@ -102,7 +148,3 @@ func DirectionToProto(d Direction) pb.Direction {
 		return pb.Direction_DIRECTION_UNSPECIFIED
 	}
 }
-
-const (
-	ErrUniqueAddress = "UNIQUE constraint failed: address_book.address, address_book.direction"
-)

@@ -214,14 +214,9 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		return nil, err
 	}
 
-	// Store all receiving addresses in the address book
 	err = addressbook.Create(ctx, s.database, &walletId, "", address, addressbook.DirectionReceive)
-	if err != nil {
-		if err.Error() == addressbook.ErrUniqueAddress {
-			// Address already in addressbook, that's fine
-		} else {
-			zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to save address to addressbook")
-		}
+	if err != nil && !errors.Is(err, addressbook.ErrDuplicateAddress) {
+		return nil, fmt.Errorf("save address %s to addressbook: %w", address, err)
 	}
 
 	return connect.NewResponse(&pb.GetNewAddressResponse{
@@ -254,11 +249,8 @@ func (s *Server) syncCoreAddresses(ctx context.Context) error {
 
 		for _, address := range addresses {
 			err := addressbook.Create(ctx, s.database, &wallet.ID, "", address, addressbook.DirectionReceive)
-			if err != nil && !strings.Contains(err.Error(), addressbook.ErrUniqueAddress) {
-				zerolog.Ctx(ctx).Debug().Err(err).
-					Str("address", address).
-					Str("wallet_id", wallet.ID).
-					Msg("save address to addressbook")
+			if err != nil && !errors.Is(err, addressbook.ErrDuplicateAddress) {
+				return fmt.Errorf("save address %s of wallet %s: %w", address, wallet.ID, err)
 			}
 		}
 	}
@@ -374,17 +366,9 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			return nil, err
 		}
 
-		addressBookEntries, err := addressbook.List(ctx, s.database)
+		labels, err := addressbook.LabelsByAddress(ctx, s.database)
 		if err != nil {
 			return nil, fmt.Errorf("electrum: could not list addressbook: %w", err)
-		}
-		label := func(addr string) string {
-			for _, e := range addressBookEntries {
-				if e.Address == addr {
-					return e.Label
-				}
-			}
-			return ""
 		}
 		notes, err := transactions.ListByWallet(ctx, s.database, walletId)
 		if err != nil {
@@ -413,7 +397,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			}
 			lbl := t.Label
 			if lbl == "" {
-				lbl = label(t.Address)
+				lbl = labels[t.Address]
 			}
 			out = append(out, &pb.WalletTransaction{
 				Txid:             t.Txid,
@@ -450,7 +434,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	}
 
 	// Fetch address book and notes
-	addressBookEntries, err := addressbook.List(ctx, s.database)
+	labels, err := addressbook.LabelsByAddress(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
@@ -462,15 +446,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	noteMap := make(map[string]string)
 	for _, note := range notes {
 		noteMap[note.TxID] = note.Note
-	}
-
-	matchAddressLabel := func(addr string) string {
-		for _, entry := range addressBookEntries {
-			if entry.Address == addr {
-				return entry.Label
-			}
-		}
-		return ""
 	}
 
 	// Group transactions by txid to combine amounts
@@ -523,7 +498,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 				ReceivedSatoshi:  receivedSats,
 				SentSatoshi:      sentSats,
 				Address:          address,
-				AddressLabel:     matchAddressLabel(address),
+				AddressLabel:     labels[address],
 				Note:             noteMap[tx.Txid],
 				ConfirmationTime: confirmation,
 				Immature: lo.ContainsBy(tx.Details, func(d *corepb.GetTransactionResponse_Details) bool {
@@ -708,35 +683,12 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 
 // ListUnspent implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {
-	walletId := c.Msg.WalletId
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	// Fetch the addressbook entries once for label lookup
-	addressBookEntries, err := addressbook.List(ctx, s.database)
+	labels, err := addressbook.LabelsByAddress(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
-	getLabel := func(addr string) string {
-		for _, entry := range addressBookEntries {
-			if entry.Address == addr {
-				return entry.Label
-			}
-		}
-		return ""
-	}
 
-	var utxos []*pb.UnspentOutput
-	switch walletType {
-	case engines.WalletTypeElectrum:
-		utxos, err = s.listUnspentElectrum(ctx, walletId, getLabel)
-	case engines.WalletTypeBitcoinCore:
-		utxos, err = s.listUnspentBitcoinCore(ctx, walletId, getLabel)
-	default:
-		err = fmt.Errorf("unknown wallet type: %s", walletType)
-	}
+	utxos, err := s.listUnspent(ctx, c.Msg.WalletId, labels)
 	if err != nil {
 		return nil, err
 	}
@@ -744,7 +696,23 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 	return connect.NewResponse(&pb.ListUnspentResponse{Utxos: utxos}), nil
 }
 
-func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
+func (s *Server) listUnspent(ctx context.Context, walletId string, labels map[string]string) ([]*pb.UnspentOutput, error) {
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	switch walletType {
+	case engines.WalletTypeElectrum:
+		return s.listUnspentElectrum(ctx, walletId, labels)
+	case engines.WalletTypeBitcoinCore:
+		return s.listUnspentBitcoinCore(ctx, walletId, labels)
+	default:
+		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
+	}
+}
+
+func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, labels map[string]string) ([]*pb.UnspentOutput, error) {
 	raw, err := s.walletEngine.GetElectrumUnspent(ctx, walletId)
 	if err != nil {
 		return nil, err
@@ -754,14 +722,14 @@ func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, getLa
 		utxos = append(utxos, &pb.UnspentOutput{
 			Output:    fmt.Sprintf("%s:%d", u.Txid, u.Vout),
 			Address:   u.Address,
-			Label:     getLabel(u.Address),
+			Label:     labels[u.Address],
 			ValueSats: uint64(u.AmountSats),
 		})
 	}
 	return utxos, nil
 }
 
-func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
+func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, labels map[string]string) ([]*pb.UnspentOutput, error) {
 	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
@@ -794,7 +762,7 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, ge
 		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
 			Output:     fmt.Sprintf("%s:%d", utxo.Txid, utxo.Vout),
 			Address:    utxo.Address,
-			Label:      getLabel(utxo.Address),
+			Label:      labels[utxo.Address],
 			ValueSats:  valueSats,
 			IsChange:   false,
 			DenialInfo: s.addDenialInfoForCore(utxo.Txid, int32(utxo.Vout), denials),
@@ -908,19 +876,9 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 		return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
 	}
 
-	// Fetch address book for labels
-	addressBookEntries, err := addressbook.List(ctx, s.database)
+	labels, err := addressbook.LabelsByAddress(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
-	}
-
-	getLabel := func(addr string) string {
-		for _, entry := range addressBookEntries {
-			if entry.Address == addr {
-				return entry.Label
-			}
-		}
-		return ""
 	}
 
 	// Build map of addresses with their balances
@@ -940,7 +898,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 		} else {
 			addressMap[utxo.Address] = &pb.ReceiveAddress{
 				Address:           utxo.Address,
-				Label:             getLabel(utxo.Address),
+				Label:             labels[utxo.Address],
 				CurrentBalanceSat: valueSats,
 				IsChange:          false, // Bitcoin Core doesn't expose this easily
 			}
@@ -1763,24 +1721,7 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 		maxBuckets = 6
 	}
 
-	// Reuse the existing ListUnspent logic to get UTXOs
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get wallet type: %w", err))
-	}
-
-	// Simple label getter since we don't need labels for distribution
-	getLabel := func(addr string) string { return "" }
-
-	var utxos []*pb.UnspentOutput
-	switch walletType {
-	case engines.WalletTypeElectrum:
-		utxos, err = s.listUnspentElectrum(ctx, walletId, getLabel)
-	case engines.WalletTypeBitcoinCore:
-		utxos, err = s.listUnspentBitcoinCore(ctx, walletId, getLabel)
-	default:
-		err = fmt.Errorf("unknown wallet type: %s", walletType)
-	}
+	utxos, err := s.listUnspent(ctx, walletId, nil)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
 	}

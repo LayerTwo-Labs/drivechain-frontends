@@ -616,6 +616,40 @@ func TestService_AddressBook(t *testing.T) {
 		assert.Equal(t, "Second Label", resp.Msg.Entries[0].Label)
 	})
 
+	t.Run("a label maps to one address", func(t *testing.T) {
+		t.Parallel()
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t)))
+		create := func(label, address string) (*connect.Response[v1.CreateAddressBookEntryResponse], error) {
+			return cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+				Label:     label,
+				Address:   address,
+				Direction: v1.Direction_DIRECTION_SEND,
+			}))
+		}
+
+		first, err := create("rent", "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh")
+		require.NoError(t, err)
+		second, err := create("food", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq")
+		require.NoError(t, err)
+
+		_, err = create("Rent", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq")
+		require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+
+		_, err = create("rent", "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh")
+		require.NoError(t, err)
+
+		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
+			Id: second.Msg.Entry.Id, Label: "rent",
+		}))
+		require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+
+		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
+			Id: first.Msg.Entry.Id, Label: "rent",
+		}))
+		require.NoError(t, err)
+	})
+
 	t.Run("list entries", func(t *testing.T) {
 		t.Parallel()
 
