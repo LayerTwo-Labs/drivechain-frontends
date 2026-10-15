@@ -290,7 +290,7 @@ func (m *SidechainConfManager) endpointsForOffset(offset int) map[string]string 
 	base := m.Spec.BasePort
 
 	rpcPort := base + offset
-	netPort := base - 2000 + offset
+	netPort := m.Spec.netPort(offset)
 
 	endpoints := map[string]string{
 		"net-addr": fmt.Sprintf("0.0.0.0:%d", netPort),
@@ -609,6 +609,11 @@ func (m *SidechainConfManager) reloadConfigFromFileSystem() {
 	}
 
 	m.Config = newConfig
+}
+
+// netPort is the P2P port the chain's node listens on under a port offset.
+func (s SidechainConfSpec) netPort(offset int) int {
+	return s.BasePort - 2000 + offset
 }
 
 // KnownSidechainSpecs defines the configuration specs for all known sidechains.

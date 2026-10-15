@@ -300,6 +300,25 @@ var indexedSidechains = []string{
 	"thunder", "bitnames", "bitassets", "photon", "coinshift", "truthcoin",
 }
 
+// seededSidechains names every chain the betanet seed host runs whose node
+// takes --add-peer. The seeds those nodes hold do not answer.
+var seededSidechains = []string{
+	"thunder", "bitnames", "bitassets", "coinshift", "truthcoin", "zside",
+}
+
+// SidechainSeedPeerForNetwork returns the host:port of the seed node a
+// sidechain dials on a network, or an empty string when none runs.
+func SidechainSeedPeerForNetwork(chain string, n Network) string {
+	if !slices.Contains(seededSidechains, chain) || CusfNetworkName(n, ECashNetworkID()) != "betanet" {
+		return ""
+	}
+	spec, ok := KnownSidechainSpecs[chain]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("seed.beta.ecash.eu.com:%d", spec.netPort(networkPortOffset(string(NetworkECash))))
+}
+
 // SidechainEsploraURLForNetwork returns the address index hosted for one
 // sidechain on a network, or an empty string when none is hosted.
 func SidechainEsploraURLForNetwork(chain string, n Network) string {

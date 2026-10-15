@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +19,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/solana"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
@@ -50,7 +50,7 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 			require.True(t, ok, "the BMM engine drives this chain")
 
 			switch bmm.(type) {
-			case *sidechain.JSONRPCProxy, *bbc.Client, *freebank.Client, *zside.Node, *thunder.Node, *solana.Client:
+			case *sidechain.JSONRPCProxy, *bbc.Client, *freebank.Client, *zside.Node, *solana.Client:
 			default:
 				assert.Failf(t, "unaudited transport", "%s takes %T", chain.name, bmm)
 			}
@@ -108,6 +108,69 @@ func TestProxySendsTheNodeCookie(t *testing.T) {
 			_, err = node.GetBlockCount(t.Context())
 			require.NoError(t, err)
 			assert.Equal(t, want, got)
+		})
+	}
+}
+
+type bootHost struct {
+	sidechain.Host
+	backendOnly bool
+}
+
+func (h bootHost) BackendOnly() bool { return h.backendOnly }
+
+// The seeds the betanet nodes hold do not answer, so a bare node with no seed
+// peer of ours syncs no block.
+func TestBareBetanetNodeDialsTheSeedHost(t *testing.T) {
+	original := config.ECashNetworkID()
+	t.Cleanup(func() { config.SetECashNetworkID(original) })
+	config.SetECashNetworkID("betanet")
+
+	for name, want := range map[string][]string{
+		"thunder":   {"--headless", "--add-peer=seed.beta.ecash.eu.com:4009"},
+		"bitnames":  {"--headless", "--add-peer=seed.beta.ecash.eu.com:4002"},
+		"bitassets": {"--headless", "--add-peer=seed.beta.ecash.eu.com:4004"},
+		"coinshift": {"--headless", "--add-peer=seed.beta.ecash.eu.com:4255"},
+		"truthcoin": {"--headless", "--add-peer=seed.beta.ecash.eu.com:4013"},
+		"zside":     {"--headless", "--add-peer=seed.beta.ecash.eu.com:4098"},
+		// Photon takes no --add-peer, and an unknown flag stops its node.
+		"photon": {"--headless"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			node, err := New(name, "127.0.0.1", 1, false, config.NetworkECash)
+			require.NoError(t, err)
+
+			args, err := node.Args(context.Background(), bootHost{backendOnly: true})
+			require.NoError(t, err)
+			assert.Equal(t, want, args)
+
+			args, err = node.Args(context.Background(), bootHost{})
+			require.NoError(t, err)
+			assert.Empty(t, args, "the frontend build takes no node argument")
+		})
+	}
+}
+
+func TestNodeOffBetanetKeepsItsOwnSeeds(t *testing.T) {
+	original := config.ECashNetworkID()
+	t.Cleanup(func() { config.SetECashNetworkID(original) })
+
+	for _, test := range []struct {
+		generation string
+		network    config.Network
+	}{
+		{generation: "betanet", network: config.NetworkSignet},
+		{generation: "betanet", network: config.NetworkRegtest},
+		{generation: "alphanet", network: config.NetworkECash},
+	} {
+		t.Run(test.generation+"/"+string(test.network), func(t *testing.T) {
+			config.SetECashNetworkID(test.generation)
+			node, err := New("zside", "127.0.0.1", 1, false, test.network)
+			require.NoError(t, err)
+
+			args, err := node.Args(context.Background(), bootHost{backendOnly: true})
+			require.NoError(t, err)
+			assert.Equal(t, []string{"--headless"}, args)
 		})
 	}
 }

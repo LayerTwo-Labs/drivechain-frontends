@@ -13,6 +13,9 @@ import (
 // for thunder, bitassets, bitnames and the rest.
 type JSONRPCProxy struct {
 	Client *rpc.Client
+
+	// SeedPeer is the host:port a bare node dials on start, empty for none.
+	SeedPeer string
 }
 
 var (
@@ -219,11 +222,15 @@ func (p *JSONRPCProxy) CallRaw(ctx context.Context, method string, params any) (
 	return p.Client.CallRaw(ctx, method, params)
 }
 
-// Args keeps a bare Rust backend from opening a window. The frontend that asked
-// for it already draws one, so a second window shows one chain twice.
+// Args keeps a bare Rust backend from opening a window, and gives it the seed
+// peer. The frontend that asked for it already draws one, so a second window
+// shows one chain twice.
 func (p *JSONRPCProxy) Args(_ context.Context, host Host) ([]string, error) {
 	if !host.BackendOnly() {
 		return nil, nil
 	}
-	return []string{"--headless"}, nil
+	if p.SeedPeer == "" {
+		return []string{"--headless"}, nil
+	}
+	return []string{"--headless", "--add-peer=" + p.SeedPeer}, nil
 }
