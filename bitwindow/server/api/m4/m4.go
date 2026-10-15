@@ -2,10 +2,7 @@ package m4
 
 import (
 	"context"
-	"encoding/binary"
-	"encoding/hex"
 	"fmt"
-	"slices"
 
 	"connectrpc.com/connect"
 	m4models "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
@@ -13,7 +10,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	m4pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/samber/lo"
 )
@@ -140,108 +136,10 @@ func (s *Server) GenerateM4Bytes(
 	ctx context.Context,
 	req *connect.Request[m4pb.GenerateM4BytesRequest],
 ) (*connect.Response[m4pb.GenerateM4BytesResponse], error) {
-	// Get all pending withdrawal bundles
-	bundles, err := s.m4Engine.GetWithdrawalBundles(ctx, nil)
+	hexStr, interpretation, err := s.m4Engine.GenerateM4Bytes(ctx, s.enforcer)
 	if err != nil {
-		return nil, fmt.Errorf("get withdrawal bundles: %w", err)
+		return nil, fmt.Errorf("generate M4 bytes: %w", err)
 	}
-
-	// Group bundles by sidechain
-	bundlesBySidechain := make(map[uint8][]m4models.WithdrawalBundle)
-	for _, b := range bundles {
-		if b.Status == "pending" {
-			bundlesBySidechain[b.SidechainSlot] = append(bundlesBySidechain[b.SidechainSlot], b)
-		}
-	}
-
-	// If no pending bundles, M4 is not required
-	if len(bundlesBySidechain) == 0 {
-		return connect.NewResponse(&m4pb.GenerateM4BytesResponse{
-			Hex:            "",
-			Interpretation: "Not required - no pending withdrawal bundles.",
-		}), nil
-	}
-
-	// Get user's vote preferences
-	prefs, err := s.m4Engine.GetVotePreferences(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get vote preferences: %w", err)
-	}
-
-	// Build preference map for quick lookup
-	prefMap := lo.KeyBy(prefs, func(p m4models.VotePreference) uint8 {
-		return p.SidechainSlot
-	})
-
-	enforcer, err := s.enforcer.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer: %w", err)
-	}
-	sidechains, err := enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("get sidechains: %w", err)
-	}
-	slots := lo.Map(sidechains.Msg.GetSidechains(), func(sc *validatorpb.GetSidechainsResponse_SidechainInfo, _ int) uint8 {
-		return uint8(sc.GetSidechainNumber().GetValue())
-	})
-	slices.Sort(slots)
-
-	votes := make([]uint16, len(slots))
-	descs := make([]string, len(slots))
-	for i, slot := range slots {
-		sidechainBundles := bundlesBySidechain[slot]
-		pref, hasPreference := prefMap[slot]
-
-		votes[i] = m4models.VoteAbstain
-		descs[i] = "Abstain from all withdrawals"
-		switch {
-		case !hasPreference || pref.VoteType == m4models.VoteTypeAbstain:
-		case pref.VoteType == m4models.VoteTypeAlarm:
-			votes[i] = m4models.VoteAlarm
-			descs[i] = "Alarm - Downvote all withdrawals"
-		case pref.VoteType == m4models.VoteTypeUpvote:
-			descs[i] = "Abstain (bundle not found)"
-			if pref.BundleHash == nil {
-				break
-			}
-			for j, b := range sidechainBundles {
-				if b.BundleHash != *pref.BundleHash {
-					continue
-				}
-				votes[i] = uint16(j)
-				hash := *pref.BundleHash
-				if len(hash) > 16 {
-					hash = hash[:16] + "..."
-				}
-				descs[i] = fmt.Sprintf("Upvote withdrawal #%d (%s)", j, hash)
-				break
-			}
-		}
-	}
-
-	// The enforcer rejects a two-byte vector when every vote fits in one byte.
-	oneByte := lo.EveryBy(votes, func(v uint16) bool {
-		return v <= 253 || v >= m4models.VoteAlarm
-	})
-
-	m4Bytes := []byte{0x02}
-	if oneByte {
-		m4Bytes = []byte{0x01}
-	}
-	interpretation := "M4 Vote Bytes:\n\n"
-	for i, slot := range slots {
-		var voteBytes []byte
-		if oneByte {
-			voteBytes = []byte{byte(votes[i])}
-		} else {
-			voteBytes = binary.LittleEndian.AppendUint16(nil, votes[i])
-		}
-		m4Bytes = append(m4Bytes, voteBytes...)
-		interpretation += fmt.Sprintf("Sidechain #%d: %x\n  %s\n  (%d pending bundles)\n\n",
-			slot, voteBytes, descs[i], len(bundlesBySidechain[slot]))
-	}
-
-	hexStr := hex.EncodeToString(m4Bytes)
 
 	return connect.NewResponse(&m4pb.GenerateM4BytesResponse{
 		Hex:            hexStr,

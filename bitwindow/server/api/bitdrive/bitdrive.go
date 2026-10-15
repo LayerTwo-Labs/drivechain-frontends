@@ -92,18 +92,9 @@ func (s *Server) RetrieveContent(ctx context.Context, req *connect.Request[bitdr
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid is required"))
 	}
 
-	// Get OP_RETURN data
-	opReturns, err := opreturns.List(ctx, s.database, 0)
+	opReturn, err := opreturns.GetByTxID(ctx, s.database, req.Msg.Txid)
 	if err != nil {
-		return nil, fmt.Errorf("list OP_RETURNs: %w", err)
-	}
-
-	var opReturn *opreturns.OPReturn
-	for _, op := range opReturns {
-		if op.TxID == req.Msg.Txid {
-			opReturn = &op
-			break
-		}
+		return nil, fmt.Errorf("get OP_RETURN: %w", err)
 	}
 
 	if opReturn == nil {
@@ -127,131 +118,35 @@ func (s *Server) RetrieveContent(ctx context.Context, req *connect.Request[bitdr
 
 // ScanForFiles implements bitdrivev1connect.BitDriveServiceHandler.
 func (s *Server) ScanForFiles(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[bitdrivev1.ScanForFilesResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	// Get all OP_RETURNs
-	allOpReturns, err := opreturns.List(ctx, s.database, 0)
+	pending, scanned, err := s.bitdriveEngine.ScanForFiles(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list OP_RETURNs: %w", err)
+		return nil, fmt.Errorf("scan for files: %w", err)
 	}
-
-	var pendingFiles []*bitdrivev1.PendingFile
-	totalScanned := 0
-
-	for _, opReturn := range allOpReturns {
-		opReturnMessage := opreturns.OPReturnToReadable(opReturn.Data)
-
-		// Check if this is a BitDrive transaction
-		if !engines.IsBitDriveTransaction(opReturnMessage) {
-			continue
-		}
-		totalScanned++
-
-		// Parse metadata
-		metadataB64, _, err := engines.ParseOPReturnParts(opReturnMessage)
-		if err != nil {
-			continue
-		}
-
-		metadata, err := engines.ParseMetadata(metadataB64)
-		if err != nil {
-			continue
-		}
-
-		// Skip multisig transactions in scan
-		if metadata.IsMultisig {
-			continue
-		}
-
-		// Check if already downloaded
-		exists, err := bitdrive.Exists(ctx, s.database, opReturn.TxID)
-		if err != nil {
-			log.Warn().Err(err).Str("txid", opReturn.TxID).Msg("error checking if file exists")
-			continue
-		}
-		if exists {
-			continue
-		}
-
-		pendingFiles = append(pendingFiles, &bitdrivev1.PendingFile{
-			Txid:      opReturn.TxID,
-			Encrypted: metadata.Encrypted,
-			Timestamp: metadata.Timestamp,
-			FileType:  metadata.FileType,
-			Filename:  fmt.Sprintf("%d_%s.%s", metadata.Timestamp, opReturn.TxID, metadata.FileType),
-		})
-	}
-
-	log.Info().
-		Int("pending", len(pendingFiles)).
-		Int("total_scanned", totalScanned).
-		Msg("scanned for BitDrive files")
 
 	return connect.NewResponse(&bitdrivev1.ScanForFilesResponse{
-		PendingFiles: pendingFiles,
-		TotalScanned: uint32(totalScanned),
+		PendingFiles: lo.Map(pending, func(p engines.PendingBitDriveFile, _ int) *bitdrivev1.PendingFile {
+			return &bitdrivev1.PendingFile{
+				Txid:      p.OPReturn.TxID,
+				Encrypted: p.Metadata.Encrypted,
+				Timestamp: p.Metadata.Timestamp,
+				FileType:  p.Metadata.FileType,
+				Filename:  fmt.Sprintf("%d_%s.%s", p.Metadata.Timestamp, p.OPReturn.TxID, p.Metadata.FileType),
+			}
+		}),
+		TotalScanned: uint32(scanned),
 	}), nil
 }
 
 // DownloadPendingFiles implements bitdrivev1connect.BitDriveServiceHandler.
 func (s *Server) DownloadPendingFiles(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[bitdrivev1.DownloadPendingFilesResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	// First scan for pending files
-	scanResp, err := s.ScanForFiles(ctx, connect.NewRequest(&emptypb.Empty{}))
+	downloaded, failed, err := s.bitdriveEngine.DownloadPendingFiles(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("scan for files: %w", err)
+		return nil, fmt.Errorf("download pending files: %w", err)
 	}
-
-	var downloadedCount, failedCount uint32
-
-	// Get all OP_RETURNs
-	allOpReturns, err := opreturns.List(ctx, s.database, 0)
-	if err != nil {
-		return nil, fmt.Errorf("list OP_RETURNs: %w", err)
-	}
-
-	for _, pending := range scanResp.Msg.PendingFiles {
-		// Find matching OP_RETURN
-		var opReturn *opreturns.OPReturn
-		for _, op := range allOpReturns {
-			if op.TxID == pending.Txid {
-				opReturn = &op
-				break
-			}
-		}
-
-		if opReturn == nil {
-			failedCount++
-			continue
-		}
-
-		opReturnMessage := opreturns.OPReturnToReadable(opReturn.Data)
-		content, metadata, err := s.bitdriveEngine.DecodeOPReturnData(ctx, opReturnMessage)
-		if err != nil {
-			log.Warn().Err(err).Str("txid", pending.Txid).Msg("failed to decode content")
-			failedCount++
-			continue
-		}
-
-		// Save file
-		if err := s.bitdriveEngine.SaveFile(ctx, pending.Txid, content, metadata); err != nil {
-			log.Warn().Err(err).Str("txid", pending.Txid).Msg("failed to save file")
-			failedCount++
-			continue
-		}
-
-		downloadedCount++
-	}
-
-	log.Info().
-		Uint32("downloaded", downloadedCount).
-		Uint32("failed", failedCount).
-		Msg("downloaded pending BitDrive files")
 
 	return connect.NewResponse(&bitdrivev1.DownloadPendingFilesResponse{
-		DownloadedCount: downloadedCount,
-		FailedCount:     failedCount,
+		DownloadedCount: downloaded,
+		FailedCount:     failed,
 	}), nil
 }
 
