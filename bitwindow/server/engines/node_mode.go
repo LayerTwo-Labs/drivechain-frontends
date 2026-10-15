@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"golang.org/x/sync/singleflight"
+
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
-	"golang.org/x/sync/singleflight"
 )
 
 // nodeModeTTL keeps a per-tick gate off the orchestrator. Engines tick each

@@ -41,8 +41,7 @@ func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 		Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
 		RequiredInputs: []*walletv1.UnspentOutput{{Output: "frozen:0"}},
 	}))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "is frozen")
+	require.ErrorContains(t, err, "is frozen")
 }
 
 // A freeze the daemon never learns is no freeze at all, so the write reports
@@ -63,8 +62,7 @@ func TestSetUTXOMetadataReportsAFailedPush(t *testing.T) {
 		Outpoint: "aa:0",
 		IsFrozen: &frozen,
 	}))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "set frozen coins")
+	require.ErrorContains(t, err, "set frozen coins")
 }
 
 // A caller can spell a vout with a leading zero, and a txid in either case.
@@ -84,13 +82,14 @@ func TestSendRefusesAFrozenInputInAnySpelling(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, spelling := range []string{"ABCDEF:1", "abcdef:01", "ABCDEF:01"} {
-		_, err = cli.SendTransaction(ctx, connect.NewRequest(&walletv1.SendTransactionRequest{
-			WalletId:       "test-wallet-id-1234",
-			Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
-			RequiredInputs: []*walletv1.UnspentOutput{{Output: spelling}},
-		}))
-		require.Error(t, err, spelling)
-		assert.Contains(t, err.Error(), "is frozen", spelling)
+		t.Run(spelling, func(t *testing.T) {
+			_, err := cli.SendTransaction(t.Context(), connect.NewRequest(&walletv1.SendTransactionRequest{
+				WalletId:       "test-wallet-id-1234",
+				Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
+				RequiredInputs: []*walletv1.UnspentOutput{{Output: spelling}},
+			}))
+			require.ErrorContains(t, err, "is frozen")
+		})
 	}
 }
 

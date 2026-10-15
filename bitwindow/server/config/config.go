@@ -6,9 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jessevdk/go-flags"
+
 	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
-	"github.com/jessevdk/go-flags"
 )
 
 type Network string

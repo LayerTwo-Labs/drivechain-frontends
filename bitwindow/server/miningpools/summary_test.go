@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 	"github.com/btcsuite/btcd/blockchain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 )
 
 const testBits = 0x1d00ffff

@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 func engineWithMode(t *testing.T, mode orchpb.NodeMode, err error) *engines.WalletEngine {
@@ -36,7 +37,7 @@ func TestRequireFullNodeRefusesLightMode(t *testing.T) {
 	e := engineWithMode(t, orchpb.NodeMode_NODE_MODE_LIGHT, nil)
 
 	err := e.RequireFullNode(context.Background(), "proposing a sidechain")
-	require.Error(t, err)
+	require.ErrorContains(t, err, "needs full mode")
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	require.Contains(t, err.Error(), "full mode")
 }
@@ -53,6 +54,6 @@ func TestRequireFullNodeReportsAnUnreadableMode(t *testing.T) {
 	e := engineWithMode(t, orchpb.NodeMode_NODE_MODE_UNSPECIFIED, boom)
 
 	err := e.RequireFullNode(context.Background(), "proposing a sidechain")
-	require.Error(t, err)
+	require.ErrorContains(t, err, "could not read the node mode")
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }

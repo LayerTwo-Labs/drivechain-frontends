@@ -11,9 +11,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
 
 // A reset wiping the datadir out from under a live bitwindowd is what put the

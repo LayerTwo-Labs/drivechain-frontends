@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // Tx is a transaction still waiting in the mempool. A row lives exactly as

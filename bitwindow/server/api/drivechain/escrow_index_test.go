@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // The index answers the escrow the mainchain holds. A light install reads every
@@ -23,28 +26,21 @@ func TestEscrowIndexReadsTheChain(t *testing.T) {
 	defer server.Close()
 
 	got, err := newEscrowIndex(server.URL).Sidechains(context.Background())
-	if err != nil {
-		t.Fatalf("read the escrow: %v", err)
-	}
-	if path != "/sidechains" {
-		t.Errorf("read %q, want /sidechains", path)
-	}
-	if len(got) != 2 {
-		t.Fatalf("read %d sidechains, want 2", len(got))
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "/sidechains", path)
+	require.Len(t, got, 2)
 
 	first := got[0]
-	if first.Slot != 2 || first.Title != "BitNames" || first.VoteCount != 73 {
-		t.Errorf("first chain = %+v", first)
-	}
-	if first.BalanceSatoshi != 100007100 || first.ChaintipTxid != "aa" || first.ChaintipVout != 1 {
-		t.Errorf("the treasury did not carry through: %+v", first)
-	}
+	assert.EqualValues(t, 2, first.Slot)
+	assert.Equal(t, "BitNames", first.Title)
+	assert.EqualValues(t, 73, first.VoteCount)
+	assert.EqualValues(t, 100007100, first.BalanceSatoshi)
+	assert.Equal(t, "aa", first.ChaintipTxid)
+	assert.EqualValues(t, 1, first.ChaintipVout)
 	// A slot with no treasury reads as zero here, because the wire has no way
 	// to say "none". It must not carry another chain's outpoint.
-	if got[1].BalanceSatoshi != 0 || got[1].ChaintipTxid != "" {
-		t.Errorf("a chain with no treasury carries one: %+v", got[1])
-	}
+	assert.Zero(t, got[1].BalanceSatoshi)
+	assert.Empty(t, got[1].ChaintipTxid)
 }
 
 // A down index must report an error, never an empty list that reads as "no
@@ -55,7 +51,6 @@ func TestEscrowIndexReportsAFailure(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := newEscrowIndex(server.URL).Sidechains(context.Background()); err == nil {
-		t.Fatal("want an error from a down index, got none")
-	}
+	_, err := newEscrowIndex(server.URL).Sidechains(context.Background())
+	require.ErrorContains(t, err, "the index answered 503")
 }

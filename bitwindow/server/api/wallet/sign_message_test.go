@@ -10,9 +10,6 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -22,6 +19,10 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 )
 
 const testSeedHex = "0329e77e27d1e24336be53d25a897e92e67b5ec7e88eca7529b14e3ffd9168a247b6906469fb8a79ecb25ec077e033f6b567d5d9b0ae334f1e33457ae6bb1364"

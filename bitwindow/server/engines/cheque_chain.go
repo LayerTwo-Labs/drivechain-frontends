@@ -3,8 +3,9 @@ package engines
 import (
 	"context"
 
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/samber/lo"
+
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 // ChequeUTXO is one output paying a cheque address.

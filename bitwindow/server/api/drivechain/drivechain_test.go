@@ -6,6 +6,11 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
@@ -14,10 +19,6 @@ import (
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestService_ListSidechains(t *testing.T) {
@@ -354,7 +355,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 			Slot:  256, // invalid, must be 0-255
 			Title: "Test",
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "slot must be 0-255")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -368,7 +369,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 			Slot:  0,
 			Title: "", // empty title
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "title required")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -383,7 +384,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 			Title:   "Test",
 			Hashid1: "tooshort", // must be 64 hex chars
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "hashid1 must be 64 hex chars")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -398,7 +399,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 			Title:   "Test",
 			Hashid2: "tooshort", // must be 40 hex chars
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "hashid2 must be 40 hex chars")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -432,7 +433,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 
 		producer := &fakeProducer{err: connect.NewError(connect.CodeAlreadyExists, errors.New("Sidechain proposal already exists"))}
 		_, err := proposeWith(t, producer)
-		require.Error(t, err)
+		require.ErrorContains(t, err, "Sidechain proposal already exists")
 		assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
 	})
 }
@@ -488,7 +489,7 @@ func TestService_ListWithdrawals(t *testing.T) {
 		_, err := cli.ListWithdrawals(context.Background(), connect.NewRequest(&pb.ListWithdrawalsRequest{
 			SidechainId: 99, // non-existent
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "sidechain 99 not found")
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 

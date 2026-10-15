@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/btcsuite/btcd/wire"
+	"github.com/rs/zerolog"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/rs/zerolog"
 )
 
 // M4Engine manages the SCDB state and M4 message processing

@@ -11,6 +11,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,13 +28,9 @@ func testUTXOs() []ChequeUTXO {
 func newWIF(t *testing.T, compressed bool) *btcutil.WIF {
 	t.Helper()
 	privKey, err := btcec.NewPrivateKey()
-	if err != nil {
-		t.Fatalf("generate private key: %v", err)
-	}
+	require.NoError(t, err)
 	wif, err := btcutil.NewWIF(privKey, &chaincfg.SigNetParams, compressed)
-	if err != nil {
-		t.Fatalf("create WIF: %v", err)
-	}
+	require.NoError(t, err)
 	return wif
 }
 
@@ -64,61 +61,35 @@ func TestSweepCandidatesCompressedKeyHasBothKinds(t *testing.T) {
 	wif := newWIF(t, true)
 
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("derive candidates: %v", err)
-	}
-	if len(candidates) != 2 {
-		t.Fatalf("expected 2 candidates, got %d", len(candidates))
-	}
-	if candidates[0].Kind != SweepAddressP2WPKH {
-		t.Errorf("expected p2wpkh first, got %s", candidates[0].Kind)
-	}
-	if candidates[1].Kind != SweepAddressP2PKH {
-		t.Errorf("expected p2pkh second, got %s", candidates[1].Kind)
-	}
+	require.NoError(t, err)
+	require.Len(t, candidates, 2)
+	assert.Equal(t, SweepAddressP2WPKH, candidates[0].Kind)
+	assert.Equal(t, SweepAddressP2PKH, candidates[1].Kind)
 }
 
 func TestSweepCandidatesUncompressedKeyIsLegacyOnly(t *testing.T) {
 	wif := newWIF(t, false)
 
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("derive candidates: %v", err)
-	}
-	if len(candidates) != 1 {
-		t.Fatalf("expected 1 candidate, got %d", len(candidates))
-	}
-	if candidates[0].Kind != SweepAddressP2PKH {
-		t.Errorf("expected p2pkh, got %s", candidates[0].Kind)
-	}
+	require.NoError(t, err)
+	require.Len(t, candidates, 1)
+	assert.Equal(t, SweepAddressP2PKH, candidates[0].Kind)
 }
 
 func TestResolveSweepSourceFindsLegacyFunds(t *testing.T) {
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("derive candidates: %v", err)
-	}
+	require.NoError(t, err)
 	legacy := candidates[1]
 
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{legacy.Address: testUTXOs()}}
 
 	source, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("resolve source: %v", err)
-	}
-	if source.Kind != SweepAddressP2PKH {
-		t.Errorf("expected p2pkh source, got %s", source.Kind)
-	}
-	if source.Address != legacy.Address {
-		t.Errorf("expected address %s, got %s", legacy.Address, source.Address)
-	}
-	if source.TotalSats() != 100_000 {
-		t.Errorf("expected 100000 sats, got %d", source.TotalSats())
-	}
-	if len(chain.queried) != 2 {
-		t.Errorf("expected both kinds queried, got %v", chain.queried)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, SweepAddressP2PKH, source.Kind)
+	assert.Equal(t, legacy.Address, source.Address)
+	assert.Equal(t, uint64(100_000), source.TotalSats())
+	assert.Len(t, chain.queried, 2)
 }
 
 func TestResolveSweepSourcePrefersWitnessWhenBothFunded(t *testing.T) {
@@ -131,12 +102,8 @@ func TestResolveSweepSourcePrefersWitnessWhenBothFunded(t *testing.T) {
 	}}
 
 	source, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("resolve source: %v", err)
-	}
-	if source.Kind != SweepAddressP2WPKH {
-		t.Errorf("expected p2wpkh source, got %s", source.Kind)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, SweepAddressP2WPKH, source.Kind)
 }
 
 func TestResolveSweepSourceEmptyKeyReportsFirstCandidate(t *testing.T) {
@@ -146,36 +113,25 @@ func TestResolveSweepSourceEmptyKeyReportsFirstCandidate(t *testing.T) {
 	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
 
 	source, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("resolve source: %v", err)
-	}
-	if len(source.UTXOs) != 0 {
-		t.Errorf("expected no utxos, got %d", len(source.UTXOs))
-	}
-	if source.Address != candidates[0].Address {
-		t.Errorf("expected the p2wpkh address reported, got %s", source.Address)
-	}
+	require.NoError(t, err)
+	assert.Empty(t, source.UTXOs)
+	assert.Equal(t, candidates[0].Address, source.Address)
 }
 
 func TestResolveSweepSourceReturnsChainError(t *testing.T) {
 	wif := newWIF(t, true)
 	chain := &fakeChain{err: errors.New("electrum down")}
 
-	if _, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams); err == nil {
-		t.Fatal("expected an error when the chain fails")
-	}
+	_, err := ResolveSweepSource(context.Background(), chain, wif, &chaincfg.SigNetParams)
+	require.ErrorContains(t, err, "electrum down")
 }
 
 func TestSweepVbytesChargesMoreForLegacyInputs(t *testing.T) {
 	witness := SweepVbytes(SweepAddressP2WPKH, 1, OutputVbytes)
 	legacy := SweepVbytes(SweepAddressP2PKH, 1, OutputVbytes)
 
-	if witness != 110 {
-		t.Errorf("expected 110 vbytes for one witness input, got %d", witness)
-	}
-	if legacy != 190 {
-		t.Errorf("expected 190 vbytes for one legacy input, got %d", legacy)
-	}
+	assert.Equal(t, uint64(110), witness)
+	assert.Equal(t, uint64(190), legacy)
 }
 
 func TestBuildAndSignWitnessSweep(t *testing.T) {
@@ -184,25 +140,15 @@ func TestBuildAndSignWitnessSweep(t *testing.T) {
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
 
 	tx, err := BuildSweepTx(source, destAddress, 10, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("build: %v", err)
-	}
+	require.NoError(t, err)
 
 	// 100000 - (110 vbytes * 10 sat/vbyte)
-	if tx.TxOut[0].Value != 98_900 {
-		t.Errorf("expected 98900 sats out, got %d", tx.TxOut[0].Value)
-	}
+	assert.Equal(t, int64(98_900), tx.TxOut[0].Value)
 
 	signed, err := SignSweepTx(tx, source, wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("sign: %v", err)
-	}
-	if len(signed.TxIn[0].Witness) == 0 {
-		t.Error("expected a witness on the signed input")
-	}
-	if len(signed.TxIn[0].SignatureScript) != 0 {
-		t.Error("expected no signature script on a witness input")
-	}
+	require.NoError(t, err)
+	assert.NotEmpty(t, signed.TxIn[0].Witness)
+	assert.Empty(t, signed.TxIn[0].SignatureScript)
 	assertInputVerifies(t, signed, source, 100_000)
 }
 
@@ -212,25 +158,15 @@ func TestBuildAndSignLegacySweep(t *testing.T) {
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2PKH, UTXOs: testUTXOs()}
 
 	tx, err := BuildSweepTx(source, destAddress, 10, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("build: %v", err)
-	}
+	require.NoError(t, err)
 
 	// 100000 - (190 vbytes * 10 sat/vbyte)
-	if tx.TxOut[0].Value != 98_100 {
-		t.Errorf("expected 98100 sats out, got %d", tx.TxOut[0].Value)
-	}
+	assert.Equal(t, int64(98_100), tx.TxOut[0].Value)
 
 	signed, err := SignSweepTx(tx, source, wif, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("sign: %v", err)
-	}
-	if len(signed.TxIn[0].SignatureScript) == 0 {
-		t.Error("expected a signature script on the signed input")
-	}
-	if len(signed.TxIn[0].Witness) != 0 {
-		t.Error("expected no witness on a legacy input")
-	}
+	require.NoError(t, err)
+	assert.NotEmpty(t, signed.TxIn[0].SignatureScript)
+	assert.Empty(t, signed.TxIn[0].Witness)
 	assertInputVerifies(t, signed, source, 100_000)
 }
 
@@ -239,9 +175,8 @@ func TestBuildSweepTxRejectsFeeAboveBalance(t *testing.T) {
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
 
-	if _, err := BuildSweepTx(source, destAddress, 10_000, &chaincfg.SigNetParams); err == nil {
-		t.Fatal("expected an error when the fee exceeds the balance")
-	}
+	_, err := BuildSweepTx(source, destAddress, 10_000, &chaincfg.SigNetParams)
+	require.ErrorContains(t, err, "insufficient funds")
 }
 
 func TestBuildSweepTxCapsTheFee(t *testing.T) {
@@ -292,9 +227,8 @@ func TestBuildSweepTxRejectsForeignNetworkAddress(t *testing.T) {
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
 
 	mainnet := "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
-	if _, err := BuildSweepTx(source, mainnet, 10, &chaincfg.SigNetParams); err == nil {
-		t.Fatal("expected an error for a mainnet destination on signet")
-	}
+	_, err := BuildSweepTx(source, mainnet, 10, &chaincfg.SigNetParams)
+	require.ErrorContains(t, err, "destination address is for another network")
 }
 
 // assertInputVerifies runs the script engine over input 0, which is the real
@@ -303,13 +237,9 @@ func assertInputVerifies(t *testing.T, tx *wire.MsgTx, source SweepSource, value
 	t.Helper()
 
 	sourceAddr, err := btcutil.DecodeAddress(source.Address, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("decode source: %v", err)
-	}
+	require.NoError(t, err)
 	pkScript, err := txscript.PayToAddrScript(sourceAddr)
-	if err != nil {
-		t.Fatalf("source script: %v", err)
-	}
+	require.NoError(t, err)
 
 	vm, err := txscript.NewEngine(
 		pkScript, tx, 0,
@@ -317,12 +247,8 @@ func assertInputVerifies(t *testing.T, tx *wire.MsgTx, source SweepSource, value
 		nil, nil, valueSats,
 		txscript.NewCannedPrevOutputFetcher(pkScript, valueSats),
 	)
-	if err != nil {
-		t.Fatalf("new engine: %v", err)
-	}
-	if err := vm.Execute(); err != nil {
-		t.Fatalf("script did not verify: %v", err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, vm.Execute())
 }
 
 func TestSweepPaysForTheDestinationItActuallyUses(t *testing.T) {
@@ -334,24 +260,14 @@ func TestSweepPaysForTheDestinationItActuallyUses(t *testing.T) {
 	taprootAddr, err := btcutil.NewAddressTaproot(
 		schnorr.SerializePubKey(wif.PrivKey.PubKey()), &chaincfg.SigNetParams,
 	)
-	if err != nil {
-		t.Fatalf("derive taproot address: %v", err)
-	}
+	require.NoError(t, err)
 	tx, err := BuildSweepTx(source, taprootAddr.EncodeAddress(), 10, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("build to taproot: %v", err)
-	}
+	require.NoError(t, err)
 
 	// 100000 - ((68 + 11 + 43) * 10)
-	if tx.TxOut[0].Value != 98_780 {
-		t.Errorf("expected 98780 sats out for a taproot destination, got %d", tx.TxOut[0].Value)
-	}
+	assert.Equal(t, int64(98_780), tx.TxOut[0].Value)
 
 	segwit, err := BuildSweepTx(source, destAddress, 10, &chaincfg.SigNetParams)
-	if err != nil {
-		t.Fatalf("build to segwit: %v", err)
-	}
-	if segwit.TxOut[0].Value <= tx.TxOut[0].Value {
-		t.Error("a wider destination must cost more fee, not less")
-	}
+	require.NoError(t, err)
+	assert.Greater(t, segwit.TxOut[0].Value, tx.TxOut[0].Value)
 }

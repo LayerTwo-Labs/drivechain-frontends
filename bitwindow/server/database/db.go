@@ -9,9 +9,10 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sqliteguard"
-	"github.com/rs/zerolog"
 )
 
 // New creates a new SQLite database and runs all migrations

@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/notifications"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/rs/zerolog"
 )
 
 // depositDroppedTickInterval is how often the engine re-reads the deposits.

@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
 )
 
 func row(height uint32, hash string, at time.Time) coinbases.Coinbase {

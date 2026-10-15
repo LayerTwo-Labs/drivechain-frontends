@@ -15,10 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
 
 func TestExitError(t *testing.T) {
@@ -217,7 +218,7 @@ func TestOrchestratorPortWatcherStaysOnALivePort(t *testing.T) {
 	defer cancel()
 	orchestratorPortWatcher("http://"+listener.Addr().String(), time.Millisecond)(ctx)
 
-	require.Error(t, ctx.Err(), "the watcher gave up on a live port")
+	require.ErrorIs(t, ctx.Err(), context.DeadlineExceeded)
 }
 
 // A shutdown mid-start must not leave a detached daemon behind.
@@ -334,7 +335,7 @@ func TestRetireOrchestratorStopsWhenTheContextEnds(t *testing.T) {
 	log := zerolog.Nop()
 	err = retireOrchestrator(ctx, addr, t.TempDir(), &log)
 
-	require.Error(t, err)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestRetireRunningOrchestratorFollowsTheOwner(t *testing.T) {

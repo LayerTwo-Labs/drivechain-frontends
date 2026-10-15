@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1/multisigv1connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1/multisigv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 )
 
 var _ rpc.MultisigServiceHandler = new(Server)

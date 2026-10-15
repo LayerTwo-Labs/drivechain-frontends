@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/mattn/go-sqlite3"
+
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
-	"github.com/mattn/go-sqlite3"
 )
 
 // ErrDuplicateAddress is the error of Create when the book holds the address

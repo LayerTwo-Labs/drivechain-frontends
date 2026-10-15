@@ -9,9 +9,12 @@ import (
 	"strconv"
 	"testing"
 
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-
 	"connectrpc.com/connect"
+	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
@@ -19,10 +22,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/emptypb"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 func TestService_GetBalance(t *testing.T) {
@@ -255,7 +255,7 @@ func TestService_GetCheque(t *testing.T) {
 			WalletId: "test-wallet-id-1234",
 			Id:       99999,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "cheque not found")
 		// A non-existent cheque must surface as NotFound, not a leaked
 		// "no rows" internal error.
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -289,7 +289,7 @@ func TestService_DeleteCheque(t *testing.T) {
 			WalletId: "test-wallet-id-1234",
 			Id:       99999,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "cheque not found")
 		// A non-existent cheque must surface as NotFound, not a leaked
 		// "no rows" internal error.
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -343,7 +343,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 			WalletId: testWalletID,
 			Id:       chequeID,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "cannot delete funded cheque")
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 
 		// The row must survive — its recorded funds are still unswept.
@@ -365,7 +365,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 			WalletId: testWalletID,
 			Id:       chequeID,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "cannot delete funded cheque")
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 
 		_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
@@ -491,8 +491,7 @@ func TestService_UnlockWallet(t *testing.T) {
 		_, err := cli.UnlockWallet(context.Background(), connect.NewRequest(&walletv1.UnlockWalletRequest{
 			Password: "anypassword",
 		}))
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "not encrypted")
+		require.ErrorContains(t, err, "not encrypted")
 	})
 }
 

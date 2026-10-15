@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
 
 const (

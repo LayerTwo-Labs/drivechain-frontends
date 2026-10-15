@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLinuxDataDirMigration(t *testing.T) {
@@ -25,9 +28,7 @@ func TestLinuxDataDirMigration(t *testing.T) {
 		{
 			name: "only new dir exists",
 			setup: func(t *testing.T, base string) {
-				if err := os.MkdirAll(filepath.Join(base, linuxAppName), 0o755); err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, os.MkdirAll(filepath.Join(base, linuxAppName), 0o755))
 			},
 			wantNewIsDir: true,
 		},
@@ -35,12 +36,8 @@ func TestLinuxDataDirMigration(t *testing.T) {
 			name: "only legacy dir exists migrates with symlink",
 			setup: func(t *testing.T, base string) {
 				legacy := filepath.Join(base, linuxAppNameLegacy)
-				if err := os.MkdirAll(legacy, 0o755); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(filepath.Join(legacy, "wallet.json"), []byte("legacy"), 0o644); err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, os.MkdirAll(legacy, 0o755))
+				require.NoError(t, os.WriteFile(filepath.Join(legacy, "wallet.json"), []byte("legacy"), 0o644))
 			},
 			wantSymlink:      true,
 			wantLegacyExists: true,
@@ -50,16 +47,10 @@ func TestLinuxDataDirMigration(t *testing.T) {
 		{
 			name: "both dirs exist leaves legacy untouched",
 			setup: func(t *testing.T, base string) {
-				if err := os.MkdirAll(filepath.Join(base, linuxAppName), 0o755); err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, os.MkdirAll(filepath.Join(base, linuxAppName), 0o755))
 				legacy := filepath.Join(base, linuxAppNameLegacy)
-				if err := os.MkdirAll(legacy, 0o755); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(filepath.Join(legacy, "marker"), []byte("legacy"), 0o644); err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, os.MkdirAll(legacy, 0o755))
+				require.NoError(t, os.WriteFile(filepath.Join(legacy, "marker"), []byte("legacy"), 0o644))
 			},
 			wantLegacyExists: true,
 			wantNewIsDir:     true,
@@ -74,63 +65,38 @@ func TestLinuxDataDirMigration(t *testing.T) {
 			tc.setup(t, base)
 
 			got, err := linuxDataDir()
-			if err != nil {
-				t.Fatalf("linuxDataDir: %v", err)
-			}
+			require.NoError(t, err)
 
 			want := filepath.Join(base, linuxAppName)
-			if got != want {
-				t.Fatalf("dir = %q, want %q", got, want)
-			}
+			require.Equal(t, want, got)
 
 			legacy := filepath.Join(base, linuxAppNameLegacy)
 			info, lerr := os.Lstat(legacy)
 			switch {
 			case tc.wantSymlink:
-				if lerr != nil {
-					t.Fatalf("legacy symlink missing: %v", lerr)
-				}
-				if info.Mode()&os.ModeSymlink == 0 {
-					t.Fatalf("legacy path is not a symlink: mode=%v", info.Mode())
-				}
+				require.NoError(t, lerr)
+				require.NotZero(t, info.Mode()&os.ModeSymlink)
 				target, err := os.Readlink(legacy)
-				if err != nil {
-					t.Fatalf("readlink: %v", err)
-				}
-				if target != want {
-					t.Errorf("symlink target = %q, want %q", target, want)
-				}
+				require.NoError(t, err)
+				assert.Equal(t, want, target)
 			case tc.wantLegacyExists:
-				if lerr != nil {
-					t.Fatalf("expected legacy to remain, got %v", lerr)
-				}
-				if info.Mode()&os.ModeSymlink != 0 {
-					t.Errorf("legacy unexpectedly became a symlink: mode=%v", info.Mode())
-				}
+				require.NoError(t, lerr)
+				assert.Zero(t, info.Mode()&os.ModeSymlink)
 			default:
-				if lerr == nil {
-					t.Errorf("legacy should not exist, but does (mode=%v)", info.Mode())
-				} else if !os.IsNotExist(lerr) {
-					t.Errorf("unexpected legacy stat error: %v", lerr)
-				}
+				assert.ErrorIs(t, lerr, os.ErrNotExist)
 			}
 
 			newInfo, nerr := os.Stat(want)
 			if tc.wantNewIsDir {
-				if nerr != nil {
-					t.Fatalf("new dir stat: %v", nerr)
-				}
-				if !newInfo.IsDir() {
-					t.Errorf("new path is not a dir: mode=%v", newInfo.Mode())
-				}
-			} else if nerr == nil {
-				t.Errorf("new dir should not exist yet, but does")
+				require.NoError(t, nerr)
+				assert.True(t, newInfo.IsDir())
+			} else {
+				assert.ErrorIs(t, nerr, os.ErrNotExist)
 			}
 
 			if tc.wantPreserveFile != "" {
-				if _, err := os.Stat(filepath.Join(want, tc.wantPreserveFile)); err != nil {
-					t.Errorf("preserved file missing after migration: %v", err)
-				}
+				_, err := os.Stat(filepath.Join(want, tc.wantPreserveFile))
+				assert.NoError(t, err)
 			}
 		})
 	}

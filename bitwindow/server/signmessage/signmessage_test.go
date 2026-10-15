@@ -273,5 +273,5 @@ func TestVerifyRejectsMalformedInput(t *testing.T) {
 	require.ErrorContains(t, err, "decode signature")
 
 	_, err = Verify("mpLQjfK79b7CCV4VMJWEWAj5Mpx8Up5zxB", "Hello World", "AA==", params)
-	require.Error(t, err)
+	require.ErrorContains(t, err, "unknown address type")
 }

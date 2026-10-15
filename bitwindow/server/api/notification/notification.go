@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
-	"github.com/rs/zerolog"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var _ rpc.NotificationServiceHandler = new(Server)

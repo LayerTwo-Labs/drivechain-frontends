@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	walletpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	"github.com/stretchr/testify/require"
+
+	walletpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 )
 
 func bnbUTXOs(values ...int64) []*walletpb.UnspentOutput {
@@ -49,13 +50,9 @@ func TestBranchAndBoundExactMatchNoChange(t *testing.T) {
 		walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND,
 		map[string]bool{},
 	)
-	if err != nil {
-		t.Fatalf("SelectCoins: %v", err)
-	}
+	require.NoError(t, err)
 
-	if result.ChangeSats != 0 {
-		t.Fatalf("expected no change output, got change=%d", result.ChangeSats)
-	}
+	require.Zero(t, result.ChangeSats)
 
 	// Effective value sum must land in [target, target+costOfChange].
 	feePerInput := int64(InputVbytes) * feeRate
@@ -66,13 +63,11 @@ func TestBranchAndBoundExactMatchNoChange(t *testing.T) {
 	for _, u := range result.SelectedUTXOs {
 		effSum += int64(u.ValueSats) - feePerInput
 	}
-	if effSum < target || effSum > target+costOfChange {
-		t.Fatalf("effective sum %d outside [%d, %d]", effSum, target, target+costOfChange)
-	}
+	require.GreaterOrEqual(t, effSum, target)
+	require.LessOrEqual(t, effSum, target+costOfChange)
 
-	if len(result.SelectedUTXOs) != 1 || result.SelectedUTXOs[0].ValueSats != uint64(exactValue) {
-		t.Fatalf("expected the single exact-match UTXO, got %d inputs", len(result.SelectedUTXOs))
-	}
+	require.Len(t, result.SelectedUTXOs, 1)
+	require.Equal(t, uint64(exactValue), result.SelectedUTXOs[0].ValueSats)
 }
 
 func TestBranchAndBoundEffectiveValueAccountsForInputFee(t *testing.T) {
@@ -101,26 +96,19 @@ func TestBranchAndBoundEffectiveValueAccountsForInputFee(t *testing.T) {
 		walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND,
 		map[string]bool{},
 	)
-	if err != nil {
-		t.Fatalf("SelectCoins: %v", err)
-	}
-	if result.ChangeSats != 0 {
-		t.Fatalf("expected no change, got %d", result.ChangeSats)
-	}
+	require.NoError(t, err)
+	require.Zero(t, result.ChangeSats)
 
 	costOfChange := int64(OutputVbytes+InputVbytes) * feeRate
 	var effSum int64
 	for _, u := range result.SelectedUTXOs {
 		effSum += int64(u.ValueSats) - feePerInput
 	}
-	if effSum < target || effSum > target+costOfChange {
-		t.Fatalf("effective sum %d outside [%d, %d]", effSum, target, target+costOfChange)
-	}
+	require.GreaterOrEqual(t, effSum, target)
+	require.LessOrEqual(t, effSum, target+costOfChange)
 	// The big UTXO alone would overshoot by far more than costOfChange, so it
 	// must not be the chosen selection.
-	if len(result.SelectedUTXOs) == 1 && result.SelectedUTXOs[0].ValueSats == 9_999_999 {
-		t.Fatal("BnB picked the oversized UTXO instead of the exact pair")
-	}
+	require.False(t, len(result.SelectedUTXOs) == 1 && result.SelectedUTXOs[0].ValueSats == 9_999_999)
 }
 
 func TestBranchAndBoundFallsBackWhenNoExactMatch(t *testing.T) {
@@ -142,23 +130,13 @@ func TestBranchAndBoundFallsBackWhenNoExactMatch(t *testing.T) {
 		walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND,
 		map[string]bool{},
 	)
-	if err != nil {
-		t.Fatalf("expected fallback to succeed, got error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if len(result.SelectedUTXOs) == 0 {
-		t.Fatal("fallback returned no inputs")
-	}
-	if result.ChangeSats <= 0 {
-		t.Fatalf("largest-first fallback should leave change, got %d", result.ChangeSats)
-	}
-	if got := sumValues(result.SelectedUTXOs); got < sendAmount+result.FeeSats {
-		t.Fatalf("selection underfunds tx: inputs=%d need=%d", got, sendAmount+result.FeeSats)
-	}
+	require.NotEmpty(t, result.SelectedUTXOs)
+	require.Positive(t, result.ChangeSats)
+	require.GreaterOrEqual(t, sumValues(result.SelectedUTXOs), sendAmount+result.FeeSats)
 	// Fallback uses largest-first: a single 500k UTXO covers the send.
-	if len(result.SelectedUTXOs) != 1 {
-		t.Fatalf("expected largest-first to pick 1 input, got %d", len(result.SelectedUTXOs))
-	}
+	require.Len(t, result.SelectedUTXOs, 1)
 }
 
 // exactMatchAvail returns the value of a single available UTXO whose effective
@@ -218,9 +196,7 @@ func TestBranchAndBoundRequiredInputsOverpayBounded(t *testing.T) {
 				walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND,
 				requiredOutpoints,
 			)
-			if err != nil {
-				t.Fatalf("SelectCoins: %v", err)
-			}
+			require.NoError(t, err)
 
 			for outpoint := range requiredOutpoints {
 				found := false
@@ -230,25 +206,16 @@ func TestBranchAndBoundRequiredInputsOverpayBounded(t *testing.T) {
 						break
 					}
 				}
-				if !found {
-					t.Fatalf("required outpoint %s missing from selection", outpoint)
-				}
+				require.True(t, found)
 			}
 
-			if result.ChangeSats != 0 {
-				t.Fatalf("BnB missed the exact no-change match, produced change=%d", result.ChangeSats)
-			}
+			require.Zero(t, result.ChangeSats)
 
 			costOfChange := int64(OutputVbytes+InputVbytes) * tc.feeRate
 			raw := sumValues(result.SelectedUTXOs)
 			overpay := raw - tc.sendAmount - result.FeeSats - result.ChangeSats
-			if overpay < 0 {
-				t.Fatalf("selection underfunds: raw=%d send=%d fee=%d change=%d", raw, tc.sendAmount, result.FeeSats, result.ChangeSats)
-			}
-			if overpay > costOfChange {
-				t.Fatalf("overpay %d exceeds costOfChange %d (raw=%d send=%d fee=%d change=%d)",
-					overpay, costOfChange, raw, tc.sendAmount, result.FeeSats, result.ChangeSats)
-			}
+			require.GreaterOrEqual(t, overpay, int64(0))
+			require.LessOrEqual(t, overpay, costOfChange)
 		})
 	}
 }

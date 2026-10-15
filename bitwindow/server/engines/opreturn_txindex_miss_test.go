@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 )
 
 // txIndexMissErr is what Core answers for a confirmed transaction it holds no
@@ -82,7 +82,7 @@ func TestUnconfirmedOpReturnStillFailsOnAMissingTransaction(t *testing.T) {
 	createdAt := time.Unix(1700000000, 0)
 
 	_, err := p.handleOpReturns(ctx, opReturnTx(t), nil, &createdAt)
-	require.Error(t, err)
+	require.ErrorContains(t, err, "No such mempool or blockchain transaction")
 }
 
 // Any other getrawtransaction failure stays terminal.
@@ -94,7 +94,7 @@ func TestConfirmedOpReturnStillFailsOnAnUnrelatedRpcError(t *testing.T) {
 	blockTime := time.Unix(1700000000, 0)
 
 	_, err := p.handleOpReturns(ctx, opReturnTx(t), &height, &blockTime)
-	require.Error(t, err)
+	require.ErrorContains(t, err, "unexpected EOF")
 }
 
 func TestIsTxIndexMissMatchesBothCoreShapes(t *testing.T) {

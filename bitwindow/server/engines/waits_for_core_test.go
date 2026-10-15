@@ -3,8 +3,9 @@ package engines
 import (
 	"testing"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
 
 func TestWaitsForCore(t *testing.T) {

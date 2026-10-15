@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bip329"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bip329"
 )
 
 func TestEncodeDecodeRoundTrip(t *testing.T) {

@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/rs/zerolog"
+
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/rs/zerolog"
 )
 
 var _ cryptorpc.CryptoServiceHandler = new(Server)

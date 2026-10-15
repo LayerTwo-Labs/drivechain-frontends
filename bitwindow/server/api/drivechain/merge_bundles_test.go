@@ -3,8 +3,9 @@ package api_drivechain
 import (
 	"testing"
 
-	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	"github.com/stretchr/testify/require"
+
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 )
 
 // TestMergeBundlesRevivesFailedBundle proves a re-proposed M6ID that was cached

@@ -18,11 +18,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 )
 
 const (

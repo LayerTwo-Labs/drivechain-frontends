@@ -392,7 +392,7 @@ func TestCoinNewsIndexer_ErrorsBubble(t *testing.T) {
 	err = p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
 		lo.T2(uint32(900_004), block),
 	})
-	require.Error(t, err, "persistence failures MUST surface, not log-and-continue")
+	require.ErrorContains(t, err, "database is closed", "persistence failures MUST surface, not log-and-continue")
 }
 
 // blockOf wraps one or more OP_RETURN payloads into a wire.MsgBlock

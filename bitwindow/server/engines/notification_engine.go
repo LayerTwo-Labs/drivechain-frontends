@@ -9,10 +9,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/notifications"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -20,6 +16,11 @@ import (
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/notifications"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 )
 
 // notificationBacklog is how old a wallet transaction has to be before it counts

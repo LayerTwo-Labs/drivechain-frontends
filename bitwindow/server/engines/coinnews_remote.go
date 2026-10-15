@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
+
 	coinnewsv1 "github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1"
 	"github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1/coinnewsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
-
-	"connectrpc.com/connect"
 )
 
 // ErrNoIndexer means the network publishes no CoinNews indexer, so the caller

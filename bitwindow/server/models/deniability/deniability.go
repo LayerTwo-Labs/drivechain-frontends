@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
-	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/samber/lo"
+
+	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // ErrNotFound is returned when no denial matches the ID and state of the call.

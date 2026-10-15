@@ -10,10 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 )
 
 func TestValidateBackup_JSON_Valid(t *testing.T) {
@@ -25,12 +26,8 @@ func TestValidateBackup_JSON_Valid(t *testing.T) {
 	data, _ := json.Marshal(wallet)
 
 	contents, err := e.ValidateBackup(context.TODO(), data, "wallet.json")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if !contents.HasWallet {
-		t.Fatal("expected HasWallet true")
-	}
+	require.NoError(t, err)
+	require.True(t, contents.HasWallet)
 }
 
 func TestValidateBackup_JSON_NewFormat(t *testing.T) {
@@ -43,12 +40,8 @@ func TestValidateBackup_JSON_NewFormat(t *testing.T) {
 	data, _ := json.Marshal(wallet)
 
 	contents, err := e.ValidateBackup(context.TODO(), data, "backup.json")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if !contents.HasWallet {
-		t.Fatal("expected HasWallet true")
-	}
+	require.NoError(t, err)
+	require.True(t, contents.HasWallet)
 }
 
 func TestValidateBackup_JSON_Invalid(t *testing.T) {
@@ -59,9 +52,7 @@ func TestValidateBackup_JSON_Invalid(t *testing.T) {
 	data, _ := json.Marshal(wallet)
 
 	_, err := e.ValidateBackup(context.TODO(), data, "wallet.json")
-	if err == nil {
-		t.Fatal("expected error for invalid wallet JSON")
-	}
+	require.ErrorContains(t, err, "invalid wallet.json")
 }
 
 func TestValidateBackup_ZIP_Valid(t *testing.T) {
@@ -82,15 +73,9 @@ func TestValidateBackup_ZIP_Valid(t *testing.T) {
 	_ = zw.Close()
 
 	contents, err := e.ValidateBackup(context.TODO(), buf.Bytes(), "backup.zip")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if !contents.HasWallet {
-		t.Fatal("expected HasWallet true")
-	}
-	if !contents.HasMultisig {
-		t.Fatal("expected HasMultisig true")
-	}
+	require.NoError(t, err)
+	require.True(t, contents.HasWallet)
+	require.True(t, contents.HasMultisig)
 }
 
 func TestValidateBackup_ZIP_MissingWallet(t *testing.T) {
@@ -103,18 +88,14 @@ func TestValidateBackup_ZIP_MissingWallet(t *testing.T) {
 	_ = zw.Close()
 
 	_, err := e.ValidateBackup(context.TODO(), buf.Bytes(), "backup.zip")
-	if err == nil {
-		t.Fatal("expected error for missing wallet.json")
-	}
+	require.ErrorContains(t, err, "backup is missing wallet.json")
 }
 
 func TestValidateBackup_UnsupportedExtension(t *testing.T) {
 	e := &BackupEngine{}
 
 	_, err := e.ValidateBackup(context.TODO(), []byte("data"), "backup.tar.gz")
-	if err == nil {
-		t.Fatal("expected error for unsupported extension")
-	}
+	require.ErrorContains(t, err, "unsupported file type")
 }
 
 func testCtx() context.Context {
@@ -169,20 +150,14 @@ func TestRestoreBackup_JSON(t *testing.T) {
 	data, _ := json.Marshal(wallet)
 
 	err := e.RestoreBackup(testCtx(), data, "wallet.json")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 
 	// Verify wallet.json was written
 	content, err := os.ReadFile(filepath.Join(tmpDir, "wallet.json"))
-	if err != nil {
-		t.Fatalf("wallet.json not found: %v", err)
-	}
+	require.NoError(t, err)
 	var restored map[string]interface{}
 	_ = json.Unmarshal(content, &restored)
-	if restored["master"] != "seed" {
-		t.Fatal("wallet.json content mismatch")
-	}
+	require.Equal(t, "seed", restored["master"])
 }
 
 func TestRestoreBackup_ReplacesExistingWallet(t *testing.T) {
@@ -202,21 +177,13 @@ func TestRestoreBackup_ReplacesExistingWallet(t *testing.T) {
 			e := &BackupEngine{walletDir: tmpDir}
 
 			walletPath := filepath.Join(tmpDir, "wallet.json")
-			if err := os.WriteFile(walletPath, tc.current, 0600); err != nil {
-				t.Fatalf("seed wallet.json: %v", err)
-			}
+			require.NoError(t, os.WriteFile(walletPath, tc.current, 0600))
 
-			if err := e.RestoreBackup(testCtx(), backup, "wallet.json"); err != nil {
-				t.Fatalf("expected no error, got %v", err)
-			}
+			require.NoError(t, e.RestoreBackup(testCtx(), backup, "wallet.json"))
 
 			content, err := os.ReadFile(walletPath)
-			if err != nil {
-				t.Fatalf("wallet.json not found: %v", err)
-			}
-			if !bytes.Equal(content, backup) {
-				t.Fatalf("wallet.json holds %s, want the backup", content)
-			}
+			require.NoError(t, err)
+			require.Equal(t, backup, content)
 		})
 	}
 }
@@ -225,14 +192,10 @@ func TestHasCurrentWallet(t *testing.T) {
 	tmpDir := t.TempDir()
 	e := &BackupEngine{walletDir: tmpDir}
 
-	if e.HasCurrentWallet() {
-		t.Fatal("expected no wallet initially")
-	}
+	require.False(t, e.HasCurrentWallet())
 
 	_ = os.WriteFile(filepath.Join(tmpDir, "wallet.json"), []byte(`{"master":"s","l1":"k"}`), 0600)
-	if !e.HasCurrentWallet() {
-		t.Fatal("expected wallet to exist after writing")
-	}
+	require.True(t, e.HasCurrentWallet())
 }
 
 func TestRestoreBackup_KeepsCurrentWallet(t *testing.T) {

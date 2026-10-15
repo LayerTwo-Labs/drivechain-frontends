@@ -6,11 +6,12 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1/walletpsbtv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/walletpsbt"
-	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var _ rpc.WalletPsbtServiceHandler = new(Server)

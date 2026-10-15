@@ -9,6 +9,15 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -23,14 +32,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestService_Stop(t *testing.T) {
@@ -56,7 +57,7 @@ func TestService_Stop(t *testing.T) {
 		defer cancel()
 
 		_, err := cli.Stop(ctx, connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
-		require.Error(t, err)
+		require.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 }
 
@@ -96,7 +97,7 @@ func TestService_CreateDenial(t *testing.T) {
 			DelaySeconds: 0,
 			NumHops:      1,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "delay_seconds must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -133,7 +134,7 @@ func TestService_CreateDenial(t *testing.T) {
 			DelaySeconds: -10,
 			NumHops:      1,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "delay_seconds must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -170,7 +171,7 @@ func TestService_CreateDenial(t *testing.T) {
 			DelaySeconds: 60,
 			NumHops:      0,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "num_hops must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -207,7 +208,7 @@ func TestService_CreateDenial(t *testing.T) {
 			DelaySeconds: 60,
 			NumHops:      -5,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "num_hops must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -240,7 +241,7 @@ func TestService_CreateDenial(t *testing.T) {
 			DelaySeconds: 60,
 			NumHops:      1,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "utxo :0 not found in wallet")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -277,7 +278,7 @@ func TestService_CreateDenial(t *testing.T) {
 			DelaySeconds: 60,
 			NumHops:      1,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "utxo nonexistent:0 not found in wallet")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -570,7 +571,7 @@ func TestService_AddressBook(t *testing.T) {
 			Address:   "invalid-bitcoin-address",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "invalid address \"invalid-bitcoin-address\"")
 	})
 
 	t.Run("create entry with send direction", func(t *testing.T) {
@@ -724,7 +725,7 @@ func TestService_AddressBook(t *testing.T) {
 			Id:    99999,
 			Label: "New Label",
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "address book entry not found")
 	})
 
 	t.Run("delete entry", func(t *testing.T) {
@@ -758,7 +759,7 @@ func TestService_AddressBook(t *testing.T) {
 		_, err := cli.DeleteAddressBookEntry(context.Background(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
 			Id: 99999,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "address book entry not found")
 	})
 
 	t.Run("delete already deleted entry", func(t *testing.T) {
@@ -785,7 +786,7 @@ func TestService_AddressBook(t *testing.T) {
 		_, err = cli.DeleteAddressBookEntry(context.Background(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
 			Id: createResp.Msg.Entry.Id,
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "address book entry not found")
 	})
 }
 
@@ -872,7 +873,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
 		_, err := cli.GetSyncInfo(context.Background(), connect.NewRequest(&emptypb.Empty{}))
-		require.Error(t, err)
+		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	})
 
 	t.Run("get sync info with testnet", func(t *testing.T) {
@@ -957,7 +958,7 @@ func TestService_SetTransactionNote(t *testing.T) {
 			Txid: "",
 			Note: "Test note",
 		}))
-		require.Error(t, err)
+		require.ErrorContains(t, err, "txid cannot be empty")
 	})
 
 	t.Run("set very long note", func(t *testing.T) {

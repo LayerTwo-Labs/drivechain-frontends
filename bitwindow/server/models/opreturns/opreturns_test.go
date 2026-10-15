@@ -17,12 +17,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
-	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
 func mustTopicID(t *testing.T, hex string) TopicID {

@@ -8,14 +8,15 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
-	utilsv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
+	utilsv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 )
 
 // Every daemon answers the same way while it boots, and the console holds

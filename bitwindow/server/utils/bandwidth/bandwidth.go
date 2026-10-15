@@ -162,22 +162,29 @@ func (t *Tracker) countConnectionsLinux(pid int) int32 {
 
 	// Count matching sockets in /proc/net/tcp
 	for _, netFile := range []string{"/proc/net/tcp", "/proc/net/tcp6"} {
-		file, err := os.Open(netFile)
-		if err != nil {
-			continue
-		}
-		defer file.Close()
+		count += countSocketsIn(netFile, socketInodes)
+	}
 
-		scanner := bufio.NewScanner(file)
-		scanner.Scan() // Skip header
+	return count
+}
 
-		for scanner.Scan() {
-			fields := strings.Fields(scanner.Text())
-			if len(fields) > 9 {
-				inode := fields[9]
-				if socketInodes[inode] {
-					count++
-				}
+func countSocketsIn(netFile string, socketInodes map[string]bool) int32 {
+	file, err := os.Open(netFile)
+	if err != nil {
+		return 0
+	}
+	defer file.Close()
+
+	count := int32(0)
+	scanner := bufio.NewScanner(file)
+	scanner.Scan() // Skip header
+
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) > 9 {
+			inode := fields[9]
+			if socketInodes[inode] {
+				count++
 			}
 		}
 	}

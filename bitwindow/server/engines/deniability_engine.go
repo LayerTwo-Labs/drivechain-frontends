@@ -9,15 +9,16 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+
+	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 type DeniabilityEngine struct {

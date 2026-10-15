@@ -369,7 +369,7 @@ func TestMempoolWatchHandleBlockDisconnected(t *testing.T) {
 func TestMempoolWatchHandleInvalidEvent(t *testing.T) {
 	w, _ := newTestWatcher(t, newFakeNode())
 	_, err := w.handle(context.Background(), SequenceMsg{Event: Invalid})
-	require.Error(t, err)
+	require.ErrorContains(t, err, "invalid sequence event")
 }
 
 type watchRun struct {

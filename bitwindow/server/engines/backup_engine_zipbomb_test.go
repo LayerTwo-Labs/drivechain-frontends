@@ -12,12 +12,8 @@ func zipWith(t *testing.T, name string, data []byte) []byte {
 	t.Helper()
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
-	if err := addToZip(zw, name, data); err != nil {
-		t.Fatal(err)
-	}
-	if err := zw.Close(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, addToZip(zw, name, data))
+	require.NoError(t, zw.Close())
 	return buf.Bytes()
 }
 
@@ -28,26 +24,19 @@ func TestBackupZipEntryCapped(t *testing.T) {
 	defer func() { maxBackupEntrySize = orig }()
 
 	bomb := zipWith(t, "wallet.json", bytes.Repeat([]byte("a"), 8<<10))
-	if _, _, _, _, _, err := extractZIP(bomb); err == nil {
-		t.Fatal("extractZIP accepted an over-cap entry")
-	}
+	_, _, _, _, _, err := extractZIP(bomb)
+	require.ErrorContains(t, err, "exceeds 1024 byte limit")
 	e := &BackupEngine{}
-	if _, err := e.validateZIP(bomb); err == nil {
-		t.Fatal("validateZIP accepted an over-cap entry")
-	}
+	_, err = e.validateZIP(bomb)
+	require.ErrorContains(t, err, "exceeds 1024 byte limit")
 
 	// a valid within-cap backup still works
 	ok := zipWith(t, "wallet.json", []byte(`{"master":"x","l1":"y"}`))
 	wallet, _, _, _, _, err := extractZIP(ok)
-	if err != nil {
-		t.Fatalf("extractZIP rejected a valid backup: %v", err)
-	}
-	if len(wallet) == 0 {
-		t.Fatal("extractZIP did not return wallet.json")
-	}
-	if _, err := e.validateZIP(ok); err != nil {
-		t.Fatalf("validateZIP rejected a valid backup: %v", err)
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, wallet)
+	_, err = e.validateZIP(ok)
+	require.NoError(t, err)
 }
 
 func TestValidateZIP_OptionalEntryReadFails(t *testing.T) {

@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 func TestDeniability(t *testing.T) {
@@ -107,17 +108,17 @@ func TestDeniability(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
 
-		kept, err := Create(ctx, db, "test-wallet", "txid1", 0, time.Hour, 2, []int64{1000, 2000})
+		kept, err := Create(t.Context(), db, "test-wallet", "txid1", 0, time.Hour, 2, []int64{1000, 2000})
 		require.NoError(t, err)
-		cancelled, err := Create(ctx, db, "test-wallet", "txid2", 0, time.Hour, 2, nil)
+		cancelled, err := Create(t.Context(), db, "test-wallet", "txid2", 0, time.Hour, 2, nil)
 		require.NoError(t, err)
-		require.NoError(t, Cancel(ctx, db, cancelled.ID, "test"))
+		require.NoError(t, Cancel(t.Context(), db, cancelled.ID, "test"))
 
-		all, err := List(ctx, db)
+		all, err := List(t.Context(), db)
 		require.NoError(t, err)
 		require.Len(t, all, 2)
 
-		active, err := List(ctx, db, WithExcludeCancelled())
+		active, err := List(t.Context(), db, WithExcludeCancelled())
 		require.NoError(t, err)
 		require.Len(t, active, 1)
 		require.Equal(t, kept.ID, active[0].ID)
@@ -165,22 +166,22 @@ func TestDeniability(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
 
-		require.ErrorIs(t, Cancel(ctx, db, 999, "reason"), ErrNotFound)
-		require.ErrorIs(t, Pause(ctx, db, 999), ErrNotFound)
-		require.ErrorIs(t, Resume(ctx, db, 999), ErrNotFound)
+		require.ErrorIs(t, Cancel(t.Context(), db, 999, "reason"), ErrNotFound)
+		require.ErrorIs(t, Pause(t.Context(), db, 999), ErrNotFound)
+		require.ErrorIs(t, Resume(t.Context(), db, 999), ErrNotFound)
 	})
 
 	t.Run("Pause of a paused denial and Resume of an active denial return ErrNotFound", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
 
-		denial, err := Create(ctx, db, "test-wallet", "txid", 0, time.Hour, 3, nil)
+		denial, err := Create(t.Context(), db, "test-wallet", "txid", 0, time.Hour, 3, nil)
 		require.NoError(t, err)
 
-		require.ErrorIs(t, Resume(ctx, db, denial.ID), ErrNotFound)
-		require.NoError(t, Pause(ctx, db, denial.ID))
-		require.ErrorIs(t, Pause(ctx, db, denial.ID), ErrNotFound)
-		require.NoError(t, Resume(ctx, db, denial.ID))
+		require.ErrorIs(t, Resume(t.Context(), db, denial.ID), ErrNotFound)
+		require.NoError(t, Pause(t.Context(), db, denial.ID))
+		require.ErrorIs(t, Pause(t.Context(), db, denial.ID), ErrNotFound)
+		require.NoError(t, Resume(t.Context(), db, denial.ID))
 	})
 
 	t.Run("NextExecution", func(t *testing.T) {

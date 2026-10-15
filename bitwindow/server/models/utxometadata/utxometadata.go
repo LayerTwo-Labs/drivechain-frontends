@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
+
+	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 type Entry struct {
