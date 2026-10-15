@@ -3,9 +3,11 @@ package notifications
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
 )
 
@@ -24,9 +26,8 @@ func HasBeenNotified(ctx context.Context, db *sql.DB, eventType, eventID string)
 		Where(sq.Eq{"event_type": eventType, "event_id": eventID}).
 		MustSql()
 
-	var exists int
-	err := db.QueryRowContext(ctx, query, args...).Scan(&exists)
-	if err == sql.ErrNoRows {
+	_, err := database.Get[int64](ctx, db, query, args...)
+	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 	if err != nil {

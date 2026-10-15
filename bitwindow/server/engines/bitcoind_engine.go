@@ -13,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinbases"
@@ -947,10 +948,10 @@ func (p *Parser) logCoinnews(ctx context.Context, txid string, vout int, data []
 	}
 
 	topicHex := hex.EncodeToString(data[:4])
-	var topicName string
-	if err := p.db.QueryRowContext(ctx,
+	topicName, err := database.Get[string](ctx, p.db,
 		`SELECT name FROM cn_topics WHERE lower(hex(topic)) = ?`, topicHex,
-	).Scan(&topicName); err != nil {
+	)
+	if err != nil {
 		return // not a known topic, or lookup failed
 	}
 

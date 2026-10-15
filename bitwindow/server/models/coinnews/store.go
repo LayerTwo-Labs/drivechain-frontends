@@ -7,11 +7,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"slices"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
@@ -32,17 +34,17 @@ func HNScore(upvotes, downvotes int64, blockTime time.Time) float64 {
 // Comment is one node in a reply thread (spec §7), with its on-chain
 // vote tally and §13 score.
 type Comment struct {
-	ItemID     string // hex 12-byte ItemID
-	ParentID   string // hex 12-byte parent ItemID
-	Author     string // hex 32-byte x-only pubkey
-	Body       string
-	URL        string
-	Lang       string
-	ReplyQuote string
-	Upvotes    int64
-	Downvotes  int64
+	ItemID     string `db:"item_id"`    // hex 12-byte ItemID
+	ParentID   string `db:"parent_id"`  // hex 12-byte parent ItemID
+	Author     string `db:"author_xpk"` // hex 32-byte x-only pubkey
+	Body       string `db:"body"`
+	URL        string `db:"url"`
+	Lang       string `db:"lang"`
+	ReplyQuote string `db:"reply_quote"`
+	Upvotes    int64  `db:"upvotes"`
+	Downvotes  int64  `db:"downvotes"`
 	Score      float64
-	CreatedAt  time.Time
+	CreatedAt  time.Time `db:"block_time"`
 }
 
 // VoteTally is a subquery that gives the upvotes and downvotes of each target_id.
@@ -56,23 +58,23 @@ var VoteTally = fmt.Sprintf(`
 // story or comment ItemID), ranked by descending §13 score. Callers
 // build the reply tree from each Comment's ParentID.
 func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]Comment, error) {
-	rows, err := db.QueryContext(ctx, `
+	out, err := database.Select[Comment](ctx, db, `
 		WITH RECURSIVE thread(item_id) AS (
 			SELECT item_id FROM cn_comments WHERE parent_id = ?
 			UNION
 			SELECT c.item_id FROM cn_comments c JOIN thread t ON c.parent_id = t.item_id
 		)
 		SELECT
-			lower(hex(cm.item_id)),
-			lower(hex(cm.parent_id)),
-			lower(hex(cm.author_xpk)),
-			COALESCE(cm.body, ''),
-			COALESCE(cm.url, ''),
-			COALESCE(cm.lang, ''),
-			COALESCE(cm.reply_quote, ''),
+			lower(hex(cm.item_id)) AS item_id,
+			lower(hex(cm.parent_id)) AS parent_id,
+			lower(hex(cm.author_xpk)) AS author_xpk,
+			COALESCE(cm.body, '') AS body,
+			COALESCE(cm.url, '') AS url,
+			COALESCE(cm.lang, '') AS lang,
+			COALESCE(cm.reply_quote, '') AS reply_quote,
 			i.block_time,
-			COALESCE(v.upvotes, 0),
-			COALESCE(v.downvotes, 0)
+			COALESCE(v.upvotes, 0) AS upvotes,
+			COALESCE(v.downvotes, 0) AS downvotes
 		FROM thread t
 		JOIN cn_comments cm ON cm.item_id = t.item_id
 		JOIN cn_items i ON i.item_id = cm.item_id
@@ -81,23 +83,8 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]Comment, 
 	if err != nil {
 		return nil, fmt.Errorf("coinnews: query thread: %w", err)
 	}
-	defer rows.Close()
-
-	var out []Comment
-	for rows.Next() {
-		var c Comment
-		if err := rows.Scan(
-			&c.ItemID, &c.ParentID, &c.Author,
-			&c.Body, &c.URL, &c.Lang, &c.ReplyQuote,
-			&c.CreatedAt, &c.Upvotes, &c.Downvotes,
-		); err != nil {
-			return nil, fmt.Errorf("coinnews: scan comment: %w", err)
-		}
-		c.Score = HNScore(c.Upvotes, c.Downvotes, c.CreatedAt)
-		out = append(out, c)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("coinnews: iterate thread: %w", err)
+	for i := range out {
+		out[i].Score = HNScore(out[i].Upvotes, out[i].Downvotes, out[i].CreatedAt)
 	}
 	slices.SortFunc(out, func(a, b Comment) int {
 		switch {
@@ -134,9 +121,9 @@ type IndexEnv struct {
 // ItemRef is an indexed Item's canonical scan position (spec §4.2):
 // (block_height, tx_index, vout_index).
 type ItemRef struct {
-	BlockHeight uint32
-	TxIndex     uint32
-	VoutIndex   uint32
+	BlockHeight uint32 `db:"block_height"`
+	TxIndex     uint32 `db:"tx_index"`
+	VoutIndex   uint32 `db:"vout_index"`
 }
 
 // Before reports whether a is strictly earlier than b in canonical scan
@@ -156,15 +143,14 @@ func (a ItemRef) Before(b ItemRef) bool {
 // to absent ItemIDs are unresolvable and the referring Message MUST be
 // dropped (spec §4.1, §7, §8).
 func ResolveItem(ctx context.Context, db *sql.DB, id codec.ItemID) (ItemRef, bool, error) {
-	var ref ItemRef
-	err := db.QueryRowContext(ctx,
+	ref, err := database.Get[ItemRef](ctx, db,
 		`SELECT block_height, tx_index, vout_index FROM cn_items WHERE item_id = ?`,
 		id[:],
-	).Scan(&ref.BlockHeight, &ref.TxIndex, &ref.VoutIndex)
-	switch err {
-	case nil:
+	)
+	switch {
+	case err == nil:
 		return ref, true, nil
-	case sql.ErrNoRows:
+	case errors.Is(err, sql.ErrNoRows):
 		return ItemRef{}, false, nil
 	default:
 		return ItemRef{}, false, fmt.Errorf("coinnews: resolve item: %w", err)
@@ -330,14 +316,13 @@ func indexContinuation(ctx context.Context, tx *sql.Tx, pos BlockPos, c *codec.C
 // CountStoriesSince returns the number of stories with a headline in blocks
 // with a block time at or after since.
 func CountStoriesSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error) {
-	var count int64
-	err := db.QueryRowContext(ctx, `
+	count, err := database.Get[int64](ctx, db, `
 		SELECT COUNT(*)
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
 		WHERE i.block_time >= ?
 		  AND trim(s.headline) != ''
-	`, since).Scan(&count)
+	`, since)
 	if err != nil {
 		return 0, fmt.Errorf("count stories since %s: %w", since, err)
 	}
@@ -362,14 +347,19 @@ func ReassembleTLVs(ctx context.Context, db *sql.DB, headID codec.ItemID, headRa
 		return nil, fmt.Errorf("coinnews: decode head tlv: %w", err)
 	}
 
-	rows, err := db.QueryContext(ctx, `
+	type continuation struct {
+		Seq       int    `db:"seq"`
+		Chunk     []byte `db:"chunk"`
+		TxIndex   uint32 `db:"tx_index"`
+		VoutIndex uint32 `db:"vout_index"`
+	}
+	chunks, err := database.Select[continuation](ctx, db, `
 		SELECT seq, chunk, tx_index, vout_index
 		FROM cn_continuations WHERE head_id = ? ORDER BY seq
 	`, headID[:])
 	if err != nil {
 		return nil, fmt.Errorf("coinnews: query continuations: %w", err)
 	}
-	defer rows.Close()
 
 	full := append([]byte{}, headRawTLV...)
 	var (
@@ -377,31 +367,21 @@ func ReassembleTLVs(ctx context.Context, db *sql.DB, headID codec.ItemID, headRa
 		havePrev bool
 		prevPos  ItemRef
 	)
-	for rows.Next() {
-		var (
-			seq   int
-			chunk []byte
-			pos   ItemRef
-		)
-		if err := rows.Scan(&seq, &chunk, &pos.TxIndex, &pos.VoutIndex); err != nil {
-			return nil, fmt.Errorf("coinnews: scan continuation: %w", err)
-		}
-		if seq != wantSeq {
+	for _, c := range chunks {
+		pos := ItemRef{TxIndex: c.TxIndex, VoutIndex: c.VoutIndex}
+		if c.Seq != wantSeq {
 			return headTLVs, nil // gap or non-zero start ⇒ drop the chunk set
 		}
 		if havePrev && !prevPos.Before(pos) {
 			return headTLVs, nil // not in physical seq order ⇒ drop
 		}
-		full = append(full, chunk...)
+		full = append(full, c.Chunk...)
 		if len(full) > codec.MaxReassembledLen {
 			return headTLVs, nil // exceeds the 8 KiB reassembly cap ⇒ drop
 		}
 		wantSeq++
 		havePrev = true
 		prevPos = pos
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("coinnews: iterate continuations: %w", err)
 	}
 	if wantSeq == 0 {
 		return headTLVs, nil // no continuations

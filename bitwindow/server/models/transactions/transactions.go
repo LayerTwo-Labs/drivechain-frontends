@@ -5,32 +5,18 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 type TransactionNote struct {
-	TxID  string
-	Note  string
-	SetAt time.Time
+	TxID  string    `db:"txid"`
+	Note  string    `db:"note"`
+	SetAt time.Time `db:"set_at"`
 }
 
 func ListByWallet(ctx context.Context, db *sql.DB, walletID string) ([]TransactionNote, error) {
-	rows, err := db.QueryContext(ctx, `SELECT txid, note, set_at FROM transaction_notes WHERE wallet_id = ?`, walletID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var notes []TransactionNote
-	for rows.Next() {
-		var note TransactionNote
-		err := rows.Scan(&note.TxID, &note.Note, &note.SetAt)
-		if err != nil {
-			return nil, err
-		}
-
-		notes = append(notes, note)
-	}
-	return notes, rows.Err()
+	return database.Select[TransactionNote](ctx, db, `SELECT txid, note, set_at FROM transaction_notes WHERE wallet_id = ?`, walletID)
 }
 
 // ErrEmptyTxID is the SetNote error for an empty txid.

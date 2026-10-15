@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
@@ -220,7 +221,6 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 	// bundle ends up cleared with part of its history never replayed.
 	replayFrom := fromHeight
 	for {
-		var lowest sql.NullInt64
 		// A terminal bundle written before the transitions stamped their height
 		// carries only its last vote, so last_updated_height cannot say whether
 		// the branch that went away is what ended it.
@@ -233,14 +233,15 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 		// failed and expired both need blocks_left = 0, which cannot happen
 		// before first_seen_height + max_age, so one that aged out below the
 		// window stays. approved needs only a score, which any block can reach.
-		if err := tx.QueryRowContext(ctx, `
+		lowest, err := database.Get[sql.NullInt64](ctx, tx, `
 			SELECT MIN(first_seen_height) FROM withdrawal_bundles
 			WHERE last_updated_height >= ?
 			   OR (status_stamped = 0 AND status = 'approved' AND first_seen_height < ?)
 			   OR (status_stamped = 0 AND status IN ('failed', 'expired')
 			       AND first_seen_height + max_age >= ?)`,
 			replayFrom, replayFrom, replayFrom,
-		).Scan(&lowest); err != nil {
+		)
+		if err != nil {
 			return 0, err
 		}
 		if !lowest.Valid || lowest.Int64 < 0 || uint32(lowest.Int64) >= replayFrom {

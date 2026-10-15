@@ -3,6 +3,7 @@ package utxometadata
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -10,9 +11,9 @@ import (
 )
 
 type Entry struct {
-	Outpoint  string
-	IsFrozen  bool
-	Label     string
+	Outpoint  string `db:"outpoint"`
+	IsFrozen  bool   `db:"is_frozen"`
+	Label     string `db:"label"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -22,13 +23,11 @@ func Set(ctx context.Context, db *sql.DB, outpoint string, isFrozen *bool, label
 	now := time.Now().Unix()
 
 	// Check if entry exists
-	var existing Entry
-	err := db.QueryRowContext(ctx,
+	existing, err := database.Get[Entry](ctx, db,
 		`SELECT outpoint, is_frozen, label FROM utxo_metadata WHERE outpoint = ?`,
 		outpoint,
-	).Scan(&existing.Outpoint, &existing.IsFrozen, &existing.Label)
-
-	if err == sql.ErrNoRows {
+	)
+	if errors.Is(err, sql.ErrNoRows) {
 		// Insert new entry
 		frozen := false
 		if isFrozen != nil {
@@ -95,21 +94,7 @@ func Get(ctx context.Context, db *sql.DB, outpoints []string) (map[string]*Entry
 
 // FrozenOutpoints names every outpoint the user froze, as txid:vout.
 func FrozenOutpoints(ctx context.Context, db *sql.DB) ([]string, error) {
-	rows, err := db.QueryContext(ctx,
+	return database.Select[string](ctx, db,
 		`SELECT outpoint FROM utxo_metadata WHERE is_frozen = 1`,
 	)
-	if err != nil {
-		return nil, err
-	}
-	defer database.SafeDefer(ctx, rows.Close)
-
-	var outpoints []string
-	for rows.Next() {
-		var outpoint string
-		if err := rows.Scan(&outpoint); err != nil {
-			return nil, err
-		}
-		outpoints = append(outpoints, outpoint)
-	}
-	return outpoints, rows.Err()
 }

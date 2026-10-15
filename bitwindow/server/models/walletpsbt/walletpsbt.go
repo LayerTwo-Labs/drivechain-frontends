@@ -7,18 +7,20 @@ import (
 	"encoding/hex"
 	"fmt"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // Draft is an in-progress multisig spend. The PSBT blob carries the
 // signatures; nothing else about signing state is stored.
 type Draft struct {
-	ID         string
-	WalletID   string
-	Label      string
-	PSBTBase64 string
-	CreatedAt  int64 // unix milliseconds
-	UpdatedAt  int64
-	Txid       string
+	ID         string `db:"id"`
+	WalletID   string `db:"wallet_id"`
+	Label      string `db:"label"`
+	PSBTBase64 string `db:"psbt_base64"`
+	CreatedAt  int64  `db:"created_at"` // unix milliseconds
+	UpdatedAt  int64  `db:"updated_at"`
+	Txid       string `db:"txid"`
 }
 
 // Store provides DB access for wallet PSBT drafts.
@@ -39,24 +41,13 @@ func (s *Store) SetClock(now func() time.Time) {
 }
 
 func (s *Store) List(ctx context.Context, walletID string) ([]Draft, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	drafts, err := database.Select[Draft](ctx, s.db, `
 		SELECT id, wallet_id, label, psbt_base64, created_at, updated_at, txid
 		FROM wallet_psbt_drafts WHERE wallet_id = ? ORDER BY created_at ASC`, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("list drafts: %w", err)
 	}
-	defer rows.Close()
-
-	var drafts []Draft
-	for rows.Next() {
-		var d Draft
-		if err := rows.Scan(&d.ID, &d.WalletID, &d.Label, &d.PSBTBase64,
-			&d.CreatedAt, &d.UpdatedAt, &d.Txid); err != nil {
-			return nil, fmt.Errorf("scan draft: %w", err)
-		}
-		drafts = append(drafts, d)
-	}
-	return drafts, rows.Err()
+	return drafts, nil
 }
 
 // Save inserts the draft, or replaces it when the id exists. An empty id
@@ -104,11 +95,9 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 }
 
 func (s *Store) get(ctx context.Context, id string) (*Draft, error) {
-	var d Draft
-	err := s.db.QueryRowContext(ctx, `
+	d, err := database.Get[Draft](ctx, s.db, `
 		SELECT id, wallet_id, label, psbt_base64, created_at, updated_at, txid
-		FROM wallet_psbt_drafts WHERE id = ?`, id).
-		Scan(&d.ID, &d.WalletID, &d.Label, &d.PSBTBase64, &d.CreatedAt, &d.UpdatedAt, &d.Txid)
+		FROM wallet_psbt_drafts WHERE id = ?`, id)
 	if err != nil {
 		return nil, fmt.Errorf("get draft %s: %w", id, err)
 	}

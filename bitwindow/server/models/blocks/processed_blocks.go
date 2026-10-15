@@ -140,12 +140,11 @@ func GetProcessedBlock(ctx context.Context, db *sql.DB, height uint32) (Processe
 
 // CountSince returns the number of processed blocks with a block time at or after since.
 func CountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error) {
-	var count int64
-	err := db.QueryRowContext(ctx, `
+	count, err := database.Get[int64](ctx, db, `
 		SELECT COUNT(*)
 		FROM processed_blocks
 		WHERE block_time >= ?
-	`, since).Scan(&count)
+	`, since)
 	if err != nil {
 		return 0, fmt.Errorf("count blocks since %s: %w", since, err)
 	}
@@ -155,12 +154,11 @@ func CountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error)
 // TxCountSince returns the number of non-coinbase transactions in the processed
 // blocks with a block time at or after since.
 func TxCountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error) {
-	var count int64
-	err := db.QueryRowContext(ctx, `
+	count, err := database.Get[int64](ctx, db, `
 		SELECT COALESCE(SUM(json_array_length(txids)) - COUNT(*), 0)
 		FROM processed_blocks
 		WHERE block_time >= ?
-	`, since).Scan(&count)
+	`, since)
 	if err != nil {
 		return 0, fmt.Errorf("count transactions since %s: %w", since, err)
 	}

@@ -6,17 +6,17 @@ import (
 
 // WithdrawalBundle represents a pending withdrawal from a sidechain
 type WithdrawalBundle struct {
-	ID                int64
-	SidechainSlot     uint8
-	BundleHash        string // hex encoded
-	WorkScore         uint16 // Current ACK count
-	BlocksLeft        uint32 // Until expiration
-	MaxAge            uint32 // Total blocks allowed
-	FirstSeenHeight   uint32
-	LastUpdatedHeight uint32
-	Status            BundleStatus
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID                int64        `db:"id"`
+	SidechainSlot     uint8        `db:"sidechain_slot"`
+	BundleHash        string       `db:"bundle_hash"` // hex encoded
+	WorkScore         uint16       `db:"work_score"`  // Current ACK count
+	BlocksLeft        uint32       `db:"blocks_left"` // Until expiration
+	MaxAge            uint32       `db:"max_age"`     // Total blocks allowed
+	FirstSeenHeight   uint32       `db:"first_seen_height"`
+	LastUpdatedHeight uint32       `db:"last_updated_height"`
+	Status            BundleStatus `db:"status"`
+	CreatedAt         time.Time    `db:"created_at"`
+	UpdatedAt         time.Time    `db:"updated_at"`
 }
 
 type BundleStatus string
@@ -30,24 +30,24 @@ const (
 
 // M4Message represents a parsed M4 message from a block
 type M4Message struct {
-	ID          int64
-	BlockHeight uint32
-	BlockHash   string
-	BlockTime   time.Time
-	RawBytes    []byte
-	Version     uint8
+	ID          int64     `db:"id"`
+	BlockHeight uint32    `db:"block_height"`
+	BlockHash   string    `db:"block_hash"`
+	BlockTime   time.Time `db:"block_time"`
+	RawBytes    []byte    `db:"raw_bytes"`
+	Version     uint8     `db:"version"`
 	Votes       []M4Vote
-	CreatedAt   time.Time
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 // M4Vote represents a single sidechain vote within an M4
 type M4Vote struct {
-	ID            int64
-	M4MessageID   int64
-	SidechainSlot uint8
-	VoteType      VoteType
-	BundleHash    *string // nil for abstain/alarm
-	BundleIndex   *uint16 // nil for abstain/alarm
+	ID            int64    `db:"id"`
+	M4MessageID   int64    `db:"m4_message_id"`
+	SidechainSlot uint8    `db:"sidechain_slot"`
+	VoteType      VoteType `db:"vote_type"`
+	BundleHash    *string  `db:"bundle_hash"`  // nil for abstain/alarm
+	BundleIndex   *uint16  `db:"bundle_index"` // nil for abstain/alarm
 }
 
 type VoteType string
@@ -60,12 +60,12 @@ const (
 
 // Sidechain represents an active sidechain
 type Sidechain struct {
-	Slot            uint8
-	Name            string
-	Description     string
-	Version         string
-	ActivatedHeight *uint32
-	CreatedAt       time.Time
+	Slot            uint8     `db:"slot"`
+	Name            string    `db:"name"`
+	Description     string    `db:"description"`
+	Version         string    `db:"version"`
+	ActivatedHeight *uint32   `db:"activated_height"`
+	CreatedAt       time.Time `db:"created_at"`
 }
 
 // M3Message represents a withdrawal bundle proposal

@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	sq "github.com/Masterminds/squirrel"
@@ -112,29 +113,25 @@ func Persist(
 }
 
 type OPReturn struct {
-	ID        int64
-	TxID      string
-	Vout      int32
-	Data      []byte
-	Fee       btcutil.Amount // 0 can either mean zero fee or unknown fee
-	Height    *uint32
-	CreatedAt *time.Time
+	ID        int64          `db:"id"`
+	TxID      string         `db:"txid"`
+	Vout      int32          `db:"vout"`
+	Data      []byte         `db:"op_return_data"`
+	Fee       btcutil.Amount `db:"fee_sats"` // 0 can either mean zero fee or unknown fee
+	Height    *uint32        `db:"height"`
+	CreatedAt *time.Time     `db:"created_at"`
 }
 
 // GetByTxID returns the OP_RETURN of the transaction with the lowest vout, or nil
 // when the transaction has none.
 func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*OPReturn, error) {
-	var opReturn OPReturn
-	err := db.QueryRowContext(ctx, `
-		SELECT id, txid, vout, unhex(op_return_data), fee_sats, height, created_at
+	opReturn, err := database.Get[OPReturn](ctx, db, `
+		SELECT id, txid, vout, unhex(op_return_data) AS op_return_data, fee_sats, height, created_at
 		FROM op_returns
 		WHERE txid = ?
 		ORDER BY vout
 		LIMIT 1
-	`, txid).Scan(
-		&opReturn.ID, &opReturn.TxID, &opReturn.Vout,
-		&opReturn.Data, &opReturn.Fee, &opReturn.Height, &opReturn.CreatedAt,
-	)
+	`, txid)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -161,7 +158,7 @@ func List(ctx context.Context, db *sql.DB, limit int) ([]OPReturn, error) {
 	}
 
 	query := `
-		SELECT id, txid, vout, unhex(op_return_data), fee_sats, height, created_at
+		SELECT id, txid, vout, unhex(op_return_data) AS op_return_data, fee_sats, height, created_at
 		FROM op_returns
 		ORDER BY created_at DESC
 	`
@@ -171,26 +168,9 @@ func List(ctx context.Context, db *sql.DB, limit int) ([]OPReturn, error) {
 		args = append(args, limit)
 	}
 
-	rows, err := db.QueryContext(ctx, query, args...)
+	opReturns, err := database.Select[OPReturn](ctx, db, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list: query op_returns: %w", err)
-	}
-	defer rows.Close()
-
-	var opReturns []OPReturn
-	for rows.Next() {
-		var opReturn OPReturn
-		err := rows.Scan(
-			&opReturn.ID, &opReturn.TxID, &opReturn.Vout,
-			&opReturn.Data, &opReturn.Fee, &opReturn.Height, &opReturn.CreatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("list: scan op_return: %w", err)
-		}
-		opReturns = append(opReturns, opReturn)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list: iterate op_returns: %w", err)
+		return nil, fmt.Errorf("list op_returns: %w", err)
 	}
 
 	snapshot := make([]OPReturn, len(opReturns))
@@ -224,25 +204,12 @@ const mempoolExpiry = 336 * time.Hour
 func ReapExpiredMempool(ctx context.Context, db *sql.DB, mempoolTxIDs func() ([]string, error)) error {
 	cutoff := time.Now().Add(-mempoolExpiry)
 
-	rows, err := db.QueryContext(ctx, `
+	candidates, err := database.Select[string](ctx, db, `
 		SELECT txid FROM op_returns
 		WHERE height IS NULL AND datetime(created_at) < datetime(?)
 	`, cutoff)
 	if err != nil {
 		return fmt.Errorf("select expired mempool OP_RETURNs: %w", err)
-	}
-	defer rows.Close()
-
-	var candidates []string
-	for rows.Next() {
-		var txid string
-		if err := rows.Scan(&txid); err != nil {
-			return fmt.Errorf("scan expired mempool OP_RETURN: %w", err)
-		}
-		candidates = append(candidates, txid)
-	}
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("read expired mempool OP_RETURNs: %w", err)
 	}
 	if len(candidates) == 0 {
 		return nil
@@ -398,10 +365,9 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 }
 
 func TopicExists(ctx context.Context, db *sql.DB, topic TopicID) (bool, error) {
-	var exists bool
-	err := db.QueryRowContext(ctx, `
+	exists, err := database.Get[bool](ctx, db, `
 		SELECT EXISTS(SELECT 1 FROM cn_topics WHERE topic = ?)
-	`, topic[:]).Scan(&exists)
+	`, topic[:])
 	if err != nil {
 		return false, fmt.Errorf("topic exists: %w", err)
 	}
@@ -619,8 +585,8 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 }
 
 func anyContinuations(ctx context.Context, db *sql.DB) (bool, error) {
-	var exists bool
-	if err := db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM cn_continuations)`).Scan(&exists); err != nil {
+	exists, err := database.Get[bool](ctx, db, `SELECT EXISTS(SELECT 1 FROM cn_continuations)`)
+	if err != nil {
 		return false, fmt.Errorf("list coin news: check continuations: %w", err)
 	}
 	return exists, nil

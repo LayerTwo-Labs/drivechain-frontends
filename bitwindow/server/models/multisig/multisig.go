@@ -4,112 +4,114 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
 )
 
 // Group represents a multisig group stored in the DB.
 type Group struct {
-	ID                string
-	Name              string
-	N                 int
-	M                 int
-	Created           int64
-	Txid              string
-	Descriptor        string
-	DescriptorReceive string
-	DescriptorChange  string
-	WatchWalletName   string
-	Balance           float64
-	Utxos             int
-	NextReceiveIndex  int
-	NextChangeIndex   int
+	ID                string  `db:"id"`
+	Name              string  `db:"name"`
+	N                 int     `db:"n"`
+	M                 int     `db:"m"`
+	Created           int64   `db:"created"`
+	Txid              string  `db:"txid"`
+	Descriptor        string  `db:"descriptor"`
+	DescriptorReceive string  `db:"descriptor_receive"`
+	DescriptorChange  string  `db:"descriptor_change"`
+	WatchWalletName   string  `db:"watch_wallet_name"`
+	Balance           float64 `db:"balance"`
+	Utxos             int     `db:"utxos"`
+	NextReceiveIndex  int     `db:"next_receive_index"`
+	NextChangeIndex   int     `db:"next_change_index"`
 }
 
 type Key struct {
-	ID             int64
-	GroupID        string
-	Owner          string
-	Xpub           string
-	DerivationPath string
-	Fingerprint    string
-	OriginPath     string
-	IsWallet       bool
-	SortOrder      int
+	ID             int64  `db:"id"`
+	GroupID        string `db:"group_id"`
+	Owner          string `db:"owner"`
+	Xpub           string `db:"xpub"`
+	DerivationPath string `db:"derivation_path"`
+	Fingerprint    string `db:"fingerprint"`
+	OriginPath     string `db:"origin_path"`
+	IsWallet       bool   `db:"is_wallet"`
+	SortOrder      int    `db:"sort_order"`
 }
 
 type KeyPSBT struct {
-	KeyID         int64
-	TransactionID string
-	ActivePSBT    string
-	InitialPSBT   string
+	KeyID         int64  `db:"key_id"`
+	TransactionID string `db:"transaction_id"`
+	ActivePSBT    string `db:"active_psbt"`
+	InitialPSBT   string `db:"initial_psbt"`
 }
 
 type Address struct {
-	GroupID  string
-	AddrType string // "receive" or "change"
-	Index    int
-	Addr     string
-	Used     bool
+	GroupID  string `db:"group_id"`
+	AddrType string `db:"addr_type"` // "receive" or "change"
+	Index    int    `db:"addr_index"`
+	Addr     string `db:"address"`
+	Used     bool   `db:"used"`
 }
 
 type UtxoDetail struct {
-	GroupID       string
-	Txid          string
-	Vout          int
-	Address       string
-	Amount        float64
-	Confirmations int
-	ScriptPubKey  string
-	Spendable     bool
-	Solvable      bool
-	Safe          bool
+	GroupID       string  `db:"group_id"`
+	Txid          string  `db:"txid"`
+	Vout          int     `db:"vout"`
+	Address       string  `db:"address"`
+	Amount        float64 `db:"amount"`
+	Confirmations int     `db:"confirmations"`
+	ScriptPubKey  string  `db:"script_pub_key"`
+	Spendable     bool    `db:"spendable"`
+	Solvable      bool    `db:"solvable"`
+	Safe          bool    `db:"safe"`
 }
 
 type Transaction struct {
-	ID                 string
-	GroupID            string
-	InitialPSBT        string
-	CombinedPSBT       string
-	FinalHex           string
-	Txid               string
-	Status             int // maps to proto enum
-	Type               int
-	Created            int64
-	BroadcastTime      *int64
-	Amount             float64
-	Destination        string
-	Fee                float64
-	Confirmations      int
-	RequiredSignatures int
+	ID                 string  `db:"id"`
+	GroupID            string  `db:"group_id"`
+	InitialPSBT        string  `db:"initial_psbt"`
+	CombinedPSBT       string  `db:"combined_psbt"`
+	FinalHex           string  `db:"final_hex"`
+	Txid               string  `db:"txid"`
+	Status             int     `db:"status"` // maps to proto enum
+	Type               int     `db:"type"`
+	Created            int64   `db:"created"`
+	BroadcastTime      *int64  `db:"broadcast_time"`
+	Amount             float64 `db:"amount"`
+	Destination        string  `db:"destination"`
+	Fee                float64 `db:"fee"`
+	Confirmations      int     `db:"confirmations"`
+	RequiredSignatures int     `db:"required_signatures"`
 }
 
 type TxKeyPSBT struct {
-	TransactionID string
-	KeyID         string
-	PSBT          string
-	IsSigned      bool
-	SignedAt      *int64
+	TransactionID string `db:"transaction_id"`
+	KeyID         string `db:"key_id"`
+	PSBT          string `db:"psbt"`
+	IsSigned      bool   `db:"is_signed"`
+	SignedAt      *int64 `db:"signed_at"`
 }
 
 type TxInput struct {
-	TransactionID string
-	Txid          string
-	Vout          int
-	Address       string
-	Amount        float64
-	Confirmations int
+	TransactionID string  `db:"transaction_id"`
+	Txid          string  `db:"txid"`
+	Vout          int     `db:"vout"`
+	Address       string  `db:"address"`
+	Amount        float64 `db:"amount"`
+	Confirmations int     `db:"confirmations"`
 }
 
 type SoloKey struct {
-	Xpub           string
-	DerivationPath string
-	Fingerprint    string
-	OriginPath     string
-	Owner          string
+	Xpub           string `db:"xpub"`
+	DerivationPath string `db:"derivation_path"`
+	Fingerprint    string `db:"fingerprint"`
+	OriginPath     string `db:"origin_path"`
+	Owner          string `db:"owner"`
 }
 
 // Store provides DB access for multisig data.
@@ -125,33 +127,20 @@ func NewStore(db *sql.DB) *Store {
 type execer interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
 // ─── Groups ────────────────────────────────────────────────────────
 
 func (s *Store) ListGroups(ctx context.Context) ([]Group, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, name, n, m, created, COALESCE(txid,''), COALESCE(descriptor,''),
-		       COALESCE(descriptor_receive,''), COALESCE(descriptor_change,''),
-		       COALESCE(watch_wallet_name,''), balance, utxos, next_receive_index, next_change_index
+	groups, err := database.Select[Group](ctx, s.db, `
+		SELECT id, name, n, m, created, COALESCE(txid,'') AS txid, COALESCE(descriptor,'') AS descriptor,
+		       COALESCE(descriptor_receive,'') AS descriptor_receive, COALESCE(descriptor_change,'') AS descriptor_change,
+		       COALESCE(watch_wallet_name,'') AS watch_wallet_name, balance, utxos, next_receive_index, next_change_index
 		FROM multisig_groups ORDER BY created ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("list groups: %w", err)
 	}
-	defer rows.Close()
-
-	var groups []Group
-	for rows.Next() {
-		var g Group
-		if err := rows.Scan(&g.ID, &g.Name, &g.N, &g.M, &g.Created,
-			&g.Txid, &g.Descriptor, &g.DescriptorReceive, &g.DescriptorChange,
-			&g.WatchWalletName, &g.Balance, &g.Utxos, &g.NextReceiveIndex, &g.NextChangeIndex); err != nil {
-			return nil, fmt.Errorf("scan group: %w", err)
-		}
-		groups = append(groups, g)
-	}
-	return groups, rows.Err()
+	return groups, nil
 }
 
 func (s *Store) SaveGroup(ctx context.Context, g Group) error {
@@ -187,25 +176,10 @@ func (s *Store) ListKeysForGroup(ctx context.Context, groupID string) ([]Key, er
 }
 
 func listKeysForGroupOn(ctx context.Context, e execer, groupID string) ([]Key, error) {
-	rows, err := e.QueryContext(ctx, `
-		SELECT id, group_id, owner, xpub, derivation_path, COALESCE(fingerprint,''),
-		       COALESCE(origin_path,''), is_wallet, sort_order
+	return database.Select[Key](ctx, e, `
+		SELECT id, group_id, owner, xpub, derivation_path, COALESCE(fingerprint,'') AS fingerprint,
+		       COALESCE(origin_path,'') AS origin_path, is_wallet, sort_order
 		FROM multisig_keys WHERE group_id = ? ORDER BY sort_order ASC`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var keys []Key
-	for rows.Next() {
-		var k Key
-		if err := rows.Scan(&k.ID, &k.GroupID, &k.Owner, &k.Xpub, &k.DerivationPath,
-			&k.Fingerprint, &k.OriginPath, &k.IsWallet, &k.SortOrder); err != nil {
-			return nil, err
-		}
-		keys = append(keys, k)
-	}
-	return keys, rows.Err()
 }
 
 func (s *Store) ReplaceKeysForGroup(ctx context.Context, groupID string, keys []Key) error {
@@ -241,25 +215,11 @@ func replaceKeysForGroupOn(ctx context.Context, e execer, groupID string, keys [
 // ─── Key PSBTs ─────────────────────────────────────────────────────
 
 func (s *Store) ListKeyPSBTs(ctx context.Context, groupID string) ([]KeyPSBT, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT kp.key_id, kp.transaction_id, COALESCE(kp.active_psbt,''), COALESCE(kp.initial_psbt,'')
+	return database.Select[KeyPSBT](ctx, s.db, `
+		SELECT kp.key_id, kp.transaction_id, COALESCE(kp.active_psbt,'') AS active_psbt, COALESCE(kp.initial_psbt,'') AS initial_psbt
 		FROM multisig_key_psbts kp
 		JOIN multisig_keys k ON kp.key_id = k.id
 		WHERE k.group_id = ?`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var psbts []KeyPSBT
-	for rows.Next() {
-		var p KeyPSBT
-		if err := rows.Scan(&p.KeyID, &p.TransactionID, &p.ActivePSBT, &p.InitialPSBT); err != nil {
-			return nil, err
-		}
-		psbts = append(psbts, p)
-	}
-	return psbts, rows.Err()
 }
 
 func saveKeyPSBTOn(ctx context.Context, e execer, kp KeyPSBT) error {
@@ -275,23 +235,9 @@ func saveKeyPSBTOn(ctx context.Context, e execer, kp KeyPSBT) error {
 // ─── Addresses ─────────────────────────────────────────────────────
 
 func (s *Store) ListAddresses(ctx context.Context, groupID string) ([]Address, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	return database.Select[Address](ctx, s.db, `
 		SELECT group_id, addr_type, addr_index, address, used
 		FROM multisig_addresses WHERE group_id = ? ORDER BY addr_type, addr_index`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var addrs []Address
-	for rows.Next() {
-		var a Address
-		if err := rows.Scan(&a.GroupID, &a.AddrType, &a.Index, &a.Addr, &a.Used); err != nil {
-			return nil, err
-		}
-		addrs = append(addrs, a)
-	}
-	return addrs, rows.Err()
 }
 
 func (s *Store) ReplaceAddresses(ctx context.Context, groupID string, addrs []Address) error {
@@ -325,25 +271,10 @@ func replaceAddressesOn(ctx context.Context, e execer, groupID string, addrs []A
 // ─── UTXO details ──────────────────────────────────────────────────
 
 func (s *Store) ListUtxoDetails(ctx context.Context, groupID string) ([]UtxoDetail, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT group_id, txid, vout, COALESCE(address,''), amount, confirmations,
-		       COALESCE(script_pub_key,''), spendable, solvable, safe
+	return database.Select[UtxoDetail](ctx, s.db, `
+		SELECT group_id, txid, vout, COALESCE(address,'') AS address, amount, confirmations,
+		       COALESCE(script_pub_key,'') AS script_pub_key, spendable, solvable, safe
 		FROM multisig_utxo_details WHERE group_id = ?`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var utxos []UtxoDetail
-	for rows.Next() {
-		var u UtxoDetail
-		if err := rows.Scan(&u.GroupID, &u.Txid, &u.Vout, &u.Address, &u.Amount,
-			&u.Confirmations, &u.ScriptPubKey, &u.Spendable, &u.Solvable, &u.Safe); err != nil {
-			return nil, err
-		}
-		utxos = append(utxos, u)
-	}
-	return utxos, rows.Err()
 }
 
 func replaceUtxoDetailsOn(ctx context.Context, e execer, groupID string, utxos []UtxoDetail) error {
@@ -365,21 +296,7 @@ func replaceUtxoDetailsOn(ctx context.Context, e execer, groupID string, utxos [
 // ─── Group ↔ Transaction links ─────────────────────────────────────
 
 func (s *Store) ListGroupTransactionIDs(ctx context.Context, groupID string) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT transaction_id FROM multisig_group_transactions WHERE group_id = ?`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, rows.Err()
+	return database.Select[string](ctx, s.db, `SELECT transaction_id FROM multisig_group_transactions WHERE group_id = ?`, groupID)
 }
 
 func (s *Store) ReplaceGroupTransactionIDs(ctx context.Context, groupID string, txIDs []string) error {
@@ -412,26 +329,12 @@ func replaceGroupTransactionIDsOn(ctx context.Context, e execer, groupID string,
 
 var selectTransaction = sq.
 	Select(
-		"id", "group_id", "initial_psbt", "COALESCE(combined_psbt,'')", "COALESCE(final_hex,'')",
-		"COALESCE(txid,'')", "status", "type", "created", "broadcast_time", "amount", "destination", "fee",
+		"id", "group_id", "initial_psbt", "COALESCE(combined_psbt,'') AS combined_psbt", "COALESCE(final_hex,'') AS final_hex",
+		"COALESCE(txid,'') AS txid", "status", "type", "created", "broadcast_time", "amount", "destination", "fee",
 		"confirmations", "required_signatures",
 	).
 	From("multisig_transactions").
 	PlaceholderFormat(sq.Question)
-
-func scanTransaction(scanner interface{ Scan(dest ...any) error }) (Transaction, error) {
-	var t Transaction
-	var broadcastTime sql.NullInt64
-	if err := scanner.Scan(&t.ID, &t.GroupID, &t.InitialPSBT, &t.CombinedPSBT, &t.FinalHex,
-		&t.Txid, &t.Status, &t.Type, &t.Created, &broadcastTime, &t.Amount, &t.Destination,
-		&t.Fee, &t.Confirmations, &t.RequiredSignatures); err != nil {
-		return Transaction{}, err
-	}
-	if broadcastTime.Valid {
-		t.BroadcastTime = &broadcastTime.Int64
-	}
-	return t, nil
-}
 
 func (s *Store) ListTransactions(ctx context.Context, groupID string) ([]Transaction, error) {
 	builder := selectTransaction.OrderBy("created ASC")
@@ -440,21 +343,7 @@ func (s *Store) ListTransactions(ctx context.Context, groupID string) ([]Transac
 	}
 	query, args := builder.MustSql()
 
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var txns []Transaction
-	for rows.Next() {
-		t, err := scanTransaction(rows)
-		if err != nil {
-			return nil, err
-		}
-		txns = append(txns, t)
-	}
-	return txns, rows.Err()
+	return database.Select[Transaction](ctx, s.db, query, args...)
 }
 
 func (s *Store) GetTransaction(ctx context.Context, id string) (*Transaction, error) {
@@ -466,9 +355,9 @@ func (s *Store) GetTransactionByTxid(ctx context.Context, txid string) (*Transac
 }
 
 func (s *Store) getTransactionWhere(ctx context.Context, where sq.Eq) (*Transaction, error) {
-	query, args := selectTransaction.Where(where).MustSql()
-	t, err := scanTransaction(s.db.QueryRowContext(ctx, query, args...))
-	if err == sql.ErrNoRows {
+	query, args := selectTransaction.Where(where).Limit(1).MustSql()
+	t, err := database.Get[Transaction](ctx, s.db, query, args...)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -487,11 +376,11 @@ func saveTransactionOn(ctx context.Context, e execer, t Transaction) error {
 	// keyed by id alone, so a colliding save would reassign the existing row to the
 	// caller's group and — via the child-table replace — wipe the original group's
 	// collected signer PSBTs and inputs. Refuse to move a transaction between groups.
-	var existingGroupID string
-	switch err := e.QueryRowContext(ctx,
+	existingGroupID, err := database.Get[string](ctx, e,
 		`SELECT group_id FROM multisig_transactions WHERE id = ?`, t.ID,
-	).Scan(&existingGroupID); {
-	case err == sql.ErrNoRows:
+	)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		// No existing row — safe to insert.
 	case err != nil:
 		return err
@@ -504,7 +393,7 @@ func saveTransactionOn(ctx context.Context, e execer, t Transaction) error {
 	if t.BroadcastTime != nil {
 		bt = *t.BroadcastTime
 	}
-	_, err := e.ExecContext(ctx, `
+	_, err = e.ExecContext(ctx, `
 		INSERT INTO multisig_transactions (id, group_id, initial_psbt, combined_psbt, final_hex,
 		    txid, status, type, created, broadcast_time, amount, destination, fee, confirmations, required_signatures)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -523,27 +412,9 @@ func saveTransactionOn(ctx context.Context, e execer, t Transaction) error {
 // ─── Transaction Key PSBTs ─────────────────────────────────────────
 
 func (s *Store) ListTxKeyPSBTs(ctx context.Context, transactionID string) ([]TxKeyPSBT, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT transaction_id, key_id, COALESCE(psbt,''), is_signed, signed_at
+	return database.Select[TxKeyPSBT](ctx, s.db, `
+		SELECT transaction_id, key_id, COALESCE(psbt,'') AS psbt, is_signed, signed_at
 		FROM multisig_tx_key_psbts WHERE transaction_id = ?`, transactionID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var psbts []TxKeyPSBT
-	for rows.Next() {
-		var p TxKeyPSBT
-		var signedAt sql.NullInt64
-		if err := rows.Scan(&p.TransactionID, &p.KeyID, &p.PSBT, &p.IsSigned, &signedAt); err != nil {
-			return nil, err
-		}
-		if signedAt.Valid {
-			p.SignedAt = &signedAt.Int64
-		}
-		psbts = append(psbts, p)
-	}
-	return psbts, rows.Err()
 }
 
 func (s *Store) ReplaceTxKeyPSBTs(ctx context.Context, transactionID string, psbts []TxKeyPSBT) error {
@@ -581,23 +452,9 @@ func replaceTxKeyPSBTsOn(ctx context.Context, e execer, transactionID string, ps
 // ─── Transaction Inputs ────────────────────────────────────────────
 
 func (s *Store) ListTxInputs(ctx context.Context, transactionID string) ([]TxInput, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT transaction_id, txid, vout, COALESCE(address,''), amount, confirmations
+	return database.Select[TxInput](ctx, s.db, `
+		SELECT transaction_id, txid, vout, COALESCE(address,'') AS address, amount, confirmations
 		FROM multisig_tx_inputs WHERE transaction_id = ?`, transactionID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var inputs []TxInput
-	for rows.Next() {
-		var inp TxInput
-		if err := rows.Scan(&inp.TransactionID, &inp.Txid, &inp.Vout, &inp.Address, &inp.Amount, &inp.Confirmations); err != nil {
-			return nil, err
-		}
-		inputs = append(inputs, inp)
-	}
-	return inputs, rows.Err()
 }
 
 func (s *Store) ReplaceTxInputs(ctx context.Context, transactionID string, inputs []TxInput) error {
@@ -631,23 +488,9 @@ func replaceTxInputsOn(ctx context.Context, e execer, transactionID string, inpu
 // ─── Solo Keys ─────────────────────────────────────────────────────
 
 func (s *Store) ListSoloKeys(ctx context.Context) ([]SoloKey, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT xpub, derivation_path, COALESCE(fingerprint,''), COALESCE(origin_path,''), COALESCE(owner,'')
+	return database.Select[SoloKey](ctx, s.db, `
+		SELECT xpub, derivation_path, COALESCE(fingerprint,'') AS fingerprint, COALESCE(origin_path,'') AS origin_path, COALESCE(owner,'') AS owner
 		FROM multisig_solo_keys`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var keys []SoloKey
-	for rows.Next() {
-		var k SoloKey
-		if err := rows.Scan(&k.Xpub, &k.DerivationPath, &k.Fingerprint, &k.OriginPath, &k.Owner); err != nil {
-			return nil, err
-		}
-		keys = append(keys, k)
-	}
-	return keys, rows.Err()
 }
 
 func (s *Store) AddSoloKey(ctx context.Context, k SoloKey) error {
@@ -662,27 +505,19 @@ func (s *Store) AddSoloKey(ctx context.Context, k SoloKey) error {
 func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (int, error) {
 	maxIndex := 7999
 
-	rows, err := s.db.QueryContext(ctx, `
+	paths, err := database.Select[string](ctx, s.db, `
 		SELECT derivation_path FROM multisig_keys WHERE is_wallet = 1
 		UNION ALL
 		SELECT derivation_path FROM multisig_solo_keys`)
 	if err != nil {
 		return 0, fmt.Errorf("query derivation paths: %w", err)
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var path string
-		if err := rows.Scan(&path); err != nil {
-			return 0, fmt.Errorf("scan derivation path: %w", err)
-		}
+	for _, path := range paths {
 		idx := extractAccountIndex(path)
 		if idx > maxIndex {
 			maxIndex = idx
 		}
-	}
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("iterate derivation paths: %w", err)
 	}
 
 	for _, idx := range additionalUsed {

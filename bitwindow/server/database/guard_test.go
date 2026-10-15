@@ -101,3 +101,151 @@ func TestSafeDefer(t *testing.T) {
 		})
 	}
 }
+
+type hexID string
+
+func (h *hexID) Scan(src any) error {
+	s, ok := src.(string)
+	if !ok {
+		return fmt.Errorf("hexID: unexpected %T", src)
+	}
+	*h = hexID("0x" + s)
+	return nil
+}
+
+type getRow struct {
+	ID    int64          `db:"id"`
+	Name  string         `db:"name"`
+	Note  sql.NullString `db:"note"`
+	Hex   hexID          `db:"hex"`
+	Extra bool           `db:"extra"`
+}
+
+func helperDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := New(t.Context(), config.Config{Datadir: t.TempDir()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	_, err = db.ExecContext(t.Context(), `CREATE TABLE helper_rows (id INTEGER PRIMARY KEY, name TEXT NOT NULL)`)
+	require.NoError(t, err)
+	_, err = db.ExecContext(t.Context(), `INSERT INTO helper_rows (id, name) VALUES (1, 'a'), (2, 'b'), (3, 'b')`)
+	require.NoError(t, err)
+	return db
+}
+
+func TestGet(t *testing.T) {
+	db := helperDB(t)
+
+	t.Run("scalar", func(t *testing.T) {
+		name, err := Get[string](t.Context(), db, `SELECT name FROM helper_rows WHERE id = ?`, 2)
+		require.NoError(t, err)
+		require.Equal(t, "b", name)
+
+		n, err := Get[int64](t.Context(), db, `SELECT COUNT(*) FROM helper_rows`)
+		require.NoError(t, err)
+		require.EqualValues(t, 3, n)
+
+		ok, err := Get[bool](t.Context(), db, `SELECT 1`)
+		require.NoError(t, err)
+		require.True(t, ok)
+
+		raw, err := Get[[]byte](t.Context(), db, `SELECT X'ABCD'`)
+		require.NoError(t, err)
+		require.Equal(t, []byte{0xab, 0xcd}, raw)
+	})
+
+	t.Run("scalar scanner", func(t *testing.T) {
+		got, err := Get[sql.NullString](t.Context(), db, `SELECT NULL`)
+		require.NoError(t, err)
+		require.False(t, got.Valid)
+	})
+
+	t.Run("struct", func(t *testing.T) {
+		got, err := Get[getRow](t.Context(), db,
+			`SELECT id, name, NULL AS note, 'ff' AS hex FROM helper_rows WHERE id = ?`, 1)
+		require.NoError(t, err)
+		require.Equal(t, getRow{ID: 1, Name: "a", Hex: "0xff"}, got)
+	})
+
+	t.Run("struct in transaction", func(t *testing.T) {
+		tx, err := db.BeginTx(t.Context(), nil)
+		require.NoError(t, err)
+		defer func() { require.NoError(t, tx.Rollback()) }()
+
+		got, err := Get[getRow](t.Context(), tx, `SELECT id, name FROM helper_rows WHERE id = 3`)
+		require.NoError(t, err)
+		require.Equal(t, getRow{ID: 3, Name: "b"}, got)
+	})
+
+	t.Run("missing column", func(t *testing.T) {
+		_, err := Get[getRow](t.Context(), db, `SELECT id, name, 1 AS unknown FROM helper_rows WHERE id = 1`)
+		require.ErrorContains(t, err, `column "unknown" has no field`)
+	})
+
+	t.Run("two columns into scalar", func(t *testing.T) {
+		_, err := Get[string](t.Context(), db, `SELECT id, name FROM helper_rows WHERE id = 1`)
+		require.ErrorContains(t, err, "scan 2 columns into scalar")
+	})
+
+	t.Run("zero rows", func(t *testing.T) {
+		_, err := Get[getRow](t.Context(), db, `SELECT id, name FROM helper_rows WHERE id = 99`)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+	})
+
+	t.Run("two rows", func(t *testing.T) {
+		_, err := Get[string](t.Context(), db, `SELECT name FROM helper_rows WHERE name = 'b'`)
+		require.ErrorContains(t, err, "more than one row")
+	})
+}
+
+func TestSelect(t *testing.T) {
+	db := helperDB(t)
+
+	t.Run("scalar", func(t *testing.T) {
+		got, err := Select[int64](t.Context(), db, `SELECT id FROM helper_rows ORDER BY id`)
+		require.NoError(t, err)
+		require.Equal(t, []int64{1, 2, 3}, got)
+	})
+
+	t.Run("struct", func(t *testing.T) {
+		got, err := Select[getRow](t.Context(), db, `SELECT id, name FROM helper_rows WHERE name = 'b' ORDER BY id`)
+		require.NoError(t, err)
+		require.Equal(t, []getRow{{ID: 2, Name: "b"}, {ID: 3, Name: "b"}}, got)
+	})
+
+	t.Run("zero rows", func(t *testing.T) {
+		got, err := Select[getRow](t.Context(), db, `SELECT id, name FROM helper_rows WHERE id = 99`)
+		require.NoError(t, err)
+		require.Empty(t, got)
+	})
+
+	t.Run("missing column", func(t *testing.T) {
+		_, err := Select[getRow](t.Context(), db, `SELECT id, 1 AS unknown FROM helper_rows`)
+		require.ErrorContains(t, err, `column "unknown" has no field`)
+	})
+}
+
+func TestCheckOne(t *testing.T) {
+	db := helperDB(t)
+
+	t.Run("zero rows", func(t *testing.T) {
+		err := CheckOne(db.ExecContext(t.Context(), `UPDATE helper_rows SET name = 'c' WHERE id = 99`))
+		require.ErrorIs(t, err, sql.ErrNoRows)
+	})
+
+	t.Run("one row", func(t *testing.T) {
+		require.NoError(t, CheckOne(db.ExecContext(t.Context(), `UPDATE helper_rows SET name = 'c' WHERE id = 1`)))
+	})
+
+	t.Run("two rows", func(t *testing.T) {
+		err := CheckOne(db.ExecContext(t.Context(), `UPDATE helper_rows SET name = 'd' WHERE name = 'b'`))
+		require.ErrorContains(t, err, "affected 2 rows, want 1")
+		require.NotErrorIs(t, err, sql.ErrNoRows)
+	})
+
+	t.Run("exec error", func(t *testing.T) {
+		err := CheckOne(db.ExecContext(t.Context(), `UPDATE no_such_table SET x = 1`))
+		require.ErrorContains(t, err, "no such table")
+	})
+}
