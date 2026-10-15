@@ -439,8 +439,6 @@ func (e *SidechainMonitorEngine) completeWithdrawal(ctx context.Context, pending
 		Str("txid", txid).
 		Msg("fast withdrawal completed automatically")
 
-	// TODO: Broadcast notification to frontend about completion
-
 	return nil
 }
 

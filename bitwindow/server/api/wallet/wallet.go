@@ -44,7 +44,7 @@ import (
 
 var _ rpc.WalletServiceHandler = new(Server)
 
-// New creates a new Server and starts the balance update loop
+// New creates a new Server and starts the address sync loop
 func New(
 	ctx context.Context,
 	database *sql.DB,
@@ -66,7 +66,6 @@ func New(
 		restartL1:    restartL1,
 	}
 
-	// Start background sync of Bitcoin Core addresses to addressbook
 	go s.startAddressSyncLoop(ctx)
 
 	return s
@@ -85,7 +84,7 @@ type Server struct {
 	restartL1 func(context.Context) error
 }
 
-// SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
+// SendTransaction implements walletv1connect.WalletServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	walletId := c.Msg.WalletId
 
@@ -197,7 +196,7 @@ func canonicalOutpoint(outpoint string) string {
 	return fmt.Sprintf("%s:%d", txid, vout)
 }
 
-// GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
+// GetNewAddress implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
 	walletId := c.Msg.WalletId
 	var addressType orchpb.AddressType
@@ -263,7 +262,6 @@ func (s *Server) startAddressSyncLoop(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	// Initial sync
 	if err := s.syncCoreAddresses(ctx); err != nil {
 		zerolog.Ctx(ctx).Warn().Err(err).Msg("initial address sync")
 	}
@@ -280,7 +278,7 @@ func (s *Server) startAddressSyncLoop(ctx context.Context) {
 	}
 }
 
-// GetBalance implements drivechainv1connect.DrivechainServiceHandler.
+// GetBalance implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
 	walletId := c.Msg.WalletId
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
@@ -352,7 +350,7 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 	}
 }
 
-// ListTransactions implements drivechainv1connect.DrivechainServiceHandler.
+// ListTransactions implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
 	walletId := c.Msg.WalletId
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
@@ -414,7 +412,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return connect.NewResponse(&pb.ListTransactionsResponse{Transactions: out}), nil
 	}
 
-	// Bitcoin Core path
 	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
@@ -433,7 +430,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
 	}
 
-	// Fetch address book and notes
 	labels, err := addressbook.LabelsByAddress(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
@@ -448,7 +444,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		noteMap[note.TxID] = note.Note
 	}
 
-	// Group transactions by txid to combine amounts
 	txMap := make(map[string]*pb.WalletTransaction)
 	for _, tx := range txsResp.Msg.Transactions {
 		existing, found := txMap[tx.Txid]
@@ -467,10 +462,8 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 				}
 			}
 
-			// Extract address from Details
 			address := ""
 			if len(tx.Details) > 0 {
-				// Use the first detail's address
 				address = tx.Details[0].Address
 			}
 
@@ -868,7 +861,6 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 		return nil, fmt.Errorf("get bitcoind client: %w", err)
 	}
 
-	// Get all UTXOs to build the address list
 	utxosResp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
 		Wallet: coreWalletName,
 	}))
@@ -881,7 +873,6 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
 
-	// Build map of addresses with their balances
 	addressMap := make(map[string]*pb.ReceiveAddress)
 	for _, utxo := range utxosResp.Msg.Unspent {
 		if utxo.Address == "" {
@@ -919,22 +910,18 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
 	walletId := c.Msg.WalletId
 
-	// Bitcoin Core version
-	// Get UTXOs
 	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
 	if err != nil {
 		return nil, err
 	}
 	utxoCount := uint64(len(utxos.Msg.Utxos))
 
-	// Count unique addresses among UTXOs
 	addressSet := make(map[string]struct{})
 	for _, utxo := range utxos.Msg.Utxos {
 		addressSet[utxo.Address] = struct{}{}
 	}
 	uniqueAddressCount := uint64(len(addressSet))
 
-	// Get transactions
 	txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletId}))
 	if err != nil {
 		return nil, err
@@ -1055,21 +1042,18 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	// Get next index for this wallet
 	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletId)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get next cheque index")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get next index: %w", err))
 	}
 
-	// Derive address for this wallet
 	address, err := s.chequeEngine.DeriveChequeAddress(walletId, nextIndex)
 	if err != nil {
 		log.Error().Err(err).Uint32("index", nextIndex).Msg("failed to derive cheque address")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive address: %w", err))
 	}
 
-	// Save to DB with wallet ID
 	id, err := cheques.Create(ctx, s.database, walletId, nextIndex, c.Msg.ExpectedAmountSats, address)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create cheque in database")
@@ -1401,13 +1385,11 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 		return nil, err
 	}
 
-	// Only allow deletion of unfunded or swept cheques
 	// Any recorded incoming funds (full or partial) but not swept = still has money, can't delete
 	if (cheque.IsFunded() || cheque.IsPartiallyFunded()) && cheque.SweptTxid == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot delete funded cheque"))
 	}
 
-	// Delete the cheque
 	err = cheques.Delete(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete cheque: %w", err))
@@ -1436,7 +1418,6 @@ func (s *Server) getCheque(ctx context.Context, walletId string, id int64) (*che
 	return cheque, nil
 }
 
-// Helper function to convert model Cheque to protobuf Cheque
 func (s *Server) chequeToPb(c *cheques.Cheque) (*pb.Cheque, error) {
 	pbCheque := &pb.Cheque{
 		Id:                 c.ID,
@@ -1473,7 +1454,6 @@ func (s *Server) chequeToPb(c *cheques.Cheque) (*pb.Cheque, error) {
 	return pbCheque, nil
 }
 
-// serializeTx serializes a transaction to hex string
 func (s *Server) serializeTx(tx *wire.MsgTx) (string, error) {
 	var txBytes bytes.Buffer
 	if err := tx.Serialize(&txBytes); err != nil {
@@ -1577,7 +1557,6 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 		return nil, err
 	}
 
-	// Fetch the raw transaction with prevout info
 	rawTx, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
 		Txid:      txid,
 		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
@@ -1586,7 +1565,6 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found: %w", err))
 	}
 
-	// Build enriched inputs by fetching referenced transactions
 	var inputs []*pb.TransactionInput
 	var totalInputSats int64
 	var isCoinbaseTx bool
@@ -1639,7 +1617,6 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 		inputs = append(inputs, input)
 	}
 
-	// Build outputs
 	var outputs []*pb.TransactionOutput
 	var totalOutputSats int64
 
@@ -1679,13 +1656,11 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 		feeRate = float64(feeSats) / float64(rawTx.Msg.Vsize)
 	}
 
-	// Get block time as unix timestamp
 	var blockTime int64
 	if rawTx.Msg.BlockTime != nil {
 		blockTime = rawTx.Msg.BlockTime.AsTime().Unix()
 	}
 
-	// Get hex from the Tx field
 	var hexStr string
 	if rawTx.Msg.Tx != nil {
 		hexStr = rawTx.Msg.Tx.Hex
@@ -1732,7 +1707,6 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 		}), nil
 	}
 
-	// Find min and max UTXO values
 	minVal := utxos[0].ValueSats
 	maxVal := utxos[0].ValueSats
 	for _, utxo := range utxos {
@@ -1744,17 +1718,14 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 		}
 	}
 
-	// Generate dynamic bucket ranges based on the wallet's actual UTXO distribution
 	ranges := generateDynamicBuckets(minVal, maxVal, maxBuckets)
 
-	// Initialize buckets for each range
 	bucketData := make([]struct {
 		valueSats int64
 		count     int32
 		outpoints []string
 	}, len(ranges))
 
-	// Categorize each UTXO into the appropriate bucket
 	for _, utxo := range utxos {
 		for i, r := range ranges {
 			if utxo.ValueSats >= r.minSats && utxo.ValueSats <= r.maxSats {
@@ -1766,7 +1737,6 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 		}
 	}
 
-	// Build response buckets, only including non-empty ones
 	var buckets []*pb.UTXOBucket
 	for i, r := range ranges {
 		if bucketData[i].count > 0 {
@@ -1934,7 +1904,6 @@ func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCo
 		return nil, fmt.Errorf("list unspent: %w", err)
 	}
 
-	// Build frozen and required outpoints maps
 	frozenOutpoints := make(map[string]bool)
 	for _, outpoint := range c.Msg.FrozenOutpoints {
 		frozenOutpoints[outpoint] = true
@@ -1945,7 +1914,6 @@ func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCo
 		requiredOutpoints[outpoint] = true
 	}
 
-	// Set defaults
 	numOutputs := int(c.Msg.NumOutputs)
 	if numOutputs <= 0 {
 		numOutputs = 2
@@ -1956,7 +1924,6 @@ func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCo
 		strategy = pb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST
 	}
 
-	// Run coin selection
 	result, err := engines.SelectCoins(
 		unspentResp.Msg.Utxos,
 		frozenOutpoints,
@@ -2004,10 +1971,7 @@ func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.Restor
 		return nil, fmt.Errorf("restore backup: %w", err)
 	}
 
-	// Reboot the L1 stack so the enforcer picks up the restored wallet. On
-	// first launch nothing is running yet, so this boots it from scratch; on a
-	// live wallet it restarts. Owning this here means the frontend just calls
-	// RestoreBackup — it doesn't hand-sequence binary stops/starts.
+	// The enforcer reads the restored wallet only after a restart.
 	if s.restartL1 != nil {
 		if err := s.restartL1(ctx); err != nil {
 			return nil, fmt.Errorf("restore backup: restart L1 stack: %w", err)

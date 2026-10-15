@@ -80,8 +80,6 @@ func Persist(
 		}
 		builder = builder.Values(
 			value.TxID, value.Vout,
-			// Much easier to work with hex strings in the database! We're
-			// storing this in a string column, should've been BLOB?
 			hex.EncodeToString(value.Data),
 			value.Fee, value.Height, createdAt,
 		)

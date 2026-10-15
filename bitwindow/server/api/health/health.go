@@ -26,7 +26,7 @@ import (
 
 var _ rpc.HealthServiceHandler = new(Server)
 
-// New creates a new Server and starts the balance update loop
+// New creates a new Server
 func New(
 	database *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],

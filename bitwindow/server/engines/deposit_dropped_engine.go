@@ -22,14 +22,14 @@ type DepositLister interface {
 	ListSidechainDeposits(ctx context.Context, slot uint32, walletID string) ([]*orchpb.SidechainDeposit, error)
 }
 
-// DepositDroppedEngine tells the user about a deposit the network dropped. The
-// coin never reaches the sidechain, and nothing else in the app says so, so
-// without this the deposit simply never arrives.
 // NotificationSink delivers an event and reports how many subscribers took it.
 type NotificationSink interface {
 	Deliver(ctx context.Context, event *notificationv1.WatchResponse) int
 }
 
+// DepositDroppedEngine tells the user about a deposit the network dropped. The
+// coin never reaches the sidechain, and nothing else in the app says so, so
+// without this the deposit simply never arrives.
 type DepositDroppedEngine struct {
 	db            *sql.DB
 	deposits      DepositLister

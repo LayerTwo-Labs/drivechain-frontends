@@ -129,14 +129,14 @@ type Runtime struct {
 	walletDir   string
 }
 
-// buildRuntime opens the network-scoped DB, instantiates engines, and
-// registers all Connect sub-handlers on a fresh mux. Engines are NOT
-// started — call rt.Start to kick goroutines off.
 // coinnewsLogPath returns the coinnews log of the active network.
 func coinnewsLogPath(conf config.Config) string {
 	return filepath.Join(conf.Datadir, "coinnews-sync.log")
 }
 
+// buildRuntime opens the network-scoped DB, instantiates engines, and
+// registers all Connect sub-handlers on a fresh mux. Engines are NOT
+// started — call rt.Start to kick goroutines off.
 func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID string) (*Runtime, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -382,8 +382,6 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 }
 
 // Start forks rt's engine context from parent and launches goroutines.
-// Each engine writes its terminal error to errCh if non-nil; errCh closes
-// when all engines have exited.
 func (rt *Runtime) Start(parent context.Context) {
 	rt.ctx, rt.cancel = context.WithCancel(parent)
 	log := zerolog.Ctx(parent)

@@ -1058,9 +1058,6 @@ func isWalletNotFoundError(msg string) bool {
 		strings.Contains(m, "no such file")
 }
 
-// ListSidechainDeposits reports the deposits this install made to a slot. The
-// orchestrator records each one as it broadcasts it, because an M5 is an
-// ordinary transaction on the wire.
 // SidechainDepositTotals sums this install's deposits: all time, and since
 // `since`. Both in sats. An empty walletID sums every wallet's.
 func (e *WalletEngine) SidechainDepositTotals(ctx context.Context, since time.Time, walletID string) (int64, int64, error) {
@@ -1077,6 +1074,9 @@ func (e *WalletEngine) SidechainDepositTotals(ctx context.Context, since time.Ti
 	return resp.Msg.TotalSats, resp.Msg.RecentSats, nil
 }
 
+// ListSidechainDeposits reports the deposits this install made to a slot. The
+// orchestrator records each one as it broadcasts it, because an M5 is an
+// ordinary transaction on the wire.
 func (e *WalletEngine) ListSidechainDeposits(ctx context.Context, slot uint32, walletID string) ([]*orchpb.SidechainDeposit, error) {
 	if e.orchClient == nil {
 		return nil, errors.New("orchestrator wallet client not connected")
