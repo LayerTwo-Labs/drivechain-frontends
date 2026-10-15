@@ -302,11 +302,7 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		if err != nil {
 			return nil, err
 		}
-		ensure := s.walletEngine.GetBitcoinCoreWalletName
-		if watchOnly {
-			ensure = s.walletEngine.EnsureWatchOnlyWallet
-		}
-		coreWalletName, err := ensure(ctx, walletId)
+		coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
 		if err != nil {
 			return nil, fmt.Errorf("ensure core wallet: %w", err)
 		}
@@ -435,15 +431,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	}
 
 	// Bitcoin Core path
-	ensure := s.walletEngine.GetBitcoinCoreWalletName
-	watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
-	if err != nil {
-		return nil, err
-	}
-	if watchOnly {
-		ensure = s.walletEngine.EnsureWatchOnlyWallet
-	}
-	coreWalletName, err := ensure(ctx, walletId)
+	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
@@ -787,7 +775,7 @@ func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, getLa
 }
 
 func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
-	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
@@ -915,7 +903,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 	walletId := c.Msg.WalletId
 
 	// Bitcoin Core version
-	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
 	}

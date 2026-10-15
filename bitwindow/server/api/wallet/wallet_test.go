@@ -379,7 +379,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 func TestService_IsWalletUnlocked(t *testing.T) {
 	t.Parallel()
 
-	t.Run("wallet is locked by default", func(t *testing.T) {
+	t.Run("an unencrypted wallet is unlocked", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -399,17 +399,24 @@ func TestService_IsWalletUnlocked(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		// Test wallets are not encrypted, so they should be "unlocked"
 		_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
-		// The test wallet is unencrypted, so it should be considered unlocked
 		require.NoError(t, err)
+	})
+
+	t.Run("an encrypted wallet is locked at start", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithEncryptedWallet()))
+
+		_, err := cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 }
 
 func TestService_LockWallet(t *testing.T) {
 	t.Parallel()
 
-	t.Run("lock wallet succeeds", func(t *testing.T) {
+	t.Run("a locked wallet reads as locked", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -431,6 +438,9 @@ func TestService_LockWallet(t *testing.T) {
 
 		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
+
+		_, err = cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 }
 

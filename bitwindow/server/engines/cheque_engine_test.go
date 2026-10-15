@@ -12,12 +12,15 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 const chequeWalletID = "80CEBA2163224572BDEADD2D2181C51B"
@@ -149,6 +152,28 @@ func TestRecoverChequesOnUnlockWarnsOneTime(t *testing.T) {
 	<-done
 
 	require.Equal(t, 1, strings.Count(logs.String(), `"level":"warn"`), logs.String())
+}
+
+// A wallet with no seed holds no cheques, so the scan skips it and never retries.
+func TestRecoverChequesOnUnlockSkipsASeedlessWallet(t *testing.T) {
+	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+	engine := testChequeEngine(t, chain)
+	engine.scanRetry = time.Millisecond
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	orch.EXPECT().
+		GetWalletSeed(gomock.Any(), gomock.Any()).
+		Return(nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet holds no master seed"))).
+		AnyTimes()
+	engine.walletEngine.SetOrchestratorClient(orch)
+
+	var logs bytes.Buffer
+	ctx, cancel := context.WithTimeout(zerolog.New(&logs).WithContext(t.Context()), 5*time.Second)
+	defer cancel()
+	engine.recoverChequesOnUnlock(ctx)
+
+	require.NoError(t, ctx.Err())
+	require.NotContains(t, logs.String(), `"level":"warn"`)
+	require.Empty(t, chain.queried)
 }
 
 // A chain read that fails means the electrum backend is down, so the scan must
