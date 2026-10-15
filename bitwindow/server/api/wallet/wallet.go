@@ -989,7 +989,7 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 	}
 	if err != nil {
 		log.Error().Err(err).Msg("failed to decrypt wallet")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decrypt wallet: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	if err := s.walletEngine.Unlock(walletData); err != nil {

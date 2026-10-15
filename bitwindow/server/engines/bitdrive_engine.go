@@ -572,22 +572,16 @@ func (e *BitDriveEngine) ScanForFiles(ctx context.Context) ([]PendingBitDriveFil
 	var pending []PendingBitDriveFile
 	scanned := 0
 	for _, opReturn := range allOpReturns {
-		opReturnMessage := opreturns.OPReturnToReadable(opReturn.Data)
-		if !IsBitDriveTransaction(opReturnMessage) {
-			continue
-		}
-		scanned++
-
-		metadataB64, _, err := ParseOPReturnParts(opReturnMessage)
+		metadataB64, _, err := ParseOPReturnParts(opreturns.OPReturnToReadable(opReturn.Data))
 		if err != nil {
-			log.Warn().Err(err).Str("txid", opReturn.TxID).Msg("skip BitDrive OP_RETURN with bad parts")
 			continue
 		}
 		metadata, err := ParseMetadata(metadataB64)
 		if err != nil {
-			log.Warn().Err(err).Str("txid", opReturn.TxID).Msg("skip BitDrive OP_RETURN with bad metadata")
 			continue
 		}
+		scanned++
+
 		if metadata.IsMultisig {
 			continue
 		}
@@ -697,17 +691,6 @@ func (e *BitDriveEngine) WipeData(ctx context.Context) error {
 
 	zerolog.Ctx(ctx).Info().Msg("wiped bitdrive data")
 	return nil
-}
-
-// IsBitDriveTransaction checks if an OP_RETURN message is a BitDrive transaction
-func IsBitDriveTransaction(opReturnMessage string) bool {
-	metadataB64, _, err := ParseOPReturnParts(opReturnMessage)
-	if err != nil {
-		return false
-	}
-
-	_, err = ParseMetadata(metadataB64)
-	return err == nil
 }
 
 // GetDir returns the BitDrive directory path

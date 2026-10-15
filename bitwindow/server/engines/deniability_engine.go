@@ -578,7 +578,7 @@ func (e *DeniabilityEngine) getNewAddress(ctx context.Context, walletType Wallet
 
 // getBitcoinCoreNewAddress creates a new address from a Bitcoin Core wallet
 func (e *DeniabilityEngine) getBitcoinCoreNewAddress(ctx context.Context, walletId string) (string, error) {
-	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	coreWalletName, err := e.walletEngine.EnsureBitcoinCoreWallet(ctx, walletId)
 	if err != nil {
 		return "", fmt.Errorf("get bitcoin core wallet name: %w", err)
 	}
@@ -661,7 +661,7 @@ func (e *DeniabilityEngine) listElectrumUTXOs(ctx context.Context, walletId stri
 
 // listBitcoinCoreUTXOs lists UTXOs from a Bitcoin Core wallet
 func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId string) ([]*UTXO, error) {
-	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	coreWalletName, err := e.walletEngine.EnsureBitcoinCoreWallet(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get bitcoin core wallet name: %w", err)
 	}

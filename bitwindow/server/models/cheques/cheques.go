@@ -51,7 +51,7 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 	if err != nil {
 		return 0, fmt.Errorf("begin tx: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	result, err := tx.ExecContext(ctx, `
 		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address)
@@ -203,7 +203,7 @@ func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, o
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	if err := database.CheckOne(tx.ExecContext(ctx, `
 		UPDATE cheques
@@ -297,7 +297,7 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	// Create new cheque as already funded
 	now := time.Now()

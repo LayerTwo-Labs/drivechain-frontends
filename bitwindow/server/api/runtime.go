@@ -220,7 +220,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	// app reports it. The enforcer names the slots worth reading.
 	rt.depositDropped = engines.NewDepositDroppedEngine(
 		rt.db, rt.walletEngine, rt.notificationEngine,
-		func() ([]uint32, error) { return activeSidechainSlots(rt.ctx, s.Enforcer) },
+		func(ctx context.Context) ([]uint32, error) { return activeSidechainSlots(ctx, s.Enforcer) },
 	)
 	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams)
 	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())

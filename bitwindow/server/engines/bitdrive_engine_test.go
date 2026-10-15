@@ -391,6 +391,8 @@ func TestScanAndDownloadPendingFiles(t *testing.T) {
 	require.NoError(t, opreturns.Persist(t.Context(), db, []opreturns.OPReturn{
 		{TxID: "tx-file", Vout: 0, Data: []byte(FormatOPReturnData(metadataB64, contentStr)), CreatedAt: &now},
 		{TxID: "tx-other", Vout: 0, Data: []byte("not bitdrive"), CreatedAt: &now},
+		{TxID: "tx-bad-base64", Vout: 0, Data: []byte("!!!|hello"), CreatedAt: &now},
+		{TxID: "tx-short-metadata", Vout: 0, Data: []byte(base64.StdEncoding.EncodeToString([]byte{1, 2}) + "|hello"), CreatedAt: &now},
 	}))
 
 	pending, scanned, err := engine.ScanForFiles(t.Context())
@@ -446,7 +448,6 @@ func TestDecodeOPReturnData_EncryptedFixtures(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			engine := newEncryptTestEngine(t)
-			require.True(t, IsBitDriveTransaction(tc.message))
 
 			content, metadata, err := engine.DecodeOPReturnData(t.Context(), tc.message)
 			require.NoError(t, err)
@@ -463,30 +464,10 @@ func TestEncodeMultisigData_RoundTrip(t *testing.T) {
 			engine := newEncryptTestEngine(t)
 			message, err := engine.EncodeMultisigData(t.Context(), []byte(`{"m":2}`), encrypt)
 			require.NoError(t, err)
-			require.True(t, IsBitDriveTransaction(message))
 
 			content, err := engine.DecodeMultisigData(t.Context(), message)
 			require.NoError(t, err)
 			require.Equal(t, `{"m":2}`, string(content))
-		})
-	}
-}
-
-func TestIsBitDriveTransaction(t *testing.T) {
-	metadata := EncodeMetadata(false, false, 1800000000, "txt")
-	cases := []struct {
-		name    string
-		message string
-		want    bool
-	}{
-		{"metadata and content", metadata + "|hello", true},
-		{"no separator", metadata, false},
-		{"bad base64", "!!!|hello", false},
-		{"short metadata", base64.StdEncoding.EncodeToString([]byte{1, 2}) + "|hello", false},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.want, IsBitDriveTransaction(tc.message))
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -74,7 +75,7 @@ func Get(ctx context.Context, db *sql.DB, outpoints []string) (map[string]*Entry
 
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query utxo metadata: %w", err)
 	}
 	defer database.SafeDefer(ctx, rows.Close)
 
@@ -83,7 +84,7 @@ func Get(ctx context.Context, db *sql.DB, outpoints []string) (map[string]*Entry
 		var entry Entry
 		var createdAt, updatedAt int64
 		if err := rows.Scan(&entry.Outpoint, &entry.IsFrozen, &entry.Label, &createdAt, &updatedAt); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan utxo metadata: %w", err)
 		}
 		entry.CreatedAt = time.Unix(createdAt, 0)
 		entry.UpdatedAt = time.Unix(updatedAt, 0)

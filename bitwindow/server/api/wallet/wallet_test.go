@@ -503,7 +503,7 @@ func TestUnlockWalletReportsABadWalletFile(t *testing.T) {
 
 	_, err := cli.UnlockWallet(t.Context(), connect.NewRequest(&walletv1.UnlockWalletRequest{Password: "anypassword"}))
 	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
-	require.ErrorContains(t, err, "invalid ciphertext format")
+	require.EqualError(t, err, "internal: decrypt wallet: invalid ciphertext format")
 }
 
 // The orchestrator records each deposit as it broadcasts it, because an M5 is
