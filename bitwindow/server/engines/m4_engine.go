@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -42,32 +43,30 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 
 	coinbase := block.Transactions[0]
 
-	// First, process M3 (withdrawal bundle proposals)
 	m3Msgs, err := e.extractM3FromCoinbase(coinbase)
-	if err == nil && len(m3Msgs) > 0 {
-		for _, m3Msg := range m3Msgs {
-			m3Msg.BlockHeight = height
-			m3Msg.BlockHash = block.BlockHash().String()
-			m3Msg.BlockTime = block.Header.Timestamp
+	if err != nil {
+		log.Warn().Err(err).Msg("skip malformed M3")
+	}
+	for _, m3Msg := range m3Msgs {
+		m3Msg.BlockHeight = height
+		m3Msg.BlockHash = block.BlockHash().String()
+		m3Msg.BlockTime = block.Header.Timestamp
 
-			if err := e.persistM3Message(ctx, m3Msg); err != nil {
-				log.Warn().Err(err).Msg("failed to persist M3 message")
-			} else {
-				log.Debug().
-					Uint8("sidechain", m3Msg.SidechainSlot).
-					Str("bundle", m3Msg.BundleHash[:16]+"...").
-					Msg("processed M3 (bundle proposal)")
-			}
+		if err := e.persistM3Message(ctx, m3Msg); err != nil {
+			return fmt.Errorf("persist M3: %w", err)
 		}
+		log.Debug().
+			Uint8("sidechain", m3Msg.SidechainSlot).
+			Str("bundle", m3Msg.BundleHash[:16]+"...").
+			Msg("processed M3 (bundle proposal)")
 	}
 
-	// Then, process M4 (withdrawal bundle votes)
 	m4Msg, err := e.extractM4FromCoinbase(coinbase)
-	if err != nil {
-		// Not finding an M4 is OK - not all blocks have them
-		log.Trace().Msg("no M4 found in coinbase")
-	} else {
-		// Store the M4 message
+	switch {
+	case err != nil:
+		// The enforcer takes no votes from an M4 it cannot parse either.
+		log.Warn().Err(err).Msg("skip malformed M4")
+	case m4Msg != nil:
 		m4Msg.BlockHeight = height
 		m4Msg.BlockHash = block.BlockHash().String()
 		m4Msg.BlockTime = block.Header.Timestamp
@@ -183,7 +182,7 @@ func (e *M4Engine) extractM4FromCoinbase(coinbase *wire.MsgTx) (*m4.M4Message, e
 		return msg, nil
 	}
 
-	return nil, fmt.Errorf("no M4 commitment found in coinbase")
+	return nil, nil
 }
 
 // persistM4Message stores an M4 message. Its votes wait for ApplyPendingM4.
@@ -204,33 +203,28 @@ func (e *M4Engine) persistM4Message(ctx context.Context, msg *m4.M4Message) erro
 
 // persistM4Votes replaces the votes stored for an M4 message.
 func (e *M4Engine) persistM4Votes(ctx context.Context, msgID int64, votes []m4.M4Vote) error {
-	tx, err := e.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM m4_votes WHERE m4_message_id = ?`, msgID); err != nil {
-		return fmt.Errorf("delete old votes: %w", err)
-	}
-
-	for _, vote := range votes {
-		var bundleIndex *uint16
-		if vote.VoteType == m4.VoteTypeUpvote {
-			bundleIndex = vote.BundleIndex
+	return inTx(ctx, e.db, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM m4_votes WHERE m4_message_id = ?`, msgID); err != nil {
+			return fmt.Errorf("delete old votes: %w", err)
 		}
 
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO m4_votes (
-				m4_message_id, sidechain_slot, vote_type, bundle_hash, bundle_index
-			) VALUES (?, ?, ?, NULL, ?)
-		`, msgID, vote.SidechainSlot, vote.VoteType, bundleIndex)
-		if err != nil {
-			return fmt.Errorf("insert vote: %w", err)
-		}
-	}
+		for _, vote := range votes {
+			var bundleIndex *uint16
+			if vote.VoteType == m4.VoteTypeUpvote {
+				bundleIndex = vote.BundleIndex
+			}
 
-	return tx.Commit()
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO m4_votes (
+					m4_message_id, sidechain_slot, vote_type, bundle_hash, bundle_index
+				) VALUES (?, ?, ?, NULL, ?)
+			`, msgID, vote.SidechainSlot, vote.VoteType, bundleIndex)
+			if err != nil {
+				return fmt.Errorf("insert vote: %w", err)
+			}
+		}
+		return nil
+	})
 }
 
 // GetM4History returns the last N M4 messages
@@ -378,63 +372,56 @@ func (e *M4Engine) SetVotePreference(ctx context.Context, sidechainSlot uint8, v
 
 // extractM3FromCoinbase finds and parses M3 messages from coinbase OP_RETURNs
 func (e *M4Engine) extractM3FromCoinbase(coinbase *wire.MsgTx) ([]*m4.M3Message, error) {
-	var messages []*m4.M3Message
+	var (
+		messages []*m4.M3Message
+		errs     []error
+	)
 
 	// Check all outputs for M3 commitments
-	for _, txout := range coinbase.TxOut {
+	for vout, txout := range coinbase.TxOut {
 		script := txout.PkScript
 		if !m4.IsM3Commitment(script) {
 			continue
 		}
 
-		// Try to parse as M3
 		msg, err := m4.ParseM3Bytes(script)
 		if err != nil {
+			errs = append(errs, fmt.Errorf("parse M3 at vout %d: %w", vout, err))
 			continue
 		}
 
 		messages = append(messages, msg)
 	}
 
-	if len(messages) == 0 {
-		return nil, fmt.Errorf("no M3 commitment found in coinbase")
-	}
-
-	return messages, nil
+	return messages, errors.Join(errs...)
 }
 
 // persistM3Message stores an M3 message and creates the corresponding withdrawal bundle
 func (e *M4Engine) persistM3Message(ctx context.Context, msg *m4.M3Message) error {
-	tx, err := e.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
+	return inTx(ctx, e.db, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO m3_messages (
+				block_height, block_hash, block_time, sidechain_slot, bundle_hash
+			) VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT(block_height, sidechain_slot, bundle_hash) DO NOTHING
+		`, msg.BlockHeight, msg.BlockHash, msg.BlockTime, msg.SidechainSlot, msg.BundleHash)
+		if err != nil {
+			return fmt.Errorf("insert M3 message: %w", err)
+		}
 
-	// Insert M3 message
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO m3_messages (
-			block_height, block_hash, block_time, sidechain_slot, bundle_hash
-		) VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(block_height, sidechain_slot, bundle_hash) DO NOTHING
-	`, msg.BlockHeight, msg.BlockHash, msg.BlockTime, msg.SidechainSlot, msg.BundleHash)
-	if err != nil {
-		return fmt.Errorf("insert M3 message: %w", err)
-	}
-
-	// Create withdrawal bundle if it doesn't exist
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO withdrawal_bundles (
-			sidechain_slot, bundle_hash, work_score, blocks_left,
-			first_seen_height, last_updated_height, status
-		) VALUES (?, ?, 1, ?, ?, ?, 'pending')
-		ON CONFLICT(sidechain_slot, bundle_hash) DO NOTHING
-	`, msg.SidechainSlot, msg.BundleHash, m4.WithdrawalMaxAge, msg.BlockHeight, msg.BlockHeight)
-	if err != nil {
-		return fmt.Errorf("insert withdrawal bundle: %w", err)
-	}
-
-	return tx.Commit()
+		// Create withdrawal bundle if it doesn't exist
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO withdrawal_bundles (
+				sidechain_slot, bundle_hash, work_score, blocks_left,
+				first_seen_height, last_updated_height, status
+			) VALUES (?, ?, 1, ?, ?, ?, 'pending')
+			ON CONFLICT(sidechain_slot, bundle_hash) DO NOTHING
+		`, msg.SidechainSlot, msg.BundleHash, m4.WithdrawalMaxAge, msg.BlockHeight, msg.BlockHeight)
+		if err != nil {
+			return fmt.Errorf("insert withdrawal bundle: %w", err)
+		}
+		return nil
+	})
 }
 
 // applyM4Votes applies M4 votes to update withdrawal bundle work scores

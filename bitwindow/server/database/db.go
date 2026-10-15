@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -35,9 +36,9 @@ func New(ctx context.Context, conf config.Config) (*sql.DB, error) {
 	return db, nil
 }
 
-// SafeDefer calls the given function (typically a close/rollback) and logs if it returns an error.
-// Designed to be used in defer statements.
+// SafeDefer calls fn, such as a close or a rollback, in a defer statement and logs a returned error.
 func SafeDefer(ctx context.Context, fn func() error) {
-	// we just dont care about the error here
-	_ = fn()
+	if err := fn(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("deferred close failed")
+	}
 }

@@ -200,33 +200,32 @@ func (p *Parser) purgeAtOrAbove(ctx context.Context, height uint32) (uint32, err
 // take below height: a bundle whose score the orphan branch moved only rebuilds
 // by replaying the blocks that built it.
 func purgeChainAtOrAbove(ctx context.Context, db *sql.DB, height uint32) (uint32, error) {
-	tx, err := db.BeginTx(ctx, nil)
+	var replayFrom uint32
+	err := inTx(ctx, db, func(tx *sql.Tx) error {
+		var err error
+		replayFrom, err = purgeM4AtOrAboveTx(ctx, tx, height)
+		if err != nil {
+			return fmt.Errorf("purge m4 on fork: %w", err)
+		}
+		if err := purgeChequesAtOrAboveTx(ctx, tx, height); err != nil {
+			return fmt.Errorf("purge cheques on fork: %w", err)
+		}
+		if err := blocks.DeleteProcessedBlocksAtOrAboveTx(ctx, tx, replayFrom); err != nil {
+			return fmt.Errorf("delete processed blocks on fork: %w", err)
+		}
+		if err := coinbases.DeleteAtOrAboveTx(ctx, tx, height); err != nil {
+			return fmt.Errorf("delete coinbases on fork: %w", err)
+		}
+		if err := purgeCoinNewsAtOrAboveTx(ctx, tx, height); err != nil {
+			return fmt.Errorf("purge coinnews on fork: %w", err)
+		}
+		if err := purgeChainDerivedAtOrAboveTx(ctx, tx, height); err != nil {
+			return fmt.Errorf("purge chain-derived rows on fork: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return 0, fmt.Errorf("open the fork purge: %w", err)
-	}
-	defer tx.Rollback() //nolint:errcheck // committed on success
-
-	replayFrom, err := purgeM4AtOrAboveTx(ctx, tx, height)
-	if err != nil {
-		return 0, fmt.Errorf("purge m4 on fork: %w", err)
-	}
-	if err := purgeChequesAtOrAboveTx(ctx, tx, height); err != nil {
-		return 0, fmt.Errorf("purge cheques on fork: %w", err)
-	}
-	if err := blocks.DeleteProcessedBlocksAtOrAboveTx(ctx, tx, replayFrom); err != nil {
-		return 0, fmt.Errorf("delete processed blocks on fork: %w", err)
-	}
-	if err := coinbases.DeleteAtOrAboveTx(ctx, tx, height); err != nil {
-		return 0, fmt.Errorf("delete coinbases on fork: %w", err)
-	}
-	if err := purgeCoinNewsAtOrAboveTx(ctx, tx, height); err != nil {
-		return 0, fmt.Errorf("purge coinnews on fork: %w", err)
-	}
-	if err := purgeChainDerivedAtOrAboveTx(ctx, tx, height); err != nil {
-		return 0, fmt.Errorf("purge chain-derived rows on fork: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("commit the fork purge: %w", err)
+		return 0, fmt.Errorf("fork purge: %w", err)
 	}
 	return replayFrom, nil
 }
@@ -504,6 +503,13 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 		return fmt.Errorf("record coinbases: %w", err)
 	}
 
+	for _, t := range coreBlocks {
+		height, block := t.Unpack()
+		if err := p.m4Engine.ProcessBlock(ctx, height, block); err != nil {
+			return fmt.Errorf("process M3 and M4 at height %d: %w", height, err)
+		}
+	}
+
 	// Insert the processed blocks
 	if err := blocks.MarkBlocksProcessed(ctx, p.db, lo.Map(coreBlocks, func(t lo.Tuple2[uint32, *wire.MsgBlock], _ int) blocks.ProcessedBlock {
 		height, block := t.Unpack()
@@ -522,17 +528,6 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 	zerolog.Ctx(ctx).Trace().
 		Int32("height", int32(len(coreBlocks))).
 		Msgf("bitcoind_engine/parser: successfully inserted blocks")
-
-	// Process M4 messages from blocks
-	for _, t := range coreBlocks {
-		height, block := t.Unpack()
-		if err := p.m4Engine.ProcessBlock(ctx, height, block); err != nil {
-			zerolog.Ctx(ctx).Warn().Err(err).
-				Uint32("height", height).
-				Msg("bitcoind_engine/parser: failed to process M4 message")
-			// Don't fail the whole batch for M4 errors
-		}
-	}
 
 	return nil
 }

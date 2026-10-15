@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/btcsuite/btcd/txscript"
@@ -168,7 +169,7 @@ func dropMsg(ctx context.Context, pos cnstore.BlockPos, reason string, err error
 
 // purgeM4AtOrAbove runs the M4 purge in its own transaction.
 func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error {
-	return p.inTx(ctx, func(tx *sql.Tx) error {
+	return inTx(ctx, p.db, func(tx *sql.Tx) error {
 		_, err := purgeM4AtOrAboveTx(ctx, tx, fromHeight)
 		return err
 	})
@@ -176,29 +177,32 @@ func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error 
 
 // purgeChainDerivedAtOrAbove runs the op_returns purge in its own transaction.
 func (p *Parser) purgeChainDerivedAtOrAbove(ctx context.Context, fromHeight uint32) error {
-	return p.inTx(ctx, func(tx *sql.Tx) error {
+	return inTx(ctx, p.db, func(tx *sql.Tx) error {
 		return purgeChainDerivedAtOrAboveTx(ctx, tx, fromHeight)
 	})
 }
 
 // purgeCoinNewsAtOrAbove runs the coinnews purge in its own transaction.
 func (p *Parser) purgeCoinNewsAtOrAbove(ctx context.Context, fromHeight uint32) error {
-	return p.inTx(ctx, func(tx *sql.Tx) error {
+	return inTx(ctx, p.db, func(tx *sql.Tx) error {
 		return purgeCoinNewsAtOrAboveTx(ctx, tx, fromHeight)
 	})
 }
 
 // inTx runs fn in one transaction and commits when it returns nil.
-func (p *Parser) inTx(ctx context.Context, fn func(*sql.Tx) error) error {
-	tx, err := p.db.BeginTx(ctx, nil)
+func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck // committed on success
 	if err := fn(tx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+	return nil
 }
 
 // purgeM4AtOrAbove deletes every M4/SCDB row originating from a block at or
@@ -251,9 +255,9 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 		`DELETE FROM m3_messages        WHERE block_height >= ?`,
 		`DELETE FROM withdrawal_bundles WHERE first_seen_height >= ?`,
 	}
-	for _, q := range stmts {
+	for i, q := range stmts {
 		if _, err := tx.ExecContext(ctx, q, replayFrom); err != nil {
-			return 0, err
+			return 0, fmt.Errorf("purge m4 statement %d: %w", i, err)
 		}
 	}
 
@@ -304,9 +308,9 @@ func purgeCoinNewsAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32
 		`DELETE FROM cn_topics        WHERE created_height >= ? AND txid != ''`,
 		`DELETE FROM cn_items         WHERE block_height >= ?`,
 	}
-	for _, q := range stmts {
+	for i, q := range stmts {
 		if _, err := tx.ExecContext(ctx, q, fromHeight); err != nil {
-			return err
+			return fmt.Errorf("purge coinnews statement %d: %w", i, err)
 		}
 	}
 	return nil
