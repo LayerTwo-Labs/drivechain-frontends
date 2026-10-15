@@ -343,8 +343,7 @@ func (s *Server) ListWithdrawals(
 	// Get sidechains to find activation height
 	sidechainsResp, err := enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("get sidechains: %w", err))
+		return nil, fmt.Errorf("get sidechains: %w", err)
 	}
 
 	// Find the sidechain we're looking for
@@ -377,8 +376,7 @@ func (s *Server) ListWithdrawals(
 			MaxAncestors: &ancestors,
 		}))
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("get cached block header: %w", err))
+			return nil, fmt.Errorf("get cached block header: %w", err)
 		}
 		reuseCache = cacheOnChain(cache, headersResp.Msg.HeaderInfos)
 		if !reuseCache {
@@ -410,8 +408,7 @@ func (s *Server) ListWithdrawals(
 			MaxAncestors: &ancestorsNeeded,
 		}))
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("get activation block header: %w", err))
+			return nil, fmt.Errorf("get activation block header: %w", err)
 		}
 
 		activationBlock, found := lo.Find(activationBlockResp.Msg.HeaderInfos, func(headerInfo *validatorpb.BlockHeaderInfo) bool {
@@ -420,7 +417,7 @@ func (s *Server) ListWithdrawals(
 
 		if !found || activationBlock.BlockHash == nil || activationBlock.BlockHash.Hex == nil {
 			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("could not find block at activation height %d", activationHeight))
+				fmt.Errorf("no block at activation height %d", activationHeight))
 		}
 
 		startBlockHash = activationBlock.BlockHash.Hex.Value
@@ -439,8 +436,7 @@ func (s *Server) ListWithdrawals(
 		EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(currentBlockHash)},
 	}))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("get two-way peg data: %w", err))
+		return nil, fmt.Errorf("get two-way peg data: %w", err)
 	}
 
 	// Process new blocks and extract withdrawal bundle events

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/mattn/go-sqlite3"
 
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -78,23 +77,15 @@ func LabelsByAddress(ctx context.Context, db *sql.DB) (map[string]string, error)
 }
 
 func UpdateLabel(ctx context.Context, db *sql.DB, id int64, newLabel string) error {
-	err := database.CheckOne(db.ExecContext(ctx,
+	return database.CheckOne(db.ExecContext(ctx,
 		`UPDATE address_book SET label = ? WHERE id = ?`,
 		newLabel, id))
-	if errors.Is(err, sql.ErrNoRows) {
-		return connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
-	}
-	return err
 }
 
 func Delete(ctx context.Context, db *sql.DB, id int64) error {
-	err := database.CheckOne(db.ExecContext(ctx,
+	return database.CheckOne(db.ExecContext(ctx,
 		`DELETE FROM address_book WHERE id = ?`,
 		id))
-	if errors.Is(err, sql.ErrNoRows) {
-		return connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
-	}
-	return err
 }
 
 func DirectionFromProto(d pb.Direction) (Direction, error) {

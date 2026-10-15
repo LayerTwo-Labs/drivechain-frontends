@@ -85,7 +85,7 @@ func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBloc
 	if err != nil {
 		return fmt.Errorf("prepare stmt: %w", err)
 	}
-	defer stmt.Close()
+	defer database.SafeDefer(ctx, stmt.Close)
 
 	var bestBlockHeight uint32
 	for _, block := range blocks {

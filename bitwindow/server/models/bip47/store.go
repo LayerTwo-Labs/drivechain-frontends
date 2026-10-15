@@ -64,7 +64,7 @@ func ReserveNextIndex(ctx context.Context, db *sql.DB, walletID, recipientCode s
 	if err != nil {
 		return 0, fmt.Errorf("begin tx: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	// Insert-if-missing then UPDATE … RETURNING. INSERT OR IGNORE is a no-op
 	// when the row already exists, so the subsequent UPDATE is the single

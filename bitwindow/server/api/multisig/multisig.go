@@ -311,8 +311,11 @@ func (s *Server) SaveTransaction(
 
 	// Re-read
 	saved, err := s.store.GetTransaction(ctx, pt.Id)
-	if err != nil || saved == nil {
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("re-read transaction: %w", err))
+	}
+	if saved == nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("transaction %s missing after save", pt.Id))
 	}
 
 	pbTx, err := s.txToProto(ctx, *saved)

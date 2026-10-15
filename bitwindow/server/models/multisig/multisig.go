@@ -551,7 +551,7 @@ func (s *Store) SaveGroupAtomic(ctx context.Context, p SaveGroupAtomicParams) er
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback() //nolint:errcheck
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	if err := saveGroupOn(ctx, tx, p.Group); err != nil {
 		return fmt.Errorf("save group: %w", err)
@@ -614,7 +614,7 @@ func (s *Store) SaveTransactionAtomic(ctx context.Context, p SaveTransactionAtom
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback() //nolint:errcheck
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	if err := saveTransactionOn(ctx, tx, p.Transaction); err != nil {
 		return fmt.Errorf("save transaction: %w", err)

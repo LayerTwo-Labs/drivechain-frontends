@@ -726,6 +726,7 @@ func TestService_AddressBook(t *testing.T) {
 			Id:    99999,
 			Label: "New Label",
 		}))
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 		require.ErrorContains(t, err, "address book entry not found")
 	})
 
@@ -760,6 +761,7 @@ func TestService_AddressBook(t *testing.T) {
 		_, err := cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
 			Id: 99999,
 		}))
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 		require.ErrorContains(t, err, "address book entry not found")
 	})
 
@@ -1971,6 +1973,32 @@ this line is not valid json
 		assert.Contains(t, exported.Msg.Jsonl, "Restaurant")
 		assert.Contains(t, exported.Msg.Jsonl, "Savings")
 		assert.Contains(t, exported.Msg.Jsonl, "Coinjoin change")
+	})
+
+	t.Run("skips an address that does not classify", func(t *testing.T) {
+		t.Parallel()
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t)))
+
+		imp, err := cli.ImportLabels(t.Context(), connect.NewRequest(&v1.ImportLabelsRequest{
+			Jsonl: `{"type":"addr","ref":"not-an-address","label":"Savings"}`,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), imp.Msg.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.Msg.Skipped)
+	})
+
+	t.Run("returns a database fault", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		require.NoError(t, db.Close())
+
+		_, err := cli.ImportLabels(t.Context(), connect.NewRequest(&v1.ImportLabelsRequest{
+			Jsonl: `{"type":"tx","ref":"` + txid + `","label":"Restaurant"}`,
+		}))
+		require.ErrorContains(t, err, "sql: database is closed")
 	})
 }
 

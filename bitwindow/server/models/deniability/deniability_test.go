@@ -34,6 +34,14 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, numHops, denial.NumHops)
 	})
 
+	t.Run("Get missing id", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		_, err := Get(t.Context(), db, 42)
+		require.ErrorIs(t, err, ErrNotFound)
+	})
+
 	t.Run("RecordExecution", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)

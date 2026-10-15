@@ -333,7 +333,7 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list topics: query: %w", err)
 	}
-	defer rows.Close()
+	defer database.SafeDefer(ctx, rows.Close)
 
 	var topics []Topic
 	for rows.Next() {
@@ -501,7 +501,7 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 	if err != nil {
 		return nil, fmt.Errorf("list coin news: query new-format stories: %w", err)
 	}
-	defer rows.Close()
+	defer database.SafeDefer(ctx, rows.Close)
 
 	type continuationTarget struct {
 		idx    int

@@ -2,11 +2,11 @@ package addressbook
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/stretchr/testify/require"
 
@@ -157,7 +157,7 @@ func TestUpdateLabel(t *testing.T) {
 
 	t.Run("a missing entry is not found", func(t *testing.T) {
 		err := UpdateLabel(t.Context(), db, entries[0].ID+1, "new")
-		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 }
 
@@ -177,7 +177,7 @@ func TestDelete(t *testing.T) {
 
 	t.Run("a missing entry is not found", func(t *testing.T) {
 		err := Delete(t.Context(), db, entries[0].ID)
-		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 
 	t.Run("a failed delete returns the error", func(t *testing.T) {
