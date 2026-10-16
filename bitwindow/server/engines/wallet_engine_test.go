@@ -307,6 +307,24 @@ func TestUnlock_SkipsBadWalletEntries(t *testing.T) {
 	require.NotContains(t, e.walletCache, "b")
 }
 
+func TestUnlock_ActiveWalletWithNoSeed(t *testing.T) {
+	walletDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), []byte(`{"encrypted":true}`), 0o600))
+	e := NewWalletEngine(t.Context(), nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), walletDir, &chaincfg.MainNetParams, nil)
+	require.False(t, e.IsUnlocked())
+
+	var walletData map[string]any
+	require.NoError(t, json.Unmarshal([]byte(`{"activeWalletId":"w","wallets":[
+		{"id":"w","name":"Watch","wallet_type":"watchOnly","watch_only":{"xpub":"xpub-test"}}
+	]}`), &walletData))
+	require.NoError(t, e.Unlock(t.Context(), walletData))
+
+	assert.True(t, e.IsUnlocked())
+	info, err := e.GetActiveWallet(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, "Watch", info.Name)
+}
+
 func TestNewWalletEngine(t *testing.T) {
 	const walletsJSON = `{"activeWalletId":"a","wallets":[{"id":"a","master":{"seed_hex":"00"}}]}`
 

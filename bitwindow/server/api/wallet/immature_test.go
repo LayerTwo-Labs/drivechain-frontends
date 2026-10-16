@@ -109,9 +109,9 @@ func TestImmatureCoinbase(t *testing.T) {
 				},
 			}), nil).
 			AnyTimes()
+		expectCoreTip(mockBitcoind, 200)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind),
-			apitests.WithValidator(chainTipValidator(t, 200))))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
 		resp, err := cli.ListTransactions(t.Context(), connect.NewRequest(&walletv1.ListTransactionsRequest{WalletId: testWalletID}))
 		require.NoError(t, err)

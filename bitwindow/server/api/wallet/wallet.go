@@ -183,6 +183,18 @@ func btcToSats(btc float64) (uint64, error) {
 	return uint64(amount), nil
 }
 
+func sumBTCToSats(a, b float64) (uint64, error) {
+	aSats, err := btcToSats(a)
+	if err != nil {
+		return 0, err
+	}
+	bSats, err := btcToSats(b)
+	if err != nil {
+		return 0, err
+	}
+	return aSats + bSats, nil
+}
+
 // canonicalOutpoint reads a txid:vout pair into one spelling: the txid in
 // lower case, and the vout with no leading zero. A string it cannot read comes
 // back trimmed and lowered, so two unreadable spellings still match.
@@ -290,10 +302,6 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 
 	switch walletType {
 	case engines.WalletTypeBitcoinCore:
-		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletID)
-		if err != nil {
-			return nil, err
-		}
 		coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
 		if err != nil {
 			return nil, fmt.Errorf("ensure core wallet: %w", err)
@@ -311,21 +319,17 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 			return nil, fmt.Errorf("get balances from bitcoin core: %w", err)
 		}
 
-		// An imported descriptor's funds report under `watchonly`; a
-		// seed-derived wallet's under `mine`.
-		trusted, pending, immature := balancesResp.Msg.Mine.Trusted, balancesResp.Msg.Mine.UntrustedPending, balancesResp.Msg.Mine.Immature
-		if watchOnly {
-			trusted, pending, immature = balancesResp.Msg.Watchonly.Trusted, balancesResp.Msg.Watchonly.UntrustedPending, balancesResp.Msg.Watchonly.Immature
-		}
-		confirmedSats, err := btcToSats(trusted)
+		// A descriptor wallet reports watch-only coins under mine, a legacy wallet under watchonly.
+		mine, watchOnly := balancesResp.Msg.GetMine(), balancesResp.Msg.GetWatchonly()
+		confirmedSats, err := sumBTCToSats(mine.GetTrusted(), watchOnly.GetTrusted())
 		if err != nil {
 			return nil, fmt.Errorf("confirmed balance: %w", err)
 		}
-		pendingSats, err := btcToSats(pending)
+		pendingSats, err := sumBTCToSats(mine.GetUntrustedPending(), watchOnly.GetUntrustedPending())
 		if err != nil {
 			return nil, fmt.Errorf("pending balance: %w", err)
 		}
-		immatureSats, err := btcToSats(immature)
+		immatureSats, err := sumBTCToSats(mine.GetImmature(), watchOnly.GetImmature())
 		if err != nil {
 			return nil, fmt.Errorf("immature balance: %w", err)
 		}
@@ -394,39 +398,31 @@ func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.W
 			return nil, err
 		}
 
-		tip := s.tipHeight(ctx, lo.SomeBy(entries, func(t *orchpb.TransactionEntry) bool { return t.Confirmations > 0 }))
+		tip := s.enforcerTipHeight(ctx, lo.SomeBy(entries, func(t *orchpb.TransactionEntry) bool { return t.Confirmations > 0 }))
 
-		out := make([]*pb.WalletTransaction, 0, len(entries))
+		rows := make([]txRow, 0, len(entries))
 		for _, t := range entries {
-			var received, sent uint64
-			if t.AmountSats >= 0 {
-				received = uint64(t.AmountSats)
-			} else {
-				sent = uint64(-t.AmountSats)
-			}
-			var confirmation *pb.Confirmation
-			if t.Confirmations > 0 {
-				confirmation = &pb.Confirmation{
-					Height:    engines.ConfirmedHeight(tip, t.Confirmations),
-					Timestamp: &timestamppb.Timestamp{Seconds: t.BlockTime},
-				}
-			}
 			feeSats, err := btcToSats(math.Abs(t.Fee))
 			if err != nil {
 				return nil, fmt.Errorf("electrum: fee of %s: %w", t.Txid, err)
 			}
-			out = append(out, &pb.WalletTransaction{
-				Txid:             t.Txid,
-				FeeSats:          feeSats,
-				ReceivedSatoshi:  received,
-				SentSatoshi:      sent,
-				Address:          t.Address,
-				AddressLabel:     t.Label,
-				ConfirmationTime: confirmation,
-				Immature:         t.Category == "immature",
-			})
+			row := txRow{
+				txid:       t.Txid,
+				amountSats: t.AmountSats,
+				feeSats:    feeSats,
+				address:    t.Address,
+				label:      t.Label,
+				immature:   t.Category == "immature",
+			}
+			if t.Confirmations > 0 {
+				row.confirmation = &pb.Confirmation{
+					Height:    engines.ConfirmedHeight(tip, t.Confirmations),
+					Timestamp: &timestamppb.Timestamp{Seconds: t.BlockTime},
+				}
+			}
+			rows = append(rows, row)
 		}
-		return out, nil
+		return mergeTxRows(rows), nil
 	}
 
 	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
@@ -439,97 +435,124 @@ func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.W
 		return nil, fmt.Errorf("bitcoind: %w", err)
 	}
 
-	txsResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
-		Wallet: coreWalletName,
-		Count:  1000, // Get last 1000 transactions
-	}))
-	if err != nil {
-		return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
-	}
-
-	tip := s.tipHeight(ctx, lo.SomeBy(txsResp.Msg.Transactions, func(tx *corepb.GetTransactionResponse) bool { return tx.Confirmations > 0 }))
-
-	txMap := make(map[string]*pb.WalletTransaction)
-	for _, tx := range txsResp.Msg.Transactions {
-		existing, found := txMap[tx.Txid]
-		if !found {
-			var confirmation *pb.Confirmation
-			if tx.Confirmations > 0 {
-				// BlockTime is always nil for ListTransactions in btc-buf, use Time or TimeReceived instead
-				timestamp := tx.Time
-				if timestamp == nil {
-					timestamp = tx.TimeReceived
-				}
-				if timestamp != nil {
-					confirmation = &pb.Confirmation{
-						Height:    engines.ConfirmedHeight(tip, tx.Confirmations),
-						Timestamp: timestamp,
-					}
-				}
-			}
-
-			address := ""
-			if len(tx.Details) > 0 {
-				address = tx.Details[0].Address
-			}
-
-			feeSats := uint64(0)
-			if tx.Fee < 0 {
-				feeSats, err = btcToSats(-tx.Fee)
-				if err != nil {
-					return nil, fmt.Errorf("fee of %s: %w", tx.Txid, err)
-				}
-			}
-
-			var receivedSats, sentSats uint64
-			if tx.Amount > 0 {
-				receivedSats, err = btcToSats(tx.Amount)
-			} else {
-				sentSats, err = btcToSats(-tx.Amount)
-			}
-			if err != nil {
-				return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
-			}
-
-			txMap[tx.Txid] = &pb.WalletTransaction{
-				Txid:             tx.Txid,
-				FeeSats:          feeSats,
-				ReceivedSatoshi:  receivedSats,
-				SentSatoshi:      sentSats,
-				Address:          address,
-				ConfirmationTime: confirmation,
-				Immature: lo.ContainsBy(tx.Details, func(d *corepb.GetTransactionResponse_Details) bool {
-					return d.Category == corepb.GetTransactionResponse_CATEGORY_IMMATURE
-				}),
-			}
-		} else {
-			// Update existing entry with additional info
-			if tx.Amount > 0 {
-				sats, err := btcToSats(tx.Amount)
-				if err != nil {
-					return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
-				}
-				existing.ReceivedSatoshi += sats
-			} else {
-				sats, err := btcToSats(-tx.Amount)
-				if err != nil {
-					return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
-				}
-				existing.SentSatoshi += sats
-			}
+	var coreTxs []*corepb.GetTransactionResponse
+	for skip := uint32(0); ; skip += coreTxPageSize {
+		page, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
+			Wallet: coreWalletName,
+			Count:  coreTxPageSize,
+			Skip:   skip,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
+		}
+		coreTxs = append(coreTxs, page.Msg.Transactions...)
+		if len(page.Msg.Transactions) < coreTxPageSize {
+			break
 		}
 	}
 
-	var walletTxs []*pb.WalletTransaction
-	for _, tx := range txMap {
-		walletTxs = append(walletTxs, tx)
-	}
+	tip := coreTipHeight(ctx, bitcoind, lo.SomeBy(coreTxs, func(tx *corepb.GetTransactionResponse) bool { return tx.Confirmations > 0 }))
 
-	return walletTxs, nil
+	rows := make([]txRow, 0, len(coreTxs))
+	for _, tx := range coreTxs {
+		amount, err := btcutil.NewAmount(tx.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
+		}
+		var feeSats uint64
+		if tx.Fee < 0 {
+			feeSats, err = btcToSats(-tx.Fee)
+			if err != nil {
+				return nil, fmt.Errorf("fee of %s: %w", tx.Txid, err)
+			}
+		}
+		row := txRow{
+			txid:       tx.Txid,
+			amountSats: int64(amount),
+			feeSats:    feeSats,
+			immature: lo.ContainsBy(tx.Details, func(d *corepb.GetTransactionResponse_Details) bool {
+				return d.Category == corepb.GetTransactionResponse_CATEGORY_IMMATURE
+			}),
+		}
+		if len(tx.Details) > 0 {
+			row.address = tx.Details[0].Address
+		}
+		if tx.Confirmations > 0 {
+			// BlockTime is always nil for ListTransactions in btc-buf, use Time or TimeReceived instead
+			timestamp := tx.Time
+			if timestamp == nil {
+				timestamp = tx.TimeReceived
+			}
+			if timestamp != nil {
+				row.confirmation = &pb.Confirmation{
+					Height:    engines.ConfirmedHeight(tip, tx.Confirmations),
+					Timestamp: timestamp,
+				}
+			}
+		}
+		rows = append(rows, row)
+	}
+	return mergeTxRows(rows), nil
+}
+
+const coreTxPageSize = 1000
+
+// txRow is one listtransactions entry. A transaction with more than one
+// output or input gives more than one row.
+type txRow struct {
+	txid         string
+	amountSats   int64
+	feeSats      uint64
+	address      string
+	label        string
+	confirmation *pb.Confirmation
+	immature     bool
+}
+
+// mergeTxRows gives one transaction per txid, in the order of the first row.
+// The first row sets the address, label and confirmation.
+func mergeTxRows(rows []txRow) []*pb.WalletTransaction {
+	byTxid := make(map[string]*pb.WalletTransaction, len(rows))
+	out := make([]*pb.WalletTransaction, 0, len(rows))
+	for _, r := range rows {
+		tx, ok := byTxid[r.txid]
+		if !ok {
+			tx = &pb.WalletTransaction{
+				Txid:             r.txid,
+				Address:          r.address,
+				AddressLabel:     r.label,
+				ConfirmationTime: r.confirmation,
+			}
+			byTxid[r.txid] = tx
+			out = append(out, tx)
+		}
+		if r.amountSats >= 0 {
+			tx.ReceivedSatoshi += uint64(r.amountSats)
+		} else {
+			tx.SentSatoshi += uint64(-r.amountSats)
+		}
+		// Core repeats the fee on each send row; Electrum puts it on one row.
+		tx.FeeSats = max(tx.FeeSats, r.feeSats)
+		tx.Immature = tx.Immature || r.immature
+	}
+	return out
+}
+
+// A failed tip read gives no block heights; the transaction list must not depend on it.
+func coreTipHeight(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, anyConfirmed bool) int32 {
+	if !anyConfirmed {
+		return 0
+	}
+	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("list transactions: no block heights, get blockchain info")
+		return 0
+	}
+	return int32(info.Msg.Blocks)
 }
 
 // A down enforcer gives no block heights; the transaction list must not depend on it.
-func (s *Server) tipHeight(ctx context.Context, anyConfirmed bool) int32 {
+func (s *Server) enforcerTipHeight(ctx context.Context, anyConfirmed bool) int32 {
 	if !anyConfirmed {
 		return 0
 	}
@@ -592,7 +615,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	} else if slot == nil {
 		slot = &c.Msg.Slot
 	}
-	if *slot > 255 {
+	if *slot < 0 || *slot > 255 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot))
 	}
 
@@ -648,12 +671,12 @@ func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *cha
 
 // SignMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMessageRequest]) (*connect.Response[pb.SignMessageResponse], error) {
-	if _, err := s.walletEngine.GetWalletBackendType(ctx, c.Msg.WalletId); err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
 	if !s.walletEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
+	if _, err := s.walletEngine.GetWalletBackendType(ctx, c.Msg.WalletId); err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	if c.Msg.Address == "" {
@@ -1028,14 +1051,14 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet_id is required"))
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	// Wallet ID validation only - cheques work the same for all wallet types
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	if !s.walletEngine.IsUnlocked() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
 	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletID)
@@ -1542,8 +1565,12 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 		Txid:      txid,
 		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 	}))
-	if err != nil {
+	switch {
+	// Core error -5.
+	case err != nil && strings.Contains(err.Error(), "No such mempool or blockchain transaction"):
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found: %w", err))
+	case err != nil:
+		return nil, fmt.Errorf("get transaction %s: %w", txid, err)
 	}
 
 	var inputs []*pb.TransactionInput
@@ -1825,7 +1852,7 @@ func formatBucketRange(minSats, maxSats uint64) string {
 		case btc >= 0.0001:
 			return fmt.Sprintf("%.4f", btc)
 		default:
-			return fmt.Sprintf("%.5f", btc)
+			return strconv.FormatFloat(btc, 'f', -1, 64)
 		}
 	}
 

@@ -82,10 +82,8 @@ type WalletEngine struct {
 
 	// Unlocked wallet state (in memory)
 	mu             sync.RWMutex
-	seedHex        string
 	activeWalletID string
 	isUnlocked     bool
-	unlockCond     *sync.Cond
 
 	// frozenCoins names the coins the user froze, so no send of ours takes one.
 	frozenCoins FrozenCoinsFunc
@@ -133,8 +131,6 @@ func NewWalletEngine(
 		walletCache:       make(map[string]*WalletInfo),
 		nodeMode:          NewNodeMode(orchClient),
 	}
-	e.unlockCond = sync.NewCond(&e.mu)
-
 	// Auto-unlock unencrypted wallets at startup
 	if !wallet.IsWalletEncrypted(walletDir) {
 		walletData, err := wallet.LoadUnencryptedWallet(walletDir)
@@ -232,7 +228,7 @@ func (e *WalletEngine) NodeMode() *NodeMode {
 // Unlock/Lock/State Management
 // ============================================================================
 
-// Unlock loads the seed into memory from decrypted wallet data
+// Unlock loads the wallet metadata into memory from decrypted wallet data.
 func (e *WalletEngine) Unlock(ctx context.Context, walletData map[string]any) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -290,25 +286,6 @@ func (e *WalletEngine) Unlock(ctx context.Context, walletData map[string]any) er
 		return errors.New("no wallets found in wallets array")
 	}
 
-	// Extract master seed from active wallet
-	master, ok := activeWallet["master"].(map[string]any)
-	if !ok {
-		return errors.New("invalid wallet structure: missing master key")
-	}
-
-	seedHex, ok := master["seed_hex"].(string)
-	if !ok || seedHex == "" {
-		// Multisig and watch-only wallets have no master seed, so the cheque
-		// engine has nothing to unlock. Skip rather than fail.
-		zerolog.Ctx(ctx).Info().Msg("active wallet has no master seed (multisig/watch-only), skipping cheque engine unlock")
-		return nil
-	}
-
-	// Validate seed hex
-	if _, err := hex.DecodeString(seedHex); err != nil {
-		return fmt.Errorf("invalid seed hex: %w", err)
-	}
-
 	// Cache all wallet metadata for encrypted wallets
 	log := zerolog.Ctx(ctx)
 	walletCache := make(map[string]*WalletInfo)
@@ -333,21 +310,16 @@ func (e *WalletEngine) Unlock(ctx context.Context, walletData map[string]any) er
 		walletCache[walletInfo.ID] = &walletInfo
 	}
 	e.walletCache = walletCache
-
-	e.seedHex = seedHex
 	e.activeWalletID = activeWalletID
 	e.isUnlocked = true
-	e.unlockCond.Broadcast()
 	return nil
 }
 
-// Lock drops the in-memory seed and wallet cache. The seed string itself can't
-// be zeroed in place (Go strings are immutable) — it lingers until GC.
+// Lock drops the in-memory wallet cache.
 func (e *WalletEngine) Lock() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.seedHex = ""
 	e.activeWalletID = ""
 	e.isUnlocked = false
 	e.walletCache = make(map[string]*WalletInfo)
@@ -708,6 +680,8 @@ func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletID string) 
 func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletID string) ([]*orchpb.TransactionEntry, error) {
 	resp, err := e.orchClient.ListTransactions(ctx, connect.NewRequest(&orchpb.ListTransactionsRequest{
 		WalletId: walletID,
+		// The orchestrator has no skip, and a count of 0 means 100 rows.
+		Count: math.MaxInt32,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("electrum: list transactions: %w", err)

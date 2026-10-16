@@ -50,6 +50,7 @@ type configg struct {
 	walletType string
 	network    config.Network
 	encrypted  bool
+	watchOnly  bool
 	authDir    string
 }
 
@@ -107,6 +108,11 @@ func WithEncryptedWallet() ServerOpt {
 	return func(opt *configg) { opt.encrypted = true }
 }
 
+// WithWatchOnlyWallet makes the fixture wallet a watch-only one with no seed.
+func WithWatchOnlyWallet() ServerOpt {
+	return func(opt *configg) { opt.watchOnly = true }
+}
+
 // WithOrchestrator injects the wallet-manager client cheque reads go through.
 func WithOrchestrator(client orchrpc.WalletManagerServiceClient) ServerOpt {
 	return func(opt *configg) { opt.orchestrator = client }
@@ -151,6 +157,9 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	createTestWalletJSON(t, walletDir, conf.walletType)
 	if conf.encrypted {
 		markWalletEncrypted(t, walletDir)
+	}
+	if conf.watchOnly {
+		makeWalletWatchOnly(t, walletDir)
 	}
 	if conf.orchestrator == nil {
 		conf.orchestrator = fixtureOrchestrator(t, walletDir)
@@ -275,6 +284,27 @@ func markWalletEncrypted(t *testing.T, walletDir string) {
 	data, err := json.Marshal(wallet.EncryptionMetadata{Encrypted: true})
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), data, 0600))
+}
+
+func makeWalletWatchOnly(t *testing.T, walletDir string) {
+	t.Helper()
+
+	walletPath := filepath.Join(walletDir, "wallet.json")
+	data, err := os.ReadFile(walletPath)
+	require.NoError(t, err)
+	var file map[string]any
+	require.NoError(t, json.Unmarshal(data, &file))
+
+	w := file["wallets"].([]any)[0].(map[string]any)
+	delete(w, "master")
+	delete(w, "l1")
+	w["watch_only"] = map[string]any{
+		"xpub": "tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M",
+	}
+
+	data, err = json.Marshal(file)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(walletPath, data, 0600))
 }
 
 func serve(t *testing.T, server *api.Server) (connect.HTTPClient, string) {
