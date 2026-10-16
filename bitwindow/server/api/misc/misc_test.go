@@ -25,6 +25,7 @@ import (
 	miscv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
@@ -962,7 +963,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		require.ErrorContains(t, err, "file data must be set")
 	})
 
-	t.Run("verify existing timestamp", func(t *testing.T) {
+	t.Run("verify accepts only a confirmed timestamp", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -1015,10 +1016,29 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		}))
 		require.NoError(t, err)
 
-		// Now verify it
-		resp, err := cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
-			FileData: fileData,
-		}))
+		verify := func() (*connect.Response[miscv1.VerifyTimestampResponse], error) {
+			return cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
+				FileData: fileData,
+			}))
+		}
+
+		_, err = verify()
+		require.ErrorContains(t, err, "the timestamp is not confirmed yet")
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		rows, err := timestamps.List(t.Context(), database)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+
+		require.NoError(t, timestamps.Update(t.Context(), database, rows[0].ID, nil, nil, timestamps.StatusFailed, nil))
+		_, err = verify()
+		require.ErrorContains(t, err, "the timestamp transaction failed")
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		confirmedAt := time.Now()
+		height := int64(990)
+		require.NoError(t, timestamps.Update(t.Context(), database, rows[0].ID, nil, &height, timestamps.StatusConfirmed, &confirmedAt))
+		resp, err := verify()
 		require.NoError(t, err)
 		assert.NotNil(t, resp.Msg.Timestamp)
 		assert.Contains(t, resp.Msg.Message, "verified")

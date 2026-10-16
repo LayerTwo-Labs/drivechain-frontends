@@ -5,135 +5,13 @@ import (
 	"database/sql"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 )
-
-func setupTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	db, err := sql.Open("sqlite3", ":memory:?_foreign_keys=on")
-	require.NoError(t, err)
-
-	// Replicate the schema from migrations 031 + 032.
-	for _, ddl := range []string{
-		`CREATE TABLE multisig_groups (
-			id TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
-			n INTEGER NOT NULL,
-			m INTEGER NOT NULL,
-			created INTEGER NOT NULL,
-			txid TEXT,
-			descriptor TEXT,
-			descriptor_receive TEXT,
-			descriptor_change TEXT,
-			watch_wallet_name TEXT,
-			balance REAL NOT NULL DEFAULT 0.0,
-			utxos INTEGER NOT NULL DEFAULT 0,
-			next_receive_index INTEGER NOT NULL DEFAULT 0,
-			next_change_index INTEGER NOT NULL DEFAULT 0
-		)`,
-		`CREATE TABLE multisig_keys (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			group_id TEXT NOT NULL REFERENCES multisig_groups(id) ON DELETE CASCADE,
-			owner TEXT NOT NULL,
-			xpub TEXT NOT NULL,
-			derivation_path TEXT NOT NULL,
-			fingerprint TEXT,
-			origin_path TEXT,
-			is_wallet INTEGER NOT NULL DEFAULT 0,
-			sort_order INTEGER NOT NULL DEFAULT 0
-		)`,
-		`CREATE TABLE multisig_key_psbts (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			key_id INTEGER NOT NULL REFERENCES multisig_keys(id) ON DELETE CASCADE,
-			transaction_id TEXT NOT NULL,
-			active_psbt TEXT,
-			initial_psbt TEXT,
-			UNIQUE(key_id, transaction_id)
-		)`,
-		`CREATE TABLE multisig_addresses (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			group_id TEXT NOT NULL REFERENCES multisig_groups(id) ON DELETE CASCADE,
-			addr_type TEXT NOT NULL CHECK(addr_type IN ('receive', 'change')),
-			addr_index INTEGER NOT NULL,
-			address TEXT NOT NULL,
-			used INTEGER NOT NULL DEFAULT 0,
-			UNIQUE(group_id, addr_type, addr_index)
-		)`,
-		`CREATE TABLE multisig_utxo_details (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			group_id TEXT NOT NULL REFERENCES multisig_groups(id) ON DELETE CASCADE,
-			txid TEXT NOT NULL,
-			vout INTEGER NOT NULL,
-			address TEXT,
-			amount REAL NOT NULL,
-			confirmations INTEGER NOT NULL DEFAULT 0,
-			script_pub_key TEXT,
-			spendable INTEGER NOT NULL DEFAULT 1,
-			solvable INTEGER NOT NULL DEFAULT 1,
-			safe INTEGER NOT NULL DEFAULT 1
-		)`,
-		`CREATE TABLE multisig_group_transactions (
-			group_id TEXT NOT NULL REFERENCES multisig_groups(id) ON DELETE CASCADE,
-			transaction_id TEXT NOT NULL,
-			PRIMARY KEY(group_id, transaction_id)
-		)`,
-		// 032: FK on group_id
-		`CREATE TABLE multisig_transactions (
-			id TEXT PRIMARY KEY,
-			group_id TEXT NOT NULL REFERENCES multisig_groups(id) ON DELETE CASCADE,
-			initial_psbt TEXT NOT NULL DEFAULT '',
-			combined_psbt TEXT,
-			final_hex TEXT,
-			txid TEXT,
-			status INTEGER NOT NULL DEFAULT 1,
-			type INTEGER NOT NULL DEFAULT 1,
-			created INTEGER NOT NULL,
-			broadcast_time INTEGER,
-			amount REAL NOT NULL DEFAULT 0.0,
-			destination TEXT NOT NULL DEFAULT '',
-			fee REAL NOT NULL DEFAULT 0.0,
-			confirmations INTEGER NOT NULL DEFAULT 0,
-			required_signatures INTEGER NOT NULL DEFAULT 0
-		)`,
-		`CREATE TABLE multisig_tx_key_psbts (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			transaction_id TEXT NOT NULL REFERENCES multisig_transactions(id) ON DELETE CASCADE,
-			key_id TEXT NOT NULL,
-			psbt TEXT,
-			is_signed INTEGER NOT NULL DEFAULT 0,
-			signed_at INTEGER,
-			UNIQUE(transaction_id, key_id)
-		)`,
-		`CREATE TABLE multisig_tx_inputs (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			transaction_id TEXT NOT NULL REFERENCES multisig_transactions(id) ON DELETE CASCADE,
-			txid TEXT NOT NULL,
-			vout INTEGER NOT NULL,
-			address TEXT,
-			amount REAL NOT NULL DEFAULT 0.0,
-			confirmations INTEGER NOT NULL DEFAULT 0
-		)`,
-		`CREATE TABLE multisig_solo_keys (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			xpub TEXT NOT NULL UNIQUE,
-			derivation_path TEXT NOT NULL,
-			fingerprint TEXT,
-			origin_path TEXT,
-			owner TEXT
-		)`,
-	} {
-		_, err := db.Exec(ddl)
-		require.NoError(t, err)
-	}
-
-	return db
-}
 
 func sampleGroup() multisig.Group {
 	return multisig.Group{
@@ -149,7 +27,7 @@ func sampleGroup() multisig.Group {
 
 func TestSaveAndListGroups(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -165,7 +43,7 @@ func TestSaveAndListGroups(t *testing.T) {
 
 func TestSaveGroupUpsert(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -181,28 +59,69 @@ func TestSaveGroupUpsert(t *testing.T) {
 	assert.Equal(t, 1.5, groups[0].Balance)
 }
 
-func TestDeleteGroupCascades(t *testing.T) {
+func countRows(t *testing.T, db *sql.DB, query string, args ...any) int {
+	t.Helper()
+	var n int
+	require.NoError(t, db.QueryRowContext(t.Context(), query, args...).Scan(&n))
+	return n
+}
+
+func saveGroupWithChildren(t *testing.T, store *multisig.Store, groupID string) {
+	t.Helper()
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
-
 	g := sampleGroup()
-	keys := []multisig.Key{{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"}}
-	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g, Keys: keys}))
+	g.ID = groupID
+	txID := "tx-" + groupID
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
+		Group:          g,
+		Keys:           []multisig.Key{{GroupID: g.ID, Owner: "alice", Xpub: "xpub-" + groupID, DerivationPath: "m/48'/0'/0'"}},
+		XpubToPSBTs:    map[string][]multisig.KeyPSBT{"xpub-" + groupID: {{TransactionID: txID, ActivePSBT: "psbt"}}},
+		Addresses:      []multisig.Address{{GroupID: g.ID, AddrType: "receive", Addr: "bc1q-" + groupID}},
+		UtxoDetails:    []multisig.UtxoDetail{{GroupID: g.ID, Txid: "utxo-" + groupID, Amount: 1.0}},
+		TransactionIDs: []string{txID},
+	}))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
+		Transaction: multisig.Transaction{ID: txID, GroupID: g.ID, Status: 1, Type: 1, Created: 1700000500},
+		KeyPSBTs:    []multisig.TxKeyPSBT{{TransactionID: txID, KeyID: "key-1", PSBT: "psbt-1"}},
+		Inputs:      []multisig.TxInput{{TransactionID: txID, Txid: "input-" + groupID, Amount: 1.0}},
+	}))
+}
 
-	require.NoError(t, store.DeleteGroup(ctx, g.ID))
+func TestDeleteGroup(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	store := multisig.NewStore(db)
 
-	groups, err := store.ListGroups(ctx)
-	require.NoError(t, err)
-	assert.Empty(t, groups)
+	saveGroupWithChildren(t, store, "grp-1")
+	saveGroupWithChildren(t, store, "grp-2")
 
-	dbKeys, err := store.ListKeysForGroup(ctx, g.ID)
-	require.NoError(t, err)
-	assert.Empty(t, dbKeys)
+	require.NoError(t, store.DeleteGroup(ctx, "grp-1"))
+
+	for _, tc := range []struct {
+		table string
+		query string
+		arg   string
+	}{
+		{"groups", `SELECT COUNT(*) FROM multisig_groups WHERE id = ?`, "grp-"},
+		{"keys", `SELECT COUNT(*) FROM multisig_keys WHERE group_id = ?`, "grp-"},
+		{"key psbts", `SELECT COUNT(*) FROM multisig_key_psbts WHERE transaction_id = ?`, "tx-grp-"},
+		{"addresses", `SELECT COUNT(*) FROM multisig_addresses WHERE group_id = ?`, "grp-"},
+		{"utxo details", `SELECT COUNT(*) FROM multisig_utxo_details WHERE group_id = ?`, "grp-"},
+		{"group transactions", `SELECT COUNT(*) FROM multisig_group_transactions WHERE group_id = ?`, "grp-"},
+		{"transactions", `SELECT COUNT(*) FROM multisig_transactions WHERE group_id = ?`, "grp-"},
+		{"tx key psbts", `SELECT COUNT(*) FROM multisig_tx_key_psbts WHERE transaction_id = ?`, "tx-grp-"},
+		{"tx inputs", `SELECT COUNT(*) FROM multisig_tx_inputs WHERE transaction_id = ?`, "tx-grp-"},
+	} {
+		t.Run(tc.table, func(t *testing.T) {
+			assert.Zero(t, countRows(t, db, tc.query, tc.arg+"1"))
+			assert.Equal(t, 1, countRows(t, db, tc.query, tc.arg+"2"))
+		})
+	}
 }
 
 func TestSaveAndGetTransaction(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -234,7 +153,7 @@ func TestSaveAndGetTransaction(t *testing.T) {
 
 func TestGetTransactionByTxid(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -262,7 +181,7 @@ func TestGetTransactionByTxid(t *testing.T) {
 
 func TestSoloKeys(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	sk := multisig.SoloKey{Xpub: "xpub-solo", DerivationPath: "m/84'/0'/0'", Owner: "alice"}
 	require.NoError(t, store.AddSoloKey(ctx, sk))
@@ -280,7 +199,7 @@ func TestSoloKeys(t *testing.T) {
 
 func TestSaveGroupAtomic(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	keys := []multisig.Key{
@@ -343,7 +262,7 @@ func TestSaveGroupAtomic(t *testing.T) {
 
 func TestSaveTransactionAtomic(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -392,27 +311,9 @@ func TestSaveTransactionAtomic(t *testing.T) {
 	require.Len(t, dbInputs, 1)
 }
 
-func TestSaveTransactionAtomic_FKViolation(t *testing.T) {
-	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
-
-	// Try saving a transaction with non-existent group_id — should fail due to FK.
-	tx := multisig.Transaction{
-		ID:      "tx-orphan",
-		GroupID: "nonexistent-group",
-		Status:  1,
-		Type:    1,
-		Created: 1700000500,
-	}
-	err := store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
-		Transaction: tx,
-	})
-	require.ErrorContains(t, err, "FOREIGN KEY constraint failed")
-}
-
 func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	groupA := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: groupA}))
@@ -466,13 +367,15 @@ func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
 
 func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	db := database.Test(t)
+	store := multisig.NewStore(db)
 
 	g := sampleGroup()
 	// First save
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
-		Group: g,
-		Keys:  []multisig.Key{{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"}},
+		Group:       g,
+		Keys:        []multisig.Key{{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"}},
+		XpubToPSBTs: map[string][]multisig.KeyPSBT{"xpub1": {{TransactionID: "tx-a", ActivePSBT: "psbt"}}},
 	}))
 
 	// Update with different keys and balance
@@ -493,11 +396,13 @@ func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, dbKeys, 1)
 	assert.Equal(t, "charlie", dbKeys[0].Owner)
+
+	assert.Zero(t, countRows(t, db, `SELECT COUNT(*) FROM multisig_key_psbts`))
 }
 
 func TestGetNextAccountIndex(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 
@@ -525,7 +430,7 @@ func TestGetNextAccountIndex(t *testing.T) {
 
 func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -547,7 +452,7 @@ func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
 
 func TestSaveGroupAtomic_UnknownPSBTXpub(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	err := store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
@@ -567,7 +472,7 @@ func TestSaveGroupAtomic_UnknownPSBTXpub(t *testing.T) {
 }
 
 func TestImportFromJSON_BadGroup(t *testing.T) {
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	err := store.ImportFromJSON(t.Context(), []byte(`{"groups":[[1,2]]}`))
 	require.ErrorContains(t, err, "unmarshal group")
@@ -575,7 +480,7 @@ func TestImportFromJSON_BadGroup(t *testing.T) {
 
 func TestImportFromJSON_FailedImportWritesNothing(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	data := `{
 		"groups": [{
@@ -601,7 +506,7 @@ func TestImportFromJSON_FailedImportWritesNothing(t *testing.T) {
 
 func TestImportTransactionsFromJSON_FailedImportWritesNothing(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -624,7 +529,7 @@ func TestImportTransactionsFromJSON_FailedImportWritesNothing(t *testing.T) {
 func TestImportTransactionsFromJSON_BadTime(t *testing.T) {
 	var logs bytes.Buffer
 	ctx := zerolog.New(&logs).WithContext(t.Context())
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -642,7 +547,7 @@ func TestImportTransactionsFromJSON_BadTime(t *testing.T) {
 
 func TestListTransactions(t *testing.T) {
 	ctx := t.Context()
-	store := multisig.NewStore(setupTestDB(t))
+	store := multisig.NewStore(database.Test(t))
 
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
@@ -672,4 +577,28 @@ func TestListTransactions(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, got)
 	})
+}
+
+func TestImportTransactionsFromJSON_RequiredSignatures(t *testing.T) {
+	ctx := t.Context()
+	store := multisig.NewStore(database.Test(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
+
+	keyPSBTs := `"keyPSBTs": [{"keyId": "k1"}, {"keyId": "k2"}, {"keyId": "k3"}]`
+	data := `[
+		{"id": "tx-2of3", "groupId": "` + g.ID + `", "requiredSignatures": 2, ` + keyPSBTs + `},
+		{"id": "tx-old", "groupId": "` + g.ID + `", ` + keyPSBTs + `}
+	]`
+	require.NoError(t, store.ImportTransactionsFromJSON(ctx, []byte(data)))
+
+	for id, want := range map[string]int{"tx-2of3": 2, "tx-old": 3} {
+		t.Run(id, func(t *testing.T) {
+			got, err := store.GetTransaction(t.Context(), id)
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			assert.Equal(t, want, got.RequiredSignatures)
+		})
+	}
 }

@@ -1,40 +1,17 @@
 package walletpsbt_test
 
 import (
-	"database/sql"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/walletpsbt"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	db, err := sql.Open("sqlite3", ":memory:?_foreign_keys=on")
-	require.NoError(t, err)
-
-	// Replicate the schema from migration 045.
-	_, err = db.Exec(`CREATE TABLE wallet_psbt_drafts (
-		id TEXT PRIMARY KEY,
-		wallet_id TEXT NOT NULL,
-		label TEXT NOT NULL DEFAULT '',
-		psbt_base64 TEXT NOT NULL,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL,
-		txid TEXT NOT NULL DEFAULT ''
-	)`)
-	require.NoError(t, err)
-
-	t.Cleanup(func() { _ = db.Close() })
-	return db
-}
-
 func TestSaveGeneratesIDAndTimestamps(t *testing.T) {
-	store := walletpsbt.NewStore(setupTestDB(t))
+	store := walletpsbt.NewStore(database.Test(t))
 	ctx := t.Context()
 
 	saved, err := store.Save(ctx, walletpsbt.Draft{
@@ -48,14 +25,14 @@ func TestSaveGeneratesIDAndTimestamps(t *testing.T) {
 }
 
 func TestSaveRequiresWalletID(t *testing.T) {
-	store := walletpsbt.NewStore(setupTestDB(t))
+	store := walletpsbt.NewStore(database.Test(t))
 
 	_, err := store.Save(t.Context(), walletpsbt.Draft{PSBTBase64: "cHNidP8B"})
 	require.ErrorContains(t, err, "wallet id is required")
 }
 
 func TestListByWallet(t *testing.T) {
-	store := walletpsbt.NewStore(setupTestDB(t))
+	store := walletpsbt.NewStore(database.Test(t))
 	ctx := t.Context()
 
 	_, err := store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: "aaa"})
@@ -76,7 +53,7 @@ func TestListByWallet(t *testing.T) {
 }
 
 func TestSecondSaveReplacesPSBTAndMovesUpdatedAt(t *testing.T) {
-	db := setupTestDB(t)
+	db := database.Test(t)
 	store := walletpsbt.NewStore(db)
 	ctx := t.Context()
 
@@ -103,7 +80,7 @@ func TestSecondSaveReplacesPSBTAndMovesUpdatedAt(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	store := walletpsbt.NewStore(setupTestDB(t))
+	store := walletpsbt.NewStore(database.Test(t))
 	ctx := t.Context()
 
 	saved, err := store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: "aaa"})

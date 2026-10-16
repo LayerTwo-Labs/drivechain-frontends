@@ -15,6 +15,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
@@ -514,7 +515,7 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			CASE
 				WHEN ct.topic IS NOT NULL THEN
 					ct.retention_days = 0
-					OR i.block_time >= datetime('now', '-' || ct.retention_days || ' days')
+					OR datetime(i.block_time) >= datetime('now', '-' || ct.retention_days || ' days')
 				ELSE 1
 			END
 	`)
@@ -555,30 +556,24 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 
 	// §9: splice in any Continuation chunks to recover long bodies that didn't
 	// fit in the head's 80-byte OP_RETURN.
-	hasContinuations, err := anyContinuations(ctx, db)
+	heads, err := database.Select[string](ctx, db, `SELECT DISTINCT lower(hex(head_id)) FROM cn_continuations`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list coin news: select continuation heads: %w", err)
 	}
-	if hasContinuations {
-		for _, t := range toReassemble {
-			body, ok, err := reassembledBody(ctx, db, t.itemID, t.rawTLV)
-			if err != nil {
-				return nil, fmt.Errorf("list coin news: %w", err)
-			}
-			if ok {
-				out[t.idx].Content = body
-			}
+	headSet := lo.Keyify(heads)
+	for _, t := range toReassemble {
+		if _, ok := headSet[t.itemID]; !ok {
+			continue
+		}
+		body, ok, err := reassembledBody(ctx, db, t.itemID, t.rawTLV)
+		if err != nil {
+			return nil, fmt.Errorf("list coin news: %w", err)
+		}
+		if ok {
+			out[t.idx].Content = body
 		}
 	}
 	return out, nil
-}
-
-func anyContinuations(ctx context.Context, db *sql.DB) (bool, error) {
-	exists, err := database.Get[bool](ctx, db, `SELECT EXISTS(SELECT 1 FROM cn_continuations)`)
-	if err != nil {
-		return false, fmt.Errorf("list coin news: check continuations: %w", err)
-	}
-	return exists, nil
 }
 
 // reassembledBody returns the spec §9 reassembled body for a story when

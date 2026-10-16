@@ -185,13 +185,14 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, reason, *denial.CancelReason)
 	})
 
-	t.Run("Cancel, Pause and Resume of an unknown ID return ErrNotFound", func(t *testing.T) {
+	t.Run("Cancel, Pause, Resume and Update of an unknown ID return ErrNotFound", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
 
 		require.ErrorIs(t, Cancel(t.Context(), db, 999, "reason"), ErrNotFound)
 		require.ErrorIs(t, Pause(t.Context(), db, 999), ErrNotFound)
 		require.ErrorIs(t, Resume(t.Context(), db, 999), ErrNotFound)
+		require.ErrorIs(t, Update(t.Context(), db, 999, time.Second, 1, "txid", 0), ErrNotFound)
 	})
 
 	t.Run("Pause of a paused denial and Resume of an active denial return ErrNotFound", func(t *testing.T) {

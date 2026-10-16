@@ -273,11 +273,10 @@ func (s *Server) CreateDenial(
 	case engines.WalletTypeElectrum:
 		utxoExists, err = s.checkElectrumUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
 	default:
-		err = fmt.Errorf("unknown wallet type: %s", activeWallet.WalletType)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unknown wallet type: %s", activeWallet.WalletType))
 	}
-
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	if !utxoExists {
@@ -1026,13 +1025,13 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	// Fetch blockchain info
 	blockchainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
-		return nil, coreError("get blockchain info", err)
+		return nil, fmt.Errorf("get blockchain info: %w", err)
 	}
 
 	// Calculate average block time from last 144 blocks
 	avgBlockTime, err := s.calculateAverageBlockTime(ctx, int64(blockchainInfo.Msg.Blocks))
 	if err != nil {
-		return nil, coreError("calculate average block time", err)
+		return nil, fmt.Errorf("calculate average block time: %w", err)
 	}
 
 	// Get difficulty from latest block
@@ -1042,32 +1041,32 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 			Height: blockchainInfo.Msg.Blocks,
 		}))
 		if err != nil {
-			return nil, coreError("get latest block hash", err)
+			return nil, fmt.Errorf("get latest block hash: %w", err)
 		}
 		block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 			Hash:      hash.Msg.Hash,
 			Verbosity: 1,
 		}))
 		if err != nil {
-			return nil, coreError("get latest block", err)
+			return nil, fmt.Errorf("get latest block: %w", err)
 		}
 		difficulty = block.Msg.Difficulty
 	}
 
 	networkInfo, err := bitcoind.GetNetworkInfo(ctx, connect.NewRequest(&corepb.GetNetworkInfoRequest{}))
 	if err != nil {
-		return nil, coreError("get network info", err)
+		return nil, fmt.Errorf("get network info: %w", err)
 	}
 
 	netTotals, err := bitcoind.GetNetTotals(ctx, connect.NewRequest(&corepb.GetNetTotalsRequest{}))
 	if err != nil {
-		return nil, coreError("get net totals", err)
+		return nil, fmt.Errorf("get net totals: %w", err)
 	}
 
 	// Get peer info
 	peerInfo, err := bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
 	if err != nil {
-		return nil, coreError("get peer info", err)
+		return nil, fmt.Errorf("get peer info: %w", err)
 	}
 
 	// Count connections by direction
@@ -1105,15 +1104,6 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		BitcoindBandwidth:  bitcoindBandwidth,
 		EnforcerBandwidth:  enforcerBandwidth,
 	}), nil
-}
-
-// coreError gives Unavailable while Bitcoin Core starts, so the caller keeps its last stats.
-func coreError(op string, err error) error {
-	code := connect.CodeInternal
-	if engines.IsBitcoinCoreStartupError(err.Error()) {
-		code = connect.CodeUnavailable
-	}
-	return connect.NewError(code, fmt.Errorf("%s: %w", op, err))
 }
 
 // processBandwidth gives nil when no process has the name.

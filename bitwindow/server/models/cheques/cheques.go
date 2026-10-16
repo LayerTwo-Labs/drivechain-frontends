@@ -259,10 +259,25 @@ func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, err
 
 // Delete deletes a cheque by ID for a specific wallet
 func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
-	if err := database.CheckOne(db.ExecContext(ctx, `
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
+
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM cheque_funding_outputs
+		WHERE cheque_id IN (SELECT id FROM cheques WHERE wallet_id = ? AND id = ?)
+	`, walletID, id); err != nil {
+		return fmt.Errorf("delete funding outputs: %w", err)
+	}
+	if err := database.CheckOne(tx.ExecContext(ctx, `
 		DELETE FROM cheques WHERE wallet_id = ? AND id = ?
 	`, walletID, id)); err != nil {
 		return fmt.Errorf("delete cheque: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit delete: %w", err)
 	}
 	return nil
 }

@@ -142,3 +142,15 @@ func TestForkPointFindsTheTipOfAShorterCore(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint32(7), fork, "the purge must start right above the blocks Core holds")
 }
+
+// A failed read is not a gap, so it must not move the fork down and purge rows.
+func TestForkPointReturnsADatabaseError(t *testing.T) {
+	ctx := t.Context()
+	p := forkParser(t, 'b')
+	seedProcessed(t, ctx, p, 10, 'a')
+	_, err := p.db.ExecContext(ctx, `ALTER TABLE processed_blocks RENAME TO processed_blocks_gone`)
+	require.NoError(t, err)
+
+	_, err = p.forkPoint(ctx, 10, hashAt(10, 'a').String())
+	require.ErrorContains(t, err, "no such table")
+}

@@ -506,6 +506,25 @@ func TestStoreFile(t *testing.T) {
 	})
 }
 
+func TestWipeData(t *testing.T) {
+	db := database.Test(t)
+	dir := t.TempDir()
+	engine := &BitDriveEngine{db: db, bitdriveDir: dir}
+
+	_, err := bitdrive.Create(t.Context(), db, bitdrive.File{TxID: "txid", Filename: "a.txt", FileType: "txt", CreatedAt: time.Now()})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "a.txt"), []byte("hello"), 0o600))
+
+	require.NoError(t, engine.WipeData(t.Context()))
+
+	files, err := bitdrive.List(t.Context(), db)
+	require.NoError(t, err)
+	assert.Empty(t, files)
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
 func TestStoreMultisigData(t *testing.T) {
 	engine, sent := newStoreTestEngine(t)
 

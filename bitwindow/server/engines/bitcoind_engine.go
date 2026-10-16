@@ -240,11 +240,14 @@ func (p *Parser) forkPoint(ctx context.Context, processedTip uint32, processedHa
 	for lo+1 < hi {
 		mid := lo + (hi-lo)/2
 		stored, err := blocks.GetProcessedBlock(ctx, p.db, mid)
-		if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
 			// A gap in the processed range tells us nothing about the fork.
 			// Treat everything above it as suspect.
 			hi = mid
 			continue
+		case err != nil:
+			return 0, err
 		}
 		switch same, err := p.coreHoldsBlock(ctx, mid, stored.Hash.String()); {
 		case err != nil:

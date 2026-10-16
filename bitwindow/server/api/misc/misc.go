@@ -623,6 +623,12 @@ func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv
 	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("verify timestamp: %w", err))
 	}
+	if ts.Status == timestamps.StatusFailed {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the timestamp transaction failed"))
+	}
+	if ts.Status != timestamps.StatusConfirmed {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the timestamp is not confirmed yet"))
+	}
 
 	currentBlockHeight, err := s.getCurrentBlockHeight(ctx)
 	if err != nil {
