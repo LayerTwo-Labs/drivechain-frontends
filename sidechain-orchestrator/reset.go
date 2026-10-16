@@ -620,7 +620,9 @@ func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinar
 	defer func() {
 		if !closed {
 			close(ch)
-			<-drained
+			if err := <-drained; err != nil {
+				o.log.Debug().Err(err).Str("binary", cfg.Name).Msg("reset restart: startup progress after an early return")
+			}
 		}
 	}()
 
