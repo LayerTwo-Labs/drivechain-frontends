@@ -355,6 +355,34 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 // ListTransactions implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
 	walletID := c.Msg.WalletId
+	txs, err := s.listTransactions(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+
+	labels, err := addressbook.LabelsByAddress(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("list addressbook: %w", err)
+	}
+	notes, err := transactions.ListByWallet(ctx, s.database, walletID)
+	if err != nil {
+		return nil, fmt.Errorf("list notes: %w", err)
+	}
+	noteMap := make(map[string]string, len(notes))
+	for _, n := range notes {
+		noteMap[n.TxID] = n.Note
+	}
+
+	for _, tx := range txs {
+		if tx.AddressLabel == "" {
+			tx.AddressLabel = labels[tx.Address]
+		}
+		tx.Note = noteMap[tx.Txid]
+	}
+	return connect.NewResponse(&pb.ListTransactionsResponse{Transactions: txs}), nil
+}
+
+func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.WalletTransaction, error) {
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -364,19 +392,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		entries, err := s.walletEngine.GetElectrumTransactions(ctx, walletID)
 		if err != nil {
 			return nil, err
-		}
-
-		labels, err := addressbook.LabelsByAddress(ctx, s.database)
-		if err != nil {
-			return nil, fmt.Errorf("electrum: list addressbook: %w", err)
-		}
-		notes, err := transactions.ListByWallet(ctx, s.database, walletID)
-		if err != nil {
-			return nil, fmt.Errorf("electrum: list notes: %w", err)
-		}
-		noteMap := make(map[string]string, len(notes))
-		for _, n := range notes {
-			noteMap[n.TxID] = n.Note
 		}
 
 		tip := s.tipHeight(ctx, lo.SomeBy(entries, func(t *orchpb.TransactionEntry) bool { return t.Confirmations > 0 }))
@@ -400,23 +415,18 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			if err != nil {
 				return nil, fmt.Errorf("electrum: fee of %s: %w", t.Txid, err)
 			}
-			lbl := t.Label
-			if lbl == "" {
-				lbl = labels[t.Address]
-			}
 			out = append(out, &pb.WalletTransaction{
 				Txid:             t.Txid,
 				FeeSats:          feeSats,
 				ReceivedSatoshi:  received,
 				SentSatoshi:      sent,
 				Address:          t.Address,
-				AddressLabel:     lbl,
-				Note:             noteMap[t.Txid],
+				AddressLabel:     t.Label,
 				ConfirmationTime: confirmation,
 				Immature:         t.Category == "immature",
 			})
 		}
-		return connect.NewResponse(&pb.ListTransactionsResponse{Transactions: out}), nil
+		return out, nil
 	}
 
 	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
@@ -438,20 +448,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	}
 
 	tip := s.tipHeight(ctx, lo.SomeBy(txsResp.Msg.Transactions, func(tx *corepb.GetTransactionResponse) bool { return tx.Confirmations > 0 }))
-
-	labels, err := addressbook.LabelsByAddress(ctx, s.database)
-	if err != nil {
-		return nil, fmt.Errorf("list addressbook: %w", err)
-	}
-
-	notes, err := transactions.ListByWallet(ctx, s.database, walletID)
-	if err != nil {
-		return nil, fmt.Errorf("list transactions: %w", err)
-	}
-	noteMap := make(map[string]string)
-	for _, note := range notes {
-		noteMap[note.TxID] = note.Note
-	}
 
 	txMap := make(map[string]*pb.WalletTransaction)
 	for _, tx := range txsResp.Msg.Transactions {
@@ -501,8 +497,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 				ReceivedSatoshi:  receivedSats,
 				SentSatoshi:      sentSats,
 				Address:          address,
-				AddressLabel:     labels[address],
-				Note:             noteMap[tx.Txid],
 				ConfirmationTime: confirmation,
 				Immature: lo.ContainsBy(tx.Details, func(d *corepb.GetTransactionResponse_Details) bool {
 					return d.Category == corepb.GetTransactionResponse_CATEGORY_IMMATURE
@@ -531,9 +525,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		walletTxs = append(walletTxs, tx)
 	}
 
-	return connect.NewResponse(&pb.ListTransactionsResponse{
-		Transactions: walletTxs,
-	}), nil
+	return walletTxs, nil
 }
 
 // A down enforcer gives no block heights; the transaction list must not depend on it.
@@ -928,11 +920,11 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	}
 	uniqueAddressCount := uint64(len(addressSet))
 
-	txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+	txs, err := s.listTransactions(ctx, walletID)
 	if err != nil {
 		return nil, err
 	}
-	transactionCount := int64(len(txs.Msg.Transactions))
+	transactionCount := int64(len(txs))
 
 	// Count transactions since the start of the current month, sum
 	// lifetime fees paid, and find the most recent confirmed tx.
@@ -943,7 +935,7 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	var totalFees int64
 	var lastTxAt *timestamppb.Timestamp
 	var lastTxBlockHeight uint32
-	for _, tx := range txs.Msg.Transactions {
+	for _, tx := range txs {
 		totalFees += int64(tx.FeeSats)
 		if tx.ConfirmationTime != nil && tx.ConfirmationTime.Timestamp != nil {
 			t := tx.ConfirmationTime.Timestamp.AsTime()
@@ -1885,10 +1877,11 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 
 // SelectCoins implements walletv1connect.WalletServiceHandler.
 func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCoinsRequest]) (*connect.Response[pb.SelectCoinsResponse], error) {
-	// Get all UTXOs for the wallet
-	unspentResp, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{
-		WalletId: c.Msg.WalletId,
-	}))
+	labels, err := addressbook.LabelsByAddress(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("list addressbook: %w", err)
+	}
+	utxos, err := s.listUnspent(ctx, c.Msg.WalletId, labels)
 	if err != nil {
 		return nil, fmt.Errorf("list unspent: %w", err)
 	}
@@ -1914,7 +1907,7 @@ func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCo
 	}
 
 	result, err := engines.SelectCoins(
-		unspentResp.Msg.Utxos,
+		utxos,
 		frozenOutpoints,
 		c.Msg.TargetSats,
 		c.Msg.FeeSatsPerVbyte,

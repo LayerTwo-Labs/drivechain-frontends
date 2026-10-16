@@ -9,7 +9,6 @@ import (
 	"connectrpc.com/connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -71,8 +70,7 @@ func TestCheckConfirmations_UnknownTransaction(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 			core := mocks.NewMockBitcoinServiceClient(ctrl)
-			wallet := NewWalletAdapter(NewWalletEngine(t.Context(), nil, mocks.NewMockWalletManagerServiceClient(ctrl), t.TempDir(), &chaincfg.RegressionNetParams, nil))
-			engine := NewTimestampEngine(db, wallet,
+			engine := NewTimestampEngine(db, nil,
 				service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 					return core, nil
 				}),

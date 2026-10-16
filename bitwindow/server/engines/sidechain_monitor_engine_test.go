@@ -4,13 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,83 +21,6 @@ type MockNotificationEngine struct {
 func (m *MockNotificationEngine) Deliver(ctx context.Context, event *notificationv1.WatchResponse) int {
 	m.sentEvents = append(m.sentEvents, event)
 	return 1
-}
-
-func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
-	ctx := t.Context()
-
-	engine := NewSidechainMonitorEngine(
-		nil, nil, nil, nil, nil, nil, // sidechain services not needed for this test
-		&MockNotificationEngine{},
-	)
-
-	// Create test withdrawal
-	withdrawal := PendingFastWithdrawal{
-		Hash:           "test-hash-123456789abcdef",
-		Sidechain:      "thunder",
-		ServerAddress:  "thunder1test456",
-		ExpectedAmount: 105000, // 1.05 BTC in sats
-		ServerURL:      "https://fw1.drivechain.info",
-		CreatedAt:      time.Now(),
-	}
-
-	// Register withdrawal
-	engine.RegisterPendingFastWithdrawal(ctx, withdrawal)
-
-	// Verify it was stored
-	assert.Equal(t, map[string]PendingFastWithdrawal{withdrawal.Hash: withdrawal}, engine.pendingFastWithdrawals)
-}
-
-func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
-	ctx := zerolog.New(zerolog.NewTestWriter(t)).WithContext(t.Context())
-
-	// Mock external fast withdrawal server
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/paid", r.URL.Path)
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-
-		var payload map[string]string
-		err := json.NewDecoder(r.Body).Decode(&payload)
-		require.NoError(t, err)
-
-		assert.Equal(t, "test-hash-123456789abcdef", payload["hash"])
-		assert.Equal(t, "test-txid-456789abcdef123", payload["txid"])
-
-		// Return success response
-		response := map[string]interface{}{
-			"status": "success",
-			"message": map[string]string{
-				"info": "l1-withdrawal-txid-789",
-			},
-		}
-		assert.NoError(t, json.NewEncoder(w).Encode(response))
-	}))
-	defer mockServer.Close()
-
-	// Create engine
-	engine := NewSidechainMonitorEngine(
-		nil, nil, nil, nil, nil, nil,
-		&MockNotificationEngine{},
-	)
-
-	// Register pending withdrawal
-	pending := PendingFastWithdrawal{
-		Hash:           "test-hash-123456789abcdef", // Make hash longer for validation
-		Sidechain:      "thunder",
-		ServerAddress:  "thunder1test456",
-		ExpectedAmount: 105000,
-		ServerURL:      mockServer.URL, // Use mock server URL
-		CreatedAt:      time.Now(),
-	}
-
-	engine.RegisterPendingFastWithdrawal(ctx, pending)
-
-	// Complete the withdrawal
-	err := engine.completeWithdrawal(ctx, pending, "test-txid-456789abcdef123")
-	require.NoError(t, err)
-
-	// Verify withdrawal was removed from pending
-	assert.Empty(t, engine.pendingFastWithdrawals)
 }
 
 func TestSidechainMonitorEngine_StoreWithdrawal(t *testing.T) {
@@ -189,63 +108,11 @@ func TestSidechainMonitorEngine_CleanupOldWithdrawals(t *testing.T) {
 }
 
 type fakeSidechainRPC struct {
-	bundle   string
-	utxos    string
-	utxosErr error
+	bundle string
 }
 
 func (f fakeSidechainRPC) PendingWithdrawalBundle(context.Context) (json.RawMessage, error) {
 	return json.RawMessage(f.bundle), nil
-}
-
-func (f fakeSidechainRPC) ListUTXOs(context.Context) (json.RawMessage, error) {
-	return json.RawMessage(f.utxos), f.utxosErr
-}
-
-func TestSidechainMonitorEngine_FindTransactionToAddress(t *testing.T) {
-	cases := []struct {
-		name     string
-		client   fakeSidechainRPC
-		wantTxid string
-		wantErr  string
-	}{
-		{
-			name:     "payment at the address",
-			client:   fakeSidechainRPC{utxos: `[{"address":"addr","amount":96000,"txid":"paid"}]`},
-			wantTxid: "paid",
-		},
-		{
-			name:   "payment too small",
-			client: fakeSidechainRPC{utxos: `[{"address":"addr","amount":94000,"txid":"short"}]`},
-		},
-		{
-			name:   "other address",
-			client: fakeSidechainRPC{utxos: `[{"address":"other","amount":100000,"txid":"other"}]`},
-		},
-		{
-			name:    "UTXO read fails",
-			client:  fakeSidechainRPC{utxosErr: errors.New("connection refused")},
-			wantErr: "connection refused",
-		},
-		{
-			name:    "UTXO parse fails",
-			client:  fakeSidechainRPC{utxos: `{`},
-			wantErr: "parse UTXOs",
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
-
-			txid, err := engine.findTransactionToAddress(t.Context(), tc.client, "addr", 100000, "thunder")
-			if tc.wantErr != "" {
-				require.ErrorContains(t, err, tc.wantErr)
-				return
-			}
-			require.NoError(t, err)
-			require.Equal(t, tc.wantTxid, txid)
-		})
-	}
 }
 
 func TestSidechainMonitorEngine_Monitor(t *testing.T) {
@@ -253,7 +120,6 @@ func TestSidechainMonitorEngine_Monitor(t *testing.T) {
 	engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
 	client := fakeSidechainRPC{
 		bundle: `{"transactions":[{"txid":"bundle-tx","amount":5000,"destination":"bc1qdest"}]}`,
-		utxos:  `[]`,
 	}
 
 	require.NoError(t, engine.monitor(ctx, "photon", func(context.Context) (sidechainRPC, error) {
@@ -270,92 +136,4 @@ func TestSidechainMonitorEngine_Monitor(t *testing.T) {
 		return nil, errors.New("not running")
 	})
 	require.ErrorContains(t, err, "get photon client: not running")
-}
-
-func withdrawServer(t *testing.T, response string) *httptest.Server {
-	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/withdraw", r.URL.Path)
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-
-		var req map[string]any
-		assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
-		assert.Equal(t, "bc1qtest123", req["withdrawal_destination"])
-		assert.Equal(t, 0.001, req["withdrawal_amount"])
-		assert.Equal(t, "thunder", req["layer_2_chain_name"])
-
-		_, err := w.Write([]byte(response))
-		assert.NoError(t, err)
-	}))
-	t.Cleanup(srv.Close)
-	return srv
-}
-
-func TestSidechainMonitorEngine_InitiateFastWithdrawal(t *testing.T) {
-	t.Parallel()
-
-	newEngine := func() *SidechainMonitorEngine {
-		return NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
-	}
-
-	t.Run("success registers the pending withdrawal", func(t *testing.T) {
-		t.Parallel()
-
-		srv := withdrawServer(t, `{"status":"success","data":{"hash":"withdrawal-hash-123",`+
-			`"server_l2_address":{"info":"thunder1serveraddress456"},"server_fee_sats":5000}}`)
-		e := newEngine()
-
-		hash, err := e.InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
-		require.NoError(t, err)
-		assert.Equal(t, "withdrawal-hash-123", hash)
-
-		pending := lo.Values(e.pendingFastWithdrawals)
-		require.Len(t, pending, 1)
-		assert.Equal(t, "withdrawal-hash-123", pending[0].Hash)
-		assert.Equal(t, "thunder", pending[0].Sidechain)
-		assert.Equal(t, "thunder1serveraddress456", pending[0].ServerAddress)
-		assert.Equal(t, int64(105000), pending[0].ExpectedAmount)
-	})
-
-	t.Run("server error registers nothing", func(t *testing.T) {
-		t.Parallel()
-
-		srv := withdrawServer(t, `{"status":"error","error":"insufficient server funds"}`)
-		e := newEngine()
-
-		hash, err := e.InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
-		require.ErrorContains(t, err, "insufficient server funds")
-		assert.Empty(t, hash)
-
-		assert.Empty(t, e.pendingFastWithdrawals)
-	})
-
-	t.Run("missing fields fail", func(t *testing.T) {
-		t.Parallel()
-
-		srv := withdrawServer(t, `{"status":"success","data":{"hash":"test-hash"}}`)
-
-		_, err := newEngine().InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
-		require.ErrorContains(t, err, "missing server_l2_address")
-	})
-
-	t.Run("a fractional fee fails", func(t *testing.T) {
-		t.Parallel()
-
-		srv := withdrawServer(t, `{"status":"success","data":{"hash":"test-hash",`+
-			`"server_l2_address":{"info":"thunder1serveraddress456"},"server_fee_sats":5000.5}}`)
-
-		_, err := newEngine().InitiateFastWithdrawal(t.Context(), srv.URL, "thunder", 100000, "bc1qtest123")
-		require.ErrorContains(t, err, "decode response")
-	})
-
-	t.Run("a cancelled context stops the request", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		_, err := newEngine().InitiateFastWithdrawal(ctx, "http://127.0.0.1:1", "thunder", 100000, "bc1qtest123")
-		require.ErrorIs(t, err, context.Canceled)
-	})
 }

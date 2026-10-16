@@ -6,21 +6,27 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/chaincfg"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -47,21 +53,27 @@ func setupTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-type mockWallet struct{}
+// timestampWallet is a wallet engine whose orchestrator broadcasts give txids in order.
+func timestampWallet(t *testing.T, txids ...string) *engines.WalletEngine {
+	t.Helper()
+	walletDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"),
+		[]byte(`{"activeWalletId":"a","wallets":[{"id":"a","master":{"seed_hex":"00"}}]}`), 0o600))
 
-func (m *mockWallet) SendTransaction(ctx context.Context, opReturnData []byte) (string, error) {
-	return "mock-txid", nil
-}
-
-type sequenceWallet struct {
-	txids []string
-	sent  int
-}
-
-func (w *sequenceWallet) SendTransaction(ctx context.Context, opReturnData []byte) (string, error) {
-	txid := w.txids[w.sent]
-	w.sent++
-	return txid, nil
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	orch.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&emptypb.Empty{}), nil).
+		AnyTimes()
+	sent := 0
+	orch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
+			txid := txids[sent]
+			sent++
+			return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: txid}), nil
+		}).
+		AnyTimes()
+	return engines.NewWalletEngine(t.Context(), nil, orch, walletDir, &chaincfg.SigNetParams,
+		func(context.Context) ([]string, error) { return nil, nil })
 }
 
 // The file hash is unique, so a failed record that is never replaced makes the
@@ -71,7 +83,7 @@ func TestTimestampEngine_TimestampFailedFileAgain(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	engine := engines.NewTimestampEngine(db, &sequenceWallet{txids: []string{"first-txid", "second-txid"}}, nil, nil)
+	engine := engines.NewTimestampEngine(db, timestampWallet(t, "first-txid", "second-txid"), nil, nil)
 
 	fileData := []byte("test file content")
 	first, err := engine.TimestampFile(ctx, "test.txt", fileData)
@@ -110,7 +122,7 @@ func TestTimestampEngine_TimestampFile(t *testing.T) {
 		return mockBitcoind, nil
 	})
 
-	engine := engines.NewTimestampEngine(db, &mockWallet{}, bitcoindSvc, nil)
+	engine := engines.NewTimestampEngine(db, timestampWallet(t, "mock-txid"), bitcoindSvc, nil)
 
 	fileData := []byte("test file content")
 	filename := "test.txt"
@@ -169,7 +181,7 @@ func TestTimestampEngine_VerifyTimestamp(t *testing.T) {
 
 	t.Run("names a discovered timestamp", func(t *testing.T) {
 		db := discovered(t)
-		engine := engines.NewTimestampEngine(db, &mockWallet{}, nil, nil)
+		engine := engines.NewTimestampEngine(db, nil, nil, nil)
 
 		result, err := engine.VerifyTimestamp(t.Context(), fileData, "found.txt")
 		require.NoError(t, err)
@@ -182,7 +194,7 @@ func TestTimestampEngine_VerifyTimestamp(t *testing.T) {
 			CREATE TRIGGER no_update BEFORE UPDATE ON file_timestamps
 			BEGIN SELECT RAISE(ABORT, 'no update'); END`)
 		require.NoError(t, err)
-		engine := engines.NewTimestampEngine(db, &mockWallet{}, nil, nil)
+		engine := engines.NewTimestampEngine(db, nil, nil, nil)
 
 		_, err = engine.VerifyTimestamp(t.Context(), fileData, "found.txt")
 		require.ErrorContains(t, err, "no update")

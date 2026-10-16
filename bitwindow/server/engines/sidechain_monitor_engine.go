@@ -1,14 +1,9 @@
 package engines
 
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
-	"regexp"
 	"sync"
 	"time"
 
@@ -26,7 +21,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 )
 
-// SidechainMonitorEngine monitors all sidechains for fast withdrawal transactions
+// SidechainMonitorEngine reports the withdrawals in the pending bundle of each sidechain.
 type SidechainMonitorEngine struct {
 	// Sidechain services
 	thunder   *service.Service[*thunder.Client]
@@ -40,12 +35,8 @@ type SidechainMonitorEngine struct {
 	notificationEngine NotificationSink
 
 	// State tracking (in-memory only)
-	mu                     sync.RWMutex
-	detectedWithdrawals    map[string]DetectedWithdrawal    // txid -> withdrawal info
-	pendingFastWithdrawals map[string]PendingFastWithdrawal // hash -> pending withdrawal
-
-	// Secure HTTP client
-	httpClient *http.Client
+	mu                  sync.RWMutex
+	detectedWithdrawals map[string]DetectedWithdrawal // txid -> withdrawal info
 }
 
 type DetectedWithdrawal struct {
@@ -55,15 +46,6 @@ type DetectedWithdrawal struct {
 	Destination string    `json:"destination"`
 	DetectedAt  time.Time `json:"detected_at"`
 	BlockHash   *string   `json:"block_hash,omitempty"`
-}
-
-type PendingFastWithdrawal struct {
-	Hash           string    `json:"hash"`            // Withdrawal hash from server
-	Sidechain      string    `json:"sidechain"`       // Which sidechain
-	ServerAddress  string    `json:"server_address"`  // L2 address to send to
-	ExpectedAmount int64     `json:"expected_amount"` // Amount expected (sats)
-	ServerURL      string    `json:"server_url"`      // Fast withdrawal server URL
-	CreatedAt      time.Time `json:"created_at"`
 }
 
 func NewSidechainMonitorEngine(
@@ -76,16 +58,14 @@ func NewSidechainMonitorEngine(
 	notificationEngine NotificationSink,
 ) *SidechainMonitorEngine {
 	return &SidechainMonitorEngine{
-		thunder:                thunder,
-		bitnames:               bitnames,
-		bitassets:              bitassets,
-		truthcoin:              truthcoin,
-		photon:                 photon,
-		coinshift:              coinshift,
-		notificationEngine:     notificationEngine,
-		detectedWithdrawals:    make(map[string]DetectedWithdrawal),
-		pendingFastWithdrawals: make(map[string]PendingFastWithdrawal),
-		httpClient:             createSecureHTTPClient(),
+		thunder:             thunder,
+		bitnames:            bitnames,
+		bitassets:           bitassets,
+		truthcoin:           truthcoin,
+		photon:              photon,
+		coinshift:           coinshift,
+		notificationEngine:  notificationEngine,
+		detectedWithdrawals: make(map[string]DetectedWithdrawal),
 	}
 }
 
@@ -168,156 +148,12 @@ func (e *SidechainMonitorEngine) GetWithdrawalByTxid(ctx context.Context, txid s
 	return nil, nil
 }
 
-// RegisterPendingFastWithdrawal adds a pending fast withdrawal to monitor for
-func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Context, withdrawal PendingFastWithdrawal) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.pendingFastWithdrawals[withdrawal.Hash] = withdrawal
-
-	zerolog.Ctx(ctx).Info().
-		Str("hash", withdrawal.Hash).
-		Str("sidechain", withdrawal.Sidechain).
-		Str("address", withdrawal.ServerAddress).
-		Int64("amount", withdrawal.ExpectedAmount).
-		Msg("registered pending fast withdrawal for monitoring")
-}
-
-type withdrawResponse struct {
-	Status string `json:"status"`
-	Error  string `json:"error"`
-	Data   *struct {
-		Hash            string `json:"hash"`
-		ServerL2Address *struct {
-			Info string `json:"info"`
-		} `json:"server_l2_address"`
-		ServerFeeSats *int64 `json:"server_fee_sats"`
-	} `json:"data"`
-}
-
-// InitiateFastWithdrawal asks the fast withdrawal server at serverURL to pay
-// destination, and registers the withdrawal for payment. It returns the withdrawal hash.
-func (e *SidechainMonitorEngine) InitiateFastWithdrawal(ctx context.Context, serverURL string, sidechain string, amount int64, destination string) (string, error) {
-	log := zerolog.Ctx(ctx)
-
-	// Call external fast withdrawal server (like fw1.drivechain.info)
-	withdrawalRequest := map[string]interface{}{
-		"withdrawal_destination": destination,
-		"withdrawal_amount":      float64(amount) / 100000000.0, // Convert sats to BTC
-		"layer_2_chain_name":     sidechain,
-	}
-
-	log.Info().Interface("request", withdrawalRequest).Str("server", serverURL).Msg("requesting fast withdrawal from external server")
-
-	// Make actual HTTP call to external server
-	jsonPayload, err := json.Marshal(withdrawalRequest)
-	if err != nil {
-		return "", fmt.Errorf("marshal request: %w", err)
-	}
-
-	withdrawURL := serverURL + "/withdraw"
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawURL, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return "", fmt.Errorf("build request to %s: %w", withdrawURL, err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := e.httpClient.Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("http request to %s: %w", withdrawURL, err)
-	}
-	defer resp.Body.Close()
-
-	var result withdrawResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("decode response: %w", err)
-	}
-
-	if result.Status != "success" {
-		return "", fmt.Errorf("withdrawal request failed: %s", result.Error)
-	}
-
-	data := result.Data
-	if data == nil {
-		return "", errors.New("invalid response format: missing data")
-	}
-	if data.Hash == "" {
-		return "", errors.New("invalid response format: missing hash")
-	}
-	if data.ServerL2Address == nil {
-		return "", errors.New("invalid response format: missing server_l2_address")
-	}
-	if data.ServerL2Address.Info == "" {
-		return "", errors.New("invalid response format: missing server L2 address info")
-	}
-	if data.ServerFeeSats == nil {
-		return "", errors.New("invalid response format: missing server_fee_sats")
-	}
-	withdrawalHash := data.Hash
-	serverAddress := data.ServerL2Address.Info
-	serverFeeSats := *data.ServerFeeSats
-
-	// Register this pending withdrawal for monitoring
-	pending := PendingFastWithdrawal{
-		Hash:           withdrawalHash,
-		Sidechain:      sidechain,
-		ServerAddress:  serverAddress,
-		ExpectedAmount: amount + serverFeeSats,
-		ServerURL:      serverURL,
-		CreatedAt:      time.Now(),
-	}
-
-	e.RegisterPendingFastWithdrawal(ctx, pending)
-
-	return withdrawalHash, nil
-}
-
-// checkFastWithdrawalPayments checks if any pending fast withdrawals have been paid
-func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context, sidechain string, client sidechainRPC) error {
-	log := zerolog.Ctx(ctx)
-
-	// Get pending fast withdrawals for this sidechain
-	e.mu.RLock()
-	var pendingForSidechain []PendingFastWithdrawal
-	for _, pending := range e.pendingFastWithdrawals {
-		if pending.Sidechain == sidechain {
-			pendingForSidechain = append(pendingForSidechain, pending)
-		}
-	}
-	e.mu.RUnlock()
-
-	if len(pendingForSidechain) == 0 {
-		return nil // Nothing to check
-	}
-
-	for _, pending := range pendingForSidechain {
-		txid, err := e.findTransactionToAddress(ctx, client, pending.ServerAddress, pending.ExpectedAmount, sidechain)
-		if err != nil {
-			return fmt.Errorf("find payment for withdrawal %s: %w", pending.Hash, err)
-		}
-		if txid != "" {
-			log.Info().
-				Str("hash", pending.Hash).
-				Str("txid", txid).
-				Str("address", pending.ServerAddress).
-				Msg("detected L2 payment for fast withdrawal, auto-completing")
-
-			// Auto-complete the withdrawal
-			if err := e.completeWithdrawal(ctx, pending, txid); err != nil {
-				log.Error().Err(err).Str("hash", pending.Hash).Msg("auto-complete withdrawal")
-			}
-		}
-	}
-
-	return nil
-}
-
 // getPollInterval returns the polling interval based on pending withdrawals
 func (e *SidechainMonitorEngine) getPollInterval() time.Duration {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	// Check both detected withdrawals and pending fast withdrawals
-	pendingCount := len(e.detectedWithdrawals) + len(e.pendingFastWithdrawals)
+	pendingCount := len(e.detectedWithdrawals)
 
 	switch {
 	case pendingCount == 0:
@@ -384,7 +220,6 @@ func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal
 // sidechainRPC is the part of a sidechain client that the monitor reads.
 type sidechainRPC interface {
 	PendingWithdrawalBundle(ctx context.Context) (json.RawMessage, error)
-	ListUTXOs(ctx context.Context) (json.RawMessage, error)
 }
 
 func rpcOf[C sidechainRPC](s *service.Service[C]) func(context.Context) (sidechainRPC, error) {
@@ -393,8 +228,7 @@ func rpcOf[C sidechainRPC](s *service.Service[C]) func(context.Context) (sidecha
 	}
 }
 
-// monitor reads the pending withdrawal bundle of one sidechain and checks the
-// pending fast withdrawals for a payment.
+// monitor reads the pending withdrawal bundle of one sidechain.
 func (e *SidechainMonitorEngine) monitor(ctx context.Context, name string, getClient func(context.Context) (sidechainRPC, error)) error {
 	client, err := getClient(ctx)
 	if err != nil {
@@ -406,15 +240,7 @@ func (e *SidechainMonitorEngine) monitor(ctx context.Context, name string, getCl
 		return fmt.Errorf("get pending withdrawal bundle: %w", err)
 	}
 
-	if err := e.parseWithdrawalBundle(ctx, bundleRaw, name); err != nil {
-		return err
-	}
-
-	if err := e.checkFastWithdrawalPayments(ctx, name, client); err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("check fast withdrawal payments")
-	}
-
-	return nil
+	return e.parseWithdrawalBundle(ctx, bundleRaw, name)
 }
 
 // parseWithdrawalBundle is a helper to parse withdrawal bundle JSON for any sidechain
@@ -446,171 +272,6 @@ func (e *SidechainMonitorEngine) parseWithdrawalBundle(ctx context.Context, bund
 				}
 			}
 		}
-	}
-
-	return nil
-}
-
-// completeWithdrawal automatically completes a fast withdrawal by calling the external server
-func (e *SidechainMonitorEngine) completeWithdrawal(ctx context.Context, pending PendingFastWithdrawal, txid string) error {
-	log := zerolog.Ctx(ctx)
-
-	// Validate inputs
-	if err := validateWithdrawalHash(pending.Hash); err != nil {
-		return fmt.Errorf("invalid withdrawal hash: %w", err)
-	}
-	if err := validateWithdrawalHash(txid); err != nil {
-		return fmt.Errorf("invalid transaction ID: %w", err)
-	}
-
-	// Call the external fast withdrawal server's /paid endpoint
-	payload := map[string]string{
-		"hash": pending.Hash,
-		"txid": txid,
-	}
-
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshal payload: %w", err)
-	}
-
-	url := pending.ServerURL + "/paid"
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := e.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("http request to %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-
-	// Limit response size
-	limitedReader := http.MaxBytesReader(nil, resp.Body, 1024*1024) // 1MB max
-	var result map[string]interface{}
-	if err := json.NewDecoder(limitedReader).Decode(&result); err != nil {
-		return fmt.Errorf("decode response: %w", err)
-	}
-
-	// Validate server response
-	if err := validateServerResponse(resp, result); err != nil {
-		return fmt.Errorf("server response validation failed: %w", err)
-	}
-
-	// Remove from pending withdrawals
-	e.mu.Lock()
-	delete(e.pendingFastWithdrawals, pending.Hash)
-	e.mu.Unlock()
-
-	log.Info().
-		Str("hash", pending.Hash).
-		Str("txid", txid).
-		Msg("fast withdrawal completed automatically")
-
-	return nil
-}
-
-// findTransactionToAddress returns the txid of a UTXO at address that pays at
-// least 95% of expectedAmount, or "" when there is none.
-func (e *SidechainMonitorEngine) findTransactionToAddress(
-	ctx context.Context,
-	client sidechainRPC,
-	address string,
-	expectedAmount int64,
-	sidechainName string,
-) (string, error) {
-	log := zerolog.Ctx(ctx)
-
-	utxosRaw, err := client.ListUTXOs(ctx)
-	if err != nil {
-		return "", fmt.Errorf("list UTXOs: %w", err)
-	}
-
-	var utxos []map[string]interface{}
-	if err := json.Unmarshal(utxosRaw, &utxos); err != nil {
-		return "", fmt.Errorf("parse UTXOs: %w", err)
-	}
-
-	// Look for UTXOs at our target address with expected amount
-	for _, utxo := range utxos {
-		utxoAddress, ok := utxo["address"].(string)
-		if !ok {
-			continue
-		}
-
-		// Check if this UTXO is at our target address
-		if utxoAddress == address {
-			// Check amount (UTXOs typically store in sats)
-			if amountFloat, ok := utxo["amount"].(float64); ok {
-				amount := int64(amountFloat)
-				if amount >= expectedAmount*95/100 { // Allow 5% tolerance for fees
-					// Found matching transaction, extract txid
-					if txid, ok := utxo["txid"].(string); ok {
-						log.Info().
-							Str("address", address).
-							Str("txid", txid).
-							Int64("amount", amount).
-							Int64("expected", expectedAmount).
-							Str("sidechain", sidechainName).
-							Msg("found transaction to fast withdrawal address")
-						return txid, nil
-					}
-				}
-			}
-		}
-	}
-
-	return "", nil
-}
-
-// createSecureHTTPClient creates an HTTP client with security timeouts and limits
-func createSecureHTTPClient() *http.Client {
-	return &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			},
-			MaxResponseHeaderBytes: 4096,
-			ResponseHeaderTimeout:  10 * time.Second,
-		},
-	}
-}
-
-// validateWithdrawalHash validates the hash format from external servers
-func validateWithdrawalHash(hash string) error {
-	if len(hash) < 16 || len(hash) > 128 {
-		return fmt.Errorf("invalid hash length: %d (must be 16-128)", len(hash))
-	}
-
-	// Allow alphanumeric, dashes, and underscores (common in hashes and IDs)
-	matched, _ := regexp.MatchString(`^[a-zA-Z0-9\-_]+$`, hash)
-	if !matched {
-		return errors.New("invalid hash format: contains invalid characters")
-	}
-
-	return nil
-}
-
-// validateServerResponse validates the HTTP response from external servers
-func validateServerResponse(resp *http.Response, result map[string]interface{}) error {
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("server returned HTTP status %d", resp.StatusCode)
-	}
-
-	status, ok := result["status"].(string)
-	if !ok {
-		return errors.New("response missing 'status' field")
-	}
-
-	if status != "success" {
-		errorMsg, _ := result["error"].(string)
-		if errorMsg == "" {
-			errorMsg = "unknown error"
-		}
-		return fmt.Errorf("server error: %s", errorMsg)
 	}
 
 	return nil
