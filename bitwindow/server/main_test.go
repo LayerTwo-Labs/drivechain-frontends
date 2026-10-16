@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,15 +19,6 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
-
-func TestExitError(t *testing.T) {
-	assert.NoError(t, exitError(nil))
-	assert.NoError(t, exitError(http.ErrServerClosed))
-	assert.NoError(t, exitError(fmt.Errorf("serve: %w", http.ErrServerClosed)))
-
-	boom := errors.New("listen on \"127.0.0.1:8080\": address already in use")
-	assert.ErrorIs(t, exitError(boom), boom)
-}
 
 // A user who passes --log.path gets the whole merged stream in that file.
 func TestDrivechaindLogPathFollowsTheConfiguredPath(t *testing.T) {

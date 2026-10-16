@@ -254,11 +254,11 @@ func TestProcessWalletTransactions_ConfirmedSendIsPositive(t *testing.T) {
 	require.Equal(t, uint64(50_000_000), event.GetTransaction().GetAmountSats())
 }
 
-func TestProcessWalletTransactions_MarkFailureSendsNothing(t *testing.T) {
+func TestProcessWalletTransactions_MarkFailureReturnsError(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
 	engine := NewNotificationEngine(db, nil, nil)
-	events := engine.Subscribe(ctx)
+	engine.Subscribe(ctx)
 
 	_, err := db.ExecContext(ctx, `CREATE TRIGGER fail_mark BEFORE INSERT ON notified_events
 		BEGIN SELECT RAISE(ABORT, 'insert refused'); END`)
@@ -267,12 +267,64 @@ func TestProcessWalletTransactions_MarkFailureSendsNothing(t *testing.T) {
 	const txid = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 	err = engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{{Txid: txid, Amount: 1}})
 	require.ErrorContains(t, err, "insert refused")
+}
 
-	select {
-	case event := <-events:
-		t.Fatalf("sent a notification it could not mark: %v", event)
-	default:
-	}
+// An event with no listener stays unmarked, so it reaches the app once it listens.
+func TestProcessWalletTransactions_NoSubscriberKeepsTheEvent(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	engine := NewNotificationEngine(db, nil, nil)
+
+	const txid = "abababababababababababababababababababababababababababababababab"
+	rows := []*corepb.GetTransactionResponse{{Txid: txid, Amount: 1}}
+	require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", rows))
+
+	notified, err := notifications.HasBeenNotified(ctx, db, notifications.EventTypeTransaction, "wallet-a:"+txid)
+	require.NoError(t, err)
+	require.False(t, notified)
+
+	events := engine.Subscribe(ctx)
+	require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", rows))
+	require.Equal(t, notificationv1.TransactionEvent_TYPE_RECEIVED, nextEvent(t, events).GetTransaction().GetType())
+
+	notified, err = notifications.HasBeenNotified(ctx, db, notifications.EventTypeTransaction, "wallet-a:"+txid)
+	require.NoError(t, err)
+	require.True(t, notified)
+}
+
+func TestCheckTimestampConfirmations_NoSubscriberKeepsTheEvent(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+
+	txid := "3333333333333333333333333333333333333333333333333333333333333333"
+	id, err := timestamps.Create(ctx, db, timestamps.FileTimestamp{
+		Filename:  "a.txt",
+		FileHash:  "4444444444444444444444444444444444444444444444444444444444444444",
+		TxID:      &txid,
+		Status:    timestamps.StatusConfirming,
+		CreatedAt: time.Now(),
+	})
+	require.NoError(t, err)
+
+	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	core.EXPECT().GetRawTransaction(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{Confirmations: 1}), nil).
+		Times(2)
+	engine := NewNotificationEngine(db, service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+		return core, nil
+	}), nil)
+
+	require.NoError(t, engine.checkTimestampConfirmations(ctx))
+	notified, err := notifications.HasBeenNotified(ctx, db, notifications.EventTypeTimestamp, fmt.Sprintf("%d", id))
+	require.NoError(t, err)
+	require.False(t, notified)
+
+	events := engine.Subscribe(ctx)
+	require.NoError(t, engine.checkTimestampConfirmations(ctx))
+	require.Equal(t, notificationv1.TimestampEvent_TYPE_CONFIRMED, nextEvent(t, events).GetTimestampEvent().GetType())
+	notified, err = notifications.HasBeenNotified(ctx, db, notifications.EventTypeTimestamp, fmt.Sprintf("%d", id))
+	require.NoError(t, err)
+	require.True(t, notified)
 }
 
 func TestCheckTimestampConfirmations_BlockErrorSendsNothing(t *testing.T) {

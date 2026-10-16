@@ -44,9 +44,7 @@ import (
 
 var _ rpc.WalletServiceHandler = new(Server)
 
-// New creates a new Server and starts the address sync loop
 func New(
-	ctx context.Context,
 	database *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
@@ -56,7 +54,7 @@ func New(
 	walletDir string,
 	restartL1 func(context.Context) error,
 ) *Server {
-	s := &Server{
+	return &Server{
 		database:     database,
 		chequeChain:  chequeChain,
 		bitcoind:     bitcoind,
@@ -67,10 +65,6 @@ func New(
 		walletDir:    walletDir,
 		restartL1:    restartL1,
 	}
-
-	go s.startAddressSyncLoop(ctx)
-
-	return s
 }
 
 type Server struct {
@@ -268,8 +262,8 @@ func (s *Server) syncCoreAddresses(ctx context.Context) error {
 	return nil
 }
 
-// startAddressSyncLoop runs syncCoreAddresses periodically
-func (s *Server) startAddressSyncLoop(ctx context.Context) {
+// Run saves the receive addresses of each Core wallet to the address book every 5 minutes, until ctx ends.
+func (s *Server) Run(ctx context.Context) error {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
@@ -280,7 +274,7 @@ func (s *Server) startAddressSyncLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case <-ticker.C:
 			if err := s.syncCoreAddresses(ctx); err != nil {
 				zerolog.Ctx(ctx).Warn().Err(err).Msg("periodic address sync")

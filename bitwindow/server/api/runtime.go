@@ -112,6 +112,7 @@ type Runtime struct {
 	notificationEngine *engines.NotificationEngine
 	sidechainMonitor   *engines.SidechainMonitorEngine
 	depositDropped     *engines.DepositDroppedEngine
+	walletSvc          *api_wallet.Server
 	m4Engine           *engines.M4Engine
 	bitdriveEngine     *engines.BitDriveEngine
 
@@ -270,8 +271,8 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 			_, err := orchestrator.RestartL1(ctx, connect.NewRequest(&orchctlpb.RestartL1Request{}))
 			return err
 		}
-		walletSvcImpl := api_wallet.New(ctx, rt.db, s.Bitcoind, s.Enforcer, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
-		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
+		rt.walletSvc = api_wallet.New(rt.db, s.Bitcoind, s.Enforcer, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
+		path, h := walletv1connect.NewWalletServiceHandler(rt.walletSvc, stdOpts...)
 		register(path, h)
 	}
 	{
@@ -382,10 +383,8 @@ func (rt *Runtime) Start(parent context.Context) {
 	rt.runEngine("notification", rt.notificationEngine.Run, log)
 	rt.runEngine("sidechain-monitor", rt.sidechainMonitor.Run, log)
 	rt.runEngine("deposit-dropped", rt.depositDropped.Run, log)
+	rt.runEngine("address-sync", rt.walletSvc.Run, log)
 
-	// ZMQ engine acquires its endpoint from bitcoind dynamically; retry
-	// loop tolerates bitcoind startup. Lives on rt.ctx so it stops on
-	// recycle.
 	rt.wg.Add(1)
 	go rt.runZMQ(rt.ctx, log)
 }
@@ -404,53 +403,48 @@ func (rt *Runtime) runEngine(name string, run func(context.Context) error, log *
 func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 	defer rt.wg.Done()
 
-	const maxAttempts = 20
-	var zmqEngine *engines.ZMQ
-
-	for attempt := 0; attempt < maxAttempts; {
-		// Light mode runs no local Bitcoin Core, so there is no ZMQ endpoint
-		// to dial. Wait for a switch to full mode instead of spending the
-		// attempts on a daemon that is not there.
+	const (
+		minBackoff = 5 * time.Second
+		maxBackoff = time.Minute
+	)
+	backoff := minBackoff
+	for {
+		// Light mode runs no local Bitcoin Core, so no ZMQ endpoint exists.
 		if !rt.walletEngine.NodeMode().RunsLocalNode(ctx) {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(5 * time.Second):
-			}
-			continue
-		}
-
-		eng, err := dialZmqEngine(ctx, rt.conf)
-		if err != nil {
-			attempt++
-			if connect.CodeOf(err) == connect.CodeUnavailable || isBitcoinCoreStartupError(err.Error()) {
+			backoff = minBackoff
+		} else {
+			zmqEngine, err := dialZmqEngine(ctx, rt.conf)
+			switch {
+			case err == nil:
+				backoff = minBackoff
+				err = rt.feedZMQ(ctx, zmqEngine, log)
+				if ctx.Err() != nil {
+					return
+				}
+				log.Warn().Err(err).Msg("ZMQ engine stopped, retrying")
+			case connect.CodeOf(err) == connect.CodeUnavailable || isBitcoinCoreStartupError(err.Error()):
 				log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
-			} else {
+			default:
 				log.Error().Err(err).Msg("acquire ZMQ engine")
 			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(5 * time.Second):
-			}
-			continue
 		}
 
-		if attempt != 0 {
-			log.Debug().Msgf("ZMQ engine acquired on attempt %d", attempt)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(backoff):
 		}
-		zmqEngine = eng
-		break
+		backoff = min(2*backoff, maxBackoff)
 	}
+}
 
-	if zmqEngine == nil {
-		log.Warn().Msg("no ZMQ engine acquired, skipping")
-		return
-	}
-
-	// Subscribe goroutine — feeds raw txs into bitcoinEngine.
+// feedZMQ feeds each raw tx into bitcoinEngine until the ZMQ engine stops.
+func (rt *Runtime) feedZMQ(ctx context.Context, zmqEngine *engines.ZMQ, log *zerolog.Logger) error {
+	txs := zmqEngine.Subscribe()
+	rt.wg.Add(1)
 	go func() {
-		for tx := range zmqEngine.Subscribe() {
+		defer rt.wg.Done()
+		for tx := range txs {
 			if err := rt.bitcoinEngine.HandleNewRawTransaction(ctx, tx); err != nil {
 				log.Error().Err(err).Msgf("handle new raw transaction: %s", tx.TxHash())
 			}
@@ -458,9 +452,7 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 	}()
 
 	log.Info().Msg("starting ZMQ engine")
-	if err := zmqEngine.Run(ctx); err != nil && ctx.Err() == nil {
-		log.Error().Err(err).Msg("ZMQ engine exited with error")
-	}
+	return zmqEngine.Run(ctx)
 }
 
 func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {

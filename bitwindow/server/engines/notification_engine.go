@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/notifications"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -53,15 +54,18 @@ func (e *NotificationEngine) Run(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("notification engine started")
 
-	// Watch for timestamp confirmations
-	go e.watchTimestamps(ctx)
-
-	// Watch for wallet transaction confirmations
-	go e.watchWalletTransactions(ctx)
-
-	<-ctx.Done()
+	pool := logpool.New(ctx, "notification-engine")
+	pool.Go("timestamps", func(ctx context.Context) error {
+		e.watchTimestamps(ctx)
+		return nil
+	})
+	pool.Go("wallet-transactions", func(ctx context.Context) error {
+		e.watchWalletTransactions(ctx)
+		return nil
+	})
+	err := pool.Wait(ctx)
 	log.Info().Msg("notification engine stopped")
-	return ctx.Err()
+	return err
 }
 
 func (e *NotificationEngine) watchTimestamps(ctx context.Context) {
@@ -160,10 +164,13 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 				},
 			}
 
+			// An event that reached nobody stays unmarked, so the next poll sends it again.
+			if e.Deliver(ctx, event) == 0 {
+				continue
+			}
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTimestamp, eventID); err != nil {
 				return fmt.Errorf("mark timestamp %d notified: %w", ts.ID, err)
 			}
-			e.Deliver(ctx, event)
 
 			log.Info().
 				Int64("id", ts.ID).
@@ -343,10 +350,12 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					},
 				},
 			}
+			if e.Deliver(ctx, event) == 0 {
+				continue
+			}
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 				return fmt.Errorf("mark transaction %s notified: %w", txid, err)
 			}
-			e.Deliver(ctx, event)
 			log.Info().
 				Str("txid", txid).
 				Int64("amount_sats", int64(tx.amount)).
@@ -365,10 +374,12 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					},
 				},
 			}
+			if e.Deliver(ctx, event) == 0 {
+				continue
+			}
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 				return fmt.Errorf("mark transaction %s notified: %w", txid, err)
 			}
-			e.Deliver(ctx, event)
 			log.Info().
 				Str("txid", txid).
 				Int64("amount_sats", int64(-tx.amount)).
@@ -393,10 +404,12 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					},
 				},
 			}
+			if e.Deliver(ctx, event) == 0 {
+				continue
+			}
 			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
 				return fmt.Errorf("mark transaction %s confirmation notified: %w", txid, err)
 			}
-			e.Deliver(ctx, event)
 			log.Info().
 				Str("txid", txid).
 				Uint32("confirmations", confirmations).
