@@ -290,6 +290,7 @@ func (s *Server) Handler() http.Handler {
 	return s.topSwap
 }
 
+// Serve serves until ctx ends, and returns only after the in-flight requests drain and the runtime closes.
 func (s *Server) Serve(ctx context.Context, address string) error {
 	log := zerolog.Ctx(ctx)
 	log.Info().Str("address", address).Msg("serve connect: enabling reflection on per-runtime mux")
@@ -326,7 +327,20 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 		// A socket that never sends a request would hold the lease forever.
 		ReadHeaderTimeout: 10 * time.Second,
 	}
-	return s.server.Serve(lis)
+
+	drained := make(chan struct{})
+	go func() {
+		<-ctx.Done()
+		s.Shutdown(context.WithoutCancel(ctx))
+		close(drained)
+	}()
+
+	if err := s.server.Serve(lis); !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	<-drained
+	return nil
 }
 
 // Shutdown tries to gracefully stop the server, forcing a shutdown after

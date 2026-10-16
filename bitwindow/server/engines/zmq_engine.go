@@ -47,8 +47,22 @@ func (e *ZMQ) Subscribe() <-chan *wire.MsgTx {
 	return subscriber
 }
 
-// Run starts the ZMQ engine and begins listening for raw transaction notifications
+// Run listens for raw transactions until ctx ends or the feed stops. It
+// closes the subscriber channels on return.
 func (e *ZMQ) Run(ctx context.Context) error {
+	ctx, stop := context.WithCancel(ctx)
+	broadcastDone := make(chan struct{})
+	go func() {
+		defer close(broadcastDone)
+		e.broadcastTransactions(ctx)
+	}()
+	// Subscribers wait on their channel, so each exit path must close it.
+	defer func() {
+		stop()
+		<-broadcastDone
+		e.closeSubscribers()
+	}()
+
 	subCh, cancel, err := e.inner.SubscribeRawTx(ctx)
 	if err != nil {
 		return err
@@ -67,12 +81,14 @@ func (e *ZMQ) Run(ctx context.Context) error {
 
 			zerolog.Ctx(ctx).Trace().
 				Msgf("received raw transaction: %s", tx.TxHash())
-			e.txChan <- tx
+			select {
+			case <-ctx.Done():
+				return
+			case e.txChan <- tx:
+			}
 		}
+		errChan <- errors.New("rawtx subscription closed")
 	}()
-
-	// Start broadcaster for transaction subscribers
-	go e.broadcastTransactions(ctx)
 
 	// Wait for context cancellation or error
 	select {
@@ -91,6 +107,15 @@ func (e *ZMQ) Run(ctx context.Context) error {
 }
 
 // broadcastTransactions sends transactions to all subscribers
+func (e *ZMQ) closeSubscribers() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, subscriber := range e.subscribers {
+		close(subscriber)
+	}
+	e.subscribers = nil
+}
+
 func (e *ZMQ) broadcastTransactions(ctx context.Context) {
 	log := zerolog.Ctx(ctx).With().Str("component", "tx-broadcaster").Logger()
 	log.Info().Msg("engines/zmq: starting transaction broadcaster")
@@ -100,13 +125,6 @@ func (e *ZMQ) broadcastTransactions(ctx context.Context) {
 		case <-ctx.Done():
 			log.Info().Err(ctx.Err()).
 				Msg("engines/zmq: stopping transaction broadcaster")
-
-			// Close all subscriber channels
-			e.mu.RLock()
-			for _, subscriber := range e.subscribers {
-				close(subscriber)
-			}
-			e.mu.RUnlock()
 			return
 
 		case tx := <-e.txChan:
@@ -195,10 +213,11 @@ func (bc *zmqEngine) SubscribeRawTx(ctx context.Context) (chan RawMsg, func(), e
 
 	subCh := make(chan RawMsg, channelSize)
 	go func() {
+		defer close(subCh)
 		for {
 			msg, err := sub.Recv()
 			if err != nil {
-				break
+				return
 			}
 
 			if len(msg.Frames) != 3 {

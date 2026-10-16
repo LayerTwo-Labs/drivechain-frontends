@@ -307,29 +307,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		}()
 	}
 
-	errs := make(chan error, 1)
-	go func() {
-		errs <- exitError(srv.Serve(ctx, conf.APIHost))
-	}()
-
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*5)
-		defer cancel()
-		srv.Shutdown(shutdownCtx)
-		errs <- nil
-	}()
-
-	return <-errs
-}
-
-// A graceful shutdown closes the server, so ErrServerClosed is the expected
-// end of Serve, not a failure exit.
-func exitError(err error) error {
-	if errors.Is(err, http.ErrServerClosed) {
-		return nil
-	}
-	return err
+	return srv.Serve(ctx, conf.APIHost)
 }
 
 func initLogger(logFile *os.File, logLevel zerolog.Level) {
