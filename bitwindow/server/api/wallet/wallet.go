@@ -1,10 +1,8 @@
 package wallet
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -19,7 +17,6 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -1162,86 +1159,26 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 
 // CheckChequeFunding implements walletv1connect.WalletServiceHandler.
 func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.CheckChequeFundingRequest]) (*connect.Response[pb.CheckChequeFundingResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	walletID := c.Msg.WalletId
-
-	cheque, err := s.getCheque(ctx, walletID, c.Msg.Id)
+	cheque, err := s.getCheque(ctx, c.Msg.WalletId, c.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	utxos, err := s.chequeChain.AddressUnspent(ctx, cheque.Address)
+	funding, err := s.chequeEngine.CheckFunding(ctx, cheque)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs of %s: %w", cheque.Address, err))
+		return nil, err
 	}
 
-	log.Debug().
-		Str("address", cheque.Address).
-		Int("utxo_count", len(utxos)).
-		Msg("CheckChequeFunding: UTXOs found")
-
-	if len(utxos) > 0 {
-		var amountSats uint64
-		var txids []string
-		var outputs []cheques.FundingOutput
-		var minConfirmations uint32 = math.MaxUint32
-		for _, utxo := range utxos {
-			amountSats += uint64(utxo.ValueSats)
-			txids = append(txids, utxo.TxID)
-			outputs = append(outputs, cheques.FundingOutput{Txid: utxo.TxID, BlockHeight: utxo.Height})
-			if confs := uint32(utxo.Confirmations); confs < minConfirmations {
-				minConfirmations = confs
-			}
-		}
-
-		// Always update — handles new fundings arriving after first one
-		if err := cheques.UpdateFunding(ctx, s.database, walletID, c.Msg.Id, outputs, amountSats); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update funding: %w", err))
-		}
-
-		log.Info().
-			Int64("id", c.Msg.Id).
-			Str("address", cheque.Address).
-			Uint64("amount_sats", amountSats).
-			Int("utxo_count", len(txids)).
-			Msg("cheque funded")
-
-		// Re-fetch to get updated funded_at timestamp
-		cheque, err = cheques.Get(ctx, s.database, walletID, c.Msg.Id)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("refetch cheque: %w", err))
-		}
-
-		resp := &pb.CheckChequeFundingResponse{
-			Funded:           cheque.IsFunded(),
-			ActualAmountSats: amountSats,
-			FundedTxids:      txids,
-			MinConfirmations: minConfirmations,
-		}
-		if cheque.FundedAt != nil {
-			resp.FundedAt = timestamppb.New(*cheque.FundedAt)
-		}
-		return connect.NewResponse(resp), nil
+	resp := &pb.CheckChequeFundingResponse{
+		Funded:           funding.Funded,
+		ActualAmountSats: funding.AmountSats,
+		FundedTxids:      funding.Txids,
+		MinConfirmations: funding.MinConfirmations,
 	}
-
-	// No UTXOs found - if cheque was funded, it means it was swept
-	if cheque.IsFunded() && cheque.SweptTxid == nil {
-		log.Warn().
-			Str("address", cheque.Address).
-			Int64("id", c.Msg.Id).
-			Msg("funded cheque has no UTXOs - was swept externally")
-
-		// Mark as swept - we know it was swept but don't know the exact txid
-		// Finding the spending tx from a watch-only wallet requires full blockchain scan
-		if err := cheques.UpdateSwept(ctx, s.database, walletID, c.Msg.Id, "swept_externally"); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque swept: %w", err))
-		}
+	if funding.FundedAt != nil {
+		resp.FundedAt = timestamppb.New(*funding.FundedAt)
 	}
-
-	return connect.NewResponse(&pb.CheckChequeFundingResponse{
-		Funded: false,
-	}), nil
+	return connect.NewResponse(resp), nil
 }
 
 // PreviewSweep implements walletv1connect.WalletServiceHandler.
@@ -1257,7 +1194,7 @@ func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.Preview
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
 	}
 
-	feeSatPerVbyte, err := s.chequeSweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
+	feeSatPerVbyte, err := s.chequeEngine.SweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
 	if err != nil {
 		return nil, err
 	}
@@ -1297,94 +1234,21 @@ func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 // SweepCheque implements walletv1connect.WalletServiceHandler.
 // Sweeps a cheque using its WIF private key to the destination address.
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	walletID := c.Msg.WalletId
-
 	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
 	}
 
-	params := s.chequeEngine.GetChainParams()
-
-	source, err := engines.ResolveSweepSource(ctx, s.chequeChain, wifKey, params)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
-	}
-	if len(source.UTXOs) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
-	}
-
-	addressStr := source.Address
-	totalAmount := source.TotalSats()
-
-	log.Debug().Str("address", addressStr).Str("kind", source.Kind.String()).Msg("SweepCheque: sweeping")
-
-	cheque, err := cheques.GetByAddress(ctx, s.database, walletID, addressStr)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		log.Debug().Str("address", addressStr).Msg("swept key is not a cheque of this wallet")
-	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque at %s: %w", addressStr, err))
-	}
-
-	feeSatPerVbyte, err := s.chequeSweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
+	sweep, err := s.chequeEngine.Sweep(ctx, c.Msg.WalletId, wifKey, c.Msg.DestinationAddress, c.Msg.FeeSatPerVbyte)
 	if err != nil {
 		return nil, err
 	}
 
-	unsignedTx, err := engines.BuildSweepTx(source, c.Msg.DestinationAddress, feeSatPerVbyte, params)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
-	}
-
-	signedTx, err := engines.SignSweepTx(unsignedTx, source, wifKey, params)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
-	}
-
-	txHex, err := s.serializeTx(signedTx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
-	}
-
-	txid, err := s.chequeChain.Broadcast(ctx, txHex)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
-	}
-
-	if cheque != nil && cheque.SweptTxid == nil {
-		if err := cheques.UpdateSwept(ctx, s.database, walletID, cheque.ID, txid); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque %d swept by %s: %w", cheque.ID, txid, err))
-		}
-	}
-
-	log.Info().
-		Str("from", addressStr).
-		Str("to", c.Msg.DestinationAddress).
-		Str("txid", txid).
-		Uint64("amount_sats", totalAmount).
-		Msg("cheque swept successfully")
-
 	return connect.NewResponse(&pb.SweepChequeResponse{
-		Txid:           txid,
-		AmountSats:     totalAmount,
-		FeeSatPerVbyte: feeSatPerVbyte,
+		Txid:           sweep.Txid,
+		AmountSats:     sweep.AmountSats,
+		FeeSatPerVbyte: sweep.FeeSatPerVbyte,
 	}), nil
-}
-
-// chequeSweepFeeRate resolves the sweep's fee rate: the caller's, or the
-// 6-block estimate when they pass zero.
-func (s *Server) chequeSweepFeeRate(ctx context.Context, requested uint64) (uint64, error) {
-	if requested > 0 {
-		return requested, nil
-	}
-	rate, err := s.chequeChain.FeeRateSatPerVByte(ctx, 6)
-	if err != nil {
-		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("estimate fee: %w", err))
-	}
-	return uint64(math.Ceil(rate)), nil
 }
 
 // DeleteCheque implements walletv1connect.WalletServiceHandler.
@@ -1465,14 +1329,6 @@ func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque) (*pb.Cheque,
 	}
 
 	return pbCheque, nil
-}
-
-func (s *Server) serializeTx(tx *wire.MsgTx) (string, error) {
-	var txBytes bytes.Buffer
-	if err := tx.Serialize(&txBytes); err != nil {
-		return "", fmt.Errorf("serialize transaction: %w", err)
-	}
-	return hex.EncodeToString(txBytes.Bytes()), nil
 }
 
 // SetUTXOMetadata implements walletv1connect.WalletServiceHandler.

@@ -14,8 +14,10 @@ import (
 
 	"connectrpc.com/connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
@@ -203,4 +205,184 @@ func TestScanForFundsReturnsChainError(t *testing.T) {
 
 	_, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
 	require.ErrorContains(t, err, "electrum backend not configured")
+}
+
+func TestChequeEngineCheckFunding(t *testing.T) {
+	t.Parallel()
+
+	newCheque := func(t *testing.T, engine *ChequeEngine, expected uint64) *cheques.Cheque {
+		t.Helper()
+		address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 0)
+		require.NoError(t, err)
+		id, err := cheques.Create(t.Context(), engine.db, chequeWalletID, 0, expected, address)
+		require.NoError(t, err)
+		cheque, err := cheques.Get(t.Context(), engine.db, chequeWalletID, id)
+		require.NoError(t, err)
+		return cheque
+	}
+
+	t.Run("a funded address stores the funding", func(t *testing.T) {
+		t.Parallel()
+
+		chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+		engine := testChequeEngine(t, chain)
+		cheque := newCheque(t, engine, 100_000)
+		utxos := testUTXOs()
+		utxos[0].Confirmations = 2
+		chain.funded[cheque.Address] = utxos
+
+		funding, err := engine.CheckFunding(t.Context(), cheque)
+		require.NoError(t, err)
+		assert.True(t, funding.Funded)
+		assert.Equal(t, uint64(100_000), funding.AmountSats)
+		assert.Equal(t, []string{utxos[0].TxID}, funding.Txids)
+		assert.Equal(t, uint32(2), funding.MinConfirmations)
+		assert.NotNil(t, funding.FundedAt)
+
+		stored, err := cheques.Get(t.Context(), engine.db, chequeWalletID, cheque.ID)
+		require.NoError(t, err)
+		assert.Equal(t, []string{utxos[0].TxID}, stored.FundedTxids)
+	})
+
+	for _, tt := range []struct {
+		name     string
+		expected uint64
+	}{
+		{name: "an empty address of a funded cheque marks it swept", expected: 100_000},
+		{name: "an empty address of a partly funded cheque marks it swept", expected: 200_000},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+			engine := testChequeEngine(t, chain)
+			cheque := newCheque(t, engine, tt.expected)
+			chain.funded[cheque.Address] = testUTXOs()
+			_, err := engine.CheckFunding(t.Context(), cheque)
+			require.NoError(t, err)
+			cheque, err = cheques.Get(t.Context(), engine.db, chequeWalletID, cheque.ID)
+			require.NoError(t, err)
+			delete(chain.funded, cheque.Address)
+
+			funding, err := engine.CheckFunding(t.Context(), cheque)
+			require.NoError(t, err)
+			assert.False(t, funding.Funded)
+
+			stored, err := cheques.Get(t.Context(), engine.db, chequeWalletID, cheque.ID)
+			require.NoError(t, err)
+			require.NotNil(t, stored.SweptTxid)
+			assert.Equal(t, "swept_externally", *stored.SweptTxid)
+		})
+	}
+
+	t.Run("an empty address of an unfunded cheque stays open", func(t *testing.T) {
+		t.Parallel()
+
+		engine := testChequeEngine(t, &fakeChain{funded: map[string][]ChequeUTXO{}})
+		cheque := newCheque(t, engine, 100_000)
+
+		_, err := engine.CheckFunding(t.Context(), cheque)
+		require.NoError(t, err)
+
+		stored, err := cheques.Get(t.Context(), engine.db, chequeWalletID, cheque.ID)
+		require.NoError(t, err)
+		assert.Nil(t, stored.SweptTxid)
+	})
+
+	t.Run("a failed chain read is unavailable", func(t *testing.T) {
+		t.Parallel()
+
+		engine := testChequeEngine(t, &fakeChain{err: errors.New("esplora down")})
+		cheque := newCheque(t, engine, 100_000)
+
+		_, err := engine.CheckFunding(t.Context(), cheque)
+		require.ErrorContains(t, err, "esplora down")
+		assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	})
+}
+
+func TestChequeEngineSweep(t *testing.T) {
+	t.Parallel()
+
+	destination := func(t *testing.T) string {
+		t.Helper()
+		candidates, err := SweepCandidates(newWIF(t, true), &chaincfg.SigNetParams)
+		require.NoError(t, err)
+		return candidates[0].Address
+	}
+
+	t.Run("a cheque key sweeps and marks the cheque", func(t *testing.T) {
+		t.Parallel()
+
+		chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+		engine := testChequeEngine(t, chain)
+		address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 0)
+		require.NoError(t, err)
+		id, err := cheques.Create(t.Context(), engine.db, chequeWalletID, 0, 100_000, address)
+		require.NoError(t, err)
+		chain.funded[address] = testUTXOs()
+		wifStr, err := engine.DeriveChequePrivateKey(t.Context(), chequeWalletID, 0)
+		require.NoError(t, err)
+		wif, err := btcutil.DecodeWIF(wifStr)
+		require.NoError(t, err)
+
+		sweep, err := engine.Sweep(t.Context(), chequeWalletID, wif, destination(t), 0)
+		require.NoError(t, err)
+		assert.Equal(t, "txid", sweep.Txid)
+		assert.Equal(t, uint64(100_000), sweep.AmountSats)
+		assert.Equal(t, uint64(1), sweep.FeeSatPerVbyte)
+
+		stored, err := cheques.Get(t.Context(), engine.db, chequeWalletID, id)
+		require.NoError(t, err)
+		require.NotNil(t, stored.SweptTxid)
+		assert.Equal(t, "txid", *stored.SweptTxid)
+	})
+
+	for _, tt := range []struct {
+		name        string
+		destination string
+		feeRate     uint64
+		utxos       int
+		valueSats   int64
+		wantErr     string
+	}{
+		{name: "a bad destination", destination: "not-an-address", feeRate: 1, utxos: 1, valueSats: 100_000_000, wantErr: "decode destination address"},
+		{name: "a destination on another network", destination: "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", feeRate: 1, utxos: 1, valueSats: 100_000_000, wantErr: "destination address is for another network"},
+		{name: "a fee rate above the cap", feeRate: 10_001, utxos: 1, valueSats: 100_000_000, wantErr: "fee rate 10001 sat/vB is above the cap"},
+		{name: "a fee above the cap", feeRate: 5_000, utxos: 30, valueSats: 100_000_000, wantErr: "is above the cap of 10000000 sats"},
+		{name: "funds below the fee", feeRate: 10_000, utxos: 1, valueSats: 1_000, wantErr: "insufficient funds"},
+	} {
+		t.Run(tt.name+" is an invalid argument", func(t *testing.T) {
+			t.Parallel()
+
+			wif := newWIF(t, true)
+			candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
+			require.NoError(t, err)
+			utxos := make([]ChequeUTXO, tt.utxos)
+			for i := range utxos {
+				utxos[i] = ChequeUTXO{TxID: testUTXOs()[0].TxID, Vout: int32(i), ValueSats: tt.valueSats}
+			}
+			chain := &fakeChain{funded: map[string][]ChequeUTXO{candidates[0].Address: utxos}}
+			engine := testChequeEngine(t, chain)
+			dest := tt.destination
+			if dest == "" {
+				dest = destination(t)
+			}
+
+			_, err = engine.Sweep(t.Context(), chequeWalletID, wif, dest, tt.feeRate)
+			require.ErrorIs(t, err, ErrInvalidSweep)
+			require.ErrorContains(t, err, tt.wantErr)
+			assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		})
+	}
+
+	t.Run("a key with no funds is not found", func(t *testing.T) {
+		t.Parallel()
+
+		engine := testChequeEngine(t, &fakeChain{funded: map[string][]ChequeUTXO{}})
+
+		_, err := engine.Sweep(t.Context(), chequeWalletID, newWIF(t, true), destination(t), 0)
+		require.ErrorContains(t, err, "no funds found")
+		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	})
 }

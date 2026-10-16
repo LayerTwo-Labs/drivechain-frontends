@@ -138,6 +138,9 @@ func SweepFeeSats(source SweepSource, feeSatPerVbyte uint64, outputVbytes uint64
 	return SweepVbytes(source.Kind, len(source.UTXOs), outputVbytes) * feeSatPerVbyte
 }
 
+// ErrInvalidSweep marks a sweep that the caller input makes impossible.
+var ErrInvalidSweep = errors.New("invalid sweep")
+
 // BuildSweepTx builds the unsigned sweep, paying everything the source holds
 // minus the fee to one destination.
 func BuildSweepTx(
@@ -147,15 +150,15 @@ func BuildSweepTx(
 	params *chaincfg.Params,
 ) (*wire.MsgTx, error) {
 	if feeSatPerVbyte > orchwallet.MaxFeeRateSatPerVB {
-		return nil, fmt.Errorf("fee rate %d sat/vB is above the cap of %d sat/vB", feeSatPerVbyte, orchwallet.MaxFeeRateSatPerVB)
+		return nil, fmt.Errorf("%w: fee rate %d sat/vB is above the cap of %d sat/vB", ErrInvalidSweep, feeSatPerVbyte, orchwallet.MaxFeeRateSatPerVB)
 	}
 
 	destAddr, err := btcutil.DecodeAddress(destAddress, params)
 	if err != nil {
-		return nil, fmt.Errorf("decode destination address: %w", err)
+		return nil, fmt.Errorf("%w: decode destination address: %w", ErrInvalidSweep, err)
 	}
 	if !destAddr.IsForNet(params) {
-		return nil, errors.New("destination address is for another network")
+		return nil, fmt.Errorf("%w: destination address is for another network", ErrInvalidSweep)
 	}
 
 	pkScript, err := txscript.PayToAddrScript(destAddr)
@@ -166,10 +169,10 @@ func BuildSweepTx(
 	totalSats := source.TotalSats()
 	feeSats := SweepFeeSats(source, feeSatPerVbyte, ScriptOutputVbytes(pkScript))
 	if feeSats > orchwallet.MaxFeeSats {
-		return nil, fmt.Errorf("fee %d sats is above the cap of %d sats", feeSats, orchwallet.MaxFeeSats)
+		return nil, fmt.Errorf("%w: fee %d sats is above the cap of %d sats", ErrInvalidSweep, feeSats, orchwallet.MaxFeeSats)
 	}
 	if totalSats <= feeSats {
-		return nil, fmt.Errorf("insufficient funds: total %d sats, fee %d sats", totalSats, feeSats)
+		return nil, fmt.Errorf("%w: insufficient funds: total %d sats, fee %d sats", ErrInvalidSweep, totalSats, feeSats)
 	}
 
 	tx := wire.NewMsgTx(wire.TxVersion)
@@ -180,9 +183,23 @@ func BuildSweepTx(
 		}
 		tx.AddTxIn(wire.NewTxIn(wire.NewOutPoint(txHash, uint32(utxo.Vout)), nil, nil))
 	}
-	tx.AddTxOut(wire.NewTxOut(int64(totalSats-feeSats), pkScript))
+	out := wire.NewTxOut(int64(totalSats-feeSats), pkScript)
+	if dust := dustThreshold(out); out.Value < dust {
+		return nil, fmt.Errorf("%w: too small to sweep: %d sats after a fee of %d sats is below the dust limit of %d sats", ErrInvalidSweep, out.Value, feeSats, dust)
+	}
+	tx.AddTxOut(out)
 
 	return tx, nil
+}
+
+// dustThreshold is the smallest value Bitcoin Core relays in out, at its
+// default dust relay fee of 3 sat/vB (GetDustThreshold in policy.cpp).
+func dustThreshold(out *wire.TxOut) int64 {
+	spendSize := 148
+	if txscript.IsWitnessProgram(out.PkScript) {
+		spendSize = 67
+	}
+	return 3 * int64(out.SerializeSize()+spendSize)
 }
 
 // SignSweepTx signs every input with the key that controls the source address.
