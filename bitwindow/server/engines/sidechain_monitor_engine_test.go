@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"testing"
-	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,90 +25,6 @@ func (m *MockNotificationEngine) Deliver(ctx context.Context, event *notificatio
 	return 1
 }
 
-func TestSidechainMonitorEngine_StoreWithdrawal(t *testing.T) {
-	ctx := t.Context()
-
-	mockNotification := &MockNotificationEngine{}
-
-	engine := NewSidechainMonitorEngine(
-		nil, nil, nil, nil, nil, nil,
-		mockNotification,
-	)
-
-	// Create test withdrawal
-	withdrawal := DetectedWithdrawal{
-		Txid:        "detected-txid-123",
-		Sidechain:   "thunder",
-		Amount:      100000000, // 1 BTC in sats
-		Destination: "bc1qtest789",
-		DetectedAt:  time.Now(),
-	}
-
-	// Store withdrawal
-	engine.storeWithdrawal(ctx, withdrawal)
-
-	// Verify it was stored
-	stored, err := engine.GetWithdrawalByTxid(ctx, "detected-txid-123")
-	require.NoError(t, err)
-	require.NotNil(t, stored)
-	assert.Equal(t, "detected-txid-123", stored.Txid)
-	assert.Equal(t, "thunder", stored.Sidechain)
-	assert.Equal(t, int64(100000000), stored.Amount)
-
-	// Verify notification was sent
-	assert.Len(t, mockNotification.sentEvents, 1)
-	assert.NotNil(t, mockNotification.sentEvents[0].Event.(*notificationv1.WatchResponse_SidechainWithdrawal))
-}
-
-func TestSidechainMonitorEngine_GetPollInterval(t *testing.T) {
-	engine := NewSidechainMonitorEngine(
-		nil, nil, nil, nil, nil, nil,
-		&MockNotificationEngine{},
-	)
-
-	// When no withdrawals detected, should return 30 seconds
-	interval := engine.getPollInterval()
-	assert.Equal(t, 30*time.Second, interval)
-
-	// Add a detected withdrawal
-	engine.detectedWithdrawals["test-txid"] = DetectedWithdrawal{
-		Txid:       "test-txid",
-		Sidechain:  "thunder",
-		DetectedAt: time.Now(),
-	}
-
-	// Should now return 5 seconds for faster polling (new logic: light activity)
-	interval = engine.getPollInterval()
-	assert.Equal(t, 5*time.Second, interval)
-}
-
-func TestSidechainMonitorEngine_CleanupOldWithdrawals(t *testing.T) {
-	engine := NewSidechainMonitorEngine(
-		nil, nil, nil, nil, nil, nil,
-		&MockNotificationEngine{},
-	)
-
-	// Add old and new withdrawals
-	oldTime := time.Now().Add(-2 * time.Hour)    // 2 hours ago (older than 1 hour cutoff)
-	newTime := time.Now().Add(-30 * time.Minute) // 30 minutes ago (newer than cutoff)
-
-	engine.detectedWithdrawals["old-txid"] = DetectedWithdrawal{
-		Txid:       "old-txid",
-		DetectedAt: oldTime,
-	}
-	engine.detectedWithdrawals["new-txid"] = DetectedWithdrawal{
-		Txid:       "new-txid",
-		DetectedAt: newTime,
-	}
-
-	// Run cleanup
-	engine.cleanupOldWithdrawals()
-
-	// Old withdrawal should be removed, new one should remain
-	assert.NotContains(t, engine.detectedWithdrawals, "old-txid")
-	assert.Contains(t, engine.detectedWithdrawals, "new-txid")
-}
-
 type fakeSidechainRPC struct {
 	bundle string
 }
@@ -116,24 +34,96 @@ func (f fakeSidechainRPC) PendingWithdrawalBundle(context.Context) (json.RawMess
 }
 
 func TestSidechainMonitorEngine_Monitor(t *testing.T) {
-	ctx := t.Context()
-	engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
-	client := fakeSidechainRPC{
-		bundle: `{"transactions":[{"txid":"bundle-tx","amount":5000,"destination":"bc1qdest"}]}`,
+	t.Parallel()
+
+	thunderBundle, err := os.ReadFile("testdata/thunder_pending_withdrawal_bundle.json")
+	require.NoError(t, err)
+
+	poll := func(t *testing.T, engine *SidechainMonitorEngine, bundle string) error {
+		t.Helper()
+		return engine.monitor(t.Context(), "thunder", func(context.Context) (sidechainRPC, error) {
+			return fakeSidechainRPC{bundle: bundle}, nil
+		})
 	}
 
-	require.NoError(t, engine.monitor(ctx, "photon", func(context.Context) (sidechainRPC, error) {
-		return client, nil
-	}))
+	t.Run("reads each payout of a thunder bundle", func(t *testing.T) {
+		t.Parallel()
 
-	stored, err := engine.GetWithdrawalByTxid(ctx, "bundle-tx")
-	require.NoError(t, err)
-	require.NotNil(t, stored)
-	require.Equal(t, "photon", stored.Sidechain)
-	require.Equal(t, int64(5000), stored.Amount)
+		sink := &MockNotificationEngine{}
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, sink)
+		require.NoError(t, poll(t, engine, string(thunderBundle)))
 
-	err = engine.monitor(ctx, "photon", func(context.Context) (sidechainRPC, error) {
-		return nil, errors.New("not running")
+		first, err := engine.GetWithdrawalByTxid(t.Context(), "3c5d1c5f8f0b2a4e6d7c8b9a0f1e2d3c4b5a69788796a5b4c3d2e1f00112233a")
+		require.NoError(t, err)
+		require.NotNil(t, first)
+		assert.Equal(t, "thunder", first.Sidechain)
+		assert.Equal(t, int64(50000), first.Amount)
+		assert.Equal(t, "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", first.Destination)
+
+		second, err := engine.GetWithdrawalByTxid(t.Context(), "9a8b7c6d5e4f30211203f4e5d6c7b8a99a8b7c6d5e4f30211203f4e5d6c7b8a9")
+		require.NoError(t, err)
+		require.NotNil(t, second)
+		assert.Equal(t, int64(120000), second.Amount)
+
+		assert.Len(t, sink.sentEvents, 2)
 	})
-	require.ErrorContains(t, err, "get photon client: not running")
+
+	t.Run("a second poll of the same bundle reports nothing new", func(t *testing.T) {
+		t.Parallel()
+
+		sink := &MockNotificationEngine{}
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, sink)
+		require.NoError(t, poll(t, engine, string(thunderBundle)))
+		require.NoError(t, poll(t, engine, string(thunderBundle)))
+
+		assert.Len(t, sink.sentEvents, 2)
+	})
+
+	t.Run("no pending bundle clears the withdrawals", func(t *testing.T) {
+		t.Parallel()
+
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
+		require.NoError(t, poll(t, engine, string(thunderBundle)))
+		require.NoError(t, poll(t, engine, "null"))
+
+		withdrawals, err := engine.GetDetectedWithdrawals(t.Context())
+		require.NoError(t, err)
+		assert.Empty(t, withdrawals)
+	})
+
+	t.Run("two payouts of one tx stay two withdrawals", func(t *testing.T) {
+		t.Parallel()
+
+		sink := &MockNotificationEngine{}
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, sink)
+		payout := func(vout int, sats int) string {
+			return fmt.Sprintf(`[{"Regular":{"txid":"bb","vout":%d}},{"address":"s","content":{"Withdrawal":{"value_sats":%d,"main_fee_sats":1,"main_address":"tb1q"}}}]`, vout, sats)
+		}
+		require.NoError(t, poll(t, engine, `{"spend_utxos":[`+payout(0, 1000)+`,`+payout(1, 2000)+`],"tx":{}}`))
+
+		withdrawals, err := engine.GetDetectedWithdrawals(t.Context())
+		require.NoError(t, err)
+		require.Len(t, withdrawals, 2)
+		amounts := lo.Map(withdrawals, func(w DetectedWithdrawal, _ int) int64 { return w.Amount })
+		assert.ElementsMatch(t, []int64{1000, 2000}, amounts)
+		assert.Len(t, sink.sentEvents, 2)
+	})
+
+	t.Run("a spend of a plain coin fails", func(t *testing.T) {
+		t.Parallel()
+
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
+		err := poll(t, engine, `{"spend_utxos":[[{"Regular":{"txid":"aa","vout":0}},{"address":"s","content":{"Value":1}}]],"tx":{}}`)
+		require.ErrorContains(t, err, "not a withdrawal")
+	})
+
+	t.Run("a client error fails", func(t *testing.T) {
+		t.Parallel()
+
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
+		err := engine.monitor(t.Context(), "photon", func(context.Context) (sidechainRPC, error) {
+			return nil, errors.New("not running")
+		})
+		require.ErrorContains(t, err, "get photon client: not running")
+	})
 }

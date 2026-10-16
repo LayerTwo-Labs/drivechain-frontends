@@ -73,11 +73,10 @@ func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
 
 	seedBundle(t, ctx, e, "bundle-a", 100)
 
-	idx := uint16(0)
 	msg := &m4.M4Message{Votes: []m4.M4Vote{{
 		SidechainSlot: 0,
 		VoteType:      m4.VoteTypeUpvote,
-		BundleIndex:   &idx,
+		BundleHash:    lo.ToPtr("bundle-a"),
 	}}}
 
 	require.NoError(t, e.applyM4Votes(ctx, 150, msg))
@@ -349,5 +348,134 @@ func TestGetPendingBundles(t *testing.T) {
 		assert.Equal(t, []string{"pending-1", "pending-2"}, lo.Map(bundles, func(b m4.WithdrawalBundle, _ int) string {
 			return b.BundleHash
 		}))
+	})
+}
+
+// The rules come from bip300301_enforcer lib/validator/task/mod.rs:
+// handle_m4_votes, handle_m4_repeat_previous and handle_m4_leading_by_50.
+func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
+	t.Parallel()
+
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	m4Version := func(t *testing.T, version byte, vector ...byte) []byte {
+		payload := binary.BigEndian.AppendUint32(nil, m4.M4CommitmentHeader)
+		return opReturnScript(t, append(append(payload, version), vector...))
+	}
+	apply := func(t *testing.T, e *M4Engine, height uint32, script []byte) {
+		t.Helper()
+		block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+		require.NoError(t, e.ProcessBlock(t.Context(), height, block))
+		require.NoError(t, e.ApplyPendingM4(t.Context(), height, sidechains))
+	}
+	setWorkScore := func(t *testing.T, e *M4Engine, hash string, workScore int) {
+		t.Helper()
+		_, err := e.db.ExecContext(t.Context(),
+			`UPDATE withdrawal_bundles SET work_score = ? WHERE bundle_hash = ?`, workScore, hash)
+		require.NoError(t, err)
+	}
+	workScores := func(t *testing.T, e *M4Engine, hashes ...string) []int {
+		t.Helper()
+		return lo.Map(hashes, func(hash string, _ int) int {
+			workScore, _, _ := bundleState(t, t.Context(), e, hash)
+			return workScore
+		})
+	}
+
+	t.Run("an upvote downvotes the other pending bundles", func(t *testing.T) {
+		t.Parallel()
+
+		e := NewM4Engine(database.Test(t))
+		seedBundle(t, t.Context(), e, "bundle-a", 100)
+		seedBundle(t, t.Context(), e, "bundle-b", 101)
+		seedBundle(t, t.Context(), e, "bundle-c", 102)
+		setWorkScore(t, e, "bundle-b", 5)
+		setWorkScore(t, e, "bundle-c", 0)
+
+		apply(t, e, 150, m4Version(t, 0x01, 0x00))
+
+		assert.Equal(t, []int{2, 4, 0}, workScores(t, e, "bundle-a", "bundle-b", "bundle-c"))
+	})
+
+	t.Run("version 0x00 repeats the upvote of the previous block", func(t *testing.T) {
+		t.Parallel()
+
+		e := NewM4Engine(database.Test(t))
+		seedBundle(t, t.Context(), e, "bundle-a", 100)
+		seedBundle(t, t.Context(), e, "bundle-b", 101)
+		setWorkScore(t, e, "bundle-a", 5)
+
+		apply(t, e, 150, m4Version(t, 0x01, 0x01))
+		apply(t, e, 151, m4Version(t, 0x00))
+
+		assert.Equal(t, []int{3, 3}, workScores(t, e, "bundle-a", "bundle-b"))
+	})
+
+	t.Run("version 0x00 repeats an alarm", func(t *testing.T) {
+		t.Parallel()
+
+		e := NewM4Engine(database.Test(t))
+		seedBundle(t, t.Context(), e, "bundle-a", 100)
+		setWorkScore(t, e, "bundle-a", 5)
+
+		apply(t, e, 150, m4Version(t, 0x01, 0xFE))
+		apply(t, e, 151, m4Version(t, 0x00))
+
+		assert.Equal(t, []int{3}, workScores(t, e, "bundle-a"))
+	})
+
+	t.Run("version 0x00 with no M4 in the previous block changes nothing", func(t *testing.T) {
+		t.Parallel()
+
+		e := NewM4Engine(database.Test(t))
+		seedBundle(t, t.Context(), e, "bundle-a", 100)
+
+		apply(t, e, 150, m4Version(t, 0x01, 0x00))
+		apply(t, e, 152, m4Version(t, 0x00))
+
+		assert.Equal(t, []int{2}, workScores(t, e, "bundle-a"))
+	})
+
+	t.Run("version 0x03 upvotes a bundle that leads by 50", func(t *testing.T) {
+		t.Parallel()
+
+		e := NewM4Engine(database.Test(t))
+		seedBundle(t, t.Context(), e, "bundle-a", 100)
+		seedBundle(t, t.Context(), e, "bundle-b", 101)
+		setWorkScore(t, e, "bundle-a", 10)
+		setWorkScore(t, e, "bundle-b", 60)
+
+		apply(t, e, 150, m4Version(t, 0x03))
+
+		assert.Equal(t, []int{9, 61}, workScores(t, e, "bundle-a", "bundle-b"))
+	})
+
+	t.Run("version 0x03 upvotes a single bundle with 50", func(t *testing.T) {
+		t.Parallel()
+
+		e := NewM4Engine(database.Test(t))
+		seedBundle(t, t.Context(), e, "bundle-a", 100)
+		setWorkScore(t, e, "bundle-a", 50)
+
+		apply(t, e, 150, m4Version(t, 0x03))
+
+		assert.Equal(t, []int{51}, workScores(t, e, "bundle-a"))
+	})
+
+	t.Run("version 0x03 skips a lead below 50", func(t *testing.T) {
+		t.Parallel()
+
+		e := NewM4Engine(database.Test(t))
+		seedBundle(t, t.Context(), e, "bundle-a", 100)
+		seedBundle(t, t.Context(), e, "bundle-b", 101)
+		setWorkScore(t, e, "bundle-a", 10)
+		setWorkScore(t, e, "bundle-b", 59)
+
+		apply(t, e, 150, m4Version(t, 0x03))
+
+		assert.Equal(t, []int{10, 59}, workScores(t, e, "bundle-a", "bundle-b"))
 	})
 }

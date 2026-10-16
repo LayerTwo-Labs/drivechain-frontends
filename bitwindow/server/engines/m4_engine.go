@@ -95,11 +95,11 @@ func (e *M4Engine) ApplyPendingM4(
 			}
 		}
 
-		votes, err := m4.ParseM4Votes(msg.RawBytes, activeSlotsAt(sidechains, msg.BlockHeight))
+		votes, parsed, err := e.m4Votes(ctx, msg, activeSlotsAt(sidechains, msg.BlockHeight))
 		if err != nil {
-			// The enforcer takes no votes from an M4 it cannot place either.
-			zerolog.Ctx(ctx).Debug().Err(err).Uint32("height", msg.BlockHeight).Msg("skip malformed M4")
-		} else {
+			return fmt.Errorf("read M4 votes: %w", err)
+		}
+		if parsed {
 			msg.Votes = votes
 			if err := e.persistM4Votes(ctx, msg.ID, votes); err != nil {
 				return fmt.Errorf("persist M4 votes: %w", err)
@@ -125,11 +125,127 @@ func (e *M4Engine) ApplyPendingM4(
 
 func (e *M4Engine) pendingM4Messages(ctx context.Context, height uint32) ([]m4.M4Message, error) {
 	return database.Select[m4.M4Message](ctx, e.db, `
-		SELECT id, block_height, raw_bytes
+		SELECT id, block_height, raw_bytes, version
 		FROM m4_messages
 		WHERE applied = 0 AND block_height <= ?
 		ORDER BY block_height
 	`, height)
+}
+
+// M4 versions that carry no vote vector.
+const (
+	m4VersionRepeatPrevious = 0x00
+	m4VersionLeadingBy50    = 0x03
+)
+
+// leadingBy50Margin is LEADING_BY_50_MARGIN of the enforcer.
+const leadingBy50Margin = 50
+
+// m4Votes returns the votes of msg, with the hash of each upvote target. It
+// returns parsed false for an M4 that the enforcer takes no votes from.
+func (e *M4Engine) m4Votes(ctx context.Context, msg m4.M4Message, activeSlots []uint8) ([]m4.M4Vote, bool, error) {
+	var (
+		votes []m4.M4Vote
+		err   error
+	)
+	switch msg.Version {
+	case m4VersionRepeatPrevious:
+		votes, err = e.previousM4Votes(ctx, msg.BlockHeight)
+	case m4VersionLeadingBy50:
+		votes, err = e.leadingBy50Votes(ctx, msg.BlockHeight, activeSlots)
+	default:
+		votes, err = m4.ParseM4Votes(msg.RawBytes, activeSlots)
+		if err != nil {
+			zerolog.Ctx(ctx).Debug().Err(err).Uint32("height", msg.BlockHeight).Msg("skip malformed M4")
+			return nil, false, nil
+		}
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	for i, vote := range votes {
+		if vote.VoteType != m4.VoteTypeUpvote || vote.BundleHash != nil || vote.BundleIndex == nil {
+			continue
+		}
+		hash, err := database.Get[string](ctx, e.db, `
+			SELECT bundle_hash FROM withdrawal_bundles
+			WHERE sidechain_slot = ?
+			  AND status = 'pending'
+			  AND first_seen_height <= ?
+			ORDER BY first_seen_height ASC
+			LIMIT 1 OFFSET ?
+		`, vote.SidechainSlot, msg.BlockHeight, *vote.BundleIndex)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			zerolog.Ctx(ctx).Warn().
+				Uint32("height", msg.BlockHeight).
+				Uint8("sidechain", vote.SidechainSlot).
+				Uint16("index", *vote.BundleIndex).
+				Msg("M4 upvotes a bundle index with no pending bundle, skip the upvote")
+		case err != nil:
+			return nil, false, fmt.Errorf("find upvoted bundle: %w", err)
+		default:
+			votes[i].BundleHash = &hash
+		}
+	}
+	return votes, true, nil
+}
+
+// previousM4Votes returns the votes of the M4 one block below height, as the
+// enforcer's handle_m4_repeat_previous does.
+func (e *M4Engine) previousM4Votes(ctx context.Context, height uint32) ([]m4.M4Vote, error) {
+	if height == 0 {
+		return nil, nil
+	}
+	votes, err := database.Select[m4.M4Vote](ctx, e.db, `
+		SELECT v.sidechain_slot, v.vote_type, v.bundle_hash, v.bundle_index
+		FROM m4_votes v
+		JOIN m4_messages m ON m.id = v.m4_message_id
+		WHERE m.block_height = ? AND m.applied = 1
+		ORDER BY v.sidechain_slot
+	`, height-1)
+	if err != nil {
+		return nil, fmt.Errorf("list previous M4 votes: %w", err)
+	}
+	return votes, nil
+}
+
+// leadingBy50Votes upvotes, for each active sidechain, the pending bundle with
+// leadingBy50Margin more work than the next one, as the enforcer's
+// handle_m4_leading_by_50 does. A single bundle leads an implicit zero.
+func (e *M4Engine) leadingBy50Votes(ctx context.Context, height uint32, activeSlots []uint8) ([]m4.M4Vote, error) {
+	var votes []m4.M4Vote
+	for _, slot := range activeSlots {
+		bundles, err := database.Select[m4.WithdrawalBundle](ctx, e.db, `
+			SELECT bundle_hash, work_score
+			FROM withdrawal_bundles
+			WHERE sidechain_slot = ?
+			  AND status = 'pending'
+			  AND first_seen_height <= ?
+			ORDER BY work_score DESC
+			LIMIT 2
+		`, slot, height)
+		if err != nil {
+			return nil, fmt.Errorf("list pending bundles of sidechain %d: %w", slot, err)
+		}
+		if len(bundles) == 0 {
+			continue
+		}
+		var second uint16
+		if len(bundles) == 2 {
+			second = bundles[1].WorkScore
+		}
+		if bundles[0].WorkScore < second+leadingBy50Margin {
+			continue
+		}
+		votes = append(votes, m4.M4Vote{
+			SidechainSlot: slot,
+			VoteType:      m4.VoteTypeUpvote,
+			BundleHash:    &bundles[0].BundleHash,
+		})
+	}
+	return votes, nil
 }
 
 // activeSlotsAt lists the sidechain slots active at height, in ascending order.
@@ -198,8 +314,8 @@ func (e *M4Engine) persistM4Votes(ctx context.Context, msgID int64, votes []m4.M
 			_, err := tx.ExecContext(ctx, `
 				INSERT INTO m4_votes (
 					m4_message_id, sidechain_slot, vote_type, bundle_hash, bundle_index
-				) VALUES (?, ?, ?, NULL, ?)
-			`, msgID, vote.SidechainSlot, vote.VoteType, bundleIndex)
+				) VALUES (?, ?, ?, ?, ?)
+			`, msgID, vote.SidechainSlot, vote.VoteType, vote.BundleHash, bundleIndex)
 			if err != nil {
 				return fmt.Errorf("insert vote: %w", err)
 			}
@@ -294,38 +410,18 @@ func (e *M4Engine) persistM3Message(ctx context.Context, msg *m4.M3Message) erro
 	})
 }
 
-// applyM4Votes applies M4 votes to update withdrawal bundle work scores
+// applyM4Votes applies M4 votes as the AckBundles diff of the enforcer does
+// (bip300301_enforcer lib/validator/dbs/diff.rs). last_updated_height < height
+// keeps a replayed block from scoring a bundle it already scored.
 func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Message) error {
 	for _, vote := range msg.Votes {
 		switch vote.VoteType {
 		case m4.VoteTypeUpvote:
-			// Increment work score for upvoted bundle
-			// We need to find the bundle by sidechain slot and index
-			if vote.BundleIndex != nil {
-				// The bundle is picked by a subquery because SQLite only allows
-				// ORDER BY/LIMIT directly on an UPDATE in builds this driver
-				// does not use.
-				// last_updated_height < height keeps a replayed block from
-				// scoring a bundle it already scored. Heights only move forward
-				// in a normal scan, so this is a no-op there.
-				_, err := e.db.ExecContext(ctx, `
-					UPDATE withdrawal_bundles
-					SET work_score = work_score + 1,
-					    last_updated_height = ?,
-					    updated_at = CURRENT_TIMESTAMP
-					WHERE id = (
-					    SELECT id FROM withdrawal_bundles
-					    WHERE sidechain_slot = ?
-					      AND status = 'pending'
-					      AND first_seen_height <= ?
-					    ORDER BY first_seen_height ASC
-					    LIMIT 1 OFFSET ?
-					)
-					  AND last_updated_height < ?
-				`, height, vote.SidechainSlot, height, *vote.BundleIndex, height)
-				if err != nil {
-					return fmt.Errorf("upvote bundle: %w", err)
-				}
+			if vote.BundleHash == nil {
+				continue
+			}
+			if err := e.upvoteBundle(ctx, height, vote.SidechainSlot, *vote.BundleHash); err != nil {
+				return fmt.Errorf("upvote bundle: %w", err)
 			}
 
 		case m4.VoteTypeAlarm:
@@ -361,6 +457,50 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 	}
 
 	return nil
+}
+
+// upvoteBundle adds one to the work score of the bundle, and takes one from
+// each other pending bundle of the sidechain.
+func (e *M4Engine) upvoteBundle(ctx context.Context, height uint32, slot uint8, bundleHash string) error {
+	return inTx(ctx, e.db, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `
+			UPDATE withdrawal_bundles
+			SET work_score = work_score + 1,
+			    last_updated_height = ?,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE sidechain_slot = ?
+			  AND bundle_hash = ?
+			  AND status = 'pending'
+			  AND first_seen_height <= ?
+			  AND last_updated_height < ?
+		`, height, slot, bundleHash, height, height)
+		if err != nil {
+			return err
+		}
+		upvoted, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if upvoted == 0 {
+			return nil
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			UPDATE withdrawal_bundles
+			SET work_score = MAX(0, work_score - 1),
+			    last_updated_height = ?,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE sidechain_slot = ?
+			  AND bundle_hash != ?
+			  AND status = 'pending'
+			  AND first_seen_height <= ?
+			  AND last_updated_height < ?
+		`, height, slot, bundleHash, height, height)
+		if err != nil {
+			return fmt.Errorf("downvote other bundles: %w", err)
+		}
+		return nil
+	})
 }
 
 // updateBundleStates recomputes blocks_left and updates status for all pending bundles
