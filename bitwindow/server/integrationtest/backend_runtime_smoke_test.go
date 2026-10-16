@@ -545,7 +545,7 @@ func stopCmdProcess(t *testing.T, cmd *exec.Cmd) {
 		}
 	case <-time.After(10 * time.Second):
 		_ = cmd.Process.Kill()
-		<-done
+		t.Logf("bitwindowd killed: %v", <-done)
 	}
 }
 

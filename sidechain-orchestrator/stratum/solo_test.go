@@ -146,7 +146,9 @@ func serveServer(t *testing.T, server *stratum.Server) (string, <-chan error) {
 	go func() { done <- server.Serve(ctx, ln) }()
 	t.Cleanup(func() {
 		cancel()
-		<-done
+		if err := <-done; err != nil {
+			assert.ErrorIs(t, err, context.Canceled)
+		}
 	})
 	return ln.Addr().String(), done
 }

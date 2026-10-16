@@ -387,7 +387,7 @@ func startWatch(t *testing.T, w *MempoolWatcher) *watchRun {
 	go func() { run.done <- w.watch(ctx) }()
 	t.Cleanup(func() {
 		cancel()
-		<-run.done
+		t.Logf("watch stopped: %v", <-run.done)
 	})
 	return run
 }
@@ -543,7 +543,9 @@ func TestMempoolWatchSetEnabled(t *testing.T) {
 		go func() { runDone <- w.Run(runCtx) }()
 		t.Cleanup(func() {
 			cancel()
-			<-runDone
+			if err := <-runDone; err != nil {
+				assert.ErrorIs(t, err, context.Canceled)
+			}
 		})
 		require.Eventually(t, func() bool {
 			w.mu.Lock()
