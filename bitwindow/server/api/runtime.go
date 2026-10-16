@@ -25,7 +25,6 @@ import (
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/drivechain"
 	api_enforcer "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/enforcer"
-	api_fast_withdrawal "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/fast_withdrawal"
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	api_m4 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/m4"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
@@ -42,7 +41,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1/bitdrivev1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
-	fast_withdrawalv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/fast_withdrawal/v1/fast_withdrawalv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1/healthv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
@@ -195,8 +193,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
 	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain)
-	walletAdapter := engines.NewWalletAdapter(rt.walletEngine)
-	rt.timestampEngine = engines.NewTimestampEngine(rt.db, walletAdapter, s.Bitcoind, rt.walletEngine.NodeMode())
+	rt.timestampEngine = engines.NewTimestampEngine(rt.db, rt.walletEngine, s.Bitcoind, rt.walletEngine.NodeMode())
 	rt.m4Engine = engines.NewM4Engine(rt.db)
 	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind, rt.walletEngine.NodeMode())
 	bitdriveEngine, err := engines.NewBitDriveEngine(rt.db, rt.walletEngine, conf.Datadir, rt.chainParams)
@@ -321,11 +318,6 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	{
 		walletPsbtSvc := api_walletpsbt.New(rt.db)
 		path, h := walletpsbtv1connect.NewWalletPsbtServiceHandler(walletPsbtSvc, stdOpts...)
-		register(path, h)
-	}
-	{
-		fastSvc := api_fast_withdrawal.New(rt.sidechainMonitor)
-		path, h := fast_withdrawalv1connect.NewFastWithdrawalServiceHandler(fastSvc, stdOpts...)
 		register(path, h)
 	}
 	// Enforcer bridge — single impl serves three separate services

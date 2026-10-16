@@ -191,17 +191,11 @@ func DetectFileType(content []byte) string {
 	return "txt"
 }
 
-// DeriveKeyStream derives a keystream for XOR encryption
+// deriveKeyStream derives a keystream for XOR encryption
 // Uses SHA256(seed || counter) where seed = SHA256(privateKeyHex:timestamp:fileType: || nonce).
 // The per-file random nonce guarantees that two files sharing a timestamp and
 // file type never derive the same keystream.
-func (e *BitDriveEngine) DeriveKeyStream(ctx context.Context, nonce []byte, timestamp uint32, fileType string, length int) ([]byte, error) {
-	// Get the encryption key
-	privateKeyHex, err := e.getEncryptionPrivateKey(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get encryption key: %w", err)
-	}
-
+func deriveKeyStream(privateKeyHex string, nonce []byte, timestamp uint32, fileType string, length int) []byte {
 	// Create seed: SHA256(privateKeyHex:timestamp:fileType: || nonce)
 	seedInput := fmt.Sprintf("%s:%d:%s:", privateKeyHex, timestamp, fileType)
 	seedHasher := sha256.New()
@@ -236,118 +230,56 @@ func (e *BitDriveEngine) DeriveKeyStream(ctx context.Context, nonce []byte, time
 		counter++
 	}
 
-	return result, nil
+	return result
 }
 
-// getEncryptionPrivateKey derives the encryption key from path m/84'/1'/0'/0/4000
-func (e *BitDriveEngine) getEncryptionPrivateKey(ctx context.Context) (string, error) {
+// bitDriveKeys reads the starter seed one time and derives the encryption key
+// (m/84'/1'/0'/0/4000, as hex) and the authentication key (m/84'/1'/0'/1/4000).
+func (e *BitDriveEngine) bitDriveKeys(ctx context.Context) (string, []byte, error) {
 	seed, err := e.walletEngine.GetStarterSeed(ctx)
 	if err != nil {
-		return "", fmt.Errorf("get starter seed: %w", err)
+		return "", nil, fmt.Errorf("get starter seed: %w", err)
 	}
-
 	seedBytes, err := hex.DecodeString(seed)
 	if err != nil {
-		return "", fmt.Errorf("decode seed hex: %w", err)
+		return "", nil, fmt.Errorf("decode seed hex: %w", err)
 	}
-
-	// Derive to m/84'/1'/0'/0/4000
 	masterKey, err := hdkeychain.NewMaster(seedBytes, e.chainParams)
 	if err != nil {
-		return "", fmt.Errorf("derive master key: %w", err)
+		return "", nil, fmt.Errorf("derive master key: %w", err)
 	}
 
-	// m/84'
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
+	encryptionKey, err := deriveBitDriveKey(masterKey, 0)
 	if err != nil {
-		return "", fmt.Errorf("derive purpose: %w", err)
+		return "", nil, fmt.Errorf("derive encryption key: %w", err)
 	}
-
-	// m/84'/1' (testnet/signet coin type)
-	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + 1)
+	authKey, err := deriveBitDriveKey(masterKey, 1)
 	if err != nil {
-		return "", fmt.Errorf("derive coin type: %w", err)
+		return "", nil, fmt.Errorf("derive auth key: %w", err)
 	}
-
-	// m/84'/1'/0'
-	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return "", fmt.Errorf("derive account: %w", err)
-	}
-
-	// m/84'/1'/0'/0 (external chain)
-	change, err := account.Derive(0)
-	if err != nil {
-		return "", fmt.Errorf("derive change: %w", err)
-	}
-
-	// m/84'/1'/0'/0/4000
-	key, err := change.Derive(BitDriveDerivationIndex)
-	if err != nil {
-		return "", fmt.Errorf("derive index: %w", err)
-	}
-
-	privKey, err := key.ECPrivKey()
-	if err != nil {
-		return "", fmt.Errorf("get EC private key: %w", err)
-	}
-
-	return hex.EncodeToString(privKey.Serialize()), nil
+	return hex.EncodeToString(encryptionKey), authKey, nil
 }
 
-// getAuthKey derives the authentication key from path m/84'/1'/0'/1/4000
-func (e *BitDriveEngine) getAuthKey(ctx context.Context) ([]byte, error) {
-	seed, err := e.walletEngine.GetStarterSeed(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get starter seed: %w", err)
+// deriveBitDriveKey derives the private key at m/84'/1'/0'/change/4000.
+func deriveBitDriveKey(masterKey *hdkeychain.ExtendedKey, change uint32) ([]byte, error) {
+	key := masterKey
+	for _, index := range []uint32{
+		hdkeychain.HardenedKeyStart + 84,
+		hdkeychain.HardenedKeyStart + 1,
+		hdkeychain.HardenedKeyStart + 0,
+		change,
+		BitDriveDerivationIndex,
+	} {
+		var err error
+		key, err = key.Derive(index)
+		if err != nil {
+			return nil, fmt.Errorf("derive index %d: %w", index, err)
+		}
 	}
-
-	seedBytes, err := hex.DecodeString(seed)
-	if err != nil {
-		return nil, fmt.Errorf("decode seed hex: %w", err)
-	}
-
-	// Derive to m/84'/1'/0'/1/4000
-	masterKey, err := hdkeychain.NewMaster(seedBytes, e.chainParams)
-	if err != nil {
-		return nil, fmt.Errorf("derive master key: %w", err)
-	}
-
-	// m/84'
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
-	if err != nil {
-		return nil, fmt.Errorf("derive purpose: %w", err)
-	}
-
-	// m/84'/1'
-	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + 1)
-	if err != nil {
-		return nil, fmt.Errorf("derive coin type: %w", err)
-	}
-
-	// m/84'/1'/0'
-	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return nil, fmt.Errorf("derive account: %w", err)
-	}
-
-	// m/84'/1'/0'/1 (internal/change chain)
-	change, err := account.Derive(1)
-	if err != nil {
-		return nil, fmt.Errorf("derive change: %w", err)
-	}
-
-	// m/84'/1'/0'/1/4000
-	key, err := change.Derive(BitDriveDerivationIndex)
-	if err != nil {
-		return nil, fmt.Errorf("derive index: %w", err)
-	}
-
 	privKey, err := key.ECPrivKey()
 	if err != nil {
 		return nil, fmt.Errorf("get EC private key: %w", err)
 	}
-
 	return privKey.Serialize(), nil
 }
 
@@ -364,11 +296,12 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 		return nil, fmt.Errorf("generate nonce: %w", err)
 	}
 
-	// Generate keystream
-	keyStream, err := e.DeriveKeyStream(ctx, nonce, timestamp, fileType, len(content))
+	encryptionKey, authKey, err := e.bitDriveKeys(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("derive keystream: %w", err)
+		return nil, err
 	}
+
+	keyStream := deriveKeyStream(encryptionKey, nonce, timestamp, fileType, len(content))
 
 	// XOR encrypt
 	encrypted := make([]byte, len(content))
@@ -376,10 +309,7 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 		encrypted[i] = content[i] ^ keyStream[i]
 	}
 
-	tag, err := e.authTag(ctx, metadata, nonce, encrypted)
-	if err != nil {
-		return nil, err
-	}
+	tag := authTag(authKey, metadata, nonce, encrypted)
 
 	// Combine nonce, encrypted content, and tag
 	result := make([]byte, NonceSize+len(encrypted)+len(tag))
@@ -393,7 +323,7 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 // Decrypt verifies the HMAC auth tag and decrypts content. metadata must be the
 // 9-byte metadata prefix the ciphertext arrived with: it is authenticated as
 // associated data, so a tampered timestamp or file type is rejected rather than
-// feeding a wrong keystream seed into DeriveKeyStream.
+// feeding a wrong keystream seed into deriveKeyStream.
 func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, timestamp uint32, fileType string, metadata []byte) ([]byte, error) {
 	if len(encryptedData) <= NonceSize+AuthTagSize {
 		return nil, errors.New("encrypted data too short")
@@ -405,21 +335,19 @@ func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, time
 	encryptedContent := encryptedData[NonceSize : NonceSize+contentLen]
 	receivedTag := encryptedData[NonceSize+contentLen:]
 
-	calculatedTag, err := e.authTag(ctx, metadata, nonce, encryptedContent)
+	encryptionKey, authKey, err := e.bitDriveKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	calculatedTag := authTag(authKey, metadata, nonce, encryptedContent)
 
 	// Constant-time comparison
 	if subtle.ConstantTimeCompare(receivedTag, calculatedTag) != 1 {
 		return nil, errors.New("authentication failed: data may be corrupted")
 	}
 
-	// Generate keystream
-	keyStream, err := e.DeriveKeyStream(ctx, nonce, timestamp, fileType, contentLen)
-	if err != nil {
-		return nil, fmt.Errorf("derive keystream: %w", err)
-	}
+	keyStream := deriveKeyStream(encryptionKey, nonce, timestamp, fileType, contentLen)
 
 	// XOR decrypt
 	decrypted := make([]byte, contentLen)
@@ -433,17 +361,12 @@ func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, time
 // authTag is the first AuthTagSize bytes of an HMAC-SHA256 over the metadata,
 // nonce and ciphertext. All three are fixed-length or trailing, so the
 // concatenation is unambiguous.
-func (e *BitDriveEngine) authTag(ctx context.Context, metadata, nonce, ciphertext []byte) ([]byte, error) {
-	authKey, err := e.getAuthKey(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get auth key: %w", err)
-	}
-
+func authTag(authKey, metadata, nonce, ciphertext []byte) []byte {
 	mac := hmac.New(sha256.New, authKey)
 	mac.Write(metadata)
 	mac.Write(nonce)
 	mac.Write(ciphertext)
-	return mac.Sum(nil)[:AuthTagSize], nil
+	return mac.Sum(nil)[:AuthTagSize]
 }
 
 // EncodeOPReturnData encodes metadata and content for OP_RETURN storage

@@ -228,7 +228,7 @@ func TestTimestampEngineWatchesOnlyInFullMode(t *testing.T) {
 			require.NoError(t, err)
 
 			var dials atomic.Int64
-			engine := engines.NewTimestampEngine(db, &mockWallet{}, countingBitcoind(&dials), nodeModeSource(t, tc.mode))
+			engine := engines.NewTimestampEngine(db, nil, countingBitcoind(&dials), nodeModeSource(t, tc.mode))
 
 			ctx, cancel := context.WithTimeout(t.Context(), 12*time.Second)
 			defer cancel()

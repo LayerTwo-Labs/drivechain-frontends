@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -885,23 +886,7 @@ func parseIndex(part string) int {
 }
 
 func splitPath(path string) []string {
-	// Split "m/84'/1'/8000'" -> ["m", "84'", "1'", "8000'"]
-	var result []string
-	current := ""
-	for _, c := range path {
-		if c == '/' {
-			if current != "" {
-				result = append(result, current)
-			}
-			current = ""
-		} else {
-			current += string(c)
-		}
-	}
-	if current != "" {
-		result = append(result, current)
-	}
-	return result
+	return strings.FieldsFunc(path, func(c rune) bool { return c == '/' })
 }
 
 func trimHardened(s string) string {
@@ -933,48 +918,16 @@ func getStringAlt(m map[string]interface{}, keys ...string) string {
 }
 
 func getInt(m map[string]interface{}, key string) int {
-	if v, ok := m[key]; ok {
-		switch n := v.(type) {
-		case float64:
-			return int(n)
-		case int:
-			return n
-		case json.Number:
-			i, _ := n.Int64()
-			return int(i)
-		}
-	}
-	return 0
+	return int(getFloat(m, key))
 }
 
 func getInt64(m map[string]interface{}, key string) int64 {
-	if v, ok := m[key]; ok {
-		switch n := v.(type) {
-		case float64:
-			return int64(n)
-		case int64:
-			return n
-		case json.Number:
-			i, _ := n.Int64()
-			return i
-		}
-	}
-	return 0
+	return int64(getFloat(m, key))
 }
 
 func getFloat(m map[string]interface{}, key string) float64 {
-	if v, ok := m[key]; ok {
-		switch n := v.(type) {
-		case float64:
-			return n
-		case int:
-			return float64(n)
-		case json.Number:
-			f, _ := n.Float64()
-			return f
-		}
-	}
-	return 0
+	n, _ := m[key].(float64)
+	return n
 }
 
 func getBool(m map[string]interface{}, key string) bool {

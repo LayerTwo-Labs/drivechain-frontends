@@ -60,19 +60,14 @@ func isTxNotFoundError(errMsg string) bool {
 
 type TimestampEngine struct {
 	db       *sql.DB
-	wallet   WalletService
+	wallet   *WalletEngine
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	nodeMode *NodeMode
 }
 
-// WalletService interface for sending transactions
-type WalletService interface {
-	SendTransaction(ctx context.Context, opReturnData []byte) (string, error)
-}
-
 func NewTimestampEngine(
 	db *sql.DB,
-	wallet WalletService,
+	wallet *WalletEngine,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	nodeMode *NodeMode,
 ) *TimestampEngine {
@@ -255,7 +250,7 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 
 	opReturnData := append([]byte(TimestampPrefix), hash[:]...)
 
-	txid, err := e.wallet.SendTransaction(ctx, opReturnData)
+	txid, err := e.wallet.BroadcastOpReturn(ctx, opReturnData, 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("send timestamp transaction: %w", err)
 	}

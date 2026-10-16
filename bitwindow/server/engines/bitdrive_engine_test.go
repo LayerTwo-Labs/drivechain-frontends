@@ -110,6 +110,29 @@ func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 	}
 }
 
+func TestEncrypt_ReadsTheSeedOneTime(t *testing.T) {
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	orch.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+			Wallets: []*orchpb.WalletMetadata{{Id: "test-enforcer", IsStarter: true}},
+		}), nil).
+		Times(1)
+	orch.EXPECT().
+		GetWalletSeed(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&orchpb.GetWalletSeedResponse{
+			SeedHex: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		}), nil).
+		Times(1)
+	engine := &BitDriveEngine{
+		walletEngine: NewWalletEngine(t.Context(), nil, orch, t.TempDir(), &chaincfg.SigNetParams, nil),
+		chainParams:  &chaincfg.SigNetParams,
+	}
+
+	_, err := engine.Encrypt(t.Context(), []byte("hello"), 1, "txt", EncodeMetadataBytes(true, false, 1, "txt"))
+	require.NoError(t, err)
+}
+
 // TestEncrypt_SameTimestampSameFileType_NoKeystreamReuse verifies that two files
 // encrypted under an identical (timestamp, fileType) tuple derive distinct
 // keystreams, so the ciphertext is not a two-time pad, while still round-tripping
