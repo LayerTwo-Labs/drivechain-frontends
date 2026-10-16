@@ -1,0 +1,23 @@
+{
+  "spend_utxos": [
+    [
+      {"Regular": {"txid": "3c5d1c5f8f0b2a4e6d7c8b9a0f1e2d3c4b5a69788796a5b4c3d2e1f00112233a", "vout": 0}},
+      {"address": "2hrYcSUdzUBUCZXmJ3XVTr6vSoXc", "content": {"Withdrawal": {"value_sats": 50000, "main_fee_sats": 1200, "main_address": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"}}}
+    ],
+    [
+      {"Regular": {"txid": "9a8b7c6d5e4f30211203f4e5d6c7b8a99a8b7c6d5e4f30211203f4e5d6c7b8a9", "vout": 1}},
+      {"address": "3ApxXfTQpzrWDH8Lr2QgnfbFp3Y8", "content": {"Withdrawal": {"value_sats": 120000, "main_fee_sats": 800, "main_address": "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7"}}}
+    ]
+  ],
+  "tx": {
+    "version": 2,
+    "lock_time": 0,
+    "input": [],
+    "output": [
+      {"value": 0, "script_pubkey": "6a0800000000000007d0"},
+      {"value": 0, "script_pubkey": "6a20b1e4f2c3d4a5968778695a4b3c2d1e0f00112233445566778899aabbccddeeff"},
+      {"value": 50000, "script_pubkey": "0014751e76e8199196d454941c45d1b3a323f1433bd6"},
+      {"value": 120000, "script_pubkey": "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"}
+    ]
+  }
+}

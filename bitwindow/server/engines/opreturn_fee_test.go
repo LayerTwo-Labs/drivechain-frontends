@@ -12,6 +12,14 @@ func TestOpReturnOutputVbytesUsesTheRightPushOpcode(t *testing.T) {
 	assert.EqualValues(t, 8+1+1+1+75, OpReturnOutputVbytes(75))
 	// past that the payload needs OP_PUSHDATA1 plus a length byte
 	assert.EqualValues(t, 8+1+1+2+76, OpReturnOutputVbytes(76))
+	// a 249-byte payload makes a 252-byte script, the last one-byte script length
+	assert.EqualValues(t, 8+1+1+2+249, OpReturnOutputVbytes(249))
+	// a 250-byte payload makes a 253-byte script, which needs a 3-byte length
+	assert.EqualValues(t, 8+3+1+2+250, OpReturnOutputVbytes(250))
+	// past 255 bytes the payload needs OP_PUSHDATA2 plus a 2-byte length
+	assert.EqualValues(t, 8+3+1+3+256, OpReturnOutputVbytes(256))
+	// past 65535 bytes it needs OP_PUSHDATA4, and the script length needs 5 bytes
+	assert.EqualValues(t, 8+5+1+5+65536, OpReturnOutputVbytes(65536))
 }
 
 func TestOpReturnTxVbytesCountsInputChangeAndPayload(t *testing.T) {

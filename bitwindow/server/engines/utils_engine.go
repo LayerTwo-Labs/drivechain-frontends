@@ -202,11 +202,9 @@ func CalculateMerkleTree(txids []string) (*MerkleTreeResult, error) {
 				hash2 = hash1 // Duplicate last hash if odd
 			}
 
-			// Concatenate and double-hash
-			combined := make([]byte, len(hash1)+len(hash2))
-			copy(combined, hash1)
-			copy(combined[len(hash1):], hash2)
-			product := chainhash.DoubleHashB(combined)
+			// Txids are in display order; Bitcoin hashes the internal (reversed) bytes.
+			combined := append(reverseBytes(hash1), reverseBytes(hash2)...)
+			product := reverseBytes(chainhash.DoubleHashB(combined))
 			nextLevel = append(nextLevel, product)
 		}
 

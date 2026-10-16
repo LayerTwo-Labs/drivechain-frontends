@@ -36,11 +36,14 @@ type SidechainMonitorEngine struct {
 
 	// State tracking (in-memory only)
 	mu                  sync.RWMutex
-	detectedWithdrawals map[string]DetectedWithdrawal // txid -> withdrawal info
+	detectedWithdrawals map[string]DetectedWithdrawal // withdrawalKey -> withdrawal
 }
+
+const sidechainMonitorPollInterval = 30 * time.Second
 
 type DetectedWithdrawal struct {
 	Txid        string    `json:"txid"`
+	Vout        uint32    `json:"vout"`
 	Sidechain   string    `json:"sidechain"`
 	Amount      int64     `json:"amount"`
 	Destination string    `json:"destination"`
@@ -96,31 +99,15 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 			log := log.With().Str("sidechain", name).Logger()
 			ctx := log.WithContext(ctx)
 
-			var pollCount int
 			for {
+				if err := e.monitor(ctx, name, client); err != nil {
+					log.Debug().Err(err).Msgf("%s monitor error, retrying", name)
+				}
+
 				select {
 				case <-ctx.Done():
 					return
-				default:
-					if err := e.monitor(ctx, name, client); err != nil {
-						log.Debug().Err(err).Msgf("%s monitor error, retrying", name)
-					}
-
-					pollCount++
-					// Cleanup old withdrawals every 60 polls for ALL sidechains (fix memory leak)
-					if pollCount%60 == 0 {
-						e.cleanupOldWithdrawals()
-					}
-
-					// Dynamic polling interval based on pending withdrawals
-					pollInterval := e.getPollInterval()
-
-					// Wait before next poll
-					select {
-					case <-ctx.Done():
-						return
-					case <-time.After(pollInterval):
-					}
+				case <-time.After(sidechainMonitorPollInterval):
 				}
 			}
 		}(sc.name, sc.client)
@@ -141,80 +128,60 @@ func (e *SidechainMonitorEngine) GetWithdrawalByTxid(ctx context.Context, txid s
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	if withdrawal, exists := e.detectedWithdrawals[txid]; exists {
-		return &withdrawal, nil
+	withdrawal, ok := lo.FindKeyBy(e.detectedWithdrawals, func(_ string, w DetectedWithdrawal) bool { return w.Txid == txid })
+	if !ok {
+		return nil, nil
 	}
-
-	return nil, nil
+	found := e.detectedWithdrawals[withdrawal]
+	return &found, nil
 }
 
-// getPollInterval returns the polling interval based on pending withdrawals
-func (e *SidechainMonitorEngine) getPollInterval() time.Duration {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	pendingCount := len(e.detectedWithdrawals)
-
-	switch {
-	case pendingCount == 0:
-		return 30 * time.Second // No activity
-	case pendingCount < 3:
-		return 5 * time.Second // Light activity - more reasonable
-	default:
-		return 2 * time.Second // Heavy activity - cap at 2 seconds (less aggressive)
-	}
+// One sidechain tx can pay several withdrawal outputs, so the key holds the vout.
+func withdrawalKey(w DetectedWithdrawal) string {
+	return fmt.Sprintf("%s:%s:%d", w.Sidechain, w.Txid, w.Vout)
 }
 
-// cleanupOldWithdrawals removes withdrawals older than 1 hour to prevent memory bloat
-func (e *SidechainMonitorEngine) cleanupOldWithdrawals() {
+// setWithdrawals makes the detected withdrawals of sidechain the same as
+// withdrawals, and reports each new one.
+func (e *SidechainMonitorEngine) setWithdrawals(ctx context.Context, sidechain string, withdrawals []DetectedWithdrawal) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	cutoff := time.Now().Add(-time.Hour)
-	for txid, withdrawal := range e.detectedWithdrawals {
-		if withdrawal.DetectedAt.Before(cutoff) {
-			delete(e.detectedWithdrawals, txid)
+	current := lo.SliceToMap(withdrawals, func(w DetectedWithdrawal) (string, DetectedWithdrawal) { return withdrawalKey(w), w })
+	for key, w := range e.detectedWithdrawals {
+		if _, ok := current[key]; w.Sidechain == sidechain && !ok {
+			delete(e.detectedWithdrawals, key)
 		}
 	}
-}
 
-// storeWithdrawal stores a detected withdrawal in memory only
-func (e *SidechainMonitorEngine) storeWithdrawal(ctx context.Context, withdrawal DetectedWithdrawal) {
-	log := zerolog.Ctx(ctx)
+	for _, withdrawal := range withdrawals {
+		key := withdrawalKey(withdrawal)
+		if _, exists := e.detectedWithdrawals[key]; exists {
+			continue
+		}
+		e.detectedWithdrawals[key] = withdrawal
 
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Check if already detected
-	if _, exists := e.detectedWithdrawals[withdrawal.Txid]; exists {
-		return
-	}
-
-	// Store in memory only
-	e.detectedWithdrawals[withdrawal.Txid] = withdrawal
-
-	// Broadcast notification to frontend
-	event := &notificationv1.WatchResponse{
-		Timestamp: timestamppb.Now(),
-		Event: &notificationv1.WatchResponse_SidechainWithdrawal{
-			SidechainWithdrawal: &notificationv1.SidechainWithdrawalEvent{
-				Type:        notificationv1.SidechainWithdrawalEvent_TYPE_DETECTED,
-				Txid:        withdrawal.Txid,
-				Sidechain:   withdrawal.Sidechain,
-				Amount:      withdrawal.Amount,
-				Destination: withdrawal.Destination,
-				DetectedAt:  timestamppb.New(withdrawal.DetectedAt),
-				BlockHash:   withdrawal.BlockHash,
+		e.notificationEngine.Deliver(ctx, &notificationv1.WatchResponse{
+			Timestamp: timestamppb.Now(),
+			Event: &notificationv1.WatchResponse_SidechainWithdrawal{
+				SidechainWithdrawal: &notificationv1.SidechainWithdrawalEvent{
+					Type:        notificationv1.SidechainWithdrawalEvent_TYPE_DETECTED,
+					Txid:        withdrawal.Txid,
+					Sidechain:   withdrawal.Sidechain,
+					Amount:      withdrawal.Amount,
+					Destination: withdrawal.Destination,
+					DetectedAt:  timestamppb.New(withdrawal.DetectedAt),
+					BlockHash:   withdrawal.BlockHash,
+				},
 			},
-		},
-	}
-	e.notificationEngine.Deliver(ctx, event)
+		})
 
-	log.Info().
-		Str("txid", withdrawal.Txid).
-		Str("sidechain", withdrawal.Sidechain).
-		Int64("amount", withdrawal.Amount).
-		Msg("detected fast withdrawal transaction")
+		zerolog.Ctx(ctx).Info().
+			Str("txid", withdrawal.Txid).
+			Str("sidechain", withdrawal.Sidechain).
+			Int64("amount", withdrawal.Amount).
+			Msg("detected withdrawal in the pending bundle")
+	}
 }
 
 // sidechainRPC is the part of a sidechain client that the monitor reads.
@@ -243,36 +210,69 @@ func (e *SidechainMonitorEngine) monitor(ctx context.Context, name string, getCl
 	return e.parseWithdrawalBundle(ctx, bundleRaw, name)
 }
 
-// parseWithdrawalBundle is a helper to parse withdrawal bundle JSON for any sidechain
-func (e *SidechainMonitorEngine) parseWithdrawalBundle(ctx context.Context, bundleRaw json.RawMessage, sidechainName string) error {
+// pendingBundle is the WithdrawalBundle of thunder types/lib.rs in its JSON
+// form. Each spend_utxos entry is an [OutPoint, Output] pair.
+type pendingBundle struct {
+	SpendUtxos [][2]json.RawMessage `json:"spend_utxos"`
+}
 
-	var bundle map[string]interface{}
+type bundleOutPoint struct {
+	Regular *struct {
+		Txid string `json:"txid"`
+		Vout uint32 `json:"vout"`
+	} `json:"Regular"`
+}
+
+// bitassets names the payout BitcoinWithdrawal; the other sidechains name it Withdrawal.
+type bundleOutput struct {
+	Content struct {
+		Withdrawal        *bundlePayout `json:"Withdrawal"`
+		BitcoinWithdrawal *bundlePayout `json:"BitcoinWithdrawal"`
+	} `json:"content"`
+}
+
+type bundlePayout struct {
+	ValueSats   int64  `json:"value_sats"`
+	MainAddress string `json:"main_address"`
+}
+
+// parseWithdrawalBundle reads the payouts of the pending bundle. A null
+// bundle means that the sidechain has no pending bundle.
+func (e *SidechainMonitorEngine) parseWithdrawalBundle(ctx context.Context, bundleRaw json.RawMessage, sidechainName string) error {
+	var bundle *pendingBundle
 	if err := json.Unmarshal(bundleRaw, &bundle); err != nil {
 		return fmt.Errorf("parse withdrawal bundle: %w", err)
 	}
 
-	// Extract withdrawal transactions from bundle
-	if transactions, ok := bundle["transactions"].([]interface{}); ok {
-		for _, tx := range transactions {
-			if txMap, ok := tx.(map[string]interface{}); ok {
-				if txid, hasID := txMap["txid"].(string); hasID {
-					if amount, hasAmount := txMap["amount"].(float64); hasAmount {
-						if dest, hasDest := txMap["destination"].(string); hasDest {
-							withdrawal := DetectedWithdrawal{
-								Txid:        txid,
-								Sidechain:   sidechainName,
-								Amount:      int64(amount),
-								Destination: dest,
-								DetectedAt:  time.Now(),
-							}
-
-							e.storeWithdrawal(ctx, withdrawal)
-						}
-					}
-				}
+	var withdrawals []DetectedWithdrawal
+	if bundle != nil {
+		for _, pair := range bundle.SpendUtxos {
+			var outPoint bundleOutPoint
+			if err := json.Unmarshal(pair[0], &outPoint); err != nil {
+				return fmt.Errorf("parse bundle outpoint: %w", err)
 			}
+			var output bundleOutput
+			if err := json.Unmarshal(pair[1], &output); err != nil {
+				return fmt.Errorf("parse bundle output: %w", err)
+			}
+			payout := output.Content.Withdrawal
+			if payout == nil {
+				payout = output.Content.BitcoinWithdrawal
+			}
+			if outPoint.Regular == nil || payout == nil {
+				return fmt.Errorf("bundle spends a coin that is not a withdrawal: %s", pair[0])
+			}
+			withdrawals = append(withdrawals, DetectedWithdrawal{
+				Txid:        outPoint.Regular.Txid,
+				Vout:        outPoint.Regular.Vout,
+				Sidechain:   sidechainName,
+				Amount:      payout.ValueSats,
+				Destination: payout.MainAddress,
+				DetectedAt:  time.Now(),
+			})
 		}
 	}
 
+	e.setWithdrawals(ctx, sidechainName, withdrawals)
 	return nil
 }
