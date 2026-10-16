@@ -22,12 +22,7 @@ const (
 	NetworkTestnet Network = "testnet"
 )
 
-// Config holds bitwindowd's runtime configuration. Network identity is
-// **not** declared here as a CLI flag — bitwindowd sources it from
-// drivechaind at startup via [Finalize] so it is always aligned with
-// orchestrator's view of the world. bitcoind RPC creds aren't needed
-// either: bitwindowd dials drivechaind's hosted BitcoinService for any
-// bitcoind call.
+// Config holds the runtime configuration of bitwindowd. [Finalize] sets the network from drivechaind.
 type Config struct {
 	Version bool `long:"version" short:"v" description:"Print version information and exit"`
 
@@ -60,10 +55,7 @@ type Config struct {
 	// CLI flags. Used downstream for Datadir scoping and chain-params lookup.
 	BitcoinCoreNetwork Network `no-flag:"true"`
 
-	// baseDatadir / baseLogPath capture the un-finalized values on the
-	// first Finalize so subsequent calls (network swap via Recycle) can
-	// recompute network-scoped paths from the original base instead of
-	// stacking another suffix (".../signet/signet/...").
+	// A second Finalize computes the network paths from these, not from an already suffixed path.
 	baseDatadir string `no-flag:"true"`
 	baseLogPath string `no-flag:"true"`
 }

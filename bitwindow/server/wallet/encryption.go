@@ -27,15 +27,12 @@ type EncryptionMetadata struct {
 	Version    string `json:"version"`
 }
 
-// DeriveKey derives an encryption key from a password using PBKDF2-HMAC-SHA256
-// This matches the Dart implementation exactly
+// DeriveKey gives the same key as the Dart app for the same input.
 func DeriveKey(password string, salt []byte, iterations int) []byte {
 	return pbkdf2.Key([]byte(password), salt, iterations, keyLength, sha256.New)
 }
 
-// Decrypt decrypts data using AES-256-GCM
-// Format matches Dart: "iv:encrypted" (both base64 encoded)
-// Supports both 12-byte (standard GCM) and 16-byte IVs (Dart default)
+// Decrypt reads the Dart format "iv:ciphertext", both base64, with a 12- or 16-byte IV.
 func Decrypt(ciphertext string, key []byte) (string, error) {
 	parts := strings.Split(ciphertext, ":")
 	if len(parts) != 2 {
@@ -82,7 +79,6 @@ func Decrypt(ciphertext string, key []byte) (string, error) {
 	return string(plaintext), nil
 }
 
-// LoadMetadata reads wallet_encryption.json
 func LoadMetadata(appDir string) (*EncryptionMetadata, error) {
 	metadataPath := filepath.Join(appDir, "wallet_encryption.json")
 	data, err := os.ReadFile(metadataPath)
@@ -103,8 +99,6 @@ func IsWalletEncrypted(appDir string) bool {
 	return err == nil && metadata.Encrypted
 }
 
-// DecryptWallet decrypts wallet.json using the provided password
-// Returns the decrypted wallet data as a map
 func DecryptWallet(appDir, password string) (map[string]interface{}, error) {
 	metadata, err := LoadMetadata(appDir)
 	if err != nil {

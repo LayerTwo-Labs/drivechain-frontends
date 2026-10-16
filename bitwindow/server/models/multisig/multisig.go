@@ -351,11 +351,7 @@ func (s *Store) getTransactionWhere(ctx context.Context, where sq.Eq) (*Transact
 }
 
 func saveTransactionOn(ctx context.Context, e execer, t Transaction) error {
-	// Transaction IDs are client-supplied (and derived from a short 32-bit content
-	// hash), so they can collide across multisig groups. multisig_transactions is
-	// keyed by id alone, so a colliding save would reassign the existing row to the
-	// caller's group and — via the child-table replace — wipe the original group's
-	// collected signer PSBTs and inputs. Refuse to move a transaction between groups.
+	// A client ID can collide across groups, and a move would wipe the signer PSBTs of the first group.
 	existingGroupID, err := database.Get[string](ctx, e,
 		`SELECT group_id FROM multisig_transactions WHERE id = ?`, t.ID,
 	)

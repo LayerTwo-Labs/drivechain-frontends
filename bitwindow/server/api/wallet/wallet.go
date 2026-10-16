@@ -1612,14 +1612,12 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 	}), nil
 }
 
-// bucketRange defines a value range for UTXO distribution
 type bucketRange struct {
 	minSats uint64
 	maxSats uint64
 	label   string
 }
 
-// generateDynamicBuckets creates bucket ranges that adapt to the wallet's actual UTXO values
 func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange {
 	// Use predefined boundaries based on Bitcoin denominations
 	// These are logarithmically spaced for good distribution
@@ -1686,7 +1684,6 @@ func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange
 	return ranges
 }
 
-// formatBucketRange creates a human-readable label for a bucket range
 func formatBucketRange(minSats, maxSats uint64) string {
 	minBTC := float64(minSats) / 100_000_000
 	maxBTC := float64(maxSats) / 100_000_000
