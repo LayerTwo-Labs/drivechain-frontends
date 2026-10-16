@@ -329,18 +329,8 @@ func CountStoriesSince(ctx context.Context, db *sql.DB, since time.Time) (int64,
 	return count, nil
 }
 
-// ReassembleTLVs returns the full TLV list for a head Item, splicing in
-// any Continuation chunks (spec §9). headRawTLV is the head's on-chain
-// trailing TLV bytes; chunks are appended in seq order to form the
-// complete TLV byte stream, which is re-parsed.
-//
-// The chunk set is accepted only if it conforms to §9: seq 0-indexed
-// and contiguous, chunks in strictly increasing scan order (so they
-// physically appear in seq order on chain), and the reassembled TLV
-// section ≤ 8 KiB. A non-conforming or unparseable set is ignored and
-// the head's own TLVs are returned unchanged. (Same-block placement and
-// after-head ordering are enforced at index time before a chunk is
-// stored, so they are not re-checked here.)
+// ReassembleTLVs returns the TLVs of a head item with its Continuation chunks (spec §9).
+// It returns the head TLVs alone when the chunk set does not obey §9.
 func ReassembleTLVs(ctx context.Context, db *sql.DB, headID codec.ItemID, headRawTLV []byte) ([]codec.TLV, error) {
 	headTLVs, err := codec.DecodeTLVs(headRawTLV)
 	if err != nil {

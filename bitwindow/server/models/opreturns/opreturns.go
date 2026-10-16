@@ -22,13 +22,10 @@ import (
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
-// Backstop TTL for cached List / ListCoinNews — the contract is that
-// Persist invalidates; TTL only matters if a query races a write.
+// Persist clears the caches. The TTL covers a query that races a write.
 const listCacheTTL = 2 * time.Second
 
-// Caches are keyed by *sql.DB so parallel tests with their own DBs
-// don't share entries. Production has one *sql.DB per network so this
-// is effectively a singleton.
+// The *sql.DB key keeps the caches of parallel tests apart.
 
 type listCacheEntry struct {
 	rows []OPReturn
@@ -143,12 +140,8 @@ func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*OPReturn, error) 
 	return &opReturn, nil
 }
 
-// List returns the most-recent OP_RETURNs, ordered by created_at desc,
-// capped at `limit`. Pass 0 (or any value <= 0) to skip the cap — only
-// do that when the caller genuinely needs the full table; this table
-// grows linearly with chain height. The returned slice is freshly
-// allocated; element values are shared, so OPReturn fields must be
-// treated read-only.
+// List returns the newest OP_RETURNs first, at most limit rows. A limit of 0 or less returns all rows.
+// Do not change the returned values: the cache shares them.
 func List(ctx context.Context, db *sql.DB, limit int) ([]OPReturn, error) {
 	listCacheMu.RLock()
 	cached, hit := listCacheEntries[db][limit]
@@ -189,20 +182,11 @@ func List(ctx context.Context, db *sql.DB, limit int) ([]OPReturn, error) {
 	return opReturns, nil
 }
 
-// mempoolExpiry mirrors Core's default -mempoolexpiry. An unconfirmed
-// OP_RETURN older than that is gone from every mempool and is never
-// going to confirm.
+// mempoolExpiry is the default -mempoolexpiry of Core.
 const mempoolExpiry = 336 * time.Hour
 
-// ReapExpiredMempool deletes unconfirmed OP_RETURNs past Core's mempool
-// expiry. Mempool rows arrive over ZMQ with a NULL height and only ever get one
-// when the transaction is mined, so a broadcast that was replaced, dropped or
-// double-spent would otherwise sit in List forever.
-//
-// mempoolTxIDs reports what the node still holds. It is only called when a row
-// is old enough to delete, because a node can run a longer -mempoolexpiry than
-// the default, and `Persist` keeps the original created_at across a rebroadcast,
-// so age alone does not prove the transaction is gone.
+// ReapExpiredMempool deletes unconfirmed OP_RETURNs older than the mempool expiry
+// that are not in mempoolTxIDs, the txids that the node still holds.
 func ReapExpiredMempool(ctx context.Context, db *sql.DB, mempoolTxIDs func() ([]string, error)) error {
 	cutoff := time.Now().Add(-mempoolExpiry)
 

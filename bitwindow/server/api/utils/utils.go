@@ -16,7 +16,6 @@ import (
 
 var _ rpc.UtilsServiceHandler = new(Server)
 
-// Server implements the UtilsService
 type Server struct {
 	chainParams *chaincfg.Params
 }

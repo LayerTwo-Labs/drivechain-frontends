@@ -312,7 +312,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	}
 
 	zerolog.Ctx(ctx).Trace().
-		Msgf("bitcoind_engine/parser: detected chain deletion")
+		Msgf("bitcoind_engine/parser: sync is healthy")
 
 	// Get latest processed height
 	lastProcessedBlock, err := blocks.GetProcessedTip(ctx, p.db)
@@ -1081,8 +1081,7 @@ func shouldSkip(pkScript []byte) bool {
 // ensureSyncIsHealthy detects a true chain switch — i.e. the user pointed
 // bitwindowd at a different chain — by comparing the hash bitcoind reports
 // for block 1 against what we stored. Only that exact case justifies wiping
-// processed_blocks; normal shallow reorgs are handled by the rewind-20 path
-// in handleBlockTick. Transient bitcoind errors ("Block not found on disk"
+// processed_blocks; forkPoint handles a normal reorg. Transient bitcoind errors ("Block not found on disk"
 // during pruning/reindex/restart, RPC unavailability) are NOT chain switches
 // — they're a data-availability blip on bitcoind's side, and the right
 // response is "skip this tick, try again next time."

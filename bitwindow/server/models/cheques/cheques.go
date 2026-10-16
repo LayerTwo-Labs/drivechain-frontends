@@ -28,12 +28,10 @@ type Cheque struct {
 	SweptAt            *time.Time `db:"swept_at"`
 }
 
-// IsFunded returns true if actual funds meet or exceed the expected amount
 func (c *Cheque) IsFunded() bool {
 	return c.ActualAmountSats != nil && *c.ActualAmountSats >= c.ExpectedAmountSats
 }
 
-// IsPartiallyFunded returns true if some funds arrived but less than expected
 func (c *Cheque) IsPartiallyFunded() bool {
 	return len(c.FundedTxids) > 0 && !c.IsFunded()
 }
@@ -257,7 +255,6 @@ func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, err
 	return nextIndex, nil
 }
 
-// Delete deletes a cheque by ID for a specific wallet
 func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

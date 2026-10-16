@@ -19,17 +19,8 @@ var allChainParams = []*chaincfg.Params{
 	&chaincfg.RegressionNetParams,
 }
 
-// ClassifyAddress inspects the input string and returns the address type it
-// represents. Pure function — no DB, no network — so it is safe to call on
-// every read of ListAddressBook. Returns ADDRESS_TYPE_UNKNOWN if nothing
-// matches and ADDRESS_TYPE_UNSPECIFIED for the empty string.
-//
-// Ordering (cheapest → most expensive):
-//  1. BIP47 v1 spec payment code: base58check-decode succeeds with version
-//     byte 0x47 and an 80-byte payload that parses as a valid payment code.
-//  2. Drivechain deposit: strict 3-part s<slot>_<addr>_<checksum> with
-//     valid checksum and an embedded L1 address that decodes on some net.
-//  3. Bitcoin L1 on any of mainnet / signet / testnet3 / regtest.
+// ClassifyAddress gives ADDRESS_TYPE_UNSPECIFIED for an empty string and
+// ADDRESS_TYPE_UNKNOWN when no type matches.
 func ClassifyAddress(s string) pb.AddressType {
 	s = strings.TrimSpace(s)
 	if s == "" {
