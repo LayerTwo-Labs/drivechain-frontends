@@ -565,15 +565,3 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 
 	return nil
 }
-
-// GetPendingBundles returns the pending withdrawal bundles of every sidechain.
-func (e *M4Engine) GetPendingBundles(ctx context.Context) ([]m4.WithdrawalBundle, error) {
-	return database.Select[m4.WithdrawalBundle](ctx, e.db, `
-		SELECT id, sidechain_slot, bundle_hash, work_score, blocks_left,
-		       max_age, first_seen_height, last_updated_height, status,
-		       created_at, updated_at
-		FROM withdrawal_bundles
-		WHERE status = 'pending'
-		ORDER BY sidechain_slot, first_seen_height
-	`)
-}

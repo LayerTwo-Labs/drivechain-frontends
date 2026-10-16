@@ -168,28 +168,6 @@ func dropMsg(ctx context.Context, pos cnstore.BlockPos, reason string, err error
 		Msg("coinnews: " + reason + ", dropping")
 }
 
-// purgeM4AtOrAbove runs the M4 purge in its own transaction.
-func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error {
-	return inTx(ctx, p.db, func(tx *sql.Tx) error {
-		_, err := purgeM4AtOrAboveTx(ctx, tx, fromHeight)
-		return err
-	})
-}
-
-// purgeChainDerivedAtOrAbove runs the op_returns purge in its own transaction.
-func (p *Parser) purgeChainDerivedAtOrAbove(ctx context.Context, fromHeight uint32) error {
-	return inTx(ctx, p.db, func(tx *sql.Tx) error {
-		return purgeChainDerivedAtOrAboveTx(ctx, tx, fromHeight)
-	})
-}
-
-// purgeCoinNewsAtOrAbove runs the coinnews purge in its own transaction.
-func (p *Parser) purgeCoinNewsAtOrAbove(ctx context.Context, fromHeight uint32) error {
-	return inTx(ctx, p.db, func(tx *sql.Tx) error {
-		return purgeCoinNewsAtOrAboveTx(ctx, tx, fromHeight)
-	})
-}
-
 // inTx runs fn in one transaction and commits when it returns nil.
 func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error {
 	tx, err := db.BeginTx(ctx, nil)
@@ -206,8 +184,8 @@ func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error {
 	return nil
 }
 
-// purgeM4AtOrAbove deletes every M4/SCDB row originating from a block at or
-// above `fromHeight`. Called on the same reorg replay as purgeCoinNewsAtOrAbove
+// purgeM4AtOrAboveTx deletes every M4/SCDB row originating from a block at or
+// above `fromHeight`. Called on the same reorg replay as purgeCoinNewsAtOrAboveTx
 // — without it, a bundle first seen in an orphaned block survives the replay
 // (its insert is ON CONFLICT DO NOTHING) and keeps voting.
 // It returns the height a replay has to start from to rebuild what survives.
@@ -267,7 +245,7 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 	return replayFrom, nil
 }
 
-// purgeChainDerivedAtOrAbove drops the block-derived op_returns and
+// purgeChainDerivedAtOrAboveTx drops the block-derived op_returns and
 // file_timestamps state from blocks at or above `fromHeight`. Neither
 // heals itself on replay: the op_returns upsert keeps the old height
 // (`COALESCE(excluded.height, op_returns.height)`), and a confirmed
@@ -292,7 +270,7 @@ func purgeChainDerivedAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight ui
 	return nil
 }
 
-// purgeCoinNewsAtOrAbove deletes every cn_* row originating from a
+// purgeCoinNewsAtOrAboveTx deletes every cn_* row originating from a
 // block at or above `fromHeight`. Called when the engine detects a
 // reorg and replays a height range — without it, `INSERT OR IGNORE`
 // during the replay would silently keep orphaned rows from the

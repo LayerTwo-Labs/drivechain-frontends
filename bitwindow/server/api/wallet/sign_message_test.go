@@ -1,16 +1,9 @@
 package wallet
 
 import (
-	"context"
 	"encoding/hex"
-	"encoding/json"
-	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"connectrpc.com/connect"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
@@ -18,11 +11,8 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 )
 
 const testSeedHex = "0329e77e27d1e24336be53d25a897e92e67b5ec7e88eca7529b14e3ffd9168a247b6906469fb8a79ecb25ec077e033f6b567d5d9b0ae334f1e33457ae6bb1364"
@@ -144,11 +134,7 @@ func TestDeriveMessageSigningPrivateKeyHandlesTaproot(t *testing.T) {
 	// address does not commit to, so the signature proves nothing about it.
 	tweaked := txscript.TweakTaprootPrivKey(*expected, []byte{})
 	require.NotEqual(t, hex.EncodeToString(expected.Serialize()), hex.EncodeToString(tweaked.Serialize()))
-	require.Equal(t,
-		taproot.ScriptAddress(),
-		schnorr.SerializePubKey(tweaked.PubKey()),
-		"tweaked key must match the address's witness program",
-	)
+	require.Equal(t, taproot.ScriptAddress(), schnorr.SerializePubKey(tweaked.PubKey()))
 
 	for _, wallet := range []*engines.WalletInfo{
 		signingWallet(0, "", ""),                   // taproot comes alongside segwit off one seed
@@ -157,72 +143,6 @@ func TestDeriveMessageSigningPrivateKeyHandlesTaproot(t *testing.T) {
 		privKey, err := deriveMessageSigningPrivateKey(wallet, chainParams, taproot.EncodeAddress())
 		require.NoError(t, err)
 		require.Equal(t, tweaked.Serialize(), privKey.Serialize())
-	}
-}
-
-// Light mode has no enforcer and no bitcoind, so signing and verifying must
-// need neither.
-func TestSignAndVerifyMessageWithoutNode(t *testing.T) {
-	ctx := t.Context()
-
-	const walletID = "80CEBA2163224572BDEADD2D2181C51B"
-
-	tempDir := t.TempDir()
-	walletData, err := json.Marshal(map[string]any{
-		"version":        1,
-		"activeWalletId": walletID,
-		"wallets": []map[string]any{{
-			"version":     1,
-			"master":      map[string]any{"seed_hex": testSeedHex},
-			"id":          walletID,
-			"name":        "test",
-			"wallet_type": "electrum",
-		}},
-	})
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "wallet.json"), walletData, 0o600))
-
-	walletEngine := engines.NewWalletEngine(
-		t.Context(),
-		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
-			return nil, errors.New("no bitcoind in light mode")
-		},
-		mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)),
-		tempDir,
-		&chaincfg.SigNetParams,
-		nil,
-	)
-	require.True(t, walletEngine.IsUnlocked(), "unencrypted wallets auto-unlock at startup")
-
-	server := &Server{walletEngine: walletEngine}
-
-	const message = "signed by Bjørn"
-	segwit := addressOf(t, deriveAddressKey(t, &chaincfg.SigNetParams, 1, 0, 2), &chaincfg.SigNetParams)
-
-	tapKey := txscript.ComputeTaprootKeyNoScript(pubKeyOf(t, deriveKeyAtPurpose(t, &chaincfg.SigNetParams, 86, 1, 0, 1)))
-	taproot, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), &chaincfg.SigNetParams)
-	require.NoError(t, err)
-
-	for _, address := range []string{segwit, taproot.EncodeAddress()} {
-		signed, err := server.SignMessage(ctx, connect.NewRequest(&pb.SignMessageRequest{
-			WalletId: walletID,
-			Message:  message,
-			Address:  address,
-		}))
-		require.NoError(t, err, address)
-
-		for _, tc := range []struct {
-			message string
-			valid   bool
-		}{{message, true}, {message + " ", false}} {
-			verified, err := server.VerifyMessage(ctx, connect.NewRequest(&pb.VerifyMessageRequest{
-				Message:   tc.message,
-				Signature: signed.Msg.Signature,
-				PublicKey: address,
-			}))
-			require.NoError(t, err)
-			require.Equal(t, tc.valid, verified.Msg.Valid, address)
-		}
 	}
 }
 

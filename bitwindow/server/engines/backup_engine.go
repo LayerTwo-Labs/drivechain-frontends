@@ -314,12 +314,6 @@ func fillSnapshot(walletDir, hidden, root, name string) error {
 	return nil
 }
 
-// HasCurrentWallet returns true if wallet.json exists.
-func (e *BackupEngine) HasCurrentWallet() bool {
-	_, err := os.Stat(filepath.Join(e.walletDir, "wallet.json"))
-	return err == nil
-}
-
 // --- internal helpers ---
 
 func addToZip(zw *zip.Writer, name string, data []byte) error {

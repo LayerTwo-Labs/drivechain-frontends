@@ -129,7 +129,6 @@ func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 
 	ctx := t.Context()
 	db := database.Test(t)
-	parser := &Parser{db: db}
 
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO op_returns (txid, vout, op_return_data, fee_sats, height, created_at)
@@ -144,7 +143,7 @@ func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 		       ('orphaned.txt', 'hash-orphaned', 'txid-orphaned', 200, 'confirmed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
 	require.NoError(t, err)
 
-	require.NoError(t, parser.purgeChainDerivedAtOrAbove(ctx, 181))
+	require.NoError(t, ResetChainData(ctx, db, 181))
 
 	var txids []string
 	rows, err := db.QueryContext(ctx, `SELECT txid FROM op_returns ORDER BY txid`)

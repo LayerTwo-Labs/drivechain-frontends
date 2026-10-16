@@ -151,13 +151,15 @@ func startBitwindowd(t *testing.T, binPath string, node *orchestratorOnlyNode, a
 		"--orchestrator.addr", fmt.Sprintf("http://127.0.0.1:%d", node.OrchdGRPCPort),
 	)
 	cmd.Env = append(os.Environ(), "HOME="+filepath.Dir(node.BitwindowDir))
-	cmd.Stdout = stdoutFile
-	cmd.Stderr = stderrFile
+	stdout, err := cmd.StdoutPipe()
+	require.NoError(t, err)
+	stderr, err := cmd.StderrPipe()
+	require.NoError(t, err)
 
 	require.NoError(t, cmd.Start())
 
-	go streamLogFileToTest(t, "bitwindowd.stdout", stdoutFile)
-	go streamLogFileToTest(t, "bitwindowd.stderr", stderrFile)
+	go logScanner(t, "bitwindowd.stdout", io.TeeReader(stdout, stdoutFile))
+	go logScanner(t, "bitwindowd.stderr", io.TeeReader(stderr, stderrFile))
 
 	t.Cleanup(func() {
 		_ = stdoutFile.Close()
@@ -443,20 +445,9 @@ func watchForReadyLine(t *testing.T, r io.ReadCloser, ready chan<- struct{}) {
 	}
 }
 
-func logScanner(t *testing.T, prefix string, r io.ReadCloser) {
+func logScanner(t *testing.T, prefix string, r io.Reader) {
 	t.Helper()
 	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		t.Logf("%s: %s", prefix, scanner.Text())
-	}
-}
-
-func streamLogFileToTest(t *testing.T, prefix string, f *os.File) {
-	t.Helper()
-	if _, err := f.Seek(0, 0); err != nil {
-		return
-	}
-	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		t.Logf("%s: %s", prefix, scanner.Text())
 	}

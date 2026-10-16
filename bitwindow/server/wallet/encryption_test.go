@@ -1,4 +1,4 @@
-package wallet
+package wallet_test
 
 import (
 	"crypto/aes"
@@ -11,28 +11,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 )
-
-func TestEncryptionCompatibility(t *testing.T) {
-	// Test with known values
-	password := "test123"
-	salt := []byte("12345678901234567890123456789012") // 32 bytes
-	iterations := 100000
-
-	// Derive key
-	key := DeriveKey(password, salt, iterations)
-
-	// Test encryption
-	plaintext := `{"test":"data","master":{"seed_hex":"0123456789abcdef"}}`
-	encrypted, err := encrypt(plaintext, key)
-	require.NoError(t, err)
-
-	// Test decryption
-	decrypted, err := Decrypt(encrypted, key)
-	require.NoError(t, err)
-
-	require.Equal(t, plaintext, decrypted)
-}
 
 // encrypt encrypts data using AES-256-GCM with a 12-byte nonce
 // Format matches Decrypt: "iv:encrypted" (both base64 encoded)
@@ -69,42 +50,42 @@ func TestDecryptWallet(t *testing.T) {
 
 	writeWallet := func(t *testing.T, saltBase64, walletText string) string {
 		dir := t.TempDir()
-		metadata, err := json.Marshal(EncryptionMetadata{Salt: saltBase64, Iterations: 1000, Encrypted: true})
+		metadata, err := json.Marshal(wallet.EncryptionMetadata{Salt: saltBase64, Iterations: 1000, Encrypted: true})
 		require.NoError(t, err)
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet_encryption.json"), metadata, 0o600))
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), []byte(walletText), 0o600))
 		return dir
 	}
-	encrypted, err := encrypt(`{"activeWalletId":"a"}`, DeriveKey(password, salt, 1000))
+	encrypted, err := encrypt(`{"activeWalletId":"a"}`, wallet.DeriveKey(password, salt, 1000))
 	require.NoError(t, err)
 	saltBase64 := base64.StdEncoding.EncodeToString(salt)
 
 	t.Run("the right password opens the wallet", func(t *testing.T) {
-		data, err := DecryptWallet(writeWallet(t, saltBase64, encrypted), password)
+		data, err := wallet.DecryptWallet(writeWallet(t, saltBase64, encrypted), password)
 		require.NoError(t, err)
 		require.Equal(t, "a", data["activeWalletId"])
 	})
 
 	t.Run("a wallet with a 16-byte IV opens", func(t *testing.T) {
-		data, err := DecryptWallet(filepath.Join("testdata", "iv16"), password)
+		data, err := wallet.DecryptWallet(filepath.Join("testdata", "iv16"), password)
 		require.NoError(t, err)
 		require.Equal(t, "iv16", data["activeWalletId"])
 	})
 
 	t.Run("a wrong password is an incorrect password", func(t *testing.T) {
-		_, err := DecryptWallet(writeWallet(t, saltBase64, encrypted), "wrong")
-		require.ErrorIs(t, err, ErrIncorrectPassword)
+		_, err := wallet.DecryptWallet(writeWallet(t, saltBase64, encrypted), "wrong")
+		require.ErrorIs(t, err, wallet.ErrIncorrectPassword)
 	})
 
 	t.Run("a bad salt is no password error", func(t *testing.T) {
-		_, err := DecryptWallet(writeWallet(t, "not base64!", encrypted), password)
+		_, err := wallet.DecryptWallet(writeWallet(t, "not base64!", encrypted), password)
 		require.ErrorContains(t, err, "invalid salt")
-		require.NotErrorIs(t, err, ErrIncorrectPassword)
+		require.NotErrorIs(t, err, wallet.ErrIncorrectPassword)
 	})
 
 	t.Run("a bad wallet file is no password error", func(t *testing.T) {
-		_, err := DecryptWallet(writeWallet(t, saltBase64, "plain text"), password)
+		_, err := wallet.DecryptWallet(writeWallet(t, saltBase64, "plain text"), password)
 		require.ErrorContains(t, err, "invalid ciphertext format")
-		require.NotErrorIs(t, err, ErrIncorrectPassword)
+		require.NotErrorIs(t, err, wallet.ErrIncorrectPassword)
 	})
 }

@@ -144,6 +144,107 @@ func TestList_AttachesEachChequeItsOwnOutputs(t *testing.T) {
 	assert.Equal(t, []string{txB}, single.FundedTxids)
 }
 
+func TestGet(t *testing.T) {
+	t.Parallel()
+
+	db := database.Test(t)
+	id, err := cheques.Create(t.Context(), db, testWalletID, 0, 1000, "addr-get")
+	require.NoError(t, err)
+
+	for _, tt := range []struct {
+		name     string
+		walletID string
+		id       int64
+		wantErr  error
+	}{
+		{name: "an own cheque reads", walletID: testWalletID, id: id},
+		{name: "a missing id is no rows", walletID: testWalletID, id: id + 1, wantErr: sql.ErrNoRows},
+		{name: "another wallet is no rows", walletID: "wallet-2", id: id, wantErr: sql.ErrNoRows},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cheque, err := cheques.Get(t.Context(), db, tt.walletID, tt.id)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, id, cheque.ID)
+			assert.Equal(t, "addr-get", cheque.Address)
+			assert.Equal(t, uint64(1000), cheque.ExpectedAmountSats)
+		})
+	}
+}
+
+func TestGetByAddress(t *testing.T) {
+	t.Parallel()
+
+	db := database.Test(t)
+	id, err := cheques.Create(t.Context(), db, testWalletID, 0, 1000, "addr-by-address")
+	require.NoError(t, err)
+
+	for _, tt := range []struct {
+		name     string
+		walletID string
+		address  string
+		wantErr  error
+	}{
+		{name: "an own address reads", walletID: testWalletID, address: "addr-by-address"},
+		{name: "a missing address is no rows", walletID: testWalletID, address: "addr-missing", wantErr: sql.ErrNoRows},
+		{name: "another wallet is no rows", walletID: "wallet-2", address: "addr-by-address", wantErr: sql.ErrNoRows},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cheque, err := cheques.GetByAddress(t.Context(), db, tt.walletID, tt.address)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, id, cheque.ID)
+		})
+	}
+}
+
+func TestUpdateSwept(t *testing.T) {
+	t.Parallel()
+
+	const txid = "cccc0000cccc0000cccc0000cccc0000cccc0000cccc0000cccc0000cccc0000"
+	for _, tt := range []struct {
+		name     string
+		walletID string
+		idOffset int64
+		wantErr  error
+	}{
+		{name: "an own cheque becomes swept", walletID: testWalletID},
+		{name: "a missing id is no rows", walletID: testWalletID, idOffset: 1, wantErr: sql.ErrNoRows},
+		{name: "another wallet is no rows", walletID: "wallet-2", wantErr: sql.ErrNoRows},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			db := database.Test(t)
+			id, err := cheques.Create(t.Context(), db, testWalletID, 0, 1000, "addr-swept")
+			require.NoError(t, err)
+
+			err = cheques.UpdateSwept(t.Context(), db, tt.walletID, id+tt.idOffset, txid)
+			cheque, getErr := cheques.Get(t.Context(), db, testWalletID, id)
+			require.NoError(t, getErr)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				assert.Nil(t, cheque.SweptTxid)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, cheque.SweptTxid)
+			assert.Equal(t, txid, *cheque.SweptTxid)
+			assert.NotNil(t, cheque.SweptAt)
+		})
+	}
+}
+
 func TestDelete(t *testing.T) {
 	db := database.Test(t)
 	txid := "ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000"
@@ -163,6 +264,8 @@ func TestDelete(t *testing.T) {
 		require.NoError(t, cheques.Delete(ctx, db, testWalletID, id))
 
 		assert.Zero(t, countOutputs(t, id))
+		_, err = cheques.Get(ctx, db, testWalletID, id)
+		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 
 	t.Run("other wallet keeps the cheque and its outputs", func(t *testing.T) {
@@ -175,5 +278,19 @@ func TestDelete(t *testing.T) {
 		require.ErrorIs(t, err, sql.ErrNoRows)
 
 		assert.Equal(t, 1, countOutputs(t, id))
+		_, err = cheques.Get(ctx, db, testWalletID, id)
+		require.NoError(t, err)
+	})
+
+	t.Run("a missing id is no rows", func(t *testing.T) {
+		ctx := t.Context()
+		id, err := cheques.Create(ctx, db, testWalletID, 22, 1000, "addr-22")
+		require.NoError(t, err)
+
+		err = cheques.Delete(ctx, db, testWalletID, id+1)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+
+		_, err = cheques.Get(ctx, db, testWalletID, id)
+		require.NoError(t, err)
 	})
 }

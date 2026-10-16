@@ -365,7 +365,7 @@ func TestCoinNewsIndexer_PurgeAtOrAbove(t *testing.T) {
 		lo.T2(uint32(200), purgeBlock),
 	}))
 
-	require.NoError(t, p.purgeCoinNewsAtOrAbove(ctx, 200))
+	require.NoError(t, ResetChainData(ctx, p.db, 200))
 
 	var rowCount int
 	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_topics WHERE topic = ?`, keepTopic[:]).Scan(&rowCount))
