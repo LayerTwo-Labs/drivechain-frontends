@@ -102,6 +102,29 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
+	t.Run("a Core failure keeps its code", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("bitcoind is down")))
+
+		cli := v1connect.NewBitwindowdServiceClient(
+			apitests.API(t, database.Test(t), apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+			Txid:         "abc123",
+			Vout:         0,
+			DelaySeconds: 10,
+			NumHops:      1,
+		}))
+		require.ErrorContains(t, err, "bitcoind is down")
+		assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	})
+
 	t.Run("negative delay seconds", func(t *testing.T) {
 		t.Parallel()
 
@@ -1858,8 +1881,8 @@ func TestService_GetNetworkStats(t *testing.T) {
 		err  error
 		code connect.Code
 	}{
-		{"a failed network info read returns Internal", errors.New("rpc broke"), connect.CodeInternal},
-		{"a startup error returns Unavailable", errors.New("-28: Loading block index"), connect.CodeUnavailable},
+		{"a plain network info failure returns Unknown", errors.New("rpc broke"), connect.CodeUnknown},
+		{"a Core warmup keeps its code", connect.NewError(connect.CodeFailedPrecondition, errors.New("Loading block index")), connect.CodeFailedPrecondition},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

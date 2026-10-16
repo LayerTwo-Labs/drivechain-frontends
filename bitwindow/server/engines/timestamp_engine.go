@@ -148,11 +148,7 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 					timestamps.StatusFailed,
 					nil,
 				); err != nil {
-					zerolog.Ctx(ctx).Warn().
-						Err(err).
-						Int64("id", ts.ID).
-						Msg("update timestamp")
-					continue
+					return fmt.Errorf("mark timestamp %d failed: %w", ts.ID, err)
 				}
 
 				zerolog.Ctx(ctx).Info().
@@ -206,11 +202,7 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 				timestamps.StatusConfirmed,
 				confirmedAt,
 			); err != nil {
-				zerolog.Ctx(ctx).Warn().
-					Err(err).
-					Int64("id", ts.ID).
-					Msg("update timestamp")
-				continue
+				return fmt.Errorf("mark timestamp %d confirmed: %w", ts.ID, err)
 			}
 
 			zerolog.Ctx(ctx).Info().

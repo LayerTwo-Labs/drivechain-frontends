@@ -1,6 +1,7 @@
 package cheques_test
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -141,4 +142,38 @@ func TestList_AttachesEachChequeItsOwnOutputs(t *testing.T) {
 	single, err := cheques.Get(ctx, db, testWalletID, idB)
 	require.NoError(t, err)
 	assert.Equal(t, []string{txB}, single.FundedTxids)
+}
+
+func TestDelete(t *testing.T) {
+	db := database.Test(t)
+	txid := "ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000"
+
+	countOutputs := func(t *testing.T, id int64) int {
+		var n int
+		require.NoError(t, db.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM cheque_funding_outputs WHERE cheque_id = ?`, id).Scan(&n))
+		return n
+	}
+
+	t.Run("deletes the funding outputs", func(t *testing.T) {
+		ctx := t.Context()
+		id, err := cheques.Create(ctx, db, testWalletID, 20, 1000, "addr-20")
+		require.NoError(t, err)
+		require.NoError(t, cheques.UpdateFunding(ctx, db, testWalletID, id, []cheques.FundingOutput{{Txid: txid}}, 1000))
+
+		require.NoError(t, cheques.Delete(ctx, db, testWalletID, id))
+
+		assert.Zero(t, countOutputs(t, id))
+	})
+
+	t.Run("other wallet keeps the cheque and its outputs", func(t *testing.T) {
+		ctx := t.Context()
+		id, err := cheques.Create(ctx, db, testWalletID, 21, 1000, "addr-21")
+		require.NoError(t, err)
+		require.NoError(t, cheques.UpdateFunding(ctx, db, testWalletID, id, []cheques.FundingOutput{{Txid: txid}}, 1000))
+
+		err = cheques.Delete(ctx, db, "wallet-2", id)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+
+		assert.Equal(t, 1, countOutputs(t, id))
+	})
 }

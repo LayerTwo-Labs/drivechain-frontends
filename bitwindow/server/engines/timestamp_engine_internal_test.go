@@ -106,3 +106,61 @@ func TestCheckConfirmations_UnknownTransaction(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckConfirmations_UpdateFailureReturnsError(t *testing.T) {
+	tests := []struct {
+		name    string
+		resp    *corepb.GetRawTransactionResponse
+		rpcErr  error
+		wantErr string
+	}{
+		{
+			name:    "a confirmed timestamp",
+			resp:    &corepb.GetRawTransactionResponse{Confirmations: 1},
+			wantErr: "mark timestamp 1 confirmed: ",
+		},
+		{
+			name:    "an unknown transaction past the grace period",
+			rpcErr:  errors.New("internal: -5: No such mempool or blockchain transaction."),
+			wantErr: "mark timestamp 1 failed: ",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			db := database.Test(t)
+			core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+			engine := NewTimestampEngine(db, nil,
+				service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+					return core, nil
+				}),
+				nil,
+			)
+
+			txid := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+			_, err := timestamps.Create(ctx, db, timestamps.FileTimestamp{
+				Filename:  "test.txt",
+				FileHash:  "cafebabe",
+				TxID:      &txid,
+				Status:    timestamps.StatusConfirming,
+				CreatedAt: time.Now().Add(-timestampFailureGrace - time.Hour),
+			})
+			require.NoError(t, err)
+			_, err = db.ExecContext(ctx, `CREATE TRIGGER no_update BEFORE UPDATE ON file_timestamps
+				BEGIN SELECT RAISE(ABORT, 'update refused'); END`)
+			require.NoError(t, err)
+
+			core.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&corepb.GetBlockchainInfoResponse{}), nil)
+			var resp *connect.Response[corepb.GetRawTransactionResponse]
+			if tc.resp != nil {
+				resp = connect.NewResponse(tc.resp)
+			}
+			core.EXPECT().GetRawTransaction(gomock.Any(), gomock.Any()).Return(resp, tc.rpcErr)
+
+			err = engine.checkConfirmations(ctx)
+			require.ErrorContains(t, err, tc.wantErr)
+			require.ErrorContains(t, err, "update refused")
+		})
+	}
+}

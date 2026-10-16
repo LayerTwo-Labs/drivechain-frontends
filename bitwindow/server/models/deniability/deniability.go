@@ -342,12 +342,15 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 // Update adds numHops to a plan, sets its delay, moves its start to txid:vout
 // and clears its cancel.
 func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, txid string, vout int32) error {
-	_, err := db.ExecContext(ctx, `
+	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
 		SET delay_duration = ?, num_hops = num_hops + ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
 		WHERE id = ?
-	`, delay, numHops, txid, vout, time.Now(), id)
-	if err != nil {
+	`, delay, numHops, txid, vout, time.Now(), id))
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return ErrNotFound
+	case err != nil:
 		return fmt.Errorf("update deniability: %w", err)
 	}
 	return nil

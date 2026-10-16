@@ -118,6 +118,8 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 	if err != nil {
 		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
+	// A finished or paused denial has no next hop, so a spent tip does not cancel it.
+	denials = lo.Filter(denials, func(d deniability.Denial, _ int) bool { return d.NextExecution != nil })
 
 	if len(denials) == 0 {
 		return nil, nil, nil

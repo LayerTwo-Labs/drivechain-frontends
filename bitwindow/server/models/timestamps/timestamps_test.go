@@ -1,44 +1,18 @@
 package timestamps_test
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	db, err := sql.Open("sqlite3", ":memory:")
-	require.NoError(t, err)
-
-	// Create table
-	_, err = db.Exec(`
-		CREATE TABLE file_timestamps (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			filename TEXT NOT NULL,
-			file_hash TEXT NOT NULL UNIQUE,
-			txid TEXT,
-			block_height INTEGER,
-			status TEXT NOT NULL,
-			created_at TIMESTAMP NOT NULL,
-			confirmed_at TIMESTAMP
-		)
-	`)
-	require.NoError(t, err)
-
-	return db
-}
-
 func TestCreate(t *testing.T) {
 	ctx := t.Context()
-	db := setupTestDB(t)
-	defer db.Close()
+	db := database.Test(t)
 
 	txid := "abc123"
 	ts := timestamps.FileTimestamp{
@@ -64,8 +38,7 @@ func TestCreate(t *testing.T) {
 
 func TestList(t *testing.T) {
 	ctx := t.Context()
-	db := setupTestDB(t)
-	defer db.Close()
+	db := database.Test(t)
 
 	// Create test data with different statuses
 	txid1 := "txid1"
@@ -144,8 +117,7 @@ func TestList(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	ctx := t.Context()
-	db := setupTestDB(t)
-	defer db.Close()
+	db := database.Test(t)
 
 	txid := "txid123"
 	ts := timestamps.FileTimestamp{
@@ -176,8 +148,7 @@ func TestGet(t *testing.T) {
 
 func TestGetByHash(t *testing.T) {
 	ctx := t.Context()
-	db := setupTestDB(t)
-	defer db.Close()
+	db := database.Test(t)
 
 	txid := "txid123"
 	ts := timestamps.FileTimestamp{
@@ -208,8 +179,7 @@ func TestGetByHash(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	ctx := t.Context()
-	db := setupTestDB(t)
-	defer db.Close()
+	db := database.Test(t)
 
 	txid := "txid123"
 	ts := timestamps.FileTimestamp{

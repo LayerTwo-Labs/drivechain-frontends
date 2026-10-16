@@ -270,6 +270,41 @@ func TestListCoinNews_ReturnsReassemblyError(t *testing.T) {
 	require.ErrorContains(t, err, "decode head tlv")
 }
 
+func TestListCoinNews_ReassemblesOnlyContinuationHeads(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	topic := mustTopicID(t, "a3a3a3a3")
+	db := database.Test(t)
+	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
+	seedCurrentNews(t, ctx, db, topic, "Head", "", "story1", 0, 100, time.Now())
+	seedCurrentNews(t, ctx, db, topic, "Plain", "plain body", "story2", 0, 101, time.Now())
+
+	var itemID []byte
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT item_id FROM cn_stories WHERE headline = 'Head'`).Scan(&itemID))
+	var head codec.ItemID
+	copy(head[:], itemID)
+	tlvBytes, err := codec.SerialiseTLVs([]codec.TLV{{Tag: codec.TLVBody, Value: []byte("long body")}})
+	require.NoError(t, err)
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: 100,
+			VoutIndex:   1,
+			BlockTime:   time.Now(),
+			TxID:        fmt.Sprintf("%064x", 7000),
+		},
+		TypeTag: codec.TypeContinuation,
+		Msg:     &codec.Continuation{Head: head, Seq: 0, Chunk: tlvBytes},
+	}))
+	// A reassembly of the plain story fails, so the feed proves that it skips that story.
+	_, err = db.ExecContext(ctx, `UPDATE cn_stories SET raw_tlv = x'ff' WHERE headline = 'Plain'`)
+	require.NoError(t, err)
+
+	news, err := ListCoinNews(ctx, db)
+	require.NoError(t, err)
+	got := lo.SliceToMap(news, func(n CoinNews) (string, string) { return n.Headline, n.Content })
+	assert.Equal(t, map[string]string{"Head": "long body", "Plain": "plain body"}, got)
+}
+
 // TestListCoinNews_RanksByScoreAndCountsDownvotes proves spec §13: the
 // feed is ordered by HN score, and downvotes (kind=5) are tallied.
 func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {

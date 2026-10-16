@@ -634,8 +634,13 @@ func (e *BitDriveEngine) ListFiles(ctx context.Context) ([]bitdrive.File, error)
 	return bitdrive.List(ctx, e.db)
 }
 
-// WipeData removes all BitDrive local data
+// WipeData removes all BitDrive local data: the file rows and the files. A
+// later scan downloads the files again from the chain.
 func (e *BitDriveEngine) WipeData(ctx context.Context) error {
+	if _, err := e.db.ExecContext(ctx, `DELETE FROM bitdrive_files`); err != nil {
+		return fmt.Errorf("delete bitdrive file records: %w", err)
+	}
+
 	if err := os.RemoveAll(e.bitdriveDir); err != nil {
 		return fmt.Errorf("remove bitdrive dir: %w", err)
 	}

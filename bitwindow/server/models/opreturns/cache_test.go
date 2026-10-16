@@ -172,6 +172,26 @@ func TestListCoinNews_RetentionFilteredAtSQL(t *testing.T) {
 	assert.Equal(t, "fresh", got[0].Headline)
 }
 
+func TestListCoinNews_RetentionIgnoresTimeZone(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	db := database.Test(t)
+
+	topic := mustTopicID(t, "b3b3b3b3")
+	seedCurrentTopic(t, ctx, db, topic, "Weekly", 7, 1)
+
+	cutoff := time.Now().AddDate(0, 0, -7)
+	east := time.FixedZone("UTC+14", 14*60*60)
+	west := time.FixedZone("UTC-12", -12*60*60)
+	seedCurrentNews(t, ctx, db, topic, "outside", "outside", "outside-news", 0, 2, cutoff.Add(-time.Hour).In(east))
+	seedCurrentNews(t, ctx, db, topic, "inside", "inside", "inside-news", 1, 3, cutoff.Add(time.Hour).In(west))
+
+	got, err := ListCoinNews(ctx, db)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "inside", got[0].Headline)
+}
+
 // A caller mutating the returned slice must not corrupt the cache.
 func TestList_CallerCannotPoisonCache(t *testing.T) {
 	t.Parallel()

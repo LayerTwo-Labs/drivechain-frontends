@@ -161,9 +161,31 @@ func saveGroupOn(ctx context.Context, e execer, g Group) error {
 	return err
 }
 
+// DeleteGroup deletes the group and all of its child rows.
 func (s *Store) DeleteGroup(ctx context.Context, id string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM multisig_groups WHERE id = ?`, id)
-	return err
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
+
+	// SQLite foreign keys are off, so ON DELETE CASCADE does not run.
+	for _, query := range []string{
+		`DELETE FROM multisig_tx_key_psbts WHERE transaction_id IN (SELECT id FROM multisig_transactions WHERE group_id = ?)`,
+		`DELETE FROM multisig_tx_inputs WHERE transaction_id IN (SELECT id FROM multisig_transactions WHERE group_id = ?)`,
+		`DELETE FROM multisig_transactions WHERE group_id = ?`,
+		`DELETE FROM multisig_key_psbts WHERE key_id IN (SELECT id FROM multisig_keys WHERE group_id = ?)`,
+		`DELETE FROM multisig_keys WHERE group_id = ?`,
+		`DELETE FROM multisig_addresses WHERE group_id = ?`,
+		`DELETE FROM multisig_utxo_details WHERE group_id = ?`,
+		`DELETE FROM multisig_group_transactions WHERE group_id = ?`,
+		`DELETE FROM multisig_groups WHERE id = ?`,
+	} {
+		if _, err := tx.ExecContext(ctx, query, id); err != nil {
+			return fmt.Errorf("delete group %s: %w", id, err)
+		}
+	}
+	return tx.Commit()
 }
 
 // ─── Keys ──────────────────────────────────────────────────────────
@@ -180,6 +202,10 @@ func listKeysForGroupOn(ctx context.Context, e execer, groupID string) ([]Key, e
 }
 
 func replaceKeysForGroupOn(ctx context.Context, e execer, groupID string, keys []Key) error {
+	if _, err := e.ExecContext(ctx, `
+		DELETE FROM multisig_key_psbts WHERE key_id IN (SELECT id FROM multisig_keys WHERE group_id = ?)`, groupID); err != nil {
+		return err
+	}
 	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_keys WHERE group_id = ?`, groupID); err != nil {
 		return err
 	}
@@ -771,8 +797,9 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 			Confirmations: getInt(tj, "confirmations"),
 		}
 
-		// Count required signatures from keyPSBTs length
-		if keyPSBTs, ok := tj["keyPSBTs"].([]interface{}); ok {
+		if _, ok := tj["requiredSignatures"]; ok {
+			t.RequiredSignatures = getInt(tj, "requiredSignatures")
+		} else if keyPSBTs, ok := tj["keyPSBTs"].([]interface{}); ok {
 			t.RequiredSignatures = len(keyPSBTs)
 		}
 
