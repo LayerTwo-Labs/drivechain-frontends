@@ -1,10 +1,13 @@
 package engines
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"connectrpc.com/connect"
@@ -197,6 +200,165 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, count 
 	}
 
 	return recoveries, nil
+}
+
+// ChequeFunding is what a cheque address holds.
+type ChequeFunding struct {
+	Funded           bool
+	AmountSats       uint64
+	Txids            []string
+	MinConfirmations uint32
+	FundedAt         *time.Time
+}
+
+// CheckFunding reads the coins at the cheque address and stores them. A cheque
+// with stored funds and no coins left becomes swept.
+func (e *ChequeEngine) CheckFunding(ctx context.Context, cheque *cheques.Cheque) (ChequeFunding, error) {
+	log := zerolog.Ctx(ctx)
+
+	utxos, err := e.chain.AddressUnspent(ctx, cheque.Address)
+	if err != nil {
+		return ChequeFunding{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs of %s: %w", cheque.Address, err))
+	}
+
+	log.Debug().
+		Str("address", cheque.Address).
+		Int("utxo_count", len(utxos)).
+		Msg("check cheque funding: UTXOs found")
+
+	if len(utxos) == 0 {
+		if len(cheque.FundedTxids) > 0 && cheque.SweptTxid == nil {
+			log.Warn().
+				Str("address", cheque.Address).
+				Int64("id", cheque.ID).
+				Msg("funded cheque has no UTXOs - was swept externally")
+
+			// Only a full chain scan finds the spending tx of a watched address.
+			if err := cheques.UpdateSwept(ctx, e.db, cheque.WalletID, cheque.ID, "swept_externally"); err != nil {
+				return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque swept: %w", err))
+			}
+		}
+		return ChequeFunding{}, nil
+	}
+
+	funding := ChequeFunding{MinConfirmations: math.MaxUint32}
+	var outputs []cheques.FundingOutput
+	for _, utxo := range utxos {
+		funding.AmountSats += uint64(utxo.ValueSats)
+		funding.Txids = append(funding.Txids, utxo.TxID)
+		outputs = append(outputs, cheques.FundingOutput{Txid: utxo.TxID, BlockHeight: utxo.Height})
+		funding.MinConfirmations = min(funding.MinConfirmations, uint32(utxo.Confirmations))
+	}
+
+	if err := cheques.UpdateFunding(ctx, e.db, cheque.WalletID, cheque.ID, outputs, funding.AmountSats); err != nil {
+		return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("update funding: %w", err))
+	}
+
+	log.Info().
+		Int64("id", cheque.ID).
+		Str("address", cheque.Address).
+		Uint64("amount_sats", funding.AmountSats).
+		Int("utxo_count", len(funding.Txids)).
+		Msg("cheque funded")
+
+	updated, err := cheques.Get(ctx, e.db, cheque.WalletID, cheque.ID)
+	if err != nil {
+		return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("refetch cheque: %w", err))
+	}
+	funding.Funded = updated.IsFunded()
+	funding.FundedAt = updated.FundedAt
+	return funding, nil
+}
+
+// ChequeSweep is a broadcast sweep.
+type ChequeSweep struct {
+	Txid           string
+	AmountSats     uint64
+	FeeSatPerVbyte uint64
+}
+
+// Sweep sends all coins of a private key to destination. If the key is a
+// cheque of the wallet, the cheque becomes swept.
+func (e *ChequeEngine) Sweep(
+	ctx context.Context, walletID string, wifKey *btcutil.WIF, destination string, feeSatPerVbyte uint64,
+) (ChequeSweep, error) {
+	log := zerolog.Ctx(ctx)
+
+	source, err := ResolveSweepSource(ctx, e.chain, wifKey, e.chainParams)
+	if err != nil {
+		return ChequeSweep{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
+	}
+	if len(source.UTXOs) == 0 {
+		return ChequeSweep{}, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
+	}
+
+	totalAmount := source.TotalSats()
+
+	log.Debug().Str("address", source.Address).Str("kind", source.Kind.String()).Msg("sweep cheque: sweeping")
+
+	cheque, err := cheques.GetByAddress(ctx, e.db, walletID, source.Address)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		log.Debug().Str("address", source.Address).Msg("swept key is not a cheque of this wallet")
+	case err != nil:
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque at %s: %w", source.Address, err))
+	}
+
+	feeSatPerVbyte, err = e.SweepFeeRate(ctx, feeSatPerVbyte)
+	if err != nil {
+		return ChequeSweep{}, err
+	}
+
+	unsignedTx, err := BuildSweepTx(source, destination, feeSatPerVbyte, e.chainParams)
+	switch {
+	case errors.Is(err, ErrInvalidSweep):
+		return ChequeSweep{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("build transaction: %w", err))
+	case err != nil:
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
+	}
+
+	signedTx, err := SignSweepTx(unsignedTx, source, wifKey, e.chainParams)
+	if err != nil {
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
+	}
+
+	var txBytes bytes.Buffer
+	if err := signedTx.Serialize(&txBytes); err != nil {
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
+	}
+
+	txid, err := e.chain.Broadcast(ctx, hex.EncodeToString(txBytes.Bytes()))
+	if err != nil {
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
+	}
+
+	if cheque != nil && cheque.SweptTxid == nil {
+		if err := cheques.UpdateSwept(ctx, e.db, walletID, cheque.ID, txid); err != nil {
+			return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque %d swept by %s: %w", cheque.ID, txid, err))
+		}
+	}
+
+	log.Info().
+		Str("from", source.Address).
+		Str("to", destination).
+		Str("txid", txid).
+		Uint64("amount_sats", totalAmount).
+		Msg("cheque swept successfully")
+
+	return ChequeSweep{Txid: txid, AmountSats: totalAmount, FeeSatPerVbyte: feeSatPerVbyte}, nil
+}
+
+// SweepFeeRate gives the sweep fee rate in sat/vB: requested, or the 6-block
+// estimate when requested is zero.
+func (e *ChequeEngine) SweepFeeRate(ctx context.Context, requested uint64) (uint64, error) {
+	if requested > 0 {
+		return requested, nil
+	}
+	rate, err := e.chain.FeeRateSatPerVByte(ctx, 6)
+	if err != nil {
+		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("estimate fee: %w", err))
+	}
+	return uint64(math.Ceil(rate)), nil
 }
 
 // Start runs cheque recovery in the background. The returned channel closes

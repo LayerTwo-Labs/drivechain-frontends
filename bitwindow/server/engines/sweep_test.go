@@ -179,6 +179,44 @@ func TestBuildSweepTxRejectsFeeAboveBalance(t *testing.T) {
 	require.ErrorContains(t, err, "insufficient funds")
 }
 
+func TestBuildSweepTxRejectsADustOutput(t *testing.T) {
+	wif := newWIF(t, true)
+	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	legacyDest := candidates[1].Address
+
+	tests := []struct {
+		name      string
+		dest      string
+		outVbytes int64
+		overFee   int64
+		wantErr   string
+	}{
+		{name: "one sat below the P2WPKH dust limit is refused", dest: destAddress, outVbytes: 31, overFee: 293, wantErr: "below the dust limit of 294 sats"},
+		{name: "the P2WPKH dust limit builds", dest: destAddress, outVbytes: 31, overFee: 294},
+		{name: "one sat below the P2PKH dust limit is refused", dest: legacyDest, outVbytes: 34, overFee: 545, wantErr: "below the dust limit of 546 sats"},
+		{name: "the P2PKH dust limit builds", dest: legacyDest, outVbytes: 34, overFee: 546},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			feeSats := InputVbytes + OverheadVbytes + tt.outVbytes
+			source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: []ChequeUTXO{{
+				TxID:      "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+				ValueSats: feeSats + tt.overFee,
+			}}}
+
+			tx, err := BuildSweepTx(source, tt.dest, 1, &chaincfg.SigNetParams)
+			if tt.wantErr != "" {
+				require.ErrorIs(t, err, ErrInvalidSweep)
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.overFee, tx.TxOut[0].Value)
+		})
+	}
+}
+
 func TestBuildSweepTxCapsTheFee(t *testing.T) {
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
