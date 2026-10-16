@@ -3,6 +3,7 @@ package apitests
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,6 +51,7 @@ type configg struct {
 	walletType string
 	network    config.Network
 	encrypted  bool
+	password   bool
 	watchOnly  bool
 	authDir    string
 }
@@ -108,6 +110,18 @@ func WithEncryptedWallet() ServerOpt {
 	return func(opt *configg) { opt.encrypted = true }
 }
 
+// EncryptedWalletPassword opens the fixture wallet of WithPasswordWallet.
+const EncryptedWalletPassword = "correct horse"
+
+//go:embed testdata/encrypted
+var encryptedWallet embed.FS
+
+// WithPasswordWallet encrypts the electrum fixture wallet with
+// EncryptedWalletPassword, so the server starts with it locked.
+func WithPasswordWallet() ServerOpt {
+	return func(opt *configg) { opt.password = true }
+}
+
 // WithWatchOnlyWallet makes the fixture wallet a watch-only one with no seed.
 func WithWatchOnlyWallet() ServerOpt {
 	return func(opt *configg) { opt.watchOnly = true }
@@ -163,6 +177,11 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	}
 	if conf.orchestrator == nil {
 		conf.orchestrator = fixtureOrchestrator(t, walletDir)
+	}
+	if conf.password {
+		// The fixture orchestrator reads the plain copy above.
+		walletDir = t.TempDir()
+		writeEncryptedWallet(t, walletDir)
 	}
 
 	orchestratorAddr := orchestratorServer(t)
@@ -286,6 +305,16 @@ func markWalletEncrypted(t *testing.T, walletDir string) {
 	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), data, 0600))
 }
 
+func writeEncryptedWallet(t *testing.T, walletDir string) {
+	t.Helper()
+
+	for _, name := range []string{"wallet.json", "wallet_encryption.json"} {
+		data, err := encryptedWallet.ReadFile("testdata/encrypted/" + name)
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(filepath.Join(walletDir, name), data, 0600))
+	}
+}
+
 func makeWalletWatchOnly(t *testing.T, walletDir string) {
 	t.Helper()
 
@@ -338,15 +367,15 @@ var _ http.RoundTripper = new(ctxTransport)
 // Every expectation is AnyTimes: the engine goroutines race the test.
 func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.BitcoinServiceClient {
 	mock := mocks.NewMockBitcoinServiceClient(ctrl)
-	ExpectCoreWalletSetup(mock)
 
-	// The parser ticker races the test, and starts by fetching block 1. The
-	// test chain has no blocks, which is what bitcoind says here, and the
-	// parser treats it as "nothing to do yet" and ends the tick.
-	mock.EXPECT().
-		GetBlockHash(gomock.Any(), gomock.Any()).
-		Return(nil, errors.New("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
-		AnyTimes()
+	// Core is down, so the parser waits. An empty chain makes the parser
+	// purge the block rows a test seeds. These go first to match ahead of
+	// the height 1 answer of ExpectCoreWalletSetup.
+	down := connect.NewError(connect.CodeUnavailable, errors.New("core is down"))
+	mock.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).Return(nil, down).AnyTimes()
+	mock.EXPECT().GetRawMempool(gomock.Any(), gomock.Any()).Return(nil, down).AnyTimes()
+
+	ExpectCoreWalletSetup(mock)
 
 	mock.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
@@ -354,14 +383,6 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 			Msg: &corepb.ListWalletsResponse{
 				Wallets: []string{},
 			},
-		}, nil).
-		AnyTimes()
-
-	// The OP_RETURN sweep reads the mempool before it deletes anything.
-	mock.EXPECT().
-		GetRawMempool(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.GetRawMempoolResponse]{
-			Msg: &corepb.GetRawMempoolResponse{},
 		}, nil).
 		AnyTimes()
 

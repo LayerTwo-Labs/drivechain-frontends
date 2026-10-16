@@ -188,16 +188,6 @@ func TestRestoreBackup_ReplacesExistingWallet(t *testing.T) {
 	}
 }
 
-func TestHasCurrentWallet(t *testing.T) {
-	tmpDir := t.TempDir()
-	e := &BackupEngine{walletDir: tmpDir}
-
-	require.False(t, e.HasCurrentWallet())
-
-	_ = os.WriteFile(filepath.Join(tmpDir, "wallet.json"), []byte(`{"master":"s","l1":"k"}`), 0600)
-	require.True(t, e.HasCurrentWallet())
-}
-
 func TestRestoreBackup_KeepsCurrentWallet(t *testing.T) {
 	db := database.Test(t)
 	plainWallet := []byte(`{"master":"seed","l1":"key"}`)

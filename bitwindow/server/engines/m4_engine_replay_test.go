@@ -247,12 +247,11 @@ func TestPurgeM4AtOrAbove(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
 	e := NewM4Engine(db)
-	p := &Parser{db: db}
 
 	seedBundle(t, ctx, e, "bundle-below", 100)
 	seedBundle(t, ctx, e, "bundle-orphaned", 200)
 
-	require.NoError(t, p.purgeM4AtOrAbove(ctx, 181))
+	require.NoError(t, ResetChainData(ctx, db, 181))
 
 	// Scanning the row at all asserts it survived.
 	_, _, status := bundleState(t, ctx, e, "bundle-below")
@@ -321,34 +320,6 @@ func TestProcessBlock_SkipsMalformedM4(t *testing.T) {
 	var rows int
 	require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM m4_messages`).Scan(&rows))
 	require.Zero(t, rows)
-}
-
-func TestGetPendingBundles(t *testing.T) {
-	ctx := t.Context()
-	e := NewM4Engine(database.Test(t))
-
-	t.Run("empty", func(t *testing.T) {
-		bundles, err := e.GetPendingBundles(ctx)
-		require.NoError(t, err)
-		assert.Empty(t, bundles)
-	})
-
-	t.Run("returns only pending bundles of every sidechain", func(t *testing.T) {
-		_, err := e.db.ExecContext(ctx, `
-			INSERT INTO withdrawal_bundles (sidechain_slot, bundle_hash, blocks_left,
-				first_seen_height, last_updated_height, status)
-			VALUES (2, 'pending-2', 10, 100, 100, 'pending'),
-				(1, 'pending-1', 10, 100, 100, 'pending'),
-				(1, 'failed-1', 0, 90, 100, 'failed'),
-				(2, 'succeeded-2', 0, 90, 100, 'succeeded')`)
-		require.NoError(t, err)
-
-		bundles, err := e.GetPendingBundles(ctx)
-		require.NoError(t, err)
-		assert.Equal(t, []string{"pending-1", "pending-2"}, lo.Map(bundles, func(b m4.WithdrawalBundle, _ int) string {
-			return b.BundleHash
-		}))
-	})
 }
 
 // The rules come from bip300301_enforcer lib/validator/task/mod.rs:
