@@ -1029,8 +1029,10 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
-			if needsEnforcer {
-				o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			if needsEnforcer && !o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch) {
+				enforcerMon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
+				ch <- StartupProgress{Stage: "enforcer", Error: fmt.Errorf("the enforcer did not start: %s", enforcerMon.ConnectionError())}
+				return
 			}
 
 			// Wait for enforcer's gRPC port to actually accept dials before
@@ -1841,10 +1843,11 @@ func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
 	return func() (int, bool) { return o.process.LastExit(name) }
 }
 
-// startEnforcerWhenReady waits for wallet + IBD completion, then starts the enforcer.
+// startEnforcerWhenReady waits for an unlocked wallet + header sync, then starts
+// the enforcer. It reports whether the enforcer runs.
 // If prefetched is non-nil, the enforcer binary is already being downloaded
 // in parallel and we wait on its completion instead of starting a new download.
-func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) {
+func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) (started bool) {
 	// A switch that could not finish its enforcer cleanup journalled it. Here,
 	// because a leftover validator chain serves the retired generation.
 	if err := o.ApplyPendingEnforcerWipe(); err != nil {
@@ -1855,18 +1858,23 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		return
 	}
 
-	// 1. Wait for wallet to exist — enforcer needs the L1 seed.
-	if o.WalletSvc != nil && !o.WalletSvc.HasWallet() {
-		o.log.Info().Msg("waiting for wallet before starting enforcer")
-		sub := o.WalletSvc.Subscribe(ctx)
-		for !o.WalletSvc.HasWallet() {
+	// 1. Wait for an unlocked wallet — enforcer needs the L1 seed.
+	walletReady := func() bool {
+		return o.WalletSvc.HasWallet() && (!o.WalletSvc.IsEncrypted() || o.WalletSvc.IsUnlocked())
+	}
+	if o.WalletSvc != nil && !walletReady() {
+		o.log.Info().Msg("waiting for an unlocked wallet before starting enforcer")
+		subCtx, cancelSub := context.WithCancel(ctx)
+		defer cancelSub()
+		sub := o.WalletSvc.Subscribe(subCtx)
+		for !walletReady() {
 			select {
 			case <-ctx.Done():
 				return
 			case <-sub:
 			}
 		}
-		o.log.Info().Msg("wallet created")
+		o.log.Info().Msg("wallet ready")
 	}
 
 	// 2. Wait for HEADER sync to complete — enforcer starts once Core has
@@ -1923,7 +1931,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			pid := o.discoverPid(enforcerCfg)
 			o.process.AdoptProcess(enforcerCfg, pid)
 		}
-		return
+		return true
 	}
 
 	// The enforcer runs with no wallet, so it takes no seed. Every arg a
@@ -1985,6 +1993,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		// Download was kicked off in parallel with bitcoind IBD.
 		if err := <-prefetched; err != nil {
 			enforcerMon.SetInitializing(false)
+			enforcerMon.SetConnectionError(fmt.Sprintf("download enforcer: %v", err))
 			o.log.Error().Err(err).Msg("enforcer prefetch download failed")
 			return
 		}
@@ -1992,12 +2001,14 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		downloadCh, err := o.download.Download(ctx, enforcerCfg, o.Network, false)
 		if err != nil {
 			enforcerMon.SetInitializing(false)
+			enforcerMon.SetConnectionError(fmt.Sprintf("download enforcer: %v", err))
 			o.log.Error().Err(err).Msg("failed to download enforcer")
 			return
 		}
 		for progress := range downloadCh {
 			if progress.Error != nil {
 				enforcerMon.SetInitializing(false)
+				enforcerMon.SetConnectionError(fmt.Sprintf("download enforcer: %v", progress.Error))
 				o.log.Error().Err(progress.Error).Msg("enforcer download error")
 				return
 			}
@@ -2018,7 +2029,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			return
 		}
 		o.log.Info().Msg("enforcer connection recovered")
-		return
+		return true
 	}
 
 	// Log the literal argv at the actual spawn site: the auto-built-args log in
@@ -2028,14 +2039,16 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	o.log.Info().Strs("argv", redactArgs(opts.EnforcerArgs)).Msg("starting enforcer with final argv")
 
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); errors.Is(err, ErrAlreadyRunning) {
-		return
+		return true
 	} else if err != nil {
 		enforcerMon.SetInitializing(false)
+		enforcerMon.SetConnectionError(fmt.Sprintf("start enforcer: %v", err))
 		o.log.Error().Err(err).Msg("failed to start enforcer")
 		return
 	}
 
 	o.log.Info().Msg("enforcer started")
+	return true
 }
 
 // enforcerEnv returns the environment overlay applied when launching the
