@@ -475,11 +475,15 @@ func (c *CoreRPCClient) FundRawTransaction(
 func (c *CoreRPCClient) WalletCreateFundedPSBT(
 	ctx context.Context,
 	walletName string,
+	inputs []RawInput,
 	outputs []map[string]interface{},
 	locktime uint32,
 	options map[string]interface{},
 ) (*WalletCreateFundedPSBTResult, error) {
-	result, err := c.call(ctx, walletName, "walletcreatefundedpsbt", []RawInput{}, outputs, locktime, options)
+	if inputs == nil {
+		inputs = []RawInput{}
+	}
+	result, err := c.call(ctx, walletName, "walletcreatefundedpsbt", inputs, outputs, locktime, options)
 	if err != nil {
 		return nil, err
 	}

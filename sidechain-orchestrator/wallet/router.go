@@ -228,6 +228,14 @@ func (r *BackendRouter) Send(ctx context.Context, walletID string, req SendReque
 	return p.Send(ctx, walletID, req)
 }
 
+func (r *BackendRouter) PreviewSend(ctx context.Context, walletID string, req SendRequest) (*SendPreview, error) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, err
+	}
+	return p.PreviewSend(ctx, walletID, req)
+}
+
 func (r *BackendRouter) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
 	p, err := r.pick(walletID)
 	if err != nil {

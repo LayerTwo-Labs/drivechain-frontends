@@ -55,6 +55,9 @@ type Backend interface {
 	// Send pays req's destinations, handling coin selection, fees, change,
 	// signing, and broadcast however the backend does it.
 	Send(ctx context.Context, walletID string, req SendRequest) (string, error)
+	// PreviewSend builds req at its fee rate, with the same coin selection as
+	// Send, and reports the fee and size. It signs and broadcasts nothing.
+	PreviewSend(ctx context.Context, walletID string, req SendRequest) (*SendPreview, error)
 	SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error)
 	BumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeeResult, error)
 	PreviewBumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeePreview, error)
