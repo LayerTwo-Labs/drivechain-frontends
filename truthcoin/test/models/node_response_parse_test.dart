@@ -79,6 +79,7 @@ void main() {
     final period = VotingPeriodFull.fromJson(_decode(_votePeriod));
 
     expect(period.periodId, 7);
+    expect(period.isActive, isTrue);
     expect(period.decisions.single.slotIdHex, '860000');
     expect(period.decisions.single.isBinary, isTrue);
   });

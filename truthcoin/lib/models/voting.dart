@@ -253,9 +253,10 @@ class VotingPeriodFull {
     );
   }
 
-  bool get isActive => status == 'active';
-  bool get isPending => status == 'pending';
-  bool get isClosed => status == 'closed' || status == 'resolved';
+  // The node writes the status as Active, Pending, Closed or Resolved.
+  bool get isActive => status.toLowerCase() == 'active';
+  bool get isPending => status.toLowerCase() == 'pending';
+  bool get isClosed => ['closed', 'resolved'].contains(status.toLowerCase());
 }
 
 /// Decision summary in a period
