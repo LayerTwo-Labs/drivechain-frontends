@@ -20,6 +20,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	walletmanagerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -30,10 +31,10 @@ import (
 )
 
 // Bitcoind returns a btc-buf BitcoinService client against the orchestrator's
-// hosted core proxy. orchestratorAddr is a full URL (config.OrchestratorAddr
-// defaults to "http://localhost:30400"); a bare host:port also works and gets
-// prefixed with http://. Single canonical bitcoind RPC route — no direct dial.
-func Bitcoind(ctx context.Context, orchestratorAddr string) (corerpc.BitcoinServiceClient, error) {
+// hosted core proxy, with the local-auth cookie in cookieDir. orchestratorAddr
+// is a full URL (config.OrchestratorAddr defaults to "http://localhost:30400");
+// a bare host:port also works and gets prefixed with http://.
+func Bitcoind(ctx context.Context, orchestratorAddr, cookieDir string) (corerpc.BitcoinServiceClient, error) {
 	if orchestratorAddr == "" {
 		return nil, errors.New("empty orchestrator addr")
 	}
@@ -67,6 +68,16 @@ func BitcoinConf(addr, cookieDir string) orchrpc.BitcoinConfServiceClient {
 	)
 }
 
+// WalletManager returns a WalletManagerService client for drivechaind at addr,
+// with the local-auth cookie in cookieDir.
+func WalletManager(addr, cookieDir string) walletmanagerrpc.WalletManagerServiceClient {
+	return walletmanagerrpc.NewWalletManagerServiceClient(
+		http.DefaultClient,
+		addr,
+		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+	)
+}
+
 // ensureHTTPScheme returns addr unchanged if it has an http or https scheme;
 // otherwise prefixes http://.
 func ensureHTTPScheme(addr string) string {
@@ -77,8 +88,9 @@ func ensureHTTPScheme(addr string) string {
 	return "http://" + addr
 }
 
-// EnforcerValidator returns a validator client through the local orchestrator.
-func EnforcerValidator(ctx context.Context, url string) (
+// EnforcerValidator returns a validator client through the local orchestrator,
+// with the local-auth cookie in cookieDir.
+func EnforcerValidator(ctx context.Context, url, cookieDir string) (
 	rpc.ValidatorServiceClient, error,
 ) {
 	if url == "" {
@@ -210,16 +222,7 @@ var (
 	// Shared HTTP client for all connections
 	sharedClient *http.Client
 	clientOnce   sync.Once
-
-	// cookieDir is the bitwindow data dir holding .auth.cookie, used by the
-	// orchestrator-targeting Bitcoind client. Set once at startup via
-	// SetCookieDir; empty ⇒ localauth attaches no header (auth disabled).
-	cookieDir string
 )
-
-// SetCookieDir records the local-auth cookie directory for the orchestrator
-// (Bitcoind proxy) client. Call once at startup before the first dial.
-func SetCookieDir(dir string) { cookieDir = dir }
 
 func getSharedClient(ctx context.Context) *http.Client {
 	clientOnce.Do(func() {

@@ -364,3 +364,24 @@ func TestCheckTimestampConfirmations_BlockErrorSendsNothing(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, notified)
 }
+
+// A network swap stops the old engine. Its subscribers must see the channel
+// close, or each Watch stream stays on the old engine.
+func TestNotificationEngineRunClosesSubscribers(t *testing.T) {
+	engine := NewNotificationEngine(database.Test(t), nil, nil)
+	events := engine.Subscribe(t.Context())
+
+	runCtx, stop := context.WithCancel(t.Context())
+	stop()
+	require.NoError(t, engine.Run(runCtx))
+
+	select {
+	case _, ok := <-events:
+		require.False(t, ok)
+	case <-time.After(time.Second):
+		t.Fatal("the subscriber channel stayed open")
+	}
+
+	_, ok := <-engine.Subscribe(t.Context())
+	require.False(t, ok)
+}

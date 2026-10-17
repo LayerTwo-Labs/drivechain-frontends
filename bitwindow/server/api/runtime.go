@@ -58,7 +58,6 @@ import (
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 )
 
@@ -99,6 +98,7 @@ type Runtime struct {
 	inflight sync.WaitGroup
 
 	db       *sql.DB
+	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	mux      *http.ServeMux
 	services []string // service paths registered on mux, for grpcreflect
 
@@ -146,6 +146,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		conf:        conf,
 		walletDir:   walletDir,
 		chainParams: chainParams,
+		bitcoind:    s.Bitcoind,
 		mux:         http.NewServeMux(),
 	}
 
@@ -170,12 +171,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	// networks (not per-network).
 	orchClient := s.svcs.OrchestratorClient
 	if orchClient == nil {
-		// Seed-bearing client (GetWalletSeed) — attach the local-auth cookie.
-		orchClient = orchrpc.NewWalletManagerServiceClient(
-			http.DefaultClient,
-			s.svcs.OrchestratorAddr,
-			connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
-		)
+		orchClient = dial.WalletManager(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
 	}
 	rt.walletEngine = engines.NewWalletEngine(
 		ctx,
@@ -232,7 +228,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 
 	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
 	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, coreRawCall(s), func(ctx context.Context) (<-chan engines.SequenceMsg, func(), error) {
-		addr, err := zmqAddress(ctx, conf, "pubsequence")
+		addr, err := zmqAddress(ctx, s.Bitcoind, "pubsequence")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -413,7 +409,7 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 		if !rt.walletEngine.NodeMode().RunsLocalNode(ctx) {
 			backoff = minBackoff
 		} else {
-			zmqEngine, err := dialZmqEngine(ctx, rt.conf)
+			zmqEngine, err := dialZmqEngine(ctx, rt.bitcoind)
 			switch {
 			case err == nil:
 				backoff = minBackoff
@@ -422,6 +418,8 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 					return
 				}
 				log.Warn().Err(err).Msg("ZMQ engine stopped, retrying")
+			case ctx.Err() != nil:
+				return
 			case connect.CodeOf(err) == connect.CodeUnavailable || isBitcoinCoreStartupError(err.Error()):
 				log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
 			default:
@@ -455,8 +453,8 @@ func (rt *Runtime) feedZMQ(ctx context.Context, zmqEngine *engines.ZMQ, log *zer
 	return zmqEngine.Run(ctx)
 }
 
-func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
-	addr, err := zmqAddress(ctx, conf, "pubrawtx")
+func dialZmqEngine(ctx context.Context, bitcoind *service.Service[corerpc.BitcoinServiceClient]) (*engines.ZMQ, error) {
+	addr, err := zmqAddress(ctx, bitcoind, "pubrawtx")
 	if err != nil {
 		return nil, err
 	}
@@ -483,10 +481,10 @@ func coreRawCall(s *Server) engines.RawCall {
 }
 
 // zmqAddress looks up the endpoint bitcoind publishes notifType on.
-func zmqAddress(ctx context.Context, conf config.Config, notifType string) (string, error) {
-	btc, err := dial.Bitcoind(ctx, conf.OrchestratorAddr)
+func zmqAddress(ctx context.Context, bitcoind *service.Service[corerpc.BitcoinServiceClient], notifType string) (string, error) {
+	btc, err := bitcoind.Get(ctx)
 	if err != nil {
-		return "", fmt.Errorf("dial orchestrator bitcoin service: %w", err)
+		return "", err
 	}
 	notifs, err := btc.GetZmqNotifications(ctx, connect.NewRequest(&emptypb.Empty{}))
 	if err != nil {
@@ -507,8 +505,11 @@ func zmqAddress(ctx context.Context, conf config.Config, notifType string) (stri
 // rt.inflight; Close drains them before closing the DB.
 func (rt *Runtime) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rt.inflight.Add(1)
-		defer rt.inflight.Done()
+		// UpdateNetwork closes this runtime, so Close must not wait for it.
+		if r.URL.Path != bitwindowdv1connect.BitwindowdServiceUpdateNetworkProcedure {
+			rt.inflight.Add(1)
+			defer rt.inflight.Done()
+		}
 		rt.mux.ServeHTTP(w, r)
 	})
 }
@@ -516,10 +517,7 @@ func (rt *Runtime) Handler() http.Handler {
 // Close cancels engines, waits for goroutines, drains in-flight request
 // handlers, then closes the DB. Call it once.
 func (rt *Runtime) Close() {
-	if rt.cancel != nil {
-		rt.cancel()
-	}
-	rt.wg.Wait()
+	rt.stopEngines()
 
 	// Wait for in-flight handlers so none queries the DB after it closes.
 	// Bounded so a hung handler can't block teardown forever.
@@ -533,6 +531,19 @@ func (rt *Runtime) Close() {
 	case <-time.After(10 * time.Second):
 	}
 
+	rt.closeFiles()
+}
+
+// stop is Close with no wait for the in-flight handlers, because UpdateNetwork
+// recycles the runtime from one of them.
+func (rt *Runtime) stopEngines() {
+	if rt.cancel != nil {
+		rt.cancel()
+	}
+	rt.wg.Wait()
+}
+
+func (rt *Runtime) closeFiles() {
 	log := zerolog.Ctx(rt.ctx)
 	if err := rt.db.Close(); err != nil {
 		log.Warn().Err(err).Str("datadir", rt.conf.Datadir).Msg("close runtime: close the database")
