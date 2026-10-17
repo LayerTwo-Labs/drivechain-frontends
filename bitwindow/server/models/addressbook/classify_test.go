@@ -1,4 +1,4 @@
-package addressbook
+package addressbook_test
 
 import (
 	"crypto/sha256"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 )
 
 // Alice's payment code from the Samourai BIP47 vectors. Real spec-compliant
@@ -88,7 +89,7 @@ func TestClassifyAddress(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := ClassifyAddress(tc.input)
+			got := addressbook.ClassifyAddress(tc.input)
 			require.Equal(t, tc.want, got)
 		})
 	}
@@ -101,39 +102,39 @@ func TestCreate(t *testing.T) {
 	walletID := "wallet-a"
 
 	t.Run("a new entry saves", func(t *testing.T) {
-		require.NoError(t, Create(t.Context(), db, &walletID, "rent", bookAddress, DirectionSend))
+		require.NoError(t, addressbook.Create(t.Context(), db, &walletID, "rent", bookAddress, addressbook.DirectionSend))
 	})
 
 	t.Run("the same address and direction is a duplicate", func(t *testing.T) {
-		err := Create(t.Context(), db, &walletID, "other", bookAddress, DirectionSend)
-		require.ErrorIs(t, err, ErrDuplicateAddress)
+		err := addressbook.Create(t.Context(), db, &walletID, "other", bookAddress, addressbook.DirectionSend)
+		require.ErrorIs(t, err, addressbook.ErrDuplicateAddress)
 	})
 
 	t.Run("the same address in the other direction saves", func(t *testing.T) {
-		require.NoError(t, Create(t.Context(), db, nil, "", bookAddress, DirectionReceive))
+		require.NoError(t, addressbook.Create(t.Context(), db, nil, "", bookAddress, addressbook.DirectionReceive))
 	})
 }
 
 func TestUpsert(t *testing.T) {
 	db := database.Test(t)
 
-	require.NoError(t, Upsert(t.Context(), db, nil, "first", bookAddress, DirectionSend))
-	require.NoError(t, Upsert(t.Context(), db, nil, "second", bookAddress, DirectionSend))
+	require.NoError(t, addressbook.Upsert(t.Context(), db, nil, "first", bookAddress, addressbook.DirectionSend))
+	require.NoError(t, addressbook.Upsert(t.Context(), db, nil, "second", bookAddress, addressbook.DirectionSend))
 
-	entries, err := List(t.Context(), db)
+	entries, err := addressbook.List(t.Context(), db)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	require.Equal(t, "second", entries[0].Label)
-	require.Equal(t, DirectionSend, entries[0].Direction)
+	require.Equal(t, addressbook.DirectionSend, entries[0].Direction)
 }
 
 func TestLabelsByAddress(t *testing.T) {
 	db := database.Test(t)
-	require.NoError(t, Create(t.Context(), db, nil, "first", bookAddress, DirectionSend))
-	require.NoError(t, Create(t.Context(), db, nil, "second", bookAddress, DirectionReceive))
-	require.NoError(t, Create(t.Context(), db, nil, "", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", DirectionReceive))
+	require.NoError(t, addressbook.Create(t.Context(), db, nil, "first", bookAddress, addressbook.DirectionSend))
+	require.NoError(t, addressbook.Create(t.Context(), db, nil, "second", bookAddress, addressbook.DirectionReceive))
+	require.NoError(t, addressbook.Create(t.Context(), db, nil, "", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", addressbook.DirectionReceive))
 
-	labels, err := LabelsByAddress(t.Context(), db)
+	labels, err := addressbook.LabelsByAddress(t.Context(), db)
 	require.NoError(t, err)
 	require.Equal(t, map[string]string{
 		bookAddress: "first",
@@ -143,40 +144,40 @@ func TestLabelsByAddress(t *testing.T) {
 
 func TestUpdateLabel(t *testing.T) {
 	db := database.Test(t)
-	require.NoError(t, Create(t.Context(), db, nil, "old", bookAddress, DirectionSend))
-	entries, err := List(t.Context(), db)
+	require.NoError(t, addressbook.Create(t.Context(), db, nil, "old", bookAddress, addressbook.DirectionSend))
+	entries, err := addressbook.List(t.Context(), db)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 
 	t.Run("an entry gets the new label", func(t *testing.T) {
-		require.NoError(t, UpdateLabel(t.Context(), db, entries[0].ID, "new"))
-		updated, err := List(t.Context(), db)
+		require.NoError(t, addressbook.UpdateLabel(t.Context(), db, entries[0].ID, "new"))
+		updated, err := addressbook.List(t.Context(), db)
 		require.NoError(t, err)
 		require.Equal(t, "new", updated[0].Label)
 	})
 
 	t.Run("a missing entry is not found", func(t *testing.T) {
-		err := UpdateLabel(t.Context(), db, entries[0].ID+1, "new")
+		err := addressbook.UpdateLabel(t.Context(), db, entries[0].ID+1, "new")
 		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 }
 
 func TestDelete(t *testing.T) {
 	db := database.Test(t)
-	require.NoError(t, Create(t.Context(), db, nil, "", bookAddress, DirectionSend))
-	entries, err := List(t.Context(), db)
+	require.NoError(t, addressbook.Create(t.Context(), db, nil, "", bookAddress, addressbook.DirectionSend))
+	entries, err := addressbook.List(t.Context(), db)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 
 	t.Run("an entry deletes", func(t *testing.T) {
-		require.NoError(t, Delete(t.Context(), db, entries[0].ID))
-		left, err := List(t.Context(), db)
+		require.NoError(t, addressbook.Delete(t.Context(), db, entries[0].ID))
+		left, err := addressbook.List(t.Context(), db)
 		require.NoError(t, err)
 		require.Empty(t, left)
 	})
 
 	t.Run("a missing entry is not found", func(t *testing.T) {
-		err := Delete(t.Context(), db, entries[0].ID)
+		err := addressbook.Delete(t.Context(), db, entries[0].ID)
 		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 
@@ -184,7 +185,7 @@ func TestDelete(t *testing.T) {
 		closed := database.Test(t)
 		require.NoError(t, closed.Close())
 
-		err := Delete(t.Context(), closed, 1)
+		err := addressbook.Delete(t.Context(), closed, 1)
 		require.ErrorContains(t, err, "database is closed")
 	})
 }

@@ -59,7 +59,7 @@ func TestStore_ListThread(t *testing.T) {
 
 	thread, err := ListThread(ctx, db, story)
 	require.NoError(t, err)
-	require.Len(t, thread, 2, "story thread includes the comment and its nested reply")
+	require.Len(t, thread, 2)
 
 	assert.True(t, lo.ContainsBy(thread, func(c Comment) bool { return c.Body == "first" }))
 	assert.True(t, lo.ContainsBy(thread, func(c Comment) bool { return c.Body == "reply" }))
@@ -149,8 +149,8 @@ func TestStore_TopicCreation_EarliestWins(t *testing.T) {
 		`SELECT name, retention_days FROM cn_topics WHERE topic = ?`,
 		first.Topic[:],
 	).Scan(&name, &ret))
-	assert.Equal(t, "First Wins", name, "first confirmed Topic Creation must win the name")
-	assert.Equal(t, 7, ret, "retention from first creation must persist")
+	assert.Equal(t, "First Wins", name)
+	assert.Equal(t, 7, ret)
 }
 
 // TestStore_Story_HoistsCommonTLVs proves the TLV-to-column extraction:
@@ -210,13 +210,13 @@ func TestStore_Story_HoistsCommonTLVs(t *testing.T) {
 	assert.Equal(t, "the body text", body)
 	assert.Equal(t, "en", lang)
 	assert.Equal(t, int(codec.SubtypeShow), subtype)
-	assert.True(t, nsfw, "nsfw flag must survive the TLV roundtrip")
-	assert.Empty(t, mediaHash, "media_hash absent ⇒ NULL/empty")
+	assert.True(t, nsfw)
+	assert.Empty(t, mediaHash)
 
 	// raw_tlv preserves the full payload for schema upgrades.
 	expectedRaw, err := codec.SerialiseTLVs(story.TLVs)
 	require.NoError(t, err)
-	assert.Equal(t, expectedRaw, rawTLV, "raw_tlv must be a verbatim copy of the encoded TLVs")
+	assert.Equal(t, expectedRaw, rawTLV)
 }
 
 // TestStore_Vote_DedupByAuthorAndTarget pins the §8 invariant:
@@ -247,11 +247,11 @@ func TestStore_Vote_DedupByAuthorAndTarget(t *testing.T) {
 
 	var rowCount int
 	require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_votes WHERE target_id = ?`, target[:]).Scan(&rowCount))
-	assert.Equal(t, 1, rowCount, "vote dedup MUST hold across (author, target)")
+	assert.Equal(t, 1, rowCount)
 
 	var kind int
 	require.NoError(t, db.QueryRowContext(ctx, `SELECT kind FROM cn_votes WHERE target_id = ?`, target[:]).Scan(&kind))
-	assert.Equal(t, int(codec.TypeUpvote), kind, "first vote (upvote) must persist; flip is dropped")
+	assert.Equal(t, int(codec.TypeUpvote), kind)
 }
 
 // TestStore_Comment_PersistsAllExtractedFields hoists each TLV onto
@@ -327,12 +327,12 @@ func TestStore_Continuation_StoresChunksByHeadAndSeq(t *testing.T) {
 	var rowCount int
 	require.NoError(t, db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM cn_continuations WHERE head_id = ?`, head[:]).Scan(&rowCount))
-	assert.Equal(t, 2, rowCount, "two chunks expected; replay at seq 0 dropped")
+	assert.Equal(t, 2, rowCount)
 
 	var chunk0 []byte
 	require.NoError(t, db.QueryRowContext(ctx,
 		`SELECT chunk FROM cn_continuations WHERE head_id = ? AND seq = 0`, head[:]).Scan(&chunk0))
-	assert.Equal(t, []byte("chunk-zero"), chunk0, "first-write-wins on (head, seq)")
+	assert.Equal(t, []byte("chunk-zero"), chunk0)
 }
 
 // TestStore_Item_RegistersTxidVoutWithCanonicalOrder asserts that

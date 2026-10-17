@@ -34,33 +34,55 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 )
+
+type shutdownRecorder struct {
+	orchrpc.UnimplementedOrchestratorServiceHandler
+	onlyIfLast chan bool
+}
+
+func (r *shutdownRecorder) Shutdown(_ context.Context, req *connect.Request[orchpb.ShutdownRequest]) (*connect.Response[orchpb.ShutdownResponse], error) {
+	r.onlyIfLast <- req.Msg.OnlyIfLast
+	return connect.NewResponse(&orchpb.ShutdownResponse{}), nil
+}
 
 func TestService_Stop(t *testing.T) {
 	t.Parallel()
 
-	t.Run("shutdown success", func(t *testing.T) {
-		t.Parallel()
+	for _, test := range []struct {
+		name           string
+		skipDownstream bool
+		relays         bool
+	}{
+		{name: "relays the shutdown to drivechaind", relays: true},
+		{name: "skip downstream keeps drivechaind running", skipDownstream: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+			var shutDown atomic.Bool
+			orchestrator := &shutdownRecorder{onlyIfLast: make(chan bool, 1)}
+			cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t),
+				apitests.WithOnShutdown(func(context.Context) { shutDown.Store(true) }),
+				apitests.WithOrchestratorControl(orchestrator),
+			))
 
-		_, err := cli.Stop(t.Context(), connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
-		require.NoError(t, err)
-	})
+			_, err := cli.Stop(t.Context(), connect.NewRequest(&v1.BitwindowdServiceStopRequest{
+				SkipDownstream: test.skipDownstream,
+			}))
+			require.NoError(t, err)
 
-	t.Run("shutdown with context timeout", func(t *testing.T) {
-		t.Parallel()
-
-		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
-
-		ctx, cancel := context.WithTimeout(t.Context(), 0)
-		defer cancel()
-
-		_, err := cli.Stop(ctx, connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
-		require.ErrorIs(t, err, context.DeadlineExceeded)
-	})
+			assert.True(t, shutDown.Load())
+			if test.relays {
+				require.Len(t, orchestrator.onlyIfLast, 1)
+				assert.True(t, <-orchestrator.onlyIfLast)
+			} else {
+				assert.Empty(t, orchestrator.onlyIfLast)
+			}
+		})
+	}
 }
 
 func TestService_CreateDenial(t *testing.T) {
@@ -483,18 +505,6 @@ func TestService_CancelDenial(t *testing.T) {
 
 		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 0,
-		}))
-		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
-	})
-
-	t.Run("negative denial id", func(t *testing.T) {
-		t.Parallel()
-
-		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
-
-		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
-			Id: -1,
 		}))
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})

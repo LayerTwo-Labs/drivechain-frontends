@@ -54,6 +54,8 @@ type configg struct {
 	password   bool
 	watchOnly  bool
 	authDir    string
+	onShutdown func(ctx context.Context)
+	control    orchctlrpc.OrchestratorServiceHandler
 }
 
 type ServerOpt func(opt *configg)
@@ -74,6 +76,9 @@ func (o *configg) populate(ctrl *gomock.Controller, options ...ServerOpt) {
 	}
 	if o.network == "" {
 		o.network = config.NetworkRegtest
+	}
+	if o.onShutdown == nil {
+		o.onShutdown = func(context.Context) {}
 	}
 }
 
@@ -147,6 +152,16 @@ func WithLocalAuth(dir string) ServerOpt {
 	return func(opt *configg) { opt.authDir = dir }
 }
 
+// WithOnShutdown gives the server the teardown that Stop calls.
+func WithOnShutdown(onShutdown func(ctx context.Context)) ServerOpt {
+	return func(opt *configg) { opt.onShutdown = onShutdown }
+}
+
+// WithOrchestratorControl serves the drivechaind OrchestratorService with handler.
+func WithOrchestratorControl(handler orchctlrpc.OrchestratorServiceHandler) ServerOpt {
+	return func(opt *configg) { opt.control = handler }
+}
+
 func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClient, string) {
 	ctrl := gomock.NewController(t)
 
@@ -184,7 +199,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		writeEncryptedWallet(t, walletDir)
 	}
 
-	orchestratorAddr := orchestratorServer(t)
+	orchestratorAddr := orchestratorServer(t, conf.control)
 
 	// Create connectors that return our mock clients
 	services := api.Services{
@@ -241,9 +256,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		OrchestratorAddr:   orchestratorAddr,
 		GuiBootedMainchain: false,
 		GuiBootedEnforcer:  false,
-	}, func(shutdownCtx context.Context) {
-		logger.Info().Msg("shutdown")
-	})
+	}, conf.onShutdown)
 	require.NoError(t, err)
 
 	// Tear down engines (Parser ticker, etc.) before the testing.T goes
@@ -391,10 +404,13 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 
 // orchestratorServer returns the address of a drivechaind whose
 // OrchestratorService answers every call as unimplemented.
-func orchestratorServer(t *testing.T) string {
+func orchestratorServer(t *testing.T, control orchctlrpc.OrchestratorServiceHandler) string {
 	t.Helper()
+	if control == nil {
+		control = orchctlrpc.UnimplementedOrchestratorServiceHandler{}
+	}
 	mux := http.NewServeMux()
-	mux.Handle(orchctlrpc.NewOrchestratorServiceHandler(orchctlrpc.UnimplementedOrchestratorServiceHandler{}))
+	mux.Handle(orchctlrpc.NewOrchestratorServiceHandler(control))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	return server.URL
