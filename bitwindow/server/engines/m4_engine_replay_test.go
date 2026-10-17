@@ -16,6 +16,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
@@ -26,6 +27,8 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 )
 
+const testBundleMaxAge = 26300
+
 // seedBundle inserts a pending bundle on slot 0.
 func seedBundle(t *testing.T, ctx context.Context, e *M4Engine, hash string, firstSeen uint32) {
 	t.Helper()
@@ -35,7 +38,7 @@ func seedBundle(t *testing.T, ctx context.Context, e *M4Engine, hash string, fir
 		INSERT INTO withdrawal_bundles (sidechain_slot, bundle_hash, work_score, blocks_left,
 			first_seen_height, last_updated_height, status)
 		VALUES (0, ?, 1, ?, ?, ?, 'pending')`,
-		hash, m4.WithdrawalMaxAge, firstSeen, firstSeen)
+		hash, testBundleMaxAge, firstSeen, firstSeen)
 	require.NoError(t, err)
 }
 
@@ -51,13 +54,13 @@ func bundleState(t *testing.T, ctx context.Context, e *M4Engine, hash string) (w
 func TestUpdateBundleStates_ReplayIsIdempotent(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db)
+	e := NewM4Engine(db, config.NetworkMainnet, "")
 
 	seedBundle(t, ctx, e, "bundle-a", 100)
 
 	require.NoError(t, e.updateBundleStates(ctx, 120))
 	_, afterFirst, _ := bundleState(t, ctx, e, "bundle-a")
-	require.Equal(t, m4.WithdrawalMaxAge-20, afterFirst, "blocks_left tracks height minus first seen")
+	require.Equal(t, testBundleMaxAge-20, afterFirst, "blocks_left tracks height minus first seen")
 
 	// Same height again, as a reorg replay would.
 	require.NoError(t, e.updateBundleStates(ctx, 120))
@@ -69,7 +72,7 @@ func TestUpdateBundleStates_ReplayIsIdempotent(t *testing.T) {
 func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db)
+	e := NewM4Engine(db, config.NetworkMainnet, "")
 
 	seedBundle(t, ctx, e, "bundle-a", 100)
 
@@ -159,7 +162,7 @@ func workScoreOn(t *testing.T, ctx context.Context, p *Parser, slot uint8) int {
 func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db), enforcer: enforcerAt(t, 101, map[uint32]uint32{0: 10})}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, ""), enforcer: enforcerAt(t, 101, map[uint32]uint32{0: 10})}
 
 	blockTime := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
 	proposal := coinbaseBlockOf(m3ProposalScript(t, 0, [32]byte{0xab, 0xcd}), blockTime)
@@ -185,7 +188,7 @@ func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
 func TestApplyPendingM4_WaitsForEnforcerThenUsesActiveSlots(t *testing.T) {
 	ctx := t.Context()
 	p := newCoinNewsParser(t)
-	p.m4Engine = NewM4Engine(p.db)
+	p.m4Engine = NewM4Engine(p.db, config.NetworkMainnet, "")
 	activations := map[uint32]uint32{0: 10, 9: 20, 5: 500}
 	p.enforcer = enforcerAt(t, 100, activations)
 
@@ -223,7 +226,7 @@ func TestApplyPendingM4_NoEnforcerKeepsParsing(t *testing.T) {
 	db := database.Test(t)
 	p := &Parser{
 		db:       db,
-		m4Engine: NewM4Engine(db),
+		m4Engine: NewM4Engine(db, config.NetworkMainnet, ""),
 		enforcer: service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
 			return nil, errors.New("no enforcer")
 		}),
@@ -246,7 +249,7 @@ func TestApplyPendingM4_NoEnforcerKeepsParsing(t *testing.T) {
 func TestPurgeM4AtOrAbove(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db)
+	e := NewM4Engine(db, config.NetworkMainnet, "")
 
 	seedBundle(t, ctx, e, "bundle-below", 100)
 	seedBundle(t, ctx, e, "bundle-orphaned", 200)
@@ -281,7 +284,7 @@ func TestProcessBlocks_PersistFailureKeepsHeightUnprocessed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
 			db := database.Test(t)
-			p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+			p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 			batch := []lo.Tuple2[uint32, *wire.MsgBlock]{lo.T2(uint32(100), tc.block(t))}
 
 			_, err := db.ExecContext(ctx, `CREATE TRIGGER fail_insert BEFORE INSERT ON `+tc.table+`
@@ -311,7 +314,7 @@ func TestProcessBlocks_PersistFailureKeepsHeightUnprocessed(t *testing.T) {
 func TestProcessBlock_SkipsMalformedM4(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db)
+	e := NewM4Engine(db, config.NetworkMainnet, "")
 
 	payload := binary.BigEndian.AppendUint32(nil, m4.M4CommitmentHeader)
 	block := coinbaseBlockOf(opReturnScript(t, append(payload, 0x04)), time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC))
@@ -320,6 +323,82 @@ func TestProcessBlock_SkipsMalformedM4(t *testing.T) {
 	var rows int
 	require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM m4_messages`).Scan(&rows))
 	require.Zero(t, rows)
+}
+
+// The enforcer approves a bundle only with more ACKs than the threshold of the network.
+func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		network    config.Network
+		ecashID    string
+		score      uint32
+		wantStatus string
+	}{
+		{"regtest at the threshold", config.NetworkRegtest, "", 5, "pending"},
+		{"regtest above the threshold", config.NetworkRegtest, "", 6, "approved"},
+		{"alphanet at the threshold", config.NetworkECash, "alphanet", 72, "pending"},
+		{"alphanet above the threshold", config.NetworkECash, "alphanet", 73, "approved"},
+		{"mainnet below the threshold", config.NetworkMainnet, "", 73, "pending"},
+		{"mainnet above the threshold", config.NetworkMainnet, "", 13151, "approved"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			db := database.Test(t)
+			e := NewM4Engine(db, tc.network, tc.ecashID)
+			seedBundleRow(t, ctx, db, "bundle-a", 100, 100, tc.score)
+
+			require.NoError(t, e.updateBundleStates(ctx, 101))
+
+			_, _, status := bundleState(t, ctx, e, "bundle-a")
+			assert.Equal(t, tc.wantStatus, status)
+		})
+	}
+
+	t.Run("a row with the old mainnet age takes the network age", func(t *testing.T) {
+		ctx := t.Context()
+		db := database.Test(t)
+		e := NewM4Engine(db, config.NetworkRegtest, "")
+		seedBundleRow(t, ctx, db, "bundle-a", 100, 100, 5)
+		_, err := db.ExecContext(ctx, `UPDATE withdrawal_bundles SET max_age = 26300`)
+		require.NoError(t, err)
+
+		require.NoError(t, e.updateBundleStates(ctx, 104))
+
+		var maxAge int
+		require.NoError(t, db.QueryRowContext(ctx, `SELECT max_age FROM withdrawal_bundles`).Scan(&maxAge))
+		assert.Equal(t, 10, maxAge)
+		_, blocksLeft, status := bundleState(t, ctx, e, "bundle-a")
+		assert.Equal(t, 6, blocksLeft)
+		assert.Equal(t, "pending", status)
+	})
+
+	t.Run("an expired bundle at the threshold fails", func(t *testing.T) {
+		ctx := t.Context()
+		db := database.Test(t)
+		e := NewM4Engine(db, config.NetworkRegtest, "")
+		seedBundleRow(t, ctx, db, "bundle-a", 100, 100, 5)
+
+		require.NoError(t, e.updateBundleStates(ctx, 110))
+
+		_, _, status := bundleState(t, ctx, e, "bundle-a")
+		assert.Equal(t, "failed", status)
+	})
+}
+
+func TestProcessBlock_StoresTheBundleMaxAge(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	e := NewM4Engine(db, config.NetworkECash, "alphanet")
+
+	block := coinbaseBlockOf(m3ProposalScript(t, 0, [32]byte{0xab}), time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC))
+	require.NoError(t, e.ProcessBlock(ctx, 100, block))
+
+	var maxAge, blocksLeft int
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT max_age, blocks_left FROM withdrawal_bundles WHERE sidechain_slot = 0`,
+	).Scan(&maxAge, &blocksLeft))
+	assert.Equal(t, 144, maxAge)
+	assert.Equal(t, 144, blocksLeft)
 }
 
 // The rules come from bip300301_enforcer lib/validator/task/mod.rs:
@@ -359,7 +438,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("an upvote downvotes the other pending bundles", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t))
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		seedBundle(t, t.Context(), e, "bundle-c", 102)
@@ -374,7 +453,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x00 repeats the upvote of the previous block", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t))
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		setWorkScore(t, e, "bundle-a", 5)
@@ -388,7 +467,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x00 repeats an alarm", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t))
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		setWorkScore(t, e, "bundle-a", 5)
 
@@ -401,7 +480,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x00 with no M4 in the previous block changes nothing", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t))
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 
 		apply(t, e, 150, m4Version(t, 0x01, 0x00))
@@ -413,7 +492,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x03 upvotes a bundle that leads by 50", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t))
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		setWorkScore(t, e, "bundle-a", 10)
@@ -427,7 +506,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x03 upvotes a single bundle with 50", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t))
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		setWorkScore(t, e, "bundle-a", 50)
 
@@ -439,7 +518,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x03 skips a lead below 50", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t))
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		setWorkScore(t, e, "bundle-a", 10)

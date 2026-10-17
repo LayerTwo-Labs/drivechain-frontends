@@ -51,6 +51,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1/walletpsbtv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
@@ -191,7 +192,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
 	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain)
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, rt.walletEngine, s.Bitcoind, rt.walletEngine.NodeMode())
-	rt.m4Engine = engines.NewM4Engine(rt.db)
+	rt.m4Engine = engines.NewM4Engine(rt.db, conf.BitcoinCoreNetwork, networkID)
 	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind, rt.walletEngine.NodeMode())
 	bitdriveEngine, err := engines.NewBitDriveEngine(rt.db, rt.walletEngine, conf.Datadir, rt.chainParams)
 	if err != nil {
@@ -224,7 +225,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	} else {
 		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("open coinnews-sync.log: skip the dedicated log")
 	}
-	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams, rt.walletEngine.NodeMode(), coinnewsLogger)
+	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams, rt.m4Engine, rt.walletEngine.NodeMode(), coinnewsLogger)
 
 	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
 	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, coreRawCall(s), func(ctx context.Context) (<-chan engines.SequenceMsg, func(), error) {
@@ -257,7 +258,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.walletEngine)
+		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.walletEngine, m4.WithdrawalMaxAge(conf.BitcoinCoreNetwork, networkID))
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}

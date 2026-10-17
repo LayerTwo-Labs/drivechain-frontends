@@ -36,7 +36,7 @@ func TestLightModeReadsTheRemoteValidator(t *testing.T) {
 	client := service.New("validator", func(context.Context) (enforcerrpc.ValidatorServiceClient, error) {
 		return validator, nil
 	})
-	server := New(client, nil, walletEngine)
+	server := New(client, nil, walletEngine, 10)
 
 	_, err = server.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
 	require.ErrorContains(t, err, "remote validator is unavailable")

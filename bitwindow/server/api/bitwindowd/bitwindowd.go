@@ -870,7 +870,7 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 		return nil, err
 	}
 
-	hasMore := startHeight > uint32(len(blocks))
+	hasMore := len(blocks) > 0 && blocks[len(blocks)-1].Height > 0
 	s.listBlocksCache.Store(cacheKey, &listBlocksCacheEntry{
 		blocks:  blocks,
 		hasMore: hasMore,

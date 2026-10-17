@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 )
@@ -16,7 +17,7 @@ import (
 func TestGetM4History_OneConnection(t *testing.T) {
 	db := database.Test(t)
 	db.SetMaxOpenConns(1)
-	e := NewM4Engine(db)
+	e := NewM4Engine(db, config.NetworkMainnet, "")
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()

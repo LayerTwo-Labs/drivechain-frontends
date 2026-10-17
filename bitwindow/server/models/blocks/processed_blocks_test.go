@@ -62,6 +62,19 @@ func TestProcessedBlocks(t *testing.T) {
 		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 
+	t.Run("highest block at or below a height", func(t *testing.T) {
+		got, err := blocks.GetProcessedBlockAtOrBelow(t.Context(), db, 99)
+		require.NoError(t, err)
+		assert.EqualValues(t, 3, got.Height)
+
+		got, err = blocks.GetProcessedBlockAtOrBelow(t.Context(), db, 2)
+		require.NoError(t, err)
+		assert.EqualValues(t, 2, got.Height)
+
+		_, err = blocks.GetProcessedBlockAtOrBelow(t.Context(), db, 0)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+	})
+
 	t.Run("delete at or above a height", func(t *testing.T) {
 		tx, err := db.BeginTx(t.Context(), nil)
 		require.NoError(t, err)
