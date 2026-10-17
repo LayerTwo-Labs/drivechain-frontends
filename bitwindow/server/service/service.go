@@ -128,9 +128,7 @@ func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 // call returns a fresh buffered-by-1 channel, pre-seeded with the current
 // connection state, that holds the newest state after each change.
 //
-// The subscription is unwound automatically when ctx is canceled — callers
-// should pass a ctx scoped to the lifetime of their consumer (per-stream for
-// a Watch handler, the server ctx for engine-wide bootstrap goroutines).
+// The subscription ends and the channel closes when ctx ends.
 func (s *Service[T]) ConnectedChan(ctx context.Context) <-chan bool {
 	ch := make(chan bool, 1)
 	s.subsMu.Lock()

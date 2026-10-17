@@ -93,9 +93,7 @@ func (e *ChequeEngine) deriveChequeKey(seedHex string, index uint32) (*hdkeychai
 }
 
 // DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
-// for a specific wallet
 func (e *ChequeEngine) DeriveChequeAddress(ctx context.Context, walletID string, index uint32) (string, error) {
-	// Get seed from wallet engine for the specific wallet
 	seedHex, err := e.walletEngine.GetWalletSeed(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -127,9 +125,7 @@ func (e *ChequeEngine) chequeAddress(seedHex string, index uint32) (string, erro
 }
 
 // DeriveChequePrivateKey derives the WIF private key at m/44'/0'/999'/{index}
-// for a specific wallet
 func (e *ChequeEngine) DeriveChequePrivateKey(ctx context.Context, walletID string, index uint32) (string, error) {
-	// Get seed from wallet engine for the specific wallet
 	seedHex, err := e.walletEngine.GetWalletSeed(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -392,7 +388,6 @@ func (e *ChequeEngine) Start(ctx context.Context) <-chan struct{} {
 func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 
-	// Wait for unlock
 	log.Debug().Msg("waiting for wallet unlock for cheque recovery")
 
 	for !e.walletEngine.IsUnlocked() {
@@ -400,7 +395,6 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(100 * time.Millisecond):
-			// Check again
 		}
 	}
 

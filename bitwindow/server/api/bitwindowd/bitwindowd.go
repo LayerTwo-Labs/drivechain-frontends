@@ -299,7 +299,7 @@ func (s *Server) CreateDenial(
 			Int32("num_hops", req.Msg.NumHops).
 			Msg("CreateDenial: found existing denial, updating values")
 
-		// a denial for this utxo already exists. Let's piggy back on that by updating its values
+		// A denial for this utxo exists, so update its values.
 		if err := deniability.Update(
 			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops, req.Msg.Txid, int32(req.Msg.Vout),
 		); err != nil {

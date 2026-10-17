@@ -422,8 +422,9 @@ func TestEncodeMultisigData_RoundTrip(t *testing.T) {
 			message, err := engine.EncodeMultisigData(t.Context(), []byte(`{"m":2}`), encrypt)
 			require.NoError(t, err)
 
-			content, err := engine.DecodeMultisigData(t.Context(), message)
+			content, metadata, err := engine.DecodeOPReturnData(t.Context(), message)
 			require.NoError(t, err)
+			require.True(t, metadata.IsMultisig)
 			require.Equal(t, `{"m":2}`, string(content))
 		})
 	}
@@ -533,7 +534,8 @@ func TestStoreMultisigData(t *testing.T) {
 	assert.Equal(t, "txid", txid)
 
 	require.Len(t, *sent, 1)
-	content, err := engine.DecodeMultisigData(t.Context(), (*sent)[0])
+	content, metadata, err := engine.DecodeOPReturnData(t.Context(), (*sent)[0])
 	require.NoError(t, err)
+	assert.True(t, metadata.IsMultisig)
 	assert.Equal(t, `{"m":2}`, string(content))
 }

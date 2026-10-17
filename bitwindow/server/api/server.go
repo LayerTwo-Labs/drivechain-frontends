@@ -46,11 +46,8 @@ type Services struct {
 	// MiningPoolFetch downloads the pool registry. A nil value uses DefaultFetch.
 	MiningPoolFetch miningpools.Fetch
 
-	BitcoindConnector service.Connector[corerpc.BitcoinServiceClient]
-	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
-	// BlockProducerConnector and MiningConnector reach the enforcer services
-	// that replaced the wallet's proposal and block generation RPCs. Both run
-	// with no enforcer wallet.
+	BitcoindConnector      service.Connector[corerpc.BitcoinServiceClient]
+	EnforcerConnector      service.Connector[validatorrpc.ValidatorServiceClient]
 	BlockProducerConnector service.Connector[validatorrpc.BlockProducerServiceClient]
 	MiningConnector        service.Connector[validatorrpc.MiningServiceClient]
 	CryptoConnector        service.Connector[cryptorpc.CryptoServiceClient]
@@ -156,14 +153,7 @@ func New(
 	photonSvc := service.New("photon", svcs.PhotonConnector)
 	coinshiftSvc := service.New("coinshift", svcs.CoinShiftConnector)
 
-	// Eagerly seed the bitcoind connection so callers (health checks, the
-	// wallet bootstrap goroutine waiting on ConnectedChan, the cheque
-	// recovery loop) don't have to wait a full reconnect-ticker period.
-	// dial.Bitcoind is stateless and always returns success once the
-	// orchestrator addr is set, so this is cheap. Remote-handshake
-	// connectors (enforcer wallet/validator/crypto) stay lazy because they
-	// do real I/O; eager-connecting them would change downstream test
-	// semantics that depend on those staying disconnected at boot.
+	// bitcoind dials no remote, so connect it now; the others wait for the reconnect loop.
 	_, _ = bitcoindSvc.Connect(ctx)
 
 	// Reconnect loops are inherent service behavior — keep them on the
