@@ -127,7 +127,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 				break
 			}
 		}
-		require.True(t, foundReceive, "B should have a 0.5 BTC receive tx")
+		require.True(t, foundReceive)
 	})
 
 	// =========================================================================
@@ -168,7 +168,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 				break
 			}
 		}
-		require.NotEmpty(t, fundedID, "Phase 1 must leave a funded bw-core")
+		require.NotEmpty(t, fundedID)
 		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: fundedID}))
 		require.NoError(t, err)
 
@@ -213,7 +213,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 				break
 			}
 		}
-		require.NotEmpty(t, primaryID, "expected the primary wallet")
+		require.NotEmpty(t, primaryID)
 
 		seedResp, err := client.GetWalletSeed(ctx, connect.NewRequest(&pb.GetWalletSeedRequest{WalletId: primaryID}))
 		require.NoError(t, err)

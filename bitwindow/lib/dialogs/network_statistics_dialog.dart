@@ -141,20 +141,10 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                     if (stats!.hasBitcoindBandwidth() || stats!.hasEnforcerBandwidth()) ...[
                       const SizedBox(height: 32),
                       StatSection(
-                        title: 'Process Bandwidth',
+                        title: 'Processes',
                         children: [
                           if (stats!.hasBitcoindBandwidth()) ...[
                             StatRow(label: 'bitcoind PID', value: stats!.bitcoindBandwidth.pid.toString()),
-                            StatRow(
-                              label: 'bitcoind RX',
-                              value:
-                                  '${_formatBytes(stats!.bitcoindBandwidth.totalRxBytes.toInt())} (${_formatBandwidth(stats!.bitcoindBandwidth.rxBytesPerSec)})',
-                            ),
-                            StatRow(
-                              label: 'bitcoind TX',
-                              value:
-                                  '${_formatBytes(stats!.bitcoindBandwidth.totalTxBytes.toInt())} (${_formatBandwidth(stats!.bitcoindBandwidth.txBytesPerSec)})',
-                            ),
                             StatRow(
                               label: 'bitcoind Connections',
                               value: stats!.bitcoindBandwidth.connectionCount.toString(),
@@ -163,16 +153,6 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                           if (stats!.hasEnforcerBandwidth()) ...[
                             const SizedBox(height: 16),
                             StatRow(label: 'enforcer PID', value: stats!.enforcerBandwidth.pid.toString()),
-                            StatRow(
-                              label: 'enforcer RX',
-                              value:
-                                  '${_formatBytes(stats!.enforcerBandwidth.totalRxBytes.toInt())} (${_formatBandwidth(stats!.enforcerBandwidth.rxBytesPerSec)})',
-                            ),
-                            StatRow(
-                              label: 'enforcer TX',
-                              value:
-                                  '${_formatBytes(stats!.enforcerBandwidth.totalTxBytes.toInt())} (${_formatBandwidth(stats!.enforcerBandwidth.txBytesPerSec)})',
-                            ),
                             StatRow(
                               label: 'enforcer Connections',
                               value: stats!.enforcerBandwidth.connectionCount.toString(),

@@ -99,6 +99,9 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 }
 
 func (s *Service[T]) setConnected(ctx context.Context, val bool) {
+	s.subsMu.Lock()
+	defer s.subsMu.Unlock()
+
 	old := s.connected.Swap(val)
 	if old != val {
 		// Use logger from context, fallback to nop if not available
@@ -110,30 +113,26 @@ func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 		}
 		log.Info().Msgf("%s changed connected to: %t", s.name, val)
 
-		// A full buffer drops the value, so a slow subscriber never blocks the fan-out.
-		s.subsMu.Lock()
+		// A slow subscriber loses the unread state, never the newest one.
 		for ch := range s.subs {
 			select {
-			case ch <- val:
+			case <-ch:
 			default:
 			}
+			ch <- val
 		}
-		s.subsMu.Unlock()
 	}
 }
 
 // ConnectedChan subscribes to this service's connection-state changes. Each
 // call returns a fresh buffered-by-1 channel, pre-seeded with the current
-// connection state, that receives a value every time setConnected fires.
+// connection state, that holds the newest state after each change.
 //
-// The subscription is unwound automatically when ctx is canceled — callers
-// should pass a ctx scoped to the lifetime of their consumer (per-stream for
-// a Watch handler, the server ctx for engine-wide bootstrap goroutines).
+// The subscription ends and the channel closes when ctx ends.
 func (s *Service[T]) ConnectedChan(ctx context.Context) <-chan bool {
 	ch := make(chan bool, 1)
-	ch <- s.connected.Load()
-
 	s.subsMu.Lock()
+	ch <- s.connected.Load()
 	s.subs[ch] = struct{}{}
 	s.subsMu.Unlock()
 

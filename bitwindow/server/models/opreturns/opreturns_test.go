@@ -135,13 +135,14 @@ func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 	topics, err := ListTopics(ctx, db)
 	require.NoError(t, err)
 	found, ok := lo.Find(topics, func(tp Topic) bool { return tp.Topic == external })
-	require.True(t, ok, "chain-indexed topic must appear in ListTopics")
+	require.True(t, ok)
 	assert.Equal(t, "Foreign Topic", found.Name)
 	assert.True(t, found.Confirmed)
+	assert.NotZero(t, found.ID)
 
 	exists, err := TopicExists(ctx, db, external)
 	require.NoError(t, err)
-	assert.True(t, exists, "chain-indexed topic must satisfy TopicExists so stories can target it")
+	assert.True(t, exists)
 
 	exists, err = TopicExists(ctx, db, mustTopicID(t, "deaddead"))
 	require.NoError(t, err)
@@ -238,7 +239,7 @@ func TestListCoinNews_ReassemblesContinuationBody(t *testing.T) {
 	news, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
 	require.Len(t, news, 1)
-	assert.Equal(t, longBody, news[0].Content, "continuation chunks reassemble into the full body")
+	assert.Equal(t, longBody, news[0].Content)
 }
 
 func TestListCoinNews_ReturnsReassemblyError(t *testing.T) {
@@ -340,7 +341,7 @@ func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {
 	news, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
 	require.Len(t, news, 2)
-	assert.Equal(t, "Upvoted", news[0].Headline, "higher-scored story ranks first")
+	assert.Equal(t, "Upvoted", news[0].Headline)
 	assert.Equal(t, int64(3), news[0].Upvotes)
 	assert.Equal(t, "Downvoted", news[1].Headline)
 	assert.Equal(t, int64(2), news[1].Downvotes)
@@ -409,9 +410,8 @@ func TestListCoinNews_RoundTripHeadlines(t *testing.T) {
 
 			news, err := ListCoinNews(t.Context(), db)
 			require.NoError(t, err)
-			require.Len(t, news, 1, "expected one news row for headline %q", tc.headline)
-			assert.Equal(t, tc.headline, news[0].Headline,
-				"round-trip must preserve the original headline bytes")
+			require.Len(t, news, 1)
+			assert.Equal(t, tc.headline, news[0].Headline)
 		})
 	}
 }
@@ -447,7 +447,7 @@ func TestListCoinNews_HeadlineStartingWithNewIsNotTopicCreation(t *testing.T) {
 
 	news, err := ListCoinNews(t.Context(), db)
 	require.NoError(t, err)
-	require.Len(t, news, 1, "news message with 'new'-prefixed headline must not be dropped as a topic-creation")
+	require.Len(t, news, 1)
 	assert.Equal(t, headline, news[0].Headline)
 }
 
@@ -554,12 +554,9 @@ func TestBackfillCoinNewsBlockTime(t *testing.T) {
 		return ts
 	}
 
-	assert.WithinDuration(t, blockTime, got("confirmed"), time.Second,
-		"confirmed row with matching processed_blocks must adopt block_time")
-	assert.WithinDuration(t, syncTime, got("orphan"), time.Second,
-		"row without a matching processed_blocks entry must be left alone")
-	assert.WithinDuration(t, syncTime, got("mempool"), time.Second,
-		"mempool row (NULL height) must be left alone")
+	assert.WithinDuration(t, blockTime, got("confirmed"), time.Second)
+	assert.WithinDuration(t, syncTime, got("orphan"), time.Second)
+	assert.WithinDuration(t, syncTime, got("mempool"), time.Second)
 }
 
 // A mempool OP_RETURN that never got mined must stop being listed once
@@ -585,8 +582,7 @@ func TestReapExpiredMempool(t *testing.T) {
 
 	txids := lo.Map(got, func(o OPReturn, _ int) string { return o.TxID })
 	slices.Sort(txids)
-	assert.Equal(t, []string{"old-confirmed", "pending-mempool"}, txids,
-		"only unconfirmed OP_RETURNs past mempool expiry are reaped")
+	assert.Equal(t, []string{"old-confirmed", "pending-mempool"}, txids)
 }
 
 func TestPersistConfirmedConflictUpdatesCreateTimeToBlockTime(t *testing.T) {
@@ -619,8 +615,7 @@ func TestPersistConfirmedConflictUpdatesCreateTimeToBlockTime(t *testing.T) {
 		`SELECT created_at, height FROM op_returns WHERE txid = ? AND vout = ?`,
 		"same-txid", 0,
 	).Scan(&gotCreatedAt, &gotHeight))
-	assert.WithinDuration(t, blockTime, gotCreatedAt, time.Second,
-		"confirmed conflict must adopt the timestamp extracted from the block")
+	assert.WithinDuration(t, blockTime, gotCreatedAt, time.Second)
 	require.True(t, gotHeight.Valid)
 	assert.Equal(t, int64(height), gotHeight.Int64)
 
@@ -636,8 +631,7 @@ func TestPersistConfirmedConflictUpdatesCreateTimeToBlockTime(t *testing.T) {
 		`SELECT created_at, height FROM op_returns WHERE txid = ? AND vout = ?`,
 		"same-txid", 0,
 	).Scan(&gotCreatedAt, &gotHeight))
-	assert.WithinDuration(t, blockTime, gotCreatedAt, time.Second,
-		"mempool replay must not overwrite a confirmed block timestamp")
+	assert.WithinDuration(t, blockTime, gotCreatedAt, time.Second)
 	require.True(t, gotHeight.Valid)
 	assert.Equal(t, int64(height), gotHeight.Int64)
 }

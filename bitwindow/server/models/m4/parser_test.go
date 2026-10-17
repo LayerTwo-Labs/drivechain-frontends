@@ -8,6 +8,8 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
 
 func opReturn(t *testing.T, payload []byte) []byte {
@@ -243,4 +245,46 @@ func TestIsM3Commitment(t *testing.T) {
 		AddOp(txscript.OP_RETURN).AddOp(txscript.OP_TRUE).AddData(m3Payload(0, txid)).Script()
 	require.NoError(t, err)
 	assert.False(t, IsM3Commitment(opTrueFirst))
+}
+
+// The values come from Thresholds and NetworkParams in bip300301_enforcer lib/types.rs.
+func TestWithdrawalMaxAge(t *testing.T) {
+	for _, tc := range []struct {
+		network config.Network
+		ecashID string
+		want    uint32
+	}{
+		{config.NetworkMainnet, "", 26300},
+		{config.NetworkECash, "betanet", 26300},
+		{config.NetworkECash, "alphanet", 144},
+		{config.NetworkECash, "", 26300},
+		{config.NetworkSignet, "", 10},
+		{config.NetworkRegtest, "", 10},
+		{config.NetworkTestnet, "", 10},
+	} {
+		t.Run(string(tc.network)+"/"+tc.ecashID, func(t *testing.T) {
+			assert.Equal(t, tc.want, WithdrawalMaxAge(tc.network, tc.ecashID))
+		})
+	}
+}
+
+// The values come from Thresholds and NetworkParams in bip300301_enforcer lib/types.rs.
+func TestWithdrawalInclusionThreshold(t *testing.T) {
+	for _, tc := range []struct {
+		network config.Network
+		ecashID string
+		want    uint16
+	}{
+		{config.NetworkMainnet, "", 13150},
+		{config.NetworkECash, "betanet", 13150},
+		{config.NetworkECash, "alphanet", 72},
+		{config.NetworkECash, "", 13150},
+		{config.NetworkSignet, "", 5},
+		{config.NetworkRegtest, "", 5},
+		{config.NetworkTestnet, "", 5},
+	} {
+		t.Run(string(tc.network)+"/"+tc.ecashID, func(t *testing.T) {
+			assert.Equal(t, tc.want, WithdrawalInclusionThreshold(tc.network, tc.ecashID))
+		})
+	}
 }

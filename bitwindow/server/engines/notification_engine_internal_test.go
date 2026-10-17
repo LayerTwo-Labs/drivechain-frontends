@@ -254,6 +254,30 @@ func TestProcessWalletTransactions_ConfirmedSendIsPositive(t *testing.T) {
 	require.Equal(t, uint64(50_000_000), event.GetTransaction().GetAmountSats())
 }
 
+// A send that an RBF bump replaced stays in the wallet with -1 confirmations.
+// It never confirms, so it must not get a confirmed event.
+func TestProcessWalletTransactions_ReplacedSendIsNotConfirmed(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	engine := NewNotificationEngine(db, nil, nil)
+	events := engine.Subscribe(ctx)
+
+	const txid = "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+	require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{{Txid: txid, Amount: -0.5}}))
+	require.Equal(t, notificationv1.TransactionEvent_TYPE_SENT, nextEvent(t, events).GetTransaction().GetType())
+
+	require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{{Txid: txid, Amount: -0.5, Confirmations: -1}}))
+	select {
+	case event := <-events:
+		t.Fatalf("sent an event for a replaced transaction: %v", event)
+	default:
+	}
+
+	notified, err := notifications.HasBeenNotified(ctx, db, notifications.EventTypeTransactionConf, "wallet-a:"+txid+":confirmed")
+	require.NoError(t, err)
+	require.False(t, notified)
+}
+
 func TestProcessWalletTransactions_MarkFailureReturnsError(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
@@ -363,4 +387,25 @@ func TestCheckTimestampConfirmations_BlockErrorSendsNothing(t *testing.T) {
 	notified, err := notifications.HasBeenNotified(ctx, db, notifications.EventTypeTimestamp, fmt.Sprintf("%d", id))
 	require.NoError(t, err)
 	require.False(t, notified)
+}
+
+// A network swap stops the old engine. Its subscribers must see the channel
+// close, or each Watch stream stays on the old engine.
+func TestNotificationEngineRunClosesSubscribers(t *testing.T) {
+	engine := NewNotificationEngine(database.Test(t), nil, nil)
+	events := engine.Subscribe(t.Context())
+
+	runCtx, stop := context.WithCancel(t.Context())
+	stop()
+	require.NoError(t, engine.Run(runCtx))
+
+	select {
+	case _, ok := <-events:
+		require.False(t, ok)
+	case <-time.After(time.Second):
+		t.Fatal("the subscriber channel stayed open")
+	}
+
+	_, ok := <-engine.Subscribe(t.Context())
+	require.False(t, ok)
 }

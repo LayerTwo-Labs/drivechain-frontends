@@ -62,6 +62,19 @@ func TestProcessedBlocks(t *testing.T) {
 		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 
+	t.Run("highest block at or below a height", func(t *testing.T) {
+		got, err := blocks.GetProcessedBlockAtOrBelow(t.Context(), db, 99)
+		require.NoError(t, err)
+		assert.EqualValues(t, 3, got.Height)
+
+		got, err = blocks.GetProcessedBlockAtOrBelow(t.Context(), db, 2)
+		require.NoError(t, err)
+		assert.EqualValues(t, 2, got.Height)
+
+		_, err = blocks.GetProcessedBlockAtOrBelow(t.Context(), db, 0)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+	})
+
 	t.Run("delete at or above a height", func(t *testing.T) {
 		tx, err := db.BeginTx(t.Context(), nil)
 		require.NoError(t, err)
@@ -106,5 +119,27 @@ func TestCountSince(t *testing.T) {
 		count, err := blocks.TxCountSince(t.Context(), db, since)
 		require.NoError(t, err)
 		require.Equal(t, int64(1), count)
+	})
+
+	t.Run("compares across a time zone offset", func(t *testing.T) {
+		db := database.Test(t)
+		oslo := time.FixedZone("CEST", 2*60*60)
+		at := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
+		require.NoError(t, blocks.MarkBlocksProcessed(t.Context(), db, []blocks.ProcessedBlock{
+			{Height: 1, Hash: chainhash.Hash{1}, BlockTime: at.In(oslo), Txids: []chainhash.Hash{{1}, {2}}},
+			{Height: 2, Hash: chainhash.Hash{2}, BlockTime: at.Add(time.Hour), Txids: []chainhash.Hash{{3}, {4}}},
+		}))
+
+		count, err := blocks.CountSince(t.Context(), db, at.Add(30*time.Minute))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+
+		txCount, err := blocks.TxCountSince(t.Context(), db, at.Add(30*time.Minute))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), txCount)
+
+		count, err = blocks.CountSince(t.Context(), db, at.Add(30*time.Minute).In(oslo))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
 	})
 }

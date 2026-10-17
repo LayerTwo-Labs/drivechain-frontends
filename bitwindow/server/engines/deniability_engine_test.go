@@ -1,10 +1,16 @@
 package engines_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +18,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -35,6 +42,14 @@ const denialWalletID = "80CEBA2163224572BDEADD2D2181C51B"
 // wallet.
 func testDenialWalletEngine(
 	t *testing.T, bitcoind corerpc.BitcoinServiceClient, orchestrator orchrpc.WalletManagerServiceClient,
+) *engines.WalletEngine {
+	t.Helper()
+	return testDenialWalletEngineWithFrozen(t, bitcoind, orchestrator, func(context.Context) ([]string, error) { return nil, nil })
+}
+
+func testDenialWalletEngineWithFrozen(
+	t *testing.T, bitcoind corerpc.BitcoinServiceClient, orchestrator orchrpc.WalletManagerServiceClient,
+	frozenCoins engines.FrozenCoinsFunc,
 ) *engines.WalletEngine {
 	t.Helper()
 
@@ -62,7 +77,7 @@ func testDenialWalletEngine(
 		orchestrator,
 		dir,
 		&chaincfg.SigNetParams,
-		func(context.Context) ([]string, error) { return nil, nil },
+		frozenCoins,
 	)
 }
 
@@ -135,6 +150,34 @@ func TestDeniabilityEngine(t *testing.T) {
 
 		_, _, err = engine.CleanupDenials(ctx)
 		require.NoError(t, err)
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.Nil(t, denial.CancelledAt)
+	})
+
+	t.Run("a wallet read failure holds its denials back", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, nil))
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			Times(1).
+			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("core is down")))
+
+		utxos, denials, err := engine.CleanupDenials(ctx)
+		require.NoError(t, err)
+		assert.Empty(t, utxos)
+		assert.Empty(t, denials)
 
 		denial, err = deniability.Get(ctx, db, denial.ID)
 		require.NoError(t, err)
@@ -557,4 +600,81 @@ func TestDeniabilityEngine(t *testing.T) {
 			require.NoError(t, err)
 		}
 	})
+	t.Run("a frozen coin pauses its denial", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
+				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
+			}, nil)
+		mockOrch.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).Times(0)
+		mockOrch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Times(0)
+		walletEngine := testDenialWalletEngineWithFrozen(t, mockBitcoind, mockOrch, func(context.Context) ([]string, error) {
+			return []string{"FROZEN-TXID:0"}, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, walletEngine)
+
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(connect.NewResponse(&corepb.ListUnspentResponse{
+				Unspent: []*corepb.UnspentOutput{{Txid: "frozen-txid", Vout: 0, Amount: 0.01, Confirmations: 6}},
+			}), nil)
+		mockBitcoind.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
+			Times(1).
+			Return(&connect.Response[corepb.GetNewAddressResponse]{
+				Msg: &corepb.GetNewAddressResponse{Address: "bc1qtest"},
+			}, nil)
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "frozen-txid", 0, 0, 3, nil)
+		require.NoError(t, err)
+
+		var logs safeBuffer
+		runCtx, cancel := context.WithTimeout(zerolog.New(&logs).WithContext(ctx), 2500*time.Millisecond)
+		defer cancel()
+		require.NoError(t, engine.Run(runCtx))
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.NotNil(t, denial.PausedAt)
+		assert.Nil(t, denial.CancelledAt)
+		assert.Empty(t, denial.ExecutedDenials)
+
+		lines := strings.Split(strings.TrimSpace(logs.String()), "\n")
+		pause := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, `"level":"warn"`) })
+		require.NotEqual(t, -1, pause)
+		assert.Contains(t, lines[pause], fmt.Sprintf(`"denial_id":%d`, denial.ID))
+		assert.Contains(t, lines[pause], `"outpoint":"frozen-txid:0"`)
+		firstTickEnd := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, "finished executing denial") })
+		require.Greater(t, firstTickEnd, pause)
+		require.Len(t, lines[firstTickEnd+1:], 1)
+		assert.Contains(t, lines[firstTickEnd+1], "engine shutting down")
+	})
+}
+
+// safeBuffer is a bytes.Buffer that the engine goroutines and the test can share.
+type safeBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *safeBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *safeBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
 }

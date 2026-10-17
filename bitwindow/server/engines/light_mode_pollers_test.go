@@ -54,7 +54,8 @@ func runParserFor(t *testing.T, mode orchpb.NodeMode, window time.Duration) int6
 	t.Helper()
 
 	var dials atomic.Int64
-	parser := engines.NewBitcoind(countingBitcoind(&dials), unreachableEnforcer(), database.Test(t), config.Config{}, &chaincfg.RegressionNetParams, nodeModeSource(t, mode), nil)
+	db := database.Test(t)
+	parser := engines.NewBitcoind(countingBitcoind(&dials), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams, engines.NewM4Engine(db, config.NetworkRegtest, ""), nodeModeSource(t, mode), nil)
 
 	ctx, cancel := context.WithTimeout(t.Context(), window)
 	defer cancel()
@@ -166,7 +167,7 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 	require.NoError(t, err)
 
 	var sweeps atomic.Int64
-	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams, nodeMode, nil)
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams, engines.NewM4Engine(db, config.NetworkRegtest, ""), nodeMode, nil)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 7*time.Second)
 	defer cancel()
@@ -191,7 +192,7 @@ func TestParserRetriesTheStartupSweepAfterCoreIsReady(t *testing.T) {
 	require.NoError(t, err)
 
 	var sweeps atomic.Int64
-	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams, nodeModeSource(t, orchpb.NodeMode_NODE_MODE_FULL), nil)
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams, engines.NewM4Engine(db, config.NetworkRegtest, ""), nodeModeSource(t, orchpb.NodeMode_NODE_MODE_FULL), nil)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 7*time.Second)
 	defer cancel()

@@ -291,17 +291,22 @@ func (s *Server) CreateDenial(
 	}
 
 	if denial != nil {
+		if denial.CancelledAt == nil && (denial.NextExecution != nil || denial.PausedAt != nil) {
+			return nil, connect.NewError(connect.CodeAlreadyExists,
+				fmt.Errorf("denial %d already runs for %s:%d", denial.ID, req.Msg.Txid, req.Msg.Vout))
+		}
+
 		zerolog.Ctx(ctx).Info().
 			Int64("denial_id", denial.ID).
 			Str("txid", req.Msg.Txid).
 			Uint32("vout", req.Msg.Vout).
 			Int32("delay_seconds", req.Msg.DelaySeconds).
 			Int32("num_hops", req.Msg.NumHops).
-			Msg("CreateDenial: found existing denial, updating values")
+			Msg("CreateDenial: continue a stopped denial")
 
-		// a denial for this utxo already exists. Let's piggy back on that by updating its values
 		if err := deniability.Update(
-			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops, req.Msg.Txid, int32(req.Msg.Vout),
+			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops,
+			req.Msg.TargetUtxoSizes, req.Msg.Txid, int32(req.Msg.Vout),
 		); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
@@ -660,6 +665,12 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 
 	resp := &pb.ImportLabelsResponse{Skipped: int64(skipped)}
 
+	book, err := addressbook.List(ctx, s.db)
+	if err != nil {
+		return nil, fmt.Errorf("list address book entries: %w", err)
+	}
+	byAddress := lo.GroupBy(book, func(e addressbook.Entry) string { return e.Address })
+
 	for _, l := range labels {
 		ref := strings.TrimSpace(l.Ref)
 		label := strings.TrimSpace(l.Label)
@@ -675,20 +686,35 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 				resp.Skipped++
 				continue
 			}
-			if err := s.importAddressLabel(ctx, ref, l.Label); err != nil {
+			err := s.checkLabelFree(ctx, label, func(e addressbook.Entry) bool { return e.Address == ref })
+			if connect.CodeOf(err) == connect.CodeAlreadyExists {
+				zerolog.Ctx(ctx).Warn().Err(err).Str("ref", ref).Msg("import labels: skip address")
+				resp.Skipped++
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			// An address already in the book keeps its direction.
+			if existing := byAddress[ref]; len(existing) > 0 {
+				for _, e := range existing {
+					if err := addressbook.UpdateLabel(ctx, s.db, e.ID, label); err != nil {
+						return nil, fmt.Errorf("import address label %s: %w", ref, err)
+					}
+				}
+			} else if err := addressbook.Upsert(ctx, s.db, nil, label, ref, addressbook.DirectionReceive); err != nil {
 				return nil, fmt.Errorf("import address label %s: %w", ref, err)
 			}
 			resp.ImportedAddresses++
 
 		case bip329.TypeTx:
-			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, l.Label); err != nil {
+			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, label); err != nil {
 				return nil, fmt.Errorf("import transaction note %s: %w", ref, err)
 			}
 			resp.ImportedTransactions++
 
 		case bip329.TypeOutput:
-			lbl := l.Label
-			if err := utxometadata.Set(ctx, s.db, ref, nil, &lbl); err != nil {
+			if err := utxometadata.Set(ctx, s.db, ref, nil, &label); err != nil {
 				return nil, fmt.Errorf("import utxo label %s: %w", ref, err)
 			}
 			resp.ImportedOutputs++
@@ -699,21 +725,6 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 	}
 
 	return connect.NewResponse(resp), nil
-}
-
-// importAddressLabel upserts an address-book label for a valid address.
-func (s *Server) importAddressLabel(ctx context.Context, addr, label string) error {
-	entries, err := addressbook.List(ctx, s.db)
-	if err != nil {
-		return err
-	}
-	for _, e := range entries {
-		if e.Address == addr {
-			return addressbook.UpdateLabel(ctx, s.db, e.ID, label)
-		}
-	}
-
-	return addressbook.Create(ctx, s.db, nil, label, addr, addressbook.DirectionReceive)
 }
 
 // GetFireplaceStats implements bitwindowdv1connect.BitwindowdServiceHandler.
@@ -864,7 +875,7 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 		return nil, err
 	}
 
-	hasMore := startHeight > uint32(len(blocks))
+	hasMore := len(blocks) > 0 && blocks[len(blocks)-1].Height > 0
 	s.listBlocksCache.Store(cacheKey, &listBlocksCacheEntry{
 		blocks:  blocks,
 		hasMore: hasMore,
@@ -1080,11 +1091,11 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		}
 	}
 
-	bitcoindBandwidth, err := s.processBandwidth("bitcoind")
+	bitcoindBandwidth, err := s.processBandwidth(ctx, "bitcoind")
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	enforcerBandwidth, err := s.processBandwidth("bip300301-enforcer")
+	enforcerBandwidth, err := s.processBandwidth(ctx, "bip300301-enforcer")
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1107,12 +1118,12 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 }
 
 // processBandwidth gives nil when no process has the name.
-func (s *Server) processBandwidth(name string) (*pb.ProcessBandwidth, error) {
+func (s *Server) processBandwidth(ctx context.Context, name string) (*pb.ProcessBandwidth, error) {
 	// Windows has no pgrep.
 	if runtime.GOOS == "windows" {
 		return nil, nil
 	}
-	output, err := exec.Command("pgrep", "-x", name).Output()
+	output, err := exec.CommandContext(ctx, "pgrep", "-x", name).Output()
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
 		return nil, nil

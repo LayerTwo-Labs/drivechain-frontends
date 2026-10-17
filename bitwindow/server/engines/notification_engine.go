@@ -35,6 +35,7 @@ type NotificationEngine struct {
 
 	mu          sync.RWMutex
 	subscribers []chan *notificationv1.WatchResponse
+	stopped     bool
 }
 
 func NewNotificationEngine(
@@ -50,9 +51,12 @@ func NewNotificationEngine(
 	}
 }
 
+// Run sends events until ctx ends. Then it closes each subscriber channel, so
+// that each Watch stream ends.
 func (e *NotificationEngine) Run(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("notification engine started")
+	defer e.closeSubscribers()
 
 	pool := logpool.New(ctx, "notification-engine")
 	pool.Go("timestamps", func(ctx context.Context) error {
@@ -262,6 +266,10 @@ func aggregateByTxid(transactions []*corepb.GetTransactionResponse) ([]walletTx,
 	aggregated := make([]walletTx, 0, len(transactions))
 	seen := make(map[bucket]int, len(transactions))
 	for _, tx := range transactions {
+		// Core gives a conflicted transaction, such as one an RBF replaced, negative confirmations.
+		if tx.Confirmations < 0 {
+			continue
+		}
 		amount, err := btcutil.NewAmount(tx.Amount)
 		if err != nil {
 			return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
@@ -419,12 +427,28 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 	return nil
 }
 
+func (e *NotificationEngine) closeSubscribers() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, ch := range e.subscribers {
+		close(ch)
+	}
+	e.subscribers = nil
+	e.stopped = true
+}
+
+// Subscribe returns a channel of events. The channel closes when ctx ends or
+// when Run returns.
 func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notificationv1.WatchResponse {
 	log := zerolog.Ctx(ctx)
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	ch := make(chan *notificationv1.WatchResponse, 10)
+	if e.stopped {
+		close(ch)
+		return ch
+	}
 	e.subscribers = append(e.subscribers, ch)
 
 	log.Debug().
@@ -437,10 +461,10 @@ func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notification
 		e.mu.Lock()
 		defer e.mu.Unlock()
 
-		// Remove subscriber
-		e.subscribers = lo.Filter(e.subscribers, func(sub chan *notificationv1.WatchResponse, _ int) bool {
-			return sub != ch
-		})
+		if !lo.Contains(e.subscribers, ch) {
+			return
+		}
+		e.subscribers = lo.Without(e.subscribers, ch)
 		close(ch)
 
 		log.Debug().

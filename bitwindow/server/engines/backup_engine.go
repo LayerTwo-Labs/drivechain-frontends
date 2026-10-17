@@ -352,8 +352,11 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 	}
 	if len(groups) == 0 {
 		soloKeys, err := e.multisigStore.ListSoloKeys(ctx)
-		if err != nil || len(soloKeys) == 0 {
-			return nil, nil // nothing to export
+		if err != nil {
+			return nil, fmt.Errorf("list solo keys: %w", err)
+		}
+		if len(soloKeys) == 0 {
+			return nil, nil
 		}
 	}
 
@@ -397,16 +400,36 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 			"transaction_ids":    txIDs,
 		}
 
+		keyPSBTs, err := e.multisigStore.ListKeyPSBTs(ctx, g.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list key psbts for group %s: %w", g.ID, err)
+		}
+
 		var keyList []map[string]interface{}
 		for _, k := range keys {
+			activePSBTs := map[string]string{}
+			initialPSBTs := map[string]string{}
+			for _, kp := range keyPSBTs {
+				if kp.KeyID != k.ID {
+					continue
+				}
+				if kp.ActivePSBT != "" {
+					activePSBTs[kp.TransactionID] = kp.ActivePSBT
+				}
+				if kp.InitialPSBT != "" {
+					initialPSBTs[kp.TransactionID] = kp.InitialPSBT
+				}
+			}
 			keyList = append(keyList, map[string]interface{}{
-				"owner":       k.Owner,
-				"xpub":        k.Xpub,
-				"path":        k.DerivationPath,
-				"fingerprint": k.Fingerprint,
-				"origin_path": k.OriginPath,
-				"is_wallet":   k.IsWallet,
-				"sortOrder":   k.SortOrder,
+				"owner":         k.Owner,
+				"xpub":          k.Xpub,
+				"path":          k.DerivationPath,
+				"fingerprint":   k.Fingerprint,
+				"origin_path":   k.OriginPath,
+				"is_wallet":     k.IsWallet,
+				"sortOrder":     k.SortOrder,
+				"active_psbts":  activePSBTs,
+				"initial_psbts": initialPSBTs,
 			})
 		}
 		gm["keys"] = keyList

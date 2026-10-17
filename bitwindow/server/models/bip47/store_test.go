@@ -1,6 +1,7 @@
 package bip47_test
 
 import (
+	"slices"
 	"sync"
 	"testing"
 
@@ -53,15 +54,15 @@ func TestReserveNextIndex_Concurrent(t *testing.T) {
 	wg.Wait()
 	close(results)
 
-	seen := make(map[uint32]bool, goroutines*perGoroutine)
+	var got, want []uint32
 	for idx := range results {
-		require.False(t, seen[idx])
-		seen[idx] = true
+		got = append(got, idx)
 	}
-
 	for i := uint32(0); i < goroutines*perGoroutine; i++ {
-		assert.True(t, seen[i], "expected index %d to be reserved exactly once", i)
+		want = append(want, i)
 	}
+	slices.Sort(got)
+	assert.Equal(t, want, got)
 }
 
 func TestMarkNotifiedAndGetState(t *testing.T) {

@@ -9,7 +9,9 @@ import (
 func TestExtractAccountIndexHardenedMarkers(t *testing.T) {
 	// BIP32 writes the hardened marker as ', h or H.
 	for _, path := range []string{"m/84'/1'/8005'", "m/84h/1h/8005h", "m/84H/1H/8005H"} {
-		require.Equal(t, 8005, extractAccountIndex(path), path)
+		t.Run(path, func(t *testing.T) {
+			require.Equal(t, 8005, extractAccountIndex(path))
+		})
 	}
 	require.Equal(t, 0, extractAccountIndex("m/84'/1'/not-a-number'"))
 

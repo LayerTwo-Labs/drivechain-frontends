@@ -294,7 +294,6 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 	}
 	defer database.SafeDefer(ctx, tx.Rollback)
 
-	// Create new cheque as already funded
 	now := time.Now()
 	result, err := tx.ExecContext(ctx, `
 		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address, actual_amount_sats, funded_at)

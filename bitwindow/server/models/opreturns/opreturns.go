@@ -308,7 +308,7 @@ type CoinNews struct {
 
 func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	rows, err := db.QueryContext(ctx, `
-	SELECT 0, topic, name, 1, COALESCE(txid, ''), retention_days,
+	SELECT rowid, topic, name, 1, COALESCE(txid, ''), retention_days,
 		(SELECT i.block_time FROM cn_items i WHERE i.txid = cn_topics.txid ORDER BY i.block_time ASC LIMIT 1) AS created_at
 	FROM cn_topics
 	ORDER BY created_at ASC

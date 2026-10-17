@@ -42,7 +42,6 @@ type ExecutedDenial struct {
 	FromTxID  string    `db:"from_txid"`
 	FromVout  int32     `db:"from_vout"`
 	ToTxID    string    `db:"to_txid"`
-	ToVout    *string   `db:"to_vout"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
@@ -207,7 +206,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 
 func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
 	executions, err := database.Select[ExecutedDenial](ctx, db, `
-		SELECT id, denial_id, from_txid, from_vout, to_txid, to_vout, created_at
+		SELECT id, denial_id, from_txid, from_vout, to_txid, created_at
 		FROM executed_denials
 		WHERE denial_id = ?
 		ORDER BY created_at DESC
@@ -339,14 +338,14 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	return &d, nil
 }
 
-// Update adds numHops to a plan, sets its delay, moves its start to txid:vout
-// and clears its cancel.
-func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, txid string, vout int32) error {
+// Update adds numHops to a plan, sets its delay and target sizes, moves its
+// start to txid:vout and clears its cancel.
+func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, targetSizes TargetSizes, txid string, vout int32) error {
 	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
-		SET delay_duration = ?, num_hops = num_hops + ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
+		SET delay_duration = ?, num_hops = num_hops + ?, target_utxo_sizes = ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
 		WHERE id = ?
-	`, delay, numHops, txid, vout, time.Now(), id))
+	`, delay, numHops, targetSizes, txid, vout, time.Now(), id))
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return ErrNotFound

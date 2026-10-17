@@ -50,11 +50,13 @@ func New(
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
 	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient],
 	walletEngine *engines.WalletEngine,
+	bundleMaxAge uint32,
 ) *Server {
 	s := &Server{
 		enforcer:         enforcer,
 		blockProducer:    blockProducer,
 		walletEngine:     walletEngine,
+		bundleMaxAge:     bundleMaxAge,
 		withdrawalCaches: make(map[uint32]*withdrawalCache),
 	}
 	return s
@@ -64,6 +66,8 @@ type Server struct {
 	enforcer      *service.Service[validatorrpc.ValidatorServiceClient]
 	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient]
 	walletEngine  *engines.WalletEngine
+	// bundleMaxAge is the number of blocks a withdrawal bundle has for its votes.
+	bundleMaxAge uint32
 
 	// Cache for withdrawal bundles per sidechain ID
 	withdrawalCacheMu sync.RWMutex
@@ -470,9 +474,6 @@ func cacheOnChain(cache *withdrawalCache, headers []*validatorpb.BlockHeaderInfo
 	})
 }
 
-// BIP300 withdrawal verification period (max age for a bundle)
-const withdrawalVerificationPeriod uint32 = 26300
-
 // processPegDataBlocks extracts withdrawal bundles from peg data blocks
 func (s *Server) processPegDataBlocks(blocks []*validatorpb.GetTwoWayPegDataResponse_ResponseItem, sidechainID uint32) []*pb.WithdrawalBundle {
 	bundles := make([]*pb.WithdrawalBundle, 0)
@@ -496,7 +497,7 @@ func (s *Server) processPegDataBlocks(blocks []*validatorpb.GetTwoWayPegDataResp
 				M6Id:        m6id,
 				SidechainId: sidechainID,
 				BlockHeight: blockHeight,
-				MaxAge:      withdrawalVerificationPeriod,
+				MaxAge:      s.bundleMaxAge,
 			}
 
 			switch e := withdrawalEvent.Event.Event.(type) {
@@ -576,8 +577,8 @@ func (s *Server) updateBundleAges(bundles []*pb.WithdrawalBundle, currentHeight 
 		bundleCopy := proto.Clone(b).(*pb.WithdrawalBundle)
 		if bundleCopy.Status == "pending" {
 			bundleCopy.Age = currentHeight - bundleCopy.BlockHeight
-			if bundleCopy.Age < withdrawalVerificationPeriod {
-				bundleCopy.BlocksLeft = withdrawalVerificationPeriod - bundleCopy.Age
+			if bundleCopy.Age < s.bundleMaxAge {
+				bundleCopy.BlocksLeft = s.bundleMaxAge - bundleCopy.Age
 			} else {
 				bundleCopy.BlocksLeft = 0
 			}

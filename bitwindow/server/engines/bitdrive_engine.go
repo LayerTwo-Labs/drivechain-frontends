@@ -117,11 +117,6 @@ func ParseMetadata(metadataB64 string) (*ParsedMetadata, error) {
 	}, nil
 }
 
-// EncodeMetadata encodes metadata into 9 bytes and returns base64
-func EncodeMetadata(encrypted, isMultisig bool, timestamp uint32, fileType string) string {
-	return base64.StdEncoding.EncodeToString(EncodeMetadataBytes(encrypted, isMultisig, timestamp, fileType))
-}
-
 // EncodeMetadataBytes encodes metadata into its 9-byte on-chain representation
 func EncodeMetadataBytes(encrypted, isMultisig bool, timestamp uint32, fileType string) []byte {
 	metadata := make([]byte, MetadataSize)
@@ -726,20 +721,6 @@ func (e *BitDriveEngine) StoreMultisigData(ctx context.Context, jsonData []byte,
 		Msg("stored multisig data")
 
 	return txid, nil
-}
-
-// DecodeMultisigData decodes multisig group data from OP_RETURN
-func (e *BitDriveEngine) DecodeMultisigData(ctx context.Context, opReturnMessage string) ([]byte, error) {
-	content, metadata, err := e.DecodeOPReturnData(ctx, opReturnMessage)
-	if err != nil {
-		return nil, err
-	}
-
-	if !metadata.IsMultisig {
-		return nil, errors.New("not a multisig transaction")
-	}
-
-	return content, nil
 }
 
 func ValidateFileSize(content []byte) error {

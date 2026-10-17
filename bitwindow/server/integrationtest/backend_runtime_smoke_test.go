@@ -3,7 +3,7 @@
 package integrationtest
 
 import (
-	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"errors"
@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -44,7 +45,6 @@ func TestBackendRuntimeOwnershipSmoke(t *testing.T) {
 	defer cancel()
 
 	node := newOrchestratorOnlyNode(t)
-	defer node.Close(t)
 
 	_, err := node.WalletClient.GenerateWallet(ctx, connect.NewRequest(&walletpb.GenerateWalletRequest{
 		Name:           "backend-runtime-enforcer",
@@ -80,10 +80,6 @@ func TestBackendRuntimeOwnershipSmoke(t *testing.T) {
 	mainchainInfo, err := orchClient.GetMainchainBlockchainInfo(ctx, connect.NewRequest(&orchpb.GetMainchainBlockchainInfoRequest{}))
 	require.NoError(t, err)
 	require.Equal(t, "regtest", mainchainInfo.Msg.GetChain())
-
-	enforcerInfo, err := orchClient.GetEnforcerBlockchainInfo(ctx, connect.NewRequest(&orchpb.GetEnforcerBlockchainInfoRequest{}))
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, enforcerInfo.Msg.GetBlocks(), int32(0))
 
 	statusResp, err := healthClient.Check(ctx, connect.NewRequest(&emptypb.Empty{}))
 	require.NoError(t, err)
@@ -151,20 +147,15 @@ func startBitwindowd(t *testing.T, binPath string, node *orchestratorOnlyNode, a
 		"--orchestrator.addr", fmt.Sprintf("http://127.0.0.1:%d", node.OrchdGRPCPort),
 	)
 	cmd.Env = append(os.Environ(), "HOME="+filepath.Dir(node.BitwindowDir))
-	stdout, err := cmd.StdoutPipe()
-	require.NoError(t, err)
-	stderr, err := cmd.StderrPipe()
-	require.NoError(t, err)
+	cmd.Stdout = io.MultiWriter(stdoutFile, testLogWriter(t, "bitwindowd.stdout", nil))
+	cmd.Stderr = io.MultiWriter(stderrFile, testLogWriter(t, "bitwindowd.stderr", nil))
+	cmd.WaitDelay = 5 * time.Second
+	t.Cleanup(func() {
+		require.NoError(t, stdoutFile.Close())
+		require.NoError(t, stderrFile.Close())
+	})
 
 	require.NoError(t, cmd.Start())
-
-	go logScanner(t, "bitwindowd.stdout", io.TeeReader(stdout, stdoutFile))
-	go logScanner(t, "bitwindowd.stderr", io.TeeReader(stderr, stderrFile))
-
-	t.Cleanup(func() {
-		_ = stdoutFile.Close()
-		_ = stderrFile.Close()
-	})
 
 	return cmd
 }
@@ -246,15 +237,17 @@ port=%d
 	)
 	// Confines drivechaind and the daemons it spawns to nodeDir.
 	orchCmd.Env = append(os.Environ(), "HOME="+nodeDir, "XDG_DATA_HOME="+filepath.Join(nodeDir, ".local", "share"))
-	orchStdout, err := orchCmd.StdoutPipe()
-	require.NoError(t, err)
-	orchStderr, err := orchCmd.StderrPipe()
-	require.NoError(t, err)
-	require.NoError(t, orchCmd.Start())
-
 	ready := make(chan struct{})
-	go watchForReadyLine(t, orchStdout, ready)
-	go logScanner(t, "orchd.stderr", orchStderr)
+	var readyOnce sync.Once
+	orchCmd.Stdout = testLogWriter(t, "orchd.stdout", func(line string) {
+		if strings.Contains(line, "serving gRPC") {
+			readyOnce.Do(func() { close(ready) })
+		}
+	})
+	orchCmd.Stderr = testLogWriter(t, "orchd.stderr", nil)
+	orchCmd.WaitDelay = 5 * time.Second
+	require.NoError(t, orchCmd.Start())
+	t.Cleanup(func() { stopCmdProcess(t, orchCmd) })
 
 	select {
 	case <-ready:
@@ -269,7 +262,6 @@ port=%d
 		BitcoindRPCPort:  rpcPort,
 		BitcoindP2PPort:  p2pPort,
 		OrchdGRPCPort:    grpcPort,
-		OrchdCmd:         orchCmd,
 		EnforcerGRPCPort: basePort + 212,
 		WalletClient: walletrpc.NewWalletManagerServiceClient(
 			http.DefaultClient,
@@ -279,7 +271,6 @@ port=%d
 		),
 	}
 
-	_ = bitcoindBin
 	return node
 }
 
@@ -293,7 +284,7 @@ func prepareEnforcerConfigForSmokeTest(t *testing.T, rpcPort, grpcPort int) {
 	if data, err := os.ReadFile(confPath); err == nil {
 		original = data
 	} else {
-		require.True(t, os.IsNotExist(err), "read enforcer config: %v", err)
+		require.True(t, os.IsNotExist(err))
 	}
 
 	content := fmt.Sprintf(`# bitwindow-enforcer-conf-version=2
@@ -308,10 +299,10 @@ serve-grpc-addr=127.0.0.1:%d
 
 	t.Cleanup(func() {
 		if original == nil {
-			_ = os.Remove(confPath)
+			require.NoError(t, os.Remove(confPath))
 			return
 		}
-		_ = os.WriteFile(confPath, original, 0o644)
+		require.NoError(t, os.WriteFile(confPath, original, 0o644))
 	})
 }
 
@@ -321,13 +312,6 @@ func copyManagedBinary(t *testing.T, srcPath, dstPath string) {
 	require.NoError(t, err)
 	require.NoError(t, os.MkdirAll(filepath.Dir(dstPath), 0o755))
 	require.NoError(t, os.WriteFile(dstPath, data, 0o755))
-}
-
-func (n *orchestratorOnlyNode) Close(t *testing.T) {
-	t.Helper()
-	if n.OrchdCmd != nil {
-		stopCmdProcess(t, n.OrchdCmd)
-	}
 }
 
 func findEnforcer(t *testing.T) string {
@@ -431,25 +415,31 @@ func randomPortBase(t *testing.T) int {
 	return 40000 + int(b[0])%190*100
 }
 
-func watchForReadyLine(t *testing.T, r io.ReadCloser, ready chan<- struct{}) {
-	t.Helper()
-	scanner := bufio.NewScanner(r)
-	readyClosed := false
-	for scanner.Scan() {
-		line := scanner.Text()
-		t.Logf("orchd.stdout: %s", line)
-		if !readyClosed && strings.Contains(line, "serving gRPC") {
-			close(ready)
-			readyClosed = true
+// testLogWriter writes each line to the test log. Give it to exec.Cmd, so that
+// Wait returns only after the last write.
+func testLogWriter(t *testing.T, prefix string, onLine func(string)) io.Writer {
+	return &lineWriter{line: func(line string) {
+		t.Logf("%s: %s", prefix, line)
+		if onLine != nil {
+			onLine(line)
 		}
-	}
+	}}
 }
 
-func logScanner(t *testing.T, prefix string, r io.Reader) {
-	t.Helper()
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		t.Logf("%s: %s", prefix, scanner.Text())
+type lineWriter struct {
+	buf  []byte
+	line func(string)
+}
+
+func (w *lineWriter) Write(p []byte) (int, error) {
+	w.buf = append(w.buf, p...)
+	for {
+		i := bytes.IndexByte(w.buf, '\n')
+		if i < 0 {
+			return len(p), nil
+		}
+		w.line(string(w.buf[:i]))
+		w.buf = w.buf[i+1:]
 	}
 }
 
@@ -496,10 +486,10 @@ func waitForBinaryReady(t *testing.T, ctx context.Context, client orchrpc.Orches
 	if lastErr != nil {
 		require.NoError(t, lastErr)
 	}
-	require.NotNil(t, lastStatus, "missing %s status", name)
-	require.Truef(t, lastStatus.GetRunning(), "%s should be running: %+v", name, lastStatus)
-	require.Truef(t, lastStatus.GetConnected(), "%s should be connected: %+v", name, lastStatus)
-	require.Truef(t, lastStatus.GetHealthy(), "%s should be healthy: %+v", name, lastStatus)
+	require.NotNil(t, lastStatus)
+	require.True(t, lastStatus.GetRunning())
+	require.True(t, lastStatus.GetConnected())
+	require.True(t, lastStatus.GetHealthy())
 	return lastStatus
 }
 

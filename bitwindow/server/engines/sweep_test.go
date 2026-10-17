@@ -11,6 +11,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +41,8 @@ type fakeChain struct {
 	queried []string
 	err     error
 	// failures makes the next reads fail, as a chain source that still boots does.
-	failures int
+	failures     int
+	broadcastErr error
 }
 
 func (f *fakeChain) AddressUnspent(_ context.Context, address string) ([]ChequeUTXO, error) {
@@ -55,9 +57,15 @@ func (f *fakeChain) AddressUnspent(_ context.Context, address string) ([]ChequeU
 	return f.funded[address], nil
 }
 func (f *fakeChain) FeeRateSatPerVByte(context.Context, int32) (float64, error) { return 1, nil }
-func (f *fakeChain) Broadcast(context.Context, string) (string, error)          { return "txid", nil }
+func (f *fakeChain) Broadcast(context.Context, string) (string, error) {
+	if f.broadcastErr != nil {
+		return "", f.broadcastErr
+	}
+	return "txid", nil
+}
 
 func TestSweepCandidatesCompressedKeyHasBothKinds(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
@@ -68,6 +76,7 @@ func TestSweepCandidatesCompressedKeyHasBothKinds(t *testing.T) {
 }
 
 func TestSweepCandidatesUncompressedKeyIsLegacyOnly(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, false)
 
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
@@ -77,6 +86,7 @@ func TestSweepCandidatesUncompressedKeyIsLegacyOnly(t *testing.T) {
 }
 
 func TestResolveSweepSourceFindsLegacyFunds(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
@@ -93,6 +103,7 @@ func TestResolveSweepSourceFindsLegacyFunds(t *testing.T) {
 }
 
 func TestResolveSweepSourcePrefersWitnessWhenBothFunded(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 
@@ -107,6 +118,7 @@ func TestResolveSweepSourcePrefersWitnessWhenBothFunded(t *testing.T) {
 }
 
 func TestResolveSweepSourceEmptyKeyReportsFirstCandidate(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 
@@ -119,6 +131,7 @@ func TestResolveSweepSourceEmptyKeyReportsFirstCandidate(t *testing.T) {
 }
 
 func TestResolveSweepSourceReturnsChainError(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	chain := &fakeChain{err: errors.New("electrum down")}
 
@@ -127,50 +140,70 @@ func TestResolveSweepSourceReturnsChainError(t *testing.T) {
 }
 
 func TestSweepVbytesChargesMoreForLegacyInputs(t *testing.T) {
-	witness := SweepVbytes(SweepAddressP2WPKH, 1, OutputVbytes)
-	legacy := SweepVbytes(SweepAddressP2PKH, 1, OutputVbytes)
-
-	assert.Equal(t, uint64(110), witness)
-	assert.Equal(t, uint64(190), legacy)
+	t.Parallel()
+	tests := []struct {
+		name       string
+		kind       SweepAddressKind
+		compressed bool
+		want       uint64
+	}{
+		{name: "p2wpkh", kind: SweepAddressP2WPKH, compressed: true, want: 110},
+		{name: "compressed p2pkh", kind: SweepAddressP2PKH, compressed: true, want: 190},
+		{name: "uncompressed p2pkh", kind: SweepAddressP2PKH, compressed: false, want: 222},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			source := SweepSource{Kind: tt.kind, Compressed: tt.compressed, UTXOs: testUTXOs()}
+			assert.Equal(t, tt.want, SweepVbytes(source, OutputVbytes))
+		})
+	}
 }
 
-func TestBuildAndSignWitnessSweep(t *testing.T) {
-	wif := newWIF(t, true)
-	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
-	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
+func TestBuildAndSignSweep(t *testing.T) {
+	t.Parallel()
+	const feeRate = 10
+	tests := []struct {
+		name       string
+		compressed bool
+		kind       SweepAddressKind
+		wantValue  int64
+	}{
+		{name: "p2wpkh", compressed: true, kind: SweepAddressP2WPKH, wantValue: 100_000 - 110*feeRate},
+		{name: "compressed p2pkh", compressed: true, kind: SweepAddressP2PKH, wantValue: 100_000 - 190*feeRate},
+		{name: "uncompressed p2pkh", compressed: false, kind: SweepAddressP2PKH, wantValue: 100_000 - 222*feeRate},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			wif := newWIF(t, tt.compressed)
+			candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
+			require.NoError(t, err)
+			candidate, found := lo.Find(candidates, func(c SweepCandidate) bool { return c.Kind == tt.kind })
+			require.True(t, found)
+			chain := &fakeChain{funded: map[string][]ChequeUTXO{candidate.Address: testUTXOs()}}
+			source, err := ResolveSweepSource(t.Context(), chain, wif, &chaincfg.SigNetParams)
+			require.NoError(t, err)
+			require.Equal(t, tt.kind, source.Kind)
 
-	tx, err := BuildSweepTx(source, destAddress, 10, &chaincfg.SigNetParams)
-	require.NoError(t, err)
+			tx, err := BuildSweepTx(source, destAddress, feeRate, &chaincfg.SigNetParams)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantValue, tx.TxOut[0].Value)
 
-	// 100000 - (110 vbytes * 10 sat/vbyte)
-	assert.Equal(t, int64(98_900), tx.TxOut[0].Value)
+			signed, err := SignSweepTx(tx, source, wif, &chaincfg.SigNetParams)
+			require.NoError(t, err)
+			assertInputVerifies(t, signed, source, 100_000)
 
-	signed, err := SignSweepTx(tx, source, wif, &chaincfg.SigNetParams)
-	require.NoError(t, err)
-	assert.NotEmpty(t, signed.TxIn[0].Witness)
-	assert.Empty(t, signed.TxIn[0].SignatureScript)
-	assertInputVerifies(t, signed, source, 100_000)
-}
-
-func TestBuildAndSignLegacySweep(t *testing.T) {
-	wif := newWIF(t, false)
-	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
-	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2PKH, UTXOs: testUTXOs()}
-
-	tx, err := BuildSweepTx(source, destAddress, 10, &chaincfg.SigNetParams)
-	require.NoError(t, err)
-
-	// 100000 - (190 vbytes * 10 sat/vbyte)
-	assert.Equal(t, int64(98_100), tx.TxOut[0].Value)
-
-	signed, err := SignSweepTx(tx, source, wif, &chaincfg.SigNetParams)
-	require.NoError(t, err)
-	assert.NotEmpty(t, signed.TxIn[0].SignatureScript)
-	assert.Empty(t, signed.TxIn[0].Witness)
-	assertInputVerifies(t, signed, source, 100_000)
+			weight := signed.SerializeSizeStripped()*3 + signed.SerializeSize()
+			vsize := int64((weight + 3) / 4)
+			feeSats := 100_000 - signed.TxOut[0].Value
+			assert.GreaterOrEqual(t, feeSats, vsize*feeRate)
+		})
+	}
 }
 
 func TestBuildSweepTxRejectsFeeAboveBalance(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
@@ -180,6 +213,7 @@ func TestBuildSweepTxRejectsFeeAboveBalance(t *testing.T) {
 }
 
 func TestBuildSweepTxRejectsADustOutput(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
@@ -199,6 +233,7 @@ func TestBuildSweepTxRejectsADustOutput(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			feeSats := InputVbytes + OverheadVbytes + tt.outVbytes
 			source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: []ChequeUTXO{{
 				TxID:      "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -218,6 +253,7 @@ func TestBuildSweepTxRejectsADustOutput(t *testing.T) {
 }
 
 func TestBuildSweepTxCapsTheFee(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
@@ -246,6 +282,7 @@ func TestBuildSweepTxCapsTheFee(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: oneBitcoin(tt.inputs)}
 
 			tx, err := BuildSweepTx(source, destAddress, tt.feeSatPerVbyte, &chaincfg.SigNetParams)
@@ -260,6 +297,7 @@ func TestBuildSweepTxCapsTheFee(t *testing.T) {
 }
 
 func TestBuildSweepTxRejectsForeignNetworkAddress(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
@@ -290,6 +328,7 @@ func assertInputVerifies(t *testing.T, tx *wire.MsgTx, source SweepSource, value
 }
 
 func TestSweepPaysForTheDestinationItActuallyUses(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}

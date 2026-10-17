@@ -36,7 +36,10 @@ func (k SweepAddressKind) String() string {
 	}
 }
 
-const p2pkhInputVbytes = 148
+const (
+	p2pkhInputVbytes             = 148
+	uncompressedP2PKHInputVbytes = 180
+)
 
 // ScriptOutputVbytes is what one output costs: 8 value + the script length
 // prefix + the script. A taproot output is 12 vbytes wider than a segwit one.
@@ -54,7 +57,9 @@ type SweepCandidate struct {
 type SweepSource struct {
 	Address string
 	Kind    SweepAddressKind
-	UTXOs   []ChequeUTXO
+	// Compressed is true when the key signs with a 33-byte public key.
+	Compressed bool
+	UTXOs      []ChequeUTXO
 }
 
 // TotalSats is the value of every output the source holds.
@@ -114,28 +119,31 @@ func ResolveSweepSource(
 			return SweepSource{}, fmt.Errorf("query %s utxos: %w", candidate.Kind, err)
 		}
 		if len(utxos) > 0 {
-			return SweepSource{Address: candidate.Address, Kind: candidate.Kind, UTXOs: utxos}, nil
+			return SweepSource{Address: candidate.Address, Kind: candidate.Kind, Compressed: wif.CompressPubKey, UTXOs: utxos}, nil
 		}
 	}
 
-	return SweepSource{Address: candidates[0].Address, Kind: candidates[0].Kind}, nil
+	return SweepSource{Address: candidates[0].Address, Kind: candidates[0].Kind, Compressed: wif.CompressPubKey}, nil
 }
 
-// SweepVbytes is the size of a sweep that spends inputs of one kind into a
-// single output of outputVbytes.
-func SweepVbytes(kind SweepAddressKind, inputs int, outputVbytes uint64) uint64 {
+// SweepVbytes is the size of a sweep that spends every output of the source
+// into a single output of outputVbytes.
+func SweepVbytes(source SweepSource, outputVbytes uint64) uint64 {
 	perInput := InputVbytes
-	if kind == SweepAddressP2PKH {
+	if source.Kind == SweepAddressP2PKH {
 		perInput = p2pkhInputVbytes
+		if !source.Compressed {
+			perInput = uncompressedP2PKHInputVbytes
+		}
 	}
-	return uint64(inputs*perInput+OverheadVbytes) + outputVbytes
+	return uint64(len(source.UTXOs)*perInput+OverheadVbytes) + outputVbytes
 }
 
 // SweepFeeSats is what a sweep of the source costs at the given rate, paying to
 // an output of outputVbytes. Pass OutputVbytes when the destination is not
 // chosen yet: it sizes the narrowest one.
 func SweepFeeSats(source SweepSource, feeSatPerVbyte uint64, outputVbytes uint64) uint64 {
-	return SweepVbytes(source.Kind, len(source.UTXOs), outputVbytes) * feeSatPerVbyte
+	return SweepVbytes(source, outputVbytes) * feeSatPerVbyte
 }
 
 // ErrInvalidSweep marks a sweep that the caller input makes impossible.

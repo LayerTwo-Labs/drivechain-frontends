@@ -24,8 +24,8 @@ func TestLoadOrCreateIdentity_StableAndSignable(t *testing.T) {
 	priv2, xpk2, err := LoadOrCreateIdentity(ctx, db)
 	require.NoError(t, err)
 
-	assert.Equal(t, xpk1, xpk2, "x-only pubkey must be stable across calls")
-	assert.Equal(t, priv1.Serialize(), priv2.Serialize(), "private key must persist, not regenerate")
+	assert.Equal(t, xpk1, xpk2)
+	assert.Equal(t, priv1.Serialize(), priv2.Serialize())
 
 	var target codec.ItemID
 	target[0] = 0x12
@@ -35,6 +35,5 @@ func TestLoadOrCreateIdentity_StableAndSignable(t *testing.T) {
 
 	var sigArr [codec.SchnorrSigLen]byte
 	copy(sigArr[:], sig.Serialize())
-	assert.True(t, codec.VerifyVoteSig(xpk1, codec.TypeUpvote, target, sigArr),
-		"signature from identity key must verify under its published xpk")
+	assert.True(t, codec.VerifyVoteSig(xpk1, codec.TypeUpvote, target, sigArr))
 }

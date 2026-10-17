@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -139,24 +140,28 @@ func IsMineableNetwork(n Network) bool {
 // legacyECashDatadir is the folder name the eCash runtime went out with.
 const legacyECashDatadir = "drynet"
 
-// adoptLegacyECashDatadir moves the runtime folder the eCash slot went out with
-// onto its current name. What lives there is the user's own: the address book,
-// transaction notes, UTXO labels and multisig records. A rename that left it
-// behind would show an empty app with the data still on disk and nothing to
-// say where.
+// adoptLegacyECashDatadir moves the legacy eCash datadir, which holds user data, to its current name.
 func adoptLegacyECashDatadir(base string, network Network) error {
 	if network != NetworkECash || base == "" {
 		return nil
 	}
 	legacy := filepath.Join(base, legacyECashDatadir)
 	current := filepath.Join(base, string(NetworkECash))
-	if _, err := os.Stat(legacy); err != nil {
+	_, err := os.Stat(legacy)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
 		return nil
+	case err != nil:
+		return fmt.Errorf("stat %s: %w", legacy, err)
 	}
-	if _, err := os.Stat(current); err == nil {
+	_, err = os.Stat(current)
+	switch {
+	case err == nil:
 		// Both exist: the current one is what this build already wrote to, so
 		// it wins and the old folder stays for the user to look at.
 		return nil
+	case !errors.Is(err, fs.ErrNotExist):
+		return fmt.Errorf("stat %s: %w", current, err)
 	}
 	if err := os.Rename(legacy, current); err != nil {
 		return fmt.Errorf("adopt the legacy eCash data directory: %w", err)

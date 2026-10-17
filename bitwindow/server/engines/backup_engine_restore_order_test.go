@@ -16,7 +16,7 @@ import (
 // A backup whose multisig data cannot be imported must leave the current
 // wallet files alone, rather than replacing them and then reporting failure.
 func TestRestoreBackup_FailedImport_KeepsExistingWallet(t *testing.T) {
-	ctx := testCtx()
+	ctx := testCtx(t)
 	dir := t.TempDir()
 	db := database.Test(t)
 	e := &BackupEngine{db: db, walletDir: dir, multisigStore: multisig.NewStore(db)}

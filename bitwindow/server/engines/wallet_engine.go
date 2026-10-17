@@ -543,49 +543,6 @@ func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletID string) 
 	return uint64(math.Round(resp.Msg.ConfirmedSats)), uint64(math.Round(resp.Msg.UnconfirmedSats)), uint64(math.Round(resp.Msg.ImmatureSats)), nil
 }
 
-// CreatePsbt builds an unsigned PSBT for an electrum-wallet send via the
-// orchestrator and returns it base64-encoded.
-func (e *WalletEngine) CreatePsbt(ctx context.Context, req *orchpb.CreatePsbtRequest) (string, error) {
-	resp, err := e.orchClient.CreatePsbt(ctx, connect.NewRequest(req))
-	if err != nil {
-		return "", fmt.Errorf("electrum: create psbt: %w", err)
-	}
-	return resp.Msg.PsbtBase64, nil
-}
-
-// SignPsbt adds an electrum wallet's signatures to a base64 PSBT.
-func (e *WalletEngine) SignPsbt(ctx context.Context, walletID, psbtBase64 string) (string, error) {
-	resp, err := e.orchClient.SignPsbt(ctx, connect.NewRequest(&orchpb.SignPsbtRequest{
-		WalletId: walletID, PsbtBase64: psbtBase64,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("electrum: sign psbt: %w", err)
-	}
-	return resp.Msg.PsbtBase64, nil
-}
-
-// CombinePsbt merges cosigner PSBTs of the same transaction.
-func (e *WalletEngine) CombinePsbt(ctx context.Context, psbtsBase64 []string) (string, error) {
-	resp, err := e.orchClient.CombinePsbt(ctx, connect.NewRequest(&orchpb.CombinePsbtRequest{
-		PsbtBase64: psbtsBase64,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("electrum: combine psbt: %w", err)
-	}
-	return resp.Msg.PsbtBase64, nil
-}
-
-// FinalizePsbt extracts the raw transaction from a fully-signed PSBT.
-func (e *WalletEngine) FinalizePsbt(ctx context.Context, psbtBase64 string) (string, error) {
-	resp, err := e.orchClient.FinalizePsbt(ctx, connect.NewRequest(&orchpb.FinalizePsbtRequest{
-		PsbtBase64: psbtBase64,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("electrum: finalize psbt: %w", err)
-	}
-	return resp.Msg.RawTxHex, nil
-}
-
 // RequireFullNode refuses an operation that needs a local BIP300/301 enforcer.
 // Light mode runs no daemon, so the operation cannot work there.
 func (e *WalletEngine) RequireFullNode(ctx context.Context, op string) error {
@@ -619,6 +576,9 @@ func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSa
 // orchestrator wallet manager, which routes to the active wallet's backend
 // (electrum or Bitcoin Core). Used by server-side senders like news OP_RETURNs.
 func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTransactionRequest) (string, error) {
+	if err := e.refuseFrozenInputs(ctx, req.RequiredInputs); err != nil {
+		return "", err
+	}
 	if err := e.PushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
@@ -627,6 +587,35 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 		return "", fmt.Errorf("send transaction: %w", err)
 	}
 	return resp.Msg.Txid, nil
+}
+
+// ErrFrozenInput is the error of a send that names a coin the user froze.
+var ErrFrozenInput = errors.New("the output is frozen; unfreeze it to spend it")
+
+// refuseFrozenInputs stops a send that names a frozen coin. The orchestrator
+// spends a required input through its freeze.
+func (e *WalletEngine) refuseFrozenInputs(ctx context.Context, inputs []*orchpb.UnspentOutput) error {
+	if len(inputs) == 0 {
+		return nil
+	}
+	frozen, err := e.frozenCoins(ctx)
+	if err != nil {
+		return fmt.Errorf("read the frozen coins: %w", err)
+	}
+	held := make(map[string]bool, len(frozen))
+	for _, outpoint := range frozen {
+		txid, vout, ok := splitOutpoint(outpoint)
+		if !ok {
+			return fmt.Errorf("frozen coin %q is not a txid:vout", outpoint)
+		}
+		held[fmt.Sprintf("%s:%d", strings.ToLower(txid), vout)] = true
+	}
+	for _, input := range inputs {
+		if held[fmt.Sprintf("%s:%d", strings.ToLower(input.Txid), input.Vout)] {
+			return fmt.Errorf("%s:%d: %w", input.Txid, input.Vout, ErrFrozenInput)
+		}
+	}
+	return nil
 }
 
 // ListWalletIDs names every wallet the orchestrator holds.

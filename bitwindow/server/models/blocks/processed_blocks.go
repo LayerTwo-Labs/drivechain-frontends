@@ -131,12 +131,23 @@ func GetProcessedBlock(ctx context.Context, db *sql.DB, height uint32) (Processe
 	return pb, nil
 }
 
+// GetProcessedBlockAtOrBelow returns the highest processed block at or below
+// height. It returns sql.ErrNoRows when no such block exists.
+func GetProcessedBlockAtOrBelow(ctx context.Context, db *sql.DB, height uint32) (ProcessedBlock, error) {
+	query, args := selectProcessedBlock.Where(sq.LtOrEq{"height": height}).OrderBy("height DESC").Limit(1).MustSql()
+	pb, err := scanProcessedBlock(db.QueryRowContext(ctx, query, args...))
+	if err != nil {
+		return ProcessedBlock{}, fmt.Errorf("get processed block at or below %d: %w", height, err)
+	}
+	return pb, nil
+}
+
 // CountSince returns the number of processed blocks with a block time at or after since.
 func CountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error) {
 	count, err := database.Get[int64](ctx, db, `
 		SELECT COUNT(*)
 		FROM processed_blocks
-		WHERE block_time >= ?
+		WHERE datetime(block_time) >= datetime(?)
 	`, since)
 	if err != nil {
 		return 0, fmt.Errorf("count blocks since %s: %w", since, err)
@@ -150,7 +161,7 @@ func TxCountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, erro
 	count, err := database.Get[int64](ctx, db, `
 		SELECT COALESCE(SUM(json_array_length(txids)) - COUNT(*), 0)
 		FROM processed_blocks
-		WHERE block_time >= ?
+		WHERE datetime(block_time) >= datetime(?)
 	`, since)
 	if err != nil {
 		return 0, fmt.Errorf("count transactions since %s: %w", since, err)

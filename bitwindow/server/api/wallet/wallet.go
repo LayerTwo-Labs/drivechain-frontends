@@ -106,24 +106,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}
 	}
 
-	// A send that names its inputs spends those coins, so no lock reaches
-	// them. Refuse before any node call.
-	if len(c.Msg.RequiredInputs) > 0 {
-		frozen, err := utxometadata.FrozenOutpoints(ctx, s.database)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read the frozen coins: %w", err))
-		}
-		// A caller can spell a txid in either case, and a vout with or without
-		// a leading zero, so compare one canonical form.
-		held := lo.SliceToMap(frozen, func(o string) (string, bool) { return canonicalOutpoint(o), true })
-		for _, input := range c.Msg.RequiredInputs {
-			if held[canonicalOutpoint(input.Output)] {
-				return nil, connect.NewError(connect.CodeFailedPrecondition,
-					fmt.Errorf("the output %s is frozen; unfreeze it to spend it", input.Output))
-			}
-		}
-	}
-
 	requiredInputs := make([]*orchpb.UnspentOutput, 0, len(c.Msg.RequiredInputs))
 	for _, input := range c.Msg.RequiredInputs {
 		txid, voutText, found := strings.Cut(input.Output, ":")
@@ -152,6 +134,9 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		FixedFeeSats:       int64(c.Msg.FixedFeeSats),
 		RequiredInputs:     requiredInputs,
 	})
+	if errors.Is(err, engines.ErrFrozenInput) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +146,15 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	return connect.NewResponse(&pb.SendTransactionResponse{
 		Txid: txid,
 	}), nil
+}
+
+// keepConnectCode returns err as it is when it holds a connect error, so the
+// client gets that code. Any other error gets CodeInternal.
+func keepConnectCode(err error) error {
+	if connectErr := new(connect.Error); errors.As(err, &connectErr) {
+		return err
+	}
+	return connect.NewError(connect.CodeInternal, err)
 }
 
 func btcToSats(btc float64) (uint64, error) {
@@ -184,21 +178,6 @@ func sumBTCToSats(a, b float64) (uint64, error) {
 		return 0, err
 	}
 	return aSats + bSats, nil
-}
-
-// canonicalOutpoint reads a txid:vout pair into one spelling: the txid in
-// lower case, and the vout with no leading zero. A string it cannot read comes
-// back trimmed and lowered, so two unreadable spellings still match.
-func canonicalOutpoint(outpoint string) string {
-	txid, voutText, found := strings.Cut(strings.ToLower(strings.TrimSpace(outpoint)), ":")
-	if !found {
-		return strings.ToLower(strings.TrimSpace(outpoint))
-	}
-	vout, err := strconv.Atoi(voutText)
-	if err != nil {
-		return strings.ToLower(strings.TrimSpace(outpoint))
-	}
-	return fmt.Sprintf("%s:%d", txid, vout)
 }
 
 // GetNewAddress implements walletv1connect.WalletServiceHandler.
@@ -225,7 +204,7 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 
 	return connect.NewResponse(&pb.GetNewAddressResponse{
 		Address: address,
-		Index:   0, // Bitcoin Core doesn't expose index, Enforcer doesn't expose it either
+		Index:   0,
 	}), nil
 }
 
@@ -648,9 +627,11 @@ const addressScanDepth = 100
 
 // deriveMessageSigningPrivateKey returns the key behind address, so the
 // signature proves ownership of that address rather than some other one.
+var errNoSigningSeed = errors.New("wallet has no seed to sign with")
+
 func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (*btcec.PrivateKey, error) {
 	if wallet.Master.SeedHex == "" {
-		return nil, errors.New("wallet has no seed to sign with")
+		return nil, errNoSigningSeed
 	}
 	return orchwallet.SigningKey(&orchwallet.WalletData{
 		Master:         orchwallet.MasterWallet{SeedHex: wallet.Master.SeedHex},
@@ -686,8 +667,11 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 	}
 
 	privKey, err := deriveMessageSigningPrivateKey(walletInfo, chainParams, c.Msg.Address)
-	if err != nil {
-		return nil, fmt.Errorf("derive signing key: %w", err)
+	switch {
+	case errors.Is(err, errNoSigningSeed):
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive signing key: %w", err))
 	}
 
 	signature, err := signmessage.Sign(privKey, address, c.Msg.Message, chainParams)
@@ -986,7 +970,6 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
 	log := zerolog.Ctx(ctx)
 
-	// Unencrypted wallets cannot be unlocked (they have no password)
 	if !wallet.IsWalletEncrypted(s.walletDir) {
 		log.Info().Msg("wallet is not encrypted, no unlock needed")
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not encrypted"))
@@ -1004,7 +987,6 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unlock wallet engine: %w", err))
 	}
 
-	// Sync wallets after unlock to ensure all wallets exist in their backends
 	go func() {
 		syncCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 		defer cancel()
@@ -1020,6 +1002,10 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 
 // LockWallet implements walletv1connect.WalletServiceHandler.
 func (s *Server) LockWallet(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	// Only a password unlocks a wallet again, so a wallet with no password cannot lock.
+	if !wallet.IsWalletEncrypted(s.walletDir) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not encrypted"))
+	}
 	s.walletEngine.Lock()
 	zerolog.Ctx(ctx).Info().Msg("wallet locked")
 	return connect.NewResponse(&emptypb.Empty{}), nil
@@ -1046,7 +1032,6 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	// Wallet ID validation only - cheques work the same for all wallet types
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -1059,7 +1044,7 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 
 	address, err := s.chequeEngine.DeriveChequeAddress(ctx, walletID, nextIndex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive address %d: %w", nextIndex, err))
+		return nil, keepConnectCode(fmt.Errorf("derive address %d: %w", nextIndex, err))
 	}
 
 	id, err := cheques.Create(ctx, s.database, walletID, nextIndex, c.Msg.ExpectedAmountSats, address)
@@ -1092,7 +1077,7 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 
 	pbCheque, err := s.chequeToPb(ctx, cheque)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, keepConnectCode(err)
 	}
 
 	return connect.NewResponse(&pb.GetChequeResponse{
@@ -1115,7 +1100,7 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 
 	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, walletID, cheque.DerivationIndex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive private key %d: %w", cheque.DerivationIndex, err))
+		return nil, keepConnectCode(fmt.Errorf("derive private key %d: %w", cheque.DerivationIndex, err))
 	}
 
 	return connect.NewResponse(&pb.GetChequePrivateKeyResponse{
@@ -1127,7 +1112,6 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListChequesRequest]) (*connect.Response[pb.ListChequesResponse], error) {
 	walletID := c.Msg.WalletId
 
-	// Wallet ID validation only - cheques work the same for all wallet types
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -1142,7 +1126,7 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 	for i, ch := range chequeList {
 		pbCheques[i], err = s.chequeToPb(ctx, &ch)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, keepConnectCode(err)
 		}
 	}
 
@@ -1178,9 +1162,9 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 // PreviewSweep implements walletv1connect.WalletServiceHandler.
 // Reports what a private key holds and what sweeping it would cost.
 func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.PreviewSweepRequest]) (*connect.Response[pb.PreviewSweepResponse], error) {
-	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
+	wifKey, err := decodeSweepWIF(c.Msg.PrivateKeyWif, s.chequeEngine.GetChainParams())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
+		return nil, err
 	}
 
 	source, err := engines.ResolveSweepSource(ctx, s.chequeChain, wifKey, s.chequeEngine.GetChainParams())
@@ -1212,6 +1196,17 @@ func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.Preview
 	}), nil
 }
 
+func decodeSweepWIF(text string, params *chaincfg.Params) (*btcutil.WIF, error) {
+	wifKey, err := btcutil.DecodeWIF(text)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
+	}
+	if !wifKey.IsForNet(params) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("WIF is not for network %s", params.Name))
+	}
+	return wifKey, nil
+}
+
 func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 	switch kind {
 	case engines.SweepAddressP2WPKH:
@@ -1228,9 +1223,9 @@ func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 // SweepCheque implements walletv1connect.WalletServiceHandler.
 // Sweeps a cheque using its WIF private key to the destination address.
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
-	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
+	wifKey, err := decodeSweepWIF(c.Msg.PrivateKeyWif, s.chequeEngine.GetChainParams())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
+		return nil, err
 	}
 
 	sweep, err := s.chequeEngine.Sweep(ctx, c.Msg.WalletId, wifKey, c.Msg.DestinationAddress, c.Msg.FeeSatPerVbyte)
@@ -1313,7 +1308,6 @@ func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque) (*pb.Cheque,
 		pbCheque.SweptAt = timestamppb.New(*c.SweptAt)
 	}
 
-	// Only include private key if cheque is funded and wallet is unlocked
 	if c.IsFunded() && s.walletEngine.IsUnlocked() {
 		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, c.WalletID, c.DerivationIndex)
 		if err != nil {
@@ -1340,7 +1334,7 @@ func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetU
 	// believe the coin is safe.
 	if c.Msg.IsFrozen != nil {
 		if err := s.walletEngine.PushFrozenCoins(ctx); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, keepConnectCode(err)
 		}
 	}
 
@@ -1398,6 +1392,23 @@ func (s *Server) GetCoinSelectionStrategy(ctx context.Context, c *connect.Reques
 	}), nil
 }
 
+// readPrevOut reads an input's previous output when Core leaves out prevout,
+// as it does for a block with no undo data.
+func readPrevOut(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, txid string, vout uint32) (*corepb.PreviousOutput, error) {
+	parent, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid:      txid,
+		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("get previous transaction %s: %w", txid, err)
+	}
+	if int(vout) >= len(parent.Msg.Outputs) {
+		return nil, fmt.Errorf("previous transaction %s has no output %d", txid, vout)
+	}
+	out := parent.Msg.Outputs[vout]
+	return &corepb.PreviousOutput{Amount: out.Amount, ScriptPubKey: out.ScriptPubKey}, nil
+}
+
 // GetTransactionDetails implements walletv1connect.WalletServiceHandler.
 // Returns enriched transaction details with resolved input values/addresses.
 func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[pb.GetTransactionDetailsRequest]) (*connect.Response[pb.GetTransactionDetailsResponse], error) {
@@ -1448,19 +1459,13 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 			IsCoinbase:   isCoinbase,
 		}
 
-		// For non-coinbase inputs, fetch the referenced transaction to get value/address
-		if !isCoinbase && vin.Txid != "" {
-			prevTx, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				Txid:      vin.Txid,
-				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-			}))
-			if err != nil {
-				return nil, fmt.Errorf("get prevout %s:%d: %w", vin.Txid, vin.Vout, err)
+		if !isCoinbase {
+			prevOut := vin.PreviousOutput
+			if prevOut == nil {
+				if prevOut, err = readPrevOut(ctx, bitcoind, vin.Txid, vin.Vout); err != nil {
+					return nil, err
+				}
 			}
-			if int(vin.Vout) >= len(prevTx.Msg.Outputs) {
-				return nil, fmt.Errorf("prevout %s:%d: transaction has %d outputs", vin.Txid, vin.Vout, len(prevTx.Msg.Outputs))
-			}
-			prevOut := prevTx.Msg.Outputs[vin.Vout]
 			valueSats, err := btcToSats(prevOut.Amount)
 			if err != nil {
 				return nil, fmt.Errorf("value of %s:%d: %w", vin.Txid, vin.Vout, err)
@@ -1556,7 +1561,7 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 
 	utxos, err := s.listUnspent(ctx, walletID, nil)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+		return nil, keepConnectCode(fmt.Errorf("list unspent: %w", err))
 	}
 
 	if len(utxos) == 0 {
@@ -1619,8 +1624,6 @@ type bucketRange struct {
 }
 
 func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange {
-	// Use predefined boundaries based on Bitcoin denominations
-	// These are logarithmically spaced for good distribution
 	boundaries := []uint64{
 		546,            // dust limit
 		1_000,          // 0.00001 BTC
@@ -1640,7 +1643,6 @@ func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange
 		10_000_000_000, // 100 BTC
 	}
 
-	// Find which boundaries are relevant for this wallet's range
 	var relevantBoundaries []uint64
 	for _, b := range boundaries {
 		if b > minVal && b < maxVal {
@@ -1661,7 +1663,6 @@ func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange
 		relevantBoundaries = selected
 	}
 
-	// Build the bucket ranges
 	var ranges []bucketRange
 	prevBoundary := minVal
 
@@ -1674,7 +1675,6 @@ func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange
 		prevBoundary = boundary
 	}
 
-	// Add final bucket for remaining values
 	ranges = append(ranges, bucketRange{
 		minSats: prevBoundary,
 		maxSats: maxVal,

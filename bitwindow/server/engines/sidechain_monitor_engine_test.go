@@ -18,9 +18,13 @@ import (
 // MockNotificationEngine for testing
 type MockNotificationEngine struct {
 	sentEvents []*notificationv1.WatchResponse
+	noListener bool
 }
 
 func (m *MockNotificationEngine) Deliver(ctx context.Context, event *notificationv1.WatchResponse) int {
+	if m.noListener {
+		return 0
+	}
 	m.sentEvents = append(m.sentEvents, event)
 	return 1
 }
@@ -76,6 +80,22 @@ func TestSidechainMonitorEngine_Monitor(t *testing.T) {
 		require.NoError(t, poll(t, engine, string(thunderBundle)))
 		require.NoError(t, poll(t, engine, string(thunderBundle)))
 
+		assert.Len(t, sink.sentEvents, 2)
+	})
+
+	t.Run("a withdrawal found with no listener is reported later", func(t *testing.T) {
+		t.Parallel()
+
+		sink := &MockNotificationEngine{noListener: true}
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, sink)
+		require.NoError(t, poll(t, engine, string(thunderBundle)))
+		withdrawals, err := engine.GetDetectedWithdrawals(t.Context())
+		require.NoError(t, err)
+		assert.Len(t, withdrawals, 2)
+
+		sink.noListener = false
+		require.NoError(t, poll(t, engine, string(thunderBundle)))
+		require.NoError(t, poll(t, engine, string(thunderBundle)))
 		assert.Len(t, sink.sentEvents, 2)
 	})
 

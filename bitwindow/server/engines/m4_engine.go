@@ -10,6 +10,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -18,10 +19,20 @@ import (
 // M4Engine manages the SCDB state and M4 message processing
 type M4Engine struct {
 	db *sql.DB
+	// bundleMaxAge is the number of blocks a new withdrawal bundle has for its votes.
+	bundleMaxAge uint32
+	// inclusionThreshold is the number of ACKs a bundle must exceed for approval.
+	inclusionThreshold uint16
 }
 
-func NewM4Engine(db *sql.DB) *M4Engine {
-	return &M4Engine{db: db}
+// NewM4Engine returns an engine with the thresholds of network. ecashID is the
+// catalog id of an eCash network.
+func NewM4Engine(db *sql.DB, network config.Network, ecashID string) *M4Engine {
+	return &M4Engine{
+		db:                 db,
+		bundleMaxAge:       m4.WithdrawalMaxAge(network, ecashID),
+		inclusionThreshold: m4.WithdrawalInclusionThreshold(network, ecashID),
+	}
 }
 
 // ProcessBlock stores the M3 and M4 messages of a block. ApplyPendingM4
@@ -398,11 +409,11 @@ func (e *M4Engine) persistM3Message(ctx context.Context, msg *m4.M3Message) erro
 		// Create withdrawal bundle if it doesn't exist
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO withdrawal_bundles (
-				sidechain_slot, bundle_hash, work_score, blocks_left,
+				sidechain_slot, bundle_hash, work_score, blocks_left, max_age,
 				first_seen_height, last_updated_height, status
-			) VALUES (?, ?, 1, ?, ?, ?, 'pending')
+			) VALUES (?, ?, 1, ?, ?, ?, ?, 'pending')
 			ON CONFLICT(sidechain_slot, bundle_hash) DO NOTHING
-		`, msg.SidechainSlot, msg.BundleHash, m4.WithdrawalMaxAge, msg.BlockHeight, msg.BlockHeight)
+		`, msg.SidechainSlot, msg.BundleHash, e.bundleMaxAge, e.bundleMaxAge, msg.BlockHeight, msg.BlockHeight)
 		if err != nil {
 			return fmt.Errorf("insert withdrawal bundle: %w", err)
 		}
@@ -507,13 +518,15 @@ func (e *M4Engine) upvoteBundle(ctx context.Context, height uint32, slot uint8, 
 func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error {
 	// Derived from the height rather than decremented, so replaying a block
 	// after a reorg lands on the same value instead of ageing the bundle twice.
+	// max_age is set again, because rows from an older build hold the mainnet age.
 	_, err := e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
-		SET blocks_left = MAX(0, max_age - (? - first_seen_height)),
+		SET max_age = ?,
+		    blocks_left = MAX(0, ? - (? - first_seen_height)),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE status = 'pending'
 		  AND first_seen_height <= ?
-	`, height, height)
+	`, e.bundleMaxAge, e.bundleMaxAge, height, height)
 	if err != nil {
 		return fmt.Errorf("recompute blocks_left: %w", err)
 	}
@@ -523,20 +536,20 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 	// keys on last_updated_height, and without it a bundle that went terminal
 	// on the branch that went away keeps that state for good.
 	//
-	// Mark bundles as approved if work_score >= 13150
+	// Mark bundles as approved if work_score is above the inclusion threshold
 	_, err = e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
 		SET status = 'approved',
 		    last_updated_height = ?,
 		    status_stamped = 1
 		WHERE status = 'pending'
-		  AND work_score >= ?
-	`, height, m4.MinWorkScore)
+		  AND work_score > ?
+	`, height, e.inclusionThreshold)
 	if err != nil {
 		return fmt.Errorf("mark approved bundles: %w", err)
 	}
 
-	// Mark bundles as failed if blocks_left = 0 and work_score < 13150
+	// Mark bundles as failed if blocks_left = 0 and work_score is at or below the threshold
 	_, err = e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
 		SET status = 'failed',
@@ -544,23 +557,10 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 		    status_stamped = 1
 		WHERE status = 'pending'
 		  AND blocks_left = 0
-		  AND work_score < ?
-	`, height, m4.MinWorkScore)
+		  AND work_score <= ?
+	`, height, e.inclusionThreshold)
 	if err != nil {
 		return fmt.Errorf("mark failed bundles: %w", err)
-	}
-
-	// Mark bundles as expired if blocks_left = 0 (regardless of score)
-	_, err = e.db.ExecContext(ctx, `
-		UPDATE withdrawal_bundles
-		SET status = 'expired',
-		    last_updated_height = ?,
-		    status_stamped = 1
-		WHERE status = 'pending'
-		  AND blocks_left = 0
-	`, height)
-	if err != nil {
-		return fmt.Errorf("mark expired bundles: %w", err)
 	}
 
 	return nil

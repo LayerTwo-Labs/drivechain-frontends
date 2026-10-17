@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -37,6 +38,7 @@ type SidechainMonitorEngine struct {
 	// State tracking (in-memory only)
 	mu                  sync.RWMutex
 	detectedWithdrawals map[string]DetectedWithdrawal // withdrawalKey -> withdrawal
+	notified            map[string]bool               // withdrawalKey -> a subscriber got the event
 }
 
 const sidechainMonitorPollInterval = 30 * time.Second
@@ -69,6 +71,7 @@ func NewSidechainMonitorEngine(
 		coinshift:           coinshift,
 		notificationEngine:  notificationEngine,
 		detectedWithdrawals: make(map[string]DetectedWithdrawal),
+		notified:            make(map[string]bool),
 	}
 }
 
@@ -76,9 +79,6 @@ func NewSidechainMonitorEngine(
 func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("sidechain monitor engine starting")
-
-	// Start monitoring each sidechain in parallel
-	var wg sync.WaitGroup
 
 	sidechains := []struct {
 		name   string
@@ -92,29 +92,26 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 		{"coinshift", rpcOf(e.coinshift)},
 	}
 
+	pool := logpool.New(ctx, "sidechain-monitor")
 	for _, sc := range sidechains {
-		wg.Add(1)
-		go func(name string, client func(context.Context) (sidechainRPC, error)) {
-			defer wg.Done()
-			log := log.With().Str("sidechain", name).Logger()
-			ctx := log.WithContext(ctx)
+		pool.Go(sc.name, func(ctx context.Context) error {
+			log := zerolog.Ctx(ctx).With().Str("sidechain", sc.name).Logger()
+			ctx = log.WithContext(ctx)
 
 			for {
-				if err := e.monitor(ctx, name, client); err != nil {
-					log.Debug().Err(err).Msgf("%s monitor error, retrying", name)
+				if err := e.monitor(ctx, sc.name, sc.client); err != nil {
+					log.Debug().Err(err).Msgf("%s monitor error, retrying", sc.name)
 				}
 
 				select {
 				case <-ctx.Done():
-					return
+					return nil
 				case <-time.After(sidechainMonitorPollInterval):
 				}
 			}
-		}(sc.name, sc.client)
+		})
 	}
-
-	wg.Wait()
-	return nil
+	return pool.Wait(ctx)
 }
 
 func (e *SidechainMonitorEngine) GetDetectedWithdrawals(ctx context.Context) ([]DetectedWithdrawal, error) {
@@ -142,7 +139,7 @@ func withdrawalKey(w DetectedWithdrawal) string {
 }
 
 // setWithdrawals makes the detected withdrawals of sidechain the same as
-// withdrawals, and reports each new one.
+// withdrawals, and reports each one that no subscriber got yet.
 func (e *SidechainMonitorEngine) setWithdrawals(ctx context.Context, sidechain string, withdrawals []DetectedWithdrawal) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -151,17 +148,26 @@ func (e *SidechainMonitorEngine) setWithdrawals(ctx context.Context, sidechain s
 	for key, w := range e.detectedWithdrawals {
 		if _, ok := current[key]; w.Sidechain == sidechain && !ok {
 			delete(e.detectedWithdrawals, key)
+			delete(e.notified, key)
 		}
 	}
 
 	for _, withdrawal := range withdrawals {
 		key := withdrawalKey(withdrawal)
-		if _, exists := e.detectedWithdrawals[key]; exists {
+		if _, exists := e.detectedWithdrawals[key]; !exists {
+			e.detectedWithdrawals[key] = withdrawal
+			zerolog.Ctx(ctx).Info().
+				Str("txid", withdrawal.Txid).
+				Str("sidechain", withdrawal.Sidechain).
+				Int64("amount", withdrawal.Amount).
+				Msg("detected withdrawal in the pending bundle")
+		}
+		if e.notified[key] {
 			continue
 		}
-		e.detectedWithdrawals[key] = withdrawal
 
-		e.notificationEngine.Deliver(ctx, &notificationv1.WatchResponse{
+		withdrawal = e.detectedWithdrawals[key]
+		delivered := e.notificationEngine.Deliver(ctx, &notificationv1.WatchResponse{
 			Timestamp: timestamppb.Now(),
 			Event: &notificationv1.WatchResponse_SidechainWithdrawal{
 				SidechainWithdrawal: &notificationv1.SidechainWithdrawalEvent{
@@ -175,12 +181,7 @@ func (e *SidechainMonitorEngine) setWithdrawals(ctx context.Context, sidechain s
 				},
 			},
 		})
-
-		zerolog.Ctx(ctx).Info().
-			Str("txid", withdrawal.Txid).
-			Str("sidechain", withdrawal.Sidechain).
-			Int64("amount", withdrawal.Amount).
-			Msg("detected withdrawal in the pending bundle")
+		e.notified[key] = delivered > 0
 	}
 }
 

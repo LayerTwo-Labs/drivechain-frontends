@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -34,14 +35,20 @@ func Test(t TestingLog) *sql.DB {
 
 	// Register cleanup
 	t.Cleanup(func() {
-		database.Close()
+		if err := database.Close(); err != nil {
+			t.Logf("close database %s: %s", tmpfile, err)
+			t.FailNow()
+		}
 		type canFail interface {
 			Failed() bool
 		}
 		if _, ok := t.(canFail); ok && t.(canFail).Failed() {
 			t.Logf("test has failed, NOT removing database %s", tmpfile)
-		} else {
-			os.Remove(tmpfile)
+			return
+		}
+		if err := os.Remove(tmpfile); err != nil {
+			t.Logf("remove database %s: %s", tmpfile, err)
+			t.FailNow()
 		}
 	})
 
@@ -62,46 +69,21 @@ func actualGetDatabase(
 	if err != nil {
 		return nil, "", fmt.Errorf("create temp file: %w", err)
 	}
-
-	// Open the database with SQLite3 configuration
-	db, err := sql.Open("sqlite3", tmpfile.Name())
-	if err != nil {
-		os.Remove(tmpfile.Name()) // Clean up if we fail to open
-		return nil, "", fmt.Errorf("open database: %w", err)
+	if err := tmpfile.Close(); err != nil {
+		return nil, "", errors.Join(fmt.Errorf("close temp file: %w", err), os.Remove(tmpfile.Name()))
 	}
 
-	// Run migrations
 	migrateCtx := zerolog.Ctx(ctx).Level(zerolog.WarnLevel).WithContext(ctx)
-	if err := runMigrations(migrateCtx, db); err != nil {
-		db.Close()
-		os.Remove(tmpfile.Name()) // Clean up if migrations fail
-		return nil, "", fmt.Errorf("run migrations: %w", err)
+	db, err := open(migrateCtx, tmpfile.Name())
+	if err != nil {
+		return nil, "", errors.Join(err, os.Remove(tmpfile.Name()))
 	}
 
 	log.Info().Msgf("finished creating test database %q in %s", name, time.Since(start))
 	return db, tmpfile.Name(), nil
 }
 
-// Ihe idea is to extract out the go file path of the package under test,
-// by looking at the callstack. The stack is going to look something like this:
-//
-//	  debug.Stack()
-//	  getPackageUnderTest() 			- this function
-//	  Test() 			   			- the root function in this package
-//	 								  that's being called
-//	  TestNameOfTest(t *testing.T) 	- the test function that invokes the DB
-//										  creation function
-//
-// If we then get the file path of the TestNameOfTest function, we can extract
-// the package name. That file path is going to look something like this:
-//
-//	/home/torkel/some/folder/bb/this/is/the/interesting/part_test.go
-//
-// The first part of the path (/home/torkel/some/folder/bb) is going to be the
-// same for both the interesting file, and the files in this package. If we
-// then remove the common prefix, we're left with the folder path of the
-// package we're interested in. Remove the last segment (the file) and replace
-// slashes with underscores, and we're finished.
+// getPackageUnderTest names the package of the first caller outside this package, from the call stack.
 func getPackageUnderTest() string {
 	firstNonDbFile := firstNonDbCaller(debug.Stack())
 	localPartSegments := strings.Split(firstNonDbFile, string(os.PathSeparator))

@@ -25,6 +25,7 @@ import (
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
@@ -33,33 +34,55 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 )
+
+type shutdownRecorder struct {
+	orchrpc.UnimplementedOrchestratorServiceHandler
+	onlyIfLast chan bool
+}
+
+func (r *shutdownRecorder) Shutdown(_ context.Context, req *connect.Request[orchpb.ShutdownRequest]) (*connect.Response[orchpb.ShutdownResponse], error) {
+	r.onlyIfLast <- req.Msg.OnlyIfLast
+	return connect.NewResponse(&orchpb.ShutdownResponse{}), nil
+}
 
 func TestService_Stop(t *testing.T) {
 	t.Parallel()
 
-	t.Run("shutdown success", func(t *testing.T) {
-		t.Parallel()
+	for _, test := range []struct {
+		name           string
+		skipDownstream bool
+		relays         bool
+	}{
+		{name: "relays the shutdown to drivechaind", relays: true},
+		{name: "skip downstream keeps drivechaind running", skipDownstream: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+			var shutDown atomic.Bool
+			orchestrator := &shutdownRecorder{onlyIfLast: make(chan bool, 1)}
+			cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t),
+				apitests.WithOnShutdown(func(context.Context) { shutDown.Store(true) }),
+				apitests.WithOrchestratorControl(orchestrator),
+			))
 
-		_, err := cli.Stop(t.Context(), connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
-		require.NoError(t, err)
-	})
+			_, err := cli.Stop(t.Context(), connect.NewRequest(&v1.BitwindowdServiceStopRequest{
+				SkipDownstream: test.skipDownstream,
+			}))
+			require.NoError(t, err)
 
-	t.Run("shutdown with context timeout", func(t *testing.T) {
-		t.Parallel()
-
-		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
-
-		ctx, cancel := context.WithTimeout(t.Context(), 0)
-		defer cancel()
-
-		_, err := cli.Stop(ctx, connect.NewRequest(&v1.BitwindowdServiceStopRequest{}))
-		require.ErrorIs(t, err, context.DeadlineExceeded)
-	})
+			assert.True(t, shutDown.Load())
+			if test.relays {
+				require.Len(t, orchestrator.onlyIfLast, 1)
+				assert.True(t, <-orchestrator.onlyIfLast)
+			} else {
+				assert.Empty(t, orchestrator.onlyIfLast)
+			}
+		})
+	}
 }
 
 func TestService_CreateDenial(t *testing.T) {
@@ -350,19 +373,39 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
 		assert.Equal(t, int32(1), denials[0].NumHops)
 
-		// creating again updates
 		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
-			Txid:         "abc123",
-			Vout:         0,
-			DelaySeconds: 120,
-			NumHops:      1,
+			Txid:            "abc123",
+			Vout:            0,
+			DelaySeconds:    120,
+			NumHops:         1,
+			TargetUtxoSizes: []int64{1000},
+		}))
+		require.ErrorContains(t, err, "already runs for abc123:0")
+		assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+
+		denials, err = deniability.List(t.Context(), database)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
+		assert.Empty(t, denials[0].TargetUTXOSizes)
+
+		require.NoError(t, deniability.Cancel(t.Context(), database, denials[0].ID, "stopped by the user"))
+		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+			Txid:            "abc123",
+			Vout:            0,
+			DelaySeconds:    120,
+			NumHops:         1,
+			TargetUtxoSizes: []int64{1000, 2000},
 		}))
 		require.NoError(t, err)
 
 		denials, err = deniability.List(t.Context(), database)
 		require.NoError(t, err)
-		assert.Len(t, denials, 1)
+		require.Len(t, denials, 1)
 		assert.EqualValues(t, int32(120), denials[0].DelayDuration.Seconds())
+		assert.Equal(t, int32(2), denials[0].NumHops)
+		assert.Equal(t, deniability.TargetSizes{1000, 2000}, denials[0].TargetUTXOSizes)
+		assert.Nil(t, denials[0].CancelledAt)
 	})
 
 	t.Run("multiple denials different utxos", func(t *testing.T) {
@@ -482,18 +525,6 @@ func TestService_CancelDenial(t *testing.T) {
 
 		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 0,
-		}))
-		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
-	})
-
-	t.Run("negative denial id", func(t *testing.T) {
-		t.Parallel()
-
-		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
-
-		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
-			Id: -1,
 		}))
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
@@ -1479,6 +1510,99 @@ func TestService_ListBlocks(t *testing.T) {
 		assert.Equal(t, uint32(6), resp.Msg.RecentBlocks[2].Height)
 	})
 
+	t.Run("hasMore is true while the genesis block is not on a page", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+			}, nil).Times(2)
+		mockBitcoind.EXPECT().
+			GetBlockHash(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+				return &connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
+				}, nil
+			}).Times(10)
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+				var height uint32
+				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
+					return nil, err
+				}
+				return &connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{Height: height, Hash: req.Msg.Hash, Time: timestamppb.Now()},
+				}, nil
+			}).Times(10)
+		// Last, so the height 1 catch-all of the setup does not answer first.
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		expectWatchWalletNoop(mockBitcoind)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		page, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 5, PageSize: 5}))
+		require.NoError(t, err)
+		require.Len(t, page.Msg.RecentBlocks, 5)
+		assert.Equal(t, uint32(1), page.Msg.RecentBlocks[4].Height)
+		assert.True(t, page.Msg.HasMore)
+
+		last, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 4, PageSize: 5}))
+		require.NoError(t, err)
+		require.Len(t, last.Msg.RecentBlocks, 5)
+		assert.Equal(t, uint32(0), last.Msg.RecentBlocks[4].Height)
+		assert.False(t, last.Msg.HasMore)
+	})
+
+	t.Run("hasMore is false when the genesis block is on a shorter page", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+			}, nil)
+		mockBitcoind.EXPECT().
+			GetBlockHash(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+				// The chain lost block 4 after the tip read.
+				if req.Msg.Height == 4 {
+					return nil, errors.New("Block height out of range")
+				}
+				return &connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
+				}, nil
+			}).Times(5)
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+				var height uint32
+				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
+					return nil, err
+				}
+				return &connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{Height: height, Hash: req.Msg.Hash, Time: timestamppb.Now()},
+				}, nil
+			}).Times(4)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		expectWatchWalletNoop(mockBitcoind)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		page, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 4, PageSize: 5}))
+		require.NoError(t, err)
+		require.Len(t, page.Msg.RecentBlocks, 4)
+		assert.Equal(t, uint32(0), page.Msg.RecentBlocks[3].Height)
+		assert.False(t, page.Msg.HasMore)
+	})
+
 	t.Run("repeat call at the same tip is served from cache", func(t *testing.T) {
 		t.Parallel()
 
@@ -2009,6 +2133,50 @@ this line is not valid json
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), imp.Msg.ImportedAddresses)
 		assert.Equal(t, int64(1), imp.Msg.Skipped)
+	})
+
+	t.Run("a label maps to one address", func(t *testing.T) {
+		t.Parallel()
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t)))
+		ctx := t.Context()
+
+		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
+			Jsonl: `{"type":"addr","ref":"bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh","label":" rent "}
+{"type":"addr","ref":"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq","label":"Rent"}
+{"type":"addr","ref":"bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh","label":"rent"}`,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), imp.Msg.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.Msg.Skipped)
+
+		list, err := cli.ListAddressBook(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		require.Len(t, list.Msg.Entries, 1)
+		assert.Equal(t, "rent", list.Msg.Entries[0].Label)
+		assert.Equal(t, "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", list.Msg.Entries[0].Address)
+	})
+
+	t.Run("a send address keeps its direction", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctx := t.Context()
+		const address = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+		require.NoError(t, addressbook.Create(ctx, db, nil, "old", address, addressbook.DirectionSend))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+
+		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
+			Jsonl: `{"type":"addr","ref":"` + address + `","label":"Landlord"}`,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), imp.Msg.ImportedAddresses)
+
+		list, err := cli.ListAddressBook(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		require.Len(t, list.Msg.Entries, 1)
+		assert.Equal(t, "Landlord", list.Msg.Entries[0].Label)
+		assert.Equal(t, v1.Direction_DIRECTION_SEND, list.Msg.Entries[0].Direction)
 	})
 
 	t.Run("returns a database fault", func(t *testing.T) {

@@ -1,22 +1,33 @@
 package health_test
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	healthv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1/healthv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 )
 
 func TestService_Check(t *testing.T) {
@@ -294,5 +305,64 @@ func TestService_Check(t *testing.T) {
 		// until the reconnect loop ticks or Get() is called.
 		// crypto unhealthy (mock returns error)
 		assert.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, statusMap["crypto"])
+	})
+}
+
+func refuse[T any](context.Context) (T, error) {
+	var zero T
+	return zero, errors.New("refused")
+}
+
+func TestService_Watch(t *testing.T) {
+	t.Run("a connection change reaches the stream", func(t *testing.T) {
+		var enforcerUp atomic.Bool
+		enforcer := service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
+			if !enforcerUp.Load() {
+				return nil, errors.New("refused")
+			}
+			return nil, nil
+		})
+		srv := api_health.New(database.Test(t),
+			service.New("bitcoind", refuse[corerpc.BitcoinServiceClient]),
+			enforcer,
+			service.New("crypto", refuse[cryptorpc.CryptoServiceClient]),
+		)
+		mux := http.NewServeMux()
+		mux.Handle(rpc.NewHealthServiceHandler(srv))
+		server := httptest.NewServer(mux)
+		t.Cleanup(server.Close)
+
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		stream, err := rpc.NewHealthServiceClient(server.Client(), server.URL).
+			Watch(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, stream.Close()) })
+
+		statusOf := func(name string) healthv1.CheckResponse_Status {
+			for _, st := range stream.Msg().ServiceStatuses {
+				if st.ServiceName == name {
+					return st.Status
+				}
+			}
+			t.Fatalf("no status for %s", name)
+			return 0
+		}
+
+		require.True(t, stream.Receive())
+		assert.Equal(t, healthv1.CheckResponse_STATUS_SERVING, statusOf("database"))
+		assert.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, statusOf("enforcer"))
+
+		enforcerUp.Store(true)
+		_, err = enforcer.Connect(ctx)
+		require.NoError(t, err)
+
+		for stream.Receive() {
+			if statusOf("enforcer") == healthv1.CheckResponse_STATUS_SERVING {
+				assert.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, statusOf("bitcoind"))
+				return
+			}
+		}
+		t.Fatalf("the stream ended before the enforcer was serving: %v", stream.Err())
 	})
 }
