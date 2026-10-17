@@ -1,8 +1,10 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
+import 'package:stacked/stacked.dart';
 import 'package:truthcoin/pages/market_creation_page.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/price_history_provider.dart';
@@ -118,6 +120,39 @@ void main() {
       expect(find.text('Header'), findsNWidgets(2));
       expect(find.text('Option 0 label'), findsNWidgets(2));
       expect(find.text('Option 1 label'), findsNWidgets(2));
+    });
+
+    testWidgets('the X removes a card, and the market keeps only the other card', (WidgetTester tester) async {
+      await tester.pumpSailPage(const MarketCreationPage());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('remove_new_decision_1')), findsNothing);
+
+      final addButton = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Add New Decision');
+      await tester.ensureVisible(addButton);
+      await tester.tap(addButton);
+      await tester.pumpAndSettle();
+
+      final headers = find.byWidgetPredicate((w) => w is SailTextField && w.hintText == 'Decision-specific question');
+      await tester.enterText(headers.at(0), _daaHeader);
+      await tester.enterText(headers.at(1), _blockTimeHeader);
+      await tester.pumpAndSettle();
+
+      final remove = find.byKey(const ValueKey('remove_new_decision_1'));
+      await tester.ensureVisible(remove);
+      await tester.tap(remove);
+      await tester.pumpAndSettle();
+
+      expect(find.text('New decision #1'), findsOneWidget);
+      expect(find.text('New decision #2'), findsNothing);
+      expect(find.byKey(const ValueKey('remove_new_decision_1')), findsNothing);
+
+      final model = getParentViewModel<MarketCreationViewModel>(tester.element(headers.first), listen: false);
+      expect(
+        model.dimensionInputs,
+        '[{"type":"new","period_index":21,"decision_type":"binary","header":"$_blockTimeHeader"}]',
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('the Type tabs swap the rows below the header', (WidgetTester tester) async {
