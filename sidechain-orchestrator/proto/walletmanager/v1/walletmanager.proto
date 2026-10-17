@@ -355,6 +355,12 @@ message WalletMetadata {
   // True for the one wallet whose seed derives the L1 and sidechain starters.
   // Each wallet carries its own seed, so this never moves once recorded.
   bool is_starter = 15;
+
+  // Key derivation of the wallet. script_type is empty for native segwit.
+  // account_index and derivation_path are exclusive; both empty is standard.
+  string script_type = 16;
+  uint32 account_index = 17;
+  string derivation_path = 18;
 }
 
 message MultisigInfo {
