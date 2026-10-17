@@ -46,6 +46,10 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   /// Address of the last market_positions call.
   String? lastPositionsAddress;
   String marketCreateResponse = 'test_create_txid';
+  String? lastMarketCreateDimensions;
+  int? lastMarketCreateInitialLiquidity;
+
+  List<Map<String, dynamic>> openPeriodsResponse = [];
 
   Map<String, dynamic> slotStatusResponse = {};
   List<Map<String, dynamic>> slotListResponse = [];
@@ -108,7 +112,10 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   List<String> getMethods() => truthcoinRPCMethods;
 
   @override
-  Future<dynamic> callRAW(String method, [dynamic params]) async => null;
+  Future<dynamic> callRAW(String method, [dynamic params]) async => switch (method) {
+    'list_open_periods_with_pricing' => openPeriodsResponse,
+    _ => null,
+  };
 
   @override
   Future<String> getDepositAddress() async => 'tb1qdeposit';
@@ -212,6 +219,8 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     List<String>? categoryTxids,
     List<String>? residualNames,
   }) async {
+    lastMarketCreateDimensions = dimensions;
+    lastMarketCreateInitialLiquidity = initialLiquidity;
     return marketCreateResponse;
   }
 

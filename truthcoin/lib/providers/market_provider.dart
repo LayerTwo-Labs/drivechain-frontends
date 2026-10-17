@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/models/market.dart';
+import 'package:truthcoin/models/market_creation.dart';
 import 'package:truthcoin/providers/price_history_provider.dart';
 import 'package:truthcoin/models/voting.dart';
 
@@ -337,6 +338,12 @@ class MarketProvider extends ChangeNotifier {
       _log.e('Calculate liquidity failed: $e');
       return null;
     }
+  }
+
+  /// Periods that take a new decision, with the price of the next claim.
+  Future<List<OpenPeriod>> listOpenPeriods() async {
+    final result = await _rpc.callRAW('list_open_periods_with_pricing');
+    return [for (final period in result as List) OpenPeriod.fromJson(period as Map<String, dynamic>)];
   }
 
   /// Create a new market
