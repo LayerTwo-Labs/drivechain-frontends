@@ -440,3 +440,20 @@ func TestRealignGivesAStoppedDaemonTheActiveWallet(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, want, readState(t, starters[0]))
 }
+
+func TestLockStartsNoSidechainReload(t *testing.T) {
+	useTempHome(t)
+	o := newTestOrchestrator(t)
+	svc := newSeededWalletService(t)
+	o.WalletSvc = svc
+	require.NoError(t, svc.EncryptWallet("pass"))
+
+	reloaded, err := o.reloadAfterWalletChange(t.Context())
+	require.NoError(t, err)
+	require.True(t, reloaded, "an unlocked wallet reloads")
+
+	svc.LockWallet()
+	reloaded, err = o.reloadAfterWalletChange(t.Context())
+	require.NoError(t, err)
+	require.False(t, reloaded, "a lock reloads nothing")
+}

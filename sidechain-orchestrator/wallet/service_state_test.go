@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -38,4 +39,35 @@ func TestServiceState(t *testing.T) {
 
 	require.NoError(t, svc.DeleteAllWallets(nil, nil))
 	require.Equal(t, StateNoWallet, svc.State())
+}
+
+func TestLockNotifiesOneTime(t *testing.T) {
+	svc := NewService(t.TempDir(), zerolog.New(zerolog.NewTestWriter(t)))
+	require.NoError(t, svc.Init())
+	t.Cleanup(svc.Close)
+	_, err := svc.GenerateWallet("Lock", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.EncryptWallet("pass"))
+
+	changed := svc.Subscribe(t.Context())
+	quiet := func() bool {
+		select {
+		case <-changed:
+			return false
+		case <-time.After(500 * time.Millisecond):
+			return true
+		}
+	}
+	// The file watcher reports the encrypt write a little later.
+	for !quiet() {
+	}
+	svc.LockWallet()
+
+	select {
+	case <-changed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("a lock sent no notification")
+	}
+	require.Equal(t, StateLocked, svc.State())
+	require.True(t, quiet(), "a lock sent a second notification")
 }
