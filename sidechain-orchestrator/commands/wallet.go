@@ -43,7 +43,7 @@ func resolveWalletID(cctx *cli.Context, client rpc.WalletManagerServiceClient) (
 	if err != nil {
 		return "", fmt.Errorf("get wallet status: %w", err)
 	}
-	if !resp.Msg.HasWallet || resp.Msg.ActiveWalletId == "" {
+	if resp.Msg.State == pb.WalletState_WALLET_STATE_NO_WALLET || resp.Msg.ActiveWalletId == "" {
 		return "", fmt.Errorf("no active wallet — pass a wallet id or run `wallet setactive <id>`")
 	}
 	return resp.Msg.ActiveWalletId, nil
@@ -233,7 +233,7 @@ var walletStatusCommand = &cli.Command{
 		}
 
 		s := resp.Msg
-		if !s.HasWallet {
+		if s.State == pb.WalletState_WALLET_STATE_NO_WALLET {
 			fmt.Println("no wallet is created yet. would you like to create a wallet now? [Y/n]")
 			if confirmYes() {
 				return walletCreateCommand.Run(cli.NewContext(cctx.App, nil, cctx), walletCreateCommand.Name)
@@ -241,9 +241,8 @@ var walletStatusCommand = &cli.Command{
 			return nil
 		}
 
-		fmt.Printf("has wallet:  %v\n", s.HasWallet)
+		fmt.Printf("state:       %s\n", s.State)
 		fmt.Printf("encrypted:   %v\n", s.Encrypted)
-		fmt.Printf("unlocked:    %v\n", s.Unlocked)
 		if s.ActiveWalletId != "" {
 			fmt.Printf("active:      %s\n", s.ActiveWalletId)
 		}

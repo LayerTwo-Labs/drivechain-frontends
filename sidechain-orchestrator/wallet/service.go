@@ -431,12 +431,26 @@ func (s *Service) IsEncrypted() bool {
 	return enc
 }
 
-func (s *Service) IsUnlocked() bool {
+// State is the lock state of the wallet file.
+type State int
+
+const (
+	StateNoWallet State = iota
+	StateLocked
+	StateUnlocked
+)
+
+func (s *Service) State() State {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	unlocked := len(s.wallets) > 0
-	s.log.Debug().Bool("unlocked", unlocked).Int("loaded_count", len(s.wallets)).Msg("IsUnlocked check")
-	return unlocked
+	switch {
+	case len(s.wallets) > 0:
+		return StateUnlocked
+	case s.walletFileExists():
+		return StateLocked
+	default:
+		return StateNoWallet
+	}
 }
 
 func (s *Service) ActiveWalletID() string {

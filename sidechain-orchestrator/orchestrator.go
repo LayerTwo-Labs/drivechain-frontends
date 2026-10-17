@@ -1860,7 +1860,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 
 	// 1. Wait for an unlocked wallet — enforcer needs the L1 seed.
 	walletReady := func() bool {
-		return o.WalletSvc.HasWallet() && (!o.WalletSvc.IsEncrypted() || o.WalletSvc.IsUnlocked())
+		return o.WalletSvc.HasWallet() && (!o.WalletSvc.IsEncrypted() || o.WalletSvc.State() == wallet.StateUnlocked)
 	}
 	if o.WalletSvc != nil && !walletReady() {
 		o.log.Info().Msg("waiting for an unlocked wallet before starting enforcer")

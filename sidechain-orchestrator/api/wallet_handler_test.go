@@ -41,7 +41,7 @@ func TestBuildWatchWalletDataResponseStartersAttachToEnforcer(t *testing.T) {
 	resp := buildWatchWalletDataResponse(
 		[]wallet.WalletData{enforcer, core},
 		core.ID, enforcer.ID, // active wallet is the Core wallet, NOT the enforcer
-		true, false, true, nil, bip47CapableAll, nil,
+		wallet.StateUnlocked, false, nil, bip47CapableAll, nil,
 	)
 
 	if got := resp.GetActiveWalletId(); got != core.ID {
@@ -109,7 +109,7 @@ func TestBuildWatchWalletDataResponseEnforcerSidechainsRoundTrip(t *testing.T) {
 	}
 
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{enforcer}, enforcer.ID, enforcer.ID, true, false, true, nil, bip47CapableAll, nil,
+		[]wallet.WalletData{enforcer}, enforcer.ID, enforcer.ID, wallet.StateUnlocked, false, nil, bip47CapableAll, nil,
 	)
 
 	w := resp.GetWallets()[0]
@@ -151,7 +151,7 @@ func TestBuildWatchWalletDataResponseBip47Populated(t *testing.T) {
 
 	resp := buildWatchWalletDataResponse(
 		[]wallet.WalletData{hot, watchOnly},
-		hot.ID, hot.ID, true, false, true, nil, bip47CapableAll, nil,
+		hot.ID, hot.ID, wallet.StateUnlocked, false, nil, bip47CapableAll, nil,
 	)
 
 	var hotMd, watchMd string
@@ -189,7 +189,7 @@ func TestBuildWatchWalletDataResponseBip47ErrorSurfaces(t *testing.T) {
 	cb := func(id string, err error) { seenID = id; seenErr = err }
 
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{bad}, bad.ID, bad.ID, true, false, true, nil, bip47CapableAll, cb,
+		[]wallet.WalletData{bad}, bad.ID, bad.ID, wallet.StateUnlocked, false, nil, bip47CapableAll, cb,
 	)
 
 	if resp.GetWallets()[0].GetBip47PaymentCode() != "" {
@@ -219,7 +219,7 @@ func TestBuildWatchWalletDataResponseLegacyWalletTypeStarters(t *testing.T) {
 		Sidechains: []wallet.SidechainWallet{{Slot: 9, Name: "Thunder", Mnemonic: "legacy-side"}},
 	}
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{legacy}, legacy.ID, legacy.ID, true, false, true, nil, bip47CapableAll, nil,
+		[]wallet.WalletData{legacy}, legacy.ID, legacy.ID, wallet.StateUnlocked, false, nil, bip47CapableAll, nil,
 	)
 	w := resp.GetWallets()[0]
 	if w.GetMasterMnemonic() != "legacy master" {

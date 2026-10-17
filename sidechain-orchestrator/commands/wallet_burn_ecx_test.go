@@ -194,7 +194,7 @@ func newBurnTestFlow(t *testing.T, args ...string) *burnTestFlow {
 	require.NoError(t, err)
 	daemon := &burnTestDaemon{
 		network: "alphanet",
-		status:  &pb.GetWalletStatusResponse{HasWallet: true, Unlocked: true, ActiveWalletId: "active-wallet"},
+		status:  &pb.GetWalletStatusResponse{State: pb.WalletState_WALLET_STATE_UNLOCKED, ActiveWalletId: "active-wallet"},
 		wallets: &pb.ListWalletsResponse{
 			ActiveWalletId: "active-wallet",
 			Wallets: []*pb.WalletMetadata{
@@ -408,8 +408,11 @@ func TestBurnECXChecksOneFirstAddress(t *testing.T) {
 
 func TestBurnECXRejectsUnsupportedWallets(t *testing.T) {
 	cases := map[string]func(*burnTestDaemon){
-		"no wallet":    func(d *burnTestDaemon) { d.status.HasWallet = false },
-		"locked":       func(d *burnTestDaemon) { d.status.Encrypted = true; d.status.Unlocked = false },
+		"no wallet": func(d *burnTestDaemon) { d.status.State = pb.WalletState_WALLET_STATE_NO_WALLET },
+		"locked": func(d *burnTestDaemon) {
+			d.status.Encrypted = true
+			d.status.State = pb.WalletState_WALLET_STATE_LOCKED
+		},
 		"absent":       func(d *burnTestDaemon) { d.wallets.Wallets = nil },
 		"watch-only":   func(d *burnTestDaemon) { d.wallets.Wallets[0].WatchOnly = true },
 		"hardware":     func(d *burnTestDaemon) { d.wallets.Wallets[0].HardwareDeviceType = "trezor" },
@@ -473,7 +476,7 @@ func TestBurnECXStopsAfterContextChanges(t *testing.T) {
 						f.daemon.wallets.Wallets = nil
 					case "wallet locked":
 						f.daemon.status.Encrypted = true
-						f.daemon.status.Unlocked = false
+						f.daemon.status.State = pb.WalletState_WALLET_STATE_LOCKED
 					}
 				}
 				require.Error(t, f.run())
