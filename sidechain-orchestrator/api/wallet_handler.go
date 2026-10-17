@@ -234,6 +234,9 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			Multisig:            multisigInfoProto(&w),
 			ReceiveAddressTypes: receiveAddressTypesProto(&w),
 			IsStarter:           w.ID == starterID,
+			ScriptType:          w.ScriptType,
+			AccountIndex:        w.AccountIndex,
+			DerivationPath:      w.DerivationPath,
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -2071,6 +2074,9 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID, starter
 			Multisig:            multisigInfoProto(&w),
 			ReceiveAddressTypes: receiveAddressTypesProto(&w),
 			IsStarter:           w.ID == starterID,
+			ScriptType:          w.ScriptType,
+			AccountIndex:        w.AccountIndex,
+			DerivationPath:      w.DerivationPath,
 		}
 		// The starter wallet's seed derives the L1 and sidechain starters, so
 		// only it carries them — whichever wallet happens to be active.

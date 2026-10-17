@@ -1410,6 +1410,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
     $core.String? hardwareFingerprint,
     $core.Iterable<AddressType>? receiveAddressTypes,
     $core.bool? isStarter,
+    $core.String? scriptType,
+    $core.int? accountIndex,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (id != null) {
@@ -1457,6 +1460,15 @@ class WalletMetadata extends $pb.GeneratedMessage {
     if (isStarter != null) {
       $result.isStarter = isStarter;
     }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (accountIndex != null) {
+      $result.accountIndex = accountIndex;
+    }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   WalletMetadata._() : super();
@@ -1479,6 +1491,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
     ..aOS(13, _omitFieldNames ? '' : 'hardwareFingerprint')
     ..pc<AddressType>(14, _omitFieldNames ? '' : 'receiveAddressTypes', $pb.PbFieldType.KE, valueOf: AddressType.valueOf, enumValues: AddressType.values, defaultEnumValue: AddressType.ADDRESS_TYPE_UNSPECIFIED)
     ..aOB(15, _omitFieldNames ? '' : 'isStarter')
+    ..aOS(16, _omitFieldNames ? '' : 'scriptType')
+    ..a<$core.int>(17, _omitFieldNames ? '' : 'accountIndex', $pb.PbFieldType.OU3)
+    ..aOS(18, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -1641,6 +1656,35 @@ class WalletMetadata extends $pb.GeneratedMessage {
   $core.bool hasIsStarter() => $_has(14);
   @$pb.TagNumber(15)
   void clearIsStarter() => clearField(15);
+
+  /// Key derivation of the wallet. script_type is empty for native segwit.
+  /// account_index and derivation_path are exclusive; both empty is standard.
+  @$pb.TagNumber(16)
+  $core.String get scriptType => $_getSZ(15);
+  @$pb.TagNumber(16)
+  set scriptType($core.String v) { $_setString(15, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasScriptType() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearScriptType() => clearField(16);
+
+  @$pb.TagNumber(17)
+  $core.int get accountIndex => $_getIZ(16);
+  @$pb.TagNumber(17)
+  set accountIndex($core.int v) { $_setUnsignedInt32(16, v); }
+  @$pb.TagNumber(17)
+  $core.bool hasAccountIndex() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearAccountIndex() => clearField(17);
+
+  @$pb.TagNumber(18)
+  $core.String get derivationPath => $_getSZ(17);
+  @$pb.TagNumber(18)
+  set derivationPath($core.String v) { $_setString(17, v); }
+  @$pb.TagNumber(18)
+  $core.bool hasDerivationPath() => $_has(17);
+  @$pb.TagNumber(18)
+  void clearDerivationPath() => clearField(18);
 }
 
 class MultisigInfo extends $pb.GeneratedMessage {

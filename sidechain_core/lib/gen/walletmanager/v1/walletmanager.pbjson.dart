@@ -446,6 +446,9 @@ const WalletMetadata$json = {
     {'1': 'hardware_fingerprint', '3': 13, '4': 1, '5': 9, '10': 'hardwareFingerprint'},
     {'1': 'receive_address_types', '3': 14, '4': 3, '5': 14, '6': '.walletmanager.v1.AddressType', '10': 'receiveAddressTypes'},
     {'1': 'is_starter', '3': 15, '4': 1, '5': 8, '10': 'isStarter'},
+    {'1': 'script_type', '3': 16, '4': 1, '5': 9, '10': 'scriptType'},
+    {'1': 'account_index', '3': 17, '4': 1, '5': 13, '10': 'accountIndex'},
+    {'1': 'derivation_path', '3': 18, '4': 1, '5': 9, '10': 'derivationPath'},
   ],
 };
 
@@ -463,7 +466,9 @@ final $typed_data.Uint8List walletMetadataDescriptor = $convert.base64Decode(
     'FyZURldmljZVR5cGUSMQoUaGFyZHdhcmVfZmluZ2VycHJpbnQYDSABKAlSE2hhcmR3YXJlRmlu'
     'Z2VycHJpbnQSUQoVcmVjZWl2ZV9hZGRyZXNzX3R5cGVzGA4gAygOMh0ud2FsbGV0bWFuYWdlci'
     '52MS5BZGRyZXNzVHlwZVITcmVjZWl2ZUFkZHJlc3NUeXBlcxIdCgppc19zdGFydGVyGA8gASgI'
-    'Uglpc1N0YXJ0ZXI=');
+    'Uglpc1N0YXJ0ZXISHwoLc2NyaXB0X3R5cGUYECABKAlSCnNjcmlwdFR5cGUSIwoNYWNjb3VudF'
+    '9pbmRleBgRIAEoDVIMYWNjb3VudEluZGV4EicKD2Rlcml2YXRpb25fcGF0aBgSIAEoCVIOZGVy'
+    'aXZhdGlvblBhdGg=');
 
 @$core.Deprecated('Use multisigInfoDescriptor instead')
 const MultisigInfo$json = {
