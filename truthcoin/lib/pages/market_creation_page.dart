@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:truthcoin/models/market_creation.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
@@ -97,11 +98,11 @@ class _FormColumn extends StatelessWidget {
           spacing: SailStyleValues.padding04,
           children: [
             SailText.primary24('Create a market', bold: true),
-            SailText.secondary13('A market needs a question, one decision slot, and a liquidity subsidy.'),
+            SailText.secondary13('A market needs a question, one or more decisions, and a liquidity subsidy.'),
           ],
         ),
         _QuestionCard(model: model),
-        _OutcomesCard(model: model),
+        _DecisionsCard(model: model),
         _LiquidityCard(model: model),
         _ActionRow(model: model),
       ],
@@ -167,113 +168,225 @@ class _QuestionCard extends StatelessWidget {
   }
 }
 
-class _OutcomesCard extends StatelessWidget {
+class _DecisionsCard extends StatelessWidget {
   final MarketCreationViewModel model;
 
-  const _OutcomesCard({required this.model});
+  const _DecisionsCard({required this.model});
 
   @override
   Widget build(BuildContext context) {
     return SailCard(
-      title: 'Outcomes',
+      title: 'Decisions',
       child: SailColumn(
         spacing: SailStyleValues.padding12,
         children: [
-          Wrap(
-            spacing: SailStyleValues.padding08,
-            runSpacing: SailStyleValues.padding04,
+          SailDropdownButton<String>(
+            value: null,
+            variant: ButtonVariant.outline,
+            large: true,
+            hint: model.isLoadingSlots ? 'Decisions load' : 'Add Existing Decision',
+            items: [
+              for (final slot in model.addableSlots)
+                SailDropdownItem<String>(
+                  value: slot.slotIdHex,
+                  // The closed button holds the id, so a long question never
+                  // pushes the control past the card.
+                  label: slot.slotIdHex,
+                  child: SailText.primary13('${slot.slotIdHex}  ·  ${model.slotLabel(slot)}'),
+                ),
+            ],
+            onChanged: (id) {
+              if (id != null) model.addExistingDecision(id);
+            },
+          ),
+          for (final slot in model.existingDecisions) _ExistingDecisionRow(model: model, slot: slot),
+          if (model.slotError != null) SailInlineError(model.slotError!),
+          if (model.periodsError != null) SailInlineError(model.periodsError!),
+          for (final (index, draft) in model.newDecisions.indexed)
+            _NewDecisionCard(key: ObjectKey(draft), model: model, number: index + 1, draft: draft),
+          SailRow(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SailTabItem(
-                label: 'Yes / No',
-                isSelected: model.marketType == MarketType.binary,
-                onTap: () => model.setMarketType(MarketType.binary),
-              ),
-              SailTabItem(
-                label: 'Many outcomes',
-                isSelected: model.marketType == MarketType.categorical,
-                onTap: () => model.setMarketType(MarketType.categorical),
-              ),
-              SailTabItem(
-                label: 'Custom',
-                isSelected: model.marketType == MarketType.custom,
-                onTap: () => model.setMarketType(MarketType.custom),
+              SailButton(
+                label: 'Add New Decision',
+                icon: SailSVGAsset.plus,
+                variant: ButtonVariant.outline,
+                onPressed: () async => model.addNewDecision(),
               ),
             ],
           ),
-          if (model.marketType != MarketType.custom) ...[
-            SailText.secondary12('Decision slot'),
-            SailDropdownButton<String>(
-              value: model.selectedSlotId,
-              variant: ButtonVariant.outline,
-              large: true,
-              hint: model.isLoadingSlots ? 'Slots load' : 'Pick a slot',
-              items: [
-                for (final slot in model.claimedSlots)
-                  SailDropdownItem<String>(
-                    value: slot.slotIdHex,
-                    // The trigger holds the id, so a long question never
-                    // pushes the control past the card.
-                    triggerChild: SailText.primary13(slot.slotIdHex, monospace: true),
-                    child: SailText.primary13('${slot.slotIdHex}  ·  ${model.slotLabel(slot)}'),
-                  ),
-              ],
-              onChanged: (id) {
-                if (id != null) model.selectSlot(id);
-              },
-            ),
-            if (model.slotError != null) SailInlineError(model.slotError!),
-          ],
-          SailTextField(
-            controller: model.dimensionsController,
-            label: model.marketType == MarketType.custom ? model.dimensionLabel : 'Or type a slot id',
-            hintText: model.dimensionHint,
-            onChanged: (_) => model.onSlotTextChanged(),
-          ),
-          if (model.typedSlotError != null)
-            SailInlineError(model.typedSlotError!)
-          else
-            SailText.secondary12(model.dimensionHelp),
-          if (model.marketType == MarketType.binary)
-            _Responsive(
-              breakpoint: 420,
-              spacing: SailStyleValues.padding10,
-              children: const [
-                _StartPrice(label: 'Yes', tone: OutcomeTone.yes),
-                _StartPrice(label: 'No', tone: OutcomeTone.no),
-              ],
-            ),
         ],
       ),
     );
   }
 }
 
-class _StartPrice extends StatelessWidget {
-  final String label;
-  final OutcomeTone tone;
+class _ExistingDecisionRow extends StatelessWidget {
+  final MarketCreationViewModel model;
+  final SlotListItem slot;
 
-  const _StartPrice({required this.label, required this.tone});
+  const _ExistingDecisionRow({required this.model, required this.slot});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final color = tone == OutcomeTone.yes ? theme.colors.success : theme.colors.error;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: SailStyleValues.padding12,
-        vertical: SailStyleValues.padding10,
+      padding: const EdgeInsets.only(
+        left: SailStyleValues.padding12,
+        right: SailStyleValues.padding04,
+        top: SailStyleValues.padding04,
+        bottom: SailStyleValues.padding04,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
+        border: Border.all(color: theme.colors.border),
         borderRadius: SailStyleValues.borderRadius,
       ),
       child: SailRow(
-        spacing: SailStyleValues.padding08,
+        spacing: SailStyleValues.padding12,
         mainAxisSize: MainAxisSize.max,
         children: [
-          Expanded(child: SailText.primary13(label, bold: true, color: color)),
-          SailText.primary13('starts at 50%', color: color),
+          SailText.secondary13('Existing decision'),
+          SailText.primary13(slot.slotIdHex, monospace: true),
+          Expanded(child: SailText.primary13(model.slotLabel(slot))),
+          SailTooltip(
+            message: 'Remove',
+            child: SailButton(
+              variant: ButtonVariant.icon,
+              icon: SailSVGAsset.x,
+              small: true,
+              onPressed: () async => model.removeExistingDecision(slot.slotIdHex),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const double _decisionLabelWidth = 110;
+const double _decisionRowBreakpoint = 420;
+
+class _NewDecisionCard extends StatelessWidget {
+  final MarketCreationViewModel model;
+  final int number;
+  final NewDecisionDraft draft;
+
+  const _NewDecisionCard({super.key, required this.model, required this.number, required this.draft});
+
+  /// The label sits left of the control, and above it on a narrow card.
+  Widget _row(String label, Widget control) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _decisionRowBreakpoint) {
+          return SailColumn(
+            spacing: SailStyleValues.padding04,
+            children: [SailText.secondary13(label), control],
+          );
+        }
+        return SailRow(
+          spacing: SailStyleValues.padding12,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            SizedBox(width: _decisionLabelWidth, child: SailText.secondary13(label)),
+            Expanded(child: control),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _field(String label, TextEditingController controller, String hint) {
+    return _row(
+      label,
+      SailTextField(
+        controller: controller,
+        hintText: hint,
+        maxLines: 1,
+        onChanged: (_) => model.onDecisionChanged(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final error = draft.isBlank ? null : draft.error;
+
+    return Container(
+      padding: const EdgeInsets.all(SailStyleValues.padding12),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colors.border),
+        borderRadius: SailStyleValues.borderRadius,
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding10,
+        children: [
+          SailRow(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(child: SailText.primary13('New decision #$number', bold: true)),
+              if (model.decisionCount > 1)
+                SailTooltip(
+                  message: 'Remove',
+                  child: SailButton(
+                    key: ValueKey('remove_new_decision_$number'),
+                    variant: ButtonVariant.icon,
+                    icon: SailSVGAsset.x,
+                    small: true,
+                    onPressed: () async => model.removeNewDecision(draft),
+                  ),
+                ),
+            ],
+          ),
+          _row(
+            'Period',
+            SailDropdownButton<int>(
+              value: draft.periodIndex,
+              variant: ButtonVariant.outline,
+              large: true,
+              hint: model.isLoadingPeriods ? 'Periods load' : 'Pick a period',
+              items: [
+                for (final period in model.periods)
+                  SailDropdownItem<int>(value: period.periodIndex, label: period.label),
+              ],
+              onChanged: (period) {
+                if (period != null) model.setDecisionPeriod(draft, period);
+              },
+            ),
+          ),
+          _row(
+            'Type',
+            Wrap(
+              spacing: SailStyleValues.padding08,
+              runSpacing: SailStyleValues.padding04,
+              children: [
+                for (final type in NewDecisionType.values)
+                  SailTabItem(
+                    label: type.label,
+                    isSelected: draft.type == type,
+                    onTap: () => model.setDecisionType(draft, type),
+                  ),
+              ],
+            ),
+          ),
+          _field('Header', draft.header, 'Decision-specific question'),
+          ...switch (draft.type) {
+            NewDecisionType.binary => [
+              _field('Option 0 label', draft.option0Label, 'No / False'),
+              _field('Option 1 label', draft.option1Label, 'Yes / True'),
+            ],
+            NewDecisionType.scaled => [
+              _field('Min', draft.min, '0'),
+              _field('Max', draft.max, '1'),
+              _field('Increment', draft.increment, '1'),
+            ],
+            NewDecisionType.category => [
+              _field('Option labels', draft.optionLabels, 'Red, Green, Blue'),
+            ],
+          },
+          if (error != null) SailInlineError(error),
         ],
       ),
     );
@@ -338,7 +451,7 @@ class _LiquidityCard extends StatelessWidget {
                 label: 'Calculate cost',
                 variant: ButtonVariant.secondary,
                 small: true,
-                disabled: model.effectiveDimensions.isEmpty,
+                disabled: !model.hasDimensions,
                 onPressed: () async => model.calculateLiquidityPreview(),
               ),
             ],
@@ -515,6 +628,8 @@ class _CostCard extends StatelessWidget {
               _CostRow(label: 'Outcomes', value: '${preview.numOutcomes}'),
               _CostRow(label: 'Liquidity β', value: preview.beta.toStringAsFixed(2)),
             ],
+            if (model.listingFeeSats > 0)
+              _CostRow(label: 'Decision listing', value: formatter.formatSats(model.listingFeeSats)),
             _CostRow(label: 'Network fee', value: formatter.formatSats(_networkFeeSats)),
             const SailSeparator(),
             _CostRow(
@@ -588,13 +703,17 @@ class MarketCreationViewModel extends BaseViewModel {
 
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
-  final TextEditingController dimensionsController = TextEditingController();
   final TextEditingController liquidityController = TextEditingController(text: '100000');
   final TextEditingController betaController = TextEditingController(text: '7.0');
   final TextEditingController tradingFeeController = TextEditingController(text: '0.5');
 
-  MarketType marketType = MarketType.binary;
-  String? selectedSlotId;
+  final List<String> existingDecisionIds = [];
+  final List<NewDecisionDraft> newDecisions = [NewDecisionDraft()];
+
+  List<OpenPeriod> periods = [];
+  bool isLoadingPeriods = false;
+  String? periodsError;
+
   LiquidityMethod liquidityMethod = LiquidityMethod.initialLiquidity;
   InitialLiquidityCalculation? liquidityPreview;
 
@@ -603,115 +722,38 @@ class MarketCreationViewModel extends BaseViewModel {
   bool isCreating = false;
   String? createError;
 
-  /// Dimensions in the bracket notation calculate_initial_liquidity takes.
-  /// Empty when a dimension claims a new decision, which has no ID yet.
-  String get effectiveDimensions {
-    final input = dimensionsController.text.trim();
-    if (input.isEmpty) return '';
-
-    switch (marketType) {
-      case MarketType.binary:
-        return '[$input]';
-      case MarketType.categorical:
-        return '[[$input]]';
-      case MarketType.custom:
-        final dimensions = (jsonDecode(dimensionInputs) as List).cast<Map>();
-        if (dimensions.any((d) => d['type'] != 'existing')) {
-          return '';
-        }
-        return '[${dimensions.map((d) => d['id']).join(',')}]';
-    }
-  }
-
-  /// Dimensions as the `DimensionInput` JSON array that market_create takes.
-  String get dimensionInputs {
-    final input = dimensionsController.text.trim();
-    if (input.isEmpty) {
-      return '[]';
-    }
-
-    try {
-      final decoded = jsonDecode(input);
-      if (decoded is Map) {
-        return jsonEncode([decoded]);
-      }
-      if (decoded is List && decoded.every((d) => d is Map)) {
-        return input;
-      }
-    } on FormatException {
-      // Not JSON, so the input holds decision IDs.
-    }
-
-    final ids = input.split(RegExp(r'[\s,\[\]]+')).where((id) => id.isNotEmpty);
-    return jsonEncode([
-      for (final id in ids) {'type': 'existing', 'id': id},
-    ]);
-  }
-
-  /// Slots the node reports, filtered to the ones that carry a decision.
-  /// Slots the node reports, filtered to the decisions the market type takes.
-  List<SlotListItem> get claimedSlots => _votingProvider.slots.where((slot) {
-    final decision = slot.decision;
-    if (decision == null) return false;
-    return switch (marketType) {
-      MarketType.binary => decision.isBinary,
-      MarketType.categorical => decision.isCategory,
-      MarketType.custom => true,
-    };
-  }).toList();
+  /// Every claimed decision the node lists.
+  List<SlotListItem> get claimedSlots => _votingProvider.slots.where((slot) => slot.decision != null).toList();
 
   bool get isLoadingSlots => _votingProvider.isLoading;
   String? get slotError => _votingProvider.error;
 
-  /// The loaded slot that the typed id names, or null when the node lists no
-  /// decision with that id.
-  SlotListItem? get typedSlot {
-    final id = dimensionsController.text.trim();
-    if (id.isEmpty) return null;
-    final match = _votingProvider.slots.where((slot) => slot.slotIdHex == id);
-    return match.isEmpty ? null : match.first;
-  }
+  /// The claimed decisions the author added, in the order of the picks.
+  List<SlotListItem> get existingDecisions => [
+    for (final id in existingDecisionIds) ...claimedSlots.where((slot) => slot.slotIdHex == id).take(1),
+  ];
 
-  /// True when a dimension asks the node to claim a new decision. The node
-  /// charges a tiered listing fee for such a claim, and this form reads no
-  /// fee, so it never sends that market.
-  bool get claimsNewDecision {
-    final decoded = jsonDecode(dimensionInputs);
-    if (decoded is! List) return false;
-    return decoded.any((dimension) => dimension is Map && dimension['type'] != 'existing');
-  }
+  /// Claimed decisions the picker still offers.
+  List<SlotListItem> get addableSlots =>
+      claimedSlots.where((slot) => !existingDecisionIds.contains(slot.slotIdHex)).toList();
 
-  /// Why the dimension input does not fit, or null when it fits.
-  String? get typedSlotError {
-    if (claimsNewDecision) {
-      return 'This form takes a claimed decision. Claim the decision first, then name its id.';
-    }
-    if (marketType == MarketType.custom) return null;
+  /// The new-decision cards the author filled in.
+  List<NewDecisionDraft> get usedNewDecisions => newDecisions.where((draft) => !draft.isBlank).toList();
 
-    final id = dimensionsController.text.trim();
-    if (id.isEmpty) return null;
+  bool get hasDimensions => existingDecisionIds.isNotEmpty || usedNewDecisions.isNotEmpty;
 
-    if (_votingProvider.slots.isEmpty) {
-      // Without the list the kind of the id stays unknown, and an unknown
-      // kind decides the outcomes and the subsidy of the market.
-      return 'The decision list did not load. Press refresh before you create a market.';
-    }
+  /// Dimensions as the `DimensionInput` JSON array that market_create takes.
+  String get dimensionInputs => jsonEncode([
+    for (final id in existingDecisionIds) {'type': 'existing', 'id': id},
+    for (final draft in usedNewDecisions) draft.toDimension(),
+  ]);
 
-    final slot = typedSlot;
-    if (slot?.decision == null) {
-      return 'The node lists no claimed decision with the id $id.';
-    }
-
-    final decision = slot!.decision!;
-    if (marketType == MarketType.binary && !decision.isBinary) {
-      final kind = decision.isCategory ? 'category' : 'scaled';
-      return 'Slot $id carries a $kind decision. Pick another tab.';
-    }
-    if (marketType == MarketType.categorical && !decision.isCategory) {
-      return 'Slot $id carries no category decision. Pick another tab.';
-    }
-    return null;
-  }
+  /// Sats the node charges to claim the new decisions, at the cheapest price
+  /// of each picked period.
+  int get listingFeeSats => usedNewDecisions.fold(0, (sum, draft) {
+    final period = periods.where((p) => p.periodIndex == draft.periodIndex);
+    return sum + (period.isEmpty ? 0 : period.first.cheapestSats);
+  });
 
   String slotLabel(SlotListItem slot) {
     final decision = slot.decision;
@@ -727,47 +769,80 @@ class MarketCreationViewModel extends BaseViewModel {
   void init() {
     _votingProvider.addListener(notifyListeners);
     loadSlots();
+    loadPeriods();
   }
 
   Future<void> loadSlots() async {
     await _votingProvider.loadSlots();
   }
 
-  void selectSlot(String slotIdHex) {
-    selectedSlotId = slotIdHex;
-    dimensionsController.text = slotIdHex;
-    onLiquidityInputChanged();
-  }
-
-  /// The text field wins when the typed id leaves the picked slot.
-  void onSlotTextChanged() {
-    if (dimensionsController.text.trim() != selectedSlotId) {
-      selectedSlotId = null;
+  Future<void> loadPeriods() async {
+    isLoadingPeriods = true;
+    periodsError = null;
+    notifyListeners();
+    try {
+      periods = await _marketProvider.listOpenPeriods();
+      if (periods.isNotEmpty) {
+        for (final draft in newDecisions) {
+          draft.periodIndex ??= periods.first.periodIndex;
+        }
+      }
+    } catch (e) {
+      periodsError = 'The open periods did not load: $e';
     }
+    isLoadingPeriods = false;
+    notifyListeners();
+  }
+
+  void addExistingDecision(String slotIdHex) {
+    if (existingDecisionIds.contains(slotIdHex)) return;
+    existingDecisionIds.add(slotIdHex);
     onLiquidityInputChanged();
   }
 
-  String get dimensionLabel => switch (marketType) {
-    MarketType.binary => 'Decision slot id',
-    MarketType.categorical => 'Category decision id',
-    MarketType.custom => 'Dimensions',
-  };
+  void removeExistingDecision(String slotIdHex) {
+    existingDecisionIds.remove(slotIdHex);
+    onLiquidityInputChanged();
+  }
 
-  String get dimensionHint => switch (marketType) {
-    MarketType.binary => '004008',
-    MarketType.categorical => '004008',
-    MarketType.custom => '004008,004009',
-  };
+  /// Existing and new decisions, the cards with no input too.
+  int get decisionCount => existingDecisionIds.length + newDecisions.length;
 
-  String get dimensionHelp => switch (marketType) {
-    MarketType.binary => 'One binary slot gives a Yes outcome and a No outcome.',
-    MarketType.categorical => 'One category decision gives one outcome per option.',
-    MarketType.custom => 'Name every slot id, or paste a DimensionInput JSON array.',
-  };
+  void removeNewDecision(NewDecisionDraft draft) {
+    newDecisions.remove(draft);
+    // The removed card still holds the controllers until the next frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => draft.dispose());
+    onLiquidityInputChanged();
+  }
+
+  void addNewDecision() {
+    newDecisions.add(NewDecisionDraft(periodIndex: periods.isEmpty ? null : periods.first.periodIndex));
+    notifyListeners();
+  }
+
+  void setDecisionPeriod(NewDecisionDraft draft, int periodIndex) {
+    draft.periodIndex = periodIndex;
+    notifyListeners();
+  }
+
+  void setDecisionType(NewDecisionDraft draft, NewDecisionType type) {
+    draft.type = type;
+    onLiquidityInputChanged();
+  }
+
+  void onDecisionChanged() {
+    onLiquidityInputChanged();
+  }
 
   String get previewMeta {
-    final slot = dimensionsController.text.trim();
-    final parts = <String>[slot.isEmpty ? 'no slot yet' : 'slot $slot'];
+    final count = existingDecisionIds.length + usedNewDecisions.length;
+    final parts = <String>[
+      switch (count) {
+        0 => 'no decision yet',
+        1 => '1 decision',
+        _ => '$count decisions',
+      },
+    ];
     if (liquidityMethod == LiquidityMethod.beta) {
       parts.add('β ${betaController.text}');
     }
@@ -789,20 +864,28 @@ class MarketCreationViewModel extends BaseViewModel {
 
   int? get totalCostSats {
     final subsidy = subsidySats;
-    return subsidy == null ? null : subsidy + _networkFeeSats;
+    return subsidy == null ? null : subsidy + listingFeeSats + _networkFeeSats;
+  }
+
+  /// Outcomes of the market: the product of the outcomes of each dimension.
+  int get outcomeCount {
+    var count = 1;
+    for (final id in existingDecisionIds) {
+      final match = claimedSlots.where((slot) => slot.slotIdHex == id);
+      final decision = match.isEmpty ? null : match.first.decision;
+      count *= decision != null && decision.isCategory ? decision.categoryOptions.length : 2;
+    }
+    for (final draft in usedNewDecisions) {
+      count *= draft.outcomeCount;
+    }
+    return count;
   }
 
   bool get canCreate {
     if (titleController.text.trim().isEmpty) return false;
     if (descriptionController.text.trim().isEmpty) return false;
-
-    final input = dimensionsController.text.trim();
-    if (input.isEmpty) return false;
-    if (marketType == MarketType.categorical && !RegExp(r'^[0-9a-fA-F]+$').hasMatch(input)) {
-      return false;
-    }
-    if (typedSlotError != null) return false;
-    if (claimsNewDecision) return false;
+    if (!hasDimensions) return false;
+    if (usedNewDecisions.any((draft) => draft.error != null)) return false;
 
     if (liquidityMethod == LiquidityMethod.beta) {
       if ((double.tryParse(betaController.text) ?? 0) <= 0) return false;
@@ -820,18 +903,10 @@ class MarketCreationViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  /// An edit of beta, of the liquidity, or of a slot invalidates the last
+  /// An edit of beta, of the liquidity, or of a decision invalidates the last
   /// calculation, so the cost card never shows a figure for older inputs.
   void onLiquidityInputChanged() {
     _liquidityRequest++;
-    liquidityPreview = null;
-    notifyListeners();
-  }
-
-  void setMarketType(MarketType type) {
-    marketType = type;
-    dimensionsController.clear();
-    selectedSlotId = null;
     liquidityPreview = null;
     notifyListeners();
   }
@@ -850,10 +925,7 @@ class MarketCreationViewModel extends BaseViewModel {
     final beta = liquidityMethod == LiquidityMethod.beta ? double.tryParse(betaController.text) ?? 7.0 : 7.0;
 
     final request = ++_liquidityRequest;
-    final result = await _marketProvider.calculateInitialLiquidity(
-      beta: beta,
-      dimensions: effectiveDimensions.isNotEmpty ? effectiveDimensions : null,
-    );
+    final result = await _marketProvider.calculateInitialLiquidity(beta: beta, numOutcomes: outcomeCount);
     if (request != _liquidityRequest) return;
 
     liquidityPreview = result;
@@ -901,14 +973,14 @@ class MarketCreationViewModel extends BaseViewModel {
     _votingProvider.removeListener(notifyListeners);
     titleController.dispose();
     descriptionController.dispose();
-    dimensionsController.dispose();
     liquidityController.dispose();
     betaController.dispose();
     tradingFeeController.dispose();
+    for (final draft in newDecisions) {
+      draft.dispose();
+    }
     super.dispose();
   }
 }
-
-enum MarketType { binary, categorical, custom }
 
 enum LiquidityMethod { initialLiquidity, beta }
