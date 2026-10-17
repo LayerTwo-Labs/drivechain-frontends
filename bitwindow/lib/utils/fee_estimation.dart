@@ -40,6 +40,18 @@ int feeSatsForRate({required double satPerVByte, required int txVBytes}) {
   return (satPerVByte * txVBytes).ceil();
 }
 
+/// The fee fields of a send request. An estimated rate goes to the backend as
+/// a rate, so the fee fits the inputs it picks. A typed fee goes as a fixed fee.
+({int? feeRateSatPerVbyte, int? fixedFeeSats}) sendFee({
+  required double? estimatedSatPerVByte,
+  required int typedFeeSats,
+}) {
+  if (estimatedSatPerVByte != null) {
+    return (feeRateSatPerVbyte: estimatedSatPerVByte.ceil(), fixedFeeSats: null);
+  }
+  return (feeRateSatPerVbyte: null, fixedFeeSats: typedFeeSats);
+}
+
 /// A single point on the fee-rate-vs-confirmation-target curve.
 class FeeRatePoint {
   final int confTarget;

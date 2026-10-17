@@ -744,8 +744,9 @@ class SendPageViewModel extends BaseViewModel {
 
       // 2. Calculate the available balance. When the fee comes out of the
       // amount itself, the backend subtracts it — do not subtract it twice.
-      final feeSats = parseAmountToSatoshis(feeController.text.isEmpty ? '0' : feeController.text, currentUnit);
-      final available = recipients[index].subtractFee ? availableAmount : availableAmount - satoshiToBTC(feeSats);
+      final available = recipients[index].subtractFee
+          ? availableAmount
+          : availableAmount - satoshiToBTC(_maxSendFeeSats);
 
       // 3. Set the remaining amount for the recipient at 'index'
       final remaining = available - sumOtherRecipients;
@@ -1152,6 +1153,18 @@ class SendPageViewModel extends BaseViewModel {
     return estimateTxVBytes(numInputs: numInputs, numOutputs: numOutputs);
   }
 
+  int get _maxSendFeeSats {
+    final rate = _estimatedSatPerVByte;
+    if (rate == null) {
+      return parseAmountToSatoshis(feeController.text.isEmpty ? '0' : feeController.text, currentUnit);
+    }
+    final numInputs = selectedUtxos.isEmpty ? allUtxos.length : selectedUtxos.length;
+    return feeSatsForRate(
+      satPerVByte: rate.ceilToDouble(),
+      txVBytes: estimateTxVBytes(numInputs: numInputs, numOutputs: recipients.length + 1),
+    );
+  }
+
   void _setFeeFromSats(int feeSats) {
     if (currentUnit == BitcoinUnit.btc) {
       feeController.text = satoshiToBTC(feeSats).toStringAsFixed(8);
@@ -1166,7 +1179,7 @@ class SendPageViewModel extends BaseViewModel {
       if (satPerVByte == null) {
         return;
       }
-      _setFeeFromSats(feeSatsForRate(satPerVByte: satPerVByte, txVBytes: _estimatedTxVBytes));
+      _setFeeFromSats(feeSatsForRate(satPerVByte: satPerVByte.ceilToDouble(), txVBytes: _estimatedTxVBytes));
       _estimatedSatPerVByte = satPerVByte;
       selectedConfTarget = confTarget;
       notifyListeners();
@@ -1197,7 +1210,7 @@ class SendPageViewModel extends BaseViewModel {
 
   void selectFeeRatePoint(FeeRatePoint point) {
     selectedConfTarget = point.confTarget;
-    _setFeeFromSats(feeSatsForRate(satPerVByte: point.satPerVByte, txVBytes: _estimatedTxVBytes));
+    _setFeeFromSats(feeSatsForRate(satPerVByte: point.satPerVByte.ceilToDouble(), txVBytes: _estimatedTxVBytes));
     _estimatedSatPerVByte = point.satPerVByte;
     notifyListeners();
   }
