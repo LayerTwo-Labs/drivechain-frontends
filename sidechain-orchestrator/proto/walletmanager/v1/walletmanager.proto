@@ -157,11 +157,25 @@ service WalletManagerService {
 message GetWalletStatusRequest {}
 
 message GetWalletStatusResponse {
-  bool has_wallet = 1;
+  // Use state.
+  bool has_wallet = 1 [deprecated = true];
   bool encrypted = 2;
-  bool unlocked = 3;
+  // Use state.
+  bool unlocked = 3 [deprecated = true];
   string active_wallet_id = 4;
   string active_wallet_name = 5;
+  WalletState state = 6;
+}
+
+// WalletState is the lock state of the wallet file.
+enum WalletState {
+  WALLET_STATE_UNSPECIFIED = 0;
+  // No wallet file exists.
+  WALLET_STATE_NO_WALLET = 1;
+  // The wallet file exists, but its wallets are not loaded.
+  WALLET_STATE_LOCKED = 2;
+  // The wallets are loaded.
+  WALLET_STATE_UNLOCKED = 3;
 }
 
 // NodeMode is how much of Bitcoin this install runs.
@@ -1396,9 +1410,11 @@ message SetTorConfigResponse {
 
 message WatchWalletDataResponse {
   // Wallet status
-  bool has_wallet = 1;
+  // Use state.
+  bool has_wallet = 1 [deprecated = true];
   bool encrypted = 2;
-  bool unlocked = 3;
+  // Use state.
+  bool unlocked = 3 [deprecated = true];
   string active_wallet_id = 4;
 
   // All wallets
@@ -1415,6 +1431,7 @@ message WatchWalletDataResponse {
   // are populated. The client's heartbeat watchdog uses these to tell a
   // healthy-but-quiet stream apart from a half-open connection.
   bool heartbeat = 9;
+  WalletState state = 10;
 }
 
 message CreateDepositRequest {
