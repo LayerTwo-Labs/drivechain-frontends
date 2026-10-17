@@ -413,4 +413,20 @@ func TestCountStoriesSince(t *testing.T) {
 	count, err := CountStoriesSince(t.Context(), db, now.Add(-7*24*time.Hour))
 	require.NoError(t, err)
 	require.Equal(t, int64(1), count)
+
+	t.Run("compares across a time zone offset", func(t *testing.T) {
+		db := database.Test(t)
+		oslo := time.FixedZone("CEST", 2*60*60)
+		at := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
+		require.NoError(t, Index(t.Context(), db, story(1, at.In(oslo), "Before")))
+		require.NoError(t, Index(t.Context(), db, story(2, at.Add(time.Hour), "After")))
+
+		count, err := CountStoriesSince(t.Context(), db, at.Add(30*time.Minute))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+
+		count, err = CountStoriesSince(t.Context(), db, at.Add(30*time.Minute).In(oslo))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+	})
 }

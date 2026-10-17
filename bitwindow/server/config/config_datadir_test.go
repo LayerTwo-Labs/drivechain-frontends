@@ -1,8 +1,10 @@
 package config
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -42,6 +44,25 @@ func TestFinalizeKeepsAnExistingECashDatadir(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "current", string(kept))
 	require.DirExists(t, filepath.Join(base, "drynet"), "the old folder stays for the user to look at")
+}
+
+func TestFinalizeReturnsALegacyDatadirStatError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("windows has no POSIX directory permissions")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("root reads a directory with mode 000")
+	}
+	base := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(base, "drynet"), 0o755))
+	require.NoError(t, os.Chmod(base, 0o000))
+	t.Cleanup(func() { require.NoError(t, os.Chmod(base, 0o755)) })
+
+	conf := &Config{Datadir: base}
+	err := conf.Finalize(NetworkECash)
+
+	require.ErrorIs(t, err, fs.ErrPermission)
+	require.ErrorContains(t, err, "stat "+filepath.Join(base, "drynet"))
 }
 
 // Only the eCash slot went by another name, so no other network may be touched.

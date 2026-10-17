@@ -136,7 +136,7 @@ func CountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, error)
 	count, err := database.Get[int64](ctx, db, `
 		SELECT COUNT(*)
 		FROM processed_blocks
-		WHERE block_time >= ?
+		WHERE datetime(block_time) >= datetime(?)
 	`, since)
 	if err != nil {
 		return 0, fmt.Errorf("count blocks since %s: %w", since, err)
@@ -150,7 +150,7 @@ func TxCountSince(ctx context.Context, db *sql.DB, since time.Time) (int64, erro
 	count, err := database.Get[int64](ctx, db, `
 		SELECT COALESCE(SUM(json_array_length(txids)) - COUNT(*), 0)
 		FROM processed_blocks
-		WHERE block_time >= ?
+		WHERE datetime(block_time) >= datetime(?)
 	`, since)
 	if err != nil {
 		return 0, fmt.Errorf("count transactions since %s: %w", since, err)
