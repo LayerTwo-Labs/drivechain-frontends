@@ -157,13 +157,8 @@ func ResolveItem(ctx context.Context, db *sql.DB, id codec.ItemID) (ItemRef, boo
 	}
 }
 
-// Index dispatches one decoded CoinNews Message into the right
-// table(s). Idempotent on `(txid, vout)` collisions: re-running over
-// the same block leaves the DB unchanged (engine resync safety).
-//
-// Caller MUST have already verified Comment and Vote signatures, and
-// the resolvability of any parent/target/head reference (spec §4.1),
-// via the engine — Index trusts what it gets.
+// Index writes one decoded CoinNews message. It is idempotent on (txid, vout).
+// The caller must verify the signatures and the references first (spec §4.1).
 func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

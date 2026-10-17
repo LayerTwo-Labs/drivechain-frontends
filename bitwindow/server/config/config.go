@@ -140,11 +140,7 @@ func IsMineableNetwork(n Network) bool {
 // legacyECashDatadir is the folder name the eCash runtime went out with.
 const legacyECashDatadir = "drynet"
 
-// adoptLegacyECashDatadir moves the runtime folder the eCash slot went out with
-// onto its current name. What lives there is the user's own: the address book,
-// transaction notes, UTXO labels and multisig records. A rename that left it
-// behind would show an empty app with the data still on disk and nothing to
-// say where.
+// adoptLegacyECashDatadir moves the legacy eCash datadir, which holds user data, to its current name.
 func adoptLegacyECashDatadir(base string, network Network) error {
 	if network != NetworkECash || base == "" {
 		return nil

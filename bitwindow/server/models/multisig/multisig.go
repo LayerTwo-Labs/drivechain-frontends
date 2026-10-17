@@ -929,10 +929,7 @@ func nullStr(s string) interface{} {
 	return s
 }
 
-// Read the account component of "m/purpose'/coin'/account'/...". The root is
-// optional: the keystore parser accepts a rootless "purpose'/coin'/account'"
-// too, and its account sits one component earlier. A short non-standard path
-// falls back to its last component.
+// extractAccountIndex reads the account of "[m/]purpose'/coin'/account'/...", or the last component of a shorter path.
 func extractAccountIndex(path string) int {
 	parts := splitPath(path)
 	if len(parts) > 0 && (parts[0] == "m" || parts[0] == "M") {

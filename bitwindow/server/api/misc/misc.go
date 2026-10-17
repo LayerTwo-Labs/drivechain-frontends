@@ -206,7 +206,7 @@ func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsReques
 }
 
 // EstimateNewsFee implements miscv1connect.MiscServiceHandler. It encodes the
-// payload the action would broadcast and prices the transaction that carries it.
+// payload the action would broadcast and prices the transaction that holds it.
 func (s *Server) EstimateNewsFee(ctx context.Context, req *connect.Request[miscv1.EstimateNewsFeeRequest]) (*connect.Response[miscv1.EstimateNewsFeeResponse], error) {
 	payload, err := newsPayloadFor(req.Msg)
 	if err != nil {

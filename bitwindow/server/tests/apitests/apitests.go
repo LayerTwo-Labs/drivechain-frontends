@@ -565,7 +565,7 @@ func ExpectCoreWalletSetup(mock *mocks.MockBitcoinServiceClient) {
 
 	// The parser ticker races the test, and starts by fetching block 1. A test
 	// that outlives one tick reaches this, so every custom mock wants the
-	// allowance defaultBitcoindMock already carries. Height 1 only, or the
+	// allowance defaultBitcoindMock already holds. Height 1 only, or the
 	// catch-all swallows the counted expectations a test sets for its own
 	// heights.
 	mock.EXPECT().

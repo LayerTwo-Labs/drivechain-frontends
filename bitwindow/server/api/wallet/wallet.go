@@ -204,7 +204,7 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 
 	return connect.NewResponse(&pb.GetNewAddressResponse{
 		Address: address,
-		Index:   0, // Bitcoin Core doesn't expose index, Enforcer doesn't expose it either
+		Index:   0,
 	}), nil
 }
 
@@ -970,7 +970,6 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
 	log := zerolog.Ctx(ctx)
 
-	// Unencrypted wallets cannot be unlocked (they have no password)
 	if !wallet.IsWalletEncrypted(s.walletDir) {
 		log.Info().Msg("wallet is not encrypted, no unlock needed")
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not encrypted"))
@@ -988,7 +987,6 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unlock wallet engine: %w", err))
 	}
 
-	// Sync wallets after unlock to ensure all wallets exist in their backends
 	go func() {
 		syncCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 		defer cancel()
@@ -1030,7 +1028,6 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	// Wallet ID validation only - cheques work the same for all wallet types
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -1111,7 +1108,6 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListChequesRequest]) (*connect.Response[pb.ListChequesResponse], error) {
 	walletID := c.Msg.WalletId
 
-	// Wallet ID validation only - cheques work the same for all wallet types
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -1308,7 +1304,6 @@ func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque) (*pb.Cheque,
 		pbCheque.SweptAt = timestamppb.New(*c.SweptAt)
 	}
 
-	// Only include private key if cheque is funded and wallet is unlocked
 	if c.IsFunded() && s.walletEngine.IsUnlocked() {
 		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, c.WalletID, c.DerivationIndex)
 		if err != nil {
@@ -1625,8 +1620,6 @@ type bucketRange struct {
 }
 
 func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange {
-	// Use predefined boundaries based on Bitcoin denominations
-	// These are logarithmically spaced for good distribution
 	boundaries := []uint64{
 		546,            // dust limit
 		1_000,          // 0.00001 BTC
@@ -1646,7 +1639,6 @@ func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange
 		10_000_000_000, // 100 BTC
 	}
 
-	// Find which boundaries are relevant for this wallet's range
 	var relevantBoundaries []uint64
 	for _, b := range boundaries {
 		if b > minVal && b < maxVal {
@@ -1667,7 +1659,6 @@ func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange
 		relevantBoundaries = selected
 	}
 
-	// Build the bucket ranges
 	var ranges []bucketRange
 	prevBoundary := minVal
 
@@ -1680,7 +1671,6 @@ func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange
 		prevBoundary = boundary
 	}
 
-	// Add final bucket for remaining values
 	ranges = append(ranges, bucketRange{
 		minSats: prevBoundary,
 		maxSats: maxVal,
