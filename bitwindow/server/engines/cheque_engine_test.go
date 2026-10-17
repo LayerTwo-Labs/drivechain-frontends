@@ -412,6 +412,23 @@ func TestChequeEngineSweep(t *testing.T) {
 		})
 	}
 
+	t.Run("a broadcast refusal keeps its code", func(t *testing.T) {
+		t.Parallel()
+
+		wif := newWIF(t, true)
+		candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
+		require.NoError(t, err)
+		chain := &fakeChain{
+			funded:       map[string][]ChequeUTXO{candidates[0].Address: testUTXOs()},
+			broadcastErr: connect.NewError(connect.CodeFailedPrecondition, errors.New("txn-mempool-conflict")),
+		}
+		engine := testChequeEngine(t, chain)
+
+		_, err = engine.Sweep(t.Context(), chequeWalletID, wif, destination(t), 1)
+		require.ErrorContains(t, err, "txn-mempool-conflict")
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+
 	t.Run("a key with no funds is not found", func(t *testing.T) {
 		t.Parallel()
 
