@@ -24,6 +24,36 @@ func TestSaveGeneratesIDAndTimestamps(t *testing.T) {
 	assert.Equal(t, saved.CreatedAt, saved.UpdatedAt)
 }
 
+func TestSaveSetsCreatedAtForANewClientID(t *testing.T) {
+	store := walletpsbt.NewStore(database.Test(t))
+
+	saved, err := store.Save(t.Context(), walletpsbt.Draft{
+		ID:         "client-id",
+		WalletID:   "wallet-1",
+		PSBTBase64: "cHNidP8B",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "client-id", saved.ID)
+	assert.NotZero(t, saved.CreatedAt)
+	assert.Equal(t, saved.CreatedAt, saved.UpdatedAt)
+}
+
+func TestSaveRefusesADraftOfAnotherWallet(t *testing.T) {
+	store := walletpsbt.NewStore(database.Test(t))
+	ctx := t.Context()
+
+	first, err := store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: "aaa"})
+	require.NoError(t, err)
+
+	_, err = store.Save(ctx, walletpsbt.Draft{ID: first.ID, WalletID: "wallet-2", PSBTBase64: "bbb"})
+	require.ErrorIs(t, err, walletpsbt.ErrOtherWallet)
+
+	drafts, err := store.List(ctx, "wallet-1")
+	require.NoError(t, err)
+	require.Len(t, drafts, 1)
+	assert.Equal(t, "aaa", drafts[0].PSBTBase64)
+}
+
 func TestSaveRequiresWalletID(t *testing.T) {
 	store := walletpsbt.NewStore(database.Test(t))
 

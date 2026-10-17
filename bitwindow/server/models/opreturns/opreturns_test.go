@@ -138,6 +138,7 @@ func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 	require.True(t, ok, "chain-indexed topic must appear in ListTopics")
 	assert.Equal(t, "Foreign Topic", found.Name)
 	assert.True(t, found.Confirmed)
+	assert.NotZero(t, found.ID)
 
 	exists, err := TopicExists(ctx, db, external)
 	require.NoError(t, err)

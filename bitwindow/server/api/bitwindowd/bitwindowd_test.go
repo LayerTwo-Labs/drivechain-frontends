@@ -25,6 +25,7 @@ import (
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
@@ -2009,6 +2010,50 @@ this line is not valid json
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), imp.Msg.ImportedAddresses)
 		assert.Equal(t, int64(1), imp.Msg.Skipped)
+	})
+
+	t.Run("a label maps to one address", func(t *testing.T) {
+		t.Parallel()
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t)))
+		ctx := t.Context()
+
+		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
+			Jsonl: `{"type":"addr","ref":"bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh","label":" rent "}
+{"type":"addr","ref":"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq","label":"Rent"}
+{"type":"addr","ref":"bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh","label":"rent"}`,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), imp.Msg.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.Msg.Skipped)
+
+		list, err := cli.ListAddressBook(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		require.Len(t, list.Msg.Entries, 1)
+		assert.Equal(t, "rent", list.Msg.Entries[0].Label)
+		assert.Equal(t, "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", list.Msg.Entries[0].Address)
+	})
+
+	t.Run("a send address keeps its direction", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctx := t.Context()
+		const address = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+		require.NoError(t, addressbook.Create(ctx, db, nil, "old", address, addressbook.DirectionSend))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+
+		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
+			Jsonl: `{"type":"addr","ref":"` + address + `","label":"Landlord"}`,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), imp.Msg.ImportedAddresses)
+
+		list, err := cli.ListAddressBook(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		require.Len(t, list.Msg.Entries, 1)
+		assert.Equal(t, "Landlord", list.Msg.Entries[0].Label)
+		assert.Equal(t, v1.Direction_DIRECTION_SEND, list.Msg.Entries[0].Direction)
 	})
 
 	t.Run("returns a database fault", func(t *testing.T) {

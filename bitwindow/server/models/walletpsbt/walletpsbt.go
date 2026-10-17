@@ -43,33 +43,38 @@ func (s *Store) List(ctx context.Context, walletID string) ([]Draft, error) {
 	return drafts, nil
 }
 
-// Save inserts the draft, or replaces it when the id exists. An empty id
-// gets a server-generated one. Timestamps are set here, never by the caller.
+// ErrOtherWallet is returned when a save names the id of a draft of another wallet.
+var ErrOtherWallet = errors.New("draft belongs to another wallet")
+
+// Save inserts the draft, or replaces it when the id exists in the same
+// wallet. An empty id gets a server-generated one. Timestamps are set here,
+// never by the caller.
 func (s *Store) Save(ctx context.Context, d Draft) (Draft, error) {
 	if d.WalletID == "" {
 		return Draft{}, errors.New("wallet id is required")
 	}
 
-	nowMs := time.Now().UnixMilli()
 	if d.ID == "" {
 		id, err := newID()
 		if err != nil {
 			return Draft{}, err
 		}
 		d.ID = id
-		d.CreatedAt = nowMs
 	}
-	d.UpdatedAt = nowMs
 
-	_, err := s.db.ExecContext(ctx, `
+	nowMs := time.Now().UnixMilli()
+	err := database.CheckOne(s.db.ExecContext(ctx, `
 		INSERT INTO wallet_psbt_drafts (id, wallet_id, label, psbt_base64, created_at, updated_at, txid)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
-		    wallet_id=excluded.wallet_id, label=excluded.label,
-		    psbt_base64=excluded.psbt_base64, updated_at=excluded.updated_at,
-		    txid=excluded.txid`,
-		d.ID, d.WalletID, d.Label, d.PSBTBase64, d.CreatedAt, d.UpdatedAt, d.Txid)
-	if err != nil {
+		    label=excluded.label, psbt_base64=excluded.psbt_base64,
+		    updated_at=excluded.updated_at, txid=excluded.txid
+		WHERE wallet_psbt_drafts.wallet_id = excluded.wallet_id`,
+		d.ID, d.WalletID, d.Label, d.PSBTBase64, nowMs, nowMs, d.Txid))
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return Draft{}, fmt.Errorf("save draft %s: %w", d.ID, ErrOtherWallet)
+	case err != nil:
 		return Draft{}, fmt.Errorf("save draft: %w", err)
 	}
 

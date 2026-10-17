@@ -320,7 +320,7 @@ func CountStoriesSince(ctx context.Context, db *sql.DB, since time.Time) (int64,
 		SELECT COUNT(*)
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
-		WHERE i.block_time >= ?
+		WHERE datetime(i.block_time) >= datetime(?)
 		  AND trim(s.headline) != ''
 	`, since)
 	if err != nil {

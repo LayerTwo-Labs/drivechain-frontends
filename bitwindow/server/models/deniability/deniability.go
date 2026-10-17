@@ -42,7 +42,6 @@ type ExecutedDenial struct {
 	FromTxID  string    `db:"from_txid"`
 	FromVout  int32     `db:"from_vout"`
 	ToTxID    string    `db:"to_txid"`
-	ToVout    *string   `db:"to_vout"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
@@ -207,7 +206,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 
 func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
 	executions, err := database.Select[ExecutedDenial](ctx, db, `
-		SELECT id, denial_id, from_txid, from_vout, to_txid, to_vout, created_at
+		SELECT id, denial_id, from_txid, from_vout, to_txid, created_at
 		FROM executed_denials
 		WHERE denial_id = ?
 		ORDER BY created_at DESC

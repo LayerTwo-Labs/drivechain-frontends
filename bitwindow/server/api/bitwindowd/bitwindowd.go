@@ -660,6 +660,12 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 
 	resp := &pb.ImportLabelsResponse{Skipped: int64(skipped)}
 
+	book, err := addressbook.List(ctx, s.db)
+	if err != nil {
+		return nil, fmt.Errorf("list address book entries: %w", err)
+	}
+	byAddress := lo.GroupBy(book, func(e addressbook.Entry) string { return e.Address })
+
 	for _, l := range labels {
 		ref := strings.TrimSpace(l.Ref)
 		label := strings.TrimSpace(l.Label)
@@ -675,20 +681,35 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 				resp.Skipped++
 				continue
 			}
-			if err := s.importAddressLabel(ctx, ref, l.Label); err != nil {
+			err := s.checkLabelFree(ctx, label, func(e addressbook.Entry) bool { return e.Address == ref })
+			if connect.CodeOf(err) == connect.CodeAlreadyExists {
+				zerolog.Ctx(ctx).Warn().Err(err).Str("ref", ref).Msg("import labels: skip address")
+				resp.Skipped++
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			// An address already in the book keeps its direction.
+			if existing := byAddress[ref]; len(existing) > 0 {
+				for _, e := range existing {
+					if err := addressbook.UpdateLabel(ctx, s.db, e.ID, label); err != nil {
+						return nil, fmt.Errorf("import address label %s: %w", ref, err)
+					}
+				}
+			} else if err := addressbook.Upsert(ctx, s.db, nil, label, ref, addressbook.DirectionReceive); err != nil {
 				return nil, fmt.Errorf("import address label %s: %w", ref, err)
 			}
 			resp.ImportedAddresses++
 
 		case bip329.TypeTx:
-			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, l.Label); err != nil {
+			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, label); err != nil {
 				return nil, fmt.Errorf("import transaction note %s: %w", ref, err)
 			}
 			resp.ImportedTransactions++
 
 		case bip329.TypeOutput:
-			lbl := l.Label
-			if err := utxometadata.Set(ctx, s.db, ref, nil, &lbl); err != nil {
+			if err := utxometadata.Set(ctx, s.db, ref, nil, &label); err != nil {
 				return nil, fmt.Errorf("import utxo label %s: %w", ref, err)
 			}
 			resp.ImportedOutputs++
@@ -699,21 +720,6 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 	}
 
 	return connect.NewResponse(resp), nil
-}
-
-// importAddressLabel upserts an address-book label for a valid address.
-func (s *Server) importAddressLabel(ctx context.Context, addr, label string) error {
-	entries, err := addressbook.List(ctx, s.db)
-	if err != nil {
-		return err
-	}
-	for _, e := range entries {
-		if e.Address == addr {
-			return addressbook.UpdateLabel(ctx, s.db, e.ID, label)
-		}
-	}
-
-	return addressbook.Create(ctx, s.db, nil, label, addr, addressbook.DirectionReceive)
 }
 
 // GetFireplaceStats implements bitwindowdv1connect.BitwindowdServiceHandler.
