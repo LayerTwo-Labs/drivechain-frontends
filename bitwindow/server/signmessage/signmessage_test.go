@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"strconv"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -108,7 +109,7 @@ func TestVerifyKnownVectors(t *testing.T) {
 
 			valid, err = Verify(tc.address, tc.message+"!", tc.signature, tc.params)
 			require.NoError(t, err)
-			require.False(t, valid, "a changed message must not verify")
+			require.False(t, valid)
 		})
 	}
 }
@@ -140,11 +141,13 @@ func TestSignSegwitHeadersMatchBitcoinCore(t *testing.T) {
 	require.NoError(t, err)
 
 	for name, offset := range map[string]byte{"nested": 4, "native": 8} {
-		expected := append([]byte{core[0] + offset}, core[1:]...)
+		t.Run(name, func(t *testing.T) {
+			expected := append([]byte{core[0] + offset}, core[1:]...)
 
-		signature, err := Sign(key, addresses[name], "This is just a test message", params)
-		require.NoError(t, err, name)
-		require.Equal(t, base64.StdEncoding.EncodeToString(expected), signature, name)
+			signature, err := Sign(key, addresses[name], "This is just a test message", params)
+			require.NoError(t, err)
+			require.Equal(t, base64.StdEncoding.EncodeToString(expected), signature)
+		})
 	}
 }
 
@@ -156,26 +159,28 @@ func TestSignNeverSignsTheRawMessage(t *testing.T) {
 	address := addressesFor(t, key, params)["native"]
 
 	for _, message := range []string{"", "Hello World", string(make([]byte, 32))} {
-		signature, err := Sign(key, address, message, params)
-		require.NoError(t, err)
+		t.Run(strconv.Quote(message), func(t *testing.T) {
+			signature, err := Sign(key, address, message, params)
+			require.NoError(t, err)
 
-		raw, err := base64.StdEncoding.DecodeString(signature)
-		require.NoError(t, err)
-		compact := append([]byte{normalizeHeader(raw[0])}, raw[1:]...)
+			raw, err := base64.StdEncoding.DecodeString(signature)
+			require.NoError(t, err)
+			compact := append([]byte{normalizeHeader(raw[0])}, raw[1:]...)
 
-		single := sha256.Sum256([]byte(message))
-		for _, digest := range [][]byte{single[:], chainhash.DoubleHashB([]byte(message)), []byte(message)} {
-			recovered, _, err := ecdsa.RecoverCompact(compact, padDigest(digest))
-			if err == nil {
-				require.False(t, recovered.IsEqual(key.PubKey()), "signature must not cover the raw message %q", message)
+			single := sha256.Sum256([]byte(message))
+			for _, digest := range [][]byte{single[:], chainhash.DoubleHashB([]byte(message)), []byte(message)} {
+				recovered, _, err := ecdsa.RecoverCompact(compact, padDigest(digest))
+				if err == nil {
+					require.False(t, recovered.IsEqual(key.PubKey()))
+				}
 			}
-		}
 
-		envelope, err := messageHash(message)
-		require.NoError(t, err)
-		recovered, _, err := ecdsa.RecoverCompact(compact, envelope)
-		require.NoError(t, err)
-		require.True(t, recovered.IsEqual(key.PubKey()))
+			envelope, err := messageHash(message)
+			require.NoError(t, err)
+			recovered, _, err := ecdsa.RecoverCompact(compact, envelope)
+			require.NoError(t, err)
+			require.True(t, recovered.IsEqual(key.PubKey()))
+		})
 	}
 }
 
@@ -198,34 +203,38 @@ func TestSignRoundTrip(t *testing.T) {
 	expectedHeaders := map[string]byte{"legacy": 31, "nested": 35, "native": 39}
 
 	for name, address := range addresses {
-		signingKey := key
-		if name == "taproot" {
-			signingKey = txscript.TweakTaprootPrivKey(*key, []byte{})
-		}
-
-		signature, err := Sign(signingKey, address, "Hello World", params)
-		require.NoError(t, err, name)
-
-		raw, err := base64.StdEncoding.DecodeString(signature)
-		require.NoError(t, err)
-		if header, ok := expectedHeaders[name]; ok {
-			require.Len(t, raw, 65, name)
-			require.GreaterOrEqual(t, raw[0], header, name)
-			require.Less(t, raw[0], header+4, name)
-		}
-
-		valid, err := Verify(address.EncodeAddress(), "Hello World", signature, params)
-		require.NoError(t, err)
-		require.True(t, valid, name)
-
-		for otherName, other := range addresses {
-			if otherName == name || (name == "legacy" && otherName != "taproot") {
-				continue
+		t.Run(name, func(t *testing.T) {
+			signingKey := key
+			if name == "taproot" {
+				signingKey = txscript.TweakTaprootPrivKey(*key, []byte{})
 			}
-			valid, err := Verify(other.EncodeAddress(), "Hello World", signature, params)
+
+			signature, err := Sign(signingKey, address, "Hello World", params)
 			require.NoError(t, err)
-			require.False(t, valid, "%s signature must not verify for %s", name, otherName)
-		}
+
+			raw, err := base64.StdEncoding.DecodeString(signature)
+			require.NoError(t, err)
+			if header, ok := expectedHeaders[name]; ok {
+				require.Len(t, raw, 65)
+				require.GreaterOrEqual(t, raw[0], header)
+				require.Less(t, raw[0], header+4)
+			}
+
+			valid, err := Verify(address.EncodeAddress(), "Hello World", signature, params)
+			require.NoError(t, err)
+			require.True(t, valid)
+
+			for otherName, other := range addresses {
+				if otherName == name || (name == "legacy" && otherName != "taproot") {
+					continue
+				}
+				t.Run(otherName, func(t *testing.T) {
+					valid, err := Verify(other.EncodeAddress(), "Hello World", signature, params)
+					require.NoError(t, err)
+					require.False(t, valid)
+				})
+			}
+		})
 	}
 }
 
@@ -237,8 +246,10 @@ func TestSignRefusesForeignAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	for name, address := range addressesFor(t, decodeWIF(t, bip322WIF), params) {
-		_, err := Sign(other, address, "Hello World", params)
-		require.ErrorContains(t, err, "does not own", name)
+		t.Run(name, func(t *testing.T) {
+			_, err := Sign(other, address, "Hello World", params)
+			require.ErrorContains(t, err, "does not own")
+		})
 	}
 }
 
@@ -254,9 +265,11 @@ func TestVerifyAcceptsCompressedHeaderForSegwit(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, name := range []string{"legacy", "native", "nested"} {
-		valid, err := Verify(addresses[name].EncodeAddress(), "Hello World", signature, params)
-		require.NoError(t, err)
-		require.True(t, valid, name)
+		t.Run(name, func(t *testing.T) {
+			valid, err := Verify(addresses[name].EncodeAddress(), "Hello World", signature, params)
+			require.NoError(t, err)
+			require.True(t, valid)
+		})
 	}
 }
 

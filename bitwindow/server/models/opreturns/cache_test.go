@@ -85,7 +85,7 @@ func TestListCache_HitAfterMiss(t *testing.T) {
 
 	// If the cache wasn't honored, this would error with "sql: database is closed".
 	second, err := List(ctx, db, 100)
-	require.NoError(t, err, "second call must hit the cache, not the closed DB")
+	require.NoError(t, err)
 	assert.Equal(t, first, second)
 }
 
@@ -97,7 +97,7 @@ func TestListCache_InvalidatedByPersist(t *testing.T) {
 
 	first, err := List(ctx, db, 100)
 	require.NoError(t, err)
-	require.Empty(t, first, "fresh DB must list empty")
+	require.Empty(t, first)
 
 	h := uint32(1)
 	now := time.Now()
@@ -107,7 +107,7 @@ func TestListCache_InvalidatedByPersist(t *testing.T) {
 
 	second, err := List(ctx, db, 100)
 	require.NoError(t, err)
-	assert.Len(t, second, 1, "Persist must invalidate the cached empty result")
+	assert.Len(t, second, 1)
 }
 
 // Cache must not bleed entries across DBs.
@@ -129,7 +129,7 @@ func TestListCache_PerDBIsolation(t *testing.T) {
 
 	gotB, err := List(ctx, dbB, 100)
 	require.NoError(t, err)
-	assert.Empty(t, gotB, "dbB must not see dbA's rows via shared cache")
+	assert.Empty(t, gotB)
 }
 
 // ListCoinNews reads from the canonical CoinNews tables, not raw
@@ -214,8 +214,8 @@ func TestList_CallerCannotPoisonCache(t *testing.T) {
 
 	second, err := List(ctx, db, 100)
 	require.NoError(t, err)
-	require.Len(t, second, 1, "cache must not absorb caller's append")
-	assert.Equal(t, "real", second[0].TxID, "cache must not absorb caller's mutation")
+	require.Len(t, second, 1)
+	assert.Equal(t, "real", second[0].TxID)
 }
 
 // Same mutation guard for the ListCoinNews path.
@@ -254,7 +254,7 @@ func TestListCoinNews_TopicCreationRowFiltered(t *testing.T) {
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, got, 1, "topic-creation row must not surface as news")
+	require.Len(t, got, 1)
 	assert.Equal(t, "real", got[0].Headline)
 }
 
@@ -274,7 +274,7 @@ func TestListCoinNews_ZeroRetentionKeepsForever(t *testing.T) {
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, got, 1, "retention_days=0 must keep ancient rows")
+	require.Len(t, got, 1)
 	assert.Equal(t, "old", got[0].Headline)
 }
 
@@ -291,7 +291,7 @@ func TestListCoinNews_EmptyPayloadFiltered(t *testing.T) {
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, got, 1, "empty-payload row must not surface")
+	require.Len(t, got, 1)
 	assert.Equal(t, "real", got[0].Headline)
 }
 
@@ -347,9 +347,9 @@ func TestConfirmingARowKeepsAFeeTheMempoolAlreadyGave(t *testing.T) {
 	rows, err := List(ctx, db, 10)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
-	assert.EqualValues(t, 4200, rows[0].Fee, "an unknown fee must not replace a known one")
+	assert.EqualValues(t, 4200, rows[0].Fee)
 	require.NotNil(t, rows[0].Height)
-	assert.EqualValues(t, height, *rows[0].Height, "the row must still confirm")
+	assert.EqualValues(t, height, *rows[0].Height)
 }
 
 // A fee the scan does read still replaces whatever the row held.

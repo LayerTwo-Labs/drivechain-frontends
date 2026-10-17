@@ -20,7 +20,7 @@ var (
 )
 
 func TestBackupRoundTrip_CarriesEncryptionMetadata(t *testing.T) {
-	ctx := testCtx()
+	ctx := testCtx(t)
 	db := database.Test(t)
 	srcDir := t.TempDir()
 	e := &BackupEngine{db: db, walletDir: srcDir, multisigStore: multisig.NewStore(db)}
@@ -49,7 +49,7 @@ func TestBackupRoundTrip_CarriesEncryptionMetadata(t *testing.T) {
 }
 
 func TestRestoreBackup_PlaintextDropsStaleEncryptionMetadata(t *testing.T) {
-	ctx := testCtx()
+	ctx := testCtx(t)
 	db := database.Test(t)
 	dir := t.TempDir()
 	e := &BackupEngine{db: db, walletDir: dir, multisigStore: multisig.NewStore(db)}
@@ -66,7 +66,7 @@ func TestRestoreBackup_PlaintextDropsStaleEncryptionMetadata(t *testing.T) {
 }
 
 func TestRestoreBackup_EncryptedWithoutMetadata_KeepsExistingMarker(t *testing.T) {
-	ctx := testCtx()
+	ctx := testCtx(t)
 	db := database.Test(t)
 	dir := t.TempDir()
 	e := &BackupEngine{db: db, walletDir: dir, multisigStore: multisig.NewStore(db)}
@@ -90,6 +90,6 @@ func TestValidateBackup_RejectsPlainWalletWithEncryptionMetadata(t *testing.T) {
 	require.NoError(t, zw.Close())
 
 	e := &BackupEngine{}
-	_, err := e.ValidateBackup(testCtx(), buf.Bytes(), "backup.zip")
+	_, err := e.ValidateBackup(testCtx(t), buf.Bytes(), "backup.zip")
 	require.ErrorContains(t, err, "not an encrypted wallet")
 }

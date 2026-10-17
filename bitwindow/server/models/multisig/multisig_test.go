@@ -447,7 +447,7 @@ func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
 
 	second, err := store.GetNextAccountIndex(ctx, nil)
 	require.NoError(t, err)
-	assert.Equal(t, 8001, second, "second allocation reused the first account index")
+	assert.Equal(t, 8001, second)
 }
 
 func TestSaveGroupAtomic_UnknownPSBTXpub(t *testing.T) {

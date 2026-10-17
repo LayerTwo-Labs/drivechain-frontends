@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
@@ -37,7 +38,7 @@ func TestRecoversFromDeletedDatabaseFile(t *testing.T) {
 
 	_, err = db.ExecContext(ctx, `INSERT INTO processed_blocks (height, block_hash, txids, block_time)
 		VALUES (2, 'hash-2', '[]', 0)`)
-	require.NoError(t, err, "write must succeed after the database file is deleted")
+	require.NoError(t, err)
 
 	require.FileExists(t, filepath.Join(dir, "bitwindow.db"))
 
@@ -71,7 +72,7 @@ func TestRecoversTransactionAfterDeletedDatabaseFile(t *testing.T) {
 
 	_, err = stmt.ExecContext(ctx, 1, "hash-1")
 	require.NoError(t, err)
-	require.NoError(t, tx.Commit(), "a transaction must survive the database file being deleted")
+	require.NoError(t, tx.Commit())
 
 	require.FileExists(t, filepath.Join(dir, "bitwindow.db"))
 }
@@ -248,4 +249,10 @@ func TestCheckOne(t *testing.T) {
 		err := CheckOne(db.ExecContext(t.Context(), `UPDATE no_such_table SET x = 1`))
 		require.ErrorContains(t, err, "no such table")
 	})
+}
+
+func TestTest(t *testing.T) {
+	db := Test(t)
+
+	assert.Equal(t, 1, db.Stats().MaxOpenConnections)
 }

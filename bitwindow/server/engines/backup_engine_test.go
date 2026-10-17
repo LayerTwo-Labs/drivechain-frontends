@@ -98,9 +98,9 @@ func TestValidateBackup_UnsupportedExtension(t *testing.T) {
 	require.ErrorContains(t, err, "unsupported file type")
 }
 
-func testCtx() context.Context {
+func testCtx(t *testing.T) context.Context {
 	logger := zerolog.Nop()
-	return logger.WithContext(context.Background())
+	return logger.WithContext(t.Context())
 }
 
 func TestCreateBackup(t *testing.T) {
@@ -162,7 +162,7 @@ func TestRestoreBackup_JSON(t *testing.T) {
 	wallet := map[string]interface{}{"master": "seed", "l1": "key"}
 	data, _ := json.Marshal(wallet)
 
-	err := e.RestoreBackup(testCtx(), data, "wallet.json")
+	err := e.RestoreBackup(testCtx(t), data, "wallet.json")
 	require.NoError(t, err)
 
 	// Verify wallet.json was written
@@ -192,7 +192,7 @@ func TestRestoreBackup_ReplacesExistingWallet(t *testing.T) {
 			walletPath := filepath.Join(tmpDir, "wallet.json")
 			require.NoError(t, os.WriteFile(walletPath, tc.current, 0600))
 
-			require.NoError(t, e.RestoreBackup(testCtx(), backup, "wallet.json"))
+			require.NoError(t, e.RestoreBackup(testCtx(t), backup, "wallet.json"))
 
 			content, err := os.ReadFile(walletPath)
 			require.NoError(t, err)

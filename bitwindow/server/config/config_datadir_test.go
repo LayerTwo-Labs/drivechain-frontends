@@ -24,7 +24,7 @@ func TestFinalizeAdoptsTheLegacyECashDatadir(t *testing.T) {
 
 	require.Equal(t, filepath.Join(base, "ecash"), conf.Datadir)
 	moved, err := os.ReadFile(filepath.Join(base, "ecash", "bitwindow.db"))
-	require.NoError(t, err, "the old database must come along")
+	require.NoError(t, err)
 	require.Equal(t, "rows", string(moved))
 	require.NoDirExists(t, legacy)
 }
@@ -43,7 +43,7 @@ func TestFinalizeKeepsAnExistingECashDatadir(t *testing.T) {
 	kept, err := os.ReadFile(filepath.Join(base, "ecash", "bitwindow.db"))
 	require.NoError(t, err)
 	require.Equal(t, "current", string(kept))
-	require.DirExists(t, filepath.Join(base, "drynet"), "the old folder stays for the user to look at")
+	require.DirExists(t, filepath.Join(base, "drynet"))
 }
 
 func TestFinalizeReturnsALegacyDatadirStatError(t *testing.T) {

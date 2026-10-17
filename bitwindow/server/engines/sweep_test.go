@@ -58,6 +58,7 @@ func (f *fakeChain) FeeRateSatPerVByte(context.Context, int32) (float64, error) 
 func (f *fakeChain) Broadcast(context.Context, string) (string, error)          { return "txid", nil }
 
 func TestSweepCandidatesCompressedKeyHasBothKinds(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
@@ -68,6 +69,7 @@ func TestSweepCandidatesCompressedKeyHasBothKinds(t *testing.T) {
 }
 
 func TestSweepCandidatesUncompressedKeyIsLegacyOnly(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, false)
 
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
@@ -77,6 +79,7 @@ func TestSweepCandidatesUncompressedKeyIsLegacyOnly(t *testing.T) {
 }
 
 func TestResolveSweepSourceFindsLegacyFunds(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
@@ -93,6 +96,7 @@ func TestResolveSweepSourceFindsLegacyFunds(t *testing.T) {
 }
 
 func TestResolveSweepSourcePrefersWitnessWhenBothFunded(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 
@@ -107,6 +111,7 @@ func TestResolveSweepSourcePrefersWitnessWhenBothFunded(t *testing.T) {
 }
 
 func TestResolveSweepSourceEmptyKeyReportsFirstCandidate(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 
@@ -119,6 +124,7 @@ func TestResolveSweepSourceEmptyKeyReportsFirstCandidate(t *testing.T) {
 }
 
 func TestResolveSweepSourceReturnsChainError(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	chain := &fakeChain{err: errors.New("electrum down")}
 
@@ -171,6 +177,7 @@ func TestBuildAndSignLegacySweep(t *testing.T) {
 }
 
 func TestBuildSweepTxRejectsFeeAboveBalance(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
@@ -180,6 +187,7 @@ func TestBuildSweepTxRejectsFeeAboveBalance(t *testing.T) {
 }
 
 func TestBuildSweepTxRejectsADustOutput(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
@@ -199,6 +207,7 @@ func TestBuildSweepTxRejectsADustOutput(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			feeSats := InputVbytes + OverheadVbytes + tt.outVbytes
 			source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: []ChequeUTXO{{
 				TxID:      "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -218,6 +227,7 @@ func TestBuildSweepTxRejectsADustOutput(t *testing.T) {
 }
 
 func TestBuildSweepTxCapsTheFee(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, err := SweepCandidates(wif, &chaincfg.SigNetParams)
 	require.NoError(t, err)
@@ -246,6 +256,7 @@ func TestBuildSweepTxCapsTheFee(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: oneBitcoin(tt.inputs)}
 
 			tx, err := BuildSweepTx(source, destAddress, tt.feeSatPerVbyte, &chaincfg.SigNetParams)
@@ -260,6 +271,7 @@ func TestBuildSweepTxCapsTheFee(t *testing.T) {
 }
 
 func TestBuildSweepTxRejectsForeignNetworkAddress(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
@@ -290,6 +302,7 @@ func assertInputVerifies(t *testing.T, tx *wire.MsgTx, source SweepSource, value
 }
 
 func TestSweepPaysForTheDestinationItActuallyUses(t *testing.T) {
+	t.Parallel()
 	wif := newWIF(t, true)
 	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
 	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}

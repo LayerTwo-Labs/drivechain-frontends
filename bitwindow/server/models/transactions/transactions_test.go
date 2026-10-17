@@ -27,11 +27,11 @@ func TestSetNote_ScopedToWallet(t *testing.T) {
 	notesB, err := transactions.ListByWallet(ctx, db, "wallet-b")
 	require.NoError(t, err)
 	require.Len(t, notesB, 1)
-	require.Equal(t, "note for B", notesB[0].Note, "wallet B must keep its own note for the same txid")
+	require.Equal(t, "note for B", notesB[0].Note)
 
 	notesC, err := transactions.ListByWallet(ctx, db, "wallet-c")
 	require.NoError(t, err)
-	require.Empty(t, notesC, "a wallet with no notes must see none")
+	require.Empty(t, notesC)
 }
 
 // Writing the same txid twice on one wallet updates rather than duplicates.
