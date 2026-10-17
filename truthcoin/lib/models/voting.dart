@@ -548,6 +548,10 @@ class MarketSummary {
 /// Market outcome from market detail
 class MarketOutcome {
   final String name;
+
+  /// The answer of each decision, such as "Yes · No". Falls back to the text
+  /// after the last colon of [name].
+  final String label;
   final double currentPrice;
   final double probability;
   final int volumeSats;
@@ -556,18 +560,22 @@ class MarketOutcome {
 
   MarketOutcome({
     required this.name,
+    String? label,
     required this.currentPrice,
     required this.probability,
     required this.volumeSats,
     required this.index,
     required this.displayIndex,
-  });
+  }) : label = label ?? _lastAnswer(name);
 
-  factory MarketOutcome.fromJson(Map<String, dynamic> json) {
+  /// [dimensions] are the market dimensions the node sends. With them, the
+  /// label names the answer of each decision.
+  factory MarketOutcome.fromJson(Map<String, dynamic> json, {List<dynamic>? dimensions}) {
     // The node names the fields label, price and outcome_index.
     final price = ((json['price'] ?? json['current_price'] ?? json['probability'] ?? 0) as num).toDouble();
     return MarketOutcome(
       name: (json['label'] ?? json['name'])?.toString() ?? '',
+      label: _combinationLabel(json['coordinates'], dimensions),
       currentPrice: price,
       probability: ((json['probability'] ?? price) as num).toDouble(),
       volumeSats: (json['volume_sats'] ?? 0) as int,
@@ -622,7 +630,8 @@ class MarketData {
     List<MarketOutcome> parseOutcomes(dynamic outcomes) {
       if (outcomes == null) return [];
       if (outcomes is List) {
-        return outcomes.map((o) => MarketOutcome.fromJson(o as Map<String, dynamic>)).toList();
+        final dimensions = json['dimensions'] is List ? json['dimensions'] as List : null;
+        return outcomes.map((o) => MarketOutcome.fromJson(o as Map<String, dynamic>, dimensions: dimensions)).toList();
       }
       return [];
     }
@@ -885,4 +894,29 @@ Map<String, dynamic>? _scaledRange(Object? decisionType) {
     return decisionType['Scaled'] as Map<String, dynamic>?;
   }
   return null;
+}
+
+String _lastAnswer(String name) {
+  final cut = name.lastIndexOf(': ');
+  if (cut < 0) return name;
+  final tail = name.substring(cut + 2).trim();
+  return tail.isEmpty ? name : tail;
+}
+
+/// The answer of each dimension at [coordinates], joined. Null when the node
+/// sent no coordinate or no dimension for it.
+String? _combinationLabel(Object? coordinates, List<dynamic>? dimensions) {
+  if (coordinates is! List || dimensions == null || coordinates.length != dimensions.length) return null;
+  final answers = <String>[];
+  for (var i = 0; i < coordinates.length; i++) {
+    final coordinate = coordinates[i];
+    final kind = (dimensions[i] as Map<String, dynamic>?)?['kind'];
+    if (coordinate is! int || kind is! Map<String, dynamic>) return null;
+    final options = kind['type'] == 'category'
+        ? [for (final option in kind['options'] as List? ?? []) option.toString()]
+        : [kind['lower_label']?.toString() ?? 'No', kind['upper_label']?.toString() ?? 'Yes'];
+    if (coordinate < 0 || coordinate >= options.length) return null;
+    answers.add(options[coordinate]);
+  }
+  return answers.isEmpty ? null : answers.join(' · ');
 }

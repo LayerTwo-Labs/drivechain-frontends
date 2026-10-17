@@ -104,6 +104,7 @@ void main() {
     expect(market.outcomes.length, 4);
     expect(market.outcomes[1].currentPrice, 0.5693671817244762);
     expect(market.decisionSlots, ['870000', '870001']);
+    expect([for (final o in market.outcomes) o.label], ['No · No', 'No · Yes', 'Yes · No', 'Yes · Yes']);
     expect(market.isTrading, isTrue);
   });
 
