@@ -283,8 +283,14 @@ func (h *Handler) MyUnconfirmedUtxos(ctx context.Context, req *connect.Request[p
 // --- Prediction Markets ---
 
 func (h *Handler) CalculateInitialLiquidity(ctx context.Context, req *connect.Request[pb.CalculateInitialLiquidityRequest]) (*connect.Response[pb.CalculateInitialLiquidityResponse], error) {
-	params := []any{req.Msg.Beta, req.Msg.NumOutcomes, req.Msg.Dimensions}
-	raw, err := h.proxy.Client.CallRaw(ctx, "calculate_initial_liquidity", params)
+	request := map[string]any{"beta": req.Msg.Beta}
+	if req.Msg.NumOutcomes != nil {
+		request["num_outcomes"] = *req.Msg.NumOutcomes
+	}
+	if req.Msg.Dimensions != nil {
+		request["dimensions"] = *req.Msg.Dimensions
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "calculate_initial_liquidity", []any{request})
 	if err != nil {
 		return nil, err
 	}
