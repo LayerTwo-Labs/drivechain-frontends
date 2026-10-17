@@ -159,8 +159,14 @@ func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request
 }
 
 func (h *WalletHandler) UnlockWallet(ctx context.Context, req *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[pb.UnlockWalletResponse], error) {
-	if err := h.svc.UnlockWallet(req.Msg.Password); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	err := h.svc.UnlockWallet(req.Msg.Password)
+	switch {
+	case errors.Is(err, wallet.ErrIncorrectPassword):
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	case errors.Is(err, wallet.ErrNotEncrypted):
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&pb.UnlockWalletResponse{}), nil
 }

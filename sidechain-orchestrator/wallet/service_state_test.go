@@ -30,7 +30,7 @@ func TestServiceState(t *testing.T) {
 	svc.LockWallet()
 	require.Equal(t, StateLocked, svc.State())
 
-	require.ErrorContains(t, svc.UnlockWallet("wrong"), "incorrect password")
+	require.ErrorIs(t, svc.UnlockWallet("wrong"), ErrIncorrectPassword)
 	require.Equal(t, StateLocked, svc.State())
 
 	require.NoError(t, svc.UnlockWallet("pass"))
