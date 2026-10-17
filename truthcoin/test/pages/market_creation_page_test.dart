@@ -1,11 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
-import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
-import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
-import 'package:sidechain_core/rpcs/truthcoin_rpc.dart';
-import 'package:sidechain_core/providers/balance_provider.dart';
 import 'package:truthcoin/pages/market_creation_page.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/price_history_provider.dart';
@@ -16,6 +13,24 @@ import '../fixtures/test_data.dart';
 import '../mocks/mock_truthcoin_rpc.dart';
 import '../test_utils.dart';
 
+const _daaHeader = 'Will eCash use a different DAA than Bitcoin by Jan 1, 2027?';
+const _blockTimeHeader = 'Will eCash avg block time be under 20 min by Jan 1, 2027?';
+
+final _periods = [
+  {
+    'period_index': 21,
+    'cheapest_available_slot_sats': 9,
+    'cheapest_available_tier': 0,
+    'slots_available_by_tier': [30, 30, 30, 30, 30],
+  },
+  {
+    'period_index': 23,
+    'cheapest_available_slot_sats': 18,
+    'cheapest_available_tier': 0,
+    'slots_available_by_tier': [20, 20, 20, 20, 20],
+  },
+];
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -24,6 +39,7 @@ void main() {
   setUpAll(() async {
     mockRpc = TestTruthcoinRPC();
     mockRpc.slotListResponse = TestData.sampleSlotList;
+    mockRpc.openPeriodsResponse = _periods;
 
     GetIt.I.registerLazySingleton<SidechainRPC>(() => mockRpc);
     GetIt.I.registerLazySingleton<TruthcoinRPC>(() => mockRpc);
@@ -64,7 +80,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Question'), findsOneWidget);
-      expect(find.text('Outcomes'), findsOneWidget);
+      expect(find.text('Decisions'), findsOneWidget);
       expect(find.text('Liquidity and fee'), findsOneWidget);
     });
 
@@ -83,117 +99,206 @@ void main() {
 
       expect(find.text('Create market'), findsWidgets);
     });
+    testWidgets('Add New Decision adds one more decision card', (WidgetTester tester) async {
+      await tester.pumpSailPage(const MarketCreationPage());
+      await tester.pumpAndSettle();
+
+      expect(find.text('New decision #1'), findsOneWidget);
+      expect(find.text('New decision #2'), findsNothing);
+      final periodLabels = find.text('Period 21 · 9 sats · 30 slots').evaluate().length;
+      expect(periodLabels, greaterThan(0));
+
+      final addButton = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Add New Decision');
+      await tester.ensureVisible(addButton);
+      await tester.tap(addButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('New decision #2'), findsOneWidget);
+      expect(find.text('Period 21 · 9 sats · 30 slots'), findsNWidgets(periodLabels * 2));
+      expect(find.text('Header'), findsNWidgets(2));
+      expect(find.text('Option 0 label'), findsNWidgets(2));
+      expect(find.text('Option 1 label'), findsNWidgets(2));
+    });
+
+    testWidgets('the Type tabs swap the rows below the header', (WidgetTester tester) async {
+      await tester.pumpSailPage(const MarketCreationPage());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Scaled'));
+      await tester.pumpAndSettle();
+      expect(find.text('Min'), findsOneWidget);
+      expect(find.text('Option 0 label'), findsNothing);
+
+      await tester.tap(find.text('Category'));
+      await tester.pumpAndSettle();
+      expect(find.text('Option labels'), findsOneWidget);
+      expect(find.text('Min'), findsNothing);
+    });
   });
 
-  group('MarketCreationViewModel slots', () {
-    test('the picker lists the slots the market type takes', () async {
-      mockRpc.slotListResponse = [
-        ...TestData.sampleSlotList,
-        {
-          'decision_id_hex': '002a0004',
-          'period_index': 42,
-          'decision_index': 4,
-          'state': 'Claimed',
-          'decision': {
-            'id': 'decision_004',
-            'market_maker_pubkey_hash': 'abcd',
-            'is_standard': true,
-            'decision_type': {
-              'Category': {
-                'options': ['Alice', 'Bob'],
-              },
-            },
-            'header': 'Who wins?',
-          },
-        },
-      ];
-
+  group('MarketCreationViewModel decisions', () {
+    Future<MarketCreationViewModel> readyModel() async {
       final model = MarketCreationViewModel();
       model.init();
       await model.loadSlots();
+      await model.loadPeriods();
+      model
+        ..titleController.text = 'eCash DAA and Block Time by January 1, 2027'
+        ..descriptionController.text = 'The voter reads the eCash chain.';
+      return model;
+    }
 
-      // A Yes/No market takes the binary slot only.
-      expect(model.claimedSlots.map((s) => s.slotIdHex), ['002a0001']);
-      expect(model.slotLabel(model.claimedSlots.first), contains('binary'));
+    test('the first card takes the first open period', () async {
+      final model = await readyModel();
 
-      model.setMarketType(MarketType.categorical);
-      expect(model.claimedSlots.map((s) => s.slotIdHex), ['002a0004']);
-      expect(model.slotLabel(model.claimedSlots.first), contains('category'));
+      expect(model.periods.map((p) => p.periodIndex), [21, 23]);
+      expect(model.newDecisions.single.periodIndex, 21);
 
-      model.setMarketType(MarketType.custom);
-      expect(model.claimedSlots.length, 3);
-
-      mockRpc.slotListResponse = TestData.sampleSlotList;
       model.dispose();
     });
 
-    test('a typed slot of the wrong kind blocks the market', () async {
-      mockRpc.slotListResponse = [
-        ...TestData.sampleSlotList,
-        {
-          'decision_id_hex': '002a0004',
-          'period_index': 42,
-          'decision_index': 4,
-          'state': 'Claimed',
-          'decision': {
-            'id': 'decision_004',
-            'market_maker_pubkey_hash': 'abcd',
-            'is_standard': true,
-            'decision_type': {
-              'Category': {
-                'options': ['Alice', 'Bob'],
-              },
-            },
-            'header': 'Who wins?',
-          },
-        },
-      ];
+    test('one decision gives the DimensionInput of the CLI example', () async {
+      final model = await readyModel();
+      model.newDecisions.first
+        ..header.text = _daaHeader
+        ..option0Label.text = 'No'
+        ..option1Label.text = 'Yes';
 
-      final model = MarketCreationViewModel();
-      model.init();
-      await model.loadSlots();
-      model
-        ..titleController.text = 'Will the price rise?'
-        ..descriptionController.text = 'The voter reads the close.';
-
-      // A category slot typed into the Yes/No tab.
-      model.dimensionsController.text = '002a0004';
-      expect(model.typedSlotError, contains('category'));
-      expect(model.canCreate, false);
-
-      // An id the node does not list.
-      model.dimensionsController.text = 'ffffffff';
-      expect(model.typedSlotError, contains('no claimed decision'));
-      expect(model.canCreate, false);
-
-      // The binary slot fits the Yes/No tab.
-      model.dimensionsController.text = '002a0001';
-      expect(model.typedSlotError, null);
+      expect(
+        model.dimensionInputs,
+        '[{"type":"new","period_index":21,"decision_type":"binary","header":"$_daaHeader",'
+        '"option_0_label":"No","option_1_label":"Yes"}]',
+      );
       expect(model.canCreate, true);
 
-      // The same category slot fits the many-outcome tab.
-      model.setMarketType(MarketType.categorical);
-      model.dimensionsController.text = '002a0004';
-      expect(model.typedSlotError, null);
-
-      mockRpc.slotListResponse = TestData.sampleSlotList;
       model.dispose();
     });
 
-    test('a picked slot fills the dimension field', () async {
-      final model = MarketCreationViewModel();
-      model.init();
-      await model.loadSlots();
+    test('two decisions give the dimensions-json of the CLI example', () async {
+      final model = await readyModel();
+      model.newDecisions.first
+        ..header.text = _daaHeader
+        ..option0Label.text = 'No'
+        ..option1Label.text = 'Yes';
+      model.addNewDecision();
+      model.newDecisions.last
+        ..header.text = _blockTimeHeader
+        ..option0Label.text = 'No'
+        ..option1Label.text = 'Yes';
 
-      model.selectSlot('002a0001');
-      expect(model.dimensionsController.text, '002a0001');
-      expect(model.selectedSlotId, '002a0001');
-      expect(model.effectiveDimensions, '[002a0001]');
+      expect(
+        model.dimensionInputs,
+        '[{"type":"new","period_index":21,"decision_type":"binary","header":"$_daaHeader",'
+        '"option_0_label":"No","option_1_label":"Yes"},'
+        '{"type":"new","period_index":21,"decision_type":"binary","header":"$_blockTimeHeader",'
+        '"option_0_label":"No","option_1_label":"Yes"}]',
+      );
+      expect(model.outcomeCount, 4);
+      expect(model.canCreate, true);
 
-      model.dimensionsController.text = '002a0009';
-      model.onSlotTextChanged();
-      expect(model.selectedSlotId, null);
+      model.dispose();
+    });
 
+    test('an existing decision goes first, a blank card adds nothing', () async {
+      final model = await readyModel();
+      model.addExistingDecision('002a0001');
+      model.addNewDecision();
+
+      expect(model.dimensionInputs, '[{"type":"existing","id":"002a0001"}]');
+      expect(model.listingFeeSats, 0);
+      expect(model.canCreate, true);
+
+      model.dispose();
+    });
+
+    test('the cost holds the listing fee of each picked period', () async {
+      final model = await readyModel();
+      model.newDecisions.first.header.text = _daaHeader;
+      model.addNewDecision();
+      model.setDecisionPeriod(model.newDecisions.last, 23);
+      model.newDecisions.last.header.text = _blockTimeHeader;
+
+      expect(model.listingFeeSats, 27);
+      expect(model.totalCostSats, 100000 + 27 + 1000);
+
+      model.dispose();
+    });
+
+    test('a card with an error or no decision at all blocks the market', () async {
+      final model = await readyModel();
+      expect(model.canCreate, false);
+
+      model.newDecisions.first.option1Label.text = 'Yes';
+      expect(model.newDecisions.first.error, 'Write a header.');
+      expect(model.canCreate, false);
+
+      model.newDecisions.first.header.text = _daaHeader;
+      expect(model.canCreate, true);
+
+      model.dispose();
+    });
+
+    test('Create market sends the dimensions and the initial liquidity', () async {
+      final model = await readyModel();
+      model.newDecisions.first.header.text = _daaHeader;
+      model.liquidityController.text = '212400000';
+
+      final txid = await GetIt.I.get<MarketProvider>().createMarket(
+        title: model.titleController.text,
+        description: model.descriptionController.text,
+        dimensions: model.dimensionInputs,
+        feeSats: 1000,
+        initialLiquidity: int.parse(model.liquidityController.text),
+      );
+
+      expect(txid, 'test_create_txid');
+      expect(
+        mockRpc.lastMarketCreateDimensions,
+        '[{"type":"new","period_index":21,"decision_type":"binary","header":"$_daaHeader"}]',
+      );
+      expect(mockRpc.lastMarketCreateInitialLiquidity, 212400000);
+
+      model.dispose();
+    });
+
+    test('the picker lists every claimed decision', () async {
+      mockRpc.slotListResponse = [
+        ...TestData.sampleSlotList,
+        {
+          'decision_id_hex': '002a0004',
+          'period_index': 42,
+          'decision_index': 4,
+          'state': 'Claimed',
+          'decision': {
+            'id': 'decision_004',
+            'market_maker_pubkey_hash': 'abcd',
+            'is_standard': true,
+            'decision_type': {
+              'Category': {
+                'options': ['Alice', 'Bob', 'Carol'],
+              },
+            },
+            'header': 'Who wins?',
+          },
+        },
+      ];
+
+      final model = await readyModel();
+      expect(model.claimedSlots.map((s) => s.slotIdHex), containsAll(['002a0001', '002a0004']));
+
+      model.addExistingDecision('002a0004');
+      expect(model.outcomeCount, 3);
+
+      model.addExistingDecision('002a0001');
+      model.addExistingDecision('002a0001');
+      expect(model.dimensionInputs, '[{"type":"existing","id":"002a0004"},{"type":"existing","id":"002a0001"}]');
+      expect(model.outcomeCount, 6);
+      expect(model.addableSlots.map((s) => s.slotIdHex), isNot(contains('002a0001')));
+
+      model.removeExistingDecision('002a0004');
+      expect(model.dimensionInputs, '[{"type":"existing","id":"002a0001"}]');
+
+      mockRpc.slotListResponse = TestData.sampleSlotList;
       model.dispose();
     });
   });
@@ -213,10 +318,9 @@ void main() {
       model.init();
       await model.loadSlots();
       model
-        // A binary slot of the fixture, so the Yes/No tab takes it.
         ..titleController.text = 'Will the price rise?'
         ..descriptionController.text = 'The voter reads the close.'
-        ..dimensionsController.text = '002a0001'
+        ..addExistingDecision('002a0001')
         ..setLiquidityMethod(LiquidityMethod.beta);
 
       expect(model.subsidySats, null);
@@ -235,7 +339,7 @@ void main() {
       final model = MarketCreationViewModel();
       model.init();
       await model.loadSlots();
-      model.dimensionsController.text = '002a0001';
+      model.addExistingDecision('002a0001');
 
       final pending = model.calculateLiquidityPreview();
       // The author edits beta while the node answers the old input.
@@ -251,7 +355,7 @@ void main() {
     test('an edit of a liquidity input drops the last calculation', () async {
       final model = MarketCreationViewModel();
       model.init();
-      model.dimensionsController.text = '004008';
+      model.addExistingDecision('004008');
       await model.calculateLiquidityPreview();
       expect(model.liquidityPreview, isNotNull);
 
@@ -263,140 +367,6 @@ void main() {
       expect(model.totalCostSats, 301000);
 
       model.dispose();
-    });
-  });
-
-  group('MarketCreationViewModel.dimensionInputs', () {
-    const twoExisting = '[{"type":"existing","id":"004008"},{"type":"existing","id":"004009"}]';
-
-    test('a slot ID becomes an existing DimensionInput', () {
-      final model = MarketCreationViewModel()..dimensionsController.text = '004008';
-
-      expect(model.dimensionInputs, '[{"type":"existing","id":"004008"}]');
-    });
-
-    test('comma-separated slot IDs become one DimensionInput each', () {
-      final model = MarketCreationViewModel()
-        ..setMarketType(MarketType.custom)
-        ..dimensionsController.text = '004008, 004009';
-
-      expect(model.dimensionInputs, twoExisting);
-    });
-
-    test('bracket notation is flattened to existing references', () {
-      final model = MarketCreationViewModel()
-        ..setMarketType(MarketType.custom)
-        ..dimensionsController.text = '[[004008,004009]]';
-
-      expect(model.dimensionInputs, twoExisting);
-    });
-
-    test('a single DimensionInput object becomes a one-entry array', () {
-      final model = MarketCreationViewModel()
-        ..setMarketType(MarketType.custom)
-        ..dimensionsController.text = '{"type":"existing","id":"004008"}';
-
-      expect(model.dimensionInputs, '[{"type":"existing","id":"004008"}]');
-    });
-
-    test('DimensionInput JSON passes through', () {
-      const dimensions = '[{"type":"new","period_index":3,"decision_type":"binary","header":"Rain?"}]';
-      final model = MarketCreationViewModel()
-        ..setMarketType(MarketType.custom)
-        ..dimensionsController.text = dimensions;
-
-      expect(model.dimensionInputs, dimensions);
-    });
-  });
-
-  group('MarketCreationViewModel.effectiveDimensions', () {
-    test('a categorical market takes one category decision', () async {
-      mockRpc.slotListResponse = [
-        {
-          'decision_id_hex': '004008',
-          'period_index': 42,
-          'decision_index': 8,
-          'state': 'Claimed',
-          'decision': {
-            'id': 'decision_008',
-            'market_maker_pubkey_hash': 'abcd',
-            'is_standard': true,
-            'decision_type': {
-              'Category': {
-                'options': ['Thunder', 'BitNames'],
-              },
-            },
-            'header': 'Which chain wins?',
-          },
-        },
-      ];
-
-      final model = MarketCreationViewModel();
-      model.init();
-      await model.loadSlots();
-      model
-        ..setMarketType(MarketType.categorical)
-        ..titleController.text = 'Which chain wins?'
-        ..descriptionController.text = 'The oracle reads the chain with the most coins.'
-        ..dimensionsController.text = '004008';
-
-      expect(model.canCreate, true);
-      expect(model.effectiveDimensions, '[[004008]]');
-      expect(model.dimensionInputs, '[{"type":"existing","id":"004008"}]');
-
-      model.dimensionsController.text = '004008,004009';
-      expect(model.canCreate, false);
-
-      mockRpc.slotListResponse = TestData.sampleSlotList;
-      model.dispose();
-    });
-
-    test('a new decision blocks the market, because its fee stays unknown', () {
-      final model = MarketCreationViewModel()
-        ..setMarketType(MarketType.custom)
-        ..titleController.text = 'Will it rain?'
-        ..descriptionController.text = 'The voter reads the weather report.'
-        ..dimensionsController.text = '[{"type":"new","period_index":3,"decision_type":"binary","header":"Rain?"}]';
-
-      expect(model.claimsNewDecision, true);
-      expect(model.typedSlotError, contains('Claim the decision first'));
-      expect(model.canCreate, false);
-
-      model.dimensionsController.text = '[{"type":"existing","id":"004008"}]';
-      expect(model.claimsNewDecision, false);
-      expect(model.canCreate, true);
-
-      model.dispose();
-    });
-
-    test('an empty decision list blocks a typed id', () async {
-      GetIt.I.get<VotingProvider>().slots = [];
-
-      final model = MarketCreationViewModel()
-        ..titleController.text = 'Will the price rise?'
-        ..descriptionController.text = 'The voter reads the close.'
-        ..dimensionsController.text = '002a0001';
-
-      expect(model.typedSlotError, contains('did not load'));
-      expect(model.canCreate, false);
-
-      model.dispose();
-    });
-
-    test('custom DimensionInput JSON previews its existing decisions', () {
-      final model = MarketCreationViewModel()
-        ..setMarketType(MarketType.custom)
-        ..dimensionsController.text = '[{"type":"existing","id":"004008"},{"type":"existing","id":"004009"}]';
-
-      expect(model.effectiveDimensions, '[004008,004009]');
-    });
-
-    test('a new decision has no ID to preview', () {
-      final model = MarketCreationViewModel()
-        ..setMarketType(MarketType.custom)
-        ..dimensionsController.text = '[{"type":"new","period_index":3,"decision_type":"binary","header":"Rain?"}]';
-
-      expect(model.effectiveDimensions, '');
     });
   });
 }
