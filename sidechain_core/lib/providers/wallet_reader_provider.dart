@@ -82,14 +82,15 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     }
     _supervisor = StreamSupervisor<wmpb.WatchWalletDataResponse>(
       subscribe: () => _client.watchWalletData(),
-      onEvent: _onResponse,
+      onEvent: applyWatchFrame,
       onTransportDeath: () => GetIt.I.get<OrchestratorRPC>().recreateConnection(),
       logger: _logger,
       tag: 'WalletReaderProvider',
     )..start();
   }
 
-  void _onResponse(wmpb.WatchWalletDataResponse resp) {
+  @visibleForTesting
+  void applyWatchFrame(wmpb.WatchWalletDataResponse resp) {
     // Heartbeat frames carry no payload — supervisor uses them only for
     // liveness detection, no state to apply here.
     if (resp.heartbeat) {
@@ -98,20 +99,15 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     _applyState(
       protoWallets: resp.wallets,
       newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId,
-      newHasWalletOnDisk: resp.state != wmpb.WalletState.WALLET_STATE_NO_WALLET,
+      state: resp.state,
     );
   }
 
   void _applyState({
     required Iterable<dynamic> protoWallets,
     required String? newActiveId,
-    required bool newHasWalletOnDisk,
+    required wmpb.WalletState state,
   }) {
-    // Reconnecting stream can send an empty initial frame; keep a populated
-    // list (a real delete arrives with state=NO_WALLET).
-    if (protoWallets.isEmpty && wallets.isNotEmpty && newHasWalletOnDisk) {
-      return;
-    }
     final previousActiveId = activeWalletId;
     // A transient stream frame can arrive with an empty active id while wallets
     // still exist; keep the known-good selection instead of blanking it.
@@ -128,7 +124,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     activeWalletId = effectiveActiveId;
 
     final previousHasWallet = hasWalletOnDisk;
-    hasWalletOnDisk = newHasWalletOnDisk;
+    hasWalletOnDisk = state != wmpb.WalletState.WALLET_STATE_NO_WALLET;
     if (previousHasWallet != hasWalletOnDisk) {
       _logger.i(
         'WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk',
@@ -277,7 +273,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     _applyState(
       protoWallets: list.wallets,
       newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
-      newHasWalletOnDisk: status.state != wmpb.WalletState.WALLET_STATE_NO_WALLET,
+      state: status.state as wmpb.WalletState,
     );
     return wallets.isNotEmpty;
   }
