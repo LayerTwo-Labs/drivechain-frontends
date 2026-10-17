@@ -55,6 +55,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$19.EstimateFeeResponse> estimateFee($pb.ServerContext ctx, $19.EstimateFeeRequest request);
   $async.Future<$19.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $19.GetNewAddressRequest request);
   $async.Future<$19.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $19.SendTransactionRequest request);
+  $async.Future<$19.PreviewSendResponse> previewSend($pb.ServerContext ctx, $19.PreviewSendRequest request);
   $async.Future<$18.Empty> setFrozenCoins($pb.ServerContext ctx, $19.SetFrozenCoinsRequest request);
   $async.Future<$19.CreateDepositResponse> createDeposit($pb.ServerContext ctx, $19.CreateDepositRequest request);
   $async.Future<$19.ListTransactionsResponse> listTransactions($pb.ServerContext ctx, $19.ListTransactionsRequest request);
@@ -129,6 +130,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'EstimateFee': return $19.EstimateFeeRequest();
       case 'GetNewAddress': return $19.GetNewAddressRequest();
       case 'SendTransaction': return $19.SendTransactionRequest();
+      case 'PreviewSend': return $19.PreviewSendRequest();
       case 'SetFrozenCoins': return $19.SetFrozenCoinsRequest();
       case 'CreateDeposit': return $19.CreateDepositRequest();
       case 'ListTransactions': return $19.ListTransactionsRequest();
@@ -206,6 +208,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'EstimateFee': return this.estimateFee(ctx, request as $19.EstimateFeeRequest);
       case 'GetNewAddress': return this.getNewAddress(ctx, request as $19.GetNewAddressRequest);
       case 'SendTransaction': return this.sendTransaction(ctx, request as $19.SendTransactionRequest);
+      case 'PreviewSend': return this.previewSend(ctx, request as $19.PreviewSendRequest);
       case 'SetFrozenCoins': return this.setFrozenCoins(ctx, request as $19.SetFrozenCoinsRequest);
       case 'CreateDeposit': return this.createDeposit(ctx, request as $19.CreateDepositRequest);
       case 'ListTransactions': return this.listTransactions(ctx, request as $19.ListTransactionsRequest);

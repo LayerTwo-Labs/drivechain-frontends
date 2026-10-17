@@ -5100,6 +5100,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     $core.Iterable<ExternalInput>? externalInputs,
     $core.bool? replaceable,
     $core.bool? allowReplay,
+    UnspentOutput? notificationInput,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -5135,6 +5136,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (allowReplay != null) {
       $result.allowReplay = allowReplay;
     }
+    if (notificationInput != null) {
+      $result.notificationInput = notificationInput;
+    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -5153,6 +5157,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..pc<ExternalInput>(10, _omitFieldNames ? '' : 'externalInputs', $pb.PbFieldType.PM, subBuilder: ExternalInput.create)
     ..aOB(11, _omitFieldNames ? '' : 'replaceable')
     ..aOB(12, _omitFieldNames ? '' : 'allowReplay')
+    ..aOM<UnspentOutput>(13, _omitFieldNames ? '' : 'notificationInput', subBuilder: UnspentOutput.create)
     ..hasRequiredFields = false
   ;
 
@@ -5265,6 +5270,19 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   $core.bool hasAllowReplay() => $_has(10);
   @$pb.TagNumber(12)
   void clearAllowReplay() => clearField(12);
+
+  /// The coin the BIP47 notification of a first payment spends, from
+  /// PreviewSend. Unset lets the wallet pick it.
+  @$pb.TagNumber(13)
+  UnspentOutput get notificationInput => $_getN(11);
+  @$pb.TagNumber(13)
+  set notificationInput(UnspentOutput v) { setField(13, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasNotificationInput() => $_has(11);
+  @$pb.TagNumber(13)
+  void clearNotificationInput() => clearField(13);
+  @$pb.TagNumber(13)
+  UnspentOutput ensureNotificationInput() => $_ensure(11);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -5315,6 +5333,221 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
+}
+
+class PreviewSendRequest extends $pb.GeneratedMessage {
+  factory PreviewSendRequest({
+    $core.String? walletId,
+    $core.Map<$core.String, $fixnum.Int64>? destinations,
+    $fixnum.Int64? feeRateSatPerVbyte,
+    $core.bool? subtractFeeFromAmount,
+    $core.Iterable<UnspentOutput>? requiredInputs,
+    $core.bool? allowReplay,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (destinations != null) {
+      $result.destinations.addAll(destinations);
+    }
+    if (feeRateSatPerVbyte != null) {
+      $result.feeRateSatPerVbyte = feeRateSatPerVbyte;
+    }
+    if (subtractFeeFromAmount != null) {
+      $result.subtractFeeFromAmount = subtractFeeFromAmount;
+    }
+    if (requiredInputs != null) {
+      $result.requiredInputs.addAll(requiredInputs);
+    }
+    if (allowReplay != null) {
+      $result.allowReplay = allowReplay;
+    }
+    return $result;
+  }
+  PreviewSendRequest._() : super();
+  factory PreviewSendRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewSendRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewSendRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..m<$core.String, $fixnum.Int64>(2, _omitFieldNames ? '' : 'destinations', entryClassName: 'PreviewSendRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.O6, packageName: const $pb.PackageName('walletmanager.v1'))
+    ..aInt64(3, _omitFieldNames ? '' : 'feeRateSatPerVbyte')
+    ..aOB(4, _omitFieldNames ? '' : 'subtractFeeFromAmount')
+    ..pc<UnspentOutput>(5, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..aOB(6, _omitFieldNames ? '' : 'allowReplay')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewSendRequest clone() => PreviewSendRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewSendRequest copyWith(void Function(PreviewSendRequest) updates) => super.copyWith((message) => updates(message as PreviewSendRequest)) as PreviewSendRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewSendRequest create() => PreviewSendRequest._();
+  PreviewSendRequest createEmptyInstance() => create();
+  static $pb.PbList<PreviewSendRequest> createRepeated() => $pb.PbList<PreviewSendRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewSendRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewSendRequest>(create);
+  static PreviewSendRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(1);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeRateSatPerVbyte => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeRateSatPerVbyte($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeRateSatPerVbyte() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeRateSatPerVbyte() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get subtractFeeFromAmount => $_getBF(3);
+  @$pb.TagNumber(4)
+  set subtractFeeFromAmount($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSubtractFeeFromAmount() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSubtractFeeFromAmount() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.List<UnspentOutput> get requiredInputs => $_getList(4);
+
+  @$pb.TagNumber(6)
+  $core.bool get allowReplay => $_getBF(5);
+  @$pb.TagNumber(6)
+  set allowReplay($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasAllowReplay() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearAllowReplay() => clearField(6);
+}
+
+class PreviewSendResponse extends $pb.GeneratedMessage {
+  factory PreviewSendResponse({
+    $fixnum.Int64? feeSats,
+    $fixnum.Int64? vsizeVbytes,
+    $core.Iterable<UnspentOutput>? inputs,
+    $fixnum.Int64? notificationFeeSats,
+    UnspentOutput? notificationInput,
+  }) {
+    final $result = create();
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (vsizeVbytes != null) {
+      $result.vsizeVbytes = vsizeVbytes;
+    }
+    if (inputs != null) {
+      $result.inputs.addAll(inputs);
+    }
+    if (notificationFeeSats != null) {
+      $result.notificationFeeSats = notificationFeeSats;
+    }
+    if (notificationInput != null) {
+      $result.notificationInput = notificationInput;
+    }
+    return $result;
+  }
+  PreviewSendResponse._() : super();
+  factory PreviewSendResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewSendResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewSendResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'feeSats')
+    ..aInt64(2, _omitFieldNames ? '' : 'vsizeVbytes')
+    ..pc<UnspentOutput>(3, _omitFieldNames ? '' : 'inputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..aInt64(4, _omitFieldNames ? '' : 'notificationFeeSats')
+    ..aOM<UnspentOutput>(5, _omitFieldNames ? '' : 'notificationInput', subBuilder: UnspentOutput.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewSendResponse clone() => PreviewSendResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewSendResponse copyWith(void Function(PreviewSendResponse) updates) => super.copyWith((message) => updates(message as PreviewSendResponse)) as PreviewSendResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewSendResponse create() => PreviewSendResponse._();
+  PreviewSendResponse createEmptyInstance() => create();
+  static $pb.PbList<PreviewSendResponse> createRepeated() => $pb.PbList<PreviewSendResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewSendResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewSendResponse>(create);
+  static PreviewSendResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get feeSats => $_getI64(0);
+  @$pb.TagNumber(1)
+  set feeSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFeeSats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFeeSats() => clearField(1);
+
+  /// Size of the signed transaction.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get vsizeVbytes => $_getI64(1);
+  @$pb.TagNumber(2)
+  set vsizeVbytes($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVsizeVbytes() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVsizeVbytes() => clearField(2);
+
+  /// The coins the send spends. A send that pins them pays fee_sats.
+  @$pb.TagNumber(3)
+  $core.List<UnspentOutput> get inputs => $_getList(2);
+
+  /// Fee of the BIP47 notification a first payment publishes before the
+  /// payment. 0 when the send publishes none.
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get notificationFeeSats => $_getI64(3);
+  @$pb.TagNumber(4)
+  set notificationFeeSats($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasNotificationFeeSats() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNotificationFeeSats() => clearField(4);
+
+  /// The coin the notification spends. Unset when the send publishes none.
+  @$pb.TagNumber(5)
+  UnspentOutput get notificationInput => $_getN(4);
+  @$pb.TagNumber(5)
+  set notificationInput(UnspentOutput v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasNotificationInput() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearNotificationInput() => clearField(5);
+  @$pb.TagNumber(5)
+  UnspentOutput ensureNotificationInput() => $_ensure(4);
 }
 
 class SetFrozenCoinsRequest extends $pb.GeneratedMessage {
@@ -12839,6 +13072,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
     _client.invoke<SendTransactionResponse>(ctx, 'WalletManagerService', 'SendTransaction', request, SendTransactionResponse())
+  ;
+  $async.Future<PreviewSendResponse> previewSend($pb.ClientContext? ctx, PreviewSendRequest request) =>
+    _client.invoke<PreviewSendResponse>(ctx, 'WalletManagerService', 'PreviewSend', request, PreviewSendResponse())
   ;
   $async.Future<$18.Empty> setFrozenCoins($pb.ClientContext? ctx, SetFrozenCoinsRequest request) =>
     _client.invoke<$18.Empty>(ctx, 'WalletManagerService', 'SetFrozenCoins', request, $18.Empty())

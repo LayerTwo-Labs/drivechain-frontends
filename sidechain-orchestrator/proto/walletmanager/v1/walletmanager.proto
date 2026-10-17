@@ -59,6 +59,9 @@ service WalletManagerService {
   rpc EstimateFee(EstimateFeeRequest) returns (EstimateFeeResponse);
   rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+  // PreviewSend builds a send at a fee rate, with the same coin selection as
+  // SendTransaction, and reports its fee and size. It broadcasts nothing.
+  rpc PreviewSend(PreviewSendRequest) returns (PreviewSendResponse);
   // SetFrozenCoins records the coins the frontend froze. Every send after it
   // leaves those coins alone, and Bitcoin Core holds them locked for the
   // length of a send so its own coin selection skips them too.
@@ -684,6 +687,9 @@ message SendTransactionRequest {
   // the magic nLockTime (499999999) on every send, so stock Bitcoin Core
   // rejects it; this drops that stamp for one send.
   bool allow_replay = 12;
+  // The coin the BIP47 notification of a first payment spends, from
+  // PreviewSend. Unset lets the wallet pick it.
+  UnspentOutput notification_input = 13;
   // Outputs with an explicit raw scriptPubKey, kept in order before any
   // address/op_return outputs. Used for non-standard scripts (e.g. a sidechain
   // OP_DRIVECHAIN treasury output).
@@ -699,6 +705,28 @@ message SendTransactionRequest {
 
 message SendTransactionResponse {
   string txid = 1;
+}
+
+message PreviewSendRequest {
+  string wallet_id = 1;  // empty = active wallet
+  map<string, int64> destinations = 2;  // address -> satoshis
+  int64 fee_rate_sat_per_vbyte = 3;  // must be above 0
+  bool subtract_fee_from_amount = 4;
+  repeated UnspentOutput required_inputs = 5;
+  bool allow_replay = 6;
+}
+
+message PreviewSendResponse {
+  int64 fee_sats = 1;
+  // Size of the signed transaction.
+  int64 vsize_vbytes = 2;
+  // The coins the send spends. A send that pins them pays fee_sats.
+  repeated UnspentOutput inputs = 3;
+  // Fee of the BIP47 notification a first payment publishes before the
+  // payment. 0 when the send publishes none.
+  int64 notification_fee_sats = 4;
+  // The coin the notification spends. Unset when the send publishes none.
+  UnspentOutput notification_input = 5;
 }
 
 message SetFrozenCoinsRequest {

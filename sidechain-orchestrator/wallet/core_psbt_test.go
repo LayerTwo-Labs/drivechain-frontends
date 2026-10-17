@@ -129,10 +129,28 @@ func TestCoreBackendCreatePSBTSubtractsTheFeeFromTheDestinations(t *testing.T) {
 	assert.Equal(t, true, call.options["replaceable"])
 }
 
+func TestCoreBackendCreatePSBTSpendsOnlyThePinnedInputs(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	calls := stubFundedPSBT(t, fake, nil)
+	dest := p2wpkhAddr(t, fixedKey(0xAA), &chaincfg.RegressionNetParams)
+
+	_, err := backend.CreatePSBT(context.Background(), coreID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 5_000},
+		FeeRateSatPerVB:  2,
+		RequiredInputs:   []RequiredInput{{TxID: freeCoinTxid, Vout: 1, AmountSats: 10_000}},
+	})
+	require.NoError(t, err)
+
+	require.Len(t, *calls, 1)
+	call := (*calls)[0]
+	assert.JSONEq(t, fmt.Sprintf(`[{"txid":%q,"vout":1}]`, freeCoinTxid), call.rawInputs)
+	assert.Equal(t, false, call.options["add_inputs"])
+}
+
 func TestCoreBackendCreatePSBTRefusesWhatCoreDoesNotFund(t *testing.T) {
 	dest := p2wpkhAddr(t, fixedKey(0xAA), &chaincfg.RegressionNetParams)
 	cases := map[string]SendRequest{
-		"pinned input":   {RequiredInputs: []RequiredInput{{TxID: freeCoinTxid, Vout: 0, AmountSats: 10_000}}},
 		"external input": {ExternalInputs: []ExternalInput{{TxID: freeCoinTxid, Vout: 0, AmountSats: 10_000}}},
 		"raw output":     {RawOutputs: []TxOutSpec{{OpReturnHex: "beef"}}},
 		"fixed fee":      {FixedFeeSats: 1_000},

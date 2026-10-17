@@ -56,6 +56,14 @@ type CoreBackend struct {
 	staleMu      sync.Mutex
 	staleWallets map[string]bool // Core wallet name -> Core does not hold it
 
+	// previewChange holds the change address a send preview reuses, so a
+	// preview does not reserve a new change key in Core each time.
+	previewMu     sync.Mutex
+	previewChange map[string]string
+	// previewRunMu runs one preview at a time, so two previews never lock the
+	// same excluded coin.
+	previewRunMu sync.Mutex // network, Core wallet name and destination kinds -> change address
+
 	// walletID -> earliest retry of a BIP47 notification descriptor import
 	// that failed. A failure there doesn't block wallet loading, so the
 	// wallet stays cached and later Ensure calls retry the import, gated by
@@ -669,6 +677,9 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		len(req.ExternalInputs) > 0 ||
 		protect // custom serialization needs the raw-tx path
 
+	if len(req.ExcludedInputs) > 0 {
+		return "", errors.New("a Core wallet send takes no excluded inputs")
+	}
 	// External inputs carry no signature, so Core cannot size the fee for them.
 	if len(req.ExternalInputs) > 0 && req.FixedFeeSats <= 0 {
 		return "", errors.New("external inputs require a fixed fee")
@@ -754,14 +765,30 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		return p.signAndBroadcast(ctx, name, rawHex, len(req.ExternalInputs) > 0)
 	}
 
-	rawHex, err := p.createRawTx(ctx, req, inputs, outputs, locktime)
+	funded, err := p.fundWithCoreSelection(ctx, name, req, inputs, outputs, locktime, protect, "")
 	if err != nil {
 		return "", err
+	}
+	return p.signAndBroadcast(ctx, name, funded.Hex, false)
+}
+
+// fundWithCoreSelection lets Core add inputs, change and the fee to the send.
+// An empty changeAddress lets Core pick the change address.
+func (p *CoreBackend) fundWithCoreSelection(
+	ctx context.Context, name string, req SendRequest, inputs []RawInput, outputs []TxOutSpec, locktime uint32, protect bool,
+	changeAddress string,
+) (*FundRawTransactionResult, error) {
+	rawHex, err := p.createRawTx(ctx, req, inputs, outputs, locktime)
+	if err != nil {
+		return nil, err
 	}
 
 	options := map[string]interface{}{}
 	if len(inputs) > 0 {
 		options["add_inputs"] = false
+	}
+	if changeAddress != "" {
+		options["changeAddress"] = changeAddress
 	}
 	if req.FeeRateSatPerVB > 0 {
 		options["fee_rate"] = req.FeeRateSatPerVB
@@ -777,9 +804,9 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 
 	funded, err := p.rpc.FundRawTransaction(ctx, name, rawHex, options)
 	if err != nil {
-		return "", fmt.Errorf("fund raw transaction: %w", err)
+		return nil, fmt.Errorf("fund raw transaction: %w", err)
 	}
-	return p.signAndBroadcast(ctx, name, funded.Hex, false)
+	return funded, nil
 }
 
 // createRawTx builds the unsigned transaction. createrawtransaction takes only
@@ -955,11 +982,11 @@ func (p *CoreBackend) SignTransaction(ctx context.Context, walletID, rawHex stri
 }
 
 // CreatePSBT funds an unsigned PSBT with Core's coin selection. It takes
-// destinations, OP_RETURN data, a fee rate and fee subtraction.
+// destinations, OP_RETURN data, pinned inputs, a fee rate and fee subtraction.
 func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
-	if len(req.RequiredInputs) > 0 || len(req.ExternalInputs) > 0 || len(req.RawOutputs) > 0 || req.FixedFeeSats > 0 {
+	if len(req.ExternalInputs) > 0 || len(req.ExcludedInputs) > 0 || len(req.RawOutputs) > 0 || req.FixedFeeSats > 0 {
 		return "", connect.NewError(connect.CodeInvalidArgument,
-			errors.New("a Core wallet PSBT takes no pinned inputs, external inputs, raw outputs or fixed fee"))
+			errors.New("a Core wallet PSBT takes no external inputs, excluded inputs, raw outputs or fixed fee"))
 	}
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
@@ -971,7 +998,13 @@ func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendR
 	}
 	defer unlock()
 
+	inputs := lo.Map(req.RequiredInputs, func(in RequiredInput, _ int) RawInput {
+		return RawInput{TxID: in.TxID, Vout: in.Vout}
+	})
 	options := map[string]interface{}{}
+	if len(inputs) > 0 {
+		options["add_inputs"] = false
+	}
 	if req.FeeRateSatPerVB > 0 {
 		options["fee_rate"] = req.FeeRateSatPerVB
 	}
@@ -989,7 +1022,7 @@ func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendR
 	}
 
 	outputs, _ := buildSendOutputs(req)
-	funded, err := p.rpc.WalletCreateFundedPSBT(ctx, name, rpcOutputs(outputs), locktime, options)
+	funded, err := p.rpc.WalletCreateFundedPSBT(ctx, name, inputs, rpcOutputs(outputs), locktime, options)
 	if err != nil {
 		return "", fmt.Errorf("create funded psbt: %w", err)
 	}

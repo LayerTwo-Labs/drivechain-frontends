@@ -587,6 +587,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// PreviewSend builds a send at a fee rate, with the same coin selection as
+  /// SendTransaction, and reports its fee and size. It broadcasts nothing.
+  Future<walletmanagerv1walletmanager.PreviewSendResponse> previewSend(
+    walletmanagerv1walletmanager.PreviewSendRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.previewSend,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// SetFrozenCoins records the coins the frontend froze. Every send after it
   /// leaves those coins alone, and Bitcoin Core holds them locked for the
   /// length of a send so its own coin selection skips them too.

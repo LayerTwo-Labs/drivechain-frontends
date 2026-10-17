@@ -38,6 +38,57 @@ type bip47Expansion struct {
 	sendIndex uint32
 }
 
+func bip47SubstituteError(err error) error {
+	switch {
+	case errors.Is(err, bip47send.ErrMultiDestination),
+		errors.Is(err, bip47send.ErrSelfSend),
+		errors.Is(err, bip47send.ErrUnsupportedVersion):
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewError(connect.CodeInternal, err)
+}
+
+// sizingIndex stands in for the next BIP47 index. Every index gives a payment
+// address of the same script, so a preview sizes the payment without a reservation.
+type sizingIndex struct{}
+
+func (sizingIndex) ReserveNextIndex(string, string) (uint32, error) { return 0, nil }
+
+// sizeBip47Destinations replaces a BIP47 payment code with an address of the
+// same script, so a send preview can size the payment output. notifies is true
+// when the send publishes a notification before the payment.
+func (h *WalletHandler) sizeBip47Destinations(
+	walletID string, destinations map[string]int64,
+) (sized map[string]int64, notifies bool, err error) {
+	hasBip47 := lo.SomeBy(lo.Keys(destinations), func(addr string) bool {
+		_, err := bip47.ParsePaymentCode(addr)
+		return err == nil
+	})
+	if !hasBip47 {
+		return destinations, false, nil
+	}
+	if h.bip47State == nil {
+		return nil, false, connect.NewError(connect.CodeFailedPrecondition, errors.New("bip47 state store not configured"))
+	}
+	seedHex := h.walletSeedHex(walletID)
+	if seedHex == "" {
+		return nil, false, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s has no master seed", walletID))
+	}
+	netParams := h.engine.Network()
+	if netParams == nil {
+		return nil, false, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("BIP47 send not supported on this network"))
+	}
+	result, err := bip47send.SubstituteBip47Destination(seedHex, walletID, destinations, netParams, sizingIndex{})
+	if err != nil {
+		return nil, false, bip47SubstituteError(err)
+	}
+	state, err := h.bip47State.GetState(walletID, result.RecipientCode)
+	if err != nil {
+		return nil, false, connect.NewError(connect.CodeInternal, fmt.Errorf("read bip47 state: %w", err))
+	}
+	return result.Destinations, state == nil || state.NotificationTxID == nil, nil
+}
+
 // expandBip47Destinations inspects the requested destinations for a BIP47
 // payment code. If found, it derives the per-payment address and (when
 // needed) builds the notification tx, returning a substituted destinations
@@ -46,6 +97,9 @@ func (h *WalletHandler) expandBip47Destinations(
 	ctx context.Context,
 	walletID string,
 	destinations map[string]int64,
+	feeRate int64,
+	pinnedNotification *wallet.RequiredInput,
+	paymentInputs []wallet.RequiredInput,
 ) (*bip47Expansion, error) {
 	hasBip47 := false
 	for addr := range destinations {
@@ -84,13 +138,7 @@ func (h *WalletHandler) expandBip47Destinations(
 
 	result, err := bip47send.SubstituteBip47Destination(seedHex, walletID, destinations, netParams, h.bip47State)
 	if err != nil {
-		switch {
-		case errors.Is(err, bip47send.ErrMultiDestination),
-			errors.Is(err, bip47send.ErrSelfSend),
-			errors.Is(err, bip47send.ErrUnsupportedVersion):
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, bip47SubstituteError(err)
 	}
 	if !result.IsBip47 {
 		return &bip47Expansion{destinations: result.Destinations}, nil
@@ -111,7 +159,9 @@ func (h *WalletHandler) expandBip47Destinations(
 		return expansion, nil
 	}
 
-	rawHex, _, err := h.buildBip47NotificationTx(ctx, walletID, seedHex, result.Recipient, netParams)
+	rawHex, _, err := h.buildBip47NotificationTx(
+		ctx, walletID, seedHex, result.Recipient, netParams, feeRate, pinnedNotification, paymentInputs,
+	)
 	if err != nil {
 		h.releaseBip47Index(walletID, expansion)
 		return nil, err
@@ -151,6 +201,82 @@ func (h *WalletHandler) releaseBip47Index(walletID string, expansion *bip47Expan
 	_ = h.bip47State.ReleaseIndex(walletID, expansion.recipientCode, expansion.sendIndex)
 }
 
+// bip47NotificationCoin picks the coin a BIP47 notification spends, and its
+// fee. A rate of 0 takes the chain estimate. pinned names the coin a send
+// preview picked. The pick skips frozen coins and the coins in exclude, which
+// the payment spends.
+func (h *WalletHandler) bip47NotificationCoin(
+	ctx context.Context,
+	walletID string,
+	feeRate int64,
+	pinned *wallet.RequiredInput,
+	exclude []wallet.RequiredInput,
+) (wallet.UTXO, int64, error) {
+	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
+	if err != nil {
+		return wallet.UTXO{}, 0, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+	}
+
+	// The pick below becomes a required input, which Core spends as it is
+	// told. A coin the user froze has to leave the list here.
+	frozen, err := h.svc.FrozenCoins(ctx, walletID, lo.Map(utxos, func(u wallet.UTXO, _ int) wallet.Outpoint {
+		return wallet.Outpoint{TxID: u.TxID, Vout: u.Vout, Confirmed: u.Confirmations > 0}
+	}))
+	if err != nil {
+		return wallet.UTXO{}, 0, connect.NewError(connect.CodeInternal, err)
+	}
+	skip := lo.Assign(map[string]bool{}, frozen)
+	for _, in := range exclude {
+		skip[(wallet.Outpoint{TxID: in.TxID, Vout: in.Vout}).Key()] = true
+	}
+
+	rate := float64(feeRate)
+	if rate <= 0 {
+		if rater, ok := h.engine.FeeRaterFor(walletID); ok {
+			rate, err = rater.FeeRateForTarget(ctx, wallet.SendFeeTarget)
+			if err != nil {
+				return wallet.UTXO{}, 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the bip47 notification: %w", err))
+			}
+		}
+	}
+	if rate > wallet.MaxFeeRateSatPerVB {
+		return wallet.UTXO{}, 0, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("the fee rate of %.0f sat/vB for the bip47 notification is above the limit of %d sat/vB", rate, wallet.MaxFeeRateSatPerVB))
+	}
+	feeSats := bip47send.EstimateNotificationFee(int64(math.Ceil(rate)))
+	minRequired := bip47NotificationDustSats + feeSats + bip47NotificationDustSats
+
+	// The smallest coin keeps the most value for the payment, which cannot
+	// spend the change of the notification.
+	var picked *wallet.UTXO
+	for i, u := range utxos {
+		if !u.Spendable || skip[(wallet.Outpoint{TxID: u.TxID, Vout: u.Vout}).Key()] {
+			continue
+		}
+		if pinned != nil && (u.TxID != pinned.TxID || u.Vout != pinned.Vout) {
+			continue
+		}
+		if int64(math.Round(u.Amount*1e8)) < minRequired {
+			continue
+		}
+		if picked == nil || u.Amount < picked.Amount {
+			picked = &utxos[i]
+		}
+	}
+	if picked != nil {
+		return *picked, feeSats, nil
+	}
+	if pinned != nil {
+		return wallet.UTXO{}, 0, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("notification coin %s:%d is not a spendable UTXO of at least %d sats", pinned.TxID, pinned.Vout, minRequired))
+	}
+	return wallet.UTXO{}, 0, connect.NewError(connect.CodeFailedPrecondition,
+		fmt.Errorf("no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired))
+}
+
+// bip47NotificationDustSats is the payment to the recipient's notification address.
+const bip47NotificationDustSats int64 = 546
+
 // buildBip47NotificationTx assembles the unsigned notification transaction by
 // picking a designated UTXO from the bitcoinCore wallet, computing the
 // blinded payload via ECDH against the recipient, and wrapping outputs:
@@ -161,55 +287,15 @@ func (h *WalletHandler) buildBip47NotificationTx(
 	walletID, seedHex string,
 	recipient *bip47.PaymentCode,
 	netParams *chaincfg.Params,
+	feeRate int64,
+	pinned *wallet.RequiredInput,
+	exclude []wallet.RequiredInput,
 ) (string, string, error) {
-	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
+	coin, feeSats, err := h.bip47NotificationCoin(ctx, walletID, feeRate, pinned, exclude)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+		return "", "", err
 	}
-
-	// The pick below becomes a required input, which Core spends as it is
-	// told. A coin the user froze has to leave the list here.
-	frozen, err := h.svc.FrozenCoins(ctx, walletID, lo.Map(utxos, func(u wallet.UTXO, _ int) wallet.Outpoint {
-		return wallet.Outpoint{TxID: u.TxID, Vout: u.Vout, Confirmed: u.Confirmations > 0}
-	}))
-	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, err)
-	}
-
-	const dustSats int64 = 546
-	feeSats := bip47send.EstimateNotificationFee(2)
-	if rater, ok := h.engine.FeeRaterFor(walletID); ok {
-		rate, err := rater.FeeRateForTarget(ctx, wallet.SendFeeTarget)
-		if err != nil {
-			return "", "", connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the bip47 notification: %w", err))
-		}
-		if rate > wallet.MaxFeeRateSatPerVB {
-			return "", "", connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("the fee estimate of %.0f sat/vB for the bip47 notification is above the limit of %d sat/vB", rate, wallet.MaxFeeRateSatPerVB))
-		}
-		feeSats = bip47send.EstimateNotificationFee(int64(math.Ceil(rate)))
-	}
-	minRequired := dustSats + feeSats + dustSats
-
-	var picked *wallet.UTXO
-	for i, u := range utxos {
-		if !u.Spendable {
-			continue
-		}
-		if frozen[(wallet.Outpoint{TxID: u.TxID, Vout: u.Vout}).Key()] {
-			continue
-		}
-		amountSats := int64(math.Round(u.Amount * 1e8))
-		if amountSats < minRequired {
-			continue
-		}
-		picked = &utxos[i]
-		break
-	}
-	if picked == nil {
-		return "", "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired))
-	}
+	picked := &coin
 
 	hdPath, err := h.engine.Backend().AddressHDPath(ctx, walletID, picked.Address)
 	if err != nil {
@@ -254,7 +340,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 		desigPriv,
 		notifAddr,
 		changeAddr,
-		dustSats,
+		bip47NotificationDustSats,
 		feeSats,
 		netParams,
 	)

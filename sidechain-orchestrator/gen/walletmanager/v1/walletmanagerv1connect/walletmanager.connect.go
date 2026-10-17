@@ -133,6 +133,9 @@ const (
 	// WalletManagerServiceSendTransactionProcedure is the fully-qualified name of the
 	// WalletManagerService's SendTransaction RPC.
 	WalletManagerServiceSendTransactionProcedure = "/walletmanager.v1.WalletManagerService/SendTransaction"
+	// WalletManagerServicePreviewSendProcedure is the fully-qualified name of the
+	// WalletManagerService's PreviewSend RPC.
+	WalletManagerServicePreviewSendProcedure = "/walletmanager.v1.WalletManagerService/PreviewSend"
 	// WalletManagerServiceSetFrozenCoinsProcedure is the fully-qualified name of the
 	// WalletManagerService's SetFrozenCoins RPC.
 	WalletManagerServiceSetFrozenCoinsProcedure = "/walletmanager.v1.WalletManagerService/SetFrozenCoins"
@@ -301,6 +304,9 @@ type WalletManagerServiceClient interface {
 	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	// PreviewSend builds a send at a fee rate, with the same coin selection as
+	// SendTransaction, and reports its fee and size. It broadcasts nothing.
+	PreviewSend(context.Context, *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error)
 	// SetFrozenCoins records the coins the frontend froze. Every send after it
 	// leaves those coins alone, and Bitcoin Core holds them locked for the
 	// length of a send so its own coin selection skips them too.
@@ -584,6 +590,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
 			connect.WithClientOptions(opts...),
 		),
+		previewSend: connect.NewClient[v1.PreviewSendRequest, v1.PreviewSendResponse](
+			httpClient,
+			baseURL+WalletManagerServicePreviewSendProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("PreviewSend")),
+			connect.WithClientOptions(opts...),
+		),
 		setFrozenCoins: connect.NewClient[v1.SetFrozenCoinsRequest, emptypb.Empty](
 			httpClient,
 			baseURL+WalletManagerServiceSetFrozenCoinsProcedure,
@@ -850,6 +862,7 @@ type walletManagerServiceClient struct {
 	estimateFee                  *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
 	getNewAddress                *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
 	sendTransaction              *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	previewSend                  *connect.Client[v1.PreviewSendRequest, v1.PreviewSendResponse]
 	setFrozenCoins               *connect.Client[v1.SetFrozenCoinsRequest, emptypb.Empty]
 	createDeposit                *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
 	listTransactions             *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
@@ -1053,6 +1066,11 @@ func (c *walletManagerServiceClient) GetNewAddress(ctx context.Context, req *con
 // SendTransaction calls walletmanager.v1.WalletManagerService.SendTransaction.
 func (c *walletManagerServiceClient) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return c.sendTransaction.CallUnary(ctx, req)
+}
+
+// PreviewSend calls walletmanager.v1.WalletManagerService.PreviewSend.
+func (c *walletManagerServiceClient) PreviewSend(ctx context.Context, req *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error) {
+	return c.previewSend.CallUnary(ctx, req)
 }
 
 // SetFrozenCoins calls walletmanager.v1.WalletManagerService.SetFrozenCoins.
@@ -1299,6 +1317,9 @@ type WalletManagerServiceHandler interface {
 	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	// PreviewSend builds a send at a fee rate, with the same coin selection as
+	// SendTransaction, and reports its fee and size. It broadcasts nothing.
+	PreviewSend(context.Context, *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error)
 	// SetFrozenCoins records the coins the frontend froze. Every send after it
 	// leaves those coins alone, and Bitcoin Core holds them locked for the
 	// length of a send so its own coin selection skips them too.
@@ -1576,6 +1597,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceSendTransactionProcedure,
 		svc.SendTransaction,
 		connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServicePreviewSendHandler := connect.NewUnaryHandler(
+		WalletManagerServicePreviewSendProcedure,
+		svc.PreviewSend,
+		connect.WithSchema(walletManagerServiceMethods.ByName("PreviewSend")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceSetFrozenCoinsHandler := connect.NewUnaryHandler(
@@ -1874,6 +1901,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetNewAddressHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSendTransactionProcedure:
 			walletManagerServiceSendTransactionHandler.ServeHTTP(w, r)
+		case WalletManagerServicePreviewSendProcedure:
+			walletManagerServicePreviewSendHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSetFrozenCoinsProcedure:
 			walletManagerServiceSetFrozenCoinsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateDepositProcedure:
@@ -2089,6 +2118,10 @@ func (UnimplementedWalletManagerServiceHandler) GetNewAddress(context.Context, *
 
 func (UnimplementedWalletManagerServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SendTransaction is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) PreviewSend(context.Context, *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PreviewSend is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) SetFrozenCoins(context.Context, *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {

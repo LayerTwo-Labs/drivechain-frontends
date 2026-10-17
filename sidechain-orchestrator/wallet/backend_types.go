@@ -198,6 +198,8 @@ type SendRequest struct {
 	// ExternalInputs are non-wallet UTXOs spent with an empty scriptSig and not
 	// signed — for anyone-can-spend scripts like a sidechain CTIP.
 	ExternalInputs []ExternalInput
+	// ExcludedInputs are wallet coins the coin selection must leave alone.
+	ExcludedInputs []RequiredInput
 }
 
 // RequiredInput pins one outpoint that the transaction must spend.
