@@ -199,6 +199,10 @@ final Finder _bidButton = find.byWidgetPredicate(
   (widget) => widget is SailButton && widget.icon == SailSVGAsset.iconTabBmm,
 );
 
+final Finder _openWindowButton = find.byWidgetPredicate(
+  (widget) => widget is SailButton && widget.icon == SailSVGAsset.externalLink,
+);
+
 final Finder _startMenuButton = find.byWidgetPredicate(
   (widget) => widget is SailButton && widget.icon == SailSVGAsset.chevronDown,
 );
@@ -349,7 +353,7 @@ void main() {
       await pumpTable(tester);
 
       expect(_button('Stop'), findsOneWidget);
-      expect(_button('Open window'), findsNothing);
+      expect(_openWindowButton, findsNothing);
       expect(_startMenuButton, findsNothing);
     });
 
@@ -358,14 +362,13 @@ void main() {
       thunderRPC.setConnected(true);
       await pumpTable(tester);
 
-      final openWindow = _buttonWidget(tester, 'Open window');
-      expect(openWindow.variant, ButtonVariant.outline);
-      expect(openWindow.icon, SailSVGAsset.externalLink);
-      expect(tester.getRect(_button('Open window')).right, lessThan(tester.getRect(_button('Stop')).left));
+      expect(tester.widget<SailButton>(_openWindowButton).variant, ButtonVariant.icon);
+      expect(_tooltip('Open window'), findsOneWidget);
+      expect(tester.getRect(_openWindowButton).right, lessThan(tester.getRect(_button('Stop')).left));
       expect(tester.getRect(_button('Deposit')).right, lessThanOrEqualTo(tester.getRect(find.byType(SailTable)).right));
       expect(tester.takeException(), isNull);
 
-      await tapButton(tester, _button('Open window'));
+      await tapButton(tester, _openWindowButton);
       expect(orchestrator.starts, [('thunder', false)]);
     });
 
@@ -431,9 +434,22 @@ void main() {
 
         expect(_button(running ? 'Stop' : 'Start'), findsOneWidget);
         expect(_startMenuButton, findsNothing);
-        expect(_button('Open window'), findsNothing);
+        expect(_openWindowButton, findsNothing);
       });
     }
+
+    testWidgets('a 1075 px window keeps Open window and Stop in view', (tester) async {
+      setUpChain(_thunder());
+      thunderRPC.setConnected(true);
+      await pumpTable(tester, narrow: true);
+      await tester.binding.setSurfaceSize(const Size(1075, 720));
+      await tester.pumpAndSettle();
+
+      final table = tester.getRect(find.byType(SailTable));
+      expect(tester.getRect(_openWindowButton).right, lessThanOrEqualTo(table.right));
+      expect(tester.getRect(_button('Stop')).right, lessThanOrEqualTo(table.right));
+      expect(tester.takeException(), isNull);
+    });
   });
 
   testWidgets('a running CoinShift shows its balance, not a dash', (tester) async {

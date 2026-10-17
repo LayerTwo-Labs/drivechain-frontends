@@ -821,7 +821,7 @@ const EdgeInsets _slotHeaderPadding = EdgeInsets.only(
 /// The Update control is an icon, so an update keeps the actions column short.
 const double _updateButtonWidth = 32;
 
-const double _openWindowButtonWidth = 120;
+const double _openWindowButtonWidth = 32;
 
 const double _startMenuButtonWidth = 32;
 
@@ -1478,12 +1478,22 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (isRunning) {
       final openWindow = _offersOpenWindow(sidechain)
-          ? SailButton(
-              key: ValueKey('open_window_slot_${sidechain.slot}_${sidechain.name}'),
-              label: 'Open window',
-              icon: SailSVGAsset.externalLink,
-              variant: ButtonVariant.outline,
-              onPressed: () async => _binaryProvider.start(sidechain),
+          ? SailTooltip(
+              message: 'Open window',
+              child: SizedBox.square(
+                dimension: _openWindowButtonWidth,
+                child: Semantics(
+                  button: true,
+                  label: 'Open window',
+                  child: SailButton(
+                    key: ValueKey('open_window_slot_${sidechain.slot}_${sidechain.name}'),
+                    icon: SailSVGAsset.externalLink,
+                    variant: ButtonVariant.icon,
+                    small: true,
+                    onPressed: () async => _binaryProvider.start(sidechain),
+                  ),
+                ),
+              ),
             )
           : null;
       // A sync must never take the place of Stop: closing the chain's own
