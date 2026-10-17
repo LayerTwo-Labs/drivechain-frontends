@@ -12,7 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
-func TestWalletStatus(t *testing.T) {
+func TestWalletStatusAndUnlockCodes(t *testing.T) {
 	ctx := context.Background()
 	svc := wallet.NewService(t.TempDir(), zerolog.Nop())
 	require.NoError(t, svc.Init())
@@ -24,6 +24,10 @@ func TestWalletStatus(t *testing.T) {
 		resp, err := h.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
 		require.NoError(t, err)
 		return resp.Msg
+	}
+	unlock := func(password string) connect.Code {
+		_, err := h.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: password}))
+		return connect.CodeOf(err)
 	}
 
 	s := status()
@@ -37,6 +41,7 @@ func TestWalletStatus(t *testing.T) {
 	require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, s.State)
 	require.True(t, s.HasWallet) //nolint:staticcheck // old apps read it
 	require.True(t, s.Unlocked)  //nolint:staticcheck // old apps read it
+	require.Equal(t, connect.CodeFailedPrecondition, unlock("any"))
 
 	require.NoError(t, svc.EncryptWallet("pass"))
 	svc.LockWallet()
@@ -45,6 +50,7 @@ func TestWalletStatus(t *testing.T) {
 	require.True(t, s.HasWallet) //nolint:staticcheck // old apps read it
 	require.False(t, s.Unlocked) //nolint:staticcheck // old apps read it
 
+	require.Equal(t, connect.CodeUnauthenticated, unlock("wrong"))
 	_, err = h.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: "pass"}))
 	require.NoError(t, err)
 	require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, status().State)
