@@ -1,4 +1,6 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sail_ui/sail_ui.dart' show SailColorScheme, SailFontValues, SailTheme, SailThemeData, SailThemeStyle;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
@@ -58,8 +60,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('All'), findsOneWidget);
-      expect(find.text('LIVE'), findsWidgets);
-      expect(find.text('RESOLVED'), findsOneWidget);
+      expect(find.text('Live'), findsWidgets);
+      expect(find.text('Resolved'), findsOneWidget);
       expect(find.text('bitcoin'), findsOneWidget);
       expect(find.text('price'), findsOneWidget);
     });
@@ -70,6 +72,20 @@ void main() {
 
       expect(find.text('Buy Yes'), findsWidgets);
       expect(find.text('65%'), findsWidgets);
+    });
+
+    testWidgets('under the eCash theme a page button keeps its case and the regular weight', (tester) async {
+      await tester.pumpSailPage(
+        SailTheme(
+          data: SailThemeData.darkTheme(SailColorScheme.orange, false, SailFontValues.ibmMono, SailThemeStyle.ecash),
+          child: const MarketExplorerPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('CREATE MARKET'), findsNothing);
+      final label = tester.widgetList<Text>(find.text('Create market')).first;
+      expect(label.style?.fontWeight, FontWeight.w400);
     });
 
     test('provider loads markets successfully', () async {

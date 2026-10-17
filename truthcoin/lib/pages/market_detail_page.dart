@@ -72,6 +72,7 @@ class MarketDetailPage extends StatelessWidget {
                 children: [
                   SailText.primary15(model.marketError ?? 'Market not found'),
                   SailButton(
+                    plainLabel: true,
                     label: 'Try again',
                     small: true,
                     onPressed: () async => model.load(),
@@ -144,6 +145,7 @@ class _BackRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         SailButton(
+          plainLabel: true,
           label: '←  Markets',
           variant: ButtonVariant.link,
           small: true,
@@ -153,6 +155,7 @@ class _BackRow extends StatelessWidget {
         ),
         const Spacer(),
         SailButton(
+          plainLabel: true,
           label: 'Refresh',
           variant: ButtonVariant.secondary,
           small: true,
@@ -171,7 +174,6 @@ class _MarketHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
     final formatter = GetIt.I.get<FormatterProvider>();
 
     return SailCard(
@@ -182,21 +184,11 @@ class _MarketHeaderCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.max,
           children: [
-            Container(
-              height: 48,
-              width: 48,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.colors.backgroundSecondary,
-                borderRadius: SailStyleValues.borderRadius,
-              ),
-              child: SailText.primary15(marketInitials(market.title), bold: true),
-            ),
             Expanded(
               child: SailColumn(
                 spacing: SailStyleValues.padding08,
                 children: [
-                  SailText.primary22(market.title, bold: true),
+                  SailText.primary24(market.title, bold: true),
                   Wrap(
                     spacing: SailStyleValues.padding10,
                     runSpacing: SailStyleValues.padding04,
@@ -255,8 +247,7 @@ class _OutcomePricesCard extends StatelessWidget {
                     SizedBox(
                       width: 160,
                       child: SailText.primary14(
-                        outcome.name,
-                        bold: true,
+                        outcome.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -269,7 +260,7 @@ class _OutcomePricesCard extends StatelessWidget {
                     ),
                     SizedBox(
                       width: 60,
-                      child: SailText.primary13(formatChance(outcome.currentPrice), bold: true),
+                      child: SailText.primary13(formatChance(outcome.currentPrice)),
                     ),
                     SizedBox(
                       width: 110,
@@ -363,7 +354,6 @@ class _RulesCard extends StatelessWidget {
           spacing: SailStyleValues.padding12,
           children: [
             SailText.primary13(market.description),
-            const SailSeparator(),
             Wrap(
               spacing: SailStyleValues.padding25,
               runSpacing: SailStyleValues.padding12,
@@ -410,7 +400,6 @@ class _Fact extends StatelessWidget {
           SailText.secondary12(label),
           SailText.primary14(
             value.isEmpty ? '—' : value,
-            bold: true,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -466,7 +455,7 @@ class _HoldersCard extends StatelessWidget {
                           flex: 3,
                           child: SailText.primary13(holder.address, monospace: true),
                         ),
-                        Expanded(flex: 2, child: SailText.primary13(holder.position.outcomeName, bold: true)),
+                        Expanded(flex: 2, child: SailText.primary13(holder.position.outcomeName)),
                         Expanded(flex: 2, child: SailText.primary13('${holder.position.shares}')),
                         Expanded(
                           flex: 2,
@@ -480,7 +469,6 @@ class _HoldersCard extends StatelessWidget {
                           flex: 2,
                           child: SailText.primary13(
                             holder.position.pnlDisplay,
-                            bold: true,
                             color: holder.position.isProfit
                                 ? SailTheme.of(context).colors.success
                                 : SailTheme.of(context).colors.error,
@@ -590,7 +578,8 @@ class _TradePanel extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: SailButton(
-          label: outcome == null ? 'Buy' : 'Buy ${outcome.name}',
+          plainLabel: true,
+          label: outcome == null ? 'Buy' : 'Buy ${outcome.label}',
           loading: model.isExecuting,
           disabled: preview == null || model.buyCostsTooMuch,
           onPressed: () async => model.executeBuy(context),
@@ -640,6 +629,7 @@ class _TradePanel extends StatelessWidget {
             ),
           ),
           SailButton(
+            plainLabel: true,
             label: 'Max',
             variant: ButtonVariant.secondary,
             small: true,
@@ -661,7 +651,8 @@ class _TradePanel extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: SailButton(
-          label: outcome == null ? 'Sell' : 'Sell ${outcome.name}',
+          plainLabel: true,
+          label: outcome == null ? 'Sell' : 'Sell ${outcome.label}',
           variant: ButtonVariant.destructive,
           loading: model.isExecuting,
           disabled: preview == null || model.sellShares > model.sellerShares,
@@ -696,7 +687,7 @@ class _OutcomeSelector extends StatelessWidget {
               child: _OutcomeChoice(
                 outcome: outcome,
                 selected: model.selectedOutcome?.index == outcome.index,
-                tone: outcome.name.toLowerCase() == 'no' ? OutcomeTone.no : OutcomeTone.yes,
+                tone: outcome.label.toLowerCase() == 'no' ? OutcomeTone.no : OutcomeTone.yes,
                 onTap: () => model.selectOutcome(outcome),
               ),
             ),
@@ -714,7 +705,7 @@ class _OutcomeSelector extends StatelessWidget {
             for (final outcome in outcomes)
               SailDropdownItem<int>(
                 value: outcome.index,
-                label: '${outcome.name}  ${formatChance(outcome.currentPrice)}',
+                label: '${outcome.label}  ${formatChance(outcome.currentPrice)}',
               ),
           ],
           onChanged: (index) {
@@ -765,7 +756,7 @@ class _OutcomeChoice extends StatelessWidget {
           spacing: 0,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SailText.primary15(outcome.name, bold: true, color: selected ? color : theme.colors.text),
+            SailText.primary15(outcome.label, color: selected ? color : theme.colors.text),
             SailText.secondary12(formatChance(outcome.currentPrice)),
           ],
         ),
@@ -798,7 +789,7 @@ class _SummaryBox extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 Expanded(child: SailText.secondary12(row.$1)),
-                SailText.primary13(row.$2, bold: true),
+                SailText.primary13(row.$2),
               ],
             ),
         ],
@@ -849,7 +840,7 @@ class _FactRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         Expanded(child: SailText.secondary13(label)),
-        SailText.primary13(value, bold: true),
+        SailText.primary13(value),
       ],
     );
   }
@@ -884,7 +875,7 @@ class _PriceCardState extends State<_PriceCard> {
     final lead = selected != null && outcomes.any((outcome) => outcome.index == selected.index)
         ? outcomes.firstWhere((outcome) => outcome.index == selected.index)
         : outcomes.firstWhere(
-            (outcome) => shortOutcomeLabel(outcome.name).toLowerCase() == 'yes',
+            (outcome) => outcome.label.toLowerCase() == 'yes',
             orElse: () => outcomes.last,
           );
     final other = outcomes.length == 2 ? outcomes.firstWhere((outcome) => outcome != lead) : null;
@@ -909,21 +900,20 @@ class _PriceCardState extends State<_PriceCard> {
                 spacing: SailStyleValues.padding08,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  SailText.primary24(
-                    '${shortOutcomeLabel(lead.name)} ${formatChance(lead.currentPrice)}',
+                  SailText.primary22(
+                    '${lead.label} ${formatChance(lead.currentPrice)}',
                     bold: true,
                     color: lead.currentPrice >= 0.5 ? theme.colors.success : theme.colors.text,
                   ),
                   if (change != null && change.abs() >= 1)
                     SailText.primary13(
                       '${change > 0 ? '+' : ''}${change.round()} pts today',
-                      bold: true,
                       color: change > 0 ? theme.colors.success : theme.colors.error,
                     ),
                 ],
               ),
               SailText.secondary12(
-                other == null ? age : '${shortOutcomeLabel(other.name)} ${formatChance(other.currentPrice)}  ·  $age',
+                other == null ? age : '${other.label} ${formatChance(other.currentPrice)}  ·  $age',
               ),
             ],
           );

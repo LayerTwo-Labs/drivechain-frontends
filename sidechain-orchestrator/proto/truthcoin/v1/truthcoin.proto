@@ -671,7 +671,7 @@ message VotecoinBalanceRequest {
 }
 
 message VotecoinBalanceResponse {
-  int64 balance = 1;
+  double balance = 1;
 }
 
 // TransferVotecoin

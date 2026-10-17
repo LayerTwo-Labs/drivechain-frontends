@@ -283,8 +283,14 @@ func (h *Handler) MyUnconfirmedUtxos(ctx context.Context, req *connect.Request[p
 // --- Prediction Markets ---
 
 func (h *Handler) CalculateInitialLiquidity(ctx context.Context, req *connect.Request[pb.CalculateInitialLiquidityRequest]) (*connect.Response[pb.CalculateInitialLiquidityResponse], error) {
-	params := []any{req.Msg.Beta, req.Msg.NumOutcomes, req.Msg.Dimensions}
-	raw, err := h.proxy.Client.CallRaw(ctx, "calculate_initial_liquidity", params)
+	request := map[string]any{"beta": req.Msg.Beta}
+	if req.Msg.NumOutcomes != nil {
+		request["num_outcomes"] = *req.Msg.NumOutcomes
+	}
+	if req.Msg.Dimensions != nil {
+		request["dimensions"] = *req.Msg.Dimensions
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "calculate_initial_liquidity", []any{request})
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +339,7 @@ func (h *Handler) MarketGet(ctx context.Context, req *connect.Request[pb.MarketG
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketGetResponse{MarketJson: string(raw)}), nil
+	return connect.NewResponse(&pb.MarketGetResponse{MarketJson: optionalJSON(raw)}), nil
 }
 
 func (h *Handler) MarketBuy(ctx context.Context, req *connect.Request[pb.MarketBuyRequest]) (*connect.Response[pb.MarketBuyResponse], error) {
@@ -538,7 +544,7 @@ func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.
 }
 
 func (h *Handler) VotecoinBalance(ctx context.Context, req *connect.Request[pb.VotecoinBalanceRequest]) (*connect.Response[pb.VotecoinBalanceResponse], error) {
-	var balance int64
+	var balance float64
 	if err := h.proxy.Client.Call(ctx, "votecoin_balance", []any{req.Msg.Address}, &balance); err != nil {
 		return nil, err
 	}

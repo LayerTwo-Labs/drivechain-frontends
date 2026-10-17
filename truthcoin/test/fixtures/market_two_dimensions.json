@@ -1,0 +1,87 @@
+{
+  "market_id": "5e5ed0d19c4f",
+  "title": "eCash DAA and Block Time by January 1, 2027",
+  "description": "Will eCash (ECX) implement a difficulty adjustment algorithm (DAA) that differs from Bitcoin's, and will its average block time be under 20 minutes over the final 2,016 blocks mined before January 1, 2027",
+  "tags": [],
+  "creator_address": "3XgPhux7Z1YFTEjMoR8bqWTCTJUV",
+  "created_at_height": 540,
+  "expires_at_height": null,
+  "dimensions": [
+    {
+      "dimension_index": 0,
+      "decision_id": "870000",
+      "name": "Will eCash use a different DAA than Bitcoin by Jan 1, 2027?",
+      "kind": {
+        "type": "binary",
+        "lower_label": "No",
+        "upper_label": "Yes"
+      }
+    },
+    {
+      "dimension_index": 1,
+      "decision_id": "870001",
+      "name": "Will eCash avg block time be under 20 min by Jan 1, 2027?",
+      "kind": {
+        "type": "binary",
+        "lower_label": "No",
+        "upper_label": "Yes"
+      }
+    }
+  ],
+  "outcomes": [
+    {
+      "outcome_index": 0,
+      "label": "Will eCash use a different DAA than Bitcoin by Jan 1, 2027?: No, Will eCash avg block time be under 20 min by Jan 1, 2027?: No",
+      "price": 0.14354427275850792,
+      "volume_sats": 0,
+      "full_state_index": 0,
+      "coordinates": [
+        0,
+        0
+      ]
+    },
+    {
+      "outcome_index": 1,
+      "label": "Will eCash use a different DAA than Bitcoin by Jan 1, 2027?: No, Will eCash avg block time be under 20 min by Jan 1, 2027?: Yes",
+      "price": 0.5693671817244762,
+      "volume_sats": 85430943,
+      "full_state_index": 1,
+      "coordinates": [
+        0,
+        1
+      ]
+    },
+    {
+      "outcome_index": 2,
+      "label": "Will eCash use a different DAA than Bitcoin by Jan 1, 2027?: Yes, Will eCash avg block time be under 20 min by Jan 1, 2027?: No",
+      "price": 0.14354427275850792,
+      "volume_sats": 0,
+      "full_state_index": 3,
+      "coordinates": [
+        1,
+        0
+      ]
+    },
+    {
+      "outcome_index": 3,
+      "label": "Will eCash use a different DAA than Bitcoin by Jan 1, 2027?: Yes, Will eCash avg block time be under 20 min by Jan 1, 2027?: Yes",
+      "price": 0.14354427275850792,
+      "volume_sats": 0,
+      "full_state_index": 4,
+      "coordinates": [
+        1,
+        1
+      ]
+    }
+  ],
+  "state": "trading",
+  "beta": 153214213.3424079,
+  "liquidity_base_sats": 212400000,
+  "treasury_sats": 297405913,
+  "total_volume_sats": 85430943,
+  "trading_fee_rate": 0.005,
+  "resolution": null,
+  "tx_pow_hash_selector": 0,
+  "tx_pow_ordering": 0,
+  "tx_pow_difficulty": 0
+}

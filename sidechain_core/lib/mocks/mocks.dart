@@ -854,7 +854,7 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<int> votecoinBalance(String address) {
+  Future<double> votecoinBalance(String address) {
     return Future.value(0);
   }
 

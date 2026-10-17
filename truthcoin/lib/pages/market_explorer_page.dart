@@ -10,7 +10,7 @@ import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/routing/router.dart';
 import 'package:truthcoin/widgets/market_card.dart';
 
-const double _cardGap = SailStyleValues.padding16;
+const double _cardGap = 24;
 const int _maxCardsPerRow = 3;
 
 /// A card holds its content at this width.
@@ -59,7 +59,7 @@ class _HeaderSection extends StatelessWidget {
         spacing: SailStyleValues.padding04,
         children: [
           SailText.primary24('Prediction markets', bold: true),
-          SailText.secondary13(
+          SailText.secondary12(
             '${model.totalMarkets} markets  ·  ${model.activeMarkets} live  ·  '
             '${formatter.formatBTC(model.totalVolumeBTC)} traded',
           ),
@@ -105,6 +105,7 @@ class _HeaderSection extends StatelessWidget {
             ),
           ),
           SailButton(
+            plainLabel: true,
             label: 'Refresh',
             variant: ButtonVariant.secondary,
             small: true,
@@ -112,6 +113,7 @@ class _HeaderSection extends StatelessWidget {
             onPressed: () async => model.loadMarkets(refresh: true),
           ),
           SailButton(
+            plainLabel: true,
             label: 'Create market',
             icon: SailSVGAsset.plus,
             small: true,
@@ -208,7 +210,6 @@ class _FilterChip extends StatelessWidget {
         ),
         child: SailText.primary12(
           label,
-          bold: selected,
           color: selected ? theme.colors.background : theme.colors.textSecondary,
         ),
       ),
@@ -242,6 +243,7 @@ class _MarketGrid extends StatelessWidget {
           children: [
             SailText.primary15(model.marketError!),
             SailButton(
+              plainLabel: true,
               label: 'Try again',
               small: true,
               onPressed: () async => model.loadMarkets(refresh: true),
@@ -260,6 +262,7 @@ class _MarketGrid extends StatelessWidget {
           children: [
             SailText.secondary15('No market matches the filter'),
             SailButton(
+              plainLabel: true,
               label: 'Create the first market',
               small: true,
               onPressed: () async => model.openCreateMarket(),

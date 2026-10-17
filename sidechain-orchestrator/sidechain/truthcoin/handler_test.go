@@ -158,3 +158,49 @@ func TestVerifySignatureSendsSignatureFirst(t *testing.T) {
 	require.Len(t, *params, 1)
 	assert.JSONEq(t, `["0xsig","ba-svk1key","arbitrary","the message"]`, string((*params)[0]))
 }
+
+func TestCalculateInitialLiquiditySendsRequestObject(t *testing.T) {
+	h, params := capturingRPC(t, `{"beta":7.0,"num_outcomes":2,"initial_liquidity_sats":5,"min_treasury_sats":5,"market_config":"1 dimensions","outcome_breakdown":"binary(2) = 2 outcomes"}`)
+
+	dimensions := "[870000]"
+	resp, err := h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+		Beta:       7,
+		Dimensions: &dimensions,
+	}))
+	require.NoError(t, err)
+	assert.Contains(t, resp.Msg.ResultJson, `"initial_liquidity_sats":5`)
+
+	require.Len(t, *params, 1)
+	assert.JSONEq(t, `[{"beta": 7.0, "dimensions": "[870000]"}]`, string((*params)[0]))
+}
+
+func TestCalculateInitialLiquiditySendsOutcomeCount(t *testing.T) {
+	h, params := capturingRPC(t, `{"beta":7.0,"num_outcomes":3,"initial_liquidity_sats":8,"min_treasury_sats":8,"market_config":"","outcome_breakdown":""}`)
+
+	numOutcomes := int32(3)
+	_, err := h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+		Beta:        7,
+		NumOutcomes: &numOutcomes,
+	}))
+	require.NoError(t, err)
+
+	require.Len(t, *params, 1)
+	assert.JSONEq(t, `[{"beta": 7.0, "num_outcomes": 3}]`, string((*params)[0]))
+}
+
+// The node reports Votecoin as a fraction of the supply.
+func TestVotecoinBalanceReadsFraction(t *testing.T) {
+	h, _ := capturingRPC(t, `0.25`)
+
+	resp, err := h.VotecoinBalance(context.Background(), connect.NewRequest(&pb.VotecoinBalanceRequest{Address: "3dWL5oSH54rxzXbU5RVi7bBkeuWd"}))
+	require.NoError(t, err)
+	assert.Equal(t, 0.25, resp.Msg.Balance)
+}
+
+func TestMarketGetUnknownMarketIsEmpty(t *testing.T) {
+	h, _ := capturingRPC(t, `null`)
+
+	resp, err := h.MarketGet(context.Background(), connect.NewRequest(&pb.MarketGetRequest{MarketId: "9f843b33f009"}))
+	require.NoError(t, err)
+	assert.Empty(t, resp.Msg.MarketJson)
+}

@@ -41,7 +41,8 @@ class TradingPositionWidget extends StatelessWidget {
                     SailText.secondary15('No positions yet'),
                     const SizedBox(height: 8),
                     SailButton(
-                      label: 'Browse Markets',
+                      plainLabel: true,
+                      label: 'Browse markets',
                       small: true,
                       onPressed: () async {
                         await openMarketsRoute(const MarketExplorerRoute());
@@ -159,6 +160,7 @@ class TradingPositionWidget extends StatelessWidget {
                     children: [
                       SailText.secondary12('${holdings.activeMarkets} active markets'),
                       SailButton(
+                        plainLabel: true,
                         label: 'Refresh',
                         small: true,
                         onPressed: () async => model.refresh(),

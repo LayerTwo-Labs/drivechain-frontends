@@ -100,7 +100,7 @@ void main() {
 
         expect(votingProvider.currentVoter, isNotNull);
         expect(votingProvider.currentVoter!.isActive, true);
-        expect(votingProvider.currentVoter!.votecoinBalance, 1000);
+        expect(votingProvider.currentVoter!.votecoinBalance, 0.25);
         expect(votingProvider.currentVoter!.totalVotes, 156);
       });
 

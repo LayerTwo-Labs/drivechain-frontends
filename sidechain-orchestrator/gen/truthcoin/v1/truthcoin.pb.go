@@ -4389,7 +4389,7 @@ func (x *VotecoinBalanceRequest) GetAddress() string {
 
 type VotecoinBalanceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Balance       int64                  `protobuf:"varint,1,opt,name=balance,proto3" json:"balance,omitempty"`
+	Balance       float64                `protobuf:"fixed64,1,opt,name=balance,proto3" json:"balance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4424,7 +4424,7 @@ func (*VotecoinBalanceResponse) Descriptor() ([]byte, []int) {
 	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{95}
 }
 
-func (x *VotecoinBalanceResponse) GetBalance() int64 {
+func (x *VotecoinBalanceResponse) GetBalance() float64 {
 	if x != nil {
 		return x.Balance
 	}
@@ -5494,7 +5494,7 @@ const file_truthcoin_v1_truthcoin_proto_rawDesc = "" +
 	"\x16VotecoinBalanceRequest\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\"3\n" +
 	"\x17VotecoinBalanceResponse\x12\x18\n" +
-	"\abalance\x18\x01 \x01(\x03R\abalance\"\x82\x01\n" +
+	"\abalance\x18\x01 \x01(\x01R\abalance\"\x82\x01\n" +
 	"\x17TransferVotecoinRequest\x12\x12\n" +
 	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x19\n" +
