@@ -8,6 +8,9 @@ import 'package:truthcoin/models/voting.dart';
 /// the LMSR price of a share is also its chance.
 String formatChance(double price) => '${(price * 100).round()}%';
 
+/// The line under the top outcomes that names how many the card leaves out.
+String moreOutcomesText(int count) => count == 1 ? '1 more outcome' : '$count more outcomes';
+
 /// Two letters that stand for the market, taken from the title.
 String marketInitials(String title) {
   final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
@@ -63,10 +66,12 @@ class MarketCard extends StatelessWidget {
     final theme = SailTheme.of(context);
     final formatter = GetIt.I.get<FormatterProvider>();
 
-    return SailTappable(
-      onTap: () async => onTap(),
-      borderRadius: SailStyleValues.borderRadius,
-      child: SailCard(
+    // The tap target sits inside the card: the selection area of SailCard
+    // wins a tap over a detector around it.
+    return SailCard(
+      child: SailTappable(
+        onTap: () async => onTap(),
+        borderRadius: SailStyleValues.borderRadius,
         child: SailColumn(
           spacing: SailStyleValues.padding12,
           children: [
@@ -253,7 +258,11 @@ class MarketCard extends StatelessWidget {
               ),
             ],
           ),
-        if (byPrice.length > 3) SailText.secondary12('${byPrice.length - 3} more outcomes'),
+        if (byPrice.length > 3)
+          SailTappable(
+            onTap: () async => onTap(),
+            child: SailText.secondary12(moreOutcomesText(byPrice.length - 3)),
+          ),
       ],
     );
   }
