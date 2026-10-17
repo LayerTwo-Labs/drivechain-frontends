@@ -83,26 +83,7 @@ func actualGetDatabase(
 	return db, tmpfile.Name(), nil
 }
 
-// Ihe idea is to extract out the go file path of the package under test,
-// by looking at the callstack. The stack is going to look something like this:
-//
-//	  debug.Stack()
-//	  getPackageUnderTest() 			- this function
-//	  Test() 			   			- the root function in this package
-//	 								  that's being called
-//	  TestNameOfTest(t *testing.T) 	- the test function that invokes the DB
-//										  creation function
-//
-// If we then get the file path of the TestNameOfTest function, we can extract
-// the package name. That file path is going to look something like this:
-//
-//	/home/torkel/some/folder/bb/this/is/the/interesting/part_test.go
-//
-// The first part of the path (/home/torkel/some/folder/bb) is going to be the
-// same for both the interesting file, and the files in this package. If we
-// then remove the common prefix, we're left with the folder path of the
-// package we're interested in. Remove the last segment (the file) and replace
-// slashes with underscores, and we're finished.
+// getPackageUnderTest names the package of the first caller outside this package, from the call stack.
 func getPackageUnderTest() string {
 	firstNonDbFile := firstNonDbCaller(debug.Stack())
 	localPartSegments := strings.Split(firstNonDbFile, string(os.PathSeparator))

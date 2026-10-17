@@ -306,12 +306,3 @@ func sortByStrategy(utxos []*walletpb.UnspentOutput, strategy walletpb.CoinSelec
 		})
 	}
 }
-
-// EstimateFee estimates transaction fee for given parameters
-func EstimateFee(inputCount int, numOutputs int, feeSatsPerVbyte int64) int64 {
-	if numOutputs <= 0 {
-		numOutputs = 2
-	}
-	vsize := int64(OverheadVbytes + (inputCount * InputVbytes) + (numOutputs * OutputVbytes))
-	return vsize * feeSatsPerVbyte
-}

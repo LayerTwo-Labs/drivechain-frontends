@@ -123,14 +123,13 @@ type Runtime struct {
 	coinnewsLog *os.File
 }
 
-// coinnewsLogPath returns the coinnews log of the active network.
 func coinnewsLogPath(conf config.Config) string {
 	return filepath.Join(conf.Datadir, "coinnews-sync.log")
 }
 
 // buildRuntime opens the network-scoped DB, instantiates engines, and
 // registers all Connect sub-handlers on a fresh mux. Engines are NOT
-// started — call rt.Start to kick goroutines off.
+// started — call rt.Start to start them.
 func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID string) (*Runtime, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -516,7 +515,7 @@ func (rt *Runtime) Handler() http.Handler {
 }
 
 // Close cancels engines, waits for goroutines, drains in-flight request
-// handlers, then closes the DB. Safe to call once. Subsequent calls are no-ops.
+// handlers, then closes the DB.
 func (rt *Runtime) Close() {
 	rt.stopEngines()
 
