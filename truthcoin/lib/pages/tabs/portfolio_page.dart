@@ -65,6 +65,7 @@ class _Header extends StatelessWidget {
           ),
         ),
         SailButton(
+          plainLabel: true,
           label: 'Refresh',
           variant: ButtonVariant.secondary,
           small: true,
@@ -72,6 +73,7 @@ class _Header extends StatelessWidget {
           onPressed: () async => model.load(),
         ),
         SailButton(
+          plainLabel: true,
           label: 'Markets',
           small: true,
           onPressed: () async => model.openMarkets(context),
@@ -150,7 +152,7 @@ class _PositionsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SailText.primary15(model.loadError!),
-            SailButton(label: 'Try again', small: true, onPressed: () async => model.load()),
+            SailButton(plainLabel: true, label: 'Try again', small: true, onPressed: () async => model.load()),
           ],
         ),
       );
@@ -165,6 +167,7 @@ class _PositionsCard extends StatelessWidget {
           children: [
             SailText.secondary15('You hold no share yet'),
             SailButton(
+              plainLabel: true,
               label: 'Open the markets',
               small: true,
               onPressed: () async => model.openMarkets(context),
@@ -216,6 +219,7 @@ class _PositionsCard extends StatelessWidget {
               SailTableCell(
                 value: 'Trade',
                 child: SailButton(
+                  plainLabel: true,
                   label: 'Trade',
                   small: true,
                   insideTable: true,

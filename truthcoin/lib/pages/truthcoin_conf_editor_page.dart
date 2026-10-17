@@ -48,7 +48,8 @@ class _TruthcoinConfEditorPageContent extends StatelessWidget {
                     children: [
                       // Reset to default button
                       SailButton(
-                        label: 'Reset to Default',
+                        plainLabel: true,
+                        label: 'Reset to default',
                         variant: ButtonVariant.secondary,
                         onPressed: () async {
                           viewModel.resetToDefault();
@@ -57,6 +58,7 @@ class _TruthcoinConfEditorPageContent extends StatelessWidget {
                       const SailSpacing(SailStyleValues.padding12),
                       // Reset button
                       SailButton(
+                        plainLabel: true,
                         label: 'Reset',
                         variant: ButtonVariant.secondary,
                         disabled: !viewModel.hasUnsavedChanges,
@@ -67,6 +69,7 @@ class _TruthcoinConfEditorPageContent extends StatelessWidget {
                       const SailSpacing(SailStyleValues.padding12),
                       // Save button
                       SailButton(
+                        plainLabel: true,
                         label: 'Save',
                         loading: viewModel.isLoading,
                         disabled: !viewModel.hasUnsavedChanges,
@@ -159,6 +162,7 @@ class _MainContent extends StatelessWidget {
             ),
             const SailSpacing(SailStyleValues.padding20),
             SailButton(
+              plainLabel: true,
               label: 'Retry',
               onPressed: () async {
                 await viewModel.loadConfig();
