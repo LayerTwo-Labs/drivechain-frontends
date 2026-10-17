@@ -2116,16 +2116,20 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	if o.process.IsRunning(config.Name) {
 		o.log.Info().Str("binary", config.Name).Msg("process already running, waiting for connection")
 		ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s...", config.DisplayName)}
-		if err := waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name)); err != nil {
+		err := waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name))
+		switch {
+		case err == nil:
+			if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
+				failBoot(targetMon, ch, "wallet for "+config.Name, err)
+				return
+			}
+			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+			return
+		case !refusesOldDB(config, err):
 			failBoot(targetMon, ch, "wait for "+config.Name, err)
 			return
 		}
-		if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
-			failBoot(targetMon, ch, "wallet for "+config.Name, err)
-			return
-		}
-		ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
-		return
+		// A refused old database goes on to the start below, which parks it.
 	}
 
 	if err := o.appendSidechainArgs(ctx, config, &opts); err != nil {
@@ -2160,17 +2164,29 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		o.exitedFunc(config.Name),
 	)
 
-	// Another caller that starts the same binary owns the start, so this one waits for it.
-	if _, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts); err != nil && !errors.Is(err, ErrAlreadyRunning) {
-		failBoot(targetMon, ch, "start "+config.Name, err)
-		return
-	}
-	targetProc := o.process.Get(config.Name)
-
-	ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
-	if err := waitForConnectedOrExit(ctx, targetMon, targetProc); err != nil {
-		failBoot(targetMon, ch, "wait for "+config.Name, err)
-		return
+	// A refused old database is parked, and the binary starts again on a new one.
+	parkedDBs := map[string]bool{}
+	for attempt := 0; ; attempt++ {
+		stage := "start " + config.Name
+		// Another caller that starts the same binary owns the start, so this one waits for it.
+		_, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts)
+		if err == nil || errors.Is(err, ErrAlreadyRunning) {
+			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
+			stage = "wait for " + config.Name
+			err = waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name))
+		}
+		if err == nil {
+			break
+		}
+		parked, parkErr := o.parkRefusedDB(config, err, parkedDBs)
+		if parkErr != nil {
+			failBoot(targetMon, ch, "park the old database of "+config.Name, parkErr)
+			return
+		}
+		if !parked || attempt >= maxRefusedDBRestarts {
+			failBoot(targetMon, ch, stage, err)
+			return
+		}
 	}
 
 	if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
