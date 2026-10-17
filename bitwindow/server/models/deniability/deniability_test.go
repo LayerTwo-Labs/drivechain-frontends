@@ -192,7 +192,7 @@ func TestDeniability(t *testing.T) {
 		require.ErrorIs(t, Cancel(t.Context(), db, 999, "reason"), ErrNotFound)
 		require.ErrorIs(t, Pause(t.Context(), db, 999), ErrNotFound)
 		require.ErrorIs(t, Resume(t.Context(), db, 999), ErrNotFound)
-		require.ErrorIs(t, Update(t.Context(), db, 999, time.Second, 1, "txid", 0), ErrNotFound)
+		require.ErrorIs(t, Update(t.Context(), db, 999, time.Second, 1, nil, "txid", 0), ErrNotFound)
 	})
 
 	t.Run("Pause of a paused denial and Resume of an active denial return ErrNotFound", func(t *testing.T) {
@@ -288,7 +288,7 @@ func TestDeniability(t *testing.T) {
 		require.NotNil(t, denial)
 
 		// Update the denial
-		err = Update(ctx, db, denial.ID, 2*time.Second, 1, "txid", 0)
+		err = Update(ctx, db, denial.ID, 2*time.Second, 1, TargetSizes{500}, "txid", 0)
 		require.NoError(t, err)
 
 		// Verify the update
@@ -296,6 +296,7 @@ func TestDeniability(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 2*time.Second, denial.DelayDuration)
 		require.Equal(t, int32(4), denial.NumHops) // 3 + 1
+		require.Equal(t, TargetSizes{500}, denial.TargetUTXOSizes)
 	})
 
 	t.Run("Get", func(t *testing.T) {
