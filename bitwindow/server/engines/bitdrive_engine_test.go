@@ -105,7 +105,7 @@ func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 		AnyTimes()
 
 	return &BitDriveEngine{
-		walletEngine: NewWalletEngine(t.Context(), nil, orch, t.TempDir(), &chaincfg.SigNetParams, nil),
+		walletEngine: NewWalletEngine(nil, orch, &chaincfg.SigNetParams, nil),
 		chainParams:  &chaincfg.SigNetParams,
 	}
 }
@@ -125,7 +125,7 @@ func TestEncrypt_ReadsTheSeedOneTime(t *testing.T) {
 		}), nil).
 		Times(1)
 	engine := &BitDriveEngine{
-		walletEngine: NewWalletEngine(t.Context(), nil, orch, t.TempDir(), &chaincfg.SigNetParams, nil),
+		walletEngine: NewWalletEngine(nil, orch, &chaincfg.SigNetParams, nil),
 		chainParams:  &chaincfg.SigNetParams,
 	}
 
@@ -451,10 +451,6 @@ func TestNewBitDriveEngine(t *testing.T) {
 func newStoreTestEngine(t *testing.T) (*BitDriveEngine, *[]string) {
 	t.Helper()
 
-	walletDir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"),
-		[]byte(`{"activeWalletId":"a","wallets":[{"id":"a","master":{"seed_hex":"00"}}]}`), 0o600))
-
 	var sent []string
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
@@ -475,7 +471,7 @@ func newStoreTestEngine(t *testing.T) (*BitDriveEngine, *[]string) {
 
 	noFrozenCoins := func(context.Context) ([]string, error) { return nil, nil }
 	return &BitDriveEngine{
-		walletEngine: NewWalletEngine(t.Context(), nil, orch, walletDir, &chaincfg.SigNetParams, noFrozenCoins),
+		walletEngine: NewWalletEngine(nil, openWalletClient{WalletManagerServiceClient: orch, wallet: &orchpb.WalletMetadata{Id: "a"}}, &chaincfg.SigNetParams, noFrozenCoins),
 		chainParams:  &chaincfg.SigNetParams,
 	}, &sent
 }

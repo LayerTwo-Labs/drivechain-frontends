@@ -382,12 +382,18 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 	// Wait for unlock
 	log.Debug().Msg("waiting for wallet unlock for cheque recovery")
 
-	for !e.walletEngine.IsUnlocked() {
+	for {
+		unlocked, err := e.walletEngine.IsUnlocked(ctx)
+		if err != nil {
+			log.Debug().Err(err).Msg("cheque recovery: read the wallet state")
+		}
+		if unlocked {
+			break
+		}
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(100 * time.Millisecond):
-			// Check again
+		case <-time.After(time.Second):
 		}
 	}
 

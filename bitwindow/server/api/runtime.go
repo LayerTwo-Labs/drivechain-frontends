@@ -165,9 +165,6 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		Str("datadir", conf.Datadir).
 		Msg("runtime db ready")
 
-	// WalletEngine wraps wallet.json on disk; auto-unlocks unencrypted wallets
-	// inside its constructor. Driven by walletDir which is shared across
-	// networks (not per-network).
 	orchClient := s.svcs.OrchestratorClient
 	if orchClient == nil {
 		// Seed-bearing client (GetWalletSeed) — attach the local-auth cookie.
@@ -178,12 +175,10 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		)
 	}
 	rt.walletEngine = engines.NewWalletEngine(
-		ctx,
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return s.Bitcoind.Get(ctx)
 		},
 		orchClient,
-		rt.walletDir,
 		rt.chainParams,
 		// A coin the user froze belongs to no send of ours: not a news
 		// broadcast, not a timestamp, not a BitDrive write.

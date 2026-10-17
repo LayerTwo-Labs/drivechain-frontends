@@ -3,12 +3,9 @@ package engines
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,7 +20,6 @@ import (
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 )
@@ -37,42 +33,43 @@ const (
 	WalletTypeElectrum    WalletType = "electrum"
 )
 
-// WalletInfo contains information about a wallet from wallet.json
+// WalletInfo is a wallet as the orchestrator lists it.
 type WalletInfo struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	WalletType WalletType `json:"wallet_type"`
-	Master     struct {
-		SeedHex string `json:"seed_hex"`
-	} `json:"master"`
-	L1 struct {
-		Mnemonic string `json:"mnemonic"`
-	} `json:"l1"`
-	WatchOnly *struct {
-		Descriptor string `json:"descriptor"`
-		Xpub       string `json:"xpub"`
-	} `json:"watch_only,omitempty"`
+	ID         string
+	Name       string
+	WalletType WalletType
+	WatchOnly  bool
 	// AccountIndex shifts the standard BIP84/BIP86 descriptors to this account.
 	// 0 = standard. Mutually exclusive with DerivationPath.
-	AccountIndex uint32 `json:"account_index,omitempty"`
+	AccountIndex uint32
 	// DerivationPath is an explicit account-level path (m/purpose'/coin'/account')
 	// overriding purpose/coin/account; empty = standard purposes at AccountIndex.
-	DerivationPath string `json:"derivation_path,omitempty"`
+	DerivationPath string
 	// ScriptType is the stored address kind; empty means native segwit.
-	ScriptType string `json:"script_type,omitempty"`
+	ScriptType string
 }
 
 // IsWatchOnly reports whether the wallet holds no signing key — it holds an
 // xpub/descriptor payload instead of a seed. Orthogonal to the provider type.
 func (w *WalletInfo) IsWatchOnly() bool {
-	return w.WatchOnly != nil
+	return w.WatchOnly
 }
 
-// WalletEngine handles wallet unlock/lock, backend routing, and Bitcoin Core sync.
-// Core wallet operations delegate to the orchestrator's WalletManagerService.
+func walletTypeFromProto(t orchpb.WalletType) WalletType {
+	switch t {
+	case orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE:
+		return WalletTypeBitcoinCore
+	case orchpb.WalletType_WALLET_TYPE_ELECTRUM:
+		return WalletTypeElectrum
+	case orchpb.WalletType_WALLET_TYPE_ENFORCER, orchpb.WalletType_WALLET_TYPE_UNSPECIFIED:
+	}
+	return WalletType(t.String())
+}
+
+// WalletEngine handles backend routing and Bitcoin Core sync. The wallets and
+// their lock state live in the orchestrator's WalletManagerService.
 type WalletEngine struct {
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error)
-	walletDir         string
 	chainParams       *chaincfg.Params
 
 	orchClient orchrpc.WalletManagerServiceClient
@@ -80,10 +77,7 @@ type WalletEngine struct {
 	// The one node-mode source every poller and gated RPC reads.
 	nodeMode *NodeMode
 
-	// Unlocked wallet state (in memory)
-	mu             sync.RWMutex
-	activeWalletID string
-	isUnlocked     bool
+	mu sync.RWMutex
 
 	// frozenCoins names the coins the user froze, so no send of ours takes one.
 	frozenCoins FrozenCoinsFunc
@@ -105,46 +99,24 @@ type WalletEngine struct {
 	// causing a queue of "wallet already loading" -4s while Core is busy.
 	ensureGroup singleflight.Group
 
-	// Cached wallet metadata (populated during unlock for encrypted wallets)
-	walletCache map[string]*WalletInfo
-
 	// Sync throttling
 	lastSync time.Time
 }
 
 func NewWalletEngine(
-	ctx context.Context,
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error),
 	orchClient orchrpc.WalletManagerServiceClient,
-	walletDir string,
 	chainParams *chaincfg.Params,
 	frozenCoins FrozenCoinsFunc,
 ) *WalletEngine {
-	e := &WalletEngine{
+	return &WalletEngine{
 		bitcoindConnector: bitcoindConnector,
 		orchClient:        orchClient,
-		walletDir:         walletDir,
 		chainParams:       chainParams,
 		frozenCoins:       frozenCoins,
-		isUnlocked:        false,
 		coreWallets:       make(map[string]string),
-		walletCache:       make(map[string]*WalletInfo),
 		nodeMode:          NewNodeMode(orchClient),
 	}
-	// Auto-unlock unencrypted wallets at startup
-	if !wallet.IsWalletEncrypted(walletDir) {
-		walletData, err := wallet.LoadUnencryptedWallet(walletDir)
-		switch {
-		case err == nil:
-			if unlockErr := e.Unlock(ctx, walletData); unlockErr != nil {
-				zerolog.Ctx(ctx).Warn().Err(unlockErr).Msg("unlock wallet engine")
-			}
-		case !errors.Is(err, os.ErrNotExist):
-			zerolog.Ctx(ctx).Warn().Err(err).Msg("load wallet for the wallet engine")
-		}
-	}
-
-	return e
 }
 
 // FrozenCoinsFunc names the coins the user froze, as txid:vout. Every send
@@ -228,107 +200,30 @@ func (e *WalletEngine) NodeMode() *NodeMode {
 // Unlock/Lock/State Management
 // ============================================================================
 
-// Unlock loads the wallet metadata into memory from decrypted wallet data.
-func (e *WalletEngine) Unlock(ctx context.Context, walletData map[string]any) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Handle multi-wallet structure: { version, activeWalletId, wallets: [...] }
-	wallets, ok := walletData["wallets"].([]any)
-	if !ok {
-		return errors.New("invalid wallet structure: missing wallets array")
+// Unlock opens the wallet in the orchestrator.
+func (e *WalletEngine) Unlock(ctx context.Context, password string) error {
+	_, err := e.orchClient.UnlockWallet(ctx, connect.NewRequest(&orchpb.UnlockWalletRequest{Password: password}))
+	if err != nil {
+		return fmt.Errorf("unlock wallet: %w", err)
 	}
-
-	if len(wallets) == 0 {
-		return errors.New("no wallets found in wallet.json")
-	}
-
-	// Get activeWalletID if present
-	activeWalletID, _ := walletData["activeWalletId"].(string)
-
-	// Find active wallet
-	var activeWallet map[string]any
-	var firstWallet map[string]any
-	var firstWalletID string
-	for _, w := range wallets {
-		wallet, ok := w.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		walletID, _ := wallet["id"].(string)
-
-		// Track first wallet as fallback
-		if firstWallet == nil {
-			firstWallet = wallet
-			firstWalletID = walletID
-		}
-
-		// If activeWalletID is set, use that specific wallet
-		if activeWalletID != "" && walletID == activeWalletID {
-			activeWallet = wallet
-			break
-		}
-	}
-
-	// The explicitly set activeWalletID wins; otherwise take the first wallet.
-	switch {
-	case activeWallet != nil:
-		// Already found by activeWalletID
-
-	case firstWallet != nil:
-		activeWallet = firstWallet
-		activeWalletID = firstWalletID
-
-	}
-
-	if activeWallet == nil {
-		return errors.New("no wallets found in wallets array")
-	}
-
-	// Cache all wallet metadata for encrypted wallets
-	log := zerolog.Ctx(ctx)
-	walletCache := make(map[string]*WalletInfo)
-	for i, w := range wallets {
-		walletMap, ok := w.(map[string]any)
-		if !ok {
-			log.Warn().Int("index", i).Msg("skip wallet entry that is not an object")
-			continue
-		}
-
-		walletBytes, err := json.Marshal(walletMap)
-		if err != nil {
-			return fmt.Errorf("encode wallet for cache: %w", err)
-		}
-
-		var walletInfo WalletInfo
-		if err := json.Unmarshal(walletBytes, &walletInfo); err != nil {
-			log.Warn().Err(err).Interface("wallet_id", walletMap["id"]).Msg("skip wallet entry that does not parse")
-			continue
-		}
-
-		walletCache[walletInfo.ID] = &walletInfo
-	}
-	e.walletCache = walletCache
-	e.activeWalletID = activeWalletID
-	e.isUnlocked = true
 	return nil
 }
 
-// Lock drops the in-memory wallet cache.
-func (e *WalletEngine) Lock() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.activeWalletID = ""
-	e.isUnlocked = false
-	e.walletCache = make(map[string]*WalletInfo)
+// Lock closes the wallet in the orchestrator.
+func (e *WalletEngine) Lock(ctx context.Context) error {
+	if _, err := e.orchClient.LockWallet(ctx, connect.NewRequest(&orchpb.LockWalletRequest{})); err != nil {
+		return fmt.Errorf("lock wallet: %w", err)
+	}
+	return nil
 }
 
-func (e *WalletEngine) IsUnlocked() bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.isUnlocked
+// IsUnlocked reports whether the orchestrator holds the wallets open.
+func (e *WalletEngine) IsUnlocked(ctx context.Context) (bool, error) {
+	resp, err := e.orchClient.GetWalletStatus(ctx, connect.NewRequest(&orchpb.GetWalletStatusRequest{}))
+	if err != nil {
+		return false, fmt.Errorf("get wallet status: %w", err)
+	}
+	return resp.Msg.State == orchpb.WalletState_WALLET_STATE_UNLOCKED, nil
 }
 
 // GetStarterSeed returns the seed hex of the wallet that derives the L1 and
@@ -367,36 +262,15 @@ func (e *WalletEngine) GetWalletSeed(ctx context.Context, walletID string) (stri
 	return resp.Msg.SeedHex, nil
 }
 
-// GetActiveWallet reads an encrypted wallet from the unlocked data in memory,
-// and an unencrypted wallet from wallet.json.
 func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error) {
-	var activeWalletID string
-
-	// Check if wallet is encrypted
-	if wallet.IsWalletEncrypted(e.walletDir) {
-		// For encrypted wallets, use the active wallet ID stored in memory
-		e.mu.RLock()
-		if !e.isUnlocked {
-			e.mu.RUnlock()
-			return nil, errors.New("wallet is encrypted and locked")
-		}
-		activeWalletID = e.activeWalletID
-		e.mu.RUnlock()
-	} else {
-		// For unencrypted wallets, read directly from wallet.json
-		walletData, err := wallet.LoadUnencryptedWallet(e.walletDir)
-		if err != nil {
-			return nil, fmt.Errorf("load wallet.json: %w", err)
-		}
-
-		id, ok := walletData["activeWalletId"].(string)
-		if !ok || id == "" {
-			return nil, errors.New("no active wallet ID found in wallet.json")
-		}
-		activeWalletID = id
+	wallets, activeID, err := e.listWallets(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	return e.GetWalletInfo(ctx, activeWalletID)
+	if activeID == "" {
+		return nil, errors.New("no active wallet")
+	}
+	return findWallet(wallets, activeID)
 }
 
 // ============================================================================
@@ -407,20 +281,25 @@ func (e *WalletEngine) GetChainParams() *chaincfg.Params {
 	return e.chainParams
 }
 
-// GetWalletInfo reads wallet.json and returns info for the specified walletID
+// GetWalletInfo returns the wallet with walletID.
 func (e *WalletEngine) GetWalletInfo(ctx context.Context, walletID string) (*WalletInfo, error) {
 	wallets, err := e.GetAllWallets(ctx)
 	if err != nil {
 		return nil, err
 	}
+	return findWallet(wallets, walletID)
+}
 
+func findWallet(wallets []WalletInfo, walletID string) (*WalletInfo, error) {
+	if len(wallets) == 0 {
+		return nil, errors.New("no wallet is unlocked")
+	}
 	walletInfo, ok := lo.Find(wallets, func(w WalletInfo) bool {
 		return w.ID == walletID
 	})
 	if !ok {
 		return nil, fmt.Errorf("wallet %s not found", walletID)
 	}
-
 	return &walletInfo, nil
 }
 
@@ -747,44 +626,29 @@ func (e *WalletEngine) SyncWallets(ctx context.Context) error {
 }
 
 func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) {
-	// Check if wallet is encrypted
-	if wallet.IsWalletEncrypted(e.walletDir) {
-		// For encrypted wallets, use the cache populated during unlock
-		e.mu.RLock()
-		defer e.mu.RUnlock()
+	wallets, _, err := e.listWallets(ctx)
+	return wallets, err
+}
 
-		if !e.isUnlocked {
-			return nil, errors.New("wallet is encrypted and locked")
-		}
-
-		// Extract wallets from cache
-		wallets := make([]WalletInfo, 0, len(e.walletCache))
-		for _, w := range e.walletCache {
-			wallets = append(wallets, *w)
-		}
-
-		return wallets, nil
-	}
-
-	// For unencrypted wallets, read from file
-	walletFile := filepath.Join(e.walletDir, "wallet.json")
-
-	data, err := os.ReadFile(walletFile)
+// listWallets returns the wallets the orchestrator holds open, and the active
+// wallet id. A locked wallet file lists no wallets.
+func (e *WalletEngine) listWallets(ctx context.Context) ([]WalletInfo, string, error) {
+	resp, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("read wallet.json: %w", err)
+		return nil, "", fmt.Errorf("list wallets: %w", err)
 	}
-
-	var walletData struct {
-		Version        int          `json:"version"`
-		ActiveWalletID string       `json:"activeWalletId"`
-		Wallets        []WalletInfo `json:"wallets"`
-	}
-
-	if err := json.Unmarshal(data, &walletData); err != nil {
-		return nil, fmt.Errorf("parse wallet.json: %w", err)
-	}
-
-	return walletData.Wallets, nil
+	wallets := lo.Map(resp.Msg.Wallets, func(w *orchpb.WalletMetadata, _ int) WalletInfo {
+		return WalletInfo{
+			ID:             w.Id,
+			Name:           w.Name,
+			WalletType:     walletTypeFromProto(w.WalletType),
+			WatchOnly:      w.WatchOnly,
+			AccountIndex:   w.AccountIndex,
+			DerivationPath: w.DerivationPath,
+			ScriptType:     w.ScriptType,
+		}
+	})
+	return wallets, resp.Msg.ActiveWalletId, nil
 }
 
 // ChequeAddressUnspent reports a cheque address's UTXOs. Always electrum-backed
