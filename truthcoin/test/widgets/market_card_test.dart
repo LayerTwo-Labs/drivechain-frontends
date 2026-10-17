@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -131,6 +134,39 @@ void main() {
       expect(find.text('Buy'), findsNWidgets(3));
     });
 
+    testWidgets('a market of two decisions names each combination', (tester) async {
+      final reply = jsonDecode(File('test/fixtures/market_two_dimensions.json').readAsStringSync());
+      var opened = 0;
+      await tester.pumpSailPage(
+        SizedBox(
+          width: 440,
+          child: MarketCard(
+            market: MarketSummary.fromJson({
+              'market_id': '5e5ed0d19c4f',
+              'title': 'eCash DAA and Block Time by January 1, 2027',
+              'outcome_count': 4,
+              'state': 'trading',
+            }),
+            detail: MarketData.fromJson(reply as Map<String, dynamic>),
+            onTap: () => opened++,
+            onTradeOutcome: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No · Yes'), findsOneWidget);
+      expect(find.text('No · No'), findsOneWidget);
+      expect(find.text('Yes · No'), findsOneWidget);
+      expect(find.text('Yes · Yes'), findsNothing, reason: 'the card shows the three best of four');
+      expect(find.text('Yes'), findsNothing);
+      expect(find.text('Buy'), findsNWidgets(3));
+
+      await tester.tap(find.text('1 more outcome'));
+      await tester.pumpAndSettle();
+      expect(opened, 1);
+    });
+
     testWidgets('a closed market shows prices without a buy button', (tester) async {
       final closed = MarketSummary.fromJson({
         'market_id': 'a41f92c8',
@@ -183,6 +219,11 @@ void main() {
   group('market card helpers', () {
     test('formatChance rounds to a whole percent', () {
       expect(formatChance(0.384), '38%');
+    });
+
+    test('moreOutcomesText counts one outcome without a plural', () {
+      expect(moreOutcomesText(1), '1 more outcome');
+      expect(moreOutcomesText(2), '2 more outcomes');
     });
 
     test('marketInitials takes the first two words', () {
