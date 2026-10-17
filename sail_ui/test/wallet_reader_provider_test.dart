@@ -49,7 +49,9 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
   @override
   Future<wmpb.GetWalletStatusResponse> getWalletStatus() async {
     statusCalls++;
-    return wmpb.GetWalletStatusResponse(hasWallet: hasWalletToReturn);
+    return wmpb.GetWalletStatusResponse(
+      state: hasWalletToReturn ? wmpb.WalletState.WALLET_STATE_LOCKED : wmpb.WalletState.WALLET_STATE_NO_WALLET,
+    );
   }
 }
 

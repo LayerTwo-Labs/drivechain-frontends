@@ -145,7 +145,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
       String? activeId = _walletReader.activeWalletId;
       if (activeId == null) {
         final status = await orchestratorWallet.getWalletStatus();
-        if (!status.hasWallet || status.activeWalletId.isEmpty) {
+        if (status.state == wmpb.WalletState.WALLET_STATE_NO_WALLET || status.activeWalletId.isEmpty) {
           throw Exception('No active wallet');
         }
         activeId = status.activeWalletId;
