@@ -137,6 +137,7 @@ class TruthcoinWidgetCatalog {
                     hintText: '0.00',
                   ),
                   SailButton(
+                    plainLabel: true,
                     label: 'Send',
                     disabled: !model.canSend,
                     onPressed: () async => await model.executeSendOnSidechain(context),
@@ -447,7 +448,8 @@ class _MarketSummaryWidget extends StatelessWidget {
                       SailText.secondary15('No markets yet'),
                       const SizedBox(height: 8),
                       SailButton(
-                        label: 'Create Market',
+                        plainLabel: true,
+                        label: 'Create market',
                         small: true,
                         onPressed: () async {
                           await openMarketsRoute(const MarketCreationRoute());
@@ -481,7 +483,8 @@ class _MarketSummaryWidget extends StatelessWidget {
                           ),
                       const SailSeparator(),
                       SailButton(
-                        label: 'View All Markets',
+                        plainLabel: true,
+                        label: 'View all markets',
                         small: true,
                         onPressed: () async {
                           await openMarketsRoute(const MarketExplorerRoute());
@@ -691,7 +694,8 @@ class _VotingStatusWidget extends StatelessWidget {
                       ),
                     const SailSeparator(),
                     SailButton(
-                      label: 'Go to Voting',
+                      plainLabel: true,
+                      label: 'Go to voting',
                       small: true,
                       onPressed: () async {
                         await openHomeTab(const VotingDashboardRoute());
