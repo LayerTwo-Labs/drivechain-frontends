@@ -218,3 +218,11 @@ func TestVotecoinBalanceReadsFraction(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0.25, resp.Msg.VotecoinBalance)
 }
+
+func TestMarketGetUnknownMarketIsEmpty(t *testing.T) {
+	h, _ := capturingRPC(t, `null`)
+
+	resp, err := h.MarketGet(context.Background(), connect.NewRequest(&pb.MarketGetRequest{MarketId: "9f843b33f009"}))
+	require.NoError(t, err)
+	assert.Empty(t, resp.Msg.MarketJson)
+}
