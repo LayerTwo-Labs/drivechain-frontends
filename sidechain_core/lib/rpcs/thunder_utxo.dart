@@ -6,6 +6,9 @@ enum OutpointType {
   regular,
   coinbase,
 
+  // truthcoin specific types
+  payout,
+
   // bitname specific types
   bitnameReservation,
   bitname,
@@ -32,6 +35,10 @@ class Outpoint {
     final coinbase = json['Coinbase'];
     if (coinbase is Map<String, dynamic>) {
       return Outpoint('${coinbase['txid'] ?? coinbase['merkle_root']}:${coinbase['vout']}', OutpointType.coinbase);
+    }
+    final payout = json['Payout'];
+    if (payout is Map<String, dynamic>) {
+      return Outpoint('${payout['hash']}:${payout['vout']}', OutpointType.payout);
     }
     return Outpoint(json['Deposit'] as String, OutpointType.deposit);
   }
