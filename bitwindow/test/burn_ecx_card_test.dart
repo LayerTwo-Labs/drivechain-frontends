@@ -114,7 +114,7 @@ class _FakeRpc implements OrchestratorWalletRPC {
 
   @override
   Future<wmpb.GetWalletStatusResponse> getWalletStatus() async =>
-      wmpb.GetWalletStatusResponse(hasWallet: true, activeWalletId: 'wallet-1');
+      wmpb.GetWalletStatusResponse(state: wmpb.WalletState.WALLET_STATE_UNLOCKED, activeWalletId: 'wallet-1');
 
   Future<void> stage(String name) async {
     calls.add(name);

@@ -31,7 +31,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   String? activeWalletId;
   Duration unlockStateWait = Environment.isInTest ? const Duration(milliseconds: 10) : const Duration(seconds: 3);
 
-  /// Mirrors `has_wallet` from the WatchWalletData stream. Distinct from
+  /// Mirrors a `state` other than NO_WALLET from the WatchWalletData stream. Distinct from
   /// `isWalletUnlocked` — a locked/encrypted wallet has `hasWalletOnDisk=true`
   /// with an empty `wallets` list.
   bool hasWalletOnDisk = false;
@@ -98,7 +98,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     _applyState(
       protoWallets: resp.wallets,
       newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId,
-      newHasWalletOnDisk: resp.hasWallet,
+      newHasWalletOnDisk: resp.state != wmpb.WalletState.WALLET_STATE_NO_WALLET,
     );
   }
 
@@ -108,7 +108,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     required bool newHasWalletOnDisk,
   }) {
     // Reconnecting stream can send an empty initial frame; keep a populated
-    // list (a real delete arrives with hasWallet=false).
+    // list (a real delete arrives with state=NO_WALLET).
     if (protoWallets.isEmpty && wallets.isNotEmpty && newHasWalletOnDisk) {
       return;
     }
@@ -277,7 +277,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     _applyState(
       protoWallets: list.wallets,
       newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
-      newHasWalletOnDisk: status.hasWallet as bool,
+      newHasWalletOnDisk: status.state != wmpb.WalletState.WALLET_STATE_NO_WALLET,
     );
     return wallets.isNotEmpty;
   }
@@ -319,7 +319,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   /// for a few seconds while drivechaind finishes coming up. Returning
   /// false on that error silently misroutes existing users to the
   /// "Set up your wallet" screen, so we keep retrying for ~5s before giving
-  /// up. Any non-transport error (e.g. a successful RPC with hasWallet=false)
+  /// up. Any non-transport error (e.g. a successful RPC with state=NO_WALLET)
   /// short-circuits immediately.
   Future<bool> hasWallet() async {
     // Trust the streamed state when we have one.
@@ -332,7 +332,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         final resp = await _client.getWalletStatus();
-        return resp.hasWallet;
+        return resp.state != wmpb.WalletState.WALLET_STATE_NO_WALLET;
       } catch (e) {
         if (attempt == maxAttempts - 1) {
           _logger.w(
