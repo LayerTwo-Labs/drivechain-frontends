@@ -106,24 +106,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}
 	}
 
-	// A send that names its inputs spends those coins, so no lock reaches
-	// them. Refuse before any node call.
-	if len(c.Msg.RequiredInputs) > 0 {
-		frozen, err := utxometadata.FrozenOutpoints(ctx, s.database)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read the frozen coins: %w", err))
-		}
-		// A caller can spell a txid in either case, and a vout with or without
-		// a leading zero, so compare one canonical form.
-		held := lo.SliceToMap(frozen, func(o string) (string, bool) { return canonicalOutpoint(o), true })
-		for _, input := range c.Msg.RequiredInputs {
-			if held[canonicalOutpoint(input.Output)] {
-				return nil, connect.NewError(connect.CodeFailedPrecondition,
-					fmt.Errorf("the output %s is frozen; unfreeze it to spend it", input.Output))
-			}
-		}
-	}
-
 	requiredInputs := make([]*orchpb.UnspentOutput, 0, len(c.Msg.RequiredInputs))
 	for _, input := range c.Msg.RequiredInputs {
 		txid, voutText, found := strings.Cut(input.Output, ":")
@@ -152,6 +134,9 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		FixedFeeSats:       int64(c.Msg.FixedFeeSats),
 		RequiredInputs:     requiredInputs,
 	})
+	if errors.Is(err, engines.ErrFrozenInput) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -184,21 +169,6 @@ func sumBTCToSats(a, b float64) (uint64, error) {
 		return 0, err
 	}
 	return aSats + bSats, nil
-}
-
-// canonicalOutpoint reads a txid:vout pair into one spelling: the txid in
-// lower case, and the vout with no leading zero. A string it cannot read comes
-// back trimmed and lowered, so two unreadable spellings still match.
-func canonicalOutpoint(outpoint string) string {
-	txid, voutText, found := strings.Cut(strings.ToLower(strings.TrimSpace(outpoint)), ":")
-	if !found {
-		return strings.ToLower(strings.TrimSpace(outpoint))
-	}
-	vout, err := strconv.Atoi(voutText)
-	if err != nil {
-		return strings.ToLower(strings.TrimSpace(outpoint))
-	}
-	return fmt.Sprintf("%s:%d", txid, vout)
 }
 
 // GetNewAddress implements walletv1connect.WalletServiceHandler.
@@ -1178,9 +1148,9 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 // PreviewSweep implements walletv1connect.WalletServiceHandler.
 // Reports what a private key holds and what sweeping it would cost.
 func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.PreviewSweepRequest]) (*connect.Response[pb.PreviewSweepResponse], error) {
-	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
+	wifKey, err := decodeSweepWIF(c.Msg.PrivateKeyWif, s.chequeEngine.GetChainParams())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
+		return nil, err
 	}
 
 	source, err := engines.ResolveSweepSource(ctx, s.chequeChain, wifKey, s.chequeEngine.GetChainParams())
@@ -1212,6 +1182,17 @@ func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.Preview
 	}), nil
 }
 
+func decodeSweepWIF(text string, params *chaincfg.Params) (*btcutil.WIF, error) {
+	wifKey, err := btcutil.DecodeWIF(text)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
+	}
+	if !wifKey.IsForNet(params) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("WIF is not for network %s", params.Name))
+	}
+	return wifKey, nil
+}
+
 func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 	switch kind {
 	case engines.SweepAddressP2WPKH:
@@ -1228,9 +1209,9 @@ func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 // SweepCheque implements walletv1connect.WalletServiceHandler.
 // Sweeps a cheque using its WIF private key to the destination address.
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
-	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
+	wifKey, err := decodeSweepWIF(c.Msg.PrivateKeyWif, s.chequeEngine.GetChainParams())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
+		return nil, err
 	}
 
 	sweep, err := s.chequeEngine.Sweep(ctx, c.Msg.WalletId, wifKey, c.Msg.DestinationAddress, c.Msg.FeeSatPerVbyte)

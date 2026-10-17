@@ -240,6 +240,6 @@ func TestEstimateFee(t *testing.T) {
 	}
 
 	t.Run("a one-output sweep and an estimate agree", func(t *testing.T) {
-		require.Equal(t, uint64(EstimateFee(1, 1, 1)), SweepVbytes(SweepAddressP2WPKH, 1, OutputVbytes))
+		require.Equal(t, uint64(EstimateFee(1, 1, 1)), SweepVbytes(SweepSource{Kind: SweepAddressP2WPKH, Compressed: true, UTXOs: make([]ChequeUTXO, 1)}, OutputVbytes))
 	})
 }

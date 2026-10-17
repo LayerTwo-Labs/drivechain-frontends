@@ -619,6 +619,9 @@ func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSa
 // orchestrator wallet manager, which routes to the active wallet's backend
 // (electrum or Bitcoin Core). Used by server-side senders like news OP_RETURNs.
 func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTransactionRequest) (string, error) {
+	if err := e.refuseFrozenInputs(ctx, req.RequiredInputs); err != nil {
+		return "", err
+	}
 	if err := e.PushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
@@ -627,6 +630,35 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 		return "", fmt.Errorf("send transaction: %w", err)
 	}
 	return resp.Msg.Txid, nil
+}
+
+// ErrFrozenInput is the error of a send that names a coin the user froze.
+var ErrFrozenInput = errors.New("the output is frozen; unfreeze it to spend it")
+
+// refuseFrozenInputs stops a send that names a frozen coin. The orchestrator
+// spends a required input through its freeze.
+func (e *WalletEngine) refuseFrozenInputs(ctx context.Context, inputs []*orchpb.UnspentOutput) error {
+	if len(inputs) == 0 {
+		return nil
+	}
+	frozen, err := e.frozenCoins(ctx)
+	if err != nil {
+		return fmt.Errorf("read the frozen coins: %w", err)
+	}
+	held := make(map[string]bool, len(frozen))
+	for _, outpoint := range frozen {
+		txid, vout, ok := splitOutpoint(outpoint)
+		if !ok {
+			return fmt.Errorf("frozen coin %q is not a txid:vout", outpoint)
+		}
+		held[fmt.Sprintf("%s:%d", strings.ToLower(txid), vout)] = true
+	}
+	for _, input := range inputs {
+		if held[fmt.Sprintf("%s:%d", strings.ToLower(input.Txid), input.Vout)] {
+			return fmt.Errorf("%s:%d: %w", input.Txid, input.Vout, ErrFrozenInput)
+		}
+	}
+	return nil
 }
 
 // ListWalletIDs names every wallet the orchestrator holds.

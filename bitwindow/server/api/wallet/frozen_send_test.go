@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
@@ -40,7 +41,8 @@ func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 		Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
 		RequiredInputs: []*walletv1.UnspentOutput{{Output: "frozen:0"}},
 	}))
-	require.ErrorContains(t, err, "is frozen")
+	require.ErrorContains(t, err, engines.ErrFrozenInput.Error())
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
 // A freeze the daemon never learns is no freeze at all, so the write reports

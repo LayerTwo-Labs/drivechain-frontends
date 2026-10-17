@@ -153,10 +153,18 @@ func (e *ChequeEngine) DeriveChequePrivateKey(ctx context.Context, walletID stri
 	return wif.String(), nil
 }
 
-// ScanForFunds scans the first count addresses for UTXOs for a specific wallet
-func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, count int) ([]ChequeRecovery, error) {
-	// Get seed from wallet engine for the specific wallet
+// chequeGapLimit is the number of empty cheque indices in a row after the
+// stored counter that ends a recovery scan.
+const chequeGapLimit = 20
+
+// ScanForFunds reads each cheque address from index 0 until gapLimit indices
+// in a row at or above the stored counter hold no UTXO.
+func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, gapLimit int) ([]ChequeRecovery, error) {
 	seedHex, err := e.walletEngine.GetWalletSeed(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	nextIndex, err := cheques.GetNextIndex(ctx, e.db, walletID)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +172,8 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, count 
 	log := zerolog.Ctx(ctx)
 	var recoveries []ChequeRecovery
 
-	for i := uint32(0); i < uint32(count); i++ {
+	empty := 0
+	for i := uint32(0); empty < gapLimit; i++ {
 		address, err := e.chequeAddress(seedHex, i)
 		if err != nil {
 			return nil, fmt.Errorf("derive cheque address %d: %w", i, err)
@@ -175,8 +184,12 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, count 
 			return nil, fmt.Errorf("read cheque address %s: %w", address, err)
 		}
 		if len(utxos) == 0 {
+			if i >= nextIndex {
+				empty++
+			}
 			continue
 		}
+		empty = 0
 
 		var amountSats uint64
 		var outputs []cheques.FundingOutput
@@ -405,7 +418,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 	for {
 		var failed []WalletInfo
 		for _, wallet := range pending {
-			recoveries, err := e.ScanForFunds(ctx, wallet.ID, 20)
+			recoveries, err := e.ScanForFunds(ctx, wallet.ID, chequeGapLimit)
 			if err != nil {
 				if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 					log.Debug().Str("wallet_id", wallet.ID).Msg("cheque recovery: skip wallet with no seed")

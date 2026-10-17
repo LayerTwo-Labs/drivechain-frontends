@@ -171,6 +171,12 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 	if err != nil {
 		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
+	// A denial of a wallet with no UTXO list this cycle cannot run. It retries next cycle.
+	denials = lo.Filter(denials, func(d deniability.Denial, _ int) bool {
+		walletID, err := e.resolveDenialWallet(ctx, d)
+		_, listed := walletUTXOs[walletID]
+		return err == nil && listed
+	})
 
 	// Flatten all UTXOs for ExecuteDenial (which will also re-verify)
 	allUTXOs := lo.Flatten(lo.Values(walletUTXOs))
@@ -293,6 +299,9 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 		return fmt.Errorf("unknown wallet type: %s", walletType)
 	}
 
+	if errors.Is(err, ErrFrozenInput) {
+		return e.pauseFrozen(ctx, logger, denial, utxo)
+	}
 	if err != nil {
 		logger.Error().
 			Err(err).
@@ -340,8 +349,20 @@ func (e *DeniabilityEngine) cancelTooSmall(ctx context.Context, logger zerolog.L
 	return nil
 }
 
-// sendTransaction spends the chosen UTXO into the denial destinations through
-// the orchestrator, which holds the frozen coins locked for the length of it.
+// pauseFrozen pauses a denial whose coin the user froze. The user resumes it
+// after the unfreeze.
+func (e *DeniabilityEngine) pauseFrozen(ctx context.Context, logger zerolog.Logger, denial deniability.Denial, utxo *UTXO) error {
+	if err := deniability.Pause(ctx, e.db, denial.ID); err != nil {
+		return fmt.Errorf("pause denial %d: %w", denial.ID, err)
+	}
+	logger.Warn().
+		Str("outpoint", fmt.Sprintf("%s:%d", utxo.Txid, utxo.Vout)).
+		Msg("deniability: paused denial, the user froze its coin")
+	return nil
+}
+
+// sendTransaction spends the chosen UTXO into the denial destinations. The
+// wallet engine refuses the send when the user froze the UTXO.
 func (e *DeniabilityEngine) sendTransaction(
 	ctx context.Context,
 	walletID string,
