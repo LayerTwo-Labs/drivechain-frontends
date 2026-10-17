@@ -413,6 +413,7 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
           SailTextField(
             controller: viewModel.feeController,
             hintText: 'Fee (in ${viewModel.currentUnit.symbol})',
+            onChanged: (_) => viewModel.clearFeeEstimate(),
             textFieldType: viewModel.currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
             suffixWidget: SailRow(
               spacing: SailStyleValues.padding08,
@@ -422,9 +423,9 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
                   value: null,
                   hint: 'Estimate',
                   items: [
-                    SailDropdownItem(value: 1, label: 'Low (1 block)'),
+                    SailDropdownItem(value: 6, label: 'Low (6 blocks)'),
                     SailDropdownItem(value: 3, label: 'Medium (3 blocks)'),
-                    SailDropdownItem(value: 6, label: 'High (6 blocks)'),
+                    SailDropdownItem(value: 1, label: 'High (1 block)'),
                   ],
                   onChanged: (value) async {
                     if (value != null) {
@@ -594,6 +595,7 @@ class SendPageViewModel extends BaseViewModel {
 
   List<FeeRatePoint> feeRatePoints = [];
   int? selectedConfTarget;
+  double? _estimatedSatPerVByte;
   bool loadingFeeRates = false;
   bool showFeeGraph = false;
 
@@ -918,10 +920,12 @@ class SendPageViewModel extends BaseViewModel {
         destinations[address] = (destinations[address] ?? 0) + satoshis;
       }
 
+      final fee = sendFee(estimatedSatPerVByte: _estimatedSatPerVByte, typedFeeSats: feeSats);
       final txid = (await _orchestratorWallet.sendTransaction(
         walletId: walletId,
         destinations: destinations,
-        fixedFeeSats: feeSats,
+        feeRateSatPerVbyte: fee.feeRateSatPerVbyte,
+        fixedFeeSats: fee.fixedFeeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
         allowReplay: allowReplay,
@@ -1019,10 +1023,12 @@ class SendPageViewModel extends BaseViewModel {
         destinations[r.addressController.text] = (destinations[r.addressController.text] ?? 0) + satoshis;
       }
 
+      final fee = sendFee(estimatedSatPerVByte: _estimatedSatPerVByte, typedFeeSats: feeSats);
       return await _orchestratorWallet.createPsbt(
         walletId: walletId,
         destinations: destinations,
-        fixedFeeSats: feeSats,
+        feeRateSatPerVbyte: fee.feeRateSatPerVbyte,
+        fixedFeeSats: fee.fixedFeeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
         allowReplay: allowReplay,
@@ -1060,6 +1066,7 @@ class SendPageViewModel extends BaseViewModel {
     } else {
       feeController.text = '10000';
     }
+    _estimatedSatPerVByte = null;
     selectedUtxos = [];
 
     notifyListeners();
@@ -1160,6 +1167,7 @@ class SendPageViewModel extends BaseViewModel {
         return;
       }
       _setFeeFromSats(feeSatsForRate(satPerVByte: satPerVByte, txVBytes: _estimatedTxVBytes));
+      _estimatedSatPerVByte = satPerVByte;
       selectedConfTarget = confTarget;
       notifyListeners();
     } catch (error) {
@@ -1190,7 +1198,12 @@ class SendPageViewModel extends BaseViewModel {
   void selectFeeRatePoint(FeeRatePoint point) {
     selectedConfTarget = point.confTarget;
     _setFeeFromSats(feeSatsForRate(satPerVByte: point.satPerVByte, txVBytes: _estimatedTxVBytes));
+    _estimatedSatPerVByte = point.satPerVByte;
     notifyListeners();
+  }
+
+  void clearFeeEstimate() {
+    _estimatedSatPerVByte = null;
   }
 }
 
