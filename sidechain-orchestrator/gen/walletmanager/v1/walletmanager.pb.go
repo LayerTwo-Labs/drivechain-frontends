@@ -1544,9 +1544,14 @@ type WalletMetadata struct {
 	ReceiveAddressTypes []AddressType `protobuf:"varint,14,rep,packed,name=receive_address_types,json=receiveAddressTypes,proto3,enum=walletmanager.v1.AddressType" json:"receive_address_types,omitempty"`
 	// True for the one wallet whose seed derives the L1 and sidechain starters.
 	// Each wallet carries its own seed, so this never moves once recorded.
-	IsStarter     bool `protobuf:"varint,15,opt,name=is_starter,json=isStarter,proto3" json:"is_starter,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	IsStarter bool `protobuf:"varint,15,opt,name=is_starter,json=isStarter,proto3" json:"is_starter,omitempty"`
+	// Key derivation of the wallet. script_type is empty for native segwit.
+	// account_index and derivation_path are exclusive; both empty is standard.
+	ScriptType     string `protobuf:"bytes,16,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
+	AccountIndex   uint32 `protobuf:"varint,17,opt,name=account_index,json=accountIndex,proto3" json:"account_index,omitempty"`
+	DerivationPath string `protobuf:"bytes,18,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *WalletMetadata) Reset() {
@@ -1682,6 +1687,27 @@ func (x *WalletMetadata) GetIsStarter() bool {
 		return x.IsStarter
 	}
 	return false
+}
+
+func (x *WalletMetadata) GetScriptType() string {
+	if x != nil {
+		return x.ScriptType
+	}
+	return ""
+}
+
+func (x *WalletMetadata) GetAccountIndex() uint32 {
+	if x != nil {
+		return x.AccountIndex
+	}
+	return 0
+}
+
+func (x *WalletMetadata) GetDerivationPath() string {
+	if x != nil {
+		return x.DerivationPath
+	}
+	return ""
 }
 
 type MultisigInfo struct {
@@ -10571,7 +10597,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x16ChangePasswordResponse\"5\n" +
 	"\x17RemoveEncryptionRequest\x12\x1a\n" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\"\x1a\n" +
-	"\x18RemoveEncryptionResponse\"\xa5\x05\n" +
+	"\x18RemoveEncryptionResponse\"\x94\x06\n" +
 	"\x0eWalletMetadata\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12=\n" +
@@ -10595,7 +10621,11 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x14hardware_fingerprint\x18\r \x01(\tR\x13hardwareFingerprint\x12Q\n" +
 	"\x15receive_address_types\x18\x0e \x03(\x0e2\x1d.walletmanager.v1.AddressTypeR\x13receiveAddressTypes\x12\x1d\n" +
 	"\n" +
-	"is_starter\x18\x0f \x01(\bR\tisStarter\"\x91\x01\n" +
+	"is_starter\x18\x0f \x01(\bR\tisStarter\x12\x1f\n" +
+	"\vscript_type\x18\x10 \x01(\tR\n" +
+	"scriptType\x12#\n" +
+	"\raccount_index\x18\x11 \x01(\rR\faccountIndex\x12'\n" +
+	"\x0fderivation_path\x18\x12 \x01(\tR\x0ederivationPath\"\x91\x01\n" +
 	"\fMultisigInfo\x12\f\n" +
 	"\x01m\x18\x01 \x01(\rR\x01m\x12\f\n" +
 	"\x01n\x18\x02 \x01(\rR\x01n\x12\x1f\n" +
