@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart' show SailButton;
 import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:sidechain_core/providers/balance_provider.dart';
 import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
@@ -131,7 +132,8 @@ void main() {
       expect(find.text('BitNames'), findsOneWidget);
       expect(find.text('Truthcoin'), findsOneWidget);
       expect(find.text('41%'), findsOneWidget);
-      expect(find.text('Buy'), findsNWidgets(3));
+      expect(find.text('Buy'), findsNothing);
+      expect(find.widgetWithText(SailButton, 'Trade'), findsWidgets);
     });
 
     testWidgets('a market of two decisions names each combination', (tester) async {
@@ -160,11 +162,30 @@ void main() {
       expect(find.text('Yes · No'), findsOneWidget);
       expect(find.text('Yes · Yes'), findsNothing, reason: 'the card shows the three best of four');
       expect(find.text('Yes'), findsNothing);
-      expect(find.text('Buy'), findsNWidgets(3));
+      expect(find.text('Buy'), findsNothing);
+      expect(find.widgetWithText(SailButton, 'Trade'), findsWidgets);
 
-      await tester.tap(find.text('1 more outcome'));
+      await tester.tap(find.text('+ 1 more outcome'));
       await tester.pumpAndSettle();
       expect(opened, 1);
+    });
+
+    testWidgets('only the title and the big percent use the medium weight', (tester) async {
+      await tester.pumpSailPage(
+        SizedBox(
+          width: 440,
+          child: MarketCard(market: binarySummary(), detail: binaryDetail(), onTap: () {}, onTradeOutcome: (_) {}),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final medium = [
+        for (final text in tester.widgetList<Text>(
+          find.descendant(of: find.byType(MarketCard), matching: find.byType(Text)),
+        ))
+          if ((text.style?.fontWeight?.value ?? 400) >= 500) text.data,
+      ];
+      expect(medium, [binarySummary().title, '62%']);
     });
 
     testWidgets('a closed market shows prices without a buy button', (tester) async {
@@ -191,7 +212,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('RESOLVED'), findsOneWidget);
+      expect(find.text('Resolved'), findsOneWidget);
       expect(find.text('Buy Yes'), findsNothing);
       expect(find.text('Buy No'), findsNothing);
       expect(find.text('62%'), findsWidgets);
@@ -222,8 +243,8 @@ void main() {
     });
 
     test('moreOutcomesText counts one outcome without a plural', () {
-      expect(moreOutcomesText(1), '1 more outcome');
-      expect(moreOutcomesText(2), '2 more outcomes');
+      expect(moreOutcomesText(1), '+ 1 more outcome');
+      expect(moreOutcomesText(2), '+ 2 more outcomes');
     });
 
     test('marketInitials takes the first two words', () {

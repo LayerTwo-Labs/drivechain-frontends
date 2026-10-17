@@ -188,7 +188,6 @@ class _DecisionsCard extends StatelessWidget {
       child: SingleChildScrollView(
         child: SailColumn(
           spacing: SailStyleValues.padding12,
-          withDivider: true,
           children: [
             for (final decision in decisions)
               _DecisionRow(
@@ -386,7 +385,7 @@ class _FactRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         Expanded(child: SailText.secondary13(label)),
-        SailText.primary13(value, bold: true),
+        SailText.primary13(value),
       ],
     );
   }
