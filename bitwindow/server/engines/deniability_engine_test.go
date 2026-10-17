@@ -3,11 +3,8 @@ package engines_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -53,29 +50,14 @@ func testDenialWalletEngineWithFrozen(
 ) *engines.WalletEngine {
 	t.Helper()
 
-	dir := t.TempDir()
-	walletData, err := json.Marshal(map[string]any{
-		"version":        1,
-		"activeWalletId": denialWalletID,
-		"wallets": []map[string]any{{
-			"version":     1,
-			"master":      map[string]any{"seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"},
-			"id":          denialWalletID,
-			"name":        "test",
-			"wallet_type": "bitcoinCore",
-		}},
-	})
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), walletData, 0o600))
-
 	if orchestrator == nil {
 		orchestrator = apitests.CoreWalletOrchestrator(t)
 	}
 	return engines.NewWalletEngine(
-		t.Context(),
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return bitcoind, nil },
-		orchestrator,
-		dir,
+		apitests.OpenWallet(orchestrator, &orchpb.WalletMetadata{
+			Id: denialWalletID, Name: "test", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE,
+		}),
 		&chaincfg.SigNetParams,
 		frozenCoins,
 	)

@@ -2,10 +2,7 @@ package engines
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -20,6 +17,24 @@ import (
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 )
+
+// openWalletClient lists wallet as the one open wallet. Every other call goes
+// to the embedded client.
+type openWalletClient struct {
+	orchrpc.WalletManagerServiceClient
+	wallet *orchpb.WalletMetadata
+}
+
+func (o openWalletClient) ListWallets(context.Context, *connect.Request[orchpb.ListWalletsRequest]) (*connect.Response[orchpb.ListWalletsResponse], error) {
+	return connect.NewResponse(&orchpb.ListWalletsResponse{
+		Wallets:        []*orchpb.WalletMetadata{o.wallet},
+		ActiveWalletId: o.wallet.Id,
+	}), nil
+}
+
+func (o openWalletClient) GetWalletStatus(context.Context, *connect.Request[orchpb.GetWalletStatusRequest]) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
+	return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED}), nil
+}
 
 // stubOrchWalletClient fails CreateBitcoinCoreWallet with a fixed error.
 type stubOrchWalletClient struct {
@@ -38,7 +53,7 @@ func TestEnsureWatchOnlyWalletTransientOrchestratorError(t *testing.T) {
 		connect.NewError(connect.CodeInternal, errors.New("-28: Verifying blocks…")),
 		connect.NewError(connect.CodeUnavailable, errors.New("connection refused")),
 	} {
-		e := NewWalletEngine(t.Context(), nil, stubOrchWalletClient{err: orchErr}, t.TempDir(), &chaincfg.MainNetParams, nil)
+		e := NewWalletEngine(nil, stubOrchWalletClient{err: orchErr}, &chaincfg.MainNetParams, nil)
 
 		_, err := e.EnsureWatchOnlyWallet(t.Context(), "deadbeefcafebabe")
 		require.ErrorIs(t, err, orchErr)
@@ -57,9 +72,9 @@ func TestEnsureWatchOnlyWalletPrefersLegacyName(t *testing.T) {
 		}, nil).
 		AnyTimes()
 
-	e := NewWalletEngine(t.Context(), func(context.Context) (corerpc.BitcoinServiceClient, error) {
+	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, mocks.NewMockWalletManagerServiceClient(ctrl), t.TempDir(), &chaincfg.MainNetParams, nil)
+	}, mocks.NewMockWalletManagerServiceClient(ctrl), &chaincfg.MainNetParams, nil)
 
 	walletName, err := e.EnsureWatchOnlyWallet(t.Context(), "deadbeefcafebabe")
 	require.NoError(t, err)
@@ -82,9 +97,9 @@ func TestEnsureWatchOnlyWalletPropagatesLegacyLoadError(t *testing.T) {
 		Return(nil, errors.New("Wallet already loading.")).
 		AnyTimes()
 
-	e := NewWalletEngine(t.Context(), func(context.Context) (corerpc.BitcoinServiceClient, error) {
+	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, mocks.NewMockWalletManagerServiceClient(ctrl), t.TempDir(), &chaincfg.MainNetParams, nil)
+	}, mocks.NewMockWalletManagerServiceClient(ctrl), &chaincfg.MainNetParams, nil)
 
 	_, err := e.EnsureWatchOnlyWallet(t.Context(), "deadbeefcafebabe")
 	require.ErrorContains(t, err, "load legacy watch-only wallet")
@@ -104,21 +119,20 @@ func TestCoreWalletName(t *testing.T) {
 			return connect.NewResponse(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_" + req.Msg.WalletId[:8]}), nil
 		}).
 		AnyTimes()
+	orch.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+			Wallets: []*orchpb.WalletMetadata{
+				{Id: "deadbeefcafebabe", Name: "watch", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE, WatchOnly: true},
+				{Id: "cafebabedeadbeef", Name: "seed", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE},
+			},
+			ActiveWalletId: "cafebabedeadbeef",
+		}), nil).
+		AnyTimes()
 
-	walletDir := t.TempDir()
-	walletJSON := `{
-		"version": 1,
-		"activeWalletId": "cafebabedeadbeef",
-		"wallets": [
-			{"id": "deadbeefcafebabe", "name": "watch", "wallet_type": "bitcoinCore", "watch_only": {"xpub": "xpub-test"}},
-			{"id": "cafebabedeadbeef", "name": "seed", "wallet_type": "bitcoinCore", "master": {"seed_hex": "` + localSeedHex + `"}}
-		]
-	}`
-	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(walletJSON), 0o600))
-
-	e := NewWalletEngine(t.Context(), func(context.Context) (corerpc.BitcoinServiceClient, error) {
+	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, orch, walletDir, &chaincfg.MainNetParams, nil)
+	}, orch, &chaincfg.MainNetParams, nil)
 
 	t.Run("a watch-only wallet uses the legacy wallet", func(t *testing.T) {
 		name, err := e.CoreWalletName(t.Context(), "deadbeefcafebabe")
@@ -138,31 +152,12 @@ func TestCoreWalletName(t *testing.T) {
 	})
 }
 
-const (
-	localSeedHex   = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-	starterSeedHex = "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100"
-)
+const starterSeedHex = "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100"
 
 func newSeedTestEngine(t *testing.T) (*WalletEngine, *mocks.MockWalletManagerServiceClient) {
 	t.Helper()
-
-	walletDir := t.TempDir()
-	walletJSON := `{
-		"version": 1,
-		"activeWalletId": "local",
-		"wallets": [
-			{
-				"id": "local",
-				"name": "local",
-				"wallet_type": "bitcoinCore",
-				"master": {"seed_hex": "` + localSeedHex + `"}
-			}
-		]
-	}`
-	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(walletJSON), 0o600))
-
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
-	return &WalletEngine{walletDir: walletDir, orchClient: orch}, orch
+	return &WalletEngine{orchClient: orch}, orch
 }
 
 func TestGetStarterSeed(t *testing.T) {
@@ -250,107 +245,83 @@ func TestGetWalletSeed(t *testing.T) {
 }
 
 func TestGetWalletInfo(t *testing.T) {
-	const walletsJSON = `{"version":1,"activeWalletId":"a","wallets":[
-		{"id":"a","name":"Alpha","wallet_type":"enforcer","master":{"seed_hex":"00"}},
-		{"id":"b","name":"Beta","wallet_type":"bitcoinCore","master":{"seed_hex":"01"}}
-	]}`
+	engine, orch := newSeedTestEngine(t)
+	orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+		Wallets: []*orchpb.WalletMetadata{
+			{Id: "a", Name: "Alpha", WalletType: orchpb.WalletType_WALLET_TYPE_ELECTRUM},
+			{Id: "b", Name: "Beta", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE, ScriptType: "taproot", AccountIndex: 3},
+		},
+		ActiveWalletId: "a",
+	}), nil).Times(3)
 
-	t.Run("plain wallet.json", func(t *testing.T) {
-		walletDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(walletsJSON), 0o600))
-		e := &WalletEngine{walletDir: walletDir}
-
-		info, err := e.GetWalletInfo(t.Context(), "b")
-		require.NoError(t, err)
-		require.Equal(t, "Beta", info.Name)
-
-		_, err = e.GetWalletInfo(t.Context(), "missing")
-		require.ErrorContains(t, err, "wallet missing not found")
-	})
-
-	t.Run("encrypted wallet reads the unlock cache", func(t *testing.T) {
-		walletDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), []byte(`{"encrypted":true}`), 0o600))
-		e := NewWalletEngine(t.Context(), nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), walletDir, &chaincfg.MainNetParams, nil)
-
-		_, err := e.GetWalletInfo(t.Context(), "b")
-		require.ErrorContains(t, err, "wallet is encrypted and locked")
-
-		var walletData map[string]any
-		require.NoError(t, json.Unmarshal([]byte(walletsJSON), &walletData))
-		require.NoError(t, e.Unlock(t.Context(), walletData))
-
-		info, err := e.GetWalletInfo(t.Context(), "b")
-		require.NoError(t, err)
-		require.Equal(t, "Beta", info.Name)
-
-		_, err = e.GetWalletInfo(t.Context(), "missing")
-		require.ErrorContains(t, err, "wallet missing not found")
-	})
-}
-
-func TestUnlock_SkipsBadWalletEntries(t *testing.T) {
-	e := NewWalletEngine(t.Context(), nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), t.TempDir(), &chaincfg.MainNetParams, nil)
-
-	var walletData map[string]any
-	require.NoError(t, json.Unmarshal([]byte(`{"activeWalletId":"a","wallets":[
-		{"id":"a","master":{"seed_hex":"00"}},
-		{"id":"b","name":7,"master":{"seed_hex":"01"}},
-		"not an object",
-		{"id":"c","master":{"seed_hex":"02"}}
-	]}`), &walletData))
-
-	require.NoError(t, e.Unlock(t.Context(), walletData))
-	require.True(t, e.IsUnlocked())
-	require.Contains(t, e.walletCache, "a")
-	require.Contains(t, e.walletCache, "c")
-	require.NotContains(t, e.walletCache, "b")
-}
-
-func TestUnlock_ActiveWalletWithNoSeed(t *testing.T) {
-	walletDir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), []byte(`{"encrypted":true}`), 0o600))
-	e := NewWalletEngine(t.Context(), nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), walletDir, &chaincfg.MainNetParams, nil)
-	require.False(t, e.IsUnlocked())
-
-	var walletData map[string]any
-	require.NoError(t, json.Unmarshal([]byte(`{"activeWalletId":"w","wallets":[
-		{"id":"w","name":"Watch","wallet_type":"watchOnly","watch_only":{"xpub":"xpub-test"}}
-	]}`), &walletData))
-	require.NoError(t, e.Unlock(t.Context(), walletData))
-
-	assert.True(t, e.IsUnlocked())
-	info, err := e.GetActiveWallet(t.Context())
+	info, err := engine.GetWalletInfo(t.Context(), "b")
 	require.NoError(t, err)
-	assert.Equal(t, "Watch", info.Name)
+	require.Equal(t, WalletInfo{ID: "b", Name: "Beta", WalletType: WalletTypeBitcoinCore, ScriptType: "taproot", AccountIndex: 3}, *info)
+
+	active, err := engine.GetActiveWallet(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, "Alpha", active.Name)
+
+	_, err = engine.GetWalletInfo(t.Context(), "missing")
+	require.ErrorContains(t, err, "wallet missing not found")
 }
 
-func TestNewWalletEngine(t *testing.T) {
-	const walletsJSON = `{"activeWalletId":"a","wallets":[{"id":"a","master":{"seed_hex":"00"}}]}`
+func TestGetWalletInfoWhileLocked(t *testing.T) {
+	engine, orch := newSeedTestEngine(t)
+	orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&orchpb.ListWalletsResponse{ActiveWalletId: "a"}), nil)
 
-	newEngine := func(t *testing.T, encryptionMetadata string) *WalletEngine {
-		walletDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"), []byte(walletsJSON), 0o600))
-		if encryptionMetadata != "" {
-			require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), []byte(encryptionMetadata), 0o600))
-		}
-		return NewWalletEngine(t.Context(), nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), walletDir, &chaincfg.MainNetParams, nil)
+	_, err := engine.GetWalletInfo(t.Context(), "a")
+	require.ErrorContains(t, err, "no wallet is unlocked")
+}
+
+func TestWalletEngineLockState(t *testing.T) {
+	status := func(state orchpb.WalletState) *connect.Response[orchpb.GetWalletStatusResponse] {
+		return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: state})
 	}
 
-	t.Run("unlocks a plain wallet", func(t *testing.T) {
-		assert.True(t, newEngine(t, "").IsUnlocked())
+	t.Run("the orchestrator state decides", func(t *testing.T) {
+		for state, unlocked := range map[orchpb.WalletState]bool{
+			orchpb.WalletState_WALLET_STATE_NO_WALLET: false,
+			orchpb.WalletState_WALLET_STATE_LOCKED:    false,
+			orchpb.WalletState_WALLET_STATE_UNLOCKED:  true,
+		} {
+			engine, orch := newSeedTestEngine(t)
+			orch.EXPECT().GetWalletStatus(gomock.Any(), gomock.Any()).Return(status(state), nil)
+
+			got, err := engine.IsUnlocked(t.Context())
+			require.NoError(t, err)
+			assert.Equal(t, unlocked, got, state.String())
+		}
 	})
 
-	t.Run("unlocks a wallet whose metadata says not encrypted", func(t *testing.T) {
-		assert.True(t, newEngine(t, `{"encrypted":false}`).IsUnlocked())
+	t.Run("an orchestrator error is no answer", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().GetWalletStatus(gomock.Any(), gomock.Any()).Return(nil, errors.New("orchestrator down"))
+
+		_, err := engine.IsUnlocked(t.Context())
+		require.ErrorContains(t, err, "orchestrator down")
 	})
 
-	t.Run("leaves an encrypted wallet locked", func(t *testing.T) {
-		assert.False(t, newEngine(t, `{"encrypted":true}`).IsUnlocked())
+	t.Run("unlock and lock go to the orchestrator", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().UnlockWallet(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, req *connect.Request[orchpb.UnlockWalletRequest]) (*connect.Response[orchpb.UnlockWalletResponse], error) {
+				require.Equal(t, "hunter2", req.Msg.Password)
+				return connect.NewResponse(&orchpb.UnlockWalletResponse{}), nil
+			})
+		orch.EXPECT().LockWallet(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.LockWalletResponse{}), nil)
+
+		require.NoError(t, engine.Unlock(t.Context(), "hunter2"))
+		require.NoError(t, engine.Lock(t.Context()))
 	})
 
-	t.Run("no wallet stays locked", func(t *testing.T) {
-		e := NewWalletEngine(t.Context(), nil, mocks.NewMockWalletManagerServiceClient(gomock.NewController(t)), t.TempDir(), &chaincfg.MainNetParams, nil)
-		assert.False(t, e.IsUnlocked())
+	t.Run("a wrong password keeps its code", func(t *testing.T) {
+		engine, orch := newSeedTestEngine(t)
+		orch.EXPECT().UnlockWallet(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeUnauthenticated, errors.New("incorrect password")))
+
+		err := engine.Unlock(t.Context(), "wrong")
+		require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	})
 }

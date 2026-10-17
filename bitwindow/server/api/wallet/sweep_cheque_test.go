@@ -47,6 +47,7 @@ func TestSweepChequeOnALockedWallet(t *testing.T) {
 	require.NoError(t, err)
 
 	orchestrator := &broadcastOrchestrator{fakeOrchestrator: &fakeOrchestrator{
+		locked:  true,
 		address: candidates[0].Address,
 		utxos: []*orchpb.AddressUnspentOutput{{
 			Txid:          "aa00000000000000000000000000000000000000000000000000000000000001",
@@ -58,7 +59,7 @@ func TestSweepChequeOnALockedWallet(t *testing.T) {
 
 	t.Run("the claim needs no unlock", func(t *testing.T) {
 		cli := walletv1connect.NewWalletServiceClient(
-			apitests.API(t, db, apitests.WithEncryptedWallet(), apitests.WithOrchestrator(orchestrator)),
+			apitests.API(t, db, apitests.WithOrchestrator(orchestrator)),
 		)
 
 		resp, err := cli.SweepCheque(t.Context(), connect.NewRequest(&walletv1.SweepChequeRequest{
