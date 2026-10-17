@@ -78,6 +78,22 @@ void main() {
     expect(utxo.outpoint, 'cc:1');
   });
 
+  test('a truthcoin market pays a trader through a payout outpoint', () {
+    final utxo = SidechainUTXO.fromJson({
+      'outpoint': {
+        'Payout': {'hash': '91bc75114dbd342aa36b8e60d488d613539fdff3e9b76f890b63b89de0516b70', 'vout': 0},
+      },
+      'output': {
+        'address': '3tG92yJYkkJnvTqYRx8QScv983XQ',
+        'content': {'Value': 9991997},
+      },
+    });
+
+    expect(utxo.type, OutpointType.payout);
+    expect(utxo.outpoint, '91bc75114dbd342aa36b8e60d488d613539fdff3e9b76f890b63b89de0516b70:0');
+    expect(utxo.valueSats, 9991997);
+  });
+
   test('a bitnames coin reads its own value key and its pending flag', () {
     final utxo = BitnamesUTXO.fromJson({
       'outpoint': {'Deposit': 'abcd:0'},
