@@ -28,6 +28,20 @@ void main() {
     });
   });
 
+  group('sendFee', () {
+    test('an estimate goes as a rate, so the backend sizes the fee to its inputs', () {
+      final fee = sendFee(estimatedSatPerVByte: 2.005, typedFeeSats: 750);
+      expect(fee.feeRateSatPerVbyte, 3);
+      expect(fee.fixedFeeSats, isNull);
+    });
+
+    test('a typed fee goes as a fixed fee', () {
+      final fee = sendFee(estimatedSatPerVByte: null, typedFeeSats: 5000);
+      expect(fee.feeRateSatPerVbyte, isNull);
+      expect(fee.fixedFeeSats, 5000);
+    });
+  });
+
   test('feeRateConfTargets is ascending', () {
     for (var i = 1; i < feeRateConfTargets.length; i++) {
       expect(feeRateConfTargets[i] > feeRateConfTargets[i - 1], isTrue);
