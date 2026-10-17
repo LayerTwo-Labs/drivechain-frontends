@@ -255,7 +255,7 @@ class _OutcomePricesCard extends StatelessWidget {
                     SizedBox(
                       width: 160,
                       child: SailText.primary14(
-                        outcome.name,
+                        outcome.label,
                         bold: true,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -590,7 +590,7 @@ class _TradePanel extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: SailButton(
-          label: outcome == null ? 'Buy' : 'Buy ${outcome.name}',
+          label: outcome == null ? 'Buy' : 'Buy ${outcome.label}',
           loading: model.isExecuting,
           disabled: preview == null || model.buyCostsTooMuch,
           onPressed: () async => model.executeBuy(context),
@@ -661,7 +661,7 @@ class _TradePanel extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: SailButton(
-          label: outcome == null ? 'Sell' : 'Sell ${outcome.name}',
+          label: outcome == null ? 'Sell' : 'Sell ${outcome.label}',
           variant: ButtonVariant.destructive,
           loading: model.isExecuting,
           disabled: preview == null || model.sellShares > model.sellerShares,
@@ -696,7 +696,7 @@ class _OutcomeSelector extends StatelessWidget {
               child: _OutcomeChoice(
                 outcome: outcome,
                 selected: model.selectedOutcome?.index == outcome.index,
-                tone: outcome.name.toLowerCase() == 'no' ? OutcomeTone.no : OutcomeTone.yes,
+                tone: outcome.label.toLowerCase() == 'no' ? OutcomeTone.no : OutcomeTone.yes,
                 onTap: () => model.selectOutcome(outcome),
               ),
             ),
@@ -714,7 +714,7 @@ class _OutcomeSelector extends StatelessWidget {
             for (final outcome in outcomes)
               SailDropdownItem<int>(
                 value: outcome.index,
-                label: '${outcome.name}  ${formatChance(outcome.currentPrice)}',
+                label: '${outcome.label}  ${formatChance(outcome.currentPrice)}',
               ),
           ],
           onChanged: (index) {
@@ -765,7 +765,7 @@ class _OutcomeChoice extends StatelessWidget {
           spacing: 0,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SailText.primary15(outcome.name, bold: true, color: selected ? color : theme.colors.text),
+            SailText.primary15(outcome.label, bold: true, color: selected ? color : theme.colors.text),
             SailText.secondary12(formatChance(outcome.currentPrice)),
           ],
         ),
@@ -884,7 +884,7 @@ class _PriceCardState extends State<_PriceCard> {
     final lead = selected != null && outcomes.any((outcome) => outcome.index == selected.index)
         ? outcomes.firstWhere((outcome) => outcome.index == selected.index)
         : outcomes.firstWhere(
-            (outcome) => shortOutcomeLabel(outcome.name).toLowerCase() == 'yes',
+            (outcome) => outcome.label.toLowerCase() == 'yes',
             orElse: () => outcomes.last,
           );
     final other = outcomes.length == 2 ? outcomes.firstWhere((outcome) => outcome != lead) : null;
@@ -910,7 +910,7 @@ class _PriceCardState extends State<_PriceCard> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   SailText.primary24(
-                    '${shortOutcomeLabel(lead.name)} ${formatChance(lead.currentPrice)}',
+                    '${lead.label} ${formatChance(lead.currentPrice)}',
                     bold: true,
                     color: lead.currentPrice >= 0.5 ? theme.colors.success : theme.colors.text,
                   ),
@@ -923,7 +923,7 @@ class _PriceCardState extends State<_PriceCard> {
                 ],
               ),
               SailText.secondary12(
-                other == null ? age : '${shortOutcomeLabel(other.name)} ${formatChance(other.currentPrice)}  ·  $age',
+                other == null ? age : '${other.label} ${formatChance(other.currentPrice)}  ·  $age',
               ),
             ],
           );

@@ -128,7 +128,7 @@ void main() {
       expect(find.text('BitNames'), findsOneWidget);
       expect(find.text('Truthcoin'), findsOneWidget);
       expect(find.text('41%'), findsOneWidget);
-      expect(find.text('Yes'), findsNWidgets(3));
+      expect(find.text('Buy'), findsNWidgets(3));
     });
 
     testWidgets('a closed market shows prices without a buy button', (tester) async {
