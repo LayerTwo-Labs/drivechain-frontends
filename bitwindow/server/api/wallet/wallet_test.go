@@ -715,31 +715,37 @@ func TestService_IsWalletUnlocked(t *testing.T) {
 func TestService_LockWallet(t *testing.T) {
 	t.Parallel()
 
-	t.Run("a locked wallet reads as locked", func(t *testing.T) {
+	t.Run("a wallet with no password refuses the lock", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
-		database := database.Test(t)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t)))
 
-		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
-				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
-			}, nil).AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).AnyTimes()
+		_, err := cli.LockWallet(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		require.ErrorContains(t, err, "wallet is not encrypted")
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+		_, err = cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+	})
+
+	t.Run("a locked password wallet unlocks again", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithPasswordWallet()))
+		unlock := func() error {
+			_, err := cli.UnlockWallet(t.Context(), connect.NewRequest(&walletv1.UnlockWalletRequest{Password: apitests.EncryptedWalletPassword}))
+			return err
+		}
+		require.NoError(t, unlock())
 
 		_, err := cli.LockWallet(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
-
 		_, err = cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
-		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		require.NoError(t, unlock())
+		_, err = cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
 	})
 }
 
