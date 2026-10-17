@@ -226,7 +226,7 @@
           "cooldown_seconds": null
         },
         "coinnews": {
-          "url": null
+          "url": "https://seed.beta.ecash.eu.com"
         },
         "blockbook": {
           "url": null
