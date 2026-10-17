@@ -159,36 +159,19 @@ func TestBumpFeeHandsOverTheFrozenCoins(t *testing.T) {
 	assert.Equal(t, "bumped", resp.NewTxid)
 }
 
-// A deniability job spends the coin it names, and the user can freeze that
-// coin. The job runs through the orchestrator, which refuses it there.
-func TestDeniabilitySendHandsOverTheFrozenCoins(t *testing.T) {
+// The orchestrator spends a required input through its freeze, so the engine
+// refuses a frozen one before any orchestrator call.
+func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	engine := engineWithClient(t, client, func(context.Context) ([]string, error) {
-		return []string{"tip:0"}, nil
+		return []string{"TIP:00"}, nil
 	})
+	client.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).Times(0)
+	client.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Times(0)
 
-	var sent *orchpb.SetFrozenCoinsRequest
-	client.EXPECT().
-		SetFrozenCoins(gomock.Any(), gomock.Any()).
-		Times(1).
-		DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
-			sent = req.Msg
-			return nil, nil
-		})
-	client.EXPECT().
-		SendTransaction(gomock.Any(), gomock.Any()).
-		Times(1).
-		Return(&connect.Response[orchpb.SendTransactionResponse]{
-			Msg: &orchpb.SendTransactionResponse{Txid: "denied"},
-		}, nil)
-
-	txid, err := engine.SendTransaction(t.Context(), &orchpb.SendTransactionRequest{
+	_, err := engine.SendTransaction(t.Context(), &orchpb.SendTransactionRequest{
 		WalletId:       "wallet-1",
 		RequiredInputs: []*orchpb.UnspentOutput{{Txid: "tip", Vout: 0}},
 	})
-	require.NoError(t, err)
-	assert.Equal(t, "denied", txid)
-	require.NotNil(t, sent)
-	require.Len(t, sent.Outpoints, 1)
-	assert.Equal(t, "tip", sent.Outpoints[0].Txid)
+	require.ErrorIs(t, err, engines.ErrFrozenInput)
 }

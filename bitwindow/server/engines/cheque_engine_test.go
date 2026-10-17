@@ -17,6 +17,7 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -73,22 +74,57 @@ func testChequeEngineWith(t *testing.T, chain ChequeChain, orch orchrpc.WalletMa
 	return NewChequeEngine(database.Test(t), walletEngine, &chaincfg.SigNetParams, chain)
 }
 
-func TestScanForFundsReportsFundedIndex(t *testing.T) {
-	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
-	engine := testChequeEngine(t, chain)
+func TestScanForFunds(t *testing.T) {
+	t.Run("reports a funded index", func(t *testing.T) {
+		chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+		engine := testChequeEngine(t, chain)
 
-	address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 3)
-	require.NoError(t, err)
-	chain.funded[address] = testUTXOs()
+		address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 3)
+		require.NoError(t, err)
+		chain.funded[address] = testUTXOs()
 
-	recoveries, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
-	require.NoError(t, err)
-	require.Len(t, recoveries, 1)
-	require.Equal(t, uint32(3), recoveries[0].Index)
-	require.Equal(t, address, recoveries[0].Address)
-	require.Equal(t, uint64(100_000), recoveries[0].Amount)
-	require.Equal(t, []cheques.FundingOutput{{Txid: testUTXOs()[0].TxID}}, recoveries[0].Outputs)
-	require.Len(t, chain.queried, 20, "the scan reads every index up to the count")
+		recoveries, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
+		require.NoError(t, err)
+		require.Len(t, recoveries, 1)
+		assert.Equal(t, uint32(3), recoveries[0].Index)
+		assert.Equal(t, address, recoveries[0].Address)
+		assert.Equal(t, uint64(100_000), recoveries[0].Amount)
+		assert.Equal(t, []cheques.FundingOutput{{Txid: testUTXOs()[0].TxID}}, recoveries[0].Outputs)
+		assert.Len(t, chain.queried, 24)
+	})
+
+	t.Run("finds a funded index past the first gap", func(t *testing.T) {
+		chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+		engine := testChequeEngine(t, chain)
+
+		for _, index := range []uint32{5, 25} {
+			address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, index)
+			require.NoError(t, err)
+			chain.funded[address] = testUTXOs()
+		}
+
+		recoveries, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
+		require.NoError(t, err)
+		assert.Equal(t, []uint32{5, 25}, lo.Map(recoveries, func(r ChequeRecovery, _ int) uint32 { return r.Index }))
+		assert.Len(t, chain.queried, 46)
+	})
+
+	t.Run("counts the gap from the stored counter", func(t *testing.T) {
+		chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+		engine := testChequeEngine(t, chain)
+
+		address, err := engine.DeriveChequeAddress(t.Context(), chequeWalletID, 39)
+		require.NoError(t, err)
+		_, err = cheques.Create(t.Context(), engine.db, chequeWalletID, 30, 1_000, "tb1qissued")
+		require.NoError(t, err)
+		chain.funded[address] = testUTXOs()
+
+		recoveries, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
+		require.NoError(t, err)
+		require.Len(t, recoveries, 1)
+		assert.Equal(t, uint32(39), recoveries[0].Index)
+		assert.Len(t, chain.queried, 60)
+	})
 }
 
 func TestRecoverChequesOnUnlockPersistsFundedCheques(t *testing.T) {
