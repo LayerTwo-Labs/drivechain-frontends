@@ -373,19 +373,39 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
 		assert.Equal(t, int32(1), denials[0].NumHops)
 
-		// creating again updates
 		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
-			Txid:         "abc123",
-			Vout:         0,
-			DelaySeconds: 120,
-			NumHops:      1,
+			Txid:            "abc123",
+			Vout:            0,
+			DelaySeconds:    120,
+			NumHops:         1,
+			TargetUtxoSizes: []int64{1000},
+		}))
+		require.ErrorContains(t, err, "already runs for abc123:0")
+		assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+
+		denials, err = deniability.List(t.Context(), database)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
+		assert.Empty(t, denials[0].TargetUTXOSizes)
+
+		require.NoError(t, deniability.Cancel(t.Context(), database, denials[0].ID, "stopped by the user"))
+		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+			Txid:            "abc123",
+			Vout:            0,
+			DelaySeconds:    120,
+			NumHops:         1,
+			TargetUtxoSizes: []int64{1000, 2000},
 		}))
 		require.NoError(t, err)
 
 		denials, err = deniability.List(t.Context(), database)
 		require.NoError(t, err)
-		assert.Len(t, denials, 1)
+		require.Len(t, denials, 1)
 		assert.EqualValues(t, int32(120), denials[0].DelayDuration.Seconds())
+		assert.Equal(t, int32(2), denials[0].NumHops)
+		assert.Equal(t, deniability.TargetSizes{1000, 2000}, denials[0].TargetUTXOSizes)
+		assert.Nil(t, denials[0].CancelledAt)
 	})
 
 	t.Run("multiple denials different utxos", func(t *testing.T) {
