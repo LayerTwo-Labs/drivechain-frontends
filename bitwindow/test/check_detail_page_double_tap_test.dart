@@ -76,6 +76,7 @@ class _FakeOrchestratorWallet implements OrchestratorWalletRPC {
     String? opReturnMessage,
     String? opReturnHex,
     List<bwpb.UnspentOutput>? requiredInputs,
+    bwpb.UnspentOutput? notificationInput,
     bool allowReplay = false,
   }) {
     sendCalls++;

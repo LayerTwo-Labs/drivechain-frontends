@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -596,6 +597,12 @@ class SendPageViewModel extends BaseViewModel {
   List<FeeRatePoint> feeRatePoints = [];
   int? selectedConfTarget;
   double? _estimatedSatPerVByte;
+  Timer? _feePreviewTimer;
+  String? _feePreviewKey;
+  String? _pricedKey;
+  List<UnspentOutput> _pricedInputs = const [];
+  UnspentOutput? _pricedNotificationInput;
+  int _pricedFeeSats = 0;
   bool loadingFeeRates = false;
   bool showFeeGraph = false;
 
@@ -720,7 +727,14 @@ class SendPageViewModel extends BaseViewModel {
     settingsProvider.removeListener(_onUnitChanged);
     draftProvider.removeListener(notifyListeners);
     _walletReader.removeListener(notifyListeners);
+    _feePreviewTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    _scheduleFeePreview();
+    super.notifyListeners();
   }
 
   Future<void> onUseAvailableBalance(int index) async {
@@ -744,9 +758,32 @@ class SendPageViewModel extends BaseViewModel {
 
       // 2. Calculate the available balance. When the fee comes out of the
       // amount itself, the backend subtracts it — do not subtract it twice.
-      final available = recipients[index].subtractFee
-          ? availableAmount
-          : availableAmount - satoshiToBTC(_maxSendFeeSats);
+      var feeSats = 0;
+      if (!recipients[index].subtractFee) {
+        final walletId = _walletReader.activeWalletId;
+        final recipientCount = recipients.length;
+        final recipient = recipients[index];
+        final selection = selectedUtxos;
+        final maxSend = await _maxSendFee(index, btcToSatoshi(availableAmount), btcToSatoshi(sumOtherRecipients));
+        final formChanged =
+            disposed ||
+            _walletReader.activeWalletId != walletId ||
+            recipients.length != recipientCount ||
+            recipients[index] != recipient ||
+            !identical(selectedUtxos, selection);
+        if (maxSend == null || formChanged) {
+          return;
+        }
+        feeSats =
+            btcToSatoshi(availableAmount - sumOtherRecipients) -
+            maxSendAmountSats(
+              availableSats: maxSend.availableSats,
+              otherRecipientsSats: btcToSatoshi(sumOtherRecipients),
+              paymentFeeSats: maxSend.feeSats,
+              notificationCoinSats: maxSend.notificationCoinSats,
+            );
+      }
+      final available = availableAmount - satoshiToBTC(feeSats);
 
       // 3. Set the remaining amount for the recipient at 'index'
       final remaining = available - sumOtherRecipients;
@@ -903,6 +940,10 @@ class SendPageViewModel extends BaseViewModel {
       setBusy(false);
       return;
     }
+    if (!await _confirmFeeIsPriced(feeSats)) {
+      setBusy(false);
+      return;
+    }
 
     try {
       final walletId = _walletReader.activeWalletId;
@@ -928,7 +969,8 @@ class SendPageViewModel extends BaseViewModel {
         feeRateSatPerVbyte: fee.feeRateSatPerVbyte,
         fixedFeeSats: fee.fixedFeeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
-        requiredInputs: selectedUtxos,
+        requiredInputs: _sendInputs,
+        notificationInput: _sendNotificationInput,
         allowReplay: allowReplay,
       )).txid;
       if (plan.risky && allowReplay) {
@@ -1010,6 +1052,9 @@ class SendPageViewModel extends BaseViewModel {
       setSendError('Please enter a valid fee.');
       return null;
     }
+    if (!await _confirmFeeIsPriced(feeSats)) {
+      return null;
+    }
 
     setBusy(true);
     try {
@@ -1031,7 +1076,7 @@ class SendPageViewModel extends BaseViewModel {
         feeRateSatPerVbyte: fee.feeRateSatPerVbyte,
         fixedFeeSats: fee.fixedFeeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
-        requiredInputs: selectedUtxos,
+        requiredInputs: _sendInputs,
         allowReplay: allowReplay,
       );
     } catch (error) {
@@ -1153,16 +1198,184 @@ class SendPageViewModel extends BaseViewModel {
     return estimateTxVBytes(numInputs: numInputs, numOutputs: numOutputs);
   }
 
-  int get _maxSendFeeSats {
-    final rate = _estimatedSatPerVByte;
+  int? get _feeRateSatPerVbyte => _estimatedSatPerVByte?.ceil();
+
+  Map<String, int>? _destinationsWith({int? index, int? sats}) => sendDestinations([
+    for (var i = 0; i < recipients.length; i++)
+      (
+        address: recipients[i].addressController.text,
+        sats: i == index ? sats! : parseAmountToSatoshis(recipients[i].amountController.text, currentUnit),
+      ),
+  ]);
+
+  /// The fee of a send of every coin the recipient at [index] can take, and
+  /// the sats those coins hold. The backend prices it with the coins it picks.
+  /// Null after an error the page shows.
+  Future<({int feeSats, int availableSats, int notificationCoinSats})?> _maxSendFee(
+    int index,
+    int availableSats,
+    int otherSats,
+  ) async {
+    final rate = _feeRateSatPerVbyte;
     if (rate == null) {
-      return parseAmountToSatoshis(feeController.text.isEmpty ? '0' : feeController.text, currentUnit);
+      return (
+        feeSats: parseAmountToSatoshis(feeController.text.isEmpty ? '0' : feeController.text, currentUnit),
+        availableSats: availableSats,
+        notificationCoinSats: 0,
+      );
     }
-    final numInputs = selectedUtxos.isEmpty ? allUtxos.length : selectedUtxos.length;
-    return feeSatsForRate(
-      satPerVByte: rate.ceilToDouble(),
-      txVBytes: estimateTxVBytes(numInputs: numInputs, numOutputs: recipients.length + 1),
+    final walletId = _walletReader.activeWalletId;
+    final destinations = _destinationsWith(index: index, sats: availableSats - otherSats);
+    if (walletId == null || destinations == null) {
+      setSendError('Enter an address and an amount for each recipient before you use MAX.');
+      return null;
+    }
+    try {
+      if (destinations.length == 1) {
+        // A first BIP47 payment cannot spend the coin of its notification, so
+        // a small payment finds that coin before the full one is priced.
+        final probe = await _orchestratorWallet.previewSend(
+          walletId: walletId,
+          destinations: _destinationsWith(index: index, sats: dustSats)!,
+          feeRateSatPerVbyte: rate,
+          requiredInputs: selectedUtxos,
+        );
+        // Selected coins never fund the notification, so only a send from the
+        // whole wallet has the notification coin inside its balance.
+        final notificationCoinSats = probe.hasNotificationInput() && selectedUtxos.isEmpty
+            ? probe.notificationInput.amountSats.toInt()
+            : 0;
+        final paymentDestinations = _destinationsWith(
+          index: index,
+          sats: availableSats - otherSats - notificationCoinSats,
+        );
+        if (paymentDestinations == null) {
+          setSendError('The wallet has no coins left for the payment after the BIP47 notification.');
+          return null;
+        }
+        final preview = await _orchestratorWallet.previewSend(
+          walletId: walletId,
+          destinations: paymentDestinations,
+          feeRateSatPerVbyte: rate,
+          subtractFeeFromAmount: true,
+          requiredInputs: selectedUtxos,
+        );
+        return (
+          feeSats: preview.feeSats.toInt(),
+          availableSats: availableSats,
+          notificationCoinSats: notificationCoinSats,
+        );
+      }
+      // The electrum backend takes the fee from one destination only, so a send
+      // to several spends every coin with a dust payment and pays the fee on top.
+      final coins = selectedUtxos.isNotEmpty ? selectedUtxos : availableUtxos;
+      final preview = await _orchestratorWallet.previewSend(
+        walletId: walletId,
+        destinations: _destinationsWith(index: index, sats: dustSats)!,
+        feeRateSatPerVbyte: rate,
+        requiredInputs: coins,
+      );
+      return (
+        feeSats: preview.feeSats.toInt(),
+        availableSats: coins.fold(0, (sum, u) => sum + u.valueSats.toInt()),
+        notificationCoinSats: 0,
+      );
+    } catch (error) {
+      setSendError('Could not calculate the fee: $error');
+      return null;
+    }
+  }
+
+  String? _currentFeePreviewKey() {
+    final walletId = _walletReader.activeWalletId;
+    final rate = _feeRateSatPerVbyte;
+    final destinations = _destinationsWith();
+    if (walletId == null || rate == null || destinations == null) {
+      return null;
+    }
+    return feePreviewKey(
+      walletId: walletId,
+      destinations: destinations,
+      feeRateSatPerVbyte: rate,
+      subtractFeeFromAmount: _subtractFeeFromAmount,
+      requiredOutpoints: selectedUtxos.map((u) => u.output),
+      frozenOutpoints: frozenOutpoints,
+      walletOutpoints: allUtxos.map((u) => u.output),
     );
+  }
+
+  /// The coin the BIP47 notification of the priced send spends.
+  UnspentOutput? get _sendNotificationInput =>
+      _currentFeePreviewKey() != null && _currentFeePreviewKey() == _pricedKey ? _pricedNotificationInput : null;
+
+  List<UnspentOutput> get _sendInputs => sendInputs(
+    selected: selectedUtxos,
+    currentKey: _currentFeePreviewKey(),
+    pricedKey: _pricedKey,
+    pricedInputs: _pricedInputs,
+  );
+
+  void _scheduleFeePreview() {
+    if (disposed) {
+      return;
+    }
+    final key = _currentFeePreviewKey();
+    if (key == _feePreviewKey) {
+      return;
+    }
+    _feePreviewKey = key;
+    _feePreviewTimer?.cancel();
+    if (key == null) {
+      return;
+    }
+    _feePreviewTimer = Timer(feePreviewDebounce, () => unawaited(_previewFee(key)));
+  }
+
+  /// Prices the form, which [key] identifies, and puts the fee in the fee field.
+  Future<void> _previewFee(String key) async {
+    try {
+      final preview = await _orchestratorWallet.previewSend(
+        walletId: _walletReader.activeWalletId!,
+        destinations: _destinationsWith()!,
+        feeRateSatPerVbyte: _feeRateSatPerVbyte!,
+        subtractFeeFromAmount: _subtractFeeFromAmount,
+        requiredInputs: selectedUtxos,
+      );
+      if (disposed || key != _feePreviewKey) {
+        return;
+      }
+      UnspentOutput coin(wmpb.UnspentOutput i) => UnspentOutput(output: '${i.txid}:${i.vout}', valueSats: i.amountSats);
+      _pricedKey = key;
+      _pricedInputs = preview.inputs.map(coin).toList();
+      _pricedNotificationInput = preview.hasNotificationInput() ? coin(preview.notificationInput) : null;
+      _pricedFeeSats = previewFeeSats(preview);
+      _setFeeFromSats(_pricedFeeSats);
+    } catch (error) {
+      if (disposed || key != _feePreviewKey) {
+        return;
+      }
+      setSendError('Could not calculate the fee: $error');
+    }
+  }
+
+  /// Prices the form now when the fee field does not show the fee of this send.
+  /// False when the fee changed or the preview failed. The page shows why.
+  Future<bool> _confirmFeeIsPriced(int shownFeeSats) async {
+    final key = _currentFeePreviewKey();
+    if (key == null || (key == _pricedKey && shownFeeSats == _pricedFeeSats)) {
+      return true;
+    }
+    _feePreviewTimer?.cancel();
+    _feePreviewKey = key;
+    await _previewFee(key);
+    if (_pricedKey != key) {
+      return false;
+    }
+    if (parseAmountToSatoshis(feeController.text, currentUnit) != shownFeeSats) {
+      setSendError('The fee changed. Check the new fee and send again.');
+      return false;
+    }
+    return true;
   }
 
   void _setFeeFromSats(int feeSats) {
@@ -1179,8 +1392,7 @@ class SendPageViewModel extends BaseViewModel {
       if (satPerVByte == null) {
         return;
       }
-      _setFeeFromSats(feeSatsForRate(satPerVByte: satPerVByte.ceilToDouble(), txVBytes: _estimatedTxVBytes));
-      _estimatedSatPerVByte = satPerVByte;
+      _setEstimatedFee(satPerVByte);
       selectedConfTarget = confTarget;
       notifyListeners();
     } catch (error) {
@@ -1210,13 +1422,26 @@ class SendPageViewModel extends BaseViewModel {
 
   void selectFeeRatePoint(FeeRatePoint point) {
     selectedConfTarget = point.confTarget;
-    _setFeeFromSats(feeSatsForRate(satPerVByte: point.satPerVByte.ceilToDouble(), txVBytes: _estimatedTxVBytes));
-    _estimatedSatPerVByte = point.satPerVByte;
+    _setEstimatedFee(point.satPerVByte);
     notifyListeners();
+  }
+
+  /// Shows the fee of [satPerVByte]: the priced fee when a preview already
+  /// priced this form at that rate, else a size guess until the preview ends.
+  void _setEstimatedFee(double satPerVByte) {
+    _estimatedSatPerVByte = satPerVByte;
+    final key = _currentFeePreviewKey();
+    _setFeeFromSats(
+      key != null && key == _pricedKey
+          ? _pricedFeeSats
+          : feeSatsForRate(satPerVByte: satPerVByte.ceilToDouble(), txVBytes: _estimatedTxVBytes),
+    );
   }
 
   void clearFeeEstimate() {
     _estimatedSatPerVByte = null;
+    _feePreviewTimer?.cancel();
+    _feePreviewKey = null;
   }
 }
 

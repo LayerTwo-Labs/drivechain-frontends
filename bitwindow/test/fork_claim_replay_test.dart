@@ -26,6 +26,7 @@ class _FakeWallet implements OrchestratorWalletRPC {
     String? opReturnMessage,
     String? opReturnHex,
     List<bwpb.UnspentOutput>? requiredInputs,
+    bwpb.UnspentOutput? notificationInput,
     bool allowReplay = false,
   }) async {
     sentAllowReplay = allowReplay;

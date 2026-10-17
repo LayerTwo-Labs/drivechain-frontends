@@ -87,6 +87,7 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
     String? opReturnMessage,
     String? opReturnHex,
     List<UnspentOutput>? requiredInputs,
+    UnspentOutput? notificationInput,
     bool allowReplay = false,
   }) async {
     if (failSend) {
