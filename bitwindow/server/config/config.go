@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -150,13 +151,21 @@ func adoptLegacyECashDatadir(base string, network Network) error {
 	}
 	legacy := filepath.Join(base, legacyECashDatadir)
 	current := filepath.Join(base, string(NetworkECash))
-	if _, err := os.Stat(legacy); err != nil {
+	_, err := os.Stat(legacy)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
 		return nil
+	case err != nil:
+		return fmt.Errorf("stat %s: %w", legacy, err)
 	}
-	if _, err := os.Stat(current); err == nil {
+	_, err = os.Stat(current)
+	switch {
+	case err == nil:
 		// Both exist: the current one is what this build already wrote to, so
 		// it wins and the old folder stays for the user to look at.
 		return nil
+	case !errors.Is(err, fs.ErrNotExist):
+		return fmt.Errorf("stat %s: %w", current, err)
 	}
 	if err := os.Rename(legacy, current); err != nil {
 		return fmt.Errorf("adopt the legacy eCash data directory: %w", err)

@@ -107,4 +107,26 @@ func TestCountSince(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(1), count)
 	})
+
+	t.Run("compares across a time zone offset", func(t *testing.T) {
+		db := database.Test(t)
+		oslo := time.FixedZone("CEST", 2*60*60)
+		at := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
+		require.NoError(t, blocks.MarkBlocksProcessed(t.Context(), db, []blocks.ProcessedBlock{
+			{Height: 1, Hash: chainhash.Hash{1}, BlockTime: at.In(oslo), Txids: []chainhash.Hash{{1}, {2}}},
+			{Height: 2, Hash: chainhash.Hash{2}, BlockTime: at.Add(time.Hour), Txids: []chainhash.Hash{{3}, {4}}},
+		}))
+
+		count, err := blocks.CountSince(t.Context(), db, at.Add(30*time.Minute))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+
+		txCount, err := blocks.TxCountSince(t.Context(), db, at.Add(30*time.Minute))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), txCount)
+
+		count, err = blocks.CountSince(t.Context(), db, at.Add(30*time.Minute).In(oslo))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+	})
 }

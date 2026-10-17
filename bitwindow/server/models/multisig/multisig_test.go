@@ -602,3 +602,61 @@ func TestImportTransactionsFromJSON_RequiredSignatures(t *testing.T) {
 		})
 	}
 }
+
+func TestImportFromJSON_KeyPSBTs(t *testing.T) {
+	const withPSBTs = `{"groups":[{"id":"grp-1","name":"G","n":2,"m":2,"keys":[
+		{"owner":"me","xpub":"tpubA","path":"m/48'/1'/0'/2'","active_psbts":{"tx-1":"active-1"},"initial_psbts":{"tx-1":"initial-1","tx-2":"initial-2"}},
+		{"owner":"bob","xpub":"tpubB","path":"m/48'/1'/1'/2'"}]}]}`
+	const withoutPSBTs = `{"groups":[{"id":"grp-1","name":"G","n":2,"m":2,"keys":[
+		{"owner":"me","xpub":"tpubA","path":"m/48'/1'/0'/2'"},
+		{"owner":"bob","xpub":"tpubB","path":"m/48'/1'/1'/2'"}]}]}`
+
+	listPSBTs := func(t *testing.T, store *multisig.Store) []multisig.KeyPSBT {
+		t.Helper()
+		keys, err := store.ListKeysForGroup(t.Context(), "grp-1")
+		require.NoError(t, err)
+		require.Len(t, keys, 2)
+		psbts, err := store.ListKeyPSBTs(t.Context(), "grp-1")
+		require.NoError(t, err)
+		for i := range psbts {
+			require.Equal(t, keys[0].ID, psbts[i].KeyID)
+			psbts[i].KeyID = 0
+		}
+		return psbts
+	}
+	want := []multisig.KeyPSBT{
+		{TransactionID: "tx-1", ActivePSBT: "active-1", InitialPSBT: "initial-1"},
+		{TransactionID: "tx-2", InitialPSBT: "initial-2"},
+	}
+
+	t.Run("reads key psbts", func(t *testing.T) {
+		store := multisig.NewStore(database.Test(t))
+		require.NoError(t, store.ImportFromJSON(t.Context(), []byte(withPSBTs)))
+
+		assert.ElementsMatch(t, want, listPSBTs(t, store))
+	})
+
+	t.Run("keeps key psbts on a restore over the group", func(t *testing.T) {
+		store := multisig.NewStore(database.Test(t))
+		require.NoError(t, store.ImportFromJSON(t.Context(), []byte(withPSBTs)))
+		require.NoError(t, store.ImportFromJSON(t.Context(), []byte(withoutPSBTs)))
+
+		assert.ElementsMatch(t, want, listPSBTs(t, store))
+	})
+
+	t.Run("replaces key psbts of the same transaction", func(t *testing.T) {
+		store := multisig.NewStore(database.Test(t))
+		require.NoError(t, store.ImportFromJSON(t.Context(), []byte(withoutPSBTs)))
+		require.NoError(t, store.SaveGroupAtomic(t.Context(), multisig.SaveGroupAtomicParams{
+			Group: multisig.Group{ID: "grp-1", Name: "G", N: 2, M: 2},
+			Keys: []multisig.Key{
+				{Owner: "me", Xpub: "tpubA", DerivationPath: "m/48'/1'/0'/2'"},
+				{Owner: "bob", Xpub: "tpubB", DerivationPath: "m/48'/1'/1'/2'"},
+			},
+			XpubToPSBTs: map[string][]multisig.KeyPSBT{"tpubA": {{TransactionID: "tx-1", ActivePSBT: "old"}}},
+		}))
+		require.NoError(t, store.ImportFromJSON(t.Context(), []byte(withPSBTs)))
+
+		assert.ElementsMatch(t, want, listPSBTs(t, store))
+	})
+}

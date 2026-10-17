@@ -125,6 +125,19 @@ func TestCreateBackup(t *testing.T) {
 		require.Nil(t, data)
 	})
 
+	t.Run("a failed solo key read returns an error and no zip", func(t *testing.T) {
+		db := database.Test(t)
+		_, err := db.ExecContext(t.Context(), `DROP TABLE multisig_solo_keys`)
+		require.NoError(t, err)
+		dir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), []byte(`{"master":"seed"}`), 0600))
+		e := &BackupEngine{db: db, walletDir: dir, multisigStore: multisig.NewStore(db)}
+
+		data, _, err := e.CreateBackup(t.Context())
+		require.ErrorContains(t, err, "no such table")
+		require.Nil(t, data)
+	})
+
 	t.Run("zip holds the wallet", func(t *testing.T) {
 		dir := t.TempDir()
 		walletJSON := []byte(`{"master":"seed","l1":"key"}`)

@@ -3,6 +3,7 @@ package engines
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -46,6 +47,10 @@ func TestExportMultisigJSON_RoundTrip(t *testing.T) {
 		Keys:           wantKeys,
 		Addresses:      wantAddrs,
 		TransactionIDs: []string{"tx-a", "tx-b"},
+		XpubToPSBTs: map[string][]multisig.KeyPSBT{
+			"tpubA": {{TransactionID: "tx-a", ActivePSBT: "active-a", InitialPSBT: "initial-a"}},
+			"tpubB": {{TransactionID: "tx-b", InitialPSBT: "initial-b"}},
+		},
 	}))
 
 	wantSolo := multisig.SoloKey{
@@ -58,8 +63,7 @@ func TestExportMultisigJSON_RoundTrip(t *testing.T) {
 	require.NotNil(t, multisigJSON)
 
 	// Wipe the group, then restore it from the exported file.
-	_, err = db.ExecContext(ctx, `DELETE FROM multisig_groups WHERE id = ?`, wantGroup.ID)
-	require.NoError(t, err)
+	require.NoError(t, store.DeleteGroup(ctx, wantGroup.ID))
 	_, err = db.ExecContext(ctx, `DELETE FROM multisig_solo_keys`)
 	require.NoError(t, err)
 	require.NoError(t, store.ImportFromJSON(ctx, multisigJSON))
@@ -85,6 +89,13 @@ func TestExportMultisigJSON_RoundTrip(t *testing.T) {
 	require.True(t, gotKeys[0].IsWallet, "is_wallet must survive, else the wallet cannot sign")
 	require.False(t, gotKeys[1].IsWallet)
 	require.Equal(t, "tpubB", gotKeys[1].Xpub)
+
+	gotPSBTs, err := store.ListKeyPSBTs(ctx, "group-1")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []multisig.KeyPSBT{
+		{KeyID: gotKeys[0].ID, TransactionID: "tx-a", ActivePSBT: "active-a", InitialPSBT: "initial-a"},
+		{KeyID: gotKeys[1].ID, TransactionID: "tx-b", InitialPSBT: "initial-b"},
+	}, gotPSBTs)
 
 	gotAddrs, err := store.ListAddresses(ctx, "group-1")
 	require.NoError(t, err)

@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
@@ -240,6 +242,55 @@ func saveKeyPSBTOn(ctx context.Context, e execer, kp KeyPSBT) error {
 		    active_psbt=excluded.active_psbt, initial_psbt=excluded.initial_psbt`,
 		kp.KeyID, kp.TransactionID, nullStr(kp.ActivePSBT), nullStr(kp.InitialPSBT))
 	return err
+}
+
+// saveKeyPSBTsByXpubOn resolves each xpub to its key ID in the group and saves the PSBTs.
+func saveKeyPSBTsByXpubOn(ctx context.Context, e execer, groupID string, xpubToPSBTs map[string][]KeyPSBT) error {
+	if len(xpubToPSBTs) == 0 {
+		return nil
+	}
+	dbKeys, err := listKeysForGroupOn(ctx, e, groupID)
+	if err != nil {
+		return fmt.Errorf("list keys: %w", err)
+	}
+	xpubToID := make(map[string]int64, len(dbKeys))
+	for _, k := range dbKeys {
+		xpubToID[k.Xpub] = k.ID
+	}
+	for xpub, psbts := range xpubToPSBTs {
+		keyID, ok := xpubToID[xpub]
+		if !ok {
+			return fmt.Errorf("psbt xpub %s has no key in group %s", xpub, groupID)
+		}
+		for _, kp := range psbts {
+			kp.KeyID = keyID
+			if err := saveKeyPSBTOn(ctx, e, kp); err != nil {
+				return fmt.Errorf("save key psbt: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func listKeyPSBTsByXpubOn(ctx context.Context, e execer, groupID string) (map[string][]KeyPSBT, error) {
+	rows, err := database.Select[struct {
+		Xpub          string `db:"xpub"`
+		TransactionID string `db:"transaction_id"`
+		ActivePSBT    string `db:"active_psbt"`
+		InitialPSBT   string `db:"initial_psbt"`
+	}](ctx, e, `
+		SELECT k.xpub, kp.transaction_id, COALESCE(kp.active_psbt,'') AS active_psbt, COALESCE(kp.initial_psbt,'') AS initial_psbt
+		FROM multisig_key_psbts kp
+		JOIN multisig_keys k ON kp.key_id = k.id
+		WHERE k.group_id = ?`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]KeyPSBT, len(rows))
+	for _, r := range rows {
+		out[r.Xpub] = append(out[r.Xpub], KeyPSBT{TransactionID: r.TransactionID, ActivePSBT: r.ActivePSBT, InitialPSBT: r.InitialPSBT})
+	}
+	return out, nil
 }
 
 // ─── Addresses ─────────────────────────────────────────────────────
@@ -515,28 +566,8 @@ func (s *Store) SaveGroupAtomic(ctx context.Context, p SaveGroupAtomicParams) er
 		return fmt.Errorf("replace keys: %w", err)
 	}
 
-	// Resolve xpub → DB key ID for PSBTs.
-	if len(p.XpubToPSBTs) > 0 {
-		dbKeys, err := listKeysForGroupOn(ctx, tx, p.Group.ID)
-		if err != nil {
-			return fmt.Errorf("list keys: %w", err)
-		}
-		xpubToID := make(map[string]int64, len(dbKeys))
-		for _, k := range dbKeys {
-			xpubToID[k.Xpub] = k.ID
-		}
-		for xpub, psbts := range p.XpubToPSBTs {
-			keyID, ok := xpubToID[xpub]
-			if !ok {
-				return fmt.Errorf("psbt xpub %s has no key in group %s", xpub, p.Group.ID)
-			}
-			for _, kp := range psbts {
-				kp.KeyID = keyID
-				if err := saveKeyPSBTOn(ctx, tx, kp); err != nil {
-					return fmt.Errorf("save key psbt: %w", err)
-				}
-			}
-		}
+	if err := saveKeyPSBTsByXpubOn(ctx, tx, p.Group.ID, p.XpubToPSBTs); err != nil {
+		return err
 	}
 
 	if err := replaceAddressesOn(ctx, tx, p.Group.ID, p.Addresses); err != nil {
@@ -635,13 +666,19 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 
 		// Import keys
 		if keysRaw, ok := gj["keys"].([]interface{}); ok {
+			existingPSBTs, err := listKeyPSBTsByXpubOn(ctx, tx, g.ID)
+			if err != nil {
+				return fmt.Errorf("list key psbts for %s: %w", g.ID, err)
+			}
+
 			var keys []Key
+			xpubToPSBTs := make(map[string][]KeyPSBT)
 			for i, kr := range keysRaw {
 				kd, ok := kr.(map[string]interface{})
 				if !ok {
 					continue
 				}
-				keys = append(keys, Key{
+				k := Key{
 					GroupID:        g.ID,
 					Owner:          getString(kd, "owner"),
 					Xpub:           getStringAlt(kd, "xpub", "pubkey"),
@@ -650,10 +687,16 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 					OriginPath:     getString(kd, "origin_path"),
 					IsWallet:       getBool(kd, "is_wallet"),
 					SortOrder:      i,
-				})
+				}
+				keys = append(keys, k)
+				// The imported PSBTs come last, so they replace an existing PSBT of the same transaction.
+				xpubToPSBTs[k.Xpub] = slices.Concat(existingPSBTs[k.Xpub], keyPSBTsFromJSON(kd))
 			}
 			if err := replaceKeysForGroupOn(ctx, tx, g.ID, keys); err != nil {
 				return fmt.Errorf("replace keys for %s: %w", g.ID, err)
+			}
+			if err := saveKeyPSBTsByXpubOn(ctx, tx, g.ID, xpubToPSBTs); err != nil {
+				return fmt.Errorf("save key psbts for %s: %w", g.ID, err)
 			}
 		}
 
@@ -714,6 +757,19 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 	}
 
 	return tx.Commit()
+}
+
+func keyPSBTsFromJSON(kd map[string]interface{}) []KeyPSBT {
+	active, _ := kd["active_psbts"].(map[string]interface{})
+	initial, _ := kd["initial_psbts"].(map[string]interface{})
+	txIDs := lo.Uniq(append(lo.Keys(active), lo.Keys(initial)...))
+	return lo.Map(txIDs, func(txID string, _ int) KeyPSBT {
+		return KeyPSBT{
+			TransactionID: txID,
+			ActivePSBT:    getString(active, txID),
+			InitialPSBT:   getString(initial, txID),
+		}
+	})
 }
 
 func parseImportTime(ctx context.Context, txID, field, value string) (int64, bool) {
