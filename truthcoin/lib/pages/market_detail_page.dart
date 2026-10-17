@@ -72,6 +72,7 @@ class MarketDetailPage extends StatelessWidget {
                 children: [
                   SailText.primary15(model.marketError ?? 'Market not found'),
                   SailButton(
+                    plainLabel: true,
                     label: 'Try again',
                     small: true,
                     onPressed: () async => model.load(),
@@ -144,6 +145,7 @@ class _BackRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         SailButton(
+          plainLabel: true,
           label: '←  Markets',
           variant: ButtonVariant.link,
           small: true,
@@ -153,6 +155,7 @@ class _BackRow extends StatelessWidget {
         ),
         const Spacer(),
         SailButton(
+          plainLabel: true,
           label: 'Refresh',
           variant: ButtonVariant.secondary,
           small: true,
@@ -575,6 +578,7 @@ class _TradePanel extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: SailButton(
+          plainLabel: true,
           label: outcome == null ? 'Buy' : 'Buy ${outcome.label}',
           loading: model.isExecuting,
           disabled: preview == null || model.buyCostsTooMuch,
@@ -625,6 +629,7 @@ class _TradePanel extends StatelessWidget {
             ),
           ),
           SailButton(
+            plainLabel: true,
             label: 'Max',
             variant: ButtonVariant.secondary,
             small: true,
@@ -646,6 +651,7 @@ class _TradePanel extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: SailButton(
+          plainLabel: true,
           label: outcome == null ? 'Sell' : 'Sell ${outcome.label}',
           variant: ButtonVariant.destructive,
           loading: model.isExecuting,

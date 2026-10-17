@@ -119,6 +119,7 @@ class _Header extends StatelessWidget {
           ),
         if (status != null) SailText.secondary13('${status.blocksPerPeriod} blocks per period'),
         SailButton(
+          plainLabel: true,
           label: 'Refresh',
           variant: ButtonVariant.secondary,
           small: true,
@@ -289,6 +290,7 @@ class _BallotCard extends StatelessWidget {
           _FactRow(label: 'Reputation', value: voter?.reputationDisplay ?? '—'),
           if (model.userAddress != null) _FactRow(label: 'Address', value: model.shortAddress),
           SailButton(
+            plainLabel: true,
             label: 'Submit ballot',
             loading: model.isSubmitting,
             disabled: model.pendingVotesCount == 0,
@@ -528,6 +530,7 @@ class _ScaledVoteInputState extends State<_ScaledVoteInput> {
           ),
         ),
         SailButton(
+          plainLabel: true,
           label: 'Clear',
           variant: ButtonVariant.secondary,
           small: true,

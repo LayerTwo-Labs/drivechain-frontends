@@ -235,6 +235,7 @@ class MarketCard extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: SailButton(
+            plainLabel: true,
             label: 'Trade',
             variant: ButtonVariant.secondary,
             onPressed: () async => onTap(),
