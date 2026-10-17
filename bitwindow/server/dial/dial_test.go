@@ -16,6 +16,8 @@ import (
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	walletmanagerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	walletmanagerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 )
 
@@ -44,7 +46,7 @@ func TestEnsureHTTPScheme(t *testing.T) {
 // mocking out connect's transport — empty addr must error rather than silently
 // dial nothing.
 func TestBitcoind_RejectsEmptyAddr(t *testing.T) {
-	_, err := Bitcoind(t.Context(), "")
+	_, err := Bitcoind(t.Context(), "", "")
 	require.ErrorContains(t, err, "empty orchestrator addr")
 }
 
@@ -169,6 +171,36 @@ func TestBitcoinConf(t *testing.T) {
 
 	t.Run("no cookie fails the call", func(t *testing.T) {
 		_, err := BitcoinConf(server.URL, t.TempDir()).GetBitcoinConfig(t.Context(), connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+		require.ErrorContains(t, err, "unauthenticated")
+	})
+}
+
+type walletManagerHandler struct {
+	walletmanagerrpc.UnimplementedWalletManagerServiceHandler
+}
+
+func (walletManagerHandler) GetNodeMode(context.Context, *connect.Request[walletmanagerpb.GetNodeModeRequest]) (*connect.Response[walletmanagerpb.GetNodeModeResponse], error) {
+	return connect.NewResponse(&walletmanagerpb.GetNodeModeResponse{Mode: walletmanagerpb.NodeMode_NODE_MODE_FULL}), nil
+}
+
+func TestWalletManager(t *testing.T) {
+	dir := t.TempDir()
+	_, err := localauth.WriteCookie(dir)
+	require.NoError(t, err)
+
+	mux := http.NewServeMux()
+	mux.Handle(walletmanagerrpc.NewWalletManagerServiceHandler(walletManagerHandler{}, connect.WithInterceptors(localauth.Interceptor(dir))))
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	t.Run("the cookie authenticates the call", func(t *testing.T) {
+		resp, err := WalletManager(server.URL, dir).GetNodeMode(t.Context(), connect.NewRequest(&walletmanagerpb.GetNodeModeRequest{}))
+		require.NoError(t, err)
+		assert.Equal(t, walletmanagerpb.NodeMode_NODE_MODE_FULL, resp.Msg.GetMode())
+	})
+
+	t.Run("no cookie fails the call", func(t *testing.T) {
+		_, err := WalletManager(server.URL, t.TempDir()).GetNodeMode(t.Context(), connect.NewRequest(&walletmanagerpb.GetNodeModeRequest{}))
 		require.ErrorContains(t, err, "unauthenticated")
 	})
 }
