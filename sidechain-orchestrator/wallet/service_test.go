@@ -52,7 +52,7 @@ func TestServiceGenerateWallet(t *testing.T) {
 	svc := newTestService(t)
 
 	assert.False(t, svc.HasWallet())
-	assert.False(t, svc.IsUnlocked())
+	assert.Equal(t, StateNoWallet, svc.State())
 	assert.False(t, svc.IsEncrypted())
 
 	w, err := svc.GenerateWallet("Test Wallet", "", "", testSlots)
@@ -71,7 +71,7 @@ func TestServiceGenerateWallet(t *testing.T) {
 	assert.NotEmpty(t, w.Sidechains[0].Mnemonic)
 
 	assert.True(t, svc.HasWallet())
-	assert.True(t, svc.IsUnlocked())
+	assert.Equal(t, StateUnlocked, svc.State())
 	assert.Equal(t, w.ID, svc.ActiveWalletID())
 	assert.Equal(t, "Test Wallet", svc.ActiveWalletName())
 
@@ -129,7 +129,7 @@ func TestServiceWalletFilePersistence(t *testing.T) {
 	defer svc2.Close()
 
 	assert.True(t, svc2.HasWallet())
-	assert.True(t, svc2.IsUnlocked())
+	assert.Equal(t, StateUnlocked, svc2.State())
 	assert.Equal(t, w.ID, svc2.ActiveWalletID())
 	assert.Equal(t, "Persist Test", svc2.ActiveWalletName())
 
@@ -147,7 +147,7 @@ func TestServiceEncryptDecryptCycle(t *testing.T) {
 	// Encrypt
 	require.NoError(t, svc.EncryptWallet("mypassword"))
 	assert.True(t, svc.IsEncrypted())
-	assert.True(t, svc.IsUnlocked()) // stays unlocked after encrypting
+	assert.Equal(t, StateUnlocked, svc.State()) // stays unlocked after encrypting
 
 	// Verify wallet.json is actually encrypted (not valid JSON)
 	data, err := os.ReadFile(filepath.Join(svc.bitwindowDir, "wallet.json"))
@@ -165,17 +165,17 @@ func TestServiceEncryptDecryptCycle(t *testing.T) {
 
 	// Lock
 	svc.LockWallet()
-	assert.False(t, svc.IsUnlocked())
+	assert.Equal(t, StateLocked, svc.State())
 	assert.True(t, svc.IsEncrypted())
 
 	// Unlock with wrong password
 	err = svc.UnlockWallet("wrongpassword")
 	assert.Error(t, err)
-	assert.False(t, svc.IsUnlocked())
+	assert.Equal(t, StateLocked, svc.State())
 
 	// Unlock with correct password
 	require.NoError(t, svc.UnlockWallet("mypassword"))
-	assert.True(t, svc.IsUnlocked())
+	assert.Equal(t, StateUnlocked, svc.State())
 
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 1)
@@ -213,7 +213,7 @@ func TestServiceLocksWhenARestoreReplacesTheWallet(t *testing.T) {
 			svc.mu.Lock()
 			require.NoError(t, svc.loadWalletFile())
 			svc.mu.Unlock()
-			assert.False(t, svc.IsUnlocked())
+			assert.Equal(t, StateLocked, svc.State())
 
 			require.NoError(t, svc.UnlockWallet("restored"))
 			assert.Equal(t, "Restored", svc.ActiveWalletName())
@@ -237,7 +237,7 @@ func TestServiceChangePassword(t *testing.T) {
 
 		svc.LockWallet()
 		require.NoError(t, svc.UnlockWallet("newpass"))
-		assert.True(t, svc.IsUnlocked())
+		assert.Equal(t, StateUnlocked, svc.State())
 
 		svc.LockWallet()
 		err = svc.UnlockWallet("oldpass")
@@ -285,7 +285,7 @@ func TestServiceRemoveEncryption(t *testing.T) {
 	assert.False(t, svc.IsEncrypted())
 
 	// Wallet should still be readable
-	assert.True(t, svc.IsUnlocked())
+	assert.Equal(t, StateUnlocked, svc.State())
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 1)
 
@@ -330,7 +330,7 @@ func TestServiceStaleEncryptionMetadataDroppedOnLoad(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.False(t, svc.IsEncrypted())
-	assert.True(t, svc.IsUnlocked())
+	assert.Equal(t, StateUnlocked, svc.State())
 	assert.Len(t, svc.ListWallets(), 1)
 	_, err = os.Stat(metaPath)
 	assert.True(t, os.IsNotExist(err), "stale encryption metadata should be gone")
@@ -393,7 +393,7 @@ func TestServiceDeleteAllWallets(t *testing.T) {
 
 	require.NoError(t, svc.DeleteAllWallets(nil, nil))
 	assert.False(t, svc.HasWallet())
-	assert.False(t, svc.IsUnlocked())
+	assert.Equal(t, StateNoWallet, svc.State())
 	assert.Empty(t, svc.ActiveWalletID())
 }
 
@@ -768,7 +768,7 @@ func TestServiceCreateWatchOnlyWalletWithXpub(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, svc.HasWallet())
-	assert.True(t, svc.IsUnlocked())
+	assert.Equal(t, StateUnlocked, svc.State())
 
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 1)
@@ -932,11 +932,11 @@ func TestServiceEncryptedPersistence(t *testing.T) {
 
 	assert.True(t, svc2.HasWallet())
 	assert.True(t, svc2.IsEncrypted())
-	assert.False(t, svc2.IsUnlocked())
+	assert.Equal(t, StateLocked, svc2.State())
 
 	// Unlock
 	require.NoError(t, svc2.UnlockWallet("pass123"))
-	assert.True(t, svc2.IsUnlocked())
+	assert.Equal(t, StateUnlocked, svc2.State())
 	assert.Equal(t, w.ID, svc2.ActiveWalletID())
 	assert.Equal(t, "EncPersist", svc2.ActiveWalletName())
 }

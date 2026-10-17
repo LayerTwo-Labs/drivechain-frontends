@@ -49,7 +49,9 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
   @override
   Future<wmpb.GetWalletStatusResponse> getWalletStatus() async {
     statusCalls++;
-    return wmpb.GetWalletStatusResponse(hasWallet: hasWalletToReturn);
+    return wmpb.GetWalletStatusResponse(
+      state: hasWalletToReturn ? wmpb.WalletState.WALLET_STATE_LOCKED : wmpb.WalletState.WALLET_STATE_NO_WALLET,
+    );
   }
 }
 
@@ -139,6 +141,29 @@ void main() {
 
     expect(provider.primaryWallet, isNull);
     expect(provider.getL1Mnemonic(), isNull);
+  });
+
+  test('a locked frame clears the wallets and an unlocked frame fills them', () {
+    final provider = WalletReaderProvider(Directory.systemTemp);
+    final unlocked = wmpb.WatchWalletDataResponse(
+      state: wmpb.WalletState.WALLET_STATE_UNLOCKED,
+      activeWalletId: 'core-1',
+      wallets: [wmpb.WalletMetadata(id: 'core-1', name: 'Core', walletType: wmpb.WalletType.WALLET_TYPE_BITCOIN_CORE)],
+    );
+
+    provider.applyWatchFrame(unlocked);
+    expect(provider.wallets.map((w) => w.id), ['core-1']);
+    expect(provider.isWalletUnlocked, isTrue);
+
+    provider.applyWatchFrame(
+      wmpb.WatchWalletDataResponse(state: wmpb.WalletState.WALLET_STATE_LOCKED, activeWalletId: 'core-1'),
+    );
+    expect(provider.wallets, isEmpty);
+    expect(provider.isWalletUnlocked, isFalse);
+    expect(provider.hasWalletOnDisk, isTrue);
+
+    provider.applyWatchFrame(unlocked);
+    expect(provider.wallets.map((w) => w.id), ['core-1']);
   });
 
   test('unlockWallet seeds wallets and notifies listeners on success', () async {

@@ -13,6 +13,26 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+/// WalletState is the lock state of the wallet file.
+class WalletState extends $pb.ProtobufEnum {
+  static const WalletState WALLET_STATE_UNSPECIFIED = WalletState._(0, _omitEnumNames ? '' : 'WALLET_STATE_UNSPECIFIED');
+  static const WalletState WALLET_STATE_NO_WALLET = WalletState._(1, _omitEnumNames ? '' : 'WALLET_STATE_NO_WALLET');
+  static const WalletState WALLET_STATE_LOCKED = WalletState._(2, _omitEnumNames ? '' : 'WALLET_STATE_LOCKED');
+  static const WalletState WALLET_STATE_UNLOCKED = WalletState._(3, _omitEnumNames ? '' : 'WALLET_STATE_UNLOCKED');
+
+  static const $core.List<WalletState> values = <WalletState> [
+    WALLET_STATE_UNSPECIFIED,
+    WALLET_STATE_NO_WALLET,
+    WALLET_STATE_LOCKED,
+    WALLET_STATE_UNLOCKED,
+  ];
+
+  static final $core.Map<$core.int, WalletState> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static WalletState? valueOf($core.int value) => _byValue[value];
+
+  const WalletState._($core.int v, $core.String n) : super(v, n);
+}
+
 /// NodeMode is how much of Bitcoin this install runs.
 class NodeMode extends $pb.ProtobufEnum {
   static const NodeMode NODE_MODE_UNSPECIFIED = NodeMode._(0, _omitEnumNames ? '' : 'NODE_MODE_UNSPECIFIED');

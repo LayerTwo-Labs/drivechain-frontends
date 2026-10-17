@@ -431,12 +431,26 @@ func (s *Service) IsEncrypted() bool {
 	return enc
 }
 
-func (s *Service) IsUnlocked() bool {
+// State is the lock state of the wallet file.
+type State int
+
+const (
+	StateNoWallet State = iota
+	StateLocked
+	StateUnlocked
+)
+
+func (s *Service) State() State {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	unlocked := len(s.wallets) > 0
-	s.log.Debug().Bool("unlocked", unlocked).Int("loaded_count", len(s.wallets)).Msg("IsUnlocked check")
-	return unlocked
+	switch {
+	case len(s.wallets) > 0:
+		return StateUnlocked
+	case s.walletFileExists():
+		return StateLocked
+	default:
+		return StateNoWallet
+	}
 }
 
 func (s *Service) ActiveWalletID() string {
@@ -1131,6 +1145,11 @@ func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, 
 
 // --- Unlock/Lock ---
 
+var (
+	ErrNotEncrypted      = errors.New("wallet is not encrypted")
+	ErrIncorrectPassword = errors.New("incorrect password")
+)
+
 func (s *Service) UnlockWallet(password string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1143,7 +1162,7 @@ func (s *Service) UnlockWallet(password string) error {
 	}
 	if err != nil || !meta.Encrypted {
 		s.log.Warn().Err(err).Bool("encrypted", meta.Encrypted).Msg("unlock failed: wallet is not encrypted")
-		return fmt.Errorf("wallet is not encrypted")
+		return ErrNotEncrypted
 	}
 
 	salt, err := base64.StdEncoding.DecodeString(meta.Salt)
@@ -1166,7 +1185,7 @@ func (s *Service) UnlockWallet(password string) error {
 	_, err = Decrypt(string(data), key)
 	if err != nil {
 		s.log.Warn().Msg("unlock failed: incorrect password (decryption failed)")
-		return fmt.Errorf("incorrect password")
+		return ErrIncorrectPassword
 	}
 
 	if err := s.protectPlaintextLeftoversLocked(key); err != nil {
@@ -1194,6 +1213,7 @@ func (s *Service) LockWallet() {
 	s.log.Info().Int("wallet_count", len(s.wallets)).Msg("locking wallet")
 	s.lockLocked()
 	s.log.Info().Msg("wallet locked, starter files cleaned up")
+	s.notifyChanged()
 }
 
 // lockLocked drops the decrypted wallets and the key. Must be called with mu held.

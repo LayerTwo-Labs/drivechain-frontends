@@ -86,11 +86,9 @@ func TestWalletIntegration(t *testing.T) {
 		require.Len(t, listResp.Msg.Wallets, 1)
 		require.Equal(t, walletA1ID, listResp.Msg.Wallets[0].Id)
 
-		// GetWalletStatus → has_wallet=true, unlocked=true.
 		statusResp, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
 		require.NoError(t, err)
-		require.True(t, statusResp.Msg.HasWallet)
-		require.True(t, statusResp.Msg.Unlocked)
+		require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, statusResp.Msg.State)
 		require.False(t, statusResp.Msg.Encrypted)
 
 		// Create a second wallet and switch back.
@@ -128,7 +126,7 @@ func TestWalletIntegration(t *testing.T) {
 
 		statusResp, err = client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
 		require.NoError(t, err)
-		require.False(t, statusResp.Msg.Unlocked)
+		require.Equal(t, pb.WalletState_WALLET_STATE_LOCKED, statusResp.Msg.State)
 
 		// UnlockWallet.
 		_, err = client.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: "pass1"}))
@@ -136,7 +134,7 @@ func TestWalletIntegration(t *testing.T) {
 
 		statusResp, err = client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
 		require.NoError(t, err)
-		require.True(t, statusResp.Msg.Unlocked)
+		require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, statusResp.Msg.State)
 
 		// ChangePassword.
 		_, err = client.ChangePassword(ctx, connect.NewRequest(&pb.ChangePasswordRequest{
@@ -517,10 +515,9 @@ func TestWalletIntegration(t *testing.T) {
 		_, err := client.DeleteAllWallets(ctx, connect.NewRequest(&pb.DeleteAllWalletsRequest{}))
 		require.NoError(t, err)
 
-		// GetWalletStatus → has_wallet=false.
 		statusResp, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
 		require.NoError(t, err)
-		require.False(t, statusResp.Msg.HasWallet)
+		require.Equal(t, pb.WalletState_WALLET_STATE_NO_WALLET, statusResp.Msg.State)
 
 		// GenerateWallet → fresh start.
 		genResp, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{

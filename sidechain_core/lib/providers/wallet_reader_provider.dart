@@ -31,7 +31,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   String? activeWalletId;
   Duration unlockStateWait = Environment.isInTest ? const Duration(milliseconds: 10) : const Duration(seconds: 3);
 
-  /// Mirrors `has_wallet` from the WatchWalletData stream. Distinct from
+  /// Mirrors a `state` other than NO_WALLET from the WatchWalletData stream. Distinct from
   /// `isWalletUnlocked` — a locked/encrypted wallet has `hasWalletOnDisk=true`
   /// with an empty `wallets` list.
   bool hasWalletOnDisk = false;
@@ -82,14 +82,15 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     }
     _supervisor = StreamSupervisor<wmpb.WatchWalletDataResponse>(
       subscribe: () => _client.watchWalletData(),
-      onEvent: _onResponse,
+      onEvent: applyWatchFrame,
       onTransportDeath: () => GetIt.I.get<OrchestratorRPC>().recreateConnection(),
       logger: _logger,
       tag: 'WalletReaderProvider',
     )..start();
   }
 
-  void _onResponse(wmpb.WatchWalletDataResponse resp) {
+  @visibleForTesting
+  void applyWatchFrame(wmpb.WatchWalletDataResponse resp) {
     // Heartbeat frames carry no payload — supervisor uses them only for
     // liveness detection, no state to apply here.
     if (resp.heartbeat) {
@@ -98,20 +99,15 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     _applyState(
       protoWallets: resp.wallets,
       newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId,
-      newHasWalletOnDisk: resp.hasWallet,
+      state: resp.state,
     );
   }
 
   void _applyState({
     required Iterable<dynamic> protoWallets,
     required String? newActiveId,
-    required bool newHasWalletOnDisk,
+    required wmpb.WalletState state,
   }) {
-    // Reconnecting stream can send an empty initial frame; keep a populated
-    // list (a real delete arrives with hasWallet=false).
-    if (protoWallets.isEmpty && wallets.isNotEmpty && newHasWalletOnDisk) {
-      return;
-    }
     final previousActiveId = activeWalletId;
     // A transient stream frame can arrive with an empty active id while wallets
     // still exist; keep the known-good selection instead of blanking it.
@@ -128,7 +124,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     activeWalletId = effectiveActiveId;
 
     final previousHasWallet = hasWalletOnDisk;
-    hasWalletOnDisk = newHasWalletOnDisk;
+    hasWalletOnDisk = state != wmpb.WalletState.WALLET_STATE_NO_WALLET;
     if (previousHasWallet != hasWalletOnDisk) {
       _logger.i(
         'WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk',
@@ -277,7 +273,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     _applyState(
       protoWallets: list.wallets,
       newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
-      newHasWalletOnDisk: status.hasWallet as bool,
+      state: status.state as wmpb.WalletState,
     );
     return wallets.isNotEmpty;
   }
@@ -319,7 +315,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   /// for a few seconds while drivechaind finishes coming up. Returning
   /// false on that error silently misroutes existing users to the
   /// "Set up your wallet" screen, so we keep retrying for ~5s before giving
-  /// up. Any non-transport error (e.g. a successful RPC with hasWallet=false)
+  /// up. Any non-transport error (e.g. a successful RPC with state=NO_WALLET)
   /// short-circuits immediately.
   Future<bool> hasWallet() async {
     // Trust the streamed state when we have one.
@@ -332,7 +328,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         final resp = await _client.getWalletStatus();
-        return resp.hasWallet;
+        return resp.state != wmpb.WalletState.WALLET_STATE_NO_WALLET;
       } catch (e) {
         if (attempt == maxAttempts - 1) {
           _logger.w(

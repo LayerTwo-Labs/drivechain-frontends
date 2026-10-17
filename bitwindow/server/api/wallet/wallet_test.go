@@ -313,7 +313,7 @@ func TestService_CreateCheque(t *testing.T) {
 	t.Run("an empty wallet id is an invalid argument", func(t *testing.T) {
 		t.Parallel()
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithEncryptedWallet()))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithPasswordWallet()))
 
 		_, err := cli.CreateCheque(t.Context(), connect.NewRequest(&walletv1.CreateChequeRequest{ExpectedAmountSats: 1000}))
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -323,7 +323,7 @@ func TestService_CreateCheque(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithEncryptedWallet()))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithPasswordWallet()))
 
 		_, err := cli.CreateCheque(t.Context(), connect.NewRequest(&walletv1.CreateChequeRequest{WalletId: testWalletID, ExpectedAmountSats: 1000}))
 		require.ErrorContains(t, err, "wallet is locked")
@@ -344,7 +344,7 @@ func TestService_GetChequePrivateKey(t *testing.T) {
 		db := database.Test(t)
 		chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 1000, "tb1qtestaddress000000000000000000000000000")
 		require.NoError(t, err)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithEncryptedWallet()))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithPasswordWallet()))
 
 		_, err = cli.GetChequePrivateKey(t.Context(), connect.NewRequest(&walletv1.GetChequePrivateKeyRequest{WalletId: testWalletID, Id: chequeID}))
 		require.ErrorContains(t, err, "wallet is locked")
@@ -403,7 +403,7 @@ func TestService_SignMessage(t *testing.T) {
 	t.Run("a locked wallet refuses", func(t *testing.T) {
 		t.Parallel()
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithEncryptedWallet()))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithPasswordWallet()))
 
 		_, err := cli.SignMessage(t.Context(), connect.NewRequest(&walletv1.SignMessageRequest{
 			WalletId: testWalletID,
@@ -644,7 +644,7 @@ func TestService_IsWalletUnlocked(t *testing.T) {
 	t.Run("an encrypted wallet is locked at start", func(t *testing.T) {
 		t.Parallel()
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithEncryptedWallet()))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithPasswordWallet()))
 
 		_, err := cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
@@ -740,14 +740,21 @@ func TestService_UnlockWallet(t *testing.T) {
 	})
 }
 
-func TestUnlockWalletReportsABadWalletFile(t *testing.T) {
+func TestOrchestratorLockStateShowsInBitwindowd(t *testing.T) {
 	t.Parallel()
 
-	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithEncryptedWallet()))
+	orchestrator := apitests.PasswordWalletOrchestrator(t)
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(orchestrator)))
 
-	_, err := cli.UnlockWallet(t.Context(), connect.NewRequest(&walletv1.UnlockWalletRequest{Password: "anypassword"}))
-	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
-	require.EqualError(t, err, "internal: decrypt wallet: invalid ciphertext format")
+	_, err := orchestrator.UnlockWallet(t.Context(), connect.NewRequest(&orchpb.UnlockWalletRequest{Password: apitests.EncryptedWalletPassword}))
+	require.NoError(t, err)
+	_, err = cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	_, err = orchestrator.LockWallet(t.Context(), connect.NewRequest(&orchpb.LockWalletRequest{}))
+	require.NoError(t, err)
+	_, err = cli.IsWalletUnlocked(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
 // The orchestrator records each deposit as it broadcasts it, because an M5 is
@@ -1352,9 +1359,16 @@ func TestGetStats(t *testing.T) {
 			DeriveAddresses(gomock.Any(), gomock.Any()).
 			Return(connect.NewResponse(&orchpb.DeriveAddressesResponse{}), nil).
 			AnyTimes()
+		mockOrch.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+				Wallets:        []*orchpb.WalletMetadata{{Id: testWalletID, WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE}},
+				ActiveWalletId: testWalletID,
+			}), nil).
+			AnyTimes()
 		apitests.ExpectOrchestratorReads(mockOrch)
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t),
-			apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
+			apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
 
 		resp, err := cli.GetStats(t.Context(), connect.NewRequest(&walletv1.GetStatsRequest{WalletId: testWalletID}))
 		require.NoError(t, err)

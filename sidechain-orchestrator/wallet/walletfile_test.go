@@ -173,6 +173,6 @@ func TestProtectPlaintextLeftovers(t *testing.T) {
 		svc.LockWallet()
 
 		require.ErrorContains(t, svc.UnlockWallet("pass"), "unlock stopped: encrypt the plaintext wallet copy: ")
-		require.False(t, svc.IsUnlocked())
+		require.Equal(t, StateLocked, svc.State())
 	})
 }

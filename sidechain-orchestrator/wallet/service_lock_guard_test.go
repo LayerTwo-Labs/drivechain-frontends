@@ -26,7 +26,7 @@ func generateAndEncrypt(t *testing.T, password string) (*Service, string, []byte
 func TestGenerateWallet_WhileLocked_DoesNotOverwrite(t *testing.T) {
 	svc, originalID, before := generateAndEncrypt(t, "correct horse")
 	svc.LockWallet()
-	require.False(t, svc.IsUnlocked())
+	require.Equal(t, StateLocked, svc.State())
 
 	_, err := svc.GenerateWallet("Clobber", "", "", testSlots)
 	require.Error(t, err, "generating while locked must fail")
@@ -63,7 +63,7 @@ func TestChangePassword_WhileLocked_LeavesServiceLocked(t *testing.T) {
 	svc.LockWallet()
 
 	require.NoError(t, svc.ChangePassword("old pass", "new pass"), "changing password on disk still works while locked")
-	require.False(t, svc.IsUnlocked(), "must stay locked after changing password")
+	require.Equal(t, StateLocked, svc.State(), "must stay locked after changing password")
 
 	_, err := svc.GenerateWallet("Clobber", "", "", testSlots)
 	require.Error(t, err, "generating after a locked password change must fail")
@@ -81,10 +81,10 @@ func TestChangePassword_WhileLocked_LeavesServiceLocked(t *testing.T) {
 // Changing the password while unlocked keeps the session usable.
 func TestChangePassword_WhileUnlocked_KeepsSessionUsable(t *testing.T) {
 	svc, _, _ := generateAndEncrypt(t, "old pass")
-	require.True(t, svc.IsUnlocked())
+	require.Equal(t, StateUnlocked, svc.State())
 
 	require.NoError(t, svc.ChangePassword("old pass", "new pass"))
-	require.True(t, svc.IsUnlocked(), "must stay unlocked")
+	require.Equal(t, StateUnlocked, svc.State(), "must stay unlocked")
 
 	_, err := svc.GenerateWallet("Second", "", "", testSlots)
 	require.NoError(t, err, "generating while unlocked must still work")
@@ -103,7 +103,7 @@ func TestGenerateWallet_WhileLocked_LeavesNoTransientWallet(t *testing.T) {
 
 	_, err := svc.GenerateWallet("Clobber", "", "", testSlots)
 	require.Error(t, err)
-	require.False(t, svc.IsUnlocked(), "a failed create must not leave the service looking unlocked")
+	require.Equal(t, StateLocked, svc.State(), "a failed create must not leave the service looking unlocked")
 	require.Empty(t, svc.ListWallets(), "a failed create must not leave a wallet in memory")
 
 	// A later password change must not persist the transient wallet.
@@ -122,7 +122,7 @@ func TestGenerateWallet_WhileLocked_LeavesNoTransientWallet(t *testing.T) {
 // key, else the next save encrypts with a stale key under the new metadata.
 func TestChangePassword_UnlockedWithNoWallets_AdoptsNewKey(t *testing.T) {
 	svc, originalID, _ := generateAndEncrypt(t, "old pass")
-	require.True(t, svc.IsUnlocked())
+	require.Equal(t, StateUnlocked, svc.State())
 
 	require.NoError(t, svc.DeleteWallet(originalID))
 	require.Empty(t, svc.ListWallets(), "no wallets left, but still holding the key")

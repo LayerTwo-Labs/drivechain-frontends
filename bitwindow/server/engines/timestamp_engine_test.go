@@ -6,8 +6,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -25,6 +23,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
@@ -56,10 +55,6 @@ func setupTestDB(t *testing.T) *sql.DB {
 // timestampWallet is a wallet engine whose orchestrator broadcasts give txids in order.
 func timestampWallet(t *testing.T, txids ...string) *engines.WalletEngine {
 	t.Helper()
-	walletDir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet.json"),
-		[]byte(`{"activeWalletId":"a","wallets":[{"id":"a","master":{"seed_hex":"00"}}]}`), 0o600))
-
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).
 		Return(connect.NewResponse(&emptypb.Empty{}), nil).
@@ -72,7 +67,7 @@ func timestampWallet(t *testing.T, txids ...string) *engines.WalletEngine {
 			return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: txid}), nil
 		}).
 		AnyTimes()
-	return engines.NewWalletEngine(t.Context(), nil, orch, walletDir, &chaincfg.SigNetParams,
+	return engines.NewWalletEngine(nil, apitests.OpenWallet(orch, &orchpb.WalletMetadata{Id: "a"}), &chaincfg.SigNetParams,
 		func(context.Context) ([]string, error) { return nil, nil })
 }
 

@@ -20,7 +20,7 @@ import (
 
 func engineWithClient(t *testing.T, client *mocks.MockWalletManagerServiceClient, frozenCoins engines.FrozenCoinsFunc) *engines.WalletEngine {
 	t.Helper()
-	return engines.NewWalletEngine(t.Context(), nil, client, t.TempDir(), &chaincfg.RegressionNetParams, frozenCoins)
+	return engines.NewWalletEngine(nil, client, &chaincfg.RegressionNetParams, frozenCoins)
 }
 
 // A send this server makes must never take a coin the user froze, so it hands

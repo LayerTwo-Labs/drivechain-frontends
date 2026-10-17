@@ -40,6 +40,19 @@ func allSidechainSlots() []wallet.SidechainSlot {
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)
 
 // walletTypeToProto maps the wallet's provider type onto the typed wire enum.
+func walletStateToProto(s wallet.State) pb.WalletState {
+	switch s {
+	case wallet.StateNoWallet:
+		return pb.WalletState_WALLET_STATE_NO_WALLET
+	case wallet.StateLocked:
+		return pb.WalletState_WALLET_STATE_LOCKED
+	case wallet.StateUnlocked:
+		return pb.WalletState_WALLET_STATE_UNLOCKED
+	default:
+		return pb.WalletState_WALLET_STATE_UNSPECIFIED
+	}
+}
+
 func walletTypeToProto(t wallet.WalletType) pb.WalletType {
 	switch t {
 	case wallet.WalletTypeEnforcer:
@@ -116,12 +129,14 @@ func (h *WalletHandler) bip47NetParams() *chaincfg.Params {
 // ============================================================================
 
 func (h *WalletHandler) GetWalletStatus(ctx context.Context, req *connect.Request[pb.GetWalletStatusRequest]) (*connect.Response[pb.GetWalletStatusResponse], error) {
+	state := h.svc.State()
 	return connect.NewResponse(&pb.GetWalletStatusResponse{
-		HasWallet:        h.svc.HasWallet(),
+		HasWallet:        state != wallet.StateNoWallet, //nolint:staticcheck // old apps read it
 		Encrypted:        h.svc.IsEncrypted(),
-		Unlocked:         h.svc.IsUnlocked(),
+		Unlocked:         state == wallet.StateUnlocked, //nolint:staticcheck // old apps read it
 		ActiveWalletId:   h.svc.ActiveWalletID(),
 		ActiveWalletName: h.svc.ActiveWalletName(),
+		State:            walletStateToProto(state),
 	}), nil
 }
 
@@ -144,8 +159,14 @@ func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request
 }
 
 func (h *WalletHandler) UnlockWallet(ctx context.Context, req *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[pb.UnlockWalletResponse], error) {
-	if err := h.svc.UnlockWallet(req.Msg.Password); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	err := h.svc.UnlockWallet(req.Msg.Password)
+	switch {
+	case errors.Is(err, wallet.ErrIncorrectPassword):
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	case errors.Is(err, wallet.ErrNotEncrypted):
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&pb.UnlockWalletResponse{}), nil
 }
@@ -213,6 +234,9 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			Multisig:            multisigInfoProto(&w),
 			ReceiveAddressTypes: receiveAddressTypesProto(&w),
 			IsStarter:           w.ID == starterID,
+			ScriptType:          w.ScriptType,
+			AccountIndex:        w.AccountIndex,
+			DerivationPath:      w.DerivationPath,
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -1923,9 +1947,8 @@ func (h *WalletHandler) sendWalletData(stream *connect.ServerStream[pb.WatchWall
 		h.svc.GetAllWallets(),
 		h.svc.ActiveWalletID(),
 		h.svc.StarterWalletID(),
-		h.svc.HasWallet(),
+		h.svc.State(),
 		h.svc.IsEncrypted(),
-		h.svc.IsUnlocked(),
 		h.bip47NetParams(),
 		h.bip47Capable,
 		bip47Logger(h.svc),
@@ -1957,7 +1980,7 @@ func (h *WalletHandler) bip47Capable(walletID string) bool {
 	return ok
 }
 
-func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID, starterID string, hasWallet, encrypted, unlocked bool, netParams *chaincfg.Params, bip47Capable func(walletID string) bool, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
+func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID, starterID string, state wallet.State, encrypted bool, netParams *chaincfg.Params, bip47Capable func(walletID string) bool, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
@@ -1990,6 +2013,9 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID, starter
 			Multisig:            multisigInfoProto(&w),
 			ReceiveAddressTypes: receiveAddressTypesProto(&w),
 			IsStarter:           w.ID == starterID,
+			ScriptType:          w.ScriptType,
+			AccountIndex:        w.AccountIndex,
+			DerivationPath:      w.DerivationPath,
 		}
 		// The starter wallet's seed derives the L1 and sidechain starters, so
 		// only it carries them — whichever wallet happens to be active.
@@ -2007,11 +2033,12 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID, starter
 		pbWallets[i] = md
 	}
 	return &pb.WatchWalletDataResponse{
-		HasWallet:      hasWallet,
+		HasWallet:      state != wallet.StateNoWallet, //nolint:staticcheck // old apps read it
 		Encrypted:      encrypted,
-		Unlocked:       unlocked,
+		Unlocked:       state == wallet.StateUnlocked, //nolint:staticcheck // old apps read it
 		ActiveWalletId: activeID,
 		Wallets:        pbWallets,
+		State:          walletStateToProto(state),
 	}
 }
 

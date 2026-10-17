@@ -3,6 +3,7 @@ package engines
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,13 +12,25 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 var (
 	testEncryptedWallet = []byte("AAAAAAAAAAAAAAAA:c2VjcmV0")
 	testEncryptionMeta  = []byte(`{"salt":"c2FsdA==","iterations":100000,"encrypted":true,"version":"1"}`)
 )
+
+func isEncrypted(t *testing.T, dir string) bool {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(dir, "wallet_encryption.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	require.NoError(t, err)
+	meta, err := orchwallet.UnmarshalEncryptionMetadata(data)
+	require.NoError(t, err)
+	return meta.Encrypted
+}
 
 func TestBackupRoundTrip_CarriesEncryptionMetadata(t *testing.T) {
 	ctx := testCtx()
@@ -39,7 +52,7 @@ func TestBackupRoundTrip_CarriesEncryptionMetadata(t *testing.T) {
 	r := &BackupEngine{db: db, walletDir: restoreDir, multisigStore: multisig.NewStore(db)}
 	require.NoError(t, r.RestoreBackup(ctx, data, "backup.zip"))
 
-	require.True(t, wallet.IsWalletEncrypted(restoreDir), "the restored wallet must still read as encrypted")
+	require.True(t, isEncrypted(t, restoreDir), "the restored wallet must still read as encrypted")
 	gotMeta, err := os.ReadFile(filepath.Join(restoreDir, "wallet_encryption.json"))
 	require.NoError(t, err)
 	require.JSONEq(t, string(testEncryptionMeta), string(gotMeta), "salt and iterations must survive the round trip")
@@ -62,7 +75,7 @@ func TestRestoreBackup_PlaintextDropsStaleEncryptionMetadata(t *testing.T) {
 	require.NoError(t, zw.Close())
 
 	require.NoError(t, e.RestoreBackup(ctx, buf.Bytes(), "backup.zip"))
-	require.False(t, wallet.IsWalletEncrypted(dir), "a plaintext wallet must not read as encrypted")
+	require.False(t, isEncrypted(t, dir), "a plaintext wallet must not read as encrypted")
 }
 
 func TestRestoreBackup_EncryptedWithoutMetadata_KeepsExistingMarker(t *testing.T) {
@@ -79,7 +92,7 @@ func TestRestoreBackup_EncryptedWithoutMetadata_KeepsExistingMarker(t *testing.T
 	require.NoError(t, zw.Close())
 
 	require.NoError(t, e.RestoreBackup(ctx, buf.Bytes(), "backup.zip"))
-	require.True(t, wallet.IsWalletEncrypted(dir), "the existing marker must be kept")
+	require.True(t, isEncrypted(t, dir), "the existing marker must be kept")
 }
 
 func TestValidateBackup_RejectsPlainWalletWithEncryptionMetadata(t *testing.T) {

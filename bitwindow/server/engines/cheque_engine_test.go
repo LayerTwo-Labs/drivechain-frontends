@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -47,26 +44,11 @@ func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
 func testChequeEngineWith(t *testing.T, chain ChequeChain, orch orchrpc.WalletManagerServiceClient) *ChequeEngine {
 	t.Helper()
 
-	dir := t.TempDir()
-	walletData, err := json.Marshal(map[string]any{
-		"version":        1,
-		"activeWalletId": chequeWalletID,
-		"wallets": []map[string]any{{
-			"version":     1,
-			"master":      map[string]any{"seed_hex": chequeSeedHex},
-			"id":          chequeWalletID,
-			"name":        "test",
-			"wallet_type": "bitcoinCore",
-		}},
-	})
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), walletData, 0o600))
-
 	walletEngine := NewWalletEngine(
-		t.Context(),
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
-		orch,
-		dir,
+		openWalletClient{WalletManagerServiceClient: orch, wallet: &orchpb.WalletMetadata{
+			Id: chequeWalletID, Name: "test", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE,
+		}},
 		&chaincfg.SigNetParams,
 		nil,
 	)
@@ -100,7 +82,9 @@ func TestRecoverChequesOnUnlockPersistsFundedCheques(t *testing.T) {
 	require.NoError(t, err)
 	chain.funded[address] = testUTXOs()
 
-	require.True(t, engine.walletEngine.IsUnlocked())
+	unlocked, err := engine.walletEngine.IsUnlocked(ctx)
+	require.NoError(t, err)
+	require.True(t, unlocked)
 
 	engine.recoverChequesOnUnlock(ctx)
 	engine.recoverChequesOnUnlock(ctx)

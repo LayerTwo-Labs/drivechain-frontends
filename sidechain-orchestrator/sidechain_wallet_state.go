@@ -12,6 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/nodes"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/samber/lo"
 )
 
@@ -417,9 +418,18 @@ func (o *Orchestrator) WatchSidechainWallets(ctx context.Context) {
 			o.log.Error().Err(err).Msg("could not reload the sidechain wallets at startup")
 		}
 		for range changed {
-			if err := o.ReloadSidechainWallets(ctx); err != nil {
+			if _, err := o.reloadAfterWalletChange(ctx); err != nil {
 				o.log.Error().Err(err).Msg("could not reload the sidechain wallets after a wallet change")
 			}
 		}
 	}()
+}
+
+// reloadAfterWalletChange reloads the sidechain wallets, except after a lock:
+// a locked wallet names no wallet to load. Reports whether it reloaded.
+func (o *Orchestrator) reloadAfterWalletChange(ctx context.Context) (bool, error) {
+	if o.WalletSvc.State() == wallet.StateLocked {
+		return false, nil
+	}
+	return true, o.ReloadSidechainWallets(ctx)
 }

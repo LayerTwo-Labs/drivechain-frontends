@@ -50,7 +50,7 @@ func (n *Node) FundWallet(t *testing.T) string {
 		t.Fatalf("testharness[%s]: get wallet status: %v", n.Name, err)
 	}
 
-	if !status.Msg.HasWallet {
+	if status.Msg.State == pb.WalletState_WALLET_STATE_NO_WALLET {
 		// First wallet = enforcer type (required as slot 0).
 		_, err := n.WalletClient.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
 			Name: n.Name + "-enforcer",

@@ -6,7 +6,6 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -26,7 +25,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
+	orchapi "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchctlrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
@@ -38,6 +37,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 type configg struct {
@@ -50,7 +50,6 @@ type configg struct {
 	// starts no local node, so a test opts in to Core only when it needs one.
 	walletType string
 	network    config.Network
-	encrypted  bool
 	password   bool
 	watchOnly  bool
 	authDir    string
@@ -102,12 +101,6 @@ func WithCrypto(crypto cryptov1connect.CryptoServiceClient) ServerOpt {
 // feature electrum cannot serve — deniability, for instance.
 func WithCoreWallet() ServerOpt {
 	return func(opt *configg) { opt.walletType = "bitcoinCore" }
-}
-
-// WithEncryptedWallet marks the fixture wallet as encrypted, so the server
-// starts with it locked.
-func WithEncryptedWallet() ServerOpt {
-	return func(opt *configg) { opt.encrypted = true }
 }
 
 // EncryptedWalletPassword opens the fixture wallet of WithPasswordWallet.
@@ -166,22 +159,17 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 
 	conf := newConfig(ctrl, options...)
 
-	// Create a temporary directory with a valid wallet.json for tests
 	walletDir := t.TempDir()
-	createTestWalletJSON(t, walletDir, conf.walletType)
-	if conf.encrypted {
-		markWalletEncrypted(t, walletDir)
+	if conf.password {
+		writeEncryptedWallet(t, walletDir)
+	} else {
+		createTestWalletJSON(t, walletDir, conf.walletType)
 	}
 	if conf.watchOnly {
 		makeWalletWatchOnly(t, walletDir)
 	}
 	if conf.orchestrator == nil {
 		conf.orchestrator = fixtureOrchestrator(t, walletDir)
-	}
-	if conf.password {
-		// The fixture orchestrator reads the plain copy above.
-		walletDir = t.TempDir()
-		writeEncryptedWallet(t, walletDir)
 	}
 
 	orchestratorAddr := orchestratorServer(t)
@@ -259,6 +247,8 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	return serve(t, srv)
 }
 
+const fixtureWalletID = "test-wallet-id-1234"
+
 // createTestWalletJSON writes a wallet.json with a fixed test seed.
 func createTestWalletJSON(t *testing.T, walletDir, walletType string) {
 	t.Helper()
@@ -273,10 +263,10 @@ func createTestWalletJSON(t *testing.T, walletDir, walletType string) {
 
 	walletData := map[string]any{
 		"version":        1,
-		"activeWalletId": "test-wallet-id-1234",
+		"activeWalletId": fixtureWalletID,
 		"wallets": []map[string]any{
 			{
-				"id":          "test-wallet-id-1234",
+				"id":          fixtureWalletID,
 				"name":        "Test Wallet",
 				"wallet_type": walletType,
 				"master": map[string]any{
@@ -295,14 +285,6 @@ func createTestWalletJSON(t *testing.T, walletDir, walletType string) {
 	walletPath := filepath.Join(walletDir, "wallet.json")
 	err = os.WriteFile(walletPath, data, 0600)
 	require.NoError(t, err)
-}
-
-func markWalletEncrypted(t *testing.T, walletDir string) {
-	t.Helper()
-
-	data, err := json.Marshal(wallet.EncryptionMetadata{Encrypted: true})
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(walletDir, "wallet_encryption.json"), data, 0600))
 }
 
 func writeEncryptedWallet(t *testing.T, walletDir string) {
@@ -416,84 +398,95 @@ type coreWalletManager struct {
 	orchrpc.UnimplementedWalletManagerServiceHandler
 }
 
-// fixtureOrchestrator returns an orchestrator client in full mode that also
-// serves the wallets and seeds of the wallet.json in walletDir. The first
-// wallet with a seed is the starter.
+// OpenWallet wraps client so it lists wallet as the one open wallet. Every
+// other call goes to client.
+func OpenWallet(client orchrpc.WalletManagerServiceClient, wallet *orchpb.WalletMetadata) orchrpc.WalletManagerServiceClient {
+	return openWallet{WalletManagerServiceClient: client, wallet: wallet}
+}
+
+type openWallet struct {
+	orchrpc.WalletManagerServiceClient
+	wallet *orchpb.WalletMetadata
+}
+
+func (o openWallet) ListWallets(
+	context.Context, *connect.Request[orchpb.ListWalletsRequest],
+) (*connect.Response[orchpb.ListWalletsResponse], error) {
+	return connect.NewResponse(&orchpb.ListWalletsResponse{
+		Wallets:        []*orchpb.WalletMetadata{o.wallet},
+		ActiveWalletId: o.wallet.Id,
+	}), nil
+}
+
+func (o openWallet) GetWalletStatus(
+	context.Context, *connect.Request[orchpb.GetWalletStatusRequest],
+) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
+	return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED}), nil
+}
+
+// fixtureOrchestrator returns an orchestrator client in full mode whose
+// wallet calls go to a real orchestrator wallet service on walletDir.
 func fixtureOrchestrator(t *testing.T, walletDir string) orchrpc.WalletManagerServiceClient {
 	t.Helper()
+	svc := orchwallet.NewService(walletDir, zerolog.Nop())
+	require.NoError(t, svc.Init())
+	t.Cleanup(svc.Close)
+
 	mux := http.NewServeMux()
-	mux.Handle(orchrpc.NewWalletManagerServiceHandler(fixtureWalletManager{walletDir: walletDir}))
+	mux.Handle(orchrpc.NewWalletManagerServiceHandler(fixtureWalletManager{wallets: orchapi.NewWalletHandler(svc)}))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	return orchrpc.NewWalletManagerServiceClient(server.Client(), server.URL)
 }
 
+// PasswordWalletOrchestrator returns the fixture orchestrator of
+// WithPasswordWallet, for a test that calls it directly.
+func PasswordWalletOrchestrator(t *testing.T) orchrpc.WalletManagerServiceClient {
+	t.Helper()
+	walletDir := t.TempDir()
+	writeEncryptedWallet(t, walletDir)
+	return fixtureOrchestrator(t, walletDir)
+}
+
 type fixtureWalletManager struct {
 	coreWalletManager
-	walletDir string
+	wallets *orchapi.WalletHandler
 }
 
-type fixtureWallet struct {
-	ID     string `json:"id"`
-	Master struct {
-		SeedHex string `json:"seed_hex"`
-	} `json:"master"`
+func (m fixtureWalletManager) GetWalletStatus(
+	ctx context.Context, req *connect.Request[orchpb.GetWalletStatusRequest],
+) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
+	return m.wallets.GetWalletStatus(ctx, req)
 }
 
-func (m fixtureWalletManager) wallets() ([]fixtureWallet, error) {
-	data, err := os.ReadFile(filepath.Join(m.walletDir, "wallet.json"))
-	if err != nil {
-		return nil, err
-	}
-	var file struct {
-		Wallets []fixtureWallet `json:"wallets"`
-	}
-	if err := json.Unmarshal(data, &file); err != nil {
-		return nil, err
-	}
-	return file.Wallets, nil
+func (m fixtureWalletManager) UnlockWallet(
+	ctx context.Context, req *connect.Request[orchpb.UnlockWalletRequest],
+) (*connect.Response[orchpb.UnlockWalletResponse], error) {
+	return m.wallets.UnlockWallet(ctx, req)
+}
+
+func (m fixtureWalletManager) LockWallet(
+	ctx context.Context, req *connect.Request[orchpb.LockWalletRequest],
+) (*connect.Response[orchpb.LockWalletResponse], error) {
+	return m.wallets.LockWallet(ctx, req)
 }
 
 func (m fixtureWalletManager) ListWallets(
-	context.Context, *connect.Request[orchpb.ListWalletsRequest],
+	ctx context.Context, req *connect.Request[orchpb.ListWalletsRequest],
 ) (*connect.Response[orchpb.ListWalletsResponse], error) {
-	wallets, err := m.wallets()
-	if err != nil {
-		return nil, err
-	}
-	resp := &orchpb.ListWalletsResponse{}
-	starter := false
-	for _, w := range wallets {
-		isStarter := !starter && w.Master.SeedHex != ""
-		starter = starter || isStarter
-		resp.Wallets = append(resp.Wallets, &orchpb.WalletMetadata{Id: w.ID, IsStarter: isStarter})
-	}
-	return connect.NewResponse(resp), nil
+	return m.wallets.ListWallets(ctx, req)
+}
+
+func (m fixtureWalletManager) GetWalletSeed(
+	ctx context.Context, req *connect.Request[orchpb.GetWalletSeedRequest],
+) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+	return m.wallets.GetWalletSeed(ctx, req)
 }
 
 func (fixtureWalletManager) GetNodeMode(
 	context.Context, *connect.Request[orchpb.GetNodeModeRequest],
 ) (*connect.Response[orchpb.GetNodeModeResponse], error) {
 	return connect.NewResponse(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}), nil
-}
-
-func (m fixtureWalletManager) GetWalletSeed(
-	_ context.Context, req *connect.Request[orchpb.GetWalletSeedRequest],
-) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
-	wallets, err := m.wallets()
-	if err != nil {
-		return nil, err
-	}
-	for _, w := range wallets {
-		if w.ID != req.Msg.WalletId {
-			continue
-		}
-		if w.Master.SeedHex == "" {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s holds no master seed", w.ID))
-		}
-		return connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: w.Master.SeedHex}), nil
-	}
-	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", req.Msg.WalletId))
 }
 
 func (coreWalletManager) CreateBitcoinCoreWallet(
@@ -581,7 +574,14 @@ func expectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 	mock.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[orchpb.ListWalletsResponse]{
-			Msg: &orchpb.ListWalletsResponse{},
+			Msg: &orchpb.ListWalletsResponse{
+				Wallets: []*orchpb.WalletMetadata{{
+					Id:         fixtureWalletID,
+					Name:       "Test Wallet",
+					WalletType: orchpb.WalletType_WALLET_TYPE_ELECTRUM,
+				}},
+				ActiveWalletId: fixtureWalletID,
+			},
 		}, nil).
 		AnyTimes()
 
@@ -595,7 +595,7 @@ func expectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 	mock.EXPECT().
 		GetWalletStatus(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[orchpb.GetWalletStatusResponse]{
-			Msg: &orchpb.GetWalletStatusResponse{HasWallet: true, Unlocked: true},
+			Msg: &orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED},
 		}, nil).
 		AnyTimes()
 
