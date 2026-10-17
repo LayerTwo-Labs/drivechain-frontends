@@ -58,8 +58,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('All'), findsOneWidget);
-      expect(find.text('LIVE'), findsWidgets);
-      expect(find.text('RESOLVED'), findsOneWidget);
+      expect(find.text('Live'), findsWidgets);
+      expect(find.text('Resolved'), findsOneWidget);
       expect(find.text('bitcoin'), findsOneWidget);
       expect(find.text('price'), findsOneWidget);
     });

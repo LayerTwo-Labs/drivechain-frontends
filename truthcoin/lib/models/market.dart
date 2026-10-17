@@ -2,10 +2,10 @@ import 'package:sidechain_core/bitcoin.dart';
 
 /// Market state enum matching the original truthcoin implementation
 enum MarketState {
-  trading(1, 'LIVE'),
-  cancelled(3, 'CANCELLED'),
-  invalid(4, 'INVALID'),
-  ossified(5, 'RESOLVED');
+  trading(1, 'Live'),
+  cancelled(3, 'Cancelled'),
+  invalid(4, 'Invalid'),
+  ossified(5, 'Resolved');
 
   final int value;
   final String displayName;

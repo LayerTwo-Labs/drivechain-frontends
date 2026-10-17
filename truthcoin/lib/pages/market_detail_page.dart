@@ -171,7 +171,6 @@ class _MarketHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
     final formatter = GetIt.I.get<FormatterProvider>();
 
     return SailCard(
@@ -182,21 +181,11 @@ class _MarketHeaderCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.max,
           children: [
-            Container(
-              height: 48,
-              width: 48,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.colors.backgroundSecondary,
-                borderRadius: SailStyleValues.borderRadius,
-              ),
-              child: SailText.primary15(marketInitials(market.title), bold: true),
-            ),
             Expanded(
               child: SailColumn(
                 spacing: SailStyleValues.padding08,
                 children: [
-                  SailText.primary22(market.title, bold: true),
+                  SailText.primary24(market.title, bold: true),
                   Wrap(
                     spacing: SailStyleValues.padding10,
                     runSpacing: SailStyleValues.padding04,
@@ -256,7 +245,6 @@ class _OutcomePricesCard extends StatelessWidget {
                       width: 160,
                       child: SailText.primary14(
                         outcome.label,
-                        bold: true,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -269,7 +257,7 @@ class _OutcomePricesCard extends StatelessWidget {
                     ),
                     SizedBox(
                       width: 60,
-                      child: SailText.primary13(formatChance(outcome.currentPrice), bold: true),
+                      child: SailText.primary13(formatChance(outcome.currentPrice)),
                     ),
                     SizedBox(
                       width: 110,
@@ -363,7 +351,6 @@ class _RulesCard extends StatelessWidget {
           spacing: SailStyleValues.padding12,
           children: [
             SailText.primary13(market.description),
-            const SailSeparator(),
             Wrap(
               spacing: SailStyleValues.padding25,
               runSpacing: SailStyleValues.padding12,
@@ -410,7 +397,6 @@ class _Fact extends StatelessWidget {
           SailText.secondary12(label),
           SailText.primary14(
             value.isEmpty ? '—' : value,
-            bold: true,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -466,7 +452,7 @@ class _HoldersCard extends StatelessWidget {
                           flex: 3,
                           child: SailText.primary13(holder.address, monospace: true),
                         ),
-                        Expanded(flex: 2, child: SailText.primary13(holder.position.outcomeName, bold: true)),
+                        Expanded(flex: 2, child: SailText.primary13(holder.position.outcomeName)),
                         Expanded(flex: 2, child: SailText.primary13('${holder.position.shares}')),
                         Expanded(
                           flex: 2,
@@ -480,7 +466,6 @@ class _HoldersCard extends StatelessWidget {
                           flex: 2,
                           child: SailText.primary13(
                             holder.position.pnlDisplay,
-                            bold: true,
                             color: holder.position.isProfit
                                 ? SailTheme.of(context).colors.success
                                 : SailTheme.of(context).colors.error,
@@ -765,7 +750,7 @@ class _OutcomeChoice extends StatelessWidget {
           spacing: 0,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SailText.primary15(outcome.label, bold: true, color: selected ? color : theme.colors.text),
+            SailText.primary15(outcome.label, color: selected ? color : theme.colors.text),
             SailText.secondary12(formatChance(outcome.currentPrice)),
           ],
         ),
@@ -798,7 +783,7 @@ class _SummaryBox extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 Expanded(child: SailText.secondary12(row.$1)),
-                SailText.primary13(row.$2, bold: true),
+                SailText.primary13(row.$2),
               ],
             ),
         ],
@@ -849,7 +834,7 @@ class _FactRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         Expanded(child: SailText.secondary13(label)),
-        SailText.primary13(value, bold: true),
+        SailText.primary13(value),
       ],
     );
   }
@@ -909,7 +894,7 @@ class _PriceCardState extends State<_PriceCard> {
                 spacing: SailStyleValues.padding08,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  SailText.primary24(
+                  SailText.primary22(
                     '${lead.label} ${formatChance(lead.currentPrice)}',
                     bold: true,
                     color: lead.currentPrice >= 0.5 ? theme.colors.success : theme.colors.text,
@@ -917,7 +902,6 @@ class _PriceCardState extends State<_PriceCard> {
                   if (change != null && change.abs() >= 1)
                     SailText.primary13(
                       '${change > 0 ? '+' : ''}${change.round()} pts today',
-                      bold: true,
                       color: change > 0 ? theme.colors.success : theme.colors.error,
                     ),
                 ],

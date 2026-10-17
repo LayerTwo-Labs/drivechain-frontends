@@ -10,7 +10,7 @@ import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/routing/router.dart';
 import 'package:truthcoin/widgets/market_card.dart';
 
-const double _cardGap = SailStyleValues.padding16;
+const double _cardGap = 24;
 const int _maxCardsPerRow = 3;
 
 /// A card holds its content at this width.
@@ -59,7 +59,7 @@ class _HeaderSection extends StatelessWidget {
         spacing: SailStyleValues.padding04,
         children: [
           SailText.primary24('Prediction markets', bold: true),
-          SailText.secondary13(
+          SailText.secondary12(
             '${model.totalMarkets} markets  ·  ${model.activeMarkets} live  ·  '
             '${formatter.formatBTC(model.totalVolumeBTC)} traded',
           ),
@@ -208,7 +208,6 @@ class _FilterChip extends StatelessWidget {
         ),
         child: SailText.primary12(
           label,
-          bold: selected,
           color: selected ? theme.colors.background : theme.colors.textSecondary,
         ),
       ),

@@ -9,7 +9,7 @@ import 'package:truthcoin/models/voting.dart';
 String formatChance(double price) => '${(price * 100).round()}%';
 
 /// The line under the top outcomes that names how many the card leaves out.
-String moreOutcomesText(int count) => count == 1 ? '1 more outcome' : '$count more outcomes';
+String moreOutcomesText(int count) => count == 1 ? '+ 1 more outcome' : '+ $count more outcomes';
 
 /// Two letters that stand for the market, taken from the title.
 String marketInitials(String title) {
@@ -69,22 +69,25 @@ class MarketCard extends StatelessWidget {
     // The tap target sits inside the card: the selection area of SailCard
     // wins a tap over a detector around it.
     return SailCard(
+      padding: false,
       child: SailTappable(
         onTap: () async => onTap(),
         borderRadius: SailStyleValues.borderRadius,
-        child: SailColumn(
-          spacing: SailStyleValues.padding12,
-          children: [
-            _header(theme),
-            if (!market.isTrading)
-              _closedPrices(theme)
-            else if (_isBinary)
-              _binaryButtons(theme)
-            else
-              _outcomeList(theme),
-            const SailSeparator(),
-            _footer(formatter),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(SailStyleValues.padding20),
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            children: [
+              _header(theme),
+              if (!market.isTrading)
+                _closedPrices(theme)
+              else if (_isBinary)
+                _binaryButtons(theme)
+              else
+                _outcomeList(theme),
+              _footer(formatter),
+            ],
+          ),
         ),
       ),
     );
@@ -98,16 +101,6 @@ class MarketCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.max,
       children: [
-        Container(
-          height: 40,
-          width: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.colors.backgroundSecondary,
-            borderRadius: SailStyleValues.borderRadius,
-          ),
-          child: SailText.secondary13(marketInitials(market.title), bold: true),
-        ),
         Expanded(
           child: SailColumn(
             spacing: SailStyleValues.padding04,
@@ -122,7 +115,7 @@ class MarketCard extends StatelessWidget {
             spacing: 0,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              SailText.primary24(
+              SailText.primary22(
                 formatChance(yes.currentPrice),
                 bold: true,
                 color: yes.currentPrice >= 0.5 ? theme.colors.success : theme.colors.text,
@@ -140,7 +133,7 @@ class MarketCard extends StatelessWidget {
       parts.add('β ${detail!.beta.toStringAsFixed(1)}');
       parts.add('fee ${detail!.tradingFeePercent}');
     }
-    return parts.join('  ·  ');
+    return parts.join(' · ');
   }
 
   Widget _binaryButtons(SailThemeData theme) {
@@ -181,6 +174,17 @@ class MarketCard extends StatelessWidget {
     );
   }
 
+  Widget _priceRow(MarketOutcome outcome) {
+    return SailRow(
+      spacing: SailStyleValues.padding10,
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        Expanded(child: SailText.primary13(outcome.label)),
+        SailText.primary13(formatChance(outcome.currentPrice)),
+      ],
+    );
+  }
+
   /// A closed market shows its last prices, and takes no trade.
   Widget _closedPrices(SailThemeData theme) {
     final outcomes = _outcomes;
@@ -188,23 +192,7 @@ class MarketCard extends StatelessWidget {
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
-      children: [
-        for (final outcome in outcomes.take(3))
-          SailRow(
-            spacing: SailStyleValues.padding10,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Expanded(
-                child: SailText.primary14(
-                  outcome.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SailText.primary13(formatChance(outcome.currentPrice), bold: true),
-            ],
-          ),
-      ],
+      children: [for (final outcome in outcomes.take(3)) _priceRow(outcome)],
     );
   }
 
@@ -233,36 +221,25 @@ class MarketCard extends StatelessWidget {
     }
 
     final byPrice = [...outcomes]..sort((a, b) => b.currentPrice.compareTo(a.currentPrice));
-    final top = byPrice.take(3).toList();
 
     return SailColumn(
-      spacing: SailStyleValues.padding10,
+      spacing: SailStyleValues.padding08,
       children: [
-        for (final outcome in top)
-          SailRow(
-            spacing: SailStyleValues.padding10,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Expanded(
-                child: SailText.primary14(
-                  outcome.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SailText.primary13(formatChance(outcome.currentPrice), bold: true),
-              OutcomeTradeButton(
-                label: 'Buy',
-                tone: OutcomeTone.yes,
-                onTap: () => onTradeOutcome(outcome.index),
-              ),
-            ],
-          ),
+        for (final outcome in byPrice.take(3)) _priceRow(outcome),
         if (byPrice.length > 3)
           SailTappable(
             onTap: () async => onTap(),
             child: SailText.secondary12(moreOutcomesText(byPrice.length - 3)),
           ),
+        const SizedBox(height: SailStyleValues.padding04),
+        SizedBox(
+          width: double.infinity,
+          child: SailButton(
+            label: 'Trade',
+            variant: ButtonVariant.secondary,
+            onPressed: () async => onTap(),
+          ),
+        ),
       ],
     );
   }
@@ -325,8 +302,8 @@ class OutcomeTradeButton extends StatelessWidget {
         child: SailRow(
           spacing: SailStyleValues.padding04,
           children: [
-            SailText.primary13(label, bold: true, color: color),
-            if (price != null) SailText.primary13(price!, bold: true, color: color),
+            SailText.primary13(label, color: color),
+            if (price != null) SailText.primary13(price!, color: color),
           ],
         ),
       ),

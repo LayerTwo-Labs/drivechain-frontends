@@ -23,7 +23,7 @@ class MarketStatTile extends StatelessWidget {
         spacing: SailStyleValues.padding04,
         children: [
           SailText.secondary13(label),
-          SailText.primary24(value, bold: true, color: valueColor),
+          SailText.primary22(value, bold: true, color: valueColor),
           SailText.secondary12(caption),
         ],
       ),
