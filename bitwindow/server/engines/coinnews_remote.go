@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	coinnewsv1 "github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1"
 	"github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1/coinnewsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
@@ -46,21 +47,30 @@ type RemoteItem struct {
 // connectRemote reads a coinnewsd deployment over ConnectRPC.
 type connectRemote struct {
 	network string
+	ecashID string
 	once    sync.Once
 	client  coinnewsv1connect.CoinNewsServiceClient
 }
 
 // NewRemoteCoinNews returns a reader for the network's published CoinNews
-// indexer. It reads the document on the first call, not here: the API handlers
-// this runs from must not wait on a slow endpoint.
-func NewRemoteCoinNews(network string) RemoteCoinNews {
-	return &connectRemote{network: network}
+// indexer. On eCash, ecashID selects the catalog entry. It reads the document
+// on the first call, not here: the API handlers this runs from must not wait
+// on a slow endpoint.
+func NewRemoteCoinNews(network, ecashID string) RemoteCoinNews {
+	return &connectRemote{network: network, ecashID: ecashID}
 }
 
 // resolve reads the indexer URL the network publishes, once.
 func (r *connectRemote) resolve(ctx context.Context) coinnewsv1connect.CoinNewsServiceClient {
 	r.once.Do(func() {
-		net, ok := netcatalog.Resolve(ctx).ForNetwork(r.network)
+		cat := netcatalog.Resolve(ctx)
+		var net netcatalog.Network
+		var ok bool
+		if r.network == string(config.NetworkECash) {
+			net, ok = cat.ByID(r.ecashID)
+		} else {
+			net, ok = cat.ForNetwork(r.network)
+		}
 		if !ok || net.Services.CoinNews.URL == "" {
 			return
 		}
