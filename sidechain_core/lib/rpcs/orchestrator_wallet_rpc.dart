@@ -345,6 +345,7 @@ class OrchestratorWalletRPC {
     String? opReturnMessage,
     String? opReturnHex,
     List<bwpb.UnspentOutput>? requiredInputs,
+    bwpb.UnspentOutput? notificationInput,
     bool allowReplay = false,
   }) async {
     final resolvedOpReturnHex =
@@ -362,7 +363,29 @@ class OrchestratorWalletRPC {
         opReturnHex: resolvedOpReturnHex ?? '',
         fixedFeeSats: Int64(fixedFeeSats ?? 0),
         requiredInputs: requiredInputs?.map(_mapRequiredInput).toList() ?? [],
+        notificationInput: notificationInput == null ? null : _mapRequiredInput(notificationInput),
         allowReplay: allowReplay,
+      ),
+    );
+  }
+
+  /// The fee and size of a send at a fee rate, with the coins the backend
+  /// picks for it. Nothing is signed or broadcast.
+  Future<wmpb.PreviewSendResponse> previewSend({
+    required String walletId,
+    required Map<String, int> destinations,
+    required int feeRateSatPerVbyte,
+    bool subtractFeeFromAmount = false,
+    List<bwpb.UnspentOutput>? requiredInputs,
+  }) async {
+    await pushFrozenCoins();
+    return _unaryClient.previewSend(
+      wmpb.PreviewSendRequest(
+        walletId: walletId,
+        destinations: destinations.map((key, value) => MapEntry(key, Int64(value))),
+        feeRateSatPerVbyte: Int64(feeRateSatPerVbyte),
+        subtractFeeFromAmount: subtractFeeFromAmount,
+        requiredInputs: requiredInputs?.map(_mapRequiredInput).toList() ?? [],
       ),
     );
   }
