@@ -193,7 +193,7 @@ abstract class TruthcoinRPC extends SidechainRPC {
     String? memo,
   });
 
-  /// Get votecoin balance for an address
+  /// Votecoin of an address, as a fraction of the supply
   Future<double> votecoinBalance(String address);
 
   /// Transfer votecoin (alternative method)

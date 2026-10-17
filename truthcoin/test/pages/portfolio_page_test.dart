@@ -46,7 +46,7 @@ void main() {
     mockRpc = TestTruthcoinRPC();
     mockRpc.marketListResponse = TestData.sampleMarketList;
     mockRpc.marketPositionsResponse = TestData.sampleMarketPositions;
-    mockRpc.votecoinBalanceResponse = 1240;
+    mockRpc.votecoinBalanceResponse = 0.25;
     mockRpc.walletAddresses = ['tb1qfirst', 'tb1qsecond'];
     mockRpc.marketPositionsByAddress = {
       'tb1qfirst': positionsFor('tb1qfirst', 'market_001', 'Yes', 4820, 2600.0),
@@ -80,8 +80,8 @@ void main() {
       expect(find.text('Profit and loss'), findsOneWidget);
       expect(find.text('Open positions'), findsWidgets);
       expect(find.text('Votecoin'), findsOneWidget);
-      // Two addresses each report 1240 Votecoin.
-      expect(find.text('2480.0'), findsOneWidget);
+      // Two addresses each report a quarter of the Votecoin.
+      expect(find.text('0.5'), findsOneWidget);
     });
 
     testWidgets('lists the positions of every wallet address', (tester) async {
@@ -185,7 +185,7 @@ void main() {
       expect(model.totalCostBasisSats, 3500);
       expect(model.totalProfitSats, 2520);
       expect(model.activeMarkets, 2);
-      expect(model.votecoinBalance, 2480);
+      expect(model.votecoinBalance, 0.5);
 
       model.dispose();
     });

@@ -61,7 +61,7 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   String voteSubmitResponse = 'test_submit_txid';
 
   List<String> walletAddresses = ['tb1qtest1234567890'];
-  double votecoinBalanceResponse = 1000;
+  double votecoinBalanceResponse = 0.25;
 
   // Error simulation
   bool shouldThrowOnMarketList = false;
