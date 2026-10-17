@@ -19,6 +19,7 @@ import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.connect.client.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart' as walletpsbtpb;
 import 'package:sidechain_core/sidechain_core.dart';
 
@@ -126,7 +127,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       var walletId = walletReader.activeWalletId;
       if (walletId == null) {
         final status = await orchestratorWallet.getWalletStatus();
-        if (!status.hasWallet || status.activeWalletId.isEmpty) {
+        if (status.state == wmpb.WalletState.WALLET_STATE_NO_WALLET || status.activeWalletId.isEmpty) {
           throw Exception('No active wallet');
         }
         walletId = status.activeWalletId;
