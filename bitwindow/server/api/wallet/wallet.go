@@ -35,7 +35,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/signmessage"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -62,7 +61,6 @@ func New(
 		chequeEngine: chequeEngine,
 		walletEngine: walletEngine,
 		backupEngine: engines.NewBackupEngine(database, walletDir),
-		walletDir:    walletDir,
 		restartL1:    restartL1,
 	}
 }
@@ -75,7 +73,6 @@ type Server struct {
 	chequeChain  engines.ChequeChain
 	walletEngine *engines.WalletEngine
 	backupEngine *engines.BackupEngine
-	walletDir    string
 	// restartL1 reboots the L1 stack (bitcoind + enforcer) via drivechaind.
 	// Called after a backup restore.
 	restartL1 func(context.Context) error
@@ -627,14 +624,9 @@ const addressScanDepth = 100
 
 // deriveMessageSigningPrivateKey returns the key behind address, so the
 // signature proves ownership of that address rather than some other one.
-var errNoSigningSeed = errors.New("wallet has no seed to sign with")
-
-func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (*btcec.PrivateKey, error) {
-	if wallet.Master.SeedHex == "" {
-		return nil, errNoSigningSeed
-	}
+func deriveMessageSigningPrivateKey(seedHex string, wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (*btcec.PrivateKey, error) {
 	return orchwallet.SigningKey(&orchwallet.WalletData{
-		Master:         orchwallet.MasterWallet{SeedHex: wallet.Master.SeedHex},
+		Master:         orchwallet.MasterWallet{SeedHex: seedHex},
 		ScriptType:     wallet.ScriptType,
 		AccountIndex:   wallet.AccountIndex,
 		DerivationPath: wallet.DerivationPath,
@@ -643,8 +635,8 @@ func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *cha
 
 // SignMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMessageRequest]) (*connect.Response[pb.SignMessageResponse], error) {
-	if !s.walletEngine.IsUnlocked() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	if err := s.requireUnlocked(ctx); err != nil {
+		return nil, err
 	}
 
 	if _, err := s.walletEngine.GetWalletBackendType(ctx, c.Msg.WalletId); err != nil {
@@ -666,11 +658,13 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 		return nil, fmt.Errorf("get wallet info: %w", err)
 	}
 
-	privKey, err := deriveMessageSigningPrivateKey(walletInfo, chainParams, c.Msg.Address)
-	switch {
-	case errors.Is(err, errNoSigningSeed):
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	case err != nil:
+	seedHex, err := s.walletEngine.GetWalletSeed(ctx, walletInfo.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	privKey, err := deriveMessageSigningPrivateKey(seedHex, walletInfo, chainParams, c.Msg.Address)
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive signing key: %w", err))
 	}
 
@@ -968,23 +962,8 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 
 // UnlockWallet implements walletv1connect.WalletServiceHandler.
 func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
-	log := zerolog.Ctx(ctx)
-
-	if !wallet.IsWalletEncrypted(s.walletDir) {
-		log.Info().Msg("wallet is not encrypted, no unlock needed")
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not encrypted"))
-	}
-
-	walletData, err := wallet.DecryptWallet(s.walletDir, c.Msg.Password)
-	switch {
-	case errors.Is(err, wallet.ErrIncorrectPassword):
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("incorrect password"))
-	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	if err := s.walletEngine.Unlock(ctx, walletData); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unlock wallet engine: %w", err))
+	if err := s.walletEngine.Unlock(ctx, c.Msg.Password); err != nil {
+		return nil, err
 	}
 
 	go func() {
@@ -996,27 +975,44 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		}
 	}()
 
-	log.Info().Msg("unlock wallet")
+	zerolog.Ctx(ctx).Info().Msg("unlock wallet")
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
 // LockWallet implements walletv1connect.WalletServiceHandler.
 func (s *Server) LockWallet(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
 	// Only a password unlocks a wallet again, so a wallet with no password cannot lock.
-	if !wallet.IsWalletEncrypted(s.walletDir) {
+	encrypted, err := s.walletEngine.IsEncrypted(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !encrypted {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not encrypted"))
 	}
-	s.walletEngine.Lock()
+	if err := s.walletEngine.Lock(ctx); err != nil {
+		return nil, err
+	}
 	zerolog.Ctx(ctx).Info().Msg("wallet locked")
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
 // IsWalletUnlocked implements walletv1connect.WalletServiceHandler.
 func (s *Server) IsWalletUnlocked(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	if !s.walletEngine.IsUnlocked() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	if err := s.requireUnlocked(ctx); err != nil {
+		return nil, err
 	}
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) requireUnlocked(ctx context.Context) error {
+	unlocked, err := s.walletEngine.IsUnlocked(ctx)
+	if err != nil {
+		return err
+	}
+	if !unlocked {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+	return nil
 }
 
 // CreateCheque implements walletv1connect.WalletServiceHandler.
@@ -1028,8 +1024,8 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet_id is required"))
 	}
 
-	if !s.walletEngine.IsUnlocked() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	if err := s.requireUnlocked(ctx); err != nil {
+		return nil, err
 	}
 
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
@@ -1075,7 +1071,11 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 		return nil, err
 	}
 
-	pbCheque, err := s.chequeToPb(ctx, cheque)
+	unlocked, err := s.walletEngine.IsUnlocked(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pbCheque, err := s.chequeToPb(ctx, cheque, unlocked)
 	if err != nil {
 		return nil, keepConnectCode(err)
 	}
@@ -1089,8 +1089,8 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.GetChequePrivateKeyRequest]) (*connect.Response[pb.GetChequePrivateKeyResponse], error) {
 	walletID := c.Msg.WalletId
 
-	if !s.walletEngine.IsUnlocked() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	if err := s.requireUnlocked(ctx); err != nil {
+		return nil, err
 	}
 
 	cheque, err := s.getCheque(ctx, walletID, c.Msg.Id)
@@ -1122,9 +1122,13 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list cheques: %w", err))
 	}
 
+	unlocked, err := s.walletEngine.IsUnlocked(ctx)
+	if err != nil {
+		return nil, err
+	}
 	pbCheques := make([]*pb.Cheque, len(chequeList))
 	for i, ch := range chequeList {
-		pbCheques[i], err = s.chequeToPb(ctx, &ch)
+		pbCheques[i], err = s.chequeToPb(ctx, &ch, unlocked)
 		if err != nil {
 			return nil, keepConnectCode(err)
 		}
@@ -1284,7 +1288,7 @@ func (s *Server) getCheque(ctx context.Context, walletID string, id int64) (*che
 	return cheque, nil
 }
 
-func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque) (*pb.Cheque, error) {
+func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque, unlocked bool) (*pb.Cheque, error) {
 	pbCheque := &pb.Cheque{
 		Id:                 c.ID,
 		DerivationIndex:    c.DerivationIndex,
@@ -1308,7 +1312,7 @@ func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque) (*pb.Cheque,
 		pbCheque.SweptAt = timestamppb.New(*c.SweptAt)
 	}
 
-	if c.IsFunded() && s.walletEngine.IsUnlocked() {
+	if c.IsFunded() && unlocked {
 		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, c.WalletID, c.DerivationIndex)
 		if err != nil {
 			return nil, fmt.Errorf("derive cheque %d private key: %w", c.ID, err)

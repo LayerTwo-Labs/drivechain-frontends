@@ -32,6 +32,27 @@ type fakeOrchestrator struct {
 	perCall func(n int32) []*orchpb.AddressUnspentOutput
 	calls   atomic.Int32
 	seedHex string
+	locked  bool
+}
+
+func (f *fakeOrchestrator) GetWalletStatus(
+	context.Context, *connect.Request[orchpb.GetWalletStatusRequest],
+) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
+	state := orchpb.WalletState_WALLET_STATE_UNLOCKED
+	if f.locked {
+		state = orchpb.WalletState_WALLET_STATE_LOCKED
+	}
+	return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: state}), nil
+}
+
+func (f *fakeOrchestrator) ListWallets(
+	context.Context, *connect.Request[orchpb.ListWalletsRequest],
+) (*connect.Response[orchpb.ListWalletsResponse], error) {
+	resp := &orchpb.ListWalletsResponse{ActiveWalletId: testWalletID}
+	if !f.locked {
+		resp.Wallets = []*orchpb.WalletMetadata{{Id: testWalletID, WalletType: orchpb.WalletType_WALLET_TYPE_ELECTRUM}}
+	}
+	return connect.NewResponse(resp), nil
 }
 
 // The runtime hands over the frozen coins on a timer, whatever else runs.
