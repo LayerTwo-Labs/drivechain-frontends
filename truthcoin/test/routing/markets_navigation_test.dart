@@ -119,7 +119,7 @@ void main() {
   testWidgets('the line of left-out outcomes opens the market', (tester) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('1 more outcome'));
+    await tester.tap(find.text('+ 1 more outcome'));
     await tester.pumpAndSettle();
 
     expect(find.byType(MarketDetailPage), findsOneWidget);
