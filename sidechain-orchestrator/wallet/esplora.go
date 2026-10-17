@@ -623,6 +623,20 @@ func (c *EsploraClient) TipHeight(ctx context.Context) (int, error) {
 	return h, nil
 }
 
+// BlockHash returns the hash of the block at height on the server's best chain.
+func (c *EsploraClient) BlockHash(ctx context.Context, height int) (string, error) {
+	body, err := c.do(ctx, http.MethodGet, "/block-height/"+strconv.Itoa(height), nil)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(body)), nil
+}
+
+// RawBlock returns the serialized block with the given hash.
+func (c *EsploraClient) RawBlock(ctx context.Context, hash string) ([]byte, error) {
+	return c.do(ctx, http.MethodGet, "/block/"+hash+"/raw", nil)
+}
+
 // FeeEstimates returns a confirmation-target → sat/vB fee-rate map.
 func (c *EsploraClient) FeeEstimates(ctx context.Context) (map[string]float64, error) {
 	est := map[string]float64{}

@@ -32,6 +32,8 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 func NewBitcoind(
@@ -52,6 +54,8 @@ func NewBitcoind(
 		m4Engine:    NewM4Engine(db),
 		nodeMode:    nodeMode,
 		coinnewsLog: coinnewsLog,
+		esplora:     esploraBlockSource(string(conf.BitcoinCoreNetwork)),
+		esploraPoll: esploraPollInterval,
 	}
 }
 
@@ -68,6 +72,11 @@ type Parser struct {
 
 	// Dedicated sink for coinnews sync events. Nil => logging disabled.
 	coinnewsLog *zerolog.Logger
+
+	// esplora gives the block source for light mode, nil when the network
+	// publishes a CoinNews indexer or no Esplora.
+	esplora     func(context.Context) *orchwallet.EsploraClient
+	esploraPoll time.Duration
 }
 
 // Run runs the engine. It checks if a new block has been mined,
@@ -85,6 +94,9 @@ func (p *Parser) Run(ctx context.Context) error {
 	defer reapTicker.Stop()
 	sweptOnStart := false
 
+	esploraTicker := time.NewTicker(p.esploraPoll)
+	defer esploraTicker.Stop()
+
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: started parser ticker")
 
@@ -98,6 +110,19 @@ func (p *Parser) Run(ctx context.Context) error {
 		case <-reapTicker.C:
 			if p.nodeMode.RunsLocalNode(ctx) {
 				p.sweepMempool(ctx)
+			}
+
+		case <-esploraTicker.C:
+			if mode, err := p.nodeMode.Mode(ctx); err != nil || mode != orchpb.NodeMode_NODE_MODE_LIGHT {
+				continue
+			}
+			esplora := p.esplora(ctx)
+			if esplora == nil {
+				continue
+			}
+			if err := p.handleEsploraTick(ctx, esplora); err != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).
+					Msg("bitcoind_engine/parser: read blocks from esplora: retry next poll")
 			}
 
 		case <-alertTicker.C:
@@ -217,17 +242,17 @@ func purgeChainAtOrAbove(ctx context.Context, db *sql.DB, height uint32) (uint32
 	return replayFrom, nil
 }
 
-// forkPoint returns the lowest processed height whose block Core no longer
-// holds, or 0 when Core still agrees with everything we processed.
+// forkPoint returns the lowest processed height whose block the chain source no
+// longer holds, or 0 when it still agrees with everything we processed.
 //
 // The common case costs one RPC: the processed tip usually still matches. A
 // mismatch then binary-searches the processed range for the first block the two
 // chains disagree on, which is where a replay has to start.
-func (p *Parser) forkPoint(ctx context.Context, processedTip uint32, processedHash string) (uint32, error) {
+func (p *Parser) forkPoint(ctx context.Context, holdsBlock func(context.Context, uint32, string) (bool, error), processedTip uint32, processedHash string) (uint32, error) {
 	if processedTip == 0 || processedHash == "" {
 		return 0, nil
 	}
-	switch same, err := p.coreHoldsBlock(ctx, processedTip, processedHash); {
+	switch same, err := holdsBlock(ctx, processedTip, processedHash); {
 	case err != nil:
 		return 0, err
 	case same:
@@ -249,7 +274,7 @@ func (p *Parser) forkPoint(ctx context.Context, processedTip uint32, processedHa
 		case err != nil:
 			return 0, err
 		}
-		switch same, err := p.coreHoldsBlock(ctx, mid, stored.Hash.String()); {
+		switch same, err := holdsBlock(ctx, mid, stored.Hash.String()); {
 		case err != nil:
 			return 0, err
 		case same:
@@ -285,6 +310,8 @@ func (p *Parser) coreHoldsBlock(ctx context.Context, height uint32, hash string)
 func WaitsForCore(inIBD bool, network config.Network) bool {
 	return inIBD && config.IsFullChainNetwork(network)
 }
+
+const blockBatchSize = 30
 
 func (p *Parser) handleBlockTick(ctx context.Context) error {
 
@@ -346,7 +373,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	// A height compare cannot see an eCash fork switch: both forks descend from
 	// mainnet, so the tip stays as high or higher. Only the hash at a height we
 	// already processed says the chain moved under us.
-	switch fork, err := p.forkPoint(ctx, lastProcessedHeight, lastProcessedHash.String()); {
+	switch fork, err := p.forkPoint(ctx, p.coreHoldsBlock, lastProcessedHeight, lastProcessedHash.String()); {
 	case err != nil:
 		zerolog.Ctx(ctx).Warn().Err(err).
 			Msg("bitcoind_engine/parser: check for a fork: retry next tick")
@@ -377,11 +404,9 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	zerolog.Ctx(ctx).Trace().
 		Msgf("bitcoind_engine/parser: found current height: %d", currentHeight)
 
-	const batchSize = 30
-
 	zerolog.Ctx(ctx).Trace().
 		Uint32("last-processed-height", lastProcessedHeight).
-		Uint32("batch-size", batchSize).
+		Uint32("batch-size", blockBatchSize).
 		Msgf("bitcoind_engine/parser: processing blocks")
 
 	batchStart := lastProcessedHeight + 1
@@ -394,8 +419,8 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		batchStart = floor
 	}
 
-	for ; batchStart <= currentHeight; batchStart += batchSize {
-		batchEnd := min(batchStart+batchSize-1, currentHeight)
+	for ; batchStart <= currentHeight; batchStart += blockBatchSize {
+		batchEnd := min(batchStart+blockBatchSize-1, currentHeight)
 		if p.conf.SyncToHeight > 0 {
 			batchEnd = min(batchEnd, p.conf.SyncToHeight)
 		}

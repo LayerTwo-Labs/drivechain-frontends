@@ -63,7 +63,7 @@ func TestForkPointFindsADivergenceAtBlockOne(t *testing.T) {
 	p := forkParser(t, 'b')
 	seedProcessed(t, ctx, p, 10, 'a')
 
-	fork, err := p.forkPoint(ctx, 10, hashAt(10, 'a').String())
+	fork, err := p.forkPoint(ctx, p.coreHoldsBlock, 10, hashAt(10, 'a').String())
 	require.NoError(t, err)
 	require.Equal(t, uint32(1), fork, "the whole processed chain belongs to another datadir")
 }
@@ -91,7 +91,7 @@ func TestForkPointFindsTheFirstDivergentBlock(t *testing.T) {
 		AnyTimes()
 	seedProcessed(t, ctx, p, 10, 'a')
 
-	fork, err := p.forkPoint(ctx, 10, hashAt(10, 'a').String())
+	fork, err := p.forkPoint(ctx, p.coreHoldsBlock, 10, hashAt(10, 'a').String())
 	require.NoError(t, err)
 	require.Equal(t, uint32(7), fork)
 }
@@ -102,7 +102,7 @@ func TestForkPointReportsNoneWhenTheChainsAgree(t *testing.T) {
 	p := forkParser(t, 'a')
 	seedProcessed(t, ctx, p, 10, 'a')
 
-	fork, err := p.forkPoint(ctx, 10, hashAt(10, 'a').String())
+	fork, err := p.forkPoint(ctx, p.coreHoldsBlock, 10, hashAt(10, 'a').String())
 	require.NoError(t, err)
 	require.Zero(t, fork)
 }
@@ -138,7 +138,7 @@ func TestForkPointFindsTheTipOfAShorterCore(t *testing.T) {
 	p := shortCoreParser(t, 'c', 6)
 	seedProcessed(t, ctx, p, 40, 'c')
 
-	fork, err := p.forkPoint(ctx, 40, hashAt(40, 'c').String())
+	fork, err := p.forkPoint(ctx, p.coreHoldsBlock, 40, hashAt(40, 'c').String())
 	require.NoError(t, err)
 	require.Equal(t, uint32(7), fork, "the purge must start right above the blocks Core holds")
 }
@@ -151,6 +151,6 @@ func TestForkPointReturnsADatabaseError(t *testing.T) {
 	_, err := p.db.ExecContext(ctx, `ALTER TABLE processed_blocks RENAME TO processed_blocks_gone`)
 	require.NoError(t, err)
 
-	_, err = p.forkPoint(ctx, 10, hashAt(10, 'a').String())
+	_, err = p.forkPoint(ctx, p.coreHoldsBlock, 10, hashAt(10, 'a').String())
 	require.ErrorContains(t, err, "no such table")
 }
