@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 )
 
@@ -625,8 +625,8 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 
 	contents := &BackupContents{HasWallet: true}
 	if encData != nil {
-		var meta wallet.EncryptionMetadata
-		if err := json.Unmarshal(encData, &meta); err != nil {
+		meta, err := orchwallet.UnmarshalEncryptionMetadata(encData)
+		if err != nil {
 			return nil, fmt.Errorf("wallet_encryption.json invalid: %w", err)
 		}
 		contents.HasEncryptionMetadata = meta.Encrypted
