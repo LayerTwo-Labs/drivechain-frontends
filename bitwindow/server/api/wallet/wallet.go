@@ -1002,6 +1002,10 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 
 // LockWallet implements walletv1connect.WalletServiceHandler.
 func (s *Server) LockWallet(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	// Only a password unlocks a wallet again, so a wallet with no password cannot lock.
+	if !wallet.IsWalletEncrypted(s.walletDir) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not encrypted"))
+	}
 	s.walletEngine.Lock()
 	zerolog.Ctx(ctx).Info().Msg("wallet locked")
 	return connect.NewResponse(&emptypb.Empty{}), nil
