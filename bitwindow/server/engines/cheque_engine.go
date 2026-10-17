@@ -342,7 +342,7 @@ func (e *ChequeEngine) Sweep(
 
 	txid, err := e.chain.Broadcast(ctx, hex.EncodeToString(txBytes.Bytes()))
 	if err != nil {
-		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
+		return ChequeSweep{}, fmt.Errorf("broadcast transaction: %w", err)
 	}
 
 	if cheque != nil && cheque.SweptTxid == nil {

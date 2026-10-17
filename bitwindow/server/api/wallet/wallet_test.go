@@ -333,6 +333,26 @@ func TestService_CreateCheque(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, list)
 	})
+
+	t.Run("a wallet with no seed keeps the orchestrator code", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t),
+			apitests.WithOrchestrator(seedlessOrchestrator{&fakeOrchestrator{}})))
+
+		_, err := cli.CreateCheque(t.Context(), connect.NewRequest(&walletv1.CreateChequeRequest{WalletId: testWalletID, ExpectedAmountSats: 1000}))
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+}
+
+type seedlessOrchestrator struct {
+	*fakeOrchestrator
+}
+
+func (seedlessOrchestrator) GetWalletSeed(
+	context.Context, *connect.Request[orchpb.GetWalletSeedRequest],
+) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+	return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet has no seed"))
 }
 
 func TestService_GetChequePrivateKey(t *testing.T) {
@@ -366,6 +386,19 @@ func TestService_GetChequePrivateKey(t *testing.T) {
 		address, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(wif.SerializePubKey()), &chaincfg.SigNetParams)
 		require.NoError(t, err)
 		assert.Equal(t, created.Msg.Address, address.EncodeAddress())
+	})
+
+	t.Run("a wallet with no seed keeps the orchestrator code", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 1000, "tb1qtestaddress000000000000000000000000000")
+		require.NoError(t, err)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db,
+			apitests.WithOrchestrator(seedlessOrchestrator{&fakeOrchestrator{}})))
+
+		_, err = cli.GetChequePrivateKey(t.Context(), connect.NewRequest(&walletv1.GetChequePrivateKeyRequest{WalletId: testWalletID, Id: chequeID}))
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 }
 
@@ -411,6 +444,34 @@ func TestService_SignMessage(t *testing.T) {
 			Message:  "hello",
 		}))
 		require.ErrorContains(t, err, "wallet is locked")
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+
+	t.Run("an address of another wallet is an invalid argument", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t)))
+
+		_, err := cli.SignMessage(t.Context(), connect.NewRequest(&walletv1.SignMessageRequest{
+			WalletId: testWalletID,
+			Address:  "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl",
+			Message:  "hello",
+		}))
+		require.ErrorContains(t, err, "is not one of the wallet's first")
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	})
+
+	t.Run("a wallet with no seed is a failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithWatchOnlyWallet()))
+
+		_, err := cli.SignMessage(t.Context(), connect.NewRequest(&walletv1.SignMessageRequest{
+			WalletId: testWalletID,
+			Address:  "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl",
+			Message:  "hello",
+		}))
+		require.ErrorContains(t, err, "wallet has no seed to sign with")
 		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 }
@@ -874,48 +935,70 @@ func TestCreateSidechainDepositSlot(t *testing.T) {
 func TestGetTransactionDetails(t *testing.T) {
 	t.Parallel()
 
-	spend := &bitcoindv1alpha.GetRawTransactionResponse{
-		Txid:    "spend",
-		Vsize:   100,
-		Inputs:  []*bitcoindv1alpha.Input{{Txid: "parent", Vout: 1}},
-		Outputs: []*bitcoindv1alpha.Output{{Amount: 0.28}},
-	}
-	parent := &bitcoindv1alpha.GetRawTransactionResponse{
-		Txid:    "parent",
-		Outputs: []*bitcoindv1alpha.Output{{Amount: 1}, {Amount: 0.29}},
+	spend := func(prevOut *bitcoindv1alpha.PreviousOutput) *bitcoindv1alpha.GetRawTransactionResponse {
+		return &bitcoindv1alpha.GetRawTransactionResponse{
+			Txid:    "spend",
+			Vsize:   100,
+			Inputs:  []*bitcoindv1alpha.Input{{Txid: "parent", Vout: 1, PreviousOutput: prevOut}},
+			Outputs: []*bitcoindv1alpha.Output{{Amount: 0.28}},
+		}
 	}
 
-	details := func(t *testing.T, parentErr error) (*connect.Response[walletv1.GetTransactionDetailsResponse], error) {
+	details := func(t *testing.T, tx *bitcoindv1alpha.GetRawTransactionResponse) (*connect.Response[walletv1.GetTransactionDetailsResponse], error) {
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 		mockBitcoind.EXPECT().
 			GetRawTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, req *connect.Request[bitcoindv1alpha.GetRawTransactionRequest]) (*connect.Response[bitcoindv1alpha.GetRawTransactionResponse], error) {
-				if req.Msg.Txid == "spend" {
-					return connect.NewResponse(spend), nil
-				}
-				if parentErr != nil {
-					return nil, parentErr
-				}
-				return connect.NewResponse(parent), nil
-			}).
-			AnyTimes()
+			Times(1).
+			Return(connect.NewResponse(tx), nil)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
 		return cli.GetTransactionDetails(t.Context(), connect.NewRequest(&walletv1.GetTransactionDetailsRequest{Txid: "spend"}))
 	}
 
 	t.Run("the fee is inputs less outputs", func(t *testing.T) {
-		resp, err := details(t, nil)
+		resp, err := details(t, spend(&bitcoindv1alpha.PreviousOutput{
+			Amount:       0.29,
+			ScriptPubKey: &bitcoindv1alpha.ScriptPubKey{Address: "tb1qparent"},
+		}))
 		require.NoError(t, err)
-		require.Equal(t, int64(29_000_000), resp.Msg.TotalInputSats)
-		require.Equal(t, int64(28_000_000), resp.Msg.TotalOutputSats)
-		require.Equal(t, int64(1_000_000), resp.Msg.FeeSats)
+		assert.Equal(t, int64(29_000_000), resp.Msg.TotalInputSats)
+		assert.Equal(t, int64(28_000_000), resp.Msg.TotalOutputSats)
+		assert.Equal(t, int64(1_000_000), resp.Msg.FeeSats)
+		require.Len(t, resp.Msg.Inputs, 1)
+		assert.Equal(t, "tb1qparent", resp.Msg.Inputs[0].Address)
 	})
 
-	t.Run("a prevout read that fails returns the error", func(t *testing.T) {
-		_, err := details(t, connect.NewError(connect.CodeUnavailable, errors.New("node down")))
-		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
-		require.ErrorContains(t, err, "node down")
+	withParent := func(t *testing.T, parentOutputs []*bitcoindv1alpha.Output) (*connect.Response[walletv1.GetTransactionDetailsResponse], error) {
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+		mockBitcoind.EXPECT().
+			GetRawTransaction(gomock.Any(), gomock.Any()).
+			Times(2).
+			DoAndReturn(func(_ context.Context, req *connect.Request[bitcoindv1alpha.GetRawTransactionRequest]) (*connect.Response[bitcoindv1alpha.GetRawTransactionResponse], error) {
+				if req.Msg.Txid == "parent" {
+					return connect.NewResponse(&bitcoindv1alpha.GetRawTransactionResponse{Txid: "parent", Outputs: parentOutputs}), nil
+				}
+				return connect.NewResponse(spend(nil)), nil
+			})
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+		return cli.GetTransactionDetails(t.Context(), connect.NewRequest(&walletv1.GetTransactionDetailsRequest{Txid: "spend"}))
+	}
+
+	t.Run("an input with no prevout reads the parent", func(t *testing.T) {
+		resp, err := withParent(t, []*bitcoindv1alpha.Output{
+			{Amount: 0.5},
+			{Amount: 0.29, ScriptPubKey: &bitcoindv1alpha.ScriptPubKey{Address: "tb1qparent"}},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, int64(29_000_000), resp.Msg.TotalInputSats)
+		assert.Equal(t, int64(1_000_000), resp.Msg.FeeSats)
+		require.Len(t, resp.Msg.Inputs, 1)
+		assert.Equal(t, "tb1qparent", resp.Msg.Inputs[0].Address)
+	})
+
+	t.Run("a parent with no such output returns an error", func(t *testing.T) {
+		_, err := withParent(t, []*bitcoindv1alpha.Output{{Amount: 0.5}})
+		require.ErrorContains(t, err, "previous transaction parent has no output 1")
 	})
 
 	for _, tt := range []struct {

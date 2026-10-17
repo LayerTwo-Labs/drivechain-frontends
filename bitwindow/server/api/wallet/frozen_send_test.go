@@ -63,7 +63,7 @@ func TestSetUTXOMetadataReportsAFailedPush(t *testing.T) {
 		Outpoint: "aa:0",
 		IsFrozen: &frozen,
 	}))
-	require.ErrorContains(t, err, "set frozen coins")
+	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }
 
 // A caller can spell a vout with a leading zero, and a txid in either case.

@@ -148,6 +148,15 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	}), nil
 }
 
+// keepConnectCode returns err as it is when it holds a connect error, so the
+// client gets that code. Any other error gets CodeInternal.
+func keepConnectCode(err error) error {
+	if connectErr := new(connect.Error); errors.As(err, &connectErr) {
+		return err
+	}
+	return connect.NewError(connect.CodeInternal, err)
+}
+
 func btcToSats(btc float64) (uint64, error) {
 	amount, err := btcutil.NewAmount(btc)
 	if err != nil {
@@ -618,9 +627,11 @@ const addressScanDepth = 100
 
 // deriveMessageSigningPrivateKey returns the key behind address, so the
 // signature proves ownership of that address rather than some other one.
+var errNoSigningSeed = errors.New("wallet has no seed to sign with")
+
 func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (*btcec.PrivateKey, error) {
 	if wallet.Master.SeedHex == "" {
-		return nil, errors.New("wallet has no seed to sign with")
+		return nil, errNoSigningSeed
 	}
 	return orchwallet.SigningKey(&orchwallet.WalletData{
 		Master:         orchwallet.MasterWallet{SeedHex: wallet.Master.SeedHex},
@@ -656,8 +667,11 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 	}
 
 	privKey, err := deriveMessageSigningPrivateKey(walletInfo, chainParams, c.Msg.Address)
-	if err != nil {
-		return nil, fmt.Errorf("derive signing key: %w", err)
+	switch {
+	case errors.Is(err, errNoSigningSeed):
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive signing key: %w", err))
 	}
 
 	signature, err := signmessage.Sign(privKey, address, c.Msg.Message, chainParams)
@@ -1029,7 +1043,7 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 
 	address, err := s.chequeEngine.DeriveChequeAddress(ctx, walletID, nextIndex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive address %d: %w", nextIndex, err))
+		return nil, keepConnectCode(fmt.Errorf("derive address %d: %w", nextIndex, err))
 	}
 
 	id, err := cheques.Create(ctx, s.database, walletID, nextIndex, c.Msg.ExpectedAmountSats, address)
@@ -1062,7 +1076,7 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 
 	pbCheque, err := s.chequeToPb(ctx, cheque)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, keepConnectCode(err)
 	}
 
 	return connect.NewResponse(&pb.GetChequeResponse{
@@ -1085,7 +1099,7 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 
 	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, walletID, cheque.DerivationIndex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("derive private key %d: %w", cheque.DerivationIndex, err))
+		return nil, keepConnectCode(fmt.Errorf("derive private key %d: %w", cheque.DerivationIndex, err))
 	}
 
 	return connect.NewResponse(&pb.GetChequePrivateKeyResponse{
@@ -1112,7 +1126,7 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 	for i, ch := range chequeList {
 		pbCheques[i], err = s.chequeToPb(ctx, &ch)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, keepConnectCode(err)
 		}
 	}
 
@@ -1321,7 +1335,7 @@ func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetU
 	// believe the coin is safe.
 	if c.Msg.IsFrozen != nil {
 		if err := s.walletEngine.PushFrozenCoins(ctx); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, keepConnectCode(err)
 		}
 	}
 
@@ -1379,6 +1393,23 @@ func (s *Server) GetCoinSelectionStrategy(ctx context.Context, c *connect.Reques
 	}), nil
 }
 
+// readPrevOut reads an input's previous output when Core leaves out prevout,
+// as it does for a block with no undo data.
+func readPrevOut(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, txid string, vout uint32) (*corepb.PreviousOutput, error) {
+	parent, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid:      txid,
+		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("get previous transaction %s: %w", txid, err)
+	}
+	if int(vout) >= len(parent.Msg.Outputs) {
+		return nil, fmt.Errorf("previous transaction %s has no output %d", txid, vout)
+	}
+	out := parent.Msg.Outputs[vout]
+	return &corepb.PreviousOutput{Amount: out.Amount, ScriptPubKey: out.ScriptPubKey}, nil
+}
+
 // GetTransactionDetails implements walletv1connect.WalletServiceHandler.
 // Returns enriched transaction details with resolved input values/addresses.
 func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[pb.GetTransactionDetailsRequest]) (*connect.Response[pb.GetTransactionDetailsResponse], error) {
@@ -1429,19 +1460,13 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 			IsCoinbase:   isCoinbase,
 		}
 
-		// For non-coinbase inputs, fetch the referenced transaction to get value/address
-		if !isCoinbase && vin.Txid != "" {
-			prevTx, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				Txid:      vin.Txid,
-				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-			}))
-			if err != nil {
-				return nil, fmt.Errorf("get prevout %s:%d: %w", vin.Txid, vin.Vout, err)
+		if !isCoinbase {
+			prevOut := vin.PreviousOutput
+			if prevOut == nil {
+				if prevOut, err = readPrevOut(ctx, bitcoind, vin.Txid, vin.Vout); err != nil {
+					return nil, err
+				}
 			}
-			if int(vin.Vout) >= len(prevTx.Msg.Outputs) {
-				return nil, fmt.Errorf("prevout %s:%d: transaction has %d outputs", vin.Txid, vin.Vout, len(prevTx.Msg.Outputs))
-			}
-			prevOut := prevTx.Msg.Outputs[vin.Vout]
 			valueSats, err := btcToSats(prevOut.Amount)
 			if err != nil {
 				return nil, fmt.Errorf("value of %s:%d: %w", vin.Txid, vin.Vout, err)
@@ -1537,7 +1562,7 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 
 	utxos, err := s.listUnspent(ctx, walletID, nil)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+		return nil, keepConnectCode(fmt.Errorf("list unspent: %w", err))
 	}
 
 	if len(utxos) == 0 {

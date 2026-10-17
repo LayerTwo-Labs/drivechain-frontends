@@ -41,7 +41,8 @@ type fakeChain struct {
 	queried []string
 	err     error
 	// failures makes the next reads fail, as a chain source that still boots does.
-	failures int
+	failures     int
+	broadcastErr error
 }
 
 func (f *fakeChain) AddressUnspent(_ context.Context, address string) ([]ChequeUTXO, error) {
@@ -56,7 +57,12 @@ func (f *fakeChain) AddressUnspent(_ context.Context, address string) ([]ChequeU
 	return f.funded[address], nil
 }
 func (f *fakeChain) FeeRateSatPerVByte(context.Context, int32) (float64, error) { return 1, nil }
-func (f *fakeChain) Broadcast(context.Context, string) (string, error)          { return "txid", nil }
+func (f *fakeChain) Broadcast(context.Context, string) (string, error) {
+	if f.broadcastErr != nil {
+		return "", f.broadcastErr
+	}
+	return "txid", nil
+}
 
 func TestSweepCandidatesCompressedKeyHasBothKinds(t *testing.T) {
 	t.Parallel()
