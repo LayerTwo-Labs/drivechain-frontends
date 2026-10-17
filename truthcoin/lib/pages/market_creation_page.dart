@@ -203,7 +203,7 @@ class _DecisionsCard extends StatelessWidget {
           if (model.slotError != null) SailInlineError(model.slotError!),
           if (model.periodsError != null) SailInlineError(model.periodsError!),
           for (final (index, draft) in model.newDecisions.indexed)
-            _NewDecisionCard(model: model, number: index + 1, draft: draft),
+            _NewDecisionCard(key: ObjectKey(draft), model: model, number: index + 1, draft: draft),
           SailRow(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -273,7 +273,7 @@ class _NewDecisionCard extends StatelessWidget {
   final int number;
   final NewDecisionDraft draft;
 
-  const _NewDecisionCard({required this.model, required this.number, required this.draft});
+  const _NewDecisionCard({super.key, required this.model, required this.number, required this.draft});
 
   /// The label sits left of the control, and above it on a narrow card.
   Widget _row(String label, Widget control) {
@@ -323,7 +323,23 @@ class _NewDecisionCard extends StatelessWidget {
       child: SailColumn(
         spacing: SailStyleValues.padding10,
         children: [
-          SailText.primary13('New decision #$number', bold: true),
+          SailRow(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(child: SailText.primary13('New decision #$number', bold: true)),
+              if (model.decisionCount > 1)
+                SailTooltip(
+                  message: 'Remove',
+                  child: SailButton(
+                    key: ValueKey('remove_new_decision_$number'),
+                    variant: ButtonVariant.icon,
+                    icon: SailSVGAsset.x,
+                    small: true,
+                    onPressed: () async => model.removeNewDecision(draft),
+                  ),
+                ),
+            ],
+          ),
           _row(
             'Period',
             SailDropdownButton<int>(
@@ -786,6 +802,16 @@ class MarketCreationViewModel extends BaseViewModel {
 
   void removeExistingDecision(String slotIdHex) {
     existingDecisionIds.remove(slotIdHex);
+    onLiquidityInputChanged();
+  }
+
+  /// Existing and new decisions, the cards with no input too.
+  int get decisionCount => existingDecisionIds.length + newDecisions.length;
+
+  void removeNewDecision(NewDecisionDraft draft) {
+    newDecisions.remove(draft);
+    // The removed card still holds the controllers until the next frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => draft.dispose());
     onLiquidityInputChanged();
   }
 
