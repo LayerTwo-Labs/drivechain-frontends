@@ -56,20 +56,25 @@ class GetWalletStatusRequest extends $pb.GeneratedMessage {
 
 class GetWalletStatusResponse extends $pb.GeneratedMessage {
   factory GetWalletStatusResponse({
+  @$core.Deprecated('This field is deprecated.')
     $core.bool? hasWallet,
     $core.bool? encrypted,
+  @$core.Deprecated('This field is deprecated.')
     $core.bool? unlocked,
     $core.String? activeWalletId,
     $core.String? activeWalletName,
+    WalletState? state,
   }) {
     final $result = create();
     if (hasWallet != null) {
+      // ignore: deprecated_member_use_from_same_package
       $result.hasWallet = hasWallet;
     }
     if (encrypted != null) {
       $result.encrypted = encrypted;
     }
     if (unlocked != null) {
+      // ignore: deprecated_member_use_from_same_package
       $result.unlocked = unlocked;
     }
     if (activeWalletId != null) {
@@ -77,6 +82,9 @@ class GetWalletStatusResponse extends $pb.GeneratedMessage {
     }
     if (activeWalletName != null) {
       $result.activeWalletName = activeWalletName;
+    }
+    if (state != null) {
+      $result.state = state;
     }
     return $result;
   }
@@ -90,6 +98,7 @@ class GetWalletStatusResponse extends $pb.GeneratedMessage {
     ..aOB(3, _omitFieldNames ? '' : 'unlocked')
     ..aOS(4, _omitFieldNames ? '' : 'activeWalletId')
     ..aOS(5, _omitFieldNames ? '' : 'activeWalletName')
+    ..e<WalletState>(6, _omitFieldNames ? '' : 'state', $pb.PbFieldType.OE, defaultOrMaker: WalletState.WALLET_STATE_UNSPECIFIED, valueOf: WalletState.valueOf, enumValues: WalletState.values)
     ..hasRequiredFields = false
   ;
 
@@ -114,12 +123,17 @@ class GetWalletStatusResponse extends $pb.GeneratedMessage {
   static GetWalletStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetWalletStatusResponse>(create);
   static GetWalletStatusResponse? _defaultInstance;
 
+  /// Use state.
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   $core.bool get hasWallet => $_getBF(0);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   set hasWallet($core.bool v) { $_setBool(0, v); }
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   $core.bool hasHasWallet() => $_has(0);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   void clearHasWallet() => clearField(1);
 
@@ -132,12 +146,17 @@ class GetWalletStatusResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearEncrypted() => clearField(2);
 
+  /// Use state.
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   $core.bool get unlocked => $_getBF(2);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   set unlocked($core.bool v) { $_setBool(2, v); }
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   $core.bool hasUnlocked() => $_has(2);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   void clearUnlocked() => clearField(3);
 
@@ -158,6 +177,15 @@ class GetWalletStatusResponse extends $pb.GeneratedMessage {
   $core.bool hasActiveWalletName() => $_has(4);
   @$pb.TagNumber(5)
   void clearActiveWalletName() => clearField(5);
+
+  @$pb.TagNumber(6)
+  WalletState get state => $_getN(5);
+  @$pb.TagNumber(6)
+  set state(WalletState v) { setField(6, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasState() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearState() => clearField(6);
 }
 
 class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
@@ -12399,8 +12427,10 @@ class SetTorConfigResponse extends $pb.GeneratedMessage {
 
 class WatchWalletDataResponse extends $pb.GeneratedMessage {
   factory WatchWalletDataResponse({
+  @$core.Deprecated('This field is deprecated.')
     $core.bool? hasWallet,
     $core.bool? encrypted,
+  @$core.Deprecated('This field is deprecated.')
     $core.bool? unlocked,
     $core.String? activeWalletId,
     $core.Iterable<WalletMetadata>? wallets,
@@ -12408,15 +12438,18 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
     $core.double? unconfirmedSats,
     $fixnum.Int64? seq,
     $core.bool? heartbeat,
+    WalletState? state,
   }) {
     final $result = create();
     if (hasWallet != null) {
+      // ignore: deprecated_member_use_from_same_package
       $result.hasWallet = hasWallet;
     }
     if (encrypted != null) {
       $result.encrypted = encrypted;
     }
     if (unlocked != null) {
+      // ignore: deprecated_member_use_from_same_package
       $result.unlocked = unlocked;
     }
     if (activeWalletId != null) {
@@ -12437,6 +12470,9 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
     if (heartbeat != null) {
       $result.heartbeat = heartbeat;
     }
+    if (state != null) {
+      $result.state = state;
+    }
     return $result;
   }
   WatchWalletDataResponse._() : super();
@@ -12453,6 +12489,7 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
     ..a<$core.double>(7, _omitFieldNames ? '' : 'unconfirmedSats', $pb.PbFieldType.OD)
     ..aInt64(8, _omitFieldNames ? '' : 'seq')
     ..aOB(9, _omitFieldNames ? '' : 'heartbeat')
+    ..e<WalletState>(10, _omitFieldNames ? '' : 'state', $pb.PbFieldType.OE, defaultOrMaker: WalletState.WALLET_STATE_UNSPECIFIED, valueOf: WalletState.valueOf, enumValues: WalletState.values)
     ..hasRequiredFields = false
   ;
 
@@ -12478,12 +12515,17 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
   static WatchWalletDataResponse? _defaultInstance;
 
   /// Wallet status
+  /// Use state.
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   $core.bool get hasWallet => $_getBF(0);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   set hasWallet($core.bool v) { $_setBool(0, v); }
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   $core.bool hasHasWallet() => $_has(0);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   void clearHasWallet() => clearField(1);
 
@@ -12496,12 +12538,17 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearEncrypted() => clearField(2);
 
+  /// Use state.
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   $core.bool get unlocked => $_getBF(2);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   set unlocked($core.bool v) { $_setBool(2, v); }
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   $core.bool hasUnlocked() => $_has(2);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(3)
   void clearUnlocked() => clearField(3);
 
@@ -12559,6 +12606,15 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
   $core.bool hasHeartbeat() => $_has(8);
   @$pb.TagNumber(9)
   void clearHeartbeat() => clearField(9);
+
+  @$pb.TagNumber(10)
+  WalletState get state => $_getN(9);
+  @$pb.TagNumber(10)
+  set state(WalletState v) { setField(10, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasState() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearState() => clearField(10);
 }
 
 class CreateDepositRequest extends $pb.GeneratedMessage {

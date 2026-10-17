@@ -86,10 +86,10 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 	if err != nil {
 		return fmt.Errorf("read the wallet status: %w", err)
 	}
-	if !status.Msg.HasWallet {
+	switch status.Msg.State {
+	case pb.WalletState_WALLET_STATE_NO_WALLET:
 		return fmt.Errorf("select a wallet to burn coins")
-	}
-	if status.Msg.Encrypted && !status.Msg.Unlocked {
+	case pb.WalletState_WALLET_STATE_LOCKED:
 		return fmt.Errorf("unlock this wallet to burn coins")
 	}
 	if s.active {
