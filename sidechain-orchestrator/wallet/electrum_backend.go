@@ -1096,9 +1096,15 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		selected = append(selected, u)
 		selectedSats += u.amountSats
 	}
+	if err := refuseExcludedRequiredInputs(req); err != nil {
+		return nil, nil, nil, err
+	}
+	excluded := lo.SliceToMap(req.ExcludedInputs, func(in RequiredInput) (string, bool) {
+		return fmt.Sprintf("%s:%d", in.TxID, in.Vout), true
+	})
 	remaining := lo.Filter(pool, func(u electrumUTXO, _ int) bool {
 		key := fmt.Sprintf("%s:%d", u.txid, u.vout)
-		return !required[key] && !immature[key]
+		return !required[key] && !immature[key] && !excluded[key]
 	})
 	// A coin a live BMM bid holds is the largest coin the wallet lists, so
 	// largest-first selection takes it first and the send dies with the bid.

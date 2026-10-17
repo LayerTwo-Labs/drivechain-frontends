@@ -933,7 +933,14 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 
 	// Resolve any BIP47 payment-code destinations into per-payment addresses
 	// before the dust check so we validate against the substituted address.
-	expansion, err := h.expandBip47Destinations(ctx, walletID, req.Msg.Destinations)
+	var pinnedNotification *wallet.RequiredInput
+	if req.Msg.NotificationInput != nil {
+		pinnedNotification = &mapRequiredInputs([]*pb.UnspentOutput{req.Msg.NotificationInput})[0]
+	}
+	expansion, err := h.expandBip47Destinations(
+		ctx, walletID, req.Msg.Destinations,
+		req.Msg.FeeRateSatPerVbyte, pinnedNotification, mapRequiredInputs(req.Msg.RequiredInputs),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -985,13 +992,7 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		}
 		_ = notifTxID
 	}
-	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
-		return wallet.RequiredInput{
-			TxID:       u.Txid,
-			Vout:       int(u.Vout),
-			AmountSats: u.AmountSats,
-		}
-	})
+	sendReq.RequiredInputs = mapRequiredInputs(req.Msg.RequiredInputs)
 	sendReq.RawOutputs = mapRawOutputs(req.Msg.RawOutputs)
 	sendReq.ExternalInputs = mapExternalInputs(req.Msg.ExternalInputs)
 
@@ -1003,6 +1004,66 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	return connect.NewResponse(&pb.SendTransactionResponse{
 		Txid: txid,
 	}), nil
+}
+
+func mapRequiredInputs(inputs []*pb.UnspentOutput) []wallet.RequiredInput {
+	return lo.Map(inputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
+		return wallet.RequiredInput{TxID: u.Txid, Vout: int(u.Vout), AmountSats: u.AmountSats}
+	})
+}
+
+func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb.PreviewSendRequest]) (*connect.Response[pb.PreviewSendResponse], error) {
+	if len(req.Msg.Destinations) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one destination"))
+	}
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if err := h.refuseFrozenInputs(req.Msg.RequiredInputs); err != nil {
+		return nil, err
+	}
+	destinations, notifies, err := h.sizeBip47Destinations(walletID, req.Msg.Destinations)
+	if err != nil {
+		return nil, err
+	}
+	requiredInputs := mapRequiredInputs(req.Msg.RequiredInputs)
+
+	resp := &pb.PreviewSendResponse{}
+	var excluded []wallet.RequiredInput
+	// A first BIP47 payment publishes a notification first. Its coin stays out
+	// of the payment, so the send can pin the coins of both.
+	if notifies {
+		coin, feeSats, err := h.bip47NotificationCoin(ctx, walletID, req.Msg.FeeRateSatPerVbyte, nil, requiredInputs)
+		if err != nil {
+			return nil, err
+		}
+		amountSats := int64(math.Round(coin.Amount * 1e8))
+		resp.NotificationFeeSats = feeSats
+		resp.NotificationInput = &pb.UnspentOutput{Txid: coin.TxID, Vout: int32(coin.Vout), AmountSats: amountSats}
+		excluded = []wallet.RequiredInput{{TxID: coin.TxID, Vout: coin.Vout, AmountSats: amountSats}}
+	}
+
+	preview, err := h.engine.Backend().PreviewSend(ctx, walletID, wallet.SendRequest{
+		DestinationsSats:      destinations,
+		FeeRateSatPerVB:       req.Msg.FeeRateSatPerVbyte,
+		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
+		AllowReplay:           req.Msg.AllowReplay,
+		RequiredInputs:        requiredInputs,
+		ExcludedInputs:        excluded,
+	})
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	resp.FeeSats = preview.FeeSats
+	resp.VsizeVbytes = preview.VsizeVBytes
+	resp.Inputs = lo.Map(preview.Inputs, func(in wallet.RequiredInput, _ int) *pb.UnspentOutput {
+		return &pb.UnspentOutput{Txid: in.TxID, Vout: int32(in.Vout), AmountSats: in.AmountSats}
+	})
+	return connect.NewResponse(resp), nil
 }
 
 func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {

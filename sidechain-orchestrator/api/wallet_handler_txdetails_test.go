@@ -197,7 +197,7 @@ func TestBip47NotificationSkipsAFrozenCoin(t *testing.T) {
 	h.svc.SetHeldCoins([]wallet.Outpoint{{TxID: "frozen", Vout: 0}})
 
 	_, _, err := h.buildBip47NotificationTx(
-		context.Background(), walletID, "00", nil, &chaincfg.RegressionNetParams,
+		context.Background(), walletID, "00", nil, &chaincfg.RegressionNetParams, 0, nil, nil,
 	)
 	require.ErrorContains(t, err, "no spendable UTXO")
 }

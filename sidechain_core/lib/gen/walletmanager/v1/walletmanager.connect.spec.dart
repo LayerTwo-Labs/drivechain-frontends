@@ -259,6 +259,15 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.SendTransactionResponse.new,
   );
 
+  /// PreviewSend builds a send at a fee rate, with the same coin selection as
+  /// SendTransaction, and reports its fee and size. It broadcasts nothing.
+  static const previewSend = connect.Spec(
+    '/$name/PreviewSend',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.PreviewSendRequest.new,
+    walletmanagerv1walletmanager.PreviewSendResponse.new,
+  );
+
   /// SetFrozenCoins records the coins the frontend froze. Every send after it
   /// leaves those coins alone, and Bitcoin Core holds them locked for the
   /// length of a send so its own coin selection skips them too.
