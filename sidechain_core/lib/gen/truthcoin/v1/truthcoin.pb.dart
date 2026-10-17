@@ -4967,7 +4967,7 @@ class VotecoinBalanceRequest extends $pb.GeneratedMessage {
 
 class VotecoinBalanceResponse extends $pb.GeneratedMessage {
   factory VotecoinBalanceResponse({
-    $fixnum.Int64? balance,
+    $core.double? balance,
   }) {
     final $result = create();
     if (balance != null) {
@@ -4980,7 +4980,7 @@ class VotecoinBalanceResponse extends $pb.GeneratedMessage {
   factory VotecoinBalanceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VotecoinBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'balance')
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'balance', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -5006,9 +5006,9 @@ class VotecoinBalanceResponse extends $pb.GeneratedMessage {
   static VotecoinBalanceResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get balance => $_getI64(0);
+  $core.double get balance => $_getN(0);
   @$pb.TagNumber(1)
-  set balance($fixnum.Int64 v) { $_setInt64(0, v); }
+  set balance($core.double v) { $_setDouble(0, v); }
   @$pb.TagNumber(1)
   $core.bool hasBalance() => $_has(0);
   @$pb.TagNumber(1)

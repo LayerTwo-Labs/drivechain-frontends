@@ -193,8 +193,8 @@ abstract class TruthcoinRPC extends SidechainRPC {
     String? memo,
   });
 
-  /// Get votecoin balance for an address
-  Future<int> votecoinBalance(String address);
+  /// Votecoin of an address, as a fraction of the supply
+  Future<double> votecoinBalance(String address);
 
   /// Transfer votecoin (alternative method)
   Future<String> transferVotecoin({
@@ -815,9 +815,9 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<int> votecoinBalance(String address) async {
+  Future<double> votecoinBalance(String address) async {
     final resp = await _client.votecoinBalance(pb.VotecoinBalanceRequest(address: address));
-    return resp.balance.toInt();
+    return resp.balance;
   }
 
   @override

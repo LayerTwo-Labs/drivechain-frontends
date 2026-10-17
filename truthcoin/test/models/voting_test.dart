@@ -67,7 +67,7 @@ void main() {
         expect(voter.address, 'tb1qtest1234567890');
         expect(voter.isActive, true);
         expect(voter.reputation, 0.85);
-        expect(voter.votecoinBalance, 1000);
+        expect(voter.votecoinBalance, 0.25);
         expect(voter.totalVotes, 156);
         expect(voter.accuracyScore, 0.78);
       });

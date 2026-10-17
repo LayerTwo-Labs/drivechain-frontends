@@ -187,3 +187,12 @@ func TestCalculateInitialLiquiditySendsOutcomeCount(t *testing.T) {
 	require.Len(t, *params, 1)
 	assert.JSONEq(t, `[{"beta": 7.0, "num_outcomes": 3}]`, string((*params)[0]))
 }
+
+// The node reports Votecoin as a fraction of the supply.
+func TestVotecoinBalanceReadsFraction(t *testing.T) {
+	h, _ := capturingRPC(t, `0.25`)
+
+	resp, err := h.VotecoinBalance(context.Background(), connect.NewRequest(&pb.VotecoinBalanceRequest{Address: "3dWL5oSH54rxzXbU5RVi7bBkeuWd"}))
+	require.NoError(t, err)
+	assert.Equal(t, 0.25, resp.Msg.Balance)
+}

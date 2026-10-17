@@ -544,7 +544,7 @@ func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.
 }
 
 func (h *Handler) VotecoinBalance(ctx context.Context, req *connect.Request[pb.VotecoinBalanceRequest]) (*connect.Response[pb.VotecoinBalanceResponse], error) {
-	var balance int64
+	var balance float64
 	if err := h.proxy.Client.Call(ctx, "votecoin_balance", []any{req.Msg.Address}, &balance); err != nil {
 		return nil, err
 	}

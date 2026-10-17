@@ -1228,13 +1228,13 @@ final $typed_data.Uint8List votecoinBalanceRequestDescriptor = $convert.base64De
 const VotecoinBalanceResponse$json = {
   '1': 'VotecoinBalanceResponse',
   '2': [
-    {'1': 'balance', '3': 1, '4': 1, '5': 3, '10': 'balance'},
+    {'1': 'balance', '3': 1, '4': 1, '5': 1, '10': 'balance'},
   ],
 };
 
 /// Descriptor for `VotecoinBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List votecoinBalanceResponseDescriptor = $convert.base64Decode(
-    'ChdWb3RlY29pbkJhbGFuY2VSZXNwb25zZRIYCgdiYWxhbmNlGAEgASgDUgdiYWxhbmNl');
+    'ChdWb3RlY29pbkJhbGFuY2VSZXNwb25zZRIYCgdiYWxhbmNlGAEgASgBUgdiYWxhbmNl');
 
 @$core.Deprecated('Use transferVotecoinRequestDescriptor instead')
 const TransferVotecoinRequest$json = {

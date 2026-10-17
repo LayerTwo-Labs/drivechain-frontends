@@ -130,7 +130,7 @@ class VoterInfoFull {
   final String address;
   final bool isRegistered;
   final double reputation;
-  final int votecoinBalance;
+  final double votecoinBalance;
   final int totalVotes;
   final int periodsActive;
   final double accuracyScore;
@@ -156,7 +156,7 @@ class VoterInfoFull {
       address: json['address']?.toString() ?? '',
       isRegistered: json['is_registered'] as bool? ?? false,
       reputation: (json['reputation'] ?? 0.0) as double,
-      votecoinBalance: (json['votecoin_balance'] ?? 0) as int,
+      votecoinBalance: ((json['votecoin_balance'] ?? 0) as num).toDouble(),
       totalVotes: (json['total_votes'] ?? 0) as int,
       periodsActive: (json['periods_active'] ?? 0) as int,
       accuracyScore: (json['accuracy_score'] ?? 0.0) as double,
