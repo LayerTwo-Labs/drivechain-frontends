@@ -4,7 +4,10 @@ import 'package:sidechain_core/sidechain_core.dart';
 /// Currency naming for the active network. eCash is eCash, every other
 /// network is Bitcoin. Each eCash test network prefixes its own letter.
 class Ticker {
-  const Ticker._(this.symbol, this.subunit, this.subunitSingular, this.subunitLabel);
+  const Ticker._(this.name, this.symbol, this.subunit, this.subunitSingular, this.subunitLabel);
+
+  /// Coin name for prose, e.g. "eCash".
+  final String name;
 
   /// Unit symbol shown next to whole amounts, e.g. "1.0000,0000 ECX".
   final String symbol;
@@ -18,10 +21,10 @@ class Ticker {
   /// Title-case [subunit] for menus and headings.
   final String subunitLabel;
 
-  static const bitcoin = Ticker._('BTC', 'sats', 'sat', 'Satoshis');
-  static const ecash = Ticker._('ECX', 'szats', 'szat', 'Szats');
-  static const alphanet = Ticker._('aECX', 'szats', 'szat', 'Szats');
-  static const betanet = Ticker._('bECX', 'szats', 'szat', 'Szats');
+  static const bitcoin = Ticker._('Bitcoin', 'BTC', 'sats', 'sat', 'Satoshis');
+  static const ecash = Ticker._('eCash', 'ECX', 'szats', 'szat', 'Szats');
+  static const alphanet = Ticker._('eCash', 'aECX', 'szats', 'szat', 'Szats');
+  static const betanet = Ticker._('eCash', 'bECX', 'szats', 'szat', 'Szats');
 
   /// Fee rate unit, e.g. "szat/vB".
   String get feeRate => '$subunitSingular/vB';

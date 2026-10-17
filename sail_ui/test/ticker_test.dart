@@ -43,6 +43,11 @@ void main() {
       expect(Ticker.bitcoin.symbol, 'BTC');
       expect(Ticker.bitcoin.subunit, 'sats');
       expect(Ticker.bitcoin.feeRate, 'sat/vB');
+
+      expect(Ticker.bitcoin.name, 'Bitcoin');
+      expect(Ticker.ecash.name, 'eCash');
+      expect(Ticker.alphanet.name, 'eCash');
+      expect(Ticker.betanet.name, 'eCash');
     });
   });
 
