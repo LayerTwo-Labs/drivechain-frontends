@@ -291,17 +291,22 @@ func (s *Server) CreateDenial(
 	}
 
 	if denial != nil {
+		if denial.CancelledAt == nil && (denial.NextExecution != nil || denial.PausedAt != nil) {
+			return nil, connect.NewError(connect.CodeAlreadyExists,
+				fmt.Errorf("denial %d already runs for %s:%d", denial.ID, req.Msg.Txid, req.Msg.Vout))
+		}
+
 		zerolog.Ctx(ctx).Info().
 			Int64("denial_id", denial.ID).
 			Str("txid", req.Msg.Txid).
 			Uint32("vout", req.Msg.Vout).
 			Int32("delay_seconds", req.Msg.DelaySeconds).
 			Int32("num_hops", req.Msg.NumHops).
-			Msg("CreateDenial: found existing denial, updating values")
+			Msg("CreateDenial: continue a stopped denial")
 
-		// A denial for this utxo exists, so update its values.
 		if err := deniability.Update(
-			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops, req.Msg.Txid, int32(req.Msg.Vout),
+			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops,
+			req.Msg.TargetUtxoSizes, req.Msg.Txid, int32(req.Msg.Vout),
 		); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
