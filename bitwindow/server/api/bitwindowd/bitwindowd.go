@@ -1086,11 +1086,11 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		}
 	}
 
-	bitcoindBandwidth, err := s.processBandwidth("bitcoind")
+	bitcoindBandwidth, err := s.processBandwidth(ctx, "bitcoind")
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	enforcerBandwidth, err := s.processBandwidth("bip300301-enforcer")
+	enforcerBandwidth, err := s.processBandwidth(ctx, "bip300301-enforcer")
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1113,12 +1113,12 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 }
 
 // processBandwidth gives nil when no process has the name.
-func (s *Server) processBandwidth(name string) (*pb.ProcessBandwidth, error) {
+func (s *Server) processBandwidth(ctx context.Context, name string) (*pb.ProcessBandwidth, error) {
 	// Windows has no pgrep.
 	if runtime.GOOS == "windows" {
 		return nil, nil
 	}
-	output, err := exec.Command("pgrep", "-x", name).Output()
+	output, err := exec.CommandContext(ctx, "pgrep", "-x", name).Output()
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
 		return nil, nil

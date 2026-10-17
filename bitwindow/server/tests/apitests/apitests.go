@@ -180,6 +180,14 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	t.Cleanup(cancel)
 
 	conf := newConfig(ctrl, options...)
+	// The ZMQ feeds ask Core for their address in the background. An expectation
+	// of the test matches first, because gomock obeys the declaration order.
+	if mock, ok := conf.bitcoind.(*mocks.MockBitcoinServiceClient); ok {
+		mock.EXPECT().
+			GetZmqNotifications(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("no ZMQ in tests"))).
+			AnyTimes()
+	}
 
 	// Create a temporary directory with a valid wallet.json for tests
 	walletDir := t.TempDir()

@@ -27,9 +27,6 @@ func TestValidatorUsesTheOrchestratorCookie(t *testing.T) {
 	dir := t.TempDir()
 	_, err := localauth.WriteCookie(dir)
 	require.NoError(t, err)
-	previous := cookieDir
-	SetCookieDir(dir)
-	t.Cleanup(func() { SetCookieDir(previous) })
 
 	mux := http.NewServeMux()
 	path, handler := rpc.NewValidatorServiceHandler(validatorHandler{}, connect.WithInterceptors(localauth.Interceptor(dir)))
@@ -42,13 +39,12 @@ func TestValidatorUsesTheOrchestratorCookie(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	for _, address := range []string{server.URL, strings.TrimPrefix(server.URL, "http://")} {
-		client, err := EnforcerValidator(t.Context(), address)
+		client, err := EnforcerValidator(t.Context(), address, dir)
 		require.NoError(t, err)
 		_, err = client.GetSidechains(t.Context(), connect.NewRequest(&pb.GetSidechainsRequest{}))
 		require.NoError(t, err)
 	}
 
-	SetCookieDir("")
-	_, err = EnforcerValidator(t.Context(), server.URL)
+	_, err = EnforcerValidator(t.Context(), server.URL, "")
 	require.ErrorContains(t, err, "unauthenticated")
 }

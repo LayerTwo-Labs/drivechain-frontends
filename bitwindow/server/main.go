@@ -87,10 +87,8 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 
 	// Base bitwindow dir (pre-Finalize) holding wallet.json and the shared
-	// .auth.cookie. Capture before Finalize suffixes Datadir with the network,
-	// and point the orchestrator (Bitcoind proxy) client at it for local auth.
+	// .auth.cookie. Capture before Finalize suffixes Datadir with the network.
 	bitwindowDir := conf.BitwindowDir()
-	dial.SetCookieDir(bitwindowDir)
 
 	// drivechaind writes bitcoin.conf: the network identity and RPC creds both
 	// live there. Start it, then ask it for the network.
@@ -191,11 +189,11 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// in-process via Server.Recycle — bitwindowd never exits across a swap.
 
 	bitcoindConnector := func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
-		return dial.Bitcoind(ctx, conf.OrchestratorAddr)
+		return dial.Bitcoind(ctx, conf.OrchestratorAddr, bitwindowDir)
 	}
 
 	enforcerConnector := func(ctx context.Context) (rpc.ValidatorServiceClient, error) {
-		validator, err := dial.EnforcerValidator(ctx, conf.OrchestratorAddr)
+		validator, err := dial.EnforcerValidator(ctx, conf.OrchestratorAddr, bitwindowDir)
 		return validator, err
 	}
 
