@@ -1490,6 +1490,99 @@ func TestService_ListBlocks(t *testing.T) {
 		assert.Equal(t, uint32(6), resp.Msg.RecentBlocks[2].Height)
 	})
 
+	t.Run("hasMore is true while the genesis block is not on a page", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+			}, nil).Times(2)
+		mockBitcoind.EXPECT().
+			GetBlockHash(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+				return &connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
+				}, nil
+			}).Times(10)
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+				var height uint32
+				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
+					return nil, err
+				}
+				return &connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{Height: height, Hash: req.Msg.Hash, Time: timestamppb.Now()},
+				}, nil
+			}).Times(10)
+		// Last, so the height 1 catch-all of the setup does not answer first.
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		expectWatchWalletNoop(mockBitcoind)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		page, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 5, PageSize: 5}))
+		require.NoError(t, err)
+		require.Len(t, page.Msg.RecentBlocks, 5)
+		assert.Equal(t, uint32(1), page.Msg.RecentBlocks[4].Height)
+		assert.True(t, page.Msg.HasMore)
+
+		last, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 4, PageSize: 5}))
+		require.NoError(t, err)
+		require.Len(t, last.Msg.RecentBlocks, 5)
+		assert.Equal(t, uint32(0), last.Msg.RecentBlocks[4].Height)
+		assert.False(t, last.Msg.HasMore)
+	})
+
+	t.Run("hasMore is false when the genesis block is on a shorter page", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+			}, nil)
+		mockBitcoind.EXPECT().
+			GetBlockHash(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+				// The chain lost block 4 after the tip read.
+				if req.Msg.Height == 4 {
+					return nil, errors.New("Block height out of range")
+				}
+				return &connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
+				}, nil
+			}).Times(5)
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+				var height uint32
+				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
+					return nil, err
+				}
+				return &connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{Height: height, Hash: req.Msg.Hash, Time: timestamppb.Now()},
+				}, nil
+			}).Times(4)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		expectWatchWalletNoop(mockBitcoind)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		page, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 4, PageSize: 5}))
+		require.NoError(t, err)
+		require.Len(t, page.Msg.RecentBlocks, 4)
+		assert.Equal(t, uint32(0), page.Msg.RecentBlocks[3].Height)
+		assert.False(t, page.Msg.HasMore)
+	})
+
 	t.Run("repeat call at the same tip is served from cache", func(t *testing.T) {
 		t.Parallel()
 

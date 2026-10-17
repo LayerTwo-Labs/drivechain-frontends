@@ -6,6 +6,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -479,4 +482,37 @@ func TestPurgeAtOrAbove_NamesTheFailedStatement(t *testing.T) {
 			require.ErrorContains(t, err, tc.wantErr)
 		})
 	}
+}
+
+// A failed catalog fetch must not keep the miss of the embedded catalog: the
+// embedded catalog has no gammanet entry.
+func TestConnectRemoteResolve(t *testing.T) {
+	var up atomic.Bool
+	var fetches atomic.Int32
+	catalog := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fetches.Add(1)
+		if !up.Load() {
+			http.Error(w, "down", http.StatusServiceUnavailable)
+			return
+		}
+		_, err := w.Write([]byte(`{"schema_version":1,"networks":[{"id":"gammanet","family":"ecash","services":{"coinnews":{"url":"http://coinnews.test"}}}]}`))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(catalog.Close)
+	r := &connectRemote{network: "ecash", ecashID: "gammanet", catalogURL: catalog.URL}
+
+	assert.Nil(t, r.resolve(t.Context()))
+	assert.Equal(t, int32(1), fetches.Load())
+
+	up.Store(true)
+	assert.Nil(t, r.resolve(t.Context()))
+	assert.Equal(t, int32(1), fetches.Load())
+
+	r.failedAt = time.Now().Add(-catalogRetryAfter)
+	assert.NotNil(t, r.resolve(t.Context()))
+	assert.Equal(t, int32(2), fetches.Load())
+
+	up.Store(false)
+	assert.NotNil(t, r.resolve(t.Context()))
+	assert.Equal(t, int32(2), fetches.Load())
 }

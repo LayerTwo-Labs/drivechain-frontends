@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	coinnewsv1 "github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1"
@@ -46,40 +47,66 @@ type RemoteItem struct {
 
 // connectRemote reads a coinnewsd deployment over ConnectRPC.
 type connectRemote struct {
-	network string
-	ecashID string
-	once    sync.Once
-	client  coinnewsv1connect.CoinNewsServiceClient
+	network    string
+	ecashID    string
+	catalogURL string
+
+	mu       sync.Mutex
+	resolved bool
+	client   coinnewsv1connect.CoinNewsServiceClient
+	failedAt time.Time
+	fallback coinnewsv1connect.CoinNewsServiceClient
 }
+
+// A failed fetch can take the whole fetch timeout, so it is not tried again on each call.
+const catalogRetryAfter = time.Minute
 
 // NewRemoteCoinNews returns a reader for the network's published CoinNews
 // indexer. On eCash, ecashID selects the catalog entry. It reads the document
 // on the first call, not here: the API handlers this runs from must not wait
 // on a slow endpoint.
 func NewRemoteCoinNews(network, ecashID string) RemoteCoinNews {
-	return &connectRemote{network: network, ecashID: ecashID}
+	return &connectRemote{network: network, ecashID: ecashID, catalogURL: netcatalog.DefaultURL}
 }
 
-// resolve reads the indexer URL the network publishes, once.
+// resolve reads the indexer URL the network publishes. It keeps the answer of
+// the first fetch that works. Until then, it reads the embedded catalog.
 func (r *connectRemote) resolve(ctx context.Context) coinnewsv1connect.CoinNewsServiceClient {
-	r.once.Do(func() {
-		cat := netcatalog.Resolve(ctx)
-		var net netcatalog.Network
-		var ok bool
-		if r.network == string(config.NetworkECash) {
-			net, ok = cat.ByID(r.ecashID)
-		} else {
-			net, ok = cat.ForNetwork(r.network)
-		}
-		if !ok || net.Services.CoinNews.URL == "" {
-			return
-		}
-		r.client = coinnewsv1connect.NewCoinNewsServiceClient(
-			&http.Client{Timeout: 30 * time.Second},
-			net.Services.CoinNews.URL,
-		)
-	})
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.resolved {
+		return r.client
+	}
+	if !r.failedAt.IsZero() && time.Since(r.failedAt) < catalogRetryAfter {
+		return r.fallback
+	}
+	catalog, err := netcatalog.Fetch(ctx, r.catalogURL)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("coinnews: read the embedded catalog")
+		r.failedAt = time.Now()
+		r.fallback = r.clientFor(netcatalog.Embedded())
+		return r.fallback
+	}
+	r.client = r.clientFor(catalog)
+	r.resolved = true
 	return r.client
+}
+
+func (r *connectRemote) clientFor(catalog netcatalog.Catalog) coinnewsv1connect.CoinNewsServiceClient {
+	var net netcatalog.Network
+	var ok bool
+	if r.network == string(config.NetworkECash) {
+		net, ok = catalog.ByID(r.ecashID)
+	} else {
+		net, ok = catalog.ForNetwork(r.network)
+	}
+	if !ok || net.Services.CoinNews.URL == "" {
+		return nil
+	}
+	return coinnewsv1connect.NewCoinNewsServiceClient(
+		&http.Client{Timeout: 30 * time.Second},
+		net.Services.CoinNews.URL,
+	)
 }
 
 func (r *connectRemote) ListFrontPage(ctx context.Context, topicHex string, limit uint32) ([]RemoteItem, error) {
