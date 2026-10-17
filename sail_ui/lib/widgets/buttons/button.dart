@@ -34,6 +34,9 @@ class SailButton extends StatefulWidget {
   final Color? textColor;
   final bool skipLoading;
 
+  /// Shows the label as written, in regular weight, also under a terminal theme.
+  final bool plainLabel;
+
   const SailButton({
     super.key,
     this.label,
@@ -52,6 +55,7 @@ class SailButton extends StatefulWidget {
     this.insideTable = false,
     this.textColor,
     this.skipLoading = false,
+    this.plainLabel = false,
   }) : assert(
          variant != ButtonVariant.icon || (icon != null && label == null),
          'Icon must be set with no label for icon-variant',
@@ -110,6 +114,7 @@ class _SailButtonState extends State<SailButton> {
       small: widget.small,
       insideTable: widget.insideTable,
       terminalStyle: terminalStyle,
+      plainLabel: widget.plainLabel,
     );
 
     return _SailScaleButton(
@@ -155,6 +160,7 @@ class _ButtonContent extends StatelessWidget {
   final bool small;
   final bool insideTable;
   final bool terminalStyle;
+  final bool plainLabel;
 
   const _ButtonContent({
     required this.foregroundColor,
@@ -170,6 +176,7 @@ class _ButtonContent extends StatelessWidget {
     required this.small,
     required this.insideTable,
     required this.terminalStyle,
+    required this.plainLabel,
   });
 
   Widget _terminalLabel(BuildContext context) {
@@ -177,13 +184,13 @@ class _ButtonContent extends StatelessWidget {
     final text = isLoading ? loadingLabel ?? 'Please wait' : label!;
     final base = small || insideTable ? SailStyleValues.ten : SailStyleValues.twelve;
     return Text(
-      text.toUpperCase(),
+      plainLabel ? text : text.toUpperCase(),
       overflow: TextOverflow.ellipsis,
       style: base.copyWith(
         color: foregroundColor,
-        fontWeight: SailStyleValues.boldWeight,
+        fontWeight: plainLabel ? FontWeight.w400 : SailStyleValues.boldWeight,
         fontFamily: theme.chrome.fontFamily,
-        letterSpacing: 1.2,
+        letterSpacing: plainLabel ? null : 1.2,
         decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
       ),
     );
@@ -228,13 +235,13 @@ class _ButtonContent extends StatelessWidget {
               ? SailText.primary10(
                   isLoading ? loadingLabel ?? 'Please wait' : label!,
                   color: foregroundColor,
-                  bold: true,
+                  bold: !plainLabel,
                   decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
                 )
               : SailText.primary12(
                   isLoading ? loadingLabel ?? 'Please wait' : label!,
                   color: foregroundColor,
-                  bold: true,
+                  bold: !plainLabel,
                   decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
                 ),
         if (trailingIcon != null) ...[
