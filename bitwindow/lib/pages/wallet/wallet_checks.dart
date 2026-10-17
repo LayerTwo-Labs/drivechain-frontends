@@ -70,9 +70,9 @@ class ChecksTab extends StatelessWidget {
       onViewModelReady: (model) => model.refresh(),
       builder: (context, model, child) {
         return SailCard(
-          title: model.checks.isEmpty ? 'Send Bitcoin Without an Internet Connection' : 'Your Checks',
+          title: model.checks.isEmpty ? 'Send ${activeTicker.name} Without an Internet Connection' : 'Your Checks',
           subtitle: model.checks.isEmpty
-              ? "Checks let you transfer Bitcoin to anyone. Create a check with a specific amount, and the recipient can cash it later when they're ready to claim the bitcoin."
+              ? "Checks let you transfer ${activeTicker.name} to anyone. Create a check with a specific amount, and the recipient can cash it later when they're ready to claim the ${activeTicker.name}."
               : null,
           error: model.modelError,
           bottomPadding: false,
@@ -134,7 +134,7 @@ class ChecksEmptyState extends StatelessWidget {
             SailText.primary15('Why Use Checks?'),
             const SailSpacing(SailStyleValues.padding08),
             SailText.secondary13(
-              "• Gift Bitcoin without needing the recipient's address upfront\n"
+              "• Gift ${activeTicker.name} without needing the recipient's address upfront\n"
               "• Pay someone who's currently offline\n"
               '• Pre-fund payments that can be claimed later\n'
               '• Share value via any communication channel',

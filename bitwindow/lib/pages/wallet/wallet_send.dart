@@ -289,7 +289,7 @@ class RecipientFields extends StatelessWidget {
           key: Key('recipient_address_$key'),
           label: 'Address',
           controller: recipient.addressController,
-          hintText: 'Enter a single L1 bitcoin-address (e.g. 1NS17iag...)',
+          hintText: 'Enter a single L1 ${activeTicker.name} address (e.g. 1NS17iag...)',
           size: TextFieldSize.small,
           suffixWidget: SailRow(
             children: [
