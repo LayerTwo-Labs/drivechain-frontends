@@ -304,12 +304,6 @@ class _NetworkTabState extends State<NetworkTab> {
               InfoSection(
                 title: 'Bitcoind Process (PID ${_networkStats!.bitcoindBandwidth.pid})',
                 details: {
-                  'RX Rate': '${(_networkStats!.bitcoindBandwidth.rxBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
-                  'TX Rate': '${(_networkStats!.bitcoindBandwidth.txBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
-                  'Total RX':
-                      '${(_networkStats!.bitcoindBandwidth.totalRxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
-                  'Total TX':
-                      '${(_networkStats!.bitcoindBandwidth.totalTxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
                   'Connections': _networkStats!.bitcoindBandwidth.connectionCount.toString(),
                 },
               ),
@@ -317,12 +311,6 @@ class _NetworkTabState extends State<NetworkTab> {
               InfoSection(
                 title: 'Enforcer Process (PID ${_networkStats!.enforcerBandwidth.pid})',
                 details: {
-                  'RX Rate': '${(_networkStats!.enforcerBandwidth.rxBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
-                  'TX Rate': '${(_networkStats!.enforcerBandwidth.txBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
-                  'Total RX':
-                      '${(_networkStats!.enforcerBandwidth.totalRxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
-                  'Total TX':
-                      '${(_networkStats!.enforcerBandwidth.totalTxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
                   'Connections': _networkStats!.enforcerBandwidth.connectionCount.toString(),
                 },
               ),
