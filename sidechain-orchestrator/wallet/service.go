@@ -1213,6 +1213,7 @@ func (s *Service) LockWallet() {
 	s.log.Info().Int("wallet_count", len(s.wallets)).Msg("locking wallet")
 	s.lockLocked()
 	s.log.Info().Msg("wallet locked, starter files cleaned up")
+	s.notifyChanged()
 }
 
 // lockLocked drops the decrypted wallets and the key. Must be called with mu held.
