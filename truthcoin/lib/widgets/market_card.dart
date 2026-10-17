@@ -8,15 +8,6 @@ import 'package:truthcoin/models/voting.dart';
 /// the LMSR price of a share is also its chance.
 String formatChance(double price) => '${(price * 100).round()}%';
 
-/// The node names an outcome after its dimension, such as
-/// "BTC above 150k: Yes". A card shows the part after the last colon.
-String shortOutcomeLabel(String name) {
-  final cut = name.lastIndexOf(': ');
-  if (cut < 0) return name;
-  final tail = name.substring(cut + 2).trim();
-  return tail.isEmpty ? name : tail;
-}
-
 /// Two letters that stand for the market, taken from the title.
 String marketInitials(String title) {
   final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
@@ -55,7 +46,7 @@ class MarketCard extends StatelessWidget {
     final outcomes = _outcomes;
     if (outcomes.length != 2) return null;
     return outcomes.firstWhere(
-      (o) => o.name.toLowerCase() == 'yes',
+      (o) => o.label.toLowerCase() == 'yes',
       orElse: () => outcomes.last,
     );
   }
@@ -131,7 +122,7 @@ class MarketCard extends StatelessWidget {
                 bold: true,
                 color: yes.currentPrice >= 0.5 ? theme.colors.success : theme.colors.text,
               ),
-              SailText.secondary12(shortOutcomeLabel(yes.name)),
+              SailText.secondary12(yes.label),
             ],
           ),
       ],
@@ -167,7 +158,7 @@ class MarketCard extends StatelessWidget {
       children: [
         Expanded(
           child: OutcomeTradeButton(
-            label: 'Buy ${shortOutcomeLabel(yes.name)}',
+            label: 'Buy ${yes.label}',
             price: formatChance(yes.currentPrice),
             tone: OutcomeTone.yes,
             onTap: () => onTradeOutcome(yes.index),
@@ -175,7 +166,7 @@ class MarketCard extends StatelessWidget {
         ),
         Expanded(
           child: OutcomeTradeButton(
-            label: 'Buy ${shortOutcomeLabel(no.name)}',
+            label: 'Buy ${no.label}',
             price: formatChance(no.currentPrice),
             tone: OutcomeTone.no,
             onTap: () => onTradeOutcome(no.index),
@@ -200,7 +191,7 @@ class MarketCard extends StatelessWidget {
             children: [
               Expanded(
                 child: SailText.primary14(
-                  shortOutcomeLabel(outcome.name),
+                  outcome.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -249,14 +240,14 @@ class MarketCard extends StatelessWidget {
             children: [
               Expanded(
                 child: SailText.primary14(
-                  shortOutcomeLabel(outcome.name),
+                  outcome.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               SailText.primary13(formatChance(outcome.currentPrice), bold: true),
               OutcomeTradeButton(
-                label: 'Yes',
+                label: 'Buy',
                 tone: OutcomeTone.yes,
                 onTap: () => onTradeOutcome(outcome.index),
               ),

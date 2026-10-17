@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -104,6 +106,24 @@ void main() {
 
       // Restore for other tests
       mockRpc.marketGetResponse = TestData.sampleMarketDetail;
+    });
+  });
+
+  group('MarketDetailPage with two decisions', () {
+    testWidgets('lists every outcome of the node reply with its combination label', (tester) async {
+      mockRpc.marketGetResponse =
+          jsonDecode(File('test/fixtures/market_two_dimensions.json').readAsStringSync()) as Map<String, dynamic>;
+      addTearDown(() => mockRpc.marketGetResponse = TestData.sampleMarketDetail);
+
+      await tester.pumpSailPage(const MarketDetailPage(marketId: '5e5ed0d19c4f'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      for (final label in ['No · No', 'No · Yes', 'Yes · No', 'Yes · Yes']) {
+        expect(find.text(label), findsWidgets, reason: label);
+      }
+      expect(find.text('Trade'), findsNWidgets(3));
+      expect(find.text('Selected'), findsOneWidget);
     });
   });
 
