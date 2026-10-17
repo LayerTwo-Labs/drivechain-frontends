@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
@@ -17,7 +18,7 @@ import (
 func TestResetProcessedChainClearsOPReturns(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO op_returns (txid, vout, op_return_data, fee_sats, height)
@@ -42,7 +43,7 @@ func TestResetProcessedChainClearsOPReturns(t *testing.T) {
 func TestResetProcessedChainKeepsTheUsersRows(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO address_book (wallet_id, label, address, direction) VALUES ('w1', 'mum', 'bc1qexample', 'receive')`)
@@ -90,7 +91,7 @@ func bundleAggregate(t *testing.T, ctx context.Context, db *sql.DB, hash string)
 func TestForkPurgeReplaysFromABundleTheOrphanBranchScored(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	// Scored at 1000, above the fork at 950, so the branch that went away
 	// touched it.
@@ -125,7 +126,7 @@ func TestForkPurgeReplaysFromABundleTheOrphanBranchScored(t *testing.T) {
 func TestForkPurgeStaysAtTheForkWithNoTouchedBundle(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	seedBundleRow(t, ctx, db, "settled-below-the-fork", 900, 940, 42)
 
@@ -144,7 +145,7 @@ func TestForkPurgeStaysAtTheForkWithNoTouchedBundle(t *testing.T) {
 func TestForkPurgeKeepsTheBootstrapTopics(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	// A topic created on chain, which a replay rebuilds.
 	_, err := db.ExecContext(ctx,
@@ -171,19 +172,17 @@ func TestForkPurgeKeepsTheBootstrapTopics(t *testing.T) {
 func TestBundleAgeingStampsTheHeightSoAForkPurgeSeesIt(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkECash, "alphanet")}
 
-	// Last voted at 900, so no vote moves it. It ages out at 1000, above the
-	// fork at 950.
+	// Last voted at 900, so no vote moves it. The alphanet age of 144 ends it
+	// at 1024, above the fork at 950.
 	seedBundleRow(t, ctx, db, "aged-out-above-the-fork", 880, 900, 0)
-	_, err := db.ExecContext(ctx, `UPDATE withdrawal_bundles SET max_age = 0, blocks_left = 0`)
-	require.NoError(t, err)
 
-	require.NoError(t, p.m4Engine.updateBundleStates(ctx, 1000))
+	require.NoError(t, p.m4Engine.updateBundleStates(ctx, 1024))
 
 	_, lastUpdated, found := bundleAggregate(t, ctx, db, "aged-out-above-the-fork")
 	require.True(t, found)
-	require.Equal(t, uint32(1000), lastUpdated, "the transition must stamp its height")
+	require.Equal(t, uint32(1024), lastUpdated)
 
 	replayFrom, err := p.purgeAtOrAbove(ctx, 950)
 	require.NoError(t, err)
@@ -199,7 +198,7 @@ func TestBundleAgeingStampsTheHeightSoAForkPurgeSeesIt(t *testing.T) {
 func TestForkPurgeTakesLegacyTerminalBundles(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	// Last vote at 900, below the fork, and no stamp. max_age reaches past the
 	// fork, so it could only have aged out on the branch that went away.
@@ -221,7 +220,7 @@ func TestForkPurgeTakesLegacyTerminalBundles(t *testing.T) {
 func TestForkPurgeKeepsABundleThatAgedOutBelowTheWindow(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	seedBundleRow(t, ctx, db, "expired-long-ago", 800, 800, 3)
 	_, err := db.ExecContext(ctx,
@@ -242,7 +241,7 @@ func TestForkPurgeKeepsABundleThatAgedOutBelowTheWindow(t *testing.T) {
 func TestForkPurgeLeavesStampedTerminalBundlesAlone(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
 
 	seedBundleRow(t, ctx, db, "approved-long-ago", 800, 850, 20000)
 	_, err := db.ExecContext(ctx,

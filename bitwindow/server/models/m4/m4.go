@@ -2,6 +2,8 @@ package m4
 
 import (
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 )
 
 type WithdrawalBundle struct {
@@ -22,8 +24,8 @@ type BundleStatus string
 
 const (
 	BundleStatusPending  BundleStatus = "pending"
-	BundleStatusApproved BundleStatus = "approved" // >= 13,150 ACKs
-	BundleStatusFailed   BundleStatus = "failed"   // < 13,150 and expired
+	BundleStatusApproved BundleStatus = "approved" // more ACKs than the inclusion threshold
+	BundleStatusFailed   BundleStatus = "failed"   // expired at or below the inclusion threshold
 	BundleStatusExpired  BundleStatus = "expired"
 )
 
@@ -72,10 +74,38 @@ type M3Message struct {
 const (
 	M3CommitmentHeader = 0xD45AA943 // M3 magic bytes (Propose Withdrawal)
 	M4CommitmentHeader = 0xD77D1776 // M4 magic bytes (ACK Withdrawal)
-	MinWorkScore       = 13150      // Minimum ACKs for approval
-	WithdrawalMaxAge   = 26300      // ~6 months in blocks
 
 	// Special vote values
 	VoteAbstain = 0xFFFF
 	VoteAlarm   = 0xFFFE
 )
+
+// WithdrawalMaxAge returns the number of blocks a withdrawal bundle has for its
+// votes, with the values of the enforcer. ecashID is the catalog id of an eCash network.
+func WithdrawalMaxAge(network config.Network, ecashID string) uint32 {
+	switch {
+	case network == config.NetworkMainnet:
+		return 26300
+	case network == config.NetworkECash && ecashID == "alphanet":
+		return 144
+	case network == config.NetworkECash:
+		return 26300
+	default:
+		return 10
+	}
+}
+
+// WithdrawalInclusionThreshold returns the number of ACKs a withdrawal bundle
+// must exceed for approval on network, with the values of the enforcer.
+func WithdrawalInclusionThreshold(network config.Network, ecashID string) uint16 {
+	switch {
+	case network == config.NetworkMainnet:
+		return 13150
+	case network == config.NetworkECash && ecashID == "alphanet":
+		return 72
+	case network == config.NetworkECash:
+		return 13150
+	default:
+		return 5
+	}
+}

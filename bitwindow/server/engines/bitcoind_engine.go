@@ -40,6 +40,7 @@ func NewBitcoind(
 	db *sql.DB,
 	conf config.Config,
 	chainParams *chaincfg.Params,
+	m4Engine *M4Engine,
 	nodeMode *NodeMode,
 	coinnewsLog *zerolog.Logger,
 ) *Parser {
@@ -49,7 +50,7 @@ func NewBitcoind(
 		db:          db,
 		conf:        conf,
 		chainParams: chainParams,
-		m4Engine:    NewM4Engine(db),
+		m4Engine:    m4Engine,
 		nodeMode:    nodeMode,
 		coinnewsLog: coinnewsLog,
 	}
@@ -239,23 +240,21 @@ func (p *Parser) forkPoint(ctx context.Context, processedTip uint32, processedHa
 	lo, hi := uint32(0), processedTip
 	for lo+1 < hi {
 		mid := lo + (hi-lo)/2
-		stored, err := blocks.GetProcessedBlock(ctx, p.db, mid)
+		stored, err := blocks.GetProcessedBlockAtOrBelow(ctx, p.db, mid)
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			// A gap in the processed range tells us nothing about the fork.
-			// Treat everything above it as suspect.
-			hi = mid
+			lo = mid
 			continue
 		case err != nil:
 			return 0, err
 		}
-		switch same, err := p.coreHoldsBlock(ctx, mid, stored.Hash.String()); {
+		switch same, err := p.coreHoldsBlock(ctx, stored.Height, stored.Hash.String()); {
 		case err != nil:
 			return 0, err
 		case same:
 			lo = mid
 		default:
-			hi = mid
+			hi = stored.Height
 		}
 	}
 	return hi, nil
@@ -385,7 +384,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		Msgf("bitcoind_engine/parser: processing blocks")
 
 	batchStart := lastProcessedHeight + 1
-	if floor := p.scanFloor(currentHeight); floor > batchStart {
+	if floor := p.scanFloor(currentHeight); lastProcessedBlock == nil && floor > batchStart {
 		zerolog.Ctx(ctx).Info().
 			Uint32("scan_floor", floor).
 			Uint32("processed", lastProcessedHeight).
@@ -458,6 +457,22 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			return fmt.Errorf("process blocks: %w", err)
 		}
 
+		switch linked, err := p.batchLinks(ctx, results); {
+		case err != nil:
+			return err
+		case !linked:
+			// The workers stored the OP_RETURNs of the batch before the check.
+			if err := inTx(ctx, p.db, func(tx *sql.Tx) error {
+				return purgeChainDerivedAtOrAboveTx(ctx, tx, batchStart)
+			}); err != nil {
+				return fmt.Errorf("purge unlinked batch: %w", err)
+			}
+			zerolog.Ctx(ctx).Warn().
+				Uint32("batch_start", batchStart).
+				Msg("bitcoind_engine/parser: the chain moved under the batch: retry next tick")
+			return nil
+		}
+
 		if err := p.processBlocks(ctx, results); err != nil {
 			return fmt.Errorf("process blocks: %w", err)
 		}
@@ -471,6 +486,31 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		Msgf("bitcoind_engine/parser: finished processing blocks")
 
 	return nil
+}
+
+// batchLinks reports whether each block of the batch links to the block below
+// it. The first block links to the processed block below it, when one exists.
+func (p *Parser) batchLinks(ctx context.Context, batch []lo.Tuple2[uint32, *wire.MsgBlock]) (bool, error) {
+	if len(batch) == 0 {
+		return true, nil
+	}
+	first := batch[0].A
+	if first > 0 {
+		below, err := blocks.GetProcessedBlockAtOrBelow(ctx, p.db, first-1)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+		case err != nil:
+			return false, err
+		case below.Height == first-1 && below.Hash != batch[0].B.Header.PrevBlock:
+			return false, nil
+		}
+	}
+	for i := 1; i < len(batch); i++ {
+		if batch[i].B.Header.PrevBlock != batch[i-1].B.BlockHash() {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // processBlocks stores the CoinNews, coinbase, M3 and M4 data of a batch, then marks the blocks processed.
@@ -900,7 +940,7 @@ func isTxIndexMiss(errMsg string) bool {
 const recentScanWindow uint32 = 144 * 7
 
 // scanFloor is the first block worth scanning. The feed shows recent posts, so
-// a lagging scan on a populated chain starts a week back instead of at genesis.
+// a first scan on a populated chain starts a week back instead of at genesis.
 // Signet, testnet and regtest blocks are small or empty, so those scan whole.
 // Zero scans from the start.
 //

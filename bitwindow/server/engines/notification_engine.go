@@ -266,6 +266,10 @@ func aggregateByTxid(transactions []*corepb.GetTransactionResponse) ([]walletTx,
 	aggregated := make([]walletTx, 0, len(transactions))
 	seen := make(map[bucket]int, len(transactions))
 	for _, tx := range transactions {
+		// Core gives a conflicted transaction, such as one an RBF replaced, negative confirmations.
+		if tx.Confirmations < 0 {
+			continue
+		}
 		amount, err := btcutil.NewAmount(tx.Amount)
 		if err != nil {
 			return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)

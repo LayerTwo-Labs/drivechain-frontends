@@ -10,11 +10,13 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 )
 
+const testBundleMaxAge uint32 = 26300
+
 // TestMergeBundlesRevivesFailedBundle proves a re-proposed M6ID that was cached
 // as failed comes back as pending at its new submission height, so the age is
 // recomputed against the fresh voting window instead of the original one.
 func TestMergeBundlesRevivesFailedBundle(t *testing.T) {
-	s := &Server{}
+	s := &Server{bundleMaxAge: testBundleMaxAge}
 
 	const m6id = "abc123"
 
@@ -22,14 +24,14 @@ func TestMergeBundlesRevivesFailedBundle(t *testing.T) {
 		M6Id:        m6id,
 		BlockHeight: 100,
 		Status:      "failed",
-		MaxAge:      withdrawalVerificationPeriod,
+		MaxAge:      testBundleMaxAge,
 	}}
 
 	resubmitted := []*pb.WithdrawalBundle{{
 		M6Id:        m6id,
 		BlockHeight: 30000,
 		Status:      "pending",
-		MaxAge:      withdrawalVerificationPeriod,
+		MaxAge:      testBundleMaxAge,
 	}}
 
 	merged := s.mergeBundles(cached, resubmitted)
@@ -40,11 +42,11 @@ func TestMergeBundlesRevivesFailedBundle(t *testing.T) {
 	aged := s.updateBundleAges(merged, 30010)
 	require.Len(t, aged, 1)
 	require.Equal(t, uint32(10), aged[0].Age)
-	require.Equal(t, withdrawalVerificationPeriod-10, aged[0].BlocksLeft)
+	require.Equal(t, testBundleMaxAge-10, aged[0].BlocksLeft)
 }
 
 func TestMergeBundlesCollapsesColdScan(t *testing.T) {
-	s := &Server{}
+	s := &Server{bundleMaxAge: testBundleMaxAge}
 
 	const m6id = "abc123"
 
@@ -52,12 +54,12 @@ func TestMergeBundlesCollapsesColdScan(t *testing.T) {
 		M6Id:        m6id,
 		BlockHeight: 60,
 		Status:      "pending",
-		MaxAge:      withdrawalVerificationPeriod,
+		MaxAge:      testBundleMaxAge,
 	}, {
 		M6Id:           m6id,
 		BlockHeight:    70,
 		Status:         "succeeded",
-		MaxAge:         withdrawalVerificationPeriod,
+		MaxAge:         testBundleMaxAge,
 		SequenceNumber: 7,
 		TransactionHex: "deadbeef",
 	}}
@@ -71,7 +73,7 @@ func TestMergeBundlesCollapsesColdScan(t *testing.T) {
 }
 
 func TestMergeBundlesSortsByHeight(t *testing.T) {
-	s := &Server{}
+	s := &Server{bundleMaxAge: testBundleMaxAge}
 
 	scanned := []*pb.WithdrawalBundle{
 		{M6Id: "c", BlockHeight: 90, Status: "pending"},
@@ -85,18 +87,18 @@ func TestMergeBundlesSortsByHeight(t *testing.T) {
 }
 
 func TestUpdateBundleAges(t *testing.T) {
-	s := &Server{}
+	s := &Server{bundleMaxAge: testBundleMaxAge}
 
 	cached := &pb.WithdrawalBundle{
 		M6Id:           "abc123",
 		SidechainId:    9,
 		BlockHeight:    100,
 		Status:         "pending",
-		MaxAge:         withdrawalVerificationPeriod,
+		MaxAge:         testBundleMaxAge,
 		SequenceNumber: 4,
 		TransactionHex: "beef",
 		Age:            1,
-		BlocksLeft:     withdrawalVerificationPeriod - 1,
+		BlocksLeft:     testBundleMaxAge - 1,
 	}
 	before := proto.Clone(cached)
 
@@ -104,8 +106,13 @@ func TestUpdateBundleAges(t *testing.T) {
 
 	want := proto.Clone(cached).(*pb.WithdrawalBundle)
 	want.Age = 10
-	want.BlocksLeft = withdrawalVerificationPeriod - 10
+	want.BlocksLeft = testBundleMaxAge - 10
 	require.Len(t, aged, 1)
 	assert.True(t, proto.Equal(want, aged[0]))
 	assert.True(t, proto.Equal(before, cached))
+
+	short := &Server{bundleMaxAge: 10}
+	aged = short.updateBundleAges([]*pb.WithdrawalBundle{{M6Id: "abc123", BlockHeight: 100, Status: "pending"}}, 103)
+	require.Len(t, aged, 1)
+	assert.Equal(t, uint32(7), aged[0].BlocksLeft)
 }
