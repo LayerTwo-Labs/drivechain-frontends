@@ -41,15 +41,21 @@ func TestService_GetM4History(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
+		for height := 1; height <= 8; height++ {
+			_, err := db.ExecContext(t.Context(),
+				`INSERT INTO m4_messages (block_height, block_hash, block_time, raw_bytes, version) VALUES (?, ?, CURRENT_TIMESTAMP, x'00', 1)`,
+				height, fmt.Sprintf("hash%d", height))
+			require.NoError(t, err)
+		}
 		cli := m4v1connect.NewM4ServiceClient(apitests.API(t, db))
+		heights := func(limit uint32) []uint32 {
+			resp, err := cli.GetM4History(t.Context(), connect.NewRequest(&m4pb.GetM4HistoryRequest{Limit: limit}))
+			require.NoError(t, err)
+			return lo.Map(resp.Msg.History, func(e *m4pb.M4HistoryEntry, _ int) uint32 { return e.BlockHeight })
+		}
 
-		// Request with limit=0 (should default to 6)
-		resp, err := cli.GetM4History(t.Context(), connect.NewRequest(&m4pb.GetM4HistoryRequest{
-			Limit: 0,
-		}))
-		require.NoError(t, err)
-		// With no data, it will just be empty
-		assert.Empty(t, resp.Msg.History)
+		assert.Equal(t, []uint32{8, 7, 6, 5, 4, 3}, heights(0))
+		assert.Equal(t, []uint32{8, 7}, heights(2))
 	})
 }
 

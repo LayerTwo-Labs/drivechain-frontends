@@ -29,7 +29,7 @@ func TestMigration049ReappliesEveryM4(t *testing.T) {
 
 	var applied, votes int
 	require.NoError(t, db.QueryRowContext(ctx, `SELECT applied FROM m4_messages WHERE id = 1`).Scan(&applied))
-	require.Zero(t, applied, "every stored M4 MUST apply again")
+	require.Zero(t, applied)
 	require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM m4_votes`).Scan(&votes))
 	require.Zero(t, votes)
 

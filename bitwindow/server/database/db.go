@@ -23,8 +23,12 @@ func New(ctx context.Context, conf config.Config) (*sql.DB, error) {
 		Str("path", dbpath).
 		Msg("opening database")
 
+	return open(ctx, dbpath)
+}
+
+func open(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sqliteguard.Open(ctx, sqliteguard.Config{
-		Path:    dbpath,
+		Path:    path,
 		Migrate: runMigrations,
 		Log:     *zerolog.Ctx(ctx),
 	})
