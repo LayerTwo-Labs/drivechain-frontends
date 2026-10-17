@@ -339,7 +339,7 @@ func (h *Handler) MarketGet(ctx context.Context, req *connect.Request[pb.MarketG
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketGetResponse{MarketJson: string(raw)}), nil
+	return connect.NewResponse(&pb.MarketGetResponse{MarketJson: optionalJSON(raw)}), nil
 }
 
 func (h *Handler) MarketBuy(ctx context.Context, req *connect.Request[pb.MarketBuyRequest]) (*connect.Response[pb.MarketBuyResponse], error) {
