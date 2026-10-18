@@ -81,7 +81,7 @@ void main() {
       expect(find.text('Open positions'), findsWidgets);
       expect(find.text('Votecoin'), findsOneWidget);
       // Two addresses each report 1240 Votecoin.
-      expect(find.text('2480'), findsOneWidget);
+      expect(find.text('2480.0'), findsOneWidget);
     });
 
     testWidgets('lists the positions of every wallet address', (tester) async {

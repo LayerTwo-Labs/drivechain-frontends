@@ -226,11 +226,11 @@ func (h *Handler) GetBestSidechainBlockHash(ctx context.Context, req *connect.Re
 }
 
 func (h *Handler) GetBmmInclusions(ctx context.Context, req *connect.Request[pb.GetBmmInclusionsRequest]) (*connect.Response[pb.GetBmmInclusionsResponse], error) {
-	var inclusions string
-	if err := h.proxy.Client.Call(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash}, &inclusions); err != nil {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash})
+	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: inclusions}), nil
+	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: string(raw)}), nil
 }
 
 func (h *Handler) RefreshWallet(ctx context.Context, req *connect.Request[pb.RefreshWalletRequest]) (*connect.Response[pb.RefreshWalletResponse], error) {
@@ -283,8 +283,14 @@ func (h *Handler) MyUnconfirmedUtxos(ctx context.Context, req *connect.Request[p
 // --- Prediction Markets ---
 
 func (h *Handler) CalculateInitialLiquidity(ctx context.Context, req *connect.Request[pb.CalculateInitialLiquidityRequest]) (*connect.Response[pb.CalculateInitialLiquidityResponse], error) {
-	params := []any{req.Msg.Beta, req.Msg.NumOutcomes, req.Msg.Dimensions}
-	raw, err := h.proxy.Client.CallRaw(ctx, "calculate_initial_liquidity", params)
+	request := map[string]any{"beta": req.Msg.Beta}
+	if req.Msg.NumOutcomes != nil {
+		request["num_outcomes"] = *req.Msg.NumOutcomes
+	}
+	if req.Msg.Dimensions != nil {
+		request["dimensions"] = *req.Msg.Dimensions
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "calculate_initial_liquidity", []any{request})
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +536,7 @@ func (h *Handler) VotePeriod(ctx context.Context, req *connect.Request[pb.VotePe
 
 func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.VotecoinTransferRequest]) (*connect.Response[pb.VotecoinTransferResponse], error) {
 	var txid string
-	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats}
+	params := []any{req.Msg.Dest, votecoinAmount(req.Msg.VotecoinAmount, req.Msg.Amount), req.Msg.FeeSats} //nolint:staticcheck // old clients send Amount
 	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}
@@ -538,16 +544,25 @@ func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.
 }
 
 func (h *Handler) VotecoinBalance(ctx context.Context, req *connect.Request[pb.VotecoinBalanceRequest]) (*connect.Response[pb.VotecoinBalanceResponse], error) {
-	var balance int64
+	var balance float64
 	if err := h.proxy.Client.Call(ctx, "votecoin_balance", []any{req.Msg.Address}, &balance); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VotecoinBalanceResponse{Balance: balance}), nil
+	return connect.NewResponse(&pb.VotecoinBalanceResponse{Balance: int64(balance), VotecoinBalance: balance}), nil //nolint:staticcheck // old clients read Balance
+}
+
+// votecoinAmount reads the deprecated whole-unit amount when an old client
+// leaves the fractional field unset.
+func votecoinAmount(amount *float64, deprecatedAmount int64) float64 {
+	if amount != nil {
+		return *amount
+	}
+	return float64(deprecatedAmount)
 }
 
 func (h *Handler) TransferVotecoin(ctx context.Context, req *connect.Request[pb.TransferVotecoinRequest]) (*connect.Response[pb.TransferVotecoinResponse], error) {
 	var txid string
-	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats}
+	params := []any{req.Msg.Dest, votecoinAmount(req.Msg.VotecoinAmount, req.Msg.Amount), req.Msg.FeeSats} //nolint:staticcheck // old clients send Amount
 	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}

@@ -190,8 +190,8 @@ func (c *Client) GetBlock(ctx context.Context, hash string) (json.RawMessage, er
 }
 
 // GetBMMInclusions returns mainchain blocks that commit to the given block hash.
-func (c *Client) GetBMMInclusions(ctx context.Context, blockHash string) (string, error) {
-	return unmarshal[string](c, ctx, "get_bmm_inclusions", []any{blockHash})
+func (c *Client) GetBMMInclusions(ctx context.Context, blockHash string) ([]string, error) {
+	return unmarshal[[]string](c, ctx, "get_bmm_inclusions", []any{blockHash})
 }
 
 // GetBestMainchainBlockHash returns the best known mainchain block hash.

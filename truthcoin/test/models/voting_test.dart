@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truthcoin/models/market.dart';
 import 'package:truthcoin/models/voting.dart';
@@ -66,17 +68,30 @@ void main() {
 
         expect(voter.address, 'tb1qtest1234567890');
         expect(voter.isActive, true);
-        expect(voter.reputation, 0.85);
-        expect(voter.votecoinBalance, 1000);
+        expect(voter.votecoinBalance, 0.25);
         expect(voter.totalVotes, 156);
-        expect(voter.accuracyScore, 0.78);
+        expect(voter.periodsActive, 3);
+      });
+
+      test('parses the vote_voter answer of a v0.20.0 node', () {
+        final voter = VoterInfoFull.fromJson(
+          jsonDecode(
+                '{"address":"3dWL5oSH54rxzXbU5RVi7bBkeuWd","votecoin_balance":1.0,"total_votes":0,'
+                '"periods_active":0,"is_active":false,"current_period_participation":null}',
+              )
+              as Map<String, dynamic>,
+        );
+
+        expect(voter.votecoinBalance, 1.0);
+        expect(voter.isRegistered, true);
+        expect(voter.currentPeriodParticipation, isNull);
       });
 
       test('calculates display values correctly', () {
         final voter = VoterInfoFull.fromJson(TestData.sampleVoterInfo);
 
-        expect(voter.reputationDisplay, isNotEmpty);
-        expect(voter.accuracyPercent, contains('78'));
+        expect(voter.reputationDisplay, '0.25');
+        expect(voter.isRegistered, true);
       });
 
       test('parses period participation', () {

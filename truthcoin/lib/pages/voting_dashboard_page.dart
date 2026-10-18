@@ -151,7 +151,7 @@ class _StatTiles extends StatelessWidget {
         MarketStatTile(
           label: 'Reputation',
           value: voter?.reputationDisplay ?? '—',
-          caption: voter == null ? 'no voter data' : 'accuracy ${voter.accuracyPercent}',
+          caption: voter == null ? 'no voter data' : 'accuracy —',
         ),
         MarketStatTile(
           label: 'Ballot',
@@ -365,8 +365,8 @@ class _VoterCard extends StatelessWidget {
           _FactRow(label: 'Active', value: voter.isActive ? 'yes' : 'no'),
           _FactRow(label: 'Total votes', value: '${voter.totalVotes}'),
           _FactRow(label: 'Periods active', value: '${voter.periodsActive}'),
-          _FactRow(label: 'Accuracy', value: voter.accuracyPercent),
-          _FactRow(label: 'Registered at block', value: '${voter.registeredAtHeight}'),
+          _FactRow(label: 'Accuracy', value: '—'),
+          _FactRow(label: 'Registered at block', value: '—'),
         ],
       ),
     );

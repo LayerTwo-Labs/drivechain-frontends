@@ -114,6 +114,28 @@ func TestMarketBuySendsRequestObject(t *testing.T) {
 	}]`, string((*params)[0]))
 }
 
+// calculate_initial_liquidity takes one request object, not positional params.
+func TestCalculateInitialLiquiditySendsRequestObject(t *testing.T) {
+	h, params := capturingRPC(t, `{"beta":7.0,"num_outcomes":2,"initial_liquidity_sats":5}`)
+
+	numOutcomes := int32(2)
+	dimensions := "[slot1]"
+	_, err := h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+		Beta:        7,
+		NumOutcomes: &numOutcomes,
+	}))
+	require.NoError(t, err)
+	_, err = h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+		Beta:       7,
+		Dimensions: &dimensions,
+	}))
+	require.NoError(t, err)
+
+	require.Len(t, *params, 2)
+	assert.JSONEq(t, `[{"beta":7,"num_outcomes":2}]`, string((*params)[0]))
+	assert.JSONEq(t, `[{"beta":7,"dimensions":"[slot1]"}]`, string((*params)[1]))
+}
+
 func TestMarketSellSendsRequestObject(t *testing.T) {
 	h, params := capturingRPC(t, `{"proceeds_sats":100,"trading_fee_sats":1,"net_proceeds_sats":99,"new_price":0.4}`)
 

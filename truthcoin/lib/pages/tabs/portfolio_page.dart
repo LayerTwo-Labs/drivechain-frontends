@@ -240,7 +240,7 @@ class PortfolioViewModel extends BaseViewModel {
 
   List<String> addresses = [];
   List<AddressPosition> positions = [];
-  int votecoinBalance = 0;
+  double votecoinBalance = 0;
   int totalValueSats = 0;
   int totalCostBasisSats = 0;
   int totalProfitSats = 0;
@@ -303,7 +303,7 @@ class PortfolioViewModel extends BaseViewModel {
     var value = 0;
     var costBasis = 0;
     var profit = 0;
-    var votecoin = 0;
+    var votecoin = 0.0;
 
     for (final address in addresses) {
       try {

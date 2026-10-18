@@ -533,6 +533,7 @@ class _PositionsSummaryWidget extends StatelessWidget {
           listenable: formatter,
           builder: (context, _) => SailCard(
             title: 'Your Positions',
+            error: model.positionsError,
             child: model.isLoading
                 ? SailSkeletonizer(
                     enabled: true,
@@ -588,6 +589,7 @@ class _PositionsSummaryViewModel extends BaseViewModel {
 
   UserHoldings? get holdings => _marketProvider.userPositions;
   bool isLoading = false;
+  String? positionsError;
 
   void init() {
     _marketProvider.addListener(notifyListeners);
@@ -596,15 +598,16 @@ class _PositionsSummaryViewModel extends BaseViewModel {
 
   Future<void> loadPositions() async {
     isLoading = true;
+    positionsError = null;
     notifyListeners();
 
     try {
       final addresses = await _rpc.getWalletAddresses();
-      if (addresses.isNotEmpty) {
-        await _marketProvider.loadUserPositions(addresses.first);
+      if (addresses.isNotEmpty && !await _marketProvider.loadUserPositions(addresses.first)) {
+        positionsError = _marketProvider.error;
       }
     } catch (e) {
-      // Ignore
+      positionsError = 'Failed to load wallet addresses: $e';
     }
 
     isLoading = false;

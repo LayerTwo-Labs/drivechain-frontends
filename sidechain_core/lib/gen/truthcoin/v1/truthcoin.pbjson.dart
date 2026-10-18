@@ -1185,20 +1185,30 @@ const VotecoinTransferRequest$json = {
   '1': 'VotecoinTransferRequest',
   '2': [
     {'1': 'dest', '3': 1, '4': 1, '5': 9, '10': 'dest'},
-    {'1': 'amount', '3': 2, '4': 1, '5': 3, '10': 'amount'},
+    {
+      '1': 'amount',
+      '3': 2,
+      '4': 1,
+      '5': 3,
+      '8': {'3': true},
+      '10': 'amount',
+    },
     {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'memo', '3': 4, '4': 1, '5': 9, '9': 0, '10': 'memo', '17': true},
+    {'1': 'votecoin_amount', '3': 5, '4': 1, '5': 1, '9': 1, '10': 'votecoinAmount', '17': true},
   ],
   '8': [
     {'1': '_memo'},
+    {'1': '_votecoin_amount'},
   ],
 };
 
 /// Descriptor for `VotecoinTransferRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List votecoinTransferRequestDescriptor = $convert.base64Decode(
-    'ChdWb3RlY29pblRyYW5zZmVyUmVxdWVzdBISCgRkZXN0GAEgASgJUgRkZXN0EhYKBmFtb3VudB'
-    'gCIAEoA1IGYW1vdW50EhkKCGZlZV9zYXRzGAMgASgDUgdmZWVTYXRzEhcKBG1lbW8YBCABKAlI'
-    'AFIEbWVtb4gBAUIHCgVfbWVtbw==');
+    'ChdWb3RlY29pblRyYW5zZmVyUmVxdWVzdBISCgRkZXN0GAEgASgJUgRkZXN0EhoKBmFtb3VudB'
+    'gCIAEoA0ICGAFSBmFtb3VudBIZCghmZWVfc2F0cxgDIAEoA1IHZmVlU2F0cxIXCgRtZW1vGAQg'
+    'ASgJSABSBG1lbW+IAQESLAoPdm90ZWNvaW5fYW1vdW50GAUgASgBSAFSDnZvdGVjb2luQW1vdW'
+    '50iAEBQgcKBV9tZW1vQhIKEF92b3RlY29pbl9hbW91bnQ=');
 
 @$core.Deprecated('Use votecoinTransferResponseDescriptor instead')
 const VotecoinTransferResponse$json = {
@@ -1228,33 +1238,52 @@ final $typed_data.Uint8List votecoinBalanceRequestDescriptor = $convert.base64De
 const VotecoinBalanceResponse$json = {
   '1': 'VotecoinBalanceResponse',
   '2': [
-    {'1': 'balance', '3': 1, '4': 1, '5': 3, '10': 'balance'},
+    {
+      '1': 'balance',
+      '3': 1,
+      '4': 1,
+      '5': 3,
+      '8': {'3': true},
+      '10': 'balance',
+    },
+    {'1': 'votecoin_balance', '3': 2, '4': 1, '5': 1, '10': 'votecoinBalance'},
   ],
 };
 
 /// Descriptor for `VotecoinBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List votecoinBalanceResponseDescriptor = $convert.base64Decode(
-    'ChdWb3RlY29pbkJhbGFuY2VSZXNwb25zZRIYCgdiYWxhbmNlGAEgASgDUgdiYWxhbmNl');
+    'ChdWb3RlY29pbkJhbGFuY2VSZXNwb25zZRIcCgdiYWxhbmNlGAEgASgDQgIYAVIHYmFsYW5jZR'
+    'IpChB2b3RlY29pbl9iYWxhbmNlGAIgASgBUg92b3RlY29pbkJhbGFuY2U=');
 
 @$core.Deprecated('Use transferVotecoinRequestDescriptor instead')
 const TransferVotecoinRequest$json = {
   '1': 'TransferVotecoinRequest',
   '2': [
     {'1': 'dest', '3': 1, '4': 1, '5': 9, '10': 'dest'},
-    {'1': 'amount', '3': 2, '4': 1, '5': 3, '10': 'amount'},
+    {
+      '1': 'amount',
+      '3': 2,
+      '4': 1,
+      '5': 3,
+      '8': {'3': true},
+      '10': 'amount',
+    },
     {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'memo', '3': 4, '4': 1, '5': 9, '9': 0, '10': 'memo', '17': true},
+    {'1': 'votecoin_amount', '3': 5, '4': 1, '5': 1, '9': 1, '10': 'votecoinAmount', '17': true},
   ],
   '8': [
     {'1': '_memo'},
+    {'1': '_votecoin_amount'},
   ],
 };
 
 /// Descriptor for `TransferVotecoinRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List transferVotecoinRequestDescriptor = $convert.base64Decode(
-    'ChdUcmFuc2ZlclZvdGVjb2luUmVxdWVzdBISCgRkZXN0GAEgASgJUgRkZXN0EhYKBmFtb3VudB'
-    'gCIAEoA1IGYW1vdW50EhkKCGZlZV9zYXRzGAMgASgDUgdmZWVTYXRzEhcKBG1lbW8YBCABKAlI'
-    'AFIEbWVtb4gBAUIHCgVfbWVtbw==');
+    'ChdUcmFuc2ZlclZvdGVjb2luUmVxdWVzdBISCgRkZXN0GAEgASgJUgRkZXN0EhoKBmFtb3VudB'
+    'gCIAEoA0ICGAFSBmFtb3VudBIZCghmZWVfc2F0cxgDIAEoA1IHZmVlU2F0cxIXCgRtZW1vGAQg'
+    'ASgJSABSBG1lbW+IAQESLAoPdm90ZWNvaW5fYW1vdW50GAUgASgBSAFSDnZvdGVjb2luQW1vdW'
+    '50iAEBQgcKBV9tZW1vQhIKEF92b3RlY29pbl9hbW91bnQ=');
 
 @$core.Deprecated('Use transferVotecoinResponseDescriptor instead')
 const TransferVotecoinResponse$json = {

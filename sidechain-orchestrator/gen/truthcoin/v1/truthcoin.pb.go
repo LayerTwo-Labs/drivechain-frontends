@@ -4232,13 +4232,15 @@ func (x *VotePeriodResponse) GetPeriodJson() string {
 }
 
 type VotecoinTransferRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Dest          string                 `protobuf:"bytes,1,opt,name=dest,proto3" json:"dest,omitempty"`
-	Amount        int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
-	FeeSats       int64                  `protobuf:"varint,3,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
-	Memo          *string                `protobuf:"bytes,4,opt,name=memo,proto3,oneof" json:"memo,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Dest  string                 `protobuf:"bytes,1,opt,name=dest,proto3" json:"dest,omitempty"`
+	// Deprecated: Marked as deprecated in truthcoin/v1/truthcoin.proto.
+	Amount         int64    `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	FeeSats        int64    `protobuf:"varint,3,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	Memo           *string  `protobuf:"bytes,4,opt,name=memo,proto3,oneof" json:"memo,omitempty"`
+	VotecoinAmount *float64 `protobuf:"fixed64,5,opt,name=votecoin_amount,json=votecoinAmount,proto3,oneof" json:"votecoin_amount,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *VotecoinTransferRequest) Reset() {
@@ -4278,6 +4280,7 @@ func (x *VotecoinTransferRequest) GetDest() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in truthcoin/v1/truthcoin.proto.
 func (x *VotecoinTransferRequest) GetAmount() int64 {
 	if x != nil {
 		return x.Amount
@@ -4297,6 +4300,13 @@ func (x *VotecoinTransferRequest) GetMemo() string {
 		return *x.Memo
 	}
 	return ""
+}
+
+func (x *VotecoinTransferRequest) GetVotecoinAmount() float64 {
+	if x != nil && x.VotecoinAmount != nil {
+		return *x.VotecoinAmount
+	}
+	return 0
 }
 
 type VotecoinTransferResponse struct {
@@ -4388,10 +4398,12 @@ func (x *VotecoinBalanceRequest) GetAddress() string {
 }
 
 type VotecoinBalanceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Balance       int64                  `protobuf:"varint,1,opt,name=balance,proto3" json:"balance,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Deprecated: Marked as deprecated in truthcoin/v1/truthcoin.proto.
+	Balance         int64   `protobuf:"varint,1,opt,name=balance,proto3" json:"balance,omitempty"`
+	VotecoinBalance float64 `protobuf:"fixed64,2,opt,name=votecoin_balance,json=votecoinBalance,proto3" json:"votecoin_balance,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *VotecoinBalanceResponse) Reset() {
@@ -4424,6 +4436,7 @@ func (*VotecoinBalanceResponse) Descriptor() ([]byte, []int) {
 	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{95}
 }
 
+// Deprecated: Marked as deprecated in truthcoin/v1/truthcoin.proto.
 func (x *VotecoinBalanceResponse) GetBalance() int64 {
 	if x != nil {
 		return x.Balance
@@ -4431,14 +4444,23 @@ func (x *VotecoinBalanceResponse) GetBalance() int64 {
 	return 0
 }
 
+func (x *VotecoinBalanceResponse) GetVotecoinBalance() float64 {
+	if x != nil {
+		return x.VotecoinBalance
+	}
+	return 0
+}
+
 type TransferVotecoinRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Dest          string                 `protobuf:"bytes,1,opt,name=dest,proto3" json:"dest,omitempty"`
-	Amount        int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
-	FeeSats       int64                  `protobuf:"varint,3,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
-	Memo          *string                `protobuf:"bytes,4,opt,name=memo,proto3,oneof" json:"memo,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Dest  string                 `protobuf:"bytes,1,opt,name=dest,proto3" json:"dest,omitempty"`
+	// Deprecated: Marked as deprecated in truthcoin/v1/truthcoin.proto.
+	Amount         int64    `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	FeeSats        int64    `protobuf:"varint,3,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	Memo           *string  `protobuf:"bytes,4,opt,name=memo,proto3,oneof" json:"memo,omitempty"`
+	VotecoinAmount *float64 `protobuf:"fixed64,5,opt,name=votecoin_amount,json=votecoinAmount,proto3,oneof" json:"votecoin_amount,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *TransferVotecoinRequest) Reset() {
@@ -4478,6 +4500,7 @@ func (x *TransferVotecoinRequest) GetDest() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in truthcoin/v1/truthcoin.proto.
 func (x *TransferVotecoinRequest) GetAmount() int64 {
 	if x != nil {
 		return x.Amount
@@ -4497,6 +4520,13 @@ func (x *TransferVotecoinRequest) GetMemo() string {
 		return *x.Memo
 	}
 	return ""
+}
+
+func (x *TransferVotecoinRequest) GetVotecoinAmount() float64 {
+	if x != nil && x.VotecoinAmount != nil {
+		return *x.VotecoinAmount
+	}
+	return 0
 }
 
 type TransferVotecoinResponse struct {
@@ -5482,25 +5512,30 @@ const file_truthcoin_v1_truthcoin_proto_rawDesc = "" +
 	"_period_id\"5\n" +
 	"\x12VotePeriodResponse\x12\x1f\n" +
 	"\vperiod_json\x18\x01 \x01(\tR\n" +
-	"periodJson\"\x82\x01\n" +
+	"periodJson\"\xc8\x01\n" +
 	"\x17VotecoinTransferRequest\x12\x12\n" +
-	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x16\n" +
-	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x19\n" +
+	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x1a\n" +
+	"\x06amount\x18\x02 \x01(\x03B\x02\x18\x01R\x06amount\x12\x19\n" +
 	"\bfee_sats\x18\x03 \x01(\x03R\afeeSats\x12\x17\n" +
-	"\x04memo\x18\x04 \x01(\tH\x00R\x04memo\x88\x01\x01B\a\n" +
-	"\x05_memo\".\n" +
+	"\x04memo\x18\x04 \x01(\tH\x00R\x04memo\x88\x01\x01\x12,\n" +
+	"\x0fvotecoin_amount\x18\x05 \x01(\x01H\x01R\x0evotecoinAmount\x88\x01\x01B\a\n" +
+	"\x05_memoB\x12\n" +
+	"\x10_votecoin_amount\".\n" +
 	"\x18VotecoinTransferResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"2\n" +
 	"\x16VotecoinBalanceRequest\x12\x18\n" +
-	"\aaddress\x18\x01 \x01(\tR\aaddress\"3\n" +
-	"\x17VotecoinBalanceResponse\x12\x18\n" +
-	"\abalance\x18\x01 \x01(\x03R\abalance\"\x82\x01\n" +
+	"\aaddress\x18\x01 \x01(\tR\aaddress\"b\n" +
+	"\x17VotecoinBalanceResponse\x12\x1c\n" +
+	"\abalance\x18\x01 \x01(\x03B\x02\x18\x01R\abalance\x12)\n" +
+	"\x10votecoin_balance\x18\x02 \x01(\x01R\x0fvotecoinBalance\"\xc8\x01\n" +
 	"\x17TransferVotecoinRequest\x12\x12\n" +
-	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x16\n" +
-	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x19\n" +
+	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x1a\n" +
+	"\x06amount\x18\x02 \x01(\x03B\x02\x18\x01R\x06amount\x12\x19\n" +
 	"\bfee_sats\x18\x03 \x01(\x03R\afeeSats\x12\x17\n" +
-	"\x04memo\x18\x04 \x01(\tH\x00R\x04memo\x88\x01\x01B\a\n" +
-	"\x05_memo\".\n" +
+	"\x04memo\x18\x04 \x01(\tH\x00R\x04memo\x88\x01\x01\x12,\n" +
+	"\x0fvotecoin_amount\x18\x05 \x01(\x01H\x01R\x0evotecoinAmount\x88\x01\x01B\a\n" +
+	"\x05_memoB\x12\n" +
+	"\x10_votecoin_amount\".\n" +
 	"\x18TransferVotecoinResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x1c\n" +
 	"\x1aGetNewEncryptionKeyRequest\"/\n" +

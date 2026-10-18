@@ -655,9 +655,10 @@ message VotePeriodResponse {
 
 message VotecoinTransferRequest {
   string dest = 1;
-  int64 amount = 2;
+  int64 amount = 2 [deprecated = true];
   int64 fee_sats = 3;
   optional string memo = 4;
+  optional double votecoin_amount = 5;
 }
 
 message VotecoinTransferResponse {
@@ -671,16 +672,18 @@ message VotecoinBalanceRequest {
 }
 
 message VotecoinBalanceResponse {
-  int64 balance = 1;
+  int64 balance = 1 [deprecated = true];
+  double votecoin_balance = 2;
 }
 
 // TransferVotecoin
 
 message TransferVotecoinRequest {
   string dest = 1;
-  int64 amount = 2;
+  int64 amount = 2 [deprecated = true];
   int64 fee_sats = 3;
   optional string memo = 4;
+  optional double votecoin_amount = 5;
 }
 
 message TransferVotecoinResponse {

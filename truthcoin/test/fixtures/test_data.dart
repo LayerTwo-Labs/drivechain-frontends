@@ -185,15 +185,15 @@ class TestData {
   /// Sample voter info response
   static Map<String, dynamic> get sampleVoterInfo => {
     'address': 'tb1qtest1234567890',
-    'is_active': true,
-    'reputation': 0.85,
-    'votecoin_balance': 1000,
+    'votecoin_balance': 0.25,
     'total_votes': 156,
-    'accuracy_score': 0.78,
+    'periods_active': 3,
+    'is_active': true,
     'current_period_participation': {
       'period_id': 42,
       'votes_cast': 8,
       'decisions_available': 12,
+      'participation_rate': 0.6666666666666666,
     },
   };
 

@@ -198,7 +198,7 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			call: func(ctx context.Context, h *Handler) (string, error) {
 				resp, err := h.VotecoinTransfer(ctx, connect.NewRequest(&pb.VotecoinTransferRequest{
 					Dest:    "tNdest",
-					Amount:  5,
+					Amount:  5, //nolint:staticcheck // old clients send Amount
 					FeeSats: 1000,
 				}))
 				if err != nil {

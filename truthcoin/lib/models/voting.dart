@@ -128,25 +128,17 @@ class DecisionInfo {
 /// Full voter information
 class VoterInfoFull {
   final String address;
-  final bool isRegistered;
-  final double reputation;
-  final int votecoinBalance;
+  final double votecoinBalance;
   final int totalVotes;
   final int periodsActive;
-  final double accuracyScore;
-  final int registeredAtHeight;
   final bool isActive;
   final ParticipationStats? currentPeriodParticipation;
 
   VoterInfoFull({
     required this.address,
-    required this.isRegistered,
-    required this.reputation,
     required this.votecoinBalance,
     required this.totalVotes,
     required this.periodsActive,
-    required this.accuracyScore,
-    required this.registeredAtHeight,
     required this.isActive,
     this.currentPeriodParticipation,
   });
@@ -154,13 +146,9 @@ class VoterInfoFull {
   factory VoterInfoFull.fromJson(Map<String, dynamic> json) {
     return VoterInfoFull(
       address: json['address']?.toString() ?? '',
-      isRegistered: json['is_registered'] as bool? ?? false,
-      reputation: (json['reputation'] ?? 0.0) as double,
-      votecoinBalance: (json['votecoin_balance'] ?? 0) as int,
+      votecoinBalance: ((json['votecoin_balance'] ?? 0) as num).toDouble(),
       totalVotes: (json['total_votes'] ?? 0) as int,
       periodsActive: (json['periods_active'] ?? 0) as int,
-      accuracyScore: (json['accuracy_score'] ?? 0.0) as double,
-      registeredAtHeight: (json['registered_at_height'] ?? 0) as int,
       isActive: json['is_active'] as bool? ?? false,
       currentPeriodParticipation: json['current_period_participation'] != null
           ? ParticipationStats.fromJson(json['current_period_participation'] as Map<String, dynamic>)
@@ -168,8 +156,9 @@ class VoterInfoFull {
     );
   }
 
-  String get accuracyPercent => '${(accuracyScore * 100).toStringAsFixed(1)}%';
-  String get reputationDisplay => reputation.toStringAsFixed(2);
+  /// The node keeps the reputation of a voter as its Votecoin balance.
+  bool get isRegistered => votecoinBalance > 0;
+  String get reputationDisplay => votecoinBalance.toStringAsFixed(2);
 }
 
 /// Participation stats for current period
