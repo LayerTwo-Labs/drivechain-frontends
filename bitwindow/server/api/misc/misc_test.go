@@ -352,6 +352,38 @@ func TestService_VotesAndComments(t *testing.T) {
 		require.ErrorContains(t, err, "body or url")
 	})
 
+	t.Run("comment fee estimate counts the url", func(t *testing.T) {
+		t.Parallel()
+		mockOrch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+		apitests.ExpectOrchestratorReads(mockOrch)
+		mockOrch.EXPECT().
+			EstimateFee(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&orchpb.EstimateFeeResponse{SatPerVbyte: 1}), nil).
+			AnyTimes()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(mockOrch)))
+
+		estimate := func(body, url string) (*connect.Response[miscv1.EstimateNewsFeeResponse], error) {
+			return cli.EstimateNewsFee(t.Context(), connect.NewRequest(&miscv1.EstimateNewsFeeRequest{
+				Action: miscv1.NewsAction_NEWS_ACTION_COMMENT,
+				Body:   body,
+				Url:    url,
+			}))
+		}
+
+		urlOnly, err := estimate("", "https://example.com/a")
+		require.NoError(t, err)
+		bodyOnly, err := estimate("hi", "")
+		require.NoError(t, err)
+		both, err := estimate("hi", "https://example.com/a")
+		require.NoError(t, err)
+		assert.Greater(t, both.Msg.Vsize, bodyOnly.Msg.Vsize)
+		assert.Greater(t, both.Msg.Vsize, urlOnly.Msg.Vsize)
+
+		_, err = estimate("  ", "")
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		assert.Contains(t, err.Error(), "body or url")
+	})
+
 	t.Run("list comments empty", func(t *testing.T) {
 		t.Parallel()
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))

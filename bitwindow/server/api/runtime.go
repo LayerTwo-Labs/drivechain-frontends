@@ -514,7 +514,7 @@ func (rt *Runtime) Handler() http.Handler {
 }
 
 // Close cancels engines, waits for goroutines, drains in-flight request
-// handlers, then closes the DB. Safe to call once. Subsequent calls are no-ops.
+// handlers, then closes the DB. Call it once.
 func (rt *Runtime) Close() {
 	if rt.cancel != nil {
 		rt.cancel()

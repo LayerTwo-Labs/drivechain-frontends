@@ -101,3 +101,19 @@ func TestLinuxDataDirMigration(t *testing.T) {
 		})
 	}
 }
+
+func TestLinuxDataDirMigration_RenameFails(t *testing.T) {
+	base := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", base)
+
+	legacy := filepath.Join(base, linuxAppNameLegacy)
+	require.NoError(t, os.MkdirAll(legacy, 0o755))
+	require.NoError(t, os.Symlink(filepath.Join(base, "missing"), filepath.Join(base, linuxAppName)))
+
+	_, err := linuxDataDir()
+	require.ErrorContains(t, err, "move legacy data dir")
+
+	info, err := os.Stat(legacy)
+	require.NoError(t, err)
+	assert.True(t, info.IsDir())
+}

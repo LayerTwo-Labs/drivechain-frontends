@@ -108,7 +108,7 @@ Keep this file secure. Anyone with access can control ALL your funds.
 		}
 		log.Info().Msg("backup: added metadata.json")
 	} else if !os.IsNotExist(err) {
-		log.Warn().Err(err).Msg("backup: metadata.json not readable")
+		return nil, "", fmt.Errorf("read metadata.json: %w", err)
 	}
 
 	// multisig data from DB
@@ -352,8 +352,11 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 	}
 	if len(groups) == 0 {
 		soloKeys, err := e.multisigStore.ListSoloKeys(ctx)
-		if err != nil || len(soloKeys) == 0 {
-			return nil, nil // nothing to export
+		if err != nil {
+			return nil, fmt.Errorf("list solo keys: %w", err)
+		}
+		if len(soloKeys) == 0 {
+			return nil, nil
 		}
 	}
 

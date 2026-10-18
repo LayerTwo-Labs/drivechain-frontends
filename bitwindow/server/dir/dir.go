@@ -38,8 +38,11 @@ func linuxDataDir() (string, error) {
 	_, newErr := os.Stat(newPath)
 	_, legacyErr := os.Stat(legacy)
 	if os.IsNotExist(newErr) && legacyErr == nil {
-		if err := os.Rename(legacy, newPath); err == nil {
-			_ = os.Symlink(newPath, legacy)
+		if err := os.Rename(legacy, newPath); err != nil {
+			return "", fmt.Errorf("move legacy data dir %s: %w", legacy, err)
+		}
+		if err := os.Symlink(newPath, legacy); err != nil {
+			return "", fmt.Errorf("link legacy data dir %s: %w", legacy, err)
 		}
 	}
 	return newPath, nil

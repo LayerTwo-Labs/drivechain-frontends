@@ -822,10 +822,7 @@ func (p *Parser) handleOpReturns(
 
 		// Check if this is a timestamp with STAMP prefix
 		if err := p.handleTimestamp(ctx, data, txid, height); err != nil {
-			zerolog.Ctx(ctx).Warn().
-				Err(err).
-				Str("txid", txid).
-				Msg("handle timestamp")
+			return nil, fmt.Errorf("handle timestamp %s: %w", txid, err)
 		}
 
 		zerolog.Ctx(ctx).Debug().
@@ -841,10 +838,6 @@ func (p *Parser) handleOpReturns(
 		// canonical (height, tx_index, vout_index) order. See
 		// processBlocks → indexCoinNewsBlocks.
 
-		// Always fetch fee for OP_RETURN transactions. This avoids a race
-		// condition where blocks are processed in parallel and a topic
-		// created in one block isn't yet registered when a news article
-		// in a later block (same batch) checks isKnownTopic.
 		if rawTx == nil && !feeUnknown {
 			core, err := p.bitcoind.Get(ctx)
 			if err != nil {

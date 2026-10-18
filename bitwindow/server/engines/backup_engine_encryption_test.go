@@ -93,3 +93,40 @@ func TestValidateBackup_RejectsPlainWalletWithEncryptionMetadata(t *testing.T) {
 	_, err := e.ValidateBackup(testCtx(), buf.Bytes(), "backup.zip")
 	require.ErrorContains(t, err, "not an encrypted wallet")
 }
+
+func TestCreateBackup_FailsOnUnreadableSource(t *testing.T) {
+	cases := []struct {
+		name    string
+		setup   func(t *testing.T, e *BackupEngine)
+		wantErr string
+	}{
+		{
+			name: "metadata.json not readable",
+			setup: func(t *testing.T, e *BackupEngine) {
+				require.NoError(t, os.Mkdir(filepath.Join(e.walletDir, "metadata.json"), 0o700))
+			},
+			wantErr: "read metadata.json",
+		},
+		{
+			name: "solo keys not readable",
+			setup: func(t *testing.T, e *BackupEngine) {
+				_, err := e.db.ExecContext(testCtx(), `DROP TABLE multisig_solo_keys`)
+				require.NoError(t, err)
+			},
+			wantErr: "list solo keys",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			db := database.Test(t)
+			dir := t.TempDir()
+			e := &BackupEngine{db: db, walletDir: dir, multisigStore: multisig.NewStore(db)}
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), testEncryptedWallet, 0600))
+			tc.setup(t, e)
+
+			_, _, err := e.CreateBackup(testCtx())
+			require.ErrorContains(t, err, tc.wantErr)
+		})
+	}
+}

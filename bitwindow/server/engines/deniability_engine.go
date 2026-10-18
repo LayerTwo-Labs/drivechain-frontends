@@ -362,7 +362,7 @@ func (e *DeniabilityEngine) sendTransaction(
 	})
 }
 
-// the enforcer wallet takes a few seconds/minutes to add the sent transaction
+// the wallet takes a few seconds/minutes to add the sent transaction
 // to the wallet utxos. This function waits for the passed txid to appear with a timeout.
 func (e *DeniabilityEngine) waitForUTXOsToAppear(
 	ctx context.Context,
@@ -466,7 +466,7 @@ func (e *DeniabilityEngine) chooseDenialStrategy(
 	logger := zerolog.Ctx(ctx)
 	completedHops := len(denial.ExecutedDenials)
 
-	// Target sizes are now a sparse array where targetSizes[hopIndex] = amount
+	// Target sizes are a sparse array where targetSizes[hopIndex] = amount
 	// A value of 0 means "use random split" for that hop
 	// The frontend pre-distributes user-specified amounts randomly across hop indices
 	if completedHops < len(denial.TargetUTXOSizes) {
