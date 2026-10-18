@@ -1,3 +1,4 @@
+// Package elements runs the Elements/Liquid sidechain node.
 package elements
 
 import (
