@@ -213,3 +213,27 @@ func TestWaitForConnectedOrExit_ReturnsProcessExit(t *testing.T) {
 		require.Fail(t, fmt.Sprintf("process did not exit: %v", err))
 	}
 }
+
+func TestCoreRestartArgs(t *testing.T) {
+	t.Run("drops the one-shot reindex flags of the first start", func(t *testing.T) {
+		args, reindex := coreRestartArgs([]string{"-conf=x", "-reindex", "-reindex=1", "-reindex-chainstate", "-reindex-chainstate=1"}, nil)
+		assert.Equal(t, []string{"-conf=x"}, args)
+		assert.False(t, reindex)
+	})
+
+	t.Run("adds reindex when the last run asks for it", func(t *testing.T) {
+		logs := []LogEntry{{Line: "Error: Please restart with -reindex or -reindex-chainstate to recover."}}
+		args, reindex := coreRestartArgs([]string{"-conf=x", "-reindex"}, logs)
+		assert.Equal(t, []string{"-conf=x", "-reindex"}, args)
+		assert.True(t, reindex)
+	})
+
+	t.Run("keeps the start args unchanged", func(t *testing.T) {
+		coreArgs := []string{"-conf=x"}
+		logs := []LogEntry{{Line: "Please restart with -reindex"}}
+		_, _ = coreRestartArgs(coreArgs, logs)
+		args, reindex := coreRestartArgs(coreArgs, nil)
+		assert.Equal(t, []string{"-conf=x"}, args)
+		assert.False(t, reindex)
+	})
+}
