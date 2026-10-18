@@ -22,7 +22,6 @@ import (
 	validatordrpc "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	explorerrpc "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/explorer/v1/explorerv1connect"
 	faucetrpc "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/hub/v1/hubv1connect"
-	faucet_ip "github.com/LayerTwo-Labs/sidesail/dc-hub/server/ip"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
@@ -36,7 +35,6 @@ func New(
 	enforcerConnector connector.Connector[validatordrpc.ValidatorServiceClient],
 ) *Server {
 	interceptors := []connect.Interceptor{
-		faucet_ip.Interceptor(),
 		validation.Interceptor(),
 	}
 

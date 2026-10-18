@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
@@ -23,16 +22,13 @@ type Service[T any] struct {
 
 	// For checking if service is connected
 	connected bool
-	// Channel to send connection status changes
-	connectedCh chan bool
 }
 
 // New creates a new service wrapper
 func New[T any](name string, connector Connector[T]) *Service[T] {
 	return &Service[T]{
-		name:        name,
-		connector:   connector,
-		connectedCh: make(chan bool, 1),
+		name:      name,
+		connector: connector,
 	}
 }
 
@@ -69,31 +65,6 @@ func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 
 }
 
-// IsConnected returns whether the service is currently connected
-func (s *Service[T]) IsConnected() bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.connected
-}
-
-// StartReconnectLoop starts a goroutine that attempts to connect periodically,
-// to check whether the service is still available.
-func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				_, _ = s.Connect(ctx)
-			}
-		}
-	}()
-}
-
 func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 	s.mu.Lock()
 	changed := s.connected != val
@@ -102,13 +73,5 @@ func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 	if changed {
 		zerolog.Ctx(ctx).Info().
 			Msgf("%s changed connected to: %t", s.name, val)
-		select {
-		case s.connectedCh <- val:
-		default: // don't block if nobody is listening
-		}
 	}
-}
-
-func (s *Service[T]) ConnectedChan() <-chan bool {
-	return s.connectedCh
 }
