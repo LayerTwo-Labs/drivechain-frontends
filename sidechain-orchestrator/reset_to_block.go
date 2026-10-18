@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"connectrpc.com/connect"
 )
 
 // resetSyncPollInterval is how often the replay reads Core's tip while
@@ -57,7 +59,7 @@ type resetTarget struct {
 func resolveResetTarget(ctx context.Context, client *CoreStatusClient, target string) (resetTarget, error) {
 	trimmed := strings.TrimSpace(target)
 	if trimmed == "" {
-		return resetTarget{}, fmt.Errorf("name the block to reset to, by height or by hash")
+		return resetTarget{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name the block to reset to, by height or by hash"))
 	}
 
 	hash := ""
@@ -66,14 +68,14 @@ func resolveResetTarget(ctx context.Context, client *CoreStatusClient, target st
 	} else {
 		height, err := strconv.ParseUint(strings.ReplaceAll(trimmed, " ", ""), 10, 32)
 		if err != nil {
-			return resetTarget{}, fmt.Errorf("read %q as a height or as a 64-character hash", trimmed)
+			return resetTarget{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("read %q as a height or as a 64-character hash", trimmed))
 		}
 		tipHeight, _, err := coreTip(ctx, client)
 		if err != nil {
 			return resetTarget{}, err
 		}
 		if uint32(height) > tipHeight {
-			return resetTarget{}, fmt.Errorf("no block at height %d: this node holds a chain that ends at %d", height, tipHeight)
+			return resetTarget{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("no block at height %d: this node holds a chain that ends at %d", height, tipHeight))
 		}
 		raw, err := client.call(ctx, "getblockhash", height)
 		if err != nil {
@@ -85,13 +87,16 @@ func resolveResetTarget(ctx context.Context, client *CoreStatusClient, target st
 	}
 
 	header, err := readBlockHeader(ctx, client, hash)
+	if isBlockNotFound(err) {
+		return resetTarget{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("this node holds no block %s", hash))
+	}
 	if err != nil {
 		return resetTarget{}, err
 	}
 	// A block off the active chain has nothing above it to replay, and Core
 	// would climb back to a tip the caller never named.
 	if header.Confirmations < 0 {
-		return resetTarget{}, fmt.Errorf("block %s sits off the chain this node follows", hash)
+		return resetTarget{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("block %s sits off the chain this node follows", hash))
 	}
 	if header.Height < 0 {
 		return resetTarget{}, fmt.Errorf("block %s reports no height", hash)
@@ -111,7 +116,7 @@ func (o *Orchestrator) ResetToBlock(ctx context.Context, target string, enforcer
 
 	client, err := o.CoreStatusClient()
 	if err != nil {
-		return nil, fmt.Errorf("bitcoin core rpc: %w", err)
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin core rpc: %w", err))
 	}
 
 	// Resolve before the channel so a bad target is an RPC error, not a stream

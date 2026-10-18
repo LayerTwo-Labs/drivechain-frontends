@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"connectrpc.com/connect"
 )
 
 const (
@@ -67,6 +69,15 @@ func TestResolveResetTargetReadsAHash(t *testing.T) {
 	}
 }
 
+func TestResolveResetTargetRefusesAnUnknownHash(t *testing.T) {
+	core := &fakeCore{tips: []int64{979472}}
+
+	_, err := resolveResetTarget(context.Background(), core.start(t), target979000)
+	if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+		t.Errorf("code = %v, want %v (err %v)", code, connect.CodeInvalidArgument, err)
+	}
+}
+
 func TestResolveResetTargetRefusesAHeightAboveTheTip(t *testing.T) {
 	core := &fakeCore{tips: []int64{979472}, hashes: map[int64]string{979472: tipHash}}
 
@@ -76,6 +87,9 @@ func TestResolveResetTargetRefusesAHeightAboveTheTip(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "979472") {
 		t.Errorf("error = %v, want the tip height in it", err)
+	}
+	if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+		t.Errorf("code = %v, want %v", code, connect.CodeInvalidArgument)
 	}
 }
 
@@ -97,8 +111,11 @@ func TestResolveResetTargetRefusesJunk(t *testing.T) {
 	core := &fakeCore{tips: []int64{979472}, hashes: map[int64]string{979472: tipHash}}
 
 	for _, target := range []string{"", "   ", "abc", "-4", "0x10"} {
-		if _, err := resolveResetTarget(context.Background(), core.start(t), target); err == nil {
+		_, err := resolveResetTarget(context.Background(), core.start(t), target)
+		if err == nil {
 			t.Errorf("resolveResetTarget accepted %q", target)
+		} else if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("code for %q = %v, want %v", target, code, connect.CodeInvalidArgument)
 		}
 	}
 }

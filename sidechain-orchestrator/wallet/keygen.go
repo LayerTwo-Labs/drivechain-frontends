@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"connectrpc.com/connect"
 	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/text/unicode/norm"
@@ -177,7 +178,7 @@ func GenerateFullWallet(name string, customMnemonic string, passphrase string, s
 	if customMnemonic != "" {
 		mnemonic, err = ParseMnemonic(customMnemonic)
 		if err != nil {
-			return nil, err
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	} else {
 		mnemonic, err = GenerateMnemonic()

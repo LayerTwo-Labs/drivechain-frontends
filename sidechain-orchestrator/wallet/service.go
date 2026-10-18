@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -862,11 +863,11 @@ func validateHotScriptType(s string) (string, error) {
 func (s *Service) createWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string, requested ScriptKind, walletType WalletType) (*WalletData, error) {
 	desc, err := ParseDescriptorAs(xpubOrDescriptor, requested)
 	if err != nil {
-		return nil, fmt.Errorf("invalid watch-only descriptor: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid watch-only descriptor: %w", err))
 	}
 	for _, k := range desc.Keys {
 		if k.Account.IsPrivate() {
-			return nil, errors.New("watch-only import must not contain private keys")
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("watch-only import must not contain private keys"))
 		}
 	}
 
@@ -1541,14 +1542,14 @@ func (s *Service) CheckDeletable(walletID string) error {
 
 func deleteRefusal(wallets []WalletData, starterWalletID, walletID string) error {
 	if !lo.ContainsBy(wallets, func(w WalletData) bool { return w.ID == walletID }) {
-		return fmt.Errorf("wallet %s not found", walletID)
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", walletID))
 	}
 	// The starter wallet's seed derives every sidechain's starter. Delete it
 	// while another wallet remains and the pin moves to a different seed, so
 	// every sidechain restarts against coins the user does not hold. Deleting
 	// the last wallet is fine: nothing is left to derive from either way.
 	if starterWalletID == walletID && len(wallets) > 1 {
-		return fmt.Errorf("wallet %s derives the sidechain starters and cannot be deleted", walletID)
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s derives the sidechain starters and cannot be deleted", walletID))
 	}
 	return nil
 }

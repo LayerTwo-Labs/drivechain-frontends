@@ -1038,7 +1038,7 @@ func (h *Handler) ResetToBlock(
 		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
 	)
 	if err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, err)
+		return rpcError(err)
 	}
 
 	for p := range ch {

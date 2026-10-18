@@ -150,7 +150,7 @@ func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request
 	}
 	w, err := h.svc.GenerateWalletWithPath(req.Msg.Name, req.Msg.CustomMnemonic, req.Msg.Passphrase, account, path, req.Msg.ScriptType, allSidechainSlots())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, rpcError(err)
 	}
 	return connect.NewResponse(&pb.GenerateWalletResponse{
 		WalletId: w.ID,
@@ -338,7 +338,7 @@ func (h *WalletHandler) DeleteWallet(ctx context.Context, req *connect.Request[p
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	if err := h.svc.CheckDeletable(req.Msg.WalletId); err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, rpcError(err)
 	}
 	if err := h.engine.DeleteWallet(ctx, req.Msg.WalletId); err != nil {
 		return nil, rpcError(err)
@@ -429,7 +429,7 @@ func (h *WalletHandler) RestoreWalletBackupStream(ctx context.Context, req *conn
 
 func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.Request[pb.CreateWatchOnlyWalletRequest]) (*connect.Response[pb.CreateWatchOnlyWalletResponse], error) {
 	if err := h.svc.CreateWatchOnlyWallet(req.Msg.Name, req.Msg.XpubOrDescriptor, req.Msg.GradientJson); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, rpcError(err)
 	}
 	return connect.NewResponse(&pb.CreateWatchOnlyWalletResponse{
 		WalletId: h.svc.ActiveWalletID(),
@@ -460,7 +460,7 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 	}
 	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.Passphrase, req.Msg.XpubOrDescriptor, scriptType, account, path)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, rpcError(err)
 	}
 	if req.Msg.HardwareDeviceType != "" {
 		if err := h.svc.SetWalletHardwareDevice(w.ID, req.Msg.HardwareDeviceType, req.Msg.HardwareFingerprint); err != nil {
