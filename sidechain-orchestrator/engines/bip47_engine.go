@@ -215,6 +215,10 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 			if err != nil {
 				// A backend error here is transient, so leave the transaction
 				// unmarked and let the next pass retry it.
+				if errors.Is(err, errNotNotification) {
+					e.markScanned(walletID, tx.TxID)
+					recorded[tx.TxID] = true
+				}
 				e.log.Debug().Err(err).Str("txid", tx.TxID).Msg("skip non-bip47 receive at notification address")
 				continue
 			}
@@ -248,6 +252,10 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 	return nil
 }
 
+// errNotNotification marks a transaction that is not a BIP47 notification, so
+// no later pass fetches it again.
+var errNotNotification = errors.New("not a bip47 notification")
+
 // decodeNotificationTx fetches the full notification transaction, finds its
 // OP_RETURN payload and the first input's pubkey + outpoint, and decodes the
 // blinded payload using the receiver's notification privkey. Returns the
@@ -258,7 +266,7 @@ func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, walletID, txid s
 		return "", 0, fmt.Errorf("getrawtransaction: %w", err)
 	}
 	if len(raw.Vin) == 0 {
-		return "", 0, errors.New("notification tx has no inputs")
+		return "", 0, fmt.Errorf("%w: tx has no inputs", errNotNotification)
 	}
 	// BIP47: the designated input is the first input exposing a recoverable
 	// secp256k1 pubkey. Walk vin until one yields a pubkey + parseable
@@ -283,7 +291,7 @@ func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, walletID, txid s
 		break
 	}
 	if senderPub == nil {
-		return "", 0, errors.New("no designated input with recoverable pubkey")
+		return "", 0, fmt.Errorf("%w: no designated input with recoverable pubkey", errNotNotification)
 	}
 
 	var payload []byte
@@ -303,14 +311,14 @@ func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, walletID, txid s
 		}
 	}
 	if payload == nil {
-		return "", 0, errors.New("no 80-byte OP_RETURN payload found")
+		return "", 0, fmt.Errorf("%w: no 80-byte OP_RETURN payload found", errNotNotification)
 	}
 
 	var blinded [bip47.PaymentCodeLength]byte
 	copy(blinded[:], payload)
 	decoded, err := bip47.DecodeBlindedPayload(notifPriv, senderPub, outpoint, blinded)
 	if err != nil {
-		return "", 0, fmt.Errorf("decode blinded payload: %w", err)
+		return "", 0, fmt.Errorf("%w: decode blinded payload: %w", errNotNotification, err)
 	}
 	return decoded.Base58(), raw.BlockTime, nil
 }

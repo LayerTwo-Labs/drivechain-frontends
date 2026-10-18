@@ -1012,15 +1012,15 @@ func (e *BmmEngine) openingRate(ctx context.Context) float64 {
 }
 
 // NextBlockRate is the fee rate a bid pays to enter the next mainchain block,
-// in sats per vByte. Core reports it, and the relay minimum stands in when
-// Core answers nothing.
+// in sats per vByte. The fee sources report it, and the relay minimum stands
+// in when no source answers.
 func (e *BmmEngine) NextBlockRate(ctx context.Context) float64 {
 	if e.fee == nil {
 		return relayMinimumRate
 	}
 	rate, err := e.fee.EstimateFee(ctx)
 	if err != nil {
-		e.log.Debug().Err(err).Msg("core reports no fee rate, opening at the relay minimum")
+		e.log.Debug().Err(err).Msg("no fee source reports a rate, opening at the relay minimum")
 		return relayMinimumRate
 	}
 	if rate < relayMinimumRate {

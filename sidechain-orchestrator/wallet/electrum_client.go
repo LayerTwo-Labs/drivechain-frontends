@@ -234,10 +234,8 @@ func (c *ElectrumClient) call(ctx context.Context, out any, method string, param
 			continue
 		}
 
+		// A caller that gives up must not close the socket other calls share.
 		timeout := 30 * time.Second
-		if dl, ok := ctx.Deadline(); ok {
-			timeout = time.Until(dl)
-		}
 		select {
 		case res := <-ch:
 			if res.err != nil {

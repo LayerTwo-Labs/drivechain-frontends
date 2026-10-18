@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -191,6 +192,34 @@ func TestCoreBlockReadsCoreShapes(t *testing.T) {
 		if method == "get_block_hash" || method == "get_block" {
 			t.Errorf("a Core node was asked %q, which it does not serve", method)
 		}
+	}
+}
+
+type coreHeightNode struct {
+	*recordingNode
+	heights []uint32
+}
+
+func (n *coreHeightNode) CallRaw(ctx context.Context, method string, params any) (json.RawMessage, error) {
+	if method == "getblockhash" {
+		n.heights = append(n.heights, params.([]uint32)...)
+	}
+	return n.recordingNode.CallRaw(ctx, method, params)
+}
+
+// Core's getblockcount is the tip height, so the block list starts at the tip.
+func TestCoreBlockListStartsAtTheTip(t *testing.T) {
+	node := &coreHeightNode{recordingNode: &recordingNode{count: 7, answers: map[string]string{
+		"getblockhash": `"0000ab"`,
+		"getblock":     `{"hash":"0000ab","height":7,"previousblockhash":"0000aa","tx":[]}`,
+	}}}
+	src := source{name: "bbc", node: node, core: true}
+
+	if _, err := nodeBlocksBefore(context.Background(), src, 0, 2); err != nil {
+		t.Fatalf("list the blocks: %v", err)
+	}
+	if want := []uint32{7, 6}; !slices.Equal(node.heights, want) {
+		t.Errorf("the list read heights %v, want %v", node.heights, want)
 	}
 }
 

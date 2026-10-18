@@ -612,8 +612,7 @@ func (p *CoreBackend) NextChangeAddress(ctx context.Context, walletID string) (s
 	return p.rpc.GetRawChangeAddress(ctx, name, addressType)
 }
 
-// WatchKeys imports each key as a pkh() descriptor. Per-key import failures
-// are logged, not fatal — matching how Core treats already-known descriptors.
+// WatchKeys imports each key as a pkh() descriptor.
 func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
@@ -630,17 +629,7 @@ func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []Wat
 	if err != nil {
 		return err
 	}
-	for i, r := range results {
-		if r.Success {
-			continue
-		}
-		msg := "unknown"
-		if r.Error != nil {
-			msg = r.Error.Message
-		}
-		p.log.Warn().Int("descriptor_index", i).Str("error", msg).Msg("watch key import failed")
-	}
-	return nil
+	return importResultsErr(results)
 }
 
 // EnsureNotificationWatched loads the wallet. The load imports the notification

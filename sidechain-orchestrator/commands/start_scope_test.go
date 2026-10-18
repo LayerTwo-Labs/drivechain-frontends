@@ -58,6 +58,8 @@ type fakeOrchestrator struct {
 	// startsDuringStream run while the log stream is open. A second client
 	// starts them, so `start` must not stop them.
 	startsDuringStream []string
+	// streamErr is the error the log stream ends with.
+	streamErr error
 
 	stopped      []string
 	shutdownAlls int
@@ -133,7 +135,7 @@ func (f *fakeOrchestrator) StreamLogs(_ context.Context, _ *connect.Request[pb.S
 	for _, name := range f.crashesDuringStream {
 		delete(f.running, name)
 	}
-	return nil
+	return f.streamErr
 }
 
 func (f *fakeOrchestrator) StopBinary(_ context.Context, req *connect.Request[pb.StopBinaryRequest]) (*connect.Response[pb.StopBinaryResponse], error) {
@@ -447,4 +449,13 @@ func TestWipe(t *testing.T) {
 		require.ErrorContains(t, err, "stop timed out")
 		require.Equal(t, []string{"thunder"}, fake.stopped)
 	})
+}
+
+func TestStartReportsALogStreamFailure(t *testing.T) {
+	fake, client := newFakeOrchestrator(t)
+	fake.streamErr = connect.NewError(connect.CodeNotFound, errors.New("no log for photon"))
+
+	require.ErrorContains(t, runStart(startContext(t, "photon"), client), "no log for photon")
+
+	require.Equal(t, []string{"photon", "enforcer", "bitcoind"}, fake.stopped, "a failed stream still stops what start started")
 }

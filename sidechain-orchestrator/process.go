@@ -291,8 +291,6 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 	if err := verifyArtifactPin(config, binPath, false); err != nil {
 		return 0, err
 	}
-	_ = pidName // referenced below for PID file ops
-
 	if err := chmod(binPath); err != nil {
 		pm.log.Warn().Err(err).Str("binary", processName).Msg("chmod")
 	}

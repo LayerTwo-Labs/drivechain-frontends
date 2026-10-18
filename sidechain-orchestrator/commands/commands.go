@@ -302,6 +302,10 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 		ts := time.Unix(msg.TimestampUnix, 0).Format("15:04:05")
 		fmt.Printf("[%s] %s\n", ts, msg.Line)
 	}
+	var streamErr error
+	if err := logStream.Err(); err != nil && ctx.Err() == nil {
+		streamErr = fmt.Errorf("stream %s logs: %w", name, err)
+	}
 
 	listCtx, listCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer listCancel()
@@ -313,7 +317,7 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 
 	toStop := binariesToStop(name, withDeps, before, now)
 	if len(toStop) == 0 {
-		return nil
+		return streamErr
 	}
 
 	fmt.Println("\nstopping...")
@@ -327,10 +331,10 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 		}
 	}
 	if len(stopErrs) > 0 {
-		return errors.Join(stopErrs...)
+		return errors.Join(append([]error{streamErr}, stopErrs...)...)
 	}
 	fmt.Println("stopped")
-	return nil
+	return streamErr
 }
 
 // stopBinaryTimeout covers one graceful stop. Bitcoin Core can take 90 seconds
@@ -1232,7 +1236,8 @@ func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory C
 	}
 
 	// Get the port for the sidechain
-	port, err := getSidechainPort(sidechainName)
+	configs := orchestrator.LoadConfigFile(orchestrator.ConfigFilePath(cctx.String("bitwindow-dir")), zerolog.Nop())
+	port, err := getSidechainPort(configs, sidechainName)
 	if err != nil {
 		return fmt.Errorf("failed to get port for %s: %w", sidechainName, err)
 	}
@@ -1349,27 +1354,14 @@ func outputResult(result interface{}) error {
 	return nil
 }
 
-// getSidechainPort returns the default port for a sidechain
-func getSidechainPort(sidechainName string) (int, error) {
-	// These ports match the default ports used by each sidechain
-	switch sidechainName {
-	case "bitnames":
-		return 38332, nil
-	case "thunder":
-		return 48332, nil
-	case "bitassets":
-		return 28332, nil
-	case "coinshift":
-		return 58332, nil
-	case "photon":
-		return 18332, nil
-	case "truthcoin":
-		return 68332, nil
-	case "zside":
-		return 78332, nil
-	default:
-		return 0, fmt.Errorf("unknown sidechain: %s", sidechainName)
+// getSidechainPort returns the RPC port the orchestrator dials for a sidechain.
+func getSidechainPort(configs []orchestrator.BinaryConfig, sidechainName string) (int, error) {
+	for _, cfg := range configs {
+		if cfg.Name == sidechainName && cfg.IsSidechain() && cfg.Port > 0 {
+			return cfg.Port, nil
+		}
 	}
+	return 0, fmt.Errorf("unknown sidechain: %s", sidechainName)
 }
 
 func sidechainBinaryType(sidechainName string) (pb.BinaryType, error) {

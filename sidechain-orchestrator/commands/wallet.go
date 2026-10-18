@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -235,7 +236,7 @@ var walletStatusCommand = &cli.Command{
 		if !s.HasWallet {
 			fmt.Println("no wallet is created yet. would you like to create a wallet now? [Y/n]")
 			if confirmYes() {
-				return walletCreateCommand.Action(cctx)
+				return walletCreateCommand.Run(cli.NewContext(cctx.App, nil, cctx), walletCreateCommand.Name)
 			}
 			return nil
 		}
@@ -811,7 +812,7 @@ var walletSendCommand = &cli.Command{
 
 		opReturnHex := cctx.String("op-return-hex")
 		if opReturnHex == "" && cctx.String("op-return") != "" {
-			opReturnHex = hexEncode([]byte(cctx.String("op-return")))
+			opReturnHex = hex.EncodeToString([]byte(cctx.String("op-return")))
 		}
 
 		summary := describeSend(walletID, destinations, cctx)
@@ -1144,16 +1145,4 @@ func describeSend(walletID string, dests map[string]int64, cctx *cli.Context) st
 		fmt.Fprintf(&b, "op_return_hex: %s\n", op)
 	}
 	return b.String()
-}
-
-// hexEncode is a tiny wrapper that avoids pulling in the full encoding/hex
-// import surface for a single call site.
-func hexEncode(data []byte) string {
-	const hexDigits = "0123456789abcdef"
-	out := make([]byte, len(data)*2)
-	for i, b := range data {
-		out[i*2] = hexDigits[b>>4]
-		out[i*2+1] = hexDigits[b&0x0f]
-	}
-	return string(out)
 }

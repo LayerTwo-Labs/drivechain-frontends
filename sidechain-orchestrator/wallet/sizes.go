@@ -147,7 +147,7 @@ func addressKind(address string, net *chaincfg.Params) ScriptKind {
 // regardless of the chosen fee rate.
 func dustThreshold(kind ScriptKind) int64 {
 	outSize := outputVsizeForKind(kind)
-	inSize := 68 // witness program spend (32+4+1+107/4+4, rounded)
+	inSize := 67 // witness program spend: 32+4+1+107/4+4
 	switch kind {
 	case ScriptLegacy, ScriptNestedSegwit, ScriptMultisigP2SH, ScriptMultisigNested:
 		inSize = 148 // P2KH / P2SH scriptPubKey: non-witness for dust purposes
@@ -164,9 +164,9 @@ func dustForOutput(o TxOutSpec, net *chaincfg.Params) int64 {
 	return dustThreshold(addressKind(o.Address, net))
 }
 
-// estimateFeeSats returns the fee for a tx of nIn inputs (inVsize vbytes each)
-// and outVsize total output vbytes at feeRate sat/vB, plus ~11 vB of overhead.
-func estimateFeeSats(nIn, inVsize, outVsize int, feeRate float64) int64 {
-	vsize := 11 + nIn*inVsize + outVsize
+// estimateFeeSats returns the fee for a tx of inVsize total input vbytes and
+// outVsize total output vbytes at feeRate sat/vB, plus ~11 vB of overhead.
+func estimateFeeSats(inVsize, outVsize int, feeRate float64) int64 {
+	vsize := 11 + inVsize + outVsize
 	return int64(math.Ceil(float64(vsize) * feeRate))
 }

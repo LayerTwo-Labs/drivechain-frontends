@@ -11,16 +11,15 @@ import (
 )
 
 // orchestratorSettingsFile is the JSON file persisted in the bitwindow data
-// directory. It is intentionally tiny and only stores user-tunable runtime
-// preferences that the orchestrator owns (currently: Core variant selection).
+// directory. It stores the runtime preferences and records of the orchestrator.
 const orchestratorSettingsFile = "orchestrator_settings.json"
 
 // OrchestratorSettings is the on-disk shape of orchestrator_settings.json.
 type OrchestratorSettings struct {
 	CoreVariant string `json:"core_variant"`
 	// ECashNetworkID pins the eCash network the user picked from the catalog
-	// ("alphanet"). Empty means "whichever one the catalog lists first", which
-	// is what a fresh install and every non-eCash network use.
+	// ("alphanet"). Empty means no pick: the installed conf, then ECashChainID,
+	// then the first catalog entry name the network.
 	ECashNetworkID string `json:"ecash_network_id"`
 	// ECashChainID is the eCash network whose blocks this install holds. The
 	// pick above is the user's choice; this is the record of what runs, and it

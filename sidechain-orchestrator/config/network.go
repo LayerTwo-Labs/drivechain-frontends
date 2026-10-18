@@ -537,8 +537,8 @@ func NetworkFromConfig(conf *BitcoinConfig, fallback Network) Network {
 	return fallback
 }
 
-// NetworkFromString converts a string (e.g. CLI flag) to a Network value,
-// falling back to signet for anything it does not recognise.
+// NetworkFromString converts a known network name to a Network value. It
+// panics on any other name; use LookupNetwork for input.
 func NetworkFromString(s string) Network {
 	n, ok := LookupNetwork(s)
 	if !ok {
@@ -548,9 +548,7 @@ func NetworkFromString(s string) Network {
 }
 
 // LookupNetwork converts a string to a Network value and reports whether it
-// named one. Callers that write per-network state need the flag: a catalog id
-// such as "alphanet" is not a network name, and the signet fallback would
-// otherwise stamp that entry's values onto signet.
+// named one. A catalog id such as "alphanet" is not a network name.
 func LookupNetwork(s string) (Network, bool) {
 	switch strings.ToLower(s) {
 	case "mainnet", "main", "bitcoin":

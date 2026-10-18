@@ -58,11 +58,16 @@ func nodeBlocksBefore(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
-	if count <= 0 {
+	// Core reports the tip height, a sidechain node the block count.
+	tip := count - 1
+	if src.core {
+		tip = count
+	}
+	if tip < 0 {
 		return nil, nil
 	}
 
-	height := uint32(count - 1)
+	height := uint32(tip)
 	if before > 0 && before < height {
 		height = before
 	}
