@@ -656,6 +656,24 @@ extension type TruthcoinServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Add liquidity to a market that a wallet address created.
+  Future<truthcoinv1truthcoin.MarketAmplifyBetaResponse> marketAmplifyBeta(
+    truthcoinv1truthcoin.MarketAmplifyBetaRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.TruthcoinService.marketAmplifyBeta,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Get slot system status and configuration.
   Future<truthcoinv1truthcoin.SlotStatusResponse> slotStatus(
     truthcoinv1truthcoin.SlotStatusRequest input, {
@@ -738,6 +756,24 @@ extension type TruthcoinServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.TruthcoinService.slotClaimCategory,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get the voter address of the wallet.
+  Future<truthcoinv1truthcoin.GetVoterAddressResponse> getVoterAddress(
+    truthcoinv1truthcoin.GetVoterAddressRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.TruthcoinService.getVoterAddress,
       input,
       signal: signal,
       headers: headers,

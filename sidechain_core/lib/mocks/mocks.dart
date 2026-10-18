@@ -770,6 +770,14 @@ class MockTruthcoinRPC extends TruthcoinRPC {
     return Future.value({});
   }
 
+  @override
+  Future<String> marketAmplifyBeta({
+    required String marketId,
+    required int amountSats,
+  }) {
+    return Future.value('market_amplify_beta_1234');
+  }
+
   // Slots
   @override
   Future<Map<String, dynamic>> slotStatus() {
@@ -810,6 +818,11 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   // Voting
+  @override
+  Future<String> getVoterAddress() {
+    return Future.value('');
+  }
+
   @override
   Future<Map<String, dynamic>?> voteVoter(String address) {
     return Future.value(null);

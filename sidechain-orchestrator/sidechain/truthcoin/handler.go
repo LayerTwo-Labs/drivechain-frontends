@@ -390,6 +390,18 @@ func (h *Handler) MarketPositions(ctx context.Context, req *connect.Request[pb.M
 	return connect.NewResponse(&pb.MarketPositionsResponse{PositionsJson: string(raw)}), nil
 }
 
+func (h *Handler) MarketAmplifyBeta(ctx context.Context, req *connect.Request[pb.MarketAmplifyBetaRequest]) (*connect.Response[pb.MarketAmplifyBetaResponse], error) {
+	request := map[string]any{
+		"market_id":   req.Msg.MarketId,
+		"amount_sats": req.Msg.AmountSats,
+	}
+	var txid string
+	if err := h.proxy.Client.Call(ctx, "market_amplify_beta", []any{request}, &txid); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.MarketAmplifyBetaResponse{Txid: txid}), nil
+}
+
 // --- Slots ---
 
 func (h *Handler) claimDecisions(ctx context.Context, claim map[string]any) (string, error) {
@@ -479,6 +491,14 @@ func (h *Handler) SlotClaimCategory(ctx context.Context, req *connect.Request[pb
 }
 
 // --- Voting ---
+
+func (h *Handler) GetVoterAddress(ctx context.Context, req *connect.Request[pb.GetVoterAddressRequest]) (*connect.Response[pb.GetVoterAddressResponse], error) {
+	var address string
+	if err := h.proxy.Client.Call(ctx, "get_voter_address", nil, &address); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetVoterAddressResponse{Address: address}), nil
+}
 
 func (h *Handler) VoteVoter(ctx context.Context, req *connect.Request[pb.VoteVoterRequest]) (*connect.Response[pb.VoteVoterResponse], error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "vote_voter", []any{req.Msg.Address})

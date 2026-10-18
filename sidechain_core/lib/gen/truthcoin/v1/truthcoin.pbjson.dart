@@ -904,6 +904,32 @@ final $typed_data.Uint8List marketPositionsResponseDescriptor = $convert.base64D
     'ChdNYXJrZXRQb3NpdGlvbnNSZXNwb25zZRIlCg5wb3NpdGlvbnNfanNvbhgBIAEoCVINcG9zaX'
     'Rpb25zSnNvbg==');
 
+@$core.Deprecated('Use marketAmplifyBetaRequestDescriptor instead')
+const MarketAmplifyBetaRequest$json = {
+  '1': 'MarketAmplifyBetaRequest',
+  '2': [
+    {'1': 'market_id', '3': 1, '4': 1, '5': 9, '10': 'marketId'},
+    {'1': 'amount_sats', '3': 2, '4': 1, '5': 3, '10': 'amountSats'},
+  ],
+};
+
+/// Descriptor for `MarketAmplifyBetaRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List marketAmplifyBetaRequestDescriptor = $convert.base64Decode(
+    'ChhNYXJrZXRBbXBsaWZ5QmV0YVJlcXVlc3QSGwoJbWFya2V0X2lkGAEgASgJUghtYXJrZXRJZB'
+    'IfCgthbW91bnRfc2F0cxgCIAEoA1IKYW1vdW50U2F0cw==');
+
+@$core.Deprecated('Use marketAmplifyBetaResponseDescriptor instead')
+const MarketAmplifyBetaResponse$json = {
+  '1': 'MarketAmplifyBetaResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `MarketAmplifyBetaResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List marketAmplifyBetaResponseDescriptor = $convert.base64Decode(
+    'ChlNYXJrZXRBbXBsaWZ5QmV0YVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
+
 @$core.Deprecated('Use slotStatusRequestDescriptor instead')
 const SlotStatusRequest$json = {
   '1': 'SlotStatusRequest',
@@ -1047,6 +1073,27 @@ const SlotClaimCategoryResponse$json = {
 /// Descriptor for `SlotClaimCategoryResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List slotClaimCategoryResponseDescriptor = $convert.base64Decode(
     'ChlTbG90Q2xhaW1DYXRlZ29yeVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
+
+@$core.Deprecated('Use getVoterAddressRequestDescriptor instead')
+const GetVoterAddressRequest$json = {
+  '1': 'GetVoterAddressRequest',
+};
+
+/// Descriptor for `GetVoterAddressRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getVoterAddressRequestDescriptor = $convert.base64Decode(
+    'ChZHZXRWb3RlckFkZHJlc3NSZXF1ZXN0');
+
+@$core.Deprecated('Use getVoterAddressResponseDescriptor instead')
+const GetVoterAddressResponse$json = {
+  '1': 'GetVoterAddressResponse',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+  ],
+};
+
+/// Descriptor for `GetVoterAddressResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getVoterAddressResponseDescriptor = $convert.base64Decode(
+    'ChdHZXRWb3RlckFkZHJlc3NSZXNwb25zZRIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNz');
 
 @$core.Deprecated('Use voteVoterRequestDescriptor instead')
 const VoteVoterRequest$json = {
@@ -1514,11 +1561,13 @@ const $core.Map<$core.String, $core.dynamic> TruthcoinServiceBase$json = {
     {'1': 'MarketBuy', '2': '.truthcoin.v1.MarketBuyRequest', '3': '.truthcoin.v1.MarketBuyResponse'},
     {'1': 'MarketSell', '2': '.truthcoin.v1.MarketSellRequest', '3': '.truthcoin.v1.MarketSellResponse'},
     {'1': 'MarketPositions', '2': '.truthcoin.v1.MarketPositionsRequest', '3': '.truthcoin.v1.MarketPositionsResponse'},
+    {'1': 'MarketAmplifyBeta', '2': '.truthcoin.v1.MarketAmplifyBetaRequest', '3': '.truthcoin.v1.MarketAmplifyBetaResponse'},
     {'1': 'SlotStatus', '2': '.truthcoin.v1.SlotStatusRequest', '3': '.truthcoin.v1.SlotStatusResponse'},
     {'1': 'SlotList', '2': '.truthcoin.v1.SlotListRequest', '3': '.truthcoin.v1.SlotListResponse'},
     {'1': 'SlotGet', '2': '.truthcoin.v1.SlotGetRequest', '3': '.truthcoin.v1.SlotGetResponse'},
     {'1': 'SlotClaim', '2': '.truthcoin.v1.SlotClaimRequest', '3': '.truthcoin.v1.SlotClaimResponse'},
     {'1': 'SlotClaimCategory', '2': '.truthcoin.v1.SlotClaimCategoryRequest', '3': '.truthcoin.v1.SlotClaimCategoryResponse'},
+    {'1': 'GetVoterAddress', '2': '.truthcoin.v1.GetVoterAddressRequest', '3': '.truthcoin.v1.GetVoterAddressResponse'},
     {'1': 'VoteVoter', '2': '.truthcoin.v1.VoteVoterRequest', '3': '.truthcoin.v1.VoteVoterResponse'},
     {'1': 'VoteVoters', '2': '.truthcoin.v1.VoteVotersRequest', '3': '.truthcoin.v1.VoteVotersResponse'},
     {'1': 'VoteSubmit', '2': '.truthcoin.v1.VoteSubmitRequest', '3': '.truthcoin.v1.VoteSubmitResponse'},
@@ -1611,6 +1660,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> TruthcoinS
   '.truthcoin.v1.MarketSellResponse': MarketSellResponse$json,
   '.truthcoin.v1.MarketPositionsRequest': MarketPositionsRequest$json,
   '.truthcoin.v1.MarketPositionsResponse': MarketPositionsResponse$json,
+  '.truthcoin.v1.MarketAmplifyBetaRequest': MarketAmplifyBetaRequest$json,
+  '.truthcoin.v1.MarketAmplifyBetaResponse': MarketAmplifyBetaResponse$json,
   '.truthcoin.v1.SlotStatusRequest': SlotStatusRequest$json,
   '.truthcoin.v1.SlotStatusResponse': SlotStatusResponse$json,
   '.truthcoin.v1.SlotListRequest': SlotListRequest$json,
@@ -1621,6 +1672,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> TruthcoinS
   '.truthcoin.v1.SlotClaimResponse': SlotClaimResponse$json,
   '.truthcoin.v1.SlotClaimCategoryRequest': SlotClaimCategoryRequest$json,
   '.truthcoin.v1.SlotClaimCategoryResponse': SlotClaimCategoryResponse$json,
+  '.truthcoin.v1.GetVoterAddressRequest': GetVoterAddressRequest$json,
+  '.truthcoin.v1.GetVoterAddressResponse': GetVoterAddressResponse$json,
   '.truthcoin.v1.VoteVoterRequest': VoteVoterRequest$json,
   '.truthcoin.v1.VoteVoterResponse': VoteVoterResponse$json,
   '.truthcoin.v1.VoteVotersRequest': VoteVotersRequest$json,
@@ -1715,38 +1768,41 @@ final $typed_data.Uint8List truthcoinServiceDescriptor = $convert.base64Decode(
     'VxdWVzdBofLnRydXRoY29pbi52MS5NYXJrZXRCdXlSZXNwb25zZRJPCgpNYXJrZXRTZWxsEh8u'
     'dHJ1dGhjb2luLnYxLk1hcmtldFNlbGxSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLk1hcmtldFNlbG'
     'xSZXNwb25zZRJeCg9NYXJrZXRQb3NpdGlvbnMSJC50cnV0aGNvaW4udjEuTWFya2V0UG9zaXRp'
-    'b25zUmVxdWVzdBolLnRydXRoY29pbi52MS5NYXJrZXRQb3NpdGlvbnNSZXNwb25zZRJPCgpTbG'
-    '90U3RhdHVzEh8udHJ1dGhjb2luLnYxLlNsb3RTdGF0dXNSZXF1ZXN0GiAudHJ1dGhjb2luLnYx'
-    'LlNsb3RTdGF0dXNSZXNwb25zZRJJCghTbG90TGlzdBIdLnRydXRoY29pbi52MS5TbG90TGlzdF'
-    'JlcXVlc3QaHi50cnV0aGNvaW4udjEuU2xvdExpc3RSZXNwb25zZRJGCgdTbG90R2V0EhwudHJ1'
-    'dGhjb2luLnYxLlNsb3RHZXRSZXF1ZXN0Gh0udHJ1dGhjb2luLnYxLlNsb3RHZXRSZXNwb25zZR'
-    'JMCglTbG90Q2xhaW0SHi50cnV0aGNvaW4udjEuU2xvdENsYWltUmVxdWVzdBofLnRydXRoY29p'
-    'bi52MS5TbG90Q2xhaW1SZXNwb25zZRJkChFTbG90Q2xhaW1DYXRlZ29yeRImLnRydXRoY29pbi'
-    '52MS5TbG90Q2xhaW1DYXRlZ29yeVJlcXVlc3QaJy50cnV0aGNvaW4udjEuU2xvdENsYWltQ2F0'
-    'ZWdvcnlSZXNwb25zZRJMCglWb3RlVm90ZXISHi50cnV0aGNvaW4udjEuVm90ZVZvdGVyUmVxdW'
-    'VzdBofLnRydXRoY29pbi52MS5Wb3RlVm90ZXJSZXNwb25zZRJPCgpWb3RlVm90ZXJzEh8udHJ1'
-    'dGhjb2luLnYxLlZvdGVWb3RlcnNSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVWb3RlcnNSZX'
-    'Nwb25zZRJPCgpWb3RlU3VibWl0Eh8udHJ1dGhjb2luLnYxLlZvdGVTdWJtaXRSZXF1ZXN0GiAu'
-    'dHJ1dGhjb2luLnYxLlZvdGVTdWJtaXRSZXNwb25zZRJJCghWb3RlTGlzdBIdLnRydXRoY29pbi'
-    '52MS5Wb3RlTGlzdFJlcXVlc3QaHi50cnV0aGNvaW4udjEuVm90ZUxpc3RSZXNwb25zZRJPCgpW'
-    'b3RlUGVyaW9kEh8udHJ1dGhjb2luLnYxLlZvdGVQZXJpb2RSZXF1ZXN0GiAudHJ1dGhjb2luLn'
-    'YxLlZvdGVQZXJpb2RSZXNwb25zZRJhChBWb3RlY29pblRyYW5zZmVyEiUudHJ1dGhjb2luLnYx'
-    'LlZvdGVjb2luVHJhbnNmZXJSZXF1ZXN0GiYudHJ1dGhjb2luLnYxLlZvdGVjb2luVHJhbnNmZX'
-    'JSZXNwb25zZRJeCg9Wb3RlY29pbkJhbGFuY2USJC50cnV0aGNvaW4udjEuVm90ZWNvaW5CYWxh'
-    'bmNlUmVxdWVzdBolLnRydXRoY29pbi52MS5Wb3RlY29pbkJhbGFuY2VSZXNwb25zZRJhChBUcm'
-    'Fuc2ZlclZvdGVjb2luEiUudHJ1dGhjb2luLnYxLlRyYW5zZmVyVm90ZWNvaW5SZXF1ZXN0GiYu'
-    'dHJ1dGhjb2luLnYxLlRyYW5zZmVyVm90ZWNvaW5SZXNwb25zZRJqChNHZXROZXdFbmNyeXB0aW'
-    '9uS2V5EigudHJ1dGhjb2luLnYxLkdldE5ld0VuY3J5cHRpb25LZXlSZXF1ZXN0GikudHJ1dGhj'
-    'b2luLnYxLkdldE5ld0VuY3J5cHRpb25LZXlSZXNwb25zZRJnChJHZXROZXdWZXJpZnlpbmdLZX'
-    'kSJy50cnV0aGNvaW4udjEuR2V0TmV3VmVyaWZ5aW5nS2V5UmVxdWVzdBooLnRydXRoY29pbi52'
-    'MS5HZXROZXdWZXJpZnlpbmdLZXlSZXNwb25zZRJPCgpFbmNyeXB0TXNnEh8udHJ1dGhjb2luLn'
-    'YxLkVuY3J5cHRNc2dSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLkVuY3J5cHRNc2dSZXNwb25zZRJP'
-    'CgpEZWNyeXB0TXNnEh8udHJ1dGhjb2luLnYxLkRlY3J5cHRNc2dSZXF1ZXN0GiAudHJ1dGhjb2'
-    'luLnYxLkRlY3J5cHRNc2dSZXNwb25zZRJhChBTaWduQXJiaXRyYXJ5TXNnEiUudHJ1dGhjb2lu'
-    'LnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1ZXN0GiYudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcn'
-    'lNc2dSZXNwb25zZRJzChZTaWduQXJiaXRyYXJ5TXNnQXNBZGRyEisudHJ1dGhjb2luLnYxLlNp'
-    'Z25BcmJpdHJhcnlNc2dBc0FkZHJSZXF1ZXN0GiwudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcn'
-    'lNc2dBc0FkZHJSZXNwb25zZRJeCg9WZXJpZnlTaWduYXR1cmUSJC50cnV0aGNvaW4udjEuVmVy'
-    'aWZ5U2lnbmF0dXJlUmVxdWVzdBolLnRydXRoY29pbi52MS5WZXJpZnlTaWduYXR1cmVSZXNwb2'
-    '5zZQ==');
+    'b25zUmVxdWVzdBolLnRydXRoY29pbi52MS5NYXJrZXRQb3NpdGlvbnNSZXNwb25zZRJkChFNYX'
+    'JrZXRBbXBsaWZ5QmV0YRImLnRydXRoY29pbi52MS5NYXJrZXRBbXBsaWZ5QmV0YVJlcXVlc3Qa'
+    'Jy50cnV0aGNvaW4udjEuTWFya2V0QW1wbGlmeUJldGFSZXNwb25zZRJPCgpTbG90U3RhdHVzEh'
+    '8udHJ1dGhjb2luLnYxLlNsb3RTdGF0dXNSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLlNsb3RTdGF0'
+    'dXNSZXNwb25zZRJJCghTbG90TGlzdBIdLnRydXRoY29pbi52MS5TbG90TGlzdFJlcXVlc3QaHi'
+    '50cnV0aGNvaW4udjEuU2xvdExpc3RSZXNwb25zZRJGCgdTbG90R2V0EhwudHJ1dGhjb2luLnYx'
+    'LlNsb3RHZXRSZXF1ZXN0Gh0udHJ1dGhjb2luLnYxLlNsb3RHZXRSZXNwb25zZRJMCglTbG90Q2'
+    'xhaW0SHi50cnV0aGNvaW4udjEuU2xvdENsYWltUmVxdWVzdBofLnRydXRoY29pbi52MS5TbG90'
+    'Q2xhaW1SZXNwb25zZRJkChFTbG90Q2xhaW1DYXRlZ29yeRImLnRydXRoY29pbi52MS5TbG90Q2'
+    'xhaW1DYXRlZ29yeVJlcXVlc3QaJy50cnV0aGNvaW4udjEuU2xvdENsYWltQ2F0ZWdvcnlSZXNw'
+    'b25zZRJeCg9HZXRWb3RlckFkZHJlc3MSJC50cnV0aGNvaW4udjEuR2V0Vm90ZXJBZGRyZXNzUm'
+    'VxdWVzdBolLnRydXRoY29pbi52MS5HZXRWb3RlckFkZHJlc3NSZXNwb25zZRJMCglWb3RlVm90'
+    'ZXISHi50cnV0aGNvaW4udjEuVm90ZVZvdGVyUmVxdWVzdBofLnRydXRoY29pbi52MS5Wb3RlVm'
+    '90ZXJSZXNwb25zZRJPCgpWb3RlVm90ZXJzEh8udHJ1dGhjb2luLnYxLlZvdGVWb3RlcnNSZXF1'
+    'ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVWb3RlcnNSZXNwb25zZRJPCgpWb3RlU3VibWl0Eh8udH'
+    'J1dGhjb2luLnYxLlZvdGVTdWJtaXRSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVTdWJtaXRS'
+    'ZXNwb25zZRJJCghWb3RlTGlzdBIdLnRydXRoY29pbi52MS5Wb3RlTGlzdFJlcXVlc3QaHi50cn'
+    'V0aGNvaW4udjEuVm90ZUxpc3RSZXNwb25zZRJPCgpWb3RlUGVyaW9kEh8udHJ1dGhjb2luLnYx'
+    'LlZvdGVQZXJpb2RSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVQZXJpb2RSZXNwb25zZRJhCh'
+    'BWb3RlY29pblRyYW5zZmVyEiUudHJ1dGhjb2luLnYxLlZvdGVjb2luVHJhbnNmZXJSZXF1ZXN0'
+    'GiYudHJ1dGhjb2luLnYxLlZvdGVjb2luVHJhbnNmZXJSZXNwb25zZRJeCg9Wb3RlY29pbkJhbG'
+    'FuY2USJC50cnV0aGNvaW4udjEuVm90ZWNvaW5CYWxhbmNlUmVxdWVzdBolLnRydXRoY29pbi52'
+    'MS5Wb3RlY29pbkJhbGFuY2VSZXNwb25zZRJhChBUcmFuc2ZlclZvdGVjb2luEiUudHJ1dGhjb2'
+    'luLnYxLlRyYW5zZmVyVm90ZWNvaW5SZXF1ZXN0GiYudHJ1dGhjb2luLnYxLlRyYW5zZmVyVm90'
+    'ZWNvaW5SZXNwb25zZRJqChNHZXROZXdFbmNyeXB0aW9uS2V5EigudHJ1dGhjb2luLnYxLkdldE'
+    '5ld0VuY3J5cHRpb25LZXlSZXF1ZXN0GikudHJ1dGhjb2luLnYxLkdldE5ld0VuY3J5cHRpb25L'
+    'ZXlSZXNwb25zZRJnChJHZXROZXdWZXJpZnlpbmdLZXkSJy50cnV0aGNvaW4udjEuR2V0TmV3Vm'
+    'VyaWZ5aW5nS2V5UmVxdWVzdBooLnRydXRoY29pbi52MS5HZXROZXdWZXJpZnlpbmdLZXlSZXNw'
+    'b25zZRJPCgpFbmNyeXB0TXNnEh8udHJ1dGhjb2luLnYxLkVuY3J5cHRNc2dSZXF1ZXN0GiAudH'
+    'J1dGhjb2luLnYxLkVuY3J5cHRNc2dSZXNwb25zZRJPCgpEZWNyeXB0TXNnEh8udHJ1dGhjb2lu'
+    'LnYxLkRlY3J5cHRNc2dSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLkRlY3J5cHRNc2dSZXNwb25zZR'
+    'JhChBTaWduQXJiaXRyYXJ5TXNnEiUudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1'
+    'ZXN0GiYudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXNwb25zZRJzChZTaWduQXJiaX'
+    'RyYXJ5TXNnQXNBZGRyEisudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXF1'
+    'ZXN0GiwudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXNwb25zZRJeCg9WZX'
+    'JpZnlTaWduYXR1cmUSJC50cnV0aGNvaW4udjEuVmVyaWZ5U2lnbmF0dXJlUmVxdWVzdBolLnRy'
+    'dXRoY29pbi52MS5WZXJpZnlTaWduYXR1cmVSZXNwb25zZQ==');
 

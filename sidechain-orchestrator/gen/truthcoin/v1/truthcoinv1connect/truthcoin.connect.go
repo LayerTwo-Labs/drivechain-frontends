@@ -139,6 +139,9 @@ const (
 	// TruthcoinServiceMarketPositionsProcedure is the fully-qualified name of the TruthcoinService's
 	// MarketPositions RPC.
 	TruthcoinServiceMarketPositionsProcedure = "/truthcoin.v1.TruthcoinService/MarketPositions"
+	// TruthcoinServiceMarketAmplifyBetaProcedure is the fully-qualified name of the TruthcoinService's
+	// MarketAmplifyBeta RPC.
+	TruthcoinServiceMarketAmplifyBetaProcedure = "/truthcoin.v1.TruthcoinService/MarketAmplifyBeta"
 	// TruthcoinServiceSlotStatusProcedure is the fully-qualified name of the TruthcoinService's
 	// SlotStatus RPC.
 	TruthcoinServiceSlotStatusProcedure = "/truthcoin.v1.TruthcoinService/SlotStatus"
@@ -154,6 +157,9 @@ const (
 	// TruthcoinServiceSlotClaimCategoryProcedure is the fully-qualified name of the TruthcoinService's
 	// SlotClaimCategory RPC.
 	TruthcoinServiceSlotClaimCategoryProcedure = "/truthcoin.v1.TruthcoinService/SlotClaimCategory"
+	// TruthcoinServiceGetVoterAddressProcedure is the fully-qualified name of the TruthcoinService's
+	// GetVoterAddress RPC.
+	TruthcoinServiceGetVoterAddressProcedure = "/truthcoin.v1.TruthcoinService/GetVoterAddress"
 	// TruthcoinServiceVoteVoterProcedure is the fully-qualified name of the TruthcoinService's
 	// VoteVoter RPC.
 	TruthcoinServiceVoteVoterProcedure = "/truthcoin.v1.TruthcoinService/VoteVoter"
@@ -275,6 +281,8 @@ type TruthcoinServiceClient interface {
 	MarketSell(context.Context, *connect.Request[v1.MarketSellRequest]) (*connect.Response[v1.MarketSellResponse], error)
 	// Get positions in a market.
 	MarketPositions(context.Context, *connect.Request[v1.MarketPositionsRequest]) (*connect.Response[v1.MarketPositionsResponse], error)
+	// Add liquidity to a market that a wallet address created.
+	MarketAmplifyBeta(context.Context, *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error)
 	// Get slot system status and configuration.
 	SlotStatus(context.Context, *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error)
 	// List slots with optional filtering.
@@ -285,6 +293,8 @@ type TruthcoinServiceClient interface {
 	SlotClaim(context.Context, *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error)
 	// Claim multiple slots as a category.
 	SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error)
+	// Get the voter address of the wallet.
+	GetVoterAddress(context.Context, *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error)
 	// Get voter info.
 	VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error)
 	// List all voters.
@@ -544,6 +554,12 @@ func NewTruthcoinServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(truthcoinServiceMethods.ByName("MarketPositions")),
 			connect.WithClientOptions(opts...),
 		),
+		marketAmplifyBeta: connect.NewClient[v1.MarketAmplifyBetaRequest, v1.MarketAmplifyBetaResponse](
+			httpClient,
+			baseURL+TruthcoinServiceMarketAmplifyBetaProcedure,
+			connect.WithSchema(truthcoinServiceMethods.ByName("MarketAmplifyBeta")),
+			connect.WithClientOptions(opts...),
+		),
 		slotStatus: connect.NewClient[v1.SlotStatusRequest, v1.SlotStatusResponse](
 			httpClient,
 			baseURL+TruthcoinServiceSlotStatusProcedure,
@@ -572,6 +588,12 @@ func NewTruthcoinServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			httpClient,
 			baseURL+TruthcoinServiceSlotClaimCategoryProcedure,
 			connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaimCategory")),
+			connect.WithClientOptions(opts...),
+		),
+		getVoterAddress: connect.NewClient[v1.GetVoterAddressRequest, v1.GetVoterAddressResponse](
+			httpClient,
+			baseURL+TruthcoinServiceGetVoterAddressProcedure,
+			connect.WithSchema(truthcoinServiceMethods.ByName("GetVoterAddress")),
 			connect.WithClientOptions(opts...),
 		),
 		voteVoter: connect.NewClient[v1.VoteVoterRequest, v1.VoteVoterResponse](
@@ -705,11 +727,13 @@ type truthcoinServiceClient struct {
 	marketBuy                             *connect.Client[v1.MarketBuyRequest, v1.MarketBuyResponse]
 	marketSell                            *connect.Client[v1.MarketSellRequest, v1.MarketSellResponse]
 	marketPositions                       *connect.Client[v1.MarketPositionsRequest, v1.MarketPositionsResponse]
+	marketAmplifyBeta                     *connect.Client[v1.MarketAmplifyBetaRequest, v1.MarketAmplifyBetaResponse]
 	slotStatus                            *connect.Client[v1.SlotStatusRequest, v1.SlotStatusResponse]
 	slotList                              *connect.Client[v1.SlotListRequest, v1.SlotListResponse]
 	slotGet                               *connect.Client[v1.SlotGetRequest, v1.SlotGetResponse]
 	slotClaim                             *connect.Client[v1.SlotClaimRequest, v1.SlotClaimResponse]
 	slotClaimCategory                     *connect.Client[v1.SlotClaimCategoryRequest, v1.SlotClaimCategoryResponse]
+	getVoterAddress                       *connect.Client[v1.GetVoterAddressRequest, v1.GetVoterAddressResponse]
 	voteVoter                             *connect.Client[v1.VoteVoterRequest, v1.VoteVoterResponse]
 	voteVoters                            *connect.Client[v1.VoteVotersRequest, v1.VoteVotersResponse]
 	voteSubmit                            *connect.Client[v1.VoteSubmitRequest, v1.VoteSubmitResponse]
@@ -908,6 +932,11 @@ func (c *truthcoinServiceClient) MarketPositions(ctx context.Context, req *conne
 	return c.marketPositions.CallUnary(ctx, req)
 }
 
+// MarketAmplifyBeta calls truthcoin.v1.TruthcoinService.MarketAmplifyBeta.
+func (c *truthcoinServiceClient) MarketAmplifyBeta(ctx context.Context, req *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error) {
+	return c.marketAmplifyBeta.CallUnary(ctx, req)
+}
+
 // SlotStatus calls truthcoin.v1.TruthcoinService.SlotStatus.
 func (c *truthcoinServiceClient) SlotStatus(ctx context.Context, req *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error) {
 	return c.slotStatus.CallUnary(ctx, req)
@@ -931,6 +960,11 @@ func (c *truthcoinServiceClient) SlotClaim(ctx context.Context, req *connect.Req
 // SlotClaimCategory calls truthcoin.v1.TruthcoinService.SlotClaimCategory.
 func (c *truthcoinServiceClient) SlotClaimCategory(ctx context.Context, req *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error) {
 	return c.slotClaimCategory.CallUnary(ctx, req)
+}
+
+// GetVoterAddress calls truthcoin.v1.TruthcoinService.GetVoterAddress.
+func (c *truthcoinServiceClient) GetVoterAddress(ctx context.Context, req *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error) {
+	return c.getVoterAddress.CallUnary(ctx, req)
 }
 
 // VoteVoter calls truthcoin.v1.TruthcoinService.VoteVoter.
@@ -1082,6 +1116,8 @@ type TruthcoinServiceHandler interface {
 	MarketSell(context.Context, *connect.Request[v1.MarketSellRequest]) (*connect.Response[v1.MarketSellResponse], error)
 	// Get positions in a market.
 	MarketPositions(context.Context, *connect.Request[v1.MarketPositionsRequest]) (*connect.Response[v1.MarketPositionsResponse], error)
+	// Add liquidity to a market that a wallet address created.
+	MarketAmplifyBeta(context.Context, *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error)
 	// Get slot system status and configuration.
 	SlotStatus(context.Context, *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error)
 	// List slots with optional filtering.
@@ -1092,6 +1128,8 @@ type TruthcoinServiceHandler interface {
 	SlotClaim(context.Context, *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error)
 	// Claim multiple slots as a category.
 	SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error)
+	// Get the voter address of the wallet.
+	GetVoterAddress(context.Context, *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error)
 	// Get voter info.
 	VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error)
 	// List all voters.
@@ -1347,6 +1385,12 @@ func NewTruthcoinServiceHandler(svc TruthcoinServiceHandler, opts ...connect.Han
 		connect.WithSchema(truthcoinServiceMethods.ByName("MarketPositions")),
 		connect.WithHandlerOptions(opts...),
 	)
+	truthcoinServiceMarketAmplifyBetaHandler := connect.NewUnaryHandler(
+		TruthcoinServiceMarketAmplifyBetaProcedure,
+		svc.MarketAmplifyBeta,
+		connect.WithSchema(truthcoinServiceMethods.ByName("MarketAmplifyBeta")),
+		connect.WithHandlerOptions(opts...),
+	)
 	truthcoinServiceSlotStatusHandler := connect.NewUnaryHandler(
 		TruthcoinServiceSlotStatusProcedure,
 		svc.SlotStatus,
@@ -1375,6 +1419,12 @@ func NewTruthcoinServiceHandler(svc TruthcoinServiceHandler, opts ...connect.Han
 		TruthcoinServiceSlotClaimCategoryProcedure,
 		svc.SlotClaimCategory,
 		connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaimCategory")),
+		connect.WithHandlerOptions(opts...),
+	)
+	truthcoinServiceGetVoterAddressHandler := connect.NewUnaryHandler(
+		TruthcoinServiceGetVoterAddressProcedure,
+		svc.GetVoterAddress,
+		connect.WithSchema(truthcoinServiceMethods.ByName("GetVoterAddress")),
 		connect.WithHandlerOptions(opts...),
 	)
 	truthcoinServiceVoteVoterHandler := connect.NewUnaryHandler(
@@ -1541,6 +1591,8 @@ func NewTruthcoinServiceHandler(svc TruthcoinServiceHandler, opts ...connect.Han
 			truthcoinServiceMarketSellHandler.ServeHTTP(w, r)
 		case TruthcoinServiceMarketPositionsProcedure:
 			truthcoinServiceMarketPositionsHandler.ServeHTTP(w, r)
+		case TruthcoinServiceMarketAmplifyBetaProcedure:
+			truthcoinServiceMarketAmplifyBetaHandler.ServeHTTP(w, r)
 		case TruthcoinServiceSlotStatusProcedure:
 			truthcoinServiceSlotStatusHandler.ServeHTTP(w, r)
 		case TruthcoinServiceSlotListProcedure:
@@ -1551,6 +1603,8 @@ func NewTruthcoinServiceHandler(svc TruthcoinServiceHandler, opts ...connect.Han
 			truthcoinServiceSlotClaimHandler.ServeHTTP(w, r)
 		case TruthcoinServiceSlotClaimCategoryProcedure:
 			truthcoinServiceSlotClaimCategoryHandler.ServeHTTP(w, r)
+		case TruthcoinServiceGetVoterAddressProcedure:
+			truthcoinServiceGetVoterAddressHandler.ServeHTTP(w, r)
 		case TruthcoinServiceVoteVoterProcedure:
 			truthcoinServiceVoteVoterHandler.ServeHTTP(w, r)
 		case TruthcoinServiceVoteVotersProcedure:
@@ -1734,6 +1788,10 @@ func (UnimplementedTruthcoinServiceHandler) MarketPositions(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketPositions is not implemented"))
 }
 
+func (UnimplementedTruthcoinServiceHandler) MarketAmplifyBeta(context.Context, *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketAmplifyBeta is not implemented"))
+}
+
 func (UnimplementedTruthcoinServiceHandler) SlotStatus(context.Context, *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotStatus is not implemented"))
 }
@@ -1752,6 +1810,10 @@ func (UnimplementedTruthcoinServiceHandler) SlotClaim(context.Context, *connect.
 
 func (UnimplementedTruthcoinServiceHandler) SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotClaimCategory is not implemented"))
+}
+
+func (UnimplementedTruthcoinServiceHandler) GetVoterAddress(context.Context, *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetVoterAddress is not implemented"))
 }
 
 func (UnimplementedTruthcoinServiceHandler) VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error) {

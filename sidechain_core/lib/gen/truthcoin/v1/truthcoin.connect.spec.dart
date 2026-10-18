@@ -298,6 +298,14 @@ abstract final class TruthcoinService {
     truthcoinv1truthcoin.MarketPositionsResponse.new,
   );
 
+  /// Add liquidity to a market that a wallet address created.
+  static const marketAmplifyBeta = connect.Spec(
+    '/$name/MarketAmplifyBeta',
+    connect.StreamType.unary,
+    truthcoinv1truthcoin.MarketAmplifyBetaRequest.new,
+    truthcoinv1truthcoin.MarketAmplifyBetaResponse.new,
+  );
+
   /// Get slot system status and configuration.
   static const slotStatus = connect.Spec(
     '/$name/SlotStatus',
@@ -336,6 +344,14 @@ abstract final class TruthcoinService {
     connect.StreamType.unary,
     truthcoinv1truthcoin.SlotClaimCategoryRequest.new,
     truthcoinv1truthcoin.SlotClaimCategoryResponse.new,
+  );
+
+  /// Get the voter address of the wallet.
+  static const getVoterAddress = connect.Spec(
+    '/$name/GetVoterAddress',
+    connect.StreamType.unary,
+    truthcoinv1truthcoin.GetVoterAddressRequest.new,
+    truthcoinv1truthcoin.GetVoterAddressResponse.new,
   );
 
   /// Get voter info.
