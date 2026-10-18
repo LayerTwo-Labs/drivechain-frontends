@@ -15,7 +15,7 @@ import (
 var _ svc.BitAssetsServiceHandler = (*Handler)(nil)
 
 // Handler implements BitAssetsServiceHandler by proxying to the bitassets binary's JSON-RPC.
-// Common methods delegate to the embedded JSONRPCProxy; BitAssets-specific methods are
+// Common methods delegate to the proxy field; BitAssets-specific methods are
 // implemented directly using the proxy's Client.
 type Handler struct {
 	proxy *sidechain.JSONRPCProxy

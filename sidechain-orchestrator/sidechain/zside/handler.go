@@ -16,7 +16,7 @@ import (
 var _ svc.ZSideServiceHandler = (*Handler)(nil)
 
 // Handler implements ZSideServiceHandler by proxying to the zside binary's JSON-RPC.
-// Common methods delegate to the embedded JSONRPCProxy; ZSide-specific methods are
+// Common methods delegate to the proxy field; ZSide-specific methods are
 // implemented directly using the proxy's Client.
 type Handler struct {
 	proxy *sidechain.JSONRPCProxy

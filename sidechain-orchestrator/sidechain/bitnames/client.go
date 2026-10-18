@@ -229,11 +229,6 @@ func (c *Client) GetBlock(ctx context.Context, hash string) (json.RawMessage, er
 	return c.call(ctx, "get_block", []any{hash})
 }
 
-// GetBMMInclusions returns mainchain blocks that commit to the given block hash.
-func (c *Client) GetBMMInclusions(ctx context.Context, blockHash string) (string, error) {
-	return unmarshal[string](c, ctx, "get_bmm_inclusions", blockHash)
-}
-
 // GetBestMainchainBlockHash returns the best known mainchain block hash.
 func (c *Client) GetBestMainchainBlockHash(ctx context.Context) (*string, error) {
 	raw, err := c.call(ctx, "get_best_mainchain_block_hash", nil)
@@ -364,19 +359,6 @@ func (c *Client) SignArbitraryMsgAsAddr(ctx context.Context, msg, address string
 // GetPaymail returns paymail information as raw JSON.
 func (c *Client) GetPaymail(ctx context.Context) (json.RawMessage, error) {
 	return c.call(ctx, "get_paymail", nil)
-}
-
-// ---------------------------------------------------------------------------
-// Mining
-// ---------------------------------------------------------------------------
-
-// Mine attempts to create and submit a BMM block.
-func (c *Client) Mine(ctx context.Context, feeSats int64) (*BmmResult, error) {
-	r, err := unmarshal[BmmResult](c, ctx, "mine", feeSats)
-	if err != nil {
-		return nil, err
-	}
-	return &r, nil
 }
 
 // ---------------------------------------------------------------------------

@@ -15,7 +15,7 @@ import (
 var _ svc.PhotonServiceHandler = (*Handler)(nil)
 
 // Handler implements PhotonServiceHandler by proxying to the photon binary's JSON-RPC.
-// Common methods delegate to the embedded JSONRPCProxy; Photon-specific methods are
+// Common methods delegate to the proxy field; Photon-specific methods are
 // implemented directly using the proxy's Client.
 type Handler struct {
 	proxy *sidechain.JSONRPCProxy

@@ -16,7 +16,7 @@ import (
 var _ svc.CoinShiftServiceHandler = (*Handler)(nil)
 
 // Handler implements CoinShiftServiceHandler by proxying to the coinshift binary's JSON-RPC.
-// Common methods delegate to the embedded JSONRPCProxy; CoinShift-specific methods are
+// Common methods delegate to the proxy field; CoinShift-specific methods are
 // implemented directly using the proxy's Client.
 type Handler struct {
 	proxy *sidechain.JSONRPCProxy

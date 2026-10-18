@@ -5,15 +5,12 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -670,145 +667,6 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 // Log file resolution (Dart: logPath, _findLatestEnforcerLog, _findLatestDirVersionedLog)
 // ---------------------------------------------------------------------------
 
-// LogPath returns the log file path for this binary.
-// Dart: logPath (L1378-1392)
-func (b BinaryDirConfig) LogPath(networkDir string) string {
-	switch b.layoutKey() {
-	case "bitcoind":
-		return filepath.Join(networkDir, "debug.log")
-
-	case "bitwindowd":
-		return logfile.Path(BitWindowDirs.RootDir())
-
-	case "bip300301-enforcer":
-		return findLatestEnforcerLog(networkDir)
-
-	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
-		return findLatestDirVersionedLog(networkDir)
-
-	default:
-		return ""
-	}
-}
-
-// findLatestEnforcerLog finds the latest enforcer log file.
-// Dart: _findLatestEnforcerLog (L1394-1437)
-func findLatestEnforcerLog(datadirNetwork string) string {
-	logsDir := filepath.Join(datadirNetwork, "logs")
-	fallback := filepath.Join(datadirNetwork, "bip300301_enforcer.log")
-
-	entries, err := os.ReadDir(logsDir)
-	if err != nil {
-		return fallback
-	}
-
-	pattern := regexp.MustCompile(`^bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$`)
-	type logEntry struct {
-		path string
-		date string
-		seq  int
-	}
-	var logs []logEntry
-
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		m := pattern.FindStringSubmatch(e.Name())
-		if m == nil {
-			continue
-		}
-		seq := 0
-		_, _ = fmt.Sscanf(m[2], "%d", &seq)
-		logs = append(logs, logEntry{filepath.Join(logsDir, e.Name()), m[1], seq})
-	}
-
-	if len(logs) == 0 {
-		return fallback
-	}
-
-	// Sort by date desc, then seq desc (latest first)
-	sort.Slice(logs, func(i, j int) bool {
-		if logs[i].date != logs[j].date {
-			return logs[i].date > logs[j].date
-		}
-		return logs[i].seq > logs[j].seq
-	})
-
-	return logs[0].path
-}
-
-// findLatestDirVersionedLog finds the latest version-directory log file.
-// Dart: _findLatestDirVersionedLog (L1439-1493)
-func findLatestDirVersionedLog(datadirNetwork string) string {
-	logsDir := filepath.Join(datadirNetwork, "logs")
-	fallback := filepath.Join(logsDir, "unknown.log")
-
-	entries, err := os.ReadDir(logsDir)
-	if err != nil {
-		return fallback
-	}
-
-	// Find version directories (v0.1.0, v1.2.3, etc.)
-	var versionDirs []string
-	for _, e := range entries {
-		if e.IsDir() && strings.HasPrefix(e.Name(), "v") {
-			versionDirs = append(versionDirs, e.Name())
-		}
-	}
-
-	if len(versionDirs) == 0 {
-		return fallback
-	}
-
-	// Sort by version number descending
-	sort.Slice(versionDirs, func(i, j int) bool {
-		return compareVersions(versionDirs[i][1:], versionDirs[j][1:]) > 0
-	})
-
-	latestDir := filepath.Join(logsDir, versionDirs[0])
-	logEntries, err := os.ReadDir(latestDir)
-	if err != nil {
-		return fallback
-	}
-
-	var logFiles []string
-	for _, e := range logEntries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".log") {
-			logFiles = append(logFiles, e.Name())
-		}
-	}
-
-	if len(logFiles) == 0 {
-		return fallback
-	}
-
-	// Sort by date in filename descending (YYYY-MM-DD.log)
-	sort.Slice(logFiles, func(i, j int) bool {
-		dateI := strings.TrimSuffix(logFiles[i], ".log")
-		dateJ := strings.TrimSuffix(logFiles[j], ".log")
-		return dateI > dateJ
-	})
-
-	return filepath.Join(latestDir, logFiles[0])
-}
-
-// compareVersions compares two semver strings. Returns >0 if a>b, <0 if a<b, 0 if equal.
-func compareVersions(a, b string) int {
-	aParts := strings.Split(a, ".")
-	bParts := strings.Split(b, ".")
-
-	for i := 0; i < len(aParts) && i < len(bParts); i++ {
-		ai, bi := 0, 0
-		_, _ = fmt.Sscanf(aParts[i], "%d", &ai)
-		_, _ = fmt.Sscanf(bParts[i], "%d", &bi)
-		if ai != bi {
-			return ai - bi
-		}
-	}
-	return len(aParts) - len(bParts)
-}
-
 // ---------------------------------------------------------------------------
 // Network helper on Network type
 // ---------------------------------------------------------------------------
@@ -923,26 +781,6 @@ func (b BinaryDirConfig) staticExtraFiles() []string {
 	}
 }
 
-// DeleteBinaries deletes binary files and extra files from the assets directory.
-// Dart: deleteBinaries (L169-232)
-func (b BinaryDirConfig) DeleteBinaries(assetsDir string, log zerolog.Logger) {
-	// Delete raw binary assets
-	baseFiles := []string{
-		b.BinaryName,
-		strings.TrimSuffix(b.BinaryName, ".exe"),
-		b.BinaryName + ".exe",
-		b.BinaryName + ".app",
-		b.BinaryName + ".meta",
-	}
-	DeleteFilesWithRetry(pathsInDir(assetsDir, baseFiles), log)
-
-	// Delete extra per-binary files
-	extra := b.ExtraFilesForDeletion(assetsDir)
-	if len(extra) > 0 {
-		DeleteFilesWithRetry(pathsInDir(assetsDir, extra), log)
-	}
-}
-
 // GetBinaryPaths returns existing binary + extra file paths in assets dir.
 // Dart: getBinaryPaths (L520-592)
 func (b BinaryDirConfig) GetBinaryPaths(assetsDir string, log zerolog.Logger) []string {
@@ -1019,142 +857,9 @@ func (b BinaryDirConfig) getPossibleBinaryPaths(baseBinary, appDir string) []str
 	return paths
 }
 
-// ConnectionString returns a display string for this binary's connection.
-// Dart: connectionString (L778-793)
-func (b BinaryDirConfig) ConnectionString() string {
-	return fmt.Sprintf("%s :%d", b.Name, b.Port)
-}
-
-func pathsInDir(dir string, files []string) []string {
-	var paths []string
-	for _, f := range files {
-		paths = append(paths, filepath.Join(dir, f))
-	}
-	return paths
-}
-
 // ---------------------------------------------------------------------------
 // Batch 5: Version/update checking
 // ---------------------------------------------------------------------------
-
-// GitHubCache caches GitHub API responses with a 1-minute TTL.
-// Dart: _GitHubCache (L813-840)
-type GitHubCache struct {
-	entries map[string]*githubCacheEntry
-}
-
-type githubCacheEntry struct {
-	releaseDate *time.Time
-	timestamp   time.Time
-}
-
-var globalGitHubCache = &GitHubCache{entries: make(map[string]*githubCacheEntry)}
-
-func (c *GitHubCache) Get(url string) (*time.Time, bool) {
-	entry, ok := c.entries[url]
-	if !ok {
-		return nil, false
-	}
-	if time.Since(entry.timestamp) >= 1*time.Minute {
-		delete(c.entries, url)
-		return nil, false
-	}
-	return entry.releaseDate, true
-}
-
-func (c *GitHubCache) Set(url string, releaseDate *time.Time) {
-	c.entries[url] = &githubCacheEntry{releaseDate: releaseDate, timestamp: time.Now()}
-}
-
-// CheckReleaseDate checks the release date for a binary without downloading.
-// Dart: _checkReleaseDate (L680-691)
-func (b BinaryDirConfig) CheckReleaseDate(downloadURL string, downloadSource int, fileName string) (*time.Time, error) {
-	if strings.Contains(downloadURL, "github.com") {
-		return checkGithubReleaseDate(downloadURL)
-	}
-	return checkDirectReleaseDate(downloadURL, fileName)
-}
-
-// checkGithubReleaseDate checks the GitHub API for release date.
-// Dart: _checkGithubReleaseDate (L693-737)
-func checkGithubReleaseDate(url string) (*time.Time, error) {
-	if cached, ok := globalGitHubCache.Get(url); ok {
-		return cached, nil
-	}
-
-	resp, err := http.Get(url)
-	if err != nil {
-		globalGitHubCache.Set(url, nil)
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == 403 || resp.StatusCode != 200 {
-		globalGitHubCache.Set(url, nil)
-		return nil, fmt.Errorf("GitHub API returned %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		globalGitHubCache.Set(url, nil)
-		return nil, err
-	}
-
-	// Simple JSON parsing for published_at
-	var release struct {
-		PublishedAt string `json:"published_at"`
-	}
-	if err := json.Unmarshal(body, &release); err != nil {
-		globalGitHubCache.Set(url, nil)
-		return nil, err
-	}
-
-	if release.PublishedAt == "" {
-		globalGitHubCache.Set(url, nil)
-		return nil, fmt.Errorf("no published_at in release")
-	}
-
-	t, err := time.Parse(time.RFC3339, release.PublishedAt)
-	if err != nil {
-		globalGitHubCache.Set(url, nil)
-		return nil, err
-	}
-
-	globalGitHubCache.Set(url, &t)
-	return &t, nil
-}
-
-// checkDirectReleaseDate checks the Last-Modified header for a direct download.
-// Dart: _checkDirectReleaseDate (L739-771)
-func checkDirectReleaseDate(baseURL, fileName string) (*time.Time, error) {
-	if fileName == "" || baseURL == "" {
-		return nil, nil
-	}
-
-	downloadURL := baseURL + fileName
-
-	resp, err := http.Head(downloadURL)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("HEAD %s returned %d", downloadURL, resp.StatusCode)
-	}
-
-	lastModified := resp.Header.Get("Last-Modified")
-	if lastModified == "" {
-		return nil, fmt.Errorf("no Last-Modified header")
-	}
-
-	t, err := http.ParseTime(lastModified)
-	if err != nil {
-		return nil, err
-	}
-
-	return &t, nil
-}
 
 // BinaryVersion runs the binary with --version and returns the output.
 // Dart: binaryVersion (L1615-1677)
@@ -1192,45 +897,4 @@ func (b BinaryDirConfig) CalculateHash(appDir string) (string, error) {
 
 	hash := sha256.Sum256(data)
 	return fmt.Sprintf("%x", hash), nil
-}
-
-// ---------------------------------------------------------------------------
-// Batch 6: Metadata/state types
-// ---------------------------------------------------------------------------
-
-// DownloadProgress tracks download progress for a binary.
-// Dart: DownloadInfo class (L1969-2025)
-type DownloadProgress struct {
-	Progress      float64   // bytes downloaded
-	Total         float64   // total bytes
-	Error         string    // error message
-	Message       string    // status message
-	Hash          string    // SHA256 hash
-	DownloadedAt  time.Time // when download completed
-	IsDownloading bool
-}
-
-// ProgressPercent returns the download progress as a percentage (0.0-1.0).
-// Dart: DownloadInfo.progressPercent getter
-func (d DownloadProgress) ProgressPercent() float64 {
-	if d.Total <= 0 {
-		return 0
-	}
-	return d.Progress / d.Total
-}
-
-// ProcessLogEntry stores a single process log line.
-// Dart: ProcessLogEntry class (L2027-2035)
-type ProcessLogEntry struct {
-	Timestamp time.Time
-	Message   string
-}
-
-// ShutdownProgressInfo reports progress during shutdown.
-// Dart: ShutdownProgress class (L1954-1966)
-type ShutdownProgressInfo struct {
-	TotalCount     int
-	CompletedCount int
-	CurrentBinary  string
-	IsForceKill    bool
 }
