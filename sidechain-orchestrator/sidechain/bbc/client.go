@@ -1,5 +1,5 @@
 // Package bbc is the RPC client for the Bbc sidechain, a Bitcoin Core fork
-// carrying the covenant opcodes. It reads the shared Core client for everything
+// with the covenant opcodes. It embeds the shared Core client for every method
 // Core answers, and adds the blind-merge-mining methods the BMM engine drives.
 package bbc
 

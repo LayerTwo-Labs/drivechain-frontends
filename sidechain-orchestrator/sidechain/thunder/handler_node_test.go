@@ -199,3 +199,13 @@ func TestListTransactionsReadsEmptyIndex(t *testing.T) {
 	assert.False(t, resp.Msg.Transactions[0].Confirmed)
 	assert.Equal(t, []string{"get_wallet_addresses"}, *seen)
 }
+
+// The node answers a list of mainchain blocks, so the handler passes the JSON on.
+func TestGetBmmInclusionsReadsTheList(t *testing.T) {
+	proxy, seen := sendMethodNode(t, map[string]string{"get_bmm_inclusions": `["main-a","main-b"]`})
+	resp, err := NewHandler(proxy).GetBmmInclusions(context.Background(),
+		connect.NewRequest(&pb.GetBmmInclusionsRequest{BlockHash: "side"}))
+	require.NoError(t, err)
+	assert.JSONEq(t, `["main-a","main-b"]`, resp.Msg.Inclusions)
+	assert.Equal(t, []string{`get_bmm_inclusions ["side"]`}, *seen)
+}

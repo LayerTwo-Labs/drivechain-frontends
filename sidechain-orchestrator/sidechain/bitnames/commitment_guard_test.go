@@ -82,7 +82,7 @@ func TestPinnedDialerIgnoresTheAddressItGets(t *testing.T) {
 
 	// A rebinding answer gives the name a private address after the check. The
 	// dialer holds the checked address, so the second answer reaches nothing.
-	conn, err := pinnedDialer([]netip.Addr{pinned}, port, nil)(context.Background(), "tcp", "10.0.0.1:6002")
+	conn, err := pinnedDialer([]netip.Addr{pinned}, port)(context.Background(), "tcp", "10.0.0.1:6002")
 	require.NoError(t, err)
 	defer func() { _ = conn.Close() }()
 
@@ -138,18 +138,12 @@ func TestPinnedDialerSplitsTheDeadline(t *testing.T) {
 	defer cancel()
 
 	start := time.Now()
-	var served servedAddress
-	conn, err := pinnedDialer([]netip.Addr{dead, live}, port, &served)(ctx, "tcp", "ignored:0")
+	conn, err := pinnedDialer([]netip.Addr{dead, live}, port)(ctx, "tcp", "ignored:0")
 	require.NoError(t, err, "the dialer must reach the second address")
 	defer func() { _ = conn.Close() }()
 
 	assert.Less(t, time.Since(start), 2*time.Second)
 	assert.Equal(t, srv.Listener.Addr().String(), conn.RemoteAddr().String())
-
-	// A BitName must hold the address that answered, not the first record.
-	resolved := served.resolved()
-	assert.Equal(t, srv.Listener.Addr().String(), resolved.V4)
-	assert.Empty(t, resolved.V6)
 }
 
 func TestDialTimeoutSplitsTheTimeLeft(t *testing.T) {

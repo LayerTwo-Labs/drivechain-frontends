@@ -1549,6 +1549,28 @@ func TestBmmEngineRetriesWhenTheHeldCheckFails(t *testing.T) {
 	assert.Empty(t, round.OurBids[0].Error)
 }
 
+// A node that cannot decode the block gets the same bytes on each attempt, so
+// the round is over at once.
+func TestBmmEngineRetiresABlockTheSidechainCannotDecode(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.connectErr = connect.NewError(connect.CodeInvalidArgument,
+		errors.New("connect block: rpc error -32602: Invalid params"))
+
+	round := unconnectedRound("undecodable-round", 996770)
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	ctx := context.Background()
+	engine.retryConnects(ctx, testSidechain, "tip", 996773)
+	engine.retryConnects(ctx, testSidechain, "tip", 996773)
+
+	assert.Equal(t, 1, backend.connects, "the block goes to the sidechain once")
+	assert.Zero(t, pendingCount(engine), "the round leaves the retry list")
+	assert.Equal(t, BidFailed, round.OurBids[0].State)
+	assert.Equal(t, reasonRefused, round.OurBids[0].Error)
+}
+
 // A sidechain that has not seen the bid included names no block. The mainchain
 // block that carries it may still reach the sidechain, so the round waits.
 func TestBmmEngineRetriesABlockTheSidechainHasNotSeen(t *testing.T) {

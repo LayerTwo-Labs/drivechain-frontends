@@ -1436,6 +1436,11 @@ func (e *BmmEngine) connectWon(
 		MainBlockHash: round.IncludedInBlock,
 	}))
 	if err != nil {
+		if connect.CodeOf(err) == connect.CodeInvalidArgument {
+			e.log.Warn().Err(err).Stringer("sidechain", sidechain).
+				Str("critical_hash", live.CriticalHash).Msg("the sidechain cannot decode the won block")
+			return stepRetire
+		}
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
 			Str("critical_hash", live.CriticalHash).Msg("connect won block")
 		return stepRetry

@@ -34,7 +34,6 @@ func resolveGlobalAddress(ctx context.Context, address string) ([]netip.Addr, st
 		return nil, "", fmt.Errorf("address %q is not host:port", address)
 	}
 
-	// A stalled authoritative server holds a lookup that carries no deadline.
 	if _, err := portNumber(port); err != nil {
 		return nil, "", fmt.Errorf("address %q: %w", address, err)
 	}
@@ -137,7 +136,7 @@ func fetchCommitment(
 	if err != nil {
 		return nil, "", err
 	}
-	return fetchCommitmentFrom(ctx, address, pinnedDialer(addrs, port, nil))
+	return fetchCommitmentFrom(ctx, address, pinnedDialer(addrs, port))
 }
 
 // FetchCommitmentAt reads bitname_commit from a public IP and returns its data, digest, and socket addresses.
@@ -169,7 +168,7 @@ func fetchCommitmentAt(
 	for i, addr := range addrs {
 		endpoint := netip.AddrPortFrom(addr, number)
 		requestCtx, cancelRequest := context.WithTimeout(ctx, dialTimeout(ctx, len(addrs)-i))
-		raw, digest, err := fetchCommitmentFrom(requestCtx, endpoint.String(), pinnedDialer([]netip.Addr{addr}, port, nil))
+		raw, digest, err := fetchCommitmentFrom(requestCtx, endpoint.String(), pinnedDialer([]netip.Addr{addr}, port))
 		cancelRequest()
 		if err == nil {
 			served.set(endpoint)
@@ -181,7 +180,7 @@ func fetchCommitmentAt(
 	return nil, "", ResolvedAddresses{}, lastErr
 }
 
-// servedAddress records the address the dialer reached. A host with several
+// servedAddress records the address that answered. A host with several
 // records can answer on a later one, and a BitName must hold the address that
 // served the commitment, not the first record DNS returned.
 type servedAddress struct {
@@ -267,9 +266,7 @@ func portNumber(port string) (uint16, error) {
 
 // pinnedDialer dials only the addresses that resolveGlobalAddress accepts. A
 // second lookup can answer with a private address that the check never sees.
-func pinnedDialer(
-	addrs []netip.Addr, port string, served *servedAddress,
-) func(context.Context, string, string) (net.Conn, error) {
+func pinnedDialer(addrs []netip.Addr, port string) func(context.Context, string, string) (net.Conn, error) {
 	var dialer net.Dialer
 
 	return func(ctx context.Context, network, _ string) (net.Conn, error) {
@@ -283,15 +280,7 @@ func pinnedDialer(
 			conn, err := dialer.DialContext(attempt, network, net.JoinHostPort(addr.String(), port))
 			cancel()
 			if err == nil {
-				if served != nil {
-					if number, numberErr := portNumber(port); numberErr == nil {
-						served.set(netip.AddrPortFrom(addr, number))
-					}
-				}
 				return conn, nil
-			}
-			if served != nil {
-				served.reject(addr)
 			}
 			lastErr = err
 		}
@@ -320,7 +309,7 @@ func dialTimeout(ctx context.Context, addrs int) time.Duration {
 }
 
 // fetchCommitmentFrom dials address without the public-address check. Only
-// FetchCommitment and a test reach it.
+// FetchCommitment, FetchCommitmentAt and the tests reach it.
 func fetchCommitmentFrom(
 	ctx context.Context,
 	address string,
