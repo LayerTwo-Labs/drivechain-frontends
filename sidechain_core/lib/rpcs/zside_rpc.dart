@@ -245,7 +245,11 @@ class ZSideLive extends ZSideRPC {
     if (resp.bundleJson.isEmpty) {
       return null;
     }
-    return PendingWithdrawalBundle.fromMap(jsonDecode(resp.bundleJson));
+    final decoded = jsonDecode(resp.bundleJson);
+    if (decoded == null) {
+      return null;
+    }
+    return PendingWithdrawalBundle.fromMap(decoded as Map<String, dynamic>);
   }
 
   @override
