@@ -115,6 +115,9 @@ service TruthcoinService {
   // Get positions in a market.
   rpc MarketPositions(MarketPositionsRequest) returns (MarketPositionsResponse);
 
+  // Add liquidity to a market that a wallet address created.
+  rpc MarketAmplifyBeta(MarketAmplifyBetaRequest) returns (MarketAmplifyBetaResponse);
+
   // --- Slots ---
 
   // Get slot system status and configuration.
@@ -133,6 +136,9 @@ service TruthcoinService {
   rpc SlotClaimCategory(SlotClaimCategoryRequest) returns (SlotClaimCategoryResponse);
 
   // --- Voting ---
+
+  // Get the voter address of the wallet.
+  rpc GetVoterAddress(GetVoterAddressRequest) returns (GetVoterAddressResponse);
 
   // Get voter info.
   rpc VoteVoter(VoteVoterRequest) returns (VoteVoterResponse);
@@ -536,6 +542,17 @@ message MarketPositionsResponse {
   string positions_json = 1;
 }
 
+// MarketAmplifyBeta
+
+message MarketAmplifyBetaRequest {
+  string market_id = 1;
+  int64 amount_sats = 2;
+}
+
+message MarketAmplifyBetaResponse {
+  string txid = 1;
+}
+
 // --- Slots messages ---
 
 // SlotStatus
@@ -597,6 +614,14 @@ message SlotClaimCategoryResponse {
 }
 
 // --- Voting messages ---
+
+// GetVoterAddress
+
+message GetVoterAddressRequest {}
+
+message GetVoterAddressResponse {
+  string address = 1;
+}
 
 // VoteVoter
 

@@ -3627,6 +3627,120 @@ class MarketPositionsResponse extends $pb.GeneratedMessage {
   void clearPositionsJson() => clearField(1);
 }
 
+class MarketAmplifyBetaRequest extends $pb.GeneratedMessage {
+  factory MarketAmplifyBetaRequest({
+    $core.String? marketId,
+    $fixnum.Int64? amountSats,
+  }) {
+    final $result = create();
+    if (marketId != null) {
+      $result.marketId = marketId;
+    }
+    if (amountSats != null) {
+      $result.amountSats = amountSats;
+    }
+    return $result;
+  }
+  MarketAmplifyBetaRequest._() : super();
+  factory MarketAmplifyBetaRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MarketAmplifyBetaRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MarketAmplifyBetaRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'marketId')
+    ..aInt64(2, _omitFieldNames ? '' : 'amountSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MarketAmplifyBetaRequest clone() => MarketAmplifyBetaRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MarketAmplifyBetaRequest copyWith(void Function(MarketAmplifyBetaRequest) updates) => super.copyWith((message) => updates(message as MarketAmplifyBetaRequest)) as MarketAmplifyBetaRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MarketAmplifyBetaRequest create() => MarketAmplifyBetaRequest._();
+  MarketAmplifyBetaRequest createEmptyInstance() => create();
+  static $pb.PbList<MarketAmplifyBetaRequest> createRepeated() => $pb.PbList<MarketAmplifyBetaRequest>();
+  @$core.pragma('dart2js:noInline')
+  static MarketAmplifyBetaRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MarketAmplifyBetaRequest>(create);
+  static MarketAmplifyBetaRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get marketId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set marketId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMarketId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMarketId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get amountSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set amountSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAmountSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAmountSats() => clearField(2);
+}
+
+class MarketAmplifyBetaResponse extends $pb.GeneratedMessage {
+  factory MarketAmplifyBetaResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  MarketAmplifyBetaResponse._() : super();
+  factory MarketAmplifyBetaResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MarketAmplifyBetaResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MarketAmplifyBetaResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MarketAmplifyBetaResponse clone() => MarketAmplifyBetaResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MarketAmplifyBetaResponse copyWith(void Function(MarketAmplifyBetaResponse) updates) => super.copyWith((message) => updates(message as MarketAmplifyBetaResponse)) as MarketAmplifyBetaResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MarketAmplifyBetaResponse create() => MarketAmplifyBetaResponse._();
+  MarketAmplifyBetaResponse createEmptyInstance() => create();
+  static $pb.PbList<MarketAmplifyBetaResponse> createRepeated() => $pb.PbList<MarketAmplifyBetaResponse>();
+  @$core.pragma('dart2js:noInline')
+  static MarketAmplifyBetaResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MarketAmplifyBetaResponse>(create);
+  static MarketAmplifyBetaResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
 class SlotStatusRequest extends $pb.GeneratedMessage {
   factory SlotStatusRequest() => create();
   SlotStatusRequest._() : super();
@@ -4247,6 +4361,88 @@ class SlotClaimCategoryResponse extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
+}
+
+class GetVoterAddressRequest extends $pb.GeneratedMessage {
+  factory GetVoterAddressRequest() => create();
+  GetVoterAddressRequest._() : super();
+  factory GetVoterAddressRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetVoterAddressRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetVoterAddressRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetVoterAddressRequest clone() => GetVoterAddressRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetVoterAddressRequest copyWith(void Function(GetVoterAddressRequest) updates) => super.copyWith((message) => updates(message as GetVoterAddressRequest)) as GetVoterAddressRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetVoterAddressRequest create() => GetVoterAddressRequest._();
+  GetVoterAddressRequest createEmptyInstance() => create();
+  static $pb.PbList<GetVoterAddressRequest> createRepeated() => $pb.PbList<GetVoterAddressRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetVoterAddressRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetVoterAddressRequest>(create);
+  static GetVoterAddressRequest? _defaultInstance;
+}
+
+class GetVoterAddressResponse extends $pb.GeneratedMessage {
+  factory GetVoterAddressResponse({
+    $core.String? address,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    return $result;
+  }
+  GetVoterAddressResponse._() : super();
+  factory GetVoterAddressResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetVoterAddressResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetVoterAddressResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetVoterAddressResponse clone() => GetVoterAddressResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetVoterAddressResponse copyWith(void Function(GetVoterAddressResponse) updates) => super.copyWith((message) => updates(message as GetVoterAddressResponse)) as GetVoterAddressResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetVoterAddressResponse create() => GetVoterAddressResponse._();
+  GetVoterAddressResponse createEmptyInstance() => create();
+  static $pb.PbList<GetVoterAddressResponse> createRepeated() => $pb.PbList<GetVoterAddressResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetVoterAddressResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetVoterAddressResponse>(create);
+  static GetVoterAddressResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
 }
 
 class VoteVoterRequest extends $pb.GeneratedMessage {
@@ -6105,6 +6301,9 @@ class TruthcoinServiceApi {
   $async.Future<MarketPositionsResponse> marketPositions($pb.ClientContext? ctx, MarketPositionsRequest request) =>
     _client.invoke<MarketPositionsResponse>(ctx, 'TruthcoinService', 'MarketPositions', request, MarketPositionsResponse())
   ;
+  $async.Future<MarketAmplifyBetaResponse> marketAmplifyBeta($pb.ClientContext? ctx, MarketAmplifyBetaRequest request) =>
+    _client.invoke<MarketAmplifyBetaResponse>(ctx, 'TruthcoinService', 'MarketAmplifyBeta', request, MarketAmplifyBetaResponse())
+  ;
   $async.Future<SlotStatusResponse> slotStatus($pb.ClientContext? ctx, SlotStatusRequest request) =>
     _client.invoke<SlotStatusResponse>(ctx, 'TruthcoinService', 'SlotStatus', request, SlotStatusResponse())
   ;
@@ -6119,6 +6318,9 @@ class TruthcoinServiceApi {
   ;
   $async.Future<SlotClaimCategoryResponse> slotClaimCategory($pb.ClientContext? ctx, SlotClaimCategoryRequest request) =>
     _client.invoke<SlotClaimCategoryResponse>(ctx, 'TruthcoinService', 'SlotClaimCategory', request, SlotClaimCategoryResponse())
+  ;
+  $async.Future<GetVoterAddressResponse> getVoterAddress($pb.ClientContext? ctx, GetVoterAddressRequest request) =>
+    _client.invoke<GetVoterAddressResponse>(ctx, 'TruthcoinService', 'GetVoterAddress', request, GetVoterAddressResponse())
   ;
   $async.Future<VoteVoterResponse> voteVoter($pb.ClientContext? ctx, VoteVoterRequest request) =>
     _client.invoke<VoteVoterResponse>(ctx, 'TruthcoinService', 'VoteVoter', request, VoteVoterResponse())

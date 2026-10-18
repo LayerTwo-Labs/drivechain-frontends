@@ -132,6 +132,12 @@ abstract class TruthcoinRPC extends SidechainRPC {
     String? marketId,
   });
 
+  /// Add liquidity to a market that a wallet address created
+  Future<String> marketAmplifyBeta({
+    required String marketId,
+    required int amountSats,
+  });
+
   // Slots
   /// Get slot system status and configuration
   Future<Map<String, dynamic>> slotStatus();
@@ -162,6 +168,9 @@ abstract class TruthcoinRPC extends SidechainRPC {
   });
 
   // Voting
+  /// Get the voter address of the wallet
+  Future<String> getVoterAddress();
+
   /// Get voter info
   Future<Map<String, dynamic>?> voteVoter(String address);
 
@@ -662,6 +671,20 @@ class TruthcoinLive extends TruthcoinRPC {
     return jsonDecode(resp.positionsJson) as Map<String, dynamic>;
   }
 
+  @override
+  Future<String> marketAmplifyBeta({
+    required String marketId,
+    required int amountSats,
+  }) async {
+    final resp = await _client.marketAmplifyBeta(
+      pb.MarketAmplifyBetaRequest(
+        marketId: marketId,
+        amountSats: Int64(amountSats),
+      ),
+    );
+    return resp.txid;
+  }
+
   // Slots
   @override
   Future<Map<String, dynamic>> slotStatus() async {
@@ -735,6 +758,12 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   // Voting
+  @override
+  Future<String> getVoterAddress() async {
+    final resp = await _client.getVoterAddress(pb.GetVoterAddressRequest());
+    return resp.address;
+  }
+
   @override
   Future<Map<String, dynamic>?> voteVoter(String address) async {
     final resp = await _client.voteVoter(pb.VoteVoterRequest(address: address));

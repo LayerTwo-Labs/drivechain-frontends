@@ -171,3 +171,30 @@ func TestGetBlockMapsAMissingBlockToEmpty(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, resp.Msg.BlockJson)
 }
+
+// get_voter_address answers the base58 address of wallet index 0.
+func TestGetVoterAddressReadsTheAddress(t *testing.T) {
+	h, calls := recordingHandler(t, `"Xc3D7ZjNez3ReowLm1yz1zSvYe1"`)
+
+	resp, err := h.GetVoterAddress(context.Background(), connect.NewRequest(&pb.GetVoterAddressRequest{}))
+	require.NoError(t, err)
+	assert.Equal(t, "Xc3D7ZjNez3ReowLm1yz1zSvYe1", resp.Msg.Address)
+
+	require.Len(t, *calls, 1)
+	assert.Equal(t, "get_voter_address", (*calls)[0].Method)
+}
+
+// market_amplify_beta takes one request object and answers the txid.
+func TestMarketAmplifyBetaSendsTheRequest(t *testing.T) {
+	h, calls := recordingHandler(t, `"txid1"`)
+
+	resp, err := h.MarketAmplifyBeta(context.Background(), connect.NewRequest(&pb.MarketAmplifyBetaRequest{
+		MarketId: "5e5ed0d19c4f", AmountSats: 50000,
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "txid1", resp.Msg.Txid)
+
+	require.Len(t, *calls, 1)
+	assert.Equal(t, "market_amplify_beta", (*calls)[0].Method)
+	assert.JSONEq(t, `[{"market_id":"5e5ed0d19c4f","amount_sats":50000}]`, string((*calls)[0].Params))
+}
