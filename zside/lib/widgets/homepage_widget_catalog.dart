@@ -295,7 +295,14 @@ class OverviewTabViewModel extends BaseViewModel {
 
   // Properties for sending
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
-  double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0), 0);
+  double? get maxAmount {
+    final breakdown = balanceBreakdown;
+    if (!isShieldedAddress && breakdown != null) {
+      return max(breakdown.availableTransparent - (sidechainFee ?? 0), 0);
+    }
+    return max(_balanceProvider.balance - (sidechainFee ?? 0), 0);
+  }
+
   String get ticker => _rpc.chain.ticker;
   String get sidechainName => _rpc.chain.name;
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;

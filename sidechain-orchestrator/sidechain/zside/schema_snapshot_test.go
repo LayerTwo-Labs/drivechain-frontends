@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -88,4 +89,61 @@ func TestSchemaSnapshot(t *testing.T) {
 
 	assert.JSONEq(t, string(saved), string(live),
 		"openapi_schema diverged from snapshot; run with ZSIDE_SCHEMA_UPDATE_CLI=1 or ZSIDE_SCHEMA_UPDATE=1 to refresh")
+}
+
+// Every method the orchestrator sends to zSide must be one the snapshot node
+// serves, or the call fails at run time with method not found.
+func TestCalledMethodsAreInTheSnapshot(t *testing.T) {
+	saved, err := os.ReadFile("testdata/openapi_schema.json")
+	require.NoError(t, err)
+	var schema struct {
+		Paths map[string]json.RawMessage `json:"paths"`
+	}
+	require.NoError(t, json.Unmarshal(saved, &schema))
+	require.NotEmpty(t, schema.Paths)
+
+	handler, calls := recordingHandler(t, nil)
+	ctx := context.Background()
+	value := reflect.ValueOf(handler)
+	for i := range value.NumMethod() {
+		method := value.Type().Method(i)
+		if method.Name == "CallRaw" || method.Type.NumIn() != 3 {
+			continue
+		}
+		request := reflect.New(method.Type.In(2).Elem())
+		msg := request.Elem().FieldByName("Msg")
+		msg.Set(reflect.New(msg.Type().Elem()))
+		out := value.Method(i).Call([]reflect.Value{reflect.ValueOf(ctx), request})
+		require.Nil(t, out[1].Interface(), method.Name)
+	}
+
+	node := &Node{JSONRPCProxy: handler.proxy}
+	_, _, err = node.GetBalance(ctx)
+	require.NoError(t, err)
+	_, err = node.WalletAddressList(ctx)
+	require.NoError(t, err)
+	_, err = node.GetBlockTemplate(ctx)
+	require.NoError(t, err)
+	_, err = node.ConnectBlock(ctx, json.RawMessage(`{}`), "aa")
+	require.NoError(t, err)
+	_, err = node.GetBmmInclusions(ctx, "aa")
+	require.NoError(t, err)
+	_, err = node.ChainHolds(ctx, "aa", 1)
+	require.NoError(t, err)
+	_, err = node.TemplateOnTip(ctx, json.RawMessage(`{}`))
+	require.NoError(t, err)
+	_, err = node.GetPendingWithdrawalBundle(ctx)
+	require.NoError(t, err)
+	_, err = node.GetLatestFailedWithdrawalBundleHeight(ctx)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, *calls)
+	for _, call := range *calls {
+		name := call.Method
+		// The schema names sidechain_wealth after its Rust function.
+		if name == "sidechain_wealth" {
+			name = "sidechain_wealth_sats"
+		}
+		assert.Contains(t, schema.Paths, name, "zSide serves no method %s", call.Method)
+	}
 }
