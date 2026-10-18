@@ -40,13 +40,16 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Array of all sidechains (zside excluded - binary not available)
-          sidechains=(bitassets bitnames coinshift photon thunder truthcoin)
+          sidechains=(bitassets bitnames coinshift photon thunder truthcoin zside)
           
           for sidechain in "${sidechains[@]}"; do
             repo=$(jq -r ".binaries.${sidechain}.download.files.default.base_url" config/chains_config.json | sed -E 's#^https://api.github.com/repos/([^/]+/[^/]+)/releases/latest$#\1#')
+            cli_name="${sidechain}-cli"
+            if [ "$sidechain" = zside ]; then
+              cli_name="thunder-orchard-cli"
+            fi
             cli_binary="/tmp/${sidechain}-cli"
-            gh release download -R "$repo" --clobber --pattern "${sidechain}-cli-*-x86_64-unknown-linux-gnu" -O "$cli_binary"
+            gh release download -R "$repo" --clobber --pattern "${cli_name}-*-x86_64-unknown-linux-gnu" -O "$cli_binary"
             chmod +x "$cli_binary"
 
             echo "Generating schema for $sidechain..."
@@ -75,8 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Test all sidechain schema snapshots (zside excluded - binary not available)
-          sidechains=(bitassets bitnames coinshift photon thunder truthcoin)
+          sidechains=(bitassets bitnames coinshift photon thunder truthcoin zside)
           
           for sidechain in "${sidechains[@]}"; do
             echo "Validating $sidechain schema snapshot..."
