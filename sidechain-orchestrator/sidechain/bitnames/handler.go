@@ -17,7 +17,7 @@ import (
 var _ svc.BitnamesServiceHandler = (*Handler)(nil)
 
 // Handler implements BitnamesServiceHandler by proxying to the bitnames binary's JSON-RPC.
-// Common methods delegate to the embedded JSONRPCProxy; BitNames-specific methods are
+// Common methods delegate to the proxy field; BitNames-specific methods are
 // implemented directly using the proxy's Client.
 type Handler struct {
 	proxy *sidechain.JSONRPCProxy

@@ -194,11 +194,6 @@ func (c *Client) GetBlock(ctx context.Context, hash string) (json.RawMessage, er
 	return c.call(ctx, "get_block", []any{hash})
 }
 
-// GetBMMInclusions returns mainchain blocks that commit to the given block hash.
-func (c *Client) GetBMMInclusions(ctx context.Context, blockHash string) (string, error) {
-	return unmarshal[string](c, ctx, "get_bmm_inclusions", blockHash)
-}
-
 // GetBestMainchainBlockHash returns the best known mainchain block hash.
 func (c *Client) GetBestMainchainBlockHash(ctx context.Context) (*string, error) {
 	raw, err := c.call(ctx, "get_best_mainchain_block_hash", nil)
@@ -281,19 +276,6 @@ func (c *Client) GenerateMnemonic(ctx context.Context) (string, error) {
 func (c *Client) SetSeedFromMnemonic(ctx context.Context, mnemonic string) error {
 	_, err := c.call(ctx, "set_seed_from_mnemonic", []any{mnemonic})
 	return err
-}
-
-// ---------------------------------------------------------------------------
-// Mining
-// ---------------------------------------------------------------------------
-
-// Mine attempts to create and submit a BMM block.
-func (c *Client) Mine(ctx context.Context, feeSats int64) (*BmmResult, error) {
-	r, err := unmarshal[BmmResult](c, ctx, "mine", feeSats)
-	if err != nil {
-		return nil, err
-	}
-	return &r, nil
 }
 
 // ---------------------------------------------------------------------------

@@ -71,18 +71,6 @@ type SignatureResponse struct {
 	Signature    string `json:"signature"`
 }
 
-// BmmResult is the response from the "mine" RPC.
-type BmmResult struct {
-	HashLastMainBlock      string  `json:"hash_last_main_block"`
-	BmmBlockCreated        *string `json:"bmm_block_created,omitempty"`
-	BmmBlockSubmitted      *string `json:"bmm_block_submitted,omitempty"`
-	BmmBlockSubmittedBlind *string `json:"bmm_block_submitted_blind,omitempty"`
-	Ntxn                   int     `json:"ntxn"`
-	Nfees                  int     `json:"nfees"`
-	Txid                   string  `json:"txid"`
-	Error                  *string `json:"error,omitempty"`
-}
-
 // Commitment is the BLAKE3 digest a BitName holds. The node carries it as a
 // 32-byte array, and every client shows it as hex.
 type Commitment [32]byte
