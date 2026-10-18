@@ -38,3 +38,36 @@ func TestGenerateWalletRefusesAPathThatFightsTheScriptType(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
+
+func TestGenerateWalletRefusesABadMnemonic(t *testing.T) {
+	h, _, _, _, _ := newRoutedHandler(t)
+
+	_, err := h.GenerateWallet(context.Background(), connect.NewRequest(&pb.GenerateWalletRequest{
+		Name:           "Bad",
+		CustomMnemonic: "abandon abandon abandon",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestCreateWatchOnlyWalletRefusesABadKey(t *testing.T) {
+	h, _, _, _, _ := newRoutedHandler(t)
+
+	_, err := h.CreateWatchOnlyWallet(context.Background(), connect.NewRequest(&pb.CreateWatchOnlyWalletRequest{
+		Name:             "Bad",
+		XpubOrDescriptor: "not-a-key",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestDeleteWalletCodes(t *testing.T) {
+	h, _, _, _, coreID := newRoutedHandler(t)
+	require.Equal(t, coreID, h.svc.StarterWalletID())
+
+	_, err := h.DeleteWallet(context.Background(), connect.NewRequest(&pb.DeleteWalletRequest{WalletId: "missing"}))
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+
+	_, err = h.DeleteWallet(context.Background(), connect.NewRequest(&pb.DeleteWalletRequest{WalletId: coreID}))
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
