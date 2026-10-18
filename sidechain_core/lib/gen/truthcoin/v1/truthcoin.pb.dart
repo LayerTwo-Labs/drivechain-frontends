@@ -4776,15 +4776,18 @@ class VotePeriodResponse extends $pb.GeneratedMessage {
 class VotecoinTransferRequest extends $pb.GeneratedMessage {
   factory VotecoinTransferRequest({
     $core.String? dest,
+  @$core.Deprecated('This field is deprecated.')
     $fixnum.Int64? amount,
     $fixnum.Int64? feeSats,
     $core.String? memo,
+    $core.double? votecoinAmount,
   }) {
     final $result = create();
     if (dest != null) {
       $result.dest = dest;
     }
     if (amount != null) {
+      // ignore: deprecated_member_use_from_same_package
       $result.amount = amount;
     }
     if (feeSats != null) {
@@ -4792,6 +4795,9 @@ class VotecoinTransferRequest extends $pb.GeneratedMessage {
     }
     if (memo != null) {
       $result.memo = memo;
+    }
+    if (votecoinAmount != null) {
+      $result.votecoinAmount = votecoinAmount;
     }
     return $result;
   }
@@ -4804,6 +4810,7 @@ class VotecoinTransferRequest extends $pb.GeneratedMessage {
     ..aInt64(2, _omitFieldNames ? '' : 'amount')
     ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
     ..aOS(4, _omitFieldNames ? '' : 'memo')
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'votecoinAmount', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -4837,12 +4844,16 @@ class VotecoinTransferRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearDest() => clearField(1);
 
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   $fixnum.Int64 get amount => $_getI64(1);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   set amount($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   $core.bool hasAmount() => $_has(1);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   void clearAmount() => clearField(2);
 
@@ -4863,6 +4874,15 @@ class VotecoinTransferRequest extends $pb.GeneratedMessage {
   $core.bool hasMemo() => $_has(3);
   @$pb.TagNumber(4)
   void clearMemo() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get votecoinAmount => $_getN(4);
+  @$pb.TagNumber(5)
+  set votecoinAmount($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasVotecoinAmount() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearVotecoinAmount() => clearField(5);
 }
 
 class VotecoinTransferResponse extends $pb.GeneratedMessage {
@@ -4967,11 +4987,17 @@ class VotecoinBalanceRequest extends $pb.GeneratedMessage {
 
 class VotecoinBalanceResponse extends $pb.GeneratedMessage {
   factory VotecoinBalanceResponse({
+  @$core.Deprecated('This field is deprecated.')
     $fixnum.Int64? balance,
+    $core.double? votecoinBalance,
   }) {
     final $result = create();
     if (balance != null) {
+      // ignore: deprecated_member_use_from_same_package
       $result.balance = balance;
+    }
+    if (votecoinBalance != null) {
+      $result.votecoinBalance = votecoinBalance;
     }
     return $result;
   }
@@ -4981,6 +5007,7 @@ class VotecoinBalanceResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VotecoinBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'balance')
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'votecoinBalance', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -5005,28 +5032,44 @@ class VotecoinBalanceResponse extends $pb.GeneratedMessage {
   static VotecoinBalanceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VotecoinBalanceResponse>(create);
   static VotecoinBalanceResponse? _defaultInstance;
 
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   $fixnum.Int64 get balance => $_getI64(0);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   set balance($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   $core.bool hasBalance() => $_has(0);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(1)
   void clearBalance() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get votecoinBalance => $_getN(1);
+  @$pb.TagNumber(2)
+  set votecoinBalance($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVotecoinBalance() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVotecoinBalance() => clearField(2);
 }
 
 class TransferVotecoinRequest extends $pb.GeneratedMessage {
   factory TransferVotecoinRequest({
     $core.String? dest,
+  @$core.Deprecated('This field is deprecated.')
     $fixnum.Int64? amount,
     $fixnum.Int64? feeSats,
     $core.String? memo,
+    $core.double? votecoinAmount,
   }) {
     final $result = create();
     if (dest != null) {
       $result.dest = dest;
     }
     if (amount != null) {
+      // ignore: deprecated_member_use_from_same_package
       $result.amount = amount;
     }
     if (feeSats != null) {
@@ -5034,6 +5077,9 @@ class TransferVotecoinRequest extends $pb.GeneratedMessage {
     }
     if (memo != null) {
       $result.memo = memo;
+    }
+    if (votecoinAmount != null) {
+      $result.votecoinAmount = votecoinAmount;
     }
     return $result;
   }
@@ -5046,6 +5092,7 @@ class TransferVotecoinRequest extends $pb.GeneratedMessage {
     ..aInt64(2, _omitFieldNames ? '' : 'amount')
     ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
     ..aOS(4, _omitFieldNames ? '' : 'memo')
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'votecoinAmount', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -5079,12 +5126,16 @@ class TransferVotecoinRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearDest() => clearField(1);
 
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   $fixnum.Int64 get amount => $_getI64(1);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   set amount($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   $core.bool hasAmount() => $_has(1);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(2)
   void clearAmount() => clearField(2);
 
@@ -5105,6 +5156,15 @@ class TransferVotecoinRequest extends $pb.GeneratedMessage {
   $core.bool hasMemo() => $_has(3);
   @$pb.TagNumber(4)
   void clearMemo() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get votecoinAmount => $_getN(4);
+  @$pb.TagNumber(5)
+  set votecoinAmount($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasVotecoinAmount() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearVotecoinAmount() => clearField(5);
 }
 
 class TransferVotecoinResponse extends $pb.GeneratedMessage {

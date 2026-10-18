@@ -57,7 +57,7 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   String voteSubmitResponse = 'test_submit_txid';
 
   List<String> walletAddresses = ['tb1qtest1234567890'];
-  int votecoinBalanceResponse = 1000;
+  double votecoinBalanceResponse = 1000;
 
   // Error simulation
   bool shouldThrowOnMarketList = false;
@@ -359,7 +359,7 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   @override
   Future<String> votecoinTransfer({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   }) async {
@@ -367,7 +367,7 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<int> votecoinBalance(String address) async {
+  Future<double> votecoinBalance(String address) async {
     if (shouldThrowOnVotecoinBalance) {
       throw Exception(errorMessage);
     }
@@ -377,7 +377,7 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   @override
   Future<String> transferVotecoin({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   }) async {

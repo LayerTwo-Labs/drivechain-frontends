@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
@@ -100,7 +102,7 @@ void main() {
 
         expect(votingProvider.currentVoter, isNotNull);
         expect(votingProvider.currentVoter!.isActive, true);
-        expect(votingProvider.currentVoter!.votecoinBalance, 1000);
+        expect(votingProvider.currentVoter!.votecoinBalance, 0.25);
         expect(votingProvider.currentVoter!.totalVotes, 156);
       });
 
@@ -110,6 +112,25 @@ void main() {
         await votingProvider.loadVoterInfo('tb1qunregistered');
 
         expect(votingProvider.currentVoter, isNull);
+      });
+    });
+
+    group('getVoters', () {
+      test('parses the vote_voters answer of a v0.20.0 node', () async {
+        mockRpc.voteVotersResponse =
+            (jsonDecode(
+                      '[{"address":"3dWL5oSH54rxzXbU5RVi7bBkeuWd","votecoin_balance":1.0,"total_votes":0,"is_active":false}]',
+                    )
+                    as List)
+                .cast<Map<String, dynamic>>();
+
+        final voters = await votingProvider.getVoters();
+
+        expect(voters, hasLength(1));
+        expect(voters.single.address, '3dWL5oSH54rxzXbU5RVi7bBkeuWd');
+        expect(voters.single.votecoinBalance, 1.0);
+        expect(voters.single.totalVotes, 0);
+        expect(voters.single.isActive, false);
       });
     });
 

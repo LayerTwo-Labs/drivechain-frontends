@@ -102,11 +102,11 @@ func TestVotecoinTransferSendsNoMemo(t *testing.T) {
 	memo := "hello"
 
 	_, err := h.VotecoinTransfer(context.Background(), connect.NewRequest(&pb.VotecoinTransferRequest{
-		Dest: "dest", Amount: 3, FeeSats: 100, Memo: &memo,
+		Dest: "dest", Amount: 3, FeeSats: 100, Memo: &memo, //nolint:staticcheck // old clients send Amount
 	}))
 	require.NoError(t, err)
 	_, err = h.TransferVotecoin(context.Background(), connect.NewRequest(&pb.TransferVotecoinRequest{
-		Dest: "dest", Amount: 3, FeeSats: 100, Memo: &memo,
+		Dest: "dest", Amount: 3, FeeSats: 100, Memo: &memo, //nolint:staticcheck // old clients send Amount
 	}))
 	require.NoError(t, err)
 
@@ -115,6 +115,52 @@ func TestVotecoinTransferSendsNoMemo(t *testing.T) {
 		assert.Equal(t, "transfer_votecoin", call.Method)
 		assert.JSONEq(t, `["dest",3,100]`, string(call.Params))
 	}
+}
+
+// transfer_votecoin takes an f64 amount.
+func TestVotecoinTransferSendsTheFractionalAmount(t *testing.T) {
+	h, calls := recordingHandler(t, `"txid1"`)
+	amount := 0.25
+
+	_, err := h.VotecoinTransfer(context.Background(), connect.NewRequest(&pb.VotecoinTransferRequest{
+		Dest: "dest", VotecoinAmount: &amount, FeeSats: 100,
+	}))
+	require.NoError(t, err)
+	_, err = h.TransferVotecoin(context.Background(), connect.NewRequest(&pb.TransferVotecoinRequest{
+		Dest: "dest", VotecoinAmount: &amount, FeeSats: 100,
+	}))
+	require.NoError(t, err)
+
+	require.Len(t, *calls, 2)
+	for _, call := range *calls {
+		assert.Equal(t, "transfer_votecoin", call.Method)
+		assert.JSONEq(t, `["dest",0.25,100]`, string(call.Params))
+	}
+}
+
+// votecoin_balance answers an f64.
+func TestVotecoinBalanceReadsAFraction(t *testing.T) {
+	h, _ := recordingHandler(t, `0.75`)
+
+	resp, err := h.VotecoinBalance(context.Background(), connect.NewRequest(&pb.VotecoinBalanceRequest{Address: "voter"}))
+	require.NoError(t, err)
+	assert.InDelta(t, 0.75, resp.Msg.VotecoinBalance, 0)
+	assert.Equal(t, int64(0), resp.Msg.Balance) //nolint:staticcheck // old clients read Balance
+}
+
+// get_bmm_inclusions answers a list of mainchain block hashes.
+func TestGetBmmInclusionsReadsAList(t *testing.T) {
+	const inclusions = `["000000000000000007677bb6ca40424eb40afe6979f52f98579ba7ed1ddbac79"]`
+	h, _ := recordingHandler(t, inclusions)
+
+	resp, err := h.GetBmmInclusions(context.Background(), connect.NewRequest(&pb.GetBmmInclusionsRequest{BlockHash: "aa"}))
+	require.NoError(t, err)
+	assert.JSONEq(t, inclusions, resp.Msg.Inclusions)
+
+	host, port, _ := callRecorder(t, inclusions)
+	hashes, err := NewClient(host, port, "").GetBMMInclusions(context.Background(), "aa")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"000000000000000007677bb6ca40424eb40afe6979f52f98579ba7ed1ddbac79"}, hashes)
 }
 
 // get_block answers null for a block the node does not hold.

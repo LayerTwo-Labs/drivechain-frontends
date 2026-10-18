@@ -210,7 +210,7 @@ class VotingProvider extends ChangeNotifier {
   /// Get votecoin balance for an address
   /// Votecoin of one address. Throws when the node fails, so a caller never
   /// reads a failure as a zero balance.
-  Future<int> getVotecoinBalance(String address) async {
+  Future<double> getVotecoinBalance(String address) async {
     try {
       return await _rpc.votecoinBalance(address);
     } catch (e) {
@@ -274,31 +274,22 @@ class VotingProvider extends ChangeNotifier {
 /// Simple VoterInfo from voters list
 class VoterInfo {
   final String address;
-  final double reputation;
+  final double votecoinBalance;
   final int totalVotes;
-  final int periodsActive;
-  final double accuracyScore;
-  final int registeredAtHeight;
   final bool isActive;
 
   VoterInfo({
     required this.address,
-    required this.reputation,
+    required this.votecoinBalance,
     required this.totalVotes,
-    required this.periodsActive,
-    required this.accuracyScore,
-    required this.registeredAtHeight,
     required this.isActive,
   });
 
   factory VoterInfo.fromJson(Map<String, dynamic> json) {
     return VoterInfo(
       address: json['address']?.toString() ?? '',
-      reputation: (json['reputation'] ?? 0.0) as double,
+      votecoinBalance: ((json['votecoin_balance'] ?? 0) as num).toDouble(),
       totalVotes: (json['total_votes'] ?? 0) as int,
-      periodsActive: (json['periods_active'] ?? 0) as int,
-      accuracyScore: (json['accuracy_score'] ?? 0.0) as double,
-      registeredAtHeight: (json['registered_at_height'] ?? 0) as int,
       isActive: json['is_active'] as bool? ?? false,
     );
   }

@@ -188,18 +188,18 @@ abstract class TruthcoinRPC extends SidechainRPC {
   /// Transfer votecoins
   Future<String> votecoinTransfer({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   });
 
   /// Get votecoin balance for an address
-  Future<int> votecoinBalance(String address);
+  Future<double> votecoinBalance(String address);
 
   /// Transfer votecoin (alternative method)
   Future<String> transferVotecoin({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   });
@@ -799,14 +799,15 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<String> votecoinTransfer({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   }) async {
     final resp = await _client.votecoinTransfer(
       pb.VotecoinTransferRequest(
         dest: dest,
-        amount: Int64(amount),
+        amount: Int64(amount.truncate()),
+        votecoinAmount: amount,
         feeSats: Int64(feeSats),
         memo: memo,
       ),
@@ -815,22 +816,23 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<int> votecoinBalance(String address) async {
+  Future<double> votecoinBalance(String address) async {
     final resp = await _client.votecoinBalance(pb.VotecoinBalanceRequest(address: address));
-    return resp.balance.toInt();
+    return resp.votecoinBalance;
   }
 
   @override
   Future<String> transferVotecoin({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   }) async {
     final resp = await _client.transferVotecoin(
       pb.TransferVotecoinRequest(
         dest: dest,
-        amount: Int64(amount),
+        amount: Int64(amount.truncate()),
+        votecoinAmount: amount,
         feeSats: Int64(feeSats),
         memo: memo,
       ),

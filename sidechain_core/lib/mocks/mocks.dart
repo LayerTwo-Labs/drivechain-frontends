@@ -846,7 +846,7 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   @override
   Future<String> votecoinTransfer({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   }) {
@@ -854,14 +854,14 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<int> votecoinBalance(String address) {
+  Future<double> votecoinBalance(String address) {
     return Future.value(0);
   }
 
   @override
   Future<String> transferVotecoin({
     required String dest,
-    required int amount,
+    required double amount,
     required int feeSats,
     String? memo,
   }) {
