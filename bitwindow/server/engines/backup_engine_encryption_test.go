@@ -110,7 +110,7 @@ func TestCreateBackup_FailsOnUnreadableSource(t *testing.T) {
 		{
 			name: "solo keys not readable",
 			setup: func(t *testing.T, e *BackupEngine) {
-				_, err := e.db.ExecContext(testCtx(), `DROP TABLE multisig_solo_keys`)
+				_, err := e.db.ExecContext(testCtx(t), `DROP TABLE multisig_solo_keys`)
 				require.NoError(t, err)
 			},
 			wantErr: "list solo keys",
@@ -125,7 +125,7 @@ func TestCreateBackup_FailsOnUnreadableSource(t *testing.T) {
 			require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), testEncryptedWallet, 0600))
 			tc.setup(t, e)
 
-			_, _, err := e.CreateBackup(testCtx())
+			_, _, err := e.CreateBackup(testCtx(t))
 			require.ErrorContains(t, err, tc.wantErr)
 		})
 	}
