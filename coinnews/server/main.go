@@ -97,7 +97,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	path, handler := connectrpc.NewCoinNewsServiceHandler(&api.Handler{DB: db})
+	path, handler := connectrpc.NewCoinNewsServiceHandler(&api.Handler{DB: db, Log: log.With().Str("component", "api").Logger()})
 	mux.Handle(path, handler)
 
 	// Server reflection lets grpcurl/buf curl and other generic

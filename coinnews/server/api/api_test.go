@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -241,4 +243,20 @@ func TestHandler_ListThread(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, res.Msg.Comments, 1)
 	assert.Equal(t, "+1", res.Msg.Comments[0].Body)
+}
+
+func TestHandler_InternalErrorHidesTheCause(t *testing.T) {
+	t.Parallel()
+	var logged bytes.Buffer
+	h := newHandler(t)
+	h.Log = zerolog.New(&logged)
+	require.NoError(t, h.DB.Close())
+
+	_, err := h.ListTopics(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	assert.Equal(t, "internal error", ce.Message())
+	assert.Contains(t, logged.String(), "database is closed")
 }

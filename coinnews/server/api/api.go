@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -22,7 +23,8 @@ import (
 
 // Handler implements coinnewsv1connect.CoinNewsServiceHandler.
 type Handler struct {
-	DB *sql.DB
+	DB  *sql.DB
+	Log zerolog.Logger
 }
 
 func (h *Handler) ListFrontPage(ctx context.Context, req *connect.Request[pb.ListFrontPageRequest]) (*connect.Response[pb.ListFrontPageResponse], error) {
@@ -32,7 +34,7 @@ func (h *Handler) ListFrontPage(ctx context.Context, req *connect.Request[pb.Lis
 	}
 	items, err := store.ListFeed(ctx, h.DB, filter)
 	if err != nil {
-		return nil, errInternal(err)
+		return nil, h.errInternal(err)
 	}
 	return connect.NewResponse(&pb.ListFrontPageResponse{Items: marshalItems(items)}), nil
 }
@@ -44,7 +46,7 @@ func (h *Handler) ListNewFeed(ctx context.Context, req *connect.Request[pb.ListN
 	}
 	items, err := store.ListFeed(ctx, h.DB, filter)
 	if err != nil {
-		return nil, errInternal(err)
+		return nil, h.errInternal(err)
 	}
 	return connect.NewResponse(&pb.ListNewFeedResponse{Items: marshalItems(items)}), nil
 }
@@ -59,7 +61,7 @@ func (h *Handler) GetItem(ctx context.Context, req *connect.Request[pb.GetItemRe
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("item %s not found", id))
 	}
 	if err != nil {
-		return nil, errInternal(err)
+		return nil, h.errInternal(err)
 	}
 	return connect.NewResponse(&pb.GetItemResponse{Item: marshalItem(fi)}), nil
 }
@@ -71,7 +73,7 @@ func (h *Handler) ListThread(ctx context.Context, req *connect.Request[pb.ListTh
 	}
 	rows, err := store.ListThread(ctx, h.DB, id)
 	if err != nil {
-		return nil, errInternal(err)
+		return nil, h.errInternal(err)
 	}
 	out := make([]*pb.Comment, len(rows))
 	for i, r := range rows {
@@ -89,7 +91,7 @@ func (h *Handler) ListByAuthor(ctx context.Context, req *connect.Request[pb.List
 	copy(xpk[:], xpkBytes)
 	items, err := store.ListByAuthor(ctx, h.DB, xpk, req.Msg.Limit, req.Msg.Offset)
 	if err != nil {
-		return nil, errInternal(err)
+		return nil, h.errInternal(err)
 	}
 	return connect.NewResponse(&pb.ListByAuthorResponse{Items: marshalItems(items)}), nil
 }
@@ -106,7 +108,7 @@ func (h *Handler) ListByTopic(ctx context.Context, req *connect.Request[pb.ListB
 		Offset: req.Msg.Offset,
 	})
 	if err != nil {
-		return nil, errInternal(err)
+		return nil, h.errInternal(err)
 	}
 	return connect.NewResponse(&pb.ListByTopicResponse{Items: marshalItems(items)}), nil
 }
@@ -114,7 +116,7 @@ func (h *Handler) ListByTopic(ctx context.Context, req *connect.Request[pb.ListB
 func (h *Handler) ListTopics(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListTopicsResponse], error) {
 	topics, err := store.ListTopics(ctx, h.DB)
 	if err != nil {
-		return nil, errInternal(err)
+		return nil, h.errInternal(err)
 	}
 	out := make([]*pb.Topic, len(topics))
 	for i, t := range topics {
@@ -204,6 +206,7 @@ func marshalComment(c store.CommentRow) *pb.Comment {
 	}
 }
 
-func errInternal(err error) error {
-	return connect.NewError(connect.CodeInternal, err)
+func (h *Handler) errInternal(err error) error {
+	h.Log.Error().Err(err).Msg("api call failed")
+	return connect.NewError(connect.CodeInternal, errors.New("internal error"))
 }
