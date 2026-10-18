@@ -23,7 +23,7 @@ type statusTestDaemon struct {
 }
 
 func (d *statusTestDaemon) GetWalletStatus(context.Context, *connect.Request[pb.GetWalletStatusRequest]) (*connect.Response[pb.GetWalletStatusResponse], error) {
-	return connect.NewResponse(&pb.GetWalletStatusResponse{}), nil
+	return connect.NewResponse(&pb.GetWalletStatusResponse{State: pb.WalletState_WALLET_STATE_NO_WALLET}), nil
 }
 
 func (d *statusTestDaemon) GenerateWallet(_ context.Context, req *connect.Request[pb.GenerateWalletRequest]) (*connect.Response[pb.GenerateWalletResponse], error) {
