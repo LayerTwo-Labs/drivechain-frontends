@@ -157,6 +157,31 @@ void main() {
         expect(votingProvider.currentPeriod, isNotNull);
         expect(votingProvider.currentVoter, isNull);
       });
+
+      // vote_period(null) answers null for an active period with no claimed decision.
+      test('asks for the current period of decision_status', () async {
+        mockRpc.slotStatusResponse = TestData.sampleSlotStatus;
+        mockRpc.votePeriodResponse = null;
+        mockRpc.votePeriodById = {42: TestData.sampleVotingPeriod};
+
+        await votingProvider.loadDashboardData(null);
+
+        expect(mockRpc.votePeriodCalls, [42]);
+        expect(votingProvider.currentPeriod?.periodId, 42);
+      });
+
+      test('asks for no period after the status read fails', () async {
+        mockRpc.slotStatusResponse = TestData.sampleSlotStatus;
+        mockRpc.votePeriodById = {42: TestData.sampleVotingPeriod};
+        await votingProvider.loadDashboardData(null);
+
+        mockRpc.shouldThrowOnSlotStatus = true;
+        mockRpc.votePeriodCalls.clear();
+        await votingProvider.loadDashboardData(null);
+
+        expect(mockRpc.votePeriodCalls, [null]);
+        mockRpc.shouldThrowOnSlotStatus = false;
+      });
     });
 
     group('pending votes management', () {
