@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:connectrpc/connect.dart' as connect;
 import 'package:flutter_test/flutter_test.dart';
@@ -51,6 +52,15 @@ void main() {
 
   UnshieldedUTXO utxo(double amount) =>
       UnshieldedUTXO(txid: 'a:0', address: 'addr', amount: amount, confirmations: 1, generated: false, raw: 'a:0');
+
+  test('the debug window lists only methods the zSide node serves', () {
+    final file = File('../sidechain-orchestrator/sidechain/zside/testdata/openapi_schema.json');
+    final paths = (jsonDecode(file.readAsStringSync()) as Map<String, dynamic>)['paths'] as Map<String, dynamic>;
+    // The schema names sidechain_wealth after its Rust function.
+    final served = {...paths.keys, 'sidechain_wealth'};
+
+    expect(served, containsAll(zsideRPCMethods));
+  });
 
   test('shield sends the asked amount and the fee in sats', () async {
     await rpc.shield(utxo(2), 0.5);

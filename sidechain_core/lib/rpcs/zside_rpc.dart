@@ -52,7 +52,6 @@ final zsideRPCMethods = [
   'create_withdrawal',
   'get_wallet_utxos_unconfirmed',
   'get_wallet_stxos',
-  'help',
 ];
 
 abstract class ZSideRPC extends SidechainRPC {
