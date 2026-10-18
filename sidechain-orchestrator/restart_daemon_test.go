@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -156,7 +157,8 @@ func TestStartEnforcerWhenReady_AlreadyInPM_NoPhantomStart(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	o.startEnforcerWhenReady(ctx, StartOpts{}, nil)
+	err := o.startEnforcerWhenReady(ctx, StartOpts{}, nil)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
 
 	// Adopted PID survives — the guard never spawned a new process and
 	// never tried to mutate pm.processes.
@@ -170,6 +172,20 @@ func TestStartEnforcerWhenReady_AlreadyInPM_NoPhantomStart(t *testing.T) {
 	if strings.Contains(got, "already running") {
 		t.Errorf("enforcer monitor.ConnectionError = %q; the IsRunning guard must prevent process.Start from racing pm.processes", got)
 	}
+}
+
+func TestStartEnforcerWhenReady_ReturnsPrefetchError(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.getOrCreateMonitor("enforcer", &mockChecker{}, enforcerStartupPatterns)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	prefetched := make(chan error, 1)
+	prefetched <- errors.New("checksum mismatch")
+
+	err := o.startEnforcerWhenReady(ctx, StartOpts{}, prefetched)
+	require.ErrorContains(t, err, "checksum mismatch")
 }
 
 // TestRestartDaemon_BitcoindLeavesEnforcerMonitorUntouched is the symmetric

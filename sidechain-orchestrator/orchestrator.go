@@ -407,7 +407,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		if fileName == "" {
 			return sidechainVariantSpec{}, false
 		}
-		baseURL := c.AltBaseURL(orch.Network)
+		baseURL := c.AltBaseURL(orch.CurrentNetwork())
 		if baseURL == "" {
 			return sidechainVariantSpec{}, false
 		}
@@ -615,7 +615,7 @@ func (o *Orchestrator) Download(ctx context.Context, name string, force bool, op
 	if err := config.refuseExternal(); err != nil {
 		return nil, err
 	}
-	return o.download.DownloadWithOptions(ctx, config, o.Network, force, opts)
+	return o.download.DownloadWithOptions(ctx, config, o.CurrentNetwork(), force, opts)
 }
 
 // Start starts a binary with the given args and env.
@@ -910,7 +910,7 @@ func (o *Orchestrator) prefetchBinary(ctx context.Context, cfg BinaryConfig, for
 	done := make(chan error, 1)
 	go func() {
 		defer close(done)
-		progressCh, err := o.download.DownloadWithOptions(ctx, cfg, o.Network, false, DownloadOptions{ForceBackend: forceBackend})
+		progressCh, err := o.download.DownloadWithOptions(ctx, cfg, o.CurrentNetwork(), false, DownloadOptions{ForceBackend: forceBackend})
 		if err != nil {
 			done <- err
 			return
@@ -1016,7 +1016,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		var enforcerPrefetch <-chan error
 		needsEnforcer := !skipLocalL1 && startsEnforcer(config)
 		if needsEnforcer {
-			enforcerPrefetch = o.prefetchBinary(ctx, o.configs["enforcer"], false)
+			enforcerPrefetch = o.prefetchBinary(ctx, o.Configs()["enforcer"], false)
 		}
 		var targetPrefetch <-chan error
 		if config.Name != "enforcer" {
@@ -1029,10 +1029,11 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
-			if needsEnforcer && !o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch) {
-				enforcerMon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
-				ch <- StartupProgress{Stage: "enforcer", Error: fmt.Errorf("the enforcer did not start: %s", enforcerMon.ConnectionError())}
-				return
+			if needsEnforcer {
+				if err := o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch); err != nil {
+					failBoot(o.getOrCreateMonitor("enforcer", NewHealthChecker(o.Configs()["enforcer"]), enforcerStartupPatterns), ch, "start enforcer", err)
+					return
+				}
 			}
 
 			// Wait for enforcer's gRPC port to actually accept dials before
@@ -1043,7 +1044,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			// service. Gated on ChainLayer == 2 so the L1 binaries (bitcoind,
 			// enforcer as target) don't wait on themselves.
 			if config.ChainLayer == 2 && needsEnforcer {
-				enforcerCfg := o.configs["enforcer"]
+				enforcerCfg := o.Configs()["enforcer"]
 				enforcerMon := o.getOrCreateMonitor("enforcer", NewHealthChecker(enforcerCfg), enforcerStartupPatterns)
 				if errMsg := enforcerMon.ConnectionError(); errMsg != "" {
 					failBoot(enforcerMon, ch, "wait for enforcer", fmt.Errorf("%s", errMsg))
@@ -1182,7 +1183,7 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
-	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.Network))
+	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.CurrentNetwork()))
 	if err != nil {
 		return err
 	}
@@ -1197,7 +1198,7 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	if !ok {
 		return fmt.Errorf("no directory config for %s", cfg.Name)
 	}
-	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), ".cookie")
+	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.CurrentNetwork()), ""), ".cookie")
 	netParams := o.NetParams.Resolve()
 	if own, ok := node.(sidechain.WalletParamsNode); ok {
 		netParams = own.WalletParams()
@@ -1365,7 +1366,7 @@ func (o *Orchestrator) appendSidechainArgs(ctx context.Context, cfg BinaryConfig
 	if cfg.ChainLayer != 2 {
 		return nil
 	}
-	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.NetworkFromString(o.Network))
+	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.NetworkFromString(o.CurrentNetwork()))
 	if err != nil {
 		return err
 	}
@@ -1427,7 +1428,7 @@ func (h bootHost) MainchainREST() string {
 }
 
 func (h bootHost) ForkHeight() int {
-	network := config.NetworkFromString(h.orch.Network)
+	network := config.NetworkFromString(h.orch.CurrentNetwork())
 	if network == config.NetworkRegtest {
 		return 0
 	}
@@ -1530,7 +1531,7 @@ func (h bootHost) ToolPath(name string) string {
 // again, so recovery belongs there.
 func (o *Orchestrator) parkedStateOutstanding() []string {
 	var outstanding []string
-	active := config.Network(o.Network)
+	active := config.Network(o.CurrentNetwork())
 	for path := range o.swapStatePaths(active) {
 		if _, err := os.Stat(path); err == nil {
 			continue
@@ -1573,7 +1574,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 		o.maybeApplySnapshot(ctx, ch)
 	}()
 
-	coreCfg := o.configs["bitcoind"]
+	coreCfg := o.Configs()["bitcoind"]
 	var coreHealthOpts HealthCheckOpts
 	if o.BitcoinConf != nil {
 		if coreCfg.Port == 0 {
@@ -1605,7 +1606,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 
 	ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
 
-	downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], o.Network, false)
+	downloadCh, err := o.download.Download(ctx, o.Configs()["bitcoind"], o.CurrentNetwork(), false)
 	if err != nil {
 		failBoot(coreMon, ch, "download bitcoind", err)
 		return false
@@ -1648,31 +1649,37 @@ func (o *Orchestrator) startCoreRestartTimer(ctx context.Context, coreMon *Conne
 	coreMon.StartRestartTimer(ctx,
 		// Dart binary_provider.dart L490-506: detect -reindex need before restart
 		func(restartCtx context.Context) error {
-			proc := o.process.LatestRun("bitcoind")
-			if proc != nil {
-				logs := proc.RecentLogs(100)
-				for _, entry := range logs {
-					if strings.Contains(entry.Line, "Please restart with -reindex") {
-						o.log.Warn().Msg("Bitcoin Core needs reindex, adding -reindex flag for next boot attempt")
-						hasReindex := false
-						for _, arg := range coreArgs {
-							if arg == "-reindex" {
-								hasReindex = true
-								break
-							}
-						}
-						if !hasReindex {
-							coreArgs = append(coreArgs, "-reindex")
-						}
-						break
-					}
-				}
+			var logs []LogEntry
+			if proc := o.process.LatestRun("bitcoind"); proc != nil {
+				logs = proc.RecentLogs(100)
 			}
-
-			return o.startOrAdoptCore(restartCtx, coreArgs)
+			args, reindex := coreRestartArgs(coreArgs, logs)
+			if reindex {
+				o.log.Warn().Msg("Bitcoin Core needs reindex, adding -reindex flag for next boot attempt")
+			}
+			return o.startOrAdoptCore(restartCtx, args)
 		},
 		o.exitedFunc("bitcoind"),
 	)
+}
+
+// coreRestartArgs drops the one-shot -reindex flags of the first start, and
+// adds -reindex only when the last run asked for it.
+func coreRestartArgs(coreArgs []string, logs []LogEntry) ([]string, bool) {
+	args := make([]string, 0, len(coreArgs)+1)
+	for _, arg := range coreArgs {
+		if arg == "-reindex" || strings.HasPrefix(arg, "-reindex=") ||
+			arg == "-reindex-chainstate" || strings.HasPrefix(arg, "-reindex-chainstate=") {
+			continue
+		}
+		args = append(args, arg)
+	}
+	for _, entry := range logs {
+		if strings.Contains(entry.Line, "Please restart with -reindex") {
+			return append(args, "-reindex"), true
+		}
+	}
+	return args, false
 }
 
 // startOrAdoptCore starts bitcoind, unless another process already runs one.
@@ -1682,7 +1689,7 @@ func (o *Orchestrator) startCoreRestartTimer(ctx context.Context, coreMon *Conne
 // file decides, and a start that loses the datadir lock decides too. Both
 // answers name a live node, and a second bitcoind on one datadir cannot run.
 func (o *Orchestrator) startOrAdoptCore(ctx context.Context, args []string) error {
-	cfg := o.configs["bitcoind"]
+	cfg := o.Configs()["bitcoind"]
 	if o.BitcoinConf != nil {
 		if err := o.BitcoinConf.CreateDataDir(); err != nil {
 			return err
@@ -1813,7 +1820,10 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 		case "enforcer":
 			o.prepareEnforcerArgs(&opts)
-			o.startEnforcerWhenReady(ctx, opts, nil)
+			if err := o.startEnforcerWhenReady(ctx, opts, nil); err != nil {
+				failBoot(o.getOrCreateMonitor(name, NewHealthChecker(config), enforcerStartupPatterns), ch, "start enforcer", err)
+				return
+			}
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 
 		default:
@@ -1847,15 +1857,15 @@ func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
 // the enforcer. It reports whether the enforcer runs.
 // If prefetched is non-nil, the enforcer binary is already being downloaded
 // in parallel and we wait on its completion instead of starting a new download.
-func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) (started bool) {
+func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) error {
 	// A switch that could not finish its enforcer cleanup journalled it. Here,
 	// because a leftover validator chain serves the retired generation.
 	if err := o.ApplyPendingEnforcerWipe(); err != nil {
 		o.log.Error().Err(err).Msg("could not clear the enforcer chain a switch left behind")
-		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
+		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.Configs()["enforcer"]), enforcerStartupPatterns)
 		mon.SetConnectionError(err.Error())
 		mon.SetInitializing(false)
-		return
+		return err
 	}
 
 	// 1. Wait for an unlocked wallet — enforcer needs the L1 seed.
@@ -1870,7 +1880,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		for !walletReady() {
 			select {
 			case <-ctx.Done():
-				return
+				return ctx.Err()
 			case <-sub:
 			}
 		}
@@ -1909,7 +1919,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			}
 			select {
 			case <-ctx.Done():
-				return
+				return ctx.Err()
 			case <-time.After(5 * time.Second):
 			}
 		}
@@ -1920,7 +1930,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		o.log.Info().Msg("header sync complete, proceeding with enforcer")
 	}
 
-	enforcerCfg := o.configs["enforcer"]
+	enforcerCfg := o.Configs()["enforcer"]
 	enforcerChecker := NewHealthChecker(enforcerCfg)
 	enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
 	enforcerMon.StartConnectionTimer(ctx)
@@ -1931,7 +1941,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			pid := o.discoverPid(enforcerCfg)
 			o.process.AdoptProcess(enforcerCfg, pid)
 		}
-		return true
+		return nil
 	}
 
 	// The enforcer runs with no wallet, so it takes no seed. Every arg a
@@ -1954,7 +1964,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			o.log.Error().Err(err).Msg("refusing to start the enforcer with no coinbase recipient")
 			enforcerMon.SetConnectionError(fmt.Sprintf("cannot start the enforcer without a payout address: %v", err))
 			enforcerMon.SetInitializing(false)
-			return
+			return fmt.Errorf("cannot start the enforcer without a payout address: %w", err)
 		}
 		opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--coinbase-recipient=%s", recipient))
 		o.log.Info().Str("address", recipient).Msg("the block reward pays to the starter wallet")
@@ -1976,14 +1986,14 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			enforcerMon.SetConnectionError(err.Error())
 			enforcerMon.SetInitializing(false)
 			o.log.Error().Err(err).Str("zmq_addr", zmqAddr).Msg("refusing to start enforcer: bitcoind ZMQ socket unreachable")
-			return
+			return err
 		}
 	}
 
 	enfOpts := opts
 	enforcerMon.StartRestartTimer(ctx,
 		func(restartCtx context.Context) error {
-			_, err := o.process.Start(restartCtx, o.configs["enforcer"], enfOpts.EnforcerArgs, enforcerEnv())
+			_, err := o.process.Start(restartCtx, o.Configs()["enforcer"], enfOpts.EnforcerArgs, enforcerEnv())
 			return err
 		},
 		o.exitedFunc("enforcer"),
@@ -1993,24 +2003,18 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		// Download was kicked off in parallel with bitcoind IBD.
 		if err := <-prefetched; err != nil {
 			enforcerMon.SetInitializing(false)
-			enforcerMon.SetConnectionError(fmt.Sprintf("download enforcer: %v", err))
-			o.log.Error().Err(err).Msg("enforcer prefetch download failed")
-			return
+			return fmt.Errorf("enforcer prefetch download: %w", err)
 		}
 	} else {
-		downloadCh, err := o.download.Download(ctx, enforcerCfg, o.Network, false)
+		downloadCh, err := o.download.Download(ctx, enforcerCfg, o.CurrentNetwork(), false)
 		if err != nil {
 			enforcerMon.SetInitializing(false)
-			enforcerMon.SetConnectionError(fmt.Sprintf("download enforcer: %v", err))
-			o.log.Error().Err(err).Msg("failed to download enforcer")
-			return
+			return fmt.Errorf("download enforcer: %w", err)
 		}
 		for progress := range downloadCh {
 			if progress.Error != nil {
 				enforcerMon.SetInitializing(false)
-				enforcerMon.SetConnectionError(fmt.Sprintf("download enforcer: %v", progress.Error))
-				o.log.Error().Err(progress.Error).Msg("enforcer download error")
-				return
+				return fmt.Errorf("download enforcer: %w", progress.Error)
 			}
 		}
 	}
@@ -2025,11 +2029,10 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		o.log.Info().Str("binary", "enforcer").Msg("process already in tracking map, waiting for connection")
 		if err := waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
 			enforcerMon.SetInitializing(false)
-			o.log.Error().Err(err).Msg("failed to wait for enforcer")
-			return
+			return fmt.Errorf("wait for enforcer: %w", err)
 		}
 		o.log.Info().Msg("enforcer connection recovered")
-		return true
+		return nil
 	}
 
 	// Log the literal argv at the actual spawn site: the auto-built-args log in
@@ -2039,16 +2042,14 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	o.log.Info().Strs("argv", redactArgs(opts.EnforcerArgs)).Msg("starting enforcer with final argv")
 
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); errors.Is(err, ErrAlreadyRunning) {
-		return true
+		return nil
 	} else if err != nil {
 		enforcerMon.SetInitializing(false)
-		enforcerMon.SetConnectionError(fmt.Sprintf("start enforcer: %v", err))
-		o.log.Error().Err(err).Msg("failed to start enforcer")
-		return
+		return fmt.Errorf("start enforcer: %w", err)
 	}
 
 	o.log.Info().Msg("enforcer started")
-	return true
+	return nil
 }
 
 // enforcerEnv returns the environment overlay applied when launching the
@@ -2353,7 +2354,7 @@ func (o *Orchestrator) awaitBinaryOnDisk(
 	}
 
 	ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
-	downloadCh, err := o.download.DownloadWithOptions(ctx, config, o.Network, false, DownloadOptions{ForceBackend: opts.ForceBackend})
+	downloadCh, err := o.download.DownloadWithOptions(ctx, config, o.CurrentNetwork(), false, DownloadOptions{ForceBackend: opts.ForceBackend})
 	if err != nil {
 		return err
 	}
@@ -2718,11 +2719,11 @@ func (o *Orchestrator) CoreVariant() string {
 // ListCoreVariants returns the variants offered for the current network.
 // On mainnet the slice is empty (the UI hides the picker entirely).
 func (o *Orchestrator) ListCoreVariants() []CoreVariantSpec {
-	cfg, ok := o.configs["bitcoind"]
+	cfg, ok := o.Configs()["bitcoind"]
 	if !ok {
 		return nil
 	}
-	return FilterVariantsForNetwork(cfg.Variants, o.Network)
+	return FilterVariantsForNetwork(cfg.Variants, o.CurrentNetwork())
 }
 
 // SetCoreVariant stops bitcoind, persists the new variant, ensures the binary
@@ -2738,7 +2739,7 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 		return fmt.Errorf("orchestrator settings not initialised")
 	}
 
-	coreCfg, ok := o.configs["bitcoind"]
+	coreCfg, ok := o.Configs()["bitcoind"]
 	if !ok {
 		return fmt.Errorf("bitcoind config not found")
 	}
@@ -2746,8 +2747,8 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 	if !ok {
 		return fmt.Errorf("unknown core variant: %s", id)
 	}
-	if !variant.AvailableOn(o.Network) {
-		return fmt.Errorf("variant %s is not available on network %s", id, o.Network)
+	if !variant.AvailableOn(o.CurrentNetwork()) {
+		return fmt.Errorf("variant %s is not available on network %s", id, o.CurrentNetwork())
 	}
 
 	o.coreVariantMu.Lock()
@@ -2764,7 +2765,7 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 		return fmt.Errorf("persist core variant: %w", err)
 	}
 
-	progressCh, err := o.download.Download(ctx, coreCfg, o.Network, true)
+	progressCh, err := o.download.Download(ctx, coreCfg, o.CurrentNetwork(), true)
 	if err != nil {
 		return fmt.Errorf("ensure variant binary: %w", err)
 	}
@@ -2808,7 +2809,7 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	o.swapNetworkMu.Lock()
 	defer o.swapNetworkMu.Unlock()
 
-	if config.Network(o.Network) == n {
+	if config.Network(o.CurrentNetwork()) == n {
 		if o.pendingSwap == nil || o.pendingSwap.network != n {
 			return nil
 		}
@@ -2974,7 +2975,7 @@ func (o *Orchestrator) finishNetworkSwap(n config.Network, restartL1 bool) error
 // colliding networks, so both networks want the same paths. A delete would cost
 // the user a full sidechain resync — and the enforcer's keys — every swap.
 func (o *Orchestrator) parkOutgoingSwapState() error {
-	from := config.Network(o.Network)
+	from := config.Network(o.CurrentNetwork())
 	moved := make(map[string]string)
 	for path := range o.swapStatePaths(from) {
 		switch _, err := os.Stat(path); {
@@ -3022,7 +3023,7 @@ func (o *Orchestrator) unparkPartialMove(moved map[string]string) {
 // It never overwrites. A live path is the newer state by definition, and the
 // parked copy under it stays on disk.
 func (o *Orchestrator) RestoreParkedSwapState() error {
-	active := config.Network(o.Network)
+	active := config.Network(o.CurrentNetwork())
 	for path := range o.swapStatePaths(active) {
 		switch _, err := os.Stat(path); {
 		case err == nil:
@@ -3256,7 +3257,7 @@ func (o *Orchestrator) stopForNetworkSwap(ctx context.Context, name string, opti
 // DefaultElectrumServerURL returns the built-in Esplora endpoint for the
 // current network, the value used when the user has set no override.
 func (o *Orchestrator) DefaultElectrumServerURL() string {
-	urls := config.WalletChainSourceURLsForNetwork(config.NetworkFromString(o.Network))
+	urls := config.WalletChainSourceURLsForNetwork(config.NetworkFromString(o.CurrentNetwork()))
 	if len(urls) == 0 {
 		return ""
 	}
@@ -3998,7 +3999,7 @@ const explorerCacheTTL = 30 * time.Second
 type explorerHeightsConnection struct{ o *Orchestrator }
 
 func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64, error) {
-	network := config.NetworkFromString(c.o.Network)
+	network := config.NetworkFromString(c.o.CurrentNetwork())
 	heights := make(map[string]int64)
 
 	if config.PublicExplorerNetwork(network) {

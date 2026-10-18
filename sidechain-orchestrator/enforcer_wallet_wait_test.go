@@ -29,19 +29,20 @@ func TestStartEnforcerWhenReadyWaitsForUnlock(t *testing.T) {
 
 	prefetched := make(chan error, 1)
 	prefetched <- errors.New("no download in this test")
-	done := make(chan bool, 1)
+	done := make(chan error, 1)
 	go func() { done <- o.startEnforcerWhenReady(ctx, StartOpts{}, prefetched) }()
 
 	select {
-	case <-done:
-		t.Fatalf("the enforcer start went on with a locked wallet: %q", enforcerMon.ConnectionError())
+	case err := <-done:
+		t.Fatalf("the enforcer start went on with a locked wallet: %v", err)
 	case <-time.After(300 * time.Millisecond):
 	}
 
 	require.NoError(t, svc.UnlockWallet("pw"))
 
 	select {
-	case <-done:
+	case err := <-done:
+		require.ErrorContains(t, err, "no download in this test")
 	case <-ctx.Done():
 		t.Fatal("the enforcer start did not go on after the unlock")
 	}
