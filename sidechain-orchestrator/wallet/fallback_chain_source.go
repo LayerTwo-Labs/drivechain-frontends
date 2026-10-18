@@ -78,7 +78,10 @@ func (f *fallbackChainSource) try(ctx context.Context, op string, call func(Chai
 			f.markUp(i)
 			return nil
 		}
-		f.markDown(i)
+		// A "not found" answer is proof from a live server, not an outage.
+		if !allNotFound(err) {
+			f.markDown(i)
+		}
 		f.log.Debug().Err(err).Str("op", op).Int("source", i).Msg("chain source failed, trying the next")
 		errs = append(errs, err)
 	}
@@ -151,7 +154,10 @@ func (f *fallbackChainSource) Outspend(ctx context.Context, txid string, vout in
 			f.markUp(i)
 			return out, held, nil
 		}
-		f.markDown(i)
+		// A "not found" answer is proof from a live server, not an outage.
+		if !allNotFound(err) {
+			f.markDown(i)
+		}
 		f.log.Debug().Err(err).Str("op", "outspend").Int("source", i).Msg("chain source failed, trying the next")
 		errs = append(errs, err)
 	}

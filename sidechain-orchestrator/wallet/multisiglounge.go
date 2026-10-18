@@ -490,7 +490,7 @@ func MultisigPsbtSigningStatus(psbtBase64 string, cosigners []MultisigCosigner) 
 				applicable++
 				// Inputs can share a pubkey, so only this input's own
 				// signatures count for this input.
-				if inputHasPartialSig(packet.Inputs[i].PartialSigs, d.PubKey) {
+				if hasPartialSig(packet.Inputs[i].PartialSigs, d.PubKey) {
 					signed++
 				}
 				break
@@ -500,15 +500,6 @@ func MultisigPsbtSigningStatus(psbtBase64 string, cosigners []MultisigCosigner) 
 	}
 
 	return MultisigSigningStatus{Signatures: maxSigs, Finalizable: finalizable, CosignerSigned: cosignerSigned}, nil
-}
-
-func inputHasPartialSig(sigs []*psbt.PartialSig, pubKey []byte) bool {
-	for _, ps := range sigs {
-		if bytes.Equal(ps.PubKey, pubKey) {
-			return true
-		}
-	}
-	return false
 }
 
 // keyOrigin is one cosigner's master fingerprint plus account-level origin path,

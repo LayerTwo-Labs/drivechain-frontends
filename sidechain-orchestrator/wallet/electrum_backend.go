@@ -457,7 +457,10 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 	if err != nil {
 		return nil, err
 	}
-	tip, _ := p.client.TipHeight(ctx)
+	tip, err := p.client.TipHeight(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// The scan walks the full gap-limit lookahead, but the list should stop at
 	// the highest index that has received funds, tracked per derivation chain
@@ -1133,9 +1136,18 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	inVsize := walletInputVsize(d)
 	changeDust := dustThreshold(d.Kind)
 	withChange := true
-	feeSats := func(nIn int) int64 {
+	feeSats := func(in []electrumUTXO) int64 {
 		if req.FixedFeeSats > 0 {
 			return req.FixedFeeSats
+		}
+		inTotal := 0
+		for _, u := range in {
+			// A BIP47 watch key has no hdPath and spends as P2PKH.
+			if a, ok := scan.byAddr[u.address]; ok && a.hdPath == "" {
+				inTotal += inputVsize(ScriptLegacy)
+			} else {
+				inTotal += inVsize
+			}
 		}
 		outVsize := 0
 		for _, o := range outputs {
@@ -1144,12 +1156,12 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		if withChange {
 			outVsize += outputVsizeForKind(d.Kind)
 		}
-		return estimateFeeSats(nIn, inVsize, outVsize, feeRate)
+		return estimateFeeSats(inTotal, outVsize, feeRate)
 	}
 
 	i := 0
 	for {
-		fee := feeSats(len(selected))
+		fee := feeSats(selected)
 		// Subtract-fee sends take the fee out of the first output, so they only
 		// need to cover the output total; change (if any) returns as normal.
 		target := totalOutSats + fee
@@ -1172,7 +1184,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	if req.SubtractFeeFromAmount && selectedSats-totalOutSats < changeDust {
 		withChange = false
 	}
-	fee := feeSats(len(selected))
+	fee := feeSats(selected)
 	var changeSats int64
 	if req.SubtractFeeFromAmount {
 		if len(outputs) == 0 || outputs[0].OpReturnHex != "" {
@@ -3096,12 +3108,16 @@ func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, walletID string, k W
 	if err != nil {
 		return scannedAddr{}, fmt.Errorf("decode watch WIF: %w", err)
 	}
-	pubHash := btcutil.Hash160(wif.PrivKey.PubKey().SerializeCompressed())
-	addr, err := btcutil.NewAddressPubKeyHash(pubHash, net)
+	pub := wif.PrivKey.PubKey()
+	addr, err := btcutil.NewAddressPubKeyHash(btcutil.Hash160(pub.SerializeCompressed()), net)
 	if err != nil {
 		return scannedAddr{}, fmt.Errorf("watch key address: %w", err)
 	}
-	a := scannedAddr{address: addr.EncodeAddress(), priv: wif.PrivKey}
+	script, err := txscript.PayToAddrScript(addr)
+	if err != nil {
+		return scannedAddr{}, fmt.Errorf("watch key script: %w", err)
+	}
+	a := scannedAddr{address: addr.EncodeAddress(), priv: wif.PrivKey, pub: pub, scriptPubKey: script, kind: ScriptLegacy}
 	if err := p.hydrate(ctx, walletID, &a, prior); err != nil {
 		return scannedAddr{}, err
 	}

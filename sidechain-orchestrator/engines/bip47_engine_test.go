@@ -191,6 +191,26 @@ func TestScanWalletFindsNotificationAfterCompletedPass(t *testing.T) {
 	require.Equal(t, 1, chain.fetch)
 }
 
+func TestScanWalletFetchesANonNotificationOnce(t *testing.T) {
+	net := &chaincfg.MainNetParams
+	const walletID = "W1"
+
+	_, notifAddr, err := bip47.DeriveOwnNotificationKey(bobSeedHex, net)
+	require.NoError(t, err)
+	row, raw := buildNotificationTx(t, bobSeedHex, notifAddr.EncodeAddress())
+	raw.Vout = nil
+	missing := wallet.WalletTransaction{TxID: "missing-txid", Category: "receive", Address: notifAddr.EncodeAddress()}
+
+	chain := &stubChain{txs: map[string]*wallet.RawTransaction{raw.TxID: raw}}
+	backend := &stubBackend{chain: chain, txs: []wallet.WalletTransaction{row, missing}}
+	e := NewBIP47Engine(zerolog.Nop(), nil, wallet.NewWalletEngine(nil, backend, func() *chaincfg.Params { return net }, zerolog.Nop()), bip47state.NewInboundStore(t.TempDir()))
+
+	require.NoError(t, e.scanWallet(context.Background(), walletID, bobSeedHex, net))
+	require.NoError(t, e.scanWallet(context.Background(), walletID, bobSeedHex, net))
+
+	require.Equal(t, 3, chain.fetch, "the dust receive is fetched once, the failed fetch is tried again")
+}
+
 // restoreBackend records the keys the engine registers again. No probe
 // address has received, so the window never grows.
 type restoreBackend struct {

@@ -1157,6 +1157,22 @@ func TestCoreBackendWatchKeys(t *testing.T) {
 	assert.Equal(t, float64(1_700_000_000), asFloat(t, descs[0].Timestamp))
 }
 
+func TestCoreBackendWatchKeysReturnsImportFailure(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	_, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+	backend.bip47Imports.Wait()
+
+	fake.handle("importdescriptors", func(bitcoindCall) (any, string) {
+		return []map[string]any{{"success": false, "error": map[string]any{"code": -4, "message": "wallet is busy"}}}, ""
+	})
+	err = backend.WatchKeys(context.Background(), coreID, []WatchKey{
+		{WIF: "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN8rFTv2sfUK", RescanFrom: 1_700_000_000},
+	})
+	require.ErrorContains(t, err, "wallet is busy")
+}
+
 func TestCoreBackendNextReceiveAddress(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()

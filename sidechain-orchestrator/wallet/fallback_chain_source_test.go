@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -103,6 +104,23 @@ func TestFallbackChainSourceSkipsAFailedSourceForTheCooldown(t *testing.T) {
 
 	assert.Equal(t, 1, fulcrum.calls, "the cooled-down source must not be dialled again")
 	assert.Equal(t, 2, esplora.calls)
+}
+
+// A transaction one server lacks is an answer, so that server stays first.
+func TestFallbackChainSourceKeepsASourceThatAnswersNotFound(t *testing.T) {
+	fulcrum := &stubChainSource{err: &esploraStatusError{code: http.StatusNotFound, msg: "Transaction not found"}}
+	esplora := &stubChainSource{}
+
+	f := newFallbackChainSource([]ChainDataSource{fulcrum, esplora}, zerolog.Nop())
+	_, err := f.Tx(context.Background(), "mempool-only")
+	require.NoError(t, err)
+
+	fulcrum.err = nil
+	fulcrum.height = 840000
+	height, err := f.TipHeight(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 840000, height)
+	assert.Equal(t, 1, esplora.calls, "the fallback is not asked once the primary answers")
 }
 
 // All sources down is a real error, and it must carry every cause.

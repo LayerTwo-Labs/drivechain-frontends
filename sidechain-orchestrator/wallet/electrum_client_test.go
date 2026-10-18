@@ -9,6 +9,7 @@ import (
 	"net"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -125,6 +126,31 @@ func TestElectrumClientAddressStatsAndUTXOs(t *testing.T) {
 	assert.Equal(t, "aa", utxos[0].TxID)
 	assert.Equal(t, int64(55000), utxos[0].Value)
 	assert.True(t, utxos[0].Status.Confirmed)
+}
+
+func TestElectrumClientCallerDeadlineKeepsTheConnection(t *testing.T) {
+	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+		if method == "slow" {
+			time.Sleep(50 * time.Millisecond)
+		}
+		return nil
+	})
+	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+	require.NoError(t, c.call(context.Background(), nil, "fast"))
+	c.connMu.Lock()
+	conn := c.conn
+	c.connMu.Unlock()
+
+	for range 10 {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		err := c.call(ctx, nil, "slow")
+		cancel()
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		c.connMu.Lock()
+		same := c.conn == conn
+		c.connMu.Unlock()
+		require.True(t, same, "a caller deadline must not close the shared socket")
+	}
 }
 
 // TestElectrumClientTxResolvesPrevoutAndFee proves the client decodes a raw tx

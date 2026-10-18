@@ -301,7 +301,7 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		bc.BinaryName = jb.Download.Binary
 		bc.DownloadURLs = parseBaseURLs(jb.Download.Files)
 		bc.Files = parseOSFiles(jb.Download.Files, "default")
-		bc.ExtractSubfolder = parseOSMapFromExtract(jb.Download.ExtractSubfolder, "default")
+		bc.ExtractSubfolder = parseOSMapFromNetworkMap(jb.Download.ExtractSubfolder, "default")
 		if jb.Download.CLI != nil {
 			bc.CLIBinaryName = jb.Download.CLI.Binary
 			bc.CLIFiles = jb.Download.CLI.Files
@@ -334,7 +334,7 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		bc.AltBinaryName = jb.AltDownload.Binary
 		bc.AltDownloadURLs = parseBaseURLs(jb.AltDownload.Files)
 		bc.AltFiles = parseOSFiles(jb.AltDownload.Files, "default")
-		bc.AltExtractSubfolder = parseOSMapFromExtract(jb.AltDownload.ExtractSubfolder, "default")
+		bc.AltExtractSubfolder = parseOSMapFromNetworkMap(jb.AltDownload.ExtractSubfolder, "default")
 	}
 
 	return bc
@@ -378,22 +378,9 @@ func parseOSFiles(files map[string]json.RawMessage, network string) map[string]s
 	return result
 }
 
-// parseOSMapFromNetworkMap extracts an OS map from the directories.binary structure.
+// parseOSMapFromNetworkMap extracts the OS map of one network from a network-keyed map.
 func parseOSMapFromNetworkMap(networkMap map[string]json.RawMessage, network string) map[string]string {
 	raw, ok := networkMap[network]
-	if !ok {
-		return nil
-	}
-	var entry map[string]string
-	if err := json.Unmarshal(raw, &entry); err != nil {
-		return nil
-	}
-	return entry
-}
-
-// parseOSMapFromExtract extracts an OS map from extract_subfolder for a given network.
-func parseOSMapFromExtract(subfolder map[string]json.RawMessage, network string) map[string]string {
-	raw, ok := subfolder[network]
 	if !ok {
 		return nil
 	}

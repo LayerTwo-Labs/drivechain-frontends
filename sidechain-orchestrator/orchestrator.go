@@ -174,7 +174,6 @@ type Orchestrator struct {
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
 	// InitForkEngine once Core RPC is up.
-	// the enforcer wallet's UTXOs (set later, once the enforcer client exists).
 	forkEngine *fork.Engine
 
 	// forkScanner enumerates the wallets and their coins for the fork engine
@@ -221,8 +220,6 @@ type Orchestrator struct {
 	// across the enforcer wait, so an accept cannot restore the branch the
 	// reject still reconciles against.
 	rejectMu sync.Mutex
-
-	// testSidechainsMu serialises the stop -> persist -> wipe sequence for
 
 	// swapNetworkMu serialises the stop -> persist -> restart sequence for
 	// SwapNetwork. Same reason as coreVariantMu.
@@ -326,7 +323,6 @@ func (o *Orchestrator) DownloadStates() map[string]DownloadState {
 	return o.download.States()
 }
 
-// New creates a new Orchestrator.
 // SetOwnerLock records the lock this run holds. A nil lock means the install
 // belongs to somebody else, so the drain leaves adopted binaries alone.
 func (o *Orchestrator) SetOwnerLock(lock *OwnerLock) {
@@ -353,6 +349,7 @@ func (o *Orchestrator) OwnsInstall() bool {
 	return o.ownerLock != nil
 }
 
+// New creates a new Orchestrator.
 func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zerolog.Logger) *Orchestrator {
 	pidMgr := NewPidFileManager(dataDir, log)
 
@@ -503,8 +500,6 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	return orch
 }
 
-// getOrCreateMonitor returns the ConnectionMonitor for a binary, creating one if needed.
-// Dart: each RPCConnection has its own connection timer + state.
 // enforcerReachable reports whether the enforcer answers RPC, whether or not
 // this process started it. A connect-only enforcer never enters ProcessManager.
 func (o *Orchestrator) enforcerReachable() bool {
@@ -517,6 +512,8 @@ func (o *Orchestrator) enforcerReachable() bool {
 	return ok && mon.Connected()
 }
 
+// getOrCreateMonitor returns the ConnectionMonitor for a binary, creating one if needed.
+// Dart: each RPCConnection has its own connection timer + state.
 func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, startupPatterns []string) *ConnectionMonitor {
 	o.monitorsMu.Lock()
 	defer o.monitorsMu.Unlock()
@@ -668,8 +665,6 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	return pid, nil
 }
 
-// Stop stops a running binary and marks its monitor as stopped so
-// the restart timer won't automatically bring it back.
 // StopOptions tweaks Stop behaviour per-call.
 type StopOptions struct {
 	// ForceBackend leaves the sidechain's GUI companion running. Set by
@@ -677,6 +672,8 @@ type StopOptions struct {
 	ForceBackend bool
 }
 
+// Stop stops a running binary and marks its monitor as stopped so
+// the restart timer won't automatically bring it back.
 func (o *Orchestrator) Stop(ctx context.Context, name string, force bool, options ...StopOptions) error {
 	var opts StopOptions
 	if len(options) > 0 {
@@ -1496,10 +1493,6 @@ func (h bootHost) ToolPath(name string) string {
 	return path
 }
 
-// startBitcoindOnly handles the bitcoind portion of a chain boot.
-// Returns true on success (or already-running), false on fatal failure
-// (failBoot has already surfaced the error to the UI in that case).
-//
 // parkedStateOutstanding names a live path a swap moved aside and never brought
 // back. A daemon started over one builds fresh state, and the restore then
 // refuses to overwrite it — so the real copy strands.
@@ -1534,7 +1527,11 @@ func (o *Orchestrator) refuseWhileParked() error {
 	)
 }
 
-// Dart parity: rpc_connection.dart L197-232 initBinary pattern.// Dart parity: rpc_connection.dart L197-232 initBinary pattern.
+// startBitcoindOnly handles the bitcoind portion of a chain boot.
+// Returns true on success (or already-running), false on fatal failure
+// (failBoot has already surfaced the error to the UI in that case).
+//
+// Dart parity: rpc_connection.dart L197-232 initBinary pattern.
 //  1. startConnectionTimer() — pings once, then starts 1s timer
 //  2. if (connected) → "already running, not booting" → return
 //  3. else → bootProcess() → wait for connection
@@ -4243,7 +4240,7 @@ func orderForShutdown(names []string) []string {
 	for _, name := range names {
 		switch name {
 		case "bitcoind":
-			l1 = append([]string{name}, l1...) // bitcoind last in l1
+			l1 = append([]string{name}, l1...)
 		case "enforcer":
 			l1 = append(l1, name) // enforcer before bitcoind
 		default:

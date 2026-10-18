@@ -138,8 +138,8 @@ func (s *Service) ClearSidechainDepositDrop(ctx context.Context, txid string) er
 
 // SidechainDepositTotals sums what this install deposited: all time, and since
 // the given moment. A dropped attempt moved no coin, and the retry that
-// replaces it carries its own row, so it counts for neither.
-// `since`. Both in sats. An empty walletID sums every wallet's.
+// replaces it carries its own row, so it counts for neither. Both totals are
+// in sats. An empty walletID sums every wallet's.
 func (s *Service) SidechainDepositTotals(ctx context.Context, since time.Time, walletID string) (int64, int64, error) {
 	db := s.db()
 	if db == nil {

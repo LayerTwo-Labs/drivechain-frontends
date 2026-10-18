@@ -1,9 +1,12 @@
 package commands
 
 import (
+	"path/filepath"
 	"testing"
 
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	"github.com/rs/zerolog"
 )
 
 func TestCreateSidechainCommands(t *testing.T) {
@@ -32,22 +35,23 @@ func TestCreateSidechainCommands(t *testing.T) {
 }
 
 func TestSidechainPorts(t *testing.T) {
+	configs := orchestrator.LoadConfigFile(filepath.Join(t.TempDir(), "missing.json"), zerolog.Nop())
 	tests := []struct {
 		sidechain string
 		port      int
 	}{
-		{"bitnames", 38332},
-		{"thunder", 48332},
-		{"bitassets", 28332},
-		{"coinshift", 58332},
-		{"photon", 18332},
-		{"truthcoin", 68332},
-		{"zside", 78332},
+		{"bitnames", 6002},
+		{"thunder", 6009},
+		{"bitassets", 6004},
+		{"coinshift", 6255},
+		{"photon", 6099},
+		{"truthcoin", 6013},
+		{"zside", 6098},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.sidechain, func(t *testing.T) {
-			port, err := getSidechainPort(tt.sidechain)
+			port, err := getSidechainPort(configs, tt.sidechain)
 			if err != nil {
 				t.Errorf("Failed to get port for %s: %v", tt.sidechain, err)
 			}
@@ -86,9 +90,11 @@ func TestSidechainBinaryType(t *testing.T) {
 }
 
 func TestSidechainPortUnknown(t *testing.T) {
-	_, err := getSidechainPort("unknown")
-	if err == nil {
-		t.Error("Expected error for unknown sidechain")
+	configs := orchestrator.LoadConfigFile(filepath.Join(t.TempDir(), "missing.json"), zerolog.Nop())
+	for _, name := range []string{"unknown", "enforcer"} {
+		if _, err := getSidechainPort(configs, name); err == nil {
+			t.Errorf("Expected error for %s", name)
+		}
 	}
 }
 

@@ -359,6 +359,9 @@ var resetRunCommand = &cli.Command{
 			return err
 		}
 		fmt.Printf("\ndeleted %d, failed %d\n", deleted, failed)
+		if failed > 0 {
+			return fmt.Errorf("%d of %d deletions failed", failed, deleted+failed)
+		}
 		return nil
 	},
 }

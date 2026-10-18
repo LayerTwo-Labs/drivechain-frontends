@@ -265,6 +265,62 @@ func TestElectrumScanBIP47WatchKey(t *testing.T) {
 	})
 }
 
+func TestElectrumSendSpendsBIP47WatchKeyCoin(t *testing.T) {
+	p, fake, w, _ := newElectrumFixture(t)
+	ctx := context.Background()
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	wif, err := btcutil.NewWIF(priv, &chaincfg.SigNetParams, true)
+	require.NoError(t, err)
+	addr, err := btcutil.NewAddressPubKeyHash(btcutil.Hash160(priv.PubKey().SerializeCompressed()), &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	script, err := txscript.PayToAddrScript(addr)
+	require.NoError(t, err)
+	p.mu.Lock()
+	p.watchKeys[w.ID] = []WatchKey{{WIF: wif.String()}}
+	p.mu.Unlock()
+
+	const value = 200_000
+	prev := wire.NewMsgTx(2)
+	prev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 1}, nil, nil))
+	prev.AddTxOut(wire.NewTxOut(value, script))
+	var buf bytes.Buffer
+	require.NoError(t, prev.Serialize(&buf))
+	prevID := prev.TxHash().String()
+	fake.hexByID[prevID] = hex.EncodeToString(buf.Bytes())
+	fake.stats[addr.EncodeAddress()] = EsploraAddressStats{
+		Address:    addr.EncodeAddress(),
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: value, TxCount: 1},
+	}
+	fake.utxos[addr.EncodeAddress()] = []EsploraUTXO{{
+		TxID: prevID, Vout: 0, Value: value,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	_, err = p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	require.Len(t, tx.TxIn, 1)
+	engine, err := txscript.NewEngine(script, &tx, 0, txscript.StandardVerifyFlags, nil, nil, value,
+		txscript.NewCannedPrevOutputFetcher(script, value))
+	require.NoError(t, err)
+	require.NoError(t, engine.Execute())
+
+	fee := int64(value)
+	for _, out := range tx.TxOut {
+		fee -= out.Value
+	}
+	assert.GreaterOrEqual(t, fee, int64(2*len(raw)), "a P2PKH input has no witness, so the raw size is the vsize")
+}
+
 func TestElectrumNextReceiveSkipsUsed(t *testing.T) {
 	p, fake, w, addr := newElectrumFixture(t)
 	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{TxCount: 1}}
@@ -1405,7 +1461,7 @@ func TestCreateElectrumWatchOnlyRejectsBadDescriptor(t *testing.T) {
 
 func TestEstimateFeeSats(t *testing.T) {
 	// 1 native-segwit input (68 vB) + 62 vB of outputs: 11+68+62 = 141 vB at 2 sat/vB.
-	assert.Equal(t, int64(282), estimateFeeSats(1, inputVsize(ScriptNativeSegwit), 62, 2))
+	assert.Equal(t, int64(282), estimateFeeSats(inputVsize(ScriptNativeSegwit), 62, 2))
 }
 
 func TestConfsFor(t *testing.T) {
@@ -1784,17 +1840,17 @@ func TestElectrumSendRejectsMultiOutputSubtractFee(t *testing.T) {
 func TestEstimateFeeSatsByScriptKind(t *testing.T) {
 	// 1 input + 2 outputs (62 vB total) at 2 sat/vB.
 	nativeIn, legacyIn, taprootIn := inputVsize(ScriptNativeSegwit), inputVsize(ScriptLegacy), inputVsize(ScriptTaproot)
-	assert.Equal(t, int64(2*(11+68+62)), estimateFeeSats(1, nativeIn, 62, 2))
-	assert.Equal(t, int64(2*(11+148+62)), estimateFeeSats(1, legacyIn, 62, 2))
-	assert.Greater(t, estimateFeeSats(1, legacyIn, 62, 2), estimateFeeSats(1, taprootIn, 62, 2))
+	assert.Equal(t, int64(2*(11+68+62)), estimateFeeSats(nativeIn, 62, 2))
+	assert.Equal(t, int64(2*(11+148+62)), estimateFeeSats(legacyIn, 62, 2))
+	assert.Greater(t, estimateFeeSats(legacyIn, 62, 2), estimateFeeSats(taprootIn, 62, 2))
 }
 
 // TestDustThresholdByType: dust scales with the output's script type — the
 // classic 546 only applies to legacy P2PKH; segwit outputs are lower.
 func TestDustThresholdByType(t *testing.T) {
 	assert.Equal(t, int64(546), dustThreshold(ScriptLegacy))       // 3*(34+148)
-	assert.Equal(t, int64(297), dustThreshold(ScriptNativeSegwit)) // 3*(31+68)
-	assert.Equal(t, int64(333), dustThreshold(ScriptTaproot))      // 3*(43+68)
+	assert.Equal(t, int64(294), dustThreshold(ScriptNativeSegwit)) // 3*(31+67)
+	assert.Equal(t, int64(330), dustThreshold(ScriptTaproot))      // 3*(43+67)
 	assert.Equal(t, int64(540), dustThreshold(ScriptNestedSegwit)) // 3*(32+148)
 	assert.Less(t, dustThreshold(ScriptNativeSegwit), dustThreshold(ScriptLegacy))
 }
@@ -3979,6 +4035,23 @@ func TestEsploraTxToRawKeepsTheScriptSig(t *testing.T) {
 }
 
 // The BIP47 engine grows a sender's window when the probe key has received.
+func TestElectrumListReceivedReturnsTipError(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 50_000, TxCount: 1},
+	}
+	_, err := p.ListReceivedByAddress(ctx, w.ID)
+	require.NoError(t, err)
+
+	fake.mu.Lock()
+	fake.tipErr = errors.New("tip unavailable")
+	fake.mu.Unlock()
+	_, err = p.ListReceivedByAddress(ctx, w.ID)
+	require.ErrorContains(t, err, "tip unavailable")
+}
+
 func TestElectrumListReceivedIncludesFundedWatchKeys(t *testing.T) {
 	net := &chaincfg.SigNetParams
 	ctx := context.Background()
