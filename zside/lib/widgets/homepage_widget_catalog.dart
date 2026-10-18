@@ -353,14 +353,14 @@ class OverviewTabViewModel extends BaseViewModel {
     if (!_rpc.connected) return;
     try {
       balanceBreakdown = await _rpc.getBalanceBreakdown();
-      notifyListeners();
+      _capAmount();
     } catch (e) {
       log.e('Failed to fetch balance breakdown: $e');
     }
   }
 
   void _initControllers() {
-    bitcoinAddressController.addListener(notifyListeners);
+    bitcoinAddressController.addListener(_capAmount);
     bitcoinAmountController.addListener(_capAmount);
   }
 

@@ -38,4 +38,23 @@ void main() {
     expect(model.isShieldedAddress, isFalse);
     expect(model.maxAmount, closeTo(0.499, 1e-9));
   });
+
+  test('a switch to a transparent address caps an amount already entered', () {
+    GetIt.I<BalanceProvider>().setBalance(GetIt.I<SidechainRPC>(), 2.5, 0);
+    final model = OverviewTabViewModel()
+      ..sidechainFee = 0.001
+      ..balanceBreakdown = ZSideBalanceBreakdown(
+        availableShieldedSats: 200000000,
+        availableTransparentSats: 50000000,
+        totalShieldedSats: 200000000,
+        totalTransparentSats: 60000000,
+      );
+    model.bitcoinAddressController.text = 'zs1notatransparentaddress';
+    model.bitcoinAmountController.text = '1.0';
+    expect(model.bitcoinAmountController.text, '1.0');
+
+    model.bitcoinAddressController.text = 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu';
+
+    expect(double.parse(model.bitcoinAmountController.text), closeTo(0.499, 1e-9));
+  });
 }
