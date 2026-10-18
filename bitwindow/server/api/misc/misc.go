@@ -29,8 +29,7 @@ import (
 
 var _ rpc.MiscServiceHandler = new(Server)
 
-// New creates a new misc Server. Misc is a horrible name, but can't think of
-// anything else just yet.
+// New creates a new misc Server.
 func New(
 	database *sql.DB,
 	timestampEngine *engines.TimestampEngine,
@@ -235,11 +234,11 @@ func newsPayloadFor(req *miscv1.EstimateNewsFeeRequest) ([]byte, error) {
 		return codec.EncodeVote(codec.Vote{Kind: codec.TypeUpvote})
 
 	case miscv1.NewsAction_NEWS_ACTION_COMMENT:
-		if strings.TrimSpace(req.Body) == "" {
-			return nil, errors.New("body must be set")
+		if strings.TrimSpace(req.Body) == "" && req.Url == "" {
+			return nil, errors.New("comment must have a body or url")
 		}
 		return codec.EncodeComment(codec.Comment{
-			TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte(req.Body)}},
+			TLVs: commentTLVs(&miscv1.CommentNewsRequest{Body: req.Body, Url: req.Url}),
 		})
 
 	case miscv1.NewsAction_NEWS_ACTION_STORY:

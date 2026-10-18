@@ -319,6 +319,39 @@ func TestHandleTimestamp_CoreErrors(t *testing.T) {
 	}
 }
 
+func TestOpReturnForTXID_TimestampErrorFailsTheBlock(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	db := database.Test(t)
+
+	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	parser := &Parser{
+		db: db,
+		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return core, nil
+		}),
+	}
+
+	hash := chainhash.Hash{7}
+	data := append([]byte(TimestampPrefix), hash[:]...)
+	tx := &wire.MsgTx{
+		TxIn:  []*wire.TxIn{{PreviousOutPoint: wire.OutPoint{Hash: chainhash.Hash{1}}}},
+		TxOut: []*wire.TxOut{{PkScript: pkScript(t, data)}},
+	}
+
+	core.EXPECT().GetRawTransaction(gomock.Any(), gomock.Any()).Return(nil, errors.New("connection refused"))
+
+	height := uint32(101)
+	err := parser.opReturnForTXID(ctx, tx, &height, nil)
+	require.ErrorContains(t, err, "handle timestamp")
+	require.ErrorContains(t, err, "connection refused")
+
+	stored, err := opreturns.List(ctx, db, 10)
+	require.NoError(t, err)
+	assert.Empty(t, stored)
+}
+
 func pkScript(t *testing.T, data []byte) []byte {
 	script, err := txscript.NewScriptBuilder().AddOp(txscript.OP_RETURN).AddData(data).Script()
 	require.NoError(t, err)

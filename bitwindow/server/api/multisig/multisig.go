@@ -155,7 +155,6 @@ func (s *Server) SaveGroup(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save group atomic: %w", err))
 	}
 
-	// Re-read the saved group
 	saved, err := s.groupToProto(ctx, g)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
