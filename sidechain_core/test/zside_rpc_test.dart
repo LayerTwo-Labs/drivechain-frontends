@@ -134,4 +134,12 @@ void main() {
     expect(coins.single.address, 'addr');
     expect(coins.single.amount, 0.0015);
   });
+
+  test('a node with no pending withdrawal bundle answers null', () async {
+    transport.answers['/zside.v1.ZSideService/GetPendingWithdrawalBundle'] = pb.GetPendingWithdrawalBundleResponse(
+      bundleJson: 'null',
+    );
+
+    expect(await rpc.getPendingWithdrawalBundle(), isNull);
+  });
 }
