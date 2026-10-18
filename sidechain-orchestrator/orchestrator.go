@@ -26,6 +26,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/feerate"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -1381,6 +1382,30 @@ func (o *Orchestrator) appendSidechainArgs(ctx context.Context, cfg BinaryConfig
 		o.log.Info().Str("binary", cfg.Name).Strs("args", redactArgs(extra)).Msg("sidechain asked for boot arguments")
 	}
 	return nil
+}
+
+// SeededNodes returns each running sidechain that has a seed peer on the
+// current network.
+func (o *Orchestrator) SeededNodes() ([]engines.SeededNode, error) {
+	network := config.Network(o.CurrentNetwork())
+	configs := o.Configs()
+	var seeded []engines.SeededNode
+	for _, name := range o.process.ListRunning() {
+		cfg, ok := configs[name]
+		if !ok || cfg.ChainLayer != 2 {
+			continue
+		}
+		seed := config.SidechainSeedPeerForNetwork(name, network)
+		if seed == "" {
+			continue
+		}
+		node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, network)
+		if err != nil {
+			return nil, err
+		}
+		seeded = append(seeded, engines.SeededNode{Name: name, Seed: seed, Node: node})
+	}
+	return seeded, nil
 }
 
 // bootHost answers what only the orchestrator knows, for a chain that builds

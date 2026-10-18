@@ -538,6 +538,13 @@ func run(cctx *cli.Context) error {
 		}
 	}()
 
+	seedPeer := engines.NewSeedPeerEngine(log, orch)
+	go func() {
+		if err := seedPeer.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("seed peer engine exited")
+		}
+	}()
+
 	// BMM engine: bids for sidechain blocks on every new mainchain tip and
 	// connects the blocks miners take, with no frontend attached.
 	bmmHandler := api.NewBMMHandler(orch, walletHandler)
