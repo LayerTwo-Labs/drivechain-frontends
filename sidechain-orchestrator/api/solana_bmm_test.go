@@ -139,3 +139,22 @@ func TestSolanaConnectBidSendsTheBlockAndTheMainBlock(t *testing.T) {
 	assert.JSONEq(t, `["`+solanaCritical+`"]`, string(seen["get_bmm_inclusions"]))
 	assert.JSONEq(t, `[`+solanaBlock+`,"`+solanaMainBlock+`"]`, string(seen["connect_block"]))
 }
+
+// A node that cannot decode the block answers the same on each try. The
+// handler names that as an invalid argument, so the engine stops at once.
+func TestConnectBidNamesAnUndecodableBlock(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Invalid params"}}`))
+	}))
+	t.Cleanup(srv.Close)
+	host, port := hostPort(t, srv)
+	h := solanaHandler(t, host, port, &fakeBidWallet{})
+
+	_, err := h.ConnectBid(context.Background(), connect.NewRequest(&bmmpb.ConnectBidRequest{
+		Sidechain:     pb.BinaryType_BINARY_TYPE_SOLANA,
+		CriticalHash:  solanaCritical,
+		BlockJson:     solanaBlock,
+		MainBlockHash: solanaMainBlock,
+	}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}

@@ -27,6 +27,7 @@ import (
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	jsonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
@@ -575,6 +576,9 @@ func (h *BMMHandler) ConnectBid(
 
 	connected, err := proxy.ConnectBlock(ctx, json.RawMessage(req.Msg.BlockJson), mainBlockHash)
 	if err != nil {
+		if code, ok := jsonrpc.ErrorCode(err); ok && code == jsonrpcInvalidParams {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("connect block: %w", err))
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("connect block: %w", err))
 	}
 	var held bool
@@ -600,6 +604,9 @@ func (h *BMMHandler) ConnectBid(
 		Held:          held,
 	}), nil
 }
+
+// jsonrpcInvalidParams is the answer of a node that cannot decode the block it got.
+const jsonrpcInvalidParams = -32602
 
 // heldBlockDepth covers every won block the engine still offers: one sidechain block per mainchain block.
 const heldBlockDepth = 11

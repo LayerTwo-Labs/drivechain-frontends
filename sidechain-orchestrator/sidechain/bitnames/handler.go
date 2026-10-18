@@ -206,11 +206,11 @@ func (h *Handler) GetBestSidechainBlockHash(ctx context.Context, req *connect.Re
 }
 
 func (h *Handler) GetBmmInclusions(ctx context.Context, req *connect.Request[pb.GetBmmInclusionsRequest]) (*connect.Response[pb.GetBmmInclusionsResponse], error) {
-	var inclusions string
-	if err := h.proxy.Client.Call(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash}, &inclusions); err != nil {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash})
+	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: inclusions}), nil
+	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: string(raw)}), nil
 }
 
 func (h *Handler) GenerateMnemonic(ctx context.Context, req *connect.Request[pb.GenerateMnemonicRequest]) (*connect.Response[pb.GenerateMnemonicResponse], error) {

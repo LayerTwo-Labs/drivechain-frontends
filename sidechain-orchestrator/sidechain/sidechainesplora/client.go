@@ -119,7 +119,6 @@ type Tx struct {
 	Status Status `json:"status"`
 }
 
-// NetValueFor returns what one address gained or lost in this transaction.
 // FirstOutputFor names the index of the first output that pays an address, and
 // says whether the transaction pays it at all.
 func (t Tx) FirstOutputFor(address string) (uint32, bool) {
@@ -131,6 +130,7 @@ func (t Tx) FirstOutputFor(address string) (uint32, bool) {
 	return 0, false
 }
 
+// NetValueFor returns what one address gained or lost in this transaction.
 func (t Tx) NetValueFor(address string) int64 {
 	var net int64
 	for _, out := range t.Vout {
