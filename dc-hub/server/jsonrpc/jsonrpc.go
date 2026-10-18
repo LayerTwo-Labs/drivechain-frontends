@@ -76,18 +76,6 @@ type callConfig struct {
 
 type CallOption func(*callConfig)
 
-func WithID(id int) CallOption {
-	return func(c *callConfig) {
-		c.id = id
-	}
-}
-
-func WithParams(params ...any) CallOption {
-	return func(c *callConfig) {
-		c.params = params
-	}
-}
-
 // Call makes a JSON-RPC call with the specified method and parameters
 func (c *Client) Call(ctx context.Context, method string, opts ...CallOption) (json.RawMessage, error) {
 	config := newCallConfig()

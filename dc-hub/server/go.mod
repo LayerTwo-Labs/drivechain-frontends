@@ -9,7 +9,6 @@ require (
 	github.com/barebitcoin/btc-buf v0.0.0-20250502095110-38e347c4c3dd
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/bufbuild/protovalidate-go v0.10.0
-	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/cors v1.11.1
 	github.com/rs/zerolog v1.33.0
@@ -33,6 +32,7 @@ require (
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/google/cel-go v0.25.0 // indirect
+	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/oklog/ulid/v2 v2.1.0 // indirect
