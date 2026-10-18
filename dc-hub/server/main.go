@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -132,7 +134,11 @@ func realMain(ctx context.Context) error {
 
 	errs := make(chan error)
 	go func() {
-		errs <- srv.Serve(ctx, conf.Listen)
+		err := srv.Serve(ctx, conf.Listen)
+		if errors.Is(err, http.ErrServerClosed) {
+			return
+		}
+		errs <- err
 	}()
 	go func() {
 		<-ctx.Done()

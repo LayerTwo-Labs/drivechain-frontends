@@ -68,7 +68,7 @@ func verifySchnorr(xpk [XOnlyPubKeyLen]byte, digest [32]byte, sig [SchnorrSigLen
 	return parsedSig.Verify(digest[:], pk)
 }
 
-// ErrBadSignature is returned by decoders when a signature fails
-// verification. Tests assert against this so behaviour stays observable
+// ErrBadSignature is returned by VerifyComment and VerifyVote when a
+// signature fails verification. Tests assert against this so behaviour stays observable
 // without leaking schnorr internals.
 var ErrBadSignature = fmt.Errorf("coinnews: signature verification failed")

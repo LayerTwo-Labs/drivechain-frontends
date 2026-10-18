@@ -50,6 +50,12 @@ func (c *bitcoindClient) sendRawTransaction(ctx context.Context, txHex string) (
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	// Core answers a bad password with 401 and an empty body, which decodes
+	// as a bare EOF and hides the cause.
+	if resp.StatusCode == http.StatusUnauthorized {
+		return "", fmt.Errorf("call bitcoind: unauthorized (status %d)", resp.StatusCode)
+	}
+
 	var out struct {
 		Result string `json:"result"`
 		Error  *struct {

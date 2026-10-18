@@ -122,7 +122,9 @@ func main() {
 		<-ctx.Done()
 		shutdownCtx, sCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer sCancel()
-		_ = srv.Shutdown(shutdownCtx)
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Error().Err(err).Msg("server shutdown")
+		}
 	}()
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -182,7 +184,3 @@ func envBool(key string, fallback bool) bool {
 		return false
 	}
 }
-
-// silence unused-import linter when the scanner is disabled at compile
-// (not currently — left as documentation that fmt is intentional).
-var _ = fmt.Sprintf

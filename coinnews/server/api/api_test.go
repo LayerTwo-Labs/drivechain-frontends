@@ -195,6 +195,18 @@ func TestHandler_ListByTopic_BadHex(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, ce.Code())
 }
 
+func TestHandler_FeedBadTopicHex(t *testing.T) {
+	t.Parallel()
+	h := newHandler(t)
+	topicHex := "zz"
+
+	_, err := h.ListFrontPage(context.Background(), connect.NewRequest(&pb.ListFrontPageRequest{TopicHex: &topicHex}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	_, err = h.ListNewFeed(context.Background(), connect.NewRequest(&pb.ListNewFeedRequest{TopicHex: &topicHex}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
 func TestHandler_ListThread(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

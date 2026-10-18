@@ -73,6 +73,33 @@ type Server struct {
 }
 
 func (s *Server) Handler(ctx context.Context) http.Handler {
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins: []string{
+			"*",
+			"https://drivechain.live",
+			"https://api.drivechain.live",
+			"http://localhost:3000", // For local development
+		},
+		AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders: []string{
+			"Connect-Protocol-Version", "Content-Type", "Connect-Protocol-Version",
+			"Content-Type", "Accept", "Connect-Accept-Encoding",
+			"Connect-Content-Encoding", "Grpc-Timeout", "X-Grpc-Web",
+			"X-User-Agent", "Access-Control-Allow-Origin",
+			"Access-Control-Request-Headers",
+			"Origin",          // Important for CORS preflight
+			"Accept-Encoding", // Allow compression negotiation
+		},
+		ExposedHeaders: []string{
+			"Content-Encoding", "Connect-Content-Encoding",
+			"Grpc-Status", "Grpc-Message",
+			"Access-Control-Allow-Origin",
+			"Access-Control-Request-Headers",
+		},
+	})
+
+	withCORS := corsHandler.Handler(s.mux)
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Add CSP header
 		w.Header().Set("Content-Security-Policy",
@@ -88,32 +115,6 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 			r.Body = io.NopCloser(strings.NewReader(`{}`))
 		}
 
-		corsHandler := cors.New(cors.Options{
-			AllowedOrigins: []string{
-				"*",
-				"https://drivechain.live",
-				"https://api.drivechain.live",
-				"http://localhost:3000", // For local development
-			},
-			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PATCH"},
-			AllowedHeaders: []string{
-				"Connect-Protocol-Version", "Content-Type", "Connect-Protocol-Version",
-				"Content-Type", "Accept", "Connect-Accept-Encoding",
-				"Connect-Content-Encoding", "Grpc-Timeout", "X-Grpc-Web",
-				"X-User-Agent", "Access-Control-Allow-Origin",
-				"Access-Control-Request-Headers",
-				"Origin",          // Important for CORS preflight
-				"Accept-Encoding", // Allow compression negotiation
-			},
-			ExposedHeaders: []string{
-				"Content-Encoding", "Connect-Content-Encoding",
-				"Grpc-Status", "Grpc-Message",
-				"Access-Control-Allow-Origin",
-				"Access-Control-Request-Headers",
-			},
-		})
-
-		withCORS := corsHandler.Handler(s.mux)
 		withCORS.ServeHTTP(w, r)
 	})
 

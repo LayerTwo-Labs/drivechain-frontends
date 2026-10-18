@@ -84,11 +84,7 @@ func (c *Client) call(ctx context.Context, method string, params any, out any) e
 	req.SetBasicAuth(user, pass)
 	req.Header.Set("content-type", "application/json")
 
-	httpClient := c.HTTP
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-	resp, err := httpClient.Do(req)
+	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return fmt.Errorf("rpc %s: %w", method, err)
 	}

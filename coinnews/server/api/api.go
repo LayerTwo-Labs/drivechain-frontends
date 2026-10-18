@@ -26,7 +26,11 @@ type Handler struct {
 }
 
 func (h *Handler) ListFrontPage(ctx context.Context, req *connect.Request[pb.ListFrontPageRequest]) (*connect.Response[pb.ListFrontPageResponse], error) {
-	items, err := store.ListFeed(ctx, h.DB, feedFilter(req.Msg.Limit, req.Msg.Offset, store.SortScoreDesc, req.Msg.Subtype, req.Msg.TopicHex))
+	filter, err := feedFilter(req.Msg.Limit, req.Msg.Offset, store.SortScoreDesc, req.Msg.Subtype, req.Msg.TopicHex)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	items, err := store.ListFeed(ctx, h.DB, filter)
 	if err != nil {
 		return nil, errInternal(err)
 	}
@@ -34,7 +38,11 @@ func (h *Handler) ListFrontPage(ctx context.Context, req *connect.Request[pb.Lis
 }
 
 func (h *Handler) ListNewFeed(ctx context.Context, req *connect.Request[pb.ListNewFeedRequest]) (*connect.Response[pb.ListNewFeedResponse], error) {
-	items, err := store.ListFeed(ctx, h.DB, feedFilter(req.Msg.Limit, req.Msg.Offset, store.SortNewest, req.Msg.Subtype, req.Msg.TopicHex))
+	filter, err := feedFilter(req.Msg.Limit, req.Msg.Offset, store.SortNewest, req.Msg.Subtype, req.Msg.TopicHex)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	items, err := store.ListFeed(ctx, h.DB, filter)
 	if err != nil {
 		return nil, errInternal(err)
 	}
@@ -121,7 +129,7 @@ func (h *Handler) ListTopics(ctx context.Context, _ *connect.Request[emptypb.Emp
 	return connect.NewResponse(&pb.ListTopicsResponse{Topics: out}), nil
 }
 
-func feedFilter(limit, offset uint32, sort store.FeedSort, sub *pb.Subtype, topicHex *string) store.FeedFilter {
+func feedFilter(limit, offset uint32, sort store.FeedSort, sub *pb.Subtype, topicHex *string) (store.FeedFilter, error) {
 	f := store.FeedFilter{Sort: sort, Limit: limit, Offset: offset}
 	if sub != nil {
 		s := codec.Subtype(*sub)
@@ -129,11 +137,12 @@ func feedFilter(limit, offset uint32, sort store.FeedSort, sub *pb.Subtype, topi
 	}
 	if topicHex != nil && *topicHex != "" {
 		t, err := parseTopic(*topicHex)
-		if err == nil {
-			f.Topic = &t
+		if err != nil {
+			return store.FeedFilter{}, err
 		}
+		f.Topic = &t
 	}
-	return f
+	return f, nil
 }
 
 func parseTopic(s string) (codec.Topic, error) {
