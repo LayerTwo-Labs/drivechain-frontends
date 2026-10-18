@@ -65,8 +65,7 @@ func TestSchemaSnapshot(t *testing.T) {
 		if err != nil {
 			t.Fatalf("invalid ZSIDE_RPC_PORT %q: %v", port, err)
 		}
-		c := NewClient("127.0.0.1", portNum)
-		raw, err := c.OpenAPISchema(context.Background())
+		raw, err := NewNode("127.0.0.1", portNum).CallRaw(context.Background(), "openapi_schema", nil)
 		require.NoError(t, err, "openapi_schema RPC failed — is the zside node running?")
 		live, err = json.MarshalIndent(json.RawMessage(raw), "", "  ")
 		require.NoError(t, err)

@@ -1157,13 +1157,13 @@ func (w *TruthcoinClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMes
 	return w.Client.OpenAPISchema(ctx)
 }
 
-// ZsideClientWrapper adapts the zside.Client to SidechainClient interface
+// ZsideClientWrapper adapts the zside.Node to SidechainClient interface
 type ZsideClientWrapper struct {
-	*zside.Client
+	*zside.Node
 }
 
 func (w *ZsideClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
-	return w.Client.OpenAPISchema(ctx)
+	return w.CallRaw(ctx, "openapi_schema", nil)
 }
 
 // Client factory functions
@@ -1192,7 +1192,7 @@ func newTruthcoinClient(port int, network config.Network) SidechainClient {
 }
 
 func newZsideClient(port int, _ config.Network) SidechainClient {
-	return &ZsideClientWrapper{zside.NewClient("localhost", port)}
+	return &ZsideClientWrapper{zside.NewNode("localhost", port)}
 }
 
 // createGenericSidechainCommand creates a command with sidechain-specific subcommands
