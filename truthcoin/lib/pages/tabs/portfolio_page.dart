@@ -13,6 +13,11 @@ import 'package:truthcoin/routing/router.dart';
 import 'package:truthcoin/widgets/market_card.dart';
 import 'package:truthcoin/widgets/market_stat_tile.dart';
 
+const double _positionsHeight = 360;
+const double _yourMarketsHeight = 240;
+const double _sendCardWidth = 576;
+const int _votecoinNetworkFeeSats = 1000;
+
 @RoutePage()
 class PortfolioPage extends StatelessWidget {
   const PortfolioPage({super.key});
@@ -24,13 +29,26 @@ class PortfolioPage extends StatelessWidget {
       onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
         return QtPage(
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            children: [
-              _Header(model: model),
-              _StatTiles(model: model),
-              Expanded(child: _PositionsCard(model: model)),
-            ],
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              children: [
+                _Header(model: model),
+                _StatTiles(model: model),
+                SizedBox(
+                  height: _positionsHeight,
+                  child: _PositionsCard(model: model),
+                ),
+                _YourMarketsCard(model: model),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: _sendCardWidth),
+                    child: _SendVotecoinCard(model: model),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -237,6 +255,116 @@ class _PositionsCard extends StatelessWidget {
   }
 }
 
+class _YourMarketsCard extends StatelessWidget {
+  final PortfolioViewModel model;
+
+  const _YourMarketsCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I.get<FormatterProvider>();
+    final markets = model.yourMarkets;
+
+    return SailCard(
+      title: 'Your markets',
+      subtitle: 'Markets that you created.',
+      error: model.marketsError,
+      bottomPadding: false,
+      child: SizedBox(
+        height: _yourMarketsHeight,
+        child: ListenableBuilder(
+          listenable: formatter,
+          builder: (context, _) => SailTable(
+            getRowId: (index) => markets[index].marketId,
+            headerBuilder: (context) => const [
+              SailTableHeaderCell(name: 'Market'),
+              SailTableHeaderCell(name: 'State'),
+              SailTableHeaderCell(name: 'Volume'),
+              SailTableHeaderCell(name: 'Liquidity'),
+              SailTableHeaderCell(name: 'Action'),
+            ],
+            rowBuilder: (context, row, selected) {
+              final market = markets[row];
+              return [
+                SailTableCell(value: market.title),
+                SailTableCell(
+                  value: market.marketState.displayName,
+                  child: SailBadge(
+                    market.marketState.displayName,
+                    tone: market.isTrading ? SailBadgeTone.success : SailBadgeTone.neutral,
+                  ),
+                ),
+                SailTableCell(value: formatter.formatSats(market.totalVolumeSats), monospace: true),
+                SailTableCell(value: formatter.formatBTC(market.liquidity), monospace: true),
+                SailTableCell(
+                  value: 'Open',
+                  child: SailButton(
+                    plainLabel: true,
+                    label: 'Open',
+                    small: true,
+                    insideTable: true,
+                    onPressed: () async => model.openMarket(market.marketId, null),
+                  ),
+                ),
+              ];
+            },
+            rowCount: markets.length,
+            emptyPlaceholder: 'You created no market yet',
+            drawGrid: true,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SendVotecoinCard extends StatelessWidget {
+  final PortfolioViewModel model;
+
+  const _SendVotecoinCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      title: 'Send Votecoin',
+      subtitle: 'Votecoin is your vote weight. You hold ${model.votecoinBalance} Votecoin.',
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        children: [
+          SailTextField(
+            controller: model.votecoinDestController,
+            label: 'To address',
+            hintText: 'Truthcoin address',
+            onChanged: (_) => model.onSendFormChanged(),
+          ),
+          SailTextField(
+            controller: model.votecoinAmountController,
+            label: 'Amount (Votecoin)',
+            hintText: '0.005',
+            textFieldType: TextFieldType.bitcoin,
+            onChanged: (_) => model.onSendFormChanged(),
+          ),
+          SailTextField(
+            controller: model.votecoinFeeController,
+            label: 'Network fee (${activeTicker.subunit})',
+            hintText: '$_votecoinNetworkFeeSats',
+            textFieldType: TextFieldType.number,
+            onChanged: (_) => model.onSendFormChanged(),
+          ),
+          if (model.sendError != null) SailInlineError(model.sendError!),
+          SailButton(
+            plainLabel: true,
+            label: 'Send Votecoin',
+            loading: model.isSendingVotecoin,
+            disabled: !model.canSendVotecoin,
+            onPressed: () async => model.sendVotecoin(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class PortfolioViewModel extends BaseViewModel {
   final MarketProvider _marketProvider = GetIt.I.get<MarketProvider>();
   final VotingProvider _votingProvider = GetIt.I.get<VotingProvider>();
@@ -251,6 +379,26 @@ class PortfolioViewModel extends BaseViewModel {
   int activeMarkets = 0;
   bool isLoading = false;
   String? loadError;
+  String? marketsError;
+
+  final TextEditingController votecoinDestController = TextEditingController();
+  final TextEditingController votecoinAmountController = TextEditingController();
+  final TextEditingController votecoinFeeController = TextEditingController(text: '$_votecoinNetworkFeeSats');
+  bool isSendingVotecoin = false;
+  String? sendError;
+
+  /// Markets whose creator is one of the wallet addresses.
+  List<MarketData> get yourMarkets => [
+    for (final summary in _marketProvider.markets)
+      if (_marketProvider.marketDetails[summary.marketId] case final market?)
+        if (addresses.contains(market.marketMaker)) market,
+  ];
+
+  double get votecoinAmount => double.tryParse(votecoinAmountController.text) ?? 0;
+  int get votecoinFeeSats => int.tryParse(votecoinFeeController.text) ?? 0;
+
+  bool get canSendVotecoin =>
+      votecoinDestController.text.trim().isNotEmpty && votecoinAmount > 0 && votecoinFeeSats > 0;
 
   double get profitPercent => totalCostBasisSats > 0 ? totalProfitSats / totalCostBasisSats * 100 : 0;
   bool get hasProfit => totalProfitSats > 0;
@@ -282,6 +430,7 @@ class PortfolioViewModel extends BaseViewModel {
   Future<void> load() async {
     isLoading = true;
     loadError = null;
+    marketsError = null;
     addresses = [];
     positions = [];
     totalValueSats = 0;
@@ -301,6 +450,9 @@ class PortfolioViewModel extends BaseViewModel {
     }
 
     await _marketProvider.loadMarkets();
+    // market_list carries no creator, so the market details name it.
+    await _marketProvider.loadMarketPrices(refresh: true);
+    marketsError = _marketProvider.error ?? _marketProvider.priceError;
 
     final collected = <AddressPosition>[];
     final marketIds = <String>{};
@@ -348,6 +500,44 @@ class PortfolioViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  void onSendFormChanged() {
+    notifyListeners();
+  }
+
+  Future<void> sendVotecoin(BuildContext context) async {
+    if (!canSendVotecoin) return;
+
+    isSendingVotecoin = true;
+    sendError = null;
+    notifyListeners();
+
+    final String txid;
+    try {
+      txid = await _rpc.transferVotecoin(
+        dest: votecoinDestController.text.trim(),
+        amount: votecoinAmount,
+        feeSats: votecoinFeeSats,
+      );
+    } catch (e) {
+      sendError = 'Failed to send Votecoin: $e';
+      isSendingVotecoin = false;
+      notifyListeners();
+      return;
+    }
+
+    isSendingVotecoin = false;
+    votecoinDestController.clear();
+    votecoinAmountController.clear();
+    if (context.mounted) {
+      showSailToast(
+        context,
+        'Votecoin sent: ${txid.length > 16 ? txid.substring(0, 16) : txid}',
+        variant: SailToastVariant.success,
+      );
+    }
+    await load();
+  }
+
   void openMarkets(BuildContext context) {
     AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Markets.index);
   }
@@ -361,6 +551,9 @@ class PortfolioViewModel extends BaseViewModel {
   @override
   void dispose() {
     _marketProvider.removeListener(_onProviderChange);
+    votecoinDestController.dispose();
+    votecoinAmountController.dispose();
+    votecoinFeeController.dispose();
     super.dispose();
   }
 }

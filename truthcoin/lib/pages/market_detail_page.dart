@@ -92,6 +92,7 @@ class MarketDetailPage extends StatelessWidget {
         ];
         final panel = [
           _TradePanel(model: model, market: market),
+          if (model.canAddLiquidity) _AddLiquidityCard(model: model, market: market),
           _MarketFactsCard(market: market),
         ];
 
@@ -668,6 +669,47 @@ class _TradePanel extends StatelessWidget {
   }
 }
 
+class _AddLiquidityCard extends StatelessWidget {
+  final MarketDetailViewModel model;
+  final MarketData market;
+
+  const _AddLiquidityCard({required this.model, required this.market});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I.get<FormatterProvider>();
+
+    return SailCard(
+      title: 'Add liquidity',
+      subtitle: 'More liquidity moves the price less per trade. The subsidy goes to the market treasury.',
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => SailColumn(
+          spacing: SailStyleValues.padding12,
+          children: [
+            _FactRow(label: 'Liquidity now', value: formatter.formatBTC(market.liquidity)),
+            SailTextField(
+              controller: model.liquidityController,
+              label: 'Amount (${activeTicker.subunit})',
+              hintText: '50000',
+              textFieldType: TextFieldType.number,
+              onChanged: (_) => model.onLiquidityChanged(),
+            ),
+            _FactRow(label: 'Network fee', value: formatter.formatSats(_tradeMinerFeeSats)),
+            SailButton(
+              plainLabel: true,
+              label: 'Add liquidity',
+              loading: model.isAddingLiquidity,
+              disabled: model.liquidityAmountSats <= 0,
+              onPressed: () async => model.addLiquidity(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _OutcomeSelector extends StatelessWidget {
   final MarketDetailViewModel model;
 
@@ -1017,6 +1059,8 @@ class MarketDetailViewModel extends BaseViewModel {
 
   final TextEditingController sharesController = TextEditingController();
   final TextEditingController sellSharesController = TextEditingController();
+  final TextEditingController liquidityController = TextEditingController();
+  bool isAddingLiquidity = false;
 
   /// The market of this page only. Two detail pages can sit in one stack, so
   /// the page never reads the shared selection of the provider.
@@ -1062,6 +1106,44 @@ class MarketDetailViewModel extends BaseViewModel {
     if (total == null) return false;
     // The wallet pays the market cost and the miner fee of the trade.
     return satoshiToBTC(total + _tradeMinerFeeSats) > walletBalance;
+  }
+
+  /// amplify_beta spends an input of the creator address, so only its wallet adds liquidity.
+  bool get canAddLiquidity {
+    final current = market;
+    return current != null && current.isTrading && walletAddresses.contains(current.marketMaker);
+  }
+
+  int get liquidityAmountSats => int.tryParse(liquidityController.text) ?? 0;
+
+  void onLiquidityChanged() {
+    notifyListeners();
+  }
+
+  Future<void> addLiquidity(BuildContext context) async {
+    if (liquidityAmountSats <= 0) return;
+
+    isAddingLiquidity = true;
+    notifyListeners();
+
+    final txid = await _marketProvider.addLiquidity(marketId: marketId, amountSats: liquidityAmountSats);
+
+    isAddingLiquidity = false;
+
+    if (txid != null) {
+      liquidityController.clear();
+      if (context.mounted) {
+        showSailToast(context, 'Liquidity added: ${_shortTxid(txid)}', variant: SailToastVariant.success);
+      }
+    } else if (context.mounted) {
+      showSailToast(
+        context,
+        _marketProvider.error ?? 'The liquidity transaction failed',
+        variant: SailToastVariant.destructive,
+      );
+    }
+
+    notifyListeners();
   }
 
   int get shares => int.tryParse(sharesController.text) ?? 0;
@@ -1408,6 +1490,7 @@ class MarketDetailViewModel extends BaseViewModel {
     _sync?.removeListener(_onSyncChange);
     sharesController.dispose();
     sellSharesController.dispose();
+    liquidityController.dispose();
     super.dispose();
   }
 }

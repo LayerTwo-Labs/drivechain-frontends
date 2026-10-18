@@ -127,6 +127,46 @@ void main() {
     });
   });
 
+  group('MarketDetailPage add liquidity', () {
+    testWidgets('hides the card from a wallet that did not create the market', (WidgetTester tester) async {
+      await tester.pumpSailPage(const MarketDetailPage(marketId: 'market_001'));
+      await tester.pumpAndSettle();
+      expect(find.text('Liquidity now'), findsNothing);
+    });
+
+    testWidgets('shows the card to the market creator', (WidgetTester tester) async {
+      mockRpc.marketGetResponse = {...TestData.sampleMarketDetail, 'creator_address': 'tb1qtest1234567890'};
+      await tester.pumpSailPage(const MarketDetailPage(marketId: 'market_001'));
+      await tester.pumpAndSettle();
+      expect(find.text('Liquidity now'), findsOneWidget);
+
+      mockRpc.marketGetResponse = TestData.sampleMarketDetail;
+    });
+
+    testWidgets('sends market_amplify_beta with the amount', (WidgetTester tester) async {
+      mockRpc.marketGetResponse = {...TestData.sampleMarketDetail, 'creator_address': 'tb1qtest1234567890'};
+      await tester.pumpSailPage(const MarketDetailPage(marketId: 'market_001'));
+      await tester.pumpAndSettle();
+
+      final model = MarketDetailViewModel(marketId: 'market_001');
+      await model.load();
+      expect(model.canAddLiquidity, true);
+
+      model.liquidityController.text = '50000';
+      await model.addLiquidity(tester.element(find.byType(MarketDetailPage)));
+      await tester.pumpAndSettle();
+
+      expect(mockRpc.lastAmplifyMarketId, 'market_001');
+      expect(mockRpc.lastAmplifyAmountSats, 50000);
+      expect(model.liquidityController.text, isEmpty);
+
+      mockRpc.marketGetResponse = TestData.sampleMarketDetail;
+      model.dispose();
+      // The success toast closes on a timer.
+      await tester.pump(const Duration(seconds: 10));
+    });
+  });
+
   group('MarketDetailViewModel price history', () {
     test('a load during a load runs one more load after it', () async {
       Map<String, dynamic> point(int height, double yes) => {

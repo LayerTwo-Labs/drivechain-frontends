@@ -8,6 +8,11 @@ import '../fixtures/test_data.dart';
 
 void main() {
   group('VotingModels', () {
+    test('addressPubkeyHashHex decodes a base58 address', () {
+      expect(addressPubkeyHashHex('Xc3D7ZjNez3ReowLm1yz1zSvYe1'), '25dfe6769e56d1184b4d56c7c68885a2040bf7b6');
+      expect(addressPubkeyHashHex('tb1q0OIl'), null);
+    });
+
     group('SlotStatus', () {
       test('parses from JSON correctly', () {
         final status = SlotStatus.fromJson(TestData.sampleSlotStatus);

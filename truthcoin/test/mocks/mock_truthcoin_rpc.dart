@@ -51,6 +51,28 @@ class TestTruthcoinRPC extends TruthcoinRPC {
 
   List<Map<String, dynamic>> openPeriodsResponse = [];
 
+  /// Arguments of the last market_amplify_beta call.
+  String? lastAmplifyMarketId;
+  int? lastAmplifyAmountSats;
+
+  /// Arguments of the last transfer_votecoin call.
+  String? lastVotecoinDest;
+  double? lastVotecoinAmount;
+  int? lastVotecoinFeeSats;
+
+  /// market_get answers per market id, in place of [marketGetResponse].
+  Map<String, Map<String, dynamic>> marketGetById = {};
+
+  String voterAddressResponse = 'tb1qvoter';
+  List<Map<String, dynamic>> voteListResponse = [];
+
+  /// vote_period answers per period id, in place of [votePeriodResponse].
+  Map<int, Map<String, dynamic>> votePeriodById = {};
+
+  /// Period ids of every vote_period call, null for a call without one.
+  List<int?> votePeriodCalls = [];
+  List<String> voteVoterCalls = [];
+
   Map<String, dynamic> slotStatusResponse = {};
   List<Map<String, dynamic>> slotListResponse = [];
   Map<String, dynamic>? slotGetResponse;
@@ -75,6 +97,8 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   int? lastSellMinProceeds;
   bool shouldThrowOnMarketSell = false;
   bool shouldThrowOnVotePeriod = false;
+  bool shouldThrowOnSlotStatus = false;
+  bool shouldThrowOnSlotList = false;
   String errorMessage = 'Test error';
 
   @override
@@ -241,7 +265,7 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     if (shouldThrowOnMarketGet) {
       throw Exception(errorMessage);
     }
-    return marketGetResponse;
+    return marketGetById[marketId] ?? marketGetResponse;
   }
 
   /// Null stands for a node without the market_price_history method.
@@ -306,12 +330,25 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     return marketPositionsResponse;
   }
 
+  @override
+  Future<String> marketAmplifyBeta({required String marketId, required int amountSats}) async {
+    lastAmplifyMarketId = marketId;
+    lastAmplifyAmountSats = amountSats;
+    return 'amplify_txid';
+  }
+
   // Slots
   @override
-  Future<Map<String, dynamic>> slotStatus() async => slotStatusResponse;
+  Future<Map<String, dynamic>> slotStatus() async {
+    if (shouldThrowOnSlotStatus) throw Exception('slot status failed');
+    return slotStatusResponse;
+  }
 
   @override
-  Future<List<Map<String, dynamic>>> slotList({int? period, String? status}) async => slotListResponse;
+  Future<List<Map<String, dynamic>>> slotList({int? period, String? status}) async {
+    if (shouldThrowOnSlotList) throw Exception(errorMessage);
+    return slotListResponse;
+  }
 
   @override
   Future<Map<String, dynamic>?> slotGet(String slotId) async => slotGetResponse;
@@ -341,7 +378,13 @@ class TestTruthcoinRPC extends TruthcoinRPC {
 
   // Voting
   @override
-  Future<Map<String, dynamic>?> voteVoter(String address) async => voteVoterResponse;
+  Future<String> getVoterAddress() async => voterAddressResponse;
+
+  @override
+  Future<Map<String, dynamic>?> voteVoter(String address) async {
+    voteVoterCalls.add(address);
+    return voteVoterResponse;
+  }
 
   @override
   Future<List<Map<String, dynamic>>> voteVoters() async => voteVotersResponse;
@@ -353,15 +396,16 @@ class TestTruthcoinRPC extends TruthcoinRPC {
 
   @override
   Future<List<Map<String, dynamic>>> voteList({String? voter, String? decisionId, int? periodId}) async {
-    return [];
+    return voteListResponse;
   }
 
   @override
   Future<Map<String, dynamic>?> votePeriod({int? periodId}) async {
+    votePeriodCalls.add(periodId);
     if (shouldThrowOnVotePeriod) {
       throw Exception(errorMessage);
     }
-    return votePeriodResponse;
+    return votePeriodById[periodId] ?? votePeriodResponse;
   }
 
   // Votecoin
@@ -390,6 +434,9 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
+    lastVotecoinDest = dest;
+    lastVotecoinAmount = amount;
+    lastVotecoinFeeSats = feeSats;
     return 'transfer_votecoin_txid';
   }
 

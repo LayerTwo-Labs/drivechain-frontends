@@ -28,6 +28,7 @@ class VotingProvider extends ChangeNotifier {
       _log.d('Loaded slot status: period ${slotStatus!.currentPeriod}');
       notifyListeners();
     } catch (e) {
+      slotStatus = null;
       _log.e('Failed to load slot status: $e');
     }
   }
@@ -58,7 +59,9 @@ class VotingProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _rpc.votePeriod();
+      // vote_period(null) answers only an active period that holds a claimed
+      // decision, so the app names the current period of decision_status.
+      final response = await _rpc.votePeriod(periodId: slotStatus?.currentPeriod);
       if (response != null) {
         currentPeriod = VotingPeriodFull.fromJson(response);
         _log.d('Loaded period ${currentPeriod!.periodId}: ${currentPeriod!.status}');
@@ -237,8 +240,8 @@ class VotingProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      await loadSlotStatus();
       await Future.wait([
-        loadSlotStatus(),
         loadCurrentPeriod(),
         if (userAddress != null) loadVoterInfo(userAddress),
       ]);

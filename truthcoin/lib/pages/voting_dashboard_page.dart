@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -14,6 +15,8 @@ const double _twoColumnWidth = 900;
 
 /// Below this width the vote buttons sit under the question.
 const double _wideRowWidth = 700;
+
+const double _tableHeight = 200;
 
 @RoutePage()
 class VotingDashboardPage extends StatelessWidget {
@@ -47,10 +50,9 @@ class VotingDashboardPage extends StatelessWidget {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final panel = [
-                      _BallotCard(model: model),
-                      _PeriodCard(model: model),
-                      _VoterCard(model: model),
+                    final tables = [
+                      _YourDecisionsCard(model: model),
+                      _YourVotesCard(model: model),
                     ];
 
                     if (constraints.maxWidth < _twoColumnWidth) {
@@ -59,18 +61,39 @@ class VotingDashboardPage extends StatelessWidget {
                           spacing: SailStyleValues.padding12,
                           children: [
                             _DecisionsCard(model: model),
-                            ...panel,
+                            _BallotCard(model: model),
+                            _VoterAddressCard(model: model),
+                            ...tables,
+                            _PeriodCard(model: model),
+                            _VoterCard(model: model),
                           ],
                         ),
                       );
                     }
+
+                    final panel = [
+                      _BallotCard(model: model),
+                      _VoterAddressCard(model: model),
+                      _PeriodCard(model: model),
+                      _VoterCard(model: model),
+                    ];
 
                     return SailRow(
                       spacing: SailStyleValues.padding16,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.max,
                       children: [
-                        Expanded(child: _DecisionsCard(model: model)),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: SailColumn(
+                              spacing: SailStyleValues.padding12,
+                              children: [
+                                _DecisionsCard(model: model),
+                                ...tables,
+                              ],
+                            ),
+                          ),
+                        ),
                         SizedBox(
                           width: _panelWidth,
                           child: SingleChildScrollView(
@@ -298,6 +321,130 @@ class _BallotCard extends StatelessWidget {
           ),
           SailText.secondary12('One transaction carries every answer of this period.'),
         ],
+      ),
+    );
+  }
+}
+
+class _VoterAddressCard extends StatelessWidget {
+  final VotingDashboardViewModel model;
+
+  const _VoterAddressCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final address = model.voterAddress;
+
+    return SailCard(
+      title: 'Voter',
+      error: model.voterAddressError,
+      child: SailRow(
+        spacing: SailStyleValues.padding08,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Expanded(child: SailText.secondary13('Voter address')),
+          SailText.primary13(address == null ? '—' : model.short(address), bold: true, monospace: true),
+          SailButton(
+            plainLabel: true,
+            label: 'Copy',
+            variant: ButtonVariant.secondary,
+            small: true,
+            disabled: address == null,
+            onPressed: () async => Clipboard.setData(ClipboardData(text: address!)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _YourDecisionsCard extends StatelessWidget {
+  final VotingDashboardViewModel model;
+
+  const _YourDecisionsCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final decisions = model.yourDecisions;
+
+    return SailCard(
+      title: 'Your decisions',
+      subtitle: 'Decisions that you claimed. Voters resolve them at the end of the period.',
+      error: model.decisionsError,
+      bottomPadding: false,
+      child: SizedBox(
+        height: _tableHeight,
+        child: SailTable(
+          getRowId: (index) => decisions[index].slotIdHex,
+          headerBuilder: (context) => const [
+            SailTableHeaderCell(name: 'Decision'),
+            SailTableHeaderCell(name: 'Question'),
+            SailTableHeaderCell(name: 'Period'),
+            SailTableHeaderCell(name: 'State'),
+          ],
+          rowBuilder: (context, row, selected) {
+            final slot = decisions[row];
+            return [
+              SailTableCell(value: slot.slotIdHex, monospace: true),
+              SailTableCell(value: model.slotLabel(slot)),
+              SailTableCell(value: 'Period ${slot.periodIndex}'),
+              SailTableCell(
+                value: slot.state.displayName,
+                child: SailBadge(
+                  slot.state.displayName,
+                  tone: slot.state == SlotState.ossified ? SailBadgeTone.neutral : SailBadgeTone.success,
+                ),
+              ),
+            ];
+          },
+          rowCount: decisions.length,
+          emptyPlaceholder: 'You claimed no decision yet',
+          drawGrid: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _YourVotesCard extends StatelessWidget {
+  final VotingDashboardViewModel model;
+
+  const _YourVotesCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final votes = model.yourVotes;
+
+    return SailCard(
+      title: 'Your votes',
+      subtitle: 'Ballots that you sent, with the consensus after resolution.',
+      error: model.votesError,
+      bottomPadding: false,
+      child: SizedBox(
+        height: _tableHeight,
+        child: SailTable(
+          getRowId: (index) => '${votes[index].decisionId}-${votes[index].periodId}',
+          headerBuilder: (context) => const [
+            SailTableHeaderCell(name: 'Decision'),
+            SailTableHeaderCell(name: 'Question'),
+            SailTableHeaderCell(name: 'Your vote'),
+            SailTableHeaderCell(name: 'Consensus'),
+            SailTableHeaderCell(name: 'Period'),
+          ],
+          rowBuilder: (context, row, selected) {
+            final vote = votes[row];
+            return [
+              SailTableCell(value: vote.decisionId, monospace: true),
+              SailTableCell(value: vote.question),
+              SailTableCell(value: vote.yourVote),
+              SailTableCell(value: vote.consensus),
+              SailTableCell(value: 'Period ${vote.periodId}'),
+            ];
+          },
+          rowCount: votes.length,
+          emptyPlaceholder: 'You sent no vote yet',
+          drawGrid: true,
+        ),
       ),
     );
   }
@@ -606,11 +753,44 @@ class VotingDashboardViewModel extends BaseViewModel {
   bool isSubmitting = false;
 
   String? userAddress;
+  List<String> walletAddresses = [];
+
+  String? voterAddress;
+  String? voterAddressError;
+  String? decisionsError;
+
+  List<YourVote> yourVotes = [];
+  String? votesError;
 
   String get shortAddress {
     final address = userAddress ?? '';
     if (address.length <= 16) return address;
     return '${address.substring(0, 8)}…${address.substring(address.length - 6)}';
+  }
+
+  String short(String address) {
+    if (address.length <= 16) return address;
+    return '${address.substring(0, 8)}…${address.substring(address.length - 4)}';
+  }
+
+  /// Decisions that a wallet address claimed.
+  List<SlotListItem> get yourDecisions {
+    final hashes = walletAddresses.map(addressPubkeyHashHex).whereType<String>().toSet();
+    return _votingProvider.slots.where((slot) {
+      final maker = slot.decision?.marketMakerPubkeyHash.toLowerCase();
+      return maker != null && hashes.contains(maker);
+    }).toList();
+  }
+
+  String slotLabel(SlotListItem slot) {
+    final decision = slot.decision;
+    if (decision == null) return '';
+    final kind = decision.isScaled
+        ? 'scaled'
+        : decision.isCategory
+        ? 'category'
+        : 'binary';
+    return '${decision.question} ($kind)';
   }
 
   void init() {
@@ -625,14 +805,52 @@ class VotingDashboardViewModel extends BaseViewModel {
   Future<void> loadData() async {
     try {
       final addresses = await _rpc.getWalletAddresses();
+      walletAddresses = addresses;
       if (addresses.isNotEmpty) {
         userAddress = addresses.first;
       }
     } catch (e) {
+      walletAddresses = [];
       userAddress = null;
     }
 
-    await _votingProvider.loadDashboardData(userAddress);
+    try {
+      voterAddress = await _rpc.getVoterAddress();
+      voterAddressError = null;
+    } catch (e) {
+      voterAddress = null;
+      voterAddressError = 'Failed to read the voter address: $e';
+    }
+
+    await _votingProvider.loadSlots();
+    decisionsError = _votingProvider.error;
+    await _votingProvider.loadDashboardData(voterAddress ?? userAddress);
+    await loadYourVotes();
+  }
+
+  /// The votes of the voter address, with the consensus of each period.
+  Future<void> loadYourVotes() async {
+    final voter = voterAddress;
+    if (voter == null) {
+      yourVotes = [];
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final votes = (await _rpc.voteList(voter: voter)).map(VoteInfo.fromJson).toList();
+      final periods = <int, VotingPeriodFull?>{};
+      for (final periodId in votes.map((vote) => vote.periodId).toSet()) {
+        final response = await _rpc.votePeriod(periodId: periodId);
+        periods[periodId] = response == null ? null : VotingPeriodFull.fromJson(response);
+      }
+      yourVotes = [for (final vote in votes) YourVote.from(vote, periods[vote.periodId])];
+      votesError = null;
+    } catch (e) {
+      yourVotes = [];
+      votesError = 'Failed to load your votes: $e';
+    }
+    notifyListeners();
   }
 
   double? getPendingVote(String decisionId) {
@@ -654,6 +872,7 @@ class VotingDashboardViewModel extends BaseViewModel {
     notifyListeners();
 
     final txid = await _votingProvider.submitVotes(1000);
+    if (txid != null) await loadYourVotes();
 
     isSubmitting = false;
     notifyListeners();
@@ -680,4 +899,49 @@ class VotingDashboardViewModel extends BaseViewModel {
     _votingProvider.removeListener(_onProviderChange);
     super.dispose();
   }
+}
+
+/// One row of the Your votes table.
+class YourVote {
+  final String decisionId;
+  final String question;
+  final String yourVote;
+  final String consensus;
+  final int periodId;
+
+  YourVote({
+    required this.decisionId,
+    required this.question,
+    required this.yourVote,
+    required this.consensus,
+    required this.periodId,
+  });
+
+  factory YourVote.from(VoteInfo vote, VotingPeriodFull? period) {
+    final match = period?.decisions.where((d) => d.slotIdHex == vote.decisionId) ?? const <DecisionSummary>[];
+    final decision = match.isEmpty ? null : match.first;
+    final outcome = period?.consensus?.outcomes[vote.decisionId];
+
+    return YourVote(
+      decisionId: vote.decisionId,
+      question: decision?.question ?? '',
+      yourVote: _voteLabel(decision, vote.voteValue),
+      consensus: outcome == null ? '—' : _voteLabel(decision, outcome),
+      periodId: vote.periodId,
+    );
+  }
+}
+
+String _voteLabel(DecisionSummary? decision, double value) {
+  if (decision != null && decision.isCategory) {
+    final index = value.round();
+    if (index == value && index >= 0 && index < decision.categoryOptions.length) {
+      return decision.categoryOptions[index];
+    }
+  }
+  if (decision != null && decision.isBinary) {
+    if (value == 1) return 'Yes';
+    if (value == 0) return 'No';
+  }
+  return value == value.roundToDouble() ? value.toInt().toString() : value.toString();
 }

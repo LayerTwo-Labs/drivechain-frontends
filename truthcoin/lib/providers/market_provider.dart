@@ -378,6 +378,21 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
+  /// Pay more liquidity into a market that a wallet address created.
+  Future<String?> addLiquidity({required String marketId, required int amountSats}) async {
+    try {
+      final txid = await _rpc.marketAmplifyBeta(marketId: marketId, amountSats: amountSats);
+      _log.i('Added $amountSats sats of liquidity: $txid');
+      await loadMarket(marketId);
+      return txid;
+    } catch (e) {
+      _log.e('Add liquidity failed: $e');
+      error = 'Add liquidity failed: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Set filter state
   void setStateFilter(MarketState? state) {
     stateFilter = state;

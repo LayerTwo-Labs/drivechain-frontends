@@ -108,6 +108,17 @@ void main() {
       mockRpc.shouldThrowOnMarketPositions = false;
     });
 
+    testWidgets('a market list failure shows the error in your markets', (tester) async {
+      mockRpc.shouldThrowOnMarketList = true;
+
+      await tester.pumpSailPage(const PortfolioPage());
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Failed to load markets'), findsWidgets);
+
+      mockRpc.shouldThrowOnMarketList = false;
+    });
+
     testWidgets('an address without a share shows the empty state', (tester) async {
       mockRpc.marketPositionsByAddress = {};
       mockRpc.marketPositionsResponse = {
@@ -168,6 +179,46 @@ void main() {
 
       mockRpc.shouldThrowOnWalletAddresses = false;
       model.dispose();
+    });
+
+    test('your markets keep the markets that a wallet address created', () async {
+      mockRpc.marketGetById = {
+        'market_001': {...TestData.sampleMarketDetail, 'creator_address': 'tb1qsecond'},
+        'market_002': {...TestData.sampleMarketDetail, 'market_id': 'market_002', 'creator_address': 'tb1qother'},
+      };
+
+      final model = PortfolioViewModel();
+      await model.load();
+
+      expect(model.yourMarkets.map((m) => m.marketId), ['market_001']);
+      expect(model.marketsError, isNull);
+
+      mockRpc.marketGetById = {};
+      model.dispose();
+    });
+
+    testWidgets('Send Votecoin sends a decimal amount', (tester) async {
+      await tester.pumpSailPage(const PortfolioPage());
+      await tester.pumpAndSettle();
+      expect(find.text('Send Votecoin'), findsWidgets);
+
+      final model = PortfolioViewModel();
+      model.votecoinDestController.text = ' tb1qdest ';
+      model.votecoinAmountController.text = '0.005';
+      expect(model.canSendVotecoin, true);
+
+      await model.sendVotecoin(tester.element(find.byType(PortfolioPage)));
+      await tester.pumpAndSettle();
+
+      expect(mockRpc.lastVotecoinDest, 'tb1qdest');
+      expect(mockRpc.lastVotecoinAmount, 0.005);
+      expect(mockRpc.lastVotecoinFeeSats, 1000);
+      expect(model.sendError, isNull);
+      expect(model.votecoinAmountController.text, isEmpty);
+
+      model.dispose();
+      // The success toast closes on a timer.
+      await tester.pump(const Duration(seconds: 10));
     });
 
     test('the totals add up every address', () async {

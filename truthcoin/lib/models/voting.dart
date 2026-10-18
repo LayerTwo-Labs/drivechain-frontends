@@ -909,3 +909,18 @@ String? _combinationLabel(Object? coordinates, List<dynamic>? dimensions) {
   }
   return answers.isEmpty ? null : answers.join(' · ');
 }
+
+const _base58Alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+/// The hex pubkey hash of a base58 truthcoin address, as decision_list
+/// reports it in market_maker_pubkey_hash. Null when the text is no address.
+String? addressPubkeyHashHex(String address) {
+  var value = BigInt.zero;
+  for (final char in address.split('')) {
+    final digit = _base58Alphabet.indexOf(char);
+    if (digit < 0) return null;
+    value = value * BigInt.from(58) + BigInt.from(digit);
+  }
+  final hex = value.toRadixString(16).padLeft(40, '0');
+  return hex.length == 40 ? hex : null;
+}
