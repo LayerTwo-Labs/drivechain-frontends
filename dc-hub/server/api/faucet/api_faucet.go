@@ -15,7 +15,6 @@ import (
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
 
@@ -58,45 +57,6 @@ func (s *Server) resetIfWindowElapsed(now time.Time) {
 	s.windowEnds = now.Add(ResetInterval)
 }
 
-func NewClient(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) *Server {
-	faucet := &Server{
-		bitcoind:       bitcoind,
-		dispensed:      make(map[string]float64),
-		totalDispensed: 0,
-	}
-
-	go faucet.resetHandler(ctx)
-
-	return faucet
-}
-
-func (s *Server) resetHandler(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	connectionTicker := time.NewTicker(time.Minute)
-	defer connectionTicker.Stop()
-
-	log := zerolog.Ctx(ctx)
-
-	for {
-		select {
-		case now := <-ticker.C:
-			s.mu.Lock()
-			s.resetIfWindowElapsed(now)
-			s.mu.Unlock()
-			log.Println("faucet reset: cleared total dispensed coins, address list, and IP list.")
-		case <-connectionTicker.C:
-			info, err := s.bitcoind.GetBlockchainInfo(ctx, &connect.Request[btcpb.GetBlockchainInfoRequest]{})
-			if err != nil {
-				log.Println("could not ping sender: %w", err)
-			} else {
-				log.Println("client ping: still connected at height", info.Msg.Blocks)
-			}
-		}
-	}
-}
-
 // DispenseCoins implements faucetv1connect.FaucetServiceHandler.
 func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.DispenseCoinsRequest]) (*connect.Response[pb.DispenseCoinsResponse], error) {
 	s.mu.Lock()
@@ -109,7 +69,7 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.Dispen
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if s.totalDispensed > MaxCoinsPer5Min {
+	if s.totalDispensed+amount.ToBTC() > MaxCoinsPer5Min {
 		return nil, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf(
 			"the faucet has hit its dispensation limit, try again in %s",
 			formatDuration(time.Until(s.windowEnds)),

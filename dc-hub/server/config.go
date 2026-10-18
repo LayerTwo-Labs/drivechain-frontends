@@ -48,7 +48,7 @@ func readConfig() (Config, error) {
 
 		user, password, ok := strings.Cut(string(cookie), ":")
 		if !ok || user == "" || password == "" {
-			return Config{}, fmt.Errorf("unexpected cookie format: %s", string(cookie))
+			return Config{}, fmt.Errorf("unexpected cookie format in %q: expected user:password", conf.BitcoinCoreCookie)
 		}
 
 		conf.BitcoinCoreRPCUser = user

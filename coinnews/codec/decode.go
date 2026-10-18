@@ -130,9 +130,8 @@ func decodeComment(b []byte) (*Comment, error) {
 	return &c, nil
 }
 
-// VerifyComment is the convenience wrapper indexers use: decode + check
-// the signature. Returns ErrBadSignature for failed sig verification.
-// Bad framing is returned verbatim from DecodeMessage.
+// VerifyComment checks the signature of a decoded Comment. Returns
+// ErrBadSignature when the signature does not verify.
 func VerifyComment(c *Comment) error {
 	blob, err := SerialiseTLVs(c.TLVs)
 	if err != nil {

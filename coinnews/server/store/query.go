@@ -103,37 +103,7 @@ func ListFeed(ctx context.Context, db *sql.DB, f FeedFilter) ([]FeedItem, error)
 	if err != nil {
 		return nil, fmt.Errorf("ListFeed: %w", err)
 	}
-	defer rows.Close() //nolint:errcheck
-
-	var out []FeedItem
-	for rows.Next() {
-		var (
-			fi             FeedItem
-			itemID         []byte
-			topic          []byte
-			subtype        byte
-			up, dn, ccount int
-		)
-		if err := rows.Scan(&itemID, &topic, &fi.Headline, &fi.URL, &fi.Body, &fi.Lang,
-			&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &fi.TxID, &fi.Vout,
-			&up, &dn, &ccount); err != nil {
-			return nil, err
-		}
-		copy(fi.ItemID[:], itemID)
-		copy(fi.Topic[:], topic)
-		fi.Subtype = codec.Subtype(subtype)
-		fi.Points = up - dn
-		fi.Upvotes = up
-		fi.Downvotes = dn
-		fi.CommentCount = ccount
-		ageHours := time.Since(fi.BlockTime).Hours()
-		if ageHours < 0 {
-			ageHours = 0
-		}
-		fi.Score = float64(fi.Points-1) / math.Pow(ageHours+2, 1.8)
-		out = append(out, fi)
-	}
-	return out, rows.Err()
+	return scanFeedRows(rows)
 }
 
 // GetItem returns one Story keyed by ItemID. Returns sql.ErrNoRows if
@@ -161,35 +131,14 @@ func GetItem(ctx context.Context, db *sql.DB, id codec.ItemID) (FeedItem, error)
 	if err != nil {
 		return FeedItem{}, err
 	}
-	defer rows.Close() //nolint:errcheck
-
-	if !rows.Next() {
-		return FeedItem{}, sql.ErrNoRows
-	}
-	var (
-		fi             FeedItem
-		itemID, topic  []byte
-		subtype        byte
-		up, dn, ccount int
-	)
-	if err := rows.Scan(&itemID, &topic, &fi.Headline, &fi.URL, &fi.Body, &fi.Lang,
-		&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &fi.TxID, &fi.Vout,
-		&up, &dn, &ccount); err != nil {
+	items, err := scanFeedRows(rows)
+	if err != nil {
 		return FeedItem{}, err
 	}
-	copy(fi.ItemID[:], itemID)
-	copy(fi.Topic[:], topic)
-	fi.Subtype = codec.Subtype(subtype)
-	fi.Points = up - dn
-	fi.Upvotes = up
-	fi.Downvotes = dn
-	fi.CommentCount = ccount
-	ageHours := time.Since(fi.BlockTime).Hours()
-	if ageHours < 0 {
-		ageHours = 0
+	if len(items) == 0 {
+		return FeedItem{}, sql.ErrNoRows
 	}
-	fi.Score = float64(fi.Points-1) / math.Pow(ageHours+2, 1.8)
-	return fi, nil
+	return items[0], nil
 }
 
 // CommentRow is the materialised view of a comment plus its tally.
@@ -248,11 +197,7 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 		copy(c.Parent[:], parent)
 		copy(c.AuthorXPK[:], xpk)
 		c.Points = up - dn
-		ageHours := time.Since(c.BlockTime).Hours()
-		if ageHours < 0 {
-			ageHours = 0
-		}
-		c.Score = float64(c.Points-1) / math.Pow(ageHours+2, 1.8)
+		c.Score = hnScore(c.Points, c.BlockTime)
 		all[c.Parent] = append(all[c.Parent], c)
 	}
 	if err := rows.Err(); err != nil {
@@ -271,9 +216,8 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 	return out, nil
 }
 
-// ListByAuthor returns Stories authored by xpk (matched against the
-// Comment paths — Stories proper are unsigned). Surfaces an author's
-// public-comment activity. Limited; clients paginate.
+// ListByAuthor returns the Stories that xpk commented on directly.
+// Stories are unsigned, so they have no author of their own.
 func ListByAuthor(ctx context.Context, db *sql.DB, xpk [32]byte, limit, offset uint32) ([]FeedItem, error) {
 	if limit == 0 {
 		limit = 30
@@ -364,14 +308,15 @@ func scanFeedRows(rows *sql.Rows) ([]FeedItem, error) {
 		fi.Upvotes = up
 		fi.Downvotes = dn
 		fi.CommentCount = ccount
-		ageHours := time.Since(fi.BlockTime).Hours()
-		if ageHours < 0 {
-			ageHours = 0
-		}
-		fi.Score = float64(fi.Points-1) / math.Pow(ageHours+2, 1.8)
+		fi.Score = hnScore(fi.Points, fi.BlockTime)
 		out = append(out, fi)
 	}
 	return out, rows.Err()
+}
+
+func hnScore(points int, blockTime time.Time) float64 {
+	ageHours := max(time.Since(blockTime).Hours(), 0)
+	return float64(points-1) / math.Pow(ageHours+2, 1.8)
 }
 
 func nullableTopic(t *codec.Topic) any {

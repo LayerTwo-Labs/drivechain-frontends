@@ -32,12 +32,8 @@ type Scanner struct {
 }
 
 // Run blocks until ctx is cancelled. Catches up to the tip, then
-// polls. Errors during a single block bubble — the caller decides
-// whether to crash-loop or back off.
+// polls. A failed catch-up is logged and retried after PollInterval.
 func (s *Scanner) Run(ctx context.Context) error {
-	if s.PollInterval == 0 {
-		s.PollInterval = 5 * time.Second
-	}
 	for {
 		if err := s.catchUp(ctx); err != nil {
 			if errors.Is(err, context.Canceled) {

@@ -326,16 +326,3 @@ func nullableBytes(b []byte) any {
 	}
 	return b
 }
-
-// HashTxIDLE hashes a Bitcoin Core display-hex txid into a 32-byte
-// natural-order array — convenience for tests building outpoints.
-func HashTxIDLE(displayHex string) ([32]byte, error) {
-	raw, err := hex.DecodeString(displayHex)
-	if err != nil || len(raw) != 32 {
-		return [32]byte{}, fmt.Errorf("invalid txid hex")
-	}
-	slices.Reverse(raw)
-	var out [32]byte
-	copy(out[:], raw)
-	return out, nil
-}

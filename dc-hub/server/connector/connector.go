@@ -49,7 +49,7 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 	return s.Connect(ctx)
 }
 
-// Connect attempts to connect to the service, retrying every 500ms for 3 seconds
+// Connect makes one connection attempt to the service
 func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 	client, err := s.connector(ctx)
 	if err != nil {
