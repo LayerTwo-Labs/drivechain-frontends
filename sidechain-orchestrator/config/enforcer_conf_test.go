@@ -201,6 +201,41 @@ func TestGetCliArgsDerivesECashNetworkPreset(t *testing.T) {
 	require.NotContains(t, m.GetCliArgs(), "--network-preset=drynet4")
 }
 
+// bip300301_enforcer has an Alphanet and a Betanet preset only. An unknown
+// preset stops it with a clap error the user cannot read.
+func TestCheckEnforcerNetworkPresetRefusesAnECashIDWithNoPreset(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkECash
+
+	m.bitcoinConf.ECashID = "ecash-mainnet"
+	args := m.GetCliArgs()
+	require.Contains(t, args, "--network-preset=ecash-mainnet")
+	err := CheckEnforcerNetworkPreset(args)
+	require.ErrorContains(t, err, `"ecash-mainnet"`)
+	require.ErrorContains(t, err, "cannot start")
+
+	m.Config.Settings["network-preset"] = "mainnet"
+	require.ErrorContains(t, CheckEnforcerNetworkPreset(m.GetCliArgs()), `"mainnet"`)
+	delete(m.Config.Settings, "network-preset")
+
+	for _, id := range []string{"betanet", "alphanet"} {
+		m.bitcoinConf.ECashID = id
+		args := m.GetCliArgs()
+		require.Contains(t, args, "--network-preset="+id)
+		require.NoError(t, CheckEnforcerNetworkPreset(args), id)
+	}
+}
+
+func TestCheckEnforcerNetworkPresetPassesArgsWithNoPreset(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	for _, n := range []Network{NetworkSignet, NetworkRegtest, NetworkMainnet} {
+		m.bitcoinConf.Network = n
+		require.NoError(t, CheckEnforcerNetworkPreset(m.GetCliArgs()), n)
+	}
+}
+
 // Only eCash builds of the enforcer accept the flag.
 func TestGetCliArgsOmitsNetworkPresetOffECash(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
