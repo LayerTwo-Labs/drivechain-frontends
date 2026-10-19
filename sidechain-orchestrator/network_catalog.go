@@ -350,6 +350,12 @@ func (o *Orchestrator) recordECashChain(id string) error {
 // adoptCatalogRows takes a document in memory: the picker rows, their endpoints
 // and their fork heights. It writes no conf, so a refresh can call it live.
 func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
+	// Before the expansion below, which reads them.
+	for _, n := range c.Networks {
+		if n.Family == netcatalog.FamilyECash {
+			config.SetECashReleaseChannel(n.ID, n.ReleaseChannel)
+		}
+	}
 	o.mu.Lock()
 	o.Catalog = c
 	o.ecashID = id
@@ -392,7 +398,8 @@ func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
 }
 
 // expandECashPlaceholder replaces the eCash placeholder throughout a binary's
-// Core variants. It is applied on every path that installs configs — including
+// Core variants: the base URL takes the network's release channel, the rest
+// its id. It is applied on every path that installs configs — including
 // the chains_config.json watcher — because a reload otherwise reinstates the
 // unexpanded placeholder. A empty id leaves the config untouched.
 func expandECashPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
@@ -402,7 +409,7 @@ func expandECashPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 	variants := make(map[string]CoreVariantSpec, len(cfg.Variants))
 	for vID, v := range cfg.Variants {
 		v.Subfolder = strings.ReplaceAll(v.Subfolder, ecashPlaceholder, id)
-		v.BaseURL = strings.ReplaceAll(v.BaseURL, ecashPlaceholder, id)
+		v.BaseURL = strings.ReplaceAll(v.BaseURL, ecashPlaceholder, config.ECashReleaseChannelFor(id))
 		files := make(map[string]string, len(v.Files))
 		for platform, file := range v.Files {
 			files[platform] = strings.ReplaceAll(file, ecashPlaceholder, id)

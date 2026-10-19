@@ -91,3 +91,39 @@ func TestECashReplayLockTimeRefusesAnUnloadedNetwork(t *testing.T) {
 		t.Fatalf("ECashReplayLockTime() = %d, %v, want 499999998", got, err)
 	}
 }
+
+func TestECashReleaseChannelForTakesThePublishedChannel(t *testing.T) {
+	t.Cleanup(func() { SetECashReleaseChannel("ecash-mainnet", "") })
+
+	if got := ECashReleaseChannelFor("ecash-mainnet"); got != "ecash-mainnet" {
+		t.Errorf("unpublished channel = %q, want the id", got)
+	}
+	SetECashReleaseChannel("ecash-mainnet", "mainnet")
+	if got := ECashReleaseChannelFor("ecash-mainnet"); got != "mainnet" {
+		t.Errorf("published channel = %q, want mainnet", got)
+	}
+	if got := ECashReleaseChannelFor("betanet"); got != "betanet" {
+		t.Errorf("betanet channel = %q, want betanet", got)
+	}
+	SetECashReleaseChannel("ecash-mainnet", "")
+	if got := ECashReleaseChannelFor("ecash-mainnet"); got != "ecash-mainnet" {
+		t.Errorf("cleared channel = %q, want the id", got)
+	}
+}
+
+func TestLookupNetworkNamesNoECashID(t *testing.T) {
+	for _, id := range []string{"ecash-mainnet", "betanet", "alphanet"} {
+		if n, ok := LookupNetwork(id); ok {
+			t.Errorf("LookupNetwork(%q) = %q, want no network", id, n)
+		}
+		if n, ok := NetworkForCatalogEntry(id, netcatalog.FamilyECash); !ok || n != NetworkECash {
+			t.Errorf("NetworkForCatalogEntry(%q, ecash) = %q, %v; want ecash", id, n, ok)
+		}
+	}
+	if n, ok := NetworkForCatalogEntry("bitcoin", "bitcoin"); !ok || n != NetworkMainnet {
+		t.Errorf("NetworkForCatalogEntry(bitcoin) = %q, %v; want mainnet", n, ok)
+	}
+	if got := ECashIDFromUAComment(ECashUAComment("ecash-mainnet")); got != "ecash-mainnet" {
+		t.Errorf("uacomment round trip = %q, want ecash-mainnet", got)
+	}
+}
