@@ -56,7 +56,7 @@ dependencies:
   desktop_multi_window:
     git:
       url: https://github.com/octobocto/flutter-plugins.git
-      ref: 252f3f7910288500039c39ae2b944622a0e55152
+      ref: b9a9f5684eb1c81e203d17efef2915e183b05e9e
       path: packages/desktop_multi_window
   convert: ^3.1.2
   bip39_mnemonic: ^4.1.0
