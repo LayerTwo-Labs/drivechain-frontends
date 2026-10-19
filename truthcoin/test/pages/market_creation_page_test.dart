@@ -101,6 +101,22 @@ void main() {
 
       expect(find.text('Create market'), findsWidgets);
     });
+
+    testWidgets('under the eCash theme a page button keeps its case and the regular weight', (tester) async {
+      await tester.pumpSailPage(
+        SailTheme(
+          data: SailThemeData.darkTheme(SailColorScheme.orange, false, SailFontValues.ibmMono, SailThemeStyle.ecash),
+          child: const MarketCreationPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (final label in ['Add New Decision', 'Calculate cost', 'Cancel', 'Create market']) {
+        expect(find.text(label.toUpperCase()), findsNothing);
+        final text = tester.widgetList<Text>(find.text(label)).last;
+        expect(text.style?.fontWeight, FontWeight.w400, reason: label);
+      }
+    });
     testWidgets('Add New Decision adds one more decision card', (WidgetTester tester) async {
       await tester.pumpSailPage(const MarketCreationPage());
       await tester.pumpAndSettle();

@@ -87,6 +87,7 @@ class _FormColumn extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           children: [
             SailButton(
+              plainLabel: true,
               label: '←  Markets',
               variant: ButtonVariant.link,
               small: true,
@@ -209,6 +210,7 @@ class _DecisionsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               SailButton(
+                plainLabel: true,
                 label: 'Add New Decision',
                 icon: SailSVGAsset.plus,
                 variant: ButtonVariant.outline,
@@ -448,6 +450,7 @@ class _LiquidityCard extends StatelessWidget {
                 onChanged: (_) => model.onFormChanged(),
               ),
               SailButton(
+                plainLabel: true,
                 label: 'Calculate cost',
                 variant: ButtonVariant.secondary,
                 small: true,
@@ -521,11 +524,13 @@ class _ActionRow extends StatelessWidget {
                 ),
               ),
               SailButton(
+                plainLabel: true,
                 label: 'Cancel',
                 variant: ButtonVariant.secondary,
                 onPressed: () async => AutoRouter.of(context).maybePop(),
               ),
               SailButton(
+                plainLabel: true,
                 label: 'Create market',
                 loading: model.isCreating,
                 disabled: !model.canCreate,
