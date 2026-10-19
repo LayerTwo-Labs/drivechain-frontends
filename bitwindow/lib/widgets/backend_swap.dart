@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:bitwindow/providers/backend_swap_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -60,7 +60,7 @@ class BackendSwapBar extends StatelessWidget {
                       SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 1.6, color: colors.primary),
+                        child: SailCircularProgressIndicator(strokeWidth: 1.6, color: colors.primary),
                       ),
                       const SizedBox(width: SailStyleValues.padding08),
                       Expanded(child: SailText.primary12(provider.navLabel)),
@@ -177,7 +177,7 @@ class _StepRow extends StatelessWidget {
             width: 16,
             height: 16,
             child: active
-                ? CircularProgressIndicator(strokeWidth: 1.6, color: colors.primary)
+                ? SailCircularProgressIndicator(strokeWidth: 1.6, color: colors.primary)
                 : failed
                 ? SailSVG.fromAsset(SailSVGAsset.circleX, color: colors.error)
                 : SailSVG.fromAsset(SailSVGAsset.circleCheck, color: colors.success),

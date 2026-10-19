@@ -1,6 +1,6 @@
 import 'package:bitwindow/utils/ur_key.dart';
 import 'package:bitwindow/widgets/ur_qr_scanner.dart' show urCameraScanSupported;
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:sail_ui/sail_ui.dart';
 
