@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	confpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	confrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -53,6 +54,7 @@ func newWalletBurnECXCommand(burnAddress string, minimumSats int64) *cli.Command
 
 type burnWalletState struct {
 	network  wallet.ECXBurnNetwork
+	lockTime uint32
 	walletID string
 	active   bool
 	external bool
@@ -65,10 +67,13 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 		return fmt.Errorf("read the network: %w", err)
 	}
 	var current wallet.ECXBurnNetwork
+	var lockTime uint32
 	for _, network := range networks.Msg.Networks {
 		if network.IsCurrent {
 			if network.Network == "ecash" {
 				current = wallet.ECXBurnNetworkByID(network.Id)
+				entry, _ := netcatalog.Embedded().ByID(network.Id)
+				lockTime = entry.ReplayLockTimeOrDefault()
 			}
 			break
 		}
@@ -78,6 +83,7 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 	}
 	if s.network.Name == "" {
 		s.network = current
+		s.lockTime = lockTime
 	}
 	if s.network != current {
 		return fmt.Errorf("the network changed; create the burn again")
@@ -232,7 +238,7 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 	if err != nil {
 		return fmt.Errorf("read the burn transaction: %w", err)
 	}
-	if err := checkBurnPreview(decoded.Msg, amount, burnScript, dataScript); err != nil {
+	if err := checkBurnPreview(decoded.Msg, state.lockTime, amount, burnScript, dataScript); err != nil {
 		return err
 	}
 	if err := state.check(cctx, client, conf); err != nil {
@@ -330,7 +336,7 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 	return nil
 }
 
-func checkBurnPreview(preview *pb.DecodeTransactionResponse, amount int64, burnScript, dataScript []byte) error {
+func checkBurnPreview(preview *pb.DecodeTransactionResponse, lockTime uint32, amount int64, burnScript, dataScript []byte) error {
 	if !preview.IsPsbt || !preview.HasFee || !preview.HasTotalInput || preview.FeeSats < 0 || preview.FeeSats > math.MaxInt64-amount {
 		return fmt.Errorf("the transaction has no exact fee")
 	}
@@ -338,7 +344,7 @@ func checkBurnPreview(preview *pb.DecodeTransactionResponse, amount int64, burnS
 	for i, input := range preview.Inputs {
 		sequences[i] = uint32(input.Sequence)
 	}
-	if !replay.Protected(uint32(preview.Locktime), sequences) {
+	if !replay.Protected(lockTime, uint32(preview.Locktime), sequences) {
 		return fmt.Errorf("the burn transaction must keep replay protection")
 	}
 	var burnCount, dataCount int

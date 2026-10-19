@@ -201,3 +201,34 @@ func TestCoreBackendPreviewSendReusesOneChangeAddress(t *testing.T) {
 	assert.Equal(t, p2wpkhAddr(t, fixedKey(0x99), net), changeAddress(1))
 	assert.Equal(t, p2wpkhAddr(t, fixedKey(0x99), net), changeAddress(2))
 }
+
+func TestCoreBackendPreviewSendStampsTheNetworkLockTime(t *testing.T) {
+	for _, network := range replayNetworks {
+		t.Run(network.name, func(t *testing.T) {
+			useECashReplayLockTime(t, network.lockTime)
+			backend, fake, coreID := newCoreBackendFixture(t)
+			backend.svc.SetNetwork("ecash")
+			fake.stubEnsureFlow()
+
+			net := &chaincfg.RegressionNetParams
+			fundedHex, utxos := fundedCoreTx(t, 1, net)
+			fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return "deadbeef", "" })
+			fake.handle("fundrawtransaction", func(bitcoindCall) (any, string) {
+				return map[string]any{"hex": fundedHex, "fee": 0.00000300, "changepos": 1}, ""
+			})
+			fake.handle("listunspent", func(bitcoindCall) (any, string) { return utxos, "" })
+
+			_, err := backend.PreviewSend(context.Background(), coreID, SendRequest{
+				DestinationsSats: map[string]int64{p2wpkhAddr(t, fixedKey(0x88), net): 10_000},
+				FeeRateSatPerVB:  2,
+			})
+			require.NoError(t, err)
+
+			creates := fake.callsFor("createrawtransaction")
+			require.Len(t, creates, 1)
+			var locktime uint32
+			require.NoError(t, json.Unmarshal(creates[0].Params[2], &locktime))
+			assert.Equal(t, network.lockTime, locktime)
+		})
+	}
+}

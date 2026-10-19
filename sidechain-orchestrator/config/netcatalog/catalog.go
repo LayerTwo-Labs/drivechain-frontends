@@ -30,6 +30,10 @@ const DefaultURL = "https://drivechain.dev/config"
 // eCash network.
 const FamilyECash = "ecash"
 
+// DefaultReplayLockTime is LOCKTIME_THRESHOLD - 1, the replay locktime of
+// every eCash network that publishes no replay_lock_time.
+const DefaultReplayLockTime uint32 = 499999999
+
 const (
 	cacheFilename   = "networks_cache.json"
 	pendingFilename = "networks_pending.json"
@@ -64,6 +68,10 @@ type Network struct {
 	// ForkHeight is the height the eCash fork activates at. Published so a new
 	// eCash network, and the real fork, roll over without a code change.
 	ForkHeight int `json:"fork_height"`
+
+	// ReplayLockTime is the nLockTime this eCash network's node treats as
+	// final. Zero means the field is absent; see ReplayLockTimeOrDefault.
+	ReplayLockTime uint32 `json:"replay_lock_time,omitempty"`
 
 	// P2P is the seed node bitcoind connects through. Every eCash network
 	// publishes its own address and port.
@@ -234,6 +242,15 @@ func (c Catalog) ECashID() string {
 		return ""
 	}
 	return n.ID
+}
+
+// ReplayLockTimeOrDefault returns the network's replay locktime, or
+// DefaultReplayLockTime when the entry carries none.
+func (n Network) ReplayLockTimeOrDefault() uint32 {
+	if n.ReplayLockTime == 0 {
+		return DefaultReplayLockTime
+	}
+	return n.ReplayLockTime
 }
 
 // ExplorerHost returns the host of the explorer this network publishes, or ""

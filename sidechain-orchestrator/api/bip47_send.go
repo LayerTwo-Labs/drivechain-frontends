@@ -12,6 +12,7 @@ import (
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -367,7 +368,11 @@ func (h *WalletHandler) broadcastBip47Notification(ctx context.Context, walletID
 	// The notification tx spends a real coin, so it takes the same locktime as
 	// the payment it precedes.
 	if wallet.ReplayProtect(h.svc.Network(), allowReplay) {
-		protectedHex, err := replay.ApplyLockTimeHex(rawHex)
+		lockTime, err := config.ECashReplayLockTime()
+		if err != nil {
+			return "", connect.NewError(connect.CodeUnavailable, err)
+		}
+		protectedHex, err := replay.ApplyLockTimeHex(rawHex, lockTime)
 		if err != nil {
 			return "", connect.NewError(connect.CodeInternal, err)
 		}

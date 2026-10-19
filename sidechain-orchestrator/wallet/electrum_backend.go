@@ -30,6 +30,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 )
 
@@ -768,7 +769,11 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 func (p *ElectrumBackend) signAndBroadcast(ctx context.Context, walletID string, packet *psbt.Packet, psbtInputs []psbtInput, effect *spendEffect, replayProtect bool) (string, error) {
 	net := p.params()
 	if replayProtect {
-		replay.ApplyLockTime(packet.UnsignedTx)
+		lockTime, err := config.ECashReplayLockTime()
+		if err != nil {
+			return "", err
+		}
+		replay.ApplyLockTime(packet.UnsignedTx, lockTime)
 	}
 	signedCount, err := signPSBT(packet, psbtInputs, net)
 	if err != nil {
@@ -1295,7 +1300,11 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 		return "", err
 	}
 	if ReplayProtect(p.svc.Network(), req.AllowReplay) {
-		replay.ApplyLockTime(packet.UnsignedTx)
+		lockTime, err := config.ECashReplayLockTime()
+		if err != nil {
+			return "", err
+		}
+		replay.ApplyLockTime(packet.UnsignedTx, lockTime)
 	}
 	return packet.B64Encode()
 }

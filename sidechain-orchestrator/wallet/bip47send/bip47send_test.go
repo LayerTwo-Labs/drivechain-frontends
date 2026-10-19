@@ -258,29 +258,31 @@ func TestNotificationTxSurvivesTheReplayLockTime(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	protectedHex, err := replay.ApplyLockTimeHex(rawHex)
-	require.NoError(t, err)
+	for _, lockTime := range []uint32{499999999, 499999998} {
+		protectedHex, err := replay.ApplyLockTimeHex(rawHex, lockTime)
+		require.NoError(t, err)
 
-	rawBytes, err := hex.DecodeString(protectedHex)
-	require.NoError(t, err)
-	var msgTx wire.MsgTx
-	require.NoError(t, msgTx.Deserialize(strings.NewReader(string(rawBytes))))
+		rawBytes, err := hex.DecodeString(protectedHex)
+		require.NoError(t, err)
+		var msgTx wire.MsgTx
+		require.NoError(t, msgTx.Deserialize(strings.NewReader(string(rawBytes))))
 
-	assert.EqualValues(t, replay.ReplayLockTime, msgTx.LockTime)
-	require.Len(t, msgTx.TxIn, 1)
-	assert.Less(t, msgTx.TxIn[0].Sequence, uint32(wire.MaxTxInSequenceNum),
-		"the input must be non-final, else the locktime does nothing")
-	assert.Equal(t, outp, msgTx.TxIn[0].PreviousOutPoint,
-		"the payload blinds against this outpoint, so it must not move")
+		assert.EqualValues(t, lockTime, msgTx.LockTime)
+		require.Len(t, msgTx.TxIn, 1)
+		assert.Less(t, msgTx.TxIn[0].Sequence, uint32(wire.MaxTxInSequenceNum),
+			"the input must be non-final, else the locktime does nothing")
+		assert.Equal(t, outp, msgTx.TxIn[0].PreviousOutPoint,
+			"the payload blinds against this outpoint, so it must not move")
 
-	var opReturnPayload []byte
-	for _, out := range msgTx.TxOut {
-		if len(out.PkScript) == 83 && out.PkScript[0] == 0x6a && out.PkScript[1] == 0x4c {
-			opReturnPayload = out.PkScript[3:]
-			break
+		var opReturnPayload []byte
+		for _, out := range msgTx.TxOut {
+			if len(out.PkScript) == 83 && out.PkScript[0] == 0x6a && out.PkScript[1] == 0x4c {
+				opReturnPayload = out.PkScript[3:]
+				break
+			}
 		}
+		require.NotNil(t, opReturnPayload, "no OP_RETURN with an 80-byte payload found")
+		assert.Equal(t, aliceBlindedPayload, hex.EncodeToString(opReturnPayload),
+			"the replay locktime must not change the blinded payload")
 	}
-	require.NotNil(t, opReturnPayload, "no OP_RETURN with an 80-byte payload found")
-	assert.Equal(t, aliceBlindedPayload, hex.EncodeToString(opReturnPayload),
-		"the replay locktime must not change the blinded payload")
 }

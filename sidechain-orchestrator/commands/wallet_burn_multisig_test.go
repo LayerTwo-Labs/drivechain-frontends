@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
@@ -57,7 +57,7 @@ func newBurnMultisigPackets(t *testing.T) burnMultisigPackets {
 	changeScript, err := txscript.PayToAddrScript(changeAddress)
 	require.NoError(t, err)
 	transaction := wire.NewMsgTx(2)
-	transaction.LockTime = replay.ReplayLockTime
+	transaction.LockTime = netcatalog.DefaultReplayLockTime
 	transaction.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{1}, 0), nil, nil))
 	transaction.TxIn[0].Sequence = 0xfffffffe
 	transaction.AddTxOut(wire.NewTxOut(100000001, burnScript))

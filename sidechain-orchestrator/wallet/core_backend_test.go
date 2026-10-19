@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -771,13 +770,66 @@ func TestCoreBackendSendFixedFeeResolvesSpentRequiredInput(t *testing.T) {
 }
 
 func TestCoreBackendSendReplayProtect(t *testing.T) {
+	for _, network := range replayNetworks {
+		t.Run(network.name, func(t *testing.T) {
+			useECashReplayLockTime(t, network.lockTime)
+			backend, fake, coreID := newCoreBackendFixture(t)
+			backend.svc.SetNetwork("ecash")
+			fake.stubEnsureFlow()
+
+			net := &chaincfg.RegressionNetParams
+			dest := p2wpkhAddr(t, fixedKey(0xAA), net)
+
+			fake.handle("listunspent", func(bitcoindCall) (any, string) {
+				return []map[string]any{
+					{"txid": strings.Repeat("44", 32), "vout": 0, "amount": 0.001, "spendable": true},
+				}, ""
+			})
+			fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) {
+				return p2wpkhAddr(t, fixedKey(0xBB), net), ""
+			})
+			fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return "01000000aabbccdd", "" })
+			var signInputHex, broadcastHex string
+			fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+				signInputHex = mustString(t, c.Params[0])
+				return map[string]any{"hex": signInputHex, "complete": true}, ""
+			})
+			fake.handle("sendrawtransaction", func(c bitcoindCall) (any, string) {
+				broadcastHex = mustString(t, c.Params[0])
+				return "txid-replay", ""
+			})
+
+			_, err := backend.Send(context.Background(), coreID, SendRequest{
+				DestinationsSats: map[string]int64{dest: 50_000},
+				FixedFeeSats:     1_000,
+			})
+			require.NoError(t, err)
+
+			// Replay protection is applied by passing the magic locktime as
+			// createrawtransaction's 3rd argument; Core lowers the input sequences.
+			creates := fake.callsFor("createrawtransaction")
+			require.Len(t, creates, 1)
+			var locktime uint32
+			require.NoError(t, json.Unmarshal(creates[0].Params[2], &locktime))
+			assert.Equal(t, network.lockTime, locktime)
+
+			// No hex surgery — the built tx is signed and broadcast unchanged.
+			assert.Equal(t, "01000000aabbccdd", signInputHex)
+			assert.Equal(t, "01000000aabbccdd", broadcastHex)
+		})
+	}
+}
+
+// A switch of the live eCash network moves the replay locktime, and the same
+// backend stamps the new value on its next send.
+func TestCoreBackendSendFollowsTheNetworkSwitch(t *testing.T) {
+	useECashReplayLockTime(t, 499999999)
 	backend, fake, coreID := newCoreBackendFixture(t)
 	backend.svc.SetNetwork("ecash")
 	fake.stubEnsureFlow()
 
 	net := &chaincfg.RegressionNetParams
 	dest := p2wpkhAddr(t, fixedKey(0xAA), net)
-
 	fake.handle("listunspent", func(bitcoindCall) (any, string) {
 		return []map[string]any{
 			{"txid": strings.Repeat("44", 32), "vout": 0, "amount": 0.001, "spendable": true},
@@ -787,33 +839,28 @@ func TestCoreBackendSendReplayProtect(t *testing.T) {
 		return p2wpkhAddr(t, fixedKey(0xBB), net), ""
 	})
 	fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return "01000000aabbccdd", "" })
-	var signInputHex, broadcastHex string
 	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
-		signInputHex = mustString(t, c.Params[0])
-		return map[string]any{"hex": signInputHex, "complete": true}, ""
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
 	})
-	fake.handle("sendrawtransaction", func(c bitcoindCall) (any, string) {
-		broadcastHex = mustString(t, c.Params[0])
-		return "txid-replay", ""
-	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "txid-replay", "" })
 
-	_, err := backend.Send(context.Background(), coreID, SendRequest{
-		DestinationsSats: map[string]int64{dest: 50_000},
-		FixedFeeSats:     1_000,
-	})
-	require.NoError(t, err)
+	send := func() uint32 {
+		_, err := backend.Send(context.Background(), coreID, SendRequest{
+			DestinationsSats: map[string]int64{dest: 50_000},
+			FixedFeeSats:     1_000,
+		})
+		require.NoError(t, err)
+		creates := fake.callsFor("createrawtransaction")
+		var locktime uint32
+		require.NoError(t, json.Unmarshal(creates[len(creates)-1].Params[2], &locktime))
+		return locktime
+	}
 
-	// Replay protection is applied by passing the magic locktime as
-	// createrawtransaction's 3rd argument; Core lowers the input sequences.
-	creates := fake.callsFor("createrawtransaction")
-	require.Len(t, creates, 1)
-	var locktime uint32
-	require.NoError(t, json.Unmarshal(creates[0].Params[2], &locktime))
-	assert.Equal(t, replay.ReplayLockTime, locktime)
-
-	// No hex surgery — the built tx is signed and broadcast unchanged.
-	assert.Equal(t, "01000000aabbccdd", signInputHex)
-	assert.Equal(t, "01000000aabbccdd", broadcastHex)
+	assert.EqualValues(t, 499999999, send())
+	useECashReplayLockTime(t, 499999998)
+	assert.EqualValues(t, 499999998, send())
+	useECashReplayLockTime(t, 499999999)
+	assert.EqualValues(t, 499999999, send())
 }
 
 func TestCoreBackendCreateCpfp(t *testing.T) {
