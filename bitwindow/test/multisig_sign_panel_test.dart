@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/multisig_sign_panel.dart';
@@ -16,6 +17,7 @@ import 'test_utils.dart';
 
 class _FakeWalletRPC implements OrchestratorWalletRPC {
   String warningMessage = '';
+  int locktime = 0;
   wmpb.MultisigPsbtStatusResponse status = wmpb.MultisigPsbtStatusResponse(
     threshold: 2,
     signatures: 1,
@@ -45,6 +47,7 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
       changeOutputIndexes: {1},
       details: walletpb.GetTransactionDetailsResponse(
         warningMessage: warningMessage,
+        locktime: locktime,
         inputs: [
           walletpb.TransactionInput(index: 0, prevTxid: 'aa' * 32, prevVout: 0, valueSats: Int64(30000000)),
           walletpb.TransactionInput(index: 1, prevTxid: 'bb' * 32, prevVout: 1, valueSats: Int64(10000000)),
@@ -59,6 +62,12 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
       ),
     );
   }
+
+  @override
+  Future<String> finalizePsbt({required String psbtBase64}) async => 'rawhex';
+
+  @override
+  Future<String> broadcastTransaction({required String walletId, required String txHex}) async => 'cc' * 32;
 
   @override
   Future<wmpb.ListReceiveAddressesResponse> listReceiveAddresses(String walletId) async {
@@ -79,6 +88,35 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
 class _FakeOrchestrator implements OrchestratorRPC {
   @override
   final _FakeWalletRPC wallet = _FakeWalletRPC();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeConf implements BitcoinConfProvider {
+  @override
+  BitcoinNetwork get network => BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+
+  @override
+  String get ecashNetworkId => 'ecash-mainnet';
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeNotifications implements NotificationProvider {
+  @override
+  void add({
+    required String title,
+    required String content,
+    required DialogType dialogType,
+    List<NotificationLink> links = const [],
+    Future<void> Function()? onPressed,
+    NotificationStyle style = NotificationStyle.toast,
+    String action = '',
+    Map<String, String> data = const {},
+    String? id,
+  }) {}
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -239,4 +277,51 @@ void main() {
 
     expect(broadcastButton(tester).disabled, isFalse);
   });
+
+  final locktimes = {
+    'the fork locktime protects the broadcast': (fork: 499999998, locktime: 499999998, unprotected: false),
+    'another eCash locktime leaves the broadcast unprotected': (
+      fork: 499999998,
+      locktime: 499999999,
+      unprotected: true,
+    ),
+    'an unknown fork locktime protects nothing': (fork: 0, locktime: 0, unprotected: true),
+  };
+  for (final entry in locktimes.entries) {
+    testWidgets('a broadcast on a ${entry.value.fork} fork: ${entry.key}', (tester) async {
+      final draftId = await setUpPanelDeps();
+      final fork = ForkProvider()
+        ..replayLockTime = entry.value.fork
+        ..claims = [
+          WalletClaim(
+            walletId: 'wallet-1',
+            walletName: 'Cold storage',
+            claimableSats: 30000000,
+            utxos: [walletpb.UnspentOutput(output: '${'aa' * 32}:0', valueSats: Int64(30000000))],
+          ),
+        ];
+      GetIt.I.registerSingleton<ForkProvider>(fork);
+      GetIt.I.registerSingleton<BitcoinConfProvider>(_FakeConf());
+      GetIt.I.registerSingleton<NotificationProvider>(_FakeNotifications());
+      orchestrator.wallet.locktime = entry.value.locktime;
+      orchestrator.wallet.status = wmpb.MultisigPsbtStatusResponse(
+        threshold: 2,
+        signatures: 2,
+        finalizable: true,
+        cosignerSigned: [true, true, false],
+      );
+      await draftProvider.fetch();
+
+      await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpAndSettle();
+      final broadcast = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Broadcast');
+      await tester.ensureVisible(broadcast);
+      await tester.pumpAndSettle();
+      expect(broadcastButton(tester).disabled, isFalse);
+      await tester.tap(broadcast);
+      await tester.pumpAndSettle();
+
+      expect(fork.replayedTxids.contains('cc' * 32), entry.value.unprotected);
+    });
+  }
 }

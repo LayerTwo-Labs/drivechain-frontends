@@ -5542,6 +5542,7 @@ class GetForkStatusResponse extends $pb.GeneratedMessage {
     $core.bool? showCountdown,
     $core.Iterable<ForkWalletClaim>? claims,
     $core.String? networkName,
+    $core.int? replayLockTime,
   }) {
     final $result = create();
     if (forkHeight != null) {
@@ -5571,6 +5572,9 @@ class GetForkStatusResponse extends $pb.GeneratedMessage {
     if (networkName != null) {
       $result.networkName = networkName;
     }
+    if (replayLockTime != null) {
+      $result.replayLockTime = replayLockTime;
+    }
     return $result;
   }
   GetForkStatusResponse._() : super();
@@ -5587,6 +5591,7 @@ class GetForkStatusResponse extends $pb.GeneratedMessage {
     ..aOB(8, _omitFieldNames ? '' : 'showCountdown')
     ..pc<ForkWalletClaim>(9, _omitFieldNames ? '' : 'claims', $pb.PbFieldType.PM, subBuilder: ForkWalletClaim.create)
     ..aOS(10, _omitFieldNames ? '' : 'networkName')
+    ..a<$core.int>(11, _omitFieldNames ? '' : 'replayLockTime', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -5699,6 +5704,17 @@ class GetForkStatusResponse extends $pb.GeneratedMessage {
   $core.bool hasNetworkName() => $_has(8);
   @$pb.TagNumber(10)
   void clearNetworkName() => clearField(10);
+
+  /// nLockTime the live eCash network's node treats as final. A transaction
+  /// that carries it, with a non-final input, cannot replay onto Bitcoin.
+  @$pb.TagNumber(11)
+  $core.int get replayLockTime => $_getIZ(9);
+  @$pb.TagNumber(11)
+  set replayLockTime($core.int v) { $_setUnsignedInt32(9, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasReplayLockTime() => $_has(9);
+  @$pb.TagNumber(11)
+  void clearReplayLockTime() => clearField(11);
 }
 
 class ForkWalletClaim extends $pb.GeneratedMessage {
