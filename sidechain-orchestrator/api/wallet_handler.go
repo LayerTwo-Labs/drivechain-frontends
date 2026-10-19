@@ -1329,6 +1329,10 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 	}
 
 	pbAddrs := lo.Map(addrs, func(a wallet.ReceivedByAddress, _ int) *pb.ReceiveAddress {
+		var lastUsedAt *timestamppb.Timestamp
+		if a.LastUsedAt > 0 {
+			lastUsedAt = timestamppb.New(time.Unix(a.LastUsedAt, 0))
+		}
 		return &pb.ReceiveAddress{
 			Address: a.Address,
 			// The column reads "Balance", so it carries what the address still
@@ -1339,6 +1343,7 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 			TxCount:        int32(len(a.TxIDs)),
 			IsChange:       a.Change,
 			DerivationPath: a.HDPath,
+			LastUsedAt:     lastUsedAt,
 		}
 	})
 

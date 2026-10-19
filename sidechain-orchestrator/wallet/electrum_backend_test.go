@@ -1791,6 +1791,35 @@ func TestElectrumListReceivedReportsCurrentBalance(t *testing.T) {
 	assert.InDelta(t, 0.0005, gross[addrs[1]], 1e-9)
 }
 
+func TestElectrumListReceivedReportsLastUsed(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", "", 0, "")
+	require.NoError(t, err)
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 2)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+	// Index 0 received at 1000, then a spend at 2000 emptied it.
+	fake.stats[addrs[0]] = EsploraAddressStats{Address: addrs[0], ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, SpentTxoCount: 1, SpentTxoSum: 100_000, TxCount: 2}}
+	fake.txs[addrs[0]] = []EsploraTx{
+		{TxID: "spend", Status: EsploraStatus{Confirmed: true, BlockHeight: 2, BlockTime: 2000}},
+		{TxID: "fund", Status: EsploraStatus{Confirmed: true, BlockHeight: 1, BlockTime: 1000}},
+	}
+
+	recv, err := p.ListReceivedByAddress(ctx, w.ID)
+	require.NoError(t, err)
+	lastUsed := map[string]int64{}
+	for _, r := range recv {
+		lastUsed[r.Address] = r.LastUsedAt
+	}
+	assert.EqualValues(t, 2000, lastUsed[addrs[0]], "the spend is the newest use")
+	assert.Contains(t, lastUsed, addrs[1])
+	assert.Zero(t, lastUsed[addrs[1]], "an unused address has no last use")
+}
+
 // TestElectrumWatchOnlyUTXOsNotSpendable: a watch-only wallet's coins are
 // solvable (we know the script) but not spendable (no keys).
 func TestElectrumWatchOnlyUTXOsNotSpendable(t *testing.T) {

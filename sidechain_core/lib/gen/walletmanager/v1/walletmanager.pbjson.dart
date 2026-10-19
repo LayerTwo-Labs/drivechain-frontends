@@ -2076,6 +2076,7 @@ const ReceiveAddress$json = {
     {'1': 'tx_count', '3': 5, '4': 1, '5': 5, '10': 'txCount'},
     {'1': 'is_change', '3': 6, '4': 1, '5': 8, '10': 'isChange'},
     {'1': 'derivation_path', '3': 7, '4': 1, '5': 9, '10': 'derivationPath'},
+    {'1': 'last_used_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastUsedAt'},
   ],
 };
 
@@ -2084,7 +2085,9 @@ final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
     'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgCIA'
     'EoAVIGYW1vdW50Eh8KC2Ftb3VudF9zYXRzGAMgASgDUgphbW91bnRTYXRzEhQKBWxhYmVsGAQg'
     'ASgJUgVsYWJlbBIZCgh0eF9jb3VudBgFIAEoBVIHdHhDb3VudBIbCglpc19jaGFuZ2UYBiABKA'
-    'hSCGlzQ2hhbmdlEicKD2Rlcml2YXRpb25fcGF0aBgHIAEoCVIOZGVyaXZhdGlvblBhdGg=');
+    'hSCGlzQ2hhbmdlEicKD2Rlcml2YXRpb25fcGF0aBgHIAEoCVIOZGVyaXZhdGlvblBhdGgSPAoM'
+    'bGFzdF91c2VkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIKbGFzdFVzZW'
+    'RBdA==');
 
 @$core.Deprecated('Use listReceiveAddressesResponseDescriptor instead')
 const ListReceiveAddressesResponse$json = {

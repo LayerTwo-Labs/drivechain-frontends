@@ -56,6 +56,10 @@ type CoreBackend struct {
 	staleMu      sync.Mutex
 	staleWallets map[string]bool // Core wallet name -> Core does not hold it
 
+	// spentMu guards spentTxs, and it is never held across an RPC.
+	spentMu  sync.Mutex
+	spentTxs map[string]coreSpend // Core wallet name:txid -> what the tx spends
+
 	// previewChange holds the change address a send preview reuses, so a
 	// preview does not reserve a new change key in Core each time.
 	previewMu     sync.Mutex
@@ -107,6 +111,7 @@ func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zer
 		bip47Importing:  make(map[string]bool),
 		bip47Waiting:    make(map[string]bool),
 		staleWallets:    make(map[string]bool),
+		spentTxs:        make(map[string]coreSpend),
 	}
 	rpc.OnWalletError = backend.markWalletStale
 	return backend
@@ -146,6 +151,10 @@ func (p *CoreBackend) ResetNetworkState() {
 	p.bip47Generation++
 	p.loadingUntil = time.Time{}
 	p.loadingErr = nil
+
+	p.spentMu.Lock()
+	p.spentTxs = make(map[string]coreSpend)
+	p.spentMu.Unlock()
 }
 
 // net reports the params of the network in use right now.
@@ -340,7 +349,165 @@ func (p *CoreBackend) ListReceivedByAddress(ctx context.Context, walletID string
 	if err != nil {
 		return nil, err
 	}
-	return coreReceiveList(received, utxos), nil
+	out := coreReceiveList(received, utxos)
+	lastUsed, err := p.lastUsedTimes(ctx, name, out, utxos)
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		out[i].LastUsedAt = lastUsed[out[i].Address]
+	}
+	return out, nil
+}
+
+const coreHistoryPage = 1000
+
+// coreSpend is what one wallet tx tells the receive list: its wallet time and
+// the wallet addresses whose coins it spends.
+type coreSpend struct {
+	at   int64
+	from []string
+}
+
+// coreTx is a decoded wallet tx. fromMe is set when the wallet funded it.
+type coreTx struct {
+	msg    *wire.MsgTx
+	at     int64
+	fromMe bool
+}
+
+// lastUsedTimes maps each address to the time of the newest wallet tx that pays
+// to it or spends from it. Core names no source address on a send, so the
+// inputs of each send resolve through their parent wallet txs.
+func (p *CoreBackend) lastUsedTimes(
+	ctx context.Context, name string, rows []ReceivedByAddress, utxos []UTXO,
+) (map[string]int64, error) {
+	txTimes := make(map[string]int64)
+	var spends []string
+	queued := make(map[string]bool)
+	queue := func(txid string) {
+		if txid != "" && !queued[txid] {
+			queued[txid] = true
+			spends = append(spends, txid)
+		}
+	}
+	for skip := 0; ; skip += coreHistoryPage {
+		page, err := p.rpc.ListTransactionsRange(ctx, name, coreHistoryPage, skip)
+		if err != nil {
+			return nil, err
+		}
+		for _, tx := range page {
+			if tx.Category == "send" {
+				queue(tx.TxID)
+			}
+			txTimes[tx.TxID] = max(txTimes[tx.TxID], tx.Time)
+		}
+		if len(page) < coreHistoryPage {
+			break
+		}
+	}
+	// listtransactions leaves out a tx that pays only change, such as a
+	// consolidation, but the coins it made still name it.
+	for _, utxo := range utxos {
+		queue(utxo.TxID)
+	}
+
+	last := make(map[string]int64, len(rows))
+	decoded := make(map[string]*coreTx)
+	for _, txid := range spends {
+		spend, err := p.spentFrom(ctx, name, txid, decoded)
+		if err != nil {
+			return nil, err
+		}
+		txTimes[txid] = max(txTimes[txid], spend.at)
+		for _, address := range spend.from {
+			last[address] = max(last[address], spend.at)
+		}
+	}
+	for _, row := range rows {
+		for _, txid := range row.TxIDs {
+			last[row.Address] = max(last[row.Address], txTimes[txid])
+		}
+	}
+	return last, nil
+}
+
+// spentFrom reads which wallet addresses a wallet tx spends from. An input
+// whose parent the wallet does not hold belongs to someone else. [decoded]
+// holds the txs this pass already read, so a chain of sends reads each tx once.
+func (p *CoreBackend) spentFrom(ctx context.Context, name, txid string, decoded map[string]*coreTx) (coreSpend, error) {
+	key := name + ":" + txid
+	p.spentMu.Lock()
+	cached, ok := p.spentTxs[key]
+	p.spentMu.Unlock()
+	if ok {
+		return cached, nil
+	}
+
+	tx, err := p.decodedWalletTx(ctx, name, txid, decoded)
+	if err != nil {
+		return coreSpend{}, err
+	}
+	if tx == nil {
+		return coreSpend{}, fmt.Errorf("wallet tx %s: %w", txid, ErrTxNotFound)
+	}
+	spend := coreSpend{at: tx.at}
+	if tx.fromMe {
+		for _, in := range tx.msg.TxIn {
+			prev := in.PreviousOutPoint
+			parent, err := p.decodedWalletTx(ctx, name, prev.Hash.String(), decoded)
+			if err != nil {
+				return coreSpend{}, err
+			}
+			if parent == nil || int(prev.Index) >= len(parent.msg.TxOut) {
+				continue
+			}
+			if address := scriptAddress(parent.msg.TxOut[prev.Index].PkScript, p.net()); address != "" {
+				spend.from = append(spend.from, address)
+			}
+		}
+	}
+
+	p.spentMu.Lock()
+	p.spentTxs[key] = spend
+	p.spentMu.Unlock()
+	return spend, nil
+}
+
+// decodedWalletTx reads a wallet tx through [decoded]. It returns nil for a tx
+// the wallet does not hold.
+func (p *CoreBackend) decodedWalletTx(ctx context.Context, name, txid string, decoded map[string]*coreTx) (*coreTx, error) {
+	if tx, ok := decoded[txid]; ok {
+		return tx, nil
+	}
+	raw, err := p.rpc.GetTransaction(ctx, name, txid)
+	var rpcErr *rpcError
+	if errors.As(err, &rpcErr) && rpcErr.Code == coreTxNotFound {
+		decoded[txid] = nil
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	// Core sets fee only on a tx the wallet funded, and a fee can be zero.
+	var tx struct {
+		Hex  string   `json:"hex"`
+		Time int64    `json:"time"`
+		Fee  *float64 `json:"fee"`
+	}
+	if err := json.Unmarshal(raw, &tx); err != nil {
+		return nil, fmt.Errorf("decode gettransaction %s: %w", txid, err)
+	}
+	rawTx, err := hex.DecodeString(tx.Hex)
+	if err != nil {
+		return nil, fmt.Errorf("decode hex of %s: %w", txid, err)
+	}
+	var msg wire.MsgTx
+	if err := msg.Deserialize(bytes.NewReader(rawTx)); err != nil {
+		return nil, fmt.Errorf("deserialize %s: %w", txid, err)
+	}
+	decoded[txid] = &coreTx{msg: &msg, at: tx.Time, fromMe: tx.Fee != nil}
+	return decoded[txid], nil
 }
 
 // coreReceiveList gives each address the balance it still holds, and lists the
