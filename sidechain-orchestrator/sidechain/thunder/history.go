@@ -173,10 +173,11 @@ func (a *nodeAddresses) Addresses(ctx context.Context) ([]string, error) {
 
 var _ AddressSource = (*nodeAddresses)(nil)
 
-// History lists what touched a set of addresses.
+// History lists what touched a set of addresses, mempool transactions included
+// as unconfirmed.
 //
-// The node records no height for a coin, so every entry reads as confirmed
-// with no height. A caller that wants heights reads an index instead.
+// The node records no height for a coin, so every confirmed entry has no
+// height. A caller that wants heights reads an index instead.
 func (h *nodeHistory) History(
 	ctx context.Context, addresses []string,
 ) ([]sidechainesplora.Entry, error) {
@@ -212,6 +213,7 @@ func (h *nodeHistory) History(
 	if err := h.proxy.Client.Call(ctx, "get_utxos", []any{addresses}, &utxos); err != nil {
 		return nil, fmt.Errorf("read wallet utxos: %w", err)
 	}
+	coins := make(map[string]int64, len(utxos))
 	for _, utxo := range utxos {
 		// A withdrawal output is money on its way off the chain, not money the
 		// wallet gained. The inputs and the change of the transaction that made
@@ -224,6 +226,7 @@ func (h *nodeHistory) History(
 			continue
 		}
 		add(id, vout, utxo.Output.Content.valueSats(), utxo.OutPoint.Deposit != nil, true)
+		coins[fmt.Sprintf("%s:%d", id, vout)] = utxo.Output.Content.valueSats()
 	}
 
 	var stxos []pointedSpentOutput
@@ -247,9 +250,43 @@ func (h *nodeHistory) History(
 		}
 	}
 
+	txs, err := sidechain.Mempool(ctx, h.proxy)
+	if err != nil {
+		return nil, err
+	}
+	for _, tx := range txs {
+		for _, out := range tx.Outputs {
+			if owned[out.Address] && !out.Withdrawal {
+				coins[fmt.Sprintf("%s:%d", tx.Txid, out.Vout)] = out.ValueSats
+			}
+		}
+	}
+	pending := make(map[string]bool)
+	for _, tx := range txs {
+		// A block can confirm the transaction between the two reads.
+		if tx.Txid == "" || byID[tx.Txid] != nil {
+			continue
+		}
+		pending[tx.Txid] = true
+		for _, out := range tx.Outputs {
+			if owned[out.Address] && !out.Withdrawal {
+				add(tx.Txid, out.Vout, out.ValueSats, false, true)
+			}
+		}
+		for _, in := range tx.Inputs {
+			if sats, ok := coins[in.Key]; ok {
+				add(tx.Txid, 0, -sats, false, false)
+			}
+		}
+	}
+
 	out := make([]sidechainesplora.Entry, 0, len(order))
 	for _, id := range order {
-		out = append(out, *byID[id])
+		entry := *byID[id]
+		if pending[id] {
+			entry.Confirmed = false
+		}
+		out = append(out, entry)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Txid < out[j].Txid })
 	return out, nil
