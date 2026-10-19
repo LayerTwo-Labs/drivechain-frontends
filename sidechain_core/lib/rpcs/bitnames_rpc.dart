@@ -407,6 +407,9 @@ class BitnamesLive extends BitnamesRPC {
       return null;
     }
     final decoded = jsonDecode(resp.bundleJson);
+    if (decoded == null) {
+      return null;
+    }
     return PendingWithdrawalBundle.fromJson(decoded as Map<String, dynamic>);
   }
 
