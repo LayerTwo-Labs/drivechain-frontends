@@ -1858,6 +1858,12 @@ func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
 // If prefetched is non-nil, the enforcer binary is already being downloaded
 // in parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) error {
+	if err := config.CheckEnforcerNetworkPreset(opts.EnforcerArgs); err != nil {
+		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.Configs()["enforcer"]), enforcerStartupPatterns)
+		mon.SetConnectionError(err.Error())
+		mon.SetInitializing(false)
+		return err
+	}
 	// A switch that could not finish its enforcer cleanup journalled it. Here,
 	// because a leftover validator chain serves the retired generation.
 	if err := o.ApplyPendingEnforcerWipe(); err != nil {

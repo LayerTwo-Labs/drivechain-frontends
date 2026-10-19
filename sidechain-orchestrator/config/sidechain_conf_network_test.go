@@ -42,7 +42,7 @@ func TestCusfNetworkName(t *testing.T) {
 // eCash carries a generation. drynet4 runs its own thunder build with its own
 // magic, and the daemon's enum has no name for it, so it takes no flag.
 func TestCusfNetworkNameWithholdsAnUnknownECashGeneration(t *testing.T) {
-	for _, id := range []string{"drynet4", "drynet3", ""} {
+	for _, id := range []string{"drynet4", "drynet3", "ecash-mainnet", "mainnet", ""} {
 		if got := CusfNetworkName(NetworkECash, id); got != "" {
 			t.Errorf("CusfNetworkName(ecash, %q) = %q, want no name", id, got)
 		}

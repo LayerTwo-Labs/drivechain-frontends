@@ -356,6 +356,21 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 	return args
 }
 
+// enforcerNetworkPresets names the eCash networks the enforcer release has a
+// --network-preset for.
+var enforcerNetworkPresets = []string{"alphanet", "betanet"}
+
+// CheckEnforcerNetworkPreset returns an error when args name a network preset
+// the enforcer release does not have.
+func CheckEnforcerNetworkPreset(args []string) error {
+	for _, arg := range args {
+		if preset, ok := strings.CutPrefix(arg, "--network-preset="); ok && !slices.Contains(enforcerNetworkPresets, preset) {
+			return fmt.Errorf("the enforcer has no network preset for the eCash network %q, so it cannot start: an enforcer release with that preset is necessary", preset)
+		}
+	}
+	return nil
+}
+
 const (
 	esploraProbeTimeout  = 5 * time.Second
 	electrumProbeTimeout = 5 * time.Second
