@@ -9076,6 +9076,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     $core.int? txCount,
     $core.bool? isChange,
     $core.String? derivationPath,
+    $14.Timestamp? lastUsedAt,
   }) {
     final $result = create();
     if (address != null) {
@@ -9099,6 +9100,9 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     if (derivationPath != null) {
       $result.derivationPath = derivationPath;
     }
+    if (lastUsedAt != null) {
+      $result.lastUsedAt = lastUsedAt;
+    }
     return $result;
   }
   ReceiveAddress._() : super();
@@ -9113,6 +9117,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     ..a<$core.int>(5, _omitFieldNames ? '' : 'txCount', $pb.PbFieldType.O3)
     ..aOB(6, _omitFieldNames ? '' : 'isChange')
     ..aOS(7, _omitFieldNames ? '' : 'derivationPath')
+    ..aOM<$14.Timestamp>(8, _omitFieldNames ? '' : 'lastUsedAt', subBuilder: $14.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -9201,6 +9206,19 @@ class ReceiveAddress extends $pb.GeneratedMessage {
   $core.bool hasDerivationPath() => $_has(6);
   @$pb.TagNumber(7)
   void clearDerivationPath() => clearField(7);
+
+  /// Time of the newest tx that pays to or spends from the address; unset when
+  /// no tx touched it.
+  @$pb.TagNumber(8)
+  $14.Timestamp get lastUsedAt => $_getN(7);
+  @$pb.TagNumber(8)
+  set lastUsedAt($14.Timestamp v) { setField(8, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasLastUsedAt() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearLastUsedAt() => clearField(8);
+  @$pb.TagNumber(8)
+  $14.Timestamp ensureLastUsedAt() => $_ensure(7);
 }
 
 class ListReceiveAddressesResponse extends $pb.GeneratedMessage {

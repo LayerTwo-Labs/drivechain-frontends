@@ -1064,6 +1064,9 @@ message ReceiveAddress {
   // BIP32 path this address derives from. Empty when the backend cannot
   // report one (Bitcoin Core bulk lists, the enforcer).
   string derivation_path = 7;
+  // Time of the newest tx that pays to or spends from the address; unset when
+  // no tx touched it.
+  google.protobuf.Timestamp last_used_at = 8;
 }
 
 message ListReceiveAddressesResponse {

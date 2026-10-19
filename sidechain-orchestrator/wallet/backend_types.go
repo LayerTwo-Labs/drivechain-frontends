@@ -64,6 +64,9 @@ type ReceivedByAddress struct {
 	TxIDs         []string `json:"txids"`
 	Change        bool     `json:"change"`
 	HDPath        string   `json:"hdpath"`
+	// LastUsedAt is the unix time of the newest tx that pays to or spends from
+	// the address; 0 when no tx touched it.
+	LastUsedAt int64 `json:"-"`
 }
 
 // DerivedAddress is a served receive address plus the derivation it came from.

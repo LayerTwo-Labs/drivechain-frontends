@@ -21,6 +21,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
@@ -2710,6 +2711,99 @@ func TestCoreReceiveListAddsEveryCoinOnAnAddress(t *testing.T) {
 	out := coreReceiveList([]ReceivedByAddress{{Address: addr}}, utxos)
 	require.Len(t, out, 1)
 	require.EqualValues(t, 3, out[0].BalanceSats)
+}
+
+func TestCoreBackendListReceivedReportsLastUsed(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	net := &chaincfg.RegressionNetParams
+	spentAddr := p2wpkhAddr(t, fixedKey(0x51), net)
+	selfAddr := p2wpkhAddr(t, fixedKey(0x52), net)
+	mergedAddr := p2wpkhAddr(t, fixedKey(0x53), net)
+	changeAddr := p2wpkhAddr(t, fixedKey(0x54), net)
+
+	type walletTx struct {
+		hex    string
+		time   int64
+		fromMe bool
+	}
+	txs := map[string]walletTx{}
+	addTx := func(prev *wire.OutPoint, to string, time int64, fromMe bool) *wire.OutPoint {
+		tx := wire.NewMsgTx(2)
+		tx.AddTxIn(wire.NewTxIn(prev, nil, nil))
+		addr, err := btcutil.DecodeAddress(to, net)
+		require.NoError(t, err)
+		script, err := txscript.PayToAddrScript(addr)
+		require.NoError(t, err)
+		tx.AddTxOut(wire.NewTxOut(100_000, script))
+		var buf bytes.Buffer
+		require.NoError(t, tx.Serialize(&buf))
+		hash := tx.TxHash()
+		txs[hash.String()] = walletTx{hex: hex.EncodeToString(buf.Bytes()), time: time, fromMe: fromMe}
+		return wire.NewOutPoint(&hash, 0)
+	}
+	foreign := wire.NewOutPoint(&chainhash.Hash{0x01}, 0)
+	fund := addTx(foreign, spentAddr, 1000, false)
+	// A self-payment: Core lists its receive row before its send row. Its fee is
+	// zero, as a node may accept.
+	self := addTx(fund, selfAddr, 2000, true)
+	merged := addTx(&wire.OutPoint{Hash: chainhash.Hash{0x02}}, mergedAddr, 1100, false)
+	// A consolidation pays only change, so listtransactions leaves it out.
+	consolidation := addTx(merged, changeAddr, 3000, true)
+
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"address": spentAddr, "amount": 0.001, "txids": []string{fund.Hash.String()}},
+			{"address": selfAddr, "amount": 0.001, "txids": []string{self.Hash.String()}},
+			{"address": mergedAddr, "amount": 0.001, "txids": []string{merged.Hash.String()}},
+		}, ""
+	})
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": self.Hash.String(), "vout": 0, "address": selfAddr, "amount": 0.001},
+			{"txid": consolidation.Hash.String(), "vout": 0, "address": changeAddr, "amount": 0.001},
+		}, ""
+	})
+	fake.handle("listtransactions", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": fund.Hash.String(), "category": "receive", "address": spentAddr, "time": 1000},
+			{"txid": merged.Hash.String(), "category": "receive", "address": mergedAddr, "time": 1100},
+			{"txid": self.Hash.String(), "category": "receive", "address": selfAddr, "time": 2000},
+			{"txid": self.Hash.String(), "category": "send", "address": selfAddr, "time": 2000},
+		}, ""
+	})
+	fake.handle("gettransaction", func(c bitcoindCall) (any, string) {
+		var txid string
+		require.NoError(t, json.Unmarshal(c.Params[0], &txid))
+		tx, ok := txs[txid]
+		if !ok {
+			return nil, "Invalid or non-wallet transaction id"
+		}
+		out := map[string]any{"txid": txid, "hex": tx.hex, "time": tx.time}
+		if tx.fromMe {
+			out["fee"] = 0.0
+		}
+		return out, ""
+	})
+
+	for range 2 {
+		recv, err := backend.ListReceivedByAddress(context.Background(), coreID)
+		require.NoError(t, err)
+		lastUsed := map[string]int64{}
+		for _, r := range recv {
+			lastUsed[r.Address] = r.LastUsedAt
+		}
+		assert.EqualValues(t, 2000, lastUsed[spentAddr], "a send from the address is its newest use")
+		assert.EqualValues(t, 2000, lastUsed[selfAddr], "a self-payment counts")
+		assert.EqualValues(t, 3000, lastUsed[mergedAddr], "a consolidation counts for the coins it merges")
+		assert.EqualValues(t, 3000, lastUsed[changeAddr], "change from a consolidation counts")
+	}
+	assert.Len(t, fake.callsFor("gettransaction"), 4, "each wallet tx reads one time")
+
+	backend.ResetNetworkState()
+	_, err := backend.ListReceivedByAddress(context.Background(), coreID)
+	require.NoError(t, err)
+	assert.Len(t, fake.callsFor("gettransaction"), 8, "a network switch reads each tx again")
 }
 
 // Core reads more policies than the parser. An old watch-only wallet that holds

@@ -251,7 +251,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     label: address.label,
                     currentBalanceSat: address.amountSats,
                     isChange: address.isChange,
-                    lastUsedAt: Timestamp(),
+                    lastUsedAt: address.lastUsedAt,
                     derivationPath: address.derivationPath,
                   ),
                 )

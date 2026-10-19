@@ -487,6 +487,7 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 		}
 	}
 
+	now := time.Now().Unix()
 	out := make([]ReceivedByAddress, 0, len(scan.addrs))
 	for _, a := range scan.addrs {
 		if a.hdPath == "" {
@@ -521,6 +522,7 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 			if c := confsFor(tx.Status, tip); c > entry.Confirmations {
 				entry.Confirmations = c
 			}
+			entry.LastUsedAt = max(entry.LastUsedAt, p.txTime(tx, now))
 		}
 		out = append(out, entry)
 	}
