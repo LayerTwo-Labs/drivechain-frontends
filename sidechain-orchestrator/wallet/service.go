@@ -416,14 +416,6 @@ func (s *Service) Close() {
 
 // --- Status ---
 
-func (s *Service) HasWallet() bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	has := len(s.wallets) > 0 || s.walletFileExists()
-	s.log.Debug().Bool("has_wallet", has).Int("loaded_count", len(s.wallets)).Msg("HasWallet check")
-	return has
-}
-
 func (s *Service) IsEncrypted() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
