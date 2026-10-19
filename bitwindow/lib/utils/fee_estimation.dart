@@ -107,14 +107,31 @@ List<T> sendInputs<T>({
 /// first payment publishes before it.
 int previewFeeSats(PreviewSendResponse preview) => preview.feeSats.toInt() + preview.notificationFeeSats.toInt();
 
-/// The amount MAX puts in a recipient. A first BIP47 payment cannot spend the
-/// coin of its notification, so MAX keeps that coin back with the payment fee.
+/// The mark before an estimated fee, in the style of the other cost estimates.
+String? approximateFeePrefix(bool feeIsEstimate) => feeIsEstimate ? '≈ ' : null;
+
+/// The sats MAX keeps back for the BIP47 notification of a first payment. A
+/// payment with pinned coins cannot spend the notification coin. A one-coin
+/// payment spends the notification change, after its fee and dust. Selected
+/// coins never fund the notification.
+int notificationKeepBack(PreviewSendResponse probe, {required bool coinsSelected}) {
+  if (probe.feeIsEstimate) {
+    return probe.notificationFeeSats.toInt() + dustSats;
+  }
+  if (probe.hasNotificationInput() && !coinsSelected) {
+    return probe.notificationInput.amountSats.toInt();
+  }
+  return 0;
+}
+
+/// The amount MAX puts in a recipient: what is left after the other
+/// recipients, the notification keep-back and the payment fee.
 int maxSendAmountSats({
   required int availableSats,
   required int otherRecipientsSats,
   required int paymentFeeSats,
-  required int notificationCoinSats,
-}) => availableSats - otherRecipientsSats - notificationCoinSats - paymentFeeSats;
+  required int notificationKeepBackSats,
+}) => availableSats - otherRecipientsSats - notificationKeepBackSats - paymentFeeSats;
 
 /// The smallest payment the backend sends to an address.
 const dustSats = 546;

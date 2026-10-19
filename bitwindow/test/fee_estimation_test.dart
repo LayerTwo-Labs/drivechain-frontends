@@ -1,7 +1,11 @@
 import 'package:bitwindow/utils/fee_estimation.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/material.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'test_utils.dart';
 
 void main() {
   group('btcPerKvbToSatPerVByte', () {
@@ -126,6 +130,56 @@ void main() {
     });
   });
 
+  group('approximateFeePrefix', () {
+    Future<void> pumpFeeField(WidgetTester tester, {required bool feeIsEstimate}) async {
+      await tester.pumpSailPage(
+        SailTextField(
+          controller: TextEditingController(text: '0.00001220'),
+          hintText: 'Fee',
+          prefix: approximateFeePrefix(feeIsEstimate),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('an estimated fee shows the approximate mark', (tester) async {
+      await pumpFeeField(tester, feeIsEstimate: true);
+      expect(find.textContaining('≈'), findsOneWidget);
+    });
+
+    testWidgets('an exact fee shows no mark', (tester) async {
+      await pumpFeeField(tester, feeIsEstimate: false);
+      expect(find.textContaining('≈'), findsNothing);
+    });
+  });
+
+  group('notificationKeepBack', () {
+    test('pinned coins keep back the whole notification coin', () {
+      final probe = PreviewSendResponse(
+        notificationFeeSats: Int64(520),
+        notificationInput: UnspentOutput(amountSats: Int64(100_000)),
+      );
+      expect(notificationKeepBack(probe, coinsSelected: false), 100_000);
+    });
+
+    test('a one-coin payment keeps back the notification fee and dust', () {
+      final probe = PreviewSendResponse(notificationFeeSats: Int64(520), feeIsEstimate: true);
+      expect(notificationKeepBack(probe, coinsSelected: false), 520 + dustSats);
+    });
+
+    test('selected coins never fund the notification', () {
+      final probe = PreviewSendResponse(
+        notificationFeeSats: Int64(520),
+        notificationInput: UnspentOutput(amountSats: Int64(100_000)),
+      );
+      expect(notificationKeepBack(probe, coinsSelected: true), 0);
+    });
+
+    test('a send without a notification keeps back nothing', () {
+      expect(notificationKeepBack(PreviewSendResponse(), coinsSelected: false), 0);
+    });
+  });
+
   group('maxSendAmountSats', () {
     test('a first BIP47 payment keeps back the payment fee and the notification coin', () {
       const notificationFee = 520;
@@ -134,7 +188,7 @@ void main() {
         availableSats: 1_000_000,
         otherRecipientsSats: 50_000,
         paymentFeeSats: 700,
-        notificationCoinSats: notificationCoin,
+        notificationKeepBackSats: notificationCoin,
       );
       expect(amount, 849_300);
       expect(amount + 50_000 + 700 + notificationFee + 2 * dustSats, lessThanOrEqualTo(1_000_000));
@@ -146,7 +200,7 @@ void main() {
           availableSats: 1_000_000,
           otherRecipientsSats: 0,
           paymentFeeSats: 700,
-          notificationCoinSats: 0,
+          notificationKeepBackSats: 0,
         ),
         999_300,
       );
