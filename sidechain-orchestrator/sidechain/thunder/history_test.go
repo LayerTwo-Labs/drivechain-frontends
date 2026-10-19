@@ -28,7 +28,7 @@ func nodeWith(t *testing.T, results map[string]string) *sidechain.JSONRPCProxy {
 			result, ok = "1", true
 		}
 		if !ok {
-			http.Error(w, "unexpected method "+req.Method, http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"method not found"}}`))
 			return
 		}
 		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":` + result + `}`))
@@ -236,5 +236,110 @@ func TestLocalHistoryNamesACoinbaseOutpoint(t *testing.T) {
 				t.Errorf("vout = %d, want 3", got.Vout)
 			}
 		})
+	}
+}
+
+func historyOf(t *testing.T, results map[string]string) map[string]*pb.SidechainWalletTransaction {
+	t.Helper()
+	h := NewHandlerWithIndex(nodeWith(t, results), "")
+	resp, err := h.ListWalletTransactions(context.Background(),
+		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	got := map[string]*pb.SidechainWalletTransaction{}
+	for _, tx := range resp.Msg.Transactions {
+		got[tx.Txid] = tx
+	}
+	return got
+}
+
+const (
+	fundedCoin = `[{"outpoint":{"Regular":{"txid":"aa","vout":0}},
+		"output":{"address":"alice","content":{"Value":10000}}}]`
+	paymentToBob = `[{"txid":"pay","size":240,"tx":{
+		"inputs":[[{"Regular":{"txid":"aa","vout":0}},"00"]],
+		"outputs":[
+			{"address":"bob","content":{"Value":3000}},
+			{"address":"alice","content":{"Value":6000}}]}}]`
+	minedChange = `[{"outpoint":{"Regular":{"txid":"pay","vout":1}},
+		"output":{"address":"alice","content":{"Value":6000}}}]`
+	minedSpend = `[{"outpoint":{"Regular":{"txid":"aa","vout":0}},
+		"output":{"output":{"address":"alice","content":{"Value":10000}},
+		          "inpoint":{"Regular":{"txid":"pay","vin":0}}}}]`
+)
+
+func TestLocalHistoryShowsAPendingSend(t *testing.T) {
+	for name, tc := range map[string]struct {
+		utxos, stxos, mempool string
+		wantConfirmed         bool
+	}{
+		"in the mempool":          {fundedCoin, `[]`, paymentToBob, false},
+		"mined":                   {minedChange, minedSpend, `[]`, true},
+		"mined, still in mempool": {minedChange, minedSpend, paymentToBob, true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := historyOf(t, map[string]string{
+				"get_wallet_addresses": `["alice"]`,
+				"get_utxos":            tc.utxos,
+				"get_stxos":            tc.stxos,
+				"list_mempool":         tc.mempool,
+			})
+			if len(got) != 2 {
+				t.Fatalf("history = %v, want aa and pay", got)
+			}
+			if aa := got["aa"]; aa.ValueSats != 10000 || !aa.Confirmed {
+				t.Errorf("aa = %d confirmed %v, want 10000 confirmed", aa.ValueSats, aa.Confirmed)
+			}
+			pay := got["pay"]
+			if pay.ValueSats != -4000 {
+				t.Errorf("pay = %d, want -4000", pay.ValueSats)
+			}
+			if pay.Confirmed != tc.wantConfirmed {
+				t.Errorf("pay confirmed = %v, want %v", pay.Confirmed, tc.wantConfirmed)
+			}
+			if pay.Vout != 1 {
+				t.Errorf("pay vout = %d, want 1", pay.Vout)
+			}
+		})
+	}
+}
+
+func TestLocalHistoryChainsPendingSends(t *testing.T) {
+	got := historyOf(t, map[string]string{
+		"get_wallet_addresses": `["alice"]`,
+		"get_utxos":            fundedCoin,
+		"get_stxos":            `[]`,
+		"list_mempool": `[
+			{"txid":"self","size":240,"tx":{
+				"inputs":[[{"Regular":{"txid":"aa","vout":0}},"00"]],
+				"outputs":[
+					{"address":"alice","content":{"Value":1000}},
+					{"address":"alice","content":{"Value":8900}}]}},
+			{"txid":"next","size":240,"tx":{
+				"inputs":[[{"Regular":{"txid":"self","vout":1}},"00"]],
+				"outputs":[
+					{"address":"bob","content":{"Value":5000}},
+					{"address":"alice","content":{"Value":3800}}]}}]`,
+	})
+	if got["self"].ValueSats != -100 || got["self"].Confirmed {
+		t.Errorf("self = %d confirmed %v, want -100 pending", got["self"].ValueSats, got["self"].Confirmed)
+	}
+	if got["next"].ValueSats != -5100 || got["next"].Confirmed {
+		t.Errorf("next = %d confirmed %v, want -5100 pending", got["next"].ValueSats, got["next"].Confirmed)
+	}
+}
+
+func TestLocalHistoryWithoutListMempool(t *testing.T) {
+	got := historyOf(t, map[string]string{
+		"get_wallet_addresses": `["alice"]`,
+		"get_utxos":            fundedCoin,
+		"get_stxos":            `[]`,
+	})
+	if len(got) != 1 {
+		t.Fatalf("history = %v, want aa alone", got)
+	}
+	if aa := got["aa"]; aa.ValueSats != 10000 || !aa.Confirmed {
+		t.Errorf("aa = %d confirmed %v, want 10000 confirmed", aa.ValueSats, aa.Confirmed)
 	}
 }
