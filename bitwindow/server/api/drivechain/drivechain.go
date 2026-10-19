@@ -3,6 +3,7 @@ package drivechain
 import (
 	"cmp"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"slices"
@@ -131,16 +132,21 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 		return nil, err
 	}
 
-	proposals := lo.Map(sidechainProposals.Msg.SidechainProposals, func(proposal *validatorpb.GetSidechainProposalsResponse_SidechainProposal, _ int) *pb.SidechainProposal {
-		return &pb.SidechainProposal{
+	proposals := make([]*pb.SidechainProposal, 0, len(sidechainProposals.Msg.SidechainProposals))
+	for _, proposal := range sidechainProposals.Msg.SidechainProposals {
+		data, err := hex.DecodeString(proposal.Description.Hex.Value)
+		if err != nil {
+			return nil, fmt.Errorf("decode description of sidechain proposal %d: %w", proposal.SidechainNumber.Value, err)
+		}
+		proposals = append(proposals, &pb.SidechainProposal{
 			Slot:           proposal.SidechainNumber.Value,
-			Data:           []byte(proposal.Description.Hex.Value),
+			Data:           data,
 			DataHash:       proposal.DescriptionSha256DHash.Hex.Value,
 			VoteCount:      proposal.VoteCount.Value,
 			ProposalHeight: proposal.ProposalHeight.Value,
 			ProposalAge:    proposal.ProposalAge.Value,
-		}
-	})
+		})
+	}
 
 	// Update cache
 	s.proposalsCacheMu.Lock()

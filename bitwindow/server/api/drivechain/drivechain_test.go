@@ -303,6 +303,7 @@ func TestService_ListSidechainProposals(t *testing.T) {
 		require.Len(t, resp.Msg.Proposals, 1)
 		assert.Equal(t, uint32(5), resp.Msg.Proposals[0].Slot)
 		assert.Equal(t, uint32(50), resp.Msg.Proposals[0].VoteCount)
+		assert.Equal(t, []byte{0xde, 0xad, 0xbe, 0xef}, resp.Msg.Proposals[0].Data)
 	})
 
 	t.Run("handles empty proposals", func(t *testing.T) {

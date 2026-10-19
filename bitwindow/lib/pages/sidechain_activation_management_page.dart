@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
+import 'package:convert/convert.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -405,7 +406,7 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
           SailTableCell(value: proposal.voteCount.toString()),
           SailTableCell(value: proposal.slot.toString()),
           const SailTableCell(value: 'Replacement'),
-          SailTableCell(value: proposal.data.toString()),
+          SailTableCell(value: hex.encode(proposal.data)),
           const SailTableCell(value: 'Description'),
           SailTableCell(value: proposal.proposalAge.toString()),
           SailTableCell(value: proposal.proposalHeight.toString()),
