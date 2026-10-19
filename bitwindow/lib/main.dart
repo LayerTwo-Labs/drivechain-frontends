@@ -50,7 +50,7 @@ import 'package:bitwindow/widgets/converter_window.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 // App shell needs MaterialApp + ThemeData; Colors/Scaffold serve the
 // ancestor-independent error boundary. Everything below uses sail_ui.
-// ignore: avoid_material_import
+// ignore: drivechain_lints/avoid_material_import
 import 'package:flutter/material.dart' show Colors, MaterialApp, Scaffold, ThemeData, VisualDensity;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

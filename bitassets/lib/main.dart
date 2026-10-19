@@ -16,7 +16,7 @@ import 'package:bitassets/routing/router.dart';
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 // App shell needs MaterialApp + ThemeData; everything below uses sail_ui.
-// ignore: avoid_material_import
+// ignore: drivechain_lints/avoid_material_import
 import 'package:flutter/material.dart' show ColorScheme, MaterialApp, ThemeData;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

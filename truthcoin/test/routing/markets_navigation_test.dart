@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-// ignore: avoid_material_import
+// ignore: drivechain_lints/avoid_material_import
 import 'package:flutter/material.dart' show MaterialApp;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';

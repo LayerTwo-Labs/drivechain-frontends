@@ -19,8 +19,8 @@ on:
       - ".github/workflows/dart.yml"
 
 env:
-  FLUTTER_VERSION: "3.44.8"
-  DART_VERSION: "3.12.2"
+  FLUTTER_VERSION: "3.47.7"
+  DART_VERSION: "3.13.5"
 
 jobs:
   windows-app-ids:

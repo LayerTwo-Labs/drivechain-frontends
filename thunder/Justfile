@@ -6,7 +6,6 @@ format:
 
 analyze:
     dart analyze
-    dart run custom_lint
 
 lint: format fix analyze
 

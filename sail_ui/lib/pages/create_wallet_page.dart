@@ -210,7 +210,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     }
   }
 
-  // ignore: avoid_build_methods
+  // ignore: drivechain_lints/avoid_build_methods
   Widget _buildInitialScreen() {
     final theme = SailTheme.of(context);
     return SingleChildScrollView(
@@ -443,7 +443,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     );
   }
 
-  // ignore: avoid_build_methods
+  // ignore: drivechain_lints/avoid_build_methods
   Widget _buildRestoreScreen() {
     final theme = SailTheme.of(context);
     return SingleChildScrollView(
@@ -799,7 +799,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     }
   }
 
-  // ignore: avoid_build_methods
+  // ignore: drivechain_lints/avoid_build_methods
   Widget _buildSuccessScreen() {
     final theme = SailTheme.of(context);
 
