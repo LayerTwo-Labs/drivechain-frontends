@@ -26,8 +26,6 @@ linter:
     prefer_single_quotes: true
 
 analyzer:
-  plugins:
-    - custom_lint
   exclude:
     - "**/*.g.dart"
     - "**/*.pb.dart"
@@ -37,11 +35,16 @@ analyzer:
     - "**/*.pbgrpc.dart"
     - "build/**"
     - "lib/gen/**"
+    - windows/**
+    - macos/**
+    - linux/**
 
-custom_lint:
-  rules:
-    - avoid_material_import:
-      severity: error
+plugins:
+  drivechain_lints:
+    path: ../drivechain_lints
+    diagnostics:
+      avoid_build_methods: true
+      avoid_material_import: error
 
 formatter:
   trailing_commas: preserve

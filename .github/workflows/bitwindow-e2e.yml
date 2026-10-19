@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: "3.44.8"
+  FLUTTER_VERSION: "3.47.7"
   GO_VERSION: "1.27"
   # The app loads the host arch, so a second macOS arch is dead build work.
   BITWINDOW_HOST_ARCH_ONLY: "1"

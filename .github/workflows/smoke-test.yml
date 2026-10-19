@@ -15,7 +15,7 @@ on:
       - "sidechain_core/**"
 
 env:
-  FLUTTER_VERSION: "3.44.8"
+  FLUTTER_VERSION: "3.47.7"
 
 jobs:
   smoke-test:
