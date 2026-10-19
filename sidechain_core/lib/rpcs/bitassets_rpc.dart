@@ -831,6 +831,9 @@ class BitAssetsLive extends BitAssetsRPC {
       return null;
     }
     final decoded = jsonDecode(resp.bundleJson);
+    if (decoded == null) {
+      return null;
+    }
     return PendingWithdrawalBundle.fromJson(decoded as Map<String, dynamic>);
   }
 
