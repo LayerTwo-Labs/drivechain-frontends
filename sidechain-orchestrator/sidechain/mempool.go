@@ -136,7 +136,28 @@ type mempoolOutpoint struct {
 		Txid string `json:"txid"`
 		Vout uint32 `json:"vout"`
 	} `json:"Regular"`
+	Coinbase *struct {
+		Txid       string `json:"txid"`
+		MerkleRoot string `json:"merkle_root"`
+		Vout       uint32 `json:"vout"`
+	} `json:"Coinbase"`
 	Deposit *string `json:"Deposit"`
+}
+
+// key names the coin in a coin map, as "txid:vout" for each outpoint kind.
+// An older node names a coinbase by the merkle root of its block.
+func (p mempoolOutpoint) key() (string, bool) {
+	switch {
+	case p.Regular != nil:
+		return fmt.Sprintf("%s:%d", p.Regular.Txid, p.Regular.Vout), true
+	case p.Coinbase != nil && p.Coinbase.Txid != "":
+		return fmt.Sprintf("%s:%d", p.Coinbase.Txid, p.Coinbase.Vout), true
+	case p.Coinbase != nil:
+		return fmt.Sprintf("%s:%d", p.Coinbase.MerkleRoot, p.Coinbase.Vout), true
+	case p.Deposit != nil:
+		return *p.Deposit, true
+	}
+	return "", false
 }
 
 func (p *mempoolOutpoint) UnmarshalJSON(raw []byte) error {
@@ -155,16 +176,12 @@ func (p *mempoolOutpoint) UnmarshalJSON(raw []byte) error {
 }
 
 // spends are the coins this transaction takes, each as the key its outpoint
-// takes in a coin map. A coinbase names no coin a wallet holds.
+// takes in a coin map.
 func (b mempoolBody) spends() []MempoolInput {
 	out := make([]MempoolInput, 0, len(b.Inputs))
 	for _, in := range b.Inputs {
-		switch {
-		case in.Regular != nil:
-			out = append(out, MempoolInput{Key: fmt.Sprintf("%s:%d", in.Regular.Txid, in.Regular.Vout)})
-		case in.Deposit != nil:
-			// A deposit outpoint is already the string "txid:vout".
-			out = append(out, MempoolInput{Key: *in.Deposit})
+		if key, ok := in.key(); ok {
+			out = append(out, MempoolInput{Key: key})
 		}
 	}
 	return out
@@ -339,24 +356,12 @@ func dropSpent(rows []json.RawMessage, spent map[string]bool) []json.RawMessage 
 // outpointKey reads the coin key out of one listed UTXO.
 func outpointKey(row json.RawMessage) (string, bool) {
 	var entry struct {
-		Outpoint struct {
-			Regular *struct {
-				Txid string `json:"txid"`
-				Vout uint32 `json:"vout"`
-			} `json:"Regular"`
-			Deposit *string `json:"Deposit"`
-		} `json:"outpoint"`
+		Outpoint mempoolOutpoint `json:"outpoint"`
 	}
 	if err := json.Unmarshal(row, &entry); err != nil {
 		return "", false
 	}
-	switch {
-	case entry.Outpoint.Regular != nil:
-		return fmt.Sprintf("%s:%d", entry.Outpoint.Regular.Txid, entry.Outpoint.Regular.Vout), true
-	case entry.Outpoint.Deposit != nil:
-		return *entry.Outpoint.Deposit, true
-	}
-	return "", false
+	return entry.Outpoint.key()
 }
 
 // mempoolUTXORows writes each unconfirmed output the way the node writes a
@@ -430,14 +435,8 @@ func OurCoins(ctx context.Context, node Node) (map[string]int64, error) {
 		return nil, fmt.Errorf("read the wallet coins: %w", err)
 	}
 	var rows []struct {
-		Outpoint struct {
-			Regular *struct {
-				Txid string `json:"txid"`
-				Vout uint32 `json:"vout"`
-			} `json:"Regular"`
-			Deposit *string `json:"Deposit"`
-		} `json:"outpoint"`
-		Output struct {
+		Outpoint mempoolOutpoint `json:"outpoint"`
+		Output   struct {
 			Content json.RawMessage `json:"content"`
 		} `json:"output"`
 	}
@@ -446,13 +445,8 @@ func OurCoins(ctx context.Context, node Node) (map[string]int64, error) {
 	}
 	coins := make(map[string]int64, len(rows))
 	for _, row := range rows {
-		switch {
-		case row.Outpoint.Regular != nil:
-			key := fmt.Sprintf("%s:%d", row.Outpoint.Regular.Txid, row.Outpoint.Regular.Vout)
+		if key, ok := row.Outpoint.key(); ok {
 			coins[key] = OutputValueSats(row.Output.Content)
-		case row.Outpoint.Deposit != nil:
-			// A deposit outpoint is already the string an input names.
-			coins[*row.Outpoint.Deposit] = OutputValueSats(row.Output.Content)
 		}
 	}
 	return coins, nil
@@ -474,12 +468,8 @@ func SpentCoins(ctx context.Context, node Node, addresses []string) (map[string]
 	}
 	coins := make(map[string]int64, len(rows))
 	for _, row := range rows {
-		value := OutputValueSats(row.Spent.Output.Content)
-		switch {
-		case row.Outpoint.Regular != nil:
-			coins[fmt.Sprintf("%s:%d", row.Outpoint.Regular.Txid, row.Outpoint.Regular.Vout)] = value
-		case row.Outpoint.Deposit != nil:
-			coins[*row.Outpoint.Deposit] = value
+		if key, ok := row.Outpoint.key(); ok {
+			coins[key] = OutputValueSats(row.Spent.Output.Content)
 		}
 	}
 	return coins, nil
