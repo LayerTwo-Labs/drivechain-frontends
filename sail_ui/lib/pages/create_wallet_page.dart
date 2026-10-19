@@ -459,8 +459,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 const SizedBox(height: 32),
                 BootTitle(
                   title: 'Paste your seed phrase',
-                  subtitle:
-                      'Restores your mainchain wallet and every sidechain wallet from a seed phrase, local wallet backup, or backup file.',
+                  subtitle: 'Restores your mainchain wallet and every sidechain wallet from a seed phrase, local wallet backup, or backup file.',
                 ),
                 const SizedBox(height: 24),
                 _buildProviderCards(theme),

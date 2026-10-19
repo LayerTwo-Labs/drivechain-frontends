@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:crypto/crypto.dart';
 
 /// Base58Check encoding and decoding utilities for Bitcoin addresses

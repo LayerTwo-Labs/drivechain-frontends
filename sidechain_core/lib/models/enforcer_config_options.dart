@@ -78,8 +78,7 @@ class EnforcerConfigOptions {
       key: 'log-level',
       category: 'Logging',
       description: 'Log Level',
-      tooltip:
-          'Log level. Logs from most dependencies are filtered one level below the specified log level. Logger output is further configurable via the RUST_LOG environment variable.',
+      tooltip: 'Log level. Logs from most dependencies are filtered one level below the specified log level. Logger output is further configurable via the RUST_LOG environment variable.',
       inputType: EnforcerConfigInputType.select,
       selectOptions: ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'],
       defaultValue: 'DEBUG',
@@ -163,8 +162,7 @@ class EnforcerConfigOptions {
       key: 'node-zmq-addr-sequence',
       category: 'Node RPC',
       description: 'ZMQ Sequence Address',
-      tooltip:
-          'Bitcoin node ZMQ endpoint for `sequence`. If not set, the enforcer tries to find it via bitcoin-cli getzmqnotifications.',
+      tooltip: 'Bitcoin node ZMQ endpoint for `sequence`. If not set, the enforcer tries to find it via bitcoin-cli getzmqnotifications.',
       inputType: EnforcerConfigInputType.text,
     ),
 
@@ -195,8 +193,7 @@ class EnforcerConfigOptions {
       key: 'wallet-full-scan',
       category: 'Wallet',
       description: 'Full Scan on Startup',
-      tooltip:
-          'If true, the wallet will perform a full scan of the blockchain on startup, before proceeding with normal operations.',
+      tooltip: 'If true, the wallet will perform a full scan of the blockchain on startup, before proceeding with normal operations.',
       inputType: EnforcerConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -204,8 +201,7 @@ class EnforcerConfigOptions {
       key: 'wallet-auto-create',
       category: 'Wallet',
       description: 'Auto Create Wallet',
-      tooltip:
-          'If no existing wallet is found, automatically create and load a new, unencrypted wallet from a randomly generated BIP39 mnemonic.',
+      tooltip: 'If no existing wallet is found, automatically create and load a new, unencrypted wallet from a randomly generated BIP39 mnemonic.',
       inputType: EnforcerConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -213,8 +209,7 @@ class EnforcerConfigOptions {
       key: 'wallet-esplora-url',
       category: 'Wallet',
       description: 'Esplora API URL',
-      tooltip:
-          'URL of the Esplora server to use for the wallet. Network defaults: Signet: https://explorer.signet.drivechain.info/api, Mainnet: https://esplora.mainnet.drivechain.info, eCash: whatever the published network catalog lists. Regtest has no default — the enforcer runs with wallet-sync-source=disabled instead.',
+      tooltip: 'URL of the Esplora server to use for the wallet. Network defaults: Signet: https://explorer.signet.drivechain.info/api, Mainnet: https://esplora.mainnet.drivechain.info, eCash: whatever the published network catalog lists. Regtest has no default — the enforcer runs with wallet-sync-source=disabled instead.',
       inputType: EnforcerConfigInputType.url,
       isUseful: true,
     ),
@@ -244,8 +239,7 @@ class EnforcerConfigOptions {
       key: 'wallet-sync-source',
       category: 'Wallet',
       description: 'Sync Source',
-      tooltip:
-          'The source of the wallet sync. Electrum: Electrum protocol, Esplora: REST to Esplora server (mempool.space API), Disabled: Only synced by new blocks.',
+      tooltip: 'The source of the wallet sync. Electrum: Electrum protocol, Esplora: REST to Esplora server (mempool.space API), Disabled: Only synced by new blocks.',
       inputType: EnforcerConfigInputType.select,
       selectOptions: ['esplora', 'electrum', 'disabled'],
       defaultValue: 'esplora',
@@ -301,8 +295,7 @@ class EnforcerConfigOptions {
       key: 'exit-after-sync',
       category: 'Advanced',
       description: 'Exit After Sync',
-      tooltip:
-          'Exit after syncing to the specified block height. If set to 0, exit after syncing to the tip. Can be used for benchmarking sync speeds.',
+      tooltip: 'Exit after syncing to the specified block height. If set to 0, exit after syncing to the tip. Can be used for benchmarking sync speeds.',
       inputType: EnforcerConfigInputType.number,
     ),
   ];

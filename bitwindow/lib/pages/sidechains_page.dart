@@ -312,8 +312,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
     return LayoutBuilder(
       builder: (context, constraints) => SailCard(
         title: 'Sidechains',
-        titleTooltip:
-            'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
+        titleTooltip: 'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
         subtitle: viewModel._enforcerRPC.initializingBinary ? 'Enforcer is initializing...' : null,
         error: viewModel._enforcerRPC.initializingBinary ? null : error,
         widgetHeaderEnd: smallVersion

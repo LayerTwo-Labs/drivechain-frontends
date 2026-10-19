@@ -75,8 +75,7 @@ class _SignMessageTabState extends State<SignMessageTab> {
   Widget build(BuildContext context) {
     return SailCard(
       title: 'Sign Message',
-      subtitle:
-          'You can sign messages/agreements with your addresses to prove you can receive Drivechain coins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.',
+      subtitle: 'You can sign messages/agreements with your addresses to prove you can receive Drivechain coins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.',
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,8 +169,7 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
 
     return SailCard(
       title: 'Verify Message',
-      subtitle:
-          "Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any",
+      subtitle: "Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any",
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.only(bottom: 16),

@@ -81,10 +81,9 @@ void main() {
       test('parses the vote_voter answer of a v0.20.0 node', () {
         final voter = VoterInfoFull.fromJson(
           jsonDecode(
-                '{"address":"3dWL5oSH54rxzXbU5RVi7bBkeuWd","votecoin_balance":1.0,"total_votes":0,'
-                '"periods_active":0,"is_active":false,"current_period_participation":null}',
-              )
-              as Map<String, dynamic>,
+            '{"address":"3dWL5oSH54rxzXbU5RVi7bBkeuWd","votecoin_balance":1.0,"total_votes":0,'
+            '"periods_active":0,"is_active":false,"current_period_participation":null}',
+          ) as Map<String, dynamic>,
         );
 
         expect(voter.votecoinBalance, 1.0);

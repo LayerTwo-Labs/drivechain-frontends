@@ -378,8 +378,7 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
               children: [
                 _PageTitle(
                   title: 'Backup your wallet',
-                  subtitle:
-                      'Create a secure backup of your wallet. This includes your master seed, all sidechain wallets, multisig configurations, and transaction history.',
+                  subtitle: 'Create a secure backup of your wallet. This includes your master seed, all sidechain wallets, multisig configurations, and transaction history.',
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -1223,8 +1222,7 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
         if (widget.showTitle)
           _PageTitle(
             title: 'Restore from backup',
-            subtitle:
-                'Restore your wallet from a local backup or a backup file. This will restore your master seed and all sidechain wallets.',
+            subtitle: 'Restore your wallet from a local backup or a backup file. This will restore your master seed and all sidechain wallets.',
           ),
         if (widget.showScaffold)
           Expanded(

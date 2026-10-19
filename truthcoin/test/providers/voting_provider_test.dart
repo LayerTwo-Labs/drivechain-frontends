@@ -117,12 +117,9 @@ void main() {
 
     group('getVoters', () {
       test('parses the vote_voters answer of a v0.20.0 node', () async {
-        mockRpc.voteVotersResponse =
-            (jsonDecode(
-                      '[{"address":"3dWL5oSH54rxzXbU5RVi7bBkeuWd","votecoin_balance":1.0,"total_votes":0,"is_active":false}]',
-                    )
-                    as List)
-                .cast<Map<String, dynamic>>();
+        mockRpc.voteVotersResponse = (jsonDecode(
+          '[{"address":"3dWL5oSH54rxzXbU5RVi7bBkeuWd","votecoin_balance":1.0,"total_votes":0,"is_active":false}]',
+        ) as List).cast<Map<String, dynamic>>();
 
         final voters = await votingProvider.getVoters();
 

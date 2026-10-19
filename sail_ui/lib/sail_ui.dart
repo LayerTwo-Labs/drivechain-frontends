@@ -3,7 +3,9 @@ export 'package:flutter/material.dart' show SelectionArea;
 
 export 'config/sidechain_main.dart' hide getLogFile;
 export 'extensions/build_context.dart';
+
 export 'package:sidechain_core/sidechain_core.dart';
+
 export 'pages/create_wallet_page.dart';
 export 'pages/error_screen.dart';
 export 'pages/log_page.dart';

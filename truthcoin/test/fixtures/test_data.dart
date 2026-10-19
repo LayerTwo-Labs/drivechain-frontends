@@ -46,8 +46,7 @@ class TestData {
   static Map<String, dynamic> get sampleMarketDetail => {
     'market_id': 'market_001',
     'title': 'Will BTC reach \$100k by end of 2026?',
-    'description':
-        'This market resolves YES if Bitcoin reaches \$100,000 USD on any major exchange by December 31, 2026 23:59 UTC.',
+    'description': 'This market resolves YES if Bitcoin reaches \$100,000 USD on any major exchange by December 31, 2026 23:59 UTC.',
     'state': 'trading',
     'volume_sats': 150000000,
     'liquidity_sats': 50000000,

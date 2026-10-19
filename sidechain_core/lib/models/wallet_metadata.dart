@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:sidechain_core/models/wallet_gradient.dart';
 
 /// Lightweight wallet metadata for wallet list and selection

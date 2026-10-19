@@ -37,8 +37,7 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
           children: [
             SailSettingsRow(
               label: 'Paranoid mode',
-              description:
-                  'Lock chains_config.json. Edit the file by hand to change download URLs or versions. Takes effect on next launch.',
+              description: 'Lock chains_config.json. Edit the file by hand to change download URLs or versions. Takes effect on next launch.',
               trailing: SailToggle(
                 value: _settingsProvider.bitwindowSettings.paranoidMode,
                 onChanged: (value) async {

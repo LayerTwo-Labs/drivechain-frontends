@@ -481,15 +481,13 @@ class CoinNewsViewModel extends BaseViewModel {
         CoinNews(
           topic: 'defi',
           headline: 'New DeFi protocol launches with 100M TVL',
-          content:
-              'A revolutionary DeFi protocol has launched, offering innovative yield farming strategies and cross-layer (using drivechain!!) liquidity solutions.',
+          content: 'A revolutionary DeFi protocol has launched, offering innovative yield farming strategies and cross-layer (using drivechain!!) liquidity solutions.',
           createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 4))),
         ),
         CoinNews(
           topic: 'bitcoin',
           headline: 'Major financial institution announces Bitcoin ETF',
-          content:
-              'A leading financial institution has filed for a spot Bitcoin ETF, potentially opening the door for institutional investors to gain direct exposure to Bitcoin.',
+          content: 'A leading financial institution has filed for a spot Bitcoin ETF, potentially opening the door for institutional investors to gain direct exposure to Bitcoin.',
           createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 6))),
         ),
       ];
@@ -671,15 +669,13 @@ List<CoinNews> get dummyData => [
   CoinNews(
     topic: 'defi',
     headline: 'New DeFi protocol launches with 100M TVL',
-    content:
-        'A revolutionary DeFi protocol has launched, offering innovative yield farming strategies and cross-layer (using drivechain!!) liquidity solutions.',
+    content: 'A revolutionary DeFi protocol has launched, offering innovative yield farming strategies and cross-layer (using drivechain!!) liquidity solutions.',
     createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 4))),
   ),
   CoinNews(
     topic: 'bitcoin',
     headline: 'Major financial institution announces Bitcoin ETF',
-    content:
-        'A leading financial institution has filed for a spot Bitcoin ETF, potentially opening the door for institutional investors to gain direct exposure to Bitcoin.',
+    content: 'A leading financial institution has filed for a spot Bitcoin ETF, potentially opening the door for institutional investors to gain direct exposure to Bitcoin.',
     createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 6))),
   ),
 ];

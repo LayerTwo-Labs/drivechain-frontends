@@ -271,8 +271,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
             GetIt.I.get<AppRouter>().push(
               ComingSoonRoute(
                 router: GetIt.I.get<AppRouter>(),
-                message:
-                    "The M4 Explorer would let you view sidechain withdrawals, coins flowing safely back to mainnet. But alas, Drivechains aren't activated yet.",
+                message: "The M4 Explorer would let you view sidechain withdrawals, coins flowing safely back to mainnet. But alas, Drivechains aren't activated yet.",
               ),
             );
             return;
@@ -818,8 +817,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           GetIt.I.get<AppRouter>().push(
                             ComingSoonRoute(
                               router: GetIt.I.get<AppRouter>(),
-                              message:
-                                  'As a miner, this is where you would propose new sidechains and vote on sidechain proposals. Once a proposal receives enough votes, the sidechain becomes active and users can deposit funds.',
+                              message: 'As a miner, this is where you would propose new sidechains and vote on sidechain proposals. Once a proposal receives enough votes, the sidechain becomes active and users can deposit funds.',
                             ),
                           );
                           return;
@@ -834,8 +832,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           await GetIt.I.get<AppRouter>().push(
                             ComingSoonRoute(
                               router: GetIt.I.get<AppRouter>(),
-                              message:
-                                  "The M4 Explorer is where you would see the status of sidechain withdrawals, and see coins flowing safely back to mainnet. But alas, Drivechains aren't activated yet.",
+                              message: "The M4 Explorer is where you would see the status of sidechain withdrawals, and see coins flowing safely back to mainnet. But alas, Drivechains aren't activated yet.",
                             ),
                           );
                           return;
@@ -1477,8 +1474,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                   ),
                   const TextSpan(text: '\n\n'),
                   const TextSpan(
-                    text:
-                        'This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit ',
+                    text: 'This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit ',
                   ),
                   TextSpan(
                     text: 'https://www.openssl.org',
@@ -1492,8 +1488,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                       },
                   ),
                   const TextSpan(
-                    text:
-                        ' and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard.',
+                    text: ' and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard.',
                   ),
                 ],
               ),

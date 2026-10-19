@@ -129,8 +129,7 @@ class BitnamesTabPage extends StatelessWidget {
                         Expanded(
                           child: SailCard(
                             title: 'Reserve',
-                            subtitle:
-                                'Reserve a bitname you want without needing a ipv4/v6-address. Can be registered later, but only by you.',
+                            subtitle: 'Reserve a bitname you want without needing a ipv4/v6-address. Can be registered later, but only by you.',
                             error: model.reserveError,
                             child: SailColumn(
                               spacing: SailStyleValues.padding16,

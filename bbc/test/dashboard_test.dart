@@ -18,6 +18,7 @@ import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
+
 import 'package:sidechain_core/rpcs/bbc_rpc.dart';
 
 final txProvider = SidechainTransactionsProvider();

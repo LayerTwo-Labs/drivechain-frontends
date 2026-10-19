@@ -1,4 +1,5 @@
 import 'package:sidechain_core/providers/network_scoped.dart';
+
 import 'dart:async';
 
 import 'package:bitwindow/providers/blockchain_provider.dart';

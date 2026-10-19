@@ -1,4 +1,5 @@
 import 'package:sidechain_core/providers/network_scoped.dart';
+
 import 'dart:convert';
 
 import 'package:bitwindow/providers/transactions_provider.dart';

@@ -430,8 +430,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       'You have coins on both BTC and ECX. We recommend splitting your coins to not lose any ECX or BTC you currently own.',
       'By default, a transaction valid on bitcoin is also valid on eCash. Therefore, by spending your bitcoin, you will make that same transaction on eCash. If you do not control the receiving eCash wallet, you will lose your eCash.',
       'Claiming sweeps the selected coins to a fresh address in the same wallet.',
-      if (_claims.any((c) => c.isMultisig))
-        'A multisig wallet holds some of these coins. BitWindow builds a PSBT instead of a finished transaction, and nothing is broadcast until the cosigners sign it on the send tab.',
+      if (_claims.any((c) => c.isMultisig)) 'A multisig wallet holds some of these coins. BitWindow builds a PSBT instead of a finished transaction, and nothing is broadcast until the cosigners sign it on the send tab.',
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
