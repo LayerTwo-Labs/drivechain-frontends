@@ -73,6 +73,10 @@ type Network struct {
 	// final. Zero means the field is absent; see ReplayLockTimeOrDefault.
 	ReplayLockTime uint32 `json:"replay_lock_time,omitempty"`
 
+	// ReleaseChannel is the path segment of the L1 release this eCash network
+	// downloads. Empty means the id; see ReleaseChannelOrID.
+	ReleaseChannel string `json:"release_channel,omitempty"`
+
 	// P2P is the seed node bitcoind connects through. Every eCash network
 	// publishes its own address and port.
 	P2P struct {
@@ -251,6 +255,15 @@ func (n Network) ReplayLockTimeOrDefault() uint32 {
 		return DefaultReplayLockTime
 	}
 	return n.ReplayLockTime
+}
+
+// ReleaseChannelOrID returns the network's release channel, or its id when
+// the entry carries none.
+func (n Network) ReleaseChannelOrID() string {
+	if n.ReleaseChannel == "" {
+		return n.ID
+	}
+	return n.ReleaseChannel
 }
 
 // ExplorerHost returns the host of the explorer this network publishes, or ""

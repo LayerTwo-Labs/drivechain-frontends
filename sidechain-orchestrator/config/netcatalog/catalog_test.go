@@ -297,3 +297,71 @@ func TestPublishedCatalogWithoutTheFieldKeepsTheDefault(t *testing.T) {
 	require.True(t, ok)
 	require.EqualValues(t, 499999999, live.ReplayLockTimeOrDefault())
 }
+
+func ecashMainnetCatalog(t *testing.T) Catalog {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("testdata", "ecash-mainnet.json"))
+	require.NoError(t, err)
+	c, err := parse(raw)
+	require.NoError(t, err)
+	return c
+}
+
+func TestParseReadsTheECashMainnetRow(t *testing.T) {
+	n, ok := ecashMainnetCatalog(t).ByID("ecash-mainnet")
+	require.True(t, ok)
+	require.Equal(t, FamilyECash, n.Family)
+	require.Equal(t, "eCash Mainnet", n.DisplayName)
+	require.Equal(t, "main", n.Chain)
+	require.Equal(t, "ECX", n.Currency.Ticker)
+	require.Equal(t, "eca5dcb7", n.NetworkMagic)
+	require.Equal(t, 973728, n.ForkHeight)
+	require.EqualValues(t, 499999998, n.ReplayLockTime)
+	require.EqualValues(t, 499999998, n.ReplayLockTimeOrDefault())
+	require.Equal(t, "mainnet", n.ReleaseChannel)
+	require.Equal(t, "mainnet", n.ReleaseChannelOrID())
+	require.Empty(t, n.ForkParentHash, "block 973727 does not exist yet")
+	require.Equal(t, "seed.mainnet.ecash.example:8533", n.P2P.Address)
+	require.NotEmpty(t, n.BackendURL(KindEsplora))
+	require.NotEmpty(t, n.ElectrumURL())
+	require.Nil(t, n.AssumeUTXO)
+}
+
+func TestParseReadsACatalogWithEveryNetwork(t *testing.T) {
+	c := ecashMainnetCatalog(t)
+	var ids []string
+	for _, n := range c.Networks {
+		ids = append(ids, n.ID)
+	}
+	require.Equal(t, []string{"bitcoin", "signet", "ecash-mainnet", "betanet", "alphanet"}, ids)
+	require.Equal(t, "ecash-mainnet", c.ECashID())
+
+	got, ok := c.ByMagic("eca5dcb7")
+	require.True(t, ok)
+	require.Equal(t, "ecash-mainnet", got.ID)
+	got, ok = c.ByMagic("f9beb4d9")
+	require.True(t, ok)
+	require.Equal(t, "bitcoin", got.ID)
+}
+
+func TestTheECashMainnetRowLeavesBitcoinAlone(t *testing.T) {
+	c := ecashMainnetCatalog(t)
+	btc, ok := c.ForNetwork("mainnet")
+	require.True(t, ok)
+	require.Equal(t, "bitcoin", btc.ID)
+	require.Zero(t, btc.ForkHeight)
+	require.Equal(t, Embedded().Networks[0], btc, "the bitcoin row must not change")
+
+	live, ok := c.ForNetwork("ecash")
+	require.True(t, ok)
+	require.Equal(t, "ecash-mainnet", live.ID)
+}
+
+func TestReleaseChannelOrIDFallsBackToTheID(t *testing.T) {
+	c := ecashMainnetCatalog(t)
+	for id, want := range map[string]string{"ecash-mainnet": "mainnet", "betanet": "betanet", "alphanet": "alphanet"} {
+		n, ok := c.ByID(id)
+		require.True(t, ok, id)
+		require.Equal(t, want, n.ReleaseChannelOrID(), id)
+	}
+}
