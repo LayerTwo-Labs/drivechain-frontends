@@ -51,7 +51,6 @@ func TestServiceInitFailsOnAWalletFileThatDoesNotParse(t *testing.T) {
 func TestServiceGenerateWallet(t *testing.T) {
 	svc := newTestService(t)
 
-	assert.False(t, svc.HasWallet())
 	assert.Equal(t, StateNoWallet, svc.State())
 	assert.False(t, svc.IsEncrypted())
 
@@ -70,7 +69,6 @@ func TestServiceGenerateWallet(t *testing.T) {
 	assert.Equal(t, 9, w.Sidechains[0].Slot)
 	assert.NotEmpty(t, w.Sidechains[0].Mnemonic)
 
-	assert.True(t, svc.HasWallet())
 	assert.Equal(t, StateUnlocked, svc.State())
 	assert.Equal(t, w.ID, svc.ActiveWalletID())
 	assert.Equal(t, "Test Wallet", svc.ActiveWalletName())
@@ -128,7 +126,6 @@ func TestServiceWalletFilePersistence(t *testing.T) {
 	require.NoError(t, svc2.Init())
 	defer svc2.Close()
 
-	assert.True(t, svc2.HasWallet())
 	assert.Equal(t, StateUnlocked, svc2.State())
 	assert.Equal(t, w.ID, svc2.ActiveWalletID())
 	assert.Equal(t, "Persist Test", svc2.ActiveWalletName())
@@ -392,7 +389,6 @@ func TestServiceDeleteAllWallets(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, svc.DeleteAllWallets(nil, nil))
-	assert.False(t, svc.HasWallet())
 	assert.Equal(t, StateNoWallet, svc.State())
 	assert.Empty(t, svc.ActiveWalletID())
 }
@@ -767,7 +763,6 @@ func TestServiceCreateWatchOnlyWalletWithXpub(t *testing.T) {
 	err := svc.CreateWatchOnlyWallet("Watch Only Test", xpub, gradientJSON)
 	require.NoError(t, err)
 
-	assert.True(t, svc.HasWallet())
 	assert.Equal(t, StateUnlocked, svc.State())
 
 	wallets := svc.ListWallets()
@@ -884,7 +879,7 @@ func TestServiceCreateWatchOnlyWalletPersistence(t *testing.T) {
 	require.NoError(t, svc2.Init())
 	defer svc2.Close()
 
-	assert.True(t, svc2.HasWallet())
+	assert.Equal(t, StateUnlocked, svc2.State())
 	assert.Equal(t, walletID, svc2.ActiveWalletID())
 	assert.Equal(t, "Persist WO", svc2.ActiveWalletName())
 
@@ -930,7 +925,6 @@ func TestServiceEncryptedPersistence(t *testing.T) {
 	require.NoError(t, svc2.Init())
 	defer svc2.Close()
 
-	assert.True(t, svc2.HasWallet())
 	assert.True(t, svc2.IsEncrypted())
 	assert.Equal(t, StateLocked, svc2.State())
 
@@ -1307,7 +1301,7 @@ func TestServiceDeleteAllWalletsErrors(t *testing.T) {
 
 		_, err = os.Stat(svc.walletFilePath())
 		require.NoError(t, err)
-		require.True(t, svc.HasWallet())
+		require.NotEqual(t, StateNoWallet, svc.State())
 	})
 
 	t.Run("binary wallet path that cannot move", func(t *testing.T) {
@@ -1324,7 +1318,7 @@ func TestServiceDeleteAllWalletsErrors(t *testing.T) {
 		require.ErrorContains(t, svc.DeleteAllWallets(nil, nil), "create backup root")
 
 		require.NotEmpty(t, findBackup(t, filepath.Join(svc.bitwindowDir, "wallet_backups"), "wallet.json"))
-		require.False(t, svc.HasWallet())
+		require.Equal(t, StateNoWallet, svc.State())
 		require.Empty(t, svc.ActiveWalletID())
 		_, err = os.Stat(binaryWallet)
 		require.NoError(t, err)
@@ -1408,7 +1402,7 @@ func TestServiceEncryptWalletMetadataWriteFails(t *testing.T) {
 	svc2 := NewService(svc.bitwindowDir, zerolog.New(zerolog.NewTestWriter(t)))
 	require.NoError(t, svc2.Init())
 	t.Cleanup(svc2.Close)
-	require.True(t, svc2.HasWallet())
+	require.Equal(t, StateUnlocked, svc2.State())
 }
 
 func TestServiceUnlockWithUnreadableMetadata(t *testing.T) {
