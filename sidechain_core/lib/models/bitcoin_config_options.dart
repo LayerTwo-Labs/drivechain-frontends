@@ -54,8 +54,7 @@ class BitcoinConfigOptions {
       key: 'conf',
       category: 'General',
       description: 'Configuration File',
-      tooltip:
-          'Specify path to read-only configuration file. Relative paths will be prefixed by datadir location (default: bitcoin.conf)',
+      tooltip: 'Specify path to read-only configuration file. Relative paths will be prefixed by datadir location (default: bitcoin.conf)',
       inputType: ConfigInputType.file,
     ),
     BitcoinConfigOption(
@@ -79,8 +78,7 @@ class BitcoinConfigOptions {
       key: 'prune',
       category: 'General',
       description: 'Prune Mode',
-      tooltip:
-          'Reduce storage requirements by enabling pruning (deleting) of old blocks. This allows the pruneblockchain RPC to be called to delete specific blocks and enables automatic pruning of old blocks if a target size in MiB is provided. (default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=550 = automatically prune block files)',
+      tooltip: 'Reduce storage requirements by enabling pruning (deleting) of old blocks. This allows the pruneblockchain RPC to be called to delete specific blocks and enables automatic pruning of old blocks if a target size in MiB is provided. (default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=550 = automatically prune block files)',
       inputType: ConfigInputType.number,
       defaultValue: 0,
       min: 0,
@@ -90,8 +88,7 @@ class BitcoinConfigOptions {
       key: 'dbcache',
       category: 'General',
       description: 'Database Cache Size',
-      tooltip:
-          'Maximum database cache size <n> MiB (minimum 4, default: 450). Make sure you have enough RAM. In addition, unused memory allocated to the mempool is shared with this cache (see -maxmempool).',
+      tooltip: 'Maximum database cache size <n> MiB (minimum 4, default: 450). Make sure you have enough RAM. In addition, unused memory allocated to the mempool is shared with this cache (see -maxmempool).',
       inputType: ConfigInputType.number,
       defaultValue: 450,
       min: 4,
@@ -101,8 +98,7 @@ class BitcoinConfigOptions {
       key: 'assumevalid',
       category: 'General',
       description: 'Assume Valid Block',
-      tooltip:
-          'If this block is in the chain assume that it and its ancestors are valid and potentially skip their script verification (0 to verify all)',
+      tooltip: 'If this block is in the chain assume that it and its ancestors are valid and potentially skip their script verification (0 to verify all)',
       inputType: ConfigInputType.text,
     ),
     BitcoinConfigOption(
@@ -126,8 +122,7 @@ class BitcoinConfigOptions {
       key: 'par',
       category: 'General',
       description: 'Script Verification Threads',
-      tooltip:
-          'Set the number of script verification threads (0 = auto, up to 15, <0 = leave that many cores free, default: 0)',
+      tooltip: 'Set the number of script verification threads (0 = auto, up to 15, <0 = leave that many cores free, default: 0)',
       inputType: ConfigInputType.number,
       defaultValue: 0,
       min: -15,
@@ -137,8 +132,7 @@ class BitcoinConfigOptions {
       key: 'pid',
       category: 'General',
       description: 'PID File',
-      tooltip:
-          'Specify pid file. Relative paths will be prefixed by a net-specific datadir location. (default: bitcoind.pid)',
+      tooltip: 'Specify pid file. Relative paths will be prefixed by a net-specific datadir location. (default: bitcoind.pid)',
       inputType: ConfigInputType.file,
       defaultValue: 'bitcoind.pid',
     ),
@@ -148,16 +142,14 @@ class BitcoinConfigOptions {
       key: 'addnode',
       category: 'Connection',
       description: 'Add Node',
-      tooltip:
-          'Add a node to connect to and attempt to keep the connection open. This option can be specified multiple times to add multiple nodes; connections are limited to 8 at a time and are counted separately from the -maxconnections limit.',
+      tooltip: 'Add a node to connect to and attempt to keep the connection open. This option can be specified multiple times to add multiple nodes; connections are limited to 8 at a time and are counted separately from the -maxconnections limit.',
       inputType: ConfigInputType.ipAddress,
     ),
     BitcoinConfigOption(
       key: 'maxconnections',
       category: 'Connection',
       description: 'Max Connections',
-      tooltip:
-          'Maintain at most <n> automatic connections to peers (default: 125). This limit does not apply to connections manually added via -addnode or the addnode RPC, which have a separate limit of 8.',
+      tooltip: 'Maintain at most <n> automatic connections to peers (default: 125). This limit does not apply to connections manually added via -addnode or the addnode RPC, which have a separate limit of 8.',
       inputType: ConfigInputType.number,
       defaultValue: 125,
       min: 0,
@@ -166,8 +158,7 @@ class BitcoinConfigOptions {
       key: 'port',
       category: 'Connection',
       description: 'Listen Port',
-      tooltip:
-          'Listen for connections on <port> (default: 8333, testnet3: 18333, testnet4: 48333, signet: 38333, regtest: 18444). Not relevant for I2P. If set to a value x, the default onion listening port will be set to x+1.',
+      tooltip: 'Listen for connections on <port> (default: 8333, testnet3: 18333, testnet4: 48333, signet: 38333, regtest: 18444). Not relevant for I2P. If set to a value x, the default onion listening port will be set to x+1.',
       inputType: ConfigInputType.number,
       isUseful: true,
       defaultValue: 8333,
@@ -187,24 +178,21 @@ class BitcoinConfigOptions {
       key: 'connect',
       category: 'Connection',
       description: 'Connect Only To',
-      tooltip:
-          'Connect only to the specified node; -noconnect disables automatic connections. This option can be specified multiple times to connect to multiple nodes.',
+      tooltip: 'Connect only to the specified node; -noconnect disables automatic connections. This option can be specified multiple times to connect to multiple nodes.',
       inputType: ConfigInputType.ipAddress,
     ),
     BitcoinConfigOption(
       key: 'bind',
       category: 'Connection',
       description: 'Bind Address',
-      tooltip:
-          'Bind to given address and always listen on it (default: 0.0.0.0). Use [host]:port notation for IPv6. Append =onion to tag any incoming connections.',
+      tooltip: 'Bind to given address and always listen on it (default: 0.0.0.0). Use [host]:port notation for IPv6. Append =onion to tag any incoming connections.',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
       key: 'proxy',
       category: 'Connection',
       description: 'SOCKS5 Proxy',
-      tooltip:
-          'Connect through SOCKS5 proxy, set -noproxy to disable (default: disabled). May be a local file path prefixed with "unix:" if the proxy supports it.',
+      tooltip: 'Connect through SOCKS5 proxy, set -noproxy to disable (default: disabled). May be a local file path prefixed with "unix:" if the proxy supports it.',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
@@ -227,8 +215,7 @@ class BitcoinConfigOptions {
       key: 'dnsseed',
       category: 'Connection',
       description: 'DNS Seed',
-      tooltip:
-          'Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used or -maxconnections=0)',
+      tooltip: 'Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used or -maxconnections=0)',
       inputType: ConfigInputType.boolean,
       defaultValue: true,
     ),
@@ -255,8 +242,7 @@ class BitcoinConfigOptions {
       key: 'avoidpartialspends',
       category: 'Wallet',
       description: 'Avoid Partial Spends',
-      tooltip:
-          'Group outputs by address, selecting many (possibly all) or none, instead of selecting on a per-output basis. Privacy is improved as addresses are mostly swept with fewer transactions and outputs are aggregated in clean change addresses. Always enabled for wallets with "avoid_reuse" enabled, otherwise default: 0.',
+      tooltip: 'Group outputs by address, selecting many (possibly all) or none, instead of selecting on a per-output basis. Privacy is improved as addresses are mostly swept with fewer transactions and outputs are aggregated in clean change addresses. Always enabled for wallets with "avoid_reuse" enabled, otherwise default: 0.',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -264,8 +250,7 @@ class BitcoinConfigOptions {
       key: 'changetype',
       category: 'Wallet',
       description: 'Change Address Type',
-      tooltip:
-          'What type of change to use ("legacy", "p2sh-segwit", "bech32", or "bech32m"). Default is "legacy" when -addresstype=legacy, else it is an implementation detail.',
+      tooltip: 'What type of change to use ("legacy", "p2sh-segwit", "bech32", or "bech32m"). Default is "legacy" when -addresstype=legacy, else it is an implementation detail.',
       inputType: ConfigInputType.dropdown,
       dropdownValues: ['legacy', 'p2sh-segwit', 'bech32', 'bech32m'],
     ),
@@ -273,8 +258,7 @@ class BitcoinConfigOptions {
       key: 'keypool',
       category: 'Wallet',
       description: 'Key Pool Size',
-      tooltip:
-          'Set key pool size to <n> (default: 1000). Warning: Smaller sizes may increase the risk of losing funds when restoring from an old backup, if none of the addresses in the original keypool have been used.',
+      tooltip: 'Set key pool size to <n> (default: 1000). Warning: Smaller sizes may increase the risk of losing funds when restoring from an old backup, if none of the addresses in the original keypool have been used.',
       inputType: ConfigInputType.number,
       defaultValue: 1000,
       min: 1,
@@ -283,8 +267,7 @@ class BitcoinConfigOptions {
       key: 'fallbackfee',
       category: 'Wallet',
       description: 'Fallback Fee Rate',
-      tooltip:
-          'A fee rate (in BTC/kvB) that will be used when fee estimation has insufficient data. 0 to entirely disable the fallbackfee feature. (default: 0.00)',
+      tooltip: 'A fee rate (in BTC/kvB) that will be used when fee estimation has insufficient data. 0 to entirely disable the fallbackfee feature. (default: 0.00)',
       inputType: ConfigInputType.bitcoinAmount,
       isUseful: true,
       defaultValue: 0.0,
@@ -303,8 +286,7 @@ class BitcoinConfigOptions {
       key: 'mintxfee',
       category: 'Wallet',
       description: 'Minimum TX Fee',
-      tooltip:
-          'Fee rates (in BTC/kvB) smaller than this are considered zero fee for transaction creation (default: 0.00001)',
+      tooltip: 'Fee rates (in BTC/kvB) smaller than this are considered zero fee for transaction creation (default: 0.00001)',
       inputType: ConfigInputType.bitcoinAmount,
       defaultValue: 0.00001,
       unit: 'BTC/kvB',
@@ -392,8 +374,7 @@ class BitcoinConfigOptions {
       key: 'rpcport',
       category: 'RPC Server',
       description: 'RPC Port',
-      tooltip:
-          'Listen for JSON-RPC connections on <port> (default: 8332, testnet3: 18332, testnet4: 48332, signet: 38332, regtest: 18443)',
+      tooltip: 'Listen for JSON-RPC connections on <port> (default: 8332, testnet3: 18332, testnet4: 48332, signet: 38332, regtest: 18443)',
       inputType: ConfigInputType.number,
       isUseful: true,
       defaultValue: 8332,
@@ -404,16 +385,14 @@ class BitcoinConfigOptions {
       key: 'rpcbind',
       category: 'RPC Server',
       description: 'RPC Bind Address',
-      tooltip:
-          'Bind to given address to listen for JSON-RPC connections. Do not expose the RPC server to untrusted networks such as the public internet! This option is ignored unless -rpcallowip is also passed.',
+      tooltip: 'Bind to given address to listen for JSON-RPC connections. Do not expose the RPC server to untrusted networks such as the public internet! This option is ignored unless -rpcallowip is also passed.',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
       key: 'rpcallowip',
       category: 'RPC Server',
       description: 'RPC Allow IP',
-      tooltip:
-          'Allow JSON-RPC connections from specified source. Valid values for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0), a network/CIDR (e.g. 1.2.3.4/24), all ipv4 (0.0.0.0/0), or all ipv6 (::/0). This option can be specified multiple times',
+      tooltip: 'Allow JSON-RPC connections from specified source. Valid values for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0), a network/CIDR (e.g. 1.2.3.4/24), all ipv4 (0.0.0.0/0), or all ipv6 (::/0). This option can be specified multiple times',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
@@ -450,8 +429,7 @@ class BitcoinConfigOptions {
       key: 'testnet',
       category: 'Chain Selection',
       description: 'Testnet3',
-      tooltip:
-          'Use the testnet3 chain. Equivalent to -chain=test. Support for testnet3 is deprecated and will be removed in an upcoming release. Consider moving to testnet4 now by using -testnet4.',
+      tooltip: 'Use the testnet3 chain. Equivalent to -chain=test. Support for testnet3 is deprecated and will be removed in an upcoming release. Consider moving to testnet4 now by using -testnet4.',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -467,8 +445,7 @@ class BitcoinConfigOptions {
       key: 'signet',
       category: 'Chain Selection',
       description: 'Signet',
-      tooltip:
-          'Use the signet chain. Equivalent to -chain=signet. Note that the network is defined by the -signetchallenge parameter',
+      tooltip: 'Use the signet chain. Equivalent to -chain=signet. Note that the network is defined by the -signetchallenge parameter',
       inputType: ConfigInputType.boolean,
       isUseful: true,
       defaultValue: false,
@@ -485,8 +462,7 @@ class BitcoinConfigOptions {
       key: 'signetchallenge',
       category: 'Chain Selection',
       description: 'Signet Challenge',
-      tooltip:
-          'Blocks must satisfy the given script to be considered valid (only for signet networks; defaults to the global default signet test network challenge)',
+      tooltip: 'Blocks must satisfy the given script to be considered valid (only for signet networks; defaults to the global default signet test network challenge)',
       inputType: ConfigInputType.text,
     ),
 
@@ -495,8 +471,7 @@ class BitcoinConfigOptions {
       key: 'minrelaytxfee',
       category: 'Node Relay',
       description: 'Min Relay TX Fee',
-      tooltip:
-          'Fees (in BTC/kvB) smaller than this are considered zero fee for relaying, mining and transaction creation (default: 0.000001)',
+      tooltip: 'Fees (in BTC/kvB) smaller than this are considered zero fee for relaying, mining and transaction creation (default: 0.000001)',
       inputType: ConfigInputType.bitcoinAmount,
       defaultValue: 0.000001,
       unit: 'BTC/kvB',
@@ -566,16 +541,14 @@ class BitcoinConfigOptions {
       key: 'shutdownnotify',
       category: 'General',
       description: 'Shutdown Notify Command',
-      tooltip:
-          'Execute command immediately before beginning shutdown. The need for shutdown may be urgent, so be careful not to delay it long.',
+      tooltip: 'Execute command immediately before beginning shutdown. The need for shutdown may be urgent, so be careful not to delay it long.',
       inputType: ConfigInputType.command,
     ),
     BitcoinConfigOption(
       key: 'reindex',
       category: 'General',
       description: 'Reindex Blockchain',
-      tooltip:
-          'If enabled, wipe chain state and block index, and rebuild them from blk*.dat files on disk. Also wipe and rebuild other optional indexes that are active.',
+      tooltip: 'If enabled, wipe chain state and block index, and rebuild them from blk*.dat files on disk. Also wipe and rebuild other optional indexes that are active.',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -598,8 +571,7 @@ class BitcoinConfigOptions {
       key: 'includeconf',
       category: 'General',
       description: 'Include Config File',
-      tooltip:
-          'Specify additional configuration file, relative to the -datadir path (only useable from configuration file, not command line)',
+      tooltip: 'Specify additional configuration file, relative to the -datadir path (only useable from configuration file, not command line)',
       inputType: ConfigInputType.file,
     ),
     BitcoinConfigOption(
@@ -624,8 +596,7 @@ class BitcoinConfigOptions {
       key: 'blocksxor',
       category: 'General',
       description: 'Blocks XOR',
-      tooltip:
-          'Whether an XOR-key applies to blocksdir *.dat files. The created XOR-key will be zeros for an existing blocksdir or when `-blocksxor=0` is set, and random for a freshly initialized blocksdir. (default: 1)',
+      tooltip: 'Whether an XOR-key applies to blocksdir *.dat files. The created XOR-key will be zeros for an existing blocksdir or when `-blocksxor=0` is set, and random for a freshly initialized blocksdir. (default: 1)',
       inputType: ConfigInputType.boolean,
       defaultValue: true,
     ),
@@ -641,8 +612,7 @@ class BitcoinConfigOptions {
       key: 'persistmempoolv1',
       category: 'General',
       description: 'Persist Mempool V1',
-      tooltip:
-          'Whether a mempool.dat file created by -persistmempool or the savemempool RPC will be written in the legacy format (version 1) or the current format (version 2). This temporary option will be removed in the future. (default: 0)',
+      tooltip: 'Whether a mempool.dat file created by -persistmempool or the savemempool RPC will be written in the legacy format (version 1) or the current format (version 2). This temporary option will be removed in the future. (default: 0)',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -650,8 +620,7 @@ class BitcoinConfigOptions {
       key: 'reindex-chainstate',
       category: 'General',
       description: 'Reindex Chainstate',
-      tooltip:
-          'If enabled, wipe chain state, and rebuild it from blk*.dat files on disk. If an assumeutxo snapshot was loaded, its chainstate will be wiped as well. The snapshot can then be reloaded via RPC.',
+      tooltip: 'If enabled, wipe chain state, and rebuild it from blk*.dat files on disk. If an assumeutxo snapshot was loaded, its chainstate will be wiped as well. The snapshot can then be reloaded via RPC.',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -686,8 +655,7 @@ class BitcoinConfigOptions {
       key: 'blocksonly',
       category: 'General',
       description: 'Blocks Only',
-      tooltip:
-          'Whether to reject transactions from network peers. Disables automatic broadcast and rebroadcast of transactions, unless the source peer has the "forcerelay" permission. (default: 0)',
+      tooltip: 'Whether to reject transactions from network peers. Disables automatic broadcast and rebroadcast of transactions, unless the source peer has the "forcerelay" permission. (default: 0)',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -703,8 +671,7 @@ class BitcoinConfigOptions {
       key: 'blockfilterindex',
       category: 'General',
       description: 'Block Filter Index',
-      tooltip:
-          'Maintain an index of compact filters by block (default: 0, values: basic). If <type> is not supplied or if <type> = 1, indexes for all known types are enabled.',
+      tooltip: 'Maintain an index of compact filters by block (default: 0, values: basic). If <type> is not supplied or if <type> = 1, indexes for all known types are enabled.',
       inputType: ConfigInputType.dropdown,
       dropdownValues: ['0', '1', 'basic'],
       defaultValue: '0',
@@ -715,16 +682,14 @@ class BitcoinConfigOptions {
       key: 'seednode',
       category: 'Connection',
       description: 'Seed Node',
-      tooltip:
-          'Connect to a node to retrieve peer addresses, and disconnect. This option can be specified multiple times to connect to multiple nodes.',
+      tooltip: 'Connect to a node to retrieve peer addresses, and disconnect. This option can be specified multiple times to connect to multiple nodes.',
       inputType: ConfigInputType.ipAddress,
     ),
     BitcoinConfigOption(
       key: 'timeout',
       category: 'Connection',
       description: 'Connection Timeout',
-      tooltip:
-          'Specify socket connection timeout in milliseconds. If an initial attempt to connect is unsuccessful after this amount of time, drop it (minimum: 1, default: 5000)',
+      tooltip: 'Specify socket connection timeout in milliseconds. If an initial attempt to connect is unsuccessful after this amount of time, drop it (minimum: 1, default: 5000)',
       inputType: ConfigInputType.number,
       defaultValue: 5000,
       min: 1,
@@ -754,8 +719,7 @@ class BitcoinConfigOptions {
       key: 'maxuploadtarget',
       category: 'Connection',
       description: 'Max Upload Target',
-      tooltip:
-          'Tries to keep outbound traffic under the given target per 24h. Limit does not apply to peers with "download" permission or blocks created within past week. 0 = no limit (default: 0M).',
+      tooltip: 'Tries to keep outbound traffic under the given target per 24h. Limit does not apply to peers with "download" permission or blocks created within past week. 0 = no limit (default: 0M).',
       inputType: ConfigInputType.number,
       defaultValue: 0,
       min: 0,
@@ -791,8 +755,7 @@ class BitcoinConfigOptions {
       key: 'onlynet',
       category: 'Connection',
       description: 'Only Network',
-      tooltip:
-          'Make automatic outbound connections only to network <net> (ipv4, ipv6, onion, i2p, cjdns). Can be specified multiple times.',
+      tooltip: 'Make automatic outbound connections only to network <net> (ipv4, ipv6, onion, i2p, cjdns). Can be specified multiple times.',
       inputType: ConfigInputType.dropdown,
       dropdownValues: ['ipv4', 'ipv6', 'onion', 'i2p', 'cjdns'],
     ),
@@ -800,8 +763,7 @@ class BitcoinConfigOptions {
       key: 'onion',
       category: 'Connection',
       description: 'Tor Proxy',
-      tooltip:
-          'Use separate SOCKS5 proxy to reach peers via Tor onion services, set -noonion to disable (default: -proxy). May be a local file path prefixed with "unix:".',
+      tooltip: 'Use separate SOCKS5 proxy to reach peers via Tor onion services, set -noonion to disable (default: -proxy). May be a local file path prefixed with "unix:".',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
@@ -816,8 +778,7 @@ class BitcoinConfigOptions {
       key: 'torcontrol',
       category: 'Connection',
       description: 'Tor Control',
-      tooltip:
-          'Tor control host and port to use if onion listening enabled (default: 127.0.0.1:9051). If no port is specified, the default port of 9051 will be used.',
+      tooltip: 'Tor control host and port to use if onion listening enabled (default: 127.0.0.1:9051). If no port is specified, the default port of 9051 will be used.',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
@@ -846,24 +807,21 @@ class BitcoinConfigOptions {
       key: 'whitelist',
       category: 'Connection',
       description: 'Whitelist',
-      tooltip:
-          'Add permission flags to the peers using the given IP address or CIDR-notated network. Uses the same permissions as -whitebind.',
+      tooltip: 'Add permission flags to the peers using the given IP address or CIDR-notated network. Uses the same permissions as -whitebind.',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
       key: 'whitebind',
       category: 'Connection',
       description: 'White Bind',
-      tooltip:
-          'Bind to the given address and add permission flags to the peers connecting to it. Use [host]:port notation for IPv6.',
+      tooltip: 'Bind to the given address and add permission flags to the peers connecting to it. Use [host]:port notation for IPv6.',
       inputType: ConfigInputType.network,
     ),
     BitcoinConfigOption(
       key: 'asmap',
       category: 'Connection',
       description: 'AS Map',
-      tooltip:
-          'Specify asn mapping used for bucketing of the peers (default: ip_asn.map). Relative paths will be prefixed by the net-specific datadir location.',
+      tooltip: 'Specify asn mapping used for bucketing of the peers (default: ip_asn.map). Relative paths will be prefixed by the net-specific datadir location.',
       inputType: ConfigInputType.file,
       defaultValue: 'ip_asn.map',
     ),
@@ -871,8 +829,7 @@ class BitcoinConfigOptions {
       key: 'cjdnsreachable',
       category: 'Connection',
       description: 'CJDNS Reachable',
-      tooltip:
-          'If set, then this host is configured for CJDNS (connecting to fc00::/8 addresses would lead us to the CJDNS network, see doc/cjdns.md) (default: 0)',
+      tooltip: 'If set, then this host is configured for CJDNS (connecting to fc00::/8 addresses would lead us to the CJDNS network, see doc/cjdns.md) (default: 0)',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -880,8 +837,7 @@ class BitcoinConfigOptions {
       key: 'i2pacceptincoming',
       category: 'Connection',
       description: 'I2P Accept Incoming',
-      tooltip:
-          'Whether to accept inbound I2P connections (default: 1). Ignored if -i2psam is not set. Listening for inbound I2P connections is done through the SAM proxy, not by binding to a local address and port.',
+      tooltip: 'Whether to accept inbound I2P connections (default: 1). Ignored if -i2psam is not set. Listening for inbound I2P connections is done through the SAM proxy, not by binding to a local address and port.',
       inputType: ConfigInputType.boolean,
       defaultValue: true,
     ),
@@ -915,16 +871,14 @@ class BitcoinConfigOptions {
       key: 'wallet',
       category: 'Wallet',
       description: 'Wallet Path',
-      tooltip:
-          'Specify wallet path to load at startup. Can be used multiple times to load multiple wallets. Path is to a directory containing wallet data and log files.',
+      tooltip: 'Specify wallet path to load at startup. Can be used multiple times to load multiple wallets. Path is to a directory containing wallet data and log files.',
       inputType: ConfigInputType.file,
     ),
     BitcoinConfigOption(
       key: 'walletnotify',
       category: 'Wallet',
       description: 'Wallet Notify Command',
-      tooltip:
-          'Execute command when a wallet transaction changes. %s in cmd is replaced by TxID, %w is replaced by wallet name, %b is replaced by the hash of the block including the transaction.',
+      tooltip: 'Execute command when a wallet transaction changes. %s in cmd is replaced by TxID, %w is replaced by wallet name, %b is replaced by the hash of the block including the transaction.',
       inputType: ConfigInputType.command,
     ),
     BitcoinConfigOption(
@@ -955,8 +909,7 @@ class BitcoinConfigOptions {
       key: 'txconfirmtarget',
       category: 'Wallet',
       description: 'TX Confirm Target',
-      tooltip:
-          'If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: 6)',
+      tooltip: 'If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: 6)',
       inputType: ConfigInputType.number,
       defaultValue: 6,
       min: 1,
@@ -966,8 +919,7 @@ class BitcoinConfigOptions {
       key: 'consolidatefeerate',
       category: 'Wallet',
       description: 'Consolidate Fee Rate',
-      tooltip:
-          "The maximum feerate (in BTC/kvB) at which transaction building may use more inputs than strictly necessary so that the wallet's UTXO pool can be reduced (default: 0.0001).",
+      tooltip: "The maximum feerate (in BTC/kvB) at which transaction building may use more inputs than strictly necessary so that the wallet's UTXO pool can be reduced (default: 0.0001).",
       inputType: ConfigInputType.bitcoinAmount,
       defaultValue: 0.0001,
       unit: 'BTC/kvB',
@@ -976,8 +928,7 @@ class BitcoinConfigOptions {
       key: 'discardfee',
       category: 'Wallet',
       description: 'Discard Fee',
-      tooltip:
-          'The fee rate (in BTC/kvB) that indicates your tolerance for discarding change by adding it to the fee (default: 0.0001).',
+      tooltip: 'The fee rate (in BTC/kvB) that indicates your tolerance for discarding change by adding it to the fee (default: 0.0001).',
       inputType: ConfigInputType.bitcoinAmount,
       defaultValue: 0.0001,
       unit: 'BTC/kvB',
@@ -986,8 +937,7 @@ class BitcoinConfigOptions {
       key: 'maxapsfee',
       category: 'Wallet',
       description: 'Max APS Fee',
-      tooltip:
-          'Spend up to this amount in additional (absolute) fees (in BTC) if it allows the use of partial spend avoidance (default: 0.00)',
+      tooltip: 'Spend up to this amount in additional (absolute) fees (in BTC) if it allows the use of partial spend avoidance (default: 0.00)',
       inputType: ConfigInputType.bitcoinAmount,
       defaultValue: 0.0,
       unit: 'BTC',
@@ -1005,32 +955,28 @@ class BitcoinConfigOptions {
       key: 'rpcauth',
       category: 'RPC Server',
       description: 'RPC Auth',
-      tooltip:
-          'Username and HMAC-SHA-256 hashed password for JSON-RPC connections. The field userpw comes in the format: USERNAME:SALT\$HASH.',
+      tooltip: 'Username and HMAC-SHA-256 hashed password for JSON-RPC connections. The field userpw comes in the format: USERNAME:SALT\$HASH.',
       inputType: ConfigInputType.text,
     ),
     BitcoinConfigOption(
       key: 'rpccookiefile',
       category: 'RPC Server',
       description: 'RPC Cookie File',
-      tooltip:
-          'Location of the auth cookie. Relative paths will be prefixed by a net-specific datadir location. (default: data dir)',
+      tooltip: 'Location of the auth cookie. Relative paths will be prefixed by a net-specific datadir location. (default: data dir)',
       inputType: ConfigInputType.file,
     ),
     BitcoinConfigOption(
       key: 'rpcwhitelist',
       category: 'RPC Server',
       description: 'RPC Whitelist',
-      tooltip:
-          'Set a whitelist to filter incoming RPC calls for a specific user. The field whitelist comes in the format: USERNAME:rpc1,rpc2,...,rpcN.',
+      tooltip: 'Set a whitelist to filter incoming RPC calls for a specific user. The field whitelist comes in the format: USERNAME:rpc1,rpc2,...,rpcN.',
       inputType: ConfigInputType.text,
     ),
     BitcoinConfigOption(
       key: 'rpccookieperms',
       category: 'RPC Server',
       description: 'RPC Cookie Permissions',
-      tooltip:
-          'Set permissions on the RPC auth cookie file so that it is readable by [owner|group|all] (default: owner [via umask 0077])',
+      tooltip: 'Set permissions on the RPC auth cookie file so that it is readable by [owner|group|all] (default: owner [via umask 0077])',
       inputType: ConfigInputType.dropdown,
       defaultValue: 'owner',
       dropdownValues: ['owner', 'group', 'all'],
@@ -1039,8 +985,7 @@ class BitcoinConfigOptions {
       key: 'rpcwhitelistdefault',
       category: 'RPC Server',
       description: 'RPC Whitelist Default',
-      tooltip:
-          'Sets default behavior for rpc whitelisting. Unless rpcwhitelistdefault is set to 0, if any -rpcwhitelist is set, the rpc server acts as if all rpc users are subject to empty-unless-otherwise-specified whitelists. If rpcwhitelistdefault is set to 1 and no -rpcwhitelist is set, rpc server acts as if all rpc users are subject to empty whitelists.',
+      tooltip: 'Sets default behavior for rpc whitelisting. Unless rpcwhitelistdefault is set to 0, if any -rpcwhitelist is set, the rpc server acts as if all rpc users are subject to empty-unless-otherwise-specified whitelists. If rpcwhitelistdefault is set to 1 and no -rpcwhitelist is set, rpc server acts as if all rpc users are subject to empty whitelists.',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -1097,8 +1042,7 @@ class BitcoinConfigOptions {
       key: 'signetblocktime',
       category: 'Chain Selection',
       description: 'Signet Block Time',
-      tooltip:
-          'Difficulty adjustment will target a block time of the given amount in seconds (only for custom signet networks, must have -signetchallenge set; defaults to 10 minutes)',
+      tooltip: 'Difficulty adjustment will target a block time of the given amount in seconds (only for custom signet networks, must have -signetchallenge set; defaults to 10 minutes)',
       inputType: ConfigInputType.number,
       defaultValue: 600,
       min: 1,
@@ -1108,8 +1052,7 @@ class BitcoinConfigOptions {
       key: 'signetseednode',
       category: 'Chain Selection',
       description: 'Signet Seed Node',
-      tooltip:
-          'Specify a seed node for the signet network, in the hostname[:port] format, e.g. sig.net:1234 (may be used multiple times)',
+      tooltip: 'Specify a seed node for the signet network, in the hostname[:port] format, e.g. sig.net:1234 (may be used multiple times)',
       inputType: ConfigInputType.ipAddress,
     ),
 
@@ -1137,8 +1080,7 @@ class BitcoinConfigOptions {
       key: 'whitelistforcerelay',
       category: 'Node Relay',
       description: 'Whitelist Force Relay',
-      tooltip:
-          'Add "forcerelay" permission to whitelisted peers with default permissions. This will relay transactions even if the transactions were already in the mempool. (default: 0)',
+      tooltip: 'Add "forcerelay" permission to whitelisted peers with default permissions. This will relay transactions even if the transactions were already in the mempool. (default: 0)',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -1146,8 +1088,7 @@ class BitcoinConfigOptions {
       key: 'whitelistrelay',
       category: 'Node Relay',
       description: 'Whitelist Relay',
-      tooltip:
-          'Add "relay" permission to whitelisted peers with default permissions. This will accept relayed transactions even when not relaying transactions (default: 1)',
+      tooltip: 'Add "relay" permission to whitelisted peers with default permissions. This will accept relayed transactions even when not relaying transactions (default: 1)',
       inputType: ConfigInputType.boolean,
       defaultValue: true,
     ),
@@ -1173,8 +1114,7 @@ class BitcoinConfigOptions {
       key: 'blockreservedweight',
       category: 'Block Creation',
       description: 'Block Reserved Weight',
-      tooltip:
-          'Reserve space for the fixed-size block header plus the largest coinbase transaction the mining software may add to the block. (default: 8000).',
+      tooltip: 'Reserve space for the fixed-size block header plus the largest coinbase transaction the mining software may add to the block. (default: 8000).',
       inputType: ConfigInputType.number,
       defaultValue: 8000,
       min: 0,
@@ -1185,24 +1125,21 @@ class BitcoinConfigOptions {
       key: 'debug',
       category: 'Debugging',
       description: 'Debug Categories',
-      tooltip:
-          'Output debug and trace logging. If not supplied or if 1 or "all", output all debug logging. Other valid values: addrman, bench, blockstorage, cmpctblock, coindb, estimatefee, http, i2p, ipc, leveldb, libevent, mempool, mempoolrej, net, proxy, prune, qt, rand, reindex, rpc, scan, selectcoins, tor, txpackages, txreconciliation, validation, walletdb, zmq.',
+      tooltip: 'Output debug and trace logging. If not supplied or if 1 or "all", output all debug logging. Other valid values: addrman, bench, blockstorage, cmpctblock, coindb, estimatefee, http, i2p, ipc, leveldb, libevent, mempool, mempoolrej, net, proxy, prune, qt, rand, reindex, rpc, scan, selectcoins, tor, txpackages, txreconciliation, validation, walletdb, zmq.',
       inputType: ConfigInputType.text,
     ),
     BitcoinConfigOption(
       key: 'debugexclude',
       category: 'Debugging',
       description: 'Debug Exclude',
-      tooltip:
-          'Exclude debug and trace logging for a category. Can be used in conjunction with -debug=1 to output debug and trace logging for all categories except the specified category.',
+      tooltip: 'Exclude debug and trace logging for a category. Can be used in conjunction with -debug=1 to output debug and trace logging for all categories except the specified category.',
       inputType: ConfigInputType.text,
     ),
     BitcoinConfigOption(
       key: 'printtoconsole',
       category: 'Debugging',
       description: 'Print To Console',
-      tooltip:
-          'Send trace/debug info to console (default: 1 when no -daemon. To disable logging to file, set -nodebuglogfile)',
+      tooltip: 'Send trace/debug info to console (default: 1 when no -daemon. To disable logging to file, set -nodebuglogfile)',
       inputType: ConfigInputType.boolean,
       defaultValue: true,
     ),
@@ -1242,8 +1179,7 @@ class BitcoinConfigOptions {
       key: 'logsourcelocations',
       category: 'Debugging',
       description: 'Log Source Locations',
-      tooltip:
-          'Prepend debug output with name of the originating source location (source file, line number and function name) (default: 0)',
+      tooltip: 'Prepend debug output with name of the originating source location (source file, line number and function name) (default: 0)',
       inputType: ConfigInputType.boolean,
       defaultValue: false,
     ),
@@ -1259,8 +1195,7 @@ class BitcoinConfigOptions {
       key: 'debuglogfile',
       category: 'Debugging',
       description: 'Debug Log File',
-      tooltip:
-          'Specify location of debug log file (default: debug.log). Relative paths will be prefixed by a net-specific datadir location. Pass -nodebuglogfile to disable writing the log to a file.',
+      tooltip: 'Specify location of debug log file (default: debug.log). Relative paths will be prefixed by a net-specific datadir location. Pass -nodebuglogfile to disable writing the log to a file.',
       inputType: ConfigInputType.file,
       defaultValue: 'debug.log',
     ),
@@ -1268,8 +1203,7 @@ class BitcoinConfigOptions {
       key: 'maxtxfee',
       category: 'Debugging',
       description: 'Max TX Fee',
-      tooltip:
-          'Maximum total fees (in BTC) to use in a single wallet transaction; setting this too low may abort large transactions (default: 0.10)',
+      tooltip: 'Maximum total fees (in BTC) to use in a single wallet transaction; setting this too low may abort large transactions (default: 0.10)',
       inputType: ConfigInputType.bitcoinAmount,
       defaultValue: 0.10,
       unit: 'BTC',

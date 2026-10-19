@@ -1,5 +1,6 @@
 import 'package:sidechain_core/providers/network_scoped.dart';
 import 'package:sidechain_core/providers/node_mode_provider.dart';
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:uuid/uuid.dart';
 import 'package:sidechain_core/sidechain_core.dart';

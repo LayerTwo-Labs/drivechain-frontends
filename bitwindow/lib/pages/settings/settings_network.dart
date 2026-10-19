@@ -239,8 +239,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
         await Navigator.of(context).push<bool>(
           sailRoute(
             builder: (_) => const L1RestartPage(
-              reason:
-                  'Bitcoin Core needs to restart for the new data directory to take effect. The new chain data will be written to the path you just chose.',
+              reason: 'Bitcoin Core needs to restart for the new data directory to take effect. The new chain data will be written to the path you just chose.',
             ),
           ),
         );

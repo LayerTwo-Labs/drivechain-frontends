@@ -1155,8 +1155,7 @@ class ConsolidateTransparentAction extends StatelessWidget {
                 value: formatter.formatBTC(model.sendAmount),
               ),
               const StaticActionInfo(
-                text:
-                    'This sends all transparent coins to a new address in your wallet, merging them into a single UTXO.',
+                text: 'This sends all transparent coins to a new address in your wallet, merging them into a single UTXO.',
               ),
             ],
           ),
@@ -1275,8 +1274,7 @@ class ConsolidateShieldedAction extends StatelessWidget {
                 value: formatter.formatBTC(model.sendAmount),
               ),
               const StaticActionInfo(
-                text:
-                    'This sends all private coins to a new shielded address in your wallet, merging them into a single note.',
+                text: 'This sends all private coins to a new shielded address in your wallet, merging them into a single note.',
               ),
             ],
           ),

@@ -39,8 +39,7 @@ void main() {
       expect(
         items.where((m) => m.label == 'Hide bitwindow' || m.label == 'Show All'),
         isEmpty,
-        reason:
-            'hide/show-all must not return as menu items — bringing the window back relied on a dock icon that hide() removed',
+        reason: 'hide/show-all must not return as menu items — bringing the window back relied on a dock icon that hide() removed',
       );
     });
   });

@@ -8,10 +8,9 @@ void main() {
     test('parses a list_open_periods_with_pricing entry', () {
       final period = OpenPeriod.fromJson(
         jsonDecode(
-              '{"period_index":21,"cheapest_available_slot_sats":9,"cheapest_available_tier":0,'
-              '"slots_available_by_tier":[30,30,30,30,30]}',
-            )
-            as Map<String, dynamic>,
+          '{"period_index":21,"cheapest_available_slot_sats":9,"cheapest_available_tier":0,'
+          '"slots_available_by_tier":[30,30,30,30,30]}',
+        ) as Map<String, dynamic>,
       );
 
       expect(period.periodIndex, 21);

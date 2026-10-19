@@ -246,8 +246,7 @@ class _TransactionTableState extends State<TransactionTable> {
         return SailCard(
           title: 'Wallet Transaction History',
           error: widget.model.transactionsError,
-          titleTooltip:
-              'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
+          titleTooltip: 'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
           bottomPadding: false,
           widgetHeaderEnd: SailButton(
             label: 'Export CSV',
