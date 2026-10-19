@@ -408,16 +408,22 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         k.derivationPath = '';
       }
     }
-    _pathError = null;
+    _showSelectedPath();
   }
 
   void _selectTab(int index) {
     setState(() {
       _selectedTab = index;
-      _path.text = _keystores[index].derivationPath;
-      _pathError = null;
+      _showSelectedPath();
     });
     unawaited(_loadPathOptions());
+  }
+
+  // Every slot shares one path field, so a slot change must replace its text.
+  void _showSelectedPath() {
+    _pathFocus.unfocus();
+    _path.text = _keystores[_selectedTab].derivationPath;
+    _pathError = null;
   }
 
   // Mutates state and keeps the descriptor field showing the resulting policy,
@@ -478,6 +484,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         _selectedTab = _total - 1;
       }
       _resetPendingPaths();
+      _showSelectedPath();
     });
     await _loadPathOptions();
   }
@@ -493,6 +500,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     }
     if (_selectedTab >= _total) {
       _selectedTab = _total - 1;
+      _showSelectedPath();
     }
   }
 
@@ -632,8 +640,14 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
 
   void _setKeystore(int index, CosignerKeystore k) {
     _update(() {
+      final filledEmptySlot = !_keystores[index].isFilled;
       _keystores[index] = k;
-      if (index == _selectedTab && !_pathFocus.hasFocus) {
+      if (index != _selectedTab) {
+        return;
+      }
+      if (filledEmptySlot) {
+        _showSelectedPath();
+      } else if (!_pathFocus.hasFocus) {
         _path.text = k.derivationPath;
       }
     });
@@ -840,6 +854,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   // and any held seed have to follow.
   Future<void> _onQuorumChanged(int m, int n) async {
     final wasSingle = _isSingle;
+    final slot = _selectedTab;
     _update(() {
       _total = n.clamp(1, _maxCosigners);
       _threshold = m.clamp(1, _total);
@@ -854,8 +869,10 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       }
       _resizeKeystores();
     });
-    if (wasSingle != _isSingle) {
+    if (wasSingle != _isSingle || slot != _selectedTab) {
       await _loadPathOptions();
+    }
+    if (wasSingle != _isSingle) {
       await _rederiveHeldKeystores();
     }
   }
@@ -1024,6 +1041,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         if (_selectedTab >= _total) {
           _selectedTab = _total - 1;
         }
+        _showSelectedPath();
       });
     } catch (e) {
       setState(() => _error = 'Could not parse descriptor: $e');
@@ -1087,8 +1105,11 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
           const SizedBox(height: 24),
           if (k.isFilled)
             _keyDetails(context, _selectedTab, k)
-          else
+          else ...[
+            _derivationRow(context, _selectedTab),
+            const SizedBox(height: 16),
             SizedBox(width: double.infinity, child: _sourcePicker(context, _selectedTab)),
+          ],
         ],
       ),
     );
@@ -1107,6 +1128,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         _scriptType = 'wsh';
         _resetPendingPaths();
       }
+      _showSelectedPath();
     });
     unawaited(_loadPathOptions());
     unawaited(_rederiveHeldKeystores());
@@ -1134,6 +1156,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
           _keystores[i].owner = 'Key ${i + 1}';
         }
       }
+      _showSelectedPath();
     });
     unawaited(_loadPathOptions());
     if (_total == 1) {
