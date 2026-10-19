@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 	"github.com/btcsuite/btcd/btcutil"
@@ -632,6 +633,23 @@ func TestCoreBackendSendFixedFeeSelectsInputsAndChange(t *testing.T) {
 	signs := fake.callsFor("signrawtransactionwithwallet")
 	require.Len(t, signs, 1)
 	assert.Equal(t, builtHex, mustString(t, signs[0].Params[0]))
+}
+
+func TestCoreBackendSendFixedFeeRejectsSubtractFee(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	dest := p2wpkhAddr(t, fixedKey(0x88), &chaincfg.RegressionNetParams)
+
+	_, err := backend.Send(context.Background(), coreID, SendRequest{
+		DestinationsSats:      map[string]int64{dest: 50_000},
+		FixedFeeSats:          1_000,
+		SubtractFeeFromAmount: true,
+	})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	assert.Empty(t, fake.callsFor("createrawtransaction"))
+	assert.Empty(t, fake.callsFor("sendtoaddress"))
 }
 
 func TestCoreBackendSendFixedFeeResolvesRequiredInputValue(t *testing.T) {

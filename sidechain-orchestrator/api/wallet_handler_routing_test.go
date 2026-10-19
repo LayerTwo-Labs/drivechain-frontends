@@ -103,6 +103,28 @@ func TestSendTransactionRoutesPerWalletType(t *testing.T) {
 	assert.Equal(t, coreID, chainFake.lastSendWallet)
 }
 
+func TestSendTransactionRefusesACoreMixedFeeFirst(t *testing.T) {
+	h, elecFake, chainFake, elecID, coreID := newRoutedHandler(t)
+	ctx := context.Background()
+	mixed := func(walletID string) *pb.SendTransactionRequest {
+		return &pb.SendTransactionRequest{
+			WalletId:              walletID,
+			Destinations:          map[string]int64{"addr": 10_000},
+			FixedFeeSats:          500,
+			SubtractFeeFromAmount: true,
+		}
+	}
+
+	_, err := h.SendTransaction(ctx, connect.NewRequest(mixed(coreID)))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	assert.Empty(t, chainFake.lastSendWallet)
+
+	_, err = h.SendTransaction(ctx, connect.NewRequest(mixed(elecID)))
+	require.NoError(t, err)
+	assert.Equal(t, elecID, elecFake.lastSendWallet)
+}
+
 func TestSendTransactionPassesThroughConnectCodes(t *testing.T) {
 	h, elecFake, _, elecID, _ := newRoutedHandler(t)
 
