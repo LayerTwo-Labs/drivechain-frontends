@@ -261,3 +261,39 @@ func TestParseValidatesEntries(t *testing.T) {
 		require.Equal(t, "seed.example.com:8301", c.Networks[0].P2P.Address)
 	})
 }
+
+func TestParseReadsTheReplayLockTime(t *testing.T) {
+	c, err := parse([]byte(`{"schema_version":1,"networks":[
+		{"id":"mainnet","family":"ecash","replay_lock_time":499999998},
+		{"id":"betanet","family":"ecash"}
+	]}`))
+	require.NoError(t, err)
+	require.EqualValues(t, 499999998, c.Networks[0].ReplayLockTimeOrDefault())
+	require.EqualValues(t, 499999999, c.Networks[1].ReplayLockTimeOrDefault())
+}
+
+func TestEmbeddedECashNetworksPublishTheReplayLockTime(t *testing.T) {
+	for _, id := range []string{"betanet", "alphanet"} {
+		n, ok := Embedded().ByID(id)
+		require.True(t, ok, id)
+		require.EqualValues(t, 499999999, n.ReplayLockTime, id)
+	}
+}
+
+// The document drivechain.dev/config served on 2026-10-19 carries no
+// replay_lock_time, so its networks keep the value their nodes accept.
+func TestPublishedCatalogWithoutTheFieldKeepsTheDefault(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("testdata", "published-2026-10-19.json"))
+	require.NoError(t, err)
+	require.NotContains(t, string(raw), "replay_lock_time")
+	c, err := parse(raw)
+	require.NoError(t, err)
+	for _, id := range []string{"alphanet", "betanet"} {
+		n, ok := c.ByID(id)
+		require.True(t, ok, id)
+		require.EqualValues(t, 499999999, n.ReplayLockTimeOrDefault(), id)
+	}
+	live, ok := c.CurrentECash()
+	require.True(t, ok)
+	require.EqualValues(t, 499999999, live.ReplayLockTimeOrDefault())
+}

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
@@ -137,6 +138,42 @@ func TestSplitEngineTrustsTheMagicLocktime(t *testing.T) {
 
 	require.Equal(t, 0, btc.calls["aa:0"])
 	require.Equal(t, map[string]bool{"aa:0": false}, store.statuses)
+}
+
+// A coin stamped with another eCash network's locktime is final on that
+// network's node, so it can replay there and Bitcoin must answer for it.
+func TestSplitEngineTrustsOnlyTheNetworkLocktime(t *testing.T) {
+	tests := []struct {
+		name      string
+		network   uint32
+		stamped   int32
+		wantCalls int
+		wantSplit bool
+	}{
+		{name: "betanet stamp on betanet", network: 499999999, stamped: 499999999},
+		{name: "mainnet stamp on mainnet", network: 499999998, stamped: 499999998},
+		{name: "betanet stamp on mainnet", network: 499999998, stamped: 499999999, wantCalls: 1, wantSplit: true},
+		{name: "mainnet stamp on betanet", network: 499999999, stamped: 499999998, wantCalls: 1, wantSplit: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			previous := config.ECashEndpoints()
+			t.Cleanup(func() { config.SetECashEndpoints(previous) })
+			entry := previous
+			entry.ReplayLockTime = tt.network
+			config.SetECashEndpoints(entry)
+
+			btc := newFakeOutspend()
+			store := &fakeSplitStore{statuses: map[string]bool{}}
+			e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
+			e.local = &fakeLocalChain{locktime: map[string]int32{"aa": tt.stamped}}
+
+			e.tick(context.Background())
+
+			require.Equal(t, tt.wantCalls, btc.calls["aa:0"])
+			require.Equal(t, map[string]bool{"aa:0": tt.wantSplit}, store.statuses)
+		})
+	}
 }
 
 func TestSplitEngineIgnoresAVoidMagicLocktime(t *testing.T) {

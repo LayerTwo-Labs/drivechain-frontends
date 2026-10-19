@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
@@ -380,57 +379,62 @@ func TestElectrumSendBuildsSignsBroadcasts(t *testing.T) {
 // tx is still consensus-spendable (txscript.Engine accepts the wallet input).
 // That only holds if the locktime/sequence are applied BEFORE signing.
 func TestElectrumSendReplayProtect(t *testing.T) {
-	p, fake, w, addr := newElectrumFixture(t)
-	p.svc.SetNetwork("ecash")
-	net := &chaincfg.SigNetParams
-	ctx := context.Background()
+	for _, network := range replayNetworks {
+		t.Run(network.name, func(t *testing.T) {
+			useECashReplayLockTime(t, network.lockTime)
+			p, fake, w, addr := newElectrumFixture(t)
+			p.svc.SetNetwork("ecash")
+			net := &chaincfg.SigNetParams
+			ctx := context.Background()
 
-	const utxoValue = 200_000
-	fake.stats[addr] = EsploraAddressStats{
-		Address:    addr,
-		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: utxoValue, TxCount: 1},
+			const utxoValue = 200_000
+			fake.stats[addr] = EsploraAddressStats{
+				Address:    addr,
+				ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: utxoValue, TxCount: 1},
+			}
+			fake.utxos[addr] = []EsploraUTXO{{
+				TxID: "1111111111111111111111111111111111111111111111111111111111111111",
+				Vout: 0, Value: utxoValue,
+				Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+			}}
+
+			dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+			_, err := p.Send(ctx, w.ID, SendRequest{
+				DestinationsSats: map[string]int64{dest: 50_000},
+				FeeRateSatPerVB:  2,
+			})
+			require.NoError(t, err)
+			require.Len(t, fake.broadcast, 1)
+
+			var tx wire.MsgTx
+			raw, err := hex.DecodeString(fake.broadcast[0])
+			require.NoError(t, err)
+			require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+			// Magic locktime, and a non-final input (else stock Core ignores the
+			// locktime and there is no protection).
+			assert.EqualValues(t, network.lockTime, tx.LockTime)
+			require.Len(t, tx.TxIn, 1)
+			assert.Less(t, tx.TxIn[0].Sequence, uint32(wire.MaxTxInSequenceNum), "input must be non-final")
+
+			// The signature must commit to the replay locktime+sequence: the wallet
+			// input has to validate under full consensus rules.
+			walletAddr, err := btcutil.DecodeAddress(addr, net)
+			require.NoError(t, err)
+			walletScript, err := txscript.PayToAddrScript(walletAddr)
+			require.NoError(t, err)
+
+			prevOuts := txscript.NewMultiPrevOutFetcher(map[wire.OutPoint]*wire.TxOut{
+				tx.TxIn[0].PreviousOutPoint: wire.NewTxOut(utxoValue, walletScript),
+			})
+			sigHashes := txscript.NewTxSigHashes(&tx, prevOuts)
+			require.NotEmpty(t, tx.TxIn[0].Witness, "input must be signed")
+			vm, err := txscript.NewEngine(walletScript, &tx, 0,
+				txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sigHashes, utxoValue, prevOuts)
+			require.NoError(t, err)
+			require.NoError(t, vm.Execute(), "replay-protected tx signature must validate")
+		})
 	}
-	fake.utxos[addr] = []EsploraUTXO{{
-		TxID: "1111111111111111111111111111111111111111111111111111111111111111",
-		Vout: 0, Value: utxoValue,
-		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
-	}}
-
-	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
-	_, err := p.Send(ctx, w.ID, SendRequest{
-		DestinationsSats: map[string]int64{dest: 50_000},
-		FeeRateSatPerVB:  2,
-	})
-	require.NoError(t, err)
-	require.Len(t, fake.broadcast, 1)
-
-	var tx wire.MsgTx
-	raw, err := hex.DecodeString(fake.broadcast[0])
-	require.NoError(t, err)
-	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
-
-	// Magic locktime, and a non-final input (else stock Core ignores the
-	// locktime and there is no protection).
-	assert.EqualValues(t, replay.ReplayLockTime, tx.LockTime)
-	require.Len(t, tx.TxIn, 1)
-	assert.Less(t, tx.TxIn[0].Sequence, uint32(wire.MaxTxInSequenceNum), "input must be non-final")
-
-	// The signature must commit to the replay locktime+sequence: the wallet
-	// input has to validate under full consensus rules.
-	walletAddr, err := btcutil.DecodeAddress(addr, net)
-	require.NoError(t, err)
-	walletScript, err := txscript.PayToAddrScript(walletAddr)
-	require.NoError(t, err)
-
-	prevOuts := txscript.NewMultiPrevOutFetcher(map[wire.OutPoint]*wire.TxOut{
-		tx.TxIn[0].PreviousOutPoint: wire.NewTxOut(utxoValue, walletScript),
-	})
-	sigHashes := txscript.NewTxSigHashes(&tx, prevOuts)
-	require.NotEmpty(t, tx.TxIn[0].Witness, "input must be signed")
-	vm, err := txscript.NewEngine(walletScript, &tx, 0,
-		txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sigHashes, utxoValue, prevOuts)
-	require.NoError(t, err)
-	require.NoError(t, vm.Execute(), "replay-protected tx signature must validate")
 }
 
 // TestElectrumSendAllowReplay proves one send can drop the eCash locktime, so
@@ -2641,46 +2645,51 @@ func TestElectrumTaprootReceivePathUsesBIP86(t *testing.T) {
 // sequences BEFORE it goes out for signatures, so every signature commits to
 // them and the finalized transaction still holds them.
 func TestElectrumCreatePSBTReplayProtect(t *testing.T) {
-	p, fake, w, addr := newElectrumFixture(t)
-	p.svc.SetNetwork("ecash")
-	ctx := context.Background()
+	for _, network := range replayNetworks {
+		t.Run(network.name, func(t *testing.T) {
+			useECashReplayLockTime(t, network.lockTime)
+			p, fake, w, addr := newElectrumFixture(t)
+			p.svc.SetNetwork("ecash")
+			ctx := context.Background()
 
-	fake.stats[addr] = EsploraAddressStats{
-		Address:    addr,
-		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+			fake.stats[addr] = EsploraAddressStats{
+				Address:    addr,
+				ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+			}
+			fake.utxos[addr] = []EsploraUTXO{{
+				TxID: "4444444444444444444444444444444444444444444444444444444444444444",
+				Vout: 0, Value: 200_000,
+				Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+			}}
+
+			req := SendRequest{
+				DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+				FeeRateSatPerVB:  2,
+			}
+
+			unsigned, err := p.CreatePSBT(ctx, w.ID, req)
+			require.NoError(t, err)
+
+			packet, err := decodePSBTBase64(unsigned)
+			require.NoError(t, err)
+			require.Equal(t, network.lockTime, packet.UnsignedTx.LockTime)
+			for _, in := range packet.UnsignedTx.TxIn {
+				require.Less(t, in.Sequence, wire.MaxTxInSequenceNum, "locktime only applies to a non-final input")
+			}
+
+			signed, err := p.SignPSBT(ctx, w.ID, unsigned)
+			require.NoError(t, err)
+			rawHex, err := p.FinalizePSBT(signed)
+			require.NoError(t, err)
+
+			var tx wire.MsgTx
+			raw, err := hex.DecodeString(rawHex)
+			require.NoError(t, err)
+			require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+			require.Equal(t, network.lockTime, tx.LockTime)
+			require.NotEmpty(t, tx.TxIn[0].Witness)
+		})
 	}
-	fake.utxos[addr] = []EsploraUTXO{{
-		TxID: "4444444444444444444444444444444444444444444444444444444444444444",
-		Vout: 0, Value: 200_000,
-		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
-	}}
-
-	req := SendRequest{
-		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
-		FeeRateSatPerVB:  2,
-	}
-
-	unsigned, err := p.CreatePSBT(ctx, w.ID, req)
-	require.NoError(t, err)
-
-	packet, err := decodePSBTBase64(unsigned)
-	require.NoError(t, err)
-	require.Equal(t, replay.ReplayLockTime, packet.UnsignedTx.LockTime)
-	for _, in := range packet.UnsignedTx.TxIn {
-		require.Less(t, in.Sequence, wire.MaxTxInSequenceNum, "locktime only applies to a non-final input")
-	}
-
-	signed, err := p.SignPSBT(ctx, w.ID, unsigned)
-	require.NoError(t, err)
-	rawHex, err := p.FinalizePSBT(signed)
-	require.NoError(t, err)
-
-	var tx wire.MsgTx
-	raw, err := hex.DecodeString(rawHex)
-	require.NoError(t, err)
-	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
-	require.Equal(t, replay.ReplayLockTime, tx.LockTime)
-	require.NotEmpty(t, tx.TxIn[0].Witness)
 }
 
 // Without the flag the PSBT stays a plain transaction.
@@ -2706,7 +2715,7 @@ func TestElectrumCreatePSBTNoReplayProtect(t *testing.T) {
 
 	packet, err := decodePSBTBase64(unsigned)
 	require.NoError(t, err)
-	require.NotEqual(t, replay.ReplayLockTime, packet.UnsignedTx.LockTime)
+	require.Zero(t, packet.UnsignedTx.LockTime)
 }
 
 // A BMM wallet pays itself a change coin every block, so its chain holds a
@@ -3696,59 +3705,64 @@ func TestElectrumReplacementEvictsTheWholeChain(t *testing.T) {
 // A cancel of a bid chain pays the root coin back to the wallet at a fixed fee,
 // and it still carries the replay lock time.
 func TestElectrumChainReplacementKeepsTheLockTime(t *testing.T) {
-	p, fake, w, addr := newElectrumFixture(t)
-	p.svc.SetNetwork("ecash")
-	ctx := context.Background()
+	for _, network := range replayNetworks {
+		t.Run(network.name, func(t *testing.T) {
+			useECashReplayLockTime(t, network.lockTime)
+			p, fake, w, addr := newElectrumFixture(t)
+			p.svc.SetNetwork("ecash")
+			ctx := context.Background()
 
-	const (
-		funding = "4444444444444444444444444444444444444444444444444444444444444444"
-		bid1    = "5555555555555555555555555555555555555555555555555555555555555555"
-		bid2    = "6666666666666666666666666666666666666666666666666666666666666666"
-	)
+			const (
+				funding = "4444444444444444444444444444444444444444444444444444444444444444"
+				bid1    = "5555555555555555555555555555555555555555555555555555555555555555"
+				bid2    = "6666666666666666666666666666666666666666666666666666666666666666"
+			)
 
-	fake.stats[addr] = EsploraAddressStats{
-		Address:    addr,
-		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+			fake.stats[addr] = EsploraAddressStats{
+				Address:    addr,
+				ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+			}
+			fake.utxos[addr] = nil
+			fake.txByID[funding] = EsploraTx{
+				TxID:   funding,
+				Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 200_000}},
+				Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+			}
+			fake.txs[addr] = []EsploraTx{
+				{
+					TxID:   bid1,
+					Vin:    []EsploraVin{{TxID: funding, Vout: 0}},
+					Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 199_000}},
+					Status: EsploraStatus{Confirmed: false},
+				},
+				{
+					TxID:   bid2,
+					Vin:    []EsploraVin{{TxID: bid1, Vout: 0}},
+					Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 198_000}},
+					Status: EsploraStatus{Confirmed: false},
+				},
+			}
+
+			_, err := p.Send(ctx, w.ID, SendRequest{
+				DestinationsSats: map[string]int64{addr: 195_000},
+				FixedFeeSats:     5_000,
+				RequiredInputs:   []RequiredInput{{TxID: funding, Vout: 0}},
+			})
+			require.NoError(t, err)
+			require.Len(t, fake.broadcast, 1)
+
+			raw, err := hex.DecodeString(fake.broadcast[0])
+			require.NoError(t, err)
+			var tx wire.MsgTx
+			require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+			assert.EqualValues(t, network.lockTime, tx.LockTime)
+			require.Len(t, tx.TxIn, 1)
+			assert.Equal(t, funding, tx.TxIn[0].PreviousOutPoint.Hash.String())
+			require.Len(t, tx.TxOut, 1)
+			assert.EqualValues(t, 195_000, tx.TxOut[0].Value)
+		})
 	}
-	fake.utxos[addr] = nil
-	fake.txByID[funding] = EsploraTx{
-		TxID:   funding,
-		Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 200_000}},
-		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
-	}
-	fake.txs[addr] = []EsploraTx{
-		{
-			TxID:   bid1,
-			Vin:    []EsploraVin{{TxID: funding, Vout: 0}},
-			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 199_000}},
-			Status: EsploraStatus{Confirmed: false},
-		},
-		{
-			TxID:   bid2,
-			Vin:    []EsploraVin{{TxID: bid1, Vout: 0}},
-			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 198_000}},
-			Status: EsploraStatus{Confirmed: false},
-		},
-	}
-
-	_, err := p.Send(ctx, w.ID, SendRequest{
-		DestinationsSats: map[string]int64{addr: 195_000},
-		FixedFeeSats:     5_000,
-		RequiredInputs:   []RequiredInput{{TxID: funding, Vout: 0}},
-	})
-	require.NoError(t, err)
-	require.Len(t, fake.broadcast, 1)
-
-	raw, err := hex.DecodeString(fake.broadcast[0])
-	require.NoError(t, err)
-	var tx wire.MsgTx
-	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
-
-	assert.EqualValues(t, replay.ReplayLockTime, tx.LockTime)
-	require.Len(t, tx.TxIn, 1)
-	assert.Equal(t, funding, tx.TxIn[0].PreviousOutPoint.Hash.String())
-	require.Len(t, tx.TxOut, 1)
-	assert.EqualValues(t, 195_000, tx.TxOut[0].Value)
 }
 
 // replacedChain must find the root and walk the whole unconfirmed chain built

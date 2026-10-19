@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/stretchr/testify/require"
@@ -69,7 +69,7 @@ func TestReplayLockTime(t *testing.T) {
 		// input — without the latter the locktime would be ignored.
 		raw, err := node.CoreRPC.GetRawTransaction(ctx, txid)
 		require.NoError(t, err)
-		require.EqualValues(t, replay.ReplayLockTime, raw.Locktime)
+		require.EqualValues(t, netcatalog.DefaultReplayLockTime, raw.Locktime)
 		require.True(t, hasNonFinalInput(raw), "replay tx must have a non-final input")
 
 		require.NoError(t, node.Mine(ctx, t, 1))
@@ -85,7 +85,7 @@ func broadcastProtected(ctx context.Context, t *testing.T, n *testharness.Node, 
 	coreWallet := coreWalletName(ctx, t, n)
 
 	outputs := []map[string]any{{dest: 1.0}}
-	rawHex, err := n.CoreRPC.CreateRawTransaction(ctx, []wallet.RawInput{}, outputs, replay.ReplayLockTime)
+	rawHex, err := n.CoreRPC.CreateRawTransaction(ctx, []wallet.RawInput{}, outputs, netcatalog.DefaultReplayLockTime)
 	require.NoError(t, err)
 
 	// replaceable lowers every funded input below SEQUENCE_FINAL, else the

@@ -162,6 +162,23 @@ func ECashEndpoints() netcatalog.Network {
 	return netcatalog.EmbeddedECash()
 }
 
+// ECashReplayLockTime returns the replay locktime of the live eCash network. It
+// fails while no catalog row for that network is loaded, so a send never takes
+// another network's locktime.
+func ECashReplayLockTime() (uint32, error) {
+	id := ECashNetworkID()
+	ecashMu.RLock()
+	n := ecashEndpoints
+	ecashMu.RUnlock()
+	if n.ID == id {
+		return n.ReplayLockTimeOrDefault(), nil
+	}
+	if n, ok := netcatalog.Embedded().ByID(id); ok {
+		return n.ReplayLockTimeOrDefault(), nil
+	}
+	return 0, fmt.Errorf("the network catalog for %s is not loaded yet, so the replay locktime is unknown", id)
+}
+
 // SetNetworkEndpoints records the entry the catalog publishes for a network.
 // Called once the network catalog is adopted, before anything dials. The
 // compiled-in copy is adopted at startup, so no read falls in a gap.

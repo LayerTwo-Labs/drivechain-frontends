@@ -768,3 +768,48 @@ func TestEveryECashSwitchInTheCatalogRewinds(t *testing.T) {
 		}
 	}
 }
+
+// A switch to an eCash network with another replay locktime takes effect at
+// once: the next send reads the new value, with no restart.
+func TestAdoptECashIDMovesTheReplayLockTime(t *testing.T) {
+	previous := config.ECashEndpoints()
+	t.Cleanup(func() { config.SetECashEndpoints(previous) })
+	o := newTestOrchestrator(t)
+	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 967680},
+		{ID: "gammanet", Family: netcatalog.FamilyECash, ForkHeight: 970000, ReplayLockTime: 499999998},
+	}}, "betanet")
+	require.EqualValues(t, 499999999, liveReplayLockTime(t))
+
+	require.NoError(t, o.AdoptECashID("gammanet"))
+	require.EqualValues(t, 499999998, liveReplayLockTime(t))
+
+	require.NoError(t, o.AdoptECashID("betanet"))
+	require.EqualValues(t, 499999999, liveReplayLockTime(t))
+}
+
+// A refreshed catalog that changes the live network's replay locktime takes
+// effect without a restart.
+func TestAdoptCatalogRowsMovesTheReplayLockTime(t *testing.T) {
+	previous := config.ECashEndpoints()
+	t.Cleanup(func() { config.SetECashEndpoints(previous) })
+	o := newTestOrchestrator(t)
+	o.adoptCatalogRows(netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "gammanet", Family: netcatalog.FamilyECash},
+	}}, "gammanet")
+	require.EqualValues(t, 499999999, liveReplayLockTime(t))
+
+	o.adoptCatalogRows(netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "gammanet", Family: netcatalog.FamilyECash, ReplayLockTime: 499999998},
+	}}, "gammanet")
+	require.EqualValues(t, 499999998, liveReplayLockTime(t))
+}
+
+// liveReplayLockTime reads the live eCash network's replay locktime and fails
+// the test when its catalog row is not loaded.
+func liveReplayLockTime(t *testing.T) uint32 {
+	t.Helper()
+	lockTime, err := config.ECashReplayLockTime()
+	require.NoError(t, err)
+	return lockTime
+}

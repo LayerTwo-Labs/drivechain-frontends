@@ -15,11 +15,11 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	confpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	confrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -205,7 +205,7 @@ func newBurnTestFlow(t *testing.T, args ...string) *burnTestFlow {
 		addresses: []string{burnTestReceiveAddress},
 		preview: &pb.DecodeTransactionResponse{
 			IsPsbt: true, HasFee: true, HasTotalInput: true,
-			Locktime: int32(replay.ReplayLockTime),
+			Locktime: int32(netcatalog.DefaultReplayLockTime),
 			Inputs:   []*pb.TransactionInput{{Sequence: 0xfffffffe}},
 			FeeSats:  452, TotalInputSats: 100010453, TotalOutputSats: 100010001,
 			Outputs: []*pb.TransactionOutput{
@@ -555,6 +555,7 @@ func TestBurnECXRejectsInvalidPreview(t *testing.T) {
 		"foreign output":  func(p *pb.DecodeTransactionResponse) { p.Outputs[2].IsChange = false },
 		"false change":    func(p *pb.DecodeTransactionResponse) { p.Outputs[2].IsMine = false },
 		"no replay stamp": func(p *pb.DecodeTransactionResponse) { p.Locktime = 0 },
+		"other network":   func(p *pb.DecodeTransactionResponse) { p.Locktime = 499999998 },
 		"final input":     func(p *pb.DecodeTransactionResponse) { p.Inputs[0].Sequence = 0xffffffff },
 		"invalid script":  func(p *pb.DecodeTransactionResponse) { p.Outputs[0].ScriptPubkeyHex = "xyz" },
 		"wrong total":     func(p *pb.DecodeTransactionResponse) { p.TotalOutputSats++ },

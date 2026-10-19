@@ -9,6 +9,11 @@ import (
 	"github.com/btcsuite/btcd/wire"
 )
 
+const (
+	betanetLockTime uint32 = 499999999
+	mainnetLockTime uint32 = 499999998
+)
+
 // txWithSequence builds a version-2 tx with a single input at the given sequence.
 func txWithSequence(seq uint32) *wire.MsgTx {
 	tx := wire.NewMsgTx(2)
@@ -21,16 +26,18 @@ func txWithSequence(seq uint32) *wire.MsgTx {
 }
 
 func TestApplyLockTimeSetsMagicLockTime(t *testing.T) {
-	tx := txWithSequence(wire.MaxTxInSequenceNum)
-	ApplyLockTime(tx)
-	if tx.LockTime != ReplayLockTime {
-		t.Fatalf("locktime = %d, want %d", tx.LockTime, ReplayLockTime)
+	for _, lockTime := range []uint32{betanetLockTime, mainnetLockTime} {
+		tx := txWithSequence(wire.MaxTxInSequenceNum)
+		ApplyLockTime(tx, lockTime)
+		if tx.LockTime != lockTime {
+			t.Fatalf("locktime = %d, want %d", tx.LockTime, lockTime)
+		}
 	}
 }
 
 func TestApplyLockTimeMakesFinalInputNonFinal(t *testing.T) {
 	tx := txWithSequence(wire.MaxTxInSequenceNum)
-	ApplyLockTime(tx)
+	ApplyLockTime(tx, betanetLockTime)
 	// A final input would make bitcoind ignore the locktime, defeating the
 	// protection — it must be lowered below SEQUENCE_FINAL.
 	if tx.TxIn[0].Sequence >= wire.MaxTxInSequenceNum {
@@ -41,7 +48,7 @@ func TestApplyLockTimeMakesFinalInputNonFinal(t *testing.T) {
 func TestApplyLockTimeLeavesNonFinalInputAlone(t *testing.T) {
 	const rbf = wire.MaxTxInSequenceNum - 2 // an already non-final sequence
 	tx := txWithSequence(rbf)
-	ApplyLockTime(tx)
+	ApplyLockTime(tx, betanetLockTime)
 	if tx.TxIn[0].Sequence != rbf {
 		t.Fatalf("non-final sequence changed: got %#x, want %#x", tx.TxIn[0].Sequence, rbf)
 	}
@@ -58,32 +65,34 @@ func rawHexOf(t *testing.T, tx *wire.MsgTx) string {
 }
 
 func TestApplyLockTimeHexStampsTheRawTransaction(t *testing.T) {
-	in := rawHexOf(t, txWithSequence(wire.MaxTxInSequenceNum))
+	for _, lockTime := range []uint32{betanetLockTime, mainnetLockTime} {
+		in := rawHexOf(t, txWithSequence(wire.MaxTxInSequenceNum))
 
-	out, err := ApplyLockTimeHex(in)
-	if err != nil {
-		t.Fatalf("ApplyLockTimeHex: %v", err)
-	}
+		out, err := ApplyLockTimeHex(in, lockTime)
+		if err != nil {
+			t.Fatalf("ApplyLockTimeHex: %v", err)
+		}
 
-	raw, err := hex.DecodeString(out)
-	if err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	var tx wire.MsgTx
-	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
-		t.Fatalf("deserialize: %v", err)
-	}
-	if tx.LockTime != ReplayLockTime {
-		t.Fatalf("locktime = %d, want %d", tx.LockTime, ReplayLockTime)
-	}
-	if tx.TxIn[0].Sequence >= wire.MaxTxInSequenceNum {
-		t.Fatal("the input must be non-final, else the locktime does nothing")
+		raw, err := hex.DecodeString(out)
+		if err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		var tx wire.MsgTx
+		if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
+			t.Fatalf("deserialize: %v", err)
+		}
+		if tx.LockTime != lockTime {
+			t.Fatalf("locktime = %d, want %d", tx.LockTime, lockTime)
+		}
+		if tx.TxIn[0].Sequence >= wire.MaxTxInSequenceNum {
+			t.Fatal("the input must be non-final, else the locktime does nothing")
+		}
 	}
 }
 
 func TestApplyLockTimeHexKeepsTheOutputs(t *testing.T) {
 	src := txWithSequence(wire.MaxTxInSequenceNum)
-	out, err := ApplyLockTimeHex(rawHexOf(t, src))
+	out, err := ApplyLockTimeHex(rawHexOf(t, src), betanetLockTime)
 	if err != nil {
 		t.Fatalf("ApplyLockTimeHex: %v", err)
 	}
@@ -106,26 +115,50 @@ func TestApplyLockTimeHexKeepsTheOutputs(t *testing.T) {
 
 func TestApplyLockTimeHexRejectsBadInput(t *testing.T) {
 	for _, in := range []string{"zz", "00"} {
-		if _, err := ApplyLockTimeHex(in); err == nil {
+		if _, err := ApplyLockTimeHex(in, betanetLockTime); err == nil {
 			t.Fatalf("ApplyLockTimeHex(%q) must return an error", in)
 		}
 	}
 }
 
 func TestProtectedNeedsANonFinalInput(t *testing.T) {
-	if Protected(ReplayLockTime, []uint32{wire.MaxTxInSequenceNum}) {
+	if Protected(betanetLockTime, betanetLockTime, []uint32{wire.MaxTxInSequenceNum}) {
 		t.Fatal("a tx with every input final counts as protected")
 	}
-	if !Protected(ReplayLockTime, []uint32{wire.MaxTxInSequenceNum, nonFinalSequence}) {
+	if !Protected(betanetLockTime, betanetLockTime, []uint32{wire.MaxTxInSequenceNum, nonFinalSequence}) {
 		t.Fatal("one non-final input does not count as protected")
 	}
 }
 
 func TestProtectedNeedsTheMagicLocktime(t *testing.T) {
-	if Protected(0, []uint32{nonFinalSequence}) {
+	if Protected(betanetLockTime, 0, []uint32{nonFinalSequence}) {
 		t.Fatal("a plain locktime counts as protected")
 	}
-	if Protected(ReplayLockTime, nil) {
+	if Protected(betanetLockTime, betanetLockTime, nil) {
 		t.Fatal("a tx without inputs counts as protected")
+	}
+}
+
+func TestProtectedNeedsTheNetworkLockTime(t *testing.T) {
+	tests := []struct {
+		name    string
+		network uint32
+		stamped uint32
+		want    bool
+	}{
+		{"betanet stamp on betanet", betanetLockTime, betanetLockTime, true},
+		{"mainnet stamp on mainnet", mainnetLockTime, mainnetLockTime, true},
+		{"betanet stamp on mainnet", mainnetLockTime, betanetLockTime, false},
+		{"mainnet stamp on betanet", betanetLockTime, mainnetLockTime, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := txWithSequence(wire.MaxTxInSequenceNum)
+			ApplyLockTime(tx, tt.stamped)
+			got := Protected(tt.network, tx.LockTime, []uint32{tx.TxIn[0].Sequence})
+			if got != tt.want {
+				t.Fatalf("Protected = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
@@ -566,4 +567,59 @@ func TestPreviewSendBip47OneCoinRefusesWhatTheChangeCannotPay(t *testing.T) {
 		SubtractFeeFromAmount: true,
 	}))
 	require.ErrorContains(t, err, "after the BIP47 notification")
+}
+
+// The notification and the payment both spend real coins, so on eCash both
+// carry the live network's replay locktime.
+func TestSendTransactionBip47StampsTheNetworkLockTime(t *testing.T) {
+	for _, lockTime := range []uint32{499999999, 499999998} {
+		t.Run(fmt.Sprint(lockTime), func(t *testing.T) {
+			previous := config.ECashEndpoints()
+			t.Cleanup(func() { config.SetECashEndpoints(previous) })
+			entry := previous
+			entry.ReplayLockTime = lockTime
+			config.SetECashEndpoints(entry)
+
+			log := zerolog.New(zerolog.NewTestWriter(t))
+			svc := wallet.NewService(t.TempDir(), log)
+			svc.SetNetwork("ecash")
+			require.NoError(t, svc.Init())
+			t.Cleanup(func() { svc.Close() })
+
+			w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
+			require.NoError(t, err)
+
+			net := &chaincfg.SigNetParams
+			addrs, err := wallet.DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 1)
+			require.NoError(t, err)
+
+			chain := newBip47TestChain(t, addrs[0], 500_000, 20)
+			eb := wallet.NewElectrumBackend(svc, chain, wallet.StaticParams(net), log)
+			engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log)
+			h := NewWalletHandler(svc)
+			h.SetEngine(engine)
+			h.SetBip47StateStore(bip47state.NewStore(t.TempDir()))
+
+			recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
+			require.NoError(t, err)
+
+			_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+				WalletId:     w.ID,
+				Destinations: map[string]int64{recipient.Base58(): 50_000},
+			}))
+			require.NoError(t, err)
+			require.Len(t, chain.broadcast, 2)
+
+			for _, broadcast := range chain.broadcast {
+				raw, err := hex.DecodeString(broadcast)
+				require.NoError(t, err)
+				var tx wire.MsgTx
+				require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+				assert.Equal(t, lockTime, tx.LockTime)
+				for _, in := range tx.TxIn {
+					assert.Less(t, in.Sequence, uint32(wire.MaxTxInSequenceNum))
+				}
+			}
+		})
+	}
 }

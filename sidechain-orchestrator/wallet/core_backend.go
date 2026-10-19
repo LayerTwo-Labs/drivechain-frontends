@@ -22,7 +22,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 )
 
@@ -709,7 +709,10 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	// given below SEQUENCE_FINAL so the locktime takes effect.
 	locktime := uint32(0)
 	if protect {
-		locktime = replay.ReplayLockTime
+		var err error
+		if locktime, err = config.ECashReplayLockTime(); err != nil {
+			return "", err
+		}
 	}
 
 	outputs, totalDestinationSats := buildSendOutputs(req)
@@ -1022,7 +1025,10 @@ func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendR
 	locktime := uint32(0)
 	protect := ReplayProtect(p.svc.Network(), req.AllowReplay)
 	if protect {
-		locktime = replay.ReplayLockTime
+		var err error
+		if locktime, err = config.ECashReplayLockTime(); err != nil {
+			return "", err
+		}
 	}
 	if protect || req.Replaceable {
 		// A final input makes Core ignore the replay locktime.

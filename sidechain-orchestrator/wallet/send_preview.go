@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/samber/lo"
@@ -100,7 +100,9 @@ func (p *CoreBackend) PreviewSend(ctx context.Context, walletID string, req Send
 	protect := ReplayProtect(p.svc.Network(), req.AllowReplay)
 	locktime := uint32(0)
 	if protect {
-		locktime = replay.ReplayLockTime
+		if locktime, err = config.ECashReplayLockTime(); err != nil {
+			return nil, err
+		}
 	}
 	outputs, _ := buildSendOutputs(req)
 	inputs := make([]RawInput, 0, len(req.RequiredInputs))

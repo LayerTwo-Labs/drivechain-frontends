@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -68,38 +67,43 @@ func TestCoreBackendCreatePSBTFundsTheOutputs(t *testing.T) {
 }
 
 func TestCoreBackendCreatePSBTReplayProtection(t *testing.T) {
-	cases := map[string]struct {
-		network     string
-		allowReplay bool
-		protected   bool
-	}{
-		"ecash":                 {network: "ecash", protected: true},
-		"ecash allows replay":   {network: "ecash", allowReplay: true},
-		"regtest":               {network: "regtest"},
-		"regtest allows replay": {network: "regtest", allowReplay: true},
-	}
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			backend, fake, coreID := newCoreBackendFixture(t)
-			backend.svc.SetNetwork(tc.network)
-			fake.stubEnsureFlow()
-			calls := stubFundedPSBT(t, fake, nil)
-
-			_, err := backend.CreatePSBT(context.Background(), coreID, SendRequest{
-				DestinationsSats: map[string]int64{p2wpkhAddr(t, fixedKey(0xAA), &chaincfg.RegressionNetParams): 50_000},
-				AllowReplay:      tc.allowReplay,
-			})
-			require.NoError(t, err)
-
-			require.Len(t, *calls, 1)
-			call := (*calls)[0]
-			if tc.protected {
-				assert.Equal(t, replay.ReplayLockTime, call.locktime)
-				assert.Equal(t, true, call.options["replaceable"])
-				return
+	for _, network := range replayNetworks {
+		t.Run(network.name, func(t *testing.T) {
+			useECashReplayLockTime(t, network.lockTime)
+			cases := map[string]struct {
+				network     string
+				allowReplay bool
+				protected   bool
+			}{
+				"ecash":                 {network: "ecash", protected: true},
+				"ecash allows replay":   {network: "ecash", allowReplay: true},
+				"regtest":               {network: "regtest"},
+				"regtest allows replay": {network: "regtest", allowReplay: true},
 			}
-			assert.Zero(t, call.locktime)
-			assert.NotContains(t, call.options, "replaceable")
+			for name, tc := range cases {
+				t.Run(name, func(t *testing.T) {
+					backend, fake, coreID := newCoreBackendFixture(t)
+					backend.svc.SetNetwork(tc.network)
+					fake.stubEnsureFlow()
+					calls := stubFundedPSBT(t, fake, nil)
+
+					_, err := backend.CreatePSBT(context.Background(), coreID, SendRequest{
+						DestinationsSats: map[string]int64{p2wpkhAddr(t, fixedKey(0xAA), &chaincfg.RegressionNetParams): 50_000},
+						AllowReplay:      tc.allowReplay,
+					})
+					require.NoError(t, err)
+
+					require.Len(t, *calls, 1)
+					call := (*calls)[0]
+					if tc.protected {
+						assert.Equal(t, network.lockTime, call.locktime)
+						assert.Equal(t, true, call.options["replaceable"])
+						return
+					}
+					assert.Zero(t, call.locktime)
+					assert.NotContains(t, call.options, "replaceable")
+				})
+			}
 		})
 	}
 }

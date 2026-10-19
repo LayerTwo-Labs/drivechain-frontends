@@ -1,8 +1,9 @@
-// Package replay applies replay protection via a magic nLockTime. A transaction
-// stamped with nLockTime == ReplayLockTime (LOCKTIME_THRESHOLD - 1) is treated
-// as final only by a patched bitcoind; stock Bitcoin Core reads it as a block
-// height ~500 million blocks in the future and rejects it as non-final, so the
-// transaction can never replay onto Bitcoin.
+// Package replay applies replay protection via a magic nLockTime. Each eCash
+// network publishes its own magic value just below LOCKTIME_THRESHOLD. A
+// transaction stamped with it is treated as final only by that network's
+// patched bitcoind; stock Bitcoin Core reads it as a block height ~500 million
+// blocks in the future and rejects it as non-final, so the transaction can
+// never replay onto Bitcoin or onto an eCash network with another value.
 //
 // The locktime is only enforced if at least one input is non-final, so every
 // input's sequence is lowered below SEQUENCE_FINAL. Apply this BEFORE signing —
@@ -17,17 +18,14 @@ import (
 	"github.com/btcsuite/btcd/wire"
 )
 
-// ReplayLockTime is LOCKTIME_THRESHOLD - 1 (500000000 - 1).
-const ReplayLockTime uint32 = 499999999
-
 // nonFinalSequence is SEQUENCE_FINAL - 1: the largest sequence that still lets
 // nLockTime take effect.
 const nonFinalSequence uint32 = wire.MaxTxInSequenceNum - 1
 
-// Protected reports whether the stamp binds: the magic locktime plus at least
-// one non-final input. With every input final, Bitcoin ignores nLockTime.
-func Protected(locktime uint32, sequences []uint32) bool {
-	if locktime != ReplayLockTime {
+// Protected reports whether the stamp binds: the network's magic lockTime plus
+// at least one non-final input. With every input final, Bitcoin ignores nLockTime.
+func Protected(lockTime, txLockTime uint32, sequences []uint32) bool {
+	if txLockTime != lockTime {
 		return false
 	}
 	for _, s := range sequences {
@@ -38,10 +36,10 @@ func Protected(locktime uint32, sequences []uint32) bool {
 	return false
 }
 
-// ApplyLockTime stamps the replay locktime and makes every final input
-// non-final so the locktime is actually enforced. Call it before signing.
-func ApplyLockTime(tx *wire.MsgTx) {
-	tx.LockTime = ReplayLockTime
+// ApplyLockTime stamps lockTime and makes every final input non-final so the
+// locktime is actually enforced. Call it before signing.
+func ApplyLockTime(tx *wire.MsgTx, lockTime uint32) {
+	tx.LockTime = lockTime
 	for _, in := range tx.TxIn {
 		if in.Sequence == wire.MaxTxInSequenceNum {
 			in.Sequence = nonFinalSequence
@@ -49,9 +47,9 @@ func ApplyLockTime(tx *wire.MsgTx) {
 	}
 }
 
-// ApplyLockTimeHex stamps the replay locktime on an unsigned raw transaction
-// and returns the new hex. Call it before signing.
-func ApplyLockTimeHex(rawHex string) (string, error) {
+// ApplyLockTimeHex stamps lockTime on an unsigned raw transaction and returns
+// the new hex. Call it before signing.
+func ApplyLockTimeHex(rawHex string, lockTime uint32) (string, error) {
 	raw, err := hex.DecodeString(rawHex)
 	if err != nil {
 		return "", fmt.Errorf("decode raw transaction: %w", err)
@@ -60,7 +58,7 @@ func ApplyLockTimeHex(rawHex string) (string, error) {
 	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
 		return "", fmt.Errorf("deserialize raw transaction: %w", err)
 	}
-	ApplyLockTime(&tx)
+	ApplyLockTime(&tx, lockTime)
 	var buf bytes.Buffer
 	if err := tx.Serialize(&buf); err != nil {
 		return "", fmt.Errorf("serialize raw transaction: %w", err)

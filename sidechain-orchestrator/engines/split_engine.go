@@ -203,7 +203,11 @@ func (e *SplitEngine) protectedLocally(ctx context.Context, outpoint string) boo
 	for _, in := range raw.Vin {
 		seqs = append(seqs, uint32(in.Sequence))
 	}
-	return replay.Protected(uint32(raw.Locktime), seqs)
+	lockTime, err := config.ECashReplayLockTime()
+	if err != nil {
+		return false
+	}
+	return replay.Protected(lockTime, uint32(raw.Locktime), seqs)
 }
 
 // keepLiveAbsences drops the records of coins the wallet no longer holds, so a

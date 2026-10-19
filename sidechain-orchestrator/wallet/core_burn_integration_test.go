@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
@@ -130,12 +131,14 @@ func TestCoreWalletBurnIntegration(t *testing.T) {
 		}
 
 		protected, raw := build(false)
-		require.EqualValues(t, replay.ReplayLockTime, protected.Locktime)
+		lockTime, err := config.ECashReplayLockTime()
+		require.NoError(t, err)
+		require.EqualValues(t, lockTime, protected.Locktime)
 		sequences := make([]uint32, len(protected.Inputs))
 		for i, in := range protected.Inputs {
 			sequences[i] = uint32(in.Sequence)
 		}
-		require.True(t, replay.Protected(uint32(protected.Locktime), sequences))
+		require.True(t, replay.Protected(lockTime, uint32(protected.Locktime), sequences))
 		_, err = node.CoreRPC.SendRawTransaction(ctx, raw)
 		require.ErrorContains(t, err, "non-final", "stock Core must refuse the replay-protected burn")
 
