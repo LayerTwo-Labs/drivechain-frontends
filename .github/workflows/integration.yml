@@ -236,6 +236,14 @@ jobs:
           tar xzf core.tar.gz
           echo "BITCOIND_STOCK=$PWD/bitcoin-30.2/bin/bitcoind" >> "$GITHUB_ENV"
 
+      # The eCash v1 node takes 499999998 as its replay locktime.
+      - name: Download eCash v1 bitcoind
+        run: |
+          curl -sSL -o ecash.zip https://releases.ecash.com/L1-ecash-bitcoin/mainnet/6e582335d121/L1-ecash-bitcoin-aarch64-apple-darwin.zip
+          echo "dccf7b2a8d551e0cc958b9539fa44a545b4d1caaf03d406c4598cb9252eefe3b  ecash.zip" | shasum -a 256 -c
+          unzip -q ecash.zip -d ecash
+          echo "BITCOIND_ECASH_MAINNET=$PWD/ecash/L1-ecash-bitcoin-31.1.0-6e582335d121-aarch64-apple-darwin/bitcoind" >> "$GITHUB_ENV"
+
       # Fork bitcoind (nLockTime replay patch) is committed at
       # sidechain-orchestrator/testdata/bitcoind-replay (macOS arm64).
       - name: Run replay-protection integration test
