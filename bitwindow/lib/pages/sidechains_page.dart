@@ -2092,14 +2092,54 @@ class _DepositModalState extends State<DepositModal> {
   final TextEditingController amountController = TextEditingController();
   final TextEditingController feeController = TextEditingController();
   late final DepositFeeEstimate depositFee = DepositFeeEstimate(feeController);
+  final FundingWalletBalances fundingBalances = FundingWalletBalances();
 
   bool isLoading = false;
   bool isFetchingAddress = true;
   String? fetchError;
   String? depositError;
   String? selectedWalletId;
+  bool amountFollowsMax = false;
 
   String? get fromWalletId => GetIt.I<WalletReaderProvider>().resolveFundingWalletId(selectedWalletId);
+
+  /// The spendable balance of the funding wallet, or null while unknown.
+  int? get availableSats {
+    final walletId = fromWalletId;
+    return walletId == null ? null : fundingBalances.satsFor(walletId);
+  }
+
+  /// The largest amount the funding wallet can deposit at the current fee.
+  int? get maxAmountSats {
+    final available = availableSats;
+    final fee = double.tryParse(feeController.text);
+    if (available == null || fee == null || available <= btcToSatoshi(fee)) {
+      return null;
+    }
+    return available - btcToSatoshi(fee);
+  }
+
+  String get _maxAmountText {
+    final sats = maxAmountSats;
+    return sats == null ? '' : satoshiToBTC(sats).toStringAsFixed(8);
+  }
+
+  void _useMaxAmount() {
+    amountFollowsMax = true;
+    amountController.text = _maxAmountText;
+  }
+
+  void _followMax() {
+    if (amountFollowsMax) {
+      amountController.text = _maxAmountText;
+    }
+  }
+
+  void _onAmountChanged() {
+    if (amountFollowsMax && amountController.text != _maxAmountText) {
+      amountFollowsMax = false;
+    }
+  }
 
   @override
   void initState() {
@@ -2108,7 +2148,11 @@ class _DepositModalState extends State<DepositModal> {
     unawaited(_setFeeTarget(depositFee.confTarget, keepEdits: true));
     addressController.addListener(_onTextChanged);
     amountController.addListener(_onTextChanged);
+    amountController.addListener(_onAmountChanged);
     feeController.addListener(_onTextChanged);
+    feeController.addListener(_followMax);
+    fundingBalances.addListener(_followMax);
+    GetIt.I<WalletReaderProvider>().addListener(_followMax);
   }
 
   Future<void> _setFeeTarget(int confTarget, {bool keepEdits = false}) async {
@@ -2126,7 +2170,12 @@ class _DepositModalState extends State<DepositModal> {
   void dispose() {
     addressController.removeListener(_onTextChanged);
     amountController.removeListener(_onTextChanged);
+    amountController.removeListener(_onAmountChanged);
     feeController.removeListener(_onTextChanged);
+    feeController.removeListener(_followMax);
+    fundingBalances.removeListener(_followMax);
+    GetIt.I<WalletReaderProvider>().removeListener(_followMax);
+    fundingBalances.dispose();
     addressController.dispose();
     amountController.dispose();
     feeController.dispose();
@@ -2263,12 +2312,17 @@ class _DepositModalState extends State<DepositModal> {
     // fromWalletId resolves against the live wallet list, so rebuild with it —
     // otherwise the dropdown keeps showing a wallet the deposit no longer uses.
     return ListenableBuilder(
-      listenable: GetIt.I<WalletReaderProvider>(),
+      listenable: Listenable.merge([
+        GetIt.I<WalletReaderProvider>(),
+        fundingBalances,
+        GetIt.I<FormatterProvider>(),
+      ]),
       builder: (context, _) => _buildCard(context),
     );
   }
 
   Widget _buildCard(BuildContext context) {
+    final available = availableSats;
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: MediaQuery.of(context).size.width * 0.25,
@@ -2324,6 +2378,15 @@ class _DepositModalState extends State<DepositModal> {
                         label: 'Deposit Amount',
                         controller: amountController,
                         hintText: '0.00',
+                        suffixWidget: available == null
+                            ? null
+                            : SailButton(
+                                label: 'MAX',
+                                variant: ButtonVariant.link,
+                                disabled: maxAmountSats == null,
+                                onPressed: () async => _useMaxAmount(),
+                                padding: EdgeInsets.zero,
+                              ),
                       ),
                     ),
                     UnitDropdown(value: Unit.BTC, onChanged: (_) {}, enabled: false),
@@ -2331,14 +2394,31 @@ class _DepositModalState extends State<DepositModal> {
                       flex: 2,
                       child: FromWalletField(
                         selectedWalletId: fromWalletId,
-                        onChanged: (walletId) => setState(() {
-                          selectedWalletId = walletId;
-                          depositError = null;
-                        }),
+                        balances: fundingBalances,
+                        onChanged: (walletId) {
+                          setState(() {
+                            selectedWalletId = walletId;
+                            depositError = null;
+                          });
+                          _followMax();
+                        },
                       ),
                     ),
                   ],
                 ),
+                if (available != null) ...[
+                  const SailSpacing(SailStyleValues.padding08),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SailText.primary13('Available'),
+                      SailText.primary13(
+                        GetIt.I<FormatterProvider>().formatSats(available),
+                        bold: true,
+                      ),
+                    ],
+                  ),
+                ],
                 const SailSpacing(SailStyleValues.padding08),
                 DepositFeeFields(estimate: depositFee, onTargetChanged: _setFeeTarget),
                 const SailSpacing(SailStyleValues.padding08),
