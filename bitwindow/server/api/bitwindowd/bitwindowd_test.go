@@ -394,7 +394,7 @@ func TestService_CreateDenial(t *testing.T) {
 			Txid:            "abc123",
 			Vout:            0,
 			DelaySeconds:    120,
-			NumHops:         1,
+			NumHops:         2,
 			TargetUtxoSizes: []int64{1000, 2000},
 		}))
 		require.NoError(t, err)
@@ -403,8 +403,8 @@ func TestService_CreateDenial(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, denials, 1)
 		assert.EqualValues(t, int32(120), denials[0].DelayDuration.Seconds())
-		assert.Equal(t, int32(2), denials[0].NumHops)
-		assert.Equal(t, deniability.TargetSizes{1000, 2000}, denials[0].TargetUTXOSizes)
+		assert.Equal(t, int32(3), denials[0].NumHops)
+		assert.Equal(t, deniability.TargetSizes{0, 1000, 2000}, denials[0].TargetUTXOSizes)
 		assert.Nil(t, denials[0].CancelledAt)
 	})
 
