@@ -256,14 +256,14 @@ Future<bool> openECashUpgrade(BuildContext context, [NotificationItem? notice]) 
       return false;
     }
     if (saved.jobId.isNotEmpty && !saved.complete) {
-      return openECashMigration(context, fromId: saved.fromId, toId: saved.toId, initialStatus: saved);
+      return await openECashMigration(context, fromId: saved.fromId, toId: saved.toId, initialStatus: saved);
     }
     pending = await GetIt.I.get<OrchestratorRPC>().getPendingNetworkGeneration();
     if (!context.mounted) {
       return false;
     }
     if (pending.pendingNetworkId.isEmpty && saved.jobId.isNotEmpty) {
-      return openECashMigration(context, fromId: saved.fromId, toId: saved.toId, initialStatus: saved);
+      return await openECashMigration(context, fromId: saved.fromId, toId: saved.toId, initialStatus: saved);
     }
   } catch (e) {
     if (context.mounted) {
