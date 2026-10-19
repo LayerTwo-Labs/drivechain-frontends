@@ -414,6 +414,7 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
           SailTextField(
             controller: viewModel.feeController,
             hintText: 'Fee (in ${viewModel.currentUnit.symbol})',
+            prefix: approximateFeePrefix(viewModel.feeIsEstimate),
             onChanged: (_) => viewModel.clearFeeEstimate(),
             textFieldType: viewModel.currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
             suffixWidget: SailRow(
@@ -603,6 +604,11 @@ class SendPageViewModel extends BaseViewModel {
   List<UnspentOutput> _pricedInputs = const [];
   UnspentOutput? _pricedNotificationInput;
   int _pricedFeeSats = 0;
+  bool _pricedIsEstimate = false;
+
+  /// True when the fee field shows an estimate: a first BIP47 payment from a
+  /// one-coin wallet pays from the notification change, which no preview can price.
+  bool get feeIsEstimate => _pricedIsEstimate && _currentFeePreviewKey() == _pricedKey;
   bool loadingFeeRates = false;
   bool showFeeGraph = false;
 
@@ -780,7 +786,7 @@ class SendPageViewModel extends BaseViewModel {
               availableSats: maxSend.availableSats,
               otherRecipientsSats: btcToSatoshi(sumOtherRecipients),
               paymentFeeSats: maxSend.feeSats,
-              notificationCoinSats: maxSend.notificationCoinSats,
+              notificationKeepBackSats: maxSend.notificationKeepBackSats,
             );
       }
       final available = availableAmount - satoshiToBTC(feeSats);
@@ -1211,7 +1217,7 @@ class SendPageViewModel extends BaseViewModel {
   /// The fee of a send of every coin the recipient at [index] can take, and
   /// the sats those coins hold. The backend prices it with the coins it picks.
   /// Null after an error the page shows.
-  Future<({int feeSats, int availableSats, int notificationCoinSats})?> _maxSendFee(
+  Future<({int feeSats, int availableSats, int notificationKeepBackSats})?> _maxSendFee(
     int index,
     int availableSats,
     int otherSats,
@@ -1221,7 +1227,7 @@ class SendPageViewModel extends BaseViewModel {
       return (
         feeSats: parseAmountToSatoshis(feeController.text.isEmpty ? '0' : feeController.text, currentUnit),
         availableSats: availableSats,
-        notificationCoinSats: 0,
+        notificationKeepBackSats: 0,
       );
     }
     final walletId = _walletReader.activeWalletId;
@@ -1240,14 +1246,10 @@ class SendPageViewModel extends BaseViewModel {
           feeRateSatPerVbyte: rate,
           requiredInputs: selectedUtxos,
         );
-        // Selected coins never fund the notification, so only a send from the
-        // whole wallet has the notification coin inside its balance.
-        final notificationCoinSats = probe.hasNotificationInput() && selectedUtxos.isEmpty
-            ? probe.notificationInput.amountSats.toInt()
-            : 0;
+        final notificationKeepBackSats = notificationKeepBack(probe, coinsSelected: selectedUtxos.isNotEmpty);
         final paymentDestinations = _destinationsWith(
           index: index,
-          sats: availableSats - otherSats - notificationCoinSats,
+          sats: availableSats - otherSats - notificationKeepBackSats,
         );
         if (paymentDestinations == null) {
           setSendError('The wallet has no coins left for the payment after the BIP47 notification.');
@@ -1263,7 +1265,7 @@ class SendPageViewModel extends BaseViewModel {
         return (
           feeSats: preview.feeSats.toInt(),
           availableSats: availableSats,
-          notificationCoinSats: notificationCoinSats,
+          notificationKeepBackSats: notificationKeepBackSats,
         );
       }
       // The electrum backend takes the fee from one destination only, so a send
@@ -1278,7 +1280,7 @@ class SendPageViewModel extends BaseViewModel {
       return (
         feeSats: preview.feeSats.toInt(),
         availableSats: coins.fold(0, (sum, u) => sum + u.valueSats.toInt()),
-        notificationCoinSats: 0,
+        notificationKeepBackSats: 0,
       );
     } catch (error) {
       setSendError('Could not calculate the fee: $error');
@@ -1349,6 +1351,7 @@ class SendPageViewModel extends BaseViewModel {
       _pricedInputs = preview.inputs.map(coin).toList();
       _pricedNotificationInput = preview.hasNotificationInput() ? coin(preview.notificationInput) : null;
       _pricedFeeSats = previewFeeSats(preview);
+      _pricedIsEstimate = preview.feeIsEstimate;
       _setFeeFromSats(_pricedFeeSats);
     } catch (error) {
       if (disposed || key != _feePreviewKey) {
@@ -1362,7 +1365,7 @@ class SendPageViewModel extends BaseViewModel {
   /// False when the fee changed or the preview failed. The page shows why.
   Future<bool> _confirmFeeIsPriced(int shownFeeSats) async {
     final key = _currentFeePreviewKey();
-    if (key == null || (key == _pricedKey && shownFeeSats == _pricedFeeSats)) {
+    if (key == null || (key == _pricedKey && (_pricedIsEstimate || shownFeeSats == _pricedFeeSats))) {
       return true;
     }
     _feePreviewTimer?.cancel();
@@ -1370,6 +1373,9 @@ class SendPageViewModel extends BaseViewModel {
     await _previewFee(key);
     if (_pricedKey != key) {
       return false;
+    }
+    if (_pricedIsEstimate) {
+      return true;
     }
     if (parseAmountToSatoshis(feeController.text, currentUnit) != shownFeeSats) {
       setSendError('The fee changed. Check the new fee and send again.');
