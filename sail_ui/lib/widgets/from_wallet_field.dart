@@ -8,15 +8,61 @@ import 'package:sail_ui/sail_ui.dart';
 // Padding plus chevron that SailDropdownButton draws around its selection.
 const double _dropdownChrome = 45;
 
+/// Confirmed balances, in sats, of the wallets that can fund a transaction.
+class FundingWalletBalances extends ChangeNotifier {
+  final Map<String, int> _sats = {};
+  bool _disposed = false;
+
+  int? satsFor(String walletId) => _sats[walletId];
+
+  Future<void> load(Iterable<String> walletIds) async {
+    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+      return;
+    }
+    final rpc = GetIt.I<OrchestratorRPC>().wallet;
+    final fresh = <String, int>{};
+    for (final walletId in walletIds.toList()) {
+      final int sats;
+      try {
+        sats = (await rpc.getBalance(walletId)).confirmedSats.round();
+      } catch (_) {
+        // One unreadable wallet must not blank the balance of the others.
+        continue;
+      }
+      if (_disposed) {
+        return;
+      }
+      if (_sats[walletId] != sats) {
+        fresh[walletId] = sats;
+      }
+    }
+    if (fresh.isEmpty) {
+      return;
+    }
+    _sats.addAll(fresh);
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}
+
 /// Picks the wallet that funds a transaction. It never changes the active one.
 class WalletPicker extends StatefulWidget {
   final String? selectedWalletId;
   final ValueChanged<String> onChanged;
 
+  /// The balances the picker loads and shows. The picker makes its own when null.
+  final FundingWalletBalances? balances;
+
   const WalletPicker({
     super.key,
     required this.selectedWalletId,
     required this.onChanged,
+    this.balances,
   });
 
   @override
@@ -25,7 +71,7 @@ class WalletPicker extends StatefulWidget {
 
 class _WalletPickerState extends State<WalletPicker> {
   final WalletReaderProvider _walletReader = GetIt.I<WalletReaderProvider>();
-  final Map<String, int> _balanceSats = {};
+  late final FundingWalletBalances _balances = widget.balances ?? FundingWalletBalances();
   Timer? _refreshTimer;
   String _lastWalletIds = '';
 
@@ -41,6 +87,9 @@ class _WalletPickerState extends State<WalletPicker> {
   void dispose() {
     _refreshTimer?.cancel();
     _walletReader.removeListener(_onWalletsChanged);
+    if (widget.balances == null) {
+      _balances.dispose();
+    }
     super.dispose();
   }
 
@@ -55,43 +104,14 @@ class _WalletPickerState extends State<WalletPicker> {
 
   List<WalletData> get _wallets => _walletReader.fundingWallets();
 
-  Future<void> _loadBalances() async {
-    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
-      return;
-    }
-    final rpc = GetIt.I<OrchestratorRPC>().wallet;
-    final fresh = <String, int>{};
-    for (final wallet in _wallets) {
-      final int sats;
-      try {
-        sats = (await rpc.getBalance(wallet.id)).confirmedSats.round();
-      } catch (_) {
-        // One unreadable wallet must not blank the balance of the others.
-        continue;
-      }
-      // The picker went away mid-read, so the rest of the wallets are nobody's
-      // to fetch. Carrying on keeps calling for a widget that is gone.
-      if (!mounted) {
-        return;
-      }
-      if (_balanceSats[wallet.id] != sats) {
-        fresh[wallet.id] = sats;
-      }
-    }
-    if (fresh.isEmpty) {
-      return;
-    }
-    // One rebuild for the whole refresh. A setState per wallet rebuilt the
-    // picker once for every funding wallet, every fifteen seconds.
-    setState(() => _balanceSats.addAll(fresh));
-  }
+  Future<void> _loadBalances() => _balances.load(_wallets.map((w) => w.id));
 
   @override
   Widget build(BuildContext context) {
     final walletReader = _walletReader;
 
     return ListenableBuilder(
-      listenable: walletReader,
+      listenable: Listenable.merge([walletReader, _balances]),
       builder: (context, _) {
         final wallets = _wallets;
         if (wallets.isEmpty) {
@@ -134,10 +154,10 @@ class _WalletPickerState extends State<WalletPicker> {
                             children: [
                               WalletBlobAvatar(gradient: wallet.gradient, size: 20),
                               Flexible(child: SailText.primary13(wallet.name)),
-                              if (_balanceSats[wallet.id] != null)
+                              if (_balances.satsFor(wallet.id) != null)
                                 Flexible(
                                   child: SailText.secondary13(
-                                    formatBitcoin(satoshiToBTC(_balanceSats[wallet.id]!)),
+                                    formatBitcoin(satoshiToBTC(_balances.satsFor(wallet.id)!)),
                                     monospace: true,
                                   ),
                                 ),
@@ -166,12 +186,14 @@ class FromWalletField extends StatelessWidget {
   final String? selectedWalletId;
   final ValueChanged<String> onChanged;
   final String label;
+  final FundingWalletBalances? balances;
 
   const FromWalletField({
     super.key,
     required this.selectedWalletId,
     required this.onChanged,
     this.label = 'From Wallet',
+    this.balances,
   });
 
   @override
@@ -185,7 +207,7 @@ class FromWalletField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary13(label, bold: true),
-        WalletPicker(selectedWalletId: selectedWalletId, onChanged: onChanged),
+        WalletPicker(selectedWalletId: selectedWalletId, onChanged: onChanged, balances: balances),
       ],
     );
   }
