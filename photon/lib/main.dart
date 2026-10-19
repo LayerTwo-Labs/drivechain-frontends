@@ -33,7 +33,7 @@ void main(List<String> args) async {
 
       // If arguments are not empty, this is a sub-window
       if (windowController.arguments.isNotEmpty) {
-        return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
+        return await runMultiWindow(windowController.arguments, log, applicationDir, logFile);
       }
 
       await runMainWindow(log, applicationDir, logFile);
