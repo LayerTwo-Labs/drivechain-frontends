@@ -747,6 +747,10 @@ message PreviewSendResponse {
   int64 notification_fee_sats = 4;
   // The coin the notification spends. Unset when the send publishes none.
   UnspentOutput notification_input = 5;
+  // True when fee_sats and notification_fee_sats are estimates: a first BIP47
+  // payment from a one-coin wallet pays from the notification change, so
+  // inputs and notification_input stay empty.
+  bool fee_is_estimate = 6;
 }
 
 message SetFrozenCoinsRequest {

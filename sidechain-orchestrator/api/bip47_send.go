@@ -212,20 +212,11 @@ func (h *WalletHandler) bip47NotificationCoin(
 	pinned *wallet.RequiredInput,
 	exclude []wallet.RequiredInput,
 ) (wallet.UTXO, int64, error) {
-	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
+	utxos, err := h.unfrozenSpendableCoins(ctx, walletID)
 	if err != nil {
-		return wallet.UTXO{}, 0, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+		return wallet.UTXO{}, 0, err
 	}
-
-	// The pick below becomes a required input, which Core spends as it is
-	// told. A coin the user froze has to leave the list here.
-	frozen, err := h.svc.FrozenCoins(ctx, walletID, lo.Map(utxos, func(u wallet.UTXO, _ int) wallet.Outpoint {
-		return wallet.Outpoint{TxID: u.TxID, Vout: u.Vout, Confirmed: u.Confirmations > 0}
-	}))
-	if err != nil {
-		return wallet.UTXO{}, 0, connect.NewError(connect.CodeInternal, err)
-	}
-	skip := lo.Assign(map[string]bool{}, frozen)
+	skip := map[string]bool{}
 	for _, in := range exclude {
 		skip[(wallet.Outpoint{TxID: in.TxID, Vout: in.Vout}).Key()] = true
 	}
@@ -250,7 +241,7 @@ func (h *WalletHandler) bip47NotificationCoin(
 	// spend the change of the notification.
 	var picked *wallet.UTXO
 	for i, u := range utxos {
-		if !u.Spendable || skip[(wallet.Outpoint{TxID: u.TxID, Vout: u.Vout}).Key()] {
+		if skip[(wallet.Outpoint{TxID: u.TxID, Vout: u.Vout}).Key()] {
 			continue
 		}
 		if pinned != nil && (u.TxID != pinned.TxID || u.Vout != pinned.Vout) {
@@ -272,6 +263,25 @@ func (h *WalletHandler) bip47NotificationCoin(
 	}
 	return wallet.UTXO{}, 0, connect.NewError(connect.CodeFailedPrecondition,
 		fmt.Errorf("no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired))
+}
+
+// unfrozenSpendableCoins lists the wallet coins a send can spend. The
+// notification pick becomes a required input, which Core spends as it is
+// told, so a coin the user froze has to leave the list here.
+func (h *WalletHandler) unfrozenSpendableCoins(ctx context.Context, walletID string) ([]wallet.UTXO, error) {
+	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+	}
+	frozen, err := h.svc.FrozenCoins(ctx, walletID, lo.Map(utxos, func(u wallet.UTXO, _ int) wallet.Outpoint {
+		return wallet.Outpoint{TxID: u.TxID, Vout: u.Vout, Confirmed: u.Confirmations > 0}
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return lo.Filter(utxos, func(u wallet.UTXO, _ int) bool {
+		return u.Spendable && !frozen[(wallet.Outpoint{TxID: u.TxID, Vout: u.Vout}).Key()]
+	}), nil
 }
 
 // bip47NotificationDustSats is the payment to the recipient's notification address.
@@ -379,6 +389,13 @@ func (h *WalletHandler) broadcastBip47Notification(ctx context.Context, walletID
 		// Future sends to this recipient will retry the notification, which is
 		// wasteful but not unsafe.
 		return txid, fmt.Errorf("notification broadcast %s succeeded but state write failed: %w", txid, err)
+	}
+	// The broadcast went around the electrum backend, so its scan still lists
+	// the spent coin. The payment may spend the notification change instead.
+	if w := h.svc.GetWalletByID(walletID); w != nil && w.WalletType == wallet.WalletTypeElectrum {
+		if err := h.engine.RefreshElectrumScan(ctx, walletID); err != nil {
+			return txid, fmt.Errorf("notification broadcast %s succeeded but the wallet scan failed: %w", txid, err)
+		}
 	}
 	return txid, nil
 }
