@@ -147,7 +147,9 @@ port=%d
 	}
 
 	// 3. Start bitcoind.
-	bitcoindCmd := exec.Command(bitcoindBin, "-regtest", fmt.Sprintf("-datadir=%s", bitcoinDataDir), "-daemon=0", "-printtoconsole=0")
+	// The eCash v1 node reads ecash.conf by default, so name the conf the way drivechaind does.
+	bitcoindCmd := exec.Command(bitcoindBin, "-regtest", fmt.Sprintf("-datadir=%s", bitcoinDataDir),
+		fmt.Sprintf("-conf=%s", filepath.Join(bitcoinDataDir, "bitcoin.conf")), "-daemon=0", "-printtoconsole=0")
 	bitcoindCmd.Stdout = nil
 	bitcoindCmd.Stderr = nil
 	if err := bitcoindCmd.Start(); err != nil {

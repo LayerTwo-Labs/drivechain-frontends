@@ -17,16 +17,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestReplayLockTime proves the magic-nLockTime replay protection end to end.
-// A transaction stamped with nLockTime = 499999999 is rejected as non-final by
-// a stock bitcoind but confirmed by a patched bitcoind-replay.
+// TestReplayLockTime proves the magic-nLockTime replay protection end to end,
+// for both locktimes in use. Each node confirms a transaction stamped with its
+// own network's locktime and rejects the other as non-final; stock bitcoind
+// rejects both.
 //
-// It needs two prebuilt binaries, supplied via env:
+// It needs prebuilt binaries, supplied via env:
 //
-//	BITCOIND_STOCK  - an unpatched bitcoind
-//	BITCOIND_REPLAY - bitcoind with the IsFinalTx locktime skip
+//	BITCOIND_STOCK         - an unpatched bitcoind
+//	BITCOIND_REPLAY        - the betanet patch (final at 499999999)
+//	BITCOIND_ECASH_MAINNET - the eCash v1 node (final at 499999998), optional
 //
-// Run: BITCOIND_STOCK=... BITCOIND_REPLAY=... go test -tags integration -run TestReplayLockTime ./...
+// Run: BITCOIND_STOCK=... BITCOIND_REPLAY=... BITCOIND_ECASH_MAINNET=... go test -tags integration -run TestReplayLockTime ./...
 func TestReplayLockTime(t *testing.T) {
 	stock := os.Getenv("BITCOIND_STOCK")
 	replayBin := os.Getenv("BITCOIND_REPLAY")
@@ -34,8 +36,8 @@ func TestReplayLockTime(t *testing.T) {
 		t.Skip("set BITCOIND_STOCK and BITCOIND_REPLAY to run")
 	}
 
-	// Stock bitcoind rejects the replay-protected transaction as non-final, but
-	// a normal send still confirms — proving the wallet and harness work.
+	// Stock bitcoind rejects both stamps as non-final, but a normal send still
+	// confirms — proving the wallet and harness work.
 	t.Run("StockRejects", func(t *testing.T) {
 		node := startFundedNode(t, stock)
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -50,42 +52,67 @@ func TestReplayLockTime(t *testing.T) {
 		require.NoError(t, node.Mine(ctx, t, 1))
 		requireConfirmed(ctx, t, node, normal.Msg.Txid)
 
-		_, err = broadcastProtected(ctx, t, node, dest)
-		require.Error(t, err, "stock bitcoind must reject the replay-protected tx")
-		require.Contains(t, strings.ToLower(err.Error()), "non-final")
+		for _, lockTime := range []uint32{betanetLockTime, ecashMainnetLockTime} {
+			_, err = broadcastProtected(ctx, t, node, dest, lockTime)
+			require.Error(t, err, "stock bitcoind must reject locktime %d", lockTime)
+			require.Contains(t, strings.ToLower(err.Error()), "non-final")
+		}
 	})
 
-	// bitcoind-replay accepts the same replay-protected transaction.
-	t.Run("ReplayConfirms", func(t *testing.T) {
-		node := startFundedNode(t, replayBin)
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-
-		dest := freshAddress(ctx, t, node)
-		txid, err := broadcastProtected(ctx, t, node, dest)
-		require.NoError(t, err, "bitcoind-replay must accept the replay-protected tx")
-
-		// The broadcast tx really carries the magic locktime and a non-final
-		// input — without the latter the locktime would be ignored.
-		raw, err := node.CoreRPC.GetRawTransaction(ctx, txid)
-		require.NoError(t, err)
-		require.EqualValues(t, netcatalog.DefaultReplayLockTime, raw.Locktime)
-		require.True(t, hasNonFinalInput(raw), "replay tx must have a non-final input")
-
-		require.NoError(t, node.Mine(ctx, t, 1))
-		requireConfirmed(ctx, t, node, txid)
+	t.Run("BetanetConfirmsItsLockTime", func(t *testing.T) {
+		requireNodeTakesOnly(t, replayBin, betanetLockTime, ecashMainnetLockTime)
 	})
+
+	t.Run("ECashMainnetConfirmsItsLockTime", func(t *testing.T) {
+		mainnetBin := os.Getenv("BITCOIND_ECASH_MAINNET")
+		if mainnetBin == "" {
+			t.Skip("set BITCOIND_ECASH_MAINNET to run")
+		}
+		requireNodeTakesOnly(t, mainnetBin, ecashMainnetLockTime, betanetLockTime)
+	})
+}
+
+const (
+	betanetLockTime      = netcatalog.DefaultReplayLockTime
+	ecashMainnetLockTime = uint32(499999998)
+)
+
+// requireNodeTakesOnly checks that a patched node rejects the other network's
+// stamp as non-final and confirms its own.
+func requireNodeTakesOnly(t *testing.T, bitcoindBin string, own, other uint32) {
+	t.Helper()
+	node := startFundedNode(t, bitcoindBin)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	dest := freshAddress(ctx, t, node)
+
+	_, err := broadcastProtected(ctx, t, node, dest, other)
+	require.Error(t, err, "the node must reject locktime %d", other)
+	require.Contains(t, strings.ToLower(err.Error()), "non-final")
+
+	txid, err := broadcastProtected(ctx, t, node, dest, own)
+	require.NoError(t, err, "the node must accept locktime %d", own)
+
+	// Without a non-final input the locktime would be ignored.
+	raw, err := node.CoreRPC.GetRawTransaction(ctx, txid)
+	require.NoError(t, err)
+	require.EqualValues(t, own, raw.Locktime)
+	require.True(t, hasNonFinalInput(raw), "replay tx must have a non-final input")
+
+	require.NoError(t, node.Mine(ctx, t, 1))
+	requireConfirmed(ctx, t, node, txid)
 }
 
 // broadcastProtected builds, signs and broadcasts one transaction that carries
 // the magic nLockTime, straight through Core RPC. The wallet request field only
 // drops the stamp, so the raw path is the one way to force it on regtest.
-func broadcastProtected(ctx context.Context, t *testing.T, n *testharness.Node, dest string) (string, error) {
+func broadcastProtected(ctx context.Context, t *testing.T, n *testharness.Node, dest string, lockTime uint32) (string, error) {
 	t.Helper()
 	coreWallet := coreWalletName(ctx, t, n)
 
 	outputs := []map[string]any{{dest: 1.0}}
-	rawHex, err := n.CoreRPC.CreateRawTransaction(ctx, []wallet.RawInput{}, outputs, netcatalog.DefaultReplayLockTime)
+	rawHex, err := n.CoreRPC.CreateRawTransaction(ctx, []wallet.RawInput{}, outputs, lockTime)
 	require.NoError(t, err)
 
 	// replaceable lowers every funded input below SEQUENCE_FINAL, else the
