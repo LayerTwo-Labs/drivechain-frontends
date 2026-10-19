@@ -256,8 +256,7 @@ func TestWithMempoolUTXOsReportsAMempoolFault(t *testing.T) {
 	}
 }
 
-// A wallet can hold a deposit coin as well as a regular one, so both count.
-// A coinbase names no coin a wallet spends.
+// A wallet can hold a regular, a deposit and a coinbase coin, so each counts.
 func TestSpendsNamesEveryCoinAnInputTakes(t *testing.T) {
 	node := &fakeNode{mempool: `[
 	  {"txid":"aa","size":10,"tx":{
@@ -271,8 +270,7 @@ func TestSpendsNamesEveryCoinAnInputTakes(t *testing.T) {
 
 	txs, err := Mempool(context.Background(), node)
 	require.NoError(t, err)
-	require.Len(t, txs[0].Inputs, 2, "a regular input and a deposit both name a coin")
-	assert.Equal(t, MempoolInput{Key: "old:2"}, txs[0].Inputs[0])
+	assert.Equal(t, []MempoolInput{{Key: "old:2"}, {Key: "maintxid:0"}, {Key: "mr:0"}}, txs[0].Inputs)
 }
 
 func TestOurCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
@@ -468,4 +466,48 @@ func TestDeltaIgnoresATransactionWithNoTxid(t *testing.T) {
 
 	assert.Zero(t, DeltaFor(txs, map[string]bool{"mine": true}, nil).CreditSats,
 		"only a node that names its txids can be reconciled")
+}
+
+func TestMempoolSpendOfEachOutpointKind(t *testing.T) {
+	for name, outpoint := range map[string]string{
+		"regular":                 `{"Regular":{"txid":"old","vout":0}}`,
+		"coinbase":                `{"Coinbase":{"txid":"cb","vout":0}}`,
+		"coinbase by merkle root": `{"Coinbase":{"merkle_root":"mr","vout":0}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			coins := `[
+			  {"outpoint":` + outpoint + `,"output":{"address":"mine","content":{"Value":10000}}},
+			  {"outpoint":{"Regular":{"txid":"keep","vout":1}},"output":{"address":"mine","content":{"Value":2000}}}
+			]`
+			node := &fakeNode{
+				addresses: `["mine"]`,
+				utxos:     coins,
+				mempool: `[{"txid":"spend","size":100,"tx":{
+				    "inputs":[[` + outpoint + `,"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]],
+				    "outputs":[
+				      {"address":"theirs","content":{"Value":3000}},
+				      {"address":"mine","content":{"Value":6900}}]}}]`,
+			}
+
+			txs, err := Mempool(context.Background(), node)
+			require.NoError(t, err)
+			ourCoins, err := OurCoins(context.Background(), node)
+			require.NoError(t, err)
+			delta := DeltaFor(txs, map[string]bool{"mine": true}, ourCoins)
+			assert.Equal(t, int64(10000), delta.DebitSats, "the spent coin leaves the balance")
+			assert.Equal(t, int64(6900), delta.CreditSats)
+
+			var rows []map[string]any
+			merged, err := WithMempoolUTXOs(context.Background(), node, json.RawMessage(coins))
+			require.NoError(t, err)
+			require.NoError(t, json.Unmarshal(merged, &rows))
+			keys := make([]string, 0, len(rows))
+			for _, row := range rows {
+				key, ok := outpointKey(mustJSON(t, row))
+				require.True(t, ok)
+				keys = append(keys, key)
+			}
+			assert.ElementsMatch(t, []string{"keep:1", "spend:1"}, keys)
+		})
+	}
 }
