@@ -11,9 +11,13 @@ import 'mocks/rpc_mock_zside.dart';
 class _WalletRPC extends MockZSideRPC {
   List<String> owned = ['a1'];
   int newAddresses = 0;
+  Object? fault;
 
   @override
-  Future<List<String>> getShieldedWalletAddresses() async => owned;
+  Future<List<String>> getShieldedWalletAddresses() async {
+    if (fault != null) throw fault!;
+    return owned;
+  }
 
   @override
   Future<String> getNewShieldedAddress() async {
@@ -55,5 +59,18 @@ void main() {
     await provider.fetch();
     expect(provider.zsideAddress, 'new1');
     expect(rpc.newAddresses, 1);
+  });
+  test('a failed fetch sets the error, and the next fetch clears it', () async {
+    final provider = ZSideProvider();
+    await pumpEventQueue();
+    expect(provider.error, isNull);
+
+    rpc.fault = Exception('node is down');
+    await provider.fetch();
+    expect(provider.error, contains('node is down'));
+
+    rpc.fault = null;
+    await provider.fetch();
+    expect(provider.error, isNull);
   });
 }

@@ -22,6 +22,7 @@ class ZSideProvider extends ChangeNotifier {
   List<ShieldedUTXO> privateTransactions = [];
 
   double sideFee = zsideFee;
+  String? error;
 
   bool _isFetching = false;
 
@@ -73,8 +74,16 @@ class ZSideProvider extends ChangeNotifier {
         sideFee = newSideFee;
         notifyListeners();
       }
-    } catch (error) {
-      // Swallow the error, makes for noisy logs
+      if (error != null) {
+        error = null;
+        notifyListeners();
+      }
+    } catch (err) {
+      final message = 'Could not load the zSide wallet: $err';
+      if (error != message) {
+        error = message;
+        notifyListeners();
+      }
     } finally {
       _isFetching = false;
     }

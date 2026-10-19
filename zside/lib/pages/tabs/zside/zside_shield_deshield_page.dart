@@ -36,6 +36,7 @@ class ZSideShieldDeshieldTabPage extends StatelessWidget {
                             bottomPadding: false,
                             title: 'Transparent UTXOs ${model.unshieldedUTXOs.length}',
                             subtitle: 'View and shield your transparent UTXOs',
+                            error: model.loadError,
                             widgetHeaderEnd: SailToggle(
                               label: 'Hide dust UTXOs',
                               value: model.hideDust,
@@ -60,6 +61,7 @@ class ZSideShieldDeshieldTabPage extends StatelessWidget {
                           SailCard(
                             title: 'Private UTXOs ${model.shieldedUTXOs.length}',
                             subtitle: 'View and deshield your private UTXOs',
+                            error: model.loadError,
                             bottomPadding: false,
                             child: SizedBox(
                               height: 300,
@@ -92,6 +94,7 @@ class ZSideShieldTabViewModel extends BaseViewModel {
   List<UnshieldedUTXO> get unshieldedUTXOs =>
       _zsideProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zsideFee).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zsideProvider.shieldedUTXOs;
+  String? get loadError => _zsideProvider.error;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
