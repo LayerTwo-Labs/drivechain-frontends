@@ -14,7 +14,7 @@ import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';

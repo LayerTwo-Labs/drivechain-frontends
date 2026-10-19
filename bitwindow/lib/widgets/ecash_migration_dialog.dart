@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -381,7 +381,7 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
                 width: 16,
                 height: 16,
                 child: index == current && status.running
-                    ? CircularProgressIndicator(strokeWidth: 1.6, color: colors.primary)
+                    ? SailCircularProgressIndicator(strokeWidth: 1.6, color: colors.primary)
                     : SailSVG.fromAsset(
                         index < current ? SailSVGAsset.circleCheck : SailSVGAsset.circle,
                         color: index < current ? colors.success : colors.textSecondary,

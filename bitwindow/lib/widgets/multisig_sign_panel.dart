@@ -6,7 +6,7 @@ import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:bitwindow/widgets/tx_flow_diagram.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as walletpb;

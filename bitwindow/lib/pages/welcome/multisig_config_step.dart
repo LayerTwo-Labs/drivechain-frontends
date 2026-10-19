@@ -10,7 +10,7 @@ import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:bitwindow/widgets/key_qr_scanner.dart';
 import 'package:bitwindow/widgets/ur_qr_scanner.dart' show urCameraScanSupported;
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;

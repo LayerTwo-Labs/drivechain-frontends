@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:bitwindow/models/burn_ecx_amount.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:url_launcher/url_launcher.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// One number with a label above it and a caption below it.

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:bitwindow/pages/wallet/bump_fee_choices.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/fee_estimation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';

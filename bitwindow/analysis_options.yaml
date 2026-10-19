@@ -45,4 +45,4 @@ plugins:
     path: ../drivechain_lints
     diagnostics:
       avoid_build_methods: true
-      avoid_material_import: true
+      avoid_material_import: error

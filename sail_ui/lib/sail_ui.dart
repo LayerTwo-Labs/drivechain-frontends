@@ -1,5 +1,17 @@
-// Behavioral-only Material symbols apps may use without importing Material.
-export 'package:flutter/material.dart' show SelectionArea;
+// Material symbols with no sail_ui equivalent, so apps need no Material import.
+export 'package:flutter/material.dart'
+    show
+        Colors,
+        Divider,
+        Icons,
+        InkWell,
+        LinearProgressIndicator,
+        Material,
+        MaterialPageRoute,
+        MenuAnchor,
+        MenuStyle,
+        SelectionArea,
+        Tooltip;
 
 export 'config/sidechain_main.dart' hide getLogFile;
 export 'extensions/build_context.dart';

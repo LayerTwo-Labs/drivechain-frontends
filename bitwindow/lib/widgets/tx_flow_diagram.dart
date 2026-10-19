@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// One band in the flow diagram, in satoshis.
