@@ -942,6 +942,9 @@ message GetForkStatusResponse {
   // Name of the fork being counted down to ("Alphanet"), from the published
   // catalog. A rehearsal must never read as the real eCash fork.
   string network_name = 10;
+  // nLockTime the live eCash network's node treats as final. A transaction
+  // that carries it, with a non-final input, cannot replay onto Bitcoin.
+  uint32 replay_lock_time = 11;
 }
 
 message ForkWalletClaim {

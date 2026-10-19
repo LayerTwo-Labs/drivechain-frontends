@@ -242,7 +242,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
       // as one until the decode says otherwise.
       final spendsRisk =
           decoded == null || decoded.details.inputs.any((i) => fork.isReplayRisk('${i.prevTxid}:${i.prevVout}'));
-      final protected = decoded != null && decoded.details.locktime == replayLockTime;
+      final protected = decoded != null && fork.replayLockTime != 0 && decoded.details.locktime == fork.replayLockTime;
       if (spendsRisk && !protected) {
         fork.rememberUnprotectedSend(txid);
       }

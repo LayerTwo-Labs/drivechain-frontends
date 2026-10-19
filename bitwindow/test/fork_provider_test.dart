@@ -1,8 +1,35 @@
 import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+
+import 'test_utils.dart';
+
+class _ForkStatusOrchestrator implements OrchestratorRPC {
+  _ForkStatusOrchestrator(this.status);
+
+  final GetForkStatusResponse status;
+
+  @override
+  Future<GetForkStatusResponse> getForkStatus() async => status;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ECashConf implements BitcoinConfProvider {
+  @override
+  BitcoinNetwork get network => BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+
+  @override
+  bool get drivechainFeaturesAvailable => true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 bwpb.UnspentOutput utxo(String output, {bool? splittable}) {
   final u = bwpb.UnspentOutput(output: output, valueSats: Int64(100));
@@ -25,6 +52,8 @@ WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multis
 wmpb.MultisigInfo policy(int m, int n) => wmpb.MultisigInfo(m: m, n: n);
 
 void main() {
+  _replayLockTimeTests();
+
   _sharedCoinDismissalTests();
 
   _dotFollowsDismissalTests();
@@ -316,5 +345,32 @@ void _sharedCoinDismissalTests() {
     expect(fork.claimCardDismissedFor('a'), isTrue);
     expect(fork.claimCardDismissedFor('b'), isFalse, reason: 'the other wallet keeps its card');
     expect(fork.walletsWithClaims, {'b'});
+  });
+}
+
+void _replayLockTimeTests() {
+  group('replay locktime', () {
+    tearDown(() async {
+      await GetIt.I.reset();
+    });
+
+    for (final lockTime in [499999998, 499999999]) {
+      test('the fork status sets the replay locktime to $lockTime', () async {
+        await GetIt.I.reset();
+        await registerTestDependencies();
+        GetIt.I.registerSingleton<OrchestratorRPC>(
+          _ForkStatusOrchestrator(GetForkStatusResponse(forkHeight: 973728, replayLockTime: lockTime)),
+        );
+        GetIt.I.registerSingleton<BitcoinConfProvider>(_ECashConf());
+
+        final provider = ForkProvider();
+        expect(provider.replayLockTime, 0);
+        await provider.fetch();
+        expect(provider.replayLockTime, lockTime);
+
+        provider.clear();
+        expect(provider.replayLockTime, 0);
+      });
+    }
   });
 }

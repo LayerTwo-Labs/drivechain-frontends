@@ -432,6 +432,12 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 			Utxos:         utxos,
 		}
 	}
+	// The only failure is a catalog row that is not loaded yet; 0 tells the
+	// frontend the locktime is unknown.
+	replayLockTime, err := config.ECashReplayLockTime()
+	if err != nil {
+		replayLockTime = 0
+	}
 	return connect.NewResponse(&pb.GetForkStatusResponse{
 		ForkHeight:      int32(s.ForkHeight),
 		CurrentHeight:   int32(s.CurrentHeight),
@@ -442,6 +448,7 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 		ShowCountdown:   s.ShowCountdown,
 		NetworkName:     s.NetworkName,
 		Claims:          claims,
+		ReplayLockTime:  replayLockTime,
 	}), nil
 }
 

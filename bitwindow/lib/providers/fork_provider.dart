@@ -37,10 +37,6 @@ class WalletClaim {
   });
 }
 
-/// The magic nLockTime a replay-protected transaction carries. A patched node
-/// treats it as final; stock Bitcoin Core rejects it as non-final.
-const int replayLockTime = 499999999;
-
 /// One split draft that waits for signatures, and the coins it spends. A
 /// second split of the same coins would make a conflicting draft.
 class PendingSplit {
@@ -88,6 +84,11 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// Name of the fork being counted down to ("Alphanet"), from the published
   /// catalog. Empty until it resolves.
   String networkName = '';
+
+  /// The magic nLockTime a replay-protected transaction carries on the live
+  /// eCash network. Its node treats it as final; stock Bitcoin Core rejects it
+  /// as non-final. Zero until the fork status resolves.
+  int replayLockTime = 0;
   int currentHeight = 0;
   int currentHeaders = 0;
   int claimBoundary = 0;
@@ -207,6 +208,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     simulated = false;
     forkHeight = 0;
     networkName = '';
+    replayLockTime = 0;
     currentHeight = 0;
     currentHeaders = 0;
     claimBoundary = 0;
@@ -260,6 +262,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
       simulated = s.simulated;
       forkHeight = s.forkHeight;
       networkName = s.networkName;
+      replayLockTime = s.replayLockTime;
       currentHeight = s.currentHeight;
       currentHeaders = s.currentHeaders;
       claimBoundary = s.claimBoundary;

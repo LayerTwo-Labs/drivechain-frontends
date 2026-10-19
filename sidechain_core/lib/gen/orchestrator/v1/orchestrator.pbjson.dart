@@ -1278,6 +1278,7 @@ const GetForkStatusResponse$json = {
     {'1': 'show_countdown', '3': 8, '4': 1, '5': 8, '10': 'showCountdown'},
     {'1': 'claims', '3': 9, '4': 3, '5': 11, '6': '.orchestrator.v1.ForkWalletClaim', '10': 'claims'},
     {'1': 'network_name', '3': 10, '4': 1, '5': 9, '10': 'networkName'},
+    {'1': 'replay_lock_time', '3': 11, '4': 1, '5': 13, '10': 'replayLockTime'},
   ],
   '9': [
     {'1': 3, '2': 4},
@@ -1292,8 +1293,8 @@ final $typed_data.Uint8List getForkStatusResponseDescriptor = $convert.base64Dec
     '1Cb3VuZGFyeRIcCglzaW11bGF0ZWQYBiABKAhSCXNpbXVsYXRlZBIrChJoYXNfZnVuZHNfdG9f'
     'Y2xhaW0YByABKAhSD2hhc0Z1bmRzVG9DbGFpbRIlCg5zaG93X2NvdW50ZG93bhgIIAEoCFINc2'
     'hvd0NvdW50ZG93bhI4CgZjbGFpbXMYCSADKAsyIC5vcmNoZXN0cmF0b3IudjEuRm9ya1dhbGxl'
-    'dENsYWltUgZjbGFpbXMSIQoMbmV0d29ya19uYW1lGAogASgJUgtuZXR3b3JrTmFtZUoECAMQBA'
-    '==');
+    'dENsYWltUgZjbGFpbXMSIQoMbmV0d29ya19uYW1lGAogASgJUgtuZXR3b3JrTmFtZRIoChByZX'
+    'BsYXlfbG9ja190aW1lGAsgASgNUg5yZXBsYXlMb2NrVGltZUoECAMQBA==');
 
 @$core.Deprecated('Use forkWalletClaimDescriptor instead')
 const ForkWalletClaim$json = {

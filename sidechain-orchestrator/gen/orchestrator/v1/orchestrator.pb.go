@@ -4848,9 +4848,12 @@ type GetForkStatusResponse struct {
 	Claims []*ForkWalletClaim `protobuf:"bytes,9,rep,name=claims,proto3" json:"claims,omitempty"`
 	// Name of the fork being counted down to ("Alphanet"), from the published
 	// catalog. A rehearsal must never read as the real eCash fork.
-	NetworkName   string `protobuf:"bytes,10,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	NetworkName string `protobuf:"bytes,10,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`
+	// nLockTime the live eCash network's node treats as final. A transaction
+	// that carries it, with a non-final input, cannot replay onto Bitcoin.
+	ReplayLockTime uint32 `protobuf:"varint,11,opt,name=replay_lock_time,json=replayLockTime,proto3" json:"replay_lock_time,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetForkStatusResponse) Reset() {
@@ -4944,6 +4947,13 @@ func (x *GetForkStatusResponse) GetNetworkName() string {
 		return x.NetworkName
 	}
 	return ""
+}
+
+func (x *GetForkStatusResponse) GetReplayLockTime() uint32 {
+	if x != nil {
+		return x.ReplayLockTime
+	}
+	return 0
 }
 
 type ForkWalletClaim struct {
@@ -6131,7 +6141,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x13CoreRawCallResponse\x12\x1f\n" +
 	"\vresult_json\x18\x01 \x01(\tR\n" +
 	"resultJson\"\x16\n" +
-	"\x14GetForkStatusRequest\"\x84\x03\n" +
+	"\x14GetForkStatusRequest\"\xae\x03\n" +
 	"\x15GetForkStatusResponse\x12\x1f\n" +
 	"\vfork_height\x18\x01 \x01(\x05R\n" +
 	"forkHeight\x12%\n" +
@@ -6143,7 +6153,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0eshow_countdown\x18\b \x01(\bR\rshowCountdown\x128\n" +
 	"\x06claims\x18\t \x03(\v2 .orchestrator.v1.ForkWalletClaimR\x06claims\x12!\n" +
 	"\fnetwork_name\x18\n" +
-	" \x01(\tR\vnetworkNameJ\x04\b\x03\x10\x04\"\xc6\x01\n" +
+	" \x01(\tR\vnetworkName\x12(\n" +
+	"\x10replay_lock_time\x18\v \x01(\rR\x0ereplayLockTimeJ\x04\b\x03\x10\x04\"\xc6\x01\n" +
 	"\x0fForkWalletClaim\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x1f\n" +
 	"\vwallet_name\x18\x02 \x01(\tR\n" +
