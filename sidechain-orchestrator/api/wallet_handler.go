@@ -948,6 +948,11 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	// A BIP47 send reserves an index and can broadcast a notification below.
+	if req.Msg.FixedFeeSats > 0 && req.Msg.SubtractFeeFromAmount && h.walletNeedsL1(walletID) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, wallet.ErrCoreMixedFee)
+	}
+
 	// A required input is spent as it is given, so no lock reaches it. The
 	// set here is the user's alone: a bid raise pins the coin its own bid
 	// holds, and that coin has to stay spendable.

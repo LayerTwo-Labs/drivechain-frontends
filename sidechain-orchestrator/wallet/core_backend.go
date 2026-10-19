@@ -91,6 +91,11 @@ var (
 )
 
 // NewCoreBackend creates the Bitcoin Core wallet backend.
+
+// ErrCoreMixedFee refuses a Core wallet send that names a fixed fee and also
+// subtracts the fee from the amount.
+var ErrCoreMixedFee = errors.New("a Core wallet send takes a fixed fee or subtract-fee-from-amount, not both")
+
 func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zerolog.Logger) *CoreBackend {
 	backend := &CoreBackend{
 		svc:             svc,
@@ -679,6 +684,9 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 
 	if len(req.ExcludedInputs) > 0 {
 		return "", errors.New("a Core wallet send takes no excluded inputs")
+	}
+	if req.FixedFeeSats > 0 && req.SubtractFeeFromAmount {
+		return "", connect.NewError(connect.CodeInvalidArgument, ErrCoreMixedFee)
 	}
 	// External inputs carry no signature, so Core cannot size the fee for them.
 	if len(req.ExternalInputs) > 0 && req.FixedFeeSats <= 0 {
