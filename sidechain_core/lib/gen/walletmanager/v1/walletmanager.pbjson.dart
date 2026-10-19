@@ -1323,6 +1323,7 @@ const PreviewSendResponse$json = {
     {'1': 'inputs', '3': 3, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'inputs'},
     {'1': 'notification_fee_sats', '3': 4, '4': 1, '5': 3, '10': 'notificationFeeSats'},
     {'1': 'notification_input', '3': 5, '4': 1, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'notificationInput'},
+    {'1': 'fee_is_estimate', '3': 6, '4': 1, '5': 8, '10': 'feeIsEstimate'},
   ],
 };
 
@@ -1332,7 +1333,8 @@ final $typed_data.Uint8List previewSendResponseDescriptor = $convert.base64Decod
     'plX3ZieXRlcxgCIAEoA1ILdnNpemVWYnl0ZXMSNwoGaW5wdXRzGAMgAygLMh8ud2FsbGV0bWFu'
     'YWdlci52MS5VbnNwZW50T3V0cHV0UgZpbnB1dHMSMgoVbm90aWZpY2F0aW9uX2ZlZV9zYXRzGA'
     'QgASgDUhNub3RpZmljYXRpb25GZWVTYXRzEk4KEm5vdGlmaWNhdGlvbl9pbnB1dBgFIAEoCzIf'
-    'LndhbGxldG1hbmFnZXIudjEuVW5zcGVudE91dHB1dFIRbm90aWZpY2F0aW9uSW5wdXQ=');
+    'LndhbGxldG1hbmFnZXIudjEuVW5zcGVudE91dHB1dFIRbm90aWZpY2F0aW9uSW5wdXQSJgoPZm'
+    'VlX2lzX2VzdGltYXRlGAYgASgIUg1mZWVJc0VzdGltYXRl');
 
 @$core.Deprecated('Use setFrozenCoinsRequestDescriptor instead')
 const SetFrozenCoinsRequest$json = {

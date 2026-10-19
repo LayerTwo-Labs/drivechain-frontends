@@ -1058,17 +1058,26 @@ func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb
 
 	resp := &pb.PreviewSendResponse{}
 	var excluded []wallet.RequiredInput
+	var notificationCoinSats int64
 	// A first BIP47 payment publishes a notification first. Its coin stays out
-	// of the payment, so the send can pin the coins of both.
+	// of the payment, so the send can pin the coins of both. A wallet with one
+	// coin pays from the notification change, which no preview can pin.
 	if notifies {
+		coins, err := h.unfrozenSpendableCoins(ctx, walletID)
+		if err != nil {
+			return nil, err
+		}
 		coin, feeSats, err := h.bip47NotificationCoin(ctx, walletID, req.Msg.FeeRateSatPerVbyte, nil, requiredInputs)
 		if err != nil {
 			return nil, err
 		}
-		amountSats := int64(math.Round(coin.Amount * 1e8))
+		notificationCoinSats = int64(math.Round(coin.Amount * 1e8))
 		resp.NotificationFeeSats = feeSats
-		resp.NotificationInput = &pb.UnspentOutput{Txid: coin.TxID, Vout: int32(coin.Vout), AmountSats: amountSats}
-		excluded = []wallet.RequiredInput{{TxID: coin.TxID, Vout: coin.Vout, AmountSats: amountSats}}
+		resp.FeeIsEstimate = len(coins) < 2
+		if !resp.FeeIsEstimate {
+			resp.NotificationInput = &pb.UnspentOutput{Txid: coin.TxID, Vout: int32(coin.Vout), AmountSats: notificationCoinSats}
+			excluded = []wallet.RequiredInput{{TxID: coin.TxID, Vout: coin.Vout, AmountSats: notificationCoinSats}}
+		}
 	}
 
 	preview, err := h.engine.Backend().PreviewSend(ctx, walletID, wallet.SendRequest{
@@ -1084,9 +1093,24 @@ func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb
 	}
 	resp.FeeSats = preview.FeeSats
 	resp.VsizeVbytes = preview.VsizeVBytes
-	resp.Inputs = lo.Map(preview.Inputs, func(in wallet.RequiredInput, _ int) *pb.UnspentOutput {
-		return &pb.UnspentOutput{Txid: in.TxID, Vout: int32(in.Vout), AmountSats: in.AmountSats}
-	})
+	// The payment of a one-coin wallet spends the notification change, so the
+	// notification fee and dust leave the coin first.
+	if resp.FeeIsEstimate {
+		changeSats := notificationCoinSats - resp.NotificationFeeSats - bip47NotificationDustSats
+		needSats := lo.Sum(lo.Values(destinations))
+		if !req.Msg.SubtractFeeFromAmount {
+			needSats += preview.FeeSats
+		}
+		if needSats > changeSats {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+				"the payment needs %d sats, but the only coin keeps %d sats after the BIP47 notification", needSats, changeSats))
+		}
+	}
+	if !resp.FeeIsEstimate {
+		resp.Inputs = lo.Map(preview.Inputs, func(in wallet.RequiredInput, _ int) *pb.UnspentOutput {
+			return &pb.UnspentOutput{Txid: in.TxID, Vout: int32(in.Vout), AmountSats: in.AmountSats}
+		})
+	}
 	return connect.NewResponse(resp), nil
 }
 

@@ -18,9 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// smallCoinWallet funds a new Core wallet with previewCoinCount coins of previewCoinSats,
+// smallCoinWallet funds a new Core wallet with count coins of previewCoinSats,
 // and returns its id and an address of the funded wallet.
-func smallCoinWallet(ctx context.Context, t *testing.T, node *testharness.Node) (smallID, fundedAddress string) {
+func smallCoinWallet(ctx context.Context, t *testing.T, node *testharness.Node, count int) (smallID, fundedAddress string) {
 	t.Helper()
 	client := node.WalletClient
 	fundedAddress = node.FundWallet(t)
@@ -43,7 +43,7 @@ func smallCoinWallet(ctx context.Context, t *testing.T, node *testharness.Node) 
 
 	// The wallet hands out a new receive address only after the last one
 	// received coins, so every coin gets its own send and block.
-	for range previewCoinCount {
+	for range count {
 		addr, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{WalletId: smallID}))
 		require.NoError(t, err)
 		_, err = client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
@@ -56,7 +56,7 @@ func smallCoinWallet(ctx context.Context, t *testing.T, node *testharness.Node) 
 	}
 	utxos, err := client.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: smallID}))
 	require.NoError(t, err)
-	require.Len(t, utxos.Msg.Utxos, previewCoinCount)
+	require.Len(t, utxos.Msg.Utxos, count)
 
 	return smallID, fundedAddress
 }
@@ -78,7 +78,7 @@ func TestPreviewSendMatchesTheBroadcast(t *testing.T) {
 	defer cancel()
 	client := node.WalletClient
 
-	smallID, fundedAddress := smallCoinWallet(ctx, t, node)
+	smallID, fundedAddress := smallCoinWallet(ctx, t, node, previewCoinCount)
 
 	send := map[string]int64{fundedAddress: 20 * previewCoinSats}
 	const rate = 2
@@ -123,7 +123,7 @@ func TestPreviewSendPricesTheBip47Notification(t *testing.T) {
 	defer cancel()
 	client := node.WalletClient
 
-	smallID, _ := smallCoinWallet(ctx, t, node)
+	smallID, _ := smallCoinWallet(ctx, t, node, previewCoinCount)
 	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), &chaincfg.RegressionNetParams)
 	require.NoError(t, err)
 	send := map[string]int64{recipient.Base58(): 5 * previewCoinSats}
@@ -163,4 +163,55 @@ func TestPreviewSendPricesTheBip47Notification(t *testing.T) {
 	}
 	assert.Equal(t, preview.Msg.NotificationFeeSats, fee(notificationTxid))
 	assert.Equal(t, preview.Msg.FeeSats, fee(sent.Msg.Txid))
+}
+
+// TestPreviewSendBip47OneCoinSendsBoth previews a first payment to a payment
+// code from a one-coin wallet. The payment spends the notification change, so
+// the preview is an estimate, and both transactions reach the mempool.
+func TestPreviewSendBip47OneCoinSendsBoth(t *testing.T) {
+	h := testharness.New(t, 1)
+	defer h.Close()
+
+	node := h.Nodes[0]
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	client := node.WalletClient
+
+	smallID, _ := smallCoinWallet(ctx, t, node, 1)
+	utxos, err := client.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: smallID}))
+	require.NoError(t, err)
+	coin := utxos.Msg.Utxos[0]
+
+	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), &chaincfg.RegressionNetParams)
+	require.NoError(t, err)
+	send := map[string]int64{recipient.Base58(): previewCoinSats / 2}
+
+	const rate = 2
+	preview, err := client.PreviewSend(ctx, connect.NewRequest(&pb.PreviewSendRequest{
+		WalletId:           smallID,
+		Destinations:       send,
+		FeeRateSatPerVbyte: rate,
+	}))
+	require.NoError(t, err)
+	assert.True(t, preview.Msg.FeeIsEstimate)
+	assert.Positive(t, preview.Msg.FeeSats)
+	assert.Positive(t, preview.Msg.NotificationFeeSats)
+	assert.Empty(t, preview.Msg.Inputs)
+	assert.Nil(t, preview.Msg.NotificationInput)
+
+	sent, err := client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+		WalletId:           smallID,
+		Destinations:       send,
+		FeeRateSatPerVbyte: rate,
+	}))
+	require.NoError(t, err)
+
+	notificationTxid, err := node.CoreRPC.TxSpendingPrevout(ctx, coin.Txid, int(coin.Vout))
+	require.NoError(t, err)
+	require.NotEmpty(t, notificationTxid, "the notification spends the only coin")
+	require.NotEqual(t, sent.Msg.Txid, notificationTxid)
+	for _, txid := range []string{notificationTxid, sent.Msg.Txid} {
+		_, err := node.CoreRPC.GetMempoolEntry(ctx, txid)
+		require.NoError(t, err, "transaction %s is in the mempool", txid)
+	}
 }

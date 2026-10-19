@@ -5522,6 +5522,7 @@ class PreviewSendResponse extends $pb.GeneratedMessage {
     $core.Iterable<UnspentOutput>? inputs,
     $fixnum.Int64? notificationFeeSats,
     UnspentOutput? notificationInput,
+    $core.bool? feeIsEstimate,
   }) {
     final $result = create();
     if (feeSats != null) {
@@ -5539,6 +5540,9 @@ class PreviewSendResponse extends $pb.GeneratedMessage {
     if (notificationInput != null) {
       $result.notificationInput = notificationInput;
     }
+    if (feeIsEstimate != null) {
+      $result.feeIsEstimate = feeIsEstimate;
+    }
     return $result;
   }
   PreviewSendResponse._() : super();
@@ -5551,6 +5555,7 @@ class PreviewSendResponse extends $pb.GeneratedMessage {
     ..pc<UnspentOutput>(3, _omitFieldNames ? '' : 'inputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
     ..aInt64(4, _omitFieldNames ? '' : 'notificationFeeSats')
     ..aOM<UnspentOutput>(5, _omitFieldNames ? '' : 'notificationInput', subBuilder: UnspentOutput.create)
+    ..aOB(6, _omitFieldNames ? '' : 'feeIsEstimate')
     ..hasRequiredFields = false
   ;
 
@@ -5620,6 +5625,18 @@ class PreviewSendResponse extends $pb.GeneratedMessage {
   void clearNotificationInput() => clearField(5);
   @$pb.TagNumber(5)
   UnspentOutput ensureNotificationInput() => $_ensure(4);
+
+  /// True when fee_sats and notification_fee_sats are estimates: a first BIP47
+  /// payment from a one-coin wallet pays from the notification change, so
+  /// inputs and notification_input stay empty.
+  @$pb.TagNumber(6)
+  $core.bool get feeIsEstimate => $_getBF(5);
+  @$pb.TagNumber(6)
+  set feeIsEstimate($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFeeIsEstimate() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFeeIsEstimate() => clearField(6);
 }
 
 class SetFrozenCoinsRequest extends $pb.GeneratedMessage {

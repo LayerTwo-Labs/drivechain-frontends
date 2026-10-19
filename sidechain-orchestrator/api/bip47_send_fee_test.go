@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -26,31 +27,54 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
 
-// bip47TestChain funds one address and records every broadcast, so a
-// handler-level test can drive the real electrum backend with no REST server.
+// bip47TestChain is a small chain for handler tests: it funds one address,
+// refuses a broadcast that spends a coin it does not hold, and adds the
+// outputs of every broadcast as unconfirmed coins.
 type bip47TestChain struct {
 	addr      string
 	amount    int64
 	txid      string
-	rawHex    string
-	more      []bip47TestCoin
+	coinList  []bip47TestCoin
+	txs       map[string]*wire.MsgTx
 	feeRate   float64
 	feeErr    error
 	broadcast []string
 }
 
-// bip47TestCoin is one more coin on the funded address.
+// bip47TestCoin is one unspent output of the chain.
 type bip47TestCoin struct {
-	amount int64
-	txid   string
-	rawHex string
+	txid      string
+	vout      int
+	addr      string
+	amount    int64
+	confirmed bool
 }
 
-func (c *bip47TestChain) coins() []bip47TestCoin {
-	return append([]bip47TestCoin{{amount: c.amount, txid: c.txid, rawHex: c.rawHex}}, c.more...)
+func (c *bip47TestChain) coinsOf(addr string) []bip47TestCoin {
+	return lo.Filter(c.coinList, func(coin bip47TestCoin, _ int) bool { return coin.addr == addr })
 }
 
-// addCoin funds the address with one more coin.
+func outputAddress(out *wire.TxOut) string {
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.SigNetParams)
+	if err != nil || len(addrs) != 1 {
+		return ""
+	}
+	return addrs[0].EncodeAddress()
+}
+
+// record keeps tx and adds its outputs as coins.
+func (c *bip47TestChain) record(tx *wire.MsgTx, confirmed bool) string {
+	txid := tx.TxHash().String()
+	c.txs[txid] = tx
+	for vout, out := range tx.TxOut {
+		if addr := outputAddress(out); addr != "" {
+			c.coinList = append(c.coinList, bip47TestCoin{txid: txid, vout: vout, addr: addr, amount: out.Value, confirmed: confirmed})
+		}
+	}
+	return txid
+}
+
+// addCoin funds the address with one more confirmed coin.
 func (c *bip47TestChain) addCoin(t *testing.T, amount int64) {
 	t.Helper()
 	decoded, err := btcutil.DecodeAddress(c.addr, &chaincfg.SigNetParams)
@@ -58,18 +82,13 @@ func (c *bip47TestChain) addCoin(t *testing.T, amount int64) {
 	script, err := txscript.PayToAddrScript(decoded)
 	require.NoError(t, err)
 	funding := wire.NewMsgTx(2)
-	funding.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{byte(2 + len(c.more))}, 0), nil, nil))
+	funding.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{byte(1 + len(c.txs))}, 0), nil, nil))
 	funding.AddTxOut(wire.NewTxOut(amount, script))
-	var buf bytes.Buffer
-	require.NoError(t, funding.Serialize(&buf))
-	c.more = append(c.more, bip47TestCoin{amount: amount, txid: funding.TxHash().String(), rawHex: hex.EncodeToString(buf.Bytes())})
+	c.record(funding, true)
 }
 
 func (c *bip47TestChain) AddressStats(_ context.Context, a string) (wallet.EsploraAddressStats, error) {
-	if a != c.addr {
-		return wallet.EsploraAddressStats{Address: a}, nil
-	}
-	coins := c.coins()
+	coins := c.coinsOf(a)
 	return wallet.EsploraAddressStats{
 		Address: a,
 		ChainStats: wallet.EsploraTxoStats{
@@ -81,14 +100,12 @@ func (c *bip47TestChain) AddressStats(_ context.Context, a string) (wallet.Esplo
 }
 
 func (c *bip47TestChain) AddressUTXOs(_ context.Context, a string) ([]wallet.EsploraUTXO, error) {
-	if a != c.addr {
-		return nil, nil
-	}
-	return lo.Map(c.coins(), func(coin bip47TestCoin, _ int) wallet.EsploraUTXO {
-		return wallet.EsploraUTXO{
-			TxID: coin.txid, Vout: 0, Value: coin.amount,
-			Status: wallet.EsploraStatus{Confirmed: true, BlockHeight: 100},
+	return lo.Map(c.coinsOf(a), func(coin bip47TestCoin, _ int) wallet.EsploraUTXO {
+		status := wallet.EsploraStatus{}
+		if coin.confirmed {
+			status = wallet.EsploraStatus{Confirmed: true, BlockHeight: 100}
 		}
+		return wallet.EsploraUTXO{TxID: coin.txid, Vout: coin.vout, Value: coin.amount, Status: status}
 	}), nil
 }
 
@@ -97,45 +114,41 @@ func (c *bip47TestChain) AddressTxs(context.Context, string) ([]wallet.EsploraTx
 }
 
 func (c *bip47TestChain) Tx(_ context.Context, txid string) (wallet.EsploraTx, error) {
-	coin, ok := lo.Find(c.coins(), func(coin bip47TestCoin) bool { return coin.txid == txid })
+	tx, ok := c.txs[txid]
 	if !ok {
 		return wallet.EsploraTx{}, errors.New("tx not found")
 	}
 	return wallet.EsploraTx{
-		TxID:   txid,
-		Vout:   []wallet.EsploraVout{{Value: coin.amount, ScriptPubKeyAddress: c.addr}},
+		TxID: txid,
+		Vout: lo.Map(tx.TxOut, func(out *wire.TxOut, _ int) wallet.EsploraVout {
+			return wallet.EsploraVout{Value: out.Value, ScriptPubKeyAddress: outputAddress(out)}
+		}),
 		Status: wallet.EsploraStatus{Confirmed: true, BlockHeight: 100},
 	}, nil
 }
 
 func (c *bip47TestChain) TxHex(_ context.Context, txid string) (string, error) {
-	coin, ok := lo.Find(c.coins(), func(coin bip47TestCoin) bool { return coin.txid == txid })
+	tx, ok := c.txs[txid]
 	if !ok {
 		return "", errors.New("tx hex not found")
 	}
-	return coin.rawHex, nil
+	var buf bytes.Buffer
+	if err := tx.Serialize(&buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf.Bytes()), nil
 }
 
 func newBip47TestChain(t *testing.T, addr string, amount int64, feeRate float64) *bip47TestChain {
 	t.Helper()
-	decoded, err := btcutil.DecodeAddress(addr, &chaincfg.SigNetParams)
-	require.NoError(t, err)
-	script, err := txscript.PayToAddrScript(decoded)
-	require.NoError(t, err)
-	funding := wire.NewMsgTx(2)
-	funding.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{1}, 0), nil, nil))
-	funding.AddTxOut(wire.NewTxOut(amount, script))
-	var buf bytes.Buffer
-	require.NoError(t, funding.Serialize(&buf))
-	return &bip47TestChain{
-		addr:    addr,
-		amount:  amount,
-		txid:    funding.TxHash().String(),
-		rawHex:  hex.EncodeToString(buf.Bytes()),
-		feeRate: feeRate,
-	}
+	c := &bip47TestChain{addr: addr, amount: amount, txs: map[string]*wire.MsgTx{}, feeRate: feeRate}
+	c.addCoin(t, amount)
+	c.txid = c.coinList[0].txid
+	return c
 }
 
+// Broadcast refuses a transaction that spends a coin the chain does not hold,
+// as a real server refuses a conflict.
 func (c *bip47TestChain) Broadcast(_ context.Context, rawHex string) (string, error) {
 	raw, err := hex.DecodeString(rawHex)
 	if err != nil {
@@ -145,8 +158,18 @@ func (c *bip47TestChain) Broadcast(_ context.Context, rawHex string) (string, er
 	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
 		return "", err
 	}
+	for _, in := range tx.TxIn {
+		op := in.PreviousOutPoint
+		_, idx, ok := lo.FindIndexOf(c.coinList, func(coin bip47TestCoin) bool {
+			return coin.txid == op.Hash.String() && coin.vout == int(op.Index)
+		})
+		if !ok {
+			return "", fmt.Errorf("input %s is spent or unknown", op)
+		}
+		c.coinList = append(c.coinList[:idx], c.coinList[idx+1:]...)
+	}
 	c.broadcast = append(c.broadcast, rawHex)
-	return tx.TxHash().String(), nil
+	return c.record(&tx, false), nil
 }
 
 func (c *bip47TestChain) TipHeight(context.Context) (int, error) { return 110, nil }
@@ -352,6 +375,7 @@ func TestPreviewSendBip47PricesTheNotification(t *testing.T) {
 	}
 
 	first := preview()
+	assert.False(t, first.FeeIsEstimate, "two coins give an exact fee")
 	require.NotNil(t, first.NotificationInput)
 	assert.Equal(t, int64(300_000), first.NotificationInput.AmountSats, "the notification takes the smallest coin")
 	assert.Equal(t, bip47send.EstimateNotificationFee(rate), first.NotificationFeeSats)
@@ -374,7 +398,12 @@ func TestPreviewSendBip47PricesTheNotification(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, chain.broadcast, 2, "the notification and the payment both go out")
 
-	amounts := lo.SliceToMap(chain.coins(), func(c bip47TestCoin) (string, int64) { return c.txid, c.amount })
+	amounts := map[string]int64{chain.txid: 500_000}
+	for txid, tx := range chain.txs {
+		if len(tx.TxOut) == 1 && tx.TxOut[0].Value == 300_000 {
+			amounts[txid] = 300_000
+		}
+	}
 	paid := func(rawHex string) (string, int64) {
 		raw, err := hex.DecodeString(rawHex)
 		require.NoError(t, err)
@@ -450,4 +479,91 @@ func TestPreviewSendBip47ReservesNoIndex(t *testing.T) {
 	state, err = store.GetState(w.ID, code)
 	require.NoError(t, err)
 	assert.Zero(t, state.NextSendIndex, "a preview reserves no index")
+}
+
+// A first payment from a one-coin wallet pays from the notification change,
+// so the preview gives an estimate and pins no coin, and the send still goes out.
+func TestPreviewSendBip47OneCoinGivesAnEstimate(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	svc := wallet.NewService(t.TempDir(), log)
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	t.Cleanup(func() { svc.Close() })
+
+	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	net := &chaincfg.SigNetParams
+	addrs, err := wallet.DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 1)
+	require.NoError(t, err)
+
+	chain := newBip47TestChain(t, addrs[0], 500_000, 5)
+	eb := wallet.NewElectrumBackend(svc, chain, wallet.StaticParams(net), log)
+	engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log)
+	store := bip47state.NewStore(t.TempDir())
+	h := NewWalletHandler(svc)
+	h.SetEngine(engine)
+	h.SetBip47StateStore(store)
+
+	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
+	require.NoError(t, err)
+	code := recipient.Base58()
+	const rate = 5
+
+	resp, err := h.PreviewSend(context.Background(), connect.NewRequest(&pb.PreviewSendRequest{
+		WalletId:           w.ID,
+		Destinations:       map[string]int64{code: 50_000},
+		FeeRateSatPerVbyte: rate,
+	}))
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.FeeIsEstimate)
+	assert.Positive(t, resp.Msg.FeeSats)
+	assert.Equal(t, bip47send.EstimateNotificationFee(rate), resp.Msg.NotificationFeeSats)
+	assert.Empty(t, resp.Msg.Inputs, "the payment coin does not exist before the notification")
+	assert.Nil(t, resp.Msg.NotificationInput)
+	assert.Empty(t, chain.broadcast)
+
+	_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+		WalletId:           w.ID,
+		Destinations:       map[string]int64{code: 50_000},
+		FeeRateSatPerVbyte: rate,
+	}))
+	require.NoError(t, err)
+	assert.Len(t, chain.broadcast, 2, "the notification and the payment both go out")
+}
+
+// The notification of a one-coin wallet takes its fee and dust from the coin
+// first, so a payment that needs the whole coin must not pass the preview.
+func TestPreviewSendBip47OneCoinRefusesWhatTheChangeCannotPay(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	svc := wallet.NewService(t.TempDir(), log)
+	svc.SetNetwork("signet")
+	require.NoError(t, svc.Init())
+	t.Cleanup(func() { svc.Close() })
+
+	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	net := &chaincfg.SigNetParams
+	addrs, err := wallet.DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 1)
+	require.NoError(t, err)
+
+	const coinSats = 500_000
+	chain := newBip47TestChain(t, addrs[0], coinSats, 5)
+	eb := wallet.NewElectrumBackend(svc, chain, wallet.StaticParams(net), log)
+	engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log)
+	h := NewWalletHandler(svc)
+	h.SetEngine(engine)
+	h.SetBip47StateStore(bip47state.NewStore(t.TempDir()))
+
+	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
+	require.NoError(t, err)
+
+	_, err = h.PreviewSend(context.Background(), connect.NewRequest(&pb.PreviewSendRequest{
+		WalletId:              w.ID,
+		Destinations:          map[string]int64{recipient.Base58(): coinSats},
+		FeeRateSatPerVbyte:    5,
+		SubtractFeeFromAmount: true,
+	}))
+	require.ErrorContains(t, err, "after the BIP47 notification")
 }

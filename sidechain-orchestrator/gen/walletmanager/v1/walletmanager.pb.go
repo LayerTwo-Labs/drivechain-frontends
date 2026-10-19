@@ -4856,8 +4856,12 @@ type PreviewSendResponse struct {
 	NotificationFeeSats int64 `protobuf:"varint,4,opt,name=notification_fee_sats,json=notificationFeeSats,proto3" json:"notification_fee_sats,omitempty"`
 	// The coin the notification spends. Unset when the send publishes none.
 	NotificationInput *UnspentOutput `protobuf:"bytes,5,opt,name=notification_input,json=notificationInput,proto3" json:"notification_input,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// True when fee_sats and notification_fee_sats are estimates: a first BIP47
+	// payment from a one-coin wallet pays from the notification change, so
+	// inputs and notification_input stay empty.
+	FeeIsEstimate bool `protobuf:"varint,6,opt,name=fee_is_estimate,json=feeIsEstimate,proto3" json:"fee_is_estimate,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PreviewSendResponse) Reset() {
@@ -4923,6 +4927,13 @@ func (x *PreviewSendResponse) GetNotificationInput() *UnspentOutput {
 		return x.NotificationInput
 	}
 	return nil
+}
+
+func (x *PreviewSendResponse) GetFeeIsEstimate() bool {
+	if x != nil {
+		return x.FeeIsEstimate
+	}
+	return false
 }
 
 type SetFrozenCoinsRequest struct {
@@ -11026,13 +11037,14 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\fallow_replay\x18\x06 \x01(\bR\vallowReplay\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\x90\x02\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\xb8\x02\n" +
 	"\x13PreviewSendResponse\x12\x19\n" +
 	"\bfee_sats\x18\x01 \x01(\x03R\afeeSats\x12!\n" +
 	"\fvsize_vbytes\x18\x02 \x01(\x03R\vvsizeVbytes\x127\n" +
 	"\x06inputs\x18\x03 \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x06inputs\x122\n" +
 	"\x15notification_fee_sats\x18\x04 \x01(\x03R\x13notificationFeeSats\x12N\n" +
-	"\x12notification_input\x18\x05 \x01(\v2\x1f.walletmanager.v1.UnspentOutputR\x11notificationInput\"W\n" +
+	"\x12notification_input\x18\x05 \x01(\v2\x1f.walletmanager.v1.UnspentOutputR\x11notificationInput\x12&\n" +
+	"\x0ffee_is_estimate\x18\x06 \x01(\bR\rfeeIsEstimate\"W\n" +
 	"\x15SetFrozenCoinsRequest\x12>\n" +
 	"\toutpoints\x18\x01 \x03(\v2 .walletmanager.v1.FrozenOutpointR\toutpoints\"8\n" +
 	"\x0eFrozenOutpoint\x12\x12\n" +

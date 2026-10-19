@@ -84,12 +84,7 @@ func TestCreateDepositRefusesAStaleTreasury(t *testing.T) {
 			net := &chaincfg.SigNetParams
 			addrs, err := wallet.DeriveBIP84Addresses(w.Master.SeedHex, net, 0, 1)
 			require.NoError(t, err)
-			chain := &bip47TestChain{
-				addr:    addrs[0],
-				amount:  500_000,
-				txid:    "4444444444444444444444444444444444444444444444444444444444444444",
-				feeRate: 5,
-			}
+			chain := newBip47TestChain(t, addrs[0], 500_000, 5)
 			eb := wallet.NewElectrumBackend(svc, chain, wallet.StaticParams(net), log)
 			h := NewWalletHandler(svc)
 			h.SetEngine(wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log))
