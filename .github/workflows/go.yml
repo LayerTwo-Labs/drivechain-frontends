@@ -6,6 +6,7 @@ on:
       - "bitwindow/server/**"
       - "sidechain-orchestrator/**"
       - "dc-hub/server/**"
+      - "ecash-broadcaster/**"
       - "sqlitemigrate/**"
       - "coinnews/codec/**"
       - "coinnews/server/**"
@@ -40,6 +41,7 @@ jobs:
           - bitwindow/server
           - sidechain-orchestrator
           - dc-hub/server
+          - ecash-broadcaster
           - sqlitemigrate
           - coinnews/codec
           - coinnews/server
