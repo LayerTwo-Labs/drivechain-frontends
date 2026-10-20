@@ -7,8 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
-
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
@@ -53,13 +51,13 @@ func TestLocalHistoryFromTheNode(t *testing.T) {
 
 	h := NewHandlerWithIndex(proxy, "")
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
 
 	got := map[string]int64{}
-	for _, tx := range resp.Msg.Transactions {
+	for _, tx := range resp.Transactions {
 		got[tx.Txid] = tx.ValueSats
 	}
 	// aa funded 7000 and still holds it. bb funded 3000, and cc took it away.
@@ -93,13 +91,13 @@ func TestLocalHistoryCountsAWithdrawalAsMoneyLeaving(t *testing.T) {
 
 	h := NewHandlerWithIndex(proxy, "")
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
 
 	got := map[string]int64{}
-	for _, tx := range resp.Msg.Transactions {
+	for _, tx := range resp.Transactions {
 		got[tx.Txid] = tx.ValueSats
 	}
 	// 10000 in, 4900 back as change. The payout, the mainchain fee and the
@@ -124,12 +122,12 @@ func TestLocalHistoryRecordsABundleSpend(t *testing.T) {
 
 	h := NewHandlerWithIndex(proxy, "")
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
 	got := map[string]int64{}
-	for _, tx := range resp.Msg.Transactions {
+	for _, tx := range resp.Transactions {
 		got[tx.Txid] = tx.ValueSats
 	}
 	if got["m6"] != -9000 {
@@ -142,12 +140,12 @@ func TestLocalHistoryWithNoAddresses(t *testing.T) {
 	proxy := nodeWith(t, map[string]string{"get_wallet_addresses": `[]`})
 	h := NewHandlerWithIndex(proxy, "")
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	if len(resp.Msg.Transactions) != 0 {
-		t.Errorf("got %d transactions, want none", len(resp.Msg.Transactions))
+	if len(resp.Transactions) != 0 {
+		t.Errorf("got %d transactions, want none", len(resp.Transactions))
 	}
 }
 
@@ -164,14 +162,14 @@ func TestLocalHistorySplitsADepositOutpoint(t *testing.T) {
 
 	h := NewHandlerWithIndex(proxy, "")
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	if len(resp.Msg.Transactions) != 1 {
-		t.Fatalf("got %d transactions, want 1", len(resp.Msg.Transactions))
+	if len(resp.Transactions) != 1 {
+		t.Fatalf("got %d transactions, want 1", len(resp.Transactions))
 	}
-	got := resp.Msg.Transactions[0]
+	got := resp.Transactions[0]
 	if got.Txid != mainTxid {
 		t.Errorf("txid = %q, want the mainchain txid alone", got.Txid)
 	}
@@ -192,11 +190,11 @@ func TestLocalHistoryKeepsTheOutputIndex(t *testing.T) {
 
 	h := NewHandlerWithIndex(proxy, "")
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	if got := resp.Msg.Transactions[0]; got.Vout != 1 {
+	if got := resp.Transactions[0]; got.Vout != 1 {
 		t.Errorf("vout = %d, want 1", got.Vout)
 	}
 }
@@ -221,14 +219,14 @@ func TestLocalHistoryNamesACoinbaseOutpoint(t *testing.T) {
 
 			h := NewHandlerWithIndex(proxy, "")
 			resp, err := h.ListWalletTransactions(context.Background(),
-				connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+				&pb.ListWalletTransactionsRequest{})
 			if err != nil {
 				t.Fatalf("list: %v", err)
 			}
-			if len(resp.Msg.Transactions) != 1 {
-				t.Fatalf("got %d transactions, want 1", len(resp.Msg.Transactions))
+			if len(resp.Transactions) != 1 {
+				t.Fatalf("got %d transactions, want 1", len(resp.Transactions))
 			}
-			got := resp.Msg.Transactions[0]
+			got := resp.Transactions[0]
 			if got.Txid != tc.want {
 				t.Errorf("txid = %q, want %q", got.Txid, tc.want)
 			}
@@ -243,12 +241,12 @@ func historyOf(t *testing.T, results map[string]string) map[string]*pb.Sidechain
 	t.Helper()
 	h := NewHandlerWithIndex(nodeWith(t, results), "")
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
 	got := map[string]*pb.SidechainWalletTransaction{}
-	for _, tx := range resp.Msg.Transactions {
+	for _, tx := range resp.Transactions {
 		got[tx.Txid] = tx
 	}
 	return got

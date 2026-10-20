@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -37,23 +37,23 @@ func TestDeriveAddressesSupportsPublicMultisig(t *testing.T) {
 	h := NewWalletHandler(svc)
 	h.SetEngine(wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, backend), wallet.StaticParams(net), log))
 	ctx := context.Background()
-	request := connect.NewRequest(&pb.DeriveAddressesRequest{WalletId: w.ID, StartIndex: 0, Count: 1})
+	request := &pb.DeriveAddressesRequest{WalletId: w.ID, StartIndex: 0, Count: 1}
 	first, err := h.DeriveAddresses(ctx, request)
 	require.NoError(t, err)
-	require.Len(t, first.Msg.Addresses, 1)
+	require.Len(t, first.Addresses, 1)
 	next, err := backend.NextReceiveAddress(ctx, w.ID, wallet.ScriptUnknown)
 	require.NoError(t, err)
 	require.Zero(t, next.Index)
-	require.Equal(t, first.Msg.Addresses[0], next.Address)
+	require.Equal(t, first.Addresses[0], next.Address)
 	again, err := h.DeriveAddresses(ctx, request)
 	require.NoError(t, err)
-	require.Equal(t, first.Msg.Addresses, again.Msg.Addresses)
+	require.Equal(t, first.Addresses, again.Addresses)
 }
 
 func TestDeriveAddressesRejectsAbsentWallet(t *testing.T) {
 	h, _ := newDecodeHandler(t, &decodeBackend{})
-	_, err := h.DeriveAddresses(context.Background(), connect.NewRequest(&pb.DeriveAddressesRequest{
+	_, err := h.DeriveAddresses(context.Background(), &pb.DeriveAddressesRequest{
 		WalletId: "absent", StartIndex: 0, Count: 1,
-	}))
+	})
 	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }

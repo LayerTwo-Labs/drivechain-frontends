@@ -2,9 +2,8 @@ package api
 
 import (
 	"context"
-	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -44,39 +43,39 @@ func (h *WalletHandler) currentNetwork() config.Network {
 // GetNodeMode reports the mode the user picked. UNSPECIFIED means they never
 // picked, so the frontend must ask before it boots anything.
 func (h *WalletHandler) GetNodeMode(
-	ctx context.Context, req *connect.Request[pb.GetNodeModeRequest],
-) (*connect.Response[pb.GetNodeModeResponse], error) {
+	ctx context.Context, req *pb.GetNodeModeRequest,
+) (*pb.GetNodeModeResponse, error) {
 	if h.orch == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not wired")
 	}
 	network := h.currentNetwork()
 	mode := orchestrator.NodeModeForNetwork(orchestrator.ReadNodeMode(h.orch.BitwindowDir), network)
-	return connect.NewResponse(&pb.GetNodeModeResponse{
+	return &pb.GetNodeModeResponse{
 		Mode:                    nodeModeToProto(mode),
 		LightModeAvailable:      config.SupportsLightMode(network),
 		RemoteEnforcerAvailable: config.RemoteEnforcerURLForNetwork(network) != "",
 		RemoteEnforcerNetworks:  config.RemoteEnforcerNetworks(),
-	}), nil
+	}, nil
 }
 
 // SetNodeMode changes the mode and restarts active sidechains.
 func (h *WalletHandler) SetNodeMode(
-	ctx context.Context, req *connect.Request[pb.SetNodeModeRequest],
-) (*connect.Response[pb.SetNodeModeResponse], error) {
+	ctx context.Context, req *pb.SetNodeModeRequest,
+) (*pb.SetNodeModeResponse, error) {
 	if h.orch == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not wired")
 	}
-	mode := nodeModeFromProto(req.Msg.Mode)
+	mode := nodeModeFromProto(req.Mode)
 	if mode == orchestrator.NodeModeUnset {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("pick full or light"))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "pick full or light")
 	}
 	network := h.currentNetwork()
 	if mode == orchestrator.NodeModeLight && !config.SupportsLightMode(network) {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("%s has no remote enforcer or Bitcoin wallet server", network))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition,
+			"%s has no remote enforcer or Bitcoin wallet server", network)
 	}
 	if err := h.orch.SetNodeMode(ctx, mode); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.SetNodeModeResponse{}), nil
+	return &pb.SetNodeModeResponse{}, nil
 }

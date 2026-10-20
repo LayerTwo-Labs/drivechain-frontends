@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -24,34 +24,34 @@ const defaultIncrementalFeeSatPerKvB = 1000
 // together. It carries no M8, so the mempool drops the request and the coins
 // come back.
 func (h *BMMHandler) CancelBid(
-	ctx context.Context, req *connect.Request[bmmpb.CancelBidRequest],
-) (*connect.Response[bmmpb.CancelBidResponse], error) {
+	ctx context.Context, req *bmmpb.CancelBidRequest,
+) (*bmmpb.CancelBidResponse, error) {
 	if h.wallet == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is loaded"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "no wallet is loaded")
 	}
-	if req.Msg.Txid == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name the bid to cancel"))
+	if req.Txid == "" {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "name the bid to cancel")
 	}
-	walletID, err := h.wallet.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.wallet.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	own := h.ownBids()
 	tip, err := own.tip(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
-	if err := requireStrandedBid(ctx, own, walletID, req.Msg.Txid, tip); err != nil {
+	if err := requireStrandedBid(ctx, own, walletID, req.Txid, tip); err != nil {
 		return nil, err
 	}
 
-	replacement, err := bidSource{h: h, own: own}.Replacement(ctx, walletID, req.Msg.Txid)
+	replacement, err := bidSource{h: h, own: own}.Replacement(ctx, walletID, req.Txid)
 	if err != nil {
 		return nil, err
 	}
 	inputs, evicted := replacement.Inputs, replacement.Evicted
-	if err := requireNoLiveBid(ctx, own, walletID, evicted, tip, req.Msg.Txid); err != nil {
+	if err := requireNoLiveBid(ctx, own, walletID, evicted, tip, req.Txid); err != nil {
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func (h *BMMHandler) CancelBid(
 	}
 	incrementalSatPerKvB, err := own.incrementalFeeSatPerKvB(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	totalSats, err := inputValueSats(ctx, own, walletID, inputs)
 	if err != nil {
@@ -70,58 +70,58 @@ func (h *BMMHandler) CancelBid(
 	feeSats := wallet.CancelFeeSats(replacement.EvictedFeeSats, vsize, incrementalSatPerKvB, 0)
 	recoveredSats := totalSats - feeSats
 	if recoveredSats < wallet.CancelDustSats {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+		return nil, connect.Errorf(connect.CodeFailedPrecondition,
 			"the coins under %s hold %d sats, under the %d sat replacement fee plus dust",
-			req.Msg.Txid, totalSats, feeSats))
+			req.Txid, totalSats, feeSats)
 	}
 
-	address, err := h.wallet.GetNewAddress(ctx, connect.NewRequest(&wpb.GetNewAddressRequest{
+	address, err := h.wallet.GetNewAddress(ctx, &wpb.GetNewAddressRequest{
 		WalletId: walletID,
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	send, err := h.wallet.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
+	send, err := h.wallet.SendTransaction(ctx, &wpb.SendTransactionRequest{
 		WalletId:       walletID,
-		Destinations:   map[string]int64{address.Msg.Address: recoveredSats},
+		Destinations:   map[string]int64{address.Address: recoveredSats},
 		RequiredInputs: inputs,
 		FixedFeeSats:   feeSats,
 		Replaceable:    true,
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(&bmmpb.CancelBidResponse{
-		ReplacementTxid: send.Msg.Txid,
+	return &bmmpb.CancelBidResponse{
+		ReplacementTxid: send.Txid,
 		RecoveredSats:   recoveredSats,
 		FeeSats:         feeSats,
 		CancelledTxids:  evicted,
-	}), nil
+	}, nil
 }
 
 // requireStrandedBid refuses a bid the next block can still take. Cancelling
 // one throws away a round the wallet already paid for.
 func requireStrandedBid(ctx context.Context, own ownBids, walletID, txid, tip string) error {
 	if !own.pending(ctx, walletID, txid) {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"%s is not an unconfirmed BMM bid", txid))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"%s is not an unconfirmed BMM bid", txid)
 	}
 	if !own.live(ctx, walletID, txid) {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"bid %s is not in the mempool", txid))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"bid %s is not in the mempool", txid)
 	}
 	bid, err := own.request(ctx, walletID, txid)
 	if err != nil {
-		return connect.NewError(connect.CodeNotFound, err)
+		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 	if bid == nil {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s is not a BMM bid", txid))
+		return connect.Errorf(connect.CodeInvalidArgument, "%s is not a BMM bid", txid)
 	}
 	if bid.PrevMainHash == tip {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"bid %s builds on the current tip and can still win", txid))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"bid %s builds on the current tip and can still win", txid)
 	}
 	return nil
 }
@@ -136,7 +136,7 @@ func cancelVsize(ctx context.Context, own ownBids, walletID string, roots []stri
 			return 0, err
 		}
 		if vsize <= 0 {
-			return 0, connect.NewError(connect.CodeInternal, fmt.Errorf("bid %s reports no size", root))
+			return 0, connect.Errorf(connect.CodeInternal, "bid %s reports no size", root)
 		}
 		total += vsize
 	}
@@ -175,8 +175,8 @@ func requireNoLiveBid(ctx context.Context, own ownBids, walletID string, evicted
 			continue
 		}
 		if req.PrevMainHash == tip {
-			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-				"cancelling %s would evict the live bid %s", cancelling, txid))
+			return connect.Errorf(connect.CodeFailedPrecondition,
+				"cancelling %s would evict the live bid %s", cancelling, txid)
 		}
 	}
 	return nil
@@ -198,8 +198,8 @@ func inputValueSats(ctx context.Context, own ownBids, walletID string, inputs []
 			values[in.Txid] = outs
 		}
 		if int(in.Vout) >= len(outs) {
-			return 0, connect.NewError(connect.CodeInternal, fmt.Errorf(
-				"transaction %s has no output %d", in.Txid, in.Vout))
+			return 0, connect.Errorf(connect.CodeInternal,
+				"transaction %s has no output %d", in.Txid, in.Vout)
 		}
 		total += outs[in.Vout]
 	}

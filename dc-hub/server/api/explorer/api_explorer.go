@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
@@ -75,9 +77,11 @@ type Server struct {
 	truthcoin *jsonrpc.Client
 }
 
-func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetChainTipsRequest]) (*connect.Response[pb.GetChainTipsResponse], error) {
+func (s *Server) GetChainTips(ctx context.Context, req *pb.GetChainTipsRequest) (response *pb.GetChainTipsResponse, err error) {
+	ctx, callInfo := connect.NewClientContext(ctx)
+	defer func() { err = forwardError(ctx, callInfo, err) }()
 	info, err := s.mainchain.GetBlockchainInfo(
-		ctx, connect.NewRequest(&btcpb.GetBlockchainInfoRequest{}),
+		ctx, connectv1.NewRequest(&btcpb.GetBlockchainInfoRequest{}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get blockchain info: %w", err)
@@ -86,7 +90,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 	zerolog.Ctx(ctx).Debug().
 		Msgf("fetching best mainchain block: %q", info.Msg.BestBlockHash)
 
-	bestMainchainBlock, err := s.mainchain.GetBlock(ctx, connect.NewRequest(&btcpb.GetBlockRequest{
+	bestMainchainBlock, err := s.mainchain.GetBlock(ctx, connectv1.NewRequest(&btcpb.GetBlockRequest{
 		Hash:      info.Msg.BestBlockHash,
 		Verbosity: btcpb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
@@ -171,13 +175,15 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 		zerolog.Ctx(ctx).Err(err).Msg("failed to get sidechain tips")
 	}
 
-	return connect.NewResponse(res), nil
+	return res, nil
 }
 
 // ListSidechains reports BIP300 sidechain slot proposals that are still being
 // voted on, plus the sidechains that are currently activated. Everything is
 // sourced from the CUSF mainchain enforcer.
-func (s *Server) ListSidechains(ctx context.Context, req *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
+func (s *Server) ListSidechains(ctx context.Context, req *pb.ListSidechainsRequest) (response *pb.ListSidechainsResponse, err error) {
+	ctx, callInfo := connect.NewClientContext(ctx)
+	defer func() { err = forwardError(ctx, callInfo, err) }()
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("connect to enforcer: %w", err)
@@ -188,26 +194,26 @@ func (s *Server) ListSidechains(ctx context.Context, req *connect.Request[pb.Lis
 	// in that case we leave the threshold as zero ("unknown") rather than
 	// guessing.
 	var consts *validatorpb.GetChainInfoResponse_Bip300Constants
-	if info, err := validator.GetChainInfo(ctx, connect.NewRequest(&validatorpb.GetChainInfoRequest{})); err != nil {
+	if info, err := validator.GetChainInfo(ctx, &validatorpb.GetChainInfoRequest{}); err != nil {
 		return nil, fmt.Errorf("get chain info from enforcer: %w", err)
 	} else {
-		consts = info.Msg.GetBip300Constants()
+		consts = info.GetBip300Constants()
 	}
 
-	activeResp, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	activeResp, err := validator.GetSidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("list active sidechains from enforcer: %w", err)
 	}
 
-	proposalsResp, err := validator.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
+	proposalsResp, err := validator.GetSidechainProposals(ctx, &validatorpb.GetSidechainProposalsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("list sidechain proposals from enforcer: %w", err)
 	}
 
 	res := &pb.ListSidechainsResponse{}
 
-	activeSlots := make(map[uint32]bool, len(activeResp.Msg.GetSidechains()))
-	for _, sc := range activeResp.Msg.GetSidechains() {
+	activeSlots := make(map[uint32]bool, len(activeResp.GetSidechains()))
+	for _, sc := range activeResp.GetSidechains() {
 		slot := sc.GetSidechainNumber().GetValue()
 		activeSlots[slot] = true
 		res.Active = append(res.Active, &pb.ActiveSidechain{
@@ -219,7 +225,7 @@ func (s *Server) ListSidechains(ctx context.Context, req *connect.Request[pb.Lis
 		})
 	}
 
-	for _, p := range proposalsResp.Msg.GetSidechainProposals() {
+	for _, p := range proposalsResp.GetSidechainProposals() {
 		slot := p.GetSidechainNumber().GetValue()
 		var description string
 		if v0 := p.GetDeclaration().GetV0(); v0 != nil {
@@ -237,7 +243,7 @@ func (s *Server) ListSidechains(ctx context.Context, req *connect.Request[pb.Lis
 		})
 	}
 
-	return connect.NewResponse(res), nil
+	return res, nil
 }
 
 // activationThreshold returns the number of ACKs a proposal needs to activate.
@@ -268,12 +274,12 @@ func (s *Server) sidechainActivation(ctx context.Context) (func(slot uint32) boo
 		return nil, fmt.Errorf("connect to enforcer: %w", err)
 	}
 
-	sidechains, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	sidechains, err := validator.GetSidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("list active sidechains from enforcer: %w", err)
 	}
 
-	active := lo.SliceToMap(sidechains.Msg.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) (uint32, bool) {
+	active := lo.SliceToMap(sidechains.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) (uint32, bool) {
 		return sc.GetSidechainNumber().GetValue(), true
 	})
 
@@ -300,13 +306,13 @@ func (s *Server) sidechainProposals(ctx context.Context) (map[uint32]proposalSta
 	}
 
 	var consts *validatorpb.GetChainInfoResponse_Bip300Constants
-	if info, err := validator.GetChainInfo(ctx, connect.NewRequest(&validatorpb.GetChainInfoRequest{})); err != nil {
+	if info, err := validator.GetChainInfo(ctx, &validatorpb.GetChainInfoRequest{}); err != nil {
 		return nil, fmt.Errorf("get chain info from enforcer: %w", err)
 	} else {
-		consts = info.Msg.GetBip300Constants()
+		consts = info.GetBip300Constants()
 	}
 
-	proposals, err := validator.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
+	proposals, err := validator.GetSidechainProposals(ctx, &validatorpb.GetSidechainProposalsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("list sidechain proposals from enforcer: %w", err)
 	}
@@ -314,8 +320,8 @@ func (s *Server) sidechainProposals(ctx context.Context) (map[uint32]proposalSta
 	threshold := activationThreshold(consts, false /* slot is inactive here */)
 	maxAge := proposalMaxAge(consts, false)
 
-	out := make(map[uint32]proposalStatus, len(proposals.Msg.GetSidechainProposals()))
-	for _, p := range proposals.Msg.GetSidechainProposals() {
+	out := make(map[uint32]proposalStatus, len(proposals.GetSidechainProposals()))
+	for _, p := range proposals.GetSidechainProposals() {
 		var remaining uint32
 		if age := p.GetProposalAge().GetValue(); maxAge > age {
 			remaining = maxAge - age
@@ -424,7 +430,7 @@ func (s *Server) getBestSidechainMainchainBlock(
 		return bestMainchainBlock, nil
 	}
 
-	fetched, err := s.mainchain.GetBlock(ctx, connect.NewRequest(&btcpb.GetBlockRequest{
+	fetched, err := s.mainchain.GetBlock(ctx, connectv1.NewRequest(&btcpb.GetBlockRequest{
 		Hash:      hash,
 		Verbosity: btcpb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
@@ -433,4 +439,32 @@ func (s *Server) getBestSidechainMainchainBlock(
 	}
 
 	return fetched.Msg, nil
+}
+
+func forwardError(ctx context.Context, info *connect.CallInfo, err error) error {
+	if err == nil {
+		return nil
+	}
+	if result, ok := connect.CallInfoForServerContext(ctx); ok {
+		for key, values := range info.ResponseHeader().All() {
+			result.ResponseHeader().SetValues(key, values)
+		}
+		for key, values := range info.ResponseTrailer().All() {
+			result.ResponseTrailer().SetValues(key, values)
+		}
+	}
+	var bitcoinError *connectv1.Error
+	if !errors.As(err, &bitcoinError) {
+		return connector.ForwardError(err)
+	}
+	result := connect.NewError(connect.Code(bitcoinError.Code()), bitcoinError.Message()).WithCause(err)
+	for _, detail := range bitcoinError.Details() {
+		result = result.WithDetail(&connect.ErrorDetail{Type: detail.Type(), Value: detail.Bytes()})
+	}
+	if info, ok := connect.CallInfoForServerContext(ctx); ok {
+		for key, values := range bitcoinError.Meta() {
+			info.ResponseHeader().SetValues(key, values)
+		}
+	}
+	return result
 }

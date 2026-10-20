@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -165,7 +165,7 @@ func (c *bidCache) get(ctx context.Context, txid string) (*orchestrator.BmmReque
 	}
 	bid, err := c.h.m8Request(ctx, txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	c.read[txid] = bid
 	return bid, nil
@@ -176,12 +176,12 @@ func (h *BMMHandler) mempoolAncestors(ctx context.Context, txid string) ([]strin
 	raw, err := h.coreCall(ctx, "getmempoolancestors", fmt.Sprintf("[%q]", txid))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf(
-			"read the ancestors of %s: %w", txid, err))
+			"read the ancestors of %s: %w", txid, err).Error())
 	}
 	var ancestors []string
 	if err := json.Unmarshal(raw, &ancestors); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf(
-			"decode the ancestors of %s: %w", txid, err))
+			"decode the ancestors of %s: %w", txid, err).Error())
 	}
 	return ancestors, nil
 }
@@ -213,12 +213,12 @@ func (h *BMMHandler) readSpenderBatch(
 	}
 	params, err := json.Marshal([]any{outputs})
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("build the spender query: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("build the spender query: %w", err).Error())
 	}
 
 	raw, err := h.coreCall(ctx, "gettxspendingprevout", string(params))
 	if err != nil {
-		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the spenders of the wallet coins: %w", err))
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the spenders of the wallet coins: %w", err).Error())
 	}
 	var spends []struct {
 		Txid         string `json:"txid"`
@@ -226,7 +226,7 @@ func (h *BMMHandler) readSpenderBatch(
 		SpendingTxid string `json:"spendingtxid"`
 	}
 	if err := json.Unmarshal(raw, &spends); err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("decode the spenders of the wallet coins: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("decode the spenders of the wallet coins: %w", err).Error())
 	}
 
 	for _, s := range spends {

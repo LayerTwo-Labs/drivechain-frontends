@@ -1,13 +1,15 @@
 package commands
 
 import (
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"context"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/stretchr/testify/require"
@@ -19,11 +21,11 @@ type resetTestServer struct {
 	results []*pb.DeleteFilesResponse
 }
 
-func (s *resetTestServer) GatherFilesToDelete(context.Context, *connect.Request[pb.GatherFilesToDeleteRequest]) (*connect.Response[pb.GatherFilesToDeleteResponse], error) {
-	return connect.NewResponse(&pb.GatherFilesToDeleteResponse{Files: []*pb.ResetFileInfo{{Path: "/data/a"}, {Path: "/data/b"}}}), nil
+func (s *resetTestServer) GatherFilesToDelete(context.Context, *pb.GatherFilesToDeleteRequest) (*pb.GatherFilesToDeleteResponse, error) {
+	return &pb.GatherFilesToDeleteResponse{Files: []*pb.ResetFileInfo{{Path: "/data/a"}, {Path: "/data/b"}}}, nil
 }
 
-func (s *resetTestServer) DeleteFiles(_ context.Context, _ *connect.Request[pb.DeleteFilesRequest], stream *connect.ServerStream[pb.DeleteFilesResponse]) error {
+func (s *resetTestServer) DeleteFiles(_ context.Context, _ *pb.DeleteFilesRequest, stream rpc.OrchestratorServiceDeleteFilesServerStream) error {
 	for _, result := range s.results {
 		if err := stream.Send(result); err != nil {
 			return err
@@ -34,7 +36,10 @@ func (s *resetTestServer) DeleteFiles(_ context.Context, _ *connect.Request[pb.D
 
 func runResetForTest(t *testing.T, results ...*pb.DeleteFilesResponse) error {
 	t.Helper()
-	_, handler := rpc.NewOrchestratorServiceHandler(&resetTestServer{results: results})
+	rpcServer := connect.NewServer()
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, &resetTestServer{results: results})
+	handler := http.NewServeMux()
+	connecthttp.Mount(handler, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 	app := &cli.App{

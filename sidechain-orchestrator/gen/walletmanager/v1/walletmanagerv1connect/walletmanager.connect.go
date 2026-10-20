@@ -5,2273 +5,2789 @@
 package walletmanagerv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// WalletManagerServiceName is the fully-qualified name of the WalletManagerService service.
 	WalletManagerServiceName = "walletmanager.v1.WalletManagerService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// WalletManagerServiceGetWalletStatusProcedure is the fully-qualified name of the
-	// WalletManagerService's GetWalletStatus RPC.
+	// WalletManagerServiceGetWalletStatusProcedure is the procedure name of the WalletManagerService's
+	// GetWalletStatus RPC.
 	WalletManagerServiceGetWalletStatusProcedure = "/walletmanager.v1.WalletManagerService/GetWalletStatus"
-	// WalletManagerServiceListSidechainDepositsProcedure is the fully-qualified name of the
+	// WalletManagerServiceListSidechainDepositsProcedure is the procedure name of the
 	// WalletManagerService's ListSidechainDeposits RPC.
 	WalletManagerServiceListSidechainDepositsProcedure = "/walletmanager.v1.WalletManagerService/ListSidechainDeposits"
-	// WalletManagerServiceGetSidechainDepositTotalsProcedure is the fully-qualified name of the
+	// WalletManagerServiceGetSidechainDepositTotalsProcedure is the procedure name of the
 	// WalletManagerService's GetSidechainDepositTotals RPC.
 	WalletManagerServiceGetSidechainDepositTotalsProcedure = "/walletmanager.v1.WalletManagerService/GetSidechainDepositTotals"
-	// WalletManagerServiceGetNodeModeProcedure is the fully-qualified name of the
-	// WalletManagerService's GetNodeMode RPC.
+	// WalletManagerServiceGetNodeModeProcedure is the procedure name of the WalletManagerService's
+	// GetNodeMode RPC.
 	WalletManagerServiceGetNodeModeProcedure = "/walletmanager.v1.WalletManagerService/GetNodeMode"
-	// WalletManagerServiceSetNodeModeProcedure is the fully-qualified name of the
-	// WalletManagerService's SetNodeMode RPC.
+	// WalletManagerServiceSetNodeModeProcedure is the procedure name of the WalletManagerService's
+	// SetNodeMode RPC.
 	WalletManagerServiceSetNodeModeProcedure = "/walletmanager.v1.WalletManagerService/SetNodeMode"
-	// WalletManagerServiceGenerateWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's GenerateWallet RPC.
+	// WalletManagerServiceGenerateWalletProcedure is the procedure name of the WalletManagerService's
+	// GenerateWallet RPC.
 	WalletManagerServiceGenerateWalletProcedure = "/walletmanager.v1.WalletManagerService/GenerateWallet"
-	// WalletManagerServiceUnlockWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's UnlockWallet RPC.
+	// WalletManagerServiceUnlockWalletProcedure is the procedure name of the WalletManagerService's
+	// UnlockWallet RPC.
 	WalletManagerServiceUnlockWalletProcedure = "/walletmanager.v1.WalletManagerService/UnlockWallet"
-	// WalletManagerServiceLockWalletProcedure is the fully-qualified name of the WalletManagerService's
+	// WalletManagerServiceLockWalletProcedure is the procedure name of the WalletManagerService's
 	// LockWallet RPC.
 	WalletManagerServiceLockWalletProcedure = "/walletmanager.v1.WalletManagerService/LockWallet"
-	// WalletManagerServiceEncryptWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's EncryptWallet RPC.
+	// WalletManagerServiceEncryptWalletProcedure is the procedure name of the WalletManagerService's
+	// EncryptWallet RPC.
 	WalletManagerServiceEncryptWalletProcedure = "/walletmanager.v1.WalletManagerService/EncryptWallet"
-	// WalletManagerServiceChangePasswordProcedure is the fully-qualified name of the
-	// WalletManagerService's ChangePassword RPC.
+	// WalletManagerServiceChangePasswordProcedure is the procedure name of the WalletManagerService's
+	// ChangePassword RPC.
 	WalletManagerServiceChangePasswordProcedure = "/walletmanager.v1.WalletManagerService/ChangePassword"
-	// WalletManagerServiceRemoveEncryptionProcedure is the fully-qualified name of the
-	// WalletManagerService's RemoveEncryption RPC.
+	// WalletManagerServiceRemoveEncryptionProcedure is the procedure name of the WalletManagerService's
+	// RemoveEncryption RPC.
 	WalletManagerServiceRemoveEncryptionProcedure = "/walletmanager.v1.WalletManagerService/RemoveEncryption"
-	// WalletManagerServiceListWalletsProcedure is the fully-qualified name of the
-	// WalletManagerService's ListWallets RPC.
+	// WalletManagerServiceListWalletsProcedure is the procedure name of the WalletManagerService's
+	// ListWallets RPC.
 	WalletManagerServiceListWalletsProcedure = "/walletmanager.v1.WalletManagerService/ListWallets"
-	// WalletManagerServiceSwitchWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's SwitchWallet RPC.
+	// WalletManagerServiceSwitchWalletProcedure is the procedure name of the WalletManagerService's
+	// SwitchWallet RPC.
 	WalletManagerServiceSwitchWalletProcedure = "/walletmanager.v1.WalletManagerService/SwitchWallet"
-	// WalletManagerServiceUpdateWalletMetadataProcedure is the fully-qualified name of the
+	// WalletManagerServiceUpdateWalletMetadataProcedure is the procedure name of the
 	// WalletManagerService's UpdateWalletMetadata RPC.
 	WalletManagerServiceUpdateWalletMetadataProcedure = "/walletmanager.v1.WalletManagerService/UpdateWalletMetadata"
-	// WalletManagerServiceDeleteWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's DeleteWallet RPC.
+	// WalletManagerServiceDeleteWalletProcedure is the procedure name of the WalletManagerService's
+	// DeleteWallet RPC.
 	WalletManagerServiceDeleteWalletProcedure = "/walletmanager.v1.WalletManagerService/DeleteWallet"
-	// WalletManagerServiceDeleteAllWalletsProcedure is the fully-qualified name of the
-	// WalletManagerService's DeleteAllWallets RPC.
+	// WalletManagerServiceDeleteAllWalletsProcedure is the procedure name of the WalletManagerService's
+	// DeleteAllWallets RPC.
 	WalletManagerServiceDeleteAllWalletsProcedure = "/walletmanager.v1.WalletManagerService/DeleteAllWallets"
-	// WalletManagerServiceListWalletBackupsProcedure is the fully-qualified name of the
+	// WalletManagerServiceListWalletBackupsProcedure is the procedure name of the
 	// WalletManagerService's ListWalletBackups RPC.
 	WalletManagerServiceListWalletBackupsProcedure = "/walletmanager.v1.WalletManagerService/ListWalletBackups"
-	// WalletManagerServiceRestoreWalletBackupProcedure is the fully-qualified name of the
+	// WalletManagerServiceRestoreWalletBackupProcedure is the procedure name of the
 	// WalletManagerService's RestoreWalletBackup RPC.
 	WalletManagerServiceRestoreWalletBackupProcedure = "/walletmanager.v1.WalletManagerService/RestoreWalletBackup"
-	// WalletManagerServiceRestoreWalletBackupStreamProcedure is the fully-qualified name of the
+	// WalletManagerServiceRestoreWalletBackupStreamProcedure is the procedure name of the
 	// WalletManagerService's RestoreWalletBackupStream RPC.
 	WalletManagerServiceRestoreWalletBackupStreamProcedure = "/walletmanager.v1.WalletManagerService/RestoreWalletBackupStream"
-	// WalletManagerServiceCreateWatchOnlyWalletProcedure is the fully-qualified name of the
+	// WalletManagerServiceCreateWatchOnlyWalletProcedure is the procedure name of the
 	// WalletManagerService's CreateWatchOnlyWallet RPC.
 	WalletManagerServiceCreateWatchOnlyWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateWatchOnlyWallet"
-	// WalletManagerServiceCreateElectrumWalletProcedure is the fully-qualified name of the
+	// WalletManagerServiceCreateElectrumWalletProcedure is the procedure name of the
 	// WalletManagerService's CreateElectrumWallet RPC.
 	WalletManagerServiceCreateElectrumWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateElectrumWallet"
-	// WalletManagerServiceCreateMultisigWalletProcedure is the fully-qualified name of the
+	// WalletManagerServiceCreateMultisigWalletProcedure is the procedure name of the
 	// WalletManagerService's CreateMultisigWallet RPC.
 	WalletManagerServiceCreateMultisigWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateMultisigWallet"
-	// WalletManagerServiceParseMultisigConfigProcedure is the fully-qualified name of the
+	// WalletManagerServiceParseMultisigConfigProcedure is the procedure name of the
 	// WalletManagerService's ParseMultisigConfig RPC.
 	WalletManagerServiceParseMultisigConfigProcedure = "/walletmanager.v1.WalletManagerService/ParseMultisigConfig"
-	// WalletManagerServiceValidateDescriptorProcedure is the fully-qualified name of the
+	// WalletManagerServiceValidateDescriptorProcedure is the procedure name of the
 	// WalletManagerService's ValidateDescriptor RPC.
 	WalletManagerServiceValidateDescriptorProcedure = "/walletmanager.v1.WalletManagerService/ValidateDescriptor"
-	// WalletManagerServiceValidateDerivationPathProcedure is the fully-qualified name of the
+	// WalletManagerServiceValidateDerivationPathProcedure is the procedure name of the
 	// WalletManagerService's ValidateDerivationPath RPC.
 	WalletManagerServiceValidateDerivationPathProcedure = "/walletmanager.v1.WalletManagerService/ValidateDerivationPath"
-	// WalletManagerServiceListDerivationPathsProcedure is the fully-qualified name of the
+	// WalletManagerServiceListDerivationPathsProcedure is the procedure name of the
 	// WalletManagerService's ListDerivationPaths RPC.
 	WalletManagerServiceListDerivationPathsProcedure = "/walletmanager.v1.WalletManagerService/ListDerivationPaths"
-	// WalletManagerServiceCreateBitcoinCoreWalletProcedure is the fully-qualified name of the
+	// WalletManagerServiceCreateBitcoinCoreWalletProcedure is the procedure name of the
 	// WalletManagerService's CreateBitcoinCoreWallet RPC.
 	WalletManagerServiceCreateBitcoinCoreWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateBitcoinCoreWallet"
-	// WalletManagerServiceEnsureCoreWalletsProcedure is the fully-qualified name of the
+	// WalletManagerServiceEnsureCoreWalletsProcedure is the procedure name of the
 	// WalletManagerService's EnsureCoreWallets RPC.
 	WalletManagerServiceEnsureCoreWalletsProcedure = "/walletmanager.v1.WalletManagerService/EnsureCoreWallets"
-	// WalletManagerServiceGetBalanceProcedure is the fully-qualified name of the WalletManagerService's
+	// WalletManagerServiceGetBalanceProcedure is the procedure name of the WalletManagerService's
 	// GetBalance RPC.
 	WalletManagerServiceGetBalanceProcedure = "/walletmanager.v1.WalletManagerService/GetBalance"
-	// WalletManagerServiceRescanWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's RescanWallet RPC.
+	// WalletManagerServiceRescanWalletProcedure is the procedure name of the WalletManagerService's
+	// RescanWallet RPC.
 	WalletManagerServiceRescanWalletProcedure = "/walletmanager.v1.WalletManagerService/RescanWallet"
-	// WalletManagerServiceEstimateFeeProcedure is the fully-qualified name of the
-	// WalletManagerService's EstimateFee RPC.
+	// WalletManagerServiceEstimateFeeProcedure is the procedure name of the WalletManagerService's
+	// EstimateFee RPC.
 	WalletManagerServiceEstimateFeeProcedure = "/walletmanager.v1.WalletManagerService/EstimateFee"
-	// WalletManagerServiceGetNewAddressProcedure is the fully-qualified name of the
-	// WalletManagerService's GetNewAddress RPC.
+	// WalletManagerServiceGetNewAddressProcedure is the procedure name of the WalletManagerService's
+	// GetNewAddress RPC.
 	WalletManagerServiceGetNewAddressProcedure = "/walletmanager.v1.WalletManagerService/GetNewAddress"
-	// WalletManagerServiceSendTransactionProcedure is the fully-qualified name of the
-	// WalletManagerService's SendTransaction RPC.
+	// WalletManagerServiceSendTransactionProcedure is the procedure name of the WalletManagerService's
+	// SendTransaction RPC.
 	WalletManagerServiceSendTransactionProcedure = "/walletmanager.v1.WalletManagerService/SendTransaction"
-	// WalletManagerServicePreviewSendProcedure is the fully-qualified name of the
-	// WalletManagerService's PreviewSend RPC.
+	// WalletManagerServicePreviewSendProcedure is the procedure name of the WalletManagerService's
+	// PreviewSend RPC.
 	WalletManagerServicePreviewSendProcedure = "/walletmanager.v1.WalletManagerService/PreviewSend"
-	// WalletManagerServiceSetFrozenCoinsProcedure is the fully-qualified name of the
-	// WalletManagerService's SetFrozenCoins RPC.
+	// WalletManagerServiceSetFrozenCoinsProcedure is the procedure name of the WalletManagerService's
+	// SetFrozenCoins RPC.
 	WalletManagerServiceSetFrozenCoinsProcedure = "/walletmanager.v1.WalletManagerService/SetFrozenCoins"
-	// WalletManagerServiceCreateDepositProcedure is the fully-qualified name of the
-	// WalletManagerService's CreateDeposit RPC.
+	// WalletManagerServiceCreateDepositProcedure is the procedure name of the WalletManagerService's
+	// CreateDeposit RPC.
 	WalletManagerServiceCreateDepositProcedure = "/walletmanager.v1.WalletManagerService/CreateDeposit"
-	// WalletManagerServiceListTransactionsProcedure is the fully-qualified name of the
-	// WalletManagerService's ListTransactions RPC.
+	// WalletManagerServiceListTransactionsProcedure is the procedure name of the WalletManagerService's
+	// ListTransactions RPC.
 	WalletManagerServiceListTransactionsProcedure = "/walletmanager.v1.WalletManagerService/ListTransactions"
-	// WalletManagerServiceListUnspentProcedure is the fully-qualified name of the
-	// WalletManagerService's ListUnspent RPC.
+	// WalletManagerServiceListUnspentProcedure is the procedure name of the WalletManagerService's
+	// ListUnspent RPC.
 	WalletManagerServiceListUnspentProcedure = "/walletmanager.v1.WalletManagerService/ListUnspent"
-	// WalletManagerServiceListReceiveAddressesProcedure is the fully-qualified name of the
+	// WalletManagerServiceListReceiveAddressesProcedure is the procedure name of the
 	// WalletManagerService's ListReceiveAddresses RPC.
 	WalletManagerServiceListReceiveAddressesProcedure = "/walletmanager.v1.WalletManagerService/ListReceiveAddresses"
-	// WalletManagerServiceGetTransactionDetailsProcedure is the fully-qualified name of the
+	// WalletManagerServiceGetTransactionDetailsProcedure is the procedure name of the
 	// WalletManagerService's GetTransactionDetails RPC.
 	WalletManagerServiceGetTransactionDetailsProcedure = "/walletmanager.v1.WalletManagerService/GetTransactionDetails"
-	// WalletManagerServiceDecodeTransactionProcedure is the fully-qualified name of the
+	// WalletManagerServiceDecodeTransactionProcedure is the procedure name of the
 	// WalletManagerService's DecodeTransaction RPC.
 	WalletManagerServiceDecodeTransactionProcedure = "/walletmanager.v1.WalletManagerService/DecodeTransaction"
-	// WalletManagerServiceBumpFeeProcedure is the fully-qualified name of the WalletManagerService's
-	// BumpFee RPC.
+	// WalletManagerServiceBumpFeeProcedure is the procedure name of the WalletManagerService's BumpFee
+	// RPC.
 	WalletManagerServiceBumpFeeProcedure = "/walletmanager.v1.WalletManagerService/BumpFee"
-	// WalletManagerServicePreviewBumpFeeProcedure is the fully-qualified name of the
-	// WalletManagerService's PreviewBumpFee RPC.
+	// WalletManagerServicePreviewBumpFeeProcedure is the procedure name of the WalletManagerService's
+	// PreviewBumpFee RPC.
 	WalletManagerServicePreviewBumpFeeProcedure = "/walletmanager.v1.WalletManagerService/PreviewBumpFee"
-	// WalletManagerServiceCreateCpfpProcedure is the fully-qualified name of the WalletManagerService's
+	// WalletManagerServiceCreateCpfpProcedure is the procedure name of the WalletManagerService's
 	// CreateCpfp RPC.
 	WalletManagerServiceCreateCpfpProcedure = "/walletmanager.v1.WalletManagerService/CreateCpfp"
-	// WalletManagerServiceCancelTransactionProcedure is the fully-qualified name of the
+	// WalletManagerServiceCancelTransactionProcedure is the procedure name of the
 	// WalletManagerService's CancelTransaction RPC.
 	WalletManagerServiceCancelTransactionProcedure = "/walletmanager.v1.WalletManagerService/CancelTransaction"
-	// WalletManagerServiceDeriveAddressesProcedure is the fully-qualified name of the
-	// WalletManagerService's DeriveAddresses RPC.
+	// WalletManagerServiceDeriveAddressesProcedure is the procedure name of the WalletManagerService's
+	// DeriveAddresses RPC.
 	WalletManagerServiceDeriveAddressesProcedure = "/walletmanager.v1.WalletManagerService/DeriveAddresses"
-	// WalletManagerServiceCreatePsbtProcedure is the fully-qualified name of the WalletManagerService's
+	// WalletManagerServiceCreatePsbtProcedure is the procedure name of the WalletManagerService's
 	// CreatePsbt RPC.
 	WalletManagerServiceCreatePsbtProcedure = "/walletmanager.v1.WalletManagerService/CreatePsbt"
-	// WalletManagerServiceSignPsbtProcedure is the fully-qualified name of the WalletManagerService's
+	// WalletManagerServiceSignPsbtProcedure is the procedure name of the WalletManagerService's
 	// SignPsbt RPC.
 	WalletManagerServiceSignPsbtProcedure = "/walletmanager.v1.WalletManagerService/SignPsbt"
-	// WalletManagerServiceSignPsbtWithCosignerProcedure is the fully-qualified name of the
+	// WalletManagerServiceSignPsbtWithCosignerProcedure is the procedure name of the
 	// WalletManagerService's SignPsbtWithCosigner RPC.
 	WalletManagerServiceSignPsbtWithCosignerProcedure = "/walletmanager.v1.WalletManagerService/SignPsbtWithCosigner"
-	// WalletManagerServiceCombinePsbtProcedure is the fully-qualified name of the
-	// WalletManagerService's CombinePsbt RPC.
+	// WalletManagerServiceCombinePsbtProcedure is the procedure name of the WalletManagerService's
+	// CombinePsbt RPC.
 	WalletManagerServiceCombinePsbtProcedure = "/walletmanager.v1.WalletManagerService/CombinePsbt"
-	// WalletManagerServiceFinalizePsbtProcedure is the fully-qualified name of the
-	// WalletManagerService's FinalizePsbt RPC.
+	// WalletManagerServiceFinalizePsbtProcedure is the procedure name of the WalletManagerService's
+	// FinalizePsbt RPC.
 	WalletManagerServiceFinalizePsbtProcedure = "/walletmanager.v1.WalletManagerService/FinalizePsbt"
-	// WalletManagerServiceMultisigPsbtStatusProcedure is the fully-qualified name of the
+	// WalletManagerServiceMultisigPsbtStatusProcedure is the procedure name of the
 	// WalletManagerService's MultisigPsbtStatus RPC.
 	WalletManagerServiceMultisigPsbtStatusProcedure = "/walletmanager.v1.WalletManagerService/MultisigPsbtStatus"
-	// WalletManagerServiceBroadcastTransactionProcedure is the fully-qualified name of the
+	// WalletManagerServiceBroadcastTransactionProcedure is the procedure name of the
 	// WalletManagerService's BroadcastTransaction RPC.
 	WalletManagerServiceBroadcastTransactionProcedure = "/walletmanager.v1.WalletManagerService/BroadcastTransaction"
-	// WalletManagerServiceGetAddressUnspentProcedure is the fully-qualified name of the
+	// WalletManagerServiceGetAddressUnspentProcedure is the procedure name of the
 	// WalletManagerService's GetAddressUnspent RPC.
 	WalletManagerServiceGetAddressUnspentProcedure = "/walletmanager.v1.WalletManagerService/GetAddressUnspent"
-	// WalletManagerServiceBroadcastElectrumTransactionProcedure is the fully-qualified name of the
+	// WalletManagerServiceBroadcastElectrumTransactionProcedure is the procedure name of the
 	// WalletManagerService's BroadcastElectrumTransaction RPC.
 	WalletManagerServiceBroadcastElectrumTransactionProcedure = "/walletmanager.v1.WalletManagerService/BroadcastElectrumTransaction"
-	// WalletManagerServiceEnumerateHardwareDevicesProcedure is the fully-qualified name of the
+	// WalletManagerServiceEnumerateHardwareDevicesProcedure is the procedure name of the
 	// WalletManagerService's EnumerateHardwareDevices RPC.
 	WalletManagerServiceEnumerateHardwareDevicesProcedure = "/walletmanager.v1.WalletManagerService/EnumerateHardwareDevices"
-	// WalletManagerServiceGetHardwareXpubProcedure is the fully-qualified name of the
-	// WalletManagerService's GetHardwareXpub RPC.
+	// WalletManagerServiceGetHardwareXpubProcedure is the procedure name of the WalletManagerService's
+	// GetHardwareXpub RPC.
 	WalletManagerServiceGetHardwareXpubProcedure = "/walletmanager.v1.WalletManagerService/GetHardwareXpub"
-	// WalletManagerServiceSignPsbtWithDeviceProcedure is the fully-qualified name of the
+	// WalletManagerServiceSignPsbtWithDeviceProcedure is the procedure name of the
 	// WalletManagerService's SignPsbtWithDevice RPC.
 	WalletManagerServiceSignPsbtWithDeviceProcedure = "/walletmanager.v1.WalletManagerService/SignPsbtWithDevice"
-	// WalletManagerServicePromptDevicePinProcedure is the fully-qualified name of the
-	// WalletManagerService's PromptDevicePin RPC.
+	// WalletManagerServicePromptDevicePinProcedure is the procedure name of the WalletManagerService's
+	// PromptDevicePin RPC.
 	WalletManagerServicePromptDevicePinProcedure = "/walletmanager.v1.WalletManagerService/PromptDevicePin"
-	// WalletManagerServiceSendDevicePinProcedure is the fully-qualified name of the
-	// WalletManagerService's SendDevicePin RPC.
+	// WalletManagerServiceSendDevicePinProcedure is the procedure name of the WalletManagerService's
+	// SendDevicePin RPC.
 	WalletManagerServiceSendDevicePinProcedure = "/walletmanager.v1.WalletManagerService/SendDevicePin"
-	// WalletManagerServiceCloseDeviceProcedure is the fully-qualified name of the
-	// WalletManagerService's CloseDevice RPC.
+	// WalletManagerServiceCloseDeviceProcedure is the procedure name of the WalletManagerService's
+	// CloseDevice RPC.
 	WalletManagerServiceCloseDeviceProcedure = "/walletmanager.v1.WalletManagerService/CloseDevice"
-	// WalletManagerServiceDeriveKeystoreProcedure is the fully-qualified name of the
-	// WalletManagerService's DeriveKeystore RPC.
+	// WalletManagerServiceDeriveKeystoreProcedure is the procedure name of the WalletManagerService's
+	// DeriveKeystore RPC.
 	WalletManagerServiceDeriveKeystoreProcedure = "/walletmanager.v1.WalletManagerService/DeriveKeystore"
-	// WalletManagerServicePreviewWalletFromEntropyProcedure is the fully-qualified name of the
+	// WalletManagerServicePreviewWalletFromEntropyProcedure is the procedure name of the
 	// WalletManagerService's PreviewWalletFromEntropy RPC.
 	WalletManagerServicePreviewWalletFromEntropyProcedure = "/walletmanager.v1.WalletManagerService/PreviewWalletFromEntropy"
-	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
-	// WalletManagerService's GetWalletSeed RPC.
+	// WalletManagerServiceGetWalletSeedProcedure is the procedure name of the WalletManagerService's
+	// GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
-	// WalletManagerServiceListCoreVariantsProcedure is the fully-qualified name of the
-	// WalletManagerService's ListCoreVariants RPC.
+	// WalletManagerServiceListCoreVariantsProcedure is the procedure name of the WalletManagerService's
+	// ListCoreVariants RPC.
 	WalletManagerServiceListCoreVariantsProcedure = "/walletmanager.v1.WalletManagerService/ListCoreVariants"
-	// WalletManagerServiceGetCoreVariantProcedure is the fully-qualified name of the
-	// WalletManagerService's GetCoreVariant RPC.
+	// WalletManagerServiceGetCoreVariantProcedure is the procedure name of the WalletManagerService's
+	// GetCoreVariant RPC.
 	WalletManagerServiceGetCoreVariantProcedure = "/walletmanager.v1.WalletManagerService/GetCoreVariant"
-	// WalletManagerServiceSetCoreVariantProcedure is the fully-qualified name of the
-	// WalletManagerService's SetCoreVariant RPC.
+	// WalletManagerServiceSetCoreVariantProcedure is the procedure name of the WalletManagerService's
+	// SetCoreVariant RPC.
 	WalletManagerServiceSetCoreVariantProcedure = "/walletmanager.v1.WalletManagerService/SetCoreVariant"
-	// WalletManagerServiceGetElectrumServerProcedure is the fully-qualified name of the
+	// WalletManagerServiceGetElectrumServerProcedure is the procedure name of the
 	// WalletManagerService's GetElectrumServer RPC.
 	WalletManagerServiceGetElectrumServerProcedure = "/walletmanager.v1.WalletManagerService/GetElectrumServer"
-	// WalletManagerServiceSetElectrumServerProcedure is the fully-qualified name of the
+	// WalletManagerServiceSetElectrumServerProcedure is the procedure name of the
 	// WalletManagerService's SetElectrumServer RPC.
 	WalletManagerServiceSetElectrumServerProcedure = "/walletmanager.v1.WalletManagerService/SetElectrumServer"
-	// WalletManagerServiceGetTorConfigProcedure is the fully-qualified name of the
-	// WalletManagerService's GetTorConfig RPC.
+	// WalletManagerServiceGetTorConfigProcedure is the procedure name of the WalletManagerService's
+	// GetTorConfig RPC.
 	WalletManagerServiceGetTorConfigProcedure = "/walletmanager.v1.WalletManagerService/GetTorConfig"
-	// WalletManagerServiceSetTorConfigProcedure is the fully-qualified name of the
-	// WalletManagerService's SetTorConfig RPC.
+	// WalletManagerServiceSetTorConfigProcedure is the procedure name of the WalletManagerService's
+	// SetTorConfig RPC.
 	WalletManagerServiceSetTorConfigProcedure = "/walletmanager.v1.WalletManagerService/SetTorConfig"
-	// WalletManagerServiceWatchWalletDataProcedure is the fully-qualified name of the
-	// WalletManagerService's WatchWalletData RPC.
+	// WalletManagerServiceWatchWalletDataProcedure is the procedure name of the WalletManagerService's
+	// WatchWalletData RPC.
 	WalletManagerServiceWatchWalletDataProcedure = "/walletmanager.v1.WalletManagerService/WatchWalletData"
+)
+
+var (
+	walletManagerServiceGetWalletStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetWalletStatus"),
+			Procedure:  WalletManagerServiceGetWalletStatusProcedure,
+		}
+	})
+	walletManagerServiceListSidechainDepositsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListSidechainDeposits"),
+			Procedure:  WalletManagerServiceListSidechainDepositsProcedure,
+		}
+	})
+	walletManagerServiceGetSidechainDepositTotalsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetSidechainDepositTotals"),
+			Procedure:  WalletManagerServiceGetSidechainDepositTotalsProcedure,
+		}
+	})
+	walletManagerServiceGetNodeModeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetNodeMode"),
+			Procedure:  WalletManagerServiceGetNodeModeProcedure,
+		}
+	})
+	walletManagerServiceSetNodeModeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SetNodeMode"),
+			Procedure:  WalletManagerServiceSetNodeModeProcedure,
+		}
+	})
+	walletManagerServiceGenerateWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GenerateWallet"),
+			Procedure:  WalletManagerServiceGenerateWalletProcedure,
+		}
+	})
+	walletManagerServiceUnlockWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("UnlockWallet"),
+			Procedure:  WalletManagerServiceUnlockWalletProcedure,
+		}
+	})
+	walletManagerServiceLockWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("LockWallet"),
+			Procedure:  WalletManagerServiceLockWalletProcedure,
+		}
+	})
+	walletManagerServiceEncryptWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("EncryptWallet"),
+			Procedure:  WalletManagerServiceEncryptWalletProcedure,
+		}
+	})
+	walletManagerServiceChangePasswordSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ChangePassword"),
+			Procedure:  WalletManagerServiceChangePasswordProcedure,
+		}
+	})
+	walletManagerServiceRemoveEncryptionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("RemoveEncryption"),
+			Procedure:  WalletManagerServiceRemoveEncryptionProcedure,
+		}
+	})
+	walletManagerServiceListWalletsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListWallets"),
+			Procedure:  WalletManagerServiceListWalletsProcedure,
+		}
+	})
+	walletManagerServiceSwitchWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SwitchWallet"),
+			Procedure:  WalletManagerServiceSwitchWalletProcedure,
+		}
+	})
+	walletManagerServiceUpdateWalletMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("UpdateWalletMetadata"),
+			Procedure:  WalletManagerServiceUpdateWalletMetadataProcedure,
+		}
+	})
+	walletManagerServiceDeleteWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("DeleteWallet"),
+			Procedure:  WalletManagerServiceDeleteWalletProcedure,
+		}
+	})
+	walletManagerServiceDeleteAllWalletsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("DeleteAllWallets"),
+			Procedure:  WalletManagerServiceDeleteAllWalletsProcedure,
+		}
+	})
+	walletManagerServiceListWalletBackupsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListWalletBackups"),
+			Procedure:  WalletManagerServiceListWalletBackupsProcedure,
+		}
+	})
+	walletManagerServiceRestoreWalletBackupSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("RestoreWalletBackup"),
+			Procedure:  WalletManagerServiceRestoreWalletBackupProcedure,
+		}
+	})
+	walletManagerServiceRestoreWalletBackupStreamSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("RestoreWalletBackupStream"),
+			Procedure:  WalletManagerServiceRestoreWalletBackupStreamProcedure,
+		}
+	})
+	walletManagerServiceCreateWatchOnlyWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CreateWatchOnlyWallet"),
+			Procedure:  WalletManagerServiceCreateWatchOnlyWalletProcedure,
+		}
+	})
+	walletManagerServiceCreateElectrumWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CreateElectrumWallet"),
+			Procedure:  WalletManagerServiceCreateElectrumWalletProcedure,
+		}
+	})
+	walletManagerServiceCreateMultisigWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CreateMultisigWallet"),
+			Procedure:  WalletManagerServiceCreateMultisigWalletProcedure,
+		}
+	})
+	walletManagerServiceParseMultisigConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ParseMultisigConfig"),
+			Procedure:  WalletManagerServiceParseMultisigConfigProcedure,
+		}
+	})
+	walletManagerServiceValidateDescriptorSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ValidateDescriptor"),
+			Procedure:  WalletManagerServiceValidateDescriptorProcedure,
+		}
+	})
+	walletManagerServiceValidateDerivationPathSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ValidateDerivationPath"),
+			Procedure:  WalletManagerServiceValidateDerivationPathProcedure,
+		}
+	})
+	walletManagerServiceListDerivationPathsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListDerivationPaths"),
+			Procedure:  WalletManagerServiceListDerivationPathsProcedure,
+		}
+	})
+	walletManagerServiceCreateBitcoinCoreWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CreateBitcoinCoreWallet"),
+			Procedure:  WalletManagerServiceCreateBitcoinCoreWalletProcedure,
+		}
+	})
+	walletManagerServiceEnsureCoreWalletsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("EnsureCoreWallets"),
+			Procedure:  WalletManagerServiceEnsureCoreWalletsProcedure,
+		}
+	})
+	walletManagerServiceGetBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetBalance"),
+			Procedure:  WalletManagerServiceGetBalanceProcedure,
+		}
+	})
+	walletManagerServiceRescanWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("RescanWallet"),
+			Procedure:  WalletManagerServiceRescanWalletProcedure,
+		}
+	})
+	walletManagerServiceEstimateFeeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("EstimateFee"),
+			Procedure:  WalletManagerServiceEstimateFeeProcedure,
+		}
+	})
+	walletManagerServiceGetNewAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetNewAddress"),
+			Procedure:  WalletManagerServiceGetNewAddressProcedure,
+		}
+	})
+	walletManagerServiceSendTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SendTransaction"),
+			Procedure:  WalletManagerServiceSendTransactionProcedure,
+		}
+	})
+	walletManagerServicePreviewSendSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("PreviewSend"),
+			Procedure:  WalletManagerServicePreviewSendProcedure,
+		}
+	})
+	walletManagerServiceSetFrozenCoinsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SetFrozenCoins"),
+			Procedure:  WalletManagerServiceSetFrozenCoinsProcedure,
+		}
+	})
+	walletManagerServiceCreateDepositSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CreateDeposit"),
+			Procedure:  WalletManagerServiceCreateDepositProcedure,
+		}
+	})
+	walletManagerServiceListTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListTransactions"),
+			Procedure:  WalletManagerServiceListTransactionsProcedure,
+		}
+	})
+	walletManagerServiceListUnspentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListUnspent"),
+			Procedure:  WalletManagerServiceListUnspentProcedure,
+		}
+	})
+	walletManagerServiceListReceiveAddressesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListReceiveAddresses"),
+			Procedure:  WalletManagerServiceListReceiveAddressesProcedure,
+		}
+	})
+	walletManagerServiceGetTransactionDetailsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetTransactionDetails"),
+			Procedure:  WalletManagerServiceGetTransactionDetailsProcedure,
+		}
+	})
+	walletManagerServiceDecodeTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("DecodeTransaction"),
+			Procedure:  WalletManagerServiceDecodeTransactionProcedure,
+		}
+	})
+	walletManagerServiceBumpFeeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("BumpFee"),
+			Procedure:  WalletManagerServiceBumpFeeProcedure,
+		}
+	})
+	walletManagerServicePreviewBumpFeeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("PreviewBumpFee"),
+			Procedure:  WalletManagerServicePreviewBumpFeeProcedure,
+		}
+	})
+	walletManagerServiceCreateCpfpSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CreateCpfp"),
+			Procedure:  WalletManagerServiceCreateCpfpProcedure,
+		}
+	})
+	walletManagerServiceCancelTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CancelTransaction"),
+			Procedure:  WalletManagerServiceCancelTransactionProcedure,
+		}
+	})
+	walletManagerServiceDeriveAddressesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("DeriveAddresses"),
+			Procedure:  WalletManagerServiceDeriveAddressesProcedure,
+		}
+	})
+	walletManagerServiceCreatePsbtSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CreatePsbt"),
+			Procedure:  WalletManagerServiceCreatePsbtProcedure,
+		}
+	})
+	walletManagerServiceSignPsbtSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SignPsbt"),
+			Procedure:  WalletManagerServiceSignPsbtProcedure,
+		}
+	})
+	walletManagerServiceSignPsbtWithCosignerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SignPsbtWithCosigner"),
+			Procedure:  WalletManagerServiceSignPsbtWithCosignerProcedure,
+		}
+	})
+	walletManagerServiceCombinePsbtSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CombinePsbt"),
+			Procedure:  WalletManagerServiceCombinePsbtProcedure,
+		}
+	})
+	walletManagerServiceFinalizePsbtSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("FinalizePsbt"),
+			Procedure:  WalletManagerServiceFinalizePsbtProcedure,
+		}
+	})
+	walletManagerServiceMultisigPsbtStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("MultisigPsbtStatus"),
+			Procedure:  WalletManagerServiceMultisigPsbtStatusProcedure,
+		}
+	})
+	walletManagerServiceBroadcastTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("BroadcastTransaction"),
+			Procedure:  WalletManagerServiceBroadcastTransactionProcedure,
+		}
+	})
+	walletManagerServiceGetAddressUnspentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetAddressUnspent"),
+			Procedure:  WalletManagerServiceGetAddressUnspentProcedure,
+		}
+	})
+	walletManagerServiceBroadcastElectrumTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("BroadcastElectrumTransaction"),
+			Procedure:  WalletManagerServiceBroadcastElectrumTransactionProcedure,
+		}
+	})
+	walletManagerServiceEnumerateHardwareDevicesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("EnumerateHardwareDevices"),
+			Procedure:  WalletManagerServiceEnumerateHardwareDevicesProcedure,
+		}
+	})
+	walletManagerServiceGetHardwareXpubSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetHardwareXpub"),
+			Procedure:  WalletManagerServiceGetHardwareXpubProcedure,
+		}
+	})
+	walletManagerServiceSignPsbtWithDeviceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SignPsbtWithDevice"),
+			Procedure:  WalletManagerServiceSignPsbtWithDeviceProcedure,
+		}
+	})
+	walletManagerServicePromptDevicePinSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("PromptDevicePin"),
+			Procedure:  WalletManagerServicePromptDevicePinProcedure,
+		}
+	})
+	walletManagerServiceSendDevicePinSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SendDevicePin"),
+			Procedure:  WalletManagerServiceSendDevicePinProcedure,
+		}
+	})
+	walletManagerServiceCloseDeviceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("CloseDevice"),
+			Procedure:  WalletManagerServiceCloseDeviceProcedure,
+		}
+	})
+	walletManagerServiceDeriveKeystoreSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("DeriveKeystore"),
+			Procedure:  WalletManagerServiceDeriveKeystoreProcedure,
+		}
+	})
+	walletManagerServicePreviewWalletFromEntropySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("PreviewWalletFromEntropy"),
+			Procedure:  WalletManagerServicePreviewWalletFromEntropyProcedure,
+		}
+	})
+	walletManagerServiceGetWalletSeedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetWalletSeed"),
+			Procedure:  WalletManagerServiceGetWalletSeedProcedure,
+		}
+	})
+	walletManagerServiceListCoreVariantsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListCoreVariants"),
+			Procedure:  WalletManagerServiceListCoreVariantsProcedure,
+		}
+	})
+	walletManagerServiceGetCoreVariantSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetCoreVariant"),
+			Procedure:  WalletManagerServiceGetCoreVariantProcedure,
+		}
+	})
+	walletManagerServiceSetCoreVariantSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SetCoreVariant"),
+			Procedure:  WalletManagerServiceSetCoreVariantProcedure,
+		}
+	})
+	walletManagerServiceGetElectrumServerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetElectrumServer"),
+			Procedure:  WalletManagerServiceGetElectrumServerProcedure,
+		}
+	})
+	walletManagerServiceSetElectrumServerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SetElectrumServer"),
+			Procedure:  WalletManagerServiceSetElectrumServerProcedure,
+		}
+	})
+	walletManagerServiceGetTorConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GetTorConfig"),
+			Procedure:  WalletManagerServiceGetTorConfigProcedure,
+		}
+	})
+	walletManagerServiceSetTorConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SetTorConfig"),
+			Procedure:  WalletManagerServiceSetTorConfigProcedure,
+		}
+	})
+	walletManagerServiceWatchWalletDataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("WatchWalletData"),
+			Procedure:  WalletManagerServiceWatchWalletDataProcedure,
+		}
+	})
 )
 
 // WalletManagerServiceClient is a client for the walletmanager.v1.WalletManagerService service.
 type WalletManagerServiceClient interface {
-	// Wallet lifecycle
-	GetWalletStatus(context.Context, *connect.Request[v1.GetWalletStatusRequest]) (*connect.Response[v1.GetWalletStatusResponse], error)
-	// How much of Bitcoin this install runs. The frontend asks the user before
-	// it boots anything, and blocks until GetNodeMode reports a mode.
-	// Deposits this install made to a sidechain treasury. An M5 is an ordinary
-	// transaction on the wire, so the record comes from when we broadcast it.
-	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
-	GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error)
-	GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error)
-	SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error)
-	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
-	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
-	LockWallet(context.Context, *connect.Request[v1.LockWalletRequest]) (*connect.Response[v1.LockWalletResponse], error)
-	EncryptWallet(context.Context, *connect.Request[v1.EncryptWalletRequest]) (*connect.Response[v1.EncryptWalletResponse], error)
-	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
-	RemoveEncryption(context.Context, *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error)
-	ListWallets(context.Context, *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error)
-	SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error)
-	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
-	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
-	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
-	ListWalletBackups(context.Context, *connect.Request[v1.ListWalletBackupsRequest]) (*connect.Response[v1.ListWalletBackupsResponse], error)
-	RestoreWalletBackup(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error)
-	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.ServerStreamForClient[v1.RestoreWalletBackupProgressResponse], error)
-	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
-	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
-	// Core or enforcer runs. The wallet reads its chain from Esplora.
-	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
-	CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error)
-	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
-	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
-	ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error)
-	// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
-	// into the script policy it encodes.
-	ValidateDescriptor(context.Context, *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error)
-	// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
-	// the reason it is unusable.
-	ValidateDerivationPath(context.Context, *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error)
-	// ListDerivationPaths returns the standard account paths for a policy on the
-	// network this backend runs.
-	ListDerivationPaths(context.Context, *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error)
-	// Core wallet management
-	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
-	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
-	// Bitcoin operations (proxied through Core RPC)
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	RescanWallet(context.Context, *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error)
-	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
-	// PreviewSend builds a send at a fee rate, with the same coin selection as
-	// SendTransaction, and reports its fee and size. It broadcasts nothing.
-	PreviewSend(context.Context, *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error)
-	// SetFrozenCoins records the coins the frontend froze. Every send after it
-	// leaves those coins alone, and Bitcoin Core holds them locked for the
-	// length of a send so its own coin selection skips them too.
-	SetFrozenCoins(context.Context, *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error)
-	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
-	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
-	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
-	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
-	DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error)
-	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
-	// PreviewBumpFee reports what a fee bump costs, and which output pays it,
-	// without broadcasting anything.
-	PreviewBumpFee(context.Context, *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error)
-	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
-	// fee lifts the parent+child package to the target fee rate (CPFP).
-	CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error)
-	// CancelTransaction replaces an unconfirmed transaction with one that pays
-	// the wallet's own inputs of it back to the wallet.
-	CancelTransaction(context.Context, *connect.Request[v1.CancelTransactionRequest]) (*connect.Response[v1.CancelTransactionResponse], error)
-	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
-	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
-	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
-	// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
-	// wallets only.
-	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
-	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
-	// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
-	// (per-keystore signing), leaving the other legs for their own signers.
-	SignPsbtWithCosigner(context.Context, *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error)
-	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
-	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
-	// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
-	// signature count, whether it can be finalized, and which cosigners signed.
-	MultisigPsbtStatus(context.Context, *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error)
-	// BroadcastTransaction broadcasts a finalized raw transaction over the
-	// wallet's chain source and returns its txid.
-	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
-	// Address reads that belong to no wallet — cheque addresses, whose funds are
-	// not the user's to spend. Always electrum-backed, whatever wallet is active.
-	GetAddressUnspent(context.Context, *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error)
-	BroadcastElectrumTransaction(context.Context, *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error)
-	// USB hardware wallets.
-	EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error)
-	GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error)
-	SignPsbtWithDevice(context.Context, *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error)
-	// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
-	PromptDevicePin(context.Context, *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error)
-	SendDevicePin(context.Context, *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error)
-	// CloseDevice releases the device so the next enumerate isn't blocked.
-	CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error)
-	// DeriveKeystore turns a keystore's intent into derived account key material.
-	DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error)
-	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
-	// show the words while the user is still choosing their entropy.
-	PreviewWalletFromEntropy(context.Context, *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error)
-	// Seed access for cheque engine
-	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
-	// Bitcoin Core variant selection (untouched / touched / knots).
-	ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error)
-	GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error)
-	SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error)
-	// Electrum server (Esplora endpoint) selection for electrum wallets.
-	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
-	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
-	// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
-	GetTorConfig(context.Context, *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error)
-	SetTorConfig(context.Context, *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error)
-	// Stream wallet state changes. Sends the full wallet state immediately,
-	// then again whenever wallets or balance change.
-	WatchWalletData(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error)
+	GetWalletStatus(context.Context, *v1.GetWalletStatusRequest) (*v1.GetWalletStatusResponse, error)
+	ListSidechainDeposits(context.Context, *v1.ListSidechainDepositsRequest) (*v1.ListSidechainDepositsResponse, error)
+	GetSidechainDepositTotals(context.Context, *v1.GetSidechainDepositTotalsRequest) (*v1.GetSidechainDepositTotalsResponse, error)
+	GetNodeMode(context.Context, *v1.GetNodeModeRequest) (*v1.GetNodeModeResponse, error)
+	SetNodeMode(context.Context, *v1.SetNodeModeRequest) (*v1.SetNodeModeResponse, error)
+	GenerateWallet(context.Context, *v1.GenerateWalletRequest) (*v1.GenerateWalletResponse, error)
+	UnlockWallet(context.Context, *v1.UnlockWalletRequest) (*v1.UnlockWalletResponse, error)
+	LockWallet(context.Context, *v1.LockWalletRequest) (*v1.LockWalletResponse, error)
+	EncryptWallet(context.Context, *v1.EncryptWalletRequest) (*v1.EncryptWalletResponse, error)
+	ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error)
+	RemoveEncryption(context.Context, *v1.RemoveEncryptionRequest) (*v1.RemoveEncryptionResponse, error)
+	ListWallets(context.Context, *v1.ListWalletsRequest) (*v1.ListWalletsResponse, error)
+	SwitchWallet(context.Context, *v1.SwitchWalletRequest) (*v1.SwitchWalletResponse, error)
+	UpdateWalletMetadata(context.Context, *v1.UpdateWalletMetadataRequest) (*v1.UpdateWalletMetadataResponse, error)
+	DeleteWallet(context.Context, *v1.DeleteWalletRequest) (*v1.DeleteWalletResponse, error)
+	DeleteAllWallets(context.Context, *v1.DeleteAllWalletsRequest) (*v1.DeleteAllWalletsResponse, error)
+	ListWalletBackups(context.Context, *v1.ListWalletBackupsRequest) (*v1.ListWalletBackupsResponse, error)
+	RestoreWalletBackup(context.Context, *v1.RestoreWalletBackupRequest) (*v1.RestoreWalletBackupResponse, error)
+	RestoreWalletBackupStream(context.Context, *v1.RestoreWalletBackupRequest) (WalletManagerServiceRestoreWalletBackupStreamClientStream, error)
+	CreateWatchOnlyWallet(context.Context, *v1.CreateWatchOnlyWalletRequest) (*v1.CreateWatchOnlyWalletResponse, error)
+	CreateElectrumWallet(context.Context, *v1.CreateElectrumWalletRequest) (*v1.CreateElectrumWalletResponse, error)
+	CreateMultisigWallet(context.Context, *v1.CreateMultisigWalletRequest) (*v1.CreateMultisigWalletResponse, error)
+	ParseMultisigConfig(context.Context, *v1.ParseMultisigConfigRequest) (*v1.ParseMultisigConfigResponse, error)
+	ValidateDescriptor(context.Context, *v1.ValidateDescriptorRequest) (*v1.ValidateDescriptorResponse, error)
+	ValidateDerivationPath(context.Context, *v1.ValidateDerivationPathRequest) (*v1.ValidateDerivationPathResponse, error)
+	ListDerivationPaths(context.Context, *v1.ListDerivationPathsRequest) (*v1.ListDerivationPathsResponse, error)
+	CreateBitcoinCoreWallet(context.Context, *v1.CreateBitcoinCoreWalletRequest) (*v1.CreateBitcoinCoreWalletResponse, error)
+	EnsureCoreWallets(context.Context, *v1.EnsureCoreWalletsRequest) (*v1.EnsureCoreWalletsResponse, error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	RescanWallet(context.Context, *v1.RescanWalletRequest) (*v1.RescanWalletResponse, error)
+	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	SendTransaction(context.Context, *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error)
+	PreviewSend(context.Context, *v1.PreviewSendRequest) (*v1.PreviewSendResponse, error)
+	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)
+	ListReceiveAddresses(context.Context, *v1.ListReceiveAddressesRequest) (*v1.ListReceiveAddressesResponse, error)
+	GetTransactionDetails(context.Context, *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error)
+	DecodeTransaction(context.Context, *v1.DecodeTransactionRequest) (*v1.DecodeTransactionResponse, error)
+	BumpFee(context.Context, *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error)
+	PreviewBumpFee(context.Context, *v1.PreviewBumpFeeRequest) (*v1.PreviewBumpFeeResponse, error)
+	CreateCpfp(context.Context, *v1.CreateCpfpRequest) (*v1.CreateCpfpResponse, error)
+	CancelTransaction(context.Context, *v1.CancelTransactionRequest) (*v1.CancelTransactionResponse, error)
+	DeriveAddresses(context.Context, *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error)
+	CreatePsbt(context.Context, *v1.CreatePsbtRequest) (*v1.CreatePsbtResponse, error)
+	SignPsbt(context.Context, *v1.SignPsbtRequest) (*v1.SignPsbtResponse, error)
+	SignPsbtWithCosigner(context.Context, *v1.SignPsbtWithCosignerRequest) (*v1.SignPsbtWithCosignerResponse, error)
+	CombinePsbt(context.Context, *v1.CombinePsbtRequest) (*v1.CombinePsbtResponse, error)
+	FinalizePsbt(context.Context, *v1.FinalizePsbtRequest) (*v1.FinalizePsbtResponse, error)
+	MultisigPsbtStatus(context.Context, *v1.MultisigPsbtStatusRequest) (*v1.MultisigPsbtStatusResponse, error)
+	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	GetAddressUnspent(context.Context, *v1.GetAddressUnspentRequest) (*v1.GetAddressUnspentResponse, error)
+	BroadcastElectrumTransaction(context.Context, *v1.BroadcastElectrumTransactionRequest) (*v1.BroadcastElectrumTransactionResponse, error)
+	EnumerateHardwareDevices(context.Context, *v1.EnumerateHardwareDevicesRequest) (*v1.EnumerateHardwareDevicesResponse, error)
+	GetHardwareXpub(context.Context, *v1.GetHardwareXpubRequest) (*v1.GetHardwareXpubResponse, error)
+	SignPsbtWithDevice(context.Context, *v1.SignPsbtWithDeviceRequest) (*v1.SignPsbtWithDeviceResponse, error)
+	PromptDevicePin(context.Context, *v1.PromptDevicePinRequest) (*v1.PromptDevicePinResponse, error)
+	SendDevicePin(context.Context, *v1.SendDevicePinRequest) (*v1.SendDevicePinResponse, error)
+	CloseDevice(context.Context, *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error)
+	DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error)
+	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
+	GetWalletSeed(context.Context, *v1.GetWalletSeedRequest) (*v1.GetWalletSeedResponse, error)
+	ListCoreVariants(context.Context, *v1.ListCoreVariantsRequest) (*v1.ListCoreVariantsResponse, error)
+	GetCoreVariant(context.Context, *v1.GetCoreVariantRequest) (*v1.GetCoreVariantResponse, error)
+	SetCoreVariant(context.Context, *v1.SetCoreVariantRequest) (*v1.SetCoreVariantResponse, error)
+	GetElectrumServer(context.Context, *v1.GetElectrumServerRequest) (*v1.GetElectrumServerResponse, error)
+	SetElectrumServer(context.Context, *v1.SetElectrumServerRequest) (*v1.SetElectrumServerResponse, error)
+	GetTorConfig(context.Context, *v1.GetTorConfigRequest) (*v1.GetTorConfigResponse, error)
+	SetTorConfig(context.Context, *v1.SetTorConfigRequest) (*v1.SetTorConfigResponse, error)
+	WatchWalletData(context.Context, *emptypb.Empty) (WalletManagerServiceWatchWalletDataClientStream, error)
 }
 
 // NewWalletManagerServiceClient constructs a client for the walletmanager.v1.WalletManagerService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) WalletManagerServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	walletManagerServiceMethods := v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods()
-	return &walletManagerServiceClient{
-		getWalletStatus: connect.NewClient[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetWalletStatusProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		listSidechainDeposits: connect.NewClient[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListSidechainDepositsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListSidechainDeposits")),
-			connect.WithClientOptions(opts...),
-		),
-		getSidechainDepositTotals: connect.NewClient[v1.GetSidechainDepositTotalsRequest, v1.GetSidechainDepositTotalsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetSidechainDepositTotalsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetSidechainDepositTotals")),
-			connect.WithClientOptions(opts...),
-		),
-		getNodeMode: connect.NewClient[v1.GetNodeModeRequest, v1.GetNodeModeResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetNodeModeProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetNodeMode")),
-			connect.WithClientOptions(opts...),
-		),
-		setNodeMode: connect.NewClient[v1.SetNodeModeRequest, v1.SetNodeModeResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSetNodeModeProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SetNodeMode")),
-			connect.WithClientOptions(opts...),
-		),
-		generateWallet: connect.NewClient[v1.GenerateWalletRequest, v1.GenerateWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGenerateWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GenerateWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		unlockWallet: connect.NewClient[v1.UnlockWalletRequest, v1.UnlockWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceUnlockWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("UnlockWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		lockWallet: connect.NewClient[v1.LockWalletRequest, v1.LockWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceLockWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("LockWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		encryptWallet: connect.NewClient[v1.EncryptWalletRequest, v1.EncryptWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceEncryptWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("EncryptWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		changePassword: connect.NewClient[v1.ChangePasswordRequest, v1.ChangePasswordResponse](
-			httpClient,
-			baseURL+WalletManagerServiceChangePasswordProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ChangePassword")),
-			connect.WithClientOptions(opts...),
-		),
-		removeEncryption: connect.NewClient[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse](
-			httpClient,
-			baseURL+WalletManagerServiceRemoveEncryptionProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("RemoveEncryption")),
-			connect.WithClientOptions(opts...),
-		),
-		listWallets: connect.NewClient[v1.ListWalletsRequest, v1.ListWalletsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListWalletsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListWallets")),
-			connect.WithClientOptions(opts...),
-		),
-		switchWallet: connect.NewClient[v1.SwitchWalletRequest, v1.SwitchWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSwitchWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SwitchWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		updateWalletMetadata: connect.NewClient[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse](
-			httpClient,
-			baseURL+WalletManagerServiceUpdateWalletMetadataProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("UpdateWalletMetadata")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteWallet: connect.NewClient[v1.DeleteWalletRequest, v1.DeleteWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceDeleteWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("DeleteWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteAllWallets: connect.NewClient[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceDeleteAllWalletsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("DeleteAllWallets")),
-			connect.WithClientOptions(opts...),
-		),
-		listWalletBackups: connect.NewClient[v1.ListWalletBackupsRequest, v1.ListWalletBackupsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListWalletBackupsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListWalletBackups")),
-			connect.WithClientOptions(opts...),
-		),
-		restoreWalletBackup: connect.NewClient[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupResponse](
-			httpClient,
-			baseURL+WalletManagerServiceRestoreWalletBackupProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("RestoreWalletBackup")),
-			connect.WithClientOptions(opts...),
-		),
-		restoreWalletBackupStream: connect.NewClient[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupProgressResponse](
-			httpClient,
-			baseURL+WalletManagerServiceRestoreWalletBackupStreamProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("RestoreWalletBackupStream")),
-			connect.WithClientOptions(opts...),
-		),
-		createWatchOnlyWallet: connect.NewClient[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCreateWatchOnlyWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		createElectrumWallet: connect.NewClient[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCreateElectrumWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CreateElectrumWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		createMultisigWallet: connect.NewClient[v1.CreateMultisigWalletRequest, v1.CreateMultisigWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCreateMultisigWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CreateMultisigWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		parseMultisigConfig: connect.NewClient[v1.ParseMultisigConfigRequest, v1.ParseMultisigConfigResponse](
-			httpClient,
-			baseURL+WalletManagerServiceParseMultisigConfigProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ParseMultisigConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		validateDescriptor: connect.NewClient[v1.ValidateDescriptorRequest, v1.ValidateDescriptorResponse](
-			httpClient,
-			baseURL+WalletManagerServiceValidateDescriptorProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDescriptor")),
-			connect.WithClientOptions(opts...),
-		),
-		validateDerivationPath: connect.NewClient[v1.ValidateDerivationPathRequest, v1.ValidateDerivationPathResponse](
-			httpClient,
-			baseURL+WalletManagerServiceValidateDerivationPathProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDerivationPath")),
-			connect.WithClientOptions(opts...),
-		),
-		listDerivationPaths: connect.NewClient[v1.ListDerivationPathsRequest, v1.ListDerivationPathsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListDerivationPathsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListDerivationPaths")),
-			connect.WithClientOptions(opts...),
-		),
-		createBitcoinCoreWallet: connect.NewClient[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCreateBitcoinCoreWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CreateBitcoinCoreWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		ensureCoreWallets: connect.NewClient[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceEnsureCoreWalletsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("EnsureCoreWallets")),
-			connect.WithClientOptions(opts...),
-		),
-		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetBalanceProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		rescanWallet: connect.NewClient[v1.RescanWalletRequest, v1.RescanWalletResponse](
-			httpClient,
-			baseURL+WalletManagerServiceRescanWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("RescanWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		estimateFee: connect.NewClient[v1.EstimateFeeRequest, v1.EstimateFeeResponse](
-			httpClient,
-			baseURL+WalletManagerServiceEstimateFeeProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("EstimateFee")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetNewAddressProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetNewAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		sendTransaction: connect.NewClient[v1.SendTransactionRequest, v1.SendTransactionResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSendTransactionProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		previewSend: connect.NewClient[v1.PreviewSendRequest, v1.PreviewSendResponse](
-			httpClient,
-			baseURL+WalletManagerServicePreviewSendProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("PreviewSend")),
-			connect.WithClientOptions(opts...),
-		),
-		setFrozenCoins: connect.NewClient[v1.SetFrozenCoinsRequest, emptypb.Empty](
-			httpClient,
-			baseURL+WalletManagerServiceSetFrozenCoinsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SetFrozenCoins")),
-			connect.WithClientOptions(opts...),
-		),
-		createDeposit: connect.NewClient[v1.CreateDepositRequest, v1.CreateDepositResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCreateDepositProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CreateDeposit")),
-			connect.WithClientOptions(opts...),
-		),
-		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListTransactionsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-		listUnspent: connect.NewClient[v1.ListUnspentRequest, v1.ListUnspentResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListUnspentProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListUnspent")),
-			connect.WithClientOptions(opts...),
-		),
-		listReceiveAddresses: connect.NewClient[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListReceiveAddressesProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListReceiveAddresses")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransactionDetails: connect.NewClient[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetTransactionDetailsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetTransactionDetails")),
-			connect.WithClientOptions(opts...),
-		),
-		decodeTransaction: connect.NewClient[v1.DecodeTransactionRequest, v1.DecodeTransactionResponse](
-			httpClient,
-			baseURL+WalletManagerServiceDecodeTransactionProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("DecodeTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		bumpFee: connect.NewClient[v1.BumpFeeRequest, v1.BumpFeeResponse](
-			httpClient,
-			baseURL+WalletManagerServiceBumpFeeProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
-			connect.WithClientOptions(opts...),
-		),
-		previewBumpFee: connect.NewClient[v1.PreviewBumpFeeRequest, v1.PreviewBumpFeeResponse](
-			httpClient,
-			baseURL+WalletManagerServicePreviewBumpFeeProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("PreviewBumpFee")),
-			connect.WithClientOptions(opts...),
-		),
-		createCpfp: connect.NewClient[v1.CreateCpfpRequest, v1.CreateCpfpResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCreateCpfpProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CreateCpfp")),
-			connect.WithClientOptions(opts...),
-		),
-		cancelTransaction: connect.NewClient[v1.CancelTransactionRequest, v1.CancelTransactionResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCancelTransactionProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CancelTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		deriveAddresses: connect.NewClient[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse](
-			httpClient,
-			baseURL+WalletManagerServiceDeriveAddressesProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("DeriveAddresses")),
-			connect.WithClientOptions(opts...),
-		),
-		createPsbt: connect.NewClient[v1.CreatePsbtRequest, v1.CreatePsbtResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCreatePsbtProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CreatePsbt")),
-			connect.WithClientOptions(opts...),
-		),
-		signPsbt: connect.NewClient[v1.SignPsbtRequest, v1.SignPsbtResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSignPsbtProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbt")),
-			connect.WithClientOptions(opts...),
-		),
-		signPsbtWithCosigner: connect.NewClient[v1.SignPsbtWithCosignerRequest, v1.SignPsbtWithCosignerResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSignPsbtWithCosignerProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithCosigner")),
-			connect.WithClientOptions(opts...),
-		),
-		combinePsbt: connect.NewClient[v1.CombinePsbtRequest, v1.CombinePsbtResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCombinePsbtProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CombinePsbt")),
-			connect.WithClientOptions(opts...),
-		),
-		finalizePsbt: connect.NewClient[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse](
-			httpClient,
-			baseURL+WalletManagerServiceFinalizePsbtProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
-			connect.WithClientOptions(opts...),
-		),
-		multisigPsbtStatus: connect.NewClient[v1.MultisigPsbtStatusRequest, v1.MultisigPsbtStatusResponse](
-			httpClient,
-			baseURL+WalletManagerServiceMultisigPsbtStatusProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("MultisigPsbtStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		broadcastTransaction: connect.NewClient[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse](
-			httpClient,
-			baseURL+WalletManagerServiceBroadcastTransactionProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		getAddressUnspent: connect.NewClient[v1.GetAddressUnspentRequest, v1.GetAddressUnspentResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetAddressUnspentProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetAddressUnspent")),
-			connect.WithClientOptions(opts...),
-		),
-		broadcastElectrumTransaction: connect.NewClient[v1.BroadcastElectrumTransactionRequest, v1.BroadcastElectrumTransactionResponse](
-			httpClient,
-			baseURL+WalletManagerServiceBroadcastElectrumTransactionProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastElectrumTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		enumerateHardwareDevices: connect.NewClient[v1.EnumerateHardwareDevicesRequest, v1.EnumerateHardwareDevicesResponse](
-			httpClient,
-			baseURL+WalletManagerServiceEnumerateHardwareDevicesProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("EnumerateHardwareDevices")),
-			connect.WithClientOptions(opts...),
-		),
-		getHardwareXpub: connect.NewClient[v1.GetHardwareXpubRequest, v1.GetHardwareXpubResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetHardwareXpubProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetHardwareXpub")),
-			connect.WithClientOptions(opts...),
-		),
-		signPsbtWithDevice: connect.NewClient[v1.SignPsbtWithDeviceRequest, v1.SignPsbtWithDeviceResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSignPsbtWithDeviceProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithDevice")),
-			connect.WithClientOptions(opts...),
-		),
-		promptDevicePin: connect.NewClient[v1.PromptDevicePinRequest, v1.PromptDevicePinResponse](
-			httpClient,
-			baseURL+WalletManagerServicePromptDevicePinProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("PromptDevicePin")),
-			connect.WithClientOptions(opts...),
-		),
-		sendDevicePin: connect.NewClient[v1.SendDevicePinRequest, v1.SendDevicePinResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSendDevicePinProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SendDevicePin")),
-			connect.WithClientOptions(opts...),
-		),
-		closeDevice: connect.NewClient[v1.CloseDeviceRequest, v1.CloseDeviceResponse](
-			httpClient,
-			baseURL+WalletManagerServiceCloseDeviceProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("CloseDevice")),
-			connect.WithClientOptions(opts...),
-		),
-		deriveKeystore: connect.NewClient[v1.DeriveKeystoreRequest, v1.DeriveKeystoreResponse](
-			httpClient,
-			baseURL+WalletManagerServiceDeriveKeystoreProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("DeriveKeystore")),
-			connect.WithClientOptions(opts...),
-		),
-		previewWalletFromEntropy: connect.NewClient[v1.PreviewWalletFromEntropyRequest, v1.PreviewWalletFromEntropyResponse](
-			httpClient,
-			baseURL+WalletManagerServicePreviewWalletFromEntropyProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("PreviewWalletFromEntropy")),
-			connect.WithClientOptions(opts...),
-		),
-		getWalletSeed: connect.NewClient[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetWalletSeedProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
-			connect.WithClientOptions(opts...),
-		),
-		listCoreVariants: connect.NewClient[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceListCoreVariantsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("ListCoreVariants")),
-			connect.WithClientOptions(opts...),
-		),
-		getCoreVariant: connect.NewClient[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetCoreVariantProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetCoreVariant")),
-			connect.WithClientOptions(opts...),
-		),
-		setCoreVariant: connect.NewClient[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSetCoreVariantProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SetCoreVariant")),
-			connect.WithClientOptions(opts...),
-		),
-		getElectrumServer: connect.NewClient[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetElectrumServerProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetElectrumServer")),
-			connect.WithClientOptions(opts...),
-		),
-		setElectrumServer: connect.NewClient[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSetElectrumServerProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SetElectrumServer")),
-			connect.WithClientOptions(opts...),
-		),
-		getTorConfig: connect.NewClient[v1.GetTorConfigRequest, v1.GetTorConfigResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetTorConfigProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetTorConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		setTorConfig: connect.NewClient[v1.SetTorConfigRequest, v1.SetTorConfigResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSetTorConfigProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SetTorConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		watchWalletData: connect.NewClient[emptypb.Empty, v1.WatchWalletDataResponse](
-			httpClient,
-			baseURL+WalletManagerServiceWatchWalletDataProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("WatchWalletData")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewWalletManagerServiceClient(client *connect.Client) WalletManagerServiceClient {
+	return &walletManagerServiceClient{client: client}
+}
+
+// WalletManagerServiceRestoreWalletBackupStreamClientStream is the client stream for the
+// WalletManagerService's RestoreWalletBackupStream RPC.
+type WalletManagerServiceRestoreWalletBackupStreamClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s WalletManagerServiceRestoreWalletBackupStreamClientStream) Receive() (*v1.RestoreWalletBackupProgressResponse, error) {
+	var res v1.RestoreWalletBackupProgressResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// walletManagerServiceClient implements WalletManagerServiceClient.
-type walletManagerServiceClient struct {
-	getWalletStatus              *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
-	listSidechainDeposits        *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
-	getSidechainDepositTotals    *connect.Client[v1.GetSidechainDepositTotalsRequest, v1.GetSidechainDepositTotalsResponse]
-	getNodeMode                  *connect.Client[v1.GetNodeModeRequest, v1.GetNodeModeResponse]
-	setNodeMode                  *connect.Client[v1.SetNodeModeRequest, v1.SetNodeModeResponse]
-	generateWallet               *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
-	unlockWallet                 *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
-	lockWallet                   *connect.Client[v1.LockWalletRequest, v1.LockWalletResponse]
-	encryptWallet                *connect.Client[v1.EncryptWalletRequest, v1.EncryptWalletResponse]
-	changePassword               *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
-	removeEncryption             *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
-	listWallets                  *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
-	switchWallet                 *connect.Client[v1.SwitchWalletRequest, v1.SwitchWalletResponse]
-	updateWalletMetadata         *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
-	deleteWallet                 *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
-	deleteAllWallets             *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
-	listWalletBackups            *connect.Client[v1.ListWalletBackupsRequest, v1.ListWalletBackupsResponse]
-	restoreWalletBackup          *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupResponse]
-	restoreWalletBackupStream    *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupProgressResponse]
-	createWatchOnlyWallet        *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
-	createElectrumWallet         *connect.Client[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse]
-	createMultisigWallet         *connect.Client[v1.CreateMultisigWalletRequest, v1.CreateMultisigWalletResponse]
-	parseMultisigConfig          *connect.Client[v1.ParseMultisigConfigRequest, v1.ParseMultisigConfigResponse]
-	validateDescriptor           *connect.Client[v1.ValidateDescriptorRequest, v1.ValidateDescriptorResponse]
-	validateDerivationPath       *connect.Client[v1.ValidateDerivationPathRequest, v1.ValidateDerivationPathResponse]
-	listDerivationPaths          *connect.Client[v1.ListDerivationPathsRequest, v1.ListDerivationPathsResponse]
-	createBitcoinCoreWallet      *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
-	ensureCoreWallets            *connect.Client[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse]
-	getBalance                   *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
-	rescanWallet                 *connect.Client[v1.RescanWalletRequest, v1.RescanWalletResponse]
-	estimateFee                  *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
-	getNewAddress                *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
-	sendTransaction              *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
-	previewSend                  *connect.Client[v1.PreviewSendRequest, v1.PreviewSendResponse]
-	setFrozenCoins               *connect.Client[v1.SetFrozenCoinsRequest, emptypb.Empty]
-	createDeposit                *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
-	listTransactions             *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
-	listUnspent                  *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
-	listReceiveAddresses         *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
-	getTransactionDetails        *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
-	decodeTransaction            *connect.Client[v1.DecodeTransactionRequest, v1.DecodeTransactionResponse]
-	bumpFee                      *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
-	previewBumpFee               *connect.Client[v1.PreviewBumpFeeRequest, v1.PreviewBumpFeeResponse]
-	createCpfp                   *connect.Client[v1.CreateCpfpRequest, v1.CreateCpfpResponse]
-	cancelTransaction            *connect.Client[v1.CancelTransactionRequest, v1.CancelTransactionResponse]
-	deriveAddresses              *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
-	createPsbt                   *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
-	signPsbt                     *connect.Client[v1.SignPsbtRequest, v1.SignPsbtResponse]
-	signPsbtWithCosigner         *connect.Client[v1.SignPsbtWithCosignerRequest, v1.SignPsbtWithCosignerResponse]
-	combinePsbt                  *connect.Client[v1.CombinePsbtRequest, v1.CombinePsbtResponse]
-	finalizePsbt                 *connect.Client[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse]
-	multisigPsbtStatus           *connect.Client[v1.MultisigPsbtStatusRequest, v1.MultisigPsbtStatusResponse]
-	broadcastTransaction         *connect.Client[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse]
-	getAddressUnspent            *connect.Client[v1.GetAddressUnspentRequest, v1.GetAddressUnspentResponse]
-	broadcastElectrumTransaction *connect.Client[v1.BroadcastElectrumTransactionRequest, v1.BroadcastElectrumTransactionResponse]
-	enumerateHardwareDevices     *connect.Client[v1.EnumerateHardwareDevicesRequest, v1.EnumerateHardwareDevicesResponse]
-	getHardwareXpub              *connect.Client[v1.GetHardwareXpubRequest, v1.GetHardwareXpubResponse]
-	signPsbtWithDevice           *connect.Client[v1.SignPsbtWithDeviceRequest, v1.SignPsbtWithDeviceResponse]
-	promptDevicePin              *connect.Client[v1.PromptDevicePinRequest, v1.PromptDevicePinResponse]
-	sendDevicePin                *connect.Client[v1.SendDevicePinRequest, v1.SendDevicePinResponse]
-	closeDevice                  *connect.Client[v1.CloseDeviceRequest, v1.CloseDeviceResponse]
-	deriveKeystore               *connect.Client[v1.DeriveKeystoreRequest, v1.DeriveKeystoreResponse]
-	previewWalletFromEntropy     *connect.Client[v1.PreviewWalletFromEntropyRequest, v1.PreviewWalletFromEntropyResponse]
-	getWalletSeed                *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
-	listCoreVariants             *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
-	getCoreVariant               *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
-	setCoreVariant               *connect.Client[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse]
-	getElectrumServer            *connect.Client[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse]
-	setElectrumServer            *connect.Client[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse]
-	getTorConfig                 *connect.Client[v1.GetTorConfigRequest, v1.GetTorConfigResponse]
-	setTorConfig                 *connect.Client[v1.SetTorConfigRequest, v1.SetTorConfigResponse]
-	watchWalletData              *connect.Client[emptypb.Empty, v1.WatchWalletDataResponse]
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s WalletManagerServiceRestoreWalletBackupStreamClientStream) Close() error {
+	return s.stream.Close()
 }
 
-// GetWalletStatus calls walletmanager.v1.WalletManagerService.GetWalletStatus.
-func (c *walletManagerServiceClient) GetWalletStatus(ctx context.Context, req *connect.Request[v1.GetWalletStatusRequest]) (*connect.Response[v1.GetWalletStatusResponse], error) {
-	return c.getWalletStatus.CallUnary(ctx, req)
+// WalletManagerServiceWatchWalletDataClientStream is the client stream for the
+// WalletManagerService's WatchWalletData RPC.
+type WalletManagerServiceWatchWalletDataClientStream struct {
+	stream connect.ClientStream
 }
 
-// ListSidechainDeposits calls walletmanager.v1.WalletManagerService.ListSidechainDeposits.
-func (c *walletManagerServiceClient) ListSidechainDeposits(ctx context.Context, req *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
-	return c.listSidechainDeposits.CallUnary(ctx, req)
+// Receive returns the next response message from the server.
+func (s WalletManagerServiceWatchWalletDataClientStream) Receive() (*v1.WatchWalletDataResponse, error) {
+	var res v1.WatchWalletDataResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// GetSidechainDepositTotals calls walletmanager.v1.WalletManagerService.GetSidechainDepositTotals.
-func (c *walletManagerServiceClient) GetSidechainDepositTotals(ctx context.Context, req *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error) {
-	return c.getSidechainDepositTotals.CallUnary(ctx, req)
-}
-
-// GetNodeMode calls walletmanager.v1.WalletManagerService.GetNodeMode.
-func (c *walletManagerServiceClient) GetNodeMode(ctx context.Context, req *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error) {
-	return c.getNodeMode.CallUnary(ctx, req)
-}
-
-// SetNodeMode calls walletmanager.v1.WalletManagerService.SetNodeMode.
-func (c *walletManagerServiceClient) SetNodeMode(ctx context.Context, req *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error) {
-	return c.setNodeMode.CallUnary(ctx, req)
-}
-
-// GenerateWallet calls walletmanager.v1.WalletManagerService.GenerateWallet.
-func (c *walletManagerServiceClient) GenerateWallet(ctx context.Context, req *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error) {
-	return c.generateWallet.CallUnary(ctx, req)
-}
-
-// UnlockWallet calls walletmanager.v1.WalletManagerService.UnlockWallet.
-func (c *walletManagerServiceClient) UnlockWallet(ctx context.Context, req *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error) {
-	return c.unlockWallet.CallUnary(ctx, req)
-}
-
-// LockWallet calls walletmanager.v1.WalletManagerService.LockWallet.
-func (c *walletManagerServiceClient) LockWallet(ctx context.Context, req *connect.Request[v1.LockWalletRequest]) (*connect.Response[v1.LockWalletResponse], error) {
-	return c.lockWallet.CallUnary(ctx, req)
-}
-
-// EncryptWallet calls walletmanager.v1.WalletManagerService.EncryptWallet.
-func (c *walletManagerServiceClient) EncryptWallet(ctx context.Context, req *connect.Request[v1.EncryptWalletRequest]) (*connect.Response[v1.EncryptWalletResponse], error) {
-	return c.encryptWallet.CallUnary(ctx, req)
-}
-
-// ChangePassword calls walletmanager.v1.WalletManagerService.ChangePassword.
-func (c *walletManagerServiceClient) ChangePassword(ctx context.Context, req *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
-	return c.changePassword.CallUnary(ctx, req)
-}
-
-// RemoveEncryption calls walletmanager.v1.WalletManagerService.RemoveEncryption.
-func (c *walletManagerServiceClient) RemoveEncryption(ctx context.Context, req *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error) {
-	return c.removeEncryption.CallUnary(ctx, req)
-}
-
-// ListWallets calls walletmanager.v1.WalletManagerService.ListWallets.
-func (c *walletManagerServiceClient) ListWallets(ctx context.Context, req *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error) {
-	return c.listWallets.CallUnary(ctx, req)
-}
-
-// SwitchWallet calls walletmanager.v1.WalletManagerService.SwitchWallet.
-func (c *walletManagerServiceClient) SwitchWallet(ctx context.Context, req *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error) {
-	return c.switchWallet.CallUnary(ctx, req)
-}
-
-// UpdateWalletMetadata calls walletmanager.v1.WalletManagerService.UpdateWalletMetadata.
-func (c *walletManagerServiceClient) UpdateWalletMetadata(ctx context.Context, req *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error) {
-	return c.updateWalletMetadata.CallUnary(ctx, req)
-}
-
-// DeleteWallet calls walletmanager.v1.WalletManagerService.DeleteWallet.
-func (c *walletManagerServiceClient) DeleteWallet(ctx context.Context, req *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error) {
-	return c.deleteWallet.CallUnary(ctx, req)
-}
-
-// DeleteAllWallets calls walletmanager.v1.WalletManagerService.DeleteAllWallets.
-func (c *walletManagerServiceClient) DeleteAllWallets(ctx context.Context, req *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error) {
-	return c.deleteAllWallets.CallUnary(ctx, req)
-}
-
-// ListWalletBackups calls walletmanager.v1.WalletManagerService.ListWalletBackups.
-func (c *walletManagerServiceClient) ListWalletBackups(ctx context.Context, req *connect.Request[v1.ListWalletBackupsRequest]) (*connect.Response[v1.ListWalletBackupsResponse], error) {
-	return c.listWalletBackups.CallUnary(ctx, req)
-}
-
-// RestoreWalletBackup calls walletmanager.v1.WalletManagerService.RestoreWalletBackup.
-func (c *walletManagerServiceClient) RestoreWalletBackup(ctx context.Context, req *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error) {
-	return c.restoreWalletBackup.CallUnary(ctx, req)
-}
-
-// RestoreWalletBackupStream calls walletmanager.v1.WalletManagerService.RestoreWalletBackupStream.
-func (c *walletManagerServiceClient) RestoreWalletBackupStream(ctx context.Context, req *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.ServerStreamForClient[v1.RestoreWalletBackupProgressResponse], error) {
-	return c.restoreWalletBackupStream.CallServerStream(ctx, req)
-}
-
-// CreateWatchOnlyWallet calls walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet.
-func (c *walletManagerServiceClient) CreateWatchOnlyWallet(ctx context.Context, req *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {
-	return c.createWatchOnlyWallet.CallUnary(ctx, req)
-}
-
-// CreateElectrumWallet calls walletmanager.v1.WalletManagerService.CreateElectrumWallet.
-func (c *walletManagerServiceClient) CreateElectrumWallet(ctx context.Context, req *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error) {
-	return c.createElectrumWallet.CallUnary(ctx, req)
-}
-
-// CreateMultisigWallet calls walletmanager.v1.WalletManagerService.CreateMultisigWallet.
-func (c *walletManagerServiceClient) CreateMultisigWallet(ctx context.Context, req *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error) {
-	return c.createMultisigWallet.CallUnary(ctx, req)
-}
-
-// ParseMultisigConfig calls walletmanager.v1.WalletManagerService.ParseMultisigConfig.
-func (c *walletManagerServiceClient) ParseMultisigConfig(ctx context.Context, req *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error) {
-	return c.parseMultisigConfig.CallUnary(ctx, req)
-}
-
-// ValidateDescriptor calls walletmanager.v1.WalletManagerService.ValidateDescriptor.
-func (c *walletManagerServiceClient) ValidateDescriptor(ctx context.Context, req *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error) {
-	return c.validateDescriptor.CallUnary(ctx, req)
-}
-
-// ValidateDerivationPath calls walletmanager.v1.WalletManagerService.ValidateDerivationPath.
-func (c *walletManagerServiceClient) ValidateDerivationPath(ctx context.Context, req *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error) {
-	return c.validateDerivationPath.CallUnary(ctx, req)
-}
-
-// ListDerivationPaths calls walletmanager.v1.WalletManagerService.ListDerivationPaths.
-func (c *walletManagerServiceClient) ListDerivationPaths(ctx context.Context, req *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error) {
-	return c.listDerivationPaths.CallUnary(ctx, req)
-}
-
-// CreateBitcoinCoreWallet calls walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet.
-func (c *walletManagerServiceClient) CreateBitcoinCoreWallet(ctx context.Context, req *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
-	return c.createBitcoinCoreWallet.CallUnary(ctx, req)
-}
-
-// EnsureCoreWallets calls walletmanager.v1.WalletManagerService.EnsureCoreWallets.
-func (c *walletManagerServiceClient) EnsureCoreWallets(ctx context.Context, req *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error) {
-	return c.ensureCoreWallets.CallUnary(ctx, req)
-}
-
-// GetBalance calls walletmanager.v1.WalletManagerService.GetBalance.
-func (c *walletManagerServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return c.getBalance.CallUnary(ctx, req)
-}
-
-// RescanWallet calls walletmanager.v1.WalletManagerService.RescanWallet.
-func (c *walletManagerServiceClient) RescanWallet(ctx context.Context, req *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error) {
-	return c.rescanWallet.CallUnary(ctx, req)
-}
-
-// EstimateFee calls walletmanager.v1.WalletManagerService.EstimateFee.
-func (c *walletManagerServiceClient) EstimateFee(ctx context.Context, req *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error) {
-	return c.estimateFee.CallUnary(ctx, req)
-}
-
-// GetNewAddress calls walletmanager.v1.WalletManagerService.GetNewAddress.
-func (c *walletManagerServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return c.getNewAddress.CallUnary(ctx, req)
-}
-
-// SendTransaction calls walletmanager.v1.WalletManagerService.SendTransaction.
-func (c *walletManagerServiceClient) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
-	return c.sendTransaction.CallUnary(ctx, req)
-}
-
-// PreviewSend calls walletmanager.v1.WalletManagerService.PreviewSend.
-func (c *walletManagerServiceClient) PreviewSend(ctx context.Context, req *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error) {
-	return c.previewSend.CallUnary(ctx, req)
-}
-
-// SetFrozenCoins calls walletmanager.v1.WalletManagerService.SetFrozenCoins.
-func (c *walletManagerServiceClient) SetFrozenCoins(ctx context.Context, req *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.setFrozenCoins.CallUnary(ctx, req)
-}
-
-// CreateDeposit calls walletmanager.v1.WalletManagerService.CreateDeposit.
-func (c *walletManagerServiceClient) CreateDeposit(ctx context.Context, req *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return c.createDeposit.CallUnary(ctx, req)
-}
-
-// ListTransactions calls walletmanager.v1.WalletManagerService.ListTransactions.
-func (c *walletManagerServiceClient) ListTransactions(ctx context.Context, req *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
-	return c.listTransactions.CallUnary(ctx, req)
-}
-
-// ListUnspent calls walletmanager.v1.WalletManagerService.ListUnspent.
-func (c *walletManagerServiceClient) ListUnspent(ctx context.Context, req *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error) {
-	return c.listUnspent.CallUnary(ctx, req)
-}
-
-// ListReceiveAddresses calls walletmanager.v1.WalletManagerService.ListReceiveAddresses.
-func (c *walletManagerServiceClient) ListReceiveAddresses(ctx context.Context, req *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
-	return c.listReceiveAddresses.CallUnary(ctx, req)
-}
-
-// GetTransactionDetails calls walletmanager.v1.WalletManagerService.GetTransactionDetails.
-func (c *walletManagerServiceClient) GetTransactionDetails(ctx context.Context, req *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error) {
-	return c.getTransactionDetails.CallUnary(ctx, req)
-}
-
-// DecodeTransaction calls walletmanager.v1.WalletManagerService.DecodeTransaction.
-func (c *walletManagerServiceClient) DecodeTransaction(ctx context.Context, req *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error) {
-	return c.decodeTransaction.CallUnary(ctx, req)
-}
-
-// BumpFee calls walletmanager.v1.WalletManagerService.BumpFee.
-func (c *walletManagerServiceClient) BumpFee(ctx context.Context, req *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
-	return c.bumpFee.CallUnary(ctx, req)
-}
-
-// PreviewBumpFee calls walletmanager.v1.WalletManagerService.PreviewBumpFee.
-func (c *walletManagerServiceClient) PreviewBumpFee(ctx context.Context, req *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error) {
-	return c.previewBumpFee.CallUnary(ctx, req)
-}
-
-// CreateCpfp calls walletmanager.v1.WalletManagerService.CreateCpfp.
-func (c *walletManagerServiceClient) CreateCpfp(ctx context.Context, req *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error) {
-	return c.createCpfp.CallUnary(ctx, req)
-}
-
-// CancelTransaction calls walletmanager.v1.WalletManagerService.CancelTransaction.
-func (c *walletManagerServiceClient) CancelTransaction(ctx context.Context, req *connect.Request[v1.CancelTransactionRequest]) (*connect.Response[v1.CancelTransactionResponse], error) {
-	return c.cancelTransaction.CallUnary(ctx, req)
-}
-
-// DeriveAddresses calls walletmanager.v1.WalletManagerService.DeriveAddresses.
-func (c *walletManagerServiceClient) DeriveAddresses(ctx context.Context, req *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error) {
-	return c.deriveAddresses.CallUnary(ctx, req)
-}
-
-// CreatePsbt calls walletmanager.v1.WalletManagerService.CreatePsbt.
-func (c *walletManagerServiceClient) CreatePsbt(ctx context.Context, req *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error) {
-	return c.createPsbt.CallUnary(ctx, req)
-}
-
-// SignPsbt calls walletmanager.v1.WalletManagerService.SignPsbt.
-func (c *walletManagerServiceClient) SignPsbt(ctx context.Context, req *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error) {
-	return c.signPsbt.CallUnary(ctx, req)
-}
-
-// SignPsbtWithCosigner calls walletmanager.v1.WalletManagerService.SignPsbtWithCosigner.
-func (c *walletManagerServiceClient) SignPsbtWithCosigner(ctx context.Context, req *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error) {
-	return c.signPsbtWithCosigner.CallUnary(ctx, req)
-}
-
-// CombinePsbt calls walletmanager.v1.WalletManagerService.CombinePsbt.
-func (c *walletManagerServiceClient) CombinePsbt(ctx context.Context, req *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
-	return c.combinePsbt.CallUnary(ctx, req)
-}
-
-// FinalizePsbt calls walletmanager.v1.WalletManagerService.FinalizePsbt.
-func (c *walletManagerServiceClient) FinalizePsbt(ctx context.Context, req *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error) {
-	return c.finalizePsbt.CallUnary(ctx, req)
-}
-
-// MultisigPsbtStatus calls walletmanager.v1.WalletManagerService.MultisigPsbtStatus.
-func (c *walletManagerServiceClient) MultisigPsbtStatus(ctx context.Context, req *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error) {
-	return c.multisigPsbtStatus.CallUnary(ctx, req)
-}
-
-// BroadcastTransaction calls walletmanager.v1.WalletManagerService.BroadcastTransaction.
-func (c *walletManagerServiceClient) BroadcastTransaction(ctx context.Context, req *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
-	return c.broadcastTransaction.CallUnary(ctx, req)
-}
-
-// GetAddressUnspent calls walletmanager.v1.WalletManagerService.GetAddressUnspent.
-func (c *walletManagerServiceClient) GetAddressUnspent(ctx context.Context, req *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error) {
-	return c.getAddressUnspent.CallUnary(ctx, req)
-}
-
-// BroadcastElectrumTransaction calls
-// walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction.
-func (c *walletManagerServiceClient) BroadcastElectrumTransaction(ctx context.Context, req *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error) {
-	return c.broadcastElectrumTransaction.CallUnary(ctx, req)
-}
-
-// EnumerateHardwareDevices calls walletmanager.v1.WalletManagerService.EnumerateHardwareDevices.
-func (c *walletManagerServiceClient) EnumerateHardwareDevices(ctx context.Context, req *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error) {
-	return c.enumerateHardwareDevices.CallUnary(ctx, req)
-}
-
-// GetHardwareXpub calls walletmanager.v1.WalletManagerService.GetHardwareXpub.
-func (c *walletManagerServiceClient) GetHardwareXpub(ctx context.Context, req *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error) {
-	return c.getHardwareXpub.CallUnary(ctx, req)
-}
-
-// SignPsbtWithDevice calls walletmanager.v1.WalletManagerService.SignPsbtWithDevice.
-func (c *walletManagerServiceClient) SignPsbtWithDevice(ctx context.Context, req *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error) {
-	return c.signPsbtWithDevice.CallUnary(ctx, req)
-}
-
-// PromptDevicePin calls walletmanager.v1.WalletManagerService.PromptDevicePin.
-func (c *walletManagerServiceClient) PromptDevicePin(ctx context.Context, req *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error) {
-	return c.promptDevicePin.CallUnary(ctx, req)
-}
-
-// SendDevicePin calls walletmanager.v1.WalletManagerService.SendDevicePin.
-func (c *walletManagerServiceClient) SendDevicePin(ctx context.Context, req *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error) {
-	return c.sendDevicePin.CallUnary(ctx, req)
-}
-
-// CloseDevice calls walletmanager.v1.WalletManagerService.CloseDevice.
-func (c *walletManagerServiceClient) CloseDevice(ctx context.Context, req *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error) {
-	return c.closeDevice.CallUnary(ctx, req)
-}
-
-// DeriveKeystore calls walletmanager.v1.WalletManagerService.DeriveKeystore.
-func (c *walletManagerServiceClient) DeriveKeystore(ctx context.Context, req *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error) {
-	return c.deriveKeystore.CallUnary(ctx, req)
-}
-
-// PreviewWalletFromEntropy calls walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy.
-func (c *walletManagerServiceClient) PreviewWalletFromEntropy(ctx context.Context, req *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error) {
-	return c.previewWalletFromEntropy.CallUnary(ctx, req)
-}
-
-// GetWalletSeed calls walletmanager.v1.WalletManagerService.GetWalletSeed.
-func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
-	return c.getWalletSeed.CallUnary(ctx, req)
-}
-
-// ListCoreVariants calls walletmanager.v1.WalletManagerService.ListCoreVariants.
-func (c *walletManagerServiceClient) ListCoreVariants(ctx context.Context, req *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error) {
-	return c.listCoreVariants.CallUnary(ctx, req)
-}
-
-// GetCoreVariant calls walletmanager.v1.WalletManagerService.GetCoreVariant.
-func (c *walletManagerServiceClient) GetCoreVariant(ctx context.Context, req *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error) {
-	return c.getCoreVariant.CallUnary(ctx, req)
-}
-
-// SetCoreVariant calls walletmanager.v1.WalletManagerService.SetCoreVariant.
-func (c *walletManagerServiceClient) SetCoreVariant(ctx context.Context, req *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error) {
-	return c.setCoreVariant.CallUnary(ctx, req)
-}
-
-// GetElectrumServer calls walletmanager.v1.WalletManagerService.GetElectrumServer.
-func (c *walletManagerServiceClient) GetElectrumServer(ctx context.Context, req *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error) {
-	return c.getElectrumServer.CallUnary(ctx, req)
-}
-
-// SetElectrumServer calls walletmanager.v1.WalletManagerService.SetElectrumServer.
-func (c *walletManagerServiceClient) SetElectrumServer(ctx context.Context, req *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error) {
-	return c.setElectrumServer.CallUnary(ctx, req)
-}
-
-// GetTorConfig calls walletmanager.v1.WalletManagerService.GetTorConfig.
-func (c *walletManagerServiceClient) GetTorConfig(ctx context.Context, req *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error) {
-	return c.getTorConfig.CallUnary(ctx, req)
-}
-
-// SetTorConfig calls walletmanager.v1.WalletManagerService.SetTorConfig.
-func (c *walletManagerServiceClient) SetTorConfig(ctx context.Context, req *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error) {
-	return c.setTorConfig.CallUnary(ctx, req)
-}
-
-// WatchWalletData calls walletmanager.v1.WalletManagerService.WatchWalletData.
-func (c *walletManagerServiceClient) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error) {
-	return c.watchWalletData.CallServerStream(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s WalletManagerServiceWatchWalletDataClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // WalletManagerServiceHandler is an implementation of the walletmanager.v1.WalletManagerService
 // service.
 type WalletManagerServiceHandler interface {
-	// Wallet lifecycle
-	GetWalletStatus(context.Context, *connect.Request[v1.GetWalletStatusRequest]) (*connect.Response[v1.GetWalletStatusResponse], error)
-	// How much of Bitcoin this install runs. The frontend asks the user before
-	// it boots anything, and blocks until GetNodeMode reports a mode.
-	// Deposits this install made to a sidechain treasury. An M5 is an ordinary
-	// transaction on the wire, so the record comes from when we broadcast it.
-	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
-	GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error)
-	GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error)
-	SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error)
-	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
-	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
-	LockWallet(context.Context, *connect.Request[v1.LockWalletRequest]) (*connect.Response[v1.LockWalletResponse], error)
-	EncryptWallet(context.Context, *connect.Request[v1.EncryptWalletRequest]) (*connect.Response[v1.EncryptWalletResponse], error)
-	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
-	RemoveEncryption(context.Context, *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error)
-	ListWallets(context.Context, *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error)
-	SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error)
-	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
-	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
-	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
-	ListWalletBackups(context.Context, *connect.Request[v1.ListWalletBackupsRequest]) (*connect.Response[v1.ListWalletBackupsResponse], error)
-	RestoreWalletBackup(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error)
-	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest], *connect.ServerStream[v1.RestoreWalletBackupProgressResponse]) error
-	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
-	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
-	// Core or enforcer runs. The wallet reads its chain from Esplora.
-	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
-	CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error)
-	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
-	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
-	ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error)
-	// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
-	// into the script policy it encodes.
-	ValidateDescriptor(context.Context, *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error)
-	// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
-	// the reason it is unusable.
-	ValidateDerivationPath(context.Context, *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error)
-	// ListDerivationPaths returns the standard account paths for a policy on the
-	// network this backend runs.
-	ListDerivationPaths(context.Context, *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error)
-	// Core wallet management
-	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
-	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
-	// Bitcoin operations (proxied through Core RPC)
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	RescanWallet(context.Context, *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error)
-	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
-	// PreviewSend builds a send at a fee rate, with the same coin selection as
-	// SendTransaction, and reports its fee and size. It broadcasts nothing.
-	PreviewSend(context.Context, *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error)
-	// SetFrozenCoins records the coins the frontend froze. Every send after it
-	// leaves those coins alone, and Bitcoin Core holds them locked for the
-	// length of a send so its own coin selection skips them too.
-	SetFrozenCoins(context.Context, *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error)
-	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
-	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
-	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
-	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
-	DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error)
-	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
-	// PreviewBumpFee reports what a fee bump costs, and which output pays it,
-	// without broadcasting anything.
-	PreviewBumpFee(context.Context, *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error)
-	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
-	// fee lifts the parent+child package to the target fee rate (CPFP).
-	CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error)
-	// CancelTransaction replaces an unconfirmed transaction with one that pays
-	// the wallet's own inputs of it back to the wallet.
-	CancelTransaction(context.Context, *connect.Request[v1.CancelTransactionRequest]) (*connect.Response[v1.CancelTransactionResponse], error)
-	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
-	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
-	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
-	// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
-	// wallets only.
-	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
-	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
-	// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
-	// (per-keystore signing), leaving the other legs for their own signers.
-	SignPsbtWithCosigner(context.Context, *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error)
-	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
-	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
-	// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
-	// signature count, whether it can be finalized, and which cosigners signed.
-	MultisigPsbtStatus(context.Context, *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error)
-	// BroadcastTransaction broadcasts a finalized raw transaction over the
-	// wallet's chain source and returns its txid.
-	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
-	// Address reads that belong to no wallet — cheque addresses, whose funds are
-	// not the user's to spend. Always electrum-backed, whatever wallet is active.
-	GetAddressUnspent(context.Context, *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error)
-	BroadcastElectrumTransaction(context.Context, *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error)
-	// USB hardware wallets.
-	EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error)
-	GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error)
-	SignPsbtWithDevice(context.Context, *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error)
-	// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
-	PromptDevicePin(context.Context, *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error)
-	SendDevicePin(context.Context, *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error)
-	// CloseDevice releases the device so the next enumerate isn't blocked.
-	CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error)
-	// DeriveKeystore turns a keystore's intent into derived account key material.
-	DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error)
-	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
-	// show the words while the user is still choosing their entropy.
-	PreviewWalletFromEntropy(context.Context, *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error)
-	// Seed access for cheque engine
-	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
-	// Bitcoin Core variant selection (untouched / touched / knots).
-	ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error)
-	GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error)
-	SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error)
-	// Electrum server (Esplora endpoint) selection for electrum wallets.
-	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
-	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
-	// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
-	GetTorConfig(context.Context, *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error)
-	SetTorConfig(context.Context, *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error)
-	// Stream wallet state changes. Sends the full wallet state immediately,
-	// then again whenever wallets or balance change.
-	WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error
+	GetWalletStatus(context.Context, *v1.GetWalletStatusRequest) (*v1.GetWalletStatusResponse, error)
+	ListSidechainDeposits(context.Context, *v1.ListSidechainDepositsRequest) (*v1.ListSidechainDepositsResponse, error)
+	GetSidechainDepositTotals(context.Context, *v1.GetSidechainDepositTotalsRequest) (*v1.GetSidechainDepositTotalsResponse, error)
+	GetNodeMode(context.Context, *v1.GetNodeModeRequest) (*v1.GetNodeModeResponse, error)
+	SetNodeMode(context.Context, *v1.SetNodeModeRequest) (*v1.SetNodeModeResponse, error)
+	GenerateWallet(context.Context, *v1.GenerateWalletRequest) (*v1.GenerateWalletResponse, error)
+	UnlockWallet(context.Context, *v1.UnlockWalletRequest) (*v1.UnlockWalletResponse, error)
+	LockWallet(context.Context, *v1.LockWalletRequest) (*v1.LockWalletResponse, error)
+	EncryptWallet(context.Context, *v1.EncryptWalletRequest) (*v1.EncryptWalletResponse, error)
+	ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error)
+	RemoveEncryption(context.Context, *v1.RemoveEncryptionRequest) (*v1.RemoveEncryptionResponse, error)
+	ListWallets(context.Context, *v1.ListWalletsRequest) (*v1.ListWalletsResponse, error)
+	SwitchWallet(context.Context, *v1.SwitchWalletRequest) (*v1.SwitchWalletResponse, error)
+	UpdateWalletMetadata(context.Context, *v1.UpdateWalletMetadataRequest) (*v1.UpdateWalletMetadataResponse, error)
+	DeleteWallet(context.Context, *v1.DeleteWalletRequest) (*v1.DeleteWalletResponse, error)
+	DeleteAllWallets(context.Context, *v1.DeleteAllWalletsRequest) (*v1.DeleteAllWalletsResponse, error)
+	ListWalletBackups(context.Context, *v1.ListWalletBackupsRequest) (*v1.ListWalletBackupsResponse, error)
+	RestoreWalletBackup(context.Context, *v1.RestoreWalletBackupRequest) (*v1.RestoreWalletBackupResponse, error)
+	RestoreWalletBackupStream(context.Context, *v1.RestoreWalletBackupRequest, WalletManagerServiceRestoreWalletBackupStreamServerStream) error
+	CreateWatchOnlyWallet(context.Context, *v1.CreateWatchOnlyWalletRequest) (*v1.CreateWatchOnlyWalletResponse, error)
+	CreateElectrumWallet(context.Context, *v1.CreateElectrumWalletRequest) (*v1.CreateElectrumWalletResponse, error)
+	CreateMultisigWallet(context.Context, *v1.CreateMultisigWalletRequest) (*v1.CreateMultisigWalletResponse, error)
+	ParseMultisigConfig(context.Context, *v1.ParseMultisigConfigRequest) (*v1.ParseMultisigConfigResponse, error)
+	ValidateDescriptor(context.Context, *v1.ValidateDescriptorRequest) (*v1.ValidateDescriptorResponse, error)
+	ValidateDerivationPath(context.Context, *v1.ValidateDerivationPathRequest) (*v1.ValidateDerivationPathResponse, error)
+	ListDerivationPaths(context.Context, *v1.ListDerivationPathsRequest) (*v1.ListDerivationPathsResponse, error)
+	CreateBitcoinCoreWallet(context.Context, *v1.CreateBitcoinCoreWalletRequest) (*v1.CreateBitcoinCoreWalletResponse, error)
+	EnsureCoreWallets(context.Context, *v1.EnsureCoreWalletsRequest) (*v1.EnsureCoreWalletsResponse, error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	RescanWallet(context.Context, *v1.RescanWalletRequest) (*v1.RescanWalletResponse, error)
+	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	SendTransaction(context.Context, *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error)
+	PreviewSend(context.Context, *v1.PreviewSendRequest) (*v1.PreviewSendResponse, error)
+	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)
+	ListReceiveAddresses(context.Context, *v1.ListReceiveAddressesRequest) (*v1.ListReceiveAddressesResponse, error)
+	GetTransactionDetails(context.Context, *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error)
+	DecodeTransaction(context.Context, *v1.DecodeTransactionRequest) (*v1.DecodeTransactionResponse, error)
+	BumpFee(context.Context, *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error)
+	PreviewBumpFee(context.Context, *v1.PreviewBumpFeeRequest) (*v1.PreviewBumpFeeResponse, error)
+	CreateCpfp(context.Context, *v1.CreateCpfpRequest) (*v1.CreateCpfpResponse, error)
+	CancelTransaction(context.Context, *v1.CancelTransactionRequest) (*v1.CancelTransactionResponse, error)
+	DeriveAddresses(context.Context, *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error)
+	CreatePsbt(context.Context, *v1.CreatePsbtRequest) (*v1.CreatePsbtResponse, error)
+	SignPsbt(context.Context, *v1.SignPsbtRequest) (*v1.SignPsbtResponse, error)
+	SignPsbtWithCosigner(context.Context, *v1.SignPsbtWithCosignerRequest) (*v1.SignPsbtWithCosignerResponse, error)
+	CombinePsbt(context.Context, *v1.CombinePsbtRequest) (*v1.CombinePsbtResponse, error)
+	FinalizePsbt(context.Context, *v1.FinalizePsbtRequest) (*v1.FinalizePsbtResponse, error)
+	MultisigPsbtStatus(context.Context, *v1.MultisigPsbtStatusRequest) (*v1.MultisigPsbtStatusResponse, error)
+	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	GetAddressUnspent(context.Context, *v1.GetAddressUnspentRequest) (*v1.GetAddressUnspentResponse, error)
+	BroadcastElectrumTransaction(context.Context, *v1.BroadcastElectrumTransactionRequest) (*v1.BroadcastElectrumTransactionResponse, error)
+	EnumerateHardwareDevices(context.Context, *v1.EnumerateHardwareDevicesRequest) (*v1.EnumerateHardwareDevicesResponse, error)
+	GetHardwareXpub(context.Context, *v1.GetHardwareXpubRequest) (*v1.GetHardwareXpubResponse, error)
+	SignPsbtWithDevice(context.Context, *v1.SignPsbtWithDeviceRequest) (*v1.SignPsbtWithDeviceResponse, error)
+	PromptDevicePin(context.Context, *v1.PromptDevicePinRequest) (*v1.PromptDevicePinResponse, error)
+	SendDevicePin(context.Context, *v1.SendDevicePinRequest) (*v1.SendDevicePinResponse, error)
+	CloseDevice(context.Context, *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error)
+	DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error)
+	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
+	GetWalletSeed(context.Context, *v1.GetWalletSeedRequest) (*v1.GetWalletSeedResponse, error)
+	ListCoreVariants(context.Context, *v1.ListCoreVariantsRequest) (*v1.ListCoreVariantsResponse, error)
+	GetCoreVariant(context.Context, *v1.GetCoreVariantRequest) (*v1.GetCoreVariantResponse, error)
+	SetCoreVariant(context.Context, *v1.SetCoreVariantRequest) (*v1.SetCoreVariantResponse, error)
+	GetElectrumServer(context.Context, *v1.GetElectrumServerRequest) (*v1.GetElectrumServerResponse, error)
+	SetElectrumServer(context.Context, *v1.SetElectrumServerRequest) (*v1.SetElectrumServerResponse, error)
+	GetTorConfig(context.Context, *v1.GetTorConfigRequest) (*v1.GetTorConfigResponse, error)
+	SetTorConfig(context.Context, *v1.SetTorConfigRequest) (*v1.SetTorConfigResponse, error)
+	WatchWalletData(context.Context, *emptypb.Empty, WalletManagerServiceWatchWalletDataServerStream) error
 }
 
-// NewWalletManagerServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	walletManagerServiceMethods := v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods()
-	walletManagerServiceGetWalletStatusHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetWalletStatusProcedure,
-		svc.GetWalletStatus,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListSidechainDepositsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListSidechainDepositsProcedure,
-		svc.ListSidechainDeposits,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListSidechainDeposits")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetSidechainDepositTotalsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetSidechainDepositTotalsProcedure,
-		svc.GetSidechainDepositTotals,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetSidechainDepositTotals")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetNodeModeHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetNodeModeProcedure,
-		svc.GetNodeMode,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetNodeMode")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSetNodeModeHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSetNodeModeProcedure,
-		svc.SetNodeMode,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SetNodeMode")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGenerateWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGenerateWalletProcedure,
-		svc.GenerateWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GenerateWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceUnlockWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceUnlockWalletProcedure,
-		svc.UnlockWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("UnlockWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceLockWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceLockWalletProcedure,
-		svc.LockWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("LockWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceEncryptWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceEncryptWalletProcedure,
-		svc.EncryptWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("EncryptWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceChangePasswordHandler := connect.NewUnaryHandler(
-		WalletManagerServiceChangePasswordProcedure,
-		svc.ChangePassword,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ChangePassword")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceRemoveEncryptionHandler := connect.NewUnaryHandler(
-		WalletManagerServiceRemoveEncryptionProcedure,
-		svc.RemoveEncryption,
-		connect.WithSchema(walletManagerServiceMethods.ByName("RemoveEncryption")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListWalletsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListWalletsProcedure,
-		svc.ListWallets,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListWallets")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSwitchWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSwitchWalletProcedure,
-		svc.SwitchWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SwitchWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceUpdateWalletMetadataHandler := connect.NewUnaryHandler(
-		WalletManagerServiceUpdateWalletMetadataProcedure,
-		svc.UpdateWalletMetadata,
-		connect.WithSchema(walletManagerServiceMethods.ByName("UpdateWalletMetadata")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceDeleteWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceDeleteWalletProcedure,
-		svc.DeleteWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("DeleteWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceDeleteAllWalletsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceDeleteAllWalletsProcedure,
-		svc.DeleteAllWallets,
-		connect.WithSchema(walletManagerServiceMethods.ByName("DeleteAllWallets")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListWalletBackupsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListWalletBackupsProcedure,
-		svc.ListWalletBackups,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListWalletBackups")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceRestoreWalletBackupHandler := connect.NewUnaryHandler(
-		WalletManagerServiceRestoreWalletBackupProcedure,
-		svc.RestoreWalletBackup,
-		connect.WithSchema(walletManagerServiceMethods.ByName("RestoreWalletBackup")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceRestoreWalletBackupStreamHandler := connect.NewServerStreamHandler(
-		WalletManagerServiceRestoreWalletBackupStreamProcedure,
-		svc.RestoreWalletBackupStream,
-		connect.WithSchema(walletManagerServiceMethods.ByName("RestoreWalletBackupStream")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCreateWatchOnlyWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCreateWatchOnlyWalletProcedure,
-		svc.CreateWatchOnlyWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCreateElectrumWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCreateElectrumWalletProcedure,
-		svc.CreateElectrumWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CreateElectrumWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCreateMultisigWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCreateMultisigWalletProcedure,
-		svc.CreateMultisigWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CreateMultisigWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceParseMultisigConfigHandler := connect.NewUnaryHandler(
-		WalletManagerServiceParseMultisigConfigProcedure,
-		svc.ParseMultisigConfig,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ParseMultisigConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceValidateDescriptorHandler := connect.NewUnaryHandler(
-		WalletManagerServiceValidateDescriptorProcedure,
-		svc.ValidateDescriptor,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDescriptor")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceValidateDerivationPathHandler := connect.NewUnaryHandler(
-		WalletManagerServiceValidateDerivationPathProcedure,
-		svc.ValidateDerivationPath,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDerivationPath")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListDerivationPathsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListDerivationPathsProcedure,
-		svc.ListDerivationPaths,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListDerivationPaths")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCreateBitcoinCoreWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCreateBitcoinCoreWalletProcedure,
-		svc.CreateBitcoinCoreWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CreateBitcoinCoreWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceEnsureCoreWalletsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceEnsureCoreWalletsProcedure,
-		svc.EnsureCoreWallets,
-		connect.WithSchema(walletManagerServiceMethods.ByName("EnsureCoreWallets")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetBalanceHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetBalanceProcedure,
-		svc.GetBalance,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetBalance")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceRescanWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceRescanWalletProcedure,
-		svc.RescanWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("RescanWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceEstimateFeeHandler := connect.NewUnaryHandler(
-		WalletManagerServiceEstimateFeeProcedure,
-		svc.EstimateFee,
-		connect.WithSchema(walletManagerServiceMethods.ByName("EstimateFee")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetNewAddressHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetNewAddressProcedure,
-		svc.GetNewAddress,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetNewAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSendTransactionHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSendTransactionProcedure,
-		svc.SendTransaction,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServicePreviewSendHandler := connect.NewUnaryHandler(
-		WalletManagerServicePreviewSendProcedure,
-		svc.PreviewSend,
-		connect.WithSchema(walletManagerServiceMethods.ByName("PreviewSend")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSetFrozenCoinsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSetFrozenCoinsProcedure,
-		svc.SetFrozenCoins,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SetFrozenCoins")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCreateDepositHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCreateDepositProcedure,
-		svc.CreateDeposit,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CreateDeposit")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListTransactionsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListTransactionsProcedure,
-		svc.ListTransactions,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListUnspentHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListUnspentProcedure,
-		svc.ListUnspent,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListUnspent")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListReceiveAddressesHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListReceiveAddressesProcedure,
-		svc.ListReceiveAddresses,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListReceiveAddresses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetTransactionDetailsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetTransactionDetailsProcedure,
-		svc.GetTransactionDetails,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetTransactionDetails")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceDecodeTransactionHandler := connect.NewUnaryHandler(
-		WalletManagerServiceDecodeTransactionProcedure,
-		svc.DecodeTransaction,
-		connect.WithSchema(walletManagerServiceMethods.ByName("DecodeTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceBumpFeeHandler := connect.NewUnaryHandler(
-		WalletManagerServiceBumpFeeProcedure,
-		svc.BumpFee,
-		connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServicePreviewBumpFeeHandler := connect.NewUnaryHandler(
-		WalletManagerServicePreviewBumpFeeProcedure,
-		svc.PreviewBumpFee,
-		connect.WithSchema(walletManagerServiceMethods.ByName("PreviewBumpFee")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCreateCpfpHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCreateCpfpProcedure,
-		svc.CreateCpfp,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CreateCpfp")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCancelTransactionHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCancelTransactionProcedure,
-		svc.CancelTransaction,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CancelTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceDeriveAddressesHandler := connect.NewUnaryHandler(
-		WalletManagerServiceDeriveAddressesProcedure,
-		svc.DeriveAddresses,
-		connect.WithSchema(walletManagerServiceMethods.ByName("DeriveAddresses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCreatePsbtHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCreatePsbtProcedure,
-		svc.CreatePsbt,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CreatePsbt")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSignPsbtHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSignPsbtProcedure,
-		svc.SignPsbt,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbt")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSignPsbtWithCosignerHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSignPsbtWithCosignerProcedure,
-		svc.SignPsbtWithCosigner,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithCosigner")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCombinePsbtHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCombinePsbtProcedure,
-		svc.CombinePsbt,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CombinePsbt")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceFinalizePsbtHandler := connect.NewUnaryHandler(
-		WalletManagerServiceFinalizePsbtProcedure,
-		svc.FinalizePsbt,
-		connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceMultisigPsbtStatusHandler := connect.NewUnaryHandler(
-		WalletManagerServiceMultisigPsbtStatusProcedure,
-		svc.MultisigPsbtStatus,
-		connect.WithSchema(walletManagerServiceMethods.ByName("MultisigPsbtStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceBroadcastTransactionHandler := connect.NewUnaryHandler(
-		WalletManagerServiceBroadcastTransactionProcedure,
-		svc.BroadcastTransaction,
-		connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetAddressUnspentHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetAddressUnspentProcedure,
-		svc.GetAddressUnspent,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetAddressUnspent")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceBroadcastElectrumTransactionHandler := connect.NewUnaryHandler(
-		WalletManagerServiceBroadcastElectrumTransactionProcedure,
-		svc.BroadcastElectrumTransaction,
-		connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastElectrumTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceEnumerateHardwareDevicesHandler := connect.NewUnaryHandler(
-		WalletManagerServiceEnumerateHardwareDevicesProcedure,
-		svc.EnumerateHardwareDevices,
-		connect.WithSchema(walletManagerServiceMethods.ByName("EnumerateHardwareDevices")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetHardwareXpubHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetHardwareXpubProcedure,
-		svc.GetHardwareXpub,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetHardwareXpub")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSignPsbtWithDeviceHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSignPsbtWithDeviceProcedure,
-		svc.SignPsbtWithDevice,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithDevice")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServicePromptDevicePinHandler := connect.NewUnaryHandler(
-		WalletManagerServicePromptDevicePinProcedure,
-		svc.PromptDevicePin,
-		connect.WithSchema(walletManagerServiceMethods.ByName("PromptDevicePin")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSendDevicePinHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSendDevicePinProcedure,
-		svc.SendDevicePin,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SendDevicePin")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceCloseDeviceHandler := connect.NewUnaryHandler(
-		WalletManagerServiceCloseDeviceProcedure,
-		svc.CloseDevice,
-		connect.WithSchema(walletManagerServiceMethods.ByName("CloseDevice")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceDeriveKeystoreHandler := connect.NewUnaryHandler(
-		WalletManagerServiceDeriveKeystoreProcedure,
-		svc.DeriveKeystore,
-		connect.WithSchema(walletManagerServiceMethods.ByName("DeriveKeystore")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServicePreviewWalletFromEntropyHandler := connect.NewUnaryHandler(
-		WalletManagerServicePreviewWalletFromEntropyProcedure,
-		svc.PreviewWalletFromEntropy,
-		connect.WithSchema(walletManagerServiceMethods.ByName("PreviewWalletFromEntropy")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetWalletSeedHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetWalletSeedProcedure,
-		svc.GetWalletSeed,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceListCoreVariantsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceListCoreVariantsProcedure,
-		svc.ListCoreVariants,
-		connect.WithSchema(walletManagerServiceMethods.ByName("ListCoreVariants")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetCoreVariantHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetCoreVariantProcedure,
-		svc.GetCoreVariant,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetCoreVariant")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSetCoreVariantHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSetCoreVariantProcedure,
-		svc.SetCoreVariant,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SetCoreVariant")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetElectrumServerHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetElectrumServerProcedure,
-		svc.GetElectrumServer,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetElectrumServer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSetElectrumServerHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSetElectrumServerProcedure,
-		svc.SetElectrumServer,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SetElectrumServer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceGetTorConfigHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetTorConfigProcedure,
-		svc.GetTorConfig,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetTorConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSetTorConfigHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSetTorConfigProcedure,
-		svc.SetTorConfig,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SetTorConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceWatchWalletDataHandler := connect.NewServerStreamHandler(
-		WalletManagerServiceWatchWalletDataProcedure,
-		svc.WatchWalletData,
-		connect.WithSchema(walletManagerServiceMethods.ByName("WatchWalletData")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/walletmanager.v1.WalletManagerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case WalletManagerServiceGetWalletStatusProcedure:
-			walletManagerServiceGetWalletStatusHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListSidechainDepositsProcedure:
-			walletManagerServiceListSidechainDepositsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetSidechainDepositTotalsProcedure:
-			walletManagerServiceGetSidechainDepositTotalsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetNodeModeProcedure:
-			walletManagerServiceGetNodeModeHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSetNodeModeProcedure:
-			walletManagerServiceSetNodeModeHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGenerateWalletProcedure:
-			walletManagerServiceGenerateWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceUnlockWalletProcedure:
-			walletManagerServiceUnlockWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceLockWalletProcedure:
-			walletManagerServiceLockWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceEncryptWalletProcedure:
-			walletManagerServiceEncryptWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceChangePasswordProcedure:
-			walletManagerServiceChangePasswordHandler.ServeHTTP(w, r)
-		case WalletManagerServiceRemoveEncryptionProcedure:
-			walletManagerServiceRemoveEncryptionHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListWalletsProcedure:
-			walletManagerServiceListWalletsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSwitchWalletProcedure:
-			walletManagerServiceSwitchWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceUpdateWalletMetadataProcedure:
-			walletManagerServiceUpdateWalletMetadataHandler.ServeHTTP(w, r)
-		case WalletManagerServiceDeleteWalletProcedure:
-			walletManagerServiceDeleteWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceDeleteAllWalletsProcedure:
-			walletManagerServiceDeleteAllWalletsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListWalletBackupsProcedure:
-			walletManagerServiceListWalletBackupsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceRestoreWalletBackupProcedure:
-			walletManagerServiceRestoreWalletBackupHandler.ServeHTTP(w, r)
-		case WalletManagerServiceRestoreWalletBackupStreamProcedure:
-			walletManagerServiceRestoreWalletBackupStreamHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCreateWatchOnlyWalletProcedure:
-			walletManagerServiceCreateWatchOnlyWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCreateElectrumWalletProcedure:
-			walletManagerServiceCreateElectrumWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCreateMultisigWalletProcedure:
-			walletManagerServiceCreateMultisigWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceParseMultisigConfigProcedure:
-			walletManagerServiceParseMultisigConfigHandler.ServeHTTP(w, r)
-		case WalletManagerServiceValidateDescriptorProcedure:
-			walletManagerServiceValidateDescriptorHandler.ServeHTTP(w, r)
-		case WalletManagerServiceValidateDerivationPathProcedure:
-			walletManagerServiceValidateDerivationPathHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListDerivationPathsProcedure:
-			walletManagerServiceListDerivationPathsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCreateBitcoinCoreWalletProcedure:
-			walletManagerServiceCreateBitcoinCoreWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceEnsureCoreWalletsProcedure:
-			walletManagerServiceEnsureCoreWalletsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetBalanceProcedure:
-			walletManagerServiceGetBalanceHandler.ServeHTTP(w, r)
-		case WalletManagerServiceRescanWalletProcedure:
-			walletManagerServiceRescanWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceEstimateFeeProcedure:
-			walletManagerServiceEstimateFeeHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetNewAddressProcedure:
-			walletManagerServiceGetNewAddressHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSendTransactionProcedure:
-			walletManagerServiceSendTransactionHandler.ServeHTTP(w, r)
-		case WalletManagerServicePreviewSendProcedure:
-			walletManagerServicePreviewSendHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSetFrozenCoinsProcedure:
-			walletManagerServiceSetFrozenCoinsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCreateDepositProcedure:
-			walletManagerServiceCreateDepositHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListTransactionsProcedure:
-			walletManagerServiceListTransactionsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListUnspentProcedure:
-			walletManagerServiceListUnspentHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListReceiveAddressesProcedure:
-			walletManagerServiceListReceiveAddressesHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetTransactionDetailsProcedure:
-			walletManagerServiceGetTransactionDetailsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceDecodeTransactionProcedure:
-			walletManagerServiceDecodeTransactionHandler.ServeHTTP(w, r)
-		case WalletManagerServiceBumpFeeProcedure:
-			walletManagerServiceBumpFeeHandler.ServeHTTP(w, r)
-		case WalletManagerServicePreviewBumpFeeProcedure:
-			walletManagerServicePreviewBumpFeeHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCreateCpfpProcedure:
-			walletManagerServiceCreateCpfpHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCancelTransactionProcedure:
-			walletManagerServiceCancelTransactionHandler.ServeHTTP(w, r)
-		case WalletManagerServiceDeriveAddressesProcedure:
-			walletManagerServiceDeriveAddressesHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCreatePsbtProcedure:
-			walletManagerServiceCreatePsbtHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSignPsbtProcedure:
-			walletManagerServiceSignPsbtHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSignPsbtWithCosignerProcedure:
-			walletManagerServiceSignPsbtWithCosignerHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCombinePsbtProcedure:
-			walletManagerServiceCombinePsbtHandler.ServeHTTP(w, r)
-		case WalletManagerServiceFinalizePsbtProcedure:
-			walletManagerServiceFinalizePsbtHandler.ServeHTTP(w, r)
-		case WalletManagerServiceMultisigPsbtStatusProcedure:
-			walletManagerServiceMultisigPsbtStatusHandler.ServeHTTP(w, r)
-		case WalletManagerServiceBroadcastTransactionProcedure:
-			walletManagerServiceBroadcastTransactionHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetAddressUnspentProcedure:
-			walletManagerServiceGetAddressUnspentHandler.ServeHTTP(w, r)
-		case WalletManagerServiceBroadcastElectrumTransactionProcedure:
-			walletManagerServiceBroadcastElectrumTransactionHandler.ServeHTTP(w, r)
-		case WalletManagerServiceEnumerateHardwareDevicesProcedure:
-			walletManagerServiceEnumerateHardwareDevicesHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetHardwareXpubProcedure:
-			walletManagerServiceGetHardwareXpubHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSignPsbtWithDeviceProcedure:
-			walletManagerServiceSignPsbtWithDeviceHandler.ServeHTTP(w, r)
-		case WalletManagerServicePromptDevicePinProcedure:
-			walletManagerServicePromptDevicePinHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSendDevicePinProcedure:
-			walletManagerServiceSendDevicePinHandler.ServeHTTP(w, r)
-		case WalletManagerServiceCloseDeviceProcedure:
-			walletManagerServiceCloseDeviceHandler.ServeHTTP(w, r)
-		case WalletManagerServiceDeriveKeystoreProcedure:
-			walletManagerServiceDeriveKeystoreHandler.ServeHTTP(w, r)
-		case WalletManagerServicePreviewWalletFromEntropyProcedure:
-			walletManagerServicePreviewWalletFromEntropyHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetWalletSeedProcedure:
-			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
-		case WalletManagerServiceListCoreVariantsProcedure:
-			walletManagerServiceListCoreVariantsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetCoreVariantProcedure:
-			walletManagerServiceGetCoreVariantHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSetCoreVariantProcedure:
-			walletManagerServiceSetCoreVariantHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetElectrumServerProcedure:
-			walletManagerServiceGetElectrumServerHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSetElectrumServerProcedure:
-			walletManagerServiceSetElectrumServerHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetTorConfigProcedure:
-			walletManagerServiceGetTorConfigHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSetTorConfigProcedure:
-			walletManagerServiceSetTorConfigHandler.ServeHTTP(w, r)
-		case WalletManagerServiceWatchWalletDataProcedure:
-			walletManagerServiceWatchWalletDataHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+// RegisterWalletManagerServiceHandler registers svc as the walletmanager.v1.WalletManagerService
+// implementation on server.
+func RegisterWalletManagerServiceHandler(server *connect.Server, svc WalletManagerServiceHandler) {
+	adapter := walletManagerServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: walletManagerServiceGetWalletStatusSpec(), Handler: adapter.getWalletStatus},
+		connect.Method{Spec: walletManagerServiceListSidechainDepositsSpec(), Handler: adapter.listSidechainDeposits},
+		connect.Method{Spec: walletManagerServiceGetSidechainDepositTotalsSpec(), Handler: adapter.getSidechainDepositTotals},
+		connect.Method{Spec: walletManagerServiceGetNodeModeSpec(), Handler: adapter.getNodeMode},
+		connect.Method{Spec: walletManagerServiceSetNodeModeSpec(), Handler: adapter.setNodeMode},
+		connect.Method{Spec: walletManagerServiceGenerateWalletSpec(), Handler: adapter.generateWallet},
+		connect.Method{Spec: walletManagerServiceUnlockWalletSpec(), Handler: adapter.unlockWallet},
+		connect.Method{Spec: walletManagerServiceLockWalletSpec(), Handler: adapter.lockWallet},
+		connect.Method{Spec: walletManagerServiceEncryptWalletSpec(), Handler: adapter.encryptWallet},
+		connect.Method{Spec: walletManagerServiceChangePasswordSpec(), Handler: adapter.changePassword},
+		connect.Method{Spec: walletManagerServiceRemoveEncryptionSpec(), Handler: adapter.removeEncryption},
+		connect.Method{Spec: walletManagerServiceListWalletsSpec(), Handler: adapter.listWallets},
+		connect.Method{Spec: walletManagerServiceSwitchWalletSpec(), Handler: adapter.switchWallet},
+		connect.Method{Spec: walletManagerServiceUpdateWalletMetadataSpec(), Handler: adapter.updateWalletMetadata},
+		connect.Method{Spec: walletManagerServiceDeleteWalletSpec(), Handler: adapter.deleteWallet},
+		connect.Method{Spec: walletManagerServiceDeleteAllWalletsSpec(), Handler: adapter.deleteAllWallets},
+		connect.Method{Spec: walletManagerServiceListWalletBackupsSpec(), Handler: adapter.listWalletBackups},
+		connect.Method{Spec: walletManagerServiceRestoreWalletBackupSpec(), Handler: adapter.restoreWalletBackup},
+		connect.Method{Spec: walletManagerServiceRestoreWalletBackupStreamSpec(), Handler: adapter.restoreWalletBackupStream},
+		connect.Method{Spec: walletManagerServiceCreateWatchOnlyWalletSpec(), Handler: adapter.createWatchOnlyWallet},
+		connect.Method{Spec: walletManagerServiceCreateElectrumWalletSpec(), Handler: adapter.createElectrumWallet},
+		connect.Method{Spec: walletManagerServiceCreateMultisigWalletSpec(), Handler: adapter.createMultisigWallet},
+		connect.Method{Spec: walletManagerServiceParseMultisigConfigSpec(), Handler: adapter.parseMultisigConfig},
+		connect.Method{Spec: walletManagerServiceValidateDescriptorSpec(), Handler: adapter.validateDescriptor},
+		connect.Method{Spec: walletManagerServiceValidateDerivationPathSpec(), Handler: adapter.validateDerivationPath},
+		connect.Method{Spec: walletManagerServiceListDerivationPathsSpec(), Handler: adapter.listDerivationPaths},
+		connect.Method{Spec: walletManagerServiceCreateBitcoinCoreWalletSpec(), Handler: adapter.createBitcoinCoreWallet},
+		connect.Method{Spec: walletManagerServiceEnsureCoreWalletsSpec(), Handler: adapter.ensureCoreWallets},
+		connect.Method{Spec: walletManagerServiceGetBalanceSpec(), Handler: adapter.getBalance},
+		connect.Method{Spec: walletManagerServiceRescanWalletSpec(), Handler: adapter.rescanWallet},
+		connect.Method{Spec: walletManagerServiceEstimateFeeSpec(), Handler: adapter.estimateFee},
+		connect.Method{Spec: walletManagerServiceGetNewAddressSpec(), Handler: adapter.getNewAddress},
+		connect.Method{Spec: walletManagerServiceSendTransactionSpec(), Handler: adapter.sendTransaction},
+		connect.Method{Spec: walletManagerServicePreviewSendSpec(), Handler: adapter.previewSend},
+		connect.Method{Spec: walletManagerServiceSetFrozenCoinsSpec(), Handler: adapter.setFrozenCoins},
+		connect.Method{Spec: walletManagerServiceCreateDepositSpec(), Handler: adapter.createDeposit},
+		connect.Method{Spec: walletManagerServiceListTransactionsSpec(), Handler: adapter.listTransactions},
+		connect.Method{Spec: walletManagerServiceListUnspentSpec(), Handler: adapter.listUnspent},
+		connect.Method{Spec: walletManagerServiceListReceiveAddressesSpec(), Handler: adapter.listReceiveAddresses},
+		connect.Method{Spec: walletManagerServiceGetTransactionDetailsSpec(), Handler: adapter.getTransactionDetails},
+		connect.Method{Spec: walletManagerServiceDecodeTransactionSpec(), Handler: adapter.decodeTransaction},
+		connect.Method{Spec: walletManagerServiceBumpFeeSpec(), Handler: adapter.bumpFee},
+		connect.Method{Spec: walletManagerServicePreviewBumpFeeSpec(), Handler: adapter.previewBumpFee},
+		connect.Method{Spec: walletManagerServiceCreateCpfpSpec(), Handler: adapter.createCpfp},
+		connect.Method{Spec: walletManagerServiceCancelTransactionSpec(), Handler: adapter.cancelTransaction},
+		connect.Method{Spec: walletManagerServiceDeriveAddressesSpec(), Handler: adapter.deriveAddresses},
+		connect.Method{Spec: walletManagerServiceCreatePsbtSpec(), Handler: adapter.createPsbt},
+		connect.Method{Spec: walletManagerServiceSignPsbtSpec(), Handler: adapter.signPsbt},
+		connect.Method{Spec: walletManagerServiceSignPsbtWithCosignerSpec(), Handler: adapter.signPsbtWithCosigner},
+		connect.Method{Spec: walletManagerServiceCombinePsbtSpec(), Handler: adapter.combinePsbt},
+		connect.Method{Spec: walletManagerServiceFinalizePsbtSpec(), Handler: adapter.finalizePsbt},
+		connect.Method{Spec: walletManagerServiceMultisigPsbtStatusSpec(), Handler: adapter.multisigPsbtStatus},
+		connect.Method{Spec: walletManagerServiceBroadcastTransactionSpec(), Handler: adapter.broadcastTransaction},
+		connect.Method{Spec: walletManagerServiceGetAddressUnspentSpec(), Handler: adapter.getAddressUnspent},
+		connect.Method{Spec: walletManagerServiceBroadcastElectrumTransactionSpec(), Handler: adapter.broadcastElectrumTransaction},
+		connect.Method{Spec: walletManagerServiceEnumerateHardwareDevicesSpec(), Handler: adapter.enumerateHardwareDevices},
+		connect.Method{Spec: walletManagerServiceGetHardwareXpubSpec(), Handler: adapter.getHardwareXpub},
+		connect.Method{Spec: walletManagerServiceSignPsbtWithDeviceSpec(), Handler: adapter.signPsbtWithDevice},
+		connect.Method{Spec: walletManagerServicePromptDevicePinSpec(), Handler: adapter.promptDevicePin},
+		connect.Method{Spec: walletManagerServiceSendDevicePinSpec(), Handler: adapter.sendDevicePin},
+		connect.Method{Spec: walletManagerServiceCloseDeviceSpec(), Handler: adapter.closeDevice},
+		connect.Method{Spec: walletManagerServiceDeriveKeystoreSpec(), Handler: adapter.deriveKeystore},
+		connect.Method{Spec: walletManagerServicePreviewWalletFromEntropySpec(), Handler: adapter.previewWalletFromEntropy},
+		connect.Method{Spec: walletManagerServiceGetWalletSeedSpec(), Handler: adapter.getWalletSeed},
+		connect.Method{Spec: walletManagerServiceListCoreVariantsSpec(), Handler: adapter.listCoreVariants},
+		connect.Method{Spec: walletManagerServiceGetCoreVariantSpec(), Handler: adapter.getCoreVariant},
+		connect.Method{Spec: walletManagerServiceSetCoreVariantSpec(), Handler: adapter.setCoreVariant},
+		connect.Method{Spec: walletManagerServiceGetElectrumServerSpec(), Handler: adapter.getElectrumServer},
+		connect.Method{Spec: walletManagerServiceSetElectrumServerSpec(), Handler: adapter.setElectrumServer},
+		connect.Method{Spec: walletManagerServiceGetTorConfigSpec(), Handler: adapter.getTorConfig},
+		connect.Method{Spec: walletManagerServiceSetTorConfigSpec(), Handler: adapter.setTorConfig},
+		connect.Method{Spec: walletManagerServiceWatchWalletDataSpec(), Handler: adapter.watchWalletData},
+	)
+}
+
+// WalletManagerServiceRestoreWalletBackupStreamServerStream is the server stream for the
+// WalletManagerService's RestoreWalletBackupStream RPC.
+type WalletManagerServiceRestoreWalletBackupStreamServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s WalletManagerServiceRestoreWalletBackupStreamServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s WalletManagerServiceRestoreWalletBackupStreamServerStream) Send(res *v1.RestoreWalletBackupProgressResponse) error {
+	return s.stream.Send(res)
+}
+
+// WalletManagerServiceWatchWalletDataServerStream is the server stream for the
+// WalletManagerService's WatchWalletData RPC.
+type WalletManagerServiceWatchWalletDataServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s WalletManagerServiceWatchWalletDataServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s WalletManagerServiceWatchWalletDataServerStream) Send(res *v1.WatchWalletDataResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedWalletManagerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedWalletManagerServiceHandler struct{}
 
-func (UnimplementedWalletManagerServiceHandler) GetWalletStatus(context.Context, *connect.Request[v1.GetWalletStatusRequest]) (*connect.Response[v1.GetWalletStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetWalletStatus is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetWalletStatus(context.Context, *v1.GetWalletStatusRequest) (*v1.GetWalletStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetWalletStatus is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListSidechainDeposits is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListSidechainDeposits(context.Context, *v1.ListSidechainDepositsRequest) (*v1.ListSidechainDepositsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListSidechainDeposits is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetSidechainDepositTotals is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetSidechainDepositTotals(context.Context, *v1.GetSidechainDepositTotalsRequest) (*v1.GetSidechainDepositTotalsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetSidechainDepositTotals is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetNodeMode is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetNodeMode(context.Context, *v1.GetNodeModeRequest) (*v1.GetNodeModeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetNodeMode is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetNodeMode is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SetNodeMode(context.Context, *v1.SetNodeModeRequest) (*v1.SetNodeModeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SetNodeMode is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GenerateWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GenerateWallet(context.Context, *v1.GenerateWalletRequest) (*v1.GenerateWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GenerateWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.UnlockWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) UnlockWallet(context.Context, *v1.UnlockWalletRequest) (*v1.UnlockWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.UnlockWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) LockWallet(context.Context, *connect.Request[v1.LockWalletRequest]) (*connect.Response[v1.LockWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.LockWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) LockWallet(context.Context, *v1.LockWalletRequest) (*v1.LockWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.LockWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) EncryptWallet(context.Context, *connect.Request[v1.EncryptWalletRequest]) (*connect.Response[v1.EncryptWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EncryptWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) EncryptWallet(context.Context, *v1.EncryptWalletRequest) (*v1.EncryptWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.EncryptWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ChangePassword is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ChangePassword is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) RemoveEncryption(context.Context, *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.RemoveEncryption is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) RemoveEncryption(context.Context, *v1.RemoveEncryptionRequest) (*v1.RemoveEncryptionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.RemoveEncryption is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListWallets(context.Context, *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListWallets is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListWallets(context.Context, *v1.ListWalletsRequest) (*v1.ListWalletsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListWallets is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SwitchWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SwitchWallet(context.Context, *v1.SwitchWalletRequest) (*v1.SwitchWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SwitchWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.UpdateWalletMetadata is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) UpdateWalletMetadata(context.Context, *v1.UpdateWalletMetadataRequest) (*v1.UpdateWalletMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.UpdateWalletMetadata is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeleteWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) DeleteWallet(context.Context, *v1.DeleteWalletRequest) (*v1.DeleteWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.DeleteWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeleteAllWallets is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) DeleteAllWallets(context.Context, *v1.DeleteAllWalletsRequest) (*v1.DeleteAllWalletsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.DeleteAllWallets is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListWalletBackups(context.Context, *connect.Request[v1.ListWalletBackupsRequest]) (*connect.Response[v1.ListWalletBackupsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListWalletBackups is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListWalletBackups(context.Context, *v1.ListWalletBackupsRequest) (*v1.ListWalletBackupsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListWalletBackups is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) RestoreWalletBackup(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.RestoreWalletBackup is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) RestoreWalletBackup(context.Context, *v1.RestoreWalletBackupRequest) (*v1.RestoreWalletBackupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.RestoreWalletBackup is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest], *connect.ServerStream[v1.RestoreWalletBackupProgressResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.RestoreWalletBackupStream is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) RestoreWalletBackupStream(context.Context, *v1.RestoreWalletBackupRequest, WalletManagerServiceRestoreWalletBackupStreamServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.RestoreWalletBackupStream is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreateWatchOnlyWallet(context.Context, *v1.CreateWatchOnlyWalletRequest) (*v1.CreateWatchOnlyWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateElectrumWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreateElectrumWallet(context.Context, *v1.CreateElectrumWalletRequest) (*v1.CreateElectrumWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CreateElectrumWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateMultisigWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreateMultisigWallet(context.Context, *v1.CreateMultisigWalletRequest) (*v1.CreateMultisigWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CreateMultisigWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ParseMultisigConfig is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ParseMultisigConfig(context.Context, *v1.ParseMultisigConfigRequest) (*v1.ParseMultisigConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ParseMultisigConfig is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ValidateDescriptor(context.Context, *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ValidateDescriptor is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ValidateDescriptor(context.Context, *v1.ValidateDescriptorRequest) (*v1.ValidateDescriptorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ValidateDescriptor is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ValidateDerivationPath(context.Context, *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ValidateDerivationPath is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ValidateDerivationPath(context.Context, *v1.ValidateDerivationPathRequest) (*v1.ValidateDerivationPathResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ValidateDerivationPath is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListDerivationPaths(context.Context, *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListDerivationPaths is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListDerivationPaths(context.Context, *v1.ListDerivationPathsRequest) (*v1.ListDerivationPathsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListDerivationPaths is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreateBitcoinCoreWallet(context.Context, *v1.CreateBitcoinCoreWalletRequest) (*v1.CreateBitcoinCoreWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EnsureCoreWallets is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) EnsureCoreWallets(context.Context, *v1.EnsureCoreWalletsRequest) (*v1.EnsureCoreWalletsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.EnsureCoreWallets is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetBalance is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetBalance is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) RescanWallet(context.Context, *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.RescanWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) RescanWallet(context.Context, *v1.RescanWalletRequest) (*v1.RescanWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.RescanWallet is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EstimateFee is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.EstimateFee is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetNewAddress is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetNewAddress is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SendTransaction is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SendTransaction(context.Context, *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SendTransaction is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) PreviewSend(context.Context, *connect.Request[v1.PreviewSendRequest]) (*connect.Response[v1.PreviewSendResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PreviewSend is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) PreviewSend(context.Context, *v1.PreviewSendRequest) (*v1.PreviewSendResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.PreviewSend is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SetFrozenCoins(context.Context, *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetFrozenCoins is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SetFrozenCoins is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateDeposit is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CreateDeposit is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListTransactions is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListTransactions is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListUnspent is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListUnspent is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListReceiveAddresses is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListReceiveAddresses(context.Context, *v1.ListReceiveAddressesRequest) (*v1.ListReceiveAddressesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListReceiveAddresses is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetTransactionDetails is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetTransactionDetails(context.Context, *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetTransactionDetails is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DecodeTransaction is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) DecodeTransaction(context.Context, *v1.DecodeTransactionRequest) (*v1.DecodeTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.DecodeTransaction is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BumpFee is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) BumpFee(context.Context, *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.BumpFee is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) PreviewBumpFee(context.Context, *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PreviewBumpFee is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) PreviewBumpFee(context.Context, *v1.PreviewBumpFeeRequest) (*v1.PreviewBumpFeeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.PreviewBumpFee is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateCpfp is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreateCpfp(context.Context, *v1.CreateCpfpRequest) (*v1.CreateCpfpResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CreateCpfp is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CancelTransaction(context.Context, *connect.Request[v1.CancelTransactionRequest]) (*connect.Response[v1.CancelTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CancelTransaction is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CancelTransaction(context.Context, *v1.CancelTransactionRequest) (*v1.CancelTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CancelTransaction is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeriveAddresses is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context, *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.DeriveAddresses is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreatePsbt is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreatePsbt(context.Context, *v1.CreatePsbtRequest) (*v1.CreatePsbtResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CreatePsbt is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SignPsbt is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SignPsbt(context.Context, *v1.SignPsbtRequest) (*v1.SignPsbtResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SignPsbt is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SignPsbtWithCosigner(context.Context, *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SignPsbtWithCosigner is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SignPsbtWithCosigner(context.Context, *v1.SignPsbtWithCosignerRequest) (*v1.SignPsbtWithCosignerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SignPsbtWithCosigner is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CombinePsbt is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CombinePsbt(context.Context, *v1.CombinePsbtRequest) (*v1.CombinePsbtResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CombinePsbt is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.FinalizePsbt is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) FinalizePsbt(context.Context, *v1.FinalizePsbtRequest) (*v1.FinalizePsbtResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.FinalizePsbt is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) MultisigPsbtStatus(context.Context, *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.MultisigPsbtStatus is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) MultisigPsbtStatus(context.Context, *v1.MultisigPsbtStatusRequest) (*v1.MultisigPsbtStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.MultisigPsbtStatus is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BroadcastTransaction is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.BroadcastTransaction is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetAddressUnspent(context.Context, *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetAddressUnspent is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetAddressUnspent(context.Context, *v1.GetAddressUnspentRequest) (*v1.GetAddressUnspentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetAddressUnspent is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) BroadcastElectrumTransaction(context.Context, *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) BroadcastElectrumTransaction(context.Context, *v1.BroadcastElectrumTransactionRequest) (*v1.BroadcastElectrumTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EnumerateHardwareDevices is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) EnumerateHardwareDevices(context.Context, *v1.EnumerateHardwareDevicesRequest) (*v1.EnumerateHardwareDevicesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.EnumerateHardwareDevices is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetHardwareXpub is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetHardwareXpub(context.Context, *v1.GetHardwareXpubRequest) (*v1.GetHardwareXpubResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetHardwareXpub is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SignPsbtWithDevice(context.Context, *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SignPsbtWithDevice is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SignPsbtWithDevice(context.Context, *v1.SignPsbtWithDeviceRequest) (*v1.SignPsbtWithDeviceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SignPsbtWithDevice is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) PromptDevicePin(context.Context, *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PromptDevicePin is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) PromptDevicePin(context.Context, *v1.PromptDevicePinRequest) (*v1.PromptDevicePinResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.PromptDevicePin is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SendDevicePin(context.Context, *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SendDevicePin is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SendDevicePin(context.Context, *v1.SendDevicePinRequest) (*v1.SendDevicePinResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SendDevicePin is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CloseDevice is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CloseDevice(context.Context, *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.CloseDevice is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeriveKeystore is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.DeriveKeystore is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) PreviewWalletFromEntropy(context.Context, *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetWalletSeed is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *v1.GetWalletSeedRequest) (*v1.GetWalletSeedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetWalletSeed is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListCoreVariants is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) ListCoreVariants(context.Context, *v1.ListCoreVariantsRequest) (*v1.ListCoreVariantsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListCoreVariants is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetCoreVariant is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetCoreVariant(context.Context, *v1.GetCoreVariantRequest) (*v1.GetCoreVariantResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetCoreVariant is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetCoreVariant is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SetCoreVariant(context.Context, *v1.SetCoreVariantRequest) (*v1.SetCoreVariantResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SetCoreVariant is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetElectrumServer is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetElectrumServer(context.Context, *v1.GetElectrumServerRequest) (*v1.GetElectrumServerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetElectrumServer is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetElectrumServer is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SetElectrumServer(context.Context, *v1.SetElectrumServerRequest) (*v1.SetElectrumServerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SetElectrumServer is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetTorConfig(context.Context, *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetTorConfig is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) GetTorConfig(context.Context, *v1.GetTorConfigRequest) (*v1.GetTorConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GetTorConfig is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) SetTorConfig(context.Context, *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetTorConfig is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SetTorConfig(context.Context, *v1.SetTorConfigRequest) (*v1.SetTorConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SetTorConfig is not implemented")
 }
 
-func (UnimplementedWalletManagerServiceHandler) WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.WatchWalletData is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) WatchWalletData(context.Context, *emptypb.Empty, WalletManagerServiceWatchWalletDataServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.WatchWalletData is not implemented")
+}
+
+type walletManagerServiceClient struct {
+	client *connect.Client
+}
+
+func (c *walletManagerServiceClient) GetWalletStatus(ctx context.Context, req *v1.GetWalletStatusRequest) (*v1.GetWalletStatusResponse, error) {
+	var res v1.GetWalletStatusResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetWalletStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListSidechainDeposits(ctx context.Context, req *v1.ListSidechainDepositsRequest) (*v1.ListSidechainDepositsResponse, error) {
+	var res v1.ListSidechainDepositsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListSidechainDepositsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetSidechainDepositTotals(ctx context.Context, req *v1.GetSidechainDepositTotalsRequest) (*v1.GetSidechainDepositTotalsResponse, error) {
+	var res v1.GetSidechainDepositTotalsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetSidechainDepositTotalsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetNodeMode(ctx context.Context, req *v1.GetNodeModeRequest) (*v1.GetNodeModeResponse, error) {
+	var res v1.GetNodeModeResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetNodeModeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SetNodeMode(ctx context.Context, req *v1.SetNodeModeRequest) (*v1.SetNodeModeResponse, error) {
+	var res v1.SetNodeModeResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSetNodeModeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GenerateWallet(ctx context.Context, req *v1.GenerateWalletRequest) (*v1.GenerateWalletResponse, error) {
+	var res v1.GenerateWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGenerateWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) UnlockWallet(ctx context.Context, req *v1.UnlockWalletRequest) (*v1.UnlockWalletResponse, error) {
+	var res v1.UnlockWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceUnlockWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) LockWallet(ctx context.Context, req *v1.LockWalletRequest) (*v1.LockWalletResponse, error) {
+	var res v1.LockWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceLockWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) EncryptWallet(ctx context.Context, req *v1.EncryptWalletRequest) (*v1.EncryptWalletResponse, error) {
+	var res v1.EncryptWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceEncryptWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ChangePassword(ctx context.Context, req *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error) {
+	var res v1.ChangePasswordResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceChangePasswordSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) RemoveEncryption(ctx context.Context, req *v1.RemoveEncryptionRequest) (*v1.RemoveEncryptionResponse, error) {
+	var res v1.RemoveEncryptionResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceRemoveEncryptionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListWallets(ctx context.Context, req *v1.ListWalletsRequest) (*v1.ListWalletsResponse, error) {
+	var res v1.ListWalletsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListWalletsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SwitchWallet(ctx context.Context, req *v1.SwitchWalletRequest) (*v1.SwitchWalletResponse, error) {
+	var res v1.SwitchWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSwitchWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) UpdateWalletMetadata(ctx context.Context, req *v1.UpdateWalletMetadataRequest) (*v1.UpdateWalletMetadataResponse, error) {
+	var res v1.UpdateWalletMetadataResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceUpdateWalletMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) DeleteWallet(ctx context.Context, req *v1.DeleteWalletRequest) (*v1.DeleteWalletResponse, error) {
+	var res v1.DeleteWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceDeleteWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) DeleteAllWallets(ctx context.Context, req *v1.DeleteAllWalletsRequest) (*v1.DeleteAllWalletsResponse, error) {
+	var res v1.DeleteAllWalletsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceDeleteAllWalletsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListWalletBackups(ctx context.Context, req *v1.ListWalletBackupsRequest) (*v1.ListWalletBackupsResponse, error) {
+	var res v1.ListWalletBackupsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListWalletBackupsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) RestoreWalletBackup(ctx context.Context, req *v1.RestoreWalletBackupRequest) (*v1.RestoreWalletBackupResponse, error) {
+	var res v1.RestoreWalletBackupResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceRestoreWalletBackupSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) RestoreWalletBackupStream(ctx context.Context, req *v1.RestoreWalletBackupRequest) (WalletManagerServiceRestoreWalletBackupStreamClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, walletManagerServiceRestoreWalletBackupStreamSpec(), req)
+	if err != nil {
+		return WalletManagerServiceRestoreWalletBackupStreamClientStream{}, err
+	}
+	return WalletManagerServiceRestoreWalletBackupStreamClientStream{stream: stream}, nil
+}
+
+func (c *walletManagerServiceClient) CreateWatchOnlyWallet(ctx context.Context, req *v1.CreateWatchOnlyWalletRequest) (*v1.CreateWatchOnlyWalletResponse, error) {
+	var res v1.CreateWatchOnlyWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCreateWatchOnlyWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CreateElectrumWallet(ctx context.Context, req *v1.CreateElectrumWalletRequest) (*v1.CreateElectrumWalletResponse, error) {
+	var res v1.CreateElectrumWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCreateElectrumWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CreateMultisigWallet(ctx context.Context, req *v1.CreateMultisigWalletRequest) (*v1.CreateMultisigWalletResponse, error) {
+	var res v1.CreateMultisigWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCreateMultisigWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ParseMultisigConfig(ctx context.Context, req *v1.ParseMultisigConfigRequest) (*v1.ParseMultisigConfigResponse, error) {
+	var res v1.ParseMultisigConfigResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceParseMultisigConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ValidateDescriptor(ctx context.Context, req *v1.ValidateDescriptorRequest) (*v1.ValidateDescriptorResponse, error) {
+	var res v1.ValidateDescriptorResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceValidateDescriptorSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ValidateDerivationPath(ctx context.Context, req *v1.ValidateDerivationPathRequest) (*v1.ValidateDerivationPathResponse, error) {
+	var res v1.ValidateDerivationPathResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceValidateDerivationPathSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListDerivationPaths(ctx context.Context, req *v1.ListDerivationPathsRequest) (*v1.ListDerivationPathsResponse, error) {
+	var res v1.ListDerivationPathsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListDerivationPathsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CreateBitcoinCoreWallet(ctx context.Context, req *v1.CreateBitcoinCoreWalletRequest) (*v1.CreateBitcoinCoreWalletResponse, error) {
+	var res v1.CreateBitcoinCoreWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCreateBitcoinCoreWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) EnsureCoreWallets(ctx context.Context, req *v1.EnsureCoreWalletsRequest) (*v1.EnsureCoreWalletsResponse, error) {
+	var res v1.EnsureCoreWalletsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceEnsureCoreWalletsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetBalance(ctx context.Context, req *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	var res v1.GetBalanceResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) RescanWallet(ctx context.Context, req *v1.RescanWalletRequest) (*v1.RescanWalletResponse, error) {
+	var res v1.RescanWalletResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceRescanWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) EstimateFee(ctx context.Context, req *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error) {
+	var res v1.EstimateFeeResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceEstimateFeeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetNewAddress(ctx context.Context, req *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	var res v1.GetNewAddressResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetNewAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SendTransaction(ctx context.Context, req *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error) {
+	var res v1.SendTransactionResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSendTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) PreviewSend(ctx context.Context, req *v1.PreviewSendRequest) (*v1.PreviewSendResponse, error) {
+	var res v1.PreviewSendResponse
+	if err := c.client.CallUnary(ctx, walletManagerServicePreviewSendSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SetFrozenCoins(ctx context.Context, req *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, walletManagerServiceSetFrozenCoinsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CreateDeposit(ctx context.Context, req *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	var res v1.CreateDepositResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCreateDepositSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListTransactions(ctx context.Context, req *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error) {
+	var res v1.ListTransactionsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListTransactionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListUnspent(ctx context.Context, req *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error) {
+	var res v1.ListUnspentResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListUnspentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListReceiveAddresses(ctx context.Context, req *v1.ListReceiveAddressesRequest) (*v1.ListReceiveAddressesResponse, error) {
+	var res v1.ListReceiveAddressesResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListReceiveAddressesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetTransactionDetails(ctx context.Context, req *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error) {
+	var res v1.GetTransactionDetailsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetTransactionDetailsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) DecodeTransaction(ctx context.Context, req *v1.DecodeTransactionRequest) (*v1.DecodeTransactionResponse, error) {
+	var res v1.DecodeTransactionResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceDecodeTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) BumpFee(ctx context.Context, req *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error) {
+	var res v1.BumpFeeResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceBumpFeeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) PreviewBumpFee(ctx context.Context, req *v1.PreviewBumpFeeRequest) (*v1.PreviewBumpFeeResponse, error) {
+	var res v1.PreviewBumpFeeResponse
+	if err := c.client.CallUnary(ctx, walletManagerServicePreviewBumpFeeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CreateCpfp(ctx context.Context, req *v1.CreateCpfpRequest) (*v1.CreateCpfpResponse, error) {
+	var res v1.CreateCpfpResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCreateCpfpSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CancelTransaction(ctx context.Context, req *v1.CancelTransactionRequest) (*v1.CancelTransactionResponse, error) {
+	var res v1.CancelTransactionResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCancelTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) DeriveAddresses(ctx context.Context, req *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error) {
+	var res v1.DeriveAddressesResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceDeriveAddressesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CreatePsbt(ctx context.Context, req *v1.CreatePsbtRequest) (*v1.CreatePsbtResponse, error) {
+	var res v1.CreatePsbtResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCreatePsbtSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SignPsbt(ctx context.Context, req *v1.SignPsbtRequest) (*v1.SignPsbtResponse, error) {
+	var res v1.SignPsbtResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSignPsbtSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SignPsbtWithCosigner(ctx context.Context, req *v1.SignPsbtWithCosignerRequest) (*v1.SignPsbtWithCosignerResponse, error) {
+	var res v1.SignPsbtWithCosignerResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSignPsbtWithCosignerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CombinePsbt(ctx context.Context, req *v1.CombinePsbtRequest) (*v1.CombinePsbtResponse, error) {
+	var res v1.CombinePsbtResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCombinePsbtSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) FinalizePsbt(ctx context.Context, req *v1.FinalizePsbtRequest) (*v1.FinalizePsbtResponse, error) {
+	var res v1.FinalizePsbtResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceFinalizePsbtSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) MultisigPsbtStatus(ctx context.Context, req *v1.MultisigPsbtStatusRequest) (*v1.MultisigPsbtStatusResponse, error) {
+	var res v1.MultisigPsbtStatusResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceMultisigPsbtStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) BroadcastTransaction(ctx context.Context, req *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error) {
+	var res v1.BroadcastTransactionResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceBroadcastTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetAddressUnspent(ctx context.Context, req *v1.GetAddressUnspentRequest) (*v1.GetAddressUnspentResponse, error) {
+	var res v1.GetAddressUnspentResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetAddressUnspentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) BroadcastElectrumTransaction(ctx context.Context, req *v1.BroadcastElectrumTransactionRequest) (*v1.BroadcastElectrumTransactionResponse, error) {
+	var res v1.BroadcastElectrumTransactionResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceBroadcastElectrumTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) EnumerateHardwareDevices(ctx context.Context, req *v1.EnumerateHardwareDevicesRequest) (*v1.EnumerateHardwareDevicesResponse, error) {
+	var res v1.EnumerateHardwareDevicesResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceEnumerateHardwareDevicesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetHardwareXpub(ctx context.Context, req *v1.GetHardwareXpubRequest) (*v1.GetHardwareXpubResponse, error) {
+	var res v1.GetHardwareXpubResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetHardwareXpubSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SignPsbtWithDevice(ctx context.Context, req *v1.SignPsbtWithDeviceRequest) (*v1.SignPsbtWithDeviceResponse, error) {
+	var res v1.SignPsbtWithDeviceResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSignPsbtWithDeviceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) PromptDevicePin(ctx context.Context, req *v1.PromptDevicePinRequest) (*v1.PromptDevicePinResponse, error) {
+	var res v1.PromptDevicePinResponse
+	if err := c.client.CallUnary(ctx, walletManagerServicePromptDevicePinSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SendDevicePin(ctx context.Context, req *v1.SendDevicePinRequest) (*v1.SendDevicePinResponse, error) {
+	var res v1.SendDevicePinResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSendDevicePinSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) CloseDevice(ctx context.Context, req *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error) {
+	var res v1.CloseDeviceResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceCloseDeviceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) DeriveKeystore(ctx context.Context, req *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error) {
+	var res v1.DeriveKeystoreResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceDeriveKeystoreSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) PreviewWalletFromEntropy(ctx context.Context, req *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error) {
+	var res v1.PreviewWalletFromEntropyResponse
+	if err := c.client.CallUnary(ctx, walletManagerServicePreviewWalletFromEntropySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *v1.GetWalletSeedRequest) (*v1.GetWalletSeedResponse, error) {
+	var res v1.GetWalletSeedResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetWalletSeedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListCoreVariants(ctx context.Context, req *v1.ListCoreVariantsRequest) (*v1.ListCoreVariantsResponse, error) {
+	var res v1.ListCoreVariantsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListCoreVariantsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetCoreVariant(ctx context.Context, req *v1.GetCoreVariantRequest) (*v1.GetCoreVariantResponse, error) {
+	var res v1.GetCoreVariantResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetCoreVariantSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SetCoreVariant(ctx context.Context, req *v1.SetCoreVariantRequest) (*v1.SetCoreVariantResponse, error) {
+	var res v1.SetCoreVariantResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSetCoreVariantSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetElectrumServer(ctx context.Context, req *v1.GetElectrumServerRequest) (*v1.GetElectrumServerResponse, error) {
+	var res v1.GetElectrumServerResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetElectrumServerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SetElectrumServer(ctx context.Context, req *v1.SetElectrumServerRequest) (*v1.SetElectrumServerResponse, error) {
+	var res v1.SetElectrumServerResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSetElectrumServerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GetTorConfig(ctx context.Context, req *v1.GetTorConfigRequest) (*v1.GetTorConfigResponse, error) {
+	var res v1.GetTorConfigResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGetTorConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SetTorConfig(ctx context.Context, req *v1.SetTorConfigRequest) (*v1.SetTorConfigResponse, error) {
+	var res v1.SetTorConfigResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceSetTorConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) WatchWalletData(ctx context.Context, req *emptypb.Empty) (WalletManagerServiceWatchWalletDataClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, walletManagerServiceWatchWalletDataSpec(), req)
+	if err != nil {
+		return WalletManagerServiceWatchWalletDataClientStream{}, err
+	}
+	return WalletManagerServiceWatchWalletDataClientStream{stream: stream}, nil
+}
+
+type walletManagerServiceHandler struct{ svc WalletManagerServiceHandler }
+
+func (h walletManagerServiceHandler) getWalletStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listSidechainDeposits(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListSidechainDepositsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSidechainDeposits(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getSidechainDepositTotals(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainDepositTotalsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSidechainDepositTotals(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getNodeMode(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNodeModeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNodeMode(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) setNodeMode(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetNodeModeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetNodeMode(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) generateWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GenerateWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GenerateWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) unlockWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UnlockWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UnlockWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) lockWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.LockWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.LockWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) encryptWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EncryptWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EncryptWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) changePassword(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ChangePasswordRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ChangePassword(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) removeEncryption(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveEncryptionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveEncryption(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listWallets(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListWalletsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListWallets(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) switchWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SwitchWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SwitchWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) updateWalletMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateWalletMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateWalletMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) deleteWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) deleteAllWallets(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteAllWalletsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteAllWallets(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listWalletBackups(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListWalletBackupsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListWalletBackups(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) restoreWalletBackup(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RestoreWalletBackupRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RestoreWalletBackup(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) restoreWalletBackupStream(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RestoreWalletBackupRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.RestoreWalletBackupStream(ctx, &req, WalletManagerServiceRestoreWalletBackupStreamServerStream{stream: stream})
+}
+
+func (h walletManagerServiceHandler) createWatchOnlyWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateWatchOnlyWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateWatchOnlyWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) createElectrumWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateElectrumWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateElectrumWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) createMultisigWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateMultisigWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateMultisigWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) parseMultisigConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ParseMultisigConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ParseMultisigConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) validateDescriptor(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ValidateDescriptorRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ValidateDescriptor(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) validateDerivationPath(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ValidateDerivationPathRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ValidateDerivationPath(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listDerivationPaths(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListDerivationPathsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListDerivationPaths(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) createBitcoinCoreWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateBitcoinCoreWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateBitcoinCoreWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) ensureCoreWallets(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EnsureCoreWalletsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EnsureCoreWallets(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) rescanWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RescanWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RescanWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) estimateFee(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EstimateFeeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EstimateFee(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getNewAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) sendTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SendTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SendTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) previewSend(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PreviewSendRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PreviewSend(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) setFrozenCoins(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetFrozenCoinsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetFrozenCoins(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) createDeposit(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDepositRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDeposit(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTransactions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listUnspent(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListUnspentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListUnspent(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listReceiveAddresses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListReceiveAddressesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListReceiveAddresses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getTransactionDetails(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTransactionDetailsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTransactionDetails(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) decodeTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DecodeTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DecodeTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) bumpFee(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.BumpFeeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.BumpFee(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) previewBumpFee(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PreviewBumpFeeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PreviewBumpFee(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) createCpfp(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateCpfpRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateCpfp(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) cancelTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CancelTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CancelTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) deriveAddresses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeriveAddressesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeriveAddresses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) createPsbt(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreatePsbtRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreatePsbt(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) signPsbt(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignPsbtRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignPsbt(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) signPsbtWithCosigner(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignPsbtWithCosignerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignPsbtWithCosigner(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) combinePsbt(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CombinePsbtRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CombinePsbt(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) finalizePsbt(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.FinalizePsbtRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.FinalizePsbt(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) multisigPsbtStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MultisigPsbtStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MultisigPsbtStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) broadcastTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.BroadcastTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.BroadcastTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getAddressUnspent(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetAddressUnspentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetAddressUnspent(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) broadcastElectrumTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.BroadcastElectrumTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.BroadcastElectrumTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) enumerateHardwareDevices(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EnumerateHardwareDevicesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EnumerateHardwareDevices(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getHardwareXpub(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetHardwareXpubRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetHardwareXpub(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) signPsbtWithDevice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignPsbtWithDeviceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignPsbtWithDevice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) promptDevicePin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PromptDevicePinRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PromptDevicePin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) sendDevicePin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SendDevicePinRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SendDevicePin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) closeDevice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CloseDeviceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CloseDevice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) deriveKeystore(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeriveKeystoreRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeriveKeystore(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) previewWalletFromEntropy(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PreviewWalletFromEntropyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PreviewWalletFromEntropy(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getWalletSeed(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletSeedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletSeed(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listCoreVariants(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListCoreVariantsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListCoreVariants(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getCoreVariant(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetCoreVariantRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCoreVariant(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) setCoreVariant(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetCoreVariantRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetCoreVariant(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getElectrumServer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetElectrumServerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetElectrumServer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) setElectrumServer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetElectrumServerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetElectrumServer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) getTorConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTorConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTorConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) setTorConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetTorConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetTorConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) watchWalletData(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchWalletData(ctx, &req, WalletManagerServiceWatchWalletDataServerStream{stream: stream})
 }

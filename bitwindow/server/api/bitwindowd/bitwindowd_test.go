@@ -9,7 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -43,9 +44,9 @@ type shutdownRecorder struct {
 	onlyIfLast chan bool
 }
 
-func (r *shutdownRecorder) Shutdown(_ context.Context, req *connect.Request[orchpb.ShutdownRequest]) (*connect.Response[orchpb.ShutdownResponse], error) {
-	r.onlyIfLast <- req.Msg.OnlyIfLast
-	return connect.NewResponse(&orchpb.ShutdownResponse{}), nil
+func (r *shutdownRecorder) Shutdown(_ context.Context, req *orchpb.ShutdownRequest) (*orchpb.ShutdownResponse, error) {
+	r.onlyIfLast <- req.OnlyIfLast
+	return &orchpb.ShutdownResponse{}, nil
 }
 
 func TestService_Stop(t *testing.T) {
@@ -64,14 +65,14 @@ func TestService_Stop(t *testing.T) {
 
 			var shutDown atomic.Bool
 			orchestrator := &shutdownRecorder{onlyIfLast: make(chan bool, 1)}
-			cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t),
+			cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t),
 				apitests.WithOnShutdown(func(context.Context) { shutDown.Store(true) }),
 				apitests.WithOrchestratorControl(orchestrator),
 			))
 
-			_, err := cli.Stop(t.Context(), connect.NewRequest(&v1.BitwindowdServiceStopRequest{
+			_, err := cli.Stop(t.Context(), &v1.BitwindowdServiceStopRequest{
 				SkipDownstream: test.skipDownstream,
-			}))
+			})
 			require.NoError(t, err)
 
 			assert.True(t, shutDown.Load())
@@ -99,7 +100,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -108,19 +109,19 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 0,
 			NumHops:      1,
-		}))
+		})
 		require.ErrorContains(t, err, "delay_seconds must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -133,17 +134,17 @@ func TestService_CreateDenial(t *testing.T) {
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("bitcoind is down")))
+			Return(nil, connectv1.NewError(connectv1.CodeUnavailable, errors.New("bitcoind is down")))
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(t, database.Test(t), apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+			apitests.RPC(t, database.Test(t), apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 10,
 			NumHops:      1,
-		}))
+		})
 		require.ErrorContains(t, err, "bitcoind is down")
 		assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	})
@@ -159,7 +160,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -168,19 +169,19 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: -10,
 			NumHops:      1,
-		}))
+		})
 		require.ErrorContains(t, err, "delay_seconds must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -196,7 +197,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -205,19 +206,19 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
 			NumHops:      0,
-		}))
+		})
 		require.ErrorContains(t, err, "num_hops must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -233,7 +234,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -242,19 +243,19 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
 			NumHops:      -5,
-		}))
+		})
 		require.ErrorContains(t, err, "num_hops must be positive")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -270,24 +271,24 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{},
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "",
 			Vout:         0,
 			DelaySeconds: 60,
 			NumHops:      1,
-		}))
+		})
 		require.ErrorContains(t, err, "utxo :0 not found in wallet")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -303,7 +304,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -312,19 +313,19 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "nonexistent",
 			Vout:         0,
 			DelaySeconds: 60,
 			NumHops:      1,
-		}))
+		})
 		require.ErrorContains(t, err, "utxo nonexistent:0 not found in wallet")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -340,7 +341,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -349,19 +350,19 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
 			NumHops:      1,
-		}))
+		})
 		require.NoError(t, err)
 
 		denials, err := deniability.List(t.Context(), database)
@@ -374,13 +375,13 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
 		assert.Equal(t, int32(1), denials[0].NumHops)
 
-		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err = cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:            "abc123",
 			Vout:            0,
 			DelaySeconds:    120,
 			NumHops:         1,
 			TargetUtxoSizes: []int64{1000},
-		}))
+		})
 		require.ErrorContains(t, err, "already runs for abc123:0")
 		assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
 
@@ -390,17 +391,17 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
 		assert.Empty(t, denials[0].TargetUTXOSizes)
 
-		_, err = cli.PauseDenial(t.Context(), connect.NewRequest(&v1.PauseDenialRequest{Id: denialID}))
+		_, err = cli.PauseDenial(t.Context(), &v1.PauseDenialRequest{Id: denialID})
 		require.NoError(t, err)
-		_, err = cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{Id: denialID}))
+		_, err = cli.CancelDenial(t.Context(), &v1.CancelDenialRequest{Id: denialID})
 		require.NoError(t, err)
-		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err = cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:            "abc123",
 			Vout:            0,
 			DelaySeconds:    120,
 			NumHops:         2,
 			TargetUtxoSizes: []int64{1000, 2000},
-		}))
+		})
 		require.NoError(t, err)
 
 		denials, err = deniability.List(t.Context(), database)
@@ -427,7 +428,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -437,7 +438,7 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
@@ -445,21 +446,21 @@ func TestService_CreateDenial(t *testing.T) {
 			))
 
 		// Create first denial
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
 			NumHops:      1,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Create second denial
-		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err = cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "def456",
 			Vout:         1,
 			DelaySeconds: 120,
 			NumHops:      2,
-		}))
+		})
 		require.NoError(t, err)
 
 		denials, err := deniability.List(t.Context(), database)
@@ -478,7 +479,7 @@ func TestService_CreateDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -487,19 +488,19 @@ func TestService_CreateDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
 				apitests.WithBitcoind(mockBitcoind),
 			))
 
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 86400, // 24 hours
 			NumHops:      10,
-		}))
+		})
 		require.NoError(t, err)
 
 		denials, err := deniability.List(t.Context(), database)
@@ -517,11 +518,11 @@ func TestService_CancelDenial(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database, apitests.WithCoreWallet()))
 
-		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
+		_, err := cli.CancelDenial(t.Context(), &v1.CancelDenialRequest{
 			Id: 999,
-		}))
+		})
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
@@ -529,11 +530,11 @@ func TestService_CancelDenial(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database, apitests.WithCoreWallet()))
 
-		_, err := cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
+		_, err := cli.CancelDenial(t.Context(), &v1.CancelDenialRequest{
 			Id: 0,
-		}))
+		})
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
@@ -548,7 +549,7 @@ func TestService_CancelDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -557,7 +558,7 @@ func TestService_CancelDenial(t *testing.T) {
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
-			apitests.API(
+			apitests.RPC(
 				t,
 				database,
 				apitests.WithCoreWallet(),
@@ -565,12 +566,12 @@ func TestService_CancelDenial(t *testing.T) {
 			))
 
 		// First create a denial
-		_, err := cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(t.Context(), &v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
 			DelaySeconds: 60,
 			NumHops:      1,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Get the denial ID from the database
@@ -579,9 +580,9 @@ func TestService_CancelDenial(t *testing.T) {
 		require.Len(t, denials, 1)
 
 		// Then cancel it
-		_, err = cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{
+		_, err = cli.CancelDenial(t.Context(), &v1.CancelDenialRequest{
 			Id: denials[0].ID,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Verify it's cancelled
@@ -599,13 +600,13 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 	})
 
@@ -613,13 +614,13 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 	})
 
@@ -627,13 +628,13 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Invalid Address",
 			Address:   "invalid-bitcoin-address",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.ErrorContains(t, err, "invalid address \"invalid-bitcoin-address\"")
 	})
 
@@ -641,13 +642,13 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Send Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_SEND,
-		}))
+		})
 		require.NoError(t, err)
 	})
 
@@ -655,41 +656,41 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Create first entry
-		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "First Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Try to create duplicate
-		_, err = cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err = cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Second Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 		// If it succeeds, verify we have 2 entries
-		resp, err := cli.ListAddressBook(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListAddressBook(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.Len(t, resp.Msg.Entries, 1)
+		assert.Len(t, resp.Entries, 1)
 		// Label should be updated
-		assert.Equal(t, "Second Label", resp.Msg.Entries[0].Label)
+		assert.Equal(t, "Second Label", resp.Entries[0].Label)
 	})
 
 	t.Run("a label maps to one address", func(t *testing.T) {
 		t.Parallel()
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t)))
-		create := func(label, address string) (*connect.Response[v1.CreateAddressBookEntryResponse], error) {
-			return cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t)))
+		create := func(label, address string) (*v1.CreateAddressBookEntryResponse, error) {
+			return cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 				Label:     label,
 				Address:   address,
 				Direction: v1.Direction_DIRECTION_SEND,
-			}))
+			})
 		}
 
 		first, err := create("rent", "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh")
@@ -703,14 +704,14 @@ func TestService_AddressBook(t *testing.T) {
 		_, err = create("rent", "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh")
 		require.NoError(t, err)
 
-		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
-			Id: second.Msg.Entry.Id, Label: "rent",
-		}))
+		_, err = cli.UpdateAddressBookEntry(t.Context(), &v1.UpdateAddressBookEntryRequest{
+			Id: second.Entry.Id, Label: "rent",
+		})
 		require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
 
-		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
-			Id: first.Msg.Entry.Id, Label: "rent",
-		}))
+		_, err = cli.UpdateAddressBookEntry(t.Context(), &v1.UpdateAddressBookEntryRequest{
+			Id: first.Entry.Id, Label: "rent",
+		})
 		require.NoError(t, err)
 	})
 
@@ -718,40 +719,40 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Create an entry first
-		_, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 
-		resp, err := cli.ListAddressBook(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListAddressBook(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Entries)
+		assert.NotEmpty(t, resp.Entries)
 	})
 
 	t.Run("update entry", func(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Original Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Update the entry
-		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
-			Id:    createResp.Msg.Entry.Id,
+		_, err = cli.UpdateAddressBookEntry(t.Context(), &v1.UpdateAddressBookEntryRequest{
+			Id:    createResp.Entry.Id,
 			Label: "Updated Label",
-		}))
+		})
 		require.NoError(t, err)
 	})
 
@@ -759,21 +760,21 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Original Label",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Try to update with empty label
-		_, err = cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
-			Id:    createResp.Msg.Entry.Id,
+		_, err = cli.UpdateAddressBookEntry(t.Context(), &v1.UpdateAddressBookEntryRequest{
+			Id:    createResp.Entry.Id,
 			Label: "",
-		}))
+		})
 		require.NoError(t, err)
 	})
 
@@ -781,13 +782,13 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Try to update non-existent entry
-		_, err := cli.UpdateAddressBookEntry(t.Context(), connect.NewRequest(&v1.UpdateAddressBookEntryRequest{
+		_, err := cli.UpdateAddressBookEntry(t.Context(), &v1.UpdateAddressBookEntryRequest{
 			Id:    99999,
 			Label: "New Label",
-		}))
+		})
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 		require.ErrorContains(t, err, "address book entry not found")
 	})
@@ -796,20 +797,20 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Delete the entry
-		_, err = cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
-			Id: createResp.Msg.Entry.Id,
-		}))
+		_, err = cli.DeleteAddressBookEntry(t.Context(), &v1.DeleteAddressBookEntryRequest{
+			Id: createResp.Entry.Id,
+		})
 		require.NoError(t, err)
 	})
 
@@ -817,12 +818,12 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Try to delete non-existent entry
-		_, err := cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
+		_, err := cli.DeleteAddressBookEntry(t.Context(), &v1.DeleteAddressBookEntryRequest{
 			Id: 99999,
-		}))
+		})
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 		require.ErrorContains(t, err, "address book entry not found")
 	})
@@ -831,26 +832,26 @@ func TestService_AddressBook(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Create an entry first
-		createResp, err := cli.CreateAddressBookEntry(t.Context(), connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		createResp, err := cli.CreateAddressBookEntry(t.Context(), &v1.CreateAddressBookEntryRequest{
 			Label:     "Test Address",
 			Address:   "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Delete the entry
-		_, err = cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
-			Id: createResp.Msg.Entry.Id,
-		}))
+		_, err = cli.DeleteAddressBookEntry(t.Context(), &v1.DeleteAddressBookEntryRequest{
+			Id: createResp.Entry.Id,
+		})
 		require.NoError(t, err)
 
 		// Try to delete again
-		_, err = cli.DeleteAddressBookEntry(t.Context(), connect.NewRequest(&v1.DeleteAddressBookEntryRequest{
-			Id: createResp.Msg.Entry.Id,
-		}))
+		_, err = cli.DeleteAddressBookEntry(t.Context(), &v1.DeleteAddressBookEntryRequest{
+			Id: createResp.Entry.Id,
+		})
 		require.ErrorContains(t, err, "address book entry not found")
 	})
 }
@@ -870,7 +871,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 		// Background operations expectations
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{
 					Wallets: []string{},
 				},
@@ -878,7 +879,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
 					Name: "test_wallet",
 				},
@@ -887,21 +888,21 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Chain: "main",
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.GetSyncInfo(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.NotNil(t, resp.Msg)
-		assert.GreaterOrEqual(t, resp.Msg.TipBlockHeight, int64(0))
-		assert.GreaterOrEqual(t, resp.Msg.HeaderHeight, int64(0))
-		assert.GreaterOrEqual(t, resp.Msg.SyncProgress, float64(0))
-		assert.LessOrEqual(t, resp.Msg.SyncProgress, float64(1))
+		assert.NotNil(t, resp)
+		assert.GreaterOrEqual(t, resp.TipBlockHeight, int64(0))
+		assert.GreaterOrEqual(t, resp.HeaderHeight, int64(0))
+		assert.GreaterOrEqual(t, resp.SyncProgress, float64(0))
+		assert.LessOrEqual(t, resp.SyncProgress, float64(1))
 	})
 
 	t.Run("get sync info with error", func(t *testing.T) {
@@ -916,7 +917,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 		// Background operations expectations
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{
 					Wallets: []string{},
 				},
@@ -924,7 +925,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
 					Name: "test_wallet",
 				},
@@ -933,11 +934,11 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeInternal, nil))
+			Return(nil, connectv1.NewError(connectv1.CodeInternal, nil))
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.GetSyncInfo(t.Context(), &emptypb.Empty{})
 		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	})
 
@@ -953,7 +954,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 		// Background operations expectations
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{
 					Wallets: []string{},
 				},
@@ -961,7 +962,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
 					Name: "test_wallet",
 				},
@@ -970,17 +971,17 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Chain: "test",
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.GetSyncInfo(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.NotNil(t, resp.Msg)
+		assert.NotNil(t, resp)
 	})
 }
 
@@ -991,12 +992,12 @@ func TestService_SetTransactionNote(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), &v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "Test note",
-		}))
+		})
 		require.NoError(t, err)
 	})
 
@@ -1004,12 +1005,12 @@ func TestService_SetTransactionNote(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), &v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "",
-		}))
+		})
 		require.NoError(t, err)
 	})
 
@@ -1017,12 +1018,12 @@ func TestService_SetTransactionNote(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), &v1.SetTransactionNoteRequest{
 			Txid: "",
 			Note: "Test note",
-		}))
+		})
 		require.ErrorContains(t, err, "txid cannot be empty")
 	})
 
@@ -1030,17 +1031,17 @@ func TestService_SetTransactionNote(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		longNote := ""
 		for i := 0; i < 1000; i++ {
 			longNote += "This is a very long note. "
 		}
 
-		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), &v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: longNote,
-		}))
+		})
 		// This might succeed or fail depending on implementation limits
 		// Just verify it doesn't panic
 		_ = err
@@ -1050,20 +1051,20 @@ func TestService_SetTransactionNote(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
 		// Set initial note
-		_, err := cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err := cli.SetTransactionNote(t.Context(), &v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "Initial note",
-		}))
+		})
 		require.NoError(t, err)
 
 		// Update the note
-		_, err = cli.SetTransactionNote(t.Context(), connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err = cli.SetTransactionNote(t.Context(), &v1.SetTransactionNoteRequest{
 			Txid: "abc123",
 			Note: "Updated note",
-		}))
+		})
 		require.NoError(t, err)
 	})
 }
@@ -1073,14 +1074,14 @@ func TestService_GetFireplaceStats(t *testing.T) {
 
 	ctx := t.Context()
 	database := database.Test(t)
-	cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+	cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
 
-	resp, err := cli.GetFireplaceStats(ctx, connect.NewRequest(&emptypb.Empty{}))
+	resp, err := cli.GetFireplaceStats(ctx, &emptypb.Empty{})
 	require.NoError(t, err)
 
-	assert.Empty(t, resp.Msg.TransactionCount_24H)
-	assert.Empty(t, resp.Msg.CoinnewsCount_7D)
-	assert.Empty(t, resp.Msg.BlockCount_24H)
+	assert.Empty(t, resp.TransactionCount_24H)
+	assert.Empty(t, resp.CoinnewsCount_7D)
+	assert.Empty(t, resp.BlockCount_24H)
 
 	newHash := func(t *testing.T) chainhash.Hash {
 		buf := make([]byte, chainhash.HashSize)
@@ -1160,12 +1161,12 @@ func TestService_GetFireplaceStats(t *testing.T) {
 	seedStory(9, 902, "Fresh CoinNews", time.Now())
 	seedStory(10, 903, "Old CoinNews", time.Now().AddDate(-1, 0, 0))
 
-	resp, err = cli.GetFireplaceStats(ctx, connect.NewRequest(&emptypb.Empty{}))
+	resp, err = cli.GetFireplaceStats(ctx, &emptypb.Empty{})
 	require.NoError(t, err)
 
-	assert.EqualValues(t, 1, resp.Msg.TransactionCount_24H)
-	assert.EqualValues(t, 1, resp.Msg.CoinnewsCount_7D)
-	assert.EqualValues(t, 1, resp.Msg.BlockCount_24H)
+	assert.EqualValues(t, 1, resp.TransactionCount_24H)
+	assert.EqualValues(t, 1, resp.CoinnewsCount_7D)
+	assert.EqualValues(t, 1, resp.BlockCount_24H)
 
 }
 
@@ -1184,7 +1185,7 @@ func TestService_PauseDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -1192,12 +1193,12 @@ func TestService_PauseDenial(t *testing.T) {
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
 		// First create a denial
-		_, err := cli.CreateDenial(ctx, connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(ctx, &v1.CreateDenialRequest{
 			Txid: "abc123", Vout: 0, DelaySeconds: 60, NumHops: 1,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Get the denial ID from the database
@@ -1207,7 +1208,7 @@ func TestService_PauseDenial(t *testing.T) {
 		denialID := denials[0].ID
 
 		// Pause it
-		_, err = cli.PauseDenial(ctx, connect.NewRequest(&v1.PauseDenialRequest{Id: denialID}))
+		_, err = cli.PauseDenial(ctx, &v1.PauseDenialRequest{Id: denialID})
 		require.NoError(t, err)
 
 		// Verify it's paused by checking the database
@@ -1221,9 +1222,9 @@ func TestService_PauseDenial(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithCoreWallet()))
 
-		_, err := cli.PauseDenial(t.Context(), connect.NewRequest(&v1.PauseDenialRequest{Id: 99999}))
+		_, err := cli.PauseDenial(t.Context(), &v1.PauseDenialRequest{Id: 99999})
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
@@ -1243,7 +1244,7 @@ func TestService_ResumeDenial(t *testing.T) {
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[corepb.ListUnspentResponse]{
+			Return(&connectv1.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
 						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
@@ -1251,12 +1252,12 @@ func TestService_ResumeDenial(t *testing.T) {
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
 		// Create a denial
-		_, err := cli.CreateDenial(ctx, connect.NewRequest(&v1.CreateDenialRequest{
+		_, err := cli.CreateDenial(ctx, &v1.CreateDenialRequest{
 			Txid: "abc123", Vout: 0, DelaySeconds: 60, NumHops: 1,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Get the denial ID from the database
@@ -1266,11 +1267,11 @@ func TestService_ResumeDenial(t *testing.T) {
 		denialID := denials[0].ID
 
 		// Pause it
-		_, err = cli.PauseDenial(ctx, connect.NewRequest(&v1.PauseDenialRequest{Id: denialID}))
+		_, err = cli.PauseDenial(ctx, &v1.PauseDenialRequest{Id: denialID})
 		require.NoError(t, err)
 
 		// Resume it
-		_, err = cli.ResumeDenial(ctx, connect.NewRequest(&v1.ResumeDenialRequest{Id: denialID}))
+		_, err = cli.ResumeDenial(ctx, &v1.ResumeDenialRequest{Id: denialID})
 		require.NoError(t, err)
 
 		// Verify it's resumed by checking the database
@@ -1284,9 +1285,9 @@ func TestService_ResumeDenial(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithCoreWallet()))
 
-		_, err := cli.ResumeDenial(t.Context(), connect.NewRequest(&v1.ResumeDenialRequest{Id: 99999}))
+		_, err := cli.ResumeDenial(t.Context(), &v1.ResumeDenialRequest{Id: 99999})
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
@@ -1311,7 +1312,7 @@ func TestService_ListBlocksInitialSync(t *testing.T) {
 
 			mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(connect.NewResponse(&corepb.GetBlockchainInfoResponse{
+				Return(connectv1.NewResponse(&corepb.GetBlockchainInfoResponse{
 					Blocks:               100,
 					BestBlockHash:        "hash100",
 					InitialBlockDownload: test.initial,
@@ -1319,14 +1320,14 @@ func TestService_ListBlocksInitialSync(t *testing.T) {
 
 			var hashReads, blockReads atomic.Uint32
 			mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+				DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockHashRequest]) (*connectv1.Response[corepb.GetBlockHashResponse], error) {
 					hashReads.Add(1)
-					return connect.NewResponse(&corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)}), nil
+					return connectv1.NewResponse(&corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)}), nil
 				}).AnyTimes()
 			mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+				DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
 					blockReads.Add(1)
-					return connect.NewResponse(&corepb.GetBlockResponse{Height: 100, Hash: req.Msg.Hash}), nil
+					return connectv1.NewResponse(&corepb.GetBlockResponse{Height: 100, Hash: req.Msg.Hash}), nil
 				}).AnyTimes()
 
 			core := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -1334,10 +1335,10 @@ func TestService_ListBlocksInitialSync(t *testing.T) {
 			})
 			server := api_bitwindowd.New(nil, database.Test(t), core, nil, nil, miningpools.New(t.Context(), test.network, "", "", offlineRegistry), config.Config{BitcoinCoreNetwork: test.network}, nil)
 
-			response, err := server.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
+			response, err := server.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 1})
 			require.NoError(t, err)
-			assert.Len(t, response.Msg.RecentBlocks, int(test.blockCount))
-			assert.Equal(t, test.blockCount > 0, response.Msg.HasMore)
+			assert.Len(t, response.RecentBlocks, int(test.blockCount))
+			assert.Equal(t, test.blockCount > 0, response.HasMore)
 			assert.Equal(t, test.blockCount, hashReads.Load())
 			assert.Equal(t, test.blockCount, blockReads.Load())
 		})
@@ -1359,19 +1360,19 @@ func TestService_ListBlocks(t *testing.T) {
 		// Mock ListWallets and CreateWallet for background ensureWatchWallet
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Mock GetBlockchainInfo
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 100},
 			}, nil)
 
@@ -1380,12 +1381,12 @@ func TestService_ListBlocks(t *testing.T) {
 			height := uint32(100 - i)
 			mockBitcoind.EXPECT().
 				GetBlockHash(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", height)},
 				}, nil)
 			mockBitcoind.EXPECT().
 				GetBlock(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockResponse]{
+				Return(&connectv1.Response[corepb.GetBlockResponse]{
 					Msg: &corepb.GetBlockResponse{
 						Height:        height,
 						Hash:          fmt.Sprintf("hash%d", height),
@@ -1395,16 +1396,16 @@ func TestService_ListBlocks(t *testing.T) {
 				}, nil)
 		}
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{}))
+		resp, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{})
 		require.NoError(t, err)
-		assert.Len(t, resp.Msg.RecentBlocks, 50)
-		assert.True(t, resp.Msg.HasMore)
+		assert.Len(t, resp.RecentBlocks, 50)
+		assert.True(t, resp.HasMore)
 
 		// Verify blocks are sorted by height descending
-		for i := 1; i < len(resp.Msg.RecentBlocks); i++ {
-			assert.Greater(t, resp.Msg.RecentBlocks[i-1].Height, resp.Msg.RecentBlocks[i].Height)
+		for i := 1; i < len(resp.RecentBlocks); i++ {
+			assert.Greater(t, resp.RecentBlocks[i-1].Height, resp.RecentBlocks[i].Height)
 		}
 	})
 
@@ -1419,18 +1420,18 @@ func TestService_ListBlocks(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
 			}, nil)
 
@@ -1439,12 +1440,12 @@ func TestService_ListBlocks(t *testing.T) {
 			height := uint32(10 - i)
 			mockBitcoind.EXPECT().
 				GetBlockHash(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", height)},
 				}, nil)
 			mockBitcoind.EXPECT().
 				GetBlock(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockResponse]{
+				Return(&connectv1.Response[corepb.GetBlockResponse]{
 					Msg: &corepb.GetBlockResponse{
 						Height: height,
 						Hash:   fmt.Sprintf("hash%d", height),
@@ -1453,13 +1454,13 @@ func TestService_ListBlocks(t *testing.T) {
 				}, nil)
 		}
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{
+		resp, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{
 			PageSize: 5,
-		}))
+		})
 		require.NoError(t, err)
-		assert.Len(t, resp.Msg.RecentBlocks, 5)
+		assert.Len(t, resp.RecentBlocks, 5)
 	})
 
 	t.Run("a reorg below the tip drops the missing heights", func(t *testing.T) {
@@ -1473,7 +1474,7 @@ func TestService_ListBlocks(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
 			}, nil)
 
@@ -1482,23 +1483,23 @@ func TestService_ListBlocks(t *testing.T) {
 		const tipAfterReorg = 8
 		mockBitcoind.EXPECT().
 			GetBlockHash(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockHashRequest]) (*connectv1.Response[corepb.GetBlockHashResponse], error) {
 				if req.Msg.Height > tipAfterReorg {
 					return nil, errors.New("unknown: -8: Block height out of range")
 				}
-				return &connect.Response[corepb.GetBlockHashResponse]{
+				return &connectv1.Response[corepb.GetBlockHashResponse]{
 					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
 				}, nil
 			}).Times(5)
 
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
 				var height uint32
 				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
 					return nil, err
 				}
-				return &connect.Response[corepb.GetBlockResponse]{
+				return &connectv1.Response[corepb.GetBlockResponse]{
 					Msg: &corepb.GetBlockResponse{
 						Height: height,
 						Hash:   req.Msg.Hash,
@@ -1507,15 +1508,15 @@ func TestService_ListBlocks(t *testing.T) {
 				}, nil
 			}).Times(3)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{
+		resp, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{
 			PageSize: 5,
-		}))
+		})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.RecentBlocks, 3)
-		assert.Equal(t, uint32(8), resp.Msg.RecentBlocks[0].Height)
-		assert.Equal(t, uint32(6), resp.Msg.RecentBlocks[2].Height)
+		require.Len(t, resp.RecentBlocks, 3)
+		assert.Equal(t, uint32(8), resp.RecentBlocks[0].Height)
+		assert.Equal(t, uint32(6), resp.RecentBlocks[2].Height)
 	})
 
 	t.Run("hasMore is true while the genesis block is not on a page", func(t *testing.T) {
@@ -1526,24 +1527,24 @@ func TestService_ListBlocks(t *testing.T) {
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
 			}, nil).Times(2)
 		mockBitcoind.EXPECT().
 			GetBlockHash(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
-				return &connect.Response[corepb.GetBlockHashResponse]{
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockHashRequest]) (*connectv1.Response[corepb.GetBlockHashResponse], error) {
+				return &connectv1.Response[corepb.GetBlockHashResponse]{
 					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
 				}, nil
 			}).Times(10)
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
 				var height uint32
 				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
 					return nil, err
 				}
-				return &connect.Response[corepb.GetBlockResponse]{
+				return &connectv1.Response[corepb.GetBlockResponse]{
 					Msg: &corepb.GetBlockResponse{Height: height, Hash: req.Msg.Hash, Time: timestamppb.Now()},
 				}, nil
 			}).Times(10)
@@ -1551,19 +1552,19 @@ func TestService_ListBlocks(t *testing.T) {
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		expectWatchWalletNoop(mockBitcoind)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		page, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 5, PageSize: 5}))
+		page, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{StartHeight: 5, PageSize: 5})
 		require.NoError(t, err)
-		require.Len(t, page.Msg.RecentBlocks, 5)
-		assert.Equal(t, uint32(1), page.Msg.RecentBlocks[4].Height)
-		assert.True(t, page.Msg.HasMore)
+		require.Len(t, page.RecentBlocks, 5)
+		assert.Equal(t, uint32(1), page.RecentBlocks[4].Height)
+		assert.True(t, page.HasMore)
 
-		last, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 4, PageSize: 5}))
+		last, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{StartHeight: 4, PageSize: 5})
 		require.NoError(t, err)
-		require.Len(t, last.Msg.RecentBlocks, 5)
-		assert.Equal(t, uint32(0), last.Msg.RecentBlocks[4].Height)
-		assert.False(t, last.Msg.HasMore)
+		require.Len(t, last.RecentBlocks, 5)
+		assert.Equal(t, uint32(0), last.RecentBlocks[4].Height)
+		assert.False(t, last.HasMore)
 	})
 
 	t.Run("hasMore is false when the genesis block is on a shorter page", func(t *testing.T) {
@@ -1574,41 +1575,41 @@ func TestService_ListBlocks(t *testing.T) {
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
 			}, nil)
 		mockBitcoind.EXPECT().
 			GetBlockHash(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockHashRequest]) (*connectv1.Response[corepb.GetBlockHashResponse], error) {
 				// The chain lost block 4 after the tip read.
 				if req.Msg.Height == 4 {
 					return nil, errors.New("Block height out of range")
 				}
-				return &connect.Response[corepb.GetBlockHashResponse]{
+				return &connectv1.Response[corepb.GetBlockHashResponse]{
 					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
 				}, nil
 			}).Times(5)
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
 				var height uint32
 				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
 					return nil, err
 				}
-				return &connect.Response[corepb.GetBlockResponse]{
+				return &connectv1.Response[corepb.GetBlockResponse]{
 					Msg: &corepb.GetBlockResponse{Height: height, Hash: req.Msg.Hash, Time: timestamppb.Now()},
 				}, nil
 			}).Times(4)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		expectWatchWalletNoop(mockBitcoind)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		page, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{StartHeight: 4, PageSize: 5}))
+		page, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{StartHeight: 4, PageSize: 5})
 		require.NoError(t, err)
-		require.Len(t, page.Msg.RecentBlocks, 4)
-		assert.Equal(t, uint32(0), page.Msg.RecentBlocks[3].Height)
-		assert.False(t, page.Msg.HasMore)
+		require.Len(t, page.RecentBlocks, 4)
+		assert.Equal(t, uint32(0), page.RecentBlocks[3].Height)
+		assert.False(t, page.HasMore)
 	})
 
 	t.Run("repeat call at the same tip is served from cache", func(t *testing.T) {
@@ -1623,28 +1624,28 @@ func TestService_ListBlocks(t *testing.T) {
 		// GetBlockHash + GetBlock fire 5× (= pageSize) total across both
 		// calls — the second call must come from cache.
 		mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
 			}, nil).Times(2)
 		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockHashResponse]{
+			Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
 			}, nil).Times(5)
 		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockResponse]{
+			Return(&connectv1.Response[corepb.GetBlockResponse]{
 				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
 			}, nil).Times(5)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		req := connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5})
+		req := &v1.ListBlocksRequest{PageSize: 5}
 		first, err := cli.ListBlocks(t.Context(), req)
 		require.NoError(t, err)
-		require.Len(t, first.Msg.RecentBlocks, 5)
+		require.Len(t, first.RecentBlocks, 5)
 
-		second, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		second, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 5})
 		require.NoError(t, err)
-		require.Len(t, second.Msg.RecentBlocks, 5)
+		require.Len(t, second.RecentBlocks, 5)
 	})
 
 	t.Run("cache is dropped on same-height reorg (different best-block-hash)", func(t *testing.T) {
@@ -1660,28 +1661,28 @@ func TestService_ListBlocks(t *testing.T) {
 		// must do its own fan-out (10 fetches each = 20 total).
 		gomock.InOrder(
 			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10, BestBlockHash: "hash-A"},
 				}, nil),
 			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10, BestBlockHash: "hash-B"},
 				}, nil),
 		)
 		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockHashResponse]{
+			Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
 			}, nil).Times(10)
 		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockResponse]{
+			Return(&connectv1.Response[corepb.GetBlockResponse]{
 				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
 			}, nil).Times(10)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 5})
 		require.NoError(t, err)
-		_, err = cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err = cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 5})
 		require.NoError(t, err)
 	})
 
@@ -1695,33 +1696,33 @@ func TestService_ListBlocks(t *testing.T) {
 		expectWatchWalletNoop(mockBitcoind)
 
 		mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10, BestBlockHash: "h"},
 			}, nil).Times(2)
 		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockHashResponse]{
+			Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
 			}, nil).Times(3)
 		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockResponse]{
+			Return(&connectv1.Response[corepb.GetBlockResponse]{
 				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
 			}, nil).Times(3)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		first, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
+		first, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 3})
 		require.NoError(t, err)
-		require.Len(t, first.Msg.RecentBlocks, 3)
+		require.Len(t, first.RecentBlocks, 3)
 
 		// Mutate the response: if the cache shared its backing array
 		// we'd corrupt the next caller.
-		first.Msg.RecentBlocks[0] = nil
-		first.Msg.RecentBlocks = append(first.Msg.RecentBlocks, nil, nil, nil, nil)
+		first.RecentBlocks[0] = nil
+		first.RecentBlocks = append(first.RecentBlocks, nil, nil, nil, nil)
 
-		second, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
+		second, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 3})
 		require.NoError(t, err)
-		require.Len(t, second.Msg.RecentBlocks, 3, "cache must hand out a fresh slice")
-		require.NotNil(t, second.Msg.RecentBlocks[0])
+		require.Len(t, second.RecentBlocks, 3, "cache must hand out a fresh slice")
+		require.NotNil(t, second.RecentBlocks[0])
 	})
 
 	t.Run("cache is dropped when tip moves", func(t *testing.T) {
@@ -1733,11 +1734,11 @@ func TestService_ListBlocks(t *testing.T) {
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		mockBitcoind.EXPECT().ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).AnyTimes()
 		mockBitcoind.EXPECT().CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
@@ -1746,28 +1747,28 @@ func TestService_ListBlocks(t *testing.T) {
 		// 5 times PER call = 10 total.
 		gomock.InOrder(
 			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
 				}, nil),
 			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 11},
 				}, nil),
 		)
 		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockHashResponse]{
+			Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
 			}, nil).Times(10)
 		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockResponse]{
+			Return(&connectv1.Response[corepb.GetBlockResponse]{
 				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
 			}, nil).Times(10)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err := cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 5})
 		require.NoError(t, err)
-		_, err = cli.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		_, err = cli.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 5})
 		require.NoError(t, err)
 	})
 }
@@ -1786,19 +1787,19 @@ func TestService_ListRecentTransactions(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Mock GetRawMempool with one tx
 		mockBitcoind.EXPECT().
 			GetRawMempool(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetRawMempoolResponse]{
+			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
 				Msg: &corepb.GetRawMempoolResponse{
 					Transactions: map[string]*corepb.MempoolEntry{
 						"mempool_tx1": {
@@ -1815,7 +1816,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		// Mock GetBlockchainInfo - return BestBlockHash
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Blocks:        1,
 					BestBlockHash: "blockhash1",
@@ -1825,7 +1826,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		// Mock GetBlock - returns empty txids to avoid needing GetRawTransaction mocks
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockResponse]{
+			Return(&connectv1.Response[corepb.GetBlockResponse]{
 				Msg: &corepb.GetBlockResponse{
 					Height:            1,
 					Hash:              "blockhash1",
@@ -1835,15 +1836,15 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				},
 			}, nil).Times(2) // First for GetBlock with BestBlockHash, second for the loop
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListRecentTransactions(t.Context(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
+		resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{
 			Count: 10,
-		}))
+		})
 		require.NoError(t, err)
 		// Should have 1 mempool tx
-		assert.Len(t, resp.Msg.Transactions, 1)
-		assert.Equal(t, "mempool_tx1", resp.Msg.Transactions[0].Txid)
+		assert.Len(t, resp.Transactions, 1)
+		assert.Equal(t, "mempool_tx1", resp.Transactions[0].Txid)
 	})
 
 	t.Run("empty mempool and genesis block", func(t *testing.T) {
@@ -1857,19 +1858,19 @@ func TestService_ListRecentTransactions(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Empty mempool
 		mockBitcoind.EXPECT().
 			GetRawMempool(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetRawMempoolResponse]{
+			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
 				Msg: &corepb.GetRawMempoolResponse{
 					Transactions: map[string]*corepb.MempoolEntry{},
 				},
@@ -1877,7 +1878,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Blocks:        0,
 					BestBlockHash: "genesis",
@@ -1887,7 +1888,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		// Genesis block - empty txids
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockResponse]{
+			Return(&connectv1.Response[corepb.GetBlockResponse]{
 				Msg: &corepb.GetBlockResponse{
 					Height:            0,
 					Hash:              "genesis",
@@ -1897,13 +1898,13 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				},
 			}, nil).Times(2)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListRecentTransactions(t.Context(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
+		resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{
 			Count: 10,
-		}))
+		})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Transactions)
+		assert.Empty(t, resp.Transactions)
 	})
 }
 
@@ -1921,19 +1922,19 @@ func TestService_GetNetworkStats(t *testing.T) {
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Mock GetBlockchainInfo
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Blocks: 1000,
 					Chain:  "signet",
@@ -1943,14 +1944,14 @@ func TestService_GetNetworkStats(t *testing.T) {
 		// Mock GetBlockHash for calculating avg block time and difficulty
 		mockBitcoind.EXPECT().
 			GetBlockHash(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockHashResponse]{
+			Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 				Msg: &corepb.GetBlockHashResponse{Hash: "latesthash"},
 			}, nil).AnyTimes()
 
 		// Mock GetBlock for difficulty and avg block time calculation
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockResponse]{
+			Return(&connectv1.Response[corepb.GetBlockResponse]{
 				Msg: &corepb.GetBlockResponse{
 					Height:     1000,
 					Hash:       "latesthash",
@@ -1962,7 +1963,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		// Mock GetNetworkInfo
 		mockBitcoind.EXPECT().
 			GetNetworkInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetNetworkInfoResponse]{
+			Return(&connectv1.Response[corepb.GetNetworkInfoResponse]{
 				Msg: &corepb.GetNetworkInfoResponse{
 					Version:    250000,
 					Subversion: "/Satoshi:25.0.0/",
@@ -1972,7 +1973,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		// Mock GetNetTotals
 		mockBitcoind.EXPECT().
 			GetNetTotals(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetNetTotalsResponse]{
+			Return(&connectv1.Response[corepb.GetNetTotalsResponse]{
 				Msg: &corepb.GetNetTotalsResponse{
 					TotalBytesRecv: 1000000,
 					TotalBytesSent: 500000,
@@ -1982,7 +1983,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		// Mock GetPeerInfo
 		mockBitcoind.EXPECT().
 			GetPeerInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetPeerInfoResponse]{
+			Return(&connectv1.Response[corepb.GetPeerInfoResponse]{
 				Msg: &corepb.GetPeerInfoResponse{
 					Peers: []*corepb.Peer{
 						{Inbound: true},
@@ -1992,20 +1993,20 @@ func TestService_GetNetworkStats(t *testing.T) {
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.GetNetworkStats(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.GetNetworkStats(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
 
-		assert.Equal(t, int64(1000), resp.Msg.BlockHeight)
-		assert.Equal(t, int32(3), resp.Msg.PeerCount)
-		assert.Equal(t, int32(1), resp.Msg.ConnectionsIn)
-		assert.Equal(t, int32(2), resp.Msg.ConnectionsOut)
-		assert.Equal(t, uint64(1000000), resp.Msg.TotalBytesReceived)
-		assert.Equal(t, uint64(500000), resp.Msg.TotalBytesSent)
-		assert.Equal(t, int32(250000), resp.Msg.NetworkVersion)
-		assert.Equal(t, "/Satoshi:25.0.0/", resp.Msg.Subversion)
-		assert.Equal(t, 12345.67, resp.Msg.Difficulty)
+		assert.Equal(t, int64(1000), resp.BlockHeight)
+		assert.Equal(t, int32(3), resp.PeerCount)
+		assert.Equal(t, int32(1), resp.ConnectionsIn)
+		assert.Equal(t, int32(2), resp.ConnectionsOut)
+		assert.Equal(t, uint64(1000000), resp.TotalBytesReceived)
+		assert.Equal(t, uint64(500000), resp.TotalBytesSent)
+		assert.Equal(t, int32(250000), resp.NetworkVersion)
+		assert.Equal(t, "/Satoshi:25.0.0/", resp.Subversion)
+		assert.Equal(t, 12345.67, resp.Difficulty)
 	})
 
 	for _, tc := range []struct {
@@ -2014,7 +2015,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		code connect.Code
 	}{
 		{"a plain network info failure returns Unknown", errors.New("rpc broke"), connect.CodeUnknown},
-		{"a Core warmup keeps its code", connect.NewError(connect.CodeFailedPrecondition, errors.New("Loading block index")), connect.CodeFailedPrecondition},
+		{"a Core warmup keeps its code", connect.NewError(connect.CodeFailedPrecondition, "Loading block index"), connect.CodeFailedPrecondition},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -2024,28 +2025,32 @@ func TestService_GetNetworkStats(t *testing.T) {
 			apitests.ExpectCoreWalletSetup(mockBitcoind)
 			mockBitcoind.EXPECT().
 				GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 2, Chain: "signet"},
 				}, nil)
 			mockBitcoind.EXPECT().
 				GetBlockHash(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Return(&connectv1.Response[corepb.GetBlockHashResponse]{
 					Msg: &corepb.GetBlockHashResponse{Hash: "latesthash"},
 				}, nil).AnyTimes()
 			mockBitcoind.EXPECT().
 				GetBlock(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockResponse]{
+				Return(&connectv1.Response[corepb.GetBlockResponse]{
 					Msg: &corepb.GetBlockResponse{Hash: "latesthash", Time: timestamppb.Now(), Difficulty: 1},
 				}, nil).AnyTimes()
 			mockBitcoind.EXPECT().
 				GetNetworkInfo(gomock.Any(), gomock.Any()).
 				Return(nil, tc.err)
 
-			cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+			cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
 
-			_, err := cli.GetNetworkStats(t.Context(), connect.NewRequest(&emptypb.Empty{}))
-			require.ErrorContains(t, err, tc.err.Error())
+			_, err := cli.GetNetworkStats(t.Context(), &emptypb.Empty{})
 			require.Equal(t, tc.code, connect.CodeOf(err))
+			if tc.code == connect.CodeUnknown {
+				require.NotContains(t, err.Error(), tc.err.Error())
+			} else {
+				require.ErrorContains(t, err, tc.err.Error())
+			}
 		})
 	}
 }
@@ -2061,49 +2066,49 @@ func TestService_Labels(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db))
 		ctx := t.Context()
 
-		_, err := cli.CreateAddressBookEntry(ctx, connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+		_, err := cli.CreateAddressBookEntry(ctx, &v1.CreateAddressBookEntryRequest{
 			Label:     "donations",
 			Address:   addr,
 			Direction: v1.Direction_DIRECTION_RECEIVE,
-		}))
+		})
 		require.NoError(t, err)
 
-		_, err = cli.SetTransactionNote(ctx, connect.NewRequest(&v1.SetTransactionNoteRequest{
+		_, err = cli.SetTransactionNote(ctx, &v1.SetTransactionNoteRequest{
 			Txid: txid,
 			Note: "coffee",
-		}))
+		})
 		require.NoError(t, err)
 
-		exported, err := cli.ExportLabels(ctx, connect.NewRequest(&emptypb.Empty{}))
+		exported, err := cli.ExportLabels(ctx, &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.Contains(t, exported.Msg.Jsonl, "donations")
-		assert.Contains(t, exported.Msg.Jsonl, "coffee")
+		assert.Contains(t, exported.Jsonl, "donations")
+		assert.Contains(t, exported.Jsonl, "coffee")
 
 		// Re-import into a fresh DB; the same labels must land.
 		db2 := database.Test(t)
-		cli2 := v1connect.NewBitwindowdServiceClient(apitests.API(t, db2))
+		cli2 := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db2))
 
-		imp, err := cli2.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
-			Jsonl: exported.Msg.Jsonl,
-		}))
+		imp, err := cli2.ImportLabels(ctx, &v1.ImportLabelsRequest{
+			Jsonl: exported.Jsonl,
+		})
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), imp.Msg.ImportedAddresses)
-		assert.Equal(t, int64(1), imp.Msg.ImportedTransactions)
-		assert.Equal(t, int64(0), imp.Msg.Skipped)
+		assert.Equal(t, int64(1), imp.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.ImportedTransactions)
+		assert.Equal(t, int64(0), imp.Skipped)
 
-		reexported, err := cli2.ExportLabels(ctx, connect.NewRequest(&emptypb.Empty{}))
+		reexported, err := cli2.ExportLabels(ctx, &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.Equal(t, exported.Msg.Jsonl, reexported.Msg.Jsonl)
+		assert.Equal(t, exported.Jsonl, reexported.Jsonl)
 	})
 
 	t.Run("imports sparrow sample and skips malformed", func(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db))
 		ctx := t.Context()
 
 		sample := `{"type":"tx","ref":"` + txid + `","label":"Restaurant"}
@@ -2115,54 +2120,54 @@ this line is not valid json
 
 `
 
-		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{Jsonl: sample}))
+		imp, err := cli.ImportLabels(ctx, &v1.ImportLabelsRequest{Jsonl: sample})
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), imp.Msg.ImportedAddresses)
-		assert.Equal(t, int64(1), imp.Msg.ImportedTransactions)
-		assert.Equal(t, int64(1), imp.Msg.ImportedOutputs)
+		assert.Equal(t, int64(1), imp.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.ImportedTransactions)
+		assert.Equal(t, int64(1), imp.ImportedOutputs)
 		// xpub + input (unsupported) + malformed json = 3 skipped.
-		assert.Equal(t, int64(3), imp.Msg.Skipped)
+		assert.Equal(t, int64(3), imp.Skipped)
 
-		exported, err := cli.ExportLabels(ctx, connect.NewRequest(&emptypb.Empty{}))
+		exported, err := cli.ExportLabels(ctx, &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.Contains(t, exported.Msg.Jsonl, "Restaurant")
-		assert.Contains(t, exported.Msg.Jsonl, "Savings")
-		assert.Contains(t, exported.Msg.Jsonl, "Coinjoin change")
+		assert.Contains(t, exported.Jsonl, "Restaurant")
+		assert.Contains(t, exported.Jsonl, "Savings")
+		assert.Contains(t, exported.Jsonl, "Coinjoin change")
 	})
 
 	t.Run("skips an address that does not classify", func(t *testing.T) {
 		t.Parallel()
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t)))
 
-		imp, err := cli.ImportLabels(t.Context(), connect.NewRequest(&v1.ImportLabelsRequest{
+		imp, err := cli.ImportLabels(t.Context(), &v1.ImportLabelsRequest{
 			Jsonl: `{"type":"addr","ref":"not-an-address","label":"Savings"}`,
-		}))
+		})
 		require.NoError(t, err)
-		assert.Equal(t, int64(0), imp.Msg.ImportedAddresses)
-		assert.Equal(t, int64(1), imp.Msg.Skipped)
+		assert.Equal(t, int64(0), imp.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.Skipped)
 	})
 
 	t.Run("a label maps to one address", func(t *testing.T) {
 		t.Parallel()
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database.Test(t)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t)))
 		ctx := t.Context()
 
-		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
+		imp, err := cli.ImportLabels(ctx, &v1.ImportLabelsRequest{
 			Jsonl: `{"type":"addr","ref":"bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh","label":" rent "}
 {"type":"addr","ref":"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq","label":"Rent"}
 {"type":"addr","ref":"bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh","label":"rent"}`,
-		}))
+		})
 		require.NoError(t, err)
-		assert.Equal(t, int64(2), imp.Msg.ImportedAddresses)
-		assert.Equal(t, int64(1), imp.Msg.Skipped)
+		assert.Equal(t, int64(2), imp.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.Skipped)
 
-		list, err := cli.ListAddressBook(ctx, connect.NewRequest(&emptypb.Empty{}))
+		list, err := cli.ListAddressBook(ctx, &emptypb.Empty{})
 		require.NoError(t, err)
-		require.Len(t, list.Msg.Entries, 1)
-		assert.Equal(t, "rent", list.Msg.Entries[0].Label)
-		assert.Equal(t, "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", list.Msg.Entries[0].Address)
+		require.Len(t, list.Entries, 1)
+		assert.Equal(t, "rent", list.Entries[0].Label)
+		assert.Equal(t, "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", list.Entries[0].Address)
 	})
 
 	t.Run("a send address keeps its direction", func(t *testing.T) {
@@ -2172,32 +2177,33 @@ this line is not valid json
 		ctx := t.Context()
 		const address = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
 		require.NoError(t, addressbook.Create(ctx, db, nil, "old", address, addressbook.DirectionSend))
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db))
 
-		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
+		imp, err := cli.ImportLabels(ctx, &v1.ImportLabelsRequest{
 			Jsonl: `{"type":"addr","ref":"` + address + `","label":"Landlord"}`,
-		}))
+		})
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), imp.Msg.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.ImportedAddresses)
 
-		list, err := cli.ListAddressBook(ctx, connect.NewRequest(&emptypb.Empty{}))
+		list, err := cli.ListAddressBook(ctx, &emptypb.Empty{})
 		require.NoError(t, err)
-		require.Len(t, list.Msg.Entries, 1)
-		assert.Equal(t, "Landlord", list.Msg.Entries[0].Label)
-		assert.Equal(t, v1.Direction_DIRECTION_SEND, list.Msg.Entries[0].Direction)
+		require.Len(t, list.Entries, 1)
+		assert.Equal(t, "Landlord", list.Entries[0].Label)
+		assert.Equal(t, v1.Direction_DIRECTION_SEND, list.Entries[0].Direction)
 	})
 
 	t.Run("returns a database fault", func(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db))
 		require.NoError(t, db.Close())
 
-		_, err := cli.ImportLabels(t.Context(), connect.NewRequest(&v1.ImportLabelsRequest{
+		_, err := cli.ImportLabels(t.Context(), &v1.ImportLabelsRequest{
 			Jsonl: `{"type":"tx","ref":"` + txid + `","label":"Restaurant"}`,
-		}))
-		require.ErrorContains(t, err, "sql: database is closed")
+		})
+		require.Equal(t, connect.CodeUnknown, connect.CodeOf(err))
+		require.NotContains(t, err.Error(), "sql: database is closed")
 	})
 }
 
@@ -2205,11 +2211,11 @@ this line is not valid json
 // for tests that don't care about it.
 func expectWatchWalletNoop(m *mocks.MockBitcoinServiceClient) {
 	m.EXPECT().ListWallets(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ListWalletsResponse]{
+		Return(&connectv1.Response[corepb.ListWalletsResponse]{
 			Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 		}, nil).AnyTimes()
 	m.EXPECT().CreateWallet(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.CreateWalletResponse]{
+		Return(&connectv1.Response[corepb.CreateWalletResponse]{
 			Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 		}, nil).AnyTimes()
 }

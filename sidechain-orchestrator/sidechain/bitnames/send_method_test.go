@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -53,11 +52,11 @@ func TestTransferCallsCreateTransfer(t *testing.T) {
 	proxy, seen := sendMethodNode(t, map[string]string{"create_transfer": `"txid1"`})
 
 	resp, err := NewHandler(proxy).Transfer(context.Background(),
-		connect.NewRequest(&pb.TransferRequest{
+		&pb.TransferRequest{
 			Address: "sidechain-address", AmountSats: 50_000_000, FeeSats: 1000,
-		}))
+		})
 	require.NoError(t, err)
-	assert.Equal(t, "txid1", resp.Msg.Txid)
+	assert.Equal(t, "txid1", resp.Txid)
 	assert.Equal(t, []string{`create_transfer ["sidechain-address",50000000,1000,null]`}, *seen)
 }
 
@@ -65,11 +64,11 @@ func TestWithdrawCallsCreateWithdrawal(t *testing.T) {
 	proxy, seen := sendMethodNode(t, map[string]string{"create_withdrawal": `"txid2"`})
 
 	resp, err := NewHandler(proxy).Withdraw(context.Background(),
-		connect.NewRequest(&pb.WithdrawRequest{
+		&pb.WithdrawRequest{
 			Address: "bc1qexample", AmountSats: 10_000, SideFeeSats: 1000, MainFeeSats: 2000,
-		}))
+		})
 	require.NoError(t, err)
-	assert.Equal(t, "txid2", resp.Msg.Txid)
+	assert.Equal(t, "txid2", resp.Txid)
 	assert.Equal(t, []string{`create_withdrawal ["bc1qexample",10000,1000,2000]`}, *seen)
 }
 
@@ -77,8 +76,8 @@ func TestSidechainWealthCallsSidechainWealth(t *testing.T) {
 	proxy, seen := sendMethodNode(t, map[string]string{"sidechain_wealth": `10603007000`})
 
 	resp, err := NewHandler(proxy).GetSidechainWealth(context.Background(),
-		connect.NewRequest(&pb.GetSidechainWealthRequest{}))
+		&pb.GetSidechainWealthRequest{})
 	require.NoError(t, err)
-	assert.Equal(t, int64(10603007000), resp.Msg.Sats)
+	assert.Equal(t, int64(10603007000), resp.Sats)
 	assert.Equal(t, []string{"sidechain_wealth"}, *seen)
 }

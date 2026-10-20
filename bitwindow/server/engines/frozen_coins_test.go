@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,16 +34,14 @@ func TestSendHandsOverTheFrozenCoins(t *testing.T) {
 	client.EXPECT().
 		SetFrozenCoins(gomock.Any(), gomock.Any()).
 		Times(1).
-		DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
-			sent = req.Msg
+		DoAndReturn(func(_ context.Context, req *orchpb.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
+			sent = req
 			return nil, nil
 		})
 	client.EXPECT().
 		SendTransaction(gomock.Any(), gomock.Any()).
 		Times(1).
-		Return(&connect.Response[orchpb.SendTransactionResponse]{
-			Msg: &orchpb.SendTransactionResponse{Txid: "txid"},
-		}, nil)
+		Return(&orchpb.SendTransactionResponse{Txid: "txid"}, nil)
 
 	txid, err := engine.SendTransaction(t.Context(), &orchpb.SendTransactionRequest{
 		WalletId:    "wallet-1",
@@ -95,7 +92,7 @@ func TestKeepFrozenCoinsHandsTheSetOverAgain(t *testing.T) {
 	client.EXPECT().
 		SetFrozenCoins(gomock.Any(), gomock.Any()).
 		AnyTimes().
-		DoAndReturn(func(context.Context, *connect.Request[orchpb.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+		DoAndReturn(func(context.Context, *orchpb.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
 			pushes <- struct{}{}
 			return nil, nil
 		})
@@ -122,13 +119,11 @@ func TestDepositHandsOverTheFrozenCoins(t *testing.T) {
 	client.EXPECT().
 		SetFrozenCoins(gomock.Any(), gomock.Any()).
 		Times(1).
-		Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+		Return(&emptypb.Empty{}, nil)
 	client.EXPECT().
 		CreateDeposit(gomock.Any(), gomock.Any()).
 		Times(1).
-		Return(&connect.Response[orchpb.CreateDepositResponse]{
-			Msg: &orchpb.CreateDepositResponse{Txid: "deposit-txid"},
-		}, nil)
+		Return(&orchpb.CreateDepositResponse{Txid: "deposit-txid"}, nil)
 
 	txid, err := engine.CreateDeposit(t.Context(), &orchpb.CreateDepositRequest{WalletId: "wallet-1"})
 	require.NoError(t, err)
@@ -146,13 +141,11 @@ func TestBumpFeeHandsOverTheFrozenCoins(t *testing.T) {
 	client.EXPECT().
 		SetFrozenCoins(gomock.Any(), gomock.Any()).
 		Times(1).
-		Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+		Return(&emptypb.Empty{}, nil)
 	client.EXPECT().
 		BumpFee(gomock.Any(), gomock.Any()).
 		Times(1).
-		Return(&connect.Response[orchpb.BumpFeeResponse]{
-			Msg: &orchpb.BumpFeeResponse{NewTxid: "bumped"},
-		}, nil)
+		Return(&orchpb.BumpFeeResponse{NewTxid: "bumped"}, nil)
 
 	resp, err := engine.BumpFee(t.Context(), &orchpb.BumpFeeRequest{Txid: "old"})
 	require.NoError(t, err)

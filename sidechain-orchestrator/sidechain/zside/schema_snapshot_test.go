@@ -110,8 +110,6 @@ func TestCalledMethodsAreInTheSnapshot(t *testing.T) {
 			continue
 		}
 		request := reflect.New(method.Type.In(2).Elem())
-		msg := request.Elem().FieldByName("Msg")
-		msg.Set(reflect.New(msg.Type().Elem()))
 		out := value.Method(i).Call([]reflect.Value{reflect.ValueOf(ctx), request})
 		require.Nil(t, out[1].Interface(), method.Name)
 	}

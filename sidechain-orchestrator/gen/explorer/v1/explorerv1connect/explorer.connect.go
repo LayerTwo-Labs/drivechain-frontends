@@ -5,363 +5,387 @@
 package explorerv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ExplorerServiceName is the fully-qualified name of the ExplorerService service.
 	ExplorerServiceName = "explorer.v1.ExplorerService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ExplorerServiceGetOverviewProcedure is the fully-qualified name of the ExplorerService's
-	// GetOverview RPC.
-	ExplorerServiceGetOverviewProcedure = "/explorer.v1.ExplorerService/GetOverview"
-	// ExplorerServiceGetBlockProcedure is the fully-qualified name of the ExplorerService's GetBlock
+	// ExplorerServiceGetOverviewProcedure is the procedure name of the ExplorerService's GetOverview
 	// RPC.
+	ExplorerServiceGetOverviewProcedure = "/explorer.v1.ExplorerService/GetOverview"
+	// ExplorerServiceGetBlockProcedure is the procedure name of the ExplorerService's GetBlock RPC.
 	ExplorerServiceGetBlockProcedure = "/explorer.v1.ExplorerService/GetBlock"
-	// ExplorerServiceListBlocksProcedure is the fully-qualified name of the ExplorerService's
-	// ListBlocks RPC.
+	// ExplorerServiceListBlocksProcedure is the procedure name of the ExplorerService's ListBlocks RPC.
 	ExplorerServiceListBlocksProcedure = "/explorer.v1.ExplorerService/ListBlocks"
-	// ExplorerServiceGetTransactionProcedure is the fully-qualified name of the ExplorerService's
+	// ExplorerServiceGetTransactionProcedure is the procedure name of the ExplorerService's
 	// GetTransaction RPC.
 	ExplorerServiceGetTransactionProcedure = "/explorer.v1.ExplorerService/GetTransaction"
-	// ExplorerServiceGetSignedTransactionProcedure is the fully-qualified name of the ExplorerService's
+	// ExplorerServiceGetSignedTransactionProcedure is the procedure name of the ExplorerService's
 	// GetSignedTransaction RPC.
 	ExplorerServiceGetSignedTransactionProcedure = "/explorer.v1.ExplorerService/GetSignedTransaction"
-	// ExplorerServiceRebroadcastTransactionProcedure is the fully-qualified name of the
-	// ExplorerService's RebroadcastTransaction RPC.
+	// ExplorerServiceRebroadcastTransactionProcedure is the procedure name of the ExplorerService's
+	// RebroadcastTransaction RPC.
 	ExplorerServiceRebroadcastTransactionProcedure = "/explorer.v1.ExplorerService/RebroadcastTransaction"
-	// ExplorerServiceBroadcastTransactionProcedure is the fully-qualified name of the ExplorerService's
+	// ExplorerServiceBroadcastTransactionProcedure is the procedure name of the ExplorerService's
 	// BroadcastTransaction RPC.
 	ExplorerServiceBroadcastTransactionProcedure = "/explorer.v1.ExplorerService/BroadcastTransaction"
-	// ExplorerServiceGetAddressProcedure is the fully-qualified name of the ExplorerService's
-	// GetAddress RPC.
+	// ExplorerServiceGetAddressProcedure is the procedure name of the ExplorerService's GetAddress RPC.
 	ExplorerServiceGetAddressProcedure = "/explorer.v1.ExplorerService/GetAddress"
-	// ExplorerServiceGetWithdrawalsProcedure is the fully-qualified name of the ExplorerService's
+	// ExplorerServiceGetWithdrawalsProcedure is the procedure name of the ExplorerService's
 	// GetWithdrawals RPC.
 	ExplorerServiceGetWithdrawalsProcedure = "/explorer.v1.ExplorerService/GetWithdrawals"
 )
 
+var (
+	explorerServiceGetOverviewSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("GetOverview"),
+			Procedure:  ExplorerServiceGetOverviewProcedure,
+		}
+	})
+	explorerServiceGetBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("GetBlock"),
+			Procedure:  ExplorerServiceGetBlockProcedure,
+		}
+	})
+	explorerServiceListBlocksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("ListBlocks"),
+			Procedure:  ExplorerServiceListBlocksProcedure,
+		}
+	})
+	explorerServiceGetTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("GetTransaction"),
+			Procedure:  ExplorerServiceGetTransactionProcedure,
+		}
+	})
+	explorerServiceGetSignedTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("GetSignedTransaction"),
+			Procedure:  ExplorerServiceGetSignedTransactionProcedure,
+		}
+	})
+	explorerServiceRebroadcastTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("RebroadcastTransaction"),
+			Procedure:  ExplorerServiceRebroadcastTransactionProcedure,
+		}
+	})
+	explorerServiceBroadcastTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("BroadcastTransaction"),
+			Procedure:  ExplorerServiceBroadcastTransactionProcedure,
+		}
+	})
+	explorerServiceGetAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("GetAddress"),
+			Procedure:  ExplorerServiceGetAddressProcedure,
+		}
+	})
+	explorerServiceGetWithdrawalsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("GetWithdrawals"),
+			Procedure:  ExplorerServiceGetWithdrawalsProcedure,
+		}
+	})
+)
+
 // ExplorerServiceClient is a client for the explorer.v1.ExplorerService service.
 type ExplorerServiceClient interface {
-	// GetOverview answers the explorer landing page: the newest blocks, what
-	// happened last, and what the treasury holds.
-	GetOverview(context.Context, *connect.Request[v1.GetOverviewRequest]) (*connect.Response[v1.GetOverviewResponse], error)
-	// GetBlock reads one block and what it carried. The request names either a
-	// hash or a height.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// ListBlocks reads a page of block headers, newest first, so a reader can
-	// walk back to the genesis block.
-	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
-	// GetTransaction reads one transaction, with the coins on both sides.
-	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
-	// GetSignedTransaction exports a transaction with its stored signatures.
-	GetSignedTransaction(context.Context, *connect.Request[v1.GetSignedTransactionRequest]) (*connect.Response[v1.GetSignedTransactionResponse], error)
-	// RebroadcastTransaction sends a pending transaction to connected peers.
-	RebroadcastTransaction(context.Context, *connect.Request[v1.RebroadcastTransactionRequest]) (*connect.Response[v1.RebroadcastTransactionResponse], error)
-	// BroadcastTransaction submits a signed transaction to the sidechain node.
-	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
-	// GetAddress reads what an address holds and what it did. It needs an index,
-	// because no sidechain node keeps an address history.
-	GetAddress(context.Context, *connect.Request[v1.GetAddressRequest]) (*connect.Response[v1.GetAddressResponse], error)
-	// GetWithdrawals reads the bundle the chain proposes to the mainchain.
-	GetWithdrawals(context.Context, *connect.Request[v1.GetWithdrawalsRequest]) (*connect.Response[v1.GetWithdrawalsResponse], error)
+	GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	GetSignedTransaction(context.Context, *v1.GetSignedTransactionRequest) (*v1.GetSignedTransactionResponse, error)
+	RebroadcastTransaction(context.Context, *v1.RebroadcastTransactionRequest) (*v1.RebroadcastTransactionResponse, error)
+	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	GetAddress(context.Context, *v1.GetAddressRequest) (*v1.GetAddressResponse, error)
+	GetWithdrawals(context.Context, *v1.GetWithdrawalsRequest) (*v1.GetWithdrawalsResponse, error)
 }
 
-// NewExplorerServiceClient constructs a client for the explorer.v1.ExplorerService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewExplorerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ExplorerServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	explorerServiceMethods := v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods()
-	return &explorerServiceClient{
-		getOverview: connect.NewClient[v1.GetOverviewRequest, v1.GetOverviewResponse](
-			httpClient,
-			baseURL+ExplorerServiceGetOverviewProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("GetOverview")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
-			httpClient,
-			baseURL+ExplorerServiceGetBlockProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("GetBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		listBlocks: connect.NewClient[v1.ListBlocksRequest, v1.ListBlocksResponse](
-			httpClient,
-			baseURL+ExplorerServiceListBlocksProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("ListBlocks")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransaction: connect.NewClient[v1.GetTransactionRequest, v1.GetTransactionResponse](
-			httpClient,
-			baseURL+ExplorerServiceGetTransactionProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("GetTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		getSignedTransaction: connect.NewClient[v1.GetSignedTransactionRequest, v1.GetSignedTransactionResponse](
-			httpClient,
-			baseURL+ExplorerServiceGetSignedTransactionProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("GetSignedTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		rebroadcastTransaction: connect.NewClient[v1.RebroadcastTransactionRequest, v1.RebroadcastTransactionResponse](
-			httpClient,
-			baseURL+ExplorerServiceRebroadcastTransactionProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("RebroadcastTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		broadcastTransaction: connect.NewClient[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse](
-			httpClient,
-			baseURL+ExplorerServiceBroadcastTransactionProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("BroadcastTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		getAddress: connect.NewClient[v1.GetAddressRequest, v1.GetAddressResponse](
-			httpClient,
-			baseURL+ExplorerServiceGetAddressProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("GetAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		getWithdrawals: connect.NewClient[v1.GetWithdrawalsRequest, v1.GetWithdrawalsResponse](
-			httpClient,
-			baseURL+ExplorerServiceGetWithdrawalsProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("GetWithdrawals")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// explorerServiceClient implements ExplorerServiceClient.
-type explorerServiceClient struct {
-	getOverview            *connect.Client[v1.GetOverviewRequest, v1.GetOverviewResponse]
-	getBlock               *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
-	getTransaction         *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
-	getSignedTransaction   *connect.Client[v1.GetSignedTransactionRequest, v1.GetSignedTransactionResponse]
-	rebroadcastTransaction *connect.Client[v1.RebroadcastTransactionRequest, v1.RebroadcastTransactionResponse]
-	broadcastTransaction   *connect.Client[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse]
-	getAddress             *connect.Client[v1.GetAddressRequest, v1.GetAddressResponse]
-	getWithdrawals         *connect.Client[v1.GetWithdrawalsRequest, v1.GetWithdrawalsResponse]
-}
-
-// GetOverview calls explorer.v1.ExplorerService.GetOverview.
-func (c *explorerServiceClient) GetOverview(ctx context.Context, req *connect.Request[v1.GetOverviewRequest]) (*connect.Response[v1.GetOverviewResponse], error) {
-	return c.getOverview.CallUnary(ctx, req)
-}
-
-// GetBlock calls explorer.v1.ExplorerService.GetBlock.
-func (c *explorerServiceClient) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return c.getBlock.CallUnary(ctx, req)
-}
-
-// ListBlocks calls explorer.v1.ExplorerService.ListBlocks.
-func (c *explorerServiceClient) ListBlocks(ctx context.Context, req *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
-	return c.listBlocks.CallUnary(ctx, req)
-}
-
-// GetTransaction calls explorer.v1.ExplorerService.GetTransaction.
-func (c *explorerServiceClient) GetTransaction(ctx context.Context, req *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
-	return c.getTransaction.CallUnary(ctx, req)
-}
-
-// GetSignedTransaction calls explorer.v1.ExplorerService.GetSignedTransaction.
-func (c *explorerServiceClient) GetSignedTransaction(ctx context.Context, req *connect.Request[v1.GetSignedTransactionRequest]) (*connect.Response[v1.GetSignedTransactionResponse], error) {
-	return c.getSignedTransaction.CallUnary(ctx, req)
-}
-
-// RebroadcastTransaction calls explorer.v1.ExplorerService.RebroadcastTransaction.
-func (c *explorerServiceClient) RebroadcastTransaction(ctx context.Context, req *connect.Request[v1.RebroadcastTransactionRequest]) (*connect.Response[v1.RebroadcastTransactionResponse], error) {
-	return c.rebroadcastTransaction.CallUnary(ctx, req)
-}
-
-// BroadcastTransaction calls explorer.v1.ExplorerService.BroadcastTransaction.
-func (c *explorerServiceClient) BroadcastTransaction(ctx context.Context, req *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
-	return c.broadcastTransaction.CallUnary(ctx, req)
-}
-
-// GetAddress calls explorer.v1.ExplorerService.GetAddress.
-func (c *explorerServiceClient) GetAddress(ctx context.Context, req *connect.Request[v1.GetAddressRequest]) (*connect.Response[v1.GetAddressResponse], error) {
-	return c.getAddress.CallUnary(ctx, req)
-}
-
-// GetWithdrawals calls explorer.v1.ExplorerService.GetWithdrawals.
-func (c *explorerServiceClient) GetWithdrawals(ctx context.Context, req *connect.Request[v1.GetWithdrawalsRequest]) (*connect.Response[v1.GetWithdrawalsResponse], error) {
-	return c.getWithdrawals.CallUnary(ctx, req)
+// NewExplorerServiceClient constructs a client for the explorer.v1.ExplorerService service.
+// Multiple service clients may share a single connect.Client.
+func NewExplorerServiceClient(client *connect.Client) ExplorerServiceClient {
+	return &explorerServiceClient{client: client}
 }
 
 // ExplorerServiceHandler is an implementation of the explorer.v1.ExplorerService service.
 type ExplorerServiceHandler interface {
-	// GetOverview answers the explorer landing page: the newest blocks, what
-	// happened last, and what the treasury holds.
-	GetOverview(context.Context, *connect.Request[v1.GetOverviewRequest]) (*connect.Response[v1.GetOverviewResponse], error)
-	// GetBlock reads one block and what it carried. The request names either a
-	// hash or a height.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// ListBlocks reads a page of block headers, newest first, so a reader can
-	// walk back to the genesis block.
-	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
-	// GetTransaction reads one transaction, with the coins on both sides.
-	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
-	// GetSignedTransaction exports a transaction with its stored signatures.
-	GetSignedTransaction(context.Context, *connect.Request[v1.GetSignedTransactionRequest]) (*connect.Response[v1.GetSignedTransactionResponse], error)
-	// RebroadcastTransaction sends a pending transaction to connected peers.
-	RebroadcastTransaction(context.Context, *connect.Request[v1.RebroadcastTransactionRequest]) (*connect.Response[v1.RebroadcastTransactionResponse], error)
-	// BroadcastTransaction submits a signed transaction to the sidechain node.
-	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
-	// GetAddress reads what an address holds and what it did. It needs an index,
-	// because no sidechain node keeps an address history.
-	GetAddress(context.Context, *connect.Request[v1.GetAddressRequest]) (*connect.Response[v1.GetAddressResponse], error)
-	// GetWithdrawals reads the bundle the chain proposes to the mainchain.
-	GetWithdrawals(context.Context, *connect.Request[v1.GetWithdrawalsRequest]) (*connect.Response[v1.GetWithdrawalsResponse], error)
+	GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	GetSignedTransaction(context.Context, *v1.GetSignedTransactionRequest) (*v1.GetSignedTransactionResponse, error)
+	RebroadcastTransaction(context.Context, *v1.RebroadcastTransactionRequest) (*v1.RebroadcastTransactionResponse, error)
+	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	GetAddress(context.Context, *v1.GetAddressRequest) (*v1.GetAddressResponse, error)
+	GetWithdrawals(context.Context, *v1.GetWithdrawalsRequest) (*v1.GetWithdrawalsResponse, error)
 }
 
-// NewExplorerServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewExplorerServiceHandler(svc ExplorerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	explorerServiceMethods := v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods()
-	explorerServiceGetOverviewHandler := connect.NewUnaryHandler(
-		ExplorerServiceGetOverviewProcedure,
-		svc.GetOverview,
-		connect.WithSchema(explorerServiceMethods.ByName("GetOverview")),
-		connect.WithHandlerOptions(opts...),
+// RegisterExplorerServiceHandler registers svc as the explorer.v1.ExplorerService implementation on
+// server.
+func RegisterExplorerServiceHandler(server *connect.Server, svc ExplorerServiceHandler) {
+	adapter := explorerServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: explorerServiceGetOverviewSpec(), Handler: adapter.getOverview},
+		connect.Method{Spec: explorerServiceGetBlockSpec(), Handler: adapter.getBlock},
+		connect.Method{Spec: explorerServiceListBlocksSpec(), Handler: adapter.listBlocks},
+		connect.Method{Spec: explorerServiceGetTransactionSpec(), Handler: adapter.getTransaction},
+		connect.Method{Spec: explorerServiceGetSignedTransactionSpec(), Handler: adapter.getSignedTransaction},
+		connect.Method{Spec: explorerServiceRebroadcastTransactionSpec(), Handler: adapter.rebroadcastTransaction},
+		connect.Method{Spec: explorerServiceBroadcastTransactionSpec(), Handler: adapter.broadcastTransaction},
+		connect.Method{Spec: explorerServiceGetAddressSpec(), Handler: adapter.getAddress},
+		connect.Method{Spec: explorerServiceGetWithdrawalsSpec(), Handler: adapter.getWithdrawals},
 	)
-	explorerServiceGetBlockHandler := connect.NewUnaryHandler(
-		ExplorerServiceGetBlockProcedure,
-		svc.GetBlock,
-		connect.WithSchema(explorerServiceMethods.ByName("GetBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	explorerServiceListBlocksHandler := connect.NewUnaryHandler(
-		ExplorerServiceListBlocksProcedure,
-		svc.ListBlocks,
-		connect.WithSchema(explorerServiceMethods.ByName("ListBlocks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	explorerServiceGetTransactionHandler := connect.NewUnaryHandler(
-		ExplorerServiceGetTransactionProcedure,
-		svc.GetTransaction,
-		connect.WithSchema(explorerServiceMethods.ByName("GetTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	explorerServiceGetSignedTransactionHandler := connect.NewUnaryHandler(
-		ExplorerServiceGetSignedTransactionProcedure,
-		svc.GetSignedTransaction,
-		connect.WithSchema(explorerServiceMethods.ByName("GetSignedTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	explorerServiceRebroadcastTransactionHandler := connect.NewUnaryHandler(
-		ExplorerServiceRebroadcastTransactionProcedure,
-		svc.RebroadcastTransaction,
-		connect.WithSchema(explorerServiceMethods.ByName("RebroadcastTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	explorerServiceBroadcastTransactionHandler := connect.NewUnaryHandler(
-		ExplorerServiceBroadcastTransactionProcedure,
-		svc.BroadcastTransaction,
-		connect.WithSchema(explorerServiceMethods.ByName("BroadcastTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	explorerServiceGetAddressHandler := connect.NewUnaryHandler(
-		ExplorerServiceGetAddressProcedure,
-		svc.GetAddress,
-		connect.WithSchema(explorerServiceMethods.ByName("GetAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	explorerServiceGetWithdrawalsHandler := connect.NewUnaryHandler(
-		ExplorerServiceGetWithdrawalsProcedure,
-		svc.GetWithdrawals,
-		connect.WithSchema(explorerServiceMethods.ByName("GetWithdrawals")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/explorer.v1.ExplorerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ExplorerServiceGetOverviewProcedure:
-			explorerServiceGetOverviewHandler.ServeHTTP(w, r)
-		case ExplorerServiceGetBlockProcedure:
-			explorerServiceGetBlockHandler.ServeHTTP(w, r)
-		case ExplorerServiceListBlocksProcedure:
-			explorerServiceListBlocksHandler.ServeHTTP(w, r)
-		case ExplorerServiceGetTransactionProcedure:
-			explorerServiceGetTransactionHandler.ServeHTTP(w, r)
-		case ExplorerServiceGetSignedTransactionProcedure:
-			explorerServiceGetSignedTransactionHandler.ServeHTTP(w, r)
-		case ExplorerServiceRebroadcastTransactionProcedure:
-			explorerServiceRebroadcastTransactionHandler.ServeHTTP(w, r)
-		case ExplorerServiceBroadcastTransactionProcedure:
-			explorerServiceBroadcastTransactionHandler.ServeHTTP(w, r)
-		case ExplorerServiceGetAddressProcedure:
-			explorerServiceGetAddressHandler.ServeHTTP(w, r)
-		case ExplorerServiceGetWithdrawalsProcedure:
-			explorerServiceGetWithdrawalsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedExplorerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedExplorerServiceHandler struct{}
 
-func (UnimplementedExplorerServiceHandler) GetOverview(context.Context, *connect.Request[v1.GetOverviewRequest]) (*connect.Response[v1.GetOverviewResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetOverview is not implemented"))
+func (UnimplementedExplorerServiceHandler) GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.GetOverview is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetBlock is not implemented"))
+func (UnimplementedExplorerServiceHandler) GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.GetBlock is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.ListBlocks is not implemented"))
+func (UnimplementedExplorerServiceHandler) ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.ListBlocks is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetTransaction is not implemented"))
+func (UnimplementedExplorerServiceHandler) GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.GetTransaction is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) GetSignedTransaction(context.Context, *connect.Request[v1.GetSignedTransactionRequest]) (*connect.Response[v1.GetSignedTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetSignedTransaction is not implemented"))
+func (UnimplementedExplorerServiceHandler) GetSignedTransaction(context.Context, *v1.GetSignedTransactionRequest) (*v1.GetSignedTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.GetSignedTransaction is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) RebroadcastTransaction(context.Context, *connect.Request[v1.RebroadcastTransactionRequest]) (*connect.Response[v1.RebroadcastTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.RebroadcastTransaction is not implemented"))
+func (UnimplementedExplorerServiceHandler) RebroadcastTransaction(context.Context, *v1.RebroadcastTransactionRequest) (*v1.RebroadcastTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.RebroadcastTransaction is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.BroadcastTransaction is not implemented"))
+func (UnimplementedExplorerServiceHandler) BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.BroadcastTransaction is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) GetAddress(context.Context, *connect.Request[v1.GetAddressRequest]) (*connect.Response[v1.GetAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetAddress is not implemented"))
+func (UnimplementedExplorerServiceHandler) GetAddress(context.Context, *v1.GetAddressRequest) (*v1.GetAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.GetAddress is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) GetWithdrawals(context.Context, *connect.Request[v1.GetWithdrawalsRequest]) (*connect.Response[v1.GetWithdrawalsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetWithdrawals is not implemented"))
+func (UnimplementedExplorerServiceHandler) GetWithdrawals(context.Context, *v1.GetWithdrawalsRequest) (*v1.GetWithdrawalsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.GetWithdrawals is not implemented")
+}
+
+type explorerServiceClient struct {
+	client *connect.Client
+}
+
+func (c *explorerServiceClient) GetOverview(ctx context.Context, req *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error) {
+	var res v1.GetOverviewResponse
+	if err := c.client.CallUnary(ctx, explorerServiceGetOverviewSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) GetBlock(ctx context.Context, req *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	var res v1.GetBlockResponse
+	if err := c.client.CallUnary(ctx, explorerServiceGetBlockSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) ListBlocks(ctx context.Context, req *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error) {
+	var res v1.ListBlocksResponse
+	if err := c.client.CallUnary(ctx, explorerServiceListBlocksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) GetTransaction(ctx context.Context, req *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error) {
+	var res v1.GetTransactionResponse
+	if err := c.client.CallUnary(ctx, explorerServiceGetTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) GetSignedTransaction(ctx context.Context, req *v1.GetSignedTransactionRequest) (*v1.GetSignedTransactionResponse, error) {
+	var res v1.GetSignedTransactionResponse
+	if err := c.client.CallUnary(ctx, explorerServiceGetSignedTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) RebroadcastTransaction(ctx context.Context, req *v1.RebroadcastTransactionRequest) (*v1.RebroadcastTransactionResponse, error) {
+	var res v1.RebroadcastTransactionResponse
+	if err := c.client.CallUnary(ctx, explorerServiceRebroadcastTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) BroadcastTransaction(ctx context.Context, req *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error) {
+	var res v1.BroadcastTransactionResponse
+	if err := c.client.CallUnary(ctx, explorerServiceBroadcastTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) GetAddress(ctx context.Context, req *v1.GetAddressRequest) (*v1.GetAddressResponse, error) {
+	var res v1.GetAddressResponse
+	if err := c.client.CallUnary(ctx, explorerServiceGetAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) GetWithdrawals(ctx context.Context, req *v1.GetWithdrawalsRequest) (*v1.GetWithdrawalsResponse, error) {
+	var res v1.GetWithdrawalsResponse
+	if err := c.client.CallUnary(ctx, explorerServiceGetWithdrawalsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type explorerServiceHandler struct{ svc ExplorerServiceHandler }
+
+func (h explorerServiceHandler) getOverview(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetOverviewRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetOverview(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) getBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlock(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) listBlocks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBlocksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBlocks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) getTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) getSignedTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSignedTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSignedTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) rebroadcastTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RebroadcastTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RebroadcastTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) broadcastTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.BroadcastTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.BroadcastTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) getAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) getWithdrawals(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWithdrawalsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWithdrawals(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

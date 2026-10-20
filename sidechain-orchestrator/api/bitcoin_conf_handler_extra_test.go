@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,14 +42,14 @@ rpcport=18443
 	require.NotNil(t, orch.BitcoinConf, "BitcoinConfManager must be initialised; without it the handler returns FailedPrecondition")
 
 	h := NewBitcoinConfHandler(orch)
-	resp, err := h.GetBitcoinConfig(context.Background(), connect.NewRequest(&pb.GetBitcoinConfigRequest{}))
+	resp, err := h.GetBitcoinConfig(context.Background(), &pb.GetBitcoinConfigRequest{})
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg)
+	require.NotNil(t, resp)
 
-	assert.Equal(t, "trusty", resp.Msg.RpcUser, "rpc_user must propagate from bitwindow-bitcoin.conf — bitwindowd's btc-buf proxy needs it")
-	assert.Equal(t, "hunter2", resp.Msg.RpcPassword, "rpc_password must propagate")
-	assert.Equal(t, "signet", resp.Msg.Network)
-	assert.NotEmpty(t, resp.Msg.ConfigContent, "config_content must be non-empty so the conf editor UI has something to render")
+	assert.Equal(t, "trusty", resp.RpcUser, "rpc_user must propagate from bitwindow-bitcoin.conf — bitwindowd's btc-buf proxy needs it")
+	assert.Equal(t, "hunter2", resp.RpcPassword, "rpc_password must propagate")
+	assert.Equal(t, "signet", resp.Network)
+	assert.NotEmpty(t, resp.ConfigContent, "config_content must be non-empty so the conf editor UI has something to render")
 }
 
 // TestSetBitcoinConfigNetwork_RejectsEmpty closes the trivial-but-easy-to-
@@ -60,7 +60,7 @@ func TestSetBitcoinConfigNetwork_RejectsEmpty(t *testing.T) {
 	require.NotNil(t, orch.BitcoinConf)
 	h := NewBitcoinConfHandler(orch)
 
-	_, err := h.SetBitcoinConfigNetwork(context.Background(), connect.NewRequest(&pb.SetBitcoinConfigNetworkRequest{Network: ""}))
+	_, err := h.SetBitcoinConfigNetwork(context.Background(), &pb.SetBitcoinConfigNetworkRequest{Network: ""})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "empty network must be rejected as InvalidArgument; %v", err)
 }
@@ -75,7 +75,7 @@ func TestSetBitcoinConfigNetwork_NoConfManager(t *testing.T) {
 	orch.BitcoinConf = nil
 	h := NewBitcoinConfHandler(orch)
 
-	_, err := h.SetBitcoinConfigNetwork(context.Background(), connect.NewRequest(&pb.SetBitcoinConfigNetworkRequest{Network: "regtest"}))
+	_, err := h.SetBitcoinConfigNetwork(context.Background(), &pb.SetBitcoinConfigNetworkRequest{Network: "regtest"})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
@@ -102,10 +102,10 @@ func TestGetBitcoinConfigReportsCookieCredentials(t *testing.T) {
 	require.NoError(t, os.WriteFile(cookie, []byte("__cookie__:s3cret"), 0o600))
 	t.Cleanup(func() { _ = os.Remove(cookie) })
 
-	resp, err := NewBitcoinConfHandler(orch).GetBitcoinConfig(context.Background(), connect.NewRequest(&pb.GetBitcoinConfigRequest{}))
+	resp, err := NewBitcoinConfHandler(orch).GetBitcoinConfig(context.Background(), &pb.GetBitcoinConfigRequest{})
 	require.NoError(t, err)
-	assert.Equal(t, "__cookie__", resp.Msg.RpcUser)
-	assert.Equal(t, "s3cret", resp.Msg.RpcPassword)
+	assert.Equal(t, "__cookie__", resp.RpcUser)
+	assert.Equal(t, "s3cret", resp.RpcPassword)
 }
 
 // The pick clears the retired eCash chain and moves what the next boot runs.
@@ -135,10 +135,10 @@ func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
 	require.Equal(t, "drynet4", orch.RunningECashID(orch.Catalog))
 
 	h := NewBitcoinConfHandler(orch)
-	_, err := h.SetBitcoinConfigNetwork(context.Background(), connect.NewRequest(&pb.SetBitcoinConfigNetworkRequest{
+	_, err := h.SetBitcoinConfigNetwork(context.Background(), &pb.SetBitcoinConfigNetworkRequest{
 		Network: "alphanet",
 		DataDir: filepath.Join(confPath, "not-a-directory"),
-	}))
+	})
 	require.Error(t, err, "an unwritable datadir must be refused")
 
 	assert.Equal(t, "drynet4", orch.RunningECashID(orch.Catalog),

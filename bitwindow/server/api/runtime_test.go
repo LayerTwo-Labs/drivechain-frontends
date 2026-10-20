@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
@@ -272,7 +272,7 @@ func TestRecycle(t *testing.T) {
 func TestZmqAddress(t *testing.T) {
 	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 	core.EXPECT().GetZmqNotifications(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&corepb.GetZmqNotificationsResponse{
+		Return(connectv1.NewResponse(&corepb.GetZmqNotificationsResponse{
 			Notifications: []*corepb.GetZmqNotificationsResponse_Notification{
 				{Type: "pubrawtx", Address: "tcp://127.0.0.1:29000"},
 			},

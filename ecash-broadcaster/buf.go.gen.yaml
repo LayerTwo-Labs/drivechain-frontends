@@ -8,13 +8,13 @@ managed:
 
 plugins:
   # Base message/enum types for Go.
-  - remote: buf.build/protocolbuffers/go
+  - remote: buf.build/protocolbuffers/go:v1.36.11
     out: gen
     opt:
       - paths=source_relative
 
   # Client + server stubs for connectrpc.com/connect.
-  - remote: buf.build/connectrpc/go
+  - remote: buf.build/connectrpc/go:v2.0.1
     out: gen
     opt:
       - paths=source_relative

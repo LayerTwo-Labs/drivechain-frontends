@@ -21,7 +21,6 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
@@ -767,7 +766,7 @@ func relayShutdownToDrivechaind(addr, bitwindowDir string, log zerolog.Logger) {
 	defer cancel()
 	// only_if_last: we cannot see a sidechain frontend attached straight to
 	// drivechaind, so let its own lease decide.
-	if _, err := client.Shutdown(ctx, connect.NewRequest(&orchpb.ShutdownRequest{OnlyIfLast: true})); err != nil {
+	if _, err := client.Shutdown(ctx, &orchpb.ShutdownRequest{OnlyIfLast: true}); err != nil {
 		log.Warn().Err(err).Msg("relay Shutdown to drivechaind on exit (continuing)")
 		return
 	}
@@ -800,7 +799,7 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 	defer cancel()
 	// A daemon that takes this exits at once, so it often drops the answer.
 	// The freed port is the signal that counts, not the reply.
-	if _, err := client.Shutdown(drainCtx, connect.NewRequest(&orchpb.ShutdownRequest{KeepL1: true})); err != nil {
+	if _, err := client.Shutdown(drainCtx, &orchpb.ShutdownRequest{KeepL1: true}); err != nil {
 		log.Info().Err(err).Msg("asked the old drivechaind to exit, waiting for the port")
 	}
 
@@ -829,14 +828,14 @@ func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, 
 	confClient := dial.BitcoinConf(addr, bitwindowDir)
 
 	for i := 0; i < 30; i++ {
-		resp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+		resp, err := confClient.GetBitcoinConfig(ctx, &orchpb.GetBitcoinConfigRequest{})
 		if err == nil {
-			network := resp.Msg.GetNetwork()
+			network := resp.GetNetwork()
 			if network == "" {
 				return "", "", errors.New("drivechaind returned empty network")
 			}
 			log.Info().Str("network", network).Int("attempts", i+1).Msg("aligned to drivechaind network")
-			return network, resp.Msg.GetEcashNetworkId(), nil
+			return network, resp.GetEcashNetworkId(), nil
 		}
 		if i == 29 {
 			return "", "", fmt.Errorf("drivechaind did not become ready: %w", err)

@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -71,11 +70,11 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "SlotStatus",
 			result: `{"is_testing_mode":true,"blocks_per_period":10,"current_period":3,"current_period_name":"P3"}`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.SlotStatus(ctx, connect.NewRequest(&pb.SlotStatusRequest{}))
+				resp, err := h.SlotStatus(ctx, &pb.SlotStatusRequest{})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.StatusJson, nil
+				return resp.StatusJson, nil
 			},
 			wantMethod: "decision_status",
 			wantParams: ``,
@@ -85,11 +84,11 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "SlotList",
 			result: `[]`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.SlotList(ctx, connect.NewRequest(&pb.SlotListRequest{Period: &period, Status: &status}))
+				resp, err := h.SlotList(ctx, &pb.SlotListRequest{Period: &period, Status: &status})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.SlotsJson, nil
+				return resp.SlotsJson, nil
 			},
 			wantMethod: "decision_list",
 			wantParams: `[{"period":3,"status":"Claimed"}]`,
@@ -99,11 +98,11 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "SlotGet",
 			result: `null`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.SlotGet(ctx, connect.NewRequest(&pb.SlotGetRequest{SlotId: "002a0001"}))
+				resp, err := h.SlotGet(ctx, &pb.SlotGetRequest{SlotId: "002a0001"})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.SlotJson, nil
+				return resp.SlotJson, nil
 			},
 			wantMethod: "decision_get",
 			wantParams: `["002a0001"]`,
@@ -113,18 +112,18 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "SlotClaim",
 			result: `{"txid":"claimtx","decision_ids":["002a0001"],"listing_fee_paid_sats":100}`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.SlotClaim(ctx, connect.NewRequest(&pb.SlotClaimRequest{
+				resp, err := h.SlotClaim(ctx, &pb.SlotClaimRequest{
 					FeeSats:     1000,
 					PeriodIndex: 3,
 					Question:    "Inflation?",
 					IsScaled:    &isScaled,
 					Min:         &minValue,
 					Max:         &maxValue,
-				}))
+				})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.Txid, nil
+				return resp.Txid, nil
 			},
 			wantMethod: "decision_claim",
 			wantParams: `[{"decision_type":"scaled","decisions":[{"period_index":3,"header":"Inflation?"}],"min":0,"max":100,"tx_fee_sats":1000}]`,
@@ -134,14 +133,14 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "SlotClaimCategory",
 			result: `{"txid":"cattx","decision_ids":[],"listing_fee_paid_sats":0}`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.SlotClaimCategory(ctx, connect.NewRequest(&pb.SlotClaimCategoryRequest{
+				resp, err := h.SlotClaimCategory(ctx, &pb.SlotClaimCategoryRequest{
 					SlotsJson: `[{"period_index":3,"header":"Winner?","option_labels":["A","B"]}]`,
 					FeeSats:   1000,
-				}))
+				})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.Txid, nil
+				return resp.Txid, nil
 			},
 			wantMethod: "decision_claim",
 			wantParams: `[{"decision_type":"category","decisions":[{"period_index":3,"header":"Winner?","option_labels":["A","B"]}],"tx_fee_sats":1000}]`,
@@ -151,14 +150,14 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "VoteSubmit",
 			result: `"votetx"`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.VoteSubmit(ctx, connect.NewRequest(&pb.VoteSubmitRequest{
+				resp, err := h.VoteSubmit(ctx, &pb.VoteSubmitRequest{
 					VotesJson: `[{"decision_id":"002a0001","vote_value":1.0}]`,
 					FeeSats:   1000,
-				}))
+				})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.Txid, nil
+				return resp.Txid, nil
 			},
 			wantMethod: "vote_submit",
 			wantParams: `[[{"decision_id":"002a0001","vote_value":1.0}],1000]`,
@@ -168,11 +167,11 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "VoteList",
 			result: `[]`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.VoteList(ctx, connect.NewRequest(&pb.VoteListRequest{Voter: &voter, PeriodId: &period}))
+				resp, err := h.VoteList(ctx, &pb.VoteListRequest{Voter: &voter, PeriodId: &period})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.VotesJson, nil
+				return resp.VotesJson, nil
 			},
 			wantMethod: "vote_list",
 			wantParams: `[{"voter":"tNvoter","decision_id":null,"period_id":3}]`,
@@ -182,11 +181,11 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "MyUtxos",
 			result: `[]`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.MyUtxos(ctx, connect.NewRequest(&pb.MyUtxosRequest{}))
+				resp, err := h.MyUtxos(ctx, &pb.MyUtxosRequest{})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.UtxosJson, nil
+				return resp.UtxosJson, nil
 			},
 			wantMethod: "get_wallet_utxos",
 			wantParams: ``,
@@ -196,15 +195,15 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 			name:   "VotecoinTransfer",
 			result: `"vctx"`,
 			call: func(ctx context.Context, h *Handler) (string, error) {
-				resp, err := h.VotecoinTransfer(ctx, connect.NewRequest(&pb.VotecoinTransferRequest{
+				resp, err := h.VotecoinTransfer(ctx, &pb.VotecoinTransferRequest{
 					Dest:    "tNdest",
 					Amount:  5, //nolint:staticcheck // old clients send Amount
 					FeeSats: 1000,
-				}))
+				})
 				if err != nil {
 					return "", err
 				}
-				return resp.Msg.Txid, nil
+				return resp.Txid, nil
 			},
 			wantMethod: "transfer_votecoin",
 			wantParams: `["tNdest",5,1000]`,
@@ -237,25 +236,25 @@ func TestVotingHandlersCallNodeMethods(t *testing.T) {
 func TestVotingHandlersMapNullToEmpty(t *testing.T) {
 	calls := map[string]func(context.Context, *Handler) (string, error){
 		"SlotGet": func(ctx context.Context, h *Handler) (string, error) {
-			resp, err := h.SlotGet(ctx, connect.NewRequest(&pb.SlotGetRequest{SlotId: "004008"}))
+			resp, err := h.SlotGet(ctx, &pb.SlotGetRequest{SlotId: "004008"})
 			if err != nil {
 				return "", err
 			}
-			return resp.Msg.SlotJson, nil
+			return resp.SlotJson, nil
 		},
 		"VoteVoter": func(ctx context.Context, h *Handler) (string, error) {
-			resp, err := h.VoteVoter(ctx, connect.NewRequest(&pb.VoteVoterRequest{Address: "tNvoter"}))
+			resp, err := h.VoteVoter(ctx, &pb.VoteVoterRequest{Address: "tNvoter"})
 			if err != nil {
 				return "", err
 			}
-			return resp.Msg.VoterJson, nil
+			return resp.VoterJson, nil
 		},
 		"VotePeriod": func(ctx context.Context, h *Handler) (string, error) {
-			resp, err := h.VotePeriod(ctx, connect.NewRequest(&pb.VotePeriodRequest{}))
+			resp, err := h.VotePeriod(ctx, &pb.VotePeriodRequest{})
 			if err != nil {
 				return "", err
 			}
-			return resp.Msg.PeriodJson, nil
+			return resp.PeriodJson, nil
 		},
 	}
 	for name, call := range calls {

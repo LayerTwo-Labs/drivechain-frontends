@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 )
@@ -14,22 +14,22 @@ const blockPageLimit = 20
 
 // ListBlocks reads a page of block headers, newest first.
 func (h *ExplorerHandler) ListBlocks(
-	ctx context.Context, req *connect.Request[pb.ListBlocksRequest],
-) (*connect.Response[pb.ListBlocksResponse], error) {
-	src, err := h.sourceOf(req.Msg.GetChain())
+	ctx context.Context, req *pb.ListBlocksRequest,
+) (*pb.ListBlocksResponse, error) {
+	src, err := h.sourceOf(req.GetChain())
 	if err != nil {
 		return nil, err
 	}
-	limit := int(req.Msg.GetLimit())
+	limit := int(req.GetLimit())
 	if limit <= 0 || limit > blockPageLimit {
 		limit = blockPageLimit
 	}
 
 	out := &pb.ListBlocksResponse{}
 	if src.index != nil {
-		rows, err := src.index.BlocksBefore(ctx, req.Msg.GetBeforeHeight())
+		rows, err := src.index.BlocksBefore(ctx, req.GetBeforeHeight())
 		if err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		}
 		out.Blocks = blockList(rows)
 		if len(out.Blocks) > limit {
@@ -37,7 +37,7 @@ func (h *ExplorerHandler) ListBlocks(
 		}
 		fillIndexBlockDeposits(ctx, src, out.Blocks)
 	} else {
-		out.Blocks, err = nodeBlocksBefore(ctx, src, req.Msg.GetBeforeHeight(), limit)
+		out.Blocks, err = nodeBlocksBefore(ctx, src, req.GetBeforeHeight(), limit)
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,7 @@ func (h *ExplorerHandler) ListBlocks(
 		out.Blocks = out.Blocks[:limit]
 	}
 	h.resolveMainchain(ctx, out.GetBlocks()...)
-	return connect.NewResponse(out), nil
+	return out, nil
 }
 
 // nodeBlocksBefore walks the chain down from one height. A node reads a block
@@ -56,7 +56,7 @@ func nodeBlocksBefore(
 ) ([]*pb.Block, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	// Core reports the tip height, a sidechain node the block count.
 	tip := count - 1

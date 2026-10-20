@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
@@ -81,10 +81,10 @@ type BmmBackend interface {
 	// Mined reports whether a block carries txid, one that MempoolTxids named.
 	// It reads a live source.
 	Mined(ctx context.Context, txid string) (bool, error)
-	CreateBid(context.Context, *connect.Request[bmmpb.CreateBidRequest]) (*connect.Response[bmmpb.CreateBidResponse], error)
-	ConnectBid(context.Context, *connect.Request[bmmpb.ConnectBidRequest]) (*connect.Response[bmmpb.ConnectBidResponse], error)
-	ListBids(context.Context, *connect.Request[bmmpb.ListBidsRequest]) (*connect.Response[bmmpb.ListBidsResponse], error)
-	PrepareBMM(context.Context, *connect.Request[bmmpb.PrepareBMMRequest]) (*connect.Response[bmmpb.PrepareBMMResponse], error)
+	CreateBid(context.Context, *bmmpb.CreateBidRequest) (*bmmpb.CreateBidResponse, error)
+	ConnectBid(context.Context, *bmmpb.ConnectBidRequest) (*bmmpb.ConnectBidResponse, error)
+	ListBids(context.Context, *bmmpb.ListBidsRequest) (*bmmpb.ListBidsResponse, error)
+	PrepareBMM(context.Context, *bmmpb.PrepareBMMRequest) (*bmmpb.PrepareBMMResponse, error)
 	// Commitment reports the sidechain block hash a mainchain block committed
 	// to for this sidechain, empty when it carried none.
 	Commitment(ctx context.Context, sidechain pb.BinaryType, mainBlockHash string) (string, error)
@@ -260,7 +260,7 @@ func (e *BmmEngine) prepareCoins(ctx context.Context) bool {
 	if len(targets) == 0 {
 		return false
 	}
-	resp, err := e.backend.PrepareBMM(ctx, connect.NewRequest(&bmmpb.PrepareBMMRequest{Targets: targets}))
+	resp, err := e.backend.PrepareBMM(ctx, &bmmpb.PrepareBMMRequest{Targets: targets})
 	if err != nil {
 		// A wallet that cannot make the coins still bids: every round that finds
 		// no coin of its own says so on the round itself.
@@ -268,7 +268,7 @@ func (e *BmmEngine) prepareCoins(ctx context.Context) bool {
 		return false
 	}
 	ready := true
-	for _, w := range resp.Msg.Wallets {
+	for _, w := range resp.Wallets {
 		if w.UsableCoins < w.WantedCoins {
 			// A split the mempool drops leaves the wallet short again, so the tip
 			// counts once more.
@@ -898,18 +898,18 @@ func (e *BmmEngine) retryTip(sidechain pb.BinaryType, tip string) {
 // snapshotOthers records the competing bids. Once the round is decided these
 // are unrecoverable, so this is the only chance to see them.
 func (e *BmmEngine) snapshotOthers(ctx context.Context, sidechain pb.BinaryType, tip string) []bmmstate.Bid {
-	resp, err := e.backend.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{
+	resp, err := e.backend.ListBids(ctx, &bmmpb.ListBidsRequest{
 		Sidechain:    sidechain,
 		PrevMainHash: tip,
-	}))
+	})
 	if err != nil {
 		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read competing bids")
 		return nil
 	}
 
 	ours := e.ourTxids(sidechain)
-	out := make([]bmmstate.Bid, 0, len(resp.Msg.Bids))
-	for _, b := range resp.Msg.Bids {
+	out := make([]bmmstate.Bid, 0, len(resp.Bids))
+	for _, b := range resp.Bids {
 		if ours[b.Txid] {
 			continue
 		}
@@ -949,7 +949,7 @@ func (e *BmmEngine) placeBid(
 	if e.networkMoved() {
 		return errNetworkMoved
 	}
-	resp, err := e.backend.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
+	resp, err := e.backend.CreateBid(ctx, &bmmpb.CreateBidRequest{
 		Sidechain:          sidechain,
 		WalletId:           walletID,
 		BidSats:            bidSats,
@@ -958,7 +958,7 @@ func (e *BmmEngine) placeBid(
 		ReplaceTxid:        replaceTxid,
 		ExpectPrevMainHash: round.PrevMainHash,
 		CapToBlockWorth:    capToBlockWorth,
-	}))
+	})
 
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -976,29 +976,29 @@ func (e *BmmEngine) placeBid(
 	if replaceTxid != "" {
 		for i := range round.OurBids {
 			if round.OurBids[i].Txid == replaceTxid {
-				round.OurBids[i].ReplacedByTxid = resp.Msg.BmmTxid
+				round.OurBids[i].ReplacedByTxid = resp.BmmTxid
 				round.OurBids[i].State = BidReplaced
 			}
 		}
 	}
 
-	round.BlockWorthSats = resp.Msg.FeesSats
-	if resp.Msg.BidSats > 0 {
-		bidSats = resp.Msg.BidSats
+	round.BlockWorthSats = resp.FeesSats
+	if resp.BidSats > 0 {
+		bidSats = resp.BidSats
 	}
 	round.OurBids = append(round.OurBids, bmmstate.Bid{
-		Txid:         resp.Msg.BmmTxid,
-		CriticalHash: resp.Msg.CriticalHash,
-		PrevMainHash: resp.Msg.PrevMainHash,
+		Txid:         resp.BmmTxid,
+		CriticalHash: resp.CriticalHash,
+		PrevMainHash: resp.PrevMainHash,
 		BidSats:      bidSats,
 		IsOurs:       true,
 		State:        BidLive,
-		BlockJSON:    resp.Msg.BlockJson,
+		BlockJSON:    resp.BlockJson,
 		WalletID:     walletID,
 	})
 
-	e.log.Info().Stringer("sidechain", sidechain).Str("txid", resp.Msg.BmmTxid).
-		Int64("bid_sats", bidSats).Int64("block_worth_sats", resp.Msg.FeesSats).Msg("bmm bid broadcast")
+	e.log.Info().Stringer("sidechain", sidechain).Str("txid", resp.BmmTxid).
+		Int64("bid_sats", bidSats).Int64("block_worth_sats", resp.FeesSats).Msg("bmm bid broadcast")
 	return nil
 }
 
@@ -1429,12 +1429,12 @@ func (e *BmmEngine) connectWon(
 	if live == nil {
 		return stepRetry
 	}
-	resp, err := e.backend.ConnectBid(ctx, connect.NewRequest(&bmmpb.ConnectBidRequest{
+	resp, err := e.backend.ConnectBid(ctx, &bmmpb.ConnectBidRequest{
 		Sidechain:     sidechain,
 		CriticalHash:  live.CriticalHash,
 		BlockJson:     live.BlockJSON,
 		MainBlockHash: round.IncludedInBlock,
-	}))
+	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeInvalidArgument {
 			e.log.Warn().Err(err).Stringer("sidechain", sidechain).
@@ -1445,14 +1445,14 @@ func (e *BmmEngine) connectWon(
 			Str("critical_hash", live.CriticalHash).Msg("connect won block")
 		return stepRetry
 	}
-	if !resp.Msg.Connected && !resp.Msg.Held {
-		if resp.Msg.MainBlockHash == "" {
+	if !resp.Connected && !resp.Held {
+		if resp.MainBlockHash == "" {
 			e.log.Debug().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
 				Msg("the sidechain has not seen the bid included yet")
 			return stepRetry
 		}
 		e.log.Warn().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
-			Str("main_block", resp.Msg.MainBlockHash).Msg("the sidechain did not connect the won block")
+			Str("main_block", resp.MainBlockHash).Msg("the sidechain did not connect the won block")
 		return stepRetire
 	}
 	live.State = BidConnected
@@ -1460,8 +1460,8 @@ func (e *BmmEngine) connectWon(
 	round.WinnerCriticalHash = live.CriticalHash
 	round.WinnerTxid = live.Txid
 	round.WinnerBidSats = live.BidSats
-	if resp.Msg.MainBlockHash != "" {
-		round.IncludedInBlock = resp.Msg.MainBlockHash
+	if resp.MainBlockHash != "" {
+		round.IncludedInBlock = resp.MainBlockHash
 	}
 	return stepDone
 }

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -93,15 +93,15 @@ func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+		Return(&orchpb.ListWalletsResponse{
 			Wallets: []*orchpb.WalletMetadata{{Id: "test-enforcer", IsStarter: true}},
-		}), nil).
+		}, nil).
 		AnyTimes()
 	orch.EXPECT().
 		GetWalletSeed(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&orchpb.GetWalletSeedResponse{
+		Return(&orchpb.GetWalletSeedResponse{
 			SeedHex: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-		}), nil).
+		}, nil).
 		AnyTimes()
 
 	return &BitDriveEngine{
@@ -114,15 +114,15 @@ func TestEncrypt_ReadsTheSeedOneTime(t *testing.T) {
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+		Return(&orchpb.ListWalletsResponse{
 			Wallets: []*orchpb.WalletMetadata{{Id: "test-enforcer", IsStarter: true}},
-		}), nil).
+		}, nil).
 		Times(1)
 	orch.EXPECT().
 		GetWalletSeed(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&orchpb.GetWalletSeedResponse{
+		Return(&orchpb.GetWalletSeedResponse{
 			SeedHex: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-		}), nil).
+		}, nil).
 		Times(1)
 	engine := &BitDriveEngine{
 		walletEngine: NewWalletEngine(nil, orch, &chaincfg.SigNetParams, nil),
@@ -456,19 +456,19 @@ func newStoreTestEngine(t *testing.T) (*BitDriveEngine, *[]string) {
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
 		SendTransaction(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
-			assert.Equal(t, "a", req.Msg.WalletId)
-			assert.Equal(t, int64(7), req.Msg.FeeRateSatPerVbyte)
-			data, err := hex.DecodeString(req.Msg.OpReturnHex)
+		DoAndReturn(func(_ context.Context, req *orchpb.SendTransactionRequest) (*orchpb.SendTransactionResponse, error) {
+			assert.Equal(t, "a", req.WalletId)
+			assert.Equal(t, int64(7), req.FeeRateSatPerVbyte)
+			data, err := hex.DecodeString(req.OpReturnHex)
 			require.NoError(t, err)
 			sent = append(sent, string(data))
-			return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: "txid"}), nil
+			return &orchpb.SendTransactionResponse{Txid: "txid"}, nil
 		}).
 		AnyTimes()
 	orch.EXPECT().
 		SetFrozenCoins(gomock.Any(), gomock.Any()).
 		AnyTimes().
-		Return(connect.NewResponse(&emptypb.Empty{}), nil)
+		Return(&emptypb.Empty{}, nil)
 
 	noFrozenCoins := func(context.Context) ([]string, error) { return nil, nil }
 	return &BitDriveEngine{

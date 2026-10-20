@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -79,25 +78,25 @@ func TestWalletHandlerPSBTRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
 
-	created, err := h.CreatePsbt(ctx, connect.NewRequest(&pb.CreatePsbtRequest{
+	created, err := h.CreatePsbt(ctx, &pb.CreatePsbtRequest{
 		WalletId:           w.ID,
 		Destinations:       map[string]int64{dest: 50_000},
 		FeeRateSatPerVbyte: 2,
-	}))
+	})
 	require.NoError(t, err)
-	require.NotEmpty(t, created.Msg.PsbtBase64)
+	require.NotEmpty(t, created.PsbtBase64)
 
-	signed, err := h.SignPsbt(ctx, connect.NewRequest(&pb.SignPsbtRequest{
+	signed, err := h.SignPsbt(ctx, &pb.SignPsbtRequest{
 		WalletId:   w.ID,
-		PsbtBase64: created.Msg.PsbtBase64,
-	}))
+		PsbtBase64: created.PsbtBase64,
+	})
 	require.NoError(t, err)
 
-	final, err := h.FinalizePsbt(ctx, connect.NewRequest(&pb.FinalizePsbtRequest{
-		PsbtBase64: signed.Msg.PsbtBase64,
-	}))
+	final, err := h.FinalizePsbt(ctx, &pb.FinalizePsbtRequest{
+		PsbtBase64: signed.PsbtBase64,
+	})
 	require.NoError(t, err)
-	require.NotEmpty(t, final.Msg.RawTxHex)
+	require.NotEmpty(t, final.RawTxHex)
 }
 
 // TestWalletNeedsL1 covers the switch-time L1 decision: only electrum wallets
@@ -131,11 +130,11 @@ func TestListWalletsElectrumHasNoBip47Code(t *testing.T) {
 	require.NoError(t, err)
 
 	h := NewWalletHandler(svc)
-	resp, err := h.ListWallets(context.Background(), connect.NewRequest(&pb.ListWalletsRequest{}))
+	resp, err := h.ListWallets(context.Background(), &pb.ListWalletsRequest{})
 	require.NoError(t, err)
 
 	found := false
-	for _, mw := range resp.Msg.Wallets {
+	for _, mw := range resp.Wallets {
 		if mw.Id == w.ID {
 			found = true
 			require.Empty(t, mw.Bip47PaymentCode, "electrum wallet must not advertise a BIP47 code")

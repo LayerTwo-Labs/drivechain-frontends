@@ -5,462 +5,527 @@
 package miscv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// MiscServiceName is the fully-qualified name of the MiscService service.
 	MiscServiceName = "misc.v1.MiscService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// MiscServiceListOPReturnProcedure is the fully-qualified name of the MiscService's ListOPReturn
-	// RPC.
+	// MiscServiceListOPReturnProcedure is the procedure name of the MiscService's ListOPReturn RPC.
 	MiscServiceListOPReturnProcedure = "/misc.v1.MiscService/ListOPReturn"
-	// MiscServiceBroadcastNewsProcedure is the fully-qualified name of the MiscService's BroadcastNews
-	// RPC.
+	// MiscServiceBroadcastNewsProcedure is the procedure name of the MiscService's BroadcastNews RPC.
 	MiscServiceBroadcastNewsProcedure = "/misc.v1.MiscService/BroadcastNews"
-	// MiscServiceUpvoteNewsProcedure is the fully-qualified name of the MiscService's UpvoteNews RPC.
+	// MiscServiceUpvoteNewsProcedure is the procedure name of the MiscService's UpvoteNews RPC.
 	MiscServiceUpvoteNewsProcedure = "/misc.v1.MiscService/UpvoteNews"
-	// MiscServiceDownvoteNewsProcedure is the fully-qualified name of the MiscService's DownvoteNews
-	// RPC.
+	// MiscServiceDownvoteNewsProcedure is the procedure name of the MiscService's DownvoteNews RPC.
 	MiscServiceDownvoteNewsProcedure = "/misc.v1.MiscService/DownvoteNews"
-	// MiscServiceCreateTopicProcedure is the fully-qualified name of the MiscService's CreateTopic RPC.
+	// MiscServiceCreateTopicProcedure is the procedure name of the MiscService's CreateTopic RPC.
 	MiscServiceCreateTopicProcedure = "/misc.v1.MiscService/CreateTopic"
-	// MiscServiceListTopicsProcedure is the fully-qualified name of the MiscService's ListTopics RPC.
+	// MiscServiceListTopicsProcedure is the procedure name of the MiscService's ListTopics RPC.
 	MiscServiceListTopicsProcedure = "/misc.v1.MiscService/ListTopics"
-	// MiscServiceListCoinNewsProcedure is the fully-qualified name of the MiscService's ListCoinNews
-	// RPC.
+	// MiscServiceListCoinNewsProcedure is the procedure name of the MiscService's ListCoinNews RPC.
 	MiscServiceListCoinNewsProcedure = "/misc.v1.MiscService/ListCoinNews"
-	// MiscServiceCommentNewsProcedure is the fully-qualified name of the MiscService's CommentNews RPC.
+	// MiscServiceCommentNewsProcedure is the procedure name of the MiscService's CommentNews RPC.
 	MiscServiceCommentNewsProcedure = "/misc.v1.MiscService/CommentNews"
-	// MiscServiceListCommentsProcedure is the fully-qualified name of the MiscService's ListComments
-	// RPC.
+	// MiscServiceListCommentsProcedure is the procedure name of the MiscService's ListComments RPC.
 	MiscServiceListCommentsProcedure = "/misc.v1.MiscService/ListComments"
-	// MiscServiceEstimateNewsFeeProcedure is the fully-qualified name of the MiscService's
-	// EstimateNewsFee RPC.
-	MiscServiceEstimateNewsFeeProcedure = "/misc.v1.MiscService/EstimateNewsFee"
-	// MiscServiceTimestampFileProcedure is the fully-qualified name of the MiscService's TimestampFile
+	// MiscServiceEstimateNewsFeeProcedure is the procedure name of the MiscService's EstimateNewsFee
 	// RPC.
+	MiscServiceEstimateNewsFeeProcedure = "/misc.v1.MiscService/EstimateNewsFee"
+	// MiscServiceTimestampFileProcedure is the procedure name of the MiscService's TimestampFile RPC.
 	MiscServiceTimestampFileProcedure = "/misc.v1.MiscService/TimestampFile"
-	// MiscServiceListTimestampsProcedure is the fully-qualified name of the MiscService's
-	// ListTimestamps RPC.
+	// MiscServiceListTimestampsProcedure is the procedure name of the MiscService's ListTimestamps RPC.
 	MiscServiceListTimestampsProcedure = "/misc.v1.MiscService/ListTimestamps"
-	// MiscServiceVerifyTimestampProcedure is the fully-qualified name of the MiscService's
-	// VerifyTimestamp RPC.
+	// MiscServiceVerifyTimestampProcedure is the procedure name of the MiscService's VerifyTimestamp
+	// RPC.
 	MiscServiceVerifyTimestampProcedure = "/misc.v1.MiscService/VerifyTimestamp"
+)
+
+var (
+	miscServiceListOPReturnSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("ListOPReturn"),
+			Procedure:  MiscServiceListOPReturnProcedure,
+		}
+	})
+	miscServiceBroadcastNewsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("BroadcastNews"),
+			Procedure:  MiscServiceBroadcastNewsProcedure,
+		}
+	})
+	miscServiceUpvoteNewsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("UpvoteNews"),
+			Procedure:  MiscServiceUpvoteNewsProcedure,
+		}
+	})
+	miscServiceDownvoteNewsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("DownvoteNews"),
+			Procedure:  MiscServiceDownvoteNewsProcedure,
+		}
+	})
+	miscServiceCreateTopicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("CreateTopic"),
+			Procedure:  MiscServiceCreateTopicProcedure,
+		}
+	})
+	miscServiceListTopicsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("ListTopics"),
+			Procedure:  MiscServiceListTopicsProcedure,
+		}
+	})
+	miscServiceListCoinNewsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("ListCoinNews"),
+			Procedure:  MiscServiceListCoinNewsProcedure,
+		}
+	})
+	miscServiceCommentNewsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("CommentNews"),
+			Procedure:  MiscServiceCommentNewsProcedure,
+		}
+	})
+	miscServiceListCommentsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("ListComments"),
+			Procedure:  MiscServiceListCommentsProcedure,
+		}
+	})
+	miscServiceEstimateNewsFeeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("EstimateNewsFee"),
+			Procedure:  MiscServiceEstimateNewsFeeProcedure,
+		}
+	})
+	miscServiceTimestampFileSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("TimestampFile"),
+			Procedure:  MiscServiceTimestampFileProcedure,
+		}
+	})
+	miscServiceListTimestampsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("ListTimestamps"),
+			Procedure:  MiscServiceListTimestampsProcedure,
+		}
+	})
+	miscServiceVerifyTimestampSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("VerifyTimestamp"),
+			Procedure:  MiscServiceVerifyTimestampProcedure,
+		}
+	})
 )
 
 // MiscServiceClient is a client for the misc.v1.MiscService service.
 type MiscServiceClient interface {
-	ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error)
-	BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error)
-	// Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
-	UpvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
-	// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
-	DownvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
-	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
-	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
-	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
-	// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
-	CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error)
-	// Returns the full reply thread rooted at an Item, ranked per §13.
-	ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error)
-	// What a vote or comment would cost to broadcast. Builds nothing.
-	EstimateNewsFee(context.Context, *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error)
-	// File timestamping
-	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
-	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
-	VerifyTimestamp(context.Context, *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error)
+	ListOPReturn(context.Context, *emptypb.Empty) (*v1.ListOPReturnResponse, error)
+	BroadcastNews(context.Context, *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error)
+	UpvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
+	DownvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
+	CreateTopic(context.Context, *v1.CreateTopicRequest) (*v1.CreateTopicResponse, error)
+	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
+	ListCoinNews(context.Context, *v1.ListCoinNewsRequest) (*v1.ListCoinNewsResponse, error)
+	CommentNews(context.Context, *v1.CommentNewsRequest) (*v1.CommentNewsResponse, error)
+	ListComments(context.Context, *v1.ListCommentsRequest) (*v1.ListCommentsResponse, error)
+	EstimateNewsFee(context.Context, *v1.EstimateNewsFeeRequest) (*v1.EstimateNewsFeeResponse, error)
+	TimestampFile(context.Context, *v1.TimestampFileRequest) (*v1.TimestampFileResponse, error)
+	ListTimestamps(context.Context, *emptypb.Empty) (*v1.ListTimestampsResponse, error)
+	VerifyTimestamp(context.Context, *v1.VerifyTimestampRequest) (*v1.VerifyTimestampResponse, error)
 }
 
-// NewMiscServiceClient constructs a client for the misc.v1.MiscService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewMiscServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MiscServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	miscServiceMethods := v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods()
-	return &miscServiceClient{
-		listOPReturn: connect.NewClient[emptypb.Empty, v1.ListOPReturnResponse](
-			httpClient,
-			baseURL+MiscServiceListOPReturnProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("ListOPReturn")),
-			connect.WithClientOptions(opts...),
-		),
-		broadcastNews: connect.NewClient[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse](
-			httpClient,
-			baseURL+MiscServiceBroadcastNewsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("BroadcastNews")),
-			connect.WithClientOptions(opts...),
-		),
-		upvoteNews: connect.NewClient[v1.UpvoteNewsRequest, v1.UpvoteNewsResponse](
-			httpClient,
-			baseURL+MiscServiceUpvoteNewsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("UpvoteNews")),
-			connect.WithClientOptions(opts...),
-		),
-		downvoteNews: connect.NewClient[v1.UpvoteNewsRequest, v1.UpvoteNewsResponse](
-			httpClient,
-			baseURL+MiscServiceDownvoteNewsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("DownvoteNews")),
-			connect.WithClientOptions(opts...),
-		),
-		createTopic: connect.NewClient[v1.CreateTopicRequest, v1.CreateTopicResponse](
-			httpClient,
-			baseURL+MiscServiceCreateTopicProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("CreateTopic")),
-			connect.WithClientOptions(opts...),
-		),
-		listTopics: connect.NewClient[emptypb.Empty, v1.ListTopicsResponse](
-			httpClient,
-			baseURL+MiscServiceListTopicsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("ListTopics")),
-			connect.WithClientOptions(opts...),
-		),
-		listCoinNews: connect.NewClient[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse](
-			httpClient,
-			baseURL+MiscServiceListCoinNewsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
-			connect.WithClientOptions(opts...),
-		),
-		commentNews: connect.NewClient[v1.CommentNewsRequest, v1.CommentNewsResponse](
-			httpClient,
-			baseURL+MiscServiceCommentNewsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("CommentNews")),
-			connect.WithClientOptions(opts...),
-		),
-		listComments: connect.NewClient[v1.ListCommentsRequest, v1.ListCommentsResponse](
-			httpClient,
-			baseURL+MiscServiceListCommentsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("ListComments")),
-			connect.WithClientOptions(opts...),
-		),
-		estimateNewsFee: connect.NewClient[v1.EstimateNewsFeeRequest, v1.EstimateNewsFeeResponse](
-			httpClient,
-			baseURL+MiscServiceEstimateNewsFeeProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("EstimateNewsFee")),
-			connect.WithClientOptions(opts...),
-		),
-		timestampFile: connect.NewClient[v1.TimestampFileRequest, v1.TimestampFileResponse](
-			httpClient,
-			baseURL+MiscServiceTimestampFileProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("TimestampFile")),
-			connect.WithClientOptions(opts...),
-		),
-		listTimestamps: connect.NewClient[emptypb.Empty, v1.ListTimestampsResponse](
-			httpClient,
-			baseURL+MiscServiceListTimestampsProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("ListTimestamps")),
-			connect.WithClientOptions(opts...),
-		),
-		verifyTimestamp: connect.NewClient[v1.VerifyTimestampRequest, v1.VerifyTimestampResponse](
-			httpClient,
-			baseURL+MiscServiceVerifyTimestampProcedure,
-			connect.WithSchema(miscServiceMethods.ByName("VerifyTimestamp")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// miscServiceClient implements MiscServiceClient.
-type miscServiceClient struct {
-	listOPReturn    *connect.Client[emptypb.Empty, v1.ListOPReturnResponse]
-	broadcastNews   *connect.Client[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse]
-	upvoteNews      *connect.Client[v1.UpvoteNewsRequest, v1.UpvoteNewsResponse]
-	downvoteNews    *connect.Client[v1.UpvoteNewsRequest, v1.UpvoteNewsResponse]
-	createTopic     *connect.Client[v1.CreateTopicRequest, v1.CreateTopicResponse]
-	listTopics      *connect.Client[emptypb.Empty, v1.ListTopicsResponse]
-	listCoinNews    *connect.Client[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse]
-	commentNews     *connect.Client[v1.CommentNewsRequest, v1.CommentNewsResponse]
-	listComments    *connect.Client[v1.ListCommentsRequest, v1.ListCommentsResponse]
-	estimateNewsFee *connect.Client[v1.EstimateNewsFeeRequest, v1.EstimateNewsFeeResponse]
-	timestampFile   *connect.Client[v1.TimestampFileRequest, v1.TimestampFileResponse]
-	listTimestamps  *connect.Client[emptypb.Empty, v1.ListTimestampsResponse]
-	verifyTimestamp *connect.Client[v1.VerifyTimestampRequest, v1.VerifyTimestampResponse]
-}
-
-// ListOPReturn calls misc.v1.MiscService.ListOPReturn.
-func (c *miscServiceClient) ListOPReturn(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error) {
-	return c.listOPReturn.CallUnary(ctx, req)
-}
-
-// BroadcastNews calls misc.v1.MiscService.BroadcastNews.
-func (c *miscServiceClient) BroadcastNews(ctx context.Context, req *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error) {
-	return c.broadcastNews.CallUnary(ctx, req)
-}
-
-// UpvoteNews calls misc.v1.MiscService.UpvoteNews.
-func (c *miscServiceClient) UpvoteNews(ctx context.Context, req *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
-	return c.upvoteNews.CallUnary(ctx, req)
-}
-
-// DownvoteNews calls misc.v1.MiscService.DownvoteNews.
-func (c *miscServiceClient) DownvoteNews(ctx context.Context, req *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
-	return c.downvoteNews.CallUnary(ctx, req)
-}
-
-// CreateTopic calls misc.v1.MiscService.CreateTopic.
-func (c *miscServiceClient) CreateTopic(ctx context.Context, req *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error) {
-	return c.createTopic.CallUnary(ctx, req)
-}
-
-// ListTopics calls misc.v1.MiscService.ListTopics.
-func (c *miscServiceClient) ListTopics(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error) {
-	return c.listTopics.CallUnary(ctx, req)
-}
-
-// ListCoinNews calls misc.v1.MiscService.ListCoinNews.
-func (c *miscServiceClient) ListCoinNews(ctx context.Context, req *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error) {
-	return c.listCoinNews.CallUnary(ctx, req)
-}
-
-// CommentNews calls misc.v1.MiscService.CommentNews.
-func (c *miscServiceClient) CommentNews(ctx context.Context, req *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error) {
-	return c.commentNews.CallUnary(ctx, req)
-}
-
-// ListComments calls misc.v1.MiscService.ListComments.
-func (c *miscServiceClient) ListComments(ctx context.Context, req *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error) {
-	return c.listComments.CallUnary(ctx, req)
-}
-
-// EstimateNewsFee calls misc.v1.MiscService.EstimateNewsFee.
-func (c *miscServiceClient) EstimateNewsFee(ctx context.Context, req *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error) {
-	return c.estimateNewsFee.CallUnary(ctx, req)
-}
-
-// TimestampFile calls misc.v1.MiscService.TimestampFile.
-func (c *miscServiceClient) TimestampFile(ctx context.Context, req *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {
-	return c.timestampFile.CallUnary(ctx, req)
-}
-
-// ListTimestamps calls misc.v1.MiscService.ListTimestamps.
-func (c *miscServiceClient) ListTimestamps(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error) {
-	return c.listTimestamps.CallUnary(ctx, req)
-}
-
-// VerifyTimestamp calls misc.v1.MiscService.VerifyTimestamp.
-func (c *miscServiceClient) VerifyTimestamp(ctx context.Context, req *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error) {
-	return c.verifyTimestamp.CallUnary(ctx, req)
+// NewMiscServiceClient constructs a client for the misc.v1.MiscService service. Multiple service
+// clients may share a single connect.Client.
+func NewMiscServiceClient(client *connect.Client) MiscServiceClient {
+	return &miscServiceClient{client: client}
 }
 
 // MiscServiceHandler is an implementation of the misc.v1.MiscService service.
 type MiscServiceHandler interface {
-	ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error)
-	BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error)
-	// Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
-	UpvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
-	// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
-	DownvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
-	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
-	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
-	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
-	// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
-	CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error)
-	// Returns the full reply thread rooted at an Item, ranked per §13.
-	ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error)
-	// What a vote or comment would cost to broadcast. Builds nothing.
-	EstimateNewsFee(context.Context, *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error)
-	// File timestamping
-	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
-	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
-	VerifyTimestamp(context.Context, *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error)
+	ListOPReturn(context.Context, *emptypb.Empty) (*v1.ListOPReturnResponse, error)
+	BroadcastNews(context.Context, *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error)
+	UpvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
+	DownvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
+	CreateTopic(context.Context, *v1.CreateTopicRequest) (*v1.CreateTopicResponse, error)
+	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
+	ListCoinNews(context.Context, *v1.ListCoinNewsRequest) (*v1.ListCoinNewsResponse, error)
+	CommentNews(context.Context, *v1.CommentNewsRequest) (*v1.CommentNewsResponse, error)
+	ListComments(context.Context, *v1.ListCommentsRequest) (*v1.ListCommentsResponse, error)
+	EstimateNewsFee(context.Context, *v1.EstimateNewsFeeRequest) (*v1.EstimateNewsFeeResponse, error)
+	TimestampFile(context.Context, *v1.TimestampFileRequest) (*v1.TimestampFileResponse, error)
+	ListTimestamps(context.Context, *emptypb.Empty) (*v1.ListTimestampsResponse, error)
+	VerifyTimestamp(context.Context, *v1.VerifyTimestampRequest) (*v1.VerifyTimestampResponse, error)
 }
 
-// NewMiscServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	miscServiceMethods := v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods()
-	miscServiceListOPReturnHandler := connect.NewUnaryHandler(
-		MiscServiceListOPReturnProcedure,
-		svc.ListOPReturn,
-		connect.WithSchema(miscServiceMethods.ByName("ListOPReturn")),
-		connect.WithHandlerOptions(opts...),
+// RegisterMiscServiceHandler registers svc as the misc.v1.MiscService implementation on server.
+func RegisterMiscServiceHandler(server *connect.Server, svc MiscServiceHandler) {
+	adapter := miscServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: miscServiceListOPReturnSpec(), Handler: adapter.listOPReturn},
+		connect.Method{Spec: miscServiceBroadcastNewsSpec(), Handler: adapter.broadcastNews},
+		connect.Method{Spec: miscServiceUpvoteNewsSpec(), Handler: adapter.upvoteNews},
+		connect.Method{Spec: miscServiceDownvoteNewsSpec(), Handler: adapter.downvoteNews},
+		connect.Method{Spec: miscServiceCreateTopicSpec(), Handler: adapter.createTopic},
+		connect.Method{Spec: miscServiceListTopicsSpec(), Handler: adapter.listTopics},
+		connect.Method{Spec: miscServiceListCoinNewsSpec(), Handler: adapter.listCoinNews},
+		connect.Method{Spec: miscServiceCommentNewsSpec(), Handler: adapter.commentNews},
+		connect.Method{Spec: miscServiceListCommentsSpec(), Handler: adapter.listComments},
+		connect.Method{Spec: miscServiceEstimateNewsFeeSpec(), Handler: adapter.estimateNewsFee},
+		connect.Method{Spec: miscServiceTimestampFileSpec(), Handler: adapter.timestampFile},
+		connect.Method{Spec: miscServiceListTimestampsSpec(), Handler: adapter.listTimestamps},
+		connect.Method{Spec: miscServiceVerifyTimestampSpec(), Handler: adapter.verifyTimestamp},
 	)
-	miscServiceBroadcastNewsHandler := connect.NewUnaryHandler(
-		MiscServiceBroadcastNewsProcedure,
-		svc.BroadcastNews,
-		connect.WithSchema(miscServiceMethods.ByName("BroadcastNews")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceUpvoteNewsHandler := connect.NewUnaryHandler(
-		MiscServiceUpvoteNewsProcedure,
-		svc.UpvoteNews,
-		connect.WithSchema(miscServiceMethods.ByName("UpvoteNews")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceDownvoteNewsHandler := connect.NewUnaryHandler(
-		MiscServiceDownvoteNewsProcedure,
-		svc.DownvoteNews,
-		connect.WithSchema(miscServiceMethods.ByName("DownvoteNews")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceCreateTopicHandler := connect.NewUnaryHandler(
-		MiscServiceCreateTopicProcedure,
-		svc.CreateTopic,
-		connect.WithSchema(miscServiceMethods.ByName("CreateTopic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceListTopicsHandler := connect.NewUnaryHandler(
-		MiscServiceListTopicsProcedure,
-		svc.ListTopics,
-		connect.WithSchema(miscServiceMethods.ByName("ListTopics")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceListCoinNewsHandler := connect.NewUnaryHandler(
-		MiscServiceListCoinNewsProcedure,
-		svc.ListCoinNews,
-		connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceCommentNewsHandler := connect.NewUnaryHandler(
-		MiscServiceCommentNewsProcedure,
-		svc.CommentNews,
-		connect.WithSchema(miscServiceMethods.ByName("CommentNews")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceListCommentsHandler := connect.NewUnaryHandler(
-		MiscServiceListCommentsProcedure,
-		svc.ListComments,
-		connect.WithSchema(miscServiceMethods.ByName("ListComments")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceEstimateNewsFeeHandler := connect.NewUnaryHandler(
-		MiscServiceEstimateNewsFeeProcedure,
-		svc.EstimateNewsFee,
-		connect.WithSchema(miscServiceMethods.ByName("EstimateNewsFee")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceTimestampFileHandler := connect.NewUnaryHandler(
-		MiscServiceTimestampFileProcedure,
-		svc.TimestampFile,
-		connect.WithSchema(miscServiceMethods.ByName("TimestampFile")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceListTimestampsHandler := connect.NewUnaryHandler(
-		MiscServiceListTimestampsProcedure,
-		svc.ListTimestamps,
-		connect.WithSchema(miscServiceMethods.ByName("ListTimestamps")),
-		connect.WithHandlerOptions(opts...),
-	)
-	miscServiceVerifyTimestampHandler := connect.NewUnaryHandler(
-		MiscServiceVerifyTimestampProcedure,
-		svc.VerifyTimestamp,
-		connect.WithSchema(miscServiceMethods.ByName("VerifyTimestamp")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/misc.v1.MiscService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case MiscServiceListOPReturnProcedure:
-			miscServiceListOPReturnHandler.ServeHTTP(w, r)
-		case MiscServiceBroadcastNewsProcedure:
-			miscServiceBroadcastNewsHandler.ServeHTTP(w, r)
-		case MiscServiceUpvoteNewsProcedure:
-			miscServiceUpvoteNewsHandler.ServeHTTP(w, r)
-		case MiscServiceDownvoteNewsProcedure:
-			miscServiceDownvoteNewsHandler.ServeHTTP(w, r)
-		case MiscServiceCreateTopicProcedure:
-			miscServiceCreateTopicHandler.ServeHTTP(w, r)
-		case MiscServiceListTopicsProcedure:
-			miscServiceListTopicsHandler.ServeHTTP(w, r)
-		case MiscServiceListCoinNewsProcedure:
-			miscServiceListCoinNewsHandler.ServeHTTP(w, r)
-		case MiscServiceCommentNewsProcedure:
-			miscServiceCommentNewsHandler.ServeHTTP(w, r)
-		case MiscServiceListCommentsProcedure:
-			miscServiceListCommentsHandler.ServeHTTP(w, r)
-		case MiscServiceEstimateNewsFeeProcedure:
-			miscServiceEstimateNewsFeeHandler.ServeHTTP(w, r)
-		case MiscServiceTimestampFileProcedure:
-			miscServiceTimestampFileHandler.ServeHTTP(w, r)
-		case MiscServiceListTimestampsProcedure:
-			miscServiceListTimestampsHandler.ServeHTTP(w, r)
-		case MiscServiceVerifyTimestampProcedure:
-			miscServiceVerifyTimestampHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedMiscServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedMiscServiceHandler struct{}
 
-func (UnimplementedMiscServiceHandler) ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListOPReturn is not implemented"))
+func (UnimplementedMiscServiceHandler) ListOPReturn(context.Context, *emptypb.Empty) (*v1.ListOPReturnResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.ListOPReturn is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.BroadcastNews is not implemented"))
+func (UnimplementedMiscServiceHandler) BroadcastNews(context.Context, *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.BroadcastNews is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) UpvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.UpvoteNews is not implemented"))
+func (UnimplementedMiscServiceHandler) UpvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.UpvoteNews is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) DownvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.DownvoteNews is not implemented"))
+func (UnimplementedMiscServiceHandler) DownvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.DownvoteNews is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.CreateTopic is not implemented"))
+func (UnimplementedMiscServiceHandler) CreateTopic(context.Context, *v1.CreateTopicRequest) (*v1.CreateTopicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.CreateTopic is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListTopics is not implemented"))
+func (UnimplementedMiscServiceHandler) ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.ListTopics is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListCoinNews is not implemented"))
+func (UnimplementedMiscServiceHandler) ListCoinNews(context.Context, *v1.ListCoinNewsRequest) (*v1.ListCoinNewsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.ListCoinNews is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.CommentNews is not implemented"))
+func (UnimplementedMiscServiceHandler) CommentNews(context.Context, *v1.CommentNewsRequest) (*v1.CommentNewsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.CommentNews is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListComments is not implemented"))
+func (UnimplementedMiscServiceHandler) ListComments(context.Context, *v1.ListCommentsRequest) (*v1.ListCommentsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.ListComments is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) EstimateNewsFee(context.Context, *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.EstimateNewsFee is not implemented"))
+func (UnimplementedMiscServiceHandler) EstimateNewsFee(context.Context, *v1.EstimateNewsFeeRequest) (*v1.EstimateNewsFeeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.EstimateNewsFee is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.TimestampFile is not implemented"))
+func (UnimplementedMiscServiceHandler) TimestampFile(context.Context, *v1.TimestampFileRequest) (*v1.TimestampFileResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.TimestampFile is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListTimestamps is not implemented"))
+func (UnimplementedMiscServiceHandler) ListTimestamps(context.Context, *emptypb.Empty) (*v1.ListTimestampsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.ListTimestamps is not implemented")
 }
 
-func (UnimplementedMiscServiceHandler) VerifyTimestamp(context.Context, *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.VerifyTimestamp is not implemented"))
+func (UnimplementedMiscServiceHandler) VerifyTimestamp(context.Context, *v1.VerifyTimestampRequest) (*v1.VerifyTimestampResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.VerifyTimestamp is not implemented")
+}
+
+type miscServiceClient struct {
+	client *connect.Client
+}
+
+func (c *miscServiceClient) ListOPReturn(ctx context.Context, req *emptypb.Empty) (*v1.ListOPReturnResponse, error) {
+	var res v1.ListOPReturnResponse
+	if err := c.client.CallUnary(ctx, miscServiceListOPReturnSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) BroadcastNews(ctx context.Context, req *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error) {
+	var res v1.BroadcastNewsResponse
+	if err := c.client.CallUnary(ctx, miscServiceBroadcastNewsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) UpvoteNews(ctx context.Context, req *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
+	var res v1.UpvoteNewsResponse
+	if err := c.client.CallUnary(ctx, miscServiceUpvoteNewsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) DownvoteNews(ctx context.Context, req *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
+	var res v1.UpvoteNewsResponse
+	if err := c.client.CallUnary(ctx, miscServiceDownvoteNewsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) CreateTopic(ctx context.Context, req *v1.CreateTopicRequest) (*v1.CreateTopicResponse, error) {
+	var res v1.CreateTopicResponse
+	if err := c.client.CallUnary(ctx, miscServiceCreateTopicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) ListTopics(ctx context.Context, req *emptypb.Empty) (*v1.ListTopicsResponse, error) {
+	var res v1.ListTopicsResponse
+	if err := c.client.CallUnary(ctx, miscServiceListTopicsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) ListCoinNews(ctx context.Context, req *v1.ListCoinNewsRequest) (*v1.ListCoinNewsResponse, error) {
+	var res v1.ListCoinNewsResponse
+	if err := c.client.CallUnary(ctx, miscServiceListCoinNewsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) CommentNews(ctx context.Context, req *v1.CommentNewsRequest) (*v1.CommentNewsResponse, error) {
+	var res v1.CommentNewsResponse
+	if err := c.client.CallUnary(ctx, miscServiceCommentNewsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) ListComments(ctx context.Context, req *v1.ListCommentsRequest) (*v1.ListCommentsResponse, error) {
+	var res v1.ListCommentsResponse
+	if err := c.client.CallUnary(ctx, miscServiceListCommentsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) EstimateNewsFee(ctx context.Context, req *v1.EstimateNewsFeeRequest) (*v1.EstimateNewsFeeResponse, error) {
+	var res v1.EstimateNewsFeeResponse
+	if err := c.client.CallUnary(ctx, miscServiceEstimateNewsFeeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) TimestampFile(ctx context.Context, req *v1.TimestampFileRequest) (*v1.TimestampFileResponse, error) {
+	var res v1.TimestampFileResponse
+	if err := c.client.CallUnary(ctx, miscServiceTimestampFileSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) ListTimestamps(ctx context.Context, req *emptypb.Empty) (*v1.ListTimestampsResponse, error) {
+	var res v1.ListTimestampsResponse
+	if err := c.client.CallUnary(ctx, miscServiceListTimestampsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *miscServiceClient) VerifyTimestamp(ctx context.Context, req *v1.VerifyTimestampRequest) (*v1.VerifyTimestampResponse, error) {
+	var res v1.VerifyTimestampResponse
+	if err := c.client.CallUnary(ctx, miscServiceVerifyTimestampSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type miscServiceHandler struct{ svc MiscServiceHandler }
+
+func (h miscServiceHandler) listOPReturn(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListOPReturn(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) broadcastNews(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.BroadcastNewsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.BroadcastNews(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) upvoteNews(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpvoteNewsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpvoteNews(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) downvoteNews(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpvoteNewsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DownvoteNews(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) createTopic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateTopicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateTopic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) listTopics(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTopics(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) listCoinNews(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListCoinNewsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListCoinNews(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) commentNews(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CommentNewsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CommentNews(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) listComments(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListCommentsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListComments(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) estimateNewsFee(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EstimateNewsFeeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EstimateNewsFee(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) timestampFile(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TimestampFileRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.TimestampFile(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) listTimestamps(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTimestamps(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h miscServiceHandler) verifyTimestamp(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VerifyTimestampRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VerifyTimestamp(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

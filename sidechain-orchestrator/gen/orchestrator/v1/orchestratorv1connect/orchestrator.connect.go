@@ -5,1346 +5,1592 @@
 package orchestratorv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// OrchestratorServiceName is the fully-qualified name of the OrchestratorService service.
 	OrchestratorServiceName = "orchestrator.v1.OrchestratorService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// OrchestratorServiceListBinariesProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceListBinariesProcedure is the procedure name of the OrchestratorService's
 	// ListBinaries RPC.
 	OrchestratorServiceListBinariesProcedure = "/orchestrator.v1.OrchestratorService/ListBinaries"
-	// OrchestratorServiceGetBinaryStatusProcedure is the fully-qualified name of the
-	// OrchestratorService's GetBinaryStatus RPC.
+	// OrchestratorServiceGetBinaryStatusProcedure is the procedure name of the OrchestratorService's
+	// GetBinaryStatus RPC.
 	OrchestratorServiceGetBinaryStatusProcedure = "/orchestrator.v1.OrchestratorService/GetBinaryStatus"
-	// OrchestratorServiceGetBinaryVersionProcedure is the fully-qualified name of the
-	// OrchestratorService's GetBinaryVersion RPC.
+	// OrchestratorServiceGetBinaryVersionProcedure is the procedure name of the OrchestratorService's
+	// GetBinaryVersion RPC.
 	OrchestratorServiceGetBinaryVersionProcedure = "/orchestrator.v1.OrchestratorService/GetBinaryVersion"
-	// OrchestratorServiceDownloadBinaryProcedure is the fully-qualified name of the
-	// OrchestratorService's DownloadBinary RPC.
+	// OrchestratorServiceDownloadBinaryProcedure is the procedure name of the OrchestratorService's
+	// DownloadBinary RPC.
 	OrchestratorServiceDownloadBinaryProcedure = "/orchestrator.v1.OrchestratorService/DownloadBinary"
-	// OrchestratorServiceStartBinaryProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceStartBinaryProcedure is the procedure name of the OrchestratorService's
 	// StartBinary RPC.
 	OrchestratorServiceStartBinaryProcedure = "/orchestrator.v1.OrchestratorService/StartBinary"
-	// OrchestratorServiceStopBinaryProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceStopBinaryProcedure is the procedure name of the OrchestratorService's
 	// StopBinary RPC.
 	OrchestratorServiceStopBinaryProcedure = "/orchestrator.v1.OrchestratorService/StopBinary"
-	// OrchestratorServiceStreamLogsProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceStreamLogsProcedure is the procedure name of the OrchestratorService's
 	// StreamLogs RPC.
 	OrchestratorServiceStreamLogsProcedure = "/orchestrator.v1.OrchestratorService/StreamLogs"
-	// OrchestratorServiceStartWithL1Procedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceStartWithL1Procedure is the procedure name of the OrchestratorService's
 	// StartWithL1 RPC.
 	OrchestratorServiceStartWithL1Procedure = "/orchestrator.v1.OrchestratorService/StartWithL1"
-	// OrchestratorServiceRestartDaemonProcedure is the fully-qualified name of the
-	// OrchestratorService's RestartDaemon RPC.
+	// OrchestratorServiceRestartDaemonProcedure is the procedure name of the OrchestratorService's
+	// RestartDaemon RPC.
 	OrchestratorServiceRestartDaemonProcedure = "/orchestrator.v1.OrchestratorService/RestartDaemon"
-	// OrchestratorServiceRestartL1Procedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceRestartL1Procedure is the procedure name of the OrchestratorService's
 	// RestartL1 RPC.
 	OrchestratorServiceRestartL1Procedure = "/orchestrator.v1.OrchestratorService/RestartL1"
-	// OrchestratorServiceApplyUTXOSnapshotProcedure is the fully-qualified name of the
-	// OrchestratorService's ApplyUTXOSnapshot RPC.
+	// OrchestratorServiceApplyUTXOSnapshotProcedure is the procedure name of the OrchestratorService's
+	// ApplyUTXOSnapshot RPC.
 	OrchestratorServiceApplyUTXOSnapshotProcedure = "/orchestrator.v1.OrchestratorService/ApplyUTXOSnapshot"
-	// OrchestratorServiceGetSnapshotStatusProcedure is the fully-qualified name of the
-	// OrchestratorService's GetSnapshotStatus RPC.
+	// OrchestratorServiceGetSnapshotStatusProcedure is the procedure name of the OrchestratorService's
+	// GetSnapshotStatus RPC.
 	OrchestratorServiceGetSnapshotStatusProcedure = "/orchestrator.v1.OrchestratorService/GetSnapshotStatus"
-	// OrchestratorServiceGetPendingNetworkGenerationProcedure is the fully-qualified name of the
+	// OrchestratorServiceGetPendingNetworkGenerationProcedure is the procedure name of the
 	// OrchestratorService's GetPendingNetworkGeneration RPC.
 	OrchestratorServiceGetPendingNetworkGenerationProcedure = "/orchestrator.v1.OrchestratorService/GetPendingNetworkGeneration"
-	// OrchestratorServiceConfirmPendingNetworkGenerationProcedure is the fully-qualified name of the
+	// OrchestratorServiceConfirmPendingNetworkGenerationProcedure is the procedure name of the
 	// OrchestratorService's ConfirmPendingNetworkGeneration RPC.
 	OrchestratorServiceConfirmPendingNetworkGenerationProcedure = "/orchestrator.v1.OrchestratorService/ConfirmPendingNetworkGeneration"
-	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceShutdownAllProcedure is the procedure name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
-	// OrchestratorServiceShutdownProcedure is the fully-qualified name of the OrchestratorService's
-	// Shutdown RPC.
+	// OrchestratorServiceShutdownProcedure is the procedure name of the OrchestratorService's Shutdown
+	// RPC.
 	OrchestratorServiceShutdownProcedure = "/orchestrator.v1.OrchestratorService/Shutdown"
-	// OrchestratorServiceAdoptOwnerProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceAdoptOwnerProcedure is the procedure name of the OrchestratorService's
 	// AdoptOwner RPC.
 	OrchestratorServiceAdoptOwnerProcedure = "/orchestrator.v1.OrchestratorService/AdoptOwner"
-	// OrchestratorServiceGetBTCPriceProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceGetBTCPriceProcedure is the procedure name of the OrchestratorService's
 	// GetBTCPrice RPC.
 	OrchestratorServiceGetBTCPriceProcedure = "/orchestrator.v1.OrchestratorService/GetBTCPrice"
-	// OrchestratorServiceGetMainchainBlockchainInfoProcedure is the fully-qualified name of the
+	// OrchestratorServiceGetMainchainBlockchainInfoProcedure is the procedure name of the
 	// OrchestratorService's GetMainchainBlockchainInfo RPC.
 	OrchestratorServiceGetMainchainBlockchainInfoProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBlockchainInfo"
-	// OrchestratorServiceGetEnforcerBlockchainInfoProcedure is the fully-qualified name of the
+	// OrchestratorServiceGetEnforcerBlockchainInfoProcedure is the procedure name of the
 	// OrchestratorService's GetEnforcerBlockchainInfo RPC.
 	OrchestratorServiceGetEnforcerBlockchainInfoProcedure = "/orchestrator.v1.OrchestratorService/GetEnforcerBlockchainInfo"
-	// OrchestratorServiceGetSyncStatusProcedure is the fully-qualified name of the
-	// OrchestratorService's GetSyncStatus RPC.
+	// OrchestratorServiceGetSyncStatusProcedure is the procedure name of the OrchestratorService's
+	// GetSyncStatus RPC.
 	OrchestratorServiceGetSyncStatusProcedure = "/orchestrator.v1.OrchestratorService/GetSyncStatus"
-	// OrchestratorServiceGetDownloadStatusProcedure is the fully-qualified name of the
-	// OrchestratorService's GetDownloadStatus RPC.
+	// OrchestratorServiceGetDownloadStatusProcedure is the procedure name of the OrchestratorService's
+	// GetDownloadStatus RPC.
 	OrchestratorServiceGetDownloadStatusProcedure = "/orchestrator.v1.OrchestratorService/GetDownloadStatus"
-	// OrchestratorServiceGetMainchainBalanceProcedure is the fully-qualified name of the
+	// OrchestratorServiceGetMainchainBalanceProcedure is the procedure name of the
 	// OrchestratorService's GetMainchainBalance RPC.
 	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
-	// OrchestratorServiceGetSidechainBalanceProcedure is the fully-qualified name of the
+	// OrchestratorServiceGetSidechainBalanceProcedure is the procedure name of the
 	// OrchestratorService's GetSidechainBalance RPC.
 	OrchestratorServiceGetSidechainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetSidechainBalance"
-	// OrchestratorServiceGatherFilesToDeleteProcedure is the fully-qualified name of the
+	// OrchestratorServiceGatherFilesToDeleteProcedure is the procedure name of the
 	// OrchestratorService's GatherFilesToDelete RPC.
 	OrchestratorServiceGatherFilesToDeleteProcedure = "/orchestrator.v1.OrchestratorService/GatherFilesToDelete"
-	// OrchestratorServiceDeleteFilesProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceDeleteFilesProcedure is the procedure name of the OrchestratorService's
 	// DeleteFiles RPC.
 	OrchestratorServiceDeleteFilesProcedure = "/orchestrator.v1.OrchestratorService/DeleteFiles"
-	// OrchestratorServiceRejectBlockProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceRejectBlockProcedure is the procedure name of the OrchestratorService's
 	// RejectBlock RPC.
 	OrchestratorServiceRejectBlockProcedure = "/orchestrator.v1.OrchestratorService/RejectBlock"
-	// OrchestratorServiceAcceptBlockProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceAcceptBlockProcedure is the procedure name of the OrchestratorService's
 	// AcceptBlock RPC.
 	OrchestratorServiceAcceptBlockProcedure = "/orchestrator.v1.OrchestratorService/AcceptBlock"
-	// OrchestratorServiceResetToBlockProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceResetToBlockProcedure is the procedure name of the OrchestratorService's
 	// ResetToBlock RPC.
 	OrchestratorServiceResetToBlockProcedure = "/orchestrator.v1.OrchestratorService/ResetToBlock"
-	// OrchestratorServiceGetCoreMempoolInfoProcedure is the fully-qualified name of the
-	// OrchestratorService's GetCoreMempoolInfo RPC.
+	// OrchestratorServiceGetCoreMempoolInfoProcedure is the procedure name of the OrchestratorService's
+	// GetCoreMempoolInfo RPC.
 	OrchestratorServiceGetCoreMempoolInfoProcedure = "/orchestrator.v1.OrchestratorService/GetCoreMempoolInfo"
-	// OrchestratorServiceGetBmmContextProcedure is the fully-qualified name of the
-	// OrchestratorService's GetBmmContext RPC.
+	// OrchestratorServiceGetBmmContextProcedure is the procedure name of the OrchestratorService's
+	// GetBmmContext RPC.
 	OrchestratorServiceGetBmmContextProcedure = "/orchestrator.v1.OrchestratorService/GetBmmContext"
-	// OrchestratorServiceCoreRawCallProcedure is the fully-qualified name of the OrchestratorService's
+	// OrchestratorServiceCoreRawCallProcedure is the procedure name of the OrchestratorService's
 	// CoreRawCall RPC.
 	OrchestratorServiceCoreRawCallProcedure = "/orchestrator.v1.OrchestratorService/CoreRawCall"
-	// OrchestratorServiceGetForkStatusProcedure is the fully-qualified name of the
-	// OrchestratorService's GetForkStatus RPC.
+	// OrchestratorServiceGetForkStatusProcedure is the procedure name of the OrchestratorService's
+	// GetForkStatus RPC.
 	OrchestratorServiceGetForkStatusProcedure = "/orchestrator.v1.OrchestratorService/GetForkStatus"
-	// OrchestratorServicePreviewECashMigrationProcedure is the fully-qualified name of the
+	// OrchestratorServicePreviewECashMigrationProcedure is the procedure name of the
 	// OrchestratorService's PreviewECashMigration RPC.
 	OrchestratorServicePreviewECashMigrationProcedure = "/orchestrator.v1.OrchestratorService/PreviewECashMigration"
-	// OrchestratorServiceStartECashMigrationProcedure is the fully-qualified name of the
+	// OrchestratorServiceStartECashMigrationProcedure is the procedure name of the
 	// OrchestratorService's StartECashMigration RPC.
 	OrchestratorServiceStartECashMigrationProcedure = "/orchestrator.v1.OrchestratorService/StartECashMigration"
-	// OrchestratorServiceGetECashMigrationStatusProcedure is the fully-qualified name of the
+	// OrchestratorServiceGetECashMigrationStatusProcedure is the procedure name of the
 	// OrchestratorService's GetECashMigrationStatus RPC.
 	OrchestratorServiceGetECashMigrationStatusProcedure = "/orchestrator.v1.OrchestratorService/GetECashMigrationStatus"
-	// OrchestratorServiceGetDatadirNetworkProcedure is the fully-qualified name of the
-	// OrchestratorService's GetDatadirNetwork RPC.
+	// OrchestratorServiceGetDatadirNetworkProcedure is the procedure name of the OrchestratorService's
+	// GetDatadirNetwork RPC.
 	OrchestratorServiceGetDatadirNetworkProcedure = "/orchestrator.v1.OrchestratorService/GetDatadirNetwork"
+)
+
+var (
+	orchestratorServiceListBinariesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("ListBinaries"),
+			Procedure:  OrchestratorServiceListBinariesProcedure,
+		}
+	})
+	orchestratorServiceGetBinaryStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetBinaryStatus"),
+			Procedure:  OrchestratorServiceGetBinaryStatusProcedure,
+		}
+	})
+	orchestratorServiceGetBinaryVersionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetBinaryVersion"),
+			Procedure:  OrchestratorServiceGetBinaryVersionProcedure,
+		}
+	})
+	orchestratorServiceDownloadBinarySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("DownloadBinary"),
+			Procedure:  OrchestratorServiceDownloadBinaryProcedure,
+		}
+	})
+	orchestratorServiceStartBinarySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("StartBinary"),
+			Procedure:  OrchestratorServiceStartBinaryProcedure,
+		}
+	})
+	orchestratorServiceStopBinarySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("StopBinary"),
+			Procedure:  OrchestratorServiceStopBinaryProcedure,
+		}
+	})
+	orchestratorServiceStreamLogsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("StreamLogs"),
+			Procedure:  OrchestratorServiceStreamLogsProcedure,
+		}
+	})
+	orchestratorServiceStartWithL1Spec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("StartWithL1"),
+			Procedure:  OrchestratorServiceStartWithL1Procedure,
+		}
+	})
+	orchestratorServiceRestartDaemonSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("RestartDaemon"),
+			Procedure:  OrchestratorServiceRestartDaemonProcedure,
+		}
+	})
+	orchestratorServiceRestartL1Spec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("RestartL1"),
+			Procedure:  OrchestratorServiceRestartL1Procedure,
+		}
+	})
+	orchestratorServiceApplyUTXOSnapshotSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("ApplyUTXOSnapshot"),
+			Procedure:  OrchestratorServiceApplyUTXOSnapshotProcedure,
+		}
+	})
+	orchestratorServiceGetSnapshotStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetSnapshotStatus"),
+			Procedure:  OrchestratorServiceGetSnapshotStatusProcedure,
+		}
+	})
+	orchestratorServiceGetPendingNetworkGenerationSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetPendingNetworkGeneration"),
+			Procedure:  OrchestratorServiceGetPendingNetworkGenerationProcedure,
+		}
+	})
+	orchestratorServiceConfirmPendingNetworkGenerationSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("ConfirmPendingNetworkGeneration"),
+			Procedure:  OrchestratorServiceConfirmPendingNetworkGenerationProcedure,
+		}
+	})
+	orchestratorServiceShutdownAllSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("ShutdownAll"),
+			Procedure:  OrchestratorServiceShutdownAllProcedure,
+		}
+	})
+	orchestratorServiceShutdownSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("Shutdown"),
+			Procedure:  OrchestratorServiceShutdownProcedure,
+		}
+	})
+	orchestratorServiceAdoptOwnerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("AdoptOwner"),
+			Procedure:  OrchestratorServiceAdoptOwnerProcedure,
+		}
+	})
+	orchestratorServiceGetBTCPriceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetBTCPrice"),
+			Procedure:  OrchestratorServiceGetBTCPriceProcedure,
+		}
+	})
+	orchestratorServiceGetMainchainBlockchainInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetMainchainBlockchainInfo"),
+			Procedure:  OrchestratorServiceGetMainchainBlockchainInfoProcedure,
+		}
+	})
+	orchestratorServiceGetEnforcerBlockchainInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetEnforcerBlockchainInfo"),
+			Procedure:  OrchestratorServiceGetEnforcerBlockchainInfoProcedure,
+		}
+	})
+	orchestratorServiceGetSyncStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetSyncStatus"),
+			Procedure:  OrchestratorServiceGetSyncStatusProcedure,
+		}
+	})
+	orchestratorServiceGetDownloadStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetDownloadStatus"),
+			Procedure:  OrchestratorServiceGetDownloadStatusProcedure,
+		}
+	})
+	orchestratorServiceGetMainchainBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetMainchainBalance"),
+			Procedure:  OrchestratorServiceGetMainchainBalanceProcedure,
+		}
+	})
+	orchestratorServiceGetSidechainBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetSidechainBalance"),
+			Procedure:  OrchestratorServiceGetSidechainBalanceProcedure,
+		}
+	})
+	orchestratorServiceGatherFilesToDeleteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GatherFilesToDelete"),
+			Procedure:  OrchestratorServiceGatherFilesToDeleteProcedure,
+		}
+	})
+	orchestratorServiceDeleteFilesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("DeleteFiles"),
+			Procedure:  OrchestratorServiceDeleteFilesProcedure,
+		}
+	})
+	orchestratorServiceRejectBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("RejectBlock"),
+			Procedure:  OrchestratorServiceRejectBlockProcedure,
+		}
+	})
+	orchestratorServiceAcceptBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("AcceptBlock"),
+			Procedure:  OrchestratorServiceAcceptBlockProcedure,
+		}
+	})
+	orchestratorServiceResetToBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("ResetToBlock"),
+			Procedure:  OrchestratorServiceResetToBlockProcedure,
+		}
+	})
+	orchestratorServiceGetCoreMempoolInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetCoreMempoolInfo"),
+			Procedure:  OrchestratorServiceGetCoreMempoolInfoProcedure,
+		}
+	})
+	orchestratorServiceGetBmmContextSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetBmmContext"),
+			Procedure:  OrchestratorServiceGetBmmContextProcedure,
+		}
+	})
+	orchestratorServiceCoreRawCallSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("CoreRawCall"),
+			Procedure:  OrchestratorServiceCoreRawCallProcedure,
+		}
+	})
+	orchestratorServiceGetForkStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetForkStatus"),
+			Procedure:  OrchestratorServiceGetForkStatusProcedure,
+		}
+	})
+	orchestratorServicePreviewECashMigrationSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("PreviewECashMigration"),
+			Procedure:  OrchestratorServicePreviewECashMigrationProcedure,
+		}
+	})
+	orchestratorServiceStartECashMigrationSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("StartECashMigration"),
+			Procedure:  OrchestratorServiceStartECashMigrationProcedure,
+		}
+	})
+	orchestratorServiceGetECashMigrationStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetECashMigrationStatus"),
+			Procedure:  OrchestratorServiceGetECashMigrationStatusProcedure,
+		}
+	})
+	orchestratorServiceGetDatadirNetworkSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetDatadirNetwork"),
+			Procedure:  OrchestratorServiceGetDatadirNetworkProcedure,
+		}
+	})
 )
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
 type OrchestratorServiceClient interface {
-	// List all configured binaries and their status.
-	ListBinaries(context.Context, *connect.Request[v1.ListBinariesRequest]) (*connect.Response[v1.ListBinariesResponse], error)
-	// Get the status of a single binary.
-	GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error)
-	// Resolve a binary's on-disk path the same way the launcher does (variant-
-	// and test-build aware, honoring force_backend) and return its --version
-	// output. The frontend must never re-derive the path or shell out itself;
-	// this RPC is the single source of truth for "which binary, what version".
-	GetBinaryVersion(context.Context, *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error)
-	// Download a binary with streaming progress.
-	// Kicks off a download in a background goroutine and returns
-	// immediately. Progress (MB downloaded / total, is_downloading) is
-	// polled out of GetSyncStatus, never tied to this RPC's lifetime — so
-	// a transport blip can't cancel an in-flight download.
-	DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error)
-	// Start a binary.
-	StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error)
-	// Stop a binary.
-	StopBinary(context.Context, *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error)
-	// Stream stdout/stderr from a binary.
-	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.StreamLogsResponse], error)
-	// Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
-	// target). Fire-and-forget on the server: returns as soon as the boot
-	// goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
-	// download progress and connection state — never tied to this RPC's
-	// lifetime, so a transport blip can't kill an in-flight download.
-	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error)
-	// Stop the named binary and start it again, single-daemon scope. Never
-	// touches sibling daemons: restarting "enforcer" never spawns or adopts
-	// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
-	// StartWithL1 stays the entry point for full-chain bootstrap. Same
-	// fire-and-forget shape as StartWithL1.
-	RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error)
-	// Restart the whole L1 stack (bitcoind + enforcer) on the current config.
-	// Stops both (a not-running daemon is skipped, never an error) then boots
-	// the L1 chain via the same path as StartWithL1. Running sidechains are left
-	// alone — they reconnect once the enforcer is back. Fire-and-forget: returns
-	// as soon as the boot goroutine is dispatched. Use this for the "Restart
-	// Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
-	RestartL1(context.Context, *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error)
-	// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
-	// load progress; a snapshot Core refuses (its base block already passed, or
-	// a snapshot already loaded in this datadir) comes back as an error carrying
-	// Core's own message. Nothing is stopped, restarted or deleted.
-	ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest]) (*connect.ServerStreamForClient[v1.ApplyUTXOSnapshotResponse], error)
-	// The UTXO snapshot published for the active network (from the network
-	// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
-	// settings UI: pre-fills the snapshot field and shows what is loaded.
-	GetSnapshotStatus(context.Context, *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error)
-	// The eCash network published but not switched to yet. Feeds the upgrade
-	// prompt; pending_network_id is empty when already on the newest one.
-	GetPendingNetworkGeneration(context.Context, *connect.Request[v1.GetPendingNetworkGenerationRequest]) (*connect.Response[v1.GetPendingNetworkGenerationResponse], error)
-	// Record the user's go-ahead to switch to the published eCash network.
-	// Nothing is stopped or deleted here: the caller must restart the backends,
-	// and the switch runs on the next start. Wallets survive, chain history and
-	// its transactions do not — only call with the user's confirmation.
-	ConfirmPendingNetworkGeneration(context.Context, *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error)
-	// Shutdown all running binaries.
-	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
-	// Detached-daemon shutdown. bitwindowd calls this on window close;
-	// drivechaind acks immediately, drains its children (bitcoind, enforcer,
-	// sidechains) in a background goroutine, and os.Exit(0)s when done.
-	// Idempotent. If bitwindow is relaunched while the drain is still in
-	// flight, the next StartWithL1 transparently adopts it (flips the
-	// will-exit bit + awaits the in-flight stops) before booting a fresh
-	// stack — no separate cancel/await RPCs needed by callers.
-	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
-	// Point the daemon at the frontend process that owns it now. An app update
-	// replaces the frontend with a new process, and the daemon drains itself a
-	// few seconds after the old one dies. bitwindowd calls this the moment it
-	// finds a live daemon, so the warm stack survives the swap.
-	AdoptOwner(context.Context, *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error)
-	// Get the current BTC/USD exchange rate.
-	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
-	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
-	GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error)
-	// Get blockchain info from the enforcer (proxied via orchestrator).
-	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
-	// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
-	// Backend fans out to all three in parallel so the three numbers are taken
-	// at the same wall-clock instant — no two cards in the UI can ever disagree.
-	GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error)
-	// Snapshot of every binary the orchestrator is currently downloading.
-	// Reads from the in-memory DownloadManager state — light, polled by the
-	// frontend's DownloadProvider on a fast (100ms) cadence while a download
-	// is in flight, and dropping back to 2s when the response is empty.
-	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
-	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
-	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
-	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
-	GetSidechainBalance(context.Context, *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error)
-	// Gather the files/dirs that would be deleted for a per-binary deletion spec
-	// (no side effects). Shared by the single-binary wipe and the full reset page.
-	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
-	// Delete the selected files. Stops binaries first; wallet paths are moved to
-	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
-	// Streams one message per path; an unset error means that path succeeded.
-	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error)
-	// Drop a block Core must not follow. Core rejects it and every block above
-	// it, then follows the best remaining valid branch.
-	RejectBlock(context.Context, *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error)
-	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
-	// again when it has the most work.
-	AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error)
-	// Move the chain back to a block, then sync forward to the tip again. Core
-	// drops the block and every block above it, then re-validates them from
-	// disk. Streams one message per phase.
-	ResetToBlock(context.Context, *connect.Request[v1.ResetToBlockRequest]) (*connect.ServerStreamForClient[v1.ResetToBlockResponse], error)
-	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
-	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
-	// Parent-chain state the sidechain BMM tab bids against: the tip a request
-	// targets, the fee rate it competes with, mempool depth.
-	GetBmmContext(context.Context, *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error)
-	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
-	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
-	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
-	// ─── eCash fork ───────────────────────────────────────────────────────────
-	// Report where the mainchain tip sits relative to the eCash fork height.
-	// The orchestrator is the single source of truth for the fork height; the
-	// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
-	// pre-fork coin detection and the sweep itself stay in the frontend via the
-	// existing WalletManagerService (listUnspent / sendTransaction), one call
-	// per wallet — this RPC only supplies the height.
-	GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error)
-	// Read the migration plan from the daemon without changes to node files.
-	PreviewECashMigration(context.Context, *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error)
-	// Start or resume a migration that continues after the client disconnects.
-	StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error)
-	// Read the saved migration state from the daemon.
-	GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error)
-	// Read the network the blocks on disk belong to, next to the one the app
-	// runs. The blocks name the chain, so a datadir from another network says so
-	// before a rollback throws the balance away.
-	GetDatadirNetwork(context.Context, *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error)
+	ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error)
+	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
+	GetBinaryVersion(context.Context, *v1.GetBinaryVersionRequest) (*v1.GetBinaryVersionResponse, error)
+	DownloadBinary(context.Context, *v1.DownloadBinaryRequest) (*v1.DownloadBinaryResponse, error)
+	StartBinary(context.Context, *v1.StartBinaryRequest) (*v1.StartBinaryResponse, error)
+	StopBinary(context.Context, *v1.StopBinaryRequest) (*v1.StopBinaryResponse, error)
+	StreamLogs(context.Context, *v1.StreamLogsRequest) (OrchestratorServiceStreamLogsClientStream, error)
+	StartWithL1(context.Context, *v1.StartWithL1Request) (*v1.StartWithL1Response, error)
+	RestartDaemon(context.Context, *v1.RestartDaemonRequest) (*v1.RestartDaemonResponse, error)
+	RestartL1(context.Context, *v1.RestartL1Request) (*v1.RestartL1Response, error)
+	ApplyUTXOSnapshot(context.Context, *v1.ApplyUTXOSnapshotRequest) (OrchestratorServiceApplyUTXOSnapshotClientStream, error)
+	GetSnapshotStatus(context.Context, *v1.GetSnapshotStatusRequest) (*v1.GetSnapshotStatusResponse, error)
+	GetPendingNetworkGeneration(context.Context, *v1.GetPendingNetworkGenerationRequest) (*v1.GetPendingNetworkGenerationResponse, error)
+	ConfirmPendingNetworkGeneration(context.Context, *v1.ConfirmPendingNetworkGenerationRequest) (*v1.ConfirmPendingNetworkGenerationResponse, error)
+	ShutdownAll(context.Context, *v1.ShutdownAllRequest) (OrchestratorServiceShutdownAllClientStream, error)
+	Shutdown(context.Context, *v1.ShutdownRequest) (*v1.ShutdownResponse, error)
+	AdoptOwner(context.Context, *v1.AdoptOwnerRequest) (*v1.AdoptOwnerResponse, error)
+	GetBTCPrice(context.Context, *v1.GetBTCPriceRequest) (*v1.GetBTCPriceResponse, error)
+	GetMainchainBlockchainInfo(context.Context, *v1.GetMainchainBlockchainInfoRequest) (*v1.GetMainchainBlockchainInfoResponse, error)
+	GetEnforcerBlockchainInfo(context.Context, *v1.GetEnforcerBlockchainInfoRequest) (*v1.GetEnforcerBlockchainInfoResponse, error)
+	GetSyncStatus(context.Context, *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error)
+	GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error)
+	GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error)
+	GetSidechainBalance(context.Context, *v1.GetSidechainBalanceRequest) (*v1.GetSidechainBalanceResponse, error)
+	GatherFilesToDelete(context.Context, *v1.GatherFilesToDeleteRequest) (*v1.GatherFilesToDeleteResponse, error)
+	DeleteFiles(context.Context, *v1.DeleteFilesRequest) (OrchestratorServiceDeleteFilesClientStream, error)
+	RejectBlock(context.Context, *v1.RejectBlockRequest) (*v1.RejectBlockResponse, error)
+	AcceptBlock(context.Context, *v1.AcceptBlockRequest) (*v1.AcceptBlockResponse, error)
+	ResetToBlock(context.Context, *v1.ResetToBlockRequest) (OrchestratorServiceResetToBlockClientStream, error)
+	GetCoreMempoolInfo(context.Context, *v1.GetCoreMempoolInfoRequest) (*v1.GetCoreMempoolInfoResponse, error)
+	GetBmmContext(context.Context, *v1.GetBmmContextRequest) (*v1.GetBmmContextResponse, error)
+	CoreRawCall(context.Context, *v1.CoreRawCallRequest) (*v1.CoreRawCallResponse, error)
+	GetForkStatus(context.Context, *v1.GetForkStatusRequest) (*v1.GetForkStatusResponse, error)
+	PreviewECashMigration(context.Context, *v1.PreviewECashMigrationRequest) (*v1.PreviewECashMigrationResponse, error)
+	StartECashMigration(context.Context, *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error)
+	GetECashMigrationStatus(context.Context, *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error)
+	GetDatadirNetwork(context.Context, *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error)
 }
 
 // NewOrchestratorServiceClient constructs a client for the orchestrator.v1.OrchestratorService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) OrchestratorServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	orchestratorServiceMethods := v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods()
-	return &orchestratorServiceClient{
-		listBinaries: connect.NewClient[v1.ListBinariesRequest, v1.ListBinariesResponse](
-			httpClient,
-			baseURL+OrchestratorServiceListBinariesProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("ListBinaries")),
-			connect.WithClientOptions(opts...),
-		),
-		getBinaryStatus: connect.NewClient[v1.GetBinaryStatusRequest, v1.GetBinaryStatusResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetBinaryStatusProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		getBinaryVersion: connect.NewClient[v1.GetBinaryVersionRequest, v1.GetBinaryVersionResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetBinaryVersionProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryVersion")),
-			connect.WithClientOptions(opts...),
-		),
-		downloadBinary: connect.NewClient[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse](
-			httpClient,
-			baseURL+OrchestratorServiceDownloadBinaryProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("DownloadBinary")),
-			connect.WithClientOptions(opts...),
-		),
-		startBinary: connect.NewClient[v1.StartBinaryRequest, v1.StartBinaryResponse](
-			httpClient,
-			baseURL+OrchestratorServiceStartBinaryProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("StartBinary")),
-			connect.WithClientOptions(opts...),
-		),
-		stopBinary: connect.NewClient[v1.StopBinaryRequest, v1.StopBinaryResponse](
-			httpClient,
-			baseURL+OrchestratorServiceStopBinaryProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("StopBinary")),
-			connect.WithClientOptions(opts...),
-		),
-		streamLogs: connect.NewClient[v1.StreamLogsRequest, v1.StreamLogsResponse](
-			httpClient,
-			baseURL+OrchestratorServiceStreamLogsProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("StreamLogs")),
-			connect.WithClientOptions(opts...),
-		),
-		startWithL1: connect.NewClient[v1.StartWithL1Request, v1.StartWithL1Response](
-			httpClient,
-			baseURL+OrchestratorServiceStartWithL1Procedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("StartWithL1")),
-			connect.WithClientOptions(opts...),
-		),
-		restartDaemon: connect.NewClient[v1.RestartDaemonRequest, v1.RestartDaemonResponse](
-			httpClient,
-			baseURL+OrchestratorServiceRestartDaemonProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("RestartDaemon")),
-			connect.WithClientOptions(opts...),
-		),
-		restartL1: connect.NewClient[v1.RestartL1Request, v1.RestartL1Response](
-			httpClient,
-			baseURL+OrchestratorServiceRestartL1Procedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("RestartL1")),
-			connect.WithClientOptions(opts...),
-		),
-		applyUTXOSnapshot: connect.NewClient[v1.ApplyUTXOSnapshotRequest, v1.ApplyUTXOSnapshotResponse](
-			httpClient,
-			baseURL+OrchestratorServiceApplyUTXOSnapshotProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("ApplyUTXOSnapshot")),
-			connect.WithClientOptions(opts...),
-		),
-		getSnapshotStatus: connect.NewClient[v1.GetSnapshotStatusRequest, v1.GetSnapshotStatusResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetSnapshotStatusProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetSnapshotStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		getPendingNetworkGeneration: connect.NewClient[v1.GetPendingNetworkGenerationRequest, v1.GetPendingNetworkGenerationResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetPendingNetworkGenerationProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetPendingNetworkGeneration")),
-			connect.WithClientOptions(opts...),
-		),
-		confirmPendingNetworkGeneration: connect.NewClient[v1.ConfirmPendingNetworkGenerationRequest, v1.ConfirmPendingNetworkGenerationResponse](
-			httpClient,
-			baseURL+OrchestratorServiceConfirmPendingNetworkGenerationProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("ConfirmPendingNetworkGeneration")),
-			connect.WithClientOptions(opts...),
-		),
-		shutdownAll: connect.NewClient[v1.ShutdownAllRequest, v1.ShutdownAllResponse](
-			httpClient,
-			baseURL+OrchestratorServiceShutdownAllProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("ShutdownAll")),
-			connect.WithClientOptions(opts...),
-		),
-		shutdown: connect.NewClient[v1.ShutdownRequest, v1.ShutdownResponse](
-			httpClient,
-			baseURL+OrchestratorServiceShutdownProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("Shutdown")),
-			connect.WithClientOptions(opts...),
-		),
-		adoptOwner: connect.NewClient[v1.AdoptOwnerRequest, v1.AdoptOwnerResponse](
-			httpClient,
-			baseURL+OrchestratorServiceAdoptOwnerProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("AdoptOwner")),
-			connect.WithClientOptions(opts...),
-		),
-		getBTCPrice: connect.NewClient[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetBTCPriceProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetBTCPrice")),
-			connect.WithClientOptions(opts...),
-		),
-		getMainchainBlockchainInfo: connect.NewClient[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetMainchainBlockchainInfoProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBlockchainInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		getEnforcerBlockchainInfo: connect.NewClient[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetEnforcerBlockchainInfoProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetEnforcerBlockchainInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		getSyncStatus: connect.NewClient[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetSyncStatusProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetSyncStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		getDownloadStatus: connect.NewClient[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetDownloadStatusProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetDownloadStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		getMainchainBalance: connect.NewClient[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetMainchainBalanceProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		getSidechainBalance: connect.NewClient[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetSidechainBalanceProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetSidechainBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		gatherFilesToDelete: connect.NewClient[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGatherFilesToDeleteProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GatherFilesToDelete")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteFiles: connect.NewClient[v1.DeleteFilesRequest, v1.DeleteFilesResponse](
-			httpClient,
-			baseURL+OrchestratorServiceDeleteFilesProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
-			connect.WithClientOptions(opts...),
-		),
-		rejectBlock: connect.NewClient[v1.RejectBlockRequest, v1.RejectBlockResponse](
-			httpClient,
-			baseURL+OrchestratorServiceRejectBlockProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("RejectBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		acceptBlock: connect.NewClient[v1.AcceptBlockRequest, v1.AcceptBlockResponse](
-			httpClient,
-			baseURL+OrchestratorServiceAcceptBlockProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("AcceptBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		resetToBlock: connect.NewClient[v1.ResetToBlockRequest, v1.ResetToBlockResponse](
-			httpClient,
-			baseURL+OrchestratorServiceResetToBlockProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("ResetToBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		getCoreMempoolInfo: connect.NewClient[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetCoreMempoolInfoProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetCoreMempoolInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		getBmmContext: connect.NewClient[v1.GetBmmContextRequest, v1.GetBmmContextResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetBmmContextProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetBmmContext")),
-			connect.WithClientOptions(opts...),
-		),
-		coreRawCall: connect.NewClient[v1.CoreRawCallRequest, v1.CoreRawCallResponse](
-			httpClient,
-			baseURL+OrchestratorServiceCoreRawCallProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("CoreRawCall")),
-			connect.WithClientOptions(opts...),
-		),
-		getForkStatus: connect.NewClient[v1.GetForkStatusRequest, v1.GetForkStatusResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetForkStatusProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetForkStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		previewECashMigration: connect.NewClient[v1.PreviewECashMigrationRequest, v1.PreviewECashMigrationResponse](
-			httpClient,
-			baseURL+OrchestratorServicePreviewECashMigrationProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("PreviewECashMigration")),
-			connect.WithClientOptions(opts...),
-		),
-		startECashMigration: connect.NewClient[v1.StartECashMigrationRequest, v1.StartECashMigrationResponse](
-			httpClient,
-			baseURL+OrchestratorServiceStartECashMigrationProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("StartECashMigration")),
-			connect.WithClientOptions(opts...),
-		),
-		getECashMigrationStatus: connect.NewClient[v1.GetECashMigrationStatusRequest, v1.GetECashMigrationStatusResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetECashMigrationStatusProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetECashMigrationStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		getDatadirNetwork: connect.NewClient[v1.GetDatadirNetworkRequest, v1.GetDatadirNetworkResponse](
-			httpClient,
-			baseURL+OrchestratorServiceGetDatadirNetworkProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("GetDatadirNetwork")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewOrchestratorServiceClient(client *connect.Client) OrchestratorServiceClient {
+	return &orchestratorServiceClient{client: client}
+}
+
+// OrchestratorServiceStreamLogsClientStream is the client stream for the OrchestratorService's
+// StreamLogs RPC.
+type OrchestratorServiceStreamLogsClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceStreamLogsClientStream) Receive() (*v1.StreamLogsResponse, error) {
+	var res v1.StreamLogsResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// orchestratorServiceClient implements OrchestratorServiceClient.
-type orchestratorServiceClient struct {
-	listBinaries                    *connect.Client[v1.ListBinariesRequest, v1.ListBinariesResponse]
-	getBinaryStatus                 *connect.Client[v1.GetBinaryStatusRequest, v1.GetBinaryStatusResponse]
-	getBinaryVersion                *connect.Client[v1.GetBinaryVersionRequest, v1.GetBinaryVersionResponse]
-	downloadBinary                  *connect.Client[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse]
-	startBinary                     *connect.Client[v1.StartBinaryRequest, v1.StartBinaryResponse]
-	stopBinary                      *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
-	streamLogs                      *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
-	startWithL1                     *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
-	restartDaemon                   *connect.Client[v1.RestartDaemonRequest, v1.RestartDaemonResponse]
-	restartL1                       *connect.Client[v1.RestartL1Request, v1.RestartL1Response]
-	applyUTXOSnapshot               *connect.Client[v1.ApplyUTXOSnapshotRequest, v1.ApplyUTXOSnapshotResponse]
-	getSnapshotStatus               *connect.Client[v1.GetSnapshotStatusRequest, v1.GetSnapshotStatusResponse]
-	getPendingNetworkGeneration     *connect.Client[v1.GetPendingNetworkGenerationRequest, v1.GetPendingNetworkGenerationResponse]
-	confirmPendingNetworkGeneration *connect.Client[v1.ConfirmPendingNetworkGenerationRequest, v1.ConfirmPendingNetworkGenerationResponse]
-	shutdownAll                     *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
-	shutdown                        *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
-	adoptOwner                      *connect.Client[v1.AdoptOwnerRequest, v1.AdoptOwnerResponse]
-	getBTCPrice                     *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
-	getMainchainBlockchainInfo      *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
-	getEnforcerBlockchainInfo       *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
-	getSyncStatus                   *connect.Client[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse]
-	getDownloadStatus               *connect.Client[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse]
-	getMainchainBalance             *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
-	getSidechainBalance             *connect.Client[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse]
-	gatherFilesToDelete             *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
-	deleteFiles                     *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
-	rejectBlock                     *connect.Client[v1.RejectBlockRequest, v1.RejectBlockResponse]
-	acceptBlock                     *connect.Client[v1.AcceptBlockRequest, v1.AcceptBlockResponse]
-	resetToBlock                    *connect.Client[v1.ResetToBlockRequest, v1.ResetToBlockResponse]
-	getCoreMempoolInfo              *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
-	getBmmContext                   *connect.Client[v1.GetBmmContextRequest, v1.GetBmmContextResponse]
-	coreRawCall                     *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
-	getForkStatus                   *connect.Client[v1.GetForkStatusRequest, v1.GetForkStatusResponse]
-	previewECashMigration           *connect.Client[v1.PreviewECashMigrationRequest, v1.PreviewECashMigrationResponse]
-	startECashMigration             *connect.Client[v1.StartECashMigrationRequest, v1.StartECashMigrationResponse]
-	getECashMigrationStatus         *connect.Client[v1.GetECashMigrationStatusRequest, v1.GetECashMigrationStatusResponse]
-	getDatadirNetwork               *connect.Client[v1.GetDatadirNetworkRequest, v1.GetDatadirNetworkResponse]
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceStreamLogsClientStream) Close() error {
+	return s.stream.Close()
 }
 
-// ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
-func (c *orchestratorServiceClient) ListBinaries(ctx context.Context, req *connect.Request[v1.ListBinariesRequest]) (*connect.Response[v1.ListBinariesResponse], error) {
-	return c.listBinaries.CallUnary(ctx, req)
+// OrchestratorServiceApplyUTXOSnapshotClientStream is the client stream for the
+// OrchestratorService's ApplyUTXOSnapshot RPC.
+type OrchestratorServiceApplyUTXOSnapshotClientStream struct {
+	stream connect.ClientStream
 }
 
-// GetBinaryStatus calls orchestrator.v1.OrchestratorService.GetBinaryStatus.
-func (c *orchestratorServiceClient) GetBinaryStatus(ctx context.Context, req *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error) {
-	return c.getBinaryStatus.CallUnary(ctx, req)
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceApplyUTXOSnapshotClientStream) Receive() (*v1.ApplyUTXOSnapshotResponse, error) {
+	var res v1.ApplyUTXOSnapshotResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// GetBinaryVersion calls orchestrator.v1.OrchestratorService.GetBinaryVersion.
-func (c *orchestratorServiceClient) GetBinaryVersion(ctx context.Context, req *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error) {
-	return c.getBinaryVersion.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceApplyUTXOSnapshotClientStream) Close() error {
+	return s.stream.Close()
 }
 
-// DownloadBinary calls orchestrator.v1.OrchestratorService.DownloadBinary.
-func (c *orchestratorServiceClient) DownloadBinary(ctx context.Context, req *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error) {
-	return c.downloadBinary.CallUnary(ctx, req)
+// OrchestratorServiceShutdownAllClientStream is the client stream for the OrchestratorService's
+// ShutdownAll RPC.
+type OrchestratorServiceShutdownAllClientStream struct {
+	stream connect.ClientStream
 }
 
-// StartBinary calls orchestrator.v1.OrchestratorService.StartBinary.
-func (c *orchestratorServiceClient) StartBinary(ctx context.Context, req *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error) {
-	return c.startBinary.CallUnary(ctx, req)
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceShutdownAllClientStream) Receive() (*v1.ShutdownAllResponse, error) {
+	var res v1.ShutdownAllResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// StopBinary calls orchestrator.v1.OrchestratorService.StopBinary.
-func (c *orchestratorServiceClient) StopBinary(ctx context.Context, req *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error) {
-	return c.stopBinary.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceShutdownAllClientStream) Close() error {
+	return s.stream.Close()
 }
 
-// StreamLogs calls orchestrator.v1.OrchestratorService.StreamLogs.
-func (c *orchestratorServiceClient) StreamLogs(ctx context.Context, req *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.StreamLogsResponse], error) {
-	return c.streamLogs.CallServerStream(ctx, req)
+// OrchestratorServiceDeleteFilesClientStream is the client stream for the OrchestratorService's
+// DeleteFiles RPC.
+type OrchestratorServiceDeleteFilesClientStream struct {
+	stream connect.ClientStream
 }
 
-// StartWithL1 calls orchestrator.v1.OrchestratorService.StartWithL1.
-func (c *orchestratorServiceClient) StartWithL1(ctx context.Context, req *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error) {
-	return c.startWithL1.CallUnary(ctx, req)
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceDeleteFilesClientStream) Receive() (*v1.DeleteFilesResponse, error) {
+	var res v1.DeleteFilesResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// RestartDaemon calls orchestrator.v1.OrchestratorService.RestartDaemon.
-func (c *orchestratorServiceClient) RestartDaemon(ctx context.Context, req *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error) {
-	return c.restartDaemon.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceDeleteFilesClientStream) Close() error {
+	return s.stream.Close()
 }
 
-// RestartL1 calls orchestrator.v1.OrchestratorService.RestartL1.
-func (c *orchestratorServiceClient) RestartL1(ctx context.Context, req *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error) {
-	return c.restartL1.CallUnary(ctx, req)
+// OrchestratorServiceResetToBlockClientStream is the client stream for the OrchestratorService's
+// ResetToBlock RPC.
+type OrchestratorServiceResetToBlockClientStream struct {
+	stream connect.ClientStream
 }
 
-// ApplyUTXOSnapshot calls orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot.
-func (c *orchestratorServiceClient) ApplyUTXOSnapshot(ctx context.Context, req *connect.Request[v1.ApplyUTXOSnapshotRequest]) (*connect.ServerStreamForClient[v1.ApplyUTXOSnapshotResponse], error) {
-	return c.applyUTXOSnapshot.CallServerStream(ctx, req)
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceResetToBlockClientStream) Receive() (*v1.ResetToBlockResponse, error) {
+	var res v1.ResetToBlockResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// GetSnapshotStatus calls orchestrator.v1.OrchestratorService.GetSnapshotStatus.
-func (c *orchestratorServiceClient) GetSnapshotStatus(ctx context.Context, req *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error) {
-	return c.getSnapshotStatus.CallUnary(ctx, req)
-}
-
-// GetPendingNetworkGeneration calls
-// orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration.
-func (c *orchestratorServiceClient) GetPendingNetworkGeneration(ctx context.Context, req *connect.Request[v1.GetPendingNetworkGenerationRequest]) (*connect.Response[v1.GetPendingNetworkGenerationResponse], error) {
-	return c.getPendingNetworkGeneration.CallUnary(ctx, req)
-}
-
-// ConfirmPendingNetworkGeneration calls
-// orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration.
-func (c *orchestratorServiceClient) ConfirmPendingNetworkGeneration(ctx context.Context, req *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error) {
-	return c.confirmPendingNetworkGeneration.CallUnary(ctx, req)
-}
-
-// ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
-func (c *orchestratorServiceClient) ShutdownAll(ctx context.Context, req *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error) {
-	return c.shutdownAll.CallServerStream(ctx, req)
-}
-
-// Shutdown calls orchestrator.v1.OrchestratorService.Shutdown.
-func (c *orchestratorServiceClient) Shutdown(ctx context.Context, req *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
-	return c.shutdown.CallUnary(ctx, req)
-}
-
-// AdoptOwner calls orchestrator.v1.OrchestratorService.AdoptOwner.
-func (c *orchestratorServiceClient) AdoptOwner(ctx context.Context, req *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error) {
-	return c.adoptOwner.CallUnary(ctx, req)
-}
-
-// GetBTCPrice calls orchestrator.v1.OrchestratorService.GetBTCPrice.
-func (c *orchestratorServiceClient) GetBTCPrice(ctx context.Context, req *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error) {
-	return c.getBTCPrice.CallUnary(ctx, req)
-}
-
-// GetMainchainBlockchainInfo calls orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo.
-func (c *orchestratorServiceClient) GetMainchainBlockchainInfo(ctx context.Context, req *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error) {
-	return c.getMainchainBlockchainInfo.CallUnary(ctx, req)
-}
-
-// GetEnforcerBlockchainInfo calls orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo.
-func (c *orchestratorServiceClient) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error) {
-	return c.getEnforcerBlockchainInfo.CallUnary(ctx, req)
-}
-
-// GetSyncStatus calls orchestrator.v1.OrchestratorService.GetSyncStatus.
-func (c *orchestratorServiceClient) GetSyncStatus(ctx context.Context, req *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error) {
-	return c.getSyncStatus.CallUnary(ctx, req)
-}
-
-// GetDownloadStatus calls orchestrator.v1.OrchestratorService.GetDownloadStatus.
-func (c *orchestratorServiceClient) GetDownloadStatus(ctx context.Context, req *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error) {
-	return c.getDownloadStatus.CallUnary(ctx, req)
-}
-
-// GetMainchainBalance calls orchestrator.v1.OrchestratorService.GetMainchainBalance.
-func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {
-	return c.getMainchainBalance.CallUnary(ctx, req)
-}
-
-// GetSidechainBalance calls orchestrator.v1.OrchestratorService.GetSidechainBalance.
-func (c *orchestratorServiceClient) GetSidechainBalance(ctx context.Context, req *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error) {
-	return c.getSidechainBalance.CallUnary(ctx, req)
-}
-
-// GatherFilesToDelete calls orchestrator.v1.OrchestratorService.GatherFilesToDelete.
-func (c *orchestratorServiceClient) GatherFilesToDelete(ctx context.Context, req *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error) {
-	return c.gatherFilesToDelete.CallUnary(ctx, req)
-}
-
-// DeleteFiles calls orchestrator.v1.OrchestratorService.DeleteFiles.
-func (c *orchestratorServiceClient) DeleteFiles(ctx context.Context, req *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error) {
-	return c.deleteFiles.CallServerStream(ctx, req)
-}
-
-// RejectBlock calls orchestrator.v1.OrchestratorService.RejectBlock.
-func (c *orchestratorServiceClient) RejectBlock(ctx context.Context, req *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error) {
-	return c.rejectBlock.CallUnary(ctx, req)
-}
-
-// AcceptBlock calls orchestrator.v1.OrchestratorService.AcceptBlock.
-func (c *orchestratorServiceClient) AcceptBlock(ctx context.Context, req *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error) {
-	return c.acceptBlock.CallUnary(ctx, req)
-}
-
-// ResetToBlock calls orchestrator.v1.OrchestratorService.ResetToBlock.
-func (c *orchestratorServiceClient) ResetToBlock(ctx context.Context, req *connect.Request[v1.ResetToBlockRequest]) (*connect.ServerStreamForClient[v1.ResetToBlockResponse], error) {
-	return c.resetToBlock.CallServerStream(ctx, req)
-}
-
-// GetCoreMempoolInfo calls orchestrator.v1.OrchestratorService.GetCoreMempoolInfo.
-func (c *orchestratorServiceClient) GetCoreMempoolInfo(ctx context.Context, req *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
-	return c.getCoreMempoolInfo.CallUnary(ctx, req)
-}
-
-// GetBmmContext calls orchestrator.v1.OrchestratorService.GetBmmContext.
-func (c *orchestratorServiceClient) GetBmmContext(ctx context.Context, req *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error) {
-	return c.getBmmContext.CallUnary(ctx, req)
-}
-
-// CoreRawCall calls orchestrator.v1.OrchestratorService.CoreRawCall.
-func (c *orchestratorServiceClient) CoreRawCall(ctx context.Context, req *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error) {
-	return c.coreRawCall.CallUnary(ctx, req)
-}
-
-// GetForkStatus calls orchestrator.v1.OrchestratorService.GetForkStatus.
-func (c *orchestratorServiceClient) GetForkStatus(ctx context.Context, req *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error) {
-	return c.getForkStatus.CallUnary(ctx, req)
-}
-
-// PreviewECashMigration calls orchestrator.v1.OrchestratorService.PreviewECashMigration.
-func (c *orchestratorServiceClient) PreviewECashMigration(ctx context.Context, req *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error) {
-	return c.previewECashMigration.CallUnary(ctx, req)
-}
-
-// StartECashMigration calls orchestrator.v1.OrchestratorService.StartECashMigration.
-func (c *orchestratorServiceClient) StartECashMigration(ctx context.Context, req *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error) {
-	return c.startECashMigration.CallUnary(ctx, req)
-}
-
-// GetECashMigrationStatus calls orchestrator.v1.OrchestratorService.GetECashMigrationStatus.
-func (c *orchestratorServiceClient) GetECashMigrationStatus(ctx context.Context, req *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error) {
-	return c.getECashMigrationStatus.CallUnary(ctx, req)
-}
-
-// GetDatadirNetwork calls orchestrator.v1.OrchestratorService.GetDatadirNetwork.
-func (c *orchestratorServiceClient) GetDatadirNetwork(ctx context.Context, req *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error) {
-	return c.getDatadirNetwork.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceResetToBlockClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
-	// List all configured binaries and their status.
-	ListBinaries(context.Context, *connect.Request[v1.ListBinariesRequest]) (*connect.Response[v1.ListBinariesResponse], error)
-	// Get the status of a single binary.
-	GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error)
-	// Resolve a binary's on-disk path the same way the launcher does (variant-
-	// and test-build aware, honoring force_backend) and return its --version
-	// output. The frontend must never re-derive the path or shell out itself;
-	// this RPC is the single source of truth for "which binary, what version".
-	GetBinaryVersion(context.Context, *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error)
-	// Download a binary with streaming progress.
-	// Kicks off a download in a background goroutine and returns
-	// immediately. Progress (MB downloaded / total, is_downloading) is
-	// polled out of GetSyncStatus, never tied to this RPC's lifetime — so
-	// a transport blip can't cancel an in-flight download.
-	DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error)
-	// Start a binary.
-	StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error)
-	// Stop a binary.
-	StopBinary(context.Context, *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error)
-	// Stream stdout/stderr from a binary.
-	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.StreamLogsResponse]) error
-	// Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
-	// target). Fire-and-forget on the server: returns as soon as the boot
-	// goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
-	// download progress and connection state — never tied to this RPC's
-	// lifetime, so a transport blip can't kill an in-flight download.
-	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error)
-	// Stop the named binary and start it again, single-daemon scope. Never
-	// touches sibling daemons: restarting "enforcer" never spawns or adopts
-	// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
-	// StartWithL1 stays the entry point for full-chain bootstrap. Same
-	// fire-and-forget shape as StartWithL1.
-	RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error)
-	// Restart the whole L1 stack (bitcoind + enforcer) on the current config.
-	// Stops both (a not-running daemon is skipped, never an error) then boots
-	// the L1 chain via the same path as StartWithL1. Running sidechains are left
-	// alone — they reconnect once the enforcer is back. Fire-and-forget: returns
-	// as soon as the boot goroutine is dispatched. Use this for the "Restart
-	// Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
-	RestartL1(context.Context, *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error)
-	// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
-	// load progress; a snapshot Core refuses (its base block already passed, or
-	// a snapshot already loaded in this datadir) comes back as an error carrying
-	// Core's own message. Nothing is stopped, restarted or deleted.
-	ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest], *connect.ServerStream[v1.ApplyUTXOSnapshotResponse]) error
-	// The UTXO snapshot published for the active network (from the network
-	// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
-	// settings UI: pre-fills the snapshot field and shows what is loaded.
-	GetSnapshotStatus(context.Context, *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error)
-	// The eCash network published but not switched to yet. Feeds the upgrade
-	// prompt; pending_network_id is empty when already on the newest one.
-	GetPendingNetworkGeneration(context.Context, *connect.Request[v1.GetPendingNetworkGenerationRequest]) (*connect.Response[v1.GetPendingNetworkGenerationResponse], error)
-	// Record the user's go-ahead to switch to the published eCash network.
-	// Nothing is stopped or deleted here: the caller must restart the backends,
-	// and the switch runs on the next start. Wallets survive, chain history and
-	// its transactions do not — only call with the user's confirmation.
-	ConfirmPendingNetworkGeneration(context.Context, *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error)
-	// Shutdown all running binaries.
-	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
-	// Detached-daemon shutdown. bitwindowd calls this on window close;
-	// drivechaind acks immediately, drains its children (bitcoind, enforcer,
-	// sidechains) in a background goroutine, and os.Exit(0)s when done.
-	// Idempotent. If bitwindow is relaunched while the drain is still in
-	// flight, the next StartWithL1 transparently adopts it (flips the
-	// will-exit bit + awaits the in-flight stops) before booting a fresh
-	// stack — no separate cancel/await RPCs needed by callers.
-	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
-	// Point the daemon at the frontend process that owns it now. An app update
-	// replaces the frontend with a new process, and the daemon drains itself a
-	// few seconds after the old one dies. bitwindowd calls this the moment it
-	// finds a live daemon, so the warm stack survives the swap.
-	AdoptOwner(context.Context, *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error)
-	// Get the current BTC/USD exchange rate.
-	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
-	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
-	GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error)
-	// Get blockchain info from the enforcer (proxied via orchestrator).
-	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
-	// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
-	// Backend fans out to all three in parallel so the three numbers are taken
-	// at the same wall-clock instant — no two cards in the UI can ever disagree.
-	GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error)
-	// Snapshot of every binary the orchestrator is currently downloading.
-	// Reads from the in-memory DownloadManager state — light, polled by the
-	// frontend's DownloadProvider on a fast (100ms) cadence while a download
-	// is in flight, and dropping back to 2s when the response is empty.
-	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
-	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
-	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
-	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
-	GetSidechainBalance(context.Context, *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error)
-	// Gather the files/dirs that would be deleted for a per-binary deletion spec
-	// (no side effects). Shared by the single-binary wipe and the full reset page.
-	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
-	// Delete the selected files. Stops binaries first; wallet paths are moved to
-	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
-	// Streams one message per path; an unset error means that path succeeded.
-	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error
-	// Drop a block Core must not follow. Core rejects it and every block above
-	// it, then follows the best remaining valid branch.
-	RejectBlock(context.Context, *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error)
-	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
-	// again when it has the most work.
-	AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error)
-	// Move the chain back to a block, then sync forward to the tip again. Core
-	// drops the block and every block above it, then re-validates them from
-	// disk. Streams one message per phase.
-	ResetToBlock(context.Context, *connect.Request[v1.ResetToBlockRequest], *connect.ServerStream[v1.ResetToBlockResponse]) error
-	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
-	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
-	// Parent-chain state the sidechain BMM tab bids against: the tip a request
-	// targets, the fee rate it competes with, mempool depth.
-	GetBmmContext(context.Context, *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error)
-	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
-	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
-	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
-	// ─── eCash fork ───────────────────────────────────────────────────────────
-	// Report where the mainchain tip sits relative to the eCash fork height.
-	// The orchestrator is the single source of truth for the fork height; the
-	// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
-	// pre-fork coin detection and the sweep itself stay in the frontend via the
-	// existing WalletManagerService (listUnspent / sendTransaction), one call
-	// per wallet — this RPC only supplies the height.
-	GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error)
-	// Read the migration plan from the daemon without changes to node files.
-	PreviewECashMigration(context.Context, *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error)
-	// Start or resume a migration that continues after the client disconnects.
-	StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error)
-	// Read the saved migration state from the daemon.
-	GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error)
-	// Read the network the blocks on disk belong to, next to the one the app
-	// runs. The blocks name the chain, so a datadir from another network says so
-	// before a rollback throws the balance away.
-	GetDatadirNetwork(context.Context, *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error)
+	ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error)
+	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
+	GetBinaryVersion(context.Context, *v1.GetBinaryVersionRequest) (*v1.GetBinaryVersionResponse, error)
+	DownloadBinary(context.Context, *v1.DownloadBinaryRequest) (*v1.DownloadBinaryResponse, error)
+	StartBinary(context.Context, *v1.StartBinaryRequest) (*v1.StartBinaryResponse, error)
+	StopBinary(context.Context, *v1.StopBinaryRequest) (*v1.StopBinaryResponse, error)
+	StreamLogs(context.Context, *v1.StreamLogsRequest, OrchestratorServiceStreamLogsServerStream) error
+	StartWithL1(context.Context, *v1.StartWithL1Request) (*v1.StartWithL1Response, error)
+	RestartDaemon(context.Context, *v1.RestartDaemonRequest) (*v1.RestartDaemonResponse, error)
+	RestartL1(context.Context, *v1.RestartL1Request) (*v1.RestartL1Response, error)
+	ApplyUTXOSnapshot(context.Context, *v1.ApplyUTXOSnapshotRequest, OrchestratorServiceApplyUTXOSnapshotServerStream) error
+	GetSnapshotStatus(context.Context, *v1.GetSnapshotStatusRequest) (*v1.GetSnapshotStatusResponse, error)
+	GetPendingNetworkGeneration(context.Context, *v1.GetPendingNetworkGenerationRequest) (*v1.GetPendingNetworkGenerationResponse, error)
+	ConfirmPendingNetworkGeneration(context.Context, *v1.ConfirmPendingNetworkGenerationRequest) (*v1.ConfirmPendingNetworkGenerationResponse, error)
+	ShutdownAll(context.Context, *v1.ShutdownAllRequest, OrchestratorServiceShutdownAllServerStream) error
+	Shutdown(context.Context, *v1.ShutdownRequest) (*v1.ShutdownResponse, error)
+	AdoptOwner(context.Context, *v1.AdoptOwnerRequest) (*v1.AdoptOwnerResponse, error)
+	GetBTCPrice(context.Context, *v1.GetBTCPriceRequest) (*v1.GetBTCPriceResponse, error)
+	GetMainchainBlockchainInfo(context.Context, *v1.GetMainchainBlockchainInfoRequest) (*v1.GetMainchainBlockchainInfoResponse, error)
+	GetEnforcerBlockchainInfo(context.Context, *v1.GetEnforcerBlockchainInfoRequest) (*v1.GetEnforcerBlockchainInfoResponse, error)
+	GetSyncStatus(context.Context, *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error)
+	GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error)
+	GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error)
+	GetSidechainBalance(context.Context, *v1.GetSidechainBalanceRequest) (*v1.GetSidechainBalanceResponse, error)
+	GatherFilesToDelete(context.Context, *v1.GatherFilesToDeleteRequest) (*v1.GatherFilesToDeleteResponse, error)
+	DeleteFiles(context.Context, *v1.DeleteFilesRequest, OrchestratorServiceDeleteFilesServerStream) error
+	RejectBlock(context.Context, *v1.RejectBlockRequest) (*v1.RejectBlockResponse, error)
+	AcceptBlock(context.Context, *v1.AcceptBlockRequest) (*v1.AcceptBlockResponse, error)
+	ResetToBlock(context.Context, *v1.ResetToBlockRequest, OrchestratorServiceResetToBlockServerStream) error
+	GetCoreMempoolInfo(context.Context, *v1.GetCoreMempoolInfoRequest) (*v1.GetCoreMempoolInfoResponse, error)
+	GetBmmContext(context.Context, *v1.GetBmmContextRequest) (*v1.GetBmmContextResponse, error)
+	CoreRawCall(context.Context, *v1.CoreRawCallRequest) (*v1.CoreRawCallResponse, error)
+	GetForkStatus(context.Context, *v1.GetForkStatusRequest) (*v1.GetForkStatusResponse, error)
+	PreviewECashMigration(context.Context, *v1.PreviewECashMigrationRequest) (*v1.PreviewECashMigrationResponse, error)
+	StartECashMigration(context.Context, *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error)
+	GetECashMigrationStatus(context.Context, *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error)
+	GetDatadirNetwork(context.Context, *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error)
 }
 
-// NewOrchestratorServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	orchestratorServiceMethods := v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods()
-	orchestratorServiceListBinariesHandler := connect.NewUnaryHandler(
-		OrchestratorServiceListBinariesProcedure,
-		svc.ListBinaries,
-		connect.WithSchema(orchestratorServiceMethods.ByName("ListBinaries")),
-		connect.WithHandlerOptions(opts...),
+// RegisterOrchestratorServiceHandler registers svc as the orchestrator.v1.OrchestratorService
+// implementation on server.
+func RegisterOrchestratorServiceHandler(server *connect.Server, svc OrchestratorServiceHandler) {
+	adapter := orchestratorServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: orchestratorServiceListBinariesSpec(), Handler: adapter.listBinaries},
+		connect.Method{Spec: orchestratorServiceGetBinaryStatusSpec(), Handler: adapter.getBinaryStatus},
+		connect.Method{Spec: orchestratorServiceGetBinaryVersionSpec(), Handler: adapter.getBinaryVersion},
+		connect.Method{Spec: orchestratorServiceDownloadBinarySpec(), Handler: adapter.downloadBinary},
+		connect.Method{Spec: orchestratorServiceStartBinarySpec(), Handler: adapter.startBinary},
+		connect.Method{Spec: orchestratorServiceStopBinarySpec(), Handler: adapter.stopBinary},
+		connect.Method{Spec: orchestratorServiceStreamLogsSpec(), Handler: adapter.streamLogs},
+		connect.Method{Spec: orchestratorServiceStartWithL1Spec(), Handler: adapter.startWithL1},
+		connect.Method{Spec: orchestratorServiceRestartDaemonSpec(), Handler: adapter.restartDaemon},
+		connect.Method{Spec: orchestratorServiceRestartL1Spec(), Handler: adapter.restartL1},
+		connect.Method{Spec: orchestratorServiceApplyUTXOSnapshotSpec(), Handler: adapter.applyUTXOSnapshot},
+		connect.Method{Spec: orchestratorServiceGetSnapshotStatusSpec(), Handler: adapter.getSnapshotStatus},
+		connect.Method{Spec: orchestratorServiceGetPendingNetworkGenerationSpec(), Handler: adapter.getPendingNetworkGeneration},
+		connect.Method{Spec: orchestratorServiceConfirmPendingNetworkGenerationSpec(), Handler: adapter.confirmPendingNetworkGeneration},
+		connect.Method{Spec: orchestratorServiceShutdownAllSpec(), Handler: adapter.shutdownAll},
+		connect.Method{Spec: orchestratorServiceShutdownSpec(), Handler: adapter.shutdown},
+		connect.Method{Spec: orchestratorServiceAdoptOwnerSpec(), Handler: adapter.adoptOwner},
+		connect.Method{Spec: orchestratorServiceGetBTCPriceSpec(), Handler: adapter.getBTCPrice},
+		connect.Method{Spec: orchestratorServiceGetMainchainBlockchainInfoSpec(), Handler: adapter.getMainchainBlockchainInfo},
+		connect.Method{Spec: orchestratorServiceGetEnforcerBlockchainInfoSpec(), Handler: adapter.getEnforcerBlockchainInfo},
+		connect.Method{Spec: orchestratorServiceGetSyncStatusSpec(), Handler: adapter.getSyncStatus},
+		connect.Method{Spec: orchestratorServiceGetDownloadStatusSpec(), Handler: adapter.getDownloadStatus},
+		connect.Method{Spec: orchestratorServiceGetMainchainBalanceSpec(), Handler: adapter.getMainchainBalance},
+		connect.Method{Spec: orchestratorServiceGetSidechainBalanceSpec(), Handler: adapter.getSidechainBalance},
+		connect.Method{Spec: orchestratorServiceGatherFilesToDeleteSpec(), Handler: adapter.gatherFilesToDelete},
+		connect.Method{Spec: orchestratorServiceDeleteFilesSpec(), Handler: adapter.deleteFiles},
+		connect.Method{Spec: orchestratorServiceRejectBlockSpec(), Handler: adapter.rejectBlock},
+		connect.Method{Spec: orchestratorServiceAcceptBlockSpec(), Handler: adapter.acceptBlock},
+		connect.Method{Spec: orchestratorServiceResetToBlockSpec(), Handler: adapter.resetToBlock},
+		connect.Method{Spec: orchestratorServiceGetCoreMempoolInfoSpec(), Handler: adapter.getCoreMempoolInfo},
+		connect.Method{Spec: orchestratorServiceGetBmmContextSpec(), Handler: adapter.getBmmContext},
+		connect.Method{Spec: orchestratorServiceCoreRawCallSpec(), Handler: adapter.coreRawCall},
+		connect.Method{Spec: orchestratorServiceGetForkStatusSpec(), Handler: adapter.getForkStatus},
+		connect.Method{Spec: orchestratorServicePreviewECashMigrationSpec(), Handler: adapter.previewECashMigration},
+		connect.Method{Spec: orchestratorServiceStartECashMigrationSpec(), Handler: adapter.startECashMigration},
+		connect.Method{Spec: orchestratorServiceGetECashMigrationStatusSpec(), Handler: adapter.getECashMigrationStatus},
+		connect.Method{Spec: orchestratorServiceGetDatadirNetworkSpec(), Handler: adapter.getDatadirNetwork},
 	)
-	orchestratorServiceGetBinaryStatusHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetBinaryStatusProcedure,
-		svc.GetBinaryStatus,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetBinaryVersionHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetBinaryVersionProcedure,
-		svc.GetBinaryVersion,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryVersion")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceDownloadBinaryHandler := connect.NewUnaryHandler(
-		OrchestratorServiceDownloadBinaryProcedure,
-		svc.DownloadBinary,
-		connect.WithSchema(orchestratorServiceMethods.ByName("DownloadBinary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceStartBinaryHandler := connect.NewUnaryHandler(
-		OrchestratorServiceStartBinaryProcedure,
-		svc.StartBinary,
-		connect.WithSchema(orchestratorServiceMethods.ByName("StartBinary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceStopBinaryHandler := connect.NewUnaryHandler(
-		OrchestratorServiceStopBinaryProcedure,
-		svc.StopBinary,
-		connect.WithSchema(orchestratorServiceMethods.ByName("StopBinary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceStreamLogsHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceStreamLogsProcedure,
-		svc.StreamLogs,
-		connect.WithSchema(orchestratorServiceMethods.ByName("StreamLogs")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceStartWithL1Handler := connect.NewUnaryHandler(
-		OrchestratorServiceStartWithL1Procedure,
-		svc.StartWithL1,
-		connect.WithSchema(orchestratorServiceMethods.ByName("StartWithL1")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceRestartDaemonHandler := connect.NewUnaryHandler(
-		OrchestratorServiceRestartDaemonProcedure,
-		svc.RestartDaemon,
-		connect.WithSchema(orchestratorServiceMethods.ByName("RestartDaemon")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceRestartL1Handler := connect.NewUnaryHandler(
-		OrchestratorServiceRestartL1Procedure,
-		svc.RestartL1,
-		connect.WithSchema(orchestratorServiceMethods.ByName("RestartL1")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceApplyUTXOSnapshotHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceApplyUTXOSnapshotProcedure,
-		svc.ApplyUTXOSnapshot,
-		connect.WithSchema(orchestratorServiceMethods.ByName("ApplyUTXOSnapshot")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetSnapshotStatusHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetSnapshotStatusProcedure,
-		svc.GetSnapshotStatus,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetSnapshotStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetPendingNetworkGenerationHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetPendingNetworkGenerationProcedure,
-		svc.GetPendingNetworkGeneration,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetPendingNetworkGeneration")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceConfirmPendingNetworkGenerationHandler := connect.NewUnaryHandler(
-		OrchestratorServiceConfirmPendingNetworkGenerationProcedure,
-		svc.ConfirmPendingNetworkGeneration,
-		connect.WithSchema(orchestratorServiceMethods.ByName("ConfirmPendingNetworkGeneration")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceShutdownAllHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceShutdownAllProcedure,
-		svc.ShutdownAll,
-		connect.WithSchema(orchestratorServiceMethods.ByName("ShutdownAll")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceShutdownHandler := connect.NewUnaryHandler(
-		OrchestratorServiceShutdownProcedure,
-		svc.Shutdown,
-		connect.WithSchema(orchestratorServiceMethods.ByName("Shutdown")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceAdoptOwnerHandler := connect.NewUnaryHandler(
-		OrchestratorServiceAdoptOwnerProcedure,
-		svc.AdoptOwner,
-		connect.WithSchema(orchestratorServiceMethods.ByName("AdoptOwner")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetBTCPriceHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetBTCPriceProcedure,
-		svc.GetBTCPrice,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetBTCPrice")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetMainchainBlockchainInfoHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetMainchainBlockchainInfoProcedure,
-		svc.GetMainchainBlockchainInfo,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBlockchainInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetEnforcerBlockchainInfoHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetEnforcerBlockchainInfoProcedure,
-		svc.GetEnforcerBlockchainInfo,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetEnforcerBlockchainInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetSyncStatusHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetSyncStatusProcedure,
-		svc.GetSyncStatus,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetSyncStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetDownloadStatusHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetDownloadStatusProcedure,
-		svc.GetDownloadStatus,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetDownloadStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetMainchainBalanceHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetMainchainBalanceProcedure,
-		svc.GetMainchainBalance,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetSidechainBalanceHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetSidechainBalanceProcedure,
-		svc.GetSidechainBalance,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetSidechainBalance")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGatherFilesToDeleteHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGatherFilesToDeleteProcedure,
-		svc.GatherFilesToDelete,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GatherFilesToDelete")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceDeleteFilesHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceDeleteFilesProcedure,
-		svc.DeleteFiles,
-		connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceRejectBlockHandler := connect.NewUnaryHandler(
-		OrchestratorServiceRejectBlockProcedure,
-		svc.RejectBlock,
-		connect.WithSchema(orchestratorServiceMethods.ByName("RejectBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceAcceptBlockHandler := connect.NewUnaryHandler(
-		OrchestratorServiceAcceptBlockProcedure,
-		svc.AcceptBlock,
-		connect.WithSchema(orchestratorServiceMethods.ByName("AcceptBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceResetToBlockHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceResetToBlockProcedure,
-		svc.ResetToBlock,
-		connect.WithSchema(orchestratorServiceMethods.ByName("ResetToBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetCoreMempoolInfoHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetCoreMempoolInfoProcedure,
-		svc.GetCoreMempoolInfo,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetCoreMempoolInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetBmmContextHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetBmmContextProcedure,
-		svc.GetBmmContext,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetBmmContext")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceCoreRawCallHandler := connect.NewUnaryHandler(
-		OrchestratorServiceCoreRawCallProcedure,
-		svc.CoreRawCall,
-		connect.WithSchema(orchestratorServiceMethods.ByName("CoreRawCall")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetForkStatusHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetForkStatusProcedure,
-		svc.GetForkStatus,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetForkStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServicePreviewECashMigrationHandler := connect.NewUnaryHandler(
-		OrchestratorServicePreviewECashMigrationProcedure,
-		svc.PreviewECashMigration,
-		connect.WithSchema(orchestratorServiceMethods.ByName("PreviewECashMigration")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceStartECashMigrationHandler := connect.NewUnaryHandler(
-		OrchestratorServiceStartECashMigrationProcedure,
-		svc.StartECashMigration,
-		connect.WithSchema(orchestratorServiceMethods.ByName("StartECashMigration")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetECashMigrationStatusHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetECashMigrationStatusProcedure,
-		svc.GetECashMigrationStatus,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetECashMigrationStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	orchestratorServiceGetDatadirNetworkHandler := connect.NewUnaryHandler(
-		OrchestratorServiceGetDatadirNetworkProcedure,
-		svc.GetDatadirNetwork,
-		connect.WithSchema(orchestratorServiceMethods.ByName("GetDatadirNetwork")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/orchestrator.v1.OrchestratorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case OrchestratorServiceListBinariesProcedure:
-			orchestratorServiceListBinariesHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetBinaryStatusProcedure:
-			orchestratorServiceGetBinaryStatusHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetBinaryVersionProcedure:
-			orchestratorServiceGetBinaryVersionHandler.ServeHTTP(w, r)
-		case OrchestratorServiceDownloadBinaryProcedure:
-			orchestratorServiceDownloadBinaryHandler.ServeHTTP(w, r)
-		case OrchestratorServiceStartBinaryProcedure:
-			orchestratorServiceStartBinaryHandler.ServeHTTP(w, r)
-		case OrchestratorServiceStopBinaryProcedure:
-			orchestratorServiceStopBinaryHandler.ServeHTTP(w, r)
-		case OrchestratorServiceStreamLogsProcedure:
-			orchestratorServiceStreamLogsHandler.ServeHTTP(w, r)
-		case OrchestratorServiceStartWithL1Procedure:
-			orchestratorServiceStartWithL1Handler.ServeHTTP(w, r)
-		case OrchestratorServiceRestartDaemonProcedure:
-			orchestratorServiceRestartDaemonHandler.ServeHTTP(w, r)
-		case OrchestratorServiceRestartL1Procedure:
-			orchestratorServiceRestartL1Handler.ServeHTTP(w, r)
-		case OrchestratorServiceApplyUTXOSnapshotProcedure:
-			orchestratorServiceApplyUTXOSnapshotHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetSnapshotStatusProcedure:
-			orchestratorServiceGetSnapshotStatusHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetPendingNetworkGenerationProcedure:
-			orchestratorServiceGetPendingNetworkGenerationHandler.ServeHTTP(w, r)
-		case OrchestratorServiceConfirmPendingNetworkGenerationProcedure:
-			orchestratorServiceConfirmPendingNetworkGenerationHandler.ServeHTTP(w, r)
-		case OrchestratorServiceShutdownAllProcedure:
-			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
-		case OrchestratorServiceShutdownProcedure:
-			orchestratorServiceShutdownHandler.ServeHTTP(w, r)
-		case OrchestratorServiceAdoptOwnerProcedure:
-			orchestratorServiceAdoptOwnerHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetBTCPriceProcedure:
-			orchestratorServiceGetBTCPriceHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetMainchainBlockchainInfoProcedure:
-			orchestratorServiceGetMainchainBlockchainInfoHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetEnforcerBlockchainInfoProcedure:
-			orchestratorServiceGetEnforcerBlockchainInfoHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetSyncStatusProcedure:
-			orchestratorServiceGetSyncStatusHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetDownloadStatusProcedure:
-			orchestratorServiceGetDownloadStatusHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetMainchainBalanceProcedure:
-			orchestratorServiceGetMainchainBalanceHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetSidechainBalanceProcedure:
-			orchestratorServiceGetSidechainBalanceHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGatherFilesToDeleteProcedure:
-			orchestratorServiceGatherFilesToDeleteHandler.ServeHTTP(w, r)
-		case OrchestratorServiceDeleteFilesProcedure:
-			orchestratorServiceDeleteFilesHandler.ServeHTTP(w, r)
-		case OrchestratorServiceRejectBlockProcedure:
-			orchestratorServiceRejectBlockHandler.ServeHTTP(w, r)
-		case OrchestratorServiceAcceptBlockProcedure:
-			orchestratorServiceAcceptBlockHandler.ServeHTTP(w, r)
-		case OrchestratorServiceResetToBlockProcedure:
-			orchestratorServiceResetToBlockHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetCoreMempoolInfoProcedure:
-			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetBmmContextProcedure:
-			orchestratorServiceGetBmmContextHandler.ServeHTTP(w, r)
-		case OrchestratorServiceCoreRawCallProcedure:
-			orchestratorServiceCoreRawCallHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetForkStatusProcedure:
-			orchestratorServiceGetForkStatusHandler.ServeHTTP(w, r)
-		case OrchestratorServicePreviewECashMigrationProcedure:
-			orchestratorServicePreviewECashMigrationHandler.ServeHTTP(w, r)
-		case OrchestratorServiceStartECashMigrationProcedure:
-			orchestratorServiceStartECashMigrationHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetECashMigrationStatusProcedure:
-			orchestratorServiceGetECashMigrationStatusHandler.ServeHTTP(w, r)
-		case OrchestratorServiceGetDatadirNetworkProcedure:
-			orchestratorServiceGetDatadirNetworkHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// OrchestratorServiceStreamLogsServerStream is the server stream for the OrchestratorService's
+// StreamLogs RPC.
+type OrchestratorServiceStreamLogsServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceStreamLogsServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceStreamLogsServerStream) Send(res *v1.StreamLogsResponse) error {
+	return s.stream.Send(res)
+}
+
+// OrchestratorServiceApplyUTXOSnapshotServerStream is the server stream for the
+// OrchestratorService's ApplyUTXOSnapshot RPC.
+type OrchestratorServiceApplyUTXOSnapshotServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceApplyUTXOSnapshotServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceApplyUTXOSnapshotServerStream) Send(res *v1.ApplyUTXOSnapshotResponse) error {
+	return s.stream.Send(res)
+}
+
+// OrchestratorServiceShutdownAllServerStream is the server stream for the OrchestratorService's
+// ShutdownAll RPC.
+type OrchestratorServiceShutdownAllServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceShutdownAllServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceShutdownAllServerStream) Send(res *v1.ShutdownAllResponse) error {
+	return s.stream.Send(res)
+}
+
+// OrchestratorServiceDeleteFilesServerStream is the server stream for the OrchestratorService's
+// DeleteFiles RPC.
+type OrchestratorServiceDeleteFilesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceDeleteFilesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceDeleteFilesServerStream) Send(res *v1.DeleteFilesResponse) error {
+	return s.stream.Send(res)
+}
+
+// OrchestratorServiceResetToBlockServerStream is the server stream for the OrchestratorService's
+// ResetToBlock RPC.
+type OrchestratorServiceResetToBlockServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceResetToBlockServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceResetToBlockServerStream) Send(res *v1.ResetToBlockResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedOrchestratorServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedOrchestratorServiceHandler struct{}
 
-func (UnimplementedOrchestratorServiceHandler) ListBinaries(context.Context, *connect.Request[v1.ListBinariesRequest]) (*connect.Response[v1.ListBinariesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ListBinaries is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.ListBinaries is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBinaryStatus is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetBinaryStatus is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetBinaryVersion(context.Context, *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBinaryVersion is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetBinaryVersion(context.Context, *v1.GetBinaryVersionRequest) (*v1.GetBinaryVersionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetBinaryVersion is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.DownloadBinary is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) DownloadBinary(context.Context, *v1.DownloadBinaryRequest) (*v1.DownloadBinaryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.DownloadBinary is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartBinary is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) StartBinary(context.Context, *v1.StartBinaryRequest) (*v1.StartBinaryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.StartBinary is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) StopBinary(context.Context, *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StopBinary is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) StopBinary(context.Context, *v1.StopBinaryRequest) (*v1.StopBinaryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.StopBinary is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.StreamLogsResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StreamLogs is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) StreamLogs(context.Context, *v1.StreamLogsRequest, OrchestratorServiceStreamLogsServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.StreamLogs is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartWithL1 is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) StartWithL1(context.Context, *v1.StartWithL1Request) (*v1.StartWithL1Response, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.StartWithL1 is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.RestartDaemon is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) RestartDaemon(context.Context, *v1.RestartDaemonRequest) (*v1.RestartDaemonResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.RestartDaemon is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) RestartL1(context.Context, *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.RestartL1 is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) RestartL1(context.Context, *v1.RestartL1Request) (*v1.RestartL1Response, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.RestartL1 is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest], *connect.ServerStream[v1.ApplyUTXOSnapshotResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) ApplyUTXOSnapshot(context.Context, *v1.ApplyUTXOSnapshotRequest, OrchestratorServiceApplyUTXOSnapshotServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetSnapshotStatus(context.Context, *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetSnapshotStatus is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetSnapshotStatus(context.Context, *v1.GetSnapshotStatusRequest) (*v1.GetSnapshotStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetSnapshotStatus is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetPendingNetworkGeneration(context.Context, *connect.Request[v1.GetPendingNetworkGenerationRequest]) (*connect.Response[v1.GetPendingNetworkGenerationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetPendingNetworkGeneration(context.Context, *v1.GetPendingNetworkGenerationRequest) (*v1.GetPendingNetworkGenerationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) ConfirmPendingNetworkGeneration(context.Context, *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) ConfirmPendingNetworkGeneration(context.Context, *v1.ConfirmPendingNetworkGenerationRequest) (*v1.ConfirmPendingNetworkGenerationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ShutdownAll is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *v1.ShutdownAllRequest, OrchestratorServiceShutdownAllServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.ShutdownAll is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.Shutdown is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) Shutdown(context.Context, *v1.ShutdownRequest) (*v1.ShutdownResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.Shutdown is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) AdoptOwner(context.Context, *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.AdoptOwner is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) AdoptOwner(context.Context, *v1.AdoptOwnerRequest) (*v1.AdoptOwnerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.AdoptOwner is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBTCPrice is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetBTCPrice(context.Context, *v1.GetBTCPriceRequest) (*v1.GetBTCPriceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetBTCPrice is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetMainchainBlockchainInfo(context.Context, *v1.GetMainchainBlockchainInfoRequest) (*v1.GetMainchainBlockchainInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetEnforcerBlockchainInfo(context.Context, *v1.GetEnforcerBlockchainInfoRequest) (*v1.GetEnforcerBlockchainInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetSyncStatus is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetSyncStatus(context.Context, *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetSyncStatus is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetDownloadStatus is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetDownloadStatus is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetMainchainBalance is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetMainchainBalance is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetSidechainBalance(context.Context, *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetSidechainBalance is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetSidechainBalance(context.Context, *v1.GetSidechainBalanceRequest) (*v1.GetSidechainBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetSidechainBalance is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GatherFilesToDelete is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GatherFilesToDelete(context.Context, *v1.GatherFilesToDeleteRequest) (*v1.GatherFilesToDeleteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GatherFilesToDelete is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.DeleteFiles is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) DeleteFiles(context.Context, *v1.DeleteFilesRequest, OrchestratorServiceDeleteFilesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.DeleteFiles is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) RejectBlock(context.Context, *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.RejectBlock is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) RejectBlock(context.Context, *v1.RejectBlockRequest) (*v1.RejectBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.RejectBlock is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.AcceptBlock is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) AcceptBlock(context.Context, *v1.AcceptBlockRequest) (*v1.AcceptBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.AcceptBlock is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) ResetToBlock(context.Context, *connect.Request[v1.ResetToBlockRequest], *connect.ServerStream[v1.ResetToBlockResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ResetToBlock is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) ResetToBlock(context.Context, *v1.ResetToBlockRequest, OrchestratorServiceResetToBlockServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.ResetToBlock is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetCoreMempoolInfo is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *v1.GetCoreMempoolInfoRequest) (*v1.GetCoreMempoolInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetCoreMempoolInfo is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetBmmContext(context.Context, *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBmmContext is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetBmmContext(context.Context, *v1.GetBmmContextRequest) (*v1.GetBmmContextResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetBmmContext is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.CoreRawCall is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) CoreRawCall(context.Context, *v1.CoreRawCallRequest) (*v1.CoreRawCallResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.CoreRawCall is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetForkStatus is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetForkStatus(context.Context, *v1.GetForkStatusRequest) (*v1.GetForkStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetForkStatus is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) PreviewECashMigration(context.Context, *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.PreviewECashMigration is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) PreviewECashMigration(context.Context, *v1.PreviewECashMigrationRequest) (*v1.PreviewECashMigrationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.PreviewECashMigration is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartECashMigration is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) StartECashMigration(context.Context, *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.StartECashMigration is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetECashMigrationStatus is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetECashMigrationStatus(context.Context, *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetECashMigrationStatus is not implemented")
 }
 
-func (UnimplementedOrchestratorServiceHandler) GetDatadirNetwork(context.Context, *connect.Request[v1.GetDatadirNetworkRequest]) (*connect.Response[v1.GetDatadirNetworkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetDatadirNetwork is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GetDatadirNetwork(context.Context, *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetDatadirNetwork is not implemented")
+}
+
+type orchestratorServiceClient struct {
+	client *connect.Client
+}
+
+func (c *orchestratorServiceClient) ListBinaries(ctx context.Context, req *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error) {
+	var res v1.ListBinariesResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceListBinariesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetBinaryStatus(ctx context.Context, req *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error) {
+	var res v1.GetBinaryStatusResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetBinaryStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetBinaryVersion(ctx context.Context, req *v1.GetBinaryVersionRequest) (*v1.GetBinaryVersionResponse, error) {
+	var res v1.GetBinaryVersionResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetBinaryVersionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) DownloadBinary(ctx context.Context, req *v1.DownloadBinaryRequest) (*v1.DownloadBinaryResponse, error) {
+	var res v1.DownloadBinaryResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceDownloadBinarySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) StartBinary(ctx context.Context, req *v1.StartBinaryRequest) (*v1.StartBinaryResponse, error) {
+	var res v1.StartBinaryResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceStartBinarySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) StopBinary(ctx context.Context, req *v1.StopBinaryRequest) (*v1.StopBinaryResponse, error) {
+	var res v1.StopBinaryResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceStopBinarySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) StreamLogs(ctx context.Context, req *v1.StreamLogsRequest) (OrchestratorServiceStreamLogsClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceStreamLogsSpec(), req)
+	if err != nil {
+		return OrchestratorServiceStreamLogsClientStream{}, err
+	}
+	return OrchestratorServiceStreamLogsClientStream{stream: stream}, nil
+}
+
+func (c *orchestratorServiceClient) StartWithL1(ctx context.Context, req *v1.StartWithL1Request) (*v1.StartWithL1Response, error) {
+	var res v1.StartWithL1Response
+	if err := c.client.CallUnary(ctx, orchestratorServiceStartWithL1Spec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) RestartDaemon(ctx context.Context, req *v1.RestartDaemonRequest) (*v1.RestartDaemonResponse, error) {
+	var res v1.RestartDaemonResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceRestartDaemonSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) RestartL1(ctx context.Context, req *v1.RestartL1Request) (*v1.RestartL1Response, error) {
+	var res v1.RestartL1Response
+	if err := c.client.CallUnary(ctx, orchestratorServiceRestartL1Spec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) ApplyUTXOSnapshot(ctx context.Context, req *v1.ApplyUTXOSnapshotRequest) (OrchestratorServiceApplyUTXOSnapshotClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceApplyUTXOSnapshotSpec(), req)
+	if err != nil {
+		return OrchestratorServiceApplyUTXOSnapshotClientStream{}, err
+	}
+	return OrchestratorServiceApplyUTXOSnapshotClientStream{stream: stream}, nil
+}
+
+func (c *orchestratorServiceClient) GetSnapshotStatus(ctx context.Context, req *v1.GetSnapshotStatusRequest) (*v1.GetSnapshotStatusResponse, error) {
+	var res v1.GetSnapshotStatusResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetSnapshotStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetPendingNetworkGeneration(ctx context.Context, req *v1.GetPendingNetworkGenerationRequest) (*v1.GetPendingNetworkGenerationResponse, error) {
+	var res v1.GetPendingNetworkGenerationResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetPendingNetworkGenerationSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) ConfirmPendingNetworkGeneration(ctx context.Context, req *v1.ConfirmPendingNetworkGenerationRequest) (*v1.ConfirmPendingNetworkGenerationResponse, error) {
+	var res v1.ConfirmPendingNetworkGenerationResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceConfirmPendingNetworkGenerationSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) ShutdownAll(ctx context.Context, req *v1.ShutdownAllRequest) (OrchestratorServiceShutdownAllClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceShutdownAllSpec(), req)
+	if err != nil {
+		return OrchestratorServiceShutdownAllClientStream{}, err
+	}
+	return OrchestratorServiceShutdownAllClientStream{stream: stream}, nil
+}
+
+func (c *orchestratorServiceClient) Shutdown(ctx context.Context, req *v1.ShutdownRequest) (*v1.ShutdownResponse, error) {
+	var res v1.ShutdownResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceShutdownSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) AdoptOwner(ctx context.Context, req *v1.AdoptOwnerRequest) (*v1.AdoptOwnerResponse, error) {
+	var res v1.AdoptOwnerResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceAdoptOwnerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetBTCPrice(ctx context.Context, req *v1.GetBTCPriceRequest) (*v1.GetBTCPriceResponse, error) {
+	var res v1.GetBTCPriceResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetBTCPriceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetMainchainBlockchainInfo(ctx context.Context, req *v1.GetMainchainBlockchainInfoRequest) (*v1.GetMainchainBlockchainInfoResponse, error) {
+	var res v1.GetMainchainBlockchainInfoResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetMainchainBlockchainInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetEnforcerBlockchainInfo(ctx context.Context, req *v1.GetEnforcerBlockchainInfoRequest) (*v1.GetEnforcerBlockchainInfoResponse, error) {
+	var res v1.GetEnforcerBlockchainInfoResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetEnforcerBlockchainInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetSyncStatus(ctx context.Context, req *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error) {
+	var res v1.GetSyncStatusResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetSyncStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetDownloadStatus(ctx context.Context, req *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error) {
+	var res v1.GetDownloadStatusResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetDownloadStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error) {
+	var res v1.GetMainchainBalanceResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetMainchainBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetSidechainBalance(ctx context.Context, req *v1.GetSidechainBalanceRequest) (*v1.GetSidechainBalanceResponse, error) {
+	var res v1.GetSidechainBalanceResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetSidechainBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GatherFilesToDelete(ctx context.Context, req *v1.GatherFilesToDeleteRequest) (*v1.GatherFilesToDeleteResponse, error) {
+	var res v1.GatherFilesToDeleteResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGatherFilesToDeleteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) DeleteFiles(ctx context.Context, req *v1.DeleteFilesRequest) (OrchestratorServiceDeleteFilesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceDeleteFilesSpec(), req)
+	if err != nil {
+		return OrchestratorServiceDeleteFilesClientStream{}, err
+	}
+	return OrchestratorServiceDeleteFilesClientStream{stream: stream}, nil
+}
+
+func (c *orchestratorServiceClient) RejectBlock(ctx context.Context, req *v1.RejectBlockRequest) (*v1.RejectBlockResponse, error) {
+	var res v1.RejectBlockResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceRejectBlockSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) AcceptBlock(ctx context.Context, req *v1.AcceptBlockRequest) (*v1.AcceptBlockResponse, error) {
+	var res v1.AcceptBlockResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceAcceptBlockSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) ResetToBlock(ctx context.Context, req *v1.ResetToBlockRequest) (OrchestratorServiceResetToBlockClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceResetToBlockSpec(), req)
+	if err != nil {
+		return OrchestratorServiceResetToBlockClientStream{}, err
+	}
+	return OrchestratorServiceResetToBlockClientStream{stream: stream}, nil
+}
+
+func (c *orchestratorServiceClient) GetCoreMempoolInfo(ctx context.Context, req *v1.GetCoreMempoolInfoRequest) (*v1.GetCoreMempoolInfoResponse, error) {
+	var res v1.GetCoreMempoolInfoResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetCoreMempoolInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetBmmContext(ctx context.Context, req *v1.GetBmmContextRequest) (*v1.GetBmmContextResponse, error) {
+	var res v1.GetBmmContextResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetBmmContextSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) CoreRawCall(ctx context.Context, req *v1.CoreRawCallRequest) (*v1.CoreRawCallResponse, error) {
+	var res v1.CoreRawCallResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceCoreRawCallSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetForkStatus(ctx context.Context, req *v1.GetForkStatusRequest) (*v1.GetForkStatusResponse, error) {
+	var res v1.GetForkStatusResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetForkStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) PreviewECashMigration(ctx context.Context, req *v1.PreviewECashMigrationRequest) (*v1.PreviewECashMigrationResponse, error) {
+	var res v1.PreviewECashMigrationResponse
+	if err := c.client.CallUnary(ctx, orchestratorServicePreviewECashMigrationSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) StartECashMigration(ctx context.Context, req *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error) {
+	var res v1.StartECashMigrationResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceStartECashMigrationSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetECashMigrationStatus(ctx context.Context, req *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error) {
+	var res v1.GetECashMigrationStatusResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetECashMigrationStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *orchestratorServiceClient) GetDatadirNetwork(ctx context.Context, req *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error) {
+	var res v1.GetDatadirNetworkResponse
+	if err := c.client.CallUnary(ctx, orchestratorServiceGetDatadirNetworkSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type orchestratorServiceHandler struct{ svc OrchestratorServiceHandler }
+
+func (h orchestratorServiceHandler) listBinaries(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBinariesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBinaries(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getBinaryStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBinaryStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBinaryStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getBinaryVersion(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBinaryVersionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBinaryVersion(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) downloadBinary(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DownloadBinaryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DownloadBinary(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) startBinary(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StartBinaryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StartBinary(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) stopBinary(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopBinaryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StopBinary(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) streamLogs(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamLogsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamLogs(ctx, &req, OrchestratorServiceStreamLogsServerStream{stream: stream})
+}
+
+func (h orchestratorServiceHandler) startWithL1(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StartWithL1Request
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StartWithL1(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) restartDaemon(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RestartDaemonRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RestartDaemon(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) restartL1(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RestartL1Request
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RestartL1(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) applyUTXOSnapshot(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ApplyUTXOSnapshotRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.ApplyUTXOSnapshot(ctx, &req, OrchestratorServiceApplyUTXOSnapshotServerStream{stream: stream})
+}
+
+func (h orchestratorServiceHandler) getSnapshotStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSnapshotStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSnapshotStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getPendingNetworkGeneration(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPendingNetworkGenerationRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPendingNetworkGeneration(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) confirmPendingNetworkGeneration(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConfirmPendingNetworkGenerationRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ConfirmPendingNetworkGeneration(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) shutdownAll(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ShutdownAllRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.ShutdownAll(ctx, &req, OrchestratorServiceShutdownAllServerStream{stream: stream})
+}
+
+func (h orchestratorServiceHandler) shutdown(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ShutdownRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Shutdown(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) adoptOwner(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AdoptOwnerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AdoptOwner(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getBTCPrice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBTCPriceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBTCPrice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getMainchainBlockchainInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetMainchainBlockchainInfoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMainchainBlockchainInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getEnforcerBlockchainInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetEnforcerBlockchainInfoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetEnforcerBlockchainInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getSyncStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSyncStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSyncStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getDownloadStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetDownloadStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetDownloadStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getMainchainBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetMainchainBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMainchainBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getSidechainBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSidechainBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) gatherFilesToDelete(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GatherFilesToDeleteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GatherFilesToDelete(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) deleteFiles(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteFilesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.DeleteFiles(ctx, &req, OrchestratorServiceDeleteFilesServerStream{stream: stream})
+}
+
+func (h orchestratorServiceHandler) rejectBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RejectBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RejectBlock(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) acceptBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AcceptBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AcceptBlock(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) resetToBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ResetToBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.ResetToBlock(ctx, &req, OrchestratorServiceResetToBlockServerStream{stream: stream})
+}
+
+func (h orchestratorServiceHandler) getCoreMempoolInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetCoreMempoolInfoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCoreMempoolInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getBmmContext(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBmmContextRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBmmContext(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) coreRawCall(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CoreRawCallRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CoreRawCall(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getForkStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetForkStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetForkStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) previewECashMigration(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PreviewECashMigrationRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PreviewECashMigration(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) startECashMigration(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StartECashMigrationRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StartECashMigration(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getECashMigrationStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetECashMigrationStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetECashMigrationStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) getDatadirNetwork(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetDatadirNetworkRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetDatadirNetwork(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

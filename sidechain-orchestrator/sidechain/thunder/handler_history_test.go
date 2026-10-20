@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
-
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
@@ -19,7 +17,7 @@ import (
 func TestListTransactionsReportsAnUnreachableNode(t *testing.T) {
 	h := NewHandlerWithIndex(sidechain.NewJSONRPCProxy("127.0.0.1", 1), "")
 	_, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err == nil {
 		t.Fatal("want an error from an unreachable node, got none")
 	}
@@ -64,22 +62,22 @@ func TestListTransactionsReadsTheIndex(t *testing.T) {
 	h := NewHandlerWithIndex(sidechain.NewJSONRPCProxy(host, port), index.URL)
 
 	resp, err := h.ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	if err != nil {
 		t.Fatalf("list transactions: %v", err)
 	}
-	if len(resp.Msg.Transactions) != 1 {
-		t.Fatalf("got %d transactions, want 1", len(resp.Msg.Transactions))
+	if len(resp.Transactions) != 1 {
+		t.Fatalf("got %d transactions, want 1", len(resp.Transactions))
 	}
-	got := resp.Msg.Transactions[0]
+	got := resp.Transactions[0]
 	if got.Txid != "aa" || got.ValueSats != 7000 || got.FeeSats != 120 {
 		t.Errorf("transaction = %+v", got)
 	}
 	if got.BlockHeight != 5 || !got.Confirmed {
 		t.Errorf("status = height %d confirmed %v", got.BlockHeight, got.Confirmed)
 	}
-	if resp.Msg.TipHeight != 12 {
-		t.Errorf("tip height = %d, want 12", resp.Msg.TipHeight)
+	if resp.TipHeight != 12 {
+		t.Errorf("tip height = %d, want 12", resp.TipHeight)
 	}
 }
 

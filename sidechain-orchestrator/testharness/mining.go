@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
@@ -17,11 +16,11 @@ func (n *Node) Mine(ctx context.Context, t *testing.T, blocks int) error {
 	t.Helper()
 
 	// Get a new address from the active wallet.
-	resp, err := n.WalletClient.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+	resp, err := n.WalletClient.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 	if err != nil {
 		return fmt.Errorf("get new address for mining: %w", err)
 	}
-	return n.MineToAddress(ctx, blocks, resp.Msg.Address)
+	return n.MineToAddress(ctx, blocks, resp.Address)
 }
 
 // MineToAddress mines blocks to a specific address.
@@ -45,42 +44,42 @@ func (n *Node) FundWallet(t *testing.T) string {
 	defer cancel()
 
 	// Check if wallets already exist.
-	status, err := n.WalletClient.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+	status, err := n.WalletClient.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 	if err != nil {
 		t.Fatalf("testharness[%s]: get wallet status: %v", n.Name, err)
 	}
 
-	if status.Msg.State == pb.WalletState_WALLET_STATE_NO_WALLET {
+	if status.State == pb.WalletState_WALLET_STATE_NO_WALLET {
 		// First wallet = enforcer type (required as slot 0).
-		_, err := n.WalletClient.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		_, err := n.WalletClient.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: n.Name + "-enforcer",
-		}))
+		})
 		if err != nil {
 			t.Fatalf("testharness[%s]: generate enforcer wallet: %v", n.Name, err)
 		}
 	}
 
 	// Second wallet = bitcoinCore type (this one gets a Core wallet).
-	genResp, err := n.WalletClient.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+	genResp, err := n.WalletClient.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 		Name: n.Name + "-core",
-	}))
+	})
 	if err != nil {
 		t.Fatalf("testharness[%s]: generate core wallet: %v", n.Name, err)
 	}
-	t.Logf("testharness[%s]: generated bitcoinCore wallet %s", n.Name, genResp.Msg.WalletId)
+	t.Logf("testharness[%s]: generated bitcoinCore wallet %s", n.Name, genResp.WalletId)
 
 	// Ensure Core wallets synced.
-	_, err = n.WalletClient.EnsureCoreWallets(ctx, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
+	_, err = n.WalletClient.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
 	if err != nil {
 		t.Fatalf("testharness[%s]: ensure core wallets: %v", n.Name, err)
 	}
 
 	// Get a new address.
-	addrResp, err := n.WalletClient.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+	addrResp, err := n.WalletClient.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 	if err != nil {
 		t.Fatalf("testharness[%s]: get new address: %v", n.Name, err)
 	}
-	addr := addrResp.Msg.Address
+	addr := addrResp.Address
 	t.Logf("testharness[%s]: mining 101 blocks to %s", n.Name, addr)
 
 	// Mine 101 blocks (coinbase maturity).
@@ -114,8 +113,8 @@ func (n *Node) WaitForBalance(t *testing.T) {
 			}
 		default:
 		}
-		resp, err := n.WalletClient.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
-		if err == nil && resp.Msg.ConfirmedSats > 0 {
+		resp, err := n.WalletClient.GetBalance(ctx, &pb.GetBalanceRequest{})
+		if err == nil && resp.ConfirmedSats > 0 {
 			return
 		}
 		time.Sleep(500 * time.Millisecond)

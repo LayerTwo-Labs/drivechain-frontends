@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,18 +16,18 @@ import (
 func TestEncodeBase58Check(t *testing.T) {
 	t.Parallel()
 
-	encode := func(t *testing.T, version int32) (*connect.Response[utilspb.EncodeBase58CheckResponse], error) {
-		return utils.New(&chaincfg.RegressionNetParams).EncodeBase58Check(t.Context(), connect.NewRequest(&utilspb.EncodeBase58CheckRequest{
+	encode := func(t *testing.T, version int32) (*utilspb.EncodeBase58CheckResponse, error) {
+		return utils.New(&chaincfg.RegressionNetParams).EncodeBase58Check(t.Context(), &utilspb.EncodeBase58CheckRequest{
 			VersionByte: version,
 			Data:        make([]byte, 20),
-		}))
+		})
 	}
 
 	t.Run("version 0 encodes", func(t *testing.T) {
 		t.Parallel()
 		resp, err := encode(t, 0)
 		require.NoError(t, err)
-		assert.Equal(t, "1111111111111111111114oLvT2", resp.Msg.Encoded)
+		assert.Equal(t, "1111111111111111111114oLvT2", resp.Encoded)
 	})
 
 	t.Run("version 255 encodes", func(t *testing.T) {

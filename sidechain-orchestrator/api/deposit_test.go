@@ -1,12 +1,13 @@
 package api
 
 import (
+	"connectrpc.com/connect/v2/connecthttp"
 	"context"
 	"io"
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -65,8 +66,9 @@ func TestCreateDepositRefusesAStaleTreasury(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mux := http.NewServeMux()
-			path, handler := enforcerrpc.NewValidatorServiceHandler(tc.validator)
-			mux.Handle(path, handler)
+			rpcServer := connect.NewServer()
+			enforcerrpc.RegisterValidatorServiceHandler(rpcServer, tc.validator)
+			connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 			server := h2cServer(mux)
 			t.Cleanup(server.Close)
 			host, port := hostPort(t, server)
@@ -90,13 +92,13 @@ func TestCreateDepositRefusesAStaleTreasury(t *testing.T) {
 			h.SetEngine(wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log))
 			h.SetOrchestrator(orch)
 
-			_, err = h.CreateDeposit(context.Background(), connect.NewRequest(&wpb.CreateDepositRequest{
+			_, err = h.CreateDeposit(context.Background(), &wpb.CreateDepositRequest{
 				WalletId:    w.ID,
 				Slot:        9,
 				Destination: "sidechainaddress",
 				AmountSats:  100_000,
 				FeeSats:     1_000,
-			}))
+			})
 			if tc.code == 0 {
 				require.NoError(t, err)
 				require.Len(t, chain.broadcast, 1)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -23,18 +22,18 @@ type fakeValidator struct {
 	proposalCalls int
 }
 
-func (f *fakeValidator) GetChainTip(context.Context, *connect.Request[v1.GetChainTipRequest]) (*connect.Response[v1.GetChainTipResponse], error) {
+func (f *fakeValidator) GetChainTip(context.Context, *v1.GetChainTipRequest) (*v1.GetChainTipResponse, error) {
 	f.chainTipCalls++
-	return connect.NewResponse(&v1.GetChainTipResponse{
+	return &v1.GetChainTipResponse{
 		BlockHeaderInfo: &v1.BlockHeaderInfo{
 			BlockHash: &commonpb.ReverseHex{Hex: wrapperspb.String("deadbeef")},
 		},
-	}), nil
+	}, nil
 }
 
-func (f *fakeValidator) GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error) {
+func (f *fakeValidator) GetSidechainProposals(context.Context, *v1.GetSidechainProposalsRequest) (*v1.GetSidechainProposalsResponse, error) {
 	f.proposalCalls++
-	return connect.NewResponse(&v1.GetSidechainProposalsResponse{}), nil
+	return &v1.GetSidechainProposalsResponse{}, nil
 }
 
 func TestListSidechainProposalsReadsTheEnforcer(t *testing.T) {
@@ -45,10 +44,10 @@ func TestListSidechainProposalsReadsTheEnforcer(t *testing.T) {
 		}),
 	}
 
-	resp, err := s.ListSidechainProposals(t.Context(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
+	resp, err := s.ListSidechainProposals(t.Context(), &pb.ListSidechainProposalsRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.Empty(t, resp.Msg.Proposals)
+	require.Empty(t, resp.Proposals)
 	require.Equal(t, 1, fake.chainTipCalls)
 	require.Equal(t, 1, fake.proposalCalls)
 }

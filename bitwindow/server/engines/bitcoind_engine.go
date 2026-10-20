@@ -575,19 +575,19 @@ func (p *Parser) applyPendingM4(ctx context.Context) error {
 		log.Debug().Err(err).Msg("M4 waits for the enforcer")
 		return nil
 	}
-	tip, err := client.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	tip, err := client.GetChainTip(ctx, &validatorpb.GetChainTipRequest{})
 	if err != nil {
 		log.Debug().Err(err).Msg("M4 waits for the enforcer tip")
 		return nil
 	}
-	sidechains, err := client.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	sidechains, err := client.GetSidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		log.Debug().Err(err).Msg("M4 waits for the enforcer sidechains")
 		return nil
 	}
 
-	height := min(processed.Height, tip.Msg.GetBlockHeaderInfo().GetHeight())
-	return p.m4Engine.ApplyPendingM4(ctx, height, sidechains.Msg.GetSidechains())
+	height := min(processed.Height, tip.GetBlockHeaderInfo().GetHeight())
+	return p.m4Engine.ApplyPendingM4(ctx, height, sidechains.GetSidechains())
 }
 
 // HandleNewRawTransaction can be called on a brand new transaction

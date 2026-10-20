@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
@@ -30,15 +32,15 @@ func TestECashMigrationHandlersRejectInvalidNetworks(t *testing.T) {
 		{name: "same network", fromID: "alphanet", toID: " alphanet "},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := handler.PreviewECashMigration(context.Background(), connect.NewRequest(&pb.PreviewECashMigrationRequest{
+			_, err := handler.PreviewECashMigration(context.Background(), &pb.PreviewECashMigrationRequest{
 				FromId: test.fromID,
 				ToId:   test.toID,
-			}))
+			})
 			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-			_, err = handler.StartECashMigration(context.Background(), connect.NewRequest(&pb.StartECashMigrationRequest{
+			_, err = handler.StartECashMigration(context.Background(), &pb.StartECashMigrationRequest{
 				FromId: test.fromID,
 				ToId:   test.toID,
-			}))
+			})
 			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		})
 	}
@@ -77,15 +79,18 @@ func TestECashMigrationStatusReadsTheSavedDaemonRecord(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, os.WriteFile(filepath.Join(dir, "ecash-migration.json"), data, 0o600))
 			orch := orchestrator.New(t.TempDir(), "signet", dir, nil, zerolog.New(io.Discard))
-			_, handler := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
+			rpcServer := connect.NewServer()
+			rpc.RegisterOrchestratorServiceHandler(rpcServer, NewHandler(orch))
+			handler := http.NewServeMux()
+			connecthttp.Mount(handler, rpcServer, connecthttp.WithReadMaxBytes(0))
 			server := httptest.NewServer(handler)
 			t.Cleanup(server.Close)
-			client := rpc.NewOrchestratorServiceClient(server.Client(), server.URL)
+			client := rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 
-			resp, err := client.GetECashMigrationStatus(t.Context(), connect.NewRequest(&pb.GetECashMigrationStatusRequest{}))
+			resp, err := client.GetECashMigrationStatus(t.Context(), &pb.GetECashMigrationStatusRequest{})
 
 			require.NoError(t, err)
-			status := resp.Msg.Status
+			status := resp.Status
 			require.Equal(t, "migration-1", status.JobId)
 			require.Equal(t, "alphanet", status.FromId)
 			require.Equal(t, "betanet", status.ToId)
@@ -106,7 +111,7 @@ func TestECashMigrationStatusReturnsReadFailure(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "ecash-migration.json"), []byte("invalid"), 0o600))
 	orch := orchestrator.New(t.TempDir(), "signet", dir, nil, zerolog.New(io.Discard))
 
-	_, err := NewHandler(orch).GetECashMigrationStatus(t.Context(), connect.NewRequest(&pb.GetECashMigrationStatusRequest{}))
+	_, err := NewHandler(orch).GetECashMigrationStatus(t.Context(), &pb.GetECashMigrationStatusRequest{})
 
 	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	require.ErrorContains(t, err, "decode ECX migration")

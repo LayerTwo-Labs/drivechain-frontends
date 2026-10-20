@@ -2,10 +2,9 @@ package drivechain
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -22,7 +21,7 @@ func TestLightModeReadsTheRemoteValidator(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	walletClient := mocks.NewMockWalletManagerServiceClient(ctrl)
 	walletClient.EXPECT().GetNodeMode(gomock.Any(), gomock.Any()).AnyTimes().Return(
-		connect.NewResponse(&walletpb.GetNodeModeResponse{Mode: walletpb.NodeMode_NODE_MODE_LIGHT}), nil,
+		&walletpb.GetNodeModeResponse{Mode: walletpb.NodeMode_NODE_MODE_LIGHT}, nil,
 	)
 	walletEngine := engines.NewWalletEngine(nil, walletClient, &chaincfg.RegressionNetParams, nil)
 	mode, err := walletEngine.NodeMode().Mode(t.Context())
@@ -31,17 +30,17 @@ func TestLightModeReadsTheRemoteValidator(t *testing.T) {
 
 	validator := mocks.NewMockValidatorServiceClient(ctrl)
 	validator.EXPECT().GetChainTip(gomock.Any(), gomock.Any()).Times(3).Return(
-		nil, connect.NewError(connect.CodeUnavailable, errors.New("remote validator is unavailable")),
+		nil, connect.NewError(connect.CodeUnavailable, "remote validator is unavailable"),
 	)
 	client := service.New("validator", func(context.Context) (enforcerrpc.ValidatorServiceClient, error) {
 		return validator, nil
 	})
 	server := New(client, nil, walletEngine, 10)
 
-	_, err = server.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+	_, err = server.ListSidechains(t.Context(), &pb.ListSidechainsRequest{})
 	require.ErrorContains(t, err, "remote validator is unavailable")
-	_, err = server.ListSidechainProposals(t.Context(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
+	_, err = server.ListSidechainProposals(t.Context(), &pb.ListSidechainProposalsRequest{})
 	require.ErrorContains(t, err, "remote validator is unavailable")
-	_, err = server.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{SidechainId: 9}))
+	_, err = server.ListWithdrawals(t.Context(), &pb.ListWithdrawalsRequest{SidechainId: 9})
 	require.ErrorContains(t, err, "remote validator is unavailable")
 }

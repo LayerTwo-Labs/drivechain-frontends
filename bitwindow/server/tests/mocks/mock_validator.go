@@ -13,8 +13,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	connect "connectrpc.com/connect"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	mainchainv1connect "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -43,10 +43,10 @@ func (m *MockValidatorServiceClient) EXPECT() *MockValidatorServiceClientMockRec
 }
 
 // GetBlockHeaderInfo mocks base method.
-func (m *MockValidatorServiceClient) GetBlockHeaderInfo(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetBlockHeaderInfoRequest]) (*connect.Response[mainchainv1.GetBlockHeaderInfoResponse], error) {
+func (m *MockValidatorServiceClient) GetBlockHeaderInfo(arg0 context.Context, arg1 *mainchainv1.GetBlockHeaderInfoRequest) (*mainchainv1.GetBlockHeaderInfoResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockHeaderInfo", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetBlockHeaderInfoResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetBlockHeaderInfoResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -58,10 +58,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetBlockHeaderInfo(arg0, arg1 
 }
 
 // GetBlockInfo mocks base method.
-func (m *MockValidatorServiceClient) GetBlockInfo(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetBlockInfoRequest]) (*connect.Response[mainchainv1.GetBlockInfoResponse], error) {
+func (m *MockValidatorServiceClient) GetBlockInfo(arg0 context.Context, arg1 *mainchainv1.GetBlockInfoRequest) (*mainchainv1.GetBlockInfoResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockInfo", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetBlockInfoResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetBlockInfoResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -73,10 +73,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetBlockInfo(arg0, arg1 any) *
 }
 
 // GetBmmHStarCommitment mocks base method.
-func (m *MockValidatorServiceClient) GetBmmHStarCommitment(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetBmmHStarCommitmentRequest]) (*connect.Response[mainchainv1.GetBmmHStarCommitmentResponse], error) {
+func (m *MockValidatorServiceClient) GetBmmHStarCommitment(arg0 context.Context, arg1 *mainchainv1.GetBmmHStarCommitmentRequest) (*mainchainv1.GetBmmHStarCommitmentResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBmmHStarCommitment", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetBmmHStarCommitmentResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetBmmHStarCommitmentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -88,10 +88,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetBmmHStarCommitment(arg0, ar
 }
 
 // GetChainInfo mocks base method.
-func (m *MockValidatorServiceClient) GetChainInfo(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetChainInfoRequest]) (*connect.Response[mainchainv1.GetChainInfoResponse], error) {
+func (m *MockValidatorServiceClient) GetChainInfo(arg0 context.Context, arg1 *mainchainv1.GetChainInfoRequest) (*mainchainv1.GetChainInfoResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChainInfo", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetChainInfoResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetChainInfoResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -103,10 +103,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetChainInfo(arg0, arg1 any) *
 }
 
 // GetChainTip mocks base method.
-func (m *MockValidatorServiceClient) GetChainTip(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetChainTipRequest]) (*connect.Response[mainchainv1.GetChainTipResponse], error) {
+func (m *MockValidatorServiceClient) GetChainTip(arg0 context.Context, arg1 *mainchainv1.GetChainTipRequest) (*mainchainv1.GetChainTipResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChainTip", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetChainTipResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetChainTipResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -118,10 +118,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetChainTip(arg0, arg1 any) *g
 }
 
 // GetCoinbasePSBT mocks base method.
-func (m *MockValidatorServiceClient) GetCoinbasePSBT(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetCoinbasePSBTRequest]) (*connect.Response[mainchainv1.GetCoinbasePSBTResponse], error) {
+func (m *MockValidatorServiceClient) GetCoinbasePSBT(arg0 context.Context, arg1 *mainchainv1.GetCoinbasePSBTRequest) (*mainchainv1.GetCoinbasePSBTResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCoinbasePSBT", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetCoinbasePSBTResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetCoinbasePSBTResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -133,10 +133,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetCoinbasePSBT(arg0, arg1 any
 }
 
 // GetCtip mocks base method.
-func (m *MockValidatorServiceClient) GetCtip(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetCtipRequest]) (*connect.Response[mainchainv1.GetCtipResponse], error) {
+func (m *MockValidatorServiceClient) GetCtip(arg0 context.Context, arg1 *mainchainv1.GetCtipRequest) (*mainchainv1.GetCtipResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCtip", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetCtipResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetCtipResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -148,10 +148,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetCtip(arg0, arg1 any) *gomoc
 }
 
 // GetSeenBmmRequests mocks base method.
-func (m *MockValidatorServiceClient) GetSeenBmmRequests(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSeenBmmRequestsRequest]) (*connect.Response[mainchainv1.GetSeenBmmRequestsResponse], error) {
+func (m *MockValidatorServiceClient) GetSeenBmmRequests(arg0 context.Context, arg1 *mainchainv1.GetSeenBmmRequestsRequest) (*mainchainv1.GetSeenBmmRequestsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSeenBmmRequests", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSeenBmmRequestsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetSeenBmmRequestsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -163,10 +163,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetSeenBmmRequests(arg0, arg1 
 }
 
 // GetSidechainProposals mocks base method.
-func (m *MockValidatorServiceClient) GetSidechainProposals(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSidechainProposalsRequest]) (*connect.Response[mainchainv1.GetSidechainProposalsResponse], error) {
+func (m *MockValidatorServiceClient) GetSidechainProposals(arg0 context.Context, arg1 *mainchainv1.GetSidechainProposalsRequest) (*mainchainv1.GetSidechainProposalsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSidechainProposals", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSidechainProposalsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetSidechainProposalsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -178,10 +178,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetSidechainProposals(arg0, ar
 }
 
 // GetSidechains mocks base method.
-func (m *MockValidatorServiceClient) GetSidechains(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSidechainsRequest]) (*connect.Response[mainchainv1.GetSidechainsResponse], error) {
+func (m *MockValidatorServiceClient) GetSidechains(arg0 context.Context, arg1 *mainchainv1.GetSidechainsRequest) (*mainchainv1.GetSidechainsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSidechains", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSidechainsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetSidechainsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -193,10 +193,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetSidechains(arg0, arg1 any) 
 }
 
 // GetTwoWayPegData mocks base method.
-func (m *MockValidatorServiceClient) GetTwoWayPegData(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetTwoWayPegDataRequest]) (*connect.Response[mainchainv1.GetTwoWayPegDataResponse], error) {
+func (m *MockValidatorServiceClient) GetTwoWayPegData(arg0 context.Context, arg1 *mainchainv1.GetTwoWayPegDataRequest) (*mainchainv1.GetTwoWayPegDataResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTwoWayPegData", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetTwoWayPegDataResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetTwoWayPegDataResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -208,10 +208,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetTwoWayPegData(arg0, arg1 an
 }
 
 // GetWithdrawalBundleProposals mocks base method.
-func (m *MockValidatorServiceClient) GetWithdrawalBundleProposals(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse], error) {
+func (m *MockValidatorServiceClient) GetWithdrawalBundleProposals(arg0 context.Context, arg1 *mainchainv1.GetWithdrawalBundleProposalsRequest) (*mainchainv1.GetWithdrawalBundleProposalsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWithdrawalBundleProposals", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetWithdrawalBundleProposalsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -223,10 +223,10 @@ func (mr *MockValidatorServiceClientMockRecorder) GetWithdrawalBundleProposals(a
 }
 
 // Stop mocks base method.
-func (m *MockValidatorServiceClient) Stop(arg0 context.Context, arg1 *connect.Request[mainchainv1.StopRequest]) (*connect.Response[mainchainv1.StopResponse], error) {
+func (m *MockValidatorServiceClient) Stop(arg0 context.Context, arg1 *mainchainv1.StopRequest) (*mainchainv1.StopResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Stop", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.StopResponse])
+	ret0, _ := ret[0].(*mainchainv1.StopResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -238,10 +238,10 @@ func (mr *MockValidatorServiceClientMockRecorder) Stop(arg0, arg1 any) *gomock.C
 }
 
 // SubscribeEvents mocks base method.
-func (m *MockValidatorServiceClient) SubscribeEvents(arg0 context.Context, arg1 *connect.Request[mainchainv1.SubscribeEventsRequest]) (*connect.ServerStreamForClient[mainchainv1.SubscribeEventsResponse], error) {
+func (m *MockValidatorServiceClient) SubscribeEvents(arg0 context.Context, arg1 *mainchainv1.SubscribeEventsRequest) (mainchainv1connect.ValidatorServiceSubscribeEventsClientStream, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubscribeEvents", arg0, arg1)
-	ret0, _ := ret[0].(*connect.ServerStreamForClient[mainchainv1.SubscribeEventsResponse])
+	ret0, _ := ret[0].(mainchainv1connect.ValidatorServiceSubscribeEventsClientStream)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -253,10 +253,10 @@ func (mr *MockValidatorServiceClientMockRecorder) SubscribeEvents(arg0, arg1 any
 }
 
 // SubscribeHeaderSyncProgress mocks base method.
-func (m *MockValidatorServiceClient) SubscribeHeaderSyncProgress(arg0 context.Context, arg1 *connect.Request[mainchainv1.SubscribeHeaderSyncProgressRequest]) (*connect.ServerStreamForClient[mainchainv1.SubscribeHeaderSyncProgressResponse], error) {
+func (m *MockValidatorServiceClient) SubscribeHeaderSyncProgress(arg0 context.Context, arg1 *mainchainv1.SubscribeHeaderSyncProgressRequest) (mainchainv1connect.ValidatorServiceSubscribeHeaderSyncProgressClientStream, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubscribeHeaderSyncProgress", arg0, arg1)
-	ret0, _ := ret[0].(*connect.ServerStreamForClient[mainchainv1.SubscribeHeaderSyncProgressResponse])
+	ret0, _ := ret[0].(mainchainv1connect.ValidatorServiceSubscribeHeaderSyncProgressClientStream)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -292,10 +292,10 @@ func (m *MockValidatorServiceHandler) EXPECT() *MockValidatorServiceHandlerMockR
 }
 
 // GetBlockHeaderInfo mocks base method.
-func (m *MockValidatorServiceHandler) GetBlockHeaderInfo(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetBlockHeaderInfoRequest]) (*connect.Response[mainchainv1.GetBlockHeaderInfoResponse], error) {
+func (m *MockValidatorServiceHandler) GetBlockHeaderInfo(arg0 context.Context, arg1 *mainchainv1.GetBlockHeaderInfoRequest) (*mainchainv1.GetBlockHeaderInfoResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockHeaderInfo", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetBlockHeaderInfoResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetBlockHeaderInfoResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -307,10 +307,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetBlockHeaderInfo(arg0, arg1
 }
 
 // GetBlockInfo mocks base method.
-func (m *MockValidatorServiceHandler) GetBlockInfo(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetBlockInfoRequest]) (*connect.Response[mainchainv1.GetBlockInfoResponse], error) {
+func (m *MockValidatorServiceHandler) GetBlockInfo(arg0 context.Context, arg1 *mainchainv1.GetBlockInfoRequest) (*mainchainv1.GetBlockInfoResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockInfo", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetBlockInfoResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetBlockInfoResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -322,10 +322,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetBlockInfo(arg0, arg1 any) 
 }
 
 // GetBmmHStarCommitment mocks base method.
-func (m *MockValidatorServiceHandler) GetBmmHStarCommitment(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetBmmHStarCommitmentRequest]) (*connect.Response[mainchainv1.GetBmmHStarCommitmentResponse], error) {
+func (m *MockValidatorServiceHandler) GetBmmHStarCommitment(arg0 context.Context, arg1 *mainchainv1.GetBmmHStarCommitmentRequest) (*mainchainv1.GetBmmHStarCommitmentResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBmmHStarCommitment", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetBmmHStarCommitmentResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetBmmHStarCommitmentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -337,10 +337,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetBmmHStarCommitment(arg0, a
 }
 
 // GetChainInfo mocks base method.
-func (m *MockValidatorServiceHandler) GetChainInfo(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetChainInfoRequest]) (*connect.Response[mainchainv1.GetChainInfoResponse], error) {
+func (m *MockValidatorServiceHandler) GetChainInfo(arg0 context.Context, arg1 *mainchainv1.GetChainInfoRequest) (*mainchainv1.GetChainInfoResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChainInfo", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetChainInfoResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetChainInfoResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -352,10 +352,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetChainInfo(arg0, arg1 any) 
 }
 
 // GetChainTip mocks base method.
-func (m *MockValidatorServiceHandler) GetChainTip(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetChainTipRequest]) (*connect.Response[mainchainv1.GetChainTipResponse], error) {
+func (m *MockValidatorServiceHandler) GetChainTip(arg0 context.Context, arg1 *mainchainv1.GetChainTipRequest) (*mainchainv1.GetChainTipResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChainTip", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetChainTipResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetChainTipResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -367,10 +367,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetChainTip(arg0, arg1 any) *
 }
 
 // GetCoinbasePSBT mocks base method.
-func (m *MockValidatorServiceHandler) GetCoinbasePSBT(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetCoinbasePSBTRequest]) (*connect.Response[mainchainv1.GetCoinbasePSBTResponse], error) {
+func (m *MockValidatorServiceHandler) GetCoinbasePSBT(arg0 context.Context, arg1 *mainchainv1.GetCoinbasePSBTRequest) (*mainchainv1.GetCoinbasePSBTResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCoinbasePSBT", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetCoinbasePSBTResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetCoinbasePSBTResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -382,10 +382,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetCoinbasePSBT(arg0, arg1 an
 }
 
 // GetCtip mocks base method.
-func (m *MockValidatorServiceHandler) GetCtip(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetCtipRequest]) (*connect.Response[mainchainv1.GetCtipResponse], error) {
+func (m *MockValidatorServiceHandler) GetCtip(arg0 context.Context, arg1 *mainchainv1.GetCtipRequest) (*mainchainv1.GetCtipResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCtip", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetCtipResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetCtipResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -397,10 +397,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetCtip(arg0, arg1 any) *gomo
 }
 
 // GetSeenBmmRequests mocks base method.
-func (m *MockValidatorServiceHandler) GetSeenBmmRequests(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSeenBmmRequestsRequest]) (*connect.Response[mainchainv1.GetSeenBmmRequestsResponse], error) {
+func (m *MockValidatorServiceHandler) GetSeenBmmRequests(arg0 context.Context, arg1 *mainchainv1.GetSeenBmmRequestsRequest) (*mainchainv1.GetSeenBmmRequestsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSeenBmmRequests", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSeenBmmRequestsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetSeenBmmRequestsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -412,10 +412,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetSeenBmmRequests(arg0, arg1
 }
 
 // GetSidechainProposals mocks base method.
-func (m *MockValidatorServiceHandler) GetSidechainProposals(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSidechainProposalsRequest]) (*connect.Response[mainchainv1.GetSidechainProposalsResponse], error) {
+func (m *MockValidatorServiceHandler) GetSidechainProposals(arg0 context.Context, arg1 *mainchainv1.GetSidechainProposalsRequest) (*mainchainv1.GetSidechainProposalsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSidechainProposals", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSidechainProposalsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetSidechainProposalsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -427,10 +427,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetSidechainProposals(arg0, a
 }
 
 // GetSidechains mocks base method.
-func (m *MockValidatorServiceHandler) GetSidechains(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSidechainsRequest]) (*connect.Response[mainchainv1.GetSidechainsResponse], error) {
+func (m *MockValidatorServiceHandler) GetSidechains(arg0 context.Context, arg1 *mainchainv1.GetSidechainsRequest) (*mainchainv1.GetSidechainsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSidechains", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSidechainsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetSidechainsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -442,10 +442,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetSidechains(arg0, arg1 any)
 }
 
 // GetTwoWayPegData mocks base method.
-func (m *MockValidatorServiceHandler) GetTwoWayPegData(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetTwoWayPegDataRequest]) (*connect.Response[mainchainv1.GetTwoWayPegDataResponse], error) {
+func (m *MockValidatorServiceHandler) GetTwoWayPegData(arg0 context.Context, arg1 *mainchainv1.GetTwoWayPegDataRequest) (*mainchainv1.GetTwoWayPegDataResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTwoWayPegData", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetTwoWayPegDataResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetTwoWayPegDataResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -457,10 +457,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetTwoWayPegData(arg0, arg1 a
 }
 
 // GetWithdrawalBundleProposals mocks base method.
-func (m *MockValidatorServiceHandler) GetWithdrawalBundleProposals(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse], error) {
+func (m *MockValidatorServiceHandler) GetWithdrawalBundleProposals(arg0 context.Context, arg1 *mainchainv1.GetWithdrawalBundleProposalsRequest) (*mainchainv1.GetWithdrawalBundleProposalsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWithdrawalBundleProposals", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse])
+	ret0, _ := ret[0].(*mainchainv1.GetWithdrawalBundleProposalsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -472,10 +472,10 @@ func (mr *MockValidatorServiceHandlerMockRecorder) GetWithdrawalBundleProposals(
 }
 
 // Stop mocks base method.
-func (m *MockValidatorServiceHandler) Stop(arg0 context.Context, arg1 *connect.Request[mainchainv1.StopRequest]) (*connect.Response[mainchainv1.StopResponse], error) {
+func (m *MockValidatorServiceHandler) Stop(arg0 context.Context, arg1 *mainchainv1.StopRequest) (*mainchainv1.StopResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Stop", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.StopResponse])
+	ret0, _ := ret[0].(*mainchainv1.StopResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -487,7 +487,7 @@ func (mr *MockValidatorServiceHandlerMockRecorder) Stop(arg0, arg1 any) *gomock.
 }
 
 // SubscribeEvents mocks base method.
-func (m *MockValidatorServiceHandler) SubscribeEvents(arg0 context.Context, arg1 *connect.Request[mainchainv1.SubscribeEventsRequest], arg2 *connect.ServerStream[mainchainv1.SubscribeEventsResponse]) error {
+func (m *MockValidatorServiceHandler) SubscribeEvents(arg0 context.Context, arg1 *mainchainv1.SubscribeEventsRequest, arg2 mainchainv1connect.ValidatorServiceSubscribeEventsServerStream) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubscribeEvents", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -501,7 +501,7 @@ func (mr *MockValidatorServiceHandlerMockRecorder) SubscribeEvents(arg0, arg1, a
 }
 
 // SubscribeHeaderSyncProgress mocks base method.
-func (m *MockValidatorServiceHandler) SubscribeHeaderSyncProgress(arg0 context.Context, arg1 *connect.Request[mainchainv1.SubscribeHeaderSyncProgressRequest], arg2 *connect.ServerStream[mainchainv1.SubscribeHeaderSyncProgressResponse]) error {
+func (m *MockValidatorServiceHandler) SubscribeHeaderSyncProgress(arg0 context.Context, arg1 *mainchainv1.SubscribeHeaderSyncProgressRequest, arg2 mainchainv1connect.ValidatorServiceSubscribeHeaderSyncProgressServerStream) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubscribeHeaderSyncProgress", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)

@@ -5,7 +5,6 @@ import (
 	"io"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
@@ -21,12 +20,12 @@ func TestBitcoinLightModeWithoutRemoteEnforcer(t *testing.T) {
 			require.NoError(t, orchestrator.WriteNodeMode(orch.BitwindowDir, orchestrator.NodeModeLight))
 			handler := &WalletHandler{orch: orch}
 
-			response, err := handler.GetNodeMode(context.Background(), connect.NewRequest(&pb.GetNodeModeRequest{}))
+			response, err := handler.GetNodeMode(context.Background(), &pb.GetNodeModeRequest{})
 
 			require.NoError(t, err)
-			require.Equal(t, pb.NodeMode_NODE_MODE_LIGHT, response.Msg.Mode)
-			require.True(t, response.Msg.LightModeAvailable)
-			require.False(t, response.Msg.RemoteEnforcerAvailable)
+			require.Equal(t, pb.NodeMode_NODE_MODE_LIGHT, response.Mode)
+			require.True(t, response.LightModeAvailable)
+			require.False(t, response.RemoteEnforcerAvailable)
 		})
 	}
 }
@@ -43,9 +42,9 @@ func TestNodeModeUsesThePublishedRemoteEnforcer(t *testing.T) {
 		entry.Services.Enforcer.URL = endpoint
 		config.SetNetworkEndpoints(network, entry)
 
-		response, err := handler.GetNodeMode(context.Background(), connect.NewRequest(&pb.GetNodeModeRequest{}))
+		response, err := handler.GetNodeMode(context.Background(), &pb.GetNodeModeRequest{})
 
 		require.NoError(t, err)
-		require.Equal(t, endpoint != "", response.Msg.RemoteEnforcerAvailable)
+		require.Equal(t, endpoint != "", response.RemoteEnforcerAvailable)
 	}
 }

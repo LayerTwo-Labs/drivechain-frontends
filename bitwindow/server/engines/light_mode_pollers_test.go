@@ -43,9 +43,7 @@ func nodeModeSource(t *testing.T, mode orchpb.NodeMode) *engines.NodeMode {
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		AnyTimes().
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
-		}, nil)
+		Return(&orchpb.GetNodeModeResponse{Mode: mode}, nil)
 
 	return engines.NewNodeMode(client)
 }
@@ -152,9 +150,7 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 		orch.EXPECT().
 			GetNodeMode(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[orchpb.GetNodeModeResponse]{
-				Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
-			}, nil),
+			Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}, nil),
 	)
 	nodeMode := engines.NewNodeMode(orch)
 

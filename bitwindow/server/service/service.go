@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 )
 
@@ -59,7 +59,7 @@ func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 	if err != nil {
 		s.setConnected(ctx, false)
 		var zero T
-		return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s does not accept connections: %w", s.name, err))
+		return zero, connect.NewError(connect.CodeUnavailable, fmt.Sprintf("%s does not accept connections: %s", s.name, err)).WithCause(err)
 	}
 
 	s.mu.Lock()

@@ -3,7 +3,7 @@ package multisig_test
 import (
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -20,7 +20,7 @@ func TestSaveGroup(t *testing.T) {
 	t.Run("each key keeps its own psbts", func(t *testing.T) {
 		t.Parallel()
 
-		cli := rpc.NewMultisigServiceClient(apitests.API(t, database.Test(t)))
+		cli := rpc.NewMultisigServiceClient(apitests.RPC(t, database.Test(t)))
 		group := &pb.MultisigGroup{
 			Id: "g1", Name: "family", N: 2, M: 2,
 			Keys: []*pb.MultisigKey{
@@ -38,13 +38,13 @@ func TestSaveGroup(t *testing.T) {
 			TransactionIds: []string{"tx1", "tx2"},
 		}
 
-		saved, err := cli.SaveGroup(t.Context(), connect.NewRequest(&pb.SaveGroupRequest{Group: group}))
+		saved, err := cli.SaveGroup(t.Context(), &pb.SaveGroupRequest{Group: group})
 		require.NoError(t, err)
-		listed, err := cli.ListGroups(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		listed, err := cli.ListGroups(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		require.Len(t, listed.Msg.Groups, 1)
+		require.Len(t, listed.Groups, 1)
 
-		for _, got := range []*pb.MultisigGroup{saved.Msg.Group, listed.Msg.Groups[0]} {
+		for _, got := range []*pb.MultisigGroup{saved.Group, listed.Groups[0]} {
 			require.Len(t, got.Keys, 2)
 			for i, key := range got.Keys {
 				assert.Equal(t, group.Keys[i].Xpub, key.Xpub)
@@ -58,9 +58,9 @@ func TestSaveGroup(t *testing.T) {
 	t.Run("refuses a group with no id", func(t *testing.T) {
 		t.Parallel()
 
-		cli := rpc.NewMultisigServiceClient(apitests.API(t, database.Test(t)))
+		cli := rpc.NewMultisigServiceClient(apitests.RPC(t, database.Test(t)))
 
-		_, err := cli.SaveGroup(t.Context(), connect.NewRequest(&pb.SaveGroupRequest{Group: &pb.MultisigGroup{Name: "family"}}))
+		_, err := cli.SaveGroup(t.Context(), &pb.SaveGroupRequest{Group: &pb.MultisigGroup{Name: "family"}})
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }

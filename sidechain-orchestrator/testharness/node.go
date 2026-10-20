@@ -15,7 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -232,12 +233,13 @@ port=%d
 	// 7. Create ConnectRPC client — same pattern as the drivechain-cli.
 	// Uses connect.WithGRPC() which triggers h2c upgrade via the server's
 	// h2c.NewHandler. This works over HTTP/1.1.
-	n.WalletClient = rpc.NewWalletManagerServiceClient(
+	n.WalletClient = rpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		fmt.Sprintf("http://127.0.0.1:%d", grpcPort),
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(bitwindowDir)),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), localauth.ClientInterceptor(bitwindowDir),
+	))
 
 	nlog.Info().Msg("node ready")
 	return n

@@ -202,6 +202,14 @@ func attach(ctx context.Context, h http.Header, dir string) {
 // (explicit insecure/test mode). Missing cookie, missing header, or mismatch ⇒
 // CodeUnauthenticated. Match ⇒ pass with the token injected into ctx.
 func verify(ctx context.Context, h http.Header, dir string) (context.Context, error) {
+	ctx, err := verifyToken(ctx, h, dir)
+	if err != nil {
+		return ctx, err
+	}
+	return ctx, nil
+}
+
+func verifyToken(ctx context.Context, h http.Header, dir string) (context.Context, *connect.Error) {
 	if dir == "" {
 		return ctx, nil
 	}

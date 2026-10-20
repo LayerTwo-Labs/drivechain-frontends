@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,7 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -28,12 +31,12 @@ func TestWalletStatusAndUnlockCodes(t *testing.T) {
 
 	status := func() *pb.GetWalletStatusResponse {
 		t.Helper()
-		resp, err := h.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		resp, err := h.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		return resp.Msg
+		return resp
 	}
 	unlock := func(password string) connect.Code {
-		_, err := h.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: password}))
+		_, err := h.UnlockWallet(ctx, &pb.UnlockWalletRequest{Password: password})
 		return connect.CodeOf(err)
 	}
 
@@ -58,7 +61,7 @@ func TestWalletStatusAndUnlockCodes(t *testing.T) {
 	require.False(t, s.Unlocked) //nolint:staticcheck // old apps read it
 
 	require.Equal(t, connect.CodeUnauthenticated, unlock("wrong"))
-	_, err = h.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: "pass"}))
+	_, err = h.UnlockWallet(ctx, &pb.UnlockWalletRequest{Password: "pass"})
 	require.NoError(t, err)
 	require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, status().State)
 }
@@ -69,18 +72,18 @@ func TestWalletPasswordCodes(t *testing.T) {
 		call func(*WalletHandler, string) error
 	}{
 		{"unlock", func(h *WalletHandler, password string) error {
-			_, err := h.UnlockWallet(t.Context(), connect.NewRequest(&pb.UnlockWalletRequest{Password: password}))
+			_, err := h.UnlockWallet(t.Context(), &pb.UnlockWalletRequest{Password: password})
 			return err
 		}},
 		{"change password", func(h *WalletHandler, password string) error {
-			_, err := h.ChangePassword(t.Context(), connect.NewRequest(&pb.ChangePasswordRequest{
+			_, err := h.ChangePassword(t.Context(), &pb.ChangePasswordRequest{
 				OldPassword: password,
 				NewPassword: "newpass",
-			}))
+			})
 			return err
 		}},
 		{"remove encryption", func(h *WalletHandler, password string) error {
-			_, err := h.RemoveEncryption(t.Context(), connect.NewRequest(&pb.RemoveEncryptionRequest{Password: password}))
+			_, err := h.RemoveEncryption(t.Context(), &pb.RemoveEncryptionRequest{Password: password})
 			return err
 		}},
 	} {
@@ -124,10 +127,10 @@ func TestChangePasswordFileError(t *testing.T) {
 	require.NoError(t, os.Chmod(metaPath, 0400))
 	require.NoError(t, os.Mkdir(metaPath+".tmp", 0700))
 
-	_, err = NewWalletHandler(svc).ChangePassword(t.Context(), connect.NewRequest(&pb.ChangePasswordRequest{
+	_, err = NewWalletHandler(svc).ChangePassword(t.Context(), &pb.ChangePasswordRequest{
 		OldPassword: "oldpass",
 		NewPassword: "newpass",
-	}))
+	})
 	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	require.ErrorContains(t, err, "write encryption metadata")
 	var pathErr *os.PathError
@@ -145,29 +148,41 @@ func TestLockSendsALockedFrame(t *testing.T) {
 	require.NoError(t, svc.EncryptWallet("pass"))
 
 	mux := http.NewServeMux()
-	mux.Handle(rpc.NewWalletManagerServiceHandler(NewWalletHandler(svc)))
+	srv := connect.NewServer()
+	rpc.RegisterWalletManagerServiceHandler(srv, NewWalletHandler(svc))
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	client := rpc.NewWalletManagerServiceClient(server.Client(), server.URL)
+	client := rpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	stream, err := client.WatchWalletData(ctx, connect.NewRequest(&emptypb.Empty{}))
+	stream, err := client.WatchWalletData(ctx, &emptypb.Empty{})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = stream.Close() })
 
-	require.True(t, stream.Receive(), stream.Err())
-	require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, stream.Msg().State)
+	response, err := stream.Receive()
+	require.NoError(t, err)
+	require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, response.State)
 
 	svc.LockWallet()
 
-	for stream.Receive() {
-		if stream.Msg().Heartbeat {
+	var streamErr error
+	for {
+		msg, err := stream.Receive()
+		if err != nil {
+			streamErr = err
+			break
+		}
+		if msg.Heartbeat {
 			continue
 		}
-		require.Equal(t, pb.WalletState_WALLET_STATE_LOCKED, stream.Msg().State)
-		require.Empty(t, stream.Msg().Wallets)
+		require.Equal(t, pb.WalletState_WALLET_STATE_LOCKED, msg.State)
+		require.Empty(t, msg.Wallets)
 		return
 	}
-	t.Fatalf("no frame after the lock: %v", stream.Err())
+	if errors.Is(streamErr, io.EOF) {
+		streamErr = nil
+	}
+	t.Fatalf("no frame after the lock: %v", streamErr)
 }

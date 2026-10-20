@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,7 +79,7 @@ func TestSendTransactionRoutesPerWalletType(t *testing.T) {
 	h, elecFake, chainFake, elecID, coreID := newRoutedHandler(t)
 	ctx := context.Background()
 
-	resp, err := h.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+	resp, err := h.SendTransaction(ctx, &pb.SendTransactionRequest{
 		WalletId:           elecID,
 		Destinations:       map[string]int64{"addr": 10_000},
 		FeeRateSatPerVbyte: 2,
@@ -86,9 +87,9 @@ func TestSendTransactionRoutesPerWalletType(t *testing.T) {
 		RequiredInputs: []*pb.UnspentOutput{
 			{Txid: "pin", Vout: 3, AmountSats: 40_000},
 		},
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "fake-txid", resp.Msg.Txid)
+	assert.Equal(t, "fake-txid", resp.Txid)
 
 	assert.Equal(t, elecID, elecFake.lastSendWallet)
 	assert.Equal(t, int64(10_000), elecFake.lastSend.DestinationsSats["addr"])
@@ -98,10 +99,10 @@ func TestSendTransactionRoutesPerWalletType(t *testing.T) {
 	assert.Equal(t, wallet.RequiredInput{TxID: "pin", Vout: 3, AmountSats: 40_000}, elecFake.lastSend.RequiredInputs[0])
 	assert.Empty(t, chainFake.lastSendWallet)
 
-	_, err = h.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+	_, err = h.SendTransaction(ctx, &pb.SendTransactionRequest{
 		WalletId:     coreID,
 		Destinations: map[string]int64{"addr": 10_000},
-	}))
+	})
 	require.NoError(t, err)
 	assert.Equal(t, coreID, chainFake.lastSendWallet)
 }
@@ -118,12 +119,12 @@ func TestSendTransactionRefusesACoreMixedFeeFirst(t *testing.T) {
 		}
 	}
 
-	_, err := h.SendTransaction(ctx, connect.NewRequest(mixed(coreID)))
+	_, err := h.SendTransaction(ctx, mixed(coreID))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	assert.Empty(t, chainFake.lastSendWallet)
 
-	_, err = h.SendTransaction(ctx, connect.NewRequest(mixed(elecID)))
+	_, err = h.SendTransaction(ctx, mixed(elecID))
 	require.NoError(t, err)
 	assert.Equal(t, elecID, elecFake.lastSendWallet)
 }
@@ -135,14 +136,14 @@ func TestSendTransactionPassesThroughConnectCodes(t *testing.T) {
 	// the handler must not rewrap it as internal.
 	elecFake.sendErr = connect.NewError(
 		connect.CodeInvalidArgument,
-		errors.New("this wallet cannot allow a replay"),
+		"this wallet cannot allow a replay",
 	)
 
-	_, err := h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err := h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:     elecID,
 		Destinations: map[string]int64{"addr": 10_000},
 		AllowReplay:  true,
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -150,10 +151,10 @@ func TestSendTransactionPassesThroughConnectCodes(t *testing.T) {
 func TestSendTransactionDustCheck(t *testing.T) {
 	h, elecFake, _, elecID, _ := newRoutedHandler(t)
 
-	_, err := h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err := h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:     elecID,
 		Destinations: map[string]int64{"addr": 100},
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	assert.Empty(t, elecFake.lastSendWallet)
@@ -162,20 +163,20 @@ func TestSendTransactionDustCheck(t *testing.T) {
 func TestGetBalanceUsesProviderAndConvertsToSats(t *testing.T) {
 	h, _, _, _, coreID := newRoutedHandler(t)
 
-	resp, err := h.GetBalance(context.Background(), connect.NewRequest(&pb.GetBalanceRequest{WalletId: coreID}))
+	resp, err := h.GetBalance(context.Background(), &pb.GetBalanceRequest{WalletId: coreID})
 	require.NoError(t, err)
-	assert.Equal(t, float64(150_000_000), resp.Msg.ConfirmedSats)
-	assert.Equal(t, float64(25_000_000), resp.Msg.UnconfirmedSats)
-	assert.Equal(t, float64(625_000_000), resp.Msg.ImmatureSats)
+	assert.Equal(t, float64(150_000_000), resp.ConfirmedSats)
+	assert.Equal(t, float64(25_000_000), resp.UnconfirmedSats)
+	assert.Equal(t, float64(625_000_000), resp.ImmatureSats)
 }
 
 func TestGetBalanceEmptyWalletIDResolvesActive(t *testing.T) {
 	h, _, _, _, coreID := newRoutedHandler(t)
 
 	// GenerateWallet leaves the most recent wallet active (the core one).
-	resp, err := h.GetBalance(context.Background(), connect.NewRequest(&pb.GetBalanceRequest{}))
+	resp, err := h.GetBalance(context.Background(), &pb.GetBalanceRequest{})
 	require.NoError(t, err)
-	assert.Equal(t, float64(150_000_000), resp.Msg.ConfirmedSats)
+	assert.Equal(t, float64(150_000_000), resp.ConfirmedSats)
 	_ = coreID
 }
 
@@ -238,13 +239,13 @@ func TestCancelTransactionRoutesPerWalletType(t *testing.T) {
 		{walletID: coreID, fake: chainFake, other: elecFake},
 	} {
 		tc.other.lastBumpWallet, tc.other.lastCancelTxid = "", ""
-		resp, err := h.CancelTransaction(context.Background(), connect.NewRequest(&pb.CancelTransactionRequest{
+		resp, err := h.CancelTransaction(context.Background(), &pb.CancelTransactionRequest{
 			WalletId: tc.walletID, Txid: "abc", MaxFeeSats: 5_332,
-		}))
+		})
 		require.NoError(t, err)
-		assert.Equal(t, "cancel-txid", resp.Msg.ReplacementTxid)
-		assert.Equal(t, int64(194_668), resp.Msg.RecoveredSats)
-		assert.Equal(t, int64(5_332), resp.Msg.FeeSats)
+		assert.Equal(t, "cancel-txid", resp.ReplacementTxid)
+		assert.Equal(t, int64(194_668), resp.RecoveredSats)
+		assert.Equal(t, int64(5_332), resp.FeeSats)
 		assert.Equal(t, tc.walletID, tc.fake.lastBumpWallet)
 		assert.Equal(t, "abc", tc.fake.lastCancelTxid)
 		assert.Equal(t, int64(5_332), tc.fake.lastCancelMaxFee)
@@ -258,16 +259,16 @@ func TestCancelTransactionRoutesPerWalletType(t *testing.T) {
 func TestBumpFeeCarriesOutputZero(t *testing.T) {
 	h, elecFake, _, elecID, _ := newRoutedHandler(t)
 
-	_, err := h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+	_, err := h.BumpFee(context.Background(), &pb.BumpFeeRequest{
 		WalletId: elecID, Txid: "abc", NewFeeRate: 10, FeeFromVout: proto.Int32(0),
-	}))
+	})
 	require.NoError(t, err)
 	require.NotNil(t, elecFake.lastBump.FeeFromVout)
 	assert.Equal(t, 0, *elecFake.lastBump.FeeFromVout)
 
-	_, err = h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+	_, err = h.BumpFee(context.Background(), &pb.BumpFeeRequest{
 		WalletId: elecID, Txid: "abc", NewFeeRate: 10,
-	}))
+	})
 	require.NoError(t, err)
 	assert.Nil(t, elecFake.lastBump.FeeFromVout, "an unset output means the change output")
 }
@@ -275,31 +276,31 @@ func TestBumpFeeCarriesOutputZero(t *testing.T) {
 func TestBumpFeeReportsThePlan(t *testing.T) {
 	h, _, _, elecID, _ := newRoutedHandler(t)
 
-	resp, err := h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+	resp, err := h.BumpFee(context.Background(), &pb.BumpFeeRequest{
 		WalletId: elecID, Txid: "abc", NewFeeRate: 10,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "replacement-txid", resp.Msg.NewTxid)
-	require.NotNil(t, resp.Msg.Plan)
-	assert.Equal(t, int64(150), resp.Msg.Plan.OldFeeSats)
-	assert.Equal(t, int64(1500), resp.Msg.Plan.NewFeeSats)
-	assert.Equal(t, int64(1350), resp.Msg.Plan.ExtraFeeSats)
-	assert.InDelta(t, 10.0, resp.Msg.Plan.NewFeeRateSatVb, 0.001)
-	assert.Equal(t, int32(1), resp.Msg.Plan.FeeFromVout)
-	assert.Equal(t, int64(99_850), resp.Msg.Plan.AmountBeforeSats)
-	assert.Equal(t, int64(98_500), resp.Msg.Plan.AmountAfterSats)
-	assert.False(t, resp.Msg.Plan.OutputRemoved)
-	assert.True(t, resp.Msg.Plan.ReducesPayment)
+	assert.Equal(t, "replacement-txid", resp.NewTxid)
+	require.NotNil(t, resp.Plan)
+	assert.Equal(t, int64(150), resp.Plan.OldFeeSats)
+	assert.Equal(t, int64(1500), resp.Plan.NewFeeSats)
+	assert.Equal(t, int64(1350), resp.Plan.ExtraFeeSats)
+	assert.InDelta(t, 10.0, resp.Plan.NewFeeRateSatVb, 0.001)
+	assert.Equal(t, int32(1), resp.Plan.FeeFromVout)
+	assert.Equal(t, int64(99_850), resp.Plan.AmountBeforeSats)
+	assert.Equal(t, int64(98_500), resp.Plan.AmountAfterSats)
+	assert.False(t, resp.Plan.OutputRemoved)
+	assert.True(t, resp.Plan.ReducesPayment)
 }
 
 func TestPreviewBumpFeeReportsEveryField(t *testing.T) {
 	h, _, _, elecID, _ := newRoutedHandler(t)
 
-	resp, err := h.PreviewBumpFee(context.Background(), connect.NewRequest(&pb.PreviewBumpFeeRequest{
+	resp, err := h.PreviewBumpFee(context.Background(), &pb.PreviewBumpFeeRequest{
 		WalletId: elecID, Txid: "abc",
-	}))
+	})
 	require.NoError(t, err)
-	msg := resp.Msg
+	msg := resp
 	assert.Equal(t, int32(2), msg.InputCount)
 	assert.Equal(t, int64(151), msg.VsizeVbytes)
 	assert.Equal(t, int64(151), msg.OldFeeSats)
@@ -327,22 +328,22 @@ func TestPreviewBumpFeeSurvivesAFailedCancelPreview(t *testing.T) {
 	h, elecFake, _, elecID, _ := newRoutedHandler(t)
 	elecFake.cancelErr = errors.New("read the parent abc: no such mempool transaction")
 
-	resp, err := h.PreviewBumpFee(context.Background(), connect.NewRequest(&pb.PreviewBumpFeeRequest{
+	resp, err := h.PreviewBumpFee(context.Background(), &pb.PreviewBumpFeeRequest{
 		WalletId: elecID, Txid: "abc",
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, int32(2), resp.Msg.InputCount)
-	assert.Nil(t, resp.Msg.Cancel)
-	assert.Contains(t, resp.Msg.CancelReason, "cannot price a cancel")
+	assert.Equal(t, int32(2), resp.InputCount)
+	assert.Nil(t, resp.Cancel)
+	assert.Contains(t, resp.CancelReason, "cannot price a cancel")
 }
 
 func TestBumpFeeKeepsTheBackendErrorCode(t *testing.T) {
 	h, elecFake, _, elecID, _ := newRoutedHandler(t)
-	elecFake.bumpErr = connect.NewError(connect.CodeFailedPrecondition, errors.New("transaction is confirmed"))
+	elecFake.bumpErr = connect.NewError(connect.CodeFailedPrecondition, "transaction is confirmed")
 
-	_, err := h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+	_, err := h.BumpFee(context.Background(), &pb.BumpFeeRequest{
 		WalletId: elecID, Txid: "abc",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err),
 		"the dialog shows a reason, not an internal error")
@@ -412,14 +413,16 @@ func TestSendTransactionRequestRules(t *testing.T) {
 					send := h.SendTransaction
 					if mode == "connect" {
 						mux := http.NewServeMux()
-						mux.Handle(rpc.NewWalletManagerServiceHandler(h))
+						srv := connect.NewServer()
+						rpc.RegisterWalletManagerServiceHandler(srv, h)
+						connecthttp.Mount(mux, srv)
 						server := httptest.NewServer(mux)
 						t.Cleanup(server.Close)
-						send = rpc.NewWalletManagerServiceClient(server.Client(), server.URL).SendTransaction
+						send = rpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL))).SendTransaction
 					}
 
 					tc.request.WalletId = walletID
-					response, err := send(context.Background(), connect.NewRequest(tc.request))
+					response, err := send(context.Background(), tc.request)
 					assert.Empty(t, core.lastSendWallet)
 					if tc.wantErr != "" {
 						require.ErrorContains(t, err, tc.wantErr)
@@ -429,7 +432,7 @@ func TestSendTransactionRequestRules(t *testing.T) {
 					}
 
 					require.NoError(t, err)
-					assert.Equal(t, "fake-txid", response.Msg.Txid)
+					assert.Equal(t, "fake-txid", response.Txid)
 					assert.Equal(t, walletID, electrum.lastSendWallet)
 					assert.Equal(t, tc.request.FeeRateSatPerVbyte, electrum.lastSend.FeeRateSatPerVB)
 					assert.Equal(t, tc.request.FixedFeeSats, electrum.lastSend.FixedFeeSats)

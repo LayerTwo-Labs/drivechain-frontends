@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	connectv2 "connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -50,10 +52,10 @@ func Bitcoind(ctx context.Context, orchestratorAddr, cookieDir string) (corerpc.
 // with the local-auth cookie in cookieDir.
 func Orchestrator(addr, cookieDir string) orchrpc.OrchestratorServiceClient {
 	return orchrpc.NewOrchestratorServiceClient(
-		http.DefaultClient,
-		addr,
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+		connectv2.NewClient(
+			connecthttp.NewTransport(http.DefaultClient, addr, connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
+			localauth.ClientInterceptor(cookieDir),
+		),
 	)
 }
 
@@ -61,10 +63,10 @@ func Orchestrator(addr, cookieDir string) orchrpc.OrchestratorServiceClient {
 // with the local-auth cookie in cookieDir.
 func BitcoinConf(addr, cookieDir string) orchrpc.BitcoinConfServiceClient {
 	return orchrpc.NewBitcoinConfServiceClient(
-		http.DefaultClient,
-		addr,
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+		connectv2.NewClient(
+			connecthttp.NewTransport(http.DefaultClient, addr, connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
+			localauth.ClientInterceptor(cookieDir),
+		),
 	)
 }
 
@@ -72,9 +74,10 @@ func BitcoinConf(addr, cookieDir string) orchrpc.BitcoinConfServiceClient {
 // with the local-auth cookie in cookieDir.
 func WalletManager(addr, cookieDir string) walletmanagerrpc.WalletManagerServiceClient {
 	return walletmanagerrpc.NewWalletManagerServiceClient(
-		http.DefaultClient,
-		addr,
-		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+		connectv2.NewClient(
+			connecthttp.NewTransport(http.DefaultClient, addr, connecthttp.WithReadMaxBytes(0)),
+			localauth.ClientInterceptor(cookieDir),
+		),
 	)
 }
 
@@ -98,12 +101,12 @@ func EnforcerValidator(ctx context.Context, url, cookieDir string) (
 	}
 
 	client := rpc.NewValidatorServiceClient(
-		getSharedClient(ctx),
-		ensureHTTPScheme(url),
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+		connectv2.NewClient(
+			connecthttp.NewTransport(getSharedClient(ctx), ensureHTTPScheme(url), connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
+			localauth.ClientInterceptor(cookieDir),
+		),
 	)
-	_, err := client.GetSidechains(ctx, connect.NewRequest(&pb.GetSidechainsRequest{}))
+	_, err := client.GetSidechains(ctx, &pb.GetSidechainsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get sidechains: %w", err)
 	}
@@ -122,12 +125,12 @@ func EnforcerBlockProducer(ctx context.Context, url string) (
 	}
 
 	client := rpc.NewBlockProducerServiceClient(
-		getSharedClient(ctx),
-		ensureHTTPScheme(url),
-		connect.WithGRPC(),
+		connectv2.NewClient(
+			connecthttp.NewTransport(getSharedClient(ctx), ensureHTTPScheme(url), connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
+		),
 	)
 
-	_, err := client.GetBlockProducerState(ctx, connect.NewRequest(&pb.GetBlockProducerStateRequest{}))
+	_, err := client.GetBlockProducerState(ctx, &pb.GetBlockProducerStateRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get block producer state: %w", err)
 	}
@@ -145,9 +148,9 @@ func EnforcerMining(ctx context.Context, url string) (
 	}
 
 	return rpc.NewMiningServiceClient(
-		getSharedClient(ctx),
-		ensureHTTPScheme(url),
-		connect.WithGRPC(),
+		connectv2.NewClient(
+			connecthttp.NewTransport(getSharedClient(ctx), ensureHTTPScheme(url), connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
+		),
 	), nil
 }
 
@@ -160,18 +163,18 @@ func EnforcerCrypto(ctx context.Context, url string) (
 	}
 
 	client := cryptorpc.NewCryptoServiceClient(
-		getSharedClient(ctx),
-		ensureHTTPScheme(url),
-		connect.WithGRPC(),
+		connectv2.NewClient(
+			connecthttp.NewTransport(getSharedClient(ctx), ensureHTTPScheme(url), connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
+		),
 	)
 
-	if _, err := client.Ripemd160(ctx, connect.NewRequest(&cryptov1.Ripemd160Request{
+	if _, err := client.Ripemd160(ctx, &cryptov1.Ripemd160Request{
 		Msg: &commonv1.Hex{
 			Hex: &wrapperspb.StringValue{
 				Value: "deadbeef", // make sure this is valid hex
 			},
 		},
-	})); err != nil {
+	}); err != nil {
 		return nil, fmt.Errorf("ripemd160: %w", err)
 	}
 

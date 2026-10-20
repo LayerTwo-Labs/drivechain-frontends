@@ -169,9 +169,9 @@ func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
 		coins = append(coins, &orchpb.FrozenOutpoint{Txid: txid, Vout: int32(vout)})
 	}
 
-	_, err = e.orchClient.SetFrozenCoins(ctx, connect.NewRequest(&orchpb.SetFrozenCoinsRequest{
+	_, err = e.orchClient.SetFrozenCoins(ctx, &orchpb.SetFrozenCoinsRequest{
 		Outpoints: coins,
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("set frozen coins: %w", err)
 	}
@@ -202,7 +202,7 @@ func (e *WalletEngine) NodeMode() *NodeMode {
 
 // Unlock opens the wallet in the orchestrator.
 func (e *WalletEngine) Unlock(ctx context.Context, password string) error {
-	_, err := e.orchClient.UnlockWallet(ctx, connect.NewRequest(&orchpb.UnlockWalletRequest{Password: password}))
+	_, err := e.orchClient.UnlockWallet(ctx, &orchpb.UnlockWalletRequest{Password: password})
 	if err != nil {
 		return fmt.Errorf("unlock wallet: %w", err)
 	}
@@ -211,7 +211,7 @@ func (e *WalletEngine) Unlock(ctx context.Context, password string) error {
 
 // Lock closes the wallet in the orchestrator.
 func (e *WalletEngine) Lock(ctx context.Context) error {
-	if _, err := e.orchClient.LockWallet(ctx, connect.NewRequest(&orchpb.LockWalletRequest{})); err != nil {
+	if _, err := e.orchClient.LockWallet(ctx, &orchpb.LockWalletRequest{}); err != nil {
 		return fmt.Errorf("lock wallet: %w", err)
 	}
 	return nil
@@ -219,20 +219,20 @@ func (e *WalletEngine) Lock(ctx context.Context) error {
 
 // IsUnlocked reports whether the orchestrator holds the wallets open.
 func (e *WalletEngine) IsUnlocked(ctx context.Context) (bool, error) {
-	resp, err := e.orchClient.GetWalletStatus(ctx, connect.NewRequest(&orchpb.GetWalletStatusRequest{}))
+	resp, err := e.orchClient.GetWalletStatus(ctx, &orchpb.GetWalletStatusRequest{})
 	if err != nil {
 		return false, fmt.Errorf("get wallet status: %w", err)
 	}
-	return resp.Msg.State == orchpb.WalletState_WALLET_STATE_UNLOCKED, nil
+	return resp.State == orchpb.WalletState_WALLET_STATE_UNLOCKED, nil
 }
 
 // IsEncrypted reports whether the orchestrator wallet file has a password.
 func (e *WalletEngine) IsEncrypted(ctx context.Context) (bool, error) {
-	resp, err := e.orchClient.GetWalletStatus(ctx, connect.NewRequest(&orchpb.GetWalletStatusRequest{}))
+	resp, err := e.orchClient.GetWalletStatus(ctx, &orchpb.GetWalletStatusRequest{})
 	if err != nil {
 		return false, fmt.Errorf("get wallet status: %w", err)
 	}
-	return resp.Msg.Encrypted, nil
+	return resp.Encrypted, nil
 }
 
 // GetStarterSeed returns the seed hex of the wallet that derives the L1 and
@@ -241,11 +241,11 @@ func (e *WalletEngine) IsEncrypted(ctx context.Context) (bool, error) {
 func (e *WalletEngine) GetStarterSeed(ctx context.Context) (string, error) {
 	// GetWalletSeed names its wallet, so resolve the starter's id before
 	// asking for its seed.
-	list, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
+	list, err := e.orchClient.ListWallets(ctx, &orchpb.ListWalletsRequest{})
 	if err != nil {
 		return "", fmt.Errorf("list wallets: %w", err)
 	}
-	starter, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
+	starter, found := lo.Find(list.Wallets, func(w *orchpb.WalletMetadata) bool {
 		return w.IsStarter
 	})
 	if !found {
@@ -253,22 +253,22 @@ func (e *WalletEngine) GetStarterSeed(ctx context.Context) (string, error) {
 	}
 	resp, err := e.orchClient.GetWalletSeed(
 		ctx,
-		connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: starter.Id}),
+		&orchpb.GetWalletSeedRequest{WalletId: starter.Id},
 	)
 	if err != nil {
 		return "", fmt.Errorf("get seed of starter wallet %s: %w", starter.Id, err)
 	}
-	return resp.Msg.SeedHex, nil
+	return resp.SeedHex, nil
 }
 
 func (e *WalletEngine) GetWalletSeed(ctx context.Context, walletID string) (string, error) {
-	resp, err := e.orchClient.GetWalletSeed(ctx, connect.NewRequest(&orchpb.GetWalletSeedRequest{
+	resp, err := e.orchClient.GetWalletSeed(ctx, &orchpb.GetWalletSeedRequest{
 		WalletId: walletID,
-	}))
+	})
 	if err != nil {
 		return "", fmt.Errorf("get seed of wallet %s: %w", walletID, err)
 	}
-	return resp.Msg.SeedHex, nil
+	return resp.SeedHex, nil
 }
 
 func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error) {
@@ -368,16 +368,16 @@ func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletID str
 // ensureBitcoinCoreWalletLocked is the singleflight-wrapped body of
 // EnsureBitcoinCoreWallet. Don't call directly.
 func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, walletID string) (string, error) {
-	resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
+	resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, &orchpb.CreateBitcoinCoreWalletRequest{
 		WalletId: walletID,
-	}))
+	})
 	if err != nil {
 		return "", err
 	}
 	e.mu.Lock()
-	e.coreWallets[walletID] = resp.Msg.CoreWalletName
+	e.coreWallets[walletID] = resp.CoreWalletName
 	e.mu.Unlock()
-	return resp.Msg.CoreWalletName, nil
+	return resp.CoreWalletName, nil
 }
 
 // CoreWalletName returns the Bitcoin Core wallet that holds the wallet's coins.
@@ -396,39 +396,39 @@ func (e *WalletEngine) CoreWalletName(ctx context.Context, walletID string) (str
 // GetNewAddress returns a receive address of the wallet. The orchestrator
 // derives it for Core and electrum wallets alike.
 func (e *WalletEngine) GetNewAddress(ctx context.Context, walletID string, addressType orchpb.AddressType) (string, error) {
-	resp, err := e.orchClient.GetNewAddress(ctx, connect.NewRequest(&orchpb.GetNewAddressRequest{
+	resp, err := e.orchClient.GetNewAddress(ctx, &orchpb.GetNewAddressRequest{
 		WalletId:    walletID,
 		AddressType: addressType,
-	}))
+	})
 	if err != nil {
 		return "", fmt.Errorf("get new address: %w", err)
 	}
-	return resp.Msg.Address, nil
+	return resp.Address, nil
 }
 
 // DeriveReceiveAddresses returns the first count receive addresses of the
 // wallet, as the orchestrator derives them.
 func (e *WalletEngine) DeriveReceiveAddresses(ctx context.Context, walletID string, count int) ([]string, error) {
-	resp, err := e.orchClient.DeriveAddresses(ctx, connect.NewRequest(&orchpb.DeriveAddressesRequest{
+	resp, err := e.orchClient.DeriveAddresses(ctx, &orchpb.DeriveAddressesRequest{
 		WalletId: walletID,
 		Count:    int32(count),
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("derive addresses: %w", err)
 	}
-	return resp.Msg.Addresses, nil
+	return resp.Addresses, nil
 }
 
 // GetElectrumBalance returns the confirmed, pending and immature balance (in
 // sats) for an electrum wallet from the orchestrator's Esplora-backed provider.
 func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletID string) (confirmed, pending, immature uint64, err error) {
-	resp, err := e.orchClient.GetBalance(ctx, connect.NewRequest(&orchpb.GetBalanceRequest{
+	resp, err := e.orchClient.GetBalance(ctx, &orchpb.GetBalanceRequest{
 		WalletId: walletID,
-	}))
+	})
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("electrum: get balance: %w", err)
 	}
-	return uint64(math.Round(resp.Msg.ConfirmedSats)), uint64(math.Round(resp.Msg.UnconfirmedSats)), uint64(math.Round(resp.Msg.ImmatureSats)), nil
+	return uint64(math.Round(resp.ConfirmedSats)), uint64(math.Round(resp.UnconfirmedSats)), uint64(math.Round(resp.ImmatureSats)), nil
 }
 
 // RequireFullNode refuses an operation that needs a local BIP300/301 enforcer.
@@ -470,11 +470,11 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 	if err := e.PushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
-	resp, err := e.orchClient.SendTransaction(ctx, connect.NewRequest(req))
+	resp, err := e.orchClient.SendTransaction(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("send transaction: %w", err)
 	}
-	return resp.Msg.Txid, nil
+	return resp.Txid, nil
 }
 
 // ErrFrozenInput is the error of a send that names a coin the user froze.
@@ -508,11 +508,11 @@ func (e *WalletEngine) refuseFrozenInputs(ctx context.Context, inputs []*orchpb.
 
 // ListWalletIDs names every wallet the orchestrator holds.
 func (e *WalletEngine) ListWalletIDs(ctx context.Context) ([]string, error) {
-	resp, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
+	resp, err := e.orchClient.ListWallets(ctx, &orchpb.ListWalletsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("list wallets: %w", err)
 	}
-	return lo.Map(resp.Msg.Wallets, func(w *orchpb.WalletMetadata, _ int) string { return w.Id }), nil
+	return lo.Map(resp.Wallets, func(w *orchpb.WalletMetadata, _ int) string { return w.Id }), nil
 }
 
 // BumpFee replaces a transaction with one that pays more. Coin selection runs
@@ -521,11 +521,11 @@ func (e *WalletEngine) BumpFee(ctx context.Context, req *orchpb.BumpFeeRequest) 
 	if err := e.PushFrozenCoins(ctx); err != nil {
 		return nil, err
 	}
-	resp, err := e.orchClient.BumpFee(ctx, connect.NewRequest(req))
+	resp, err := e.orchClient.BumpFee(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("bump fee: %w", err)
 	}
-	return resp.Msg, nil
+	return resp, nil
 }
 
 // CreateDeposit builds and broadcasts a BIP300 M5 deposit from any wallet.
@@ -533,37 +533,37 @@ func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepo
 	if err := e.PushFrozenCoins(ctx); err != nil {
 		return "", err
 	}
-	resp, err := e.orchClient.CreateDeposit(ctx, connect.NewRequest(req))
+	resp, err := e.orchClient.CreateDeposit(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("create deposit: %w", err)
 	}
-	return resp.Msg.Txid, nil
+	return resp.Txid, nil
 }
 
 // GetElectrumUnspent returns an electrum wallet's UTXOs from the orchestrator,
 // which serves them over Esplora.
 func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletID string) ([]*orchpb.UnspentOutput, error) {
-	resp, err := e.orchClient.ListUnspent(ctx, connect.NewRequest(&orchpb.ListUnspentRequest{
+	resp, err := e.orchClient.ListUnspent(ctx, &orchpb.ListUnspentRequest{
 		WalletId: walletID,
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("electrum: list unspent: %w", err)
 	}
-	return resp.Msg.Utxos, nil
+	return resp.Utxos, nil
 }
 
 // GetElectrumTransactions returns an electrum wallet's transactions from the
 // orchestrator, which serves them over Esplora.
 func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletID string) ([]*orchpb.TransactionEntry, error) {
-	resp, err := e.orchClient.ListTransactions(ctx, connect.NewRequest(&orchpb.ListTransactionsRequest{
+	resp, err := e.orchClient.ListTransactions(ctx, &orchpb.ListTransactionsRequest{
 		WalletId: walletID,
 		// The orchestrator has no skip, and a count of 0 means 100 rows.
 		Count: math.MaxInt32,
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("electrum: list transactions: %w", err)
 	}
-	return resp.Msg.Transactions, nil
+	return resp.Transactions, nil
 }
 
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core
@@ -615,11 +615,11 @@ func (e *WalletEngine) SyncWallets(ctx context.Context) error {
 
 	log.Info().Msg("wallet sync: starting")
 
-	resp, err := e.orchClient.EnsureCoreWallets(ctx, connect.NewRequest(&orchpb.EnsureCoreWalletsRequest{}))
+	resp, err := e.orchClient.EnsureCoreWallets(ctx, &orchpb.EnsureCoreWalletsRequest{})
 	if err != nil {
 		return fmt.Errorf("wallet sync: %w", err)
 	}
-	log.Info().Int32("synced", resp.Msg.SyncedCount).Msg("wallet sync: completed via orchestrator")
+	log.Info().Int32("synced", resp.SyncedCount).Msg("wallet sync: completed via orchestrator")
 	return nil
 }
 
@@ -631,11 +631,11 @@ func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) 
 // listWallets returns the wallets the orchestrator holds open, and the active
 // wallet id. A locked wallet file lists no wallets.
 func (e *WalletEngine) listWallets(ctx context.Context) ([]WalletInfo, string, error) {
-	resp, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
+	resp, err := e.orchClient.ListWallets(ctx, &orchpb.ListWalletsRequest{})
 	if err != nil {
 		return nil, "", fmt.Errorf("list wallets: %w", err)
 	}
-	wallets := lo.Map(resp.Msg.Wallets, func(w *orchpb.WalletMetadata, _ int) WalletInfo {
+	wallets := lo.Map(resp.Wallets, func(w *orchpb.WalletMetadata, _ int) WalletInfo {
 		return WalletInfo{
 			ID:             w.Id,
 			Name:           w.Name,
@@ -646,43 +646,43 @@ func (e *WalletEngine) listWallets(ctx context.Context) ([]WalletInfo, string, e
 			ScriptType:     w.ScriptType,
 		}
 	})
-	return wallets, resp.Msg.ActiveWalletId, nil
+	return wallets, resp.ActiveWalletId, nil
 }
 
 // ChequeAddressUnspent reports a cheque address's UTXOs. Always electrum-backed
 // on the orchestrator side, whatever wallet the user has active.
 func (e *WalletEngine) ChequeAddressUnspent(ctx context.Context, address string) ([]*orchpb.AddressUnspentOutput, int32, error) {
-	resp, err := e.orchClient.GetAddressUnspent(ctx, connect.NewRequest(&orchpb.GetAddressUnspentRequest{
+	resp, err := e.orchClient.GetAddressUnspent(ctx, &orchpb.GetAddressUnspentRequest{
 		Address: address,
-	}))
+	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("electrum: address unspent: %w", err)
 	}
-	return resp.Msg.Utxos, resp.Msg.TipHeight, nil
+	return resp.Utxos, resp.TipHeight, nil
 }
 
 // BroadcastChequeTx broadcasts a cheque sweep over electrum, whatever wallet
 // the user has active.
 func (e *WalletEngine) BroadcastChequeTx(ctx context.Context, txHex string) (string, error) {
-	resp, err := e.orchClient.BroadcastElectrumTransaction(ctx, connect.NewRequest(&orchpb.BroadcastElectrumTransactionRequest{
+	resp, err := e.orchClient.BroadcastElectrumTransaction(ctx, &orchpb.BroadcastElectrumTransactionRequest{
 		TxHex: txHex,
-	}))
+	})
 	if err != nil {
 		return "", fmt.Errorf("electrum: broadcast: %w", err)
 	}
-	return resp.Msg.Txid, nil
+	return resp.Txid, nil
 }
 
 // EstimateFeeRate returns the electrum fee estimate in sat/vB for a
 // confirmation target, floored at the 1 sat/vB relay minimum.
 func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int32) (float64, error) {
-	resp, err := e.orchClient.EstimateFee(ctx, connect.NewRequest(&orchpb.EstimateFeeRequest{
+	resp, err := e.orchClient.EstimateFee(ctx, &orchpb.EstimateFeeRequest{
 		ConfTarget: confTarget,
-	}))
+	})
 	if err != nil {
 		return 0, fmt.Errorf("electrum: estimate fee: %w", err)
 	}
-	rate := resp.Msg.SatPerVbyte
+	rate := resp.SatPerVbyte
 	if rate < 1 {
 		rate = 1
 	}
@@ -768,26 +768,26 @@ func isWalletNotFoundError(msg string) bool {
 // SidechainDepositTotals sums this install's deposits: all time, and since
 // `since`. Both in sats. An empty walletID sums every wallet's.
 func (e *WalletEngine) SidechainDepositTotals(ctx context.Context, since time.Time, walletID string) (int64, int64, error) {
-	resp, err := e.orchClient.GetSidechainDepositTotals(ctx, connect.NewRequest(&orchpb.GetSidechainDepositTotalsRequest{
+	resp, err := e.orchClient.GetSidechainDepositTotals(ctx, &orchpb.GetSidechainDepositTotalsRequest{
 		SinceUnix: since.Unix(),
 		WalletId:  walletID,
-	}))
+	})
 	if err != nil {
 		return 0, 0, fmt.Errorf("get sidechain deposit totals: %w", err)
 	}
-	return resp.Msg.TotalSats, resp.Msg.RecentSats, nil
+	return resp.TotalSats, resp.RecentSats, nil
 }
 
 // ListSidechainDeposits reports the deposits this install made to a slot. The
 // orchestrator records each one as it broadcasts it, because an M5 is an
 // ordinary transaction on the wire.
 func (e *WalletEngine) ListSidechainDeposits(ctx context.Context, slot uint32, walletID string) ([]*orchpb.SidechainDeposit, error) {
-	resp, err := e.orchClient.ListSidechainDeposits(ctx, connect.NewRequest(&orchpb.ListSidechainDepositsRequest{
+	resp, err := e.orchClient.ListSidechainDeposits(ctx, &orchpb.ListSidechainDepositsRequest{
 		Slot:     slot,
 		WalletId: walletID,
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list sidechain deposits: %w", err)
 	}
-	return resp.Msg.Deposits, nil
+	return resp.Deposits, nil
 }

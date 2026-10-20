@@ -16,7 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/grpchealth"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -26,20 +27,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type remoteValidator struct {
+	enforcerrpc.UnimplementedValidatorServiceHandler
+	height  uint32
+	failure *atomic.Bool
+}
+
+func (v remoteValidator) GetChainTip(context.Context, *enforcerpb.GetChainTipRequest) (*enforcerpb.GetChainTipResponse, error) {
+	if v.failure != nil && v.failure.Load() {
+		return nil, connect.NewError(connect.CodeUnavailable, "validator is offline")
+	}
+	return &enforcerpb.GetChainTipResponse{BlockHeaderInfo: &enforcerpb.BlockHeaderInfo{Height: v.height}}, nil
+}
+
 func remoteValidatorServer(t *testing.T, height uint32, failure *atomic.Bool) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.Handle(enforcerrpc.ValidatorServiceGetChainTipProcedure, connect.NewUnaryHandler(
-		enforcerrpc.ValidatorServiceGetChainTipProcedure,
-		func(context.Context, *connect.Request[enforcerpb.GetChainTipRequest]) (*connect.Response[enforcerpb.GetChainTipResponse], error) {
-			if failure != nil && failure.Load() {
-				return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("validator is offline"))
-			}
-			return connect.NewResponse(&enforcerpb.GetChainTipResponse{BlockHeaderInfo: &enforcerpb.BlockHeaderInfo{Height: height}}), nil
-		},
-	))
-	healthPath, healthHandler := grpchealth.NewHandler(grpchealth.NewStaticChecker("cusf.mainchain.v1.ValidatorService"))
-	mux.Handle(healthPath, healthHandler)
+	rpcServer := connect.NewServer()
+	enforcerrpc.RegisterValidatorServiceHandler(rpcServer, remoteValidator{height: height, failure: failure})
+	mux.Handle(grpchealth.NewHandler(grpchealth.NewStaticChecker("cusf.mainchain.v1.ValidatorService")))
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewUnstartedServer(mux)
 	server.Config.Protocols = new(http.Protocols)
 	server.Config.Protocols.SetHTTP1(true)
@@ -95,9 +102,9 @@ func TestRemoteEnforcerKeepsOneBridge(t *testing.T) {
 	}
 	client, err := o.EnforcerValidator()
 	require.NoError(t, err)
-	tip, err := client.GetChainTip(context.Background(), connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	tip, err := client.GetChainTip(context.Background(), &enforcerpb.GetChainTipRequest{})
 	require.NoError(t, err)
-	require.EqualValues(t, 42, tip.Msg.BlockHeaderInfo.Height)
+	require.EqualValues(t, 42, tip.BlockHeaderInfo.Height)
 	status, err := (&enforcerSyncConnection{o: o}).Fetch(context.Background())
 	require.NoError(t, err)
 	require.EqualValues(t, 42, status.Blocks)
@@ -109,18 +116,18 @@ func TestRemoteEnforcerKeepsClientAfterEndpointChange(t *testing.T) {
 	o := remoteTestOrchestrator(t, firstServer.URL)
 	first, err := o.EnforcerURL()
 	require.NoError(t, err)
-	client := enforcerrpc.NewValidatorServiceClient(o.enforcerHTTP(), first, connect.WithGRPC())
-	tip, err := client.GetChainTip(context.Background(), connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	client := enforcerrpc.NewValidatorServiceClient(connect.NewClient(connecthttp.NewTransport(o.enforcerHTTP(), first, connecthttp.WithReadMaxBytes(0), connecthttp.WithGRPC())))
+	tip, err := client.GetChainTip(context.Background(), &enforcerpb.GetChainTipRequest{})
 	require.NoError(t, err)
-	require.EqualValues(t, 42, tip.Msg.BlockHeaderInfo.Height)
+	require.EqualValues(t, 42, tip.BlockHeaderInfo.Height)
 	entry := config.PublishedEndpoints(config.NetworkSignet)
 	entry.Services.Enforcer.URL = secondServer.URL
 	config.SetNetworkEndpoints(config.NetworkSignet, entry)
 	second, err := o.EnforcerURL()
 	require.NoError(t, err)
-	tip, err = client.GetChainTip(context.Background(), connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	tip, err = client.GetChainTip(context.Background(), &enforcerpb.GetChainTipRequest{})
 	require.NoError(t, err)
-	require.EqualValues(t, 56, tip.Msg.BlockHeaderInfo.Height)
+	require.EqualValues(t, 56, tip.BlockHeaderInfo.Height)
 	require.Equal(t, first, second)
 	status, err := (&enforcerSyncConnection{o: o}).Fetch(context.Background())
 	require.NoError(t, err)
@@ -543,11 +550,11 @@ func TestRemoteSidechainStopsBeforeAnUnavailableValidator(t *testing.T) {
 // A network publishes its validator address before the host stands up. Until it
 // answers, light mode waits; it does not report a broken install.
 func TestRemoteEnforcerCheckErrorNamesAHostThatIsNotUp(t *testing.T) {
-	unreachable := connect.NewError(connect.CodeUnavailable, fmt.Errorf("dial tcp: no such host"))
+	unreachable := connect.Errorf(connect.CodeUnavailable, "dial tcp: no such host")
 	require.EqualError(t, remoteEnforcerCheckError("Betanet", unreachable),
 		"the remote enforcer for Betanet is not live yet")
 
-	refused := connect.NewError(connect.CodeInternal, fmt.Errorf("bad certificate"))
+	refused := connect.Errorf(connect.CodeInternal, "bad certificate")
 	require.EqualError(t, remoteEnforcerCheckError("Betanet", refused),
 		"check the remote validator service: internal: bad certificate")
 }

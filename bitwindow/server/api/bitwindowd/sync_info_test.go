@@ -3,7 +3,7 @@ package bitwindowd_test
 import (
 	"testing"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,7 +44,7 @@ func TestGetSyncInfoWaitsForCore(t *testing.T) {
 			apitests.ExpectCoreWalletSetup(bitcoind)
 			bitcoind.EXPECT().
 				GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 					Msg: &corepb.GetBlockchainInfoResponse{
 						Blocks:               900_000,
 						Headers:              967_362,
@@ -54,7 +54,7 @@ func TestGetSyncInfoWaitsForCore(t *testing.T) {
 				AnyTimes()
 			bitcoind.EXPECT().
 				GetRawMempool(gomock.Any(), gomock.Any()).
-				Return(&connect.Response[corepb.GetRawMempoolResponse]{
+				Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
 					Msg: &corepb.GetRawMempoolResponse{},
 				}, nil).
 				AnyTimes()
@@ -63,15 +63,15 @@ func TestGetSyncInfoWaitsForCore(t *testing.T) {
 				Return(nil, assert.AnError).
 				AnyTimes()
 
-			cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db,
+			cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db,
 				apitests.WithBitcoind(bitcoind),
 				apitests.WithNetwork(tc.network),
 			))
 
-			res, err := cli.GetSyncInfo(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+			res, err := cli.GetSyncInfo(t.Context(), &emptypb.Empty{})
 			require.NoError(t, err)
-			assert.Equal(t, tc.want, res.Msg.WaitsForCore)
-			assert.Equal(t, int64(967_362), res.Msg.HeaderHeight)
+			assert.Equal(t, tc.want, res.WaitsForCore)
+			assert.Equal(t, int64(967_362), res.HeaderHeight)
 		})
 	}
 }

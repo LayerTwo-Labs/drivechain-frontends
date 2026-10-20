@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
@@ -616,9 +616,9 @@ func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID strin
 	// Serving a kind the wallet doesn't derive would yield an address it can
 	// neither track nor spend, so reject it rather than silently downgrade.
 	if !lo.Contains(p.receiveKinds(w), target) {
-		return DerivedAddress{}, connect.NewError(
+		return DerivedAddress{}, connect.Errorf(
 			connect.CodeUnimplemented,
-			fmt.Errorf("electrum wallet does not derive %s addresses", target),
+			"electrum wallet does not derive %s addresses", target,
 		)
 	}
 	return p.nextUnused(walletID, target, false)
@@ -1675,7 +1675,7 @@ func (p *ElectrumBackend) PreviewBumpFee(ctx context.Context, walletID string, r
 func (p *ElectrumBackend) previewBumpFee(ctx context.Context, scan *electrumScan, tx EsploraTx, req BumpFeeRequest) (*BumpFeePreview, error) {
 	net := p.params()
 	if tx.Status.Confirmed {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s is confirmed", tx.TxID))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "transaction %s is confirmed", tx.TxID)
 	}
 	if tx.Weight <= 0 {
 		return nil, fmt.Errorf("transaction %s reports no weight", tx.TxID)
@@ -1773,7 +1773,7 @@ func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID string, req Bump
 		return nil, err
 	}
 	if scan.watchOnly {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("watch-only electrum wallet cannot sign or send"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "watch-only electrum wallet cannot sign or send")
 	}
 	tx, err := p.verifiedTx(ctx, req.TxID)
 	if err != nil {
@@ -1784,7 +1784,7 @@ func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID string, req Bump
 		return nil, err
 	}
 	if preview.Plan == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(preview.Reason))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, preview.Reason)
 	}
 	plan := *preview.Plan
 
@@ -1911,7 +1911,7 @@ func (p *ElectrumBackend) previewCancel(ctx context.Context, walletID string, sc
 		return nil, err
 	}
 	if tx.Status.Confirmed {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s is confirmed", txid))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "transaction %s is confirmed", txid)
 	}
 	if tx.Weight <= 0 {
 		return nil, fmt.Errorf("transaction %s reports no weight", txid)
@@ -1969,7 +1969,7 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 		return "", err
 	}
 	if req.TargetRate <= 0 {
-		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("target fee rate must be positive"))
+		return "", connect.NewError(connect.CodeInvalidArgument, "target fee rate must be positive")
 	}
 
 	scan, err := p.scanWallet(ctx, walletID)
@@ -1982,12 +1982,12 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 
 	parentUTXO, ok := findUTXO(p.spendableUTXOs(scan), req.ParentTxID, req.ParentVout)
 	if !ok {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("outpoint %s:%d is not a spendable wallet UTXO", req.ParentTxID, req.ParentVout))
+		return "", connect.Errorf(connect.CodeInvalidArgument,
+			"outpoint %s:%d is not a spendable wallet UTXO", req.ParentTxID, req.ParentVout)
 	}
 	if parentUTXO.confirmed {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
+		return "", connect.Errorf(connect.CodeInvalidArgument,
+			"outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout)
 	}
 
 	if err := p.svc.checkCpfpParent(ctx, walletID, req); err != nil {
@@ -2001,8 +2001,8 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 	parentVsize := int64(math.Ceil(float64(parentTx.Weight) / 4))
 	parentFee := parentTx.Fee
 	if parentVsize > 0 && req.TargetRate <= parentFee/parentVsize {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize))
+		return "", connect.Errorf(connect.CodeInvalidArgument,
+			"target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize)
 	}
 
 	w := p.svc.GetWalletByID(walletID)
@@ -2021,8 +2021,8 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 	childVsize := int64(11 + inVsize + outputVsizeForKind(d.Kind))
 	childFee := packageChildFee(req.TargetRate, parentVsize, parentFee, childVsize, 1)
 	if childFee >= parentUTXO.amountSats {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("child fee %d sats exceeds parent output value %d sats", childFee, parentUTXO.amountSats))
+		return "", connect.Errorf(connect.CodeInvalidArgument,
+			"child fee %d sats exceeds parent output value %d sats", childFee, parentUTXO.amountSats)
 	}
 
 	childAddr, err := p.nextUnusedAddrFromScan(walletID, scan, w.scriptKind(), false)
@@ -2105,11 +2105,11 @@ func (p *ElectrumBackend) ServerURL() string {
 func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, error) {
 	sw, ok := p.client.(SwappableChainSource)
 	if !ok {
-		return 0, connect.NewError(connect.CodeUnimplemented, errors.New("this wallet's backend does not support switching servers"))
+		return 0, connect.NewError(connect.CodeUnimplemented, "this wallet's backend does not support switching servers")
 	}
 	normalized, err := normalizeEsploraURL(url)
 	if err != nil {
-		return 0, connect.NewError(connect.CodeInvalidArgument, err)
+		return 0, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	prev := sw.BaseURLs()
@@ -2118,7 +2118,7 @@ func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, er
 	tip, err := sw.TipHeight(ctx)
 	if err != nil {
 		sw.SetBaseURLs(prev)
-		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("server %s unreachable, kept previous server: %w", normalized, err))
+		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("server %s unreachable, kept previous server: %w", normalized, err).Error())
 	}
 
 	// The new endpoint serves a different chain view, so every cached scan is
@@ -2147,31 +2147,31 @@ func (p *ElectrumBackend) TorConfig() (bool, string) {
 func (p *ElectrumBackend) SetTorConfig(ctx context.Context, enabled bool, proxyAddr string) (int, error) {
 	sw, ok := p.client.(SwappableChainSource)
 	if !ok {
-		return 0, connect.NewError(connect.CodeUnimplemented, errors.New("this wallet's backend does not support tor routing"))
+		return 0, connect.NewError(connect.CodeUnimplemented, "this wallet's backend does not support tor routing")
 	}
 	if enabled {
 		normalized, err := normalizeProxyAddr(proxyAddr)
 		if err != nil {
-			return 0, connect.NewError(connect.CodeInvalidArgument, err)
+			return 0, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		proxyAddr = normalized
 	}
 
 	prevEnabled, prevProxy := sw.ProxyConfig()
 	if err := sw.SetProxy(enabled, proxyAddr); err != nil {
-		return 0, connect.NewError(connect.CodeInvalidArgument, err)
+		return 0, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	tip, err := sw.TipHeight(ctx)
 	if err != nil {
 		_ = sw.SetProxy(prevEnabled, prevProxy)
-		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("proxy %s unreachable, kept previous tor config: %w", proxyAddr, err))
+		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("proxy %s unreachable, kept previous tor config: %w", proxyAddr, err).Error())
 	}
 
 	for _, fn := range p.proxyChange {
 		if err := fn(enabled, proxyAddr); err != nil {
 			_ = sw.SetProxy(prevEnabled, prevProxy)
-			return 0, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("apply tor config to side client: %w", err))
+			return 0, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("apply tor config to side client: %w", err).Error())
 		}
 	}
 

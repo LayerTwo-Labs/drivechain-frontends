@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -29,10 +29,10 @@ type broadcastOrchestrator struct {
 }
 
 func (b *broadcastOrchestrator) BroadcastElectrumTransaction(
-	_ context.Context, req *connect.Request[orchpb.BroadcastElectrumTransactionRequest],
-) (*connect.Response[orchpb.BroadcastElectrumTransactionResponse], error) {
-	b.broadcasts = append(b.broadcasts, req.Msg.TxHex)
-	return connect.NewResponse(&orchpb.BroadcastElectrumTransactionResponse{Txid: "swept-txid"}), nil
+	_ context.Context, req *orchpb.BroadcastElectrumTransactionRequest,
+) (*orchpb.BroadcastElectrumTransactionResponse, error) {
+	b.broadcasts = append(b.broadcasts, req.TxHex)
+	return &orchpb.BroadcastElectrumTransactionResponse{Txid: "swept-txid"}, nil
 }
 
 func TestSweepChequeOnALockedWallet(t *testing.T) {
@@ -59,18 +59,18 @@ func TestSweepChequeOnALockedWallet(t *testing.T) {
 
 	t.Run("the claim needs no unlock", func(t *testing.T) {
 		cli := walletv1connect.NewWalletServiceClient(
-			apitests.API(t, db, apitests.WithOrchestrator(orchestrator)),
+			apitests.RPC(t, db, apitests.WithOrchestrator(orchestrator)),
 		)
 
-		resp, err := cli.SweepCheque(t.Context(), connect.NewRequest(&walletv1.SweepChequeRequest{
+		resp, err := cli.SweepCheque(t.Context(), &walletv1.SweepChequeRequest{
 			WalletId:           testWalletID,
 			PrivateKeyWif:      wif.String(),
 			DestinationAddress: candidates[0].Address,
 			FeeSatPerVbyte:     1,
-		}))
+		})
 		require.NoError(t, err)
-		require.Equal(t, "swept-txid", resp.Msg.Txid)
-		require.Equal(t, uint64(100_000), resp.Msg.AmountSats)
+		require.Equal(t, "swept-txid", resp.Txid)
+		require.Equal(t, uint64(100_000), resp.AmountSats)
 		require.Len(t, orchestrator.broadcasts, 1)
 	})
 }
@@ -94,13 +94,13 @@ func TestSweepChequeMarksTheCheque(t *testing.T) {
 				Confirmations: 3,
 			}},
 		}}
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(orchestrator)))
-		_, err := cli.SweepCheque(t.Context(), connect.NewRequest(&walletv1.SweepChequeRequest{
+		cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(orchestrator)))
+		_, err := cli.SweepCheque(t.Context(), &walletv1.SweepChequeRequest{
 			WalletId:           testWalletID,
 			PrivateKeyWif:      wif.String(),
 			DestinationAddress: candidates[0].Address,
 			FeeSatPerVbyte:     1,
-		}))
+		})
 		return orchestrator, err
 	}
 
@@ -144,14 +144,14 @@ func TestSweepChequeRefusesAWIFOfAnotherNetwork(t *testing.T) {
 	mainnetWIF, err := btcutil.NewWIF(privKey, &chaincfg.MainNetParams, true)
 	require.NoError(t, err)
 	orchestrator := &broadcastOrchestrator{fakeOrchestrator: &fakeOrchestrator{}}
-	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(orchestrator)))
+	cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(orchestrator)))
 
-	_, err = cli.SweepCheque(t.Context(), connect.NewRequest(&walletv1.SweepChequeRequest{
+	_, err = cli.SweepCheque(t.Context(), &walletv1.SweepChequeRequest{
 		WalletId:           testWalletID,
 		PrivateKeyWif:      mainnetWIF.String(),
 		DestinationAddress: "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl",
 		FeeSatPerVbyte:     1,
-	}))
+	})
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	require.ErrorContains(t, err, "WIF is not for network")
 	assert.Empty(t, orchestrator.broadcasts)
@@ -212,22 +212,22 @@ func TestPreviewSweep(t *testing.T) {
 			db := database.Test(t)
 			wif, candidates := newKey(t, &chaincfg.SigNetParams, tt.compressed)
 			source := candidates[tt.fundedIndex]
-			cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(
+			cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(
 				&fakeOrchestrator{address: source.Address, utxos: tt.utxos},
 			)))
 
-			resp, err := cli.PreviewSweep(t.Context(), connect.NewRequest(&walletv1.PreviewSweepRequest{
+			resp, err := cli.PreviewSweep(t.Context(), &walletv1.PreviewSweepRequest{
 				PrivateKeyWif:  wif.String(),
 				FeeSatPerVbyte: tt.feeRate,
-			}))
+			})
 			require.NoError(t, err)
-			assert.Equal(t, source.Address, resp.Msg.Address)
-			assert.Equal(t, tt.wantKind, resp.Msg.AddressKind)
-			assert.Equal(t, uint32(len(tt.utxos)), resp.Msg.OutputCount)
-			assert.Equal(t, uint64(lo.SumBy(tt.utxos, func(u *orchpb.AddressUnspentOutput) int64 { return u.ValueSats })), resp.Msg.AmountSats)
-			assert.Equal(t, tt.feeRate, resp.Msg.FeeSatPerVbyte)
-			assert.Equal(t, tt.wantFee, resp.Msg.FeeSats)
-			assert.Equal(t, tt.wantReceive, resp.Msg.ReceiveSats)
+			assert.Equal(t, source.Address, resp.Address)
+			assert.Equal(t, tt.wantKind, resp.AddressKind)
+			assert.Equal(t, uint32(len(tt.utxos)), resp.OutputCount)
+			assert.Equal(t, uint64(lo.SumBy(tt.utxos, func(u *orchpb.AddressUnspentOutput) int64 { return u.ValueSats })), resp.AmountSats)
+			assert.Equal(t, tt.feeRate, resp.FeeSatPerVbyte)
+			assert.Equal(t, tt.wantFee, resp.FeeSats)
+			assert.Equal(t, tt.wantReceive, resp.ReceiveSats)
 		})
 	}
 
@@ -235,12 +235,12 @@ func TestPreviewSweep(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
 		mainnetWIF, _ := newKey(t, &chaincfg.MainNetParams, true)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{})))
+		cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{})))
 
-		_, err := cli.PreviewSweep(t.Context(), connect.NewRequest(&walletv1.PreviewSweepRequest{
+		_, err := cli.PreviewSweep(t.Context(), &walletv1.PreviewSweepRequest{
 			PrivateKeyWif:  mainnetWIF.String(),
 			FeeSatPerVbyte: 1,
-		}))
+		})
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		require.ErrorContains(t, err, "WIF is not for network")
 	})

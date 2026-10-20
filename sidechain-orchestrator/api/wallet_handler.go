@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"buf.build/go/protovalidate"
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -129,70 +129,70 @@ func (h *WalletHandler) bip47NetParams() *chaincfg.Params {
 // Wallet lifecycle RPCs
 // ============================================================================
 
-func (h *WalletHandler) GetWalletStatus(ctx context.Context, req *connect.Request[pb.GetWalletStatusRequest]) (*connect.Response[pb.GetWalletStatusResponse], error) {
+func (h *WalletHandler) GetWalletStatus(ctx context.Context, req *pb.GetWalletStatusRequest) (*pb.GetWalletStatusResponse, error) {
 	state := h.svc.State()
-	return connect.NewResponse(&pb.GetWalletStatusResponse{
+	return &pb.GetWalletStatusResponse{
 		HasWallet:        state != wallet.StateNoWallet, //nolint:staticcheck // old apps read it
 		Encrypted:        h.svc.IsEncrypted(),
 		Unlocked:         state == wallet.StateUnlocked, //nolint:staticcheck // old apps read it
 		ActiveWalletId:   h.svc.ActiveWalletID(),
 		ActiveWalletName: h.svc.ActiveWalletName(),
 		State:            walletStateToProto(state),
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request[pb.GenerateWalletRequest]) (*connect.Response[pb.GenerateWalletResponse], error) {
-	account, path, err := wallet.ResolveCreateDerivationPath(req.Msg.Account, req.Msg.DerivationPath)
+func (h *WalletHandler) GenerateWallet(ctx context.Context, req *pb.GenerateWalletRequest) (*pb.GenerateWalletResponse, error) {
+	account, path, err := wallet.ResolveCreateDerivationPath(req.Account, req.DerivationPath)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	if _, err := wallet.ResolveScriptType(req.Msg.ScriptType, path); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	if _, err := wallet.ResolveScriptType(req.ScriptType, path); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	w, err := h.svc.GenerateWalletWithPath(req.Msg.Name, req.Msg.CustomMnemonic, req.Msg.Passphrase, account, path, req.Msg.ScriptType, allSidechainSlots())
+	w, err := h.svc.GenerateWalletWithPath(req.Name, req.CustomMnemonic, req.Passphrase, account, path, req.ScriptType, allSidechainSlots())
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.GenerateWalletResponse{
+	return &pb.GenerateWalletResponse{
 		WalletId: w.ID,
 		Mnemonic: w.Master.Mnemonic,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) UnlockWallet(ctx context.Context, req *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[pb.UnlockWalletResponse], error) {
-	if err := h.svc.UnlockWallet(req.Msg.Password); err != nil {
+func (h *WalletHandler) UnlockWallet(ctx context.Context, req *pb.UnlockWalletRequest) (*pb.UnlockWalletResponse, error) {
+	if err := h.svc.UnlockWallet(req.Password); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.UnlockWalletResponse{}), nil
+	return &pb.UnlockWalletResponse{}, nil
 }
 
-func (h *WalletHandler) LockWallet(ctx context.Context, req *connect.Request[pb.LockWalletRequest]) (*connect.Response[pb.LockWalletResponse], error) {
+func (h *WalletHandler) LockWallet(ctx context.Context, req *pb.LockWalletRequest) (*pb.LockWalletResponse, error) {
 	h.svc.LockWallet()
-	return connect.NewResponse(&pb.LockWalletResponse{}), nil
+	return &pb.LockWalletResponse{}, nil
 }
 
-func (h *WalletHandler) EncryptWallet(ctx context.Context, req *connect.Request[pb.EncryptWalletRequest]) (*connect.Response[pb.EncryptWalletResponse], error) {
-	if err := h.svc.EncryptWallet(req.Msg.Password); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+func (h *WalletHandler) EncryptWallet(ctx context.Context, req *pb.EncryptWalletRequest) (*pb.EncryptWalletResponse, error) {
+	if err := h.svc.EncryptWallet(req.Password); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.EncryptWalletResponse{}), nil
+	return &pb.EncryptWalletResponse{}, nil
 }
 
-func (h *WalletHandler) ChangePassword(ctx context.Context, req *connect.Request[pb.ChangePasswordRequest]) (*connect.Response[pb.ChangePasswordResponse], error) {
-	if err := h.svc.ChangePassword(req.Msg.OldPassword, req.Msg.NewPassword); err != nil {
+func (h *WalletHandler) ChangePassword(ctx context.Context, req *pb.ChangePasswordRequest) (*pb.ChangePasswordResponse, error) {
+	if err := h.svc.ChangePassword(req.OldPassword, req.NewPassword); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.ChangePasswordResponse{}), nil
+	return &pb.ChangePasswordResponse{}, nil
 }
 
-func (h *WalletHandler) RemoveEncryption(ctx context.Context, req *connect.Request[pb.RemoveEncryptionRequest]) (*connect.Response[pb.RemoveEncryptionResponse], error) {
-	if err := h.svc.RemoveEncryption(req.Msg.Password); err != nil {
+func (h *WalletHandler) RemoveEncryption(ctx context.Context, req *pb.RemoveEncryptionRequest) (*pb.RemoveEncryptionResponse, error) {
+	if err := h.svc.RemoveEncryption(req.Password); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.RemoveEncryptionResponse{}), nil
+	return &pb.RemoveEncryptionResponse{}, nil
 }
 
-func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb.ListWalletsRequest]) (*connect.Response[pb.ListWalletsResponse], error) {
+func (h *WalletHandler) ListWallets(ctx context.Context, req *pb.ListWalletsRequest) (*pb.ListWalletsResponse, error) {
 	// Use GetAllWallets so we can access the seed for BIP47 derivation —
 	// parity with sendWalletData. ListWallets (metadata-only) can't see it.
 	wallets := h.svc.GetAllWallets()
@@ -234,10 +234,10 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			DerivationPath:      w.DerivationPath,
 		}
 	}
-	return connect.NewResponse(&pb.ListWalletsResponse{
+	return &pb.ListWalletsResponse{
 		Wallets:        pbWallets,
 		ActiveWalletId: h.svc.ActiveWalletID(),
-	}), nil
+	}, nil
 }
 
 // receiveAddressTypesProto lists the address types a wallet derives, its own
@@ -255,35 +255,35 @@ func receiveAddressTypesProto(w *wallet.WalletData) []pb.AddressType {
 	})
 }
 
-func (h *WalletHandler) SwitchWallet(ctx context.Context, req *connect.Request[pb.SwitchWalletRequest]) (*connect.Response[pb.SwitchWalletResponse], error) {
+func (h *WalletHandler) SwitchWallet(ctx context.Context, req *pb.SwitchWalletRequest) (*pb.SwitchWalletResponse, error) {
 	// Switching onto a Core/enforcer wallet is what makes the local chain
 	// necessary, so it goes through the same planner a network swap does.
 	if h.orch != nil {
-		if dataDir := strings.TrimSpace(req.Msg.DataDir); dataDir != "" {
+		if dataDir := strings.TrimSpace(req.DataDir); dataDir != "" {
 			// Persisting an unusable directory would satisfy the planner and
 			// then stop prompting, with no chain to run from.
 			if err := validateDirWritable(dataDir); err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, err)
+				return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 			}
 			if err := h.orch.SetDatadirForCurrentNetwork(dataDir); err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, err)
+				return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 			}
 		}
-		plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{WalletID: req.Msg.WalletId})
+		plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{WalletID: req.WalletId})
 		if plan.MustSelectDatadir {
 			return nil, requirementsUnmet(plan)
 		}
 		if plan.NoChainSource {
-			return nil, connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("%s has no chain source for an electrum wallet", plan.Network))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition,
+				"%s has no chain source for an electrum wallet", plan.Network)
 		}
 	}
 
-	if err := h.svc.SwitchWallet(req.Msg.WalletId); err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+	if err := h.svc.SwitchWallet(req.WalletId); err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
-	h.ensureL1ForWallet(req.Msg.WalletId)
-	return connect.NewResponse(&pb.SwitchWalletResponse{}), nil
+	h.ensureL1ForWallet(req.WalletId)
+	return &pb.SwitchWalletResponse{}, nil
 }
 
 // ensureL1ForWallet starts the local L1 stack when switching to a wallet that
@@ -317,41 +317,41 @@ func (h *WalletHandler) walletNeedsL1(walletID string) bool {
 	return w != nil && w.WalletType != wallet.WalletTypeElectrum
 }
 
-func (h *WalletHandler) UpdateWalletMetadata(ctx context.Context, req *connect.Request[pb.UpdateWalletMetadataRequest]) (*connect.Response[pb.UpdateWalletMetadataResponse], error) {
+func (h *WalletHandler) UpdateWalletMetadata(ctx context.Context, req *pb.UpdateWalletMetadataRequest) (*pb.UpdateWalletMetadataResponse, error) {
 	var gradient json.RawMessage
-	if req.Msg.GradientJson != "" {
-		gradient = json.RawMessage(req.Msg.GradientJson)
+	if req.GradientJson != "" {
+		gradient = json.RawMessage(req.GradientJson)
 	}
-	if err := h.svc.UpdateWalletMetadata(req.Msg.WalletId, req.Msg.Name, gradient); err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+	if err := h.svc.UpdateWalletMetadata(req.WalletId, req.Name, gradient); err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.UpdateWalletMetadataResponse{}), nil
+	return &pb.UpdateWalletMetadataResponse{}, nil
 }
 
-func (h *WalletHandler) DeleteWallet(ctx context.Context, req *connect.Request[pb.DeleteWalletRequest]) (*connect.Response[pb.DeleteWalletResponse], error) {
+func (h *WalletHandler) DeleteWallet(ctx context.Context, req *pb.DeleteWalletRequest) (*pb.DeleteWalletResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
-	if err := h.svc.CheckDeletable(req.Msg.WalletId); err != nil {
+	if err := h.svc.CheckDeletable(req.WalletId); err != nil {
 		return nil, rpcError(err)
 	}
-	if err := h.engine.DeleteWallet(ctx, req.Msg.WalletId); err != nil {
+	if err := h.engine.DeleteWallet(ctx, req.WalletId); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.DeleteWalletResponse{}), nil
+	return &pb.DeleteWalletResponse{}, nil
 }
 
-func (h *WalletHandler) DeleteAllWallets(ctx context.Context, req *connect.Request[pb.DeleteAllWalletsRequest]) (*connect.Response[pb.DeleteAllWalletsResponse], error) {
+func (h *WalletHandler) DeleteAllWallets(ctx context.Context, req *pb.DeleteAllWalletsRequest) (*pb.DeleteAllWalletsResponse, error) {
 	if err := h.svc.DeleteAllWallets(nil, nil); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.DeleteAllWalletsResponse{}), nil
+	return &pb.DeleteAllWalletsResponse{}, nil
 }
 
-func (h *WalletHandler) ListWalletBackups(ctx context.Context, req *connect.Request[pb.ListWalletBackupsRequest]) (*connect.Response[pb.ListWalletBackupsResponse], error) {
+func (h *WalletHandler) ListWalletBackups(ctx context.Context, req *pb.ListWalletBackupsRequest) (*pb.ListWalletBackupsResponse, error) {
 	backups, err := h.svc.ListWalletBackups()
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	resp := &pb.ListWalletBackupsResponse{
@@ -359,20 +359,20 @@ func (h *WalletHandler) ListWalletBackups(ctx context.Context, req *connect.Requ
 			return walletBackupToProto(backup)
 		}),
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
-func (h *WalletHandler) RestoreWalletBackup(ctx context.Context, req *connect.Request[pb.RestoreWalletBackupRequest]) (*connect.Response[pb.RestoreWalletBackupResponse], error) {
-	if err := h.svc.RestoreWalletBackup(req.Msg.BackupId, req.Msg.Password); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+func (h *WalletHandler) RestoreWalletBackup(ctx context.Context, req *pb.RestoreWalletBackupRequest) (*pb.RestoreWalletBackupResponse, error) {
+	if err := h.svc.RestoreWalletBackup(req.BackupId, req.Password); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.RestoreWalletBackupResponse{}), nil
+	return &pb.RestoreWalletBackupResponse{}, nil
 }
 
-func (h *WalletHandler) RestoreWalletBackupStream(ctx context.Context, req *connect.Request[pb.RestoreWalletBackupRequest], stream *connect.ServerStream[pb.RestoreWalletBackupProgressResponse]) error {
-	steps, err := h.svc.RestoreWalletBackupPlan(req.Msg.BackupId)
+func (h *WalletHandler) RestoreWalletBackupStream(ctx context.Context, req *pb.RestoreWalletBackupRequest, stream rpc.WalletManagerServiceRestoreWalletBackupStreamServerStream) error {
+	steps, err := h.svc.RestoreWalletBackupPlan(req.BackupId)
 	if err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, err)
+		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	planned := lo.Map(steps, func(step wallet.RestoreWalletBackupStep, _ int) *pb.RestoreWalletBackupStep {
@@ -404,11 +404,11 @@ func (h *WalletHandler) RestoreWalletBackupStream(ctx context.Context, req *conn
 		}
 	}
 
-	if err := h.svc.RestoreWalletBackupWithProgress(req.Msg.BackupId, req.Msg.Password, sendProgress); err != nil {
+	if err := h.svc.RestoreWalletBackupWithProgress(req.BackupId, req.Password, sendProgress); err != nil {
 		if sendErr != nil {
 			return sendErr
 		}
-		return connect.NewError(connect.CodeInvalidArgument, err)
+		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	if sendErr != nil {
 		return sendErr
@@ -422,59 +422,59 @@ func (h *WalletHandler) RestoreWalletBackupStream(ctx context.Context, req *conn
 	})
 }
 
-func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.Request[pb.CreateWatchOnlyWalletRequest]) (*connect.Response[pb.CreateWatchOnlyWalletResponse], error) {
-	if err := h.svc.CreateWatchOnlyWallet(req.Msg.Name, req.Msg.XpubOrDescriptor, req.Msg.GradientJson); err != nil {
+func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *pb.CreateWatchOnlyWalletRequest) (*pb.CreateWatchOnlyWalletResponse, error) {
+	if err := h.svc.CreateWatchOnlyWallet(req.Name, req.XpubOrDescriptor, req.GradientJson); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.CreateWatchOnlyWalletResponse{
+	return &pb.CreateWatchOnlyWalletResponse{
 		WalletId: h.svc.ActiveWalletID(),
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.Request[pb.CreateElectrumWalletRequest]) (*connect.Response[pb.CreateElectrumWalletResponse], error) {
+func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *pb.CreateElectrumWalletRequest) (*pb.CreateElectrumWalletResponse, error) {
 	if h.engine == nil || !h.engine.ElectrumConfigured() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("electrum wallets are not supported on this network"))
+			"electrum wallets are not supported on this network")
 	}
-	account, path, err := wallet.ResolveCreateDerivationPath(req.Msg.Account, req.Msg.DerivationPath)
+	account, path, err := wallet.ResolveCreateDerivationPath(req.Account, req.DerivationPath)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	if req.Msg.XpubOrDescriptor == "" {
-		if _, err := wallet.ResolveScriptType(req.Msg.ScriptType, path); err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	if req.XpubOrDescriptor == "" {
+		if _, err := wallet.ResolveScriptType(req.ScriptType, path); err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 	}
 	// A bare extended key states no kind, so its own history places it. With
 	// no history the chosen type stands.
-	scriptType := req.Msg.ScriptType
-	if req.Msg.XpubOrDescriptor != "" && wallet.BareKeyWithoutKind(req.Msg.XpubOrDescriptor) {
-		if detected, ok := h.engine.DetectScriptKind(ctx, req.Msg.XpubOrDescriptor); ok {
+	scriptType := req.ScriptType
+	if req.XpubOrDescriptor != "" && wallet.BareKeyWithoutKind(req.XpubOrDescriptor) {
+		if detected, ok := h.engine.DetectScriptKind(ctx, req.XpubOrDescriptor); ok {
 			scriptType = detected.String()
 		}
 	}
-	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.Passphrase, req.Msg.XpubOrDescriptor, scriptType, account, path)
+	w, err := h.svc.CreateElectrumWallet(req.Name, json.RawMessage(req.GradientJson), req.Slots, req.CustomMnemonic, req.Passphrase, req.XpubOrDescriptor, scriptType, account, path)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	if req.Msg.HardwareDeviceType != "" {
-		if err := h.svc.SetWalletHardwareDevice(w.ID, req.Msg.HardwareDeviceType, req.Msg.HardwareFingerprint); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+	if req.HardwareDeviceType != "" {
+		if err := h.svc.SetWalletHardwareDevice(w.ID, req.HardwareDeviceType, req.HardwareFingerprint); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
-	return connect.NewResponse(&pb.CreateElectrumWalletResponse{
+	return &pb.CreateElectrumWalletResponse{
 		WalletId: w.ID,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.Request[pb.CreateMultisigWalletRequest]) (*connect.Response[pb.CreateMultisigWalletResponse], error) {
+func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *pb.CreateMultisigWalletRequest) (*pb.CreateMultisigWalletResponse, error) {
 	if h.engine == nil || !h.engine.ElectrumConfigured() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("multisig wallets are not supported on this network"))
+			"multisig wallets are not supported on this network")
 	}
 	net := h.engine.Network()
-	cosigners := make([]wallet.MultisigCosigner, 0, len(req.Msg.Cosigners))
-	for _, c := range req.Msg.Cosigners {
+	cosigners := make([]wallet.MultisigCosigner, 0, len(req.Cosigners))
+	for _, c := range req.Cosigners {
 		xpub := c.Xpub
 		mnemonic := c.Mnemonic
 		// For a held cosigner, derive the authoritative xpub from its seed +
@@ -484,17 +484,17 @@ func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.R
 			var err error
 			mnemonic, err = wallet.ParseMnemonic(mnemonic)
 			if err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cosigner mnemonic: %w", err))
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cosigner mnemonic: %w", err).Error())
 			}
 			seedHex := hex.EncodeToString(wallet.MnemonicToSeed(mnemonic, c.Passphrase))
 			_, derived, err := wallet.DeriveAccountXprv(seedHex, "m/"+c.OriginPath, net)
 			if err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive cosigner xpub: %w", err))
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive cosigner xpub: %w", err).Error())
 			}
 			xpub = derived
 		}
 		if err := wallet.CheckCosignerKeyMatchesOrigin(xpub, c.OriginPath); err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		cosigners = append(cosigners, wallet.MultisigCosigner{
 			Xpub:               xpub,
@@ -507,17 +507,17 @@ func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.R
 		})
 	}
 	w, err := h.svc.CreateElectrumMultisig(
-		req.Msg.Name,
-		json.RawMessage(req.Msg.GradientJson),
-		int(req.Msg.M),
-		int(req.Msg.N),
-		req.Msg.ScriptType,
+		req.Name,
+		json.RawMessage(req.GradientJson),
+		int(req.M),
+		int(req.N),
+		req.ScriptType,
 		cosigners,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.CreateMultisigWalletResponse{WalletId: w.ID}), nil
+	return &pb.CreateMultisigWalletResponse{WalletId: w.ID}, nil
 }
 
 // multisigInfoProto exposes a wallet's multisig policy to the frontend. Private
@@ -545,10 +545,10 @@ func multisigInfoProto(w *wallet.WalletData) *pb.MultisigInfo {
 	}
 }
 
-func (h *WalletHandler) ParseMultisigConfig(ctx context.Context, req *connect.Request[pb.ParseMultisigConfigRequest]) (*connect.Response[pb.ParseMultisigConfigResponse], error) {
-	m, n, scriptType, cosigners, err := wallet.ParseMultisigConfig(req.Msg.Content)
+func (h *WalletHandler) ParseMultisigConfig(ctx context.Context, req *pb.ParseMultisigConfigRequest) (*pb.ParseMultisigConfigResponse, error) {
+	m, n, scriptType, cosigners, err := wallet.ParseMultisigConfig(req.Content)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	pbCosigners := make([]*pb.ParsedCosigner, 0, len(cosigners))
 	for _, c := range cosigners {
@@ -558,18 +558,18 @@ func (h *WalletHandler) ParseMultisigConfig(ctx context.Context, req *connect.Re
 			OriginPath:  c.OriginPath,
 		})
 	}
-	return connect.NewResponse(&pb.ParseMultisigConfigResponse{
+	return &pb.ParseMultisigConfigResponse{
 		M:          uint32(m),
 		N:          uint32(n),
 		ScriptType: scriptType,
 		Cosigners:  pbCosigners,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) ValidateDescriptor(ctx context.Context, req *connect.Request[pb.ValidateDescriptorRequest]) (*connect.Response[pb.ValidateDescriptorResponse], error) {
-	policy, err := wallet.ValidateDescriptor(req.Msg.Descriptor_)
+func (h *WalletHandler) ValidateDescriptor(ctx context.Context, req *pb.ValidateDescriptorRequest) (*pb.ValidateDescriptorResponse, error) {
+	policy, err := wallet.ValidateDescriptor(req.Descriptor_)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	keys := make([]*pb.ParsedCosigner, 0, len(policy.Cosigners))
 	for _, c := range policy.Cosigners {
@@ -579,123 +579,123 @@ func (h *WalletHandler) ValidateDescriptor(ctx context.Context, req *connect.Req
 			OriginPath:  c.OriginPath,
 		})
 	}
-	return connect.NewResponse(&pb.ValidateDescriptorResponse{
+	return &pb.ValidateDescriptorResponse{
 		Multisig:   policy.Multisig,
 		ScriptType: policy.ScriptType,
 		M:          uint32(policy.M),
 		N:          uint32(policy.N),
 		Keys:       keys,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) ValidateDerivationPath(ctx context.Context, req *connect.Request[pb.ValidateDerivationPathRequest]) (*connect.Response[pb.ValidateDerivationPathResponse], error) {
-	normalized, err := wallet.ParseKeystorePath(req.Msg.Path)
+func (h *WalletHandler) ValidateDerivationPath(ctx context.Context, req *pb.ValidateDerivationPathRequest) (*pb.ValidateDerivationPathResponse, error) {
+	normalized, err := wallet.ParseKeystorePath(req.Path)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.ValidateDerivationPathResponse{
+	return &pb.ValidateDerivationPathResponse{
 		Normalized: normalized,
-		ScriptType: wallet.KeystorePathScriptType(normalized, req.Msg.Multisig),
-	}), nil
+		ScriptType: wallet.KeystorePathScriptType(normalized, req.Multisig),
+	}, nil
 }
 
-func (h *WalletHandler) ListDerivationPaths(ctx context.Context, req *connect.Request[pb.ListDerivationPathsRequest]) (*connect.Response[pb.ListDerivationPathsResponse], error) {
+func (h *WalletHandler) ListDerivationPaths(ctx context.Context, req *pb.ListDerivationPathsRequest) (*pb.ListDerivationPathsResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	options, defaultPath, err := wallet.StandardDerivationPaths(req.Msg.ScriptType, req.Msg.Multisig, req.Msg.Account, h.engine.Network())
+	options, defaultPath, err := wallet.StandardDerivationPaths(req.ScriptType, req.Multisig, req.Account, h.engine.Network())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	pbOptions := make([]*pb.DerivationPathOption, 0, len(options))
 	for _, o := range options {
 		pbOptions = append(pbOptions, &pb.DerivationPathOption{Label: o.Label, Path: o.Path})
 	}
-	return connect.NewResponse(&pb.ListDerivationPathsResponse{Options: pbOptions, DefaultPath: defaultPath}), nil
+	return &pb.ListDerivationPathsResponse{Options: pbOptions, DefaultPath: defaultPath}, nil
 }
 
-func (h *WalletHandler) SignPsbtWithCosigner(ctx context.Context, req *connect.Request[pb.SignPsbtWithCosignerRequest]) (*connect.Response[pb.SignPsbtWithCosignerResponse], error) {
+func (h *WalletHandler) SignPsbtWithCosigner(ctx context.Context, req *pb.SignPsbtWithCosignerRequest) (*pb.SignPsbtWithCosignerResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	out, err := h.engine.SignPSBTWithCosigner(ctx, walletID, req.Msg.PsbtBase64, req.Msg.CosignerXpub)
+	out, err := h.engine.SignPSBTWithCosigner(ctx, walletID, req.PsbtBase64, req.CosignerXpub)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.SignPsbtWithCosignerResponse{PsbtBase64: out}), nil
+	return &pb.SignPsbtWithCosignerResponse{PsbtBase64: out}, nil
 }
 
-func (h *WalletHandler) MultisigPsbtStatus(ctx context.Context, req *connect.Request[pb.MultisigPsbtStatusRequest]) (*connect.Response[pb.MultisigPsbtStatusResponse], error) {
-	w := h.svc.GetWalletByID(req.Msg.WalletId)
+func (h *WalletHandler) MultisigPsbtStatus(ctx context.Context, req *pb.MultisigPsbtStatusRequest) (*pb.MultisigPsbtStatusResponse, error) {
+	w := h.svc.GetWalletByID(req.WalletId)
 	if w == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", req.Msg.WalletId))
+		return nil, connect.Errorf(connect.CodeNotFound, "wallet %s not found", req.WalletId)
 	}
 	if w.Multisig == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not a multisig wallet"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "wallet is not a multisig wallet")
 	}
-	status, err := wallet.MultisigPsbtSigningStatus(req.Msg.PsbtBase64, w.Multisig.Cosigners)
+	status, err := wallet.MultisigPsbtSigningStatus(req.PsbtBase64, w.Multisig.Cosigners)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.MultisigPsbtStatusResponse{
+	return &pb.MultisigPsbtStatusResponse{
 		Threshold:      uint32(w.Multisig.M),
 		Signatures:     uint32(status.Signatures),
 		Finalizable:    status.Finalizable,
 		CosignerSigned: status.CosignerSigned,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) BroadcastTransaction(ctx context.Context, req *connect.Request[pb.BroadcastTransactionRequest]) (*connect.Response[pb.BroadcastTransactionResponse], error) {
+func (h *WalletHandler) BroadcastTransaction(ctx context.Context, req *pb.BroadcastTransactionRequest) (*pb.BroadcastTransactionResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	// A saved draft spends the coins it named when the user built it. The user
 	// can freeze one of them before this call, so read the inputs again.
-	if err := h.refuseFrozenRawInputs(req.Msg.TxHex); err != nil {
+	if err := h.refuseFrozenRawInputs(req.TxHex); err != nil {
 		return nil, err
 	}
 
-	txid, err := h.engine.ChainForWallet(walletID).Broadcast(ctx, req.Msg.TxHex)
+	txid, err := h.engine.ChainForWallet(walletID).Broadcast(ctx, req.TxHex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast: %w", err).Error())
 	}
 	if rerr := h.engine.RefreshElectrumScan(ctx, walletID); rerr != nil {
 		h.svc.Log().Warn().Err(rerr).Str("wallet_id", walletID).Msg("refresh scan after broadcast failed")
 	}
-	return connect.NewResponse(&pb.BroadcastTransactionResponse{Txid: txid}), nil
+	return &pb.BroadcastTransactionResponse{Txid: txid}, nil
 }
 
-func (h *WalletHandler) RescanWallet(ctx context.Context, req *connect.Request[pb.RescanWalletRequest]) (*connect.Response[pb.RescanWalletResponse], error) {
+func (h *WalletHandler) RescanWallet(ctx context.Context, req *pb.RescanWalletRequest) (*pb.RescanWalletResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	if err := h.engine.RefreshElectrumScan(ctx, walletID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("rescan: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("rescan: %w", err).Error())
 	}
-	return connect.NewResponse(&pb.RescanWalletResponse{}), nil
+	return &pb.RescanWalletResponse{}, nil
 }
 
-func (h *WalletHandler) EstimateFee(ctx context.Context, req *connect.Request[pb.EstimateFeeRequest]) (*connect.Response[pb.EstimateFeeResponse], error) {
+func (h *WalletHandler) EstimateFee(ctx context.Context, req *pb.EstimateFeeRequest) (*pb.EstimateFeeResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	rate, err := h.engine.EstimateFeeRate(ctx, int(req.Msg.ConfTarget))
+	rate, err := h.engine.EstimateFeeRate(ctx, int(req.ConfTarget))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.EstimateFeeResponse{SatPerVbyte: rate}), nil
+	return &pb.EstimateFeeResponse{SatPerVbyte: rate}, nil
 }
 
 // ============================================================================
@@ -733,17 +733,17 @@ func rpcError(err error) error {
 	}
 	switch {
 	case errors.Is(err, wallet.ErrIncorrectPassword):
-		return connect.NewError(connect.CodeUnauthenticated, err)
+		return connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 	case errors.Is(err, wallet.ErrNotEncrypted):
-		return connect.NewError(connect.CodeFailedPrecondition, err)
+		return connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	default:
-		return connect.NewError(connect.CodeInternal, err)
+		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 }
 
-func (h *WalletHandler) CreateBitcoinCoreWallet(ctx context.Context, req *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
+func (h *WalletHandler) CreateBitcoinCoreWallet(ctx context.Context, req *pb.CreateBitcoinCoreWalletRequest) (*pb.CreateBitcoinCoreWalletResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	if h.orch != nil {
@@ -753,48 +753,48 @@ func (h *WalletHandler) CreateBitcoinCoreWallet(ctx context.Context, req *connec
 		}
 	}
 
-	name, err := h.engine.Backend().Ensure(ctx, req.Msg.WalletId)
+	name, err := h.engine.Backend().Ensure(ctx, req.WalletId)
 	if err != nil {
 		// Bitcoin Core mid-startup (-28) or already loading the wallet (-4) is
 		// not an internal failure — it's "try again in a few seconds". Return
 		// Unavailable so the Dart logging filter quiets it and the UI doesn't
 		// flash an error toast every poll cycle.
 		if wallet.IsTransientWalletErr(err) {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.CreateBitcoinCoreWalletResponse{
+	return &pb.CreateBitcoinCoreWalletResponse{
 		CoreWalletName: name,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) EnsureCoreWallets(ctx context.Context, req *connect.Request[pb.EnsureCoreWalletsRequest]) (*connect.Response[pb.EnsureCoreWalletsResponse], error) {
+func (h *WalletHandler) EnsureCoreWallets(ctx context.Context, req *pb.EnsureCoreWalletsRequest) (*pb.EnsureCoreWalletsResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	count, err := h.engine.Backend().EnsureAll(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.EnsureCoreWalletsResponse{
+	return &pb.EnsureCoreWalletsResponse{
 		SyncedCount: int32(count),
-	}), nil
+	}, nil
 }
 
 // ============================================================================
 // Bitcoin operation RPCs (proxied through Core RPC)
 // ============================================================================
 
-func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
+func (h *WalletHandler) GetBalance(ctx context.Context, req *pb.GetBalanceRequest) (*pb.GetBalanceResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	confirmed, unconfirmed, immature, err := h.engine.Backend().Balance(ctx, walletID)
@@ -805,28 +805,28 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 	confirmedSats := btcToSats(confirmed)
 	unconfirmedSats := btcToSats(unconfirmed)
 	if err := h.svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, walletID, uint64(math.Round(confirmedSats)), uint64(math.Round(unconfirmedSats)), "Bitcoin"); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the balance snapshot: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the balance snapshot: %w", err).Error())
 	}
 
-	return connect.NewResponse(&pb.GetBalanceResponse{
+	return &pb.GetBalanceResponse{
 		ConfirmedSats:   confirmedSats,
 		UnconfirmedSats: unconfirmedSats,
 		ImmatureSats:    btcToSats(immature),
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
+func (h *WalletHandler) GetNewAddress(ctx context.Context, req *pb.GetNewAddressRequest) (*pb.GetNewAddressResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	var kind wallet.ScriptKind
-	switch req.Msg.AddressType {
+	switch req.AddressType {
 	case pb.AddressType_ADDRESS_TYPE_SEGWIT:
 		kind = wallet.ScriptNativeSegwit
 	case pb.AddressType_ADDRESS_TYPE_TAPROOT:
@@ -840,11 +840,11 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 		return nil, rpcError(err)
 	}
 
-	return connect.NewResponse(&pb.GetNewAddressResponse{
+	return &pb.GetNewAddressResponse{
 		Address:        addr.Address,
 		Index:          addr.Index,
 		DerivationPath: addr.HDPath,
-	}), nil
+	}, nil
 }
 
 // mapRawOutputs converts proto raw outputs to the wallet's TxOutSpec shape.
@@ -881,8 +881,8 @@ func (h *WalletHandler) refuseFrozenRawInputs(txHex string) error {
 	for _, in := range decoded.Inputs {
 		outpoint := wallet.Outpoint{TxID: in.PrevTxID, Vout: in.PrevVout}
 		if held[outpoint.Key()] {
-			return connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("the output %s is frozen; unfreeze it to spend it", outpoint.Key()))
+			return connect.Errorf(connect.CodeFailedPrecondition,
+				"the output %s is frozen; unfreeze it to spend it", outpoint.Key())
 		}
 	}
 	return nil
@@ -900,8 +900,8 @@ func (h *WalletHandler) refuseFrozenInputs(inputs []*pb.UnspentOutput) error {
 	for _, in := range inputs {
 		outpoint := wallet.Outpoint{TxID: in.Txid, Vout: int(in.Vout)}
 		if held[outpoint.Key()] {
-			return connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("the output %s is frozen; unfreeze it to spend it", outpoint.Key()))
+			return connect.Errorf(connect.CodeFailedPrecondition,
+				"the output %s is frozen; unfreeze it to spend it", outpoint.Key())
 		}
 	}
 	return nil
@@ -914,84 +914,84 @@ func (h *WalletHandler) HeldCoins() map[string]bool {
 
 // SetFrozenCoins records the coins the frontend froze, so every later send
 // leaves them alone.
-func (h *WalletHandler) SetFrozenCoins(ctx context.Context, req *connect.Request[pb.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
-	coins := make([]wallet.Outpoint, 0, len(req.Msg.Outpoints))
-	for _, out := range req.Msg.Outpoints {
+func (h *WalletHandler) SetFrozenCoins(ctx context.Context, req *pb.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
+	coins := make([]wallet.Outpoint, 0, len(req.Outpoints))
+	for _, out := range req.Outpoints {
 		if out.Txid == "" {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a frozen coin needs a txid"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, "a frozen coin needs a txid")
 		}
 		coins = append(coins, wallet.Outpoint{TxID: out.Txid, Vout: int(out.Vout)})
 	}
 	h.svc.SetHeldCoins(coins)
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
-func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
-	if err := protovalidate.Validate(req.Msg); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+func (h *WalletHandler) SendTransaction(ctx context.Context, req *pb.SendTransactionRequest) (*pb.SendTransactionResponse, error) {
+	if err := protovalidate.Validate(req); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// A BIP47 send reserves an index and can broadcast a notification below.
-	if req.Msg.FixedFeeSats > 0 && req.Msg.SubtractFeeFromAmount && h.walletNeedsL1(walletID) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, wallet.ErrCoreMixedFee)
+	if req.FixedFeeSats > 0 && req.SubtractFeeFromAmount && h.walletNeedsL1(walletID) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, wallet.ErrCoreMixedFee.Error()).WithCause(wallet.ErrCoreMixedFee)
 	}
 
 	// A required input is spent as it is given, so no lock reaches it. The
 	// set here is the user's alone: a bid raise pins the coin its own bid
 	// holds, and that coin has to stay spendable.
-	if err := h.refuseFrozenInputs(req.Msg.RequiredInputs); err != nil {
+	if err := h.refuseFrozenInputs(req.RequiredInputs); err != nil {
 		return nil, err
 	}
 
 	// Resolve any BIP47 payment-code destinations into per-payment addresses
 	// before the dust check so we validate against the substituted address.
 	var pinnedNotification *wallet.RequiredInput
-	if req.Msg.NotificationInput != nil {
-		pinnedNotification = &mapRequiredInputs([]*pb.UnspentOutput{req.Msg.NotificationInput})[0]
+	if req.NotificationInput != nil {
+		pinnedNotification = &mapRequiredInputs([]*pb.UnspentOutput{req.NotificationInput})[0]
 	}
 	expansion, err := h.expandBip47Destinations(
-		ctx, walletID, req.Msg.Destinations,
-		req.Msg.FeeRateSatPerVbyte, pinnedNotification, mapRequiredInputs(req.Msg.RequiredInputs),
+		ctx, walletID, req.Destinations,
+		req.FeeRateSatPerVbyte, pinnedNotification, mapRequiredInputs(req.RequiredInputs),
 	)
 	if err != nil {
 		return nil, err
 	}
-	if expansion.notificationTxHex != "" || !destinationsEqual(expansion.destinations, req.Msg.Destinations) {
-		req = connect.NewRequest(applyDestinationsToRequest(req.Msg, expansion.destinations))
+	if expansion.notificationTxHex != "" || !destinationsEqual(expansion.destinations, req.Destinations) {
+		req = applyDestinationsToRequest(req, expansion.destinations)
 	}
 	// The reserved per-payment index is only released for a failure that
 	// happens before the payment goes out. A broadcast that times out may
 	// still have published the payment, and reusing that address would defeat
 	// the address isolation BIP47 exists for.
 	const dustLimitSats int64 = 546
-	for address, sats := range req.Msg.Destinations {
+	for address, sats := range req.Destinations {
 		if sats < dustLimitSats {
 			h.releaseBip47Index(walletID, expansion)
-			return nil, connect.NewError(
+			return nil, connect.Errorf(
 				connect.CodeInvalidArgument,
-				fmt.Errorf("amount to %s is below dust limit (%d sats)", address, dustLimitSats),
+				"amount to %s is below dust limit (%d sats)", address, dustLimitSats,
 			)
 		}
 	}
 
 	sendReq := wallet.SendRequest{
-		DestinationsSats:      req.Msg.Destinations,
-		FeeRateSatPerVB:       req.Msg.FeeRateSatPerVbyte,
-		FixedFeeSats:          req.Msg.FixedFeeSats,
-		OpReturnHex:           req.Msg.OpReturnHex,
-		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
-		AllowReplay:           req.Msg.AllowReplay,
-		Replaceable:           req.Msg.Replaceable,
+		DestinationsSats:      req.Destinations,
+		FeeRateSatPerVB:       req.FeeRateSatPerVbyte,
+		FixedFeeSats:          req.FixedFeeSats,
+		OpReturnHex:           req.OpReturnHex,
+		SubtractFeeFromAmount: req.SubtractFeeFromAmount,
+		AllowReplay:           req.AllowReplay,
+		Replaceable:           req.Replaceable,
 	}
 
 	// A BIP47 payment holds a reserved index, and its first send also publishes
@@ -1006,26 +1006,26 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	}
 
 	if expansion.notificationTxHex != "" {
-		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex, req.Msg.AllowReplay)
+		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex, req.AllowReplay)
 		if err != nil {
 			// The payment never went out, so its index is still free.
 			h.releaseBip47Index(walletID, expansion)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast bip47 notification: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast bip47 notification: %w", err).Error())
 		}
 		_ = notifTxID
 	}
-	sendReq.RequiredInputs = mapRequiredInputs(req.Msg.RequiredInputs)
-	sendReq.RawOutputs = mapRawOutputs(req.Msg.RawOutputs)
-	sendReq.ExternalInputs = mapExternalInputs(req.Msg.ExternalInputs)
+	sendReq.RequiredInputs = mapRequiredInputs(req.RequiredInputs)
+	sendReq.RawOutputs = mapRawOutputs(req.RawOutputs)
+	sendReq.ExternalInputs = mapExternalInputs(req.ExternalInputs)
 
 	txid, err := h.engine.Backend().Send(ctx, walletID, sendReq)
 	if err != nil {
 		return nil, rpcError(err)
 	}
 
-	return connect.NewResponse(&pb.SendTransactionResponse{
+	return &pb.SendTransactionResponse{
 		Txid: txid,
-	}), nil
+	}, nil
 }
 
 func mapRequiredInputs(inputs []*pb.UnspentOutput) []wallet.RequiredInput {
@@ -1034,25 +1034,25 @@ func mapRequiredInputs(inputs []*pb.UnspentOutput) []wallet.RequiredInput {
 	})
 }
 
-func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb.PreviewSendRequest]) (*connect.Response[pb.PreviewSendResponse], error) {
-	if len(req.Msg.Destinations) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one destination"))
+func (h *WalletHandler) PreviewSend(ctx context.Context, req *pb.PreviewSendRequest) (*pb.PreviewSendResponse, error) {
+	if len(req.Destinations) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "must provide at least one destination")
 	}
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	if err := h.refuseFrozenInputs(req.Msg.RequiredInputs); err != nil {
+	if err := h.refuseFrozenInputs(req.RequiredInputs); err != nil {
 		return nil, err
 	}
-	destinations, notifies, err := h.sizeBip47Destinations(walletID, req.Msg.Destinations)
+	destinations, notifies, err := h.sizeBip47Destinations(walletID, req.Destinations)
 	if err != nil {
 		return nil, err
 	}
-	requiredInputs := mapRequiredInputs(req.Msg.RequiredInputs)
+	requiredInputs := mapRequiredInputs(req.RequiredInputs)
 
 	resp := &pb.PreviewSendResponse{}
 	var excluded []wallet.RequiredInput
@@ -1065,7 +1065,7 @@ func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb
 		if err != nil {
 			return nil, err
 		}
-		coin, feeSats, err := h.bip47NotificationCoin(ctx, walletID, req.Msg.FeeRateSatPerVbyte, nil, requiredInputs)
+		coin, feeSats, err := h.bip47NotificationCoin(ctx, walletID, req.FeeRateSatPerVbyte, nil, requiredInputs)
 		if err != nil {
 			return nil, err
 		}
@@ -1080,9 +1080,9 @@ func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb
 
 	preview, err := h.engine.Backend().PreviewSend(ctx, walletID, wallet.SendRequest{
 		DestinationsSats:      destinations,
-		FeeRateSatPerVB:       req.Msg.FeeRateSatPerVbyte,
-		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
-		AllowReplay:           req.Msg.AllowReplay,
+		FeeRateSatPerVB:       req.FeeRateSatPerVbyte,
+		SubtractFeeFromAmount: req.SubtractFeeFromAmount,
+		AllowReplay:           req.AllowReplay,
 		RequiredInputs:        requiredInputs,
 		ExcludedInputs:        excluded,
 	})
@@ -1096,12 +1096,12 @@ func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb
 	if resp.FeeIsEstimate {
 		changeSats := notificationCoinSats - resp.NotificationFeeSats - bip47NotificationDustSats
 		needSats := lo.Sum(lo.Values(destinations))
-		if !req.Msg.SubtractFeeFromAmount {
+		if !req.SubtractFeeFromAmount {
 			needSats += preview.FeeSats
 		}
 		if needSats > changeSats {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-				"the payment needs %d sats, but the only coin keeps %d sats after the BIP47 notification", needSats, changeSats))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition,
+				"the payment needs %d sats, but the only coin keeps %d sats after the BIP47 notification", needSats, changeSats)
 		}
 	}
 	if !resp.FeeIsEstimate {
@@ -1109,27 +1109,27 @@ func (h *WalletHandler) PreviewSend(ctx context.Context, req *connect.Request[pb
 			return &pb.UnspentOutput{Txid: in.TxID, Vout: int32(in.Vout), AmountSats: in.AmountSats}
 		})
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
-func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
+func (h *WalletHandler) ListTransactions(ctx context.Context, req *pb.ListTransactionsRequest) (*pb.ListTransactionsResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	count := int(req.Msg.Count)
+	count := int(req.Count)
 	if count <= 0 {
 		count = 100
 	}
 
 	txs, err := h.engine.Backend().ListTransactions(ctx, walletID, count)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	pbTxs := lo.Map(txs, func(tx wallet.WalletTransaction, _ int) *pb.TransactionEntry {
@@ -1154,12 +1154,12 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 		entry.BmmBid = bids[entry.Txid]
 	}
 	if err := h.setTransactionWarnings(ctx, walletID, pbTxs); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.ListTransactionsResponse{
+	return &pb.ListTransactionsResponse{
 		Transactions: pbTxs,
-	}), nil
+	}, nil
 }
 
 // bidLabels names the BMM request each unconfirmed transaction carries. A
@@ -1206,19 +1206,19 @@ func (h *WalletHandler) walletBidLabels(ctx context.Context, walletID string, tx
 	}, func(string) bool { return true })
 }
 
-func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {
+func (h *WalletHandler) ListUnspent(ctx context.Context, req *pb.ListUnspentRequest) (*pb.ListUnspentResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	txTimes := h.fetchCoreTxTimes(ctx, walletID, utxos)
@@ -1226,7 +1226,7 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 	if config.IsEcashFork(config.NetworkFromString(h.svc.Network())) {
 		splitStatuses, err = h.svc.SplitStatuses(ctx)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -1261,9 +1261,9 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 		return out
 	})
 
-	return connect.NewResponse(&pb.ListUnspentResponse{
+	return &pb.ListUnspentResponse{
 		Utxos: pbUTXOs,
-	}), nil
+	}, nil
 }
 
 // receivedAt prefers the provider-supplied per-UTXO time, falling back to
@@ -1306,19 +1306,19 @@ func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletID string, u
 	return out
 }
 
-func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
+func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *pb.ListReceiveAddressesRequest) (*pb.ListReceiveAddressesResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	addrs, err := h.engine.Backend().ListReceivedByAddress(ctx, walletID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	pbAddrs := lo.Map(addrs, func(a wallet.ReceivedByAddress, _ int) *pb.ReceiveAddress {
@@ -1340,29 +1340,29 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 		}
 	})
 
-	return connect.NewResponse(&pb.ListReceiveAddressesResponse{
+	return &pb.ListReceiveAddressesResponse{
 		Addresses: pbAddrs,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.Request[pb.GetTransactionDetailsRequest]) (*connect.Response[pb.GetTransactionDetailsResponse], error) {
+func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *pb.GetTransactionDetailsRequest) (*pb.GetTransactionDetailsResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	tx, err := h.engine.Backend().GetWalletTransaction(ctx, walletID, req.Msg.Txid)
+	tx, err := h.engine.Backend().GetWalletTransaction(ctx, walletID, req.Txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	rawTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, req.Msg.Txid)
+	rawTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, req.Txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err).Error())
 	}
 
 	inputs := make([]*pb.TransactionInput, 0, len(rawTx.Vin))
@@ -1413,7 +1413,7 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 
 	owned, err := h.engine.Backend().OwnedAddresses(ctx, walletID, addresses)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read address ownership: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read address ownership: %w", err).Error())
 	}
 	for _, out := range outputs {
 		change, mine := owned[out.Address]
@@ -1431,7 +1431,7 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		feeRateSatVb = float64(feeSats) / float64(rawTx.Vsize)
 	}
 
-	return connect.NewResponse(&pb.GetTransactionDetailsResponse{
+	return &pb.GetTransactionDetailsResponse{
 		Transaction: &pb.TransactionEntry{
 			Txid:           tx.TxID,
 			WarningMessage: h.transactionWarning(outputs),
@@ -1458,32 +1458,32 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		TotalInputSats:  totalInputSats,
 		Outputs:         outputs,
 		TotalOutputSats: totalOutputSats,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) DecodeTransaction(ctx context.Context, req *connect.Request[pb.DecodeTransactionRequest]) (*connect.Response[pb.DecodeTransactionResponse], error) {
+func (h *WalletHandler) DecodeTransaction(ctx context.Context, req *pb.DecodeTransactionRequest) (*pb.DecodeTransactionResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	decoded, err := wallet.DecodeTransaction(req.Msg.Input, h.engine.Network())
+	decoded, err := wallet.DecodeTransaction(req.Input, h.engine.Network())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	response := decodedToResponse(decoded)
 	if decoded.Form == wallet.DecodedFormTxid {
-		result, err := h.decodeTxidResponse(ctx, decoded.TxID, req.Msg.WalletId)
+		result, err := h.decodeTxidResponse(ctx, decoded.TxID, req.WalletId)
 		if err != nil {
 			return nil, err
 		}
-		response = result.Msg
+		response = result
 	}
 
-	if req.Msg.CheckOwnership {
-		walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if req.CheckOwnership {
+		walletID, err := h.engine.ResolveWalletID(req.WalletId)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		addresses := make([]string, len(response.Outputs))
 		for i, output := range response.Outputs {
@@ -1491,25 +1491,25 @@ func (h *WalletHandler) DecodeTransaction(ctx context.Context, req *connect.Requ
 		}
 		owned, err := h.engine.Backend().OwnedAddresses(ctx, walletID, addresses)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read address ownership: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read address ownership: %w", err).Error())
 		}
 		for _, output := range response.Outputs {
 			output.IsChange, output.IsMine = owned[output.Address]
 		}
 	}
 	response.WarningMessage = h.transactionWarning(response.Outputs)
-	return connect.NewResponse(response), nil
+	return response, nil
 }
 
-func (h *WalletHandler) decodeTxidResponse(ctx context.Context, txid, walletID string) (*connect.Response[pb.DecodeTransactionResponse], error) {
+func (h *WalletHandler) decodeTxidResponse(ctx context.Context, txid, walletID string) (*pb.DecodeTransactionResponse, error) {
 	resolved, err := h.engine.ResolveWalletID(walletID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	rawTx, err := h.engine.ChainForWallet(resolved).GetRawTransaction(ctx, txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction %s not found: %w", txid, err))
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction %s not found: %w", txid, err).Error())
 	}
 
 	inputs, totalInput, allKnown := h.rawTxInputs(ctx, resolved, rawTx)
@@ -1540,7 +1540,7 @@ func (h *WalletHandler) decodeTxidResponse(ctx context.Context, txid, walletID s
 			}
 		}
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *WalletHandler) rawTxInputs(ctx context.Context, walletID string, rawTx *wallet.RawTransaction) ([]*pb.TransactionInput, int64, bool) {
@@ -1658,31 +1658,31 @@ func decodedFormToProto(f wallet.DecodedForm) pb.DecodedForm {
 	}
 }
 
-func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.BumpFeeRequest]) (*connect.Response[pb.BumpFeeResponse], error) {
+func (h *WalletHandler) BumpFee(ctx context.Context, req *pb.BumpFeeRequest) (*pb.BumpFeeResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// A bump of a deposit replaces the transaction the slot's treasury chain
 	// builds on. Hold the slot across the broadcast and the record move, or a
 	// deposit that starts between the two sees no treasury at all and builds a
 	// rival one.
-	if slot, isDeposit, slotErr := h.svc.SidechainDepositSlotOf(ctx, req.Msg.Txid); slotErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, slotErr)
+	if slot, isDeposit, slotErr := h.svc.SidechainDepositSlotOf(ctx, req.Txid); slotErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, slotErr.Error()).WithCause(slotErr)
 	} else if isDeposit {
 		unlock := h.lockDepositSlot(uint8(slot)) //nolint:gosec // a slot is 0-255
 		defer unlock()
 	}
 
 	result, err := h.engine.Backend().BumpFee(ctx, walletID, wallet.BumpFeeRequest{
-		TxID:        req.Msg.Txid,
-		NewFeeRate:  req.Msg.NewFeeRate,
-		FeeFromVout: voutPointer(req.Msg.FeeFromVout),
+		TxID:        req.Txid,
+		NewFeeRate:  req.NewFeeRate,
+		FeeFromVout: voutPointer(req.FeeFromVout),
 	})
 	if err != nil {
 		return nil, rpcError(err)
@@ -1690,31 +1690,31 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 
 	// A bumped deposit keeps its money on the way under a new txid. Without
 	// this the old record reads as a deposit the network lost.
-	if err := h.svc.RepointSidechainDeposit(ctx, req.Msg.Txid, result.NewTxID, result.Plan.NewFeeSats); err != nil {
-		h.svc.Log().Error().Err(err).Str("old_txid", req.Msg.Txid).Str("new_txid", result.NewTxID).
+	if err := h.svc.RepointSidechainDeposit(ctx, req.Txid, result.NewTxID, result.Plan.NewFeeSats); err != nil {
+		h.svc.Log().Error().Err(err).Str("old_txid", req.Txid).Str("new_txid", result.NewTxID).
 			Msg("could not move the deposit record onto the replacement")
 	}
 
-	return connect.NewResponse(&pb.BumpFeeResponse{
+	return &pb.BumpFeeResponse{
 		NewTxid: result.NewTxID,
 		Plan:    bumpFeePlanToProto(result.Plan),
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) PreviewBumpFee(ctx context.Context, req *connect.Request[pb.PreviewBumpFeeRequest]) (*connect.Response[pb.PreviewBumpFeeResponse], error) {
+func (h *WalletHandler) PreviewBumpFee(ctx context.Context, req *pb.PreviewBumpFeeRequest) (*pb.PreviewBumpFeeResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	preview, err := h.engine.Backend().PreviewBumpFee(ctx, walletID, wallet.BumpFeeRequest{
-		TxID:        req.Msg.Txid,
-		NewFeeRate:  req.Msg.NewFeeRate,
-		FeeFromVout: voutPointer(req.Msg.FeeFromVout),
+		TxID:        req.Txid,
+		NewFeeRate:  req.NewFeeRate,
+		FeeFromVout: voutPointer(req.FeeFromVout),
 	})
 	if err != nil {
 		return nil, rpcError(err)
@@ -1745,12 +1745,12 @@ func (h *WalletHandler) PreviewBumpFee(ctx context.Context, req *connect.Request
 		resp.Plan = bumpFeePlanToProto(*preview.Plan)
 	}
 
-	cancel, err := h.engine.Backend().PreviewCancel(ctx, walletID, req.Msg.Txid)
+	cancel, err := h.engine.Backend().PreviewCancel(ctx, walletID, req.Txid)
 	if err != nil {
 		// The user asked for a bump, so a cancel this node cannot price says so
 		// on its own button, and the bump preview stands.
 		resp.CancelReason = fmt.Sprintf("this node cannot price a cancel: %v", err)
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 	resp.CancelReason = cancel.Reason
 	if cancel.Plan != nil {
@@ -1759,31 +1759,31 @@ func (h *WalletHandler) PreviewBumpFee(ctx context.Context, req *connect.Request
 			FeeSats:       cancel.Plan.FeeSats,
 		}
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
-func (h *WalletHandler) CancelTransaction(ctx context.Context, req *connect.Request[pb.CancelTransactionRequest]) (*connect.Response[pb.CancelTransactionResponse], error) {
+func (h *WalletHandler) CancelTransaction(ctx context.Context, req *pb.CancelTransactionRequest) (*pb.CancelTransactionResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	if req.Msg.Txid == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name the transaction to cancel"))
+	if req.Txid == "" {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "name the transaction to cancel")
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	result, err := h.engine.Backend().CancelTransaction(ctx, walletID, req.Msg.Txid, req.Msg.MaxFeeSats)
+	result, err := h.engine.Backend().CancelTransaction(ctx, walletID, req.Txid, req.MaxFeeSats)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.CancelTransactionResponse{
+	return &pb.CancelTransactionResponse{
 		ReplacementTxid: result.NewTxID,
 		RecoveredSats:   result.Plan.RecoveredSats,
 		FeeSats:         result.Plan.FeeSats,
-	}), nil
+	}, nil
 }
 
 // voutPointer maps the request's optional output index onto the backend's.
@@ -1809,81 +1809,81 @@ func bumpFeePlanToProto(plan wallet.BumpFeePlan) *pb.BumpFeePlan {
 	}
 }
 
-func (h *WalletHandler) CreateCpfp(ctx context.Context, req *connect.Request[pb.CreateCpfpRequest]) (*connect.Response[pb.CreateCpfpResponse], error) {
+func (h *WalletHandler) CreateCpfp(ctx context.Context, req *pb.CreateCpfpRequest) (*pb.CreateCpfpResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// The child spends the parent output the caller names, so a freeze has to
 	// stop the call. No lock reaches an outpoint a caller pins by hand.
-	parent := wallet.Outpoint{TxID: req.Msg.ParentTxid, Vout: int(req.Msg.ParentVout)}
+	parent := wallet.Outpoint{TxID: req.ParentTxid, Vout: int(req.ParentVout)}
 	if h.svc.HeldCoins()[parent.Key()] {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("the output %s is frozen; unfreeze it to spend it", parent.Key()))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition,
+			"the output %s is frozen; unfreeze it to spend it", parent.Key())
 	}
 
 	childTxID, err := h.engine.Backend().CreateCpfp(ctx, walletID, wallet.CpfpRequest{
-		ParentTxID: req.Msg.ParentTxid,
-		ParentVout: int(req.Msg.ParentVout),
-		TargetRate: req.Msg.TargetFeeRate,
+		ParentTxID: req.ParentTxid,
+		ParentVout: int(req.ParentVout),
+		TargetRate: req.TargetFeeRate,
 	})
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeUnknown {
 			return nil, err
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.CreateCpfpResponse{
+	return &pb.CreateCpfpResponse{
 		ChildTxid: childTxID,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Request[pb.DeriveAddressesRequest]) (*connect.Response[pb.DeriveAddressesResponse], error) {
+func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *pb.DeriveAddressesRequest) (*pb.DeriveAddressesResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	count := int(req.Msg.Count)
+	count := int(req.Count)
 	if count <= 0 {
 		count = 20
 	}
 
-	start := int(req.Msg.StartIndex)
+	start := int(req.StartIndex)
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	w := h.svc.GetWalletByID(walletID)
 	if w == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", walletID))
+		return nil, connect.Errorf(connect.CodeNotFound, "wallet %s not found", walletID)
 	}
 
 	addrs, err := wallet.DeriveWalletReceiveAddresses(w, h.engine.Network(), start, count)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.DeriveAddressesResponse{
+	return &pb.DeriveAddressesResponse{
 		Addresses: addrs,
-	}), nil
+	}, nil
 }
 
 // ============================================================================
 // Seed access
 // ============================================================================
 
-func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[pb.GetWalletSeedRequest]) (*connect.Response[pb.GetWalletSeedResponse], error) {
-	walletID := req.Msg.WalletId
+func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *pb.GetWalletSeedRequest) (*pb.GetWalletSeedResponse, error) {
+	walletID := req.WalletId
 	if walletID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wallet_id is required"))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "wallet_id is required")
 	}
 
 	for _, w := range h.svc.GetAllWallets() {
@@ -1893,61 +1893,61 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 		// Electrum wallets keep no master seed, so say so rather than hand back
 		// a blank one that reads like a successful answer.
 		if w.Master.SeedHex == "" {
-			return nil, connect.NewError(
+			return nil, connect.Errorf(
 				connect.CodeFailedPrecondition,
-				fmt.Errorf("wallet %s holds no master seed", walletID),
+				"wallet %s holds no master seed", walletID,
 			)
 		}
-		return connect.NewResponse(&pb.GetWalletSeedResponse{
+		return &pb.GetWalletSeedResponse{
 			SeedHex:  w.Master.SeedHex,
 			Mnemonic: w.Master.Mnemonic,
-		}), nil
+		}, nil
 	}
 
-	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", walletID))
+	return nil, connect.Errorf(connect.CodeNotFound, "wallet %s not found", walletID)
 }
 
 func (h *WalletHandler) PreviewWalletFromEntropy(
 	ctx context.Context,
-	req *connect.Request[pb.PreviewWalletFromEntropyRequest],
-) (*connect.Response[pb.PreviewWalletFromEntropyResponse], error) {
+	req *pb.PreviewWalletFromEntropyRequest,
+) (*pb.PreviewWalletFromEntropyResponse, error) {
 	strength := wallet.Strength128
-	if req.Msg.WordCount == 24 {
+	if req.WordCount == 24 {
 		strength = wallet.Strength256
 	}
 
-	entropy := req.Msg.Entropy
+	entropy := req.Entropy
 	switch {
 	case len(entropy) > 0:
-	case req.Msg.SourceText != "":
+	case req.SourceText != "":
 		// Exact-length hex is what this handler itself hands back, so take it
 		// as-is; anything else is hashed, and one character is enough.
-		if raw, err := hex.DecodeString(req.Msg.SourceText); err == nil && len(raw) == strength.Bytes() {
+		if raw, err := hex.DecodeString(req.SourceText); err == nil && len(raw) == strength.Bytes() {
 			entropy = raw
 			break
 		}
-		digest := sha256.Sum256([]byte(req.Msg.SourceText))
+		digest := sha256.Sum256([]byte(req.SourceText))
 		entropy = digest[:strength.Bytes()]
 	default:
 		var err error
 		entropy, err = wallet.FreshEntropy(strength)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("generate entropy: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("generate entropy: %w", err).Error())
 		}
 		// Client-supplied extra randomness folds into the fresh entropy, so
 		// the result is never weaker than crypto/rand alone.
-		if len(req.Msg.ExtraEntropy) > 0 {
-			digest := sha256.Sum256(append(entropy, req.Msg.ExtraEntropy...))
+		if len(req.ExtraEntropy) > 0 {
+			digest := sha256.Sum256(append(entropy, req.ExtraEntropy...))
 			entropy = digest[:strength.Bytes()]
 		}
 	}
 
-	w, err := h.svc.GenerateWalletFromEntropy(entropy, req.Msg.Passphrase, true, allSidechainSlots())
+	w, err := h.svc.GenerateWalletFromEntropy(entropy, req.Passphrase, true, allSidechainSlots())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive wallet from entropy: %w", err))
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive wallet from entropy: %w", err).Error())
 	}
 
-	return connect.NewResponse(&pb.PreviewWalletFromEntropyResponse{
+	return &pb.PreviewWalletFromEntropyResponse{
 		EntropyHex:       hex.EncodeToString(entropy),
 		Mnemonic:         w.Master.Mnemonic,
 		SeedHex:          w.Master.SeedHex,
@@ -1956,14 +1956,14 @@ func (h *WalletHandler) PreviewWalletFromEntropy(
 		Bip39Binary:      w.Master.BIP39Binary,
 		Bip39Checksum:    w.Master.BIP39Checksum,
 		Bip39ChecksumHex: w.Master.BIP39ChecksumHex,
-	}), nil
+	}, nil
 }
 
 // ============================================================================
 // Watch Wallet Data (server-streaming)
 // ============================================================================
 
-func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
+func (h *WalletHandler) WatchWalletData(ctx context.Context, req *emptypb.Empty, stream rpc.WalletManagerServiceWatchWalletDataServerStream) error {
 	var seq int64
 
 	// Per-stream subscription. The wallet service fans out notifyChanged to
@@ -2030,7 +2030,7 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 	}
 }
 
-func (h *WalletHandler) sendWalletData(stream *connect.ServerStream[pb.WatchWalletDataResponse], seq *int64) error {
+func (h *WalletHandler) sendWalletData(stream rpc.WalletManagerServiceWatchWalletDataServerStream, seq *int64) error {
 	resp := buildWatchWalletDataResponse(
 		h.svc.GetAllWallets(),
 		h.svc.ActiveWalletID(),
@@ -2134,9 +2134,9 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID, starter
 // Core variant RPCs
 // ============================================================================
 
-func (h *WalletHandler) ListCoreVariants(ctx context.Context, req *connect.Request[pb.ListCoreVariantsRequest]) (*connect.Response[pb.ListCoreVariantsResponse], error) {
+func (h *WalletHandler) ListCoreVariants(ctx context.Context, req *pb.ListCoreVariantsRequest) (*pb.ListCoreVariantsResponse, error) {
 	if h.orch == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not configured")
 	}
 	out := lo.Map(h.orch.ListCoreVariants(), func(v orchestrator.CoreVariantSpec, _ int) *pb.CoreVariant {
 		return &pb.CoreVariant{
@@ -2158,43 +2158,43 @@ func (h *WalletHandler) ListCoreVariants(ctx context.Context, req *connect.Reque
 	if !lo.ContainsBy(out, func(v *pb.CoreVariant) bool { return v.Id == activeID }) {
 		activeID = ""
 	}
-	return connect.NewResponse(&pb.ListCoreVariantsResponse{
+	return &pb.ListCoreVariantsResponse{
 		Variants: out,
 		ActiveId: activeID,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) GetCoreVariant(ctx context.Context, req *connect.Request[pb.GetCoreVariantRequest]) (*connect.Response[pb.GetCoreVariantResponse], error) {
+func (h *WalletHandler) GetCoreVariant(ctx context.Context, req *pb.GetCoreVariantRequest) (*pb.GetCoreVariantResponse, error) {
 	if h.orch == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not configured")
 	}
-	return connect.NewResponse(&pb.GetCoreVariantResponse{Id: h.orch.CoreVariant()}), nil
+	return &pb.GetCoreVariantResponse{Id: h.orch.CoreVariant()}, nil
 }
 
-func (h *WalletHandler) SetCoreVariant(ctx context.Context, req *connect.Request[pb.SetCoreVariantRequest]) (*connect.Response[pb.SetCoreVariantResponse], error) {
+func (h *WalletHandler) SetCoreVariant(ctx context.Context, req *pb.SetCoreVariantRequest) (*pb.SetCoreVariantResponse, error) {
 	if h.orch == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not configured")
 	}
-	if req.Msg.Id == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("variant id required"))
+	if req.Id == "" {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "variant id required")
 	}
-	if err := h.orch.SetCoreVariant(ctx, req.Msg.Id); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := h.orch.SetCoreVariant(ctx, req.Id); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.SetCoreVariantResponse{}), nil
+	return &pb.SetCoreVariantResponse{}, nil
 }
 
 // ============================================================================
 // Electrum server selection
 // ============================================================================
 
-func (h *WalletHandler) GetElectrumServer(ctx context.Context, req *connect.Request[pb.GetElectrumServerRequest]) (*connect.Response[pb.GetElectrumServerResponse], error) {
+func (h *WalletHandler) GetElectrumServer(ctx context.Context, req *pb.GetElectrumServerRequest) (*pb.GetElectrumServerResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "wallet engine not configured")
 	}
 	url, err := h.engine.ElectrumServerURL()
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 	defaultURL := ""
 	override := ""
@@ -2202,29 +2202,29 @@ func (h *WalletHandler) GetElectrumServer(ctx context.Context, req *connect.Requ
 		defaultURL = h.orch.DefaultElectrumServerURL()
 		override = h.orch.ElectrumServerOverride()
 	}
-	return connect.NewResponse(&pb.GetElectrumServerResponse{
+	return &pb.GetElectrumServerResponse{
 		Url:        url,
 		IsOverride: override != "",
 		DefaultUrl: defaultURL,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) SetElectrumServer(ctx context.Context, req *connect.Request[pb.SetElectrumServerRequest]) (*connect.Response[pb.SetElectrumServerResponse], error) {
+func (h *WalletHandler) SetElectrumServer(ctx context.Context, req *pb.SetElectrumServerRequest) (*pb.SetElectrumServerResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "wallet engine not configured")
 	}
 
 	// Empty URL resets to the network default; resolve it here so the switch is
 	// validated and persisted as a cleared override, not as a literal default.
-	target := req.Msg.Url
+	target := req.Url
 	reset := target == ""
 	if reset {
 		if h.orch == nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not configured")
 		}
 		target = h.orch.DefaultElectrumServerURL()
 		if target == "" {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no default electrum server for this network"))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "no default electrum server for this network")
 		}
 	}
 
@@ -2239,65 +2239,65 @@ func (h *WalletHandler) SetElectrumServer(ctx context.Context, req *connect.Requ
 			persist = ""
 		}
 		if perr := h.orch.PersistElectrumServerURL(persist); perr != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("server switched but persisting it failed: %w", perr))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("server switched but persisting it failed: %w", perr).Error())
 		}
 	}
 
-	return connect.NewResponse(&pb.SetElectrumServerResponse{
+	return &pb.SetElectrumServerResponse{
 		Url:       target,
 		TipHeight: int64(tip),
-	}), nil
+	}, nil
 }
 
 // ============================================================================
 // Tor routing
 // ============================================================================
 
-func (h *WalletHandler) GetTorConfig(ctx context.Context, req *connect.Request[pb.GetTorConfigRequest]) (*connect.Response[pb.GetTorConfigResponse], error) {
+func (h *WalletHandler) GetTorConfig(ctx context.Context, req *pb.GetTorConfigRequest) (*pb.GetTorConfigResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "wallet engine not configured")
 	}
 	enabled, proxyAddr, err := h.engine.TorConfig()
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.GetTorConfigResponse{
+	return &pb.GetTorConfigResponse{
 		Enabled:      enabled,
 		Proxy:        proxyAddr,
 		DefaultProxy: orchestrator.DefaultTorProxy,
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) SetTorConfig(ctx context.Context, req *connect.Request[pb.SetTorConfigRequest]) (*connect.Response[pb.SetTorConfigResponse], error) {
+func (h *WalletHandler) SetTorConfig(ctx context.Context, req *pb.SetTorConfigRequest) (*pb.SetTorConfigResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "wallet engine not configured")
 	}
 
-	proxyAddr := req.Msg.Proxy
-	if req.Msg.Enabled && proxyAddr == "" {
+	proxyAddr := req.Proxy
+	if req.Enabled && proxyAddr == "" {
 		proxyAddr = orchestrator.DefaultTorProxy
 	}
 
-	tip, err := h.engine.SetTorConfig(ctx, req.Msg.Enabled, proxyAddr)
+	tip, err := h.engine.SetTorConfig(ctx, req.Enabled, proxyAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	if h.orch != nil {
 		persistProxy := proxyAddr
-		if !req.Msg.Enabled {
+		if !req.Enabled {
 			persistProxy = ""
 		}
-		if perr := h.orch.PersistTorConfig(req.Msg.Enabled, persistProxy); perr != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("tor routing switched but persisting it failed: %w", perr))
+		if perr := h.orch.PersistTorConfig(req.Enabled, persistProxy); perr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("tor routing switched but persisting it failed: %w", perr).Error())
 		}
 	}
 
-	return connect.NewResponse(&pb.SetTorConfigResponse{
-		Enabled:   req.Msg.Enabled,
+	return &pb.SetTorConfigResponse{
+		Enabled:   req.Enabled,
 		Proxy:     proxyAddr,
 		TipHeight: int64(tip),
-	}), nil
+	}, nil
 }
 
 func coreVariantDisplayName(id string) string {
@@ -2385,83 +2385,83 @@ func btcToSats(btc float64) float64 {
 	return math.Round(btc * 1e8)
 }
 
-func (h *WalletHandler) CreatePsbt(ctx context.Context, req *connect.Request[pb.CreatePsbtRequest]) (*connect.Response[pb.CreatePsbtResponse], error) {
+func (h *WalletHandler) CreatePsbt(ctx context.Context, req *pb.CreatePsbtRequest) (*pb.CreatePsbtResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	sendReq := wallet.SendRequest{
-		DestinationsSats:      req.Msg.Destinations,
-		FeeRateSatPerVB:       req.Msg.FeeRateSatPerVbyte,
-		FixedFeeSats:          req.Msg.FixedFeeSats,
-		OpReturnHex:           req.Msg.OpReturnHex,
-		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
-		AllowReplay:           req.Msg.AllowReplay,
+		DestinationsSats:      req.Destinations,
+		FeeRateSatPerVB:       req.FeeRateSatPerVbyte,
+		FixedFeeSats:          req.FixedFeeSats,
+		OpReturnHex:           req.OpReturnHex,
+		SubtractFeeFromAmount: req.SubtractFeeFromAmount,
+		AllowReplay:           req.AllowReplay,
 	}
-	if err := h.refuseFrozenInputs(req.Msg.RequiredInputs); err != nil {
+	if err := h.refuseFrozenInputs(req.RequiredInputs); err != nil {
 		return nil, err
 	}
-	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
+	sendReq.RequiredInputs = lo.Map(req.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
 		return wallet.RequiredInput{
 			TxID: u.Txid, Vout: int(u.Vout), AmountSats: u.AmountSats,
 		}
 	})
-	sendReq.RawOutputs = mapRawOutputs(req.Msg.RawOutputs)
-	sendReq.ExternalInputs = mapExternalInputs(req.Msg.ExternalInputs)
+	sendReq.RawOutputs = mapRawOutputs(req.RawOutputs)
+	sendReq.ExternalInputs = mapExternalInputs(req.ExternalInputs)
 	b64, err := h.engine.CreatePSBT(ctx, walletID, sendReq)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.CreatePsbtResponse{PsbtBase64: b64}), nil
+	return &pb.CreatePsbtResponse{PsbtBase64: b64}, nil
 }
 
-func (h *WalletHandler) SignPsbt(ctx context.Context, req *connect.Request[pb.SignPsbtRequest]) (*connect.Response[pb.SignPsbtResponse], error) {
+func (h *WalletHandler) SignPsbt(ctx context.Context, req *pb.SignPsbtRequest) (*pb.SignPsbtResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	out, err := h.engine.SignPSBT(ctx, walletID, req.Msg.PsbtBase64)
-	if err != nil {
-		return nil, rpcError(err)
-	}
-	return connect.NewResponse(&pb.SignPsbtResponse{PsbtBase64: out}), nil
-}
-
-func (h *WalletHandler) CombinePsbt(ctx context.Context, req *connect.Request[pb.CombinePsbtRequest]) (*connect.Response[pb.CombinePsbtResponse], error) {
-	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-	out, err := h.engine.CombinePSBT(req.Msg.PsbtBase64)
+	out, err := h.engine.SignPSBT(ctx, walletID, req.PsbtBase64)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.CombinePsbtResponse{PsbtBase64: out}), nil
+	return &pb.SignPsbtResponse{PsbtBase64: out}, nil
 }
 
-func (h *WalletHandler) FinalizePsbt(ctx context.Context, req *connect.Request[pb.FinalizePsbtRequest]) (*connect.Response[pb.FinalizePsbtResponse], error) {
+func (h *WalletHandler) CombinePsbt(ctx context.Context, req *pb.CombinePsbtRequest) (*pb.CombinePsbtResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	rawHex, err := h.engine.FinalizePSBT(req.Msg.PsbtBase64)
+	out, err := h.engine.CombinePSBT(req.PsbtBase64)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.FinalizePsbtResponse{RawTxHex: rawHex}), nil
+	return &pb.CombinePsbtResponse{PsbtBase64: out}, nil
 }
 
-func (h *WalletHandler) GetAddressUnspent(ctx context.Context, req *connect.Request[pb.GetAddressUnspentRequest]) (*connect.Response[pb.GetAddressUnspentResponse], error) {
+func (h *WalletHandler) FinalizePsbt(ctx context.Context, req *pb.FinalizePsbtRequest) (*pb.FinalizePsbtResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	address := strings.TrimSpace(req.Msg.Address)
+	rawHex, err := h.engine.FinalizePSBT(req.PsbtBase64)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return &pb.FinalizePsbtResponse{RawTxHex: rawHex}, nil
+}
+
+func (h *WalletHandler) GetAddressUnspent(ctx context.Context, req *pb.GetAddressUnspentRequest) (*pb.GetAddressUnspentResponse, error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
+	}
+	address := strings.TrimSpace(req.Address)
 	if address == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "address is required")
 	}
 
 	utxos, tip, err := h.engine.AddressUnspent(ctx, address)
@@ -2469,7 +2469,7 @@ func (h *WalletHandler) GetAddressUnspent(ctx context.Context, req *connect.Requ
 		return nil, rpcError(err)
 	}
 
-	return connect.NewResponse(&pb.GetAddressUnspentResponse{
+	return &pb.GetAddressUnspentResponse{
 		Utxos: lo.Map(utxos, func(u wallet.UTXO, _ int) *pb.AddressUnspentOutput {
 			return &pb.AddressUnspentOutput{
 				Txid:          u.TxID,
@@ -2480,21 +2480,21 @@ func (h *WalletHandler) GetAddressUnspent(ctx context.Context, req *connect.Requ
 			}
 		}),
 		TipHeight: int32(tip),
-	}), nil
+	}, nil
 }
 
-func (h *WalletHandler) BroadcastElectrumTransaction(ctx context.Context, req *connect.Request[pb.BroadcastElectrumTransactionRequest]) (*connect.Response[pb.BroadcastElectrumTransactionResponse], error) {
+func (h *WalletHandler) BroadcastElectrumTransaction(ctx context.Context, req *pb.BroadcastElectrumTransactionRequest) (*pb.BroadcastElectrumTransactionResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	txHex := strings.TrimSpace(req.Msg.TxHex)
+	txHex := strings.TrimSpace(req.TxHex)
 	if txHex == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("tx_hex is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "tx_hex is required")
 	}
 
 	txid, err := h.engine.BroadcastRaw(ctx, txHex)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.BroadcastElectrumTransactionResponse{Txid: txid}), nil
+	return &pb.BroadcastElectrumTransactionResponse{Txid: txid}, nil
 }

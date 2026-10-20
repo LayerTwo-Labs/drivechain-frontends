@@ -15,7 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
@@ -310,6 +312,7 @@ func run(cctx *cli.Context) error {
 	// Set up gRPC/ConnectRPC server
 	handler := api.NewHandler(orch)
 	mux := http.NewServeMux()
+	rpcServer := connect.NewServer(localauth.ServerInterceptor(authDir))
 	if localAuth {
 		// Allows a relaunched bitwindowd to verify that an occupied RPC port is
 		// the previous drivechaind without sending the bearer cookie to an
@@ -337,8 +340,7 @@ func run(cctx *cli.Context) error {
 		})
 	}
 
-	path, h := rpc.NewOrchestratorServiceHandler(handler, connect.WithInterceptors(authIC))
-	mux.Handle(path, h)
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, handler)
 
 	// Wallet manager service
 	walletHandler := api.NewWalletHandler(walletSvc)
@@ -559,8 +561,7 @@ func run(cctx *cli.Context) error {
 		}
 	}()
 
-	bmmPath, bmmH := bmmrpc.NewBMMServiceHandler(bmmHandler, connect.WithInterceptors(authIC))
-	mux.Handle(bmmPath, bmmH)
+	bmmrpc.RegisterBMMServiceHandler(rpcServer, bmmHandler)
 
 	stratumHandler := api.NewStratumHandler(ctx, api.StratumDeps{
 		Network:  orch,
@@ -574,25 +575,20 @@ func run(cctx *cli.Context) error {
 		Log:         log.With().Str("component", "stratum").Logger(),
 	})
 	walletEngine.OnNetworkReset(stratumHandler.Reset)
-	stratumPath, stratumH := stratumrpc.NewStratumServiceHandler(stratumHandler, connect.WithInterceptors(authIC))
-	mux.Handle(stratumPath, stratumH)
+	stratumrpc.RegisterStratumServiceHandler(rpcServer, stratumHandler)
 
 	explorerHandler := api.NewExplorerHandler(orch)
 	explorerHandler.SetCoreCaller(handler.RawCoreCall)
-	explorerPath, explorerH := explorerrpc.NewExplorerServiceHandler(explorerHandler, connect.WithInterceptors(authIC))
-	mux.Handle(explorerPath, explorerH)
+	explorerrpc.RegisterExplorerServiceHandler(rpcServer, explorerHandler)
 
-	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors(authIC))
-	mux.Handle(walletPath, walletH)
+	walletrpc.RegisterWalletManagerServiceHandler(rpcServer, walletHandler)
 
-	multisigLoungePath, multisigLoungeH := multisigloungerpc.NewMultisigLoungeServiceHandler(multisigLoungeHandler, connect.WithInterceptors(authIC))
-	mux.Handle(multisigLoungePath, multisigLoungeH)
+	multisigloungerpc.RegisterMultisigLoungeServiceHandler(rpcServer, multisigLoungeHandler)
 
 	// Bitcoin config service
 	if orch.BitcoinConf != nil {
 		confHandler := api.NewBitcoinConfHandler(orch)
-		confPath, confH := rpc.NewBitcoinConfServiceHandler(confHandler, connect.WithInterceptors(authIC))
-		mux.Handle(confPath, confH)
+		rpc.RegisterBitcoinConfServiceHandler(rpcServer, confHandler)
 	}
 
 	// Bitcoin Core proxy (btc-buf BitcoinService) — single canonical route
@@ -621,13 +617,13 @@ func run(cctx *cli.Context) error {
 				log.Warn().Err(err).Str("reason", reason).Msg("failed to start bitcoin core proxy")
 				return
 			}
-			_, h := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors(authIC, meterIC))
+			_, h := corerpc.NewBitcoinServiceHandler(proxy, connectv1.WithInterceptors(authIC, meterIC))
 			swappable.swap(h)
 			log.Info().Str("reason", reason).Msg("bitcoin core proxy ready")
 		}
 		rebuildCoreProxy("startup")
 		// The path is constant; register once.
-		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connect.WithInterceptors(authIC, meterIC))
+		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connectv1.WithInterceptors(authIC, meterIC))
 		mux.Handle(corePath, swappable)
 		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
 
@@ -640,14 +636,12 @@ func run(cctx *cli.Context) error {
 	// Enforcer config service
 	if orch.EnforcerConf != nil {
 		enforcerHandler := api.NewEnforcerConfHandler(orch.EnforcerConf)
-		enforcerPath, enforcerH := rpc.NewEnforcerConfServiceHandler(enforcerHandler, connect.WithInterceptors(authIC))
-		mux.Handle(enforcerPath, enforcerH)
+		rpc.RegisterEnforcerConfServiceHandler(rpcServer, enforcerHandler)
 	}
 
 	// Generic sidechain config service (all sidechains)
 	sidechainConfHandler := api.NewSidechainConfHandler(orch.SidechainConfs)
-	scConfPath, scConfH := rpc.NewSidechainConfServiceHandler(sidechainConfHandler, connect.WithInterceptors(authIC))
-	mux.Handle(scConfPath, scConfH)
+	rpc.RegisterSidechainConfServiceHandler(rpcServer, sidechainConfHandler)
 
 	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
 	for name, cfg := range orch.Configs() {
@@ -655,44 +649,37 @@ func run(cctx *cli.Context) error {
 		switch name {
 		case "thunder":
 			h := thundersvc.NewHandlerWithIndex(proxy, cctx.String("thunder-esplora-url"))
-			path, thunderHandler := thunderrpc.NewThunderServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, thunderHandler)
+			thunderrpc.RegisterThunderServiceHandler(rpcServer, h)
 			handler.SetSidechainBalance(name, h.WalletBalance)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitnames":
 			h := bitnamessvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			path, bitnamesHandler := bitnamesrpc.NewBitnamesServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, bitnamesHandler)
+			bitnamesrpc.RegisterBitnamesServiceHandler(rpcServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitassets":
 			h := bitassetssvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			path, bitassetsHandler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, bitassetsHandler)
+			bitassetsrpc.RegisterBitAssetsServiceHandler(rpcServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "photon":
 			h := photonsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			path, photonHandler := photonrpc.NewPhotonServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, photonHandler)
+			photonrpc.RegisterPhotonServiceHandler(rpcServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "truthcoin":
 			h := truthcoinsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			path, truthcoinHandler := truthcoinrpc.NewTruthcoinServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, truthcoinHandler)
+			truthcoinrpc.RegisterTruthcoinServiceHandler(rpcServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "coinshift":
 			h := coinshiftsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			path, coinshiftHandler := coinshiftrpc.NewCoinShiftServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, coinshiftHandler)
+			coinshiftrpc.RegisterCoinShiftServiceHandler(rpcServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "zside":
 			h := zsidesvc.NewHandler(proxy)
-			path, handler := zsiderpc.NewZSideServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			zsiderpc.RegisterZSideServiceHandler(rpcServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bbc":
 			// Core derived: its own client, authenticated by the node's cookie.
@@ -703,11 +690,12 @@ func run(cctx *cli.Context) error {
 			}
 			cookie := filepath.Join(dirs.DatadirNetwork(config.Network(orch.Network), ""), ".cookie")
 			h := bbcsvc.NewHandler(bbcsvc.NewClient(cfg.RPCHost(), cfg.Port, cookie))
-			path, handler := bbcrpc.NewBbcServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			bbcrpc.RegisterBbcServiceHandler(rpcServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		}
 	}
+
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 
 	// h2c (HTTP/2 cleartext) via http.Server.Protocols — the ConnectRPC-blessed
 	// replacement for h2c.NewHandler. Carries Connect, gRPC and gRPC-Web on one

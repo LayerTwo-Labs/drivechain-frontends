@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/protobuf/proto"
 )
@@ -27,27 +27,38 @@ func Validator() (protovalidate.Validator, error) {
 	return validator, nil
 }
 
-// Interceptor returns a Connect server interceptor that validates incoming requests,
-// returning an error if they don't comply.
-//
-// Docs: https://github.com/bufbuild/protovalidate
-func Interceptor() connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+// Interceptor checks unary request constraints.
+func Interceptor() connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+			if spec.StreamType != connect.StreamTypeUnary {
+				return next(ctx, spec, stream)
+			}
 			validator, err := Validator()
 			if err != nil {
-				return nil, err
+				return err
 			}
 
-			if msg, ok := req.Any().(proto.Message); ok {
-				if err := validator.Validate(msg); err != nil {
-					return nil, handleValidationError(err)
-				}
-			}
-
-			return next(ctx, req)
+			return next(ctx, spec, &requestStream{ServerStream: stream, validator: validator})
 		}
 	}
+}
+
+type requestStream struct {
+	connect.ServerStream
+	validator protovalidate.Validator
+}
+
+func (s *requestStream) Receive(msg any) error {
+	if err := s.ServerStream.Receive(msg); err != nil {
+		return err
+	}
+	if message, ok := msg.(proto.Message); ok {
+		if err := s.validator.Validate(message); err != nil {
+			return handleValidationError(err)
+		}
+	}
+	return nil
 }
 
 func handleValidationError(err error) error {
@@ -56,5 +67,5 @@ func handleValidationError(err error) error {
 		return err
 	}
 
-	return connect.NewError(connect.CodeInvalidArgument, validationErr)
+	return connect.NewError(connect.CodeInvalidArgument, validationErr.Error()).WithCause(validationErr)
 }

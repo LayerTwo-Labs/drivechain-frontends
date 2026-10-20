@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -77,14 +76,14 @@ func TestECashMigrationBlocksConfigEdits(t *testing.T) {
 					return o.SetDatadirForCurrentNetwork(t.TempDir())
 				}
 				if name == "config content" {
-					_, err := handler.WriteBitcoinConfig(t.Context(), connect.NewRequest(&pb.WriteBitcoinConfigRequest{ConfigContent: string(before) + "\nmaxconnections=17\n"}))
+					_, err := handler.WriteBitcoinConfig(t.Context(), &pb.WriteBitcoinConfigRequest{ConfigContent: string(before) + "\nmaxconnections=17\n"})
 					return err
 				}
 				if name == "network selection" {
-					_, err := handler.SetBitcoinConfigNetwork(t.Context(), connect.NewRequest(&pb.SetBitcoinConfigNetworkRequest{DataDir: t.TempDir(), Network: "ecash"}))
+					_, err := handler.SetBitcoinConfigNetwork(t.Context(), &pb.SetBitcoinConfigNetworkRequest{DataDir: t.TempDir(), Network: "ecash"})
 					return err
 				}
-				_, err := handler.SetBitcoinConfigDataDir(t.Context(), connect.NewRequest(&pb.SetBitcoinConfigDataDirRequest{DataDir: t.TempDir(), Network: "ecash"}))
+				_, err := handler.SetBitcoinConfigDataDir(t.Context(), &pb.SetBitcoinConfigDataDirRequest{DataDir: t.TempDir(), Network: "ecash"})
 				return err
 			}
 			err = edit()

@@ -13,8 +13,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	connect "connectrpc.com/connect"
 	walletmanagerv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	walletmanagerv1connect "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	gomock "go.uber.org/mock/gomock"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
@@ -44,10 +44,10 @@ func (m *MockWalletManagerServiceClient) EXPECT() *MockWalletManagerServiceClien
 }
 
 // BroadcastElectrumTransaction mocks base method.
-func (m *MockWalletManagerServiceClient) BroadcastElectrumTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.BroadcastElectrumTransactionRequest]) (*connect.Response[walletmanagerv1.BroadcastElectrumTransactionResponse], error) {
+func (m *MockWalletManagerServiceClient) BroadcastElectrumTransaction(arg0 context.Context, arg1 *walletmanagerv1.BroadcastElectrumTransactionRequest) (*walletmanagerv1.BroadcastElectrumTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BroadcastElectrumTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.BroadcastElectrumTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.BroadcastElectrumTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -59,10 +59,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) BroadcastElectrumTransacti
 }
 
 // BroadcastTransaction mocks base method.
-func (m *MockWalletManagerServiceClient) BroadcastTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.BroadcastTransactionRequest]) (*connect.Response[walletmanagerv1.BroadcastTransactionResponse], error) {
+func (m *MockWalletManagerServiceClient) BroadcastTransaction(arg0 context.Context, arg1 *walletmanagerv1.BroadcastTransactionRequest) (*walletmanagerv1.BroadcastTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BroadcastTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.BroadcastTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.BroadcastTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -74,10 +74,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) BroadcastTransaction(arg0,
 }
 
 // BumpFee mocks base method.
-func (m *MockWalletManagerServiceClient) BumpFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.BumpFeeRequest]) (*connect.Response[walletmanagerv1.BumpFeeResponse], error) {
+func (m *MockWalletManagerServiceClient) BumpFee(arg0 context.Context, arg1 *walletmanagerv1.BumpFeeRequest) (*walletmanagerv1.BumpFeeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BumpFee", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.BumpFeeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.BumpFeeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -89,10 +89,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) BumpFee(arg0, arg1 any) *g
 }
 
 // CancelTransaction mocks base method.
-func (m *MockWalletManagerServiceClient) CancelTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CancelTransactionRequest]) (*connect.Response[walletmanagerv1.CancelTransactionResponse], error) {
+func (m *MockWalletManagerServiceClient) CancelTransaction(arg0 context.Context, arg1 *walletmanagerv1.CancelTransactionRequest) (*walletmanagerv1.CancelTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CancelTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CancelTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -104,10 +104,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CancelTransaction(arg0, ar
 }
 
 // ChangePassword mocks base method.
-func (m *MockWalletManagerServiceClient) ChangePassword(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ChangePasswordRequest]) (*connect.Response[walletmanagerv1.ChangePasswordResponse], error) {
+func (m *MockWalletManagerServiceClient) ChangePassword(arg0 context.Context, arg1 *walletmanagerv1.ChangePasswordRequest) (*walletmanagerv1.ChangePasswordResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangePassword", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ChangePasswordResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ChangePasswordResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -119,10 +119,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ChangePassword(arg0, arg1 
 }
 
 // CloseDevice mocks base method.
-func (m *MockWalletManagerServiceClient) CloseDevice(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CloseDeviceRequest]) (*connect.Response[walletmanagerv1.CloseDeviceResponse], error) {
+func (m *MockWalletManagerServiceClient) CloseDevice(arg0 context.Context, arg1 *walletmanagerv1.CloseDeviceRequest) (*walletmanagerv1.CloseDeviceResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseDevice", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CloseDeviceResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CloseDeviceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -134,10 +134,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CloseDevice(arg0, arg1 any
 }
 
 // CombinePsbt mocks base method.
-func (m *MockWalletManagerServiceClient) CombinePsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CombinePsbtRequest]) (*connect.Response[walletmanagerv1.CombinePsbtResponse], error) {
+func (m *MockWalletManagerServiceClient) CombinePsbt(arg0 context.Context, arg1 *walletmanagerv1.CombinePsbtRequest) (*walletmanagerv1.CombinePsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CombinePsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CombinePsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CombinePsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -149,10 +149,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CombinePsbt(arg0, arg1 any
 }
 
 // CreateBitcoinCoreWallet mocks base method.
-func (m *MockWalletManagerServiceClient) CreateBitcoinCoreWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateBitcoinCoreWalletRequest]) (*connect.Response[walletmanagerv1.CreateBitcoinCoreWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) CreateBitcoinCoreWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateBitcoinCoreWalletRequest) (*walletmanagerv1.CreateBitcoinCoreWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateBitcoinCoreWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateBitcoinCoreWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateBitcoinCoreWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -164,10 +164,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CreateBitcoinCoreWallet(ar
 }
 
 // CreateCpfp mocks base method.
-func (m *MockWalletManagerServiceClient) CreateCpfp(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateCpfpRequest]) (*connect.Response[walletmanagerv1.CreateCpfpResponse], error) {
+func (m *MockWalletManagerServiceClient) CreateCpfp(arg0 context.Context, arg1 *walletmanagerv1.CreateCpfpRequest) (*walletmanagerv1.CreateCpfpResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCpfp", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateCpfpResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateCpfpResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -179,10 +179,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CreateCpfp(arg0, arg1 any)
 }
 
 // CreateDeposit mocks base method.
-func (m *MockWalletManagerServiceClient) CreateDeposit(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateDepositRequest]) (*connect.Response[walletmanagerv1.CreateDepositResponse], error) {
+func (m *MockWalletManagerServiceClient) CreateDeposit(arg0 context.Context, arg1 *walletmanagerv1.CreateDepositRequest) (*walletmanagerv1.CreateDepositResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateDeposit", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateDepositResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateDepositResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -194,10 +194,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CreateDeposit(arg0, arg1 a
 }
 
 // CreateElectrumWallet mocks base method.
-func (m *MockWalletManagerServiceClient) CreateElectrumWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateElectrumWalletRequest]) (*connect.Response[walletmanagerv1.CreateElectrumWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) CreateElectrumWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateElectrumWalletRequest) (*walletmanagerv1.CreateElectrumWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateElectrumWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateElectrumWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateElectrumWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -209,10 +209,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CreateElectrumWallet(arg0,
 }
 
 // CreateMultisigWallet mocks base method.
-func (m *MockWalletManagerServiceClient) CreateMultisigWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateMultisigWalletRequest]) (*connect.Response[walletmanagerv1.CreateMultisigWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) CreateMultisigWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateMultisigWalletRequest) (*walletmanagerv1.CreateMultisigWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateMultisigWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateMultisigWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateMultisigWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -224,10 +224,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CreateMultisigWallet(arg0,
 }
 
 // CreatePsbt mocks base method.
-func (m *MockWalletManagerServiceClient) CreatePsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreatePsbtRequest]) (*connect.Response[walletmanagerv1.CreatePsbtResponse], error) {
+func (m *MockWalletManagerServiceClient) CreatePsbt(arg0 context.Context, arg1 *walletmanagerv1.CreatePsbtRequest) (*walletmanagerv1.CreatePsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreatePsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreatePsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -239,10 +239,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CreatePsbt(arg0, arg1 any)
 }
 
 // CreateWatchOnlyWallet mocks base method.
-func (m *MockWalletManagerServiceClient) CreateWatchOnlyWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateWatchOnlyWalletRequest]) (*connect.Response[walletmanagerv1.CreateWatchOnlyWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) CreateWatchOnlyWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateWatchOnlyWalletRequest) (*walletmanagerv1.CreateWatchOnlyWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateWatchOnlyWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateWatchOnlyWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateWatchOnlyWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -254,10 +254,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) CreateWatchOnlyWallet(arg0
 }
 
 // DecodeTransaction mocks base method.
-func (m *MockWalletManagerServiceClient) DecodeTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DecodeTransactionRequest]) (*connect.Response[walletmanagerv1.DecodeTransactionResponse], error) {
+func (m *MockWalletManagerServiceClient) DecodeTransaction(arg0 context.Context, arg1 *walletmanagerv1.DecodeTransactionRequest) (*walletmanagerv1.DecodeTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DecodeTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DecodeTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DecodeTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -269,10 +269,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) DecodeTransaction(arg0, ar
 }
 
 // DeleteAllWallets mocks base method.
-func (m *MockWalletManagerServiceClient) DeleteAllWallets(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeleteAllWalletsRequest]) (*connect.Response[walletmanagerv1.DeleteAllWalletsResponse], error) {
+func (m *MockWalletManagerServiceClient) DeleteAllWallets(arg0 context.Context, arg1 *walletmanagerv1.DeleteAllWalletsRequest) (*walletmanagerv1.DeleteAllWalletsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteAllWallets", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeleteAllWalletsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeleteAllWalletsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -284,10 +284,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) DeleteAllWallets(arg0, arg
 }
 
 // DeleteWallet mocks base method.
-func (m *MockWalletManagerServiceClient) DeleteWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeleteWalletRequest]) (*connect.Response[walletmanagerv1.DeleteWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) DeleteWallet(arg0 context.Context, arg1 *walletmanagerv1.DeleteWalletRequest) (*walletmanagerv1.DeleteWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeleteWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeleteWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -299,10 +299,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) DeleteWallet(arg0, arg1 an
 }
 
 // DeriveAddresses mocks base method.
-func (m *MockWalletManagerServiceClient) DeriveAddresses(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeriveAddressesRequest]) (*connect.Response[walletmanagerv1.DeriveAddressesResponse], error) {
+func (m *MockWalletManagerServiceClient) DeriveAddresses(arg0 context.Context, arg1 *walletmanagerv1.DeriveAddressesRequest) (*walletmanagerv1.DeriveAddressesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeriveAddresses", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeriveAddressesResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeriveAddressesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -314,10 +314,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) DeriveAddresses(arg0, arg1
 }
 
 // DeriveKeystore mocks base method.
-func (m *MockWalletManagerServiceClient) DeriveKeystore(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeriveKeystoreRequest]) (*connect.Response[walletmanagerv1.DeriveKeystoreResponse], error) {
+func (m *MockWalletManagerServiceClient) DeriveKeystore(arg0 context.Context, arg1 *walletmanagerv1.DeriveKeystoreRequest) (*walletmanagerv1.DeriveKeystoreResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeriveKeystore", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeriveKeystoreResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeriveKeystoreResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -329,10 +329,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) DeriveKeystore(arg0, arg1 
 }
 
 // EncryptWallet mocks base method.
-func (m *MockWalletManagerServiceClient) EncryptWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EncryptWalletRequest]) (*connect.Response[walletmanagerv1.EncryptWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) EncryptWallet(arg0 context.Context, arg1 *walletmanagerv1.EncryptWalletRequest) (*walletmanagerv1.EncryptWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EncryptWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EncryptWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EncryptWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -344,10 +344,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) EncryptWallet(arg0, arg1 a
 }
 
 // EnsureCoreWallets mocks base method.
-func (m *MockWalletManagerServiceClient) EnsureCoreWallets(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EnsureCoreWalletsRequest]) (*connect.Response[walletmanagerv1.EnsureCoreWalletsResponse], error) {
+func (m *MockWalletManagerServiceClient) EnsureCoreWallets(arg0 context.Context, arg1 *walletmanagerv1.EnsureCoreWalletsRequest) (*walletmanagerv1.EnsureCoreWalletsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnsureCoreWallets", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EnsureCoreWalletsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EnsureCoreWalletsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -359,10 +359,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) EnsureCoreWallets(arg0, ar
 }
 
 // EnumerateHardwareDevices mocks base method.
-func (m *MockWalletManagerServiceClient) EnumerateHardwareDevices(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EnumerateHardwareDevicesRequest]) (*connect.Response[walletmanagerv1.EnumerateHardwareDevicesResponse], error) {
+func (m *MockWalletManagerServiceClient) EnumerateHardwareDevices(arg0 context.Context, arg1 *walletmanagerv1.EnumerateHardwareDevicesRequest) (*walletmanagerv1.EnumerateHardwareDevicesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnumerateHardwareDevices", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EnumerateHardwareDevicesResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EnumerateHardwareDevicesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -374,10 +374,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) EnumerateHardwareDevices(a
 }
 
 // EstimateFee mocks base method.
-func (m *MockWalletManagerServiceClient) EstimateFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EstimateFeeRequest]) (*connect.Response[walletmanagerv1.EstimateFeeResponse], error) {
+func (m *MockWalletManagerServiceClient) EstimateFee(arg0 context.Context, arg1 *walletmanagerv1.EstimateFeeRequest) (*walletmanagerv1.EstimateFeeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EstimateFee", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EstimateFeeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EstimateFeeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -389,10 +389,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) EstimateFee(arg0, arg1 any
 }
 
 // FinalizePsbt mocks base method.
-func (m *MockWalletManagerServiceClient) FinalizePsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.FinalizePsbtRequest]) (*connect.Response[walletmanagerv1.FinalizePsbtResponse], error) {
+func (m *MockWalletManagerServiceClient) FinalizePsbt(arg0 context.Context, arg1 *walletmanagerv1.FinalizePsbtRequest) (*walletmanagerv1.FinalizePsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FinalizePsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.FinalizePsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.FinalizePsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -404,10 +404,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) FinalizePsbt(arg0, arg1 an
 }
 
 // GenerateWallet mocks base method.
-func (m *MockWalletManagerServiceClient) GenerateWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GenerateWalletRequest]) (*connect.Response[walletmanagerv1.GenerateWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) GenerateWallet(arg0 context.Context, arg1 *walletmanagerv1.GenerateWalletRequest) (*walletmanagerv1.GenerateWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GenerateWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GenerateWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -419,10 +419,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GenerateWallet(arg0, arg1 
 }
 
 // GetAddressUnspent mocks base method.
-func (m *MockWalletManagerServiceClient) GetAddressUnspent(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetAddressUnspentRequest]) (*connect.Response[walletmanagerv1.GetAddressUnspentResponse], error) {
+func (m *MockWalletManagerServiceClient) GetAddressUnspent(arg0 context.Context, arg1 *walletmanagerv1.GetAddressUnspentRequest) (*walletmanagerv1.GetAddressUnspentResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAddressUnspent", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetAddressUnspentResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetAddressUnspentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -434,10 +434,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetAddressUnspent(arg0, ar
 }
 
 // GetBalance mocks base method.
-func (m *MockWalletManagerServiceClient) GetBalance(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetBalanceRequest]) (*connect.Response[walletmanagerv1.GetBalanceResponse], error) {
+func (m *MockWalletManagerServiceClient) GetBalance(arg0 context.Context, arg1 *walletmanagerv1.GetBalanceRequest) (*walletmanagerv1.GetBalanceResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBalance", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetBalanceResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetBalanceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -449,10 +449,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetBalance(arg0, arg1 any)
 }
 
 // GetCoreVariant mocks base method.
-func (m *MockWalletManagerServiceClient) GetCoreVariant(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetCoreVariantRequest]) (*connect.Response[walletmanagerv1.GetCoreVariantResponse], error) {
+func (m *MockWalletManagerServiceClient) GetCoreVariant(arg0 context.Context, arg1 *walletmanagerv1.GetCoreVariantRequest) (*walletmanagerv1.GetCoreVariantResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCoreVariant", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetCoreVariantResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetCoreVariantResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -464,10 +464,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetCoreVariant(arg0, arg1 
 }
 
 // GetElectrumServer mocks base method.
-func (m *MockWalletManagerServiceClient) GetElectrumServer(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetElectrumServerRequest]) (*connect.Response[walletmanagerv1.GetElectrumServerResponse], error) {
+func (m *MockWalletManagerServiceClient) GetElectrumServer(arg0 context.Context, arg1 *walletmanagerv1.GetElectrumServerRequest) (*walletmanagerv1.GetElectrumServerResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetElectrumServer", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetElectrumServerResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetElectrumServerResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -479,10 +479,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetElectrumServer(arg0, ar
 }
 
 // GetHardwareXpub mocks base method.
-func (m *MockWalletManagerServiceClient) GetHardwareXpub(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetHardwareXpubRequest]) (*connect.Response[walletmanagerv1.GetHardwareXpubResponse], error) {
+func (m *MockWalletManagerServiceClient) GetHardwareXpub(arg0 context.Context, arg1 *walletmanagerv1.GetHardwareXpubRequest) (*walletmanagerv1.GetHardwareXpubResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHardwareXpub", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetHardwareXpubResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetHardwareXpubResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -494,10 +494,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetHardwareXpub(arg0, arg1
 }
 
 // GetNewAddress mocks base method.
-func (m *MockWalletManagerServiceClient) GetNewAddress(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetNewAddressRequest]) (*connect.Response[walletmanagerv1.GetNewAddressResponse], error) {
+func (m *MockWalletManagerServiceClient) GetNewAddress(arg0 context.Context, arg1 *walletmanagerv1.GetNewAddressRequest) (*walletmanagerv1.GetNewAddressResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNewAddress", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetNewAddressResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetNewAddressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -509,10 +509,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetNewAddress(arg0, arg1 a
 }
 
 // GetNodeMode mocks base method.
-func (m *MockWalletManagerServiceClient) GetNodeMode(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetNodeModeRequest]) (*connect.Response[walletmanagerv1.GetNodeModeResponse], error) {
+func (m *MockWalletManagerServiceClient) GetNodeMode(arg0 context.Context, arg1 *walletmanagerv1.GetNodeModeRequest) (*walletmanagerv1.GetNodeModeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNodeMode", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetNodeModeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetNodeModeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -524,10 +524,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetNodeMode(arg0, arg1 any
 }
 
 // GetSidechainDepositTotals mocks base method.
-func (m *MockWalletManagerServiceClient) GetSidechainDepositTotals(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetSidechainDepositTotalsRequest]) (*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse], error) {
+func (m *MockWalletManagerServiceClient) GetSidechainDepositTotals(arg0 context.Context, arg1 *walletmanagerv1.GetSidechainDepositTotalsRequest) (*walletmanagerv1.GetSidechainDepositTotalsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSidechainDepositTotals", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetSidechainDepositTotalsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -539,10 +539,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetSidechainDepositTotals(
 }
 
 // GetTorConfig mocks base method.
-func (m *MockWalletManagerServiceClient) GetTorConfig(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetTorConfigRequest]) (*connect.Response[walletmanagerv1.GetTorConfigResponse], error) {
+func (m *MockWalletManagerServiceClient) GetTorConfig(arg0 context.Context, arg1 *walletmanagerv1.GetTorConfigRequest) (*walletmanagerv1.GetTorConfigResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTorConfig", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetTorConfigResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetTorConfigResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -554,10 +554,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetTorConfig(arg0, arg1 an
 }
 
 // GetTransactionDetails mocks base method.
-func (m *MockWalletManagerServiceClient) GetTransactionDetails(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetTransactionDetailsRequest]) (*connect.Response[walletmanagerv1.GetTransactionDetailsResponse], error) {
+func (m *MockWalletManagerServiceClient) GetTransactionDetails(arg0 context.Context, arg1 *walletmanagerv1.GetTransactionDetailsRequest) (*walletmanagerv1.GetTransactionDetailsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTransactionDetails", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetTransactionDetailsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetTransactionDetailsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -569,10 +569,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetTransactionDetails(arg0
 }
 
 // GetWalletSeed mocks base method.
-func (m *MockWalletManagerServiceClient) GetWalletSeed(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetWalletSeedRequest]) (*connect.Response[walletmanagerv1.GetWalletSeedResponse], error) {
+func (m *MockWalletManagerServiceClient) GetWalletSeed(arg0 context.Context, arg1 *walletmanagerv1.GetWalletSeedRequest) (*walletmanagerv1.GetWalletSeedResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWalletSeed", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetWalletSeedResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetWalletSeedResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -584,10 +584,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetWalletSeed(arg0, arg1 a
 }
 
 // GetWalletStatus mocks base method.
-func (m *MockWalletManagerServiceClient) GetWalletStatus(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetWalletStatusRequest]) (*connect.Response[walletmanagerv1.GetWalletStatusResponse], error) {
+func (m *MockWalletManagerServiceClient) GetWalletStatus(arg0 context.Context, arg1 *walletmanagerv1.GetWalletStatusRequest) (*walletmanagerv1.GetWalletStatusResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWalletStatus", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetWalletStatusResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetWalletStatusResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -599,10 +599,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetWalletStatus(arg0, arg1
 }
 
 // ListCoreVariants mocks base method.
-func (m *MockWalletManagerServiceClient) ListCoreVariants(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListCoreVariantsRequest]) (*connect.Response[walletmanagerv1.ListCoreVariantsResponse], error) {
+func (m *MockWalletManagerServiceClient) ListCoreVariants(arg0 context.Context, arg1 *walletmanagerv1.ListCoreVariantsRequest) (*walletmanagerv1.ListCoreVariantsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListCoreVariants", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListCoreVariantsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListCoreVariantsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -614,10 +614,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListCoreVariants(arg0, arg
 }
 
 // ListDerivationPaths mocks base method.
-func (m *MockWalletManagerServiceClient) ListDerivationPaths(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListDerivationPathsRequest]) (*connect.Response[walletmanagerv1.ListDerivationPathsResponse], error) {
+func (m *MockWalletManagerServiceClient) ListDerivationPaths(arg0 context.Context, arg1 *walletmanagerv1.ListDerivationPathsRequest) (*walletmanagerv1.ListDerivationPathsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListDerivationPaths", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListDerivationPathsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListDerivationPathsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -629,10 +629,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListDerivationPaths(arg0, 
 }
 
 // ListReceiveAddresses mocks base method.
-func (m *MockWalletManagerServiceClient) ListReceiveAddresses(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListReceiveAddressesRequest]) (*connect.Response[walletmanagerv1.ListReceiveAddressesResponse], error) {
+func (m *MockWalletManagerServiceClient) ListReceiveAddresses(arg0 context.Context, arg1 *walletmanagerv1.ListReceiveAddressesRequest) (*walletmanagerv1.ListReceiveAddressesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListReceiveAddresses", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListReceiveAddressesResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListReceiveAddressesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -644,10 +644,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListReceiveAddresses(arg0,
 }
 
 // ListSidechainDeposits mocks base method.
-func (m *MockWalletManagerServiceClient) ListSidechainDeposits(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListSidechainDepositsRequest]) (*connect.Response[walletmanagerv1.ListSidechainDepositsResponse], error) {
+func (m *MockWalletManagerServiceClient) ListSidechainDeposits(arg0 context.Context, arg1 *walletmanagerv1.ListSidechainDepositsRequest) (*walletmanagerv1.ListSidechainDepositsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSidechainDeposits", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListSidechainDepositsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListSidechainDepositsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -659,10 +659,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListSidechainDeposits(arg0
 }
 
 // ListTransactions mocks base method.
-func (m *MockWalletManagerServiceClient) ListTransactions(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListTransactionsRequest]) (*connect.Response[walletmanagerv1.ListTransactionsResponse], error) {
+func (m *MockWalletManagerServiceClient) ListTransactions(arg0 context.Context, arg1 *walletmanagerv1.ListTransactionsRequest) (*walletmanagerv1.ListTransactionsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTransactions", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListTransactionsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListTransactionsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -674,10 +674,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListTransactions(arg0, arg
 }
 
 // ListUnspent mocks base method.
-func (m *MockWalletManagerServiceClient) ListUnspent(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListUnspentRequest]) (*connect.Response[walletmanagerv1.ListUnspentResponse], error) {
+func (m *MockWalletManagerServiceClient) ListUnspent(arg0 context.Context, arg1 *walletmanagerv1.ListUnspentRequest) (*walletmanagerv1.ListUnspentResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListUnspent", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListUnspentResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListUnspentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -689,10 +689,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListUnspent(arg0, arg1 any
 }
 
 // ListWalletBackups mocks base method.
-func (m *MockWalletManagerServiceClient) ListWalletBackups(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListWalletBackupsRequest]) (*connect.Response[walletmanagerv1.ListWalletBackupsResponse], error) {
+func (m *MockWalletManagerServiceClient) ListWalletBackups(arg0 context.Context, arg1 *walletmanagerv1.ListWalletBackupsRequest) (*walletmanagerv1.ListWalletBackupsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListWalletBackups", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListWalletBackupsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListWalletBackupsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -704,10 +704,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListWalletBackups(arg0, ar
 }
 
 // ListWallets mocks base method.
-func (m *MockWalletManagerServiceClient) ListWallets(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListWalletsRequest]) (*connect.Response[walletmanagerv1.ListWalletsResponse], error) {
+func (m *MockWalletManagerServiceClient) ListWallets(arg0 context.Context, arg1 *walletmanagerv1.ListWalletsRequest) (*walletmanagerv1.ListWalletsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListWallets", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListWalletsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListWalletsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -719,10 +719,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListWallets(arg0, arg1 any
 }
 
 // LockWallet mocks base method.
-func (m *MockWalletManagerServiceClient) LockWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.LockWalletRequest]) (*connect.Response[walletmanagerv1.LockWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) LockWallet(arg0 context.Context, arg1 *walletmanagerv1.LockWalletRequest) (*walletmanagerv1.LockWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.LockWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.LockWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -734,10 +734,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) LockWallet(arg0, arg1 any)
 }
 
 // MultisigPsbtStatus mocks base method.
-func (m *MockWalletManagerServiceClient) MultisigPsbtStatus(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.MultisigPsbtStatusRequest]) (*connect.Response[walletmanagerv1.MultisigPsbtStatusResponse], error) {
+func (m *MockWalletManagerServiceClient) MultisigPsbtStatus(arg0 context.Context, arg1 *walletmanagerv1.MultisigPsbtStatusRequest) (*walletmanagerv1.MultisigPsbtStatusResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MultisigPsbtStatus", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.MultisigPsbtStatusResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.MultisigPsbtStatusResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -749,10 +749,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) MultisigPsbtStatus(arg0, a
 }
 
 // ParseMultisigConfig mocks base method.
-func (m *MockWalletManagerServiceClient) ParseMultisigConfig(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ParseMultisigConfigRequest]) (*connect.Response[walletmanagerv1.ParseMultisigConfigResponse], error) {
+func (m *MockWalletManagerServiceClient) ParseMultisigConfig(arg0 context.Context, arg1 *walletmanagerv1.ParseMultisigConfigRequest) (*walletmanagerv1.ParseMultisigConfigResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParseMultisigConfig", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ParseMultisigConfigResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ParseMultisigConfigResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -764,10 +764,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ParseMultisigConfig(arg0, 
 }
 
 // PreviewBumpFee mocks base method.
-func (m *MockWalletManagerServiceClient) PreviewBumpFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewBumpFeeRequest]) (*connect.Response[walletmanagerv1.PreviewBumpFeeResponse], error) {
+func (m *MockWalletManagerServiceClient) PreviewBumpFee(arg0 context.Context, arg1 *walletmanagerv1.PreviewBumpFeeRequest) (*walletmanagerv1.PreviewBumpFeeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PreviewBumpFee", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewBumpFeeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PreviewBumpFeeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -779,10 +779,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) PreviewBumpFee(arg0, arg1 
 }
 
 // PreviewSend mocks base method.
-func (m *MockWalletManagerServiceClient) PreviewSend(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewSendRequest]) (*connect.Response[walletmanagerv1.PreviewSendResponse], error) {
+func (m *MockWalletManagerServiceClient) PreviewSend(arg0 context.Context, arg1 *walletmanagerv1.PreviewSendRequest) (*walletmanagerv1.PreviewSendResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PreviewSend", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewSendResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PreviewSendResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -794,10 +794,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) PreviewSend(arg0, arg1 any
 }
 
 // PreviewWalletFromEntropy mocks base method.
-func (m *MockWalletManagerServiceClient) PreviewWalletFromEntropy(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewWalletFromEntropyRequest]) (*connect.Response[walletmanagerv1.PreviewWalletFromEntropyResponse], error) {
+func (m *MockWalletManagerServiceClient) PreviewWalletFromEntropy(arg0 context.Context, arg1 *walletmanagerv1.PreviewWalletFromEntropyRequest) (*walletmanagerv1.PreviewWalletFromEntropyResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PreviewWalletFromEntropy", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewWalletFromEntropyResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PreviewWalletFromEntropyResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -809,10 +809,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) PreviewWalletFromEntropy(a
 }
 
 // PromptDevicePin mocks base method.
-func (m *MockWalletManagerServiceClient) PromptDevicePin(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PromptDevicePinRequest]) (*connect.Response[walletmanagerv1.PromptDevicePinResponse], error) {
+func (m *MockWalletManagerServiceClient) PromptDevicePin(arg0 context.Context, arg1 *walletmanagerv1.PromptDevicePinRequest) (*walletmanagerv1.PromptDevicePinResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PromptDevicePin", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PromptDevicePinResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PromptDevicePinResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -824,10 +824,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) PromptDevicePin(arg0, arg1
 }
 
 // RemoveEncryption mocks base method.
-func (m *MockWalletManagerServiceClient) RemoveEncryption(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RemoveEncryptionRequest]) (*connect.Response[walletmanagerv1.RemoveEncryptionResponse], error) {
+func (m *MockWalletManagerServiceClient) RemoveEncryption(arg0 context.Context, arg1 *walletmanagerv1.RemoveEncryptionRequest) (*walletmanagerv1.RemoveEncryptionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveEncryption", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.RemoveEncryptionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.RemoveEncryptionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -839,10 +839,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) RemoveEncryption(arg0, arg
 }
 
 // RescanWallet mocks base method.
-func (m *MockWalletManagerServiceClient) RescanWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RescanWalletRequest]) (*connect.Response[walletmanagerv1.RescanWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) RescanWallet(arg0 context.Context, arg1 *walletmanagerv1.RescanWalletRequest) (*walletmanagerv1.RescanWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RescanWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.RescanWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.RescanWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -854,10 +854,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) RescanWallet(arg0, arg1 an
 }
 
 // RestoreWalletBackup mocks base method.
-func (m *MockWalletManagerServiceClient) RestoreWalletBackup(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RestoreWalletBackupRequest]) (*connect.Response[walletmanagerv1.RestoreWalletBackupResponse], error) {
+func (m *MockWalletManagerServiceClient) RestoreWalletBackup(arg0 context.Context, arg1 *walletmanagerv1.RestoreWalletBackupRequest) (*walletmanagerv1.RestoreWalletBackupResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestoreWalletBackup", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.RestoreWalletBackupResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.RestoreWalletBackupResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -869,10 +869,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) RestoreWalletBackup(arg0, 
 }
 
 // RestoreWalletBackupStream mocks base method.
-func (m *MockWalletManagerServiceClient) RestoreWalletBackupStream(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RestoreWalletBackupRequest]) (*connect.ServerStreamForClient[walletmanagerv1.RestoreWalletBackupProgressResponse], error) {
+func (m *MockWalletManagerServiceClient) RestoreWalletBackupStream(arg0 context.Context, arg1 *walletmanagerv1.RestoreWalletBackupRequest) (walletmanagerv1connect.WalletManagerServiceRestoreWalletBackupStreamClientStream, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestoreWalletBackupStream", arg0, arg1)
-	ret0, _ := ret[0].(*connect.ServerStreamForClient[walletmanagerv1.RestoreWalletBackupProgressResponse])
+	ret0, _ := ret[0].(walletmanagerv1connect.WalletManagerServiceRestoreWalletBackupStreamClientStream)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -884,10 +884,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) RestoreWalletBackupStream(
 }
 
 // SendDevicePin mocks base method.
-func (m *MockWalletManagerServiceClient) SendDevicePin(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SendDevicePinRequest]) (*connect.Response[walletmanagerv1.SendDevicePinResponse], error) {
+func (m *MockWalletManagerServiceClient) SendDevicePin(arg0 context.Context, arg1 *walletmanagerv1.SendDevicePinRequest) (*walletmanagerv1.SendDevicePinResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendDevicePin", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SendDevicePinResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SendDevicePinResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -899,10 +899,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SendDevicePin(arg0, arg1 a
 }
 
 // SendTransaction mocks base method.
-func (m *MockWalletManagerServiceClient) SendTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SendTransactionRequest]) (*connect.Response[walletmanagerv1.SendTransactionResponse], error) {
+func (m *MockWalletManagerServiceClient) SendTransaction(arg0 context.Context, arg1 *walletmanagerv1.SendTransactionRequest) (*walletmanagerv1.SendTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SendTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SendTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -914,10 +914,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SendTransaction(arg0, arg1
 }
 
 // SetCoreVariant mocks base method.
-func (m *MockWalletManagerServiceClient) SetCoreVariant(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetCoreVariantRequest]) (*connect.Response[walletmanagerv1.SetCoreVariantResponse], error) {
+func (m *MockWalletManagerServiceClient) SetCoreVariant(arg0 context.Context, arg1 *walletmanagerv1.SetCoreVariantRequest) (*walletmanagerv1.SetCoreVariantResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetCoreVariant", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetCoreVariantResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetCoreVariantResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -929,10 +929,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SetCoreVariant(arg0, arg1 
 }
 
 // SetElectrumServer mocks base method.
-func (m *MockWalletManagerServiceClient) SetElectrumServer(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetElectrumServerRequest]) (*connect.Response[walletmanagerv1.SetElectrumServerResponse], error) {
+func (m *MockWalletManagerServiceClient) SetElectrumServer(arg0 context.Context, arg1 *walletmanagerv1.SetElectrumServerRequest) (*walletmanagerv1.SetElectrumServerResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetElectrumServer", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetElectrumServerResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetElectrumServerResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -944,10 +944,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SetElectrumServer(arg0, ar
 }
 
 // SetFrozenCoins mocks base method.
-func (m *MockWalletManagerServiceClient) SetFrozenCoins(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+func (m *MockWalletManagerServiceClient) SetFrozenCoins(arg0 context.Context, arg1 *walletmanagerv1.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetFrozenCoins", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[emptypb.Empty])
+	ret0, _ := ret[0].(*emptypb.Empty)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -959,10 +959,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SetFrozenCoins(arg0, arg1 
 }
 
 // SetNodeMode mocks base method.
-func (m *MockWalletManagerServiceClient) SetNodeMode(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetNodeModeRequest]) (*connect.Response[walletmanagerv1.SetNodeModeResponse], error) {
+func (m *MockWalletManagerServiceClient) SetNodeMode(arg0 context.Context, arg1 *walletmanagerv1.SetNodeModeRequest) (*walletmanagerv1.SetNodeModeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetNodeMode", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetNodeModeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetNodeModeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -974,10 +974,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SetNodeMode(arg0, arg1 any
 }
 
 // SetTorConfig mocks base method.
-func (m *MockWalletManagerServiceClient) SetTorConfig(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetTorConfigRequest]) (*connect.Response[walletmanagerv1.SetTorConfigResponse], error) {
+func (m *MockWalletManagerServiceClient) SetTorConfig(arg0 context.Context, arg1 *walletmanagerv1.SetTorConfigRequest) (*walletmanagerv1.SetTorConfigResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetTorConfig", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetTorConfigResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetTorConfigResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -989,10 +989,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SetTorConfig(arg0, arg1 an
 }
 
 // SignPsbt mocks base method.
-func (m *MockWalletManagerServiceClient) SignPsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SignPsbtRequest]) (*connect.Response[walletmanagerv1.SignPsbtResponse], error) {
+func (m *MockWalletManagerServiceClient) SignPsbt(arg0 context.Context, arg1 *walletmanagerv1.SignPsbtRequest) (*walletmanagerv1.SignPsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignPsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SignPsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SignPsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1004,10 +1004,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SignPsbt(arg0, arg1 any) *
 }
 
 // SignPsbtWithCosigner mocks base method.
-func (m *MockWalletManagerServiceClient) SignPsbtWithCosigner(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SignPsbtWithCosignerRequest]) (*connect.Response[walletmanagerv1.SignPsbtWithCosignerResponse], error) {
+func (m *MockWalletManagerServiceClient) SignPsbtWithCosigner(arg0 context.Context, arg1 *walletmanagerv1.SignPsbtWithCosignerRequest) (*walletmanagerv1.SignPsbtWithCosignerResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignPsbtWithCosigner", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SignPsbtWithCosignerResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SignPsbtWithCosignerResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1019,10 +1019,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SignPsbtWithCosigner(arg0,
 }
 
 // SignPsbtWithDevice mocks base method.
-func (m *MockWalletManagerServiceClient) SignPsbtWithDevice(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SignPsbtWithDeviceRequest]) (*connect.Response[walletmanagerv1.SignPsbtWithDeviceResponse], error) {
+func (m *MockWalletManagerServiceClient) SignPsbtWithDevice(arg0 context.Context, arg1 *walletmanagerv1.SignPsbtWithDeviceRequest) (*walletmanagerv1.SignPsbtWithDeviceResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignPsbtWithDevice", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SignPsbtWithDeviceResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SignPsbtWithDeviceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1034,10 +1034,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SignPsbtWithDevice(arg0, a
 }
 
 // SwitchWallet mocks base method.
-func (m *MockWalletManagerServiceClient) SwitchWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SwitchWalletRequest]) (*connect.Response[walletmanagerv1.SwitchWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) SwitchWallet(arg0 context.Context, arg1 *walletmanagerv1.SwitchWalletRequest) (*walletmanagerv1.SwitchWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SwitchWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SwitchWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SwitchWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1049,10 +1049,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SwitchWallet(arg0, arg1 an
 }
 
 // UnlockWallet mocks base method.
-func (m *MockWalletManagerServiceClient) UnlockWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.UnlockWalletRequest]) (*connect.Response[walletmanagerv1.UnlockWalletResponse], error) {
+func (m *MockWalletManagerServiceClient) UnlockWallet(arg0 context.Context, arg1 *walletmanagerv1.UnlockWalletRequest) (*walletmanagerv1.UnlockWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnlockWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.UnlockWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.UnlockWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1064,10 +1064,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) UnlockWallet(arg0, arg1 an
 }
 
 // UpdateWalletMetadata mocks base method.
-func (m *MockWalletManagerServiceClient) UpdateWalletMetadata(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.UpdateWalletMetadataRequest]) (*connect.Response[walletmanagerv1.UpdateWalletMetadataResponse], error) {
+func (m *MockWalletManagerServiceClient) UpdateWalletMetadata(arg0 context.Context, arg1 *walletmanagerv1.UpdateWalletMetadataRequest) (*walletmanagerv1.UpdateWalletMetadataResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateWalletMetadata", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.UpdateWalletMetadataResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.UpdateWalletMetadataResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1079,10 +1079,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) UpdateWalletMetadata(arg0,
 }
 
 // ValidateDerivationPath mocks base method.
-func (m *MockWalletManagerServiceClient) ValidateDerivationPath(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ValidateDerivationPathRequest]) (*connect.Response[walletmanagerv1.ValidateDerivationPathResponse], error) {
+func (m *MockWalletManagerServiceClient) ValidateDerivationPath(arg0 context.Context, arg1 *walletmanagerv1.ValidateDerivationPathRequest) (*walletmanagerv1.ValidateDerivationPathResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateDerivationPath", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ValidateDerivationPathResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ValidateDerivationPathResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1094,10 +1094,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ValidateDerivationPath(arg
 }
 
 // ValidateDescriptor mocks base method.
-func (m *MockWalletManagerServiceClient) ValidateDescriptor(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ValidateDescriptorRequest]) (*connect.Response[walletmanagerv1.ValidateDescriptorResponse], error) {
+func (m *MockWalletManagerServiceClient) ValidateDescriptor(arg0 context.Context, arg1 *walletmanagerv1.ValidateDescriptorRequest) (*walletmanagerv1.ValidateDescriptorResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateDescriptor", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ValidateDescriptorResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ValidateDescriptorResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1109,10 +1109,10 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ValidateDescriptor(arg0, a
 }
 
 // WatchWalletData mocks base method.
-func (m *MockWalletManagerServiceClient) WatchWalletData(arg0 context.Context, arg1 *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[walletmanagerv1.WatchWalletDataResponse], error) {
+func (m *MockWalletManagerServiceClient) WatchWalletData(arg0 context.Context, arg1 *emptypb.Empty) (walletmanagerv1connect.WalletManagerServiceWatchWalletDataClientStream, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WatchWalletData", arg0, arg1)
-	ret0, _ := ret[0].(*connect.ServerStreamForClient[walletmanagerv1.WatchWalletDataResponse])
+	ret0, _ := ret[0].(walletmanagerv1connect.WalletManagerServiceWatchWalletDataClientStream)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1148,10 +1148,10 @@ func (m *MockWalletManagerServiceHandler) EXPECT() *MockWalletManagerServiceHand
 }
 
 // BroadcastElectrumTransaction mocks base method.
-func (m *MockWalletManagerServiceHandler) BroadcastElectrumTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.BroadcastElectrumTransactionRequest]) (*connect.Response[walletmanagerv1.BroadcastElectrumTransactionResponse], error) {
+func (m *MockWalletManagerServiceHandler) BroadcastElectrumTransaction(arg0 context.Context, arg1 *walletmanagerv1.BroadcastElectrumTransactionRequest) (*walletmanagerv1.BroadcastElectrumTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BroadcastElectrumTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.BroadcastElectrumTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.BroadcastElectrumTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1163,10 +1163,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) BroadcastElectrumTransact
 }
 
 // BroadcastTransaction mocks base method.
-func (m *MockWalletManagerServiceHandler) BroadcastTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.BroadcastTransactionRequest]) (*connect.Response[walletmanagerv1.BroadcastTransactionResponse], error) {
+func (m *MockWalletManagerServiceHandler) BroadcastTransaction(arg0 context.Context, arg1 *walletmanagerv1.BroadcastTransactionRequest) (*walletmanagerv1.BroadcastTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BroadcastTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.BroadcastTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.BroadcastTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1178,10 +1178,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) BroadcastTransaction(arg0
 }
 
 // BumpFee mocks base method.
-func (m *MockWalletManagerServiceHandler) BumpFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.BumpFeeRequest]) (*connect.Response[walletmanagerv1.BumpFeeResponse], error) {
+func (m *MockWalletManagerServiceHandler) BumpFee(arg0 context.Context, arg1 *walletmanagerv1.BumpFeeRequest) (*walletmanagerv1.BumpFeeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BumpFee", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.BumpFeeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.BumpFeeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1193,10 +1193,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) BumpFee(arg0, arg1 any) *
 }
 
 // CancelTransaction mocks base method.
-func (m *MockWalletManagerServiceHandler) CancelTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CancelTransactionRequest]) (*connect.Response[walletmanagerv1.CancelTransactionResponse], error) {
+func (m *MockWalletManagerServiceHandler) CancelTransaction(arg0 context.Context, arg1 *walletmanagerv1.CancelTransactionRequest) (*walletmanagerv1.CancelTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CancelTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CancelTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1208,10 +1208,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CancelTransaction(arg0, a
 }
 
 // ChangePassword mocks base method.
-func (m *MockWalletManagerServiceHandler) ChangePassword(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ChangePasswordRequest]) (*connect.Response[walletmanagerv1.ChangePasswordResponse], error) {
+func (m *MockWalletManagerServiceHandler) ChangePassword(arg0 context.Context, arg1 *walletmanagerv1.ChangePasswordRequest) (*walletmanagerv1.ChangePasswordResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangePassword", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ChangePasswordResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ChangePasswordResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1223,10 +1223,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ChangePassword(arg0, arg1
 }
 
 // CloseDevice mocks base method.
-func (m *MockWalletManagerServiceHandler) CloseDevice(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CloseDeviceRequest]) (*connect.Response[walletmanagerv1.CloseDeviceResponse], error) {
+func (m *MockWalletManagerServiceHandler) CloseDevice(arg0 context.Context, arg1 *walletmanagerv1.CloseDeviceRequest) (*walletmanagerv1.CloseDeviceResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseDevice", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CloseDeviceResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CloseDeviceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1238,10 +1238,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CloseDevice(arg0, arg1 an
 }
 
 // CombinePsbt mocks base method.
-func (m *MockWalletManagerServiceHandler) CombinePsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CombinePsbtRequest]) (*connect.Response[walletmanagerv1.CombinePsbtResponse], error) {
+func (m *MockWalletManagerServiceHandler) CombinePsbt(arg0 context.Context, arg1 *walletmanagerv1.CombinePsbtRequest) (*walletmanagerv1.CombinePsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CombinePsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CombinePsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CombinePsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1253,10 +1253,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CombinePsbt(arg0, arg1 an
 }
 
 // CreateBitcoinCoreWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) CreateBitcoinCoreWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateBitcoinCoreWalletRequest]) (*connect.Response[walletmanagerv1.CreateBitcoinCoreWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) CreateBitcoinCoreWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateBitcoinCoreWalletRequest) (*walletmanagerv1.CreateBitcoinCoreWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateBitcoinCoreWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateBitcoinCoreWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateBitcoinCoreWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1268,10 +1268,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CreateBitcoinCoreWallet(a
 }
 
 // CreateCpfp mocks base method.
-func (m *MockWalletManagerServiceHandler) CreateCpfp(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateCpfpRequest]) (*connect.Response[walletmanagerv1.CreateCpfpResponse], error) {
+func (m *MockWalletManagerServiceHandler) CreateCpfp(arg0 context.Context, arg1 *walletmanagerv1.CreateCpfpRequest) (*walletmanagerv1.CreateCpfpResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCpfp", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateCpfpResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateCpfpResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1283,10 +1283,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CreateCpfp(arg0, arg1 any
 }
 
 // CreateDeposit mocks base method.
-func (m *MockWalletManagerServiceHandler) CreateDeposit(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateDepositRequest]) (*connect.Response[walletmanagerv1.CreateDepositResponse], error) {
+func (m *MockWalletManagerServiceHandler) CreateDeposit(arg0 context.Context, arg1 *walletmanagerv1.CreateDepositRequest) (*walletmanagerv1.CreateDepositResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateDeposit", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateDepositResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateDepositResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1298,10 +1298,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CreateDeposit(arg0, arg1 
 }
 
 // CreateElectrumWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) CreateElectrumWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateElectrumWalletRequest]) (*connect.Response[walletmanagerv1.CreateElectrumWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) CreateElectrumWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateElectrumWalletRequest) (*walletmanagerv1.CreateElectrumWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateElectrumWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateElectrumWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateElectrumWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1313,10 +1313,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CreateElectrumWallet(arg0
 }
 
 // CreateMultisigWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) CreateMultisigWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateMultisigWalletRequest]) (*connect.Response[walletmanagerv1.CreateMultisigWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) CreateMultisigWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateMultisigWalletRequest) (*walletmanagerv1.CreateMultisigWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateMultisigWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateMultisigWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateMultisigWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1328,10 +1328,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CreateMultisigWallet(arg0
 }
 
 // CreatePsbt mocks base method.
-func (m *MockWalletManagerServiceHandler) CreatePsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreatePsbtRequest]) (*connect.Response[walletmanagerv1.CreatePsbtResponse], error) {
+func (m *MockWalletManagerServiceHandler) CreatePsbt(arg0 context.Context, arg1 *walletmanagerv1.CreatePsbtRequest) (*walletmanagerv1.CreatePsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreatePsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreatePsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1343,10 +1343,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CreatePsbt(arg0, arg1 any
 }
 
 // CreateWatchOnlyWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) CreateWatchOnlyWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.CreateWatchOnlyWalletRequest]) (*connect.Response[walletmanagerv1.CreateWatchOnlyWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) CreateWatchOnlyWallet(arg0 context.Context, arg1 *walletmanagerv1.CreateWatchOnlyWalletRequest) (*walletmanagerv1.CreateWatchOnlyWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateWatchOnlyWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.CreateWatchOnlyWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.CreateWatchOnlyWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1358,10 +1358,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) CreateWatchOnlyWallet(arg
 }
 
 // DecodeTransaction mocks base method.
-func (m *MockWalletManagerServiceHandler) DecodeTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DecodeTransactionRequest]) (*connect.Response[walletmanagerv1.DecodeTransactionResponse], error) {
+func (m *MockWalletManagerServiceHandler) DecodeTransaction(arg0 context.Context, arg1 *walletmanagerv1.DecodeTransactionRequest) (*walletmanagerv1.DecodeTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DecodeTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DecodeTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DecodeTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1373,10 +1373,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) DecodeTransaction(arg0, a
 }
 
 // DeleteAllWallets mocks base method.
-func (m *MockWalletManagerServiceHandler) DeleteAllWallets(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeleteAllWalletsRequest]) (*connect.Response[walletmanagerv1.DeleteAllWalletsResponse], error) {
+func (m *MockWalletManagerServiceHandler) DeleteAllWallets(arg0 context.Context, arg1 *walletmanagerv1.DeleteAllWalletsRequest) (*walletmanagerv1.DeleteAllWalletsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteAllWallets", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeleteAllWalletsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeleteAllWalletsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1388,10 +1388,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) DeleteAllWallets(arg0, ar
 }
 
 // DeleteWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) DeleteWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeleteWalletRequest]) (*connect.Response[walletmanagerv1.DeleteWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) DeleteWallet(arg0 context.Context, arg1 *walletmanagerv1.DeleteWalletRequest) (*walletmanagerv1.DeleteWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeleteWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeleteWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1403,10 +1403,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) DeleteWallet(arg0, arg1 a
 }
 
 // DeriveAddresses mocks base method.
-func (m *MockWalletManagerServiceHandler) DeriveAddresses(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeriveAddressesRequest]) (*connect.Response[walletmanagerv1.DeriveAddressesResponse], error) {
+func (m *MockWalletManagerServiceHandler) DeriveAddresses(arg0 context.Context, arg1 *walletmanagerv1.DeriveAddressesRequest) (*walletmanagerv1.DeriveAddressesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeriveAddresses", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeriveAddressesResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeriveAddressesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1418,10 +1418,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) DeriveAddresses(arg0, arg
 }
 
 // DeriveKeystore mocks base method.
-func (m *MockWalletManagerServiceHandler) DeriveKeystore(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.DeriveKeystoreRequest]) (*connect.Response[walletmanagerv1.DeriveKeystoreResponse], error) {
+func (m *MockWalletManagerServiceHandler) DeriveKeystore(arg0 context.Context, arg1 *walletmanagerv1.DeriveKeystoreRequest) (*walletmanagerv1.DeriveKeystoreResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeriveKeystore", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.DeriveKeystoreResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.DeriveKeystoreResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1433,10 +1433,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) DeriveKeystore(arg0, arg1
 }
 
 // EncryptWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) EncryptWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EncryptWalletRequest]) (*connect.Response[walletmanagerv1.EncryptWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) EncryptWallet(arg0 context.Context, arg1 *walletmanagerv1.EncryptWalletRequest) (*walletmanagerv1.EncryptWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EncryptWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EncryptWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EncryptWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1448,10 +1448,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) EncryptWallet(arg0, arg1 
 }
 
 // EnsureCoreWallets mocks base method.
-func (m *MockWalletManagerServiceHandler) EnsureCoreWallets(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EnsureCoreWalletsRequest]) (*connect.Response[walletmanagerv1.EnsureCoreWalletsResponse], error) {
+func (m *MockWalletManagerServiceHandler) EnsureCoreWallets(arg0 context.Context, arg1 *walletmanagerv1.EnsureCoreWalletsRequest) (*walletmanagerv1.EnsureCoreWalletsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnsureCoreWallets", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EnsureCoreWalletsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EnsureCoreWalletsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1463,10 +1463,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) EnsureCoreWallets(arg0, a
 }
 
 // EnumerateHardwareDevices mocks base method.
-func (m *MockWalletManagerServiceHandler) EnumerateHardwareDevices(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EnumerateHardwareDevicesRequest]) (*connect.Response[walletmanagerv1.EnumerateHardwareDevicesResponse], error) {
+func (m *MockWalletManagerServiceHandler) EnumerateHardwareDevices(arg0 context.Context, arg1 *walletmanagerv1.EnumerateHardwareDevicesRequest) (*walletmanagerv1.EnumerateHardwareDevicesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnumerateHardwareDevices", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EnumerateHardwareDevicesResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EnumerateHardwareDevicesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1478,10 +1478,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) EnumerateHardwareDevices(
 }
 
 // EstimateFee mocks base method.
-func (m *MockWalletManagerServiceHandler) EstimateFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.EstimateFeeRequest]) (*connect.Response[walletmanagerv1.EstimateFeeResponse], error) {
+func (m *MockWalletManagerServiceHandler) EstimateFee(arg0 context.Context, arg1 *walletmanagerv1.EstimateFeeRequest) (*walletmanagerv1.EstimateFeeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EstimateFee", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.EstimateFeeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.EstimateFeeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1493,10 +1493,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) EstimateFee(arg0, arg1 an
 }
 
 // FinalizePsbt mocks base method.
-func (m *MockWalletManagerServiceHandler) FinalizePsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.FinalizePsbtRequest]) (*connect.Response[walletmanagerv1.FinalizePsbtResponse], error) {
+func (m *MockWalletManagerServiceHandler) FinalizePsbt(arg0 context.Context, arg1 *walletmanagerv1.FinalizePsbtRequest) (*walletmanagerv1.FinalizePsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FinalizePsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.FinalizePsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.FinalizePsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1508,10 +1508,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) FinalizePsbt(arg0, arg1 a
 }
 
 // GenerateWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) GenerateWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GenerateWalletRequest]) (*connect.Response[walletmanagerv1.GenerateWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) GenerateWallet(arg0 context.Context, arg1 *walletmanagerv1.GenerateWalletRequest) (*walletmanagerv1.GenerateWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GenerateWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GenerateWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1523,10 +1523,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GenerateWallet(arg0, arg1
 }
 
 // GetAddressUnspent mocks base method.
-func (m *MockWalletManagerServiceHandler) GetAddressUnspent(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetAddressUnspentRequest]) (*connect.Response[walletmanagerv1.GetAddressUnspentResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetAddressUnspent(arg0 context.Context, arg1 *walletmanagerv1.GetAddressUnspentRequest) (*walletmanagerv1.GetAddressUnspentResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAddressUnspent", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetAddressUnspentResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetAddressUnspentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1538,10 +1538,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetAddressUnspent(arg0, a
 }
 
 // GetBalance mocks base method.
-func (m *MockWalletManagerServiceHandler) GetBalance(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetBalanceRequest]) (*connect.Response[walletmanagerv1.GetBalanceResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetBalance(arg0 context.Context, arg1 *walletmanagerv1.GetBalanceRequest) (*walletmanagerv1.GetBalanceResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBalance", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetBalanceResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetBalanceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1553,10 +1553,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetBalance(arg0, arg1 any
 }
 
 // GetCoreVariant mocks base method.
-func (m *MockWalletManagerServiceHandler) GetCoreVariant(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetCoreVariantRequest]) (*connect.Response[walletmanagerv1.GetCoreVariantResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetCoreVariant(arg0 context.Context, arg1 *walletmanagerv1.GetCoreVariantRequest) (*walletmanagerv1.GetCoreVariantResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCoreVariant", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetCoreVariantResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetCoreVariantResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1568,10 +1568,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetCoreVariant(arg0, arg1
 }
 
 // GetElectrumServer mocks base method.
-func (m *MockWalletManagerServiceHandler) GetElectrumServer(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetElectrumServerRequest]) (*connect.Response[walletmanagerv1.GetElectrumServerResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetElectrumServer(arg0 context.Context, arg1 *walletmanagerv1.GetElectrumServerRequest) (*walletmanagerv1.GetElectrumServerResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetElectrumServer", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetElectrumServerResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetElectrumServerResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1583,10 +1583,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetElectrumServer(arg0, a
 }
 
 // GetHardwareXpub mocks base method.
-func (m *MockWalletManagerServiceHandler) GetHardwareXpub(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetHardwareXpubRequest]) (*connect.Response[walletmanagerv1.GetHardwareXpubResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetHardwareXpub(arg0 context.Context, arg1 *walletmanagerv1.GetHardwareXpubRequest) (*walletmanagerv1.GetHardwareXpubResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHardwareXpub", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetHardwareXpubResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetHardwareXpubResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1598,10 +1598,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetHardwareXpub(arg0, arg
 }
 
 // GetNewAddress mocks base method.
-func (m *MockWalletManagerServiceHandler) GetNewAddress(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetNewAddressRequest]) (*connect.Response[walletmanagerv1.GetNewAddressResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetNewAddress(arg0 context.Context, arg1 *walletmanagerv1.GetNewAddressRequest) (*walletmanagerv1.GetNewAddressResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNewAddress", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetNewAddressResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetNewAddressResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1613,10 +1613,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetNewAddress(arg0, arg1 
 }
 
 // GetNodeMode mocks base method.
-func (m *MockWalletManagerServiceHandler) GetNodeMode(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetNodeModeRequest]) (*connect.Response[walletmanagerv1.GetNodeModeResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetNodeMode(arg0 context.Context, arg1 *walletmanagerv1.GetNodeModeRequest) (*walletmanagerv1.GetNodeModeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNodeMode", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetNodeModeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetNodeModeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1628,10 +1628,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetNodeMode(arg0, arg1 an
 }
 
 // GetSidechainDepositTotals mocks base method.
-func (m *MockWalletManagerServiceHandler) GetSidechainDepositTotals(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetSidechainDepositTotalsRequest]) (*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetSidechainDepositTotals(arg0 context.Context, arg1 *walletmanagerv1.GetSidechainDepositTotalsRequest) (*walletmanagerv1.GetSidechainDepositTotalsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSidechainDepositTotals", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetSidechainDepositTotalsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1643,10 +1643,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetSidechainDepositTotals
 }
 
 // GetTorConfig mocks base method.
-func (m *MockWalletManagerServiceHandler) GetTorConfig(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetTorConfigRequest]) (*connect.Response[walletmanagerv1.GetTorConfigResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetTorConfig(arg0 context.Context, arg1 *walletmanagerv1.GetTorConfigRequest) (*walletmanagerv1.GetTorConfigResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTorConfig", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetTorConfigResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetTorConfigResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1658,10 +1658,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetTorConfig(arg0, arg1 a
 }
 
 // GetTransactionDetails mocks base method.
-func (m *MockWalletManagerServiceHandler) GetTransactionDetails(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetTransactionDetailsRequest]) (*connect.Response[walletmanagerv1.GetTransactionDetailsResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetTransactionDetails(arg0 context.Context, arg1 *walletmanagerv1.GetTransactionDetailsRequest) (*walletmanagerv1.GetTransactionDetailsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTransactionDetails", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetTransactionDetailsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetTransactionDetailsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1673,10 +1673,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetTransactionDetails(arg
 }
 
 // GetWalletSeed mocks base method.
-func (m *MockWalletManagerServiceHandler) GetWalletSeed(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetWalletSeedRequest]) (*connect.Response[walletmanagerv1.GetWalletSeedResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetWalletSeed(arg0 context.Context, arg1 *walletmanagerv1.GetWalletSeedRequest) (*walletmanagerv1.GetWalletSeedResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWalletSeed", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetWalletSeedResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetWalletSeedResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1688,10 +1688,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetWalletSeed(arg0, arg1 
 }
 
 // GetWalletStatus mocks base method.
-func (m *MockWalletManagerServiceHandler) GetWalletStatus(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetWalletStatusRequest]) (*connect.Response[walletmanagerv1.GetWalletStatusResponse], error) {
+func (m *MockWalletManagerServiceHandler) GetWalletStatus(arg0 context.Context, arg1 *walletmanagerv1.GetWalletStatusRequest) (*walletmanagerv1.GetWalletStatusResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWalletStatus", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetWalletStatusResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.GetWalletStatusResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1703,10 +1703,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) GetWalletStatus(arg0, arg
 }
 
 // ListCoreVariants mocks base method.
-func (m *MockWalletManagerServiceHandler) ListCoreVariants(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListCoreVariantsRequest]) (*connect.Response[walletmanagerv1.ListCoreVariantsResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListCoreVariants(arg0 context.Context, arg1 *walletmanagerv1.ListCoreVariantsRequest) (*walletmanagerv1.ListCoreVariantsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListCoreVariants", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListCoreVariantsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListCoreVariantsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1718,10 +1718,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListCoreVariants(arg0, ar
 }
 
 // ListDerivationPaths mocks base method.
-func (m *MockWalletManagerServiceHandler) ListDerivationPaths(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListDerivationPathsRequest]) (*connect.Response[walletmanagerv1.ListDerivationPathsResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListDerivationPaths(arg0 context.Context, arg1 *walletmanagerv1.ListDerivationPathsRequest) (*walletmanagerv1.ListDerivationPathsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListDerivationPaths", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListDerivationPathsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListDerivationPathsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1733,10 +1733,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListDerivationPaths(arg0,
 }
 
 // ListReceiveAddresses mocks base method.
-func (m *MockWalletManagerServiceHandler) ListReceiveAddresses(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListReceiveAddressesRequest]) (*connect.Response[walletmanagerv1.ListReceiveAddressesResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListReceiveAddresses(arg0 context.Context, arg1 *walletmanagerv1.ListReceiveAddressesRequest) (*walletmanagerv1.ListReceiveAddressesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListReceiveAddresses", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListReceiveAddressesResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListReceiveAddressesResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1748,10 +1748,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListReceiveAddresses(arg0
 }
 
 // ListSidechainDeposits mocks base method.
-func (m *MockWalletManagerServiceHandler) ListSidechainDeposits(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListSidechainDepositsRequest]) (*connect.Response[walletmanagerv1.ListSidechainDepositsResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListSidechainDeposits(arg0 context.Context, arg1 *walletmanagerv1.ListSidechainDepositsRequest) (*walletmanagerv1.ListSidechainDepositsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSidechainDeposits", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListSidechainDepositsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListSidechainDepositsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1763,10 +1763,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListSidechainDeposits(arg
 }
 
 // ListTransactions mocks base method.
-func (m *MockWalletManagerServiceHandler) ListTransactions(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListTransactionsRequest]) (*connect.Response[walletmanagerv1.ListTransactionsResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListTransactions(arg0 context.Context, arg1 *walletmanagerv1.ListTransactionsRequest) (*walletmanagerv1.ListTransactionsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTransactions", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListTransactionsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListTransactionsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1778,10 +1778,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListTransactions(arg0, ar
 }
 
 // ListUnspent mocks base method.
-func (m *MockWalletManagerServiceHandler) ListUnspent(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListUnspentRequest]) (*connect.Response[walletmanagerv1.ListUnspentResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListUnspent(arg0 context.Context, arg1 *walletmanagerv1.ListUnspentRequest) (*walletmanagerv1.ListUnspentResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListUnspent", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListUnspentResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListUnspentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1793,10 +1793,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListUnspent(arg0, arg1 an
 }
 
 // ListWalletBackups mocks base method.
-func (m *MockWalletManagerServiceHandler) ListWalletBackups(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListWalletBackupsRequest]) (*connect.Response[walletmanagerv1.ListWalletBackupsResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListWalletBackups(arg0 context.Context, arg1 *walletmanagerv1.ListWalletBackupsRequest) (*walletmanagerv1.ListWalletBackupsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListWalletBackups", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListWalletBackupsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListWalletBackupsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1808,10 +1808,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListWalletBackups(arg0, a
 }
 
 // ListWallets mocks base method.
-func (m *MockWalletManagerServiceHandler) ListWallets(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ListWalletsRequest]) (*connect.Response[walletmanagerv1.ListWalletsResponse], error) {
+func (m *MockWalletManagerServiceHandler) ListWallets(arg0 context.Context, arg1 *walletmanagerv1.ListWalletsRequest) (*walletmanagerv1.ListWalletsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListWallets", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ListWalletsResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ListWalletsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1823,10 +1823,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ListWallets(arg0, arg1 an
 }
 
 // LockWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) LockWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.LockWalletRequest]) (*connect.Response[walletmanagerv1.LockWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) LockWallet(arg0 context.Context, arg1 *walletmanagerv1.LockWalletRequest) (*walletmanagerv1.LockWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.LockWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.LockWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1838,10 +1838,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) LockWallet(arg0, arg1 any
 }
 
 // MultisigPsbtStatus mocks base method.
-func (m *MockWalletManagerServiceHandler) MultisigPsbtStatus(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.MultisigPsbtStatusRequest]) (*connect.Response[walletmanagerv1.MultisigPsbtStatusResponse], error) {
+func (m *MockWalletManagerServiceHandler) MultisigPsbtStatus(arg0 context.Context, arg1 *walletmanagerv1.MultisigPsbtStatusRequest) (*walletmanagerv1.MultisigPsbtStatusResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MultisigPsbtStatus", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.MultisigPsbtStatusResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.MultisigPsbtStatusResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1853,10 +1853,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) MultisigPsbtStatus(arg0, 
 }
 
 // ParseMultisigConfig mocks base method.
-func (m *MockWalletManagerServiceHandler) ParseMultisigConfig(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ParseMultisigConfigRequest]) (*connect.Response[walletmanagerv1.ParseMultisigConfigResponse], error) {
+func (m *MockWalletManagerServiceHandler) ParseMultisigConfig(arg0 context.Context, arg1 *walletmanagerv1.ParseMultisigConfigRequest) (*walletmanagerv1.ParseMultisigConfigResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParseMultisigConfig", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ParseMultisigConfigResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ParseMultisigConfigResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1868,10 +1868,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ParseMultisigConfig(arg0,
 }
 
 // PreviewBumpFee mocks base method.
-func (m *MockWalletManagerServiceHandler) PreviewBumpFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewBumpFeeRequest]) (*connect.Response[walletmanagerv1.PreviewBumpFeeResponse], error) {
+func (m *MockWalletManagerServiceHandler) PreviewBumpFee(arg0 context.Context, arg1 *walletmanagerv1.PreviewBumpFeeRequest) (*walletmanagerv1.PreviewBumpFeeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PreviewBumpFee", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewBumpFeeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PreviewBumpFeeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1883,10 +1883,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) PreviewBumpFee(arg0, arg1
 }
 
 // PreviewSend mocks base method.
-func (m *MockWalletManagerServiceHandler) PreviewSend(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewSendRequest]) (*connect.Response[walletmanagerv1.PreviewSendResponse], error) {
+func (m *MockWalletManagerServiceHandler) PreviewSend(arg0 context.Context, arg1 *walletmanagerv1.PreviewSendRequest) (*walletmanagerv1.PreviewSendResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PreviewSend", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewSendResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PreviewSendResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1898,10 +1898,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) PreviewSend(arg0, arg1 an
 }
 
 // PreviewWalletFromEntropy mocks base method.
-func (m *MockWalletManagerServiceHandler) PreviewWalletFromEntropy(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewWalletFromEntropyRequest]) (*connect.Response[walletmanagerv1.PreviewWalletFromEntropyResponse], error) {
+func (m *MockWalletManagerServiceHandler) PreviewWalletFromEntropy(arg0 context.Context, arg1 *walletmanagerv1.PreviewWalletFromEntropyRequest) (*walletmanagerv1.PreviewWalletFromEntropyResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PreviewWalletFromEntropy", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewWalletFromEntropyResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PreviewWalletFromEntropyResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1913,10 +1913,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) PreviewWalletFromEntropy(
 }
 
 // PromptDevicePin mocks base method.
-func (m *MockWalletManagerServiceHandler) PromptDevicePin(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PromptDevicePinRequest]) (*connect.Response[walletmanagerv1.PromptDevicePinResponse], error) {
+func (m *MockWalletManagerServiceHandler) PromptDevicePin(arg0 context.Context, arg1 *walletmanagerv1.PromptDevicePinRequest) (*walletmanagerv1.PromptDevicePinResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PromptDevicePin", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PromptDevicePinResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.PromptDevicePinResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1928,10 +1928,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) PromptDevicePin(arg0, arg
 }
 
 // RemoveEncryption mocks base method.
-func (m *MockWalletManagerServiceHandler) RemoveEncryption(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RemoveEncryptionRequest]) (*connect.Response[walletmanagerv1.RemoveEncryptionResponse], error) {
+func (m *MockWalletManagerServiceHandler) RemoveEncryption(arg0 context.Context, arg1 *walletmanagerv1.RemoveEncryptionRequest) (*walletmanagerv1.RemoveEncryptionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveEncryption", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.RemoveEncryptionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.RemoveEncryptionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1943,10 +1943,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) RemoveEncryption(arg0, ar
 }
 
 // RescanWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) RescanWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RescanWalletRequest]) (*connect.Response[walletmanagerv1.RescanWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) RescanWallet(arg0 context.Context, arg1 *walletmanagerv1.RescanWalletRequest) (*walletmanagerv1.RescanWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RescanWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.RescanWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.RescanWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1958,10 +1958,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) RescanWallet(arg0, arg1 a
 }
 
 // RestoreWalletBackup mocks base method.
-func (m *MockWalletManagerServiceHandler) RestoreWalletBackup(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RestoreWalletBackupRequest]) (*connect.Response[walletmanagerv1.RestoreWalletBackupResponse], error) {
+func (m *MockWalletManagerServiceHandler) RestoreWalletBackup(arg0 context.Context, arg1 *walletmanagerv1.RestoreWalletBackupRequest) (*walletmanagerv1.RestoreWalletBackupResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestoreWalletBackup", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.RestoreWalletBackupResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.RestoreWalletBackupResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1973,7 +1973,7 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) RestoreWalletBackup(arg0,
 }
 
 // RestoreWalletBackupStream mocks base method.
-func (m *MockWalletManagerServiceHandler) RestoreWalletBackupStream(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.RestoreWalletBackupRequest], arg2 *connect.ServerStream[walletmanagerv1.RestoreWalletBackupProgressResponse]) error {
+func (m *MockWalletManagerServiceHandler) RestoreWalletBackupStream(arg0 context.Context, arg1 *walletmanagerv1.RestoreWalletBackupRequest, arg2 walletmanagerv1connect.WalletManagerServiceRestoreWalletBackupStreamServerStream) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestoreWalletBackupStream", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -1987,10 +1987,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) RestoreWalletBackupStream
 }
 
 // SendDevicePin mocks base method.
-func (m *MockWalletManagerServiceHandler) SendDevicePin(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SendDevicePinRequest]) (*connect.Response[walletmanagerv1.SendDevicePinResponse], error) {
+func (m *MockWalletManagerServiceHandler) SendDevicePin(arg0 context.Context, arg1 *walletmanagerv1.SendDevicePinRequest) (*walletmanagerv1.SendDevicePinResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendDevicePin", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SendDevicePinResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SendDevicePinResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2002,10 +2002,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SendDevicePin(arg0, arg1 
 }
 
 // SendTransaction mocks base method.
-func (m *MockWalletManagerServiceHandler) SendTransaction(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SendTransactionRequest]) (*connect.Response[walletmanagerv1.SendTransactionResponse], error) {
+func (m *MockWalletManagerServiceHandler) SendTransaction(arg0 context.Context, arg1 *walletmanagerv1.SendTransactionRequest) (*walletmanagerv1.SendTransactionResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SendTransactionResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SendTransactionResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2017,10 +2017,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SendTransaction(arg0, arg
 }
 
 // SetCoreVariant mocks base method.
-func (m *MockWalletManagerServiceHandler) SetCoreVariant(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetCoreVariantRequest]) (*connect.Response[walletmanagerv1.SetCoreVariantResponse], error) {
+func (m *MockWalletManagerServiceHandler) SetCoreVariant(arg0 context.Context, arg1 *walletmanagerv1.SetCoreVariantRequest) (*walletmanagerv1.SetCoreVariantResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetCoreVariant", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetCoreVariantResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetCoreVariantResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2032,10 +2032,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SetCoreVariant(arg0, arg1
 }
 
 // SetElectrumServer mocks base method.
-func (m *MockWalletManagerServiceHandler) SetElectrumServer(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetElectrumServerRequest]) (*connect.Response[walletmanagerv1.SetElectrumServerResponse], error) {
+func (m *MockWalletManagerServiceHandler) SetElectrumServer(arg0 context.Context, arg1 *walletmanagerv1.SetElectrumServerRequest) (*walletmanagerv1.SetElectrumServerResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetElectrumServer", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetElectrumServerResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetElectrumServerResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2047,10 +2047,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SetElectrumServer(arg0, a
 }
 
 // SetFrozenCoins mocks base method.
-func (m *MockWalletManagerServiceHandler) SetFrozenCoins(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+func (m *MockWalletManagerServiceHandler) SetFrozenCoins(arg0 context.Context, arg1 *walletmanagerv1.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetFrozenCoins", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[emptypb.Empty])
+	ret0, _ := ret[0].(*emptypb.Empty)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2062,10 +2062,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SetFrozenCoins(arg0, arg1
 }
 
 // SetNodeMode mocks base method.
-func (m *MockWalletManagerServiceHandler) SetNodeMode(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetNodeModeRequest]) (*connect.Response[walletmanagerv1.SetNodeModeResponse], error) {
+func (m *MockWalletManagerServiceHandler) SetNodeMode(arg0 context.Context, arg1 *walletmanagerv1.SetNodeModeRequest) (*walletmanagerv1.SetNodeModeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetNodeMode", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetNodeModeResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetNodeModeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2077,10 +2077,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SetNodeMode(arg0, arg1 an
 }
 
 // SetTorConfig mocks base method.
-func (m *MockWalletManagerServiceHandler) SetTorConfig(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetTorConfigRequest]) (*connect.Response[walletmanagerv1.SetTorConfigResponse], error) {
+func (m *MockWalletManagerServiceHandler) SetTorConfig(arg0 context.Context, arg1 *walletmanagerv1.SetTorConfigRequest) (*walletmanagerv1.SetTorConfigResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetTorConfig", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SetTorConfigResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SetTorConfigResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2092,10 +2092,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SetTorConfig(arg0, arg1 a
 }
 
 // SignPsbt mocks base method.
-func (m *MockWalletManagerServiceHandler) SignPsbt(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SignPsbtRequest]) (*connect.Response[walletmanagerv1.SignPsbtResponse], error) {
+func (m *MockWalletManagerServiceHandler) SignPsbt(arg0 context.Context, arg1 *walletmanagerv1.SignPsbtRequest) (*walletmanagerv1.SignPsbtResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignPsbt", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SignPsbtResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SignPsbtResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2107,10 +2107,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SignPsbt(arg0, arg1 any) 
 }
 
 // SignPsbtWithCosigner mocks base method.
-func (m *MockWalletManagerServiceHandler) SignPsbtWithCosigner(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SignPsbtWithCosignerRequest]) (*connect.Response[walletmanagerv1.SignPsbtWithCosignerResponse], error) {
+func (m *MockWalletManagerServiceHandler) SignPsbtWithCosigner(arg0 context.Context, arg1 *walletmanagerv1.SignPsbtWithCosignerRequest) (*walletmanagerv1.SignPsbtWithCosignerResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignPsbtWithCosigner", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SignPsbtWithCosignerResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SignPsbtWithCosignerResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2122,10 +2122,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SignPsbtWithCosigner(arg0
 }
 
 // SignPsbtWithDevice mocks base method.
-func (m *MockWalletManagerServiceHandler) SignPsbtWithDevice(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SignPsbtWithDeviceRequest]) (*connect.Response[walletmanagerv1.SignPsbtWithDeviceResponse], error) {
+func (m *MockWalletManagerServiceHandler) SignPsbtWithDevice(arg0 context.Context, arg1 *walletmanagerv1.SignPsbtWithDeviceRequest) (*walletmanagerv1.SignPsbtWithDeviceResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignPsbtWithDevice", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SignPsbtWithDeviceResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SignPsbtWithDeviceResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2137,10 +2137,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SignPsbtWithDevice(arg0, 
 }
 
 // SwitchWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) SwitchWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SwitchWalletRequest]) (*connect.Response[walletmanagerv1.SwitchWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) SwitchWallet(arg0 context.Context, arg1 *walletmanagerv1.SwitchWalletRequest) (*walletmanagerv1.SwitchWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SwitchWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.SwitchWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.SwitchWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2152,10 +2152,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) SwitchWallet(arg0, arg1 a
 }
 
 // UnlockWallet mocks base method.
-func (m *MockWalletManagerServiceHandler) UnlockWallet(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.UnlockWalletRequest]) (*connect.Response[walletmanagerv1.UnlockWalletResponse], error) {
+func (m *MockWalletManagerServiceHandler) UnlockWallet(arg0 context.Context, arg1 *walletmanagerv1.UnlockWalletRequest) (*walletmanagerv1.UnlockWalletResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnlockWallet", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.UnlockWalletResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.UnlockWalletResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2167,10 +2167,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) UnlockWallet(arg0, arg1 a
 }
 
 // UpdateWalletMetadata mocks base method.
-func (m *MockWalletManagerServiceHandler) UpdateWalletMetadata(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.UpdateWalletMetadataRequest]) (*connect.Response[walletmanagerv1.UpdateWalletMetadataResponse], error) {
+func (m *MockWalletManagerServiceHandler) UpdateWalletMetadata(arg0 context.Context, arg1 *walletmanagerv1.UpdateWalletMetadataRequest) (*walletmanagerv1.UpdateWalletMetadataResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateWalletMetadata", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.UpdateWalletMetadataResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.UpdateWalletMetadataResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2182,10 +2182,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) UpdateWalletMetadata(arg0
 }
 
 // ValidateDerivationPath mocks base method.
-func (m *MockWalletManagerServiceHandler) ValidateDerivationPath(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ValidateDerivationPathRequest]) (*connect.Response[walletmanagerv1.ValidateDerivationPathResponse], error) {
+func (m *MockWalletManagerServiceHandler) ValidateDerivationPath(arg0 context.Context, arg1 *walletmanagerv1.ValidateDerivationPathRequest) (*walletmanagerv1.ValidateDerivationPathResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateDerivationPath", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ValidateDerivationPathResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ValidateDerivationPathResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2197,10 +2197,10 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ValidateDerivationPath(ar
 }
 
 // ValidateDescriptor mocks base method.
-func (m *MockWalletManagerServiceHandler) ValidateDescriptor(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.ValidateDescriptorRequest]) (*connect.Response[walletmanagerv1.ValidateDescriptorResponse], error) {
+func (m *MockWalletManagerServiceHandler) ValidateDescriptor(arg0 context.Context, arg1 *walletmanagerv1.ValidateDescriptorRequest) (*walletmanagerv1.ValidateDescriptorResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateDescriptor", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.ValidateDescriptorResponse])
+	ret0, _ := ret[0].(*walletmanagerv1.ValidateDescriptorResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2212,7 +2212,7 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) ValidateDescriptor(arg0, 
 }
 
 // WatchWalletData mocks base method.
-func (m *MockWalletManagerServiceHandler) WatchWalletData(arg0 context.Context, arg1 *connect.Request[emptypb.Empty], arg2 *connect.ServerStream[walletmanagerv1.WatchWalletDataResponse]) error {
+func (m *MockWalletManagerServiceHandler) WatchWalletData(arg0 context.Context, arg1 *emptypb.Empty, arg2 walletmanagerv1connect.WalletManagerServiceWatchWalletDataServerStream) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WatchWalletData", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)

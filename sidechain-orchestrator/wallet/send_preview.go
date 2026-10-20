@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"sort"
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -46,8 +45,8 @@ func refuseExcludedRequiredInputs(req SendRequest) error {
 	for _, ex := range req.ExcludedInputs {
 		for _, in := range req.RequiredInputs {
 			if in.TxID == ex.TxID && in.Vout == ex.Vout {
-				return connect.NewError(connect.CodeInvalidArgument,
-					fmt.Errorf("input %s:%d is both required and excluded", in.TxID, in.Vout))
+				return connect.Errorf(connect.CodeInvalidArgument,
+					"input %s:%d is both required and excluded", in.TxID, in.Vout)
 			}
 		}
 	}
@@ -56,7 +55,7 @@ func refuseExcludedRequiredInputs(req SendRequest) error {
 
 func requireSendPreviewRate(req SendRequest) error {
 	if req.FeeRateSatPerVB <= 0 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("a send preview needs a fee rate"))
+		return connect.NewError(connect.CodeInvalidArgument, "a send preview needs a fee rate")
 	}
 	return nil
 }

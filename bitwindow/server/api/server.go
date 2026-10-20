@@ -13,7 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -371,15 +372,18 @@ func (s *Server) Shutdown(ctx context.Context) {
 	}
 }
 
-func logInterceptor() connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+func logInterceptor() connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+			if spec.StreamType != connect.StreamTypeUnary {
+				return next(ctx, spec, stream)
+			}
 			start := time.Now()
 
 			var code connect.Code
 			log := zerolog.Ctx(ctx)
 
-			resp, handlerErr := next(ctx, req)
+			handlerErr := next(ctx, spec, stream)
 
 			if handlerErr != nil {
 				if cCode, ok := getCode(handlerErr); ok {
@@ -393,10 +397,10 @@ func logInterceptor() connect.UnaryInterceptorFunc {
 				}
 			}
 
-			procedure := req.Spec().Procedure
+			procedure := spec.Procedure
 			level := getLogLevel(procedure, code, handlerErr)
 			if level == zerolog.Disabled {
-				return resp, handlerErr
+				return handlerErr
 			}
 
 			message := fmt.Sprintf("%s: %s", procedure, describeCode(code))
@@ -406,36 +410,59 @@ func logInterceptor() connect.UnaryInterceptorFunc {
 				Err(handlerErr).
 				Msg(message)
 
-			return resp, handlerErr
+			return handlerErr
 		}
 	}
 }
 
-type recoverInterceptor struct{}
-
-func (recoverInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
-	return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				err = recoveredPanic(ctx, req.Spec().Procedure, r)
-			}
-		}()
-		return next(ctx, req)
+func recoverInterceptor() connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) (err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = recoveredPanic(ctx, spec.Procedure, r)
+				}
+			}()
+			return next(ctx, spec, stream)
+		}
 	}
 }
 
-func (recoverInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
-	return next
-}
-
-func (recoverInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
-	return func(ctx context.Context, conn connect.StreamingHandlerConn) (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				err = recoveredPanic(ctx, conn.Spec().Procedure, r)
+func errorInterceptor() connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+			err := next(ctx, spec, stream)
+			var remoteError *connect.Error
+			if errors.As(err, &remoteError) {
+				if !remoteError.IsRemote() {
+					return err
+				}
+				publicError := connect.NewError(remoteError.Code(), remoteError.Message()).WithCause(err)
+				for _, detail := range remoteError.Details() {
+					publicError = publicError.WithDetail(detail)
+				}
+				return publicError
 			}
-		}()
-		return next(ctx, conn)
+			var oldError *connectv1.Error
+			if errors.As(err, &oldError) {
+				publicError := connect.NewError(connect.Code(oldError.Code()), oldError.Message()).WithCause(err)
+				for _, detail := range oldError.Details() {
+					publicError = publicError.WithDetail(&connect.ErrorDetail{Type: detail.Type(), Value: detail.Bytes()})
+				}
+				if info, ok := connect.CallInfoForServerContext(ctx); ok {
+					metadata := info.ResponseHeader()
+					if spec.StreamType != connect.StreamTypeUnary {
+						metadata = info.ResponseTrailer()
+					}
+					for key, values := range oldError.Meta() {
+						metadata.SetValues(key, values)
+					}
+				}
+				return publicError
+			}
+
+			return err
+		}
 	}
 }
 
@@ -445,7 +472,7 @@ func recoveredPanic(ctx context.Context, procedure string, r any) error {
 		Interface("panic", r).
 		Str("stack", string(debug.Stack())).
 		Msg("recovered a panic in a handler")
-	return connect.NewError(connect.CodeInternal, fmt.Errorf("panic in %s", procedure))
+	return connect.Errorf(connect.CodeInternal, "panic in %s", procedure)
 }
 
 func getLogLevel(procedure string, code connect.Code, err error) zerolog.Level {

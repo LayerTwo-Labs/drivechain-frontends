@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -164,21 +164,21 @@ func NewStratumHandler(ctx context.Context, deps StratumDeps) *StratumHandler {
 func (h *StratumHandler) mineable() error {
 	current := h.network.CurrentNetwork()
 	if network, ok := config.LookupNetwork(current); !ok || network != config.NetworkECash {
-		return connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("mining is only available on eCash, not %s", cmp.Or(current, "an unknown network")))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"mining is only available on eCash, not %s", cmp.Or(current, "an unknown network"))
 	}
 	return nil
 }
 
 func (h *StratumHandler) StartStratum(
-	ctx context.Context, req *connect.Request[pb.StartStratumRequest],
-) (*connect.Response[pb.StartStratumResponse], error) {
+	ctx context.Context, req *pb.StartStratumRequest,
+) (*pb.StartStratumResponse, error) {
 	if err := h.mineable(); err != nil {
 		return nil, err
 	}
-	port := cmp.Or(req.Msg.Port, h.settings.StratumSettings().Port, defaultStratumPort)
+	port := cmp.Or(req.Port, h.settings.StratumSettings().Port, defaultStratumPort)
 	if port > 65535 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("port %d is out of range", port))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "port %d is out of range", port)
 	}
 
 	h.opMu.Lock()
@@ -186,7 +186,7 @@ func (h *StratumHandler) StartStratum(
 	if err := h.start(ctx, port, h.settings.StratumSettings()); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.StartStratumResponse{}), nil
+	return &pb.StartStratumResponse{}, nil
 }
 
 // start listens and serves miners under settings. The caller holds opMu.
@@ -198,8 +198,8 @@ func (h *StratumHandler) start(ctx context.Context, port uint32, settings orches
 		if running.port == port {
 			return nil
 		}
-		return connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("the stratum server already runs on port %d", running.port))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"the stratum server already runs on port %d", running.port)
 	}
 
 	ready, err := h.prepare(ctx, port, settings)
@@ -228,7 +228,7 @@ func (h *StratumHandler) prepare(
 	}
 	ln, err := h.listen(port)
 	if err != nil {
-		return readyRun{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("listen on port %d: %w", port, err))
+		return readyRun{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("listen on port %d: %w", port, err).Error())
 	}
 	return readyRun{listener: ln, port: port, source: source, pool: pool}, nil
 }
@@ -270,10 +270,10 @@ func (h *StratumHandler) serve(ready readyRun, settings orchestrator.StratumSett
 }
 
 func (h *StratumHandler) StopStratum(
-	context.Context, *connect.Request[pb.StopStratumRequest],
-) (*connect.Response[pb.StopStratumResponse], error) {
+	context.Context, *pb.StopStratumRequest,
+) (*pb.StopStratumResponse, error) {
 	h.Stop()
-	return connect.NewResponse(&pb.StopStratumResponse{}), nil
+	return &pb.StopStratumResponse{}, nil
 }
 
 // Reset stops the server and forgets its blocks and its hashrate history,
@@ -323,18 +323,18 @@ func (h *StratumHandler) sourceFor(ctx context.Context, s orchestrator.StratumSe
 	case "", targetSolo:
 		node, err := h.newNode()
 		if err != nil {
-			return nil, nil, connect.NewError(connect.CodeInternal, err)
+			return nil, nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 		source, err := stratum.NewSoloSource(ctx, node, h.log)
 		if err != nil {
-			return nil, nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read a block template: %w", err))
+			return nil, nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read a block template: %w", err).Error())
 		}
 		return source, nil, nil
 	case targetPool:
 		pool, ok := h.catalogPool(s.PoolID)
 		if !ok {
-			return nil, nil, connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("the running network lists no pool %q", s.PoolID))
+			return nil, nil, connect.Errorf(connect.CodeFailedPrecondition,
+				"the running network lists no pool %q", s.PoolID)
 		}
 		address, err := h.payoutAddress(ctx)
 		if err != nil {
@@ -342,17 +342,17 @@ func (h *StratumHandler) sourceFor(ctx context.Context, s orchestrator.StratumSe
 		}
 		source, err := stratum.NewPoolSource(pool.url, address, catalogPoolWorkerPassword, h.log)
 		if err != nil {
-			return nil, nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		return source, source, nil
 	case targetCustom:
 		source, err := stratum.NewPoolSource(s.URL, s.Worker, s.Password, h.log)
 		if err != nil {
-			return nil, nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		return source, source, nil
 	}
-	return nil, nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unknown stratum target %q", s.Target))
+	return nil, nil, connect.Errorf(connect.CodeInternal, "unknown stratum target %q", s.Target)
 }
 
 type catalogPool struct {
@@ -411,8 +411,8 @@ func (h *StratumHandler) catalogPool(id string) (catalogPool, bool) {
 }
 
 func (h *StratumHandler) ListTargets(
-	ctx context.Context, _ *connect.Request[pb.ListTargetsRequest],
-) (*connect.Response[pb.ListTargetsResponse], error) {
+	ctx context.Context, _ *pb.ListTargetsRequest,
+) (*pb.ListTargetsResponse, error) {
 	resp := &pb.ListTargetsResponse{}
 	for _, pool := range h.catalogPools() {
 		entry := &pb.CatalogPool{Id: pool.id, Name: pool.name, Url: pool.url, Fee: pool.fee}
@@ -421,7 +421,7 @@ func (h *StratumHandler) ListTargets(
 		}
 		resp.Pools = append(resp.Pools, entry)
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 type poolStatsEntry struct {
@@ -485,9 +485,9 @@ func (h *StratumHandler) fetchPoolStats(ctx context.Context, statsURL string) ([
 }
 
 func (h *StratumHandler) SetTarget(
-	ctx context.Context, req *connect.Request[pb.SetTargetRequest],
-) (*connect.Response[pb.SetTargetResponse], error) {
-	target := req.Msg.GetTarget()
+	ctx context.Context, req *pb.SetTargetRequest,
+) (*pb.SetTargetResponse, error) {
+	target := req.GetTarget()
 	h.opMu.Lock()
 	defer h.opMu.Unlock()
 
@@ -497,8 +497,8 @@ func (h *StratumHandler) SetTarget(
 		next.Target = targetSolo
 	case pb.TargetKind_TARGET_KIND_POOL:
 		if _, ok := h.catalogPool(target.GetPoolId()); !ok {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("the running network lists no pool %q", target.GetPoolId()))
+			return nil, connect.Errorf(connect.CodeInvalidArgument,
+				"the running network lists no pool %q", target.GetPoolId())
 		}
 		if _, err := h.payoutAddress(ctx); err != nil {
 			return nil, err
@@ -506,18 +506,18 @@ func (h *StratumHandler) SetTarget(
 		next.Target, next.PoolID = targetPool, target.GetPoolId()
 	case pb.TargetKind_TARGET_KIND_CUSTOM:
 		if _, err := stratum.ParsePoolURL(target.GetUrl()); err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		if target.GetWorker() == "" {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a custom pool needs a worker name"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, "a custom pool needs a worker name")
 		}
 		next.Target, next.URL, next.Worker, next.Password = targetCustom, target.GetUrl(), target.GetWorker(), target.GetPassword()
 	default:
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown target kind %s", target.GetKind()))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "unknown target kind %s", target.GetKind())
 	}
 
 	if next == h.settings.StratumSettings() {
-		return connect.NewResponse(&pb.SetTargetResponse{}), nil
+		return &pb.SetTargetResponse{}, nil
 	}
 	h.mu.Lock()
 	run := h.run
@@ -532,7 +532,7 @@ func (h *StratumHandler) SetTarget(
 		}
 	}
 	if err := h.settings.SetStratumSettings(next); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the stratum target: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the stratum target: %w", err).Error())
 	}
 	h.forgetPoolBlocks()
 	if run != nil {
@@ -541,7 +541,7 @@ func (h *StratumHandler) SetTarget(
 		run.pool = pool
 		h.mu.Unlock()
 	}
-	return connect.NewResponse(&pb.SetTargetResponse{}), nil
+	return &pb.SetTargetResponse{}, nil
 }
 
 func targetToProto(s orchestrator.StratumSettings) *pb.Target {
@@ -555,8 +555,8 @@ func targetToProto(s orchestrator.StratumSettings) *pb.Target {
 }
 
 func (h *StratumHandler) GetStratumStatus(
-	ctx context.Context, _ *connect.Request[pb.GetStratumStatusRequest],
-) (*connect.Response[pb.GetStratumStatusResponse], error) {
+	ctx context.Context, _ *pb.GetStratumStatusRequest,
+) (*pb.GetStratumStatusResponse, error) {
 	h.mu.Lock()
 	run, lastErr, blocks := h.run, h.lastErr, h.blocks
 	var pool *stratum.PoolSource
@@ -596,7 +596,7 @@ func (h *StratumHandler) GetStratumStatus(
 		resp.Running, resp.Port = true, run.port
 		ip, ok, err := stratum.LANIPv4()
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 		if ok {
 			resp.PoolUrl = fmt.Sprintf("stratum+tcp://%s", net.JoinHostPort(ip.String(), strconv.FormatUint(uint64(run.port), 10)))
@@ -631,7 +631,7 @@ func (h *StratumHandler) GetStratumStatus(
 		}
 		resp.BlocksFound = append(resp.BlocksFound, block)
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *StratumHandler) confirmations(ctx context.Context, hash string) (int32, error) {
@@ -697,30 +697,30 @@ func workModeFromProto(m pb.WorkMode) (cgminer.WorkMode, bool) {
 }
 
 func (h *StratumHandler) SetWorkMode(
-	ctx context.Context, req *connect.Request[pb.SetWorkModeRequest],
-) (*connect.Response[pb.SetWorkModeResponse], error) {
-	mode, ok := workModeFromProto(req.Msg.Mode)
+	ctx context.Context, req *pb.SetWorkModeRequest,
+) (*pb.SetWorkModeResponse, error) {
+	mode, ok := workModeFromProto(req.Mode)
 	if !ok {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown work mode %s", req.Msg.Mode))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "unknown work mode %s", req.Mode)
 	}
 	h.mu.Lock()
 	run := h.run
 	h.mu.Unlock()
-	if run == nil || !hasMiner(run.server.Status().Miners, req.Msg.Address) {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no miner connects from %q", req.Msg.Address))
+	if run == nil || !hasMiner(run.server.Status().Miners, req.Address) {
+		return nil, connect.Errorf(connect.CodeNotFound, "no miner connects from %q", req.Address)
 	}
 	ctx, cancel := context.WithTimeout(ctx, deviceTimeout)
 	defer cancel()
-	if err := h.setMode(ctx, req.Msg.Address, mode); err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("set the work mode of %s: %w", req.Msg.Address, err))
+	if err := h.setMode(ctx, req.Address, mode); err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("set the work mode of %s: %w", req.Address, err).Error())
 	}
 	run.devicesMu.Lock()
-	if d, ok := run.devices[req.Msg.Address]; ok {
+	if d, ok := run.devices[req.Address]; ok {
 		d.WorkMode = &mode
-		run.devices[req.Msg.Address] = d
+		run.devices[req.Address] = d
 	}
 	run.devicesMu.Unlock()
-	return connect.NewResponse(&pb.SetWorkModeResponse{}), nil
+	return &pb.SetWorkModeResponse{}, nil
 }
 
 func hasMiner(miners []stratum.MinerStatus, address string) bool {
@@ -787,45 +787,45 @@ func (h *StratumHandler) pollDevices(ctx context.Context, run *stratumRun) {
 // hands the enforcer the same address, and it builds every coinbase.
 func (h *StratumHandler) payoutAddress(ctx context.Context) (string, error) {
 	if h.payout == nil {
-		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("no wallet to pay a block to"))
+		return "", connect.NewError(connect.CodeFailedPrecondition, "no wallet to pay a block to")
 	}
 	address, err := h.payout(ctx)
 	if err != nil {
-		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get a payout address: %w", err))
+		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get a payout address: %w", err).Error())
 	}
 	return address, nil
 }
 
 func (h *StratumHandler) SetMiningSettings(
-	ctx context.Context, req *connect.Request[pb.SetMiningSettingsRequest],
-) (*connect.Response[pb.SetMiningSettingsResponse], error) {
-	if req.Msg.Port != nil && (req.Msg.GetPort() < 1 || req.Msg.GetPort() > 65535) {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("port %d is out of range", req.Msg.GetPort()))
+	ctx context.Context, req *pb.SetMiningSettingsRequest,
+) (*pb.SetMiningSettingsResponse, error) {
+	if req.Port != nil && (req.GetPort() < 1 || req.GetPort() > 65535) {
+		return nil, connect.Errorf(connect.CodeInvalidArgument,
+			"port %d is out of range", req.GetPort())
 	}
-	if req.Msg.CpuThreads != nil && req.Msg.GetCpuThreads() > maxCPUThreads {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("a thread count of %d is over the limit of %d", req.Msg.GetCpuThreads(), maxCPUThreads))
+	if req.CpuThreads != nil && req.GetCpuThreads() > maxCPUThreads {
+		return nil, connect.Errorf(connect.CodeInvalidArgument,
+			"a thread count of %d is over the limit of %d", req.GetCpuThreads(), maxCPUThreads)
 	}
 
 	h.opMu.Lock()
 	defer h.opMu.Unlock()
 	current := h.settings.StratumSettings()
 	next := current
-	if req.Msg.Port != nil {
-		next.Port = req.Msg.GetPort()
+	if req.Port != nil {
+		next.Port = req.GetPort()
 	}
-	if req.Msg.CpuMining != nil {
-		next.CPUMining = req.Msg.GetCpuMining()
+	if req.CpuMining != nil {
+		next.CPUMining = req.GetCpuMining()
 	}
-	if req.Msg.CpuThreads != nil {
-		next.CPUThreads = req.Msg.GetCpuThreads()
+	if req.CpuThreads != nil {
+		next.CPUThreads = req.GetCpuThreads()
 	}
-	if req.Msg.KeepMiningOnClose != nil {
-		next.KeepMiningOnClose = req.Msg.GetKeepMiningOnClose()
+	if req.KeepMiningOnClose != nil {
+		next.KeepMiningOnClose = req.GetKeepMiningOnClose()
 	}
 	if next == current {
-		return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+		return &pb.SetMiningSettingsResponse{}, nil
 	}
 	if next.CPUMining {
 		if err := h.mineable(); err != nil {
@@ -844,9 +844,9 @@ func (h *StratumHandler) SetMiningSettings(
 		}
 		if err := h.settings.SetStratumSettings(next); err != nil {
 			h.stop()
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the mining settings: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the mining settings: %w", err).Error())
 		}
-		return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+		return &pb.SetMiningSettingsResponse{}, nil
 	}
 
 	// A running server listens on the port it started on, so a new port needs
@@ -868,18 +868,18 @@ func (h *StratumHandler) SetMiningSettings(
 		if rebind {
 			_ = ready.listener.Close()
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the mining settings: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the mining settings: %w", err).Error())
 	}
 	if rebind {
 		h.stop()
 		h.serve(ready, next)
-		return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+		return &pb.SetMiningSettingsResponse{}, nil
 	}
 	if run != nil {
 		run.server.SetCPU(next.CPUMining, int(next.CPUThreads))
 	}
 	h.applyHold()
-	return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+	return &pb.SetMiningSettingsResponse{}, nil
 }
 
 func settingsToProto(s orchestrator.StratumSettings) *pb.MiningSettings {
@@ -937,9 +937,9 @@ func rangeOf(r pb.HashrateRange) stratum.Range {
 }
 
 func (h *StratumHandler) GetHashrateHistory(
-	_ context.Context, req *connect.Request[pb.GetHashrateHistoryRequest],
-) (*connect.Response[pb.GetHashrateHistoryResponse], error) {
-	points, peak := h.history.Read(rangeOf(req.Msg.GetRange()), time.Now())
+	_ context.Context, req *pb.GetHashrateHistoryRequest,
+) (*pb.GetHashrateHistoryResponse, error) {
+	points, peak := h.history.Read(rangeOf(req.GetRange()), time.Now())
 	resp := &pb.GetHashrateHistoryResponse{Peak: peak}
 	for _, p := range points {
 		resp.Points = append(resp.Points, &pb.HashratePoint{Time: timestamppb.New(p.At), Hashrate: p.Hashrate})
@@ -950,22 +950,22 @@ func (h *StratumHandler) GetHashrateHistory(
 	if run != nil {
 		resp.Current = run.server.Status().Hashrate
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *StratumHandler) ListPoolBlocks(
-	ctx context.Context, req *connect.Request[pb.ListPoolBlocksRequest],
-) (*connect.Response[pb.ListPoolBlocksResponse], error) {
-	limit := cmp.Or(req.Msg.GetLimit(), defaultPoolBlocks)
+	ctx context.Context, req *pb.ListPoolBlocksRequest,
+) (*pb.ListPoolBlocksResponse, error) {
+	limit := cmp.Or(req.GetLimit(), defaultPoolBlocks)
 	if cached := h.cachedPoolBlocks(limit); cached != nil {
-		return connect.NewResponse(cached), nil
+		return cached, nil
 	}
 	resp, err := h.readPoolBlocks(ctx, limit)
 	if err != nil {
 		return nil, err
 	}
 	h.keepPoolBlocks(limit, resp)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // cachedPoolBlocks returns the last list while it still stands.
@@ -1009,7 +1009,7 @@ func (h *StratumHandler) readPoolBlocks(ctx context.Context, limit uint32) (*pb.
 	}
 	blocksURL, err := stratum.PoolBlocksURL(pool.statsURL, int(limit))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	blocks, err := stratum.FetchPoolBlocks(ctx, h.httpClient, blocksURL)
 	if err != nil {

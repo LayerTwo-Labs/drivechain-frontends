@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -853,7 +853,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		return "", errors.New("a Core wallet send takes no excluded inputs")
 	}
 	if req.FixedFeeSats > 0 && req.SubtractFeeFromAmount {
-		return "", connect.NewError(connect.CodeInvalidArgument, ErrCoreMixedFee)
+		return "", connect.NewError(connect.CodeInvalidArgument, ErrCoreMixedFee.Error()).WithCause(ErrCoreMixedFee)
 	}
 	// External inputs carry no signature, so Core cannot size the fee for them.
 	if len(req.ExternalInputs) > 0 && req.FixedFeeSats <= 0 {
@@ -1164,7 +1164,7 @@ func (p *CoreBackend) SignTransaction(ctx context.Context, walletID, rawHex stri
 func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	if len(req.ExternalInputs) > 0 || len(req.ExcludedInputs) > 0 || len(req.RawOutputs) > 0 || req.FixedFeeSats > 0 {
 		return "", connect.NewError(connect.CodeInvalidArgument,
-			errors.New("a Core wallet PSBT takes no external inputs, excluded inputs, raw outputs or fixed fee"))
+			"a Core wallet PSBT takes no external inputs, excluded inputs, raw outputs or fixed fee")
 	}
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
@@ -1238,7 +1238,7 @@ func (p *CoreBackend) PreviewBumpFee(ctx context.Context, walletID string, req B
 func (p *CoreBackend) previewBumpFee(ctx context.Context, name string, req BumpFeeRequest) (*BumpFeePreview, *RawTransaction, error) {
 	entry, err := p.rpc.GetMempoolEntry(ctx, req.TxID)
 	if err != nil {
-		return nil, nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s waits in no mempool: %w", req.TxID, err))
+		return nil, nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s waits in no mempool: %w", req.TxID, err).Error())
 	}
 	if entry.Vsize <= 0 {
 		return nil, nil, fmt.Errorf("transaction %s reports no size", req.TxID)
@@ -1379,7 +1379,7 @@ func (p *CoreBackend) BumpFee(ctx context.Context, walletID string, req BumpFeeR
 		return nil, err
 	}
 	if preview.Plan == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(preview.Reason))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, preview.Reason)
 	}
 	plan := *preview.Plan
 	rate := req.NewFeeRate
@@ -1503,7 +1503,7 @@ func (p *CoreBackend) CancelTransaction(ctx context.Context, walletID, txid stri
 func (p *CoreBackend) previewCancel(ctx context.Context, walletID, name, txid string) (*CancelPreview, error) {
 	entry, err := p.rpc.GetMempoolEntry(ctx, txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s waits in no mempool: %w", txid, err))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s waits in no mempool: %w", txid, err).Error())
 	}
 	if entry.Vsize <= 0 {
 		return nil, fmt.Errorf("transaction %s reports no size", txid)
@@ -1601,7 +1601,7 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 		return "", err
 	}
 	if req.TargetRate <= 0 {
-		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("target fee rate must be positive"))
+		return "", connect.NewError(connect.CodeInvalidArgument, "target fee rate must be positive")
 	}
 
 	// minconf 0: the parent we must spend is unconfirmed, so the default
@@ -1615,12 +1615,12 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 		return u.TxID == req.ParentTxID && u.Vout == req.ParentVout && u.Spendable
 	})
 	if !ok {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("outpoint %s:%d is not a spendable wallet UTXO", req.ParentTxID, req.ParentVout))
+		return "", connect.Errorf(connect.CodeInvalidArgument,
+			"outpoint %s:%d is not a spendable wallet UTXO", req.ParentTxID, req.ParentVout)
 	}
 	if parent.Confirmations > 0 {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
+		return "", connect.Errorf(connect.CodeInvalidArgument,
+			"outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout)
 	}
 
 	if err := p.svc.checkCpfpParent(ctx, walletID, req); err != nil {
@@ -1634,8 +1634,8 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 	parentVsize := entry.Vsize
 	parentFee := int64(math.Round(entry.Fees.Base * 1e8))
 	if parentVsize > 0 && req.TargetRate <= parentFee/parentVsize {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize))
+		return "", connect.Errorf(connect.CodeInvalidArgument,
+			"target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize)
 	}
 
 	childKind := p.walletScriptKind(walletID)
@@ -1645,7 +1645,7 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 	childVsize := int64(11 + inputVsize(parentKind) + outputVsizeForKind(childKind))
 	_, outputSats, err := cpfpChildPlan(req.TargetRate, parentVsize, parentFee, childVsize, parentValueSats)
 	if err != nil {
-		return "", connect.NewError(connect.CodeInvalidArgument, err)
+		return "", connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	childAddr, err := p.NextReceiveAddress(ctx, walletID, childKind)

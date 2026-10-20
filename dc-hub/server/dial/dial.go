@@ -10,7 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	validatordpb "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/cusf/mainchain/v1"
 	validatordrpc "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/rs/zerolog"
@@ -25,10 +26,10 @@ func EnforcerValidator(ctx context.Context, url string) (
 		return nil, errors.New("empty validator url")
 	}
 
-	client := validatordrpc.NewValidatorServiceClient(
-		getSharedClient(ctx), url, connect.WithGRPC(),
-	)
-	_, err := client.GetSidechains(ctx, connect.NewRequest(&validatordpb.GetSidechainsRequest{}))
+	client := validatordrpc.NewValidatorServiceClient(connect.NewClient(connecthttp.NewTransport(
+		getSharedClient(ctx), url, connecthttp.WithReadMaxBytes(0), connecthttp.WithGRPC(),
+	)))
+	_, err := client.GetSidechains(ctx, &validatordpb.GetSidechainsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("validator: get sidechains: %w", err)
 	}

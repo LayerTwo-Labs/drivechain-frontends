@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/samber/lo"
@@ -44,9 +44,9 @@ func bip47SubstituteError(err error) error {
 	case errors.Is(err, bip47send.ErrMultiDestination),
 		errors.Is(err, bip47send.ErrSelfSend),
 		errors.Is(err, bip47send.ErrUnsupportedVersion):
-		return connect.NewError(connect.CodeInvalidArgument, err)
+		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	return connect.NewError(connect.CodeInternal, err)
+	return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 }
 
 // sizingIndex stands in for the next BIP47 index. Every index gives a payment
@@ -69,15 +69,15 @@ func (h *WalletHandler) sizeBip47Destinations(
 		return destinations, false, nil
 	}
 	if h.bip47State == nil {
-		return nil, false, connect.NewError(connect.CodeFailedPrecondition, errors.New("bip47 state store not configured"))
+		return nil, false, connect.NewError(connect.CodeFailedPrecondition, "bip47 state store not configured")
 	}
 	seedHex := h.walletSeedHex(walletID)
 	if seedHex == "" {
-		return nil, false, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s has no master seed", walletID))
+		return nil, false, connect.Errorf(connect.CodeFailedPrecondition, "wallet %s has no master seed", walletID)
 	}
 	netParams := h.engine.Network()
 	if netParams == nil {
-		return nil, false, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("BIP47 send not supported on this network"))
+		return nil, false, connect.Errorf(connect.CodeFailedPrecondition, "BIP47 send not supported on this network")
 	}
 	result, err := bip47send.SubstituteBip47Destination(seedHex, walletID, destinations, netParams, sizingIndex{})
 	if err != nil {
@@ -85,7 +85,7 @@ func (h *WalletHandler) sizeBip47Destinations(
 	}
 	state, err := h.bip47State.GetState(walletID, result.RecipientCode)
 	if err != nil {
-		return nil, false, connect.NewError(connect.CodeInternal, fmt.Errorf("read bip47 state: %w", err))
+		return nil, false, connect.NewError(connect.CodeInternal, fmt.Errorf("read bip47 state: %w", err).Error())
 	}
 	return result.Destinations, state == nil || state.NotificationTxID == nil, nil
 }
@@ -114,27 +114,27 @@ func (h *WalletHandler) expandBip47Destinations(
 	}
 
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet backend not configured"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "wallet backend not configured")
 	}
 	// BIP47 send works for any backend that can sign the notification tx and
 	// hold the seed for ECDH blinding — Core and electrum both qualify. The
 	// enforcer (no spendable wallet) does not implement Bip47Backend.
 	if _, ok := h.engine.Bip47BackendFor(walletID); !ok {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("BIP47 send is not supported for wallet %s: its backend cannot build the notification transaction", walletID))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition,
+			"BIP47 send is not supported for wallet %s: its backend cannot build the notification transaction", walletID)
 	}
 	if h.bip47State == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("bip47 state store not configured"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "bip47 state store not configured")
 	}
 
 	seedHex := h.walletSeedHex(walletID)
 	if seedHex == "" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s has no master seed", walletID))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "wallet %s has no master seed", walletID)
 	}
 
 	netParams := h.engine.Network()
 	if netParams == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("BIP47 send not supported on this network"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "BIP47 send not supported on this network")
 	}
 
 	result, err := bip47send.SubstituteBip47Destination(seedHex, walletID, destinations, netParams, h.bip47State)
@@ -154,7 +154,7 @@ func (h *WalletHandler) expandBip47Destinations(
 	state, err := h.bip47State.GetState(walletID, result.RecipientCode)
 	if err != nil {
 		h.releaseBip47Index(walletID, expansion)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read bip47 state: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read bip47 state: %w", err).Error())
 	}
 	if state != nil && state.NotificationTxID != nil {
 		return expansion, nil
@@ -184,7 +184,7 @@ func (h *WalletHandler) resolveSendFeeRate(ctx context.Context, walletID string,
 	}
 	rate, err := rater.FeeRateForTarget(ctx, wallet.SendFeeTarget)
 	if err != nil {
-		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the payment: %w", err))
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the payment: %w", err).Error())
 	}
 	req.FeeRateSatPerVB = int64(math.Ceil(rate))
 	return nil
@@ -227,13 +227,13 @@ func (h *WalletHandler) bip47NotificationCoin(
 		if rater, ok := h.engine.FeeRaterFor(walletID); ok {
 			rate, err = rater.FeeRateForTarget(ctx, wallet.SendFeeTarget)
 			if err != nil {
-				return wallet.UTXO{}, 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the bip47 notification: %w", err))
+				return wallet.UTXO{}, 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the bip47 notification: %w", err).Error())
 			}
 		}
 	}
 	if rate > wallet.MaxFeeRateSatPerVB {
-		return wallet.UTXO{}, 0, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("the fee rate of %.0f sat/vB for the bip47 notification is above the limit of %d sat/vB", rate, wallet.MaxFeeRateSatPerVB))
+		return wallet.UTXO{}, 0, connect.Errorf(connect.CodeFailedPrecondition,
+			"the fee rate of %.0f sat/vB for the bip47 notification is above the limit of %d sat/vB", rate, wallet.MaxFeeRateSatPerVB)
 	}
 	feeSats := bip47send.EstimateNotificationFee(int64(math.Ceil(rate)))
 	minRequired := bip47NotificationDustSats + feeSats + bip47NotificationDustSats
@@ -259,11 +259,11 @@ func (h *WalletHandler) bip47NotificationCoin(
 		return *picked, feeSats, nil
 	}
 	if pinned != nil {
-		return wallet.UTXO{}, 0, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("notification coin %s:%d is not a spendable UTXO of at least %d sats", pinned.TxID, pinned.Vout, minRequired))
+		return wallet.UTXO{}, 0, connect.Errorf(connect.CodeFailedPrecondition,
+			"notification coin %s:%d is not a spendable UTXO of at least %d sats", pinned.TxID, pinned.Vout, minRequired)
 	}
-	return wallet.UTXO{}, 0, connect.NewError(connect.CodeFailedPrecondition,
-		fmt.Errorf("no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired))
+	return wallet.UTXO{}, 0, connect.Errorf(connect.CodeFailedPrecondition,
+		"no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired)
 }
 
 // unfrozenSpendableCoins lists the wallet coins a send can spend. The
@@ -272,13 +272,13 @@ func (h *WalletHandler) bip47NotificationCoin(
 func (h *WalletHandler) unfrozenSpendableCoins(ctx context.Context, walletID string) ([]wallet.UTXO, error) {
 	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err).Error())
 	}
 	frozen, err := h.svc.FrozenCoins(ctx, walletID, lo.Map(utxos, func(u wallet.UTXO, _ int) wallet.Outpoint {
 		return wallet.Outpoint{TxID: u.TxID, Vout: u.Vout, Confirmed: u.Confirmations > 0}
 	}))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	return lo.Filter(utxos, func(u wallet.UTXO, _ int) bool {
 		return u.Spendable && !frozen[(wallet.Outpoint{TxID: u.TxID, Vout: u.Vout}).Key()]
@@ -310,30 +310,30 @@ func (h *WalletHandler) buildBip47NotificationTx(
 
 	hdPath, err := h.engine.Backend().AddressHDPath(ctx, walletID, picked.Address)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("address hd path: %w", err))
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("address hd path: %w", err).Error())
 	}
 	if hdPath == "" {
-		return "", "", connect.NewError(connect.CodeInternal,
-			fmt.Errorf("no HD key path for address %s; cannot derive privkey for BIP47 blinding", picked.Address))
+		return "", "", connect.Errorf(connect.CodeInternal,
+			"no HD key path for address %s; cannot derive privkey for BIP47 blinding", picked.Address)
 	}
 
 	desigPriv, err := bip47send.DerivePrivKeyFromHDPath(seedHex, hdPath)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("derive designated input privkey: %w", err))
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("derive designated input privkey: %w", err).Error())
 	}
 
 	notifAddr, err := bip47.DeriveNotificationAddress(recipient, netParams)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("recipient notification address: %w", err))
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("recipient notification address: %w", err).Error())
 	}
 
 	changeAddrStr, err := h.engine.Backend().NextChangeAddress(ctx, walletID)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("get change address: %w", err))
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("get change address: %w", err).Error())
 	}
 	changeAddr, err := btcutil.DecodeAddress(changeAddrStr, netParams)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("decode change address: %w", err))
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("decode change address: %w", err).Error())
 	}
 
 	desig := bip47send.DesignatedInput{
@@ -356,7 +356,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 		netParams,
 	)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("build notification tx: %w", err))
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("build notification tx: %w", err).Error())
 	}
 	return rawHex, picked.Address, nil
 }
@@ -370,11 +370,11 @@ func (h *WalletHandler) broadcastBip47Notification(ctx context.Context, walletID
 	if wallet.ReplayProtect(h.svc.Network(), allowReplay) {
 		lockTime, err := config.ECashReplayLockTime()
 		if err != nil {
-			return "", connect.NewError(connect.CodeUnavailable, err)
+			return "", connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		}
 		protectedHex, err := replay.ApplyLockTimeHex(rawHex, lockTime)
 		if err != nil {
-			return "", connect.NewError(connect.CodeInternal, err)
+			return "", connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 		rawHex = protectedHex
 	}

@@ -5,197 +5,200 @@
 package m4v1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// M4ServiceName is the fully-qualified name of the M4Service service.
 	M4ServiceName = "m4.v1.M4Service"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// M4ServiceGetM4HistoryProcedure is the fully-qualified name of the M4Service's GetM4History RPC.
+	// M4ServiceGetM4HistoryProcedure is the procedure name of the M4Service's GetM4History RPC.
 	M4ServiceGetM4HistoryProcedure = "/m4.v1.M4Service/GetM4History"
-	// M4ServiceGetVotesProcedure is the fully-qualified name of the M4Service's GetVotes RPC.
+	// M4ServiceGetVotesProcedure is the procedure name of the M4Service's GetVotes RPC.
 	M4ServiceGetVotesProcedure = "/m4.v1.M4Service/GetVotes"
-	// M4ServiceSetBundleUpvoteProcedure is the fully-qualified name of the M4Service's SetBundleUpvote
-	// RPC.
+	// M4ServiceSetBundleUpvoteProcedure is the procedure name of the M4Service's SetBundleUpvote RPC.
 	M4ServiceSetBundleUpvoteProcedure = "/m4.v1.M4Service/SetBundleUpvote"
-	// M4ServiceSetVotePolicyProcedure is the fully-qualified name of the M4Service's SetVotePolicy RPC.
+	// M4ServiceSetVotePolicyProcedure is the procedure name of the M4Service's SetVotePolicy RPC.
 	M4ServiceSetVotePolicyProcedure = "/m4.v1.M4Service/SetVotePolicy"
+)
+
+var (
+	m4ServiceGetM4HistorySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_m4_v1_m4_proto.Services().ByName("M4Service").Methods().ByName("GetM4History"),
+			Procedure:  M4ServiceGetM4HistoryProcedure,
+		}
+	})
+	m4ServiceGetVotesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_m4_v1_m4_proto.Services().ByName("M4Service").Methods().ByName("GetVotes"),
+			Procedure:  M4ServiceGetVotesProcedure,
+		}
+	})
+	m4ServiceSetBundleUpvoteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_m4_v1_m4_proto.Services().ByName("M4Service").Methods().ByName("SetBundleUpvote"),
+			Procedure:  M4ServiceSetBundleUpvoteProcedure,
+		}
+	})
+	m4ServiceSetVotePolicySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_m4_v1_m4_proto.Services().ByName("M4Service").Methods().ByName("SetVotePolicy"),
+			Procedure:  M4ServiceSetVotePolicyProcedure,
+		}
+	})
 )
 
 // M4ServiceClient is a client for the m4.v1.M4Service service.
 type M4ServiceClient interface {
-	// Get M4 voting history
-	GetM4History(context.Context, *connect.Request[v1.GetM4HistoryRequest]) (*connect.Response[v1.GetM4HistoryResponse], error)
-	// Get the votes the enforcer puts in the next block it builds.
-	GetVotes(context.Context, *connect.Request[v1.GetVotesRequest]) (*connect.Response[v1.GetVotesResponse], error)
-	// Upvote one pending bundle of a sidechain, or clear the upvote.
-	SetBundleUpvote(context.Context, *connect.Request[v1.SetBundleUpvoteRequest]) (*connect.Response[v1.SetBundleUpvoteResponse], error)
-	// Set the vote for a sidechain that has no upvote.
-	SetVotePolicy(context.Context, *connect.Request[v1.SetVotePolicyRequest]) (*connect.Response[v1.SetVotePolicyResponse], error)
+	GetM4History(context.Context, *v1.GetM4HistoryRequest) (*v1.GetM4HistoryResponse, error)
+	GetVotes(context.Context, *v1.GetVotesRequest) (*v1.GetVotesResponse, error)
+	SetBundleUpvote(context.Context, *v1.SetBundleUpvoteRequest) (*v1.SetBundleUpvoteResponse, error)
+	SetVotePolicy(context.Context, *v1.SetVotePolicyRequest) (*v1.SetVotePolicyResponse, error)
 }
 
-// NewM4ServiceClient constructs a client for the m4.v1.M4Service service. By default, it uses the
-// Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewM4ServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) M4ServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	m4ServiceMethods := v1.File_m4_v1_m4_proto.Services().ByName("M4Service").Methods()
-	return &m4ServiceClient{
-		getM4History: connect.NewClient[v1.GetM4HistoryRequest, v1.GetM4HistoryResponse](
-			httpClient,
-			baseURL+M4ServiceGetM4HistoryProcedure,
-			connect.WithSchema(m4ServiceMethods.ByName("GetM4History")),
-			connect.WithClientOptions(opts...),
-		),
-		getVotes: connect.NewClient[v1.GetVotesRequest, v1.GetVotesResponse](
-			httpClient,
-			baseURL+M4ServiceGetVotesProcedure,
-			connect.WithSchema(m4ServiceMethods.ByName("GetVotes")),
-			connect.WithClientOptions(opts...),
-		),
-		setBundleUpvote: connect.NewClient[v1.SetBundleUpvoteRequest, v1.SetBundleUpvoteResponse](
-			httpClient,
-			baseURL+M4ServiceSetBundleUpvoteProcedure,
-			connect.WithSchema(m4ServiceMethods.ByName("SetBundleUpvote")),
-			connect.WithClientOptions(opts...),
-		),
-		setVotePolicy: connect.NewClient[v1.SetVotePolicyRequest, v1.SetVotePolicyResponse](
-			httpClient,
-			baseURL+M4ServiceSetVotePolicyProcedure,
-			connect.WithSchema(m4ServiceMethods.ByName("SetVotePolicy")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// m4ServiceClient implements M4ServiceClient.
-type m4ServiceClient struct {
-	getM4History    *connect.Client[v1.GetM4HistoryRequest, v1.GetM4HistoryResponse]
-	getVotes        *connect.Client[v1.GetVotesRequest, v1.GetVotesResponse]
-	setBundleUpvote *connect.Client[v1.SetBundleUpvoteRequest, v1.SetBundleUpvoteResponse]
-	setVotePolicy   *connect.Client[v1.SetVotePolicyRequest, v1.SetVotePolicyResponse]
-}
-
-// GetM4History calls m4.v1.M4Service.GetM4History.
-func (c *m4ServiceClient) GetM4History(ctx context.Context, req *connect.Request[v1.GetM4HistoryRequest]) (*connect.Response[v1.GetM4HistoryResponse], error) {
-	return c.getM4History.CallUnary(ctx, req)
-}
-
-// GetVotes calls m4.v1.M4Service.GetVotes.
-func (c *m4ServiceClient) GetVotes(ctx context.Context, req *connect.Request[v1.GetVotesRequest]) (*connect.Response[v1.GetVotesResponse], error) {
-	return c.getVotes.CallUnary(ctx, req)
-}
-
-// SetBundleUpvote calls m4.v1.M4Service.SetBundleUpvote.
-func (c *m4ServiceClient) SetBundleUpvote(ctx context.Context, req *connect.Request[v1.SetBundleUpvoteRequest]) (*connect.Response[v1.SetBundleUpvoteResponse], error) {
-	return c.setBundleUpvote.CallUnary(ctx, req)
-}
-
-// SetVotePolicy calls m4.v1.M4Service.SetVotePolicy.
-func (c *m4ServiceClient) SetVotePolicy(ctx context.Context, req *connect.Request[v1.SetVotePolicyRequest]) (*connect.Response[v1.SetVotePolicyResponse], error) {
-	return c.setVotePolicy.CallUnary(ctx, req)
+// NewM4ServiceClient constructs a client for the m4.v1.M4Service service. Multiple service clients
+// may share a single connect.Client.
+func NewM4ServiceClient(client *connect.Client) M4ServiceClient {
+	return &m4ServiceClient{client: client}
 }
 
 // M4ServiceHandler is an implementation of the m4.v1.M4Service service.
 type M4ServiceHandler interface {
-	// Get M4 voting history
-	GetM4History(context.Context, *connect.Request[v1.GetM4HistoryRequest]) (*connect.Response[v1.GetM4HistoryResponse], error)
-	// Get the votes the enforcer puts in the next block it builds.
-	GetVotes(context.Context, *connect.Request[v1.GetVotesRequest]) (*connect.Response[v1.GetVotesResponse], error)
-	// Upvote one pending bundle of a sidechain, or clear the upvote.
-	SetBundleUpvote(context.Context, *connect.Request[v1.SetBundleUpvoteRequest]) (*connect.Response[v1.SetBundleUpvoteResponse], error)
-	// Set the vote for a sidechain that has no upvote.
-	SetVotePolicy(context.Context, *connect.Request[v1.SetVotePolicyRequest]) (*connect.Response[v1.SetVotePolicyResponse], error)
+	GetM4History(context.Context, *v1.GetM4HistoryRequest) (*v1.GetM4HistoryResponse, error)
+	GetVotes(context.Context, *v1.GetVotesRequest) (*v1.GetVotesResponse, error)
+	SetBundleUpvote(context.Context, *v1.SetBundleUpvoteRequest) (*v1.SetBundleUpvoteResponse, error)
+	SetVotePolicy(context.Context, *v1.SetVotePolicyRequest) (*v1.SetVotePolicyResponse, error)
 }
 
-// NewM4ServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewM4ServiceHandler(svc M4ServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	m4ServiceMethods := v1.File_m4_v1_m4_proto.Services().ByName("M4Service").Methods()
-	m4ServiceGetM4HistoryHandler := connect.NewUnaryHandler(
-		M4ServiceGetM4HistoryProcedure,
-		svc.GetM4History,
-		connect.WithSchema(m4ServiceMethods.ByName("GetM4History")),
-		connect.WithHandlerOptions(opts...),
+// RegisterM4ServiceHandler registers svc as the m4.v1.M4Service implementation on server.
+func RegisterM4ServiceHandler(server *connect.Server, svc M4ServiceHandler) {
+	adapter := m4ServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: m4ServiceGetM4HistorySpec(), Handler: adapter.getM4History},
+		connect.Method{Spec: m4ServiceGetVotesSpec(), Handler: adapter.getVotes},
+		connect.Method{Spec: m4ServiceSetBundleUpvoteSpec(), Handler: adapter.setBundleUpvote},
+		connect.Method{Spec: m4ServiceSetVotePolicySpec(), Handler: adapter.setVotePolicy},
 	)
-	m4ServiceGetVotesHandler := connect.NewUnaryHandler(
-		M4ServiceGetVotesProcedure,
-		svc.GetVotes,
-		connect.WithSchema(m4ServiceMethods.ByName("GetVotes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	m4ServiceSetBundleUpvoteHandler := connect.NewUnaryHandler(
-		M4ServiceSetBundleUpvoteProcedure,
-		svc.SetBundleUpvote,
-		connect.WithSchema(m4ServiceMethods.ByName("SetBundleUpvote")),
-		connect.WithHandlerOptions(opts...),
-	)
-	m4ServiceSetVotePolicyHandler := connect.NewUnaryHandler(
-		M4ServiceSetVotePolicyProcedure,
-		svc.SetVotePolicy,
-		connect.WithSchema(m4ServiceMethods.ByName("SetVotePolicy")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/m4.v1.M4Service/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case M4ServiceGetM4HistoryProcedure:
-			m4ServiceGetM4HistoryHandler.ServeHTTP(w, r)
-		case M4ServiceGetVotesProcedure:
-			m4ServiceGetVotesHandler.ServeHTTP(w, r)
-		case M4ServiceSetBundleUpvoteProcedure:
-			m4ServiceSetBundleUpvoteHandler.ServeHTTP(w, r)
-		case M4ServiceSetVotePolicyProcedure:
-			m4ServiceSetVotePolicyHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedM4ServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedM4ServiceHandler struct{}
 
-func (UnimplementedM4ServiceHandler) GetM4History(context.Context, *connect.Request[v1.GetM4HistoryRequest]) (*connect.Response[v1.GetM4HistoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("m4.v1.M4Service.GetM4History is not implemented"))
+func (UnimplementedM4ServiceHandler) GetM4History(context.Context, *v1.GetM4HistoryRequest) (*v1.GetM4HistoryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "m4.v1.M4Service.GetM4History is not implemented")
 }
 
-func (UnimplementedM4ServiceHandler) GetVotes(context.Context, *connect.Request[v1.GetVotesRequest]) (*connect.Response[v1.GetVotesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("m4.v1.M4Service.GetVotes is not implemented"))
+func (UnimplementedM4ServiceHandler) GetVotes(context.Context, *v1.GetVotesRequest) (*v1.GetVotesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "m4.v1.M4Service.GetVotes is not implemented")
 }
 
-func (UnimplementedM4ServiceHandler) SetBundleUpvote(context.Context, *connect.Request[v1.SetBundleUpvoteRequest]) (*connect.Response[v1.SetBundleUpvoteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("m4.v1.M4Service.SetBundleUpvote is not implemented"))
+func (UnimplementedM4ServiceHandler) SetBundleUpvote(context.Context, *v1.SetBundleUpvoteRequest) (*v1.SetBundleUpvoteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "m4.v1.M4Service.SetBundleUpvote is not implemented")
 }
 
-func (UnimplementedM4ServiceHandler) SetVotePolicy(context.Context, *connect.Request[v1.SetVotePolicyRequest]) (*connect.Response[v1.SetVotePolicyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("m4.v1.M4Service.SetVotePolicy is not implemented"))
+func (UnimplementedM4ServiceHandler) SetVotePolicy(context.Context, *v1.SetVotePolicyRequest) (*v1.SetVotePolicyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "m4.v1.M4Service.SetVotePolicy is not implemented")
+}
+
+type m4ServiceClient struct {
+	client *connect.Client
+}
+
+func (c *m4ServiceClient) GetM4History(ctx context.Context, req *v1.GetM4HistoryRequest) (*v1.GetM4HistoryResponse, error) {
+	var res v1.GetM4HistoryResponse
+	if err := c.client.CallUnary(ctx, m4ServiceGetM4HistorySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *m4ServiceClient) GetVotes(ctx context.Context, req *v1.GetVotesRequest) (*v1.GetVotesResponse, error) {
+	var res v1.GetVotesResponse
+	if err := c.client.CallUnary(ctx, m4ServiceGetVotesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *m4ServiceClient) SetBundleUpvote(ctx context.Context, req *v1.SetBundleUpvoteRequest) (*v1.SetBundleUpvoteResponse, error) {
+	var res v1.SetBundleUpvoteResponse
+	if err := c.client.CallUnary(ctx, m4ServiceSetBundleUpvoteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *m4ServiceClient) SetVotePolicy(ctx context.Context, req *v1.SetVotePolicyRequest) (*v1.SetVotePolicyResponse, error) {
+	var res v1.SetVotePolicyResponse
+	if err := c.client.CallUnary(ctx, m4ServiceSetVotePolicySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type m4ServiceHandler struct{ svc M4ServiceHandler }
+
+func (h m4ServiceHandler) getM4History(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetM4HistoryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetM4History(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h m4ServiceHandler) getVotes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetVotesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetVotes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h m4ServiceHandler) setBundleUpvote(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetBundleUpvoteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetBundleUpvote(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h m4ServiceHandler) setVotePolicy(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetVotePolicyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetVotePolicy(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

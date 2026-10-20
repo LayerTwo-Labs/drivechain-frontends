@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -47,8 +46,8 @@ func TestSidechainWealthCallsSidechainWealth(t *testing.T) {
 	proxy, seen := wealthNode(t, "10603007000")
 
 	resp, err := NewHandler(proxy).GetSidechainWealth(context.Background(),
-		connect.NewRequest(&pb.GetSidechainWealthRequest{}))
+		&pb.GetSidechainWealthRequest{})
 	require.NoError(t, err)
-	assert.Equal(t, int64(10603007000), resp.Msg.Sats)
+	assert.Equal(t, int64(10603007000), resp.Sats)
 	assert.Equal(t, []string{"sidechain_wealth"}, *seen)
 }

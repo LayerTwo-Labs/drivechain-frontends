@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/samber/lo"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -48,48 +47,48 @@ func (h *Handler) SetSidechainBalance(name string, read SidechainBalanceFunc) {
 	h.sidechainBalances[name] = read
 }
 
-func (h *Handler) ListBinaries(ctx context.Context, req *connect.Request[pb.ListBinariesRequest]) (*connect.Response[pb.ListBinariesResponse], error) {
-	opts := orchestrator.DownloadOptions{ForceBackend: req.Msg.ForceBackend}
+func (h *Handler) ListBinaries(ctx context.Context, req *pb.ListBinariesRequest) (*pb.ListBinariesResponse, error) {
+	opts := orchestrator.DownloadOptions{ForceBackend: req.ForceBackend}
 	pbStatuses := lo.Map(h.orch.ListAllWithOptions(opts), func(s orchestrator.BinaryStatus, _ int) *pb.BinaryStatusMsg {
 		return statusToProto(s)
 	})
-	return connect.NewResponse(&pb.ListBinariesResponse{
+	return &pb.ListBinariesResponse{
 		Binaries: pbStatuses,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetBinaryStatus(ctx context.Context, req *connect.Request[pb.GetBinaryStatusRequest]) (*connect.Response[pb.GetBinaryStatusResponse], error) {
-	s := h.orch.StatusWithOptions(req.Msg.Name, orchestrator.DownloadOptions{ForceBackend: req.Msg.ForceBackend})
-	return connect.NewResponse(&pb.GetBinaryStatusResponse{
+func (h *Handler) GetBinaryStatus(ctx context.Context, req *pb.GetBinaryStatusRequest) (*pb.GetBinaryStatusResponse, error) {
+	s := h.orch.StatusWithOptions(req.Name, orchestrator.DownloadOptions{ForceBackend: req.ForceBackend})
+	return &pb.GetBinaryStatusResponse{
 		Status: statusToProto(s),
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetBinaryVersion(ctx context.Context, req *connect.Request[pb.GetBinaryVersionRequest]) (*connect.Response[pb.GetBinaryVersionResponse], error) {
-	version, binPath, isTest, err := h.orch.BinaryVersion(req.Msg.Name, req.Msg.ForceBackend)
+func (h *Handler) GetBinaryVersion(ctx context.Context, req *pb.GetBinaryVersionRequest) (*pb.GetBinaryVersionResponse, error) {
+	version, binPath, isTest, err := h.orch.BinaryVersion(req.Name, req.ForceBackend)
 	if err != nil {
 		// Not-installed-yet is the common case for sidechains the user hasn't
 		// downloaded; surface it as a value, not a transport error, so the
 		// modal can render it plainly.
-		return connect.NewResponse(&pb.GetBinaryVersionResponse{
+		return &pb.GetBinaryVersionResponse{
 			Version:    fmt.Sprintf("Error: %v", err),
 			BinaryPath: binPath,
-		}), nil
+		}, nil
 	}
-	return connect.NewResponse(&pb.GetBinaryVersionResponse{
+	return &pb.GetBinaryVersionResponse{
 		Version:     version,
 		BinaryPath:  binPath,
 		IsTestBuild: isTest,
-	}), nil
+	}, nil
 }
 
 // DownloadBinary dispatches a download in a background goroutine and
 // returns immediately. Mirrors StartWithL1's fire-and-forget shape so a
 // transport blip / client disconnect can't cancel an in-flight download.
 // Progress is polled out of GetSyncStatus (DownloadManager.state-backed).
-func (h *Handler) DownloadBinary(ctx context.Context, req *connect.Request[pb.DownloadBinaryRequest]) (*connect.Response[pb.DownloadBinaryResponse], error) {
-	opts := orchestrator.DownloadOptions{ForceBackend: req.Msg.ForceBackend}
-	ch, err := h.orch.Download(context.Background(), req.Msg.Name, req.Msg.Force, opts)
+func (h *Handler) DownloadBinary(ctx context.Context, req *pb.DownloadBinaryRequest) (*pb.DownloadBinaryResponse, error) {
+	opts := orchestrator.DownloadOptions{ForceBackend: req.ForceBackend}
+	ch, err := h.orch.Download(context.Background(), req.Name, req.Force, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -100,31 +99,31 @@ func (h *Handler) DownloadBinary(ctx context.Context, req *connect.Request[pb.Do
 		}
 	}()
 
-	return connect.NewResponse(&pb.DownloadBinaryResponse{}), nil
+	return &pb.DownloadBinaryResponse{}, nil
 }
 
-func (h *Handler) StartBinary(ctx context.Context, req *connect.Request[pb.StartBinaryRequest]) (*connect.Response[pb.StartBinaryResponse], error) {
-	pid, err := h.orch.Start(ctx, req.Msg.Name, req.Msg.ExtraArgs, req.Msg.Env)
+func (h *Handler) StartBinary(ctx context.Context, req *pb.StartBinaryRequest) (*pb.StartBinaryResponse, error) {
+	pid, err := h.orch.Start(ctx, req.Name, req.ExtraArgs, req.Env)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.StartBinaryResponse{
+	return &pb.StartBinaryResponse{
 		Pid: int32(pid),
-	}), nil
+	}, nil
 }
 
-func (h *Handler) StopBinary(ctx context.Context, req *connect.Request[pb.StopBinaryRequest]) (*connect.Response[pb.StopBinaryResponse], error) {
-	opts := orchestrator.StopOptions{ForceBackend: req.Msg.ForceBackend}
-	if err := h.orch.Stop(ctx, req.Msg.Name, req.Msg.Force, opts); err != nil {
+func (h *Handler) StopBinary(ctx context.Context, req *pb.StopBinaryRequest) (*pb.StopBinaryResponse, error) {
+	opts := orchestrator.StopOptions{ForceBackend: req.ForceBackend}
+	if err := h.orch.Stop(ctx, req.Name, req.Force, opts); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.StopBinaryResponse{}), nil
+	return &pb.StopBinaryResponse{}, nil
 }
 
-func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.StreamLogsRequest], stream *connect.ServerStream[pb.StreamLogsResponse]) error {
+func (h *Handler) StreamLogs(ctx context.Context, req *pb.StreamLogsRequest, stream rpc.OrchestratorServiceStreamLogsServerStream) error {
 	// Send recent logs first
-	if req.Msg.Tail > 0 {
-		recent, err := h.orch.RecentLogs(req.Msg.Name, int(req.Msg.Tail))
+	if req.Tail > 0 {
+		recent, err := h.orch.RecentLogs(req.Name, int(req.Tail))
 		if err != nil {
 			return err
 		}
@@ -140,7 +139,7 @@ func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.Stream
 	}
 
 	// Stream live logs
-	ch, cancel, err := h.orch.Logs(req.Msg.Name)
+	ch, cancel, err := h.orch.Logs(req.Name)
 	if err != nil {
 		return err
 	}
@@ -169,8 +168,8 @@ func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.Stream
 // as StartWithL1: the boot goroutine uses context.Background() so a transport
 // blip can't kill an in-flight restart. Crucially, it does NOT cascade to
 // sibling daemons — restarting "enforcer" never spawns or adopts bitcoind.
-func (h *Handler) RestartDaemon(ctx context.Context, req *connect.Request[pb.RestartDaemonRequest]) (*connect.Response[pb.RestartDaemonResponse], error) {
-	ch, err := h.orch.RestartDaemon(context.Background(), req.Msg.Name, orchestrator.StopOptions{ForceBackend: req.Msg.ForceBackend})
+func (h *Handler) RestartDaemon(ctx context.Context, req *pb.RestartDaemonRequest) (*pb.RestartDaemonResponse, error) {
+	ch, err := h.orch.RestartDaemon(context.Background(), req.Name, orchestrator.StopOptions{ForceBackend: req.ForceBackend})
 	if err != nil {
 		return nil, err
 	}
@@ -181,17 +180,17 @@ func (h *Handler) RestartDaemon(ctx context.Context, req *connect.Request[pb.Res
 		}
 	}()
 
-	return connect.NewResponse(&pb.RestartDaemonResponse{}), nil
+	return &pb.RestartDaemonResponse{}, nil
 }
 
 // RestartL1 stops + reboots the L1 stack (bitcoind + enforcer) on the current
 // config. The orchestrator owns the stop/start sequence so the frontend makes a
 // single call. context.Background() so a transport blip can't abort the reboot.
-func (h *Handler) RestartL1(ctx context.Context, req *connect.Request[pb.RestartL1Request]) (*connect.Response[pb.RestartL1Response], error) {
+func (h *Handler) RestartL1(ctx context.Context, req *pb.RestartL1Request) (*pb.RestartL1Response, error) {
 	if err := h.orch.RestartL1(context.Background()); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.RestartL1Response{}), nil
+	return &pb.RestartL1Response{}, nil
 }
 
 // ApplyUTXOSnapshot loads a snapshot into the running Bitcoin Core, streaming
@@ -199,32 +198,32 @@ func (h *Handler) RestartL1(ctx context.Context, req *connect.Request[pb.Restart
 // user sees why a snapshot was refused.
 func (h *Handler) ApplyUTXOSnapshot(
 	ctx context.Context,
-	req *connect.Request[pb.ApplyUTXOSnapshotRequest],
-	stream *connect.ServerStream[pb.ApplyUTXOSnapshotResponse],
+	req *pb.ApplyUTXOSnapshotRequest,
+	stream rpc.OrchestratorServiceApplyUTXOSnapshotServerStream,
 ) error {
-	url := strings.TrimSpace(req.Msg.Url)
-	path := strings.TrimSpace(req.Msg.Path)
+	url := strings.TrimSpace(req.Url)
+	path := strings.TrimSpace(req.Path)
 	if (url == "") == (path == "") {
-		return connect.NewError(
+		return connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("provide exactly one of url or path"),
+			"provide exactly one of url or path",
 		)
 	}
 
 	ch, err := h.orch.ApplyUserSnapshot(ctx, orchestrator.SnapshotSource{
 		URL:       url,
 		Path:      path,
-		SHA256:    strings.TrimSpace(req.Msg.Sha256),
+		SHA256:    strings.TrimSpace(req.Sha256),
 		Label:     "UTXO snapshot",
 		Requested: true,
 	})
 	if err != nil {
-		return connect.NewError(connect.CodeFailedPrecondition, err)
+		return connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	for p := range ch {
 		if p.Error != nil {
-			return connect.NewError(connect.CodeFailedPrecondition, p.Error)
+			return connect.NewError(connect.CodeFailedPrecondition, p.Error.Error()).WithCause(p.Error)
 		}
 		var pct int32
 		if p.MBTotal > 0 {
@@ -243,9 +242,9 @@ func (h *Handler) ApplyUTXOSnapshot(
 
 // GetSnapshotStatus returns the snapshot the active network publishes and the
 // one Bitcoin Core currently has loaded.
-func (h *Handler) GetSnapshotStatus(ctx context.Context, req *connect.Request[pb.GetSnapshotStatusRequest]) (*connect.Response[pb.GetSnapshotStatusResponse], error) {
+func (h *Handler) GetSnapshotStatus(ctx context.Context, req *pb.GetSnapshotStatusRequest) (*pb.GetSnapshotStatusResponse, error) {
 	s := h.orch.SnapshotStatus(ctx)
-	return connect.NewResponse(&pb.GetSnapshotStatusResponse{
+	return &pb.GetSnapshotStatusResponse{
 		AvailableUrl:               s.Available.URL,
 		AvailableHeight:            s.Available.Height,
 		AvailableSha256:            s.Available.SHA256,
@@ -254,10 +253,10 @@ func (h *Handler) GetSnapshotStatus(ctx context.Context, req *connect.Request[pb
 		ActiveHeight:               s.Active.Height,
 		ActiveValidated:            s.Active.Validated,
 		ActiveVerificationProgress: s.Active.VerificationProgress,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.GetPendingNetworkGenerationRequest]) (*connect.Response[pb.GetPendingNetworkGenerationResponse], error) {
+func (h *Handler) GetPendingNetworkGeneration(ctx context.Context, req *pb.GetPendingNetworkGenerationRequest) (*pb.GetPendingNetworkGenerationResponse, error) {
 	pending := h.orch.PendingECashUpgrade()
 	resp := &pb.GetPendingNetworkGenerationResponse{
 		CurrentNetworkId: config.ECashNetworkID(),
@@ -269,14 +268,14 @@ func (h *Handler) GetPendingNetworkGeneration(ctx context.Context, req *connect.
 		resp.SnapshotHeight = pending.Snapshot.Height
 		resp.SnapshotSizeBytes = pending.Snapshot.SizeBytes
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
-func (h *Handler) ConfirmPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[pb.ConfirmPendingNetworkGenerationResponse], error) {
+func (h *Handler) ConfirmPendingNetworkGeneration(ctx context.Context, req *pb.ConfirmPendingNetworkGenerationRequest) (*pb.ConfirmPendingNetworkGenerationResponse, error) {
 	if err := h.orch.ConfirmPendingECashNetwork(ctx); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.ConfirmPendingNetworkGenerationResponse{}), nil
+	return &pb.ConfirmPendingNetworkGenerationResponse{}, nil
 }
 
 // StartWithL1 dispatches a boot goroutine and returns immediately. The
@@ -285,16 +284,16 @@ func (h *Handler) ConfirmPendingNetworkGeneration(ctx context.Context, req *conn
 // kill a partway-launched daemon. Callers poll GetSyncStatus for download
 // + sync state and ListBinaries for connection state — neither depends
 // on this RPC's lifetime.
-func (h *Handler) StartWithL1(ctx context.Context, req *connect.Request[pb.StartWithL1Request]) (*connect.Response[pb.StartWithL1Response], error) {
+func (h *Handler) StartWithL1(ctx context.Context, req *pb.StartWithL1Request) (*pb.StartWithL1Response, error) {
 	opts := orchestrator.StartOpts{
-		TargetArgs:   req.Msg.TargetArgs,
-		TargetEnv:    req.Msg.TargetEnv,
-		CoreArgs:     req.Msg.CoreArgs,
-		EnforcerArgs: req.Msg.EnforcerArgs,
-		Immediate:    req.Msg.Immediate,
-		ForceBackend: req.Msg.ForceBackend,
+		TargetArgs:   req.TargetArgs,
+		TargetEnv:    req.TargetEnv,
+		CoreArgs:     req.CoreArgs,
+		EnforcerArgs: req.EnforcerArgs,
+		Immediate:    req.Immediate,
+		ForceBackend: req.ForceBackend,
 	}
-	target := req.Msg.Target
+	target := req.Target
 
 	ch, err := h.orch.StartWithL1(context.Background(), target, opts)
 	if err != nil {
@@ -310,11 +309,11 @@ func (h *Handler) StartWithL1(ctx context.Context, req *connect.Request[pb.Start
 		}
 	}()
 
-	return connect.NewResponse(&pb.StartWithL1Response{}), nil
+	return &pb.StartWithL1Response{}, nil
 }
 
-func (h *Handler) ShutdownAll(ctx context.Context, req *connect.Request[pb.ShutdownAllRequest], stream *connect.ServerStream[pb.ShutdownAllResponse]) error {
-	ch, err := h.orch.ShutdownAll(ctx, req.Msg.Force)
+func (h *Handler) ShutdownAll(ctx context.Context, req *pb.ShutdownAllRequest, stream rpc.OrchestratorServiceShutdownAllServerStream) error {
+	ch, err := h.orch.ShutdownAll(ctx, req.Force)
 	if err != nil {
 		return err
 	}
@@ -343,46 +342,46 @@ func (h *Handler) ShutdownAll(ctx context.Context, req *connect.Request[pb.Shutd
 // exposed: when a fresh bitwindowd calls StartWithL1 mid-drain,
 // drivechaind adopts the in-flight drain itself (flips will-exit + awaits)
 // before booting the new stack. No caller-side glue.
-func (h *Handler) Shutdown(_ context.Context, req *connect.Request[pb.ShutdownRequest]) (*connect.Response[pb.ShutdownResponse], error) {
-	if req.Msg.GetOnlyIfLast() {
+func (h *Handler) Shutdown(_ context.Context, req *pb.ShutdownRequest) (*pb.ShutdownResponse, error) {
+	if req.GetOnlyIfLast() {
 		h.orch.ClientLeaving()
-		return connect.NewResponse(&pb.ShutdownResponse{}), nil
+		return &pb.ShutdownResponse{}, nil
 	}
-	h.orch.BeginShutdown(req.Msg.GetKeepL1())
-	return connect.NewResponse(&pb.ShutdownResponse{}), nil
+	h.orch.BeginShutdown(req.GetKeepL1())
+	return &pb.ShutdownResponse{}, nil
 }
 
-func (h *Handler) AdoptOwner(_ context.Context, req *connect.Request[pb.AdoptOwnerRequest]) (*connect.Response[pb.AdoptOwnerResponse], error) {
-	pid := int(req.Msg.GetOwnerPid())
+func (h *Handler) AdoptOwner(_ context.Context, req *pb.AdoptOwnerRequest) (*pb.AdoptOwnerResponse, error) {
+	pid := int(req.GetOwnerPid())
 	if pid <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("owner_pid must name a live process"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "owner_pid must name a live process")
 	}
 	canceled, err := h.orch.AdoptOwner(pid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.AdoptOwnerResponse{
+	return &pb.AdoptOwnerResponse{
 		CanceledExit: canceled,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetBTCPrice(ctx context.Context, req *connect.Request[pb.GetBTCPriceRequest]) (*connect.Response[pb.GetBTCPriceResponse], error) {
+func (h *Handler) GetBTCPrice(ctx context.Context, req *pb.GetBTCPriceRequest) (*pb.GetBTCPriceResponse, error) {
 	price, updatedAt, err := h.orch.GetBTCPrice()
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBTCPriceResponse{
+	return &pb.GetBTCPriceResponse{
 		Btcusd:          price,
 		LastUpdatedUnix: updatedAt.Unix(),
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetMainchainBlockchainInfo(ctx context.Context, req *connect.Request[pb.GetMainchainBlockchainInfoRequest]) (*connect.Response[pb.GetMainchainBlockchainInfoResponse], error) {
+func (h *Handler) GetMainchainBlockchainInfo(ctx context.Context, req *pb.GetMainchainBlockchainInfoRequest) (*pb.GetMainchainBlockchainInfoResponse, error) {
 	info, err := h.orch.GetMainchainBlockchainInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetMainchainBlockchainInfoResponse{
+	return &pb.GetMainchainBlockchainInfoResponse{
 		Chain:                info.Chain,
 		Blocks:               int32(info.Blocks),
 		Headers:              int32(info.Headers),
@@ -395,10 +394,10 @@ func (h *Handler) GetMainchainBlockchainInfo(ctx context.Context, req *connect.R
 		ChainWork:            info.ChainWork,
 		SizeOnDisk:           info.SizeOnDisk,
 		Pruned:               info.Pruned,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.GetForkStatusRequest]) (*connect.Response[pb.GetForkStatusResponse], error) {
+func (h *Handler) GetForkStatus(ctx context.Context, req *pb.GetForkStatusRequest) (*pb.GetForkStatusResponse, error) {
 	s, err := h.orch.ForkState(ctx)
 	if err != nil {
 		return nil, err
@@ -438,7 +437,7 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 	if err != nil {
 		replayLockTime = 0
 	}
-	return connect.NewResponse(&pb.GetForkStatusResponse{
+	return &pb.GetForkStatusResponse{
 		ForkHeight:      int32(s.ForkHeight),
 		CurrentHeight:   int32(s.CurrentHeight),
 		CurrentHeaders:  int32(s.CurrentHeaders),
@@ -449,28 +448,28 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 		NetworkName:     s.NetworkName,
 		Claims:          claims,
 		ReplayLockTime:  replayLockTime,
-	}), nil
+	}, nil
 }
 
 // GetEnforcerBlockchainInfo is a thin compatibility shim over the new
 // GetSyncStatus path. Frontends should migrate to GetSyncStatus directly.
-func (h *Handler) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[pb.GetEnforcerBlockchainInfoRequest]) (*connect.Response[pb.GetEnforcerBlockchainInfoResponse], error) {
+func (h *Handler) GetEnforcerBlockchainInfo(ctx context.Context, req *pb.GetEnforcerBlockchainInfoRequest) (*pb.GetEnforcerBlockchainInfoResponse, error) {
 	s, err := h.orch.GetSyncStatus(ctx)
 	if err != nil {
 		return nil, err
 	}
 	enf := s.Enforcer
 	if enf == nil || enf.Error != "" {
-		return connect.NewResponse(&pb.GetEnforcerBlockchainInfoResponse{}), nil
+		return &pb.GetEnforcerBlockchainInfoResponse{}, nil
 	}
-	return connect.NewResponse(&pb.GetEnforcerBlockchainInfoResponse{
+	return &pb.GetEnforcerBlockchainInfoResponse{
 		Blocks:  int32(enf.Blocks),
 		Headers: int32(enf.Headers),
 		Time:    enf.Time,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetSyncStatus(ctx context.Context, req *connect.Request[pb.GetSyncStatusRequest]) (*connect.Response[pb.GetSyncStatusResponse], error) {
+func (h *Handler) GetSyncStatus(ctx context.Context, req *pb.GetSyncStatusRequest) (*pb.GetSyncStatusResponse, error) {
 	s, err := h.orch.GetSyncStatus(ctx)
 	if err != nil {
 		return nil, err
@@ -497,13 +496,13 @@ func (h *Handler) GetSyncStatus(ctx context.Context, req *connect.Request[pb.Get
 		}
 	}
 
-	return connect.NewResponse(&pb.GetSyncStatusResponse{
+	return &pb.GetSyncStatusResponse{
 		Mainchain:        chainSyncToProto(s.Mainchain),
 		Enforcer:         chainSyncToProto(s.Enforcer),
 		ChainSource:      chainSyncToProto(s.ChainSource),
 		Sidechains:       sidechains,
 		WalletSyncStatus: walletSyncStatus,
-	}), nil
+	}, nil
 }
 
 // sidechainTypeFromName maps the orch's logical binary name to the proto
@@ -568,7 +567,7 @@ func mainchainSyncPhaseToProto(phase sidechain.MainchainSyncPhase) pb.MainchainS
 // when nothing is in flight — frontends rely on that as the steady state.
 // Binaries the proto enum doesn't know about (e.g. grpcurl) are dropped so
 // the wire format stays strongly typed.
-func (h *Handler) GetDownloadStatus(ctx context.Context, req *connect.Request[pb.GetDownloadStatusRequest]) (*connect.Response[pb.GetDownloadStatusResponse], error) {
+func (h *Handler) GetDownloadStatus(ctx context.Context, req *pb.GetDownloadStatusRequest) (*pb.GetDownloadStatusResponse, error) {
 	states := h.orch.DownloadStates()
 	downloads := make([]*pb.DownloadStatus, 0, len(states))
 	for name, s := range states {
@@ -583,9 +582,9 @@ func (h *Handler) GetDownloadStatus(ctx context.Context, req *connect.Request[pb
 			Message:      s.Message,
 		})
 	}
-	return connect.NewResponse(&pb.GetDownloadStatusResponse{
+	return &pb.GetDownloadStatusResponse{
 		Downloads: downloads,
-	}), nil
+	}, nil
 }
 
 // binaryTypeFromName maps the orchestrator's logical binary name to the
@@ -632,36 +631,36 @@ func binaryTypeFromName(name string) pb.BinaryType {
 	}
 }
 
-func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[pb.GetMainchainBalanceRequest]) (*connect.Response[pb.GetMainchainBalanceResponse], error) {
+func (h *Handler) GetMainchainBalance(ctx context.Context, req *pb.GetMainchainBalanceRequest) (*pb.GetMainchainBalanceResponse, error) {
 	bal, err := h.orch.GetMainchainBalance(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetMainchainBalanceResponse{
+	return &pb.GetMainchainBalanceResponse{
 		Confirmed:   bal.Confirmed,
 		Unconfirmed: bal.Unconfirmed,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[pb.GetSidechainBalanceRequest]) (*connect.Response[pb.GetSidechainBalanceResponse], error) {
-	name, displayName, err := sidechainNames(req.Msg.Sidechain)
+func (h *Handler) GetSidechainBalance(ctx context.Context, req *pb.GetSidechainBalanceRequest) (*pb.GetSidechainBalanceResponse, error) {
+	name, displayName, err := sidechainNames(req.Sidechain)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	cfg, ok := h.orch.Configs()[name]
 	if !ok {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("sidechain %s is not configured", name))
+		return nil, connect.Errorf(connect.CodeNotFound, "sidechain %s is not configured", name)
 	}
 
 	confirmedSats, pendingSats, err := h.fetchSidechainBalance(ctx, cfg)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	// A node counts a coin once a block carries it, so a payment on its way
 	// reads as nothing at all until the next block.
 	delta, err := h.mempoolDelta(ctx, cfg)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	confirmedSats, pendingSats = applyMempoolDelta(confirmedSats, pendingSats, delta)
 	// Read the deposits last. The sidechain credits a deposit into the balance
@@ -669,26 +668,26 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	// for one poll, and never in both.
 	depositSats, err := h.depositPendingSats(ctx, cfg)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	pendingSats += depositSats
 
 	if h.orch.WalletSvc != nil {
 		if err := h.orch.WalletSvc.SyncBalance(
-			req.Msg.Sidechain,
+			req.Sidechain,
 			h.orch.WalletSvc.ActiveWalletID(),
 			uint64(confirmedSats),
 			uint64(pendingSats),
 			displayName,
 		); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
-	return connect.NewResponse(&pb.GetSidechainBalanceResponse{
+	return &pb.GetSidechainBalanceResponse{
 		ConfirmedSats: uint64(confirmedSats),
 		PendingSats:   uint64(pendingSats),
-	}), nil
+	}, nil
 }
 
 // sidechainNames maps a sidechain binary to its config key and the name shown
@@ -928,8 +927,8 @@ func specsFromItems(items []*pb.SingleDeletion) []orchestrator.GatherSpec {
 	})
 }
 
-func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[pb.GatherFilesToDeleteRequest]) (*connect.Response[pb.GatherFilesToDeleteResponse], error) {
-	files, err := h.orch.GatherFilesToDelete(specsFromItems(req.Msg.Items))
+func (h *Handler) GatherFilesToDelete(ctx context.Context, req *pb.GatherFilesToDeleteRequest) (*pb.GatherFilesToDeleteResponse, error) {
+	files, err := h.orch.GatherFilesToDelete(specsFromItems(req.Items))
 	if err != nil {
 		return nil, err
 	}
@@ -945,7 +944,7 @@ func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[
 			}
 		}),
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // deletablePaths drops user-deselected paths from the gathered set. Subtractive
@@ -958,16 +957,16 @@ func deletablePaths(files []orchestrator.ResetFileInfo, except []string) []strin
 	})
 }
 
-func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.DeleteFilesRequest], stream *connect.ServerStream[pb.DeleteFilesResponse]) error {
+func (h *Handler) DeleteFiles(ctx context.Context, req *pb.DeleteFilesRequest, stream rpc.OrchestratorServiceDeleteFilesServerStream) error {
 	// Resolve paths from the request's specs instead of trusting client paths,
 	// so a caller can't drive deletion outside the gather set.
-	specs := specsFromItems(req.Msg.Items)
+	specs := specsFromItems(req.Items)
 	files, err := h.orch.GatherFilesToDelete(specs)
 	if err != nil {
 		return err
 	}
 
-	ch, err := h.orch.DeleteFiles(ctx, deletablePaths(files, req.Msg.Except), specs)
+	ch, err := h.orch.DeleteFiles(ctx, deletablePaths(files, req.Except), specs)
 	if err != nil {
 		return err
 	}
@@ -980,16 +979,16 @@ func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.Delet
 	return nil
 }
 
-func (h *Handler) RejectBlock(ctx context.Context, req *connect.Request[pb.RejectBlockRequest]) (*connect.Response[pb.RejectBlockResponse], error) {
+func (h *Handler) RejectBlock(ctx context.Context, req *pb.RejectBlockRequest) (*pb.RejectBlockResponse, error) {
 	res, err := h.orch.RejectBlock(
 		ctx,
-		req.Msg.BlockHash,
-		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
+		req.BlockHash,
+		time.Duration(req.EnforcerWaitSeconds)*time.Second,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.RejectBlockResponse{
+	return &pb.RejectBlockResponse{
 		CoreHeight:      res.CoreHeight,
 		CoreTipHash:     res.CoreTipHash,
 		Outcome:         rejectOutcomeToProto(res.Outcome),
@@ -997,7 +996,7 @@ func (h *Handler) RejectBlock(ctx context.Context, req *connect.Request[pb.Rejec
 		EnforcerRebuilt: res.EnforcerRebuilt,
 		EnforcerError:   res.EnforcerError,
 		EnforcerChecked: res.EnforcerChecked,
-	}), nil
+	}, nil
 }
 
 func rejectOutcomeToProto(o orchestrator.RejectOutcome) pb.RejectOutcome {
@@ -1012,23 +1011,23 @@ func rejectOutcomeToProto(o orchestrator.RejectOutcome) pb.RejectOutcome {
 	return pb.RejectOutcome_REJECT_OUTCOME_UNSPECIFIED
 }
 
-func (h *Handler) AcceptBlock(ctx context.Context, req *connect.Request[pb.AcceptBlockRequest]) (*connect.Response[pb.AcceptBlockResponse], error) {
+func (h *Handler) AcceptBlock(ctx context.Context, req *pb.AcceptBlockRequest) (*pb.AcceptBlockResponse, error) {
 	res, err := h.orch.AcceptBlock(
 		ctx,
-		req.Msg.BlockHash,
-		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
+		req.BlockHash,
+		time.Duration(req.EnforcerWaitSeconds)*time.Second,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.AcceptBlockResponse{
+	return &pb.AcceptBlockResponse{
 		CoreHeight:      res.CoreHeight,
 		CoreTipHash:     res.CoreTipHash,
 		EnforcerHeight:  res.EnforcerHeight,
 		EnforcerRebuilt: res.EnforcerRebuilt,
 		EnforcerError:   res.EnforcerError,
 		EnforcerChecked: res.EnforcerChecked,
-	}), nil
+	}, nil
 }
 
 // ResetToBlock moves the chain back to a block, then syncs forward to the tip
@@ -1036,13 +1035,13 @@ func (h *Handler) AcceptBlock(ctx context.Context, req *connect.Request[pb.Accep
 // opens, so the caller sees it as an RPC error.
 func (h *Handler) ResetToBlock(
 	ctx context.Context,
-	req *connect.Request[pb.ResetToBlockRequest],
-	stream *connect.ServerStream[pb.ResetToBlockResponse],
+	req *pb.ResetToBlockRequest,
+	stream rpc.OrchestratorServiceResetToBlockServerStream,
 ) error {
 	ch, err := h.orch.ResetToBlock(
 		ctx,
-		req.Msg.Target,
-		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
+		req.Target,
+		time.Duration(req.EnforcerWaitSeconds)*time.Second,
 	)
 	if err != nil {
 		return rpcError(err)
@@ -1050,7 +1049,7 @@ func (h *Handler) ResetToBlock(
 
 	for p := range ch {
 		if p.Error != nil {
-			return connect.NewError(connect.CodeFailedPrecondition, p.Error)
+			return connect.NewError(connect.CodeFailedPrecondition, p.Error.Error()).WithCause(p.Error)
 		}
 		if err := stream.Send(&pb.ResetToBlockResponse{
 			Phase:           resetPhaseToProto(p.Phase),
@@ -1154,13 +1153,13 @@ type coreRPCResult struct {
 
 func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet string) (json.RawMessage, error) {
 	if h.orch.BitcoinConf == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin conf not loaded"))
+		return nil, connect.Errorf(connect.CodeUnavailable, "bitcoin conf not loaded")
 	}
 
 	port := h.orch.BitcoinConf.GetRPCPort()
 	user, password, err := h.orch.BitcoinConf.GetRPCCredentials()
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("core rpc credentials: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("core rpc credentials: %w", err).Error())
 	}
 
 	if paramsJSON == "" {
@@ -1204,10 +1203,10 @@ func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet st
 	return out.Result, nil
 }
 
-func (h *Handler) GetCoreMempoolInfo(ctx context.Context, _ *connect.Request[pb.GetCoreMempoolInfoRequest]) (*connect.Response[pb.GetCoreMempoolInfoResponse], error) {
+func (h *Handler) GetCoreMempoolInfo(ctx context.Context, _ *pb.GetCoreMempoolInfoRequest) (*pb.GetCoreMempoolInfoResponse, error) {
 	raw, err := h.callCoreRPC(ctx, "getmempoolinfo", "[]", "")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	var info struct {
 		Loaded              bool    `json:"loaded"`
@@ -1223,9 +1222,9 @@ func (h *Handler) GetCoreMempoolInfo(ctx context.Context, _ *connect.Request[pb.
 		FullRBF             bool    `json:"fullrbf"`
 	}
 	if err := json.Unmarshal(raw, &info); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getmempoolinfo: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getmempoolinfo: %w", err).Error())
 	}
-	return connect.NewResponse(&pb.GetCoreMempoolInfoResponse{
+	return &pb.GetCoreMempoolInfoResponse{
 		Loaded:              info.Loaded,
 		Size:                info.Size,
 		Bytes:               info.Bytes,
@@ -1237,13 +1236,13 @@ func (h *Handler) GetCoreMempoolInfo(ctx context.Context, _ *connect.Request[pb.
 		IncrementalRelayFee: info.IncrementalRelayFee,
 		UnbroadcastCount:    info.UnbroadcastCount,
 		FullRbf:             info.FullRBF,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetBmmContext(ctx context.Context, _ *connect.Request[pb.GetBmmContextRequest]) (*connect.Response[pb.GetBmmContextResponse], error) {
+func (h *Handler) GetBmmContext(ctx context.Context, _ *pb.GetBmmContextRequest) (*pb.GetBmmContextResponse, error) {
 	rawChain, err := h.callCoreRPC(ctx, "getblockchaininfo", "[]", "")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	var chain struct {
 		Blocks        int32  `json:"blocks"`
@@ -1251,27 +1250,27 @@ func (h *Handler) GetBmmContext(ctx context.Context, _ *connect.Request[pb.GetBm
 		Warnings      any    `json:"warnings"`
 	}
 	if err := json.Unmarshal(rawChain, &chain); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getblockchaininfo: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getblockchaininfo: %w", err).Error())
 	}
 
 	rawMempool, err := h.callCoreRPC(ctx, "getmempoolinfo", "[]", "")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	var mempool struct {
 		Size int64 `json:"size"`
 	}
 	if err := json.Unmarshal(rawMempool, &mempool); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getmempoolinfo: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getmempoolinfo: %w", err).Error())
 	}
 
-	return connect.NewResponse(&pb.GetBmmContextResponse{
+	return &pb.GetBmmContextResponse{
 		MainchainHeight: chain.Blocks,
 		MainchainTip:    chain.BestBlockHash,
 		FeeRateSatVb:    h.nextBlockFeeRate(ctx),
 		MempoolTxns:     mempool.Size,
 		Warnings:        coreWarnings(chain.Warnings),
-	}), nil
+	}, nil
 }
 
 // nextBlockFeeRate converts estimatesmartfee's BTC/kvB into sat/vB. A node
@@ -1315,10 +1314,10 @@ func (h *Handler) RawCoreCall(ctx context.Context, method, paramsJSON, wallet st
 	return h.callCoreRPC(ctx, method, paramsJSON, wallet)
 }
 
-func (h *Handler) CoreRawCall(ctx context.Context, req *connect.Request[pb.CoreRawCallRequest]) (*connect.Response[pb.CoreRawCallResponse], error) {
-	raw, err := h.callCoreRPC(ctx, req.Msg.Method, req.Msg.ParamsJson, req.Msg.Wallet)
+func (h *Handler) CoreRawCall(ctx context.Context, req *pb.CoreRawCallRequest) (*pb.CoreRawCallResponse, error) {
+	raw, err := h.callCoreRPC(ctx, req.Method, req.ParamsJson, req.Wallet)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.CoreRawCallResponse{ResultJson: string(raw)}), nil
+	return &pb.CoreRawCallResponse{ResultJson: string(raw)}, nil
 }

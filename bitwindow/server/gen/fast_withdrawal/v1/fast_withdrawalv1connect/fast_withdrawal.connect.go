@@ -5,108 +5,129 @@
 package fast_withdrawalv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/fast_withdrawal/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// FastWithdrawalServiceName is the fully-qualified name of the FastWithdrawalService service.
 	FastWithdrawalServiceName = "fast_withdrawal.v1.FastWithdrawalService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// FastWithdrawalServiceInitiateFastWithdrawalProcedure is the fully-qualified name of the
+	// FastWithdrawalServiceInitiateFastWithdrawalProcedure is the procedure name of the
 	// FastWithdrawalService's InitiateFastWithdrawal RPC.
 	FastWithdrawalServiceInitiateFastWithdrawalProcedure = "/fast_withdrawal.v1.FastWithdrawalService/InitiateFastWithdrawal"
 )
 
+var (
+	fastWithdrawalServiceInitiateFastWithdrawalSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_fast_withdrawal_v1_fast_withdrawal_proto.Services().ByName("FastWithdrawalService").Methods().ByName("InitiateFastWithdrawal"),
+			Procedure:  FastWithdrawalServiceInitiateFastWithdrawalProcedure,
+		}
+	})
+)
+
 // FastWithdrawalServiceClient is a client for the fast_withdrawal.v1.FastWithdrawalService service.
 type FastWithdrawalServiceClient interface {
-	// InitiateFastWithdrawal starts a fast withdrawal and streams status updates
-	InitiateFastWithdrawal(context.Context, *connect.Request[v1.InitiateFastWithdrawalRequest]) (*connect.ServerStreamForClient[v1.FastWithdrawalUpdate], error)
+	InitiateFastWithdrawal(context.Context, *v1.InitiateFastWithdrawalRequest) (FastWithdrawalServiceInitiateFastWithdrawalClientStream, error)
 }
 
 // NewFastWithdrawalServiceClient constructs a client for the
-// fast_withdrawal.v1.FastWithdrawalService service. By default, it uses the Connect protocol with
-// the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To use
-// the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewFastWithdrawalServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) FastWithdrawalServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	fastWithdrawalServiceMethods := v1.File_fast_withdrawal_v1_fast_withdrawal_proto.Services().ByName("FastWithdrawalService").Methods()
-	return &fastWithdrawalServiceClient{
-		initiateFastWithdrawal: connect.NewClient[v1.InitiateFastWithdrawalRequest, v1.FastWithdrawalUpdate](
-			httpClient,
-			baseURL+FastWithdrawalServiceInitiateFastWithdrawalProcedure,
-			connect.WithSchema(fastWithdrawalServiceMethods.ByName("InitiateFastWithdrawal")),
-			connect.WithClientOptions(opts...),
-		),
+// fast_withdrawal.v1.FastWithdrawalService service. Multiple service clients may share a single
+// connect.Client.
+func NewFastWithdrawalServiceClient(client *connect.Client) FastWithdrawalServiceClient {
+	return &fastWithdrawalServiceClient{client: client}
+}
+
+// FastWithdrawalServiceInitiateFastWithdrawalClientStream is the client stream for the
+// FastWithdrawalService's InitiateFastWithdrawal RPC.
+type FastWithdrawalServiceInitiateFastWithdrawalClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s FastWithdrawalServiceInitiateFastWithdrawalClientStream) Receive() (*v1.FastWithdrawalUpdate, error) {
+	var res v1.FastWithdrawalUpdate
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// fastWithdrawalServiceClient implements FastWithdrawalServiceClient.
-type fastWithdrawalServiceClient struct {
-	initiateFastWithdrawal *connect.Client[v1.InitiateFastWithdrawalRequest, v1.FastWithdrawalUpdate]
-}
-
-// InitiateFastWithdrawal calls fast_withdrawal.v1.FastWithdrawalService.InitiateFastWithdrawal.
-func (c *fastWithdrawalServiceClient) InitiateFastWithdrawal(ctx context.Context, req *connect.Request[v1.InitiateFastWithdrawalRequest]) (*connect.ServerStreamForClient[v1.FastWithdrawalUpdate], error) {
-	return c.initiateFastWithdrawal.CallServerStream(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s FastWithdrawalServiceInitiateFastWithdrawalClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // FastWithdrawalServiceHandler is an implementation of the fast_withdrawal.v1.FastWithdrawalService
 // service.
 type FastWithdrawalServiceHandler interface {
-	// InitiateFastWithdrawal starts a fast withdrawal and streams status updates
-	InitiateFastWithdrawal(context.Context, *connect.Request[v1.InitiateFastWithdrawalRequest], *connect.ServerStream[v1.FastWithdrawalUpdate]) error
+	InitiateFastWithdrawal(context.Context, *v1.InitiateFastWithdrawalRequest, FastWithdrawalServiceInitiateFastWithdrawalServerStream) error
 }
 
-// NewFastWithdrawalServiceHandler builds an HTTP handler from the service implementation. It
-// returns the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewFastWithdrawalServiceHandler(svc FastWithdrawalServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	fastWithdrawalServiceMethods := v1.File_fast_withdrawal_v1_fast_withdrawal_proto.Services().ByName("FastWithdrawalService").Methods()
-	fastWithdrawalServiceInitiateFastWithdrawalHandler := connect.NewServerStreamHandler(
-		FastWithdrawalServiceInitiateFastWithdrawalProcedure,
-		svc.InitiateFastWithdrawal,
-		connect.WithSchema(fastWithdrawalServiceMethods.ByName("InitiateFastWithdrawal")),
-		connect.WithHandlerOptions(opts...),
+// RegisterFastWithdrawalServiceHandler registers svc as the
+// fast_withdrawal.v1.FastWithdrawalService implementation on server.
+func RegisterFastWithdrawalServiceHandler(server *connect.Server, svc FastWithdrawalServiceHandler) {
+	adapter := fastWithdrawalServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: fastWithdrawalServiceInitiateFastWithdrawalSpec(), Handler: adapter.initiateFastWithdrawal},
 	)
-	return "/fast_withdrawal.v1.FastWithdrawalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case FastWithdrawalServiceInitiateFastWithdrawalProcedure:
-			fastWithdrawalServiceInitiateFastWithdrawalHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// FastWithdrawalServiceInitiateFastWithdrawalServerStream is the server stream for the
+// FastWithdrawalService's InitiateFastWithdrawal RPC.
+type FastWithdrawalServiceInitiateFastWithdrawalServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s FastWithdrawalServiceInitiateFastWithdrawalServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s FastWithdrawalServiceInitiateFastWithdrawalServerStream) Send(res *v1.FastWithdrawalUpdate) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedFastWithdrawalServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedFastWithdrawalServiceHandler struct{}
 
-func (UnimplementedFastWithdrawalServiceHandler) InitiateFastWithdrawal(context.Context, *connect.Request[v1.InitiateFastWithdrawalRequest], *connect.ServerStream[v1.FastWithdrawalUpdate]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("fast_withdrawal.v1.FastWithdrawalService.InitiateFastWithdrawal is not implemented"))
+func (UnimplementedFastWithdrawalServiceHandler) InitiateFastWithdrawal(context.Context, *v1.InitiateFastWithdrawalRequest, FastWithdrawalServiceInitiateFastWithdrawalServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "fast_withdrawal.v1.FastWithdrawalService.InitiateFastWithdrawal is not implemented")
+}
+
+type fastWithdrawalServiceClient struct {
+	client *connect.Client
+}
+
+func (c *fastWithdrawalServiceClient) InitiateFastWithdrawal(ctx context.Context, req *v1.InitiateFastWithdrawalRequest) (FastWithdrawalServiceInitiateFastWithdrawalClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, fastWithdrawalServiceInitiateFastWithdrawalSpec(), req)
+	if err != nil {
+		return FastWithdrawalServiceInitiateFastWithdrawalClientStream{}, err
+	}
+	return FastWithdrawalServiceInitiateFastWithdrawalClientStream{stream: stream}, nil
+}
+
+type fastWithdrawalServiceHandler struct{ svc FastWithdrawalServiceHandler }
+
+func (h fastWithdrawalServiceHandler) initiateFastWithdrawal(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.InitiateFastWithdrawalRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.InitiateFastWithdrawal(ctx, &req, FastWithdrawalServiceInitiateFastWithdrawalServerStream{stream: stream})
 }

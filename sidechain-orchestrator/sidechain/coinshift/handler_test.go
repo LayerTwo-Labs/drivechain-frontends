@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -77,7 +77,7 @@ func TestCreateSwap(t *testing.T) {
 
 	l2Recipient := "cs1qrecipient"
 	requiredConfirmations := int32(6)
-	resp, err := h.CreateSwap(context.Background(), connect.NewRequest(&pb.CreateSwapRequest{
+	resp, err := h.CreateSwap(context.Background(), &pb.CreateSwapRequest{
 		L2AmountSats:          2_000,
 		L1AmountSats:          1_000,
 		L1RecipientAddress:    "bc1qrecipient",
@@ -85,24 +85,24 @@ func TestCreateSwap(t *testing.T) {
 		L2Recipient:           &l2Recipient,
 		RequiredConfirmations: &requiredConfirmations,
 		FeeSats:               10,
-	}))
+	})
 	require.NoError(t, err)
 
 	call := lastCall()
 	assert.Equal(t, "create_swap", call.method)
 	assert.JSONEq(t, `["Signet","bc1qrecipient",1000,"cs1qrecipient",2000,6,10]`, call.params)
-	assert.Equal(t, testSwapIDHex, resp.Msg.SwapId)
-	assert.Equal(t, "abc123", resp.Msg.Txid)
+	assert.Equal(t, testSwapIDHex, resp.SwapId)
+	assert.Equal(t, "abc123", resp.Txid)
 }
 
 func TestClaimSwapSendsSwapIDBytes(t *testing.T) {
 	h, lastCall := stubNode(t, `"txid"`)
 
 	claimer := "cs1qclaimer"
-	_, err := h.ClaimSwap(context.Background(), connect.NewRequest(&pb.ClaimSwapRequest{
+	_, err := h.ClaimSwap(context.Background(), &pb.ClaimSwapRequest{
 		SwapId:           testSwapIDHex,
 		L2ClaimerAddress: &claimer,
-	}))
+	})
 	require.NoError(t, err)
 
 	call := lastCall()
@@ -113,9 +113,9 @@ func TestClaimSwapSendsSwapIDBytes(t *testing.T) {
 func TestGetSwapStatusSendsSwapIDBytes(t *testing.T) {
 	h, lastCall := stubNode(t, `null`)
 
-	_, err := h.GetSwapStatus(context.Background(), connect.NewRequest(&pb.GetSwapStatusRequest{
+	_, err := h.GetSwapStatus(context.Background(), &pb.GetSwapStatusRequest{
 		SwapId: testSwapIDHex,
-	}))
+	})
 	require.NoError(t, err)
 
 	call := lastCall()
@@ -126,11 +126,11 @@ func TestGetSwapStatusSendsSwapIDBytes(t *testing.T) {
 func TestUpdateSwapL1TxidSendsSwapIDBytes(t *testing.T) {
 	h, lastCall := stubNode(t, `null`)
 
-	_, err := h.UpdateSwapL1Txid(context.Background(), connect.NewRequest(&pb.UpdateSwapL1TxidRequest{
+	_, err := h.UpdateSwapL1Txid(context.Background(), &pb.UpdateSwapL1TxidRequest{
 		SwapId:        testSwapIDHex,
 		L1TxidHex:     "abcd",
 		Confirmations: 3,
-	}))
+	})
 	require.NoError(t, err)
 
 	call := lastCall()
@@ -143,13 +143,13 @@ func TestSwapMethodsRejectInvalidSwapID(t *testing.T) {
 	ctx := context.Background()
 
 	for _, id := range []string{"", "deadbeef", "zz" + strings.Repeat("00", 31)} {
-		_, err := h.ClaimSwap(ctx, connect.NewRequest(&pb.ClaimSwapRequest{SwapId: id}))
+		_, err := h.ClaimSwap(ctx, &pb.ClaimSwapRequest{SwapId: id})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), id)
 
-		_, err = h.GetSwapStatus(ctx, connect.NewRequest(&pb.GetSwapStatusRequest{SwapId: id}))
+		_, err = h.GetSwapStatus(ctx, &pb.GetSwapStatusRequest{SwapId: id})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), id)
 
-		_, err = h.UpdateSwapL1Txid(ctx, connect.NewRequest(&pb.UpdateSwapL1TxidRequest{SwapId: id}))
+		_, err = h.UpdateSwapL1Txid(ctx, &pb.UpdateSwapL1TxidRequest{SwapId: id})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), id)
 	}
 }

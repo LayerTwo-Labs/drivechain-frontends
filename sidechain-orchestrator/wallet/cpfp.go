@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 )
 
 // CpfpRequest selects an unconfirmed wallet UTXO (the parent's output that this
@@ -53,7 +53,7 @@ func (s *Service) checkCpfpParent(ctx context.Context, walletID string, req Cpfp
 		return err
 	}
 	if frozen[parent.Key()] {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("outpoint %s is held by a live bmm bid", parent.Key()))
+		return connect.Errorf(connect.CodeFailedPrecondition, "outpoint %s is held by a live bmm bid", parent.Key())
 	}
 	return nil
 }

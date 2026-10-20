@@ -3,16 +3,16 @@ package api
 import (
 	"context"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 )
 
-func (h *Handler) GetDatadirNetwork(ctx context.Context, _ *connect.Request[pb.GetDatadirNetworkRequest]) (*connect.Response[pb.GetDatadirNetworkResponse], error) {
+func (h *Handler) GetDatadirNetwork(ctx context.Context, _ *pb.GetDatadirNetworkRequest) (*pb.GetDatadirNetworkResponse, error) {
 	out, err := h.orch.ReadDatadirNetwork(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.GetDatadirNetworkResponse{
+	return &pb.GetDatadirNetworkResponse{
 		Magic:             out.Magic,
 		DetectedId:        out.DetectedID,
 		DetectedName:      out.DetectedName,
@@ -28,5 +28,5 @@ func (h *Handler) GetDatadirNetwork(ctx context.Context, _ *connect.Request[pb.G
 		ConvertFromName:   out.ConvertFromName,
 		ConvertToId:       out.ConvertToID,
 		ConvertToName:     out.ConvertToName,
-	}), nil
+	}, nil
 }

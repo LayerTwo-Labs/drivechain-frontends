@@ -10,7 +10,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -120,8 +121,8 @@ type restartL1Handler struct {
 	orchrpc.UnimplementedOrchestratorServiceHandler
 }
 
-func (restartL1Handler) RestartL1(context.Context, *connect.Request[orchpb.RestartL1Request]) (*connect.Response[orchpb.RestartL1Response], error) {
-	return connect.NewResponse(&orchpb.RestartL1Response{}), nil
+func (restartL1Handler) RestartL1(context.Context, *orchpb.RestartL1Request) (*orchpb.RestartL1Response, error) {
+	return &orchpb.RestartL1Response{}, nil
 }
 
 func TestOrchestrator(t *testing.T) {
@@ -130,17 +131,19 @@ func TestOrchestrator(t *testing.T) {
 	require.NoError(t, err)
 
 	mux := http.NewServeMux()
-	mux.Handle(orchrpc.NewOrchestratorServiceHandler(restartL1Handler{}, connect.WithInterceptors(localauth.Interceptor(dir))))
+	srv := connect.NewServer(localauth.ServerInterceptor(dir))
+	orchrpc.RegisterOrchestratorServiceHandler(srv, restartL1Handler{})
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
 	t.Run("the cookie authenticates the call", func(t *testing.T) {
-		_, err := Orchestrator(server.URL, dir).RestartL1(t.Context(), connect.NewRequest(&orchpb.RestartL1Request{}))
+		_, err := Orchestrator(server.URL, dir).RestartL1(t.Context(), &orchpb.RestartL1Request{})
 		require.NoError(t, err)
 	})
 
 	t.Run("no cookie fails the call", func(t *testing.T) {
-		_, err := Orchestrator(server.URL, t.TempDir()).RestartL1(t.Context(), connect.NewRequest(&orchpb.RestartL1Request{}))
+		_, err := Orchestrator(server.URL, t.TempDir()).RestartL1(t.Context(), &orchpb.RestartL1Request{})
 		require.ErrorContains(t, err, "unauthenticated")
 	})
 }
@@ -149,8 +152,8 @@ type bitcoinConfHandler struct {
 	orchrpc.UnimplementedBitcoinConfServiceHandler
 }
 
-func (bitcoinConfHandler) GetBitcoinConfig(context.Context, *connect.Request[orchpb.GetBitcoinConfigRequest]) (*connect.Response[orchpb.GetBitcoinConfigResponse], error) {
-	return connect.NewResponse(&orchpb.GetBitcoinConfigResponse{Network: "signet"}), nil
+func (bitcoinConfHandler) GetBitcoinConfig(context.Context, *orchpb.GetBitcoinConfigRequest) (*orchpb.GetBitcoinConfigResponse, error) {
+	return &orchpb.GetBitcoinConfigResponse{Network: "signet"}, nil
 }
 
 func TestBitcoinConf(t *testing.T) {
@@ -159,18 +162,20 @@ func TestBitcoinConf(t *testing.T) {
 	require.NoError(t, err)
 
 	mux := http.NewServeMux()
-	mux.Handle(orchrpc.NewBitcoinConfServiceHandler(bitcoinConfHandler{}, connect.WithInterceptors(localauth.Interceptor(dir))))
+	srv := connect.NewServer(localauth.ServerInterceptor(dir))
+	orchrpc.RegisterBitcoinConfServiceHandler(srv, bitcoinConfHandler{})
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
 	t.Run("the cookie authenticates the call", func(t *testing.T) {
-		resp, err := BitcoinConf(server.URL, dir).GetBitcoinConfig(t.Context(), connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+		resp, err := BitcoinConf(server.URL, dir).GetBitcoinConfig(t.Context(), &orchpb.GetBitcoinConfigRequest{})
 		require.NoError(t, err)
-		assert.Equal(t, "signet", resp.Msg.GetNetwork())
+		assert.Equal(t, "signet", resp.GetNetwork())
 	})
 
 	t.Run("no cookie fails the call", func(t *testing.T) {
-		_, err := BitcoinConf(server.URL, t.TempDir()).GetBitcoinConfig(t.Context(), connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+		_, err := BitcoinConf(server.URL, t.TempDir()).GetBitcoinConfig(t.Context(), &orchpb.GetBitcoinConfigRequest{})
 		require.ErrorContains(t, err, "unauthenticated")
 	})
 }
@@ -179,8 +184,8 @@ type walletManagerHandler struct {
 	walletmanagerrpc.UnimplementedWalletManagerServiceHandler
 }
 
-func (walletManagerHandler) GetNodeMode(context.Context, *connect.Request[walletmanagerpb.GetNodeModeRequest]) (*connect.Response[walletmanagerpb.GetNodeModeResponse], error) {
-	return connect.NewResponse(&walletmanagerpb.GetNodeModeResponse{Mode: walletmanagerpb.NodeMode_NODE_MODE_FULL}), nil
+func (walletManagerHandler) GetNodeMode(context.Context, *walletmanagerpb.GetNodeModeRequest) (*walletmanagerpb.GetNodeModeResponse, error) {
+	return &walletmanagerpb.GetNodeModeResponse{Mode: walletmanagerpb.NodeMode_NODE_MODE_FULL}, nil
 }
 
 func TestWalletManager(t *testing.T) {
@@ -189,18 +194,20 @@ func TestWalletManager(t *testing.T) {
 	require.NoError(t, err)
 
 	mux := http.NewServeMux()
-	mux.Handle(walletmanagerrpc.NewWalletManagerServiceHandler(walletManagerHandler{}, connect.WithInterceptors(localauth.Interceptor(dir))))
+	srv := connect.NewServer(localauth.ServerInterceptor(dir))
+	walletmanagerrpc.RegisterWalletManagerServiceHandler(srv, walletManagerHandler{})
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
 	t.Run("the cookie authenticates the call", func(t *testing.T) {
-		resp, err := WalletManager(server.URL, dir).GetNodeMode(t.Context(), connect.NewRequest(&walletmanagerpb.GetNodeModeRequest{}))
+		resp, err := WalletManager(server.URL, dir).GetNodeMode(t.Context(), &walletmanagerpb.GetNodeModeRequest{})
 		require.NoError(t, err)
-		assert.Equal(t, walletmanagerpb.NodeMode_NODE_MODE_FULL, resp.Msg.GetMode())
+		assert.Equal(t, walletmanagerpb.NodeMode_NODE_MODE_FULL, resp.GetMode())
 	})
 
 	t.Run("no cookie fails the call", func(t *testing.T) {
-		_, err := WalletManager(server.URL, t.TempDir()).GetNodeMode(t.Context(), connect.NewRequest(&walletmanagerpb.GetNodeModeRequest{}))
+		_, err := WalletManager(server.URL, t.TempDir()).GetNodeMode(t.Context(), &walletmanagerpb.GetNodeModeRequest{})
 		require.ErrorContains(t, err, "unauthenticated")
 	})
 }

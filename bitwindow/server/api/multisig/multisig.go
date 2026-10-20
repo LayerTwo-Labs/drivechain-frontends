@@ -3,11 +3,10 @@ package multisig
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -31,35 +30,35 @@ func New(db *sql.DB) *Server {
 
 func (s *Server) ListGroups(
 	ctx context.Context,
-	req *connect.Request[emptypb.Empty],
-) (*connect.Response[pb.ListGroupsResponse], error) {
+	req *emptypb.Empty,
+) (*pb.ListGroupsResponse, error) {
 	groups, err := s.store.ListGroups(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list groups: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("list groups: %s", err)).WithCause(err)
 	}
 
 	var pbGroups []*pb.MultisigGroup
 	for _, g := range groups {
 		pbGroup, err := s.groupToProto(ctx, g)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 		pbGroups = append(pbGroups, pbGroup)
 	}
 
-	return connect.NewResponse(&pb.ListGroupsResponse{Groups: pbGroups}), nil
+	return &pb.ListGroupsResponse{Groups: pbGroups}, nil
 }
 
 func (s *Server) SaveGroup(
 	ctx context.Context,
-	req *connect.Request[pb.SaveGroupRequest],
-) (*connect.Response[pb.SaveGroupResponse], error) {
-	pg := req.Msg.Group
+	req *pb.SaveGroupRequest,
+) (*pb.SaveGroupResponse, error) {
+	pg := req.Group
 	if pg == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("group is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "group is required")
 	}
 	if pg.Id == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("group id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "group id is required")
 	}
 
 	g := multisig.Group{
@@ -152,97 +151,97 @@ func (s *Server) SaveGroup(
 		UtxoDetails:    utxos,
 		TransactionIDs: pg.TransactionIds,
 	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save group atomic: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("save group atomic: %s", err)).WithCause(err)
 	}
 
 	saved, err := s.groupToProto(ctx, g)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.SaveGroupResponse{Group: saved}), nil
+	return &pb.SaveGroupResponse{Group: saved}, nil
 }
 
 func (s *Server) DeleteGroup(
 	ctx context.Context,
-	req *connect.Request[pb.DeleteGroupRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	if err := s.store.DeleteGroup(ctx, req.Msg.GroupId); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("delete group: %w", err))
+	req *pb.DeleteGroupRequest,
+) (*emptypb.Empty, error) {
+	if err := s.store.DeleteGroup(ctx, req.GroupId); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("delete group: %s", err)).WithCause(err)
 	}
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 // ─── Transactions ──────────────────────────────────────────────────
 
 func (s *Server) ListTransactions(
 	ctx context.Context,
-	req *connect.Request[pb.ListTransactionsRequest],
-) (*connect.Response[pb.ListTransactionsResponse], error) {
-	txns, err := s.store.ListTransactions(ctx, req.Msg.GroupId)
+	req *pb.ListTransactionsRequest,
+) (*pb.ListTransactionsResponse, error) {
+	txns, err := s.store.ListTransactions(ctx, req.GroupId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list transactions: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("list transactions: %s", err)).WithCause(err)
 	}
 
 	var pbTxns []*pb.MultisigTransaction
 	for _, t := range txns {
 		pbTx, err := s.txToProto(ctx, t)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 		pbTxns = append(pbTxns, pbTx)
 	}
 
-	return connect.NewResponse(&pb.ListTransactionsResponse{Transactions: pbTxns}), nil
+	return &pb.ListTransactionsResponse{Transactions: pbTxns}, nil
 }
 
 func (s *Server) GetTransaction(
 	ctx context.Context,
-	req *connect.Request[pb.GetTransactionRequest],
-) (*connect.Response[pb.MultisigTransaction], error) {
-	t, err := s.store.GetTransaction(ctx, req.Msg.TransactionId)
+	req *pb.GetTransactionRequest,
+) (*pb.MultisigTransaction, error) {
+	t, err := s.store.GetTransaction(ctx, req.TransactionId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if t == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found: %s", req.Msg.TransactionId))
+		return nil, connect.Errorf(connect.CodeNotFound, "transaction not found: %s", req.TransactionId)
 	}
 
 	pbTx, err := s.txToProto(ctx, *t)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(pbTx), nil
+	return pbTx, nil
 }
 
 func (s *Server) GetTransactionByTxid(
 	ctx context.Context,
-	req *connect.Request[pb.GetTransactionByTxidRequest],
-) (*connect.Response[pb.MultisigTransaction], error) {
-	t, err := s.store.GetTransactionByTxid(ctx, req.Msg.Txid)
+	req *pb.GetTransactionByTxidRequest,
+) (*pb.MultisigTransaction, error) {
+	t, err := s.store.GetTransactionByTxid(ctx, req.Txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if t == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found for txid: %s", req.Msg.Txid))
+		return nil, connect.Errorf(connect.CodeNotFound, "transaction not found for txid: %s", req.Txid)
 	}
 
 	pbTx, err := s.txToProto(ctx, *t)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(pbTx), nil
+	return pbTx, nil
 }
 
 func (s *Server) SaveTransaction(
 	ctx context.Context,
-	req *connect.Request[pb.SaveTransactionRequest],
-) (*connect.Response[pb.SaveTransactionResponse], error) {
-	pt := req.Msg.Transaction
+	req *pb.SaveTransactionRequest,
+) (*pb.SaveTransactionResponse, error) {
+	pt := req.Transaction
 	if pt == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("transaction is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "transaction is required")
 	}
 
 	t := multisig.Transaction{
@@ -305,35 +304,35 @@ func (s *Server) SaveTransaction(
 		KeyPSBTs:    psbts,
 		Inputs:      inputs,
 	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save transaction atomic: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("save transaction atomic: %s", err)).WithCause(err)
 	}
 
 	// Re-read
 	saved, err := s.store.GetTransaction(ctx, pt.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("re-read transaction: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("re-read transaction: %s", err)).WithCause(err)
 	}
 	if saved == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("transaction %s missing after save", pt.Id))
+		return nil, connect.Errorf(connect.CodeInternal, "transaction %s missing after save", pt.Id)
 	}
 
 	pbTx, err := s.txToProto(ctx, *saved)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.SaveTransactionResponse{Transaction: pbTx}), nil
+	return &pb.SaveTransactionResponse{Transaction: pbTx}, nil
 }
 
 // ─── Solo Keys ─────────────────────────────────────────────────────
 
 func (s *Server) ListSoloKeys(
 	ctx context.Context,
-	req *connect.Request[emptypb.Empty],
-) (*connect.Response[pb.ListSoloKeysResponse], error) {
+	req *emptypb.Empty,
+) (*pb.ListSoloKeysResponse, error) {
 	keys, err := s.store.ListSoloKeys(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	pbKeys := lo.Map(keys, func(k multisig.SoloKey, _ int) *pb.SoloKey {
@@ -346,16 +345,16 @@ func (s *Server) ListSoloKeys(
 		}
 	})
 
-	return connect.NewResponse(&pb.ListSoloKeysResponse{Keys: pbKeys}), nil
+	return &pb.ListSoloKeysResponse{Keys: pbKeys}, nil
 }
 
 func (s *Server) AddSoloKey(
 	ctx context.Context,
-	req *connect.Request[pb.AddSoloKeyRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	k := req.Msg.Key
+	req *pb.AddSoloKeyRequest,
+) (*emptypb.Empty, error) {
+	k := req.Key
 	if k == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("key is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "key is required")
 	}
 
 	if err := s.store.AddSoloKey(ctx, multisig.SoloKey{
@@ -365,28 +364,28 @@ func (s *Server) AddSoloKey(
 		OriginPath:     k.OriginPath,
 		Owner:          k.Owner,
 	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 // ─── Account Index ─────────────────────────────────────────────────
 
 func (s *Server) GetNextAccountIndex(
 	ctx context.Context,
-	req *connect.Request[pb.GetNextAccountIndexRequest],
-) (*connect.Response[pb.GetNextAccountIndexResponse], error) {
-	additional := lo.Map(req.Msg.AdditionalUsedIndices, func(idx int32, _ int) int {
+	req *pb.GetNextAccountIndexRequest,
+) (*pb.GetNextAccountIndexResponse, error) {
+	additional := lo.Map(req.AdditionalUsedIndices, func(idx int32, _ int) int {
 		return int(idx)
 	})
 
 	next, err := s.store.GetNextAccountIndex(ctx, additional)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.GetNextAccountIndexResponse{NextIndex: int32(next)}), nil
+	return &pb.GetNextAccountIndexResponse{NextIndex: int32(next)}, nil
 }
 
 // ─── Converters ────────────────────────────────────────────────────

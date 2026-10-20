@@ -5,162 +5,165 @@
 package hubv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/hub/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// FaucetServiceName is the fully-qualified name of the FaucetService service.
 	FaucetServiceName = "hub.v1.FaucetService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// FaucetServiceDispenseCoinsProcedure is the fully-qualified name of the FaucetService's
-	// DispenseCoins RPC.
-	FaucetServiceDispenseCoinsProcedure = "/hub.v1.FaucetService/DispenseCoins"
-	// FaucetServiceListClaimsProcedure is the fully-qualified name of the FaucetService's ListClaims
+	// FaucetServiceDispenseCoinsProcedure is the procedure name of the FaucetService's DispenseCoins
 	// RPC.
+	FaucetServiceDispenseCoinsProcedure = "/hub.v1.FaucetService/DispenseCoins"
+	// FaucetServiceListClaimsProcedure is the procedure name of the FaucetService's ListClaims RPC.
 	FaucetServiceListClaimsProcedure = "/hub.v1.FaucetService/ListClaims"
-	// FaucetServiceGetStatusProcedure is the fully-qualified name of the FaucetService's GetStatus RPC.
+	// FaucetServiceGetStatusProcedure is the procedure name of the FaucetService's GetStatus RPC.
 	FaucetServiceGetStatusProcedure = "/hub.v1.FaucetService/GetStatus"
+)
+
+var (
+	faucetServiceDispenseCoinsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_hub_v1_faucet_proto.Services().ByName("FaucetService").Methods().ByName("DispenseCoins"),
+			Procedure:  FaucetServiceDispenseCoinsProcedure,
+		}
+	})
+	faucetServiceListClaimsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_hub_v1_faucet_proto.Services().ByName("FaucetService").Methods().ByName("ListClaims"),
+			Procedure:  FaucetServiceListClaimsProcedure,
+		}
+	})
+	faucetServiceGetStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_hub_v1_faucet_proto.Services().ByName("FaucetService").Methods().ByName("GetStatus"),
+			Procedure:  FaucetServiceGetStatusProcedure,
+		}
+	})
 )
 
 // FaucetServiceClient is a client for the hub.v1.FaucetService service.
 type FaucetServiceClient interface {
-	DispenseCoins(context.Context, *connect.Request[v1.DispenseCoinsRequest]) (*connect.Response[v1.DispenseCoinsResponse], error)
-	ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error)
-	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
+	DispenseCoins(context.Context, *v1.DispenseCoinsRequest) (*v1.DispenseCoinsResponse, error)
+	ListClaims(context.Context, *v1.ListClaimsRequest) (*v1.ListClaimsResponse, error)
+	GetStatus(context.Context, *v1.GetStatusRequest) (*v1.GetStatusResponse, error)
 }
 
-// NewFaucetServiceClient constructs a client for the hub.v1.FaucetService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewFaucetServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) FaucetServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	faucetServiceMethods := v1.File_hub_v1_faucet_proto.Services().ByName("FaucetService").Methods()
-	return &faucetServiceClient{
-		dispenseCoins: connect.NewClient[v1.DispenseCoinsRequest, v1.DispenseCoinsResponse](
-			httpClient,
-			baseURL+FaucetServiceDispenseCoinsProcedure,
-			connect.WithSchema(faucetServiceMethods.ByName("DispenseCoins")),
-			connect.WithClientOptions(opts...),
-		),
-		listClaims: connect.NewClient[v1.ListClaimsRequest, v1.ListClaimsResponse](
-			httpClient,
-			baseURL+FaucetServiceListClaimsProcedure,
-			connect.WithSchema(faucetServiceMethods.ByName("ListClaims")),
-			connect.WithClientOptions(opts...),
-		),
-		getStatus: connect.NewClient[v1.GetStatusRequest, v1.GetStatusResponse](
-			httpClient,
-			baseURL+FaucetServiceGetStatusProcedure,
-			connect.WithSchema(faucetServiceMethods.ByName("GetStatus")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// faucetServiceClient implements FaucetServiceClient.
-type faucetServiceClient struct {
-	dispenseCoins *connect.Client[v1.DispenseCoinsRequest, v1.DispenseCoinsResponse]
-	listClaims    *connect.Client[v1.ListClaimsRequest, v1.ListClaimsResponse]
-	getStatus     *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-}
-
-// DispenseCoins calls hub.v1.FaucetService.DispenseCoins.
-func (c *faucetServiceClient) DispenseCoins(ctx context.Context, req *connect.Request[v1.DispenseCoinsRequest]) (*connect.Response[v1.DispenseCoinsResponse], error) {
-	return c.dispenseCoins.CallUnary(ctx, req)
-}
-
-// ListClaims calls hub.v1.FaucetService.ListClaims.
-func (c *faucetServiceClient) ListClaims(ctx context.Context, req *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error) {
-	return c.listClaims.CallUnary(ctx, req)
-}
-
-// GetStatus calls hub.v1.FaucetService.GetStatus.
-func (c *faucetServiceClient) GetStatus(ctx context.Context, req *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
-	return c.getStatus.CallUnary(ctx, req)
+// NewFaucetServiceClient constructs a client for the hub.v1.FaucetService service. Multiple service
+// clients may share a single connect.Client.
+func NewFaucetServiceClient(client *connect.Client) FaucetServiceClient {
+	return &faucetServiceClient{client: client}
 }
 
 // FaucetServiceHandler is an implementation of the hub.v1.FaucetService service.
 type FaucetServiceHandler interface {
-	DispenseCoins(context.Context, *connect.Request[v1.DispenseCoinsRequest]) (*connect.Response[v1.DispenseCoinsResponse], error)
-	ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error)
-	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
+	DispenseCoins(context.Context, *v1.DispenseCoinsRequest) (*v1.DispenseCoinsResponse, error)
+	ListClaims(context.Context, *v1.ListClaimsRequest) (*v1.ListClaimsResponse, error)
+	GetStatus(context.Context, *v1.GetStatusRequest) (*v1.GetStatusResponse, error)
 }
 
-// NewFaucetServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewFaucetServiceHandler(svc FaucetServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	faucetServiceMethods := v1.File_hub_v1_faucet_proto.Services().ByName("FaucetService").Methods()
-	faucetServiceDispenseCoinsHandler := connect.NewUnaryHandler(
-		FaucetServiceDispenseCoinsProcedure,
-		svc.DispenseCoins,
-		connect.WithSchema(faucetServiceMethods.ByName("DispenseCoins")),
-		connect.WithHandlerOptions(opts...),
+// RegisterFaucetServiceHandler registers svc as the hub.v1.FaucetService implementation on server.
+func RegisterFaucetServiceHandler(server *connect.Server, svc FaucetServiceHandler) {
+	adapter := faucetServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: faucetServiceDispenseCoinsSpec(), Handler: adapter.dispenseCoins},
+		connect.Method{Spec: faucetServiceListClaimsSpec(), Handler: adapter.listClaims},
+		connect.Method{Spec: faucetServiceGetStatusSpec(), Handler: adapter.getStatus},
 	)
-	faucetServiceListClaimsHandler := connect.NewUnaryHandler(
-		FaucetServiceListClaimsProcedure,
-		svc.ListClaims,
-		connect.WithSchema(faucetServiceMethods.ByName("ListClaims")),
-		connect.WithHandlerOptions(opts...),
-	)
-	faucetServiceGetStatusHandler := connect.NewUnaryHandler(
-		FaucetServiceGetStatusProcedure,
-		svc.GetStatus,
-		connect.WithSchema(faucetServiceMethods.ByName("GetStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/hub.v1.FaucetService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case FaucetServiceDispenseCoinsProcedure:
-			faucetServiceDispenseCoinsHandler.ServeHTTP(w, r)
-		case FaucetServiceListClaimsProcedure:
-			faucetServiceListClaimsHandler.ServeHTTP(w, r)
-		case FaucetServiceGetStatusProcedure:
-			faucetServiceGetStatusHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedFaucetServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedFaucetServiceHandler struct{}
 
-func (UnimplementedFaucetServiceHandler) DispenseCoins(context.Context, *connect.Request[v1.DispenseCoinsRequest]) (*connect.Response[v1.DispenseCoinsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("hub.v1.FaucetService.DispenseCoins is not implemented"))
+func (UnimplementedFaucetServiceHandler) DispenseCoins(context.Context, *v1.DispenseCoinsRequest) (*v1.DispenseCoinsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "hub.v1.FaucetService.DispenseCoins is not implemented")
 }
 
-func (UnimplementedFaucetServiceHandler) ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("hub.v1.FaucetService.ListClaims is not implemented"))
+func (UnimplementedFaucetServiceHandler) ListClaims(context.Context, *v1.ListClaimsRequest) (*v1.ListClaimsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "hub.v1.FaucetService.ListClaims is not implemented")
 }
 
-func (UnimplementedFaucetServiceHandler) GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("hub.v1.FaucetService.GetStatus is not implemented"))
+func (UnimplementedFaucetServiceHandler) GetStatus(context.Context, *v1.GetStatusRequest) (*v1.GetStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "hub.v1.FaucetService.GetStatus is not implemented")
+}
+
+type faucetServiceClient struct {
+	client *connect.Client
+}
+
+func (c *faucetServiceClient) DispenseCoins(ctx context.Context, req *v1.DispenseCoinsRequest) (*v1.DispenseCoinsResponse, error) {
+	var res v1.DispenseCoinsResponse
+	if err := c.client.CallUnary(ctx, faucetServiceDispenseCoinsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *faucetServiceClient) ListClaims(ctx context.Context, req *v1.ListClaimsRequest) (*v1.ListClaimsResponse, error) {
+	var res v1.ListClaimsResponse
+	if err := c.client.CallUnary(ctx, faucetServiceListClaimsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *faucetServiceClient) GetStatus(ctx context.Context, req *v1.GetStatusRequest) (*v1.GetStatusResponse, error) {
+	var res v1.GetStatusResponse
+	if err := c.client.CallUnary(ctx, faucetServiceGetStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type faucetServiceHandler struct{ svc FaucetServiceHandler }
+
+func (h faucetServiceHandler) dispenseCoins(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DispenseCoinsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DispenseCoins(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h faucetServiceHandler) listClaims(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListClaimsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListClaims(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h faucetServiceHandler) getStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

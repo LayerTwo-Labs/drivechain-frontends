@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/require"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
@@ -18,12 +18,12 @@ func TestExplorerBroadcastIsUnimplemented(t *testing.T) {
 	}}
 	ctx := context.Background()
 
-	_, err := h.GetSignedTransaction(ctx, connect.NewRequest(&pb.GetSignedTransactionRequest{Chain: "bitnames", Txid: txid}))
+	_, err := h.GetSignedTransaction(ctx, &pb.GetSignedTransactionRequest{Chain: "bitnames", Txid: txid})
 	require.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
-	_, err = h.RebroadcastTransaction(ctx, connect.NewRequest(&pb.RebroadcastTransactionRequest{Chain: "bitnames", Txid: txid}))
+	_, err = h.RebroadcastTransaction(ctx, &pb.RebroadcastTransactionRequest{Chain: "bitnames", Txid: txid})
 	require.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
-	_, err = h.BroadcastTransaction(ctx, connect.NewRequest(&pb.BroadcastTransactionRequest{
+	_, err = h.BroadcastTransaction(ctx, &pb.BroadcastTransactionRequest{
 		Chain: "bitassets", SignedTransaction: `{"transaction":{},"authorizations":[]}`,
-	}))
+	})
 	require.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
 }

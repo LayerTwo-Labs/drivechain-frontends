@@ -2,10 +2,9 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	"math"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -27,75 +26,75 @@ func New(chainParams *chaincfg.Params) *Server {
 }
 
 // ParseBitcoinURI implements utilsv1connect.UtilsServiceHandler
-func (s *Server) ParseBitcoinURI(_ context.Context, req *connect.Request[utilspb.ParseBitcoinURIRequest]) (*connect.Response[utilspb.ParseBitcoinURIResponse], error) {
-	result, err := engines.ParseBitcoinURI(req.Msg.Uri)
+func (s *Server) ParseBitcoinURI(_ context.Context, req *utilspb.ParseBitcoinURIRequest) (*utilspb.ParseBitcoinURIResponse, error) {
+	result, err := engines.ParseBitcoinURI(req.Uri)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&utilspb.ParseBitcoinURIResponse{
+	return &utilspb.ParseBitcoinURIResponse{
 		Address:     result.Address,
 		Amount:      result.Amount,
 		Label:       result.Label,
 		Message:     result.Message,
 		ExtraParams: result.ExtraParams,
-	}), nil
+	}, nil
 }
 
 // ValidateBitcoinURI implements utilsv1connect.UtilsServiceHandler
-func (s *Server) ValidateBitcoinURI(_ context.Context, req *connect.Request[utilspb.ValidateBitcoinURIRequest]) (*connect.Response[utilspb.ValidateBitcoinURIResponse], error) {
-	_, err := engines.ParseBitcoinURI(req.Msg.Uri)
+func (s *Server) ValidateBitcoinURI(_ context.Context, req *utilspb.ValidateBitcoinURIRequest) (*utilspb.ValidateBitcoinURIResponse, error) {
+	_, err := engines.ParseBitcoinURI(req.Uri)
 	valid := err == nil
 	errorMsg := ""
 	if err != nil {
 		errorMsg = err.Error()
 	}
 
-	return connect.NewResponse(&utilspb.ValidateBitcoinURIResponse{
+	return &utilspb.ValidateBitcoinURIResponse{
 		Valid: valid,
 		Error: errorMsg,
-	}), nil
+	}, nil
 }
 
 // DecodeBase58Check implements utilsv1connect.UtilsServiceHandler
-func (s *Server) DecodeBase58Check(_ context.Context, req *connect.Request[utilspb.DecodeBase58CheckRequest]) (*connect.Response[utilspb.DecodeBase58CheckResponse], error) {
-	result, err := engines.DecodeBase58Check(req.Msg.Input)
+func (s *Server) DecodeBase58Check(_ context.Context, req *utilspb.DecodeBase58CheckRequest) (*utilspb.DecodeBase58CheckResponse, error) {
+	result, err := engines.DecodeBase58Check(req.Input)
 	if err != nil {
-		return connect.NewResponse(&utilspb.DecodeBase58CheckResponse{
+		return &utilspb.DecodeBase58CheckResponse{
 			Valid: false,
 			Error: err.Error(),
-		}), nil
+		}, nil
 	}
 
-	return connect.NewResponse(&utilspb.DecodeBase58CheckResponse{
+	return &utilspb.DecodeBase58CheckResponse{
 		Valid:         true,
 		VersionByte:   int32(result.VersionByte),
 		Payload:       result.Payload,
 		Checksum:      result.Checksum,
 		ChecksumValid: result.ChecksumValid,
 		AddressType:   result.AddressType,
-	}), nil
+	}, nil
 }
 
 // EncodeBase58Check implements utilsv1connect.UtilsServiceHandler
-func (s *Server) EncodeBase58Check(_ context.Context, req *connect.Request[utilspb.EncodeBase58CheckRequest]) (*connect.Response[utilspb.EncodeBase58CheckResponse], error) {
-	if req.Msg.VersionByte < 0 || req.Msg.VersionByte > math.MaxUint8 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("version byte %d is not in the range 0 to 255", req.Msg.VersionByte))
+func (s *Server) EncodeBase58Check(_ context.Context, req *utilspb.EncodeBase58CheckRequest) (*utilspb.EncodeBase58CheckResponse, error) {
+	if req.VersionByte < 0 || req.VersionByte > math.MaxUint8 {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "version byte %d is not in the range 0 to 255", req.VersionByte)
 	}
-	return connect.NewResponse(&utilspb.EncodeBase58CheckResponse{
-		Encoded: engines.EncodeBase58Check(int(req.Msg.VersionByte), req.Msg.Data),
-	}), nil
+	return &utilspb.EncodeBase58CheckResponse{
+		Encoded: engines.EncodeBase58Check(int(req.VersionByte), req.Data),
+	}, nil
 }
 
 // CalculateMerkleTree implements utilsv1connect.UtilsServiceHandler
-func (s *Server) CalculateMerkleTree(_ context.Context, req *connect.Request[utilspb.CalculateMerkleTreeRequest]) (*connect.Response[utilspb.CalculateMerkleTreeResponse], error) {
-	result, err := engines.CalculateMerkleTree(req.Msg.Txids)
+func (s *Server) CalculateMerkleTree(_ context.Context, req *utilspb.CalculateMerkleTreeRequest) (*utilspb.CalculateMerkleTreeResponse, error) {
+	result, err := engines.CalculateMerkleTree(req.Txids)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	formatted := result.FormattedText
-	if !req.Msg.ShowRcb {
+	if !req.ShowRcb {
 		formatted = engines.FormatMerkleTree(result.Levels, nil)
 	}
 
@@ -112,46 +111,46 @@ func (s *Server) CalculateMerkleTree(_ context.Context, req *connect.Request[uti
 		}
 	}
 
-	return connect.NewResponse(&utilspb.CalculateMerkleTreeResponse{
+	return &utilspb.CalculateMerkleTreeResponse{
 		MerkleRoot:    result.MerkleRoot,
 		Levels:        levels,
 		FormattedText: formatted,
-	}), nil
+	}, nil
 }
 
 // GeneratePaperWallet implements utilsv1connect.UtilsServiceHandler
-func (s *Server) GeneratePaperWallet(_ context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[utilspb.GeneratePaperWalletResponse], error) {
+func (s *Server) GeneratePaperWallet(_ context.Context, _ *emptypb.Empty) (*utilspb.GeneratePaperWalletResponse, error) {
 	keypair, err := engines.GeneratePaperWallet(s.chainParams)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&utilspb.GeneratePaperWalletResponse{
+	return &utilspb.GeneratePaperWalletResponse{
 		PrivateKeyWif: keypair.PrivateKeyWIF,
 		PublicAddress: keypair.PublicAddress,
 		PrivateKeyHex: keypair.PrivateKeyHex,
-	}), nil
+	}, nil
 }
 
 // ValidateWIF implements utilsv1connect.UtilsServiceHandler
-func (s *Server) ValidateWIF(_ context.Context, req *connect.Request[utilspb.ValidateWIFRequest]) (*connect.Response[utilspb.ValidateWIFResponse], error) {
-	valid := engines.ValidateWIF(req.Msg.Wif, s.chainParams)
+func (s *Server) ValidateWIF(_ context.Context, req *utilspb.ValidateWIFRequest) (*utilspb.ValidateWIFResponse, error) {
+	valid := engines.ValidateWIF(req.Wif, s.chainParams)
 
-	return connect.NewResponse(&utilspb.ValidateWIFResponse{
+	return &utilspb.ValidateWIFResponse{
 		Valid: valid,
-	}), nil
+	}, nil
 }
 
 // WIFToAddress implements utilsv1connect.UtilsServiceHandler
-func (s *Server) WIFToAddress(_ context.Context, req *connect.Request[utilspb.WIFToAddressRequest]) (*connect.Response[utilspb.WIFToAddressResponse], error) {
-	address, err := engines.WIFToAddress(req.Msg.Wif, s.chainParams)
+func (s *Server) WIFToAddress(_ context.Context, req *utilspb.WIFToAddressRequest) (*utilspb.WIFToAddressResponse, error) {
+	address, err := engines.WIFToAddress(req.Wif, s.chainParams)
 	if err != nil {
-		return connect.NewResponse(&utilspb.WIFToAddressResponse{
+		return &utilspb.WIFToAddressResponse{
 			Error: err.Error(),
-		}), nil
+		}, nil
 	}
 
-	return connect.NewResponse(&utilspb.WIFToAddressResponse{
+	return &utilspb.WIFToAddressResponse{
 		Address: address,
-	}), nil
+	}, nil
 }

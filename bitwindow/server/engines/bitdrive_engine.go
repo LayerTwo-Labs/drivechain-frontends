@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -401,7 +401,7 @@ func (e *BitDriveEngine) encodeContent(
 // returns the txid and the file type.
 func (e *BitDriveEngine) StoreFile(ctx context.Context, content []byte, encrypt bool, feeSatPerVbyte uint64) (string, string, error) {
 	if err := ValidateFileSize(content); err != nil {
-		return "", "", connect.NewError(connect.CodeInvalidArgument, err)
+		return "", "", connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	metadataB64, contentStr, timestamp, err := e.EncodeOPReturnData(ctx, content, encrypt)

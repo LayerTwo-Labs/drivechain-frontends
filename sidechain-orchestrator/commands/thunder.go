@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/urfave/cli/v2"
 
 	thunderpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1"
@@ -16,12 +17,13 @@ import (
 // runs no thunder node, so a command reads the wallet here rather than at a
 // node port.
 func newThunderService(cctx *cli.Context) thunderrpc.ThunderServiceClient {
-	return thunderrpc.NewThunderServiceClient(
+	return thunderrpc.NewThunderServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		fmt.Sprintf("http://%s", cctx.String("rpcserver")),
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), localauth.ClientInterceptor(cookieDir(cctx)),
+	))
 }
 
 var thunderAddressCommand = &cli.Command{
@@ -29,11 +31,11 @@ var thunderAddressCommand = &cli.Command{
 	Usage: "Show an address to receive on",
 	Action: func(cctx *cli.Context) error {
 		resp, err := newThunderService(cctx).GetNewAddress(
-			cctx.Context, connect.NewRequest(&thunderpb.GetNewAddressRequest{}))
+			cctx.Context, &thunderpb.GetNewAddressRequest{})
 		if err != nil {
 			return err
 		}
-		fmt.Println(resp.Msg.Address)
+		fmt.Println(resp.Address)
 		return nil
 	},
 }
@@ -44,17 +46,17 @@ var thunderTransactionsCommand = &cli.Command{
 	Usage:   "List the transactions that touched this wallet",
 	Action: func(cctx *cli.Context) error {
 		resp, err := newThunderService(cctx).ListWalletTransactions(
-			cctx.Context, connect.NewRequest(&thunderpb.ListWalletTransactionsRequest{}))
+			cctx.Context, &thunderpb.ListWalletTransactionsRequest{})
 		if err != nil {
 			return err
 		}
-		if len(resp.Msg.Transactions) == 0 {
+		if len(resp.Transactions) == 0 {
 			fmt.Println("this wallet holds no transactions")
 			return nil
 		}
-		for _, tx := range resp.Msg.Transactions {
+		for _, tx := range resp.Transactions {
 			fmt.Printf("%s  %s BTC  %s\n",
-				tx.Txid, satsToBtcInt(tx.ValueSats), txState(tx, resp.Msg.TipHeight))
+				tx.Txid, satsToBtcInt(tx.ValueSats), txState(tx, resp.TipHeight))
 		}
 		return nil
 	},

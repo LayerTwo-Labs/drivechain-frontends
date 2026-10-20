@@ -14,7 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	confpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	confrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
@@ -60,7 +61,7 @@ type burnTestDaemon struct {
 func (d *burnTestDaemon) step(name string) error {
 	d.calls = append(d.calls, name)
 	if d.fail == name {
-		return connect.NewError(connect.CodeUnavailable, errors.New("RPC failed"))
+		return connect.NewError(connect.CodeUnavailable, "RPC failed")
 	}
 	if change := d.after[name]; change != nil {
 		change()
@@ -69,39 +70,39 @@ func (d *burnTestDaemon) step(name string) error {
 	return nil
 }
 
-func (d *burnTestDaemon) ListNetworks(context.Context, *connect.Request[confpb.ListNetworksRequest]) (*connect.Response[confpb.ListNetworksResponse], error) {
+func (d *burnTestDaemon) ListNetworks(context.Context, *confpb.ListNetworksRequest) (*confpb.ListNetworksResponse, error) {
 	if err := d.step("network"); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&confpb.ListNetworksResponse{Networks: []*confpb.NetworkOption{
+	return &confpb.ListNetworksResponse{Networks: []*confpb.NetworkOption{
 		{Id: d.network, Network: "ecash", IsCurrent: true},
-	}}), nil
+	}}, nil
 }
 
-func (d *burnTestDaemon) GetWalletStatus(context.Context, *connect.Request[pb.GetWalletStatusRequest]) (*connect.Response[pb.GetWalletStatusResponse], error) {
+func (d *burnTestDaemon) GetWalletStatus(context.Context, *pb.GetWalletStatusRequest) (*pb.GetWalletStatusResponse, error) {
 	if err := d.step("status"); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(d.status), nil
+	return d.status, nil
 }
 
-func (d *burnTestDaemon) ListWallets(context.Context, *connect.Request[pb.ListWalletsRequest]) (*connect.Response[pb.ListWalletsResponse], error) {
+func (d *burnTestDaemon) ListWallets(context.Context, *pb.ListWalletsRequest) (*pb.ListWalletsResponse, error) {
 	if err := d.step("wallets"); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(d.wallets), nil
+	return d.wallets, nil
 }
 
-func (d *burnTestDaemon) DeriveAddresses(_ context.Context, req *connect.Request[pb.DeriveAddressesRequest]) (*connect.Response[pb.DeriveAddressesResponse], error) {
-	d.derived = proto.Clone(req.Msg).(*pb.DeriveAddressesRequest)
+func (d *burnTestDaemon) DeriveAddresses(_ context.Context, req *pb.DeriveAddressesRequest) (*pb.DeriveAddressesResponse, error) {
+	d.derived = proto.Clone(req).(*pb.DeriveAddressesRequest)
 	if err := d.step("derive"); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.DeriveAddressesResponse{Addresses: d.addresses}), nil
+	return &pb.DeriveAddressesResponse{Addresses: d.addresses}, nil
 }
 
-func (d *burnTestDaemon) CreatePsbt(_ context.Context, req *connect.Request[pb.CreatePsbtRequest]) (*connect.Response[pb.CreatePsbtResponse], error) {
-	d.created = proto.Clone(req.Msg).(*pb.CreatePsbtRequest)
+func (d *burnTestDaemon) CreatePsbt(_ context.Context, req *pb.CreatePsbtRequest) (*pb.CreatePsbtResponse, error) {
+	d.created = proto.Clone(req).(*pb.CreatePsbtRequest)
 	if err := d.step("create"); err != nil {
 		return nil, err
 	}
@@ -109,27 +110,27 @@ func (d *burnTestDaemon) CreatePsbt(_ context.Context, req *connect.Request[pb.C
 	if packet == "" {
 		packet = "unsigned-psbt"
 	}
-	return connect.NewResponse(&pb.CreatePsbtResponse{PsbtBase64: packet}), nil
+	return &pb.CreatePsbtResponse{PsbtBase64: packet}, nil
 }
 
-func (d *burnTestDaemon) CombinePsbt(_ context.Context, req *connect.Request[pb.CombinePsbtRequest]) (*connect.Response[pb.CombinePsbtResponse], error) {
-	d.combined = proto.Clone(req.Msg).(*pb.CombinePsbtRequest)
+func (d *burnTestDaemon) CombinePsbt(_ context.Context, req *pb.CombinePsbtRequest) (*pb.CombinePsbtResponse, error) {
+	d.combined = proto.Clone(req).(*pb.CombinePsbtRequest)
 	if err := d.step("combine"); err != nil {
 		return nil, err
 	}
 	packet := d.combinedPSBT
 	if packet == "" {
 		var err error
-		packet, err = (&wallet.ElectrumBackend{}).CombinePSBT(req.Msg.PsbtBase64)
+		packet, err = (&wallet.ElectrumBackend{}).CombinePSBT(req.PsbtBase64)
 		if err != nil {
-			return nil, err
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
-	return connect.NewResponse(&pb.CombinePsbtResponse{PsbtBase64: packet}), nil
+	return &pb.CombinePsbtResponse{PsbtBase64: packet}, nil
 }
 
-func (d *burnTestDaemon) MultisigPsbtStatus(_ context.Context, req *connect.Request[pb.MultisigPsbtStatusRequest]) (*connect.Response[pb.MultisigPsbtStatusResponse], error) {
-	d.signatureRequest = proto.Clone(req.Msg).(*pb.MultisigPsbtStatusRequest)
+func (d *burnTestDaemon) MultisigPsbtStatus(_ context.Context, req *pb.MultisigPsbtStatusRequest) (*pb.MultisigPsbtStatusResponse, error) {
+	d.signatureRequest = proto.Clone(req).(*pb.MultisigPsbtStatusRequest)
 	if err := d.step("signatures"); err != nil {
 		return nil, err
 	}
@@ -137,19 +138,19 @@ func (d *burnTestDaemon) MultisigPsbtStatus(_ context.Context, req *connect.Requ
 	if status == nil {
 		status = &pb.MultisigPsbtStatusResponse{Threshold: 2}
 	}
-	return connect.NewResponse(status), nil
+	return status, nil
 }
 
-func (d *burnTestDaemon) DecodeTransaction(_ context.Context, req *connect.Request[pb.DecodeTransactionRequest]) (*connect.Response[pb.DecodeTransactionResponse], error) {
-	d.decoded = proto.Clone(req.Msg).(*pb.DecodeTransactionRequest)
+func (d *burnTestDaemon) DecodeTransaction(_ context.Context, req *pb.DecodeTransactionRequest) (*pb.DecodeTransactionResponse, error) {
+	d.decoded = proto.Clone(req).(*pb.DecodeTransactionRequest)
 	if err := d.step("decode"); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(d.preview), nil
+	return d.preview, nil
 }
 
-func (d *burnTestDaemon) SignPsbt(_ context.Context, req *connect.Request[pb.SignPsbtRequest]) (*connect.Response[pb.SignPsbtResponse], error) {
-	d.signed = proto.Clone(req.Msg).(*pb.SignPsbtRequest)
+func (d *burnTestDaemon) SignPsbt(_ context.Context, req *pb.SignPsbtRequest) (*pb.SignPsbtResponse, error) {
+	d.signed = proto.Clone(req).(*pb.SignPsbtRequest)
 	if err := d.step("sign"); err != nil {
 		return nil, err
 	}
@@ -157,23 +158,23 @@ func (d *burnTestDaemon) SignPsbt(_ context.Context, req *connect.Request[pb.Sig
 	if packet == "" {
 		packet = "signed-psbt"
 	}
-	return connect.NewResponse(&pb.SignPsbtResponse{PsbtBase64: packet}), nil
+	return &pb.SignPsbtResponse{PsbtBase64: packet}, nil
 }
 
-func (d *burnTestDaemon) FinalizePsbt(_ context.Context, req *connect.Request[pb.FinalizePsbtRequest]) (*connect.Response[pb.FinalizePsbtResponse], error) {
-	d.finalized = proto.Clone(req.Msg).(*pb.FinalizePsbtRequest)
+func (d *burnTestDaemon) FinalizePsbt(_ context.Context, req *pb.FinalizePsbtRequest) (*pb.FinalizePsbtResponse, error) {
+	d.finalized = proto.Clone(req).(*pb.FinalizePsbtRequest)
 	if err := d.step("finalize"); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.FinalizePsbtResponse{RawTxHex: "final-transaction"}), nil
+	return &pb.FinalizePsbtResponse{RawTxHex: "final-transaction"}, nil
 }
 
-func (d *burnTestDaemon) BroadcastTransaction(_ context.Context, req *connect.Request[pb.BroadcastTransactionRequest]) (*connect.Response[pb.BroadcastTransactionResponse], error) {
-	d.broadcast = proto.Clone(req.Msg).(*pb.BroadcastTransactionRequest)
+func (d *burnTestDaemon) BroadcastTransaction(_ context.Context, req *pb.BroadcastTransactionRequest) (*pb.BroadcastTransactionResponse, error) {
+	d.broadcast = proto.Clone(req).(*pb.BroadcastTransactionRequest)
 	if err := d.step("broadcast"); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.BroadcastTransactionResponse{Txid: "burn-txid"}), nil
+	return &pb.BroadcastTransactionResponse{Txid: "burn-txid"}, nil
 }
 
 type burnTestFlow struct {
@@ -217,10 +218,10 @@ func newBurnTestFlow(t *testing.T, args ...string) *burnTestFlow {
 		after: map[string]func(){},
 	}
 	mux := http.NewServeMux()
-	path, handler := rpc.NewWalletManagerServiceHandler(daemon)
-	mux.Handle(path, handler)
-	path, handler = confrpc.NewBitcoinConfServiceHandler(daemon)
-	mux.Handle(path, handler)
+	rpcServer := connect.NewServer()
+	rpc.RegisterWalletManagerServiceHandler(rpcServer, daemon)
+	confrpc.RegisterBitcoinConfServiceHandler(rpcServer, daemon)
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	set := flag.NewFlagSet("burn-ecx", flag.ContinueOnError)
@@ -234,8 +235,8 @@ func newBurnTestFlow(t *testing.T, args ...string) *burnTestFlow {
 	ctx.Context = context.Background()
 	return &burnTestFlow{
 		ctx: ctx, daemon: daemon, output: output,
-		client: rpc.NewWalletManagerServiceClient(server.Client(), server.URL),
-		conf:   confrpc.NewBitcoinConfServiceClient(server.Client(), server.URL),
+		client: rpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0)))),
+		conf:   confrpc.NewBitcoinConfServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0)))),
 	}
 }
 

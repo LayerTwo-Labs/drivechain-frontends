@@ -7,12 +7,12 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/grpcreflect"
 	api_explorer "github.com/LayerTwo-Labs/sidesail/dc-hub/server/api/explorer"
 	api_faucet "github.com/LayerTwo-Labs/sidesail/dc-hub/server/api/faucet"
@@ -34,27 +34,25 @@ func New(
 	rpcClients *api_explorer.RpcClients,
 	enforcerConnector connector.Connector[validatordrpc.ValidatorServiceClient],
 ) *Server {
-	interceptors := []connect.Interceptor{
-		validation.Interceptor(),
+	mux := http.NewServeMux()
+	srv := &Server{
+		mux: mux,
+		services: []string{
+			faucetrpc.FaucetServiceName,
+			explorerrpc.ExplorerServiceName,
+			validatordrpc.ValidatorServiceName,
+		},
 	}
 
-	mux := http.NewServeMux()
-	srv := &Server{mux: mux, interceptors: interceptors}
-
 	validatorSvc := connector.New("enforcer", enforcerConnector)
-
-	Register(
-		srv, faucetrpc.NewFaucetServiceHandler,
-		faucetrpc.FaucetServiceHandler(api_faucet.New(bitcoind)),
-	)
-	Register(
-		srv, explorerrpc.NewExplorerServiceHandler,
-		explorerrpc.ExplorerServiceHandler(api_explorer.New(bitcoind, rpcClients, validatorSvc)),
-	)
-	Register(
-		srv, validatordrpc.NewValidatorServiceHandler,
-		validatordrpc.ValidatorServiceHandler(api_validator.New(validatorSvc)),
-	)
+	rpcServer := connect.NewServer(validation.Interceptor())
+	faucetrpc.RegisterFaucetServiceHandler(rpcServer, api_faucet.New(bitcoind))
+	explorerrpc.RegisterExplorerServiceHandler(rpcServer, api_explorer.New(bitcoind, rpcClients, validatorSvc))
+	validatordrpc.RegisterValidatorServiceHandler(rpcServer, api_validator.New(validatorSvc))
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
+	reflector := grpcreflect.NewStaticReflector(srv.services...)
+	mux.Handle(grpcreflect.NewHandlerV1(reflector))
+	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
 
 	return srv
 }
@@ -66,8 +64,6 @@ type Server struct {
 
 	mux    *http.ServeMux
 	server *http.Server
-
-	interceptors []connect.Interceptor
 }
 
 func (s *Server) Handler(ctx context.Context) http.Handler {
@@ -128,15 +124,8 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	})
 
 	joinedServices := strings.Join(services, ", ")
-	{
-		log.Debug().
-			Msgf("serve connect: enabling reflection: %s", joinedServices)
-
-		reflector := grpcreflect.NewStaticReflector(s.services...)
-
-		s.mux.Handle(grpcreflect.NewHandlerV1(reflector))
-		s.mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
-	}
+	log.Debug().
+		Msgf("serve connect: enabling reflection: %s", joinedServices)
 
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
@@ -212,22 +201,4 @@ func (s *Server) Shutdown(ctx context.Context) {
 	}
 
 	atomic.AddInt64(&stopped, 1)
-}
-
-// Register can be user to register a new sub-service to the server.
-// This is _NOT_ a part of the Server API, because it is generic.
-func Register[T any](
-	s *Server,
-	handler func(svc T, opts ...connect.HandlerOption) (string, http.Handler),
-	svc T, opts ...connect.HandlerOption,
-) {
-	service, h := handler(svc,
-		slices.Concat(
-			[]connect.HandlerOption{connect.WithInterceptors(s.interceptors...)},
-			opts,
-		)...,
-	)
-
-	s.services = append(s.services, service)
-	s.mux.Handle(service, h)
 }

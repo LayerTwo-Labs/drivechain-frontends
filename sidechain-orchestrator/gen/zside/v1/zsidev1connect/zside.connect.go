@@ -5,996 +5,1152 @@
 package zsidev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ZSideServiceName is the fully-qualified name of the ZSideService service.
 	ZSideServiceName = "zside.v1.ZSideService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ZSideServiceGetBalanceProcedure is the fully-qualified name of the ZSideService's GetBalance RPC.
+	// ZSideServiceGetBalanceProcedure is the procedure name of the ZSideService's GetBalance RPC.
 	ZSideServiceGetBalanceProcedure = "/zside.v1.ZSideService/GetBalance"
-	// ZSideServiceGetBlockCountProcedure is the fully-qualified name of the ZSideService's
-	// GetBlockCount RPC.
+	// ZSideServiceGetBlockCountProcedure is the procedure name of the ZSideService's GetBlockCount RPC.
 	ZSideServiceGetBlockCountProcedure = "/zside.v1.ZSideService/GetBlockCount"
-	// ZSideServiceStopProcedure is the fully-qualified name of the ZSideService's Stop RPC.
+	// ZSideServiceStopProcedure is the procedure name of the ZSideService's Stop RPC.
 	ZSideServiceStopProcedure = "/zside.v1.ZSideService/Stop"
-	// ZSideServiceWithdrawProcedure is the fully-qualified name of the ZSideService's Withdraw RPC.
+	// ZSideServiceWithdrawProcedure is the procedure name of the ZSideService's Withdraw RPC.
 	ZSideServiceWithdrawProcedure = "/zside.v1.ZSideService/Withdraw"
-	// ZSideServiceTransferProcedure is the fully-qualified name of the ZSideService's Transfer RPC.
+	// ZSideServiceTransferProcedure is the procedure name of the ZSideService's Transfer RPC.
 	ZSideServiceTransferProcedure = "/zside.v1.ZSideService/Transfer"
-	// ZSideServiceGetSidechainWealthProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetSidechainWealthProcedure is the procedure name of the ZSideService's
 	// GetSidechainWealth RPC.
 	ZSideServiceGetSidechainWealthProcedure = "/zside.v1.ZSideService/GetSidechainWealth"
-	// ZSideServiceCreateDepositProcedure is the fully-qualified name of the ZSideService's
-	// CreateDeposit RPC.
+	// ZSideServiceCreateDepositProcedure is the procedure name of the ZSideService's CreateDeposit RPC.
 	ZSideServiceCreateDepositProcedure = "/zside.v1.ZSideService/CreateDeposit"
-	// ZSideServiceGetPendingWithdrawalBundleProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetPendingWithdrawalBundleProcedure is the procedure name of the ZSideService's
 	// GetPendingWithdrawalBundle RPC.
 	ZSideServiceGetPendingWithdrawalBundleProcedure = "/zside.v1.ZSideService/GetPendingWithdrawalBundle"
-	// ZSideServiceConnectPeerProcedure is the fully-qualified name of the ZSideService's ConnectPeer
-	// RPC.
+	// ZSideServiceConnectPeerProcedure is the procedure name of the ZSideService's ConnectPeer RPC.
 	ZSideServiceConnectPeerProcedure = "/zside.v1.ZSideService/ConnectPeer"
-	// ZSideServiceListPeersProcedure is the fully-qualified name of the ZSideService's ListPeers RPC.
+	// ZSideServiceListPeersProcedure is the procedure name of the ZSideService's ListPeers RPC.
 	ZSideServiceListPeersProcedure = "/zside.v1.ZSideService/ListPeers"
-	// ZSideServiceMineProcedure is the fully-qualified name of the ZSideService's Mine RPC.
+	// ZSideServiceMineProcedure is the procedure name of the ZSideService's Mine RPC.
 	ZSideServiceMineProcedure = "/zside.v1.ZSideService/Mine"
-	// ZSideServiceGetBlockProcedure is the fully-qualified name of the ZSideService's GetBlock RPC.
+	// ZSideServiceGetBlockProcedure is the procedure name of the ZSideService's GetBlock RPC.
 	ZSideServiceGetBlockProcedure = "/zside.v1.ZSideService/GetBlock"
-	// ZSideServiceGetBestMainchainBlockHashProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetBestMainchainBlockHashProcedure is the procedure name of the ZSideService's
 	// GetBestMainchainBlockHash RPC.
 	ZSideServiceGetBestMainchainBlockHashProcedure = "/zside.v1.ZSideService/GetBestMainchainBlockHash"
-	// ZSideServiceGetBestSidechainBlockHashProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetBestSidechainBlockHashProcedure is the procedure name of the ZSideService's
 	// GetBestSidechainBlockHash RPC.
 	ZSideServiceGetBestSidechainBlockHashProcedure = "/zside.v1.ZSideService/GetBestSidechainBlockHash"
-	// ZSideServiceGetBmmInclusionsProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetBmmInclusionsProcedure is the procedure name of the ZSideService's
 	// GetBmmInclusions RPC.
 	ZSideServiceGetBmmInclusionsProcedure = "/zside.v1.ZSideService/GetBmmInclusions"
-	// ZSideServiceGetWalletUtxosProcedure is the fully-qualified name of the ZSideService's
-	// GetWalletUtxos RPC.
+	// ZSideServiceGetWalletUtxosProcedure is the procedure name of the ZSideService's GetWalletUtxos
+	// RPC.
 	ZSideServiceGetWalletUtxosProcedure = "/zside.v1.ZSideService/GetWalletUtxos"
-	// ZSideServiceListUtxosProcedure is the fully-qualified name of the ZSideService's ListUtxos RPC.
+	// ZSideServiceListUtxosProcedure is the procedure name of the ZSideService's ListUtxos RPC.
 	ZSideServiceListUtxosProcedure = "/zside.v1.ZSideService/ListUtxos"
-	// ZSideServiceRemoveFromMempoolProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceRemoveFromMempoolProcedure is the procedure name of the ZSideService's
 	// RemoveFromMempool RPC.
 	ZSideServiceRemoveFromMempoolProcedure = "/zside.v1.ZSideService/RemoveFromMempool"
-	// ZSideServiceGetLatestFailedWithdrawalBundleHeightProcedure is the fully-qualified name of the
+	// ZSideServiceGetLatestFailedWithdrawalBundleHeightProcedure is the procedure name of the
 	// ZSideService's GetLatestFailedWithdrawalBundleHeight RPC.
 	ZSideServiceGetLatestFailedWithdrawalBundleHeightProcedure = "/zside.v1.ZSideService/GetLatestFailedWithdrawalBundleHeight"
-	// ZSideServiceGenerateMnemonicProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGenerateMnemonicProcedure is the procedure name of the ZSideService's
 	// GenerateMnemonic RPC.
 	ZSideServiceGenerateMnemonicProcedure = "/zside.v1.ZSideService/GenerateMnemonic"
-	// ZSideServiceSetSeedFromMnemonicProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceSetSeedFromMnemonicProcedure is the procedure name of the ZSideService's
 	// SetSeedFromMnemonic RPC.
 	ZSideServiceSetSeedFromMnemonicProcedure = "/zside.v1.ZSideService/SetSeedFromMnemonic"
-	// ZSideServiceCallRawProcedure is the fully-qualified name of the ZSideService's CallRaw RPC.
+	// ZSideServiceCallRawProcedure is the procedure name of the ZSideService's CallRaw RPC.
 	ZSideServiceCallRawProcedure = "/zside.v1.ZSideService/CallRaw"
-	// ZSideServiceGetNewShieldedAddressProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetNewShieldedAddressProcedure is the procedure name of the ZSideService's
 	// GetNewShieldedAddress RPC.
 	ZSideServiceGetNewShieldedAddressProcedure = "/zside.v1.ZSideService/GetNewShieldedAddress"
-	// ZSideServiceGetNewTransparentAddressProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetNewTransparentAddressProcedure is the procedure name of the ZSideService's
 	// GetNewTransparentAddress RPC.
 	ZSideServiceGetNewTransparentAddressProcedure = "/zside.v1.ZSideService/GetNewTransparentAddress"
-	// ZSideServiceGetShieldedWalletAddressesProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceGetShieldedWalletAddressesProcedure is the procedure name of the ZSideService's
 	// GetShieldedWalletAddresses RPC.
 	ZSideServiceGetShieldedWalletAddressesProcedure = "/zside.v1.ZSideService/GetShieldedWalletAddresses"
-	// ZSideServiceGetTransparentWalletAddressesProcedure is the fully-qualified name of the
-	// ZSideService's GetTransparentWalletAddresses RPC.
+	// ZSideServiceGetTransparentWalletAddressesProcedure is the procedure name of the ZSideService's
+	// GetTransparentWalletAddresses RPC.
 	ZSideServiceGetTransparentWalletAddressesProcedure = "/zside.v1.ZSideService/GetTransparentWalletAddresses"
-	// ZSideServiceShieldProcedure is the fully-qualified name of the ZSideService's Shield RPC.
+	// ZSideServiceShieldProcedure is the procedure name of the ZSideService's Shield RPC.
 	ZSideServiceShieldProcedure = "/zside.v1.ZSideService/Shield"
-	// ZSideServiceUnshieldProcedure is the fully-qualified name of the ZSideService's Unshield RPC.
+	// ZSideServiceUnshieldProcedure is the procedure name of the ZSideService's Unshield RPC.
 	ZSideServiceUnshieldProcedure = "/zside.v1.ZSideService/Unshield"
-	// ZSideServiceShieldedTransferProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceShieldedTransferProcedure is the procedure name of the ZSideService's
 	// ShieldedTransfer RPC.
 	ZSideServiceShieldedTransferProcedure = "/zside.v1.ZSideService/ShieldedTransfer"
-	// ZSideServiceTransparentTransferProcedure is the fully-qualified name of the ZSideService's
+	// ZSideServiceTransparentTransferProcedure is the procedure name of the ZSideService's
 	// TransparentTransfer RPC.
 	ZSideServiceTransparentTransferProcedure = "/zside.v1.ZSideService/TransparentTransfer"
 )
 
+var (
+	zSideServiceGetBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetBalance"),
+			Procedure:  ZSideServiceGetBalanceProcedure,
+		}
+	})
+	zSideServiceGetBlockCountSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetBlockCount"),
+			Procedure:  ZSideServiceGetBlockCountProcedure,
+		}
+	})
+	zSideServiceStopSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("Stop"),
+			Procedure:  ZSideServiceStopProcedure,
+		}
+	})
+	zSideServiceWithdrawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("Withdraw"),
+			Procedure:  ZSideServiceWithdrawProcedure,
+		}
+	})
+	zSideServiceTransferSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("Transfer"),
+			Procedure:  ZSideServiceTransferProcedure,
+		}
+	})
+	zSideServiceGetSidechainWealthSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetSidechainWealth"),
+			Procedure:  ZSideServiceGetSidechainWealthProcedure,
+		}
+	})
+	zSideServiceCreateDepositSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("CreateDeposit"),
+			Procedure:  ZSideServiceCreateDepositProcedure,
+		}
+	})
+	zSideServiceGetPendingWithdrawalBundleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetPendingWithdrawalBundle"),
+			Procedure:  ZSideServiceGetPendingWithdrawalBundleProcedure,
+		}
+	})
+	zSideServiceConnectPeerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("ConnectPeer"),
+			Procedure:  ZSideServiceConnectPeerProcedure,
+		}
+	})
+	zSideServiceListPeersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("ListPeers"),
+			Procedure:  ZSideServiceListPeersProcedure,
+		}
+	})
+	zSideServiceMineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("Mine"),
+			Procedure:  ZSideServiceMineProcedure,
+		}
+	})
+	zSideServiceGetBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetBlock"),
+			Procedure:  ZSideServiceGetBlockProcedure,
+		}
+	})
+	zSideServiceGetBestMainchainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetBestMainchainBlockHash"),
+			Procedure:  ZSideServiceGetBestMainchainBlockHashProcedure,
+		}
+	})
+	zSideServiceGetBestSidechainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetBestSidechainBlockHash"),
+			Procedure:  ZSideServiceGetBestSidechainBlockHashProcedure,
+		}
+	})
+	zSideServiceGetBmmInclusionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetBmmInclusions"),
+			Procedure:  ZSideServiceGetBmmInclusionsProcedure,
+		}
+	})
+	zSideServiceGetWalletUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetWalletUtxos"),
+			Procedure:  ZSideServiceGetWalletUtxosProcedure,
+		}
+	})
+	zSideServiceListUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("ListUtxos"),
+			Procedure:  ZSideServiceListUtxosProcedure,
+		}
+	})
+	zSideServiceRemoveFromMempoolSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("RemoveFromMempool"),
+			Procedure:  ZSideServiceRemoveFromMempoolProcedure,
+		}
+	})
+	zSideServiceGetLatestFailedWithdrawalBundleHeightSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetLatestFailedWithdrawalBundleHeight"),
+			Procedure:  ZSideServiceGetLatestFailedWithdrawalBundleHeightProcedure,
+		}
+	})
+	zSideServiceGenerateMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GenerateMnemonic"),
+			Procedure:  ZSideServiceGenerateMnemonicProcedure,
+		}
+	})
+	zSideServiceSetSeedFromMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("SetSeedFromMnemonic"),
+			Procedure:  ZSideServiceSetSeedFromMnemonicProcedure,
+		}
+	})
+	zSideServiceCallRawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("CallRaw"),
+			Procedure:  ZSideServiceCallRawProcedure,
+		}
+	})
+	zSideServiceGetNewShieldedAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetNewShieldedAddress"),
+			Procedure:  ZSideServiceGetNewShieldedAddressProcedure,
+		}
+	})
+	zSideServiceGetNewTransparentAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetNewTransparentAddress"),
+			Procedure:  ZSideServiceGetNewTransparentAddressProcedure,
+		}
+	})
+	zSideServiceGetShieldedWalletAddressesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetShieldedWalletAddresses"),
+			Procedure:  ZSideServiceGetShieldedWalletAddressesProcedure,
+		}
+	})
+	zSideServiceGetTransparentWalletAddressesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("GetTransparentWalletAddresses"),
+			Procedure:  ZSideServiceGetTransparentWalletAddressesProcedure,
+		}
+	})
+	zSideServiceShieldSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("Shield"),
+			Procedure:  ZSideServiceShieldProcedure,
+		}
+	})
+	zSideServiceUnshieldSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("Unshield"),
+			Procedure:  ZSideServiceUnshieldProcedure,
+		}
+	})
+	zSideServiceShieldedTransferSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("ShieldedTransfer"),
+			Procedure:  ZSideServiceShieldedTransferProcedure,
+		}
+	})
+	zSideServiceTransparentTransferSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("TransparentTransfer"),
+			Procedure:  ZSideServiceTransparentTransferProcedure,
+		}
+	})
+)
+
 // ZSideServiceClient is a client for the zside.v1.ZSideService service.
 type ZSideServiceClient interface {
-	// Get wallet balance (total and available, both transparent and shielded).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the zside node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain (transparent).
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Get a new shielded address.
-	GetNewShieldedAddress(context.Context, *connect.Request[v1.GetNewShieldedAddressRequest]) (*connect.Response[v1.GetNewShieldedAddressResponse], error)
-	// Get a new transparent address.
-	GetNewTransparentAddress(context.Context, *connect.Request[v1.GetNewTransparentAddressRequest]) (*connect.Response[v1.GetNewTransparentAddressResponse], error)
-	// Get shielded wallet addresses.
-	GetShieldedWalletAddresses(context.Context, *connect.Request[v1.GetShieldedWalletAddressesRequest]) (*connect.Response[v1.GetShieldedWalletAddressesResponse], error)
-	// Get transparent wallet addresses.
-	GetTransparentWalletAddresses(context.Context, *connect.Request[v1.GetTransparentWalletAddressesRequest]) (*connect.Response[v1.GetTransparentWalletAddressesResponse], error)
-	// Shield transparent funds to shielded pool.
-	Shield(context.Context, *connect.Request[v1.ShieldRequest]) (*connect.Response[v1.ShieldResponse], error)
-	// Unshield (deshield) shielded funds to transparent pool.
-	Unshield(context.Context, *connect.Request[v1.UnshieldRequest]) (*connect.Response[v1.UnshieldResponse], error)
-	// Send a shielded transfer.
-	ShieldedTransfer(context.Context, *connect.Request[v1.ShieldedTransferRequest]) (*connect.Response[v1.ShieldedTransferResponse], error)
-	// Send a transparent transfer.
-	TransparentTransfer(context.Context, *connect.Request[v1.TransparentTransferRequest]) (*connect.Response[v1.TransparentTransferResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	GetNewShieldedAddress(context.Context, *v1.GetNewShieldedAddressRequest) (*v1.GetNewShieldedAddressResponse, error)
+	GetNewTransparentAddress(context.Context, *v1.GetNewTransparentAddressRequest) (*v1.GetNewTransparentAddressResponse, error)
+	GetShieldedWalletAddresses(context.Context, *v1.GetShieldedWalletAddressesRequest) (*v1.GetShieldedWalletAddressesResponse, error)
+	GetTransparentWalletAddresses(context.Context, *v1.GetTransparentWalletAddressesRequest) (*v1.GetTransparentWalletAddressesResponse, error)
+	Shield(context.Context, *v1.ShieldRequest) (*v1.ShieldResponse, error)
+	Unshield(context.Context, *v1.UnshieldRequest) (*v1.UnshieldResponse, error)
+	ShieldedTransfer(context.Context, *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error)
+	TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error)
 }
 
-// NewZSideServiceClient constructs a client for the zside.v1.ZSideService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewZSideServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ZSideServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	zSideServiceMethods := v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods()
-	return &zSideServiceClient{
-		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
-			httpClient,
-			baseURL+ZSideServiceGetBalanceProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlockCount: connect.NewClient[v1.GetBlockCountRequest, v1.GetBlockCountResponse](
-			httpClient,
-			baseURL+ZSideServiceGetBlockCountProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetBlockCount")),
-			connect.WithClientOptions(opts...),
-		),
-		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
-			httpClient,
-			baseURL+ZSideServiceStopProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		withdraw: connect.NewClient[v1.WithdrawRequest, v1.WithdrawResponse](
-			httpClient,
-			baseURL+ZSideServiceWithdrawProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("Withdraw")),
-			connect.WithClientOptions(opts...),
-		),
-		transfer: connect.NewClient[v1.TransferRequest, v1.TransferResponse](
-			httpClient,
-			baseURL+ZSideServiceTransferProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("Transfer")),
-			connect.WithClientOptions(opts...),
-		),
-		getSidechainWealth: connect.NewClient[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse](
-			httpClient,
-			baseURL+ZSideServiceGetSidechainWealthProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetSidechainWealth")),
-			connect.WithClientOptions(opts...),
-		),
-		createDeposit: connect.NewClient[v1.CreateDepositRequest, v1.CreateDepositResponse](
-			httpClient,
-			baseURL+ZSideServiceCreateDepositProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("CreateDeposit")),
-			connect.WithClientOptions(opts...),
-		),
-		getPendingWithdrawalBundle: connect.NewClient[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse](
-			httpClient,
-			baseURL+ZSideServiceGetPendingWithdrawalBundleProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetPendingWithdrawalBundle")),
-			connect.WithClientOptions(opts...),
-		),
-		connectPeer: connect.NewClient[v1.ConnectPeerRequest, v1.ConnectPeerResponse](
-			httpClient,
-			baseURL+ZSideServiceConnectPeerProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("ConnectPeer")),
-			connect.WithClientOptions(opts...),
-		),
-		listPeers: connect.NewClient[v1.ListPeersRequest, v1.ListPeersResponse](
-			httpClient,
-			baseURL+ZSideServiceListPeersProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("ListPeers")),
-			connect.WithClientOptions(opts...),
-		),
-		mine: connect.NewClient[v1.MineRequest, v1.MineResponse](
-			httpClient,
-			baseURL+ZSideServiceMineProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("Mine")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
-			httpClient,
-			baseURL+ZSideServiceGetBlockProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestMainchainBlockHash: connect.NewClient[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse](
-			httpClient,
-			baseURL+ZSideServiceGetBestMainchainBlockHashProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetBestMainchainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestSidechainBlockHash: connect.NewClient[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse](
-			httpClient,
-			baseURL+ZSideServiceGetBestSidechainBlockHashProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetBestSidechainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBmmInclusions: connect.NewClient[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse](
-			httpClient,
-			baseURL+ZSideServiceGetBmmInclusionsProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetBmmInclusions")),
-			connect.WithClientOptions(opts...),
-		),
-		getWalletUtxos: connect.NewClient[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse](
-			httpClient,
-			baseURL+ZSideServiceGetWalletUtxosProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetWalletUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		listUtxos: connect.NewClient[v1.ListUtxosRequest, v1.ListUtxosResponse](
-			httpClient,
-			baseURL+ZSideServiceListUtxosProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("ListUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		removeFromMempool: connect.NewClient[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse](
-			httpClient,
-			baseURL+ZSideServiceRemoveFromMempoolProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("RemoveFromMempool")),
-			connect.WithClientOptions(opts...),
-		),
-		getLatestFailedWithdrawalBundleHeight: connect.NewClient[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse](
-			httpClient,
-			baseURL+ZSideServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-			connect.WithClientOptions(opts...),
-		),
-		generateMnemonic: connect.NewClient[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse](
-			httpClient,
-			baseURL+ZSideServiceGenerateMnemonicProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GenerateMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		setSeedFromMnemonic: connect.NewClient[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse](
-			httpClient,
-			baseURL+ZSideServiceSetSeedFromMnemonicProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("SetSeedFromMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		callRaw: connect.NewClient[v1.CallRawRequest, v1.CallRawResponse](
-			httpClient,
-			baseURL+ZSideServiceCallRawProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("CallRaw")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewShieldedAddress: connect.NewClient[v1.GetNewShieldedAddressRequest, v1.GetNewShieldedAddressResponse](
-			httpClient,
-			baseURL+ZSideServiceGetNewShieldedAddressProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetNewShieldedAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewTransparentAddress: connect.NewClient[v1.GetNewTransparentAddressRequest, v1.GetNewTransparentAddressResponse](
-			httpClient,
-			baseURL+ZSideServiceGetNewTransparentAddressProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetNewTransparentAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		getShieldedWalletAddresses: connect.NewClient[v1.GetShieldedWalletAddressesRequest, v1.GetShieldedWalletAddressesResponse](
-			httpClient,
-			baseURL+ZSideServiceGetShieldedWalletAddressesProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetShieldedWalletAddresses")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransparentWalletAddresses: connect.NewClient[v1.GetTransparentWalletAddressesRequest, v1.GetTransparentWalletAddressesResponse](
-			httpClient,
-			baseURL+ZSideServiceGetTransparentWalletAddressesProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("GetTransparentWalletAddresses")),
-			connect.WithClientOptions(opts...),
-		),
-		shield: connect.NewClient[v1.ShieldRequest, v1.ShieldResponse](
-			httpClient,
-			baseURL+ZSideServiceShieldProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("Shield")),
-			connect.WithClientOptions(opts...),
-		),
-		unshield: connect.NewClient[v1.UnshieldRequest, v1.UnshieldResponse](
-			httpClient,
-			baseURL+ZSideServiceUnshieldProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("Unshield")),
-			connect.WithClientOptions(opts...),
-		),
-		shieldedTransfer: connect.NewClient[v1.ShieldedTransferRequest, v1.ShieldedTransferResponse](
-			httpClient,
-			baseURL+ZSideServiceShieldedTransferProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("ShieldedTransfer")),
-			connect.WithClientOptions(opts...),
-		),
-		transparentTransfer: connect.NewClient[v1.TransparentTransferRequest, v1.TransparentTransferResponse](
-			httpClient,
-			baseURL+ZSideServiceTransparentTransferProcedure,
-			connect.WithSchema(zSideServiceMethods.ByName("TransparentTransfer")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// zSideServiceClient implements ZSideServiceClient.
-type zSideServiceClient struct {
-	getBalance                            *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
-	getBlockCount                         *connect.Client[v1.GetBlockCountRequest, v1.GetBlockCountResponse]
-	stop                                  *connect.Client[v1.StopRequest, v1.StopResponse]
-	withdraw                              *connect.Client[v1.WithdrawRequest, v1.WithdrawResponse]
-	transfer                              *connect.Client[v1.TransferRequest, v1.TransferResponse]
-	getSidechainWealth                    *connect.Client[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse]
-	createDeposit                         *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
-	getPendingWithdrawalBundle            *connect.Client[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse]
-	connectPeer                           *connect.Client[v1.ConnectPeerRequest, v1.ConnectPeerResponse]
-	listPeers                             *connect.Client[v1.ListPeersRequest, v1.ListPeersResponse]
-	mine                                  *connect.Client[v1.MineRequest, v1.MineResponse]
-	getBlock                              *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	getBestMainchainBlockHash             *connect.Client[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse]
-	getBestSidechainBlockHash             *connect.Client[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse]
-	getBmmInclusions                      *connect.Client[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse]
-	getWalletUtxos                        *connect.Client[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse]
-	listUtxos                             *connect.Client[v1.ListUtxosRequest, v1.ListUtxosResponse]
-	removeFromMempool                     *connect.Client[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse]
-	getLatestFailedWithdrawalBundleHeight *connect.Client[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse]
-	generateMnemonic                      *connect.Client[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse]
-	setSeedFromMnemonic                   *connect.Client[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse]
-	callRaw                               *connect.Client[v1.CallRawRequest, v1.CallRawResponse]
-	getNewShieldedAddress                 *connect.Client[v1.GetNewShieldedAddressRequest, v1.GetNewShieldedAddressResponse]
-	getNewTransparentAddress              *connect.Client[v1.GetNewTransparentAddressRequest, v1.GetNewTransparentAddressResponse]
-	getShieldedWalletAddresses            *connect.Client[v1.GetShieldedWalletAddressesRequest, v1.GetShieldedWalletAddressesResponse]
-	getTransparentWalletAddresses         *connect.Client[v1.GetTransparentWalletAddressesRequest, v1.GetTransparentWalletAddressesResponse]
-	shield                                *connect.Client[v1.ShieldRequest, v1.ShieldResponse]
-	unshield                              *connect.Client[v1.UnshieldRequest, v1.UnshieldResponse]
-	shieldedTransfer                      *connect.Client[v1.ShieldedTransferRequest, v1.ShieldedTransferResponse]
-	transparentTransfer                   *connect.Client[v1.TransparentTransferRequest, v1.TransparentTransferResponse]
-}
-
-// GetBalance calls zside.v1.ZSideService.GetBalance.
-func (c *zSideServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return c.getBalance.CallUnary(ctx, req)
-}
-
-// GetBlockCount calls zside.v1.ZSideService.GetBlockCount.
-func (c *zSideServiceClient) GetBlockCount(ctx context.Context, req *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return c.getBlockCount.CallUnary(ctx, req)
-}
-
-// Stop calls zside.v1.ZSideService.Stop.
-func (c *zSideServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return c.stop.CallUnary(ctx, req)
-}
-
-// Withdraw calls zside.v1.ZSideService.Withdraw.
-func (c *zSideServiceClient) Withdraw(ctx context.Context, req *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return c.withdraw.CallUnary(ctx, req)
-}
-
-// Transfer calls zside.v1.ZSideService.Transfer.
-func (c *zSideServiceClient) Transfer(ctx context.Context, req *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return c.transfer.CallUnary(ctx, req)
-}
-
-// GetSidechainWealth calls zside.v1.ZSideService.GetSidechainWealth.
-func (c *zSideServiceClient) GetSidechainWealth(ctx context.Context, req *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return c.getSidechainWealth.CallUnary(ctx, req)
-}
-
-// CreateDeposit calls zside.v1.ZSideService.CreateDeposit.
-func (c *zSideServiceClient) CreateDeposit(ctx context.Context, req *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return c.createDeposit.CallUnary(ctx, req)
-}
-
-// GetPendingWithdrawalBundle calls zside.v1.ZSideService.GetPendingWithdrawalBundle.
-func (c *zSideServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return c.getPendingWithdrawalBundle.CallUnary(ctx, req)
-}
-
-// ConnectPeer calls zside.v1.ZSideService.ConnectPeer.
-func (c *zSideServiceClient) ConnectPeer(ctx context.Context, req *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return c.connectPeer.CallUnary(ctx, req)
-}
-
-// ListPeers calls zside.v1.ZSideService.ListPeers.
-func (c *zSideServiceClient) ListPeers(ctx context.Context, req *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return c.listPeers.CallUnary(ctx, req)
-}
-
-// Mine calls zside.v1.ZSideService.Mine.
-func (c *zSideServiceClient) Mine(ctx context.Context, req *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return c.mine.CallUnary(ctx, req)
-}
-
-// GetBlock calls zside.v1.ZSideService.GetBlock.
-func (c *zSideServiceClient) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return c.getBlock.CallUnary(ctx, req)
-}
-
-// GetBestMainchainBlockHash calls zside.v1.ZSideService.GetBestMainchainBlockHash.
-func (c *zSideServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return c.getBestMainchainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBestSidechainBlockHash calls zside.v1.ZSideService.GetBestSidechainBlockHash.
-func (c *zSideServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return c.getBestSidechainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBmmInclusions calls zside.v1.ZSideService.GetBmmInclusions.
-func (c *zSideServiceClient) GetBmmInclusions(ctx context.Context, req *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return c.getBmmInclusions.CallUnary(ctx, req)
-}
-
-// GetWalletUtxos calls zside.v1.ZSideService.GetWalletUtxos.
-func (c *zSideServiceClient) GetWalletUtxos(ctx context.Context, req *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return c.getWalletUtxos.CallUnary(ctx, req)
-}
-
-// ListUtxos calls zside.v1.ZSideService.ListUtxos.
-func (c *zSideServiceClient) ListUtxos(ctx context.Context, req *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return c.listUtxos.CallUnary(ctx, req)
-}
-
-// RemoveFromMempool calls zside.v1.ZSideService.RemoveFromMempool.
-func (c *zSideServiceClient) RemoveFromMempool(ctx context.Context, req *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return c.removeFromMempool.CallUnary(ctx, req)
-}
-
-// GetLatestFailedWithdrawalBundleHeight calls
-// zside.v1.ZSideService.GetLatestFailedWithdrawalBundleHeight.
-func (c *zSideServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return c.getLatestFailedWithdrawalBundleHeight.CallUnary(ctx, req)
-}
-
-// GenerateMnemonic calls zside.v1.ZSideService.GenerateMnemonic.
-func (c *zSideServiceClient) GenerateMnemonic(ctx context.Context, req *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return c.generateMnemonic.CallUnary(ctx, req)
-}
-
-// SetSeedFromMnemonic calls zside.v1.ZSideService.SetSeedFromMnemonic.
-func (c *zSideServiceClient) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return c.setSeedFromMnemonic.CallUnary(ctx, req)
-}
-
-// CallRaw calls zside.v1.ZSideService.CallRaw.
-func (c *zSideServiceClient) CallRaw(ctx context.Context, req *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return c.callRaw.CallUnary(ctx, req)
-}
-
-// GetNewShieldedAddress calls zside.v1.ZSideService.GetNewShieldedAddress.
-func (c *zSideServiceClient) GetNewShieldedAddress(ctx context.Context, req *connect.Request[v1.GetNewShieldedAddressRequest]) (*connect.Response[v1.GetNewShieldedAddressResponse], error) {
-	return c.getNewShieldedAddress.CallUnary(ctx, req)
-}
-
-// GetNewTransparentAddress calls zside.v1.ZSideService.GetNewTransparentAddress.
-func (c *zSideServiceClient) GetNewTransparentAddress(ctx context.Context, req *connect.Request[v1.GetNewTransparentAddressRequest]) (*connect.Response[v1.GetNewTransparentAddressResponse], error) {
-	return c.getNewTransparentAddress.CallUnary(ctx, req)
-}
-
-// GetShieldedWalletAddresses calls zside.v1.ZSideService.GetShieldedWalletAddresses.
-func (c *zSideServiceClient) GetShieldedWalletAddresses(ctx context.Context, req *connect.Request[v1.GetShieldedWalletAddressesRequest]) (*connect.Response[v1.GetShieldedWalletAddressesResponse], error) {
-	return c.getShieldedWalletAddresses.CallUnary(ctx, req)
-}
-
-// GetTransparentWalletAddresses calls zside.v1.ZSideService.GetTransparentWalletAddresses.
-func (c *zSideServiceClient) GetTransparentWalletAddresses(ctx context.Context, req *connect.Request[v1.GetTransparentWalletAddressesRequest]) (*connect.Response[v1.GetTransparentWalletAddressesResponse], error) {
-	return c.getTransparentWalletAddresses.CallUnary(ctx, req)
-}
-
-// Shield calls zside.v1.ZSideService.Shield.
-func (c *zSideServiceClient) Shield(ctx context.Context, req *connect.Request[v1.ShieldRequest]) (*connect.Response[v1.ShieldResponse], error) {
-	return c.shield.CallUnary(ctx, req)
-}
-
-// Unshield calls zside.v1.ZSideService.Unshield.
-func (c *zSideServiceClient) Unshield(ctx context.Context, req *connect.Request[v1.UnshieldRequest]) (*connect.Response[v1.UnshieldResponse], error) {
-	return c.unshield.CallUnary(ctx, req)
-}
-
-// ShieldedTransfer calls zside.v1.ZSideService.ShieldedTransfer.
-func (c *zSideServiceClient) ShieldedTransfer(ctx context.Context, req *connect.Request[v1.ShieldedTransferRequest]) (*connect.Response[v1.ShieldedTransferResponse], error) {
-	return c.shieldedTransfer.CallUnary(ctx, req)
-}
-
-// TransparentTransfer calls zside.v1.ZSideService.TransparentTransfer.
-func (c *zSideServiceClient) TransparentTransfer(ctx context.Context, req *connect.Request[v1.TransparentTransferRequest]) (*connect.Response[v1.TransparentTransferResponse], error) {
-	return c.transparentTransfer.CallUnary(ctx, req)
+// NewZSideServiceClient constructs a client for the zside.v1.ZSideService service. Multiple service
+// clients may share a single connect.Client.
+func NewZSideServiceClient(client *connect.Client) ZSideServiceClient {
+	return &zSideServiceClient{client: client}
 }
 
 // ZSideServiceHandler is an implementation of the zside.v1.ZSideService service.
 type ZSideServiceHandler interface {
-	// Get wallet balance (total and available, both transparent and shielded).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the zside node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain (transparent).
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Get a new shielded address.
-	GetNewShieldedAddress(context.Context, *connect.Request[v1.GetNewShieldedAddressRequest]) (*connect.Response[v1.GetNewShieldedAddressResponse], error)
-	// Get a new transparent address.
-	GetNewTransparentAddress(context.Context, *connect.Request[v1.GetNewTransparentAddressRequest]) (*connect.Response[v1.GetNewTransparentAddressResponse], error)
-	// Get shielded wallet addresses.
-	GetShieldedWalletAddresses(context.Context, *connect.Request[v1.GetShieldedWalletAddressesRequest]) (*connect.Response[v1.GetShieldedWalletAddressesResponse], error)
-	// Get transparent wallet addresses.
-	GetTransparentWalletAddresses(context.Context, *connect.Request[v1.GetTransparentWalletAddressesRequest]) (*connect.Response[v1.GetTransparentWalletAddressesResponse], error)
-	// Shield transparent funds to shielded pool.
-	Shield(context.Context, *connect.Request[v1.ShieldRequest]) (*connect.Response[v1.ShieldResponse], error)
-	// Unshield (deshield) shielded funds to transparent pool.
-	Unshield(context.Context, *connect.Request[v1.UnshieldRequest]) (*connect.Response[v1.UnshieldResponse], error)
-	// Send a shielded transfer.
-	ShieldedTransfer(context.Context, *connect.Request[v1.ShieldedTransferRequest]) (*connect.Response[v1.ShieldedTransferResponse], error)
-	// Send a transparent transfer.
-	TransparentTransfer(context.Context, *connect.Request[v1.TransparentTransferRequest]) (*connect.Response[v1.TransparentTransferResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	GetNewShieldedAddress(context.Context, *v1.GetNewShieldedAddressRequest) (*v1.GetNewShieldedAddressResponse, error)
+	GetNewTransparentAddress(context.Context, *v1.GetNewTransparentAddressRequest) (*v1.GetNewTransparentAddressResponse, error)
+	GetShieldedWalletAddresses(context.Context, *v1.GetShieldedWalletAddressesRequest) (*v1.GetShieldedWalletAddressesResponse, error)
+	GetTransparentWalletAddresses(context.Context, *v1.GetTransparentWalletAddressesRequest) (*v1.GetTransparentWalletAddressesResponse, error)
+	Shield(context.Context, *v1.ShieldRequest) (*v1.ShieldResponse, error)
+	Unshield(context.Context, *v1.UnshieldRequest) (*v1.UnshieldResponse, error)
+	ShieldedTransfer(context.Context, *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error)
+	TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error)
 }
 
-// NewZSideServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewZSideServiceHandler(svc ZSideServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	zSideServiceMethods := v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods()
-	zSideServiceGetBalanceHandler := connect.NewUnaryHandler(
-		ZSideServiceGetBalanceProcedure,
-		svc.GetBalance,
-		connect.WithSchema(zSideServiceMethods.ByName("GetBalance")),
-		connect.WithHandlerOptions(opts...),
+// RegisterZSideServiceHandler registers svc as the zside.v1.ZSideService implementation on server.
+func RegisterZSideServiceHandler(server *connect.Server, svc ZSideServiceHandler) {
+	adapter := zSideServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: zSideServiceGetBalanceSpec(), Handler: adapter.getBalance},
+		connect.Method{Spec: zSideServiceGetBlockCountSpec(), Handler: adapter.getBlockCount},
+		connect.Method{Spec: zSideServiceStopSpec(), Handler: adapter.stop},
+		connect.Method{Spec: zSideServiceWithdrawSpec(), Handler: adapter.withdraw},
+		connect.Method{Spec: zSideServiceTransferSpec(), Handler: adapter.transfer},
+		connect.Method{Spec: zSideServiceGetSidechainWealthSpec(), Handler: adapter.getSidechainWealth},
+		connect.Method{Spec: zSideServiceCreateDepositSpec(), Handler: adapter.createDeposit},
+		connect.Method{Spec: zSideServiceGetPendingWithdrawalBundleSpec(), Handler: adapter.getPendingWithdrawalBundle},
+		connect.Method{Spec: zSideServiceConnectPeerSpec(), Handler: adapter.connectPeer},
+		connect.Method{Spec: zSideServiceListPeersSpec(), Handler: adapter.listPeers},
+		connect.Method{Spec: zSideServiceMineSpec(), Handler: adapter.mine},
+		connect.Method{Spec: zSideServiceGetBlockSpec(), Handler: adapter.getBlock},
+		connect.Method{Spec: zSideServiceGetBestMainchainBlockHashSpec(), Handler: adapter.getBestMainchainBlockHash},
+		connect.Method{Spec: zSideServiceGetBestSidechainBlockHashSpec(), Handler: adapter.getBestSidechainBlockHash},
+		connect.Method{Spec: zSideServiceGetBmmInclusionsSpec(), Handler: adapter.getBmmInclusions},
+		connect.Method{Spec: zSideServiceGetWalletUtxosSpec(), Handler: adapter.getWalletUtxos},
+		connect.Method{Spec: zSideServiceListUtxosSpec(), Handler: adapter.listUtxos},
+		connect.Method{Spec: zSideServiceRemoveFromMempoolSpec(), Handler: adapter.removeFromMempool},
+		connect.Method{Spec: zSideServiceGetLatestFailedWithdrawalBundleHeightSpec(), Handler: adapter.getLatestFailedWithdrawalBundleHeight},
+		connect.Method{Spec: zSideServiceGenerateMnemonicSpec(), Handler: adapter.generateMnemonic},
+		connect.Method{Spec: zSideServiceSetSeedFromMnemonicSpec(), Handler: adapter.setSeedFromMnemonic},
+		connect.Method{Spec: zSideServiceCallRawSpec(), Handler: adapter.callRaw},
+		connect.Method{Spec: zSideServiceGetNewShieldedAddressSpec(), Handler: adapter.getNewShieldedAddress},
+		connect.Method{Spec: zSideServiceGetNewTransparentAddressSpec(), Handler: adapter.getNewTransparentAddress},
+		connect.Method{Spec: zSideServiceGetShieldedWalletAddressesSpec(), Handler: adapter.getShieldedWalletAddresses},
+		connect.Method{Spec: zSideServiceGetTransparentWalletAddressesSpec(), Handler: adapter.getTransparentWalletAddresses},
+		connect.Method{Spec: zSideServiceShieldSpec(), Handler: adapter.shield},
+		connect.Method{Spec: zSideServiceUnshieldSpec(), Handler: adapter.unshield},
+		connect.Method{Spec: zSideServiceShieldedTransferSpec(), Handler: adapter.shieldedTransfer},
+		connect.Method{Spec: zSideServiceTransparentTransferSpec(), Handler: adapter.transparentTransfer},
 	)
-	zSideServiceGetBlockCountHandler := connect.NewUnaryHandler(
-		ZSideServiceGetBlockCountProcedure,
-		svc.GetBlockCount,
-		connect.WithSchema(zSideServiceMethods.ByName("GetBlockCount")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceStopHandler := connect.NewUnaryHandler(
-		ZSideServiceStopProcedure,
-		svc.Stop,
-		connect.WithSchema(zSideServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceWithdrawHandler := connect.NewUnaryHandler(
-		ZSideServiceWithdrawProcedure,
-		svc.Withdraw,
-		connect.WithSchema(zSideServiceMethods.ByName("Withdraw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceTransferHandler := connect.NewUnaryHandler(
-		ZSideServiceTransferProcedure,
-		svc.Transfer,
-		connect.WithSchema(zSideServiceMethods.ByName("Transfer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetSidechainWealthHandler := connect.NewUnaryHandler(
-		ZSideServiceGetSidechainWealthProcedure,
-		svc.GetSidechainWealth,
-		connect.WithSchema(zSideServiceMethods.ByName("GetSidechainWealth")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceCreateDepositHandler := connect.NewUnaryHandler(
-		ZSideServiceCreateDepositProcedure,
-		svc.CreateDeposit,
-		connect.WithSchema(zSideServiceMethods.ByName("CreateDeposit")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetPendingWithdrawalBundleHandler := connect.NewUnaryHandler(
-		ZSideServiceGetPendingWithdrawalBundleProcedure,
-		svc.GetPendingWithdrawalBundle,
-		connect.WithSchema(zSideServiceMethods.ByName("GetPendingWithdrawalBundle")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceConnectPeerHandler := connect.NewUnaryHandler(
-		ZSideServiceConnectPeerProcedure,
-		svc.ConnectPeer,
-		connect.WithSchema(zSideServiceMethods.ByName("ConnectPeer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceListPeersHandler := connect.NewUnaryHandler(
-		ZSideServiceListPeersProcedure,
-		svc.ListPeers,
-		connect.WithSchema(zSideServiceMethods.ByName("ListPeers")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceMineHandler := connect.NewUnaryHandler(
-		ZSideServiceMineProcedure,
-		svc.Mine,
-		connect.WithSchema(zSideServiceMethods.ByName("Mine")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetBlockHandler := connect.NewUnaryHandler(
-		ZSideServiceGetBlockProcedure,
-		svc.GetBlock,
-		connect.WithSchema(zSideServiceMethods.ByName("GetBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetBestMainchainBlockHashHandler := connect.NewUnaryHandler(
-		ZSideServiceGetBestMainchainBlockHashProcedure,
-		svc.GetBestMainchainBlockHash,
-		connect.WithSchema(zSideServiceMethods.ByName("GetBestMainchainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetBestSidechainBlockHashHandler := connect.NewUnaryHandler(
-		ZSideServiceGetBestSidechainBlockHashProcedure,
-		svc.GetBestSidechainBlockHash,
-		connect.WithSchema(zSideServiceMethods.ByName("GetBestSidechainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetBmmInclusionsHandler := connect.NewUnaryHandler(
-		ZSideServiceGetBmmInclusionsProcedure,
-		svc.GetBmmInclusions,
-		connect.WithSchema(zSideServiceMethods.ByName("GetBmmInclusions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetWalletUtxosHandler := connect.NewUnaryHandler(
-		ZSideServiceGetWalletUtxosProcedure,
-		svc.GetWalletUtxos,
-		connect.WithSchema(zSideServiceMethods.ByName("GetWalletUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceListUtxosHandler := connect.NewUnaryHandler(
-		ZSideServiceListUtxosProcedure,
-		svc.ListUtxos,
-		connect.WithSchema(zSideServiceMethods.ByName("ListUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceRemoveFromMempoolHandler := connect.NewUnaryHandler(
-		ZSideServiceRemoveFromMempoolProcedure,
-		svc.RemoveFromMempool,
-		connect.WithSchema(zSideServiceMethods.ByName("RemoveFromMempool")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetLatestFailedWithdrawalBundleHeightHandler := connect.NewUnaryHandler(
-		ZSideServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-		svc.GetLatestFailedWithdrawalBundleHeight,
-		connect.WithSchema(zSideServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGenerateMnemonicHandler := connect.NewUnaryHandler(
-		ZSideServiceGenerateMnemonicProcedure,
-		svc.GenerateMnemonic,
-		connect.WithSchema(zSideServiceMethods.ByName("GenerateMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceSetSeedFromMnemonicHandler := connect.NewUnaryHandler(
-		ZSideServiceSetSeedFromMnemonicProcedure,
-		svc.SetSeedFromMnemonic,
-		connect.WithSchema(zSideServiceMethods.ByName("SetSeedFromMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceCallRawHandler := connect.NewUnaryHandler(
-		ZSideServiceCallRawProcedure,
-		svc.CallRaw,
-		connect.WithSchema(zSideServiceMethods.ByName("CallRaw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetNewShieldedAddressHandler := connect.NewUnaryHandler(
-		ZSideServiceGetNewShieldedAddressProcedure,
-		svc.GetNewShieldedAddress,
-		connect.WithSchema(zSideServiceMethods.ByName("GetNewShieldedAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetNewTransparentAddressHandler := connect.NewUnaryHandler(
-		ZSideServiceGetNewTransparentAddressProcedure,
-		svc.GetNewTransparentAddress,
-		connect.WithSchema(zSideServiceMethods.ByName("GetNewTransparentAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetShieldedWalletAddressesHandler := connect.NewUnaryHandler(
-		ZSideServiceGetShieldedWalletAddressesProcedure,
-		svc.GetShieldedWalletAddresses,
-		connect.WithSchema(zSideServiceMethods.ByName("GetShieldedWalletAddresses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceGetTransparentWalletAddressesHandler := connect.NewUnaryHandler(
-		ZSideServiceGetTransparentWalletAddressesProcedure,
-		svc.GetTransparentWalletAddresses,
-		connect.WithSchema(zSideServiceMethods.ByName("GetTransparentWalletAddresses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceShieldHandler := connect.NewUnaryHandler(
-		ZSideServiceShieldProcedure,
-		svc.Shield,
-		connect.WithSchema(zSideServiceMethods.ByName("Shield")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceUnshieldHandler := connect.NewUnaryHandler(
-		ZSideServiceUnshieldProcedure,
-		svc.Unshield,
-		connect.WithSchema(zSideServiceMethods.ByName("Unshield")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceShieldedTransferHandler := connect.NewUnaryHandler(
-		ZSideServiceShieldedTransferProcedure,
-		svc.ShieldedTransfer,
-		connect.WithSchema(zSideServiceMethods.ByName("ShieldedTransfer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideServiceTransparentTransferHandler := connect.NewUnaryHandler(
-		ZSideServiceTransparentTransferProcedure,
-		svc.TransparentTransfer,
-		connect.WithSchema(zSideServiceMethods.ByName("TransparentTransfer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/zside.v1.ZSideService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ZSideServiceGetBalanceProcedure:
-			zSideServiceGetBalanceHandler.ServeHTTP(w, r)
-		case ZSideServiceGetBlockCountProcedure:
-			zSideServiceGetBlockCountHandler.ServeHTTP(w, r)
-		case ZSideServiceStopProcedure:
-			zSideServiceStopHandler.ServeHTTP(w, r)
-		case ZSideServiceWithdrawProcedure:
-			zSideServiceWithdrawHandler.ServeHTTP(w, r)
-		case ZSideServiceTransferProcedure:
-			zSideServiceTransferHandler.ServeHTTP(w, r)
-		case ZSideServiceGetSidechainWealthProcedure:
-			zSideServiceGetSidechainWealthHandler.ServeHTTP(w, r)
-		case ZSideServiceCreateDepositProcedure:
-			zSideServiceCreateDepositHandler.ServeHTTP(w, r)
-		case ZSideServiceGetPendingWithdrawalBundleProcedure:
-			zSideServiceGetPendingWithdrawalBundleHandler.ServeHTTP(w, r)
-		case ZSideServiceConnectPeerProcedure:
-			zSideServiceConnectPeerHandler.ServeHTTP(w, r)
-		case ZSideServiceListPeersProcedure:
-			zSideServiceListPeersHandler.ServeHTTP(w, r)
-		case ZSideServiceMineProcedure:
-			zSideServiceMineHandler.ServeHTTP(w, r)
-		case ZSideServiceGetBlockProcedure:
-			zSideServiceGetBlockHandler.ServeHTTP(w, r)
-		case ZSideServiceGetBestMainchainBlockHashProcedure:
-			zSideServiceGetBestMainchainBlockHashHandler.ServeHTTP(w, r)
-		case ZSideServiceGetBestSidechainBlockHashProcedure:
-			zSideServiceGetBestSidechainBlockHashHandler.ServeHTTP(w, r)
-		case ZSideServiceGetBmmInclusionsProcedure:
-			zSideServiceGetBmmInclusionsHandler.ServeHTTP(w, r)
-		case ZSideServiceGetWalletUtxosProcedure:
-			zSideServiceGetWalletUtxosHandler.ServeHTTP(w, r)
-		case ZSideServiceListUtxosProcedure:
-			zSideServiceListUtxosHandler.ServeHTTP(w, r)
-		case ZSideServiceRemoveFromMempoolProcedure:
-			zSideServiceRemoveFromMempoolHandler.ServeHTTP(w, r)
-		case ZSideServiceGetLatestFailedWithdrawalBundleHeightProcedure:
-			zSideServiceGetLatestFailedWithdrawalBundleHeightHandler.ServeHTTP(w, r)
-		case ZSideServiceGenerateMnemonicProcedure:
-			zSideServiceGenerateMnemonicHandler.ServeHTTP(w, r)
-		case ZSideServiceSetSeedFromMnemonicProcedure:
-			zSideServiceSetSeedFromMnemonicHandler.ServeHTTP(w, r)
-		case ZSideServiceCallRawProcedure:
-			zSideServiceCallRawHandler.ServeHTTP(w, r)
-		case ZSideServiceGetNewShieldedAddressProcedure:
-			zSideServiceGetNewShieldedAddressHandler.ServeHTTP(w, r)
-		case ZSideServiceGetNewTransparentAddressProcedure:
-			zSideServiceGetNewTransparentAddressHandler.ServeHTTP(w, r)
-		case ZSideServiceGetShieldedWalletAddressesProcedure:
-			zSideServiceGetShieldedWalletAddressesHandler.ServeHTTP(w, r)
-		case ZSideServiceGetTransparentWalletAddressesProcedure:
-			zSideServiceGetTransparentWalletAddressesHandler.ServeHTTP(w, r)
-		case ZSideServiceShieldProcedure:
-			zSideServiceShieldHandler.ServeHTTP(w, r)
-		case ZSideServiceUnshieldProcedure:
-			zSideServiceUnshieldHandler.ServeHTTP(w, r)
-		case ZSideServiceShieldedTransferProcedure:
-			zSideServiceShieldedTransferHandler.ServeHTTP(w, r)
-		case ZSideServiceTransparentTransferProcedure:
-			zSideServiceTransparentTransferHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedZSideServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedZSideServiceHandler struct{}
 
-func (UnimplementedZSideServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetBalance is not implemented"))
+func (UnimplementedZSideServiceHandler) GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetBalance is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetBlockCount is not implemented"))
+func (UnimplementedZSideServiceHandler) GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetBlockCount is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.Stop is not implemented"))
+func (UnimplementedZSideServiceHandler) Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.Stop is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.Withdraw is not implemented"))
+func (UnimplementedZSideServiceHandler) Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.Withdraw is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.Transfer is not implemented"))
+func (UnimplementedZSideServiceHandler) Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.Transfer is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetSidechainWealth is not implemented"))
+func (UnimplementedZSideServiceHandler) GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetSidechainWealth is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.CreateDeposit is not implemented"))
+func (UnimplementedZSideServiceHandler) CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.CreateDeposit is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetPendingWithdrawalBundle is not implemented"))
+func (UnimplementedZSideServiceHandler) GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetPendingWithdrawalBundle is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.ConnectPeer is not implemented"))
+func (UnimplementedZSideServiceHandler) ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.ConnectPeer is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.ListPeers is not implemented"))
+func (UnimplementedZSideServiceHandler) ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.ListPeers is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.Mine is not implemented"))
+func (UnimplementedZSideServiceHandler) Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.Mine is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetBlock is not implemented"))
+func (UnimplementedZSideServiceHandler) GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetBlock is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetBestMainchainBlockHash is not implemented"))
+func (UnimplementedZSideServiceHandler) GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetBestMainchainBlockHash is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetBestSidechainBlockHash is not implemented"))
+func (UnimplementedZSideServiceHandler) GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetBestSidechainBlockHash is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetBmmInclusions is not implemented"))
+func (UnimplementedZSideServiceHandler) GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetBmmInclusions is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetWalletUtxos is not implemented"))
+func (UnimplementedZSideServiceHandler) GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetWalletUtxos is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.ListUtxos is not implemented"))
+func (UnimplementedZSideServiceHandler) ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.ListUtxos is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.RemoveFromMempool is not implemented"))
+func (UnimplementedZSideServiceHandler) RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.RemoveFromMempool is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetLatestFailedWithdrawalBundleHeight is not implemented"))
+func (UnimplementedZSideServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetLatestFailedWithdrawalBundleHeight is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GenerateMnemonic is not implemented"))
+func (UnimplementedZSideServiceHandler) GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GenerateMnemonic is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.SetSeedFromMnemonic is not implemented"))
+func (UnimplementedZSideServiceHandler) SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.SetSeedFromMnemonic is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.CallRaw is not implemented"))
+func (UnimplementedZSideServiceHandler) CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.CallRaw is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetNewShieldedAddress(context.Context, *connect.Request[v1.GetNewShieldedAddressRequest]) (*connect.Response[v1.GetNewShieldedAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetNewShieldedAddress is not implemented"))
+func (UnimplementedZSideServiceHandler) GetNewShieldedAddress(context.Context, *v1.GetNewShieldedAddressRequest) (*v1.GetNewShieldedAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetNewShieldedAddress is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetNewTransparentAddress(context.Context, *connect.Request[v1.GetNewTransparentAddressRequest]) (*connect.Response[v1.GetNewTransparentAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetNewTransparentAddress is not implemented"))
+func (UnimplementedZSideServiceHandler) GetNewTransparentAddress(context.Context, *v1.GetNewTransparentAddressRequest) (*v1.GetNewTransparentAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetNewTransparentAddress is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetShieldedWalletAddresses(context.Context, *connect.Request[v1.GetShieldedWalletAddressesRequest]) (*connect.Response[v1.GetShieldedWalletAddressesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetShieldedWalletAddresses is not implemented"))
+func (UnimplementedZSideServiceHandler) GetShieldedWalletAddresses(context.Context, *v1.GetShieldedWalletAddressesRequest) (*v1.GetShieldedWalletAddressesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetShieldedWalletAddresses is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) GetTransparentWalletAddresses(context.Context, *connect.Request[v1.GetTransparentWalletAddressesRequest]) (*connect.Response[v1.GetTransparentWalletAddressesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.GetTransparentWalletAddresses is not implemented"))
+func (UnimplementedZSideServiceHandler) GetTransparentWalletAddresses(context.Context, *v1.GetTransparentWalletAddressesRequest) (*v1.GetTransparentWalletAddressesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.GetTransparentWalletAddresses is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) Shield(context.Context, *connect.Request[v1.ShieldRequest]) (*connect.Response[v1.ShieldResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.Shield is not implemented"))
+func (UnimplementedZSideServiceHandler) Shield(context.Context, *v1.ShieldRequest) (*v1.ShieldResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.Shield is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) Unshield(context.Context, *connect.Request[v1.UnshieldRequest]) (*connect.Response[v1.UnshieldResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.Unshield is not implemented"))
+func (UnimplementedZSideServiceHandler) Unshield(context.Context, *v1.UnshieldRequest) (*v1.UnshieldResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.Unshield is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) ShieldedTransfer(context.Context, *connect.Request[v1.ShieldedTransferRequest]) (*connect.Response[v1.ShieldedTransferResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.ShieldedTransfer is not implemented"))
+func (UnimplementedZSideServiceHandler) ShieldedTransfer(context.Context, *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.ShieldedTransfer is not implemented")
 }
 
-func (UnimplementedZSideServiceHandler) TransparentTransfer(context.Context, *connect.Request[v1.TransparentTransferRequest]) (*connect.Response[v1.TransparentTransferResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("zside.v1.ZSideService.TransparentTransfer is not implemented"))
+func (UnimplementedZSideServiceHandler) TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.TransparentTransfer is not implemented")
+}
+
+type zSideServiceClient struct {
+	client *connect.Client
+}
+
+func (c *zSideServiceClient) GetBalance(ctx context.Context, req *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	var res v1.GetBalanceResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetBlockCount(ctx context.Context, req *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	var res v1.GetBlockCountResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetBlockCountSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) Stop(ctx context.Context, req *v1.StopRequest) (*v1.StopResponse, error) {
+	var res v1.StopResponse
+	if err := c.client.CallUnary(ctx, zSideServiceStopSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) Withdraw(ctx context.Context, req *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	var res v1.WithdrawResponse
+	if err := c.client.CallUnary(ctx, zSideServiceWithdrawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) Transfer(ctx context.Context, req *v1.TransferRequest) (*v1.TransferResponse, error) {
+	var res v1.TransferResponse
+	if err := c.client.CallUnary(ctx, zSideServiceTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetSidechainWealth(ctx context.Context, req *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	var res v1.GetSidechainWealthResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetSidechainWealthSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) CreateDeposit(ctx context.Context, req *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	var res v1.CreateDepositResponse
+	if err := c.client.CallUnary(ctx, zSideServiceCreateDepositSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	var res v1.GetPendingWithdrawalBundleResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetPendingWithdrawalBundleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) ConnectPeer(ctx context.Context, req *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	var res v1.ConnectPeerResponse
+	if err := c.client.CallUnary(ctx, zSideServiceConnectPeerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) ListPeers(ctx context.Context, req *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	var res v1.ListPeersResponse
+	if err := c.client.CallUnary(ctx, zSideServiceListPeersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) Mine(ctx context.Context, req *v1.MineRequest) (*v1.MineResponse, error) {
+	var res v1.MineResponse
+	if err := c.client.CallUnary(ctx, zSideServiceMineSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetBlock(ctx context.Context, req *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	var res v1.GetBlockResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetBlockSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	var res v1.GetBestMainchainBlockHashResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetBestMainchainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	var res v1.GetBestSidechainBlockHashResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetBestSidechainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetBmmInclusions(ctx context.Context, req *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	var res v1.GetBmmInclusionsResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetBmmInclusionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetWalletUtxos(ctx context.Context, req *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	var res v1.GetWalletUtxosResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetWalletUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) ListUtxos(ctx context.Context, req *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	var res v1.ListUtxosResponse
+	if err := c.client.CallUnary(ctx, zSideServiceListUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) RemoveFromMempool(ctx context.Context, req *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	var res v1.RemoveFromMempoolResponse
+	if err := c.client.CallUnary(ctx, zSideServiceRemoveFromMempoolSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	var res v1.GetLatestFailedWithdrawalBundleHeightResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetLatestFailedWithdrawalBundleHeightSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GenerateMnemonic(ctx context.Context, req *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	var res v1.GenerateMnemonicResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGenerateMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) SetSeedFromMnemonic(ctx context.Context, req *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	var res v1.SetSeedFromMnemonicResponse
+	if err := c.client.CallUnary(ctx, zSideServiceSetSeedFromMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) CallRaw(ctx context.Context, req *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	var res v1.CallRawResponse
+	if err := c.client.CallUnary(ctx, zSideServiceCallRawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetNewShieldedAddress(ctx context.Context, req *v1.GetNewShieldedAddressRequest) (*v1.GetNewShieldedAddressResponse, error) {
+	var res v1.GetNewShieldedAddressResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetNewShieldedAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetNewTransparentAddress(ctx context.Context, req *v1.GetNewTransparentAddressRequest) (*v1.GetNewTransparentAddressResponse, error) {
+	var res v1.GetNewTransparentAddressResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetNewTransparentAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetShieldedWalletAddresses(ctx context.Context, req *v1.GetShieldedWalletAddressesRequest) (*v1.GetShieldedWalletAddressesResponse, error) {
+	var res v1.GetShieldedWalletAddressesResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetShieldedWalletAddressesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) GetTransparentWalletAddresses(ctx context.Context, req *v1.GetTransparentWalletAddressesRequest) (*v1.GetTransparentWalletAddressesResponse, error) {
+	var res v1.GetTransparentWalletAddressesResponse
+	if err := c.client.CallUnary(ctx, zSideServiceGetTransparentWalletAddressesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) Shield(ctx context.Context, req *v1.ShieldRequest) (*v1.ShieldResponse, error) {
+	var res v1.ShieldResponse
+	if err := c.client.CallUnary(ctx, zSideServiceShieldSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) Unshield(ctx context.Context, req *v1.UnshieldRequest) (*v1.UnshieldResponse, error) {
+	var res v1.UnshieldResponse
+	if err := c.client.CallUnary(ctx, zSideServiceUnshieldSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) ShieldedTransfer(ctx context.Context, req *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error) {
+	var res v1.ShieldedTransferResponse
+	if err := c.client.CallUnary(ctx, zSideServiceShieldedTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) TransparentTransfer(ctx context.Context, req *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error) {
+	var res v1.TransparentTransferResponse
+	if err := c.client.CallUnary(ctx, zSideServiceTransparentTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type zSideServiceHandler struct{ svc ZSideServiceHandler }
+
+func (h zSideServiceHandler) getBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getBlockCount(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockCountRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlockCount(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) stop(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Stop(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) withdraw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WithdrawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Withdraw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) transfer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TransferRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Transfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getSidechainWealth(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainWealthRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSidechainWealth(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) createDeposit(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDepositRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDeposit(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getPendingWithdrawalBundle(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPendingWithdrawalBundleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPendingWithdrawalBundle(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) connectPeer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConnectPeerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ConnectPeer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) listPeers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPeersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPeers(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) mine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Mine(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlock(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getBestMainchainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestMainchainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestMainchainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getBestSidechainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestSidechainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestSidechainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getBmmInclusions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBmmInclusionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBmmInclusions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getWalletUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) listUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) removeFromMempool(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveFromMempoolRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveFromMempool(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getLatestFailedWithdrawalBundleHeight(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetLatestFailedWithdrawalBundleHeightRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLatestFailedWithdrawalBundleHeight(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) generateMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GenerateMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GenerateMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) setSeedFromMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetSeedFromMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetSeedFromMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) callRaw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CallRawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CallRaw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getNewShieldedAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewShieldedAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewShieldedAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getNewTransparentAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewTransparentAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewTransparentAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getShieldedWalletAddresses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetShieldedWalletAddressesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetShieldedWalletAddresses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) getTransparentWalletAddresses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTransparentWalletAddressesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTransparentWalletAddresses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) shield(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ShieldRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Shield(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) unshield(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UnshieldRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Unshield(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) shieldedTransfer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ShieldedTransferRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ShieldedTransfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) transparentTransfer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TransparentTransferRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.TransparentTransfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

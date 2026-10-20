@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/require"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -157,11 +157,11 @@ func cancelHandler(t *testing.T, node *cancelNode, w *fakeBidWallet) *BMMHandler
 func cancel(t *testing.T, node *cancelNode, w *fakeBidWallet, txid string) (*bmmpb.CancelBidResponse, error) {
 	t.Helper()
 	resp, err := cancelHandler(t, node, w).CancelBid(
-		context.Background(), connect.NewRequest(&bmmpb.CancelBidRequest{Txid: txid}))
+		context.Background(), &bmmpb.CancelBidRequest{Txid: txid})
 	if err != nil {
 		return nil, err
 	}
-	return resp.Msg, nil
+	return resp, nil
 }
 
 func TestCancelBidPaysTheCoinsBackToItsOwnWallet(t *testing.T) {

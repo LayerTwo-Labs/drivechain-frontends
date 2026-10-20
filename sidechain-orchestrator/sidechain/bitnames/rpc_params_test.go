@@ -23,11 +23,13 @@ func recordParams(t *testing.T, result string) (*httptest.Server, *json.RawMessa
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Params json.RawMessage `json:"params"`
+			ID     json.RawMessage `json:"id"`
 		}
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 		seen = req.Params
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":"t","result":` + result + `}`))
+		_, err := w.Write([]byte(`{"jsonrpc":"2.0","id":` + string(req.ID) + `,"result":` + result + `}`))
+		require.NoError(t, err)
 	}))
 	return srv, &seen
 }

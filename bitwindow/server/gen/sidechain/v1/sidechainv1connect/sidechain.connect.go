@@ -5,138 +5,131 @@
 package sidechainv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// SidechainServiceName is the fully-qualified name of the SidechainService service.
 	SidechainServiceName = "sidechain.v1.SidechainService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SidechainServiceGetDetectedWithdrawalsProcedure is the fully-qualified name of the
-	// SidechainService's GetDetectedWithdrawals RPC.
+	// SidechainServiceGetDetectedWithdrawalsProcedure is the procedure name of the SidechainService's
+	// GetDetectedWithdrawals RPC.
 	SidechainServiceGetDetectedWithdrawalsProcedure = "/sidechain.v1.SidechainService/GetDetectedWithdrawals"
-	// SidechainServiceGetWithdrawalByTxidProcedure is the fully-qualified name of the
-	// SidechainService's GetWithdrawalByTxid RPC.
+	// SidechainServiceGetWithdrawalByTxidProcedure is the procedure name of the SidechainService's
+	// GetWithdrawalByTxid RPC.
 	SidechainServiceGetWithdrawalByTxidProcedure = "/sidechain.v1.SidechainService/GetWithdrawalByTxid"
+)
+
+var (
+	sidechainServiceGetDetectedWithdrawalsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_sidechain_v1_sidechain_proto.Services().ByName("SidechainService").Methods().ByName("GetDetectedWithdrawals"),
+			Procedure:  SidechainServiceGetDetectedWithdrawalsProcedure,
+		}
+	})
+	sidechainServiceGetWithdrawalByTxidSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_sidechain_v1_sidechain_proto.Services().ByName("SidechainService").Methods().ByName("GetWithdrawalByTxid"),
+			Procedure:  SidechainServiceGetWithdrawalByTxidProcedure,
+		}
+	})
 )
 
 // SidechainServiceClient is a client for the sidechain.v1.SidechainService service.
 type SidechainServiceClient interface {
-	// GetDetectedWithdrawals returns all detected fast withdrawal transactions
-	GetDetectedWithdrawals(context.Context, *connect.Request[v1.GetDetectedWithdrawalsRequest]) (*connect.Response[v1.GetDetectedWithdrawalsResponse], error)
-	// GetWithdrawalByTxid returns a specific withdrawal by transaction ID
-	GetWithdrawalByTxid(context.Context, *connect.Request[v1.GetWithdrawalByTxidRequest]) (*connect.Response[v1.GetWithdrawalByTxidResponse], error)
+	GetDetectedWithdrawals(context.Context, *v1.GetDetectedWithdrawalsRequest) (*v1.GetDetectedWithdrawalsResponse, error)
+	GetWithdrawalByTxid(context.Context, *v1.GetWithdrawalByTxidRequest) (*v1.GetWithdrawalByTxidResponse, error)
 }
 
-// NewSidechainServiceClient constructs a client for the sidechain.v1.SidechainService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewSidechainServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SidechainServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	sidechainServiceMethods := v1.File_sidechain_v1_sidechain_proto.Services().ByName("SidechainService").Methods()
-	return &sidechainServiceClient{
-		getDetectedWithdrawals: connect.NewClient[v1.GetDetectedWithdrawalsRequest, v1.GetDetectedWithdrawalsResponse](
-			httpClient,
-			baseURL+SidechainServiceGetDetectedWithdrawalsProcedure,
-			connect.WithSchema(sidechainServiceMethods.ByName("GetDetectedWithdrawals")),
-			connect.WithClientOptions(opts...),
-		),
-		getWithdrawalByTxid: connect.NewClient[v1.GetWithdrawalByTxidRequest, v1.GetWithdrawalByTxidResponse](
-			httpClient,
-			baseURL+SidechainServiceGetWithdrawalByTxidProcedure,
-			connect.WithSchema(sidechainServiceMethods.ByName("GetWithdrawalByTxid")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// sidechainServiceClient implements SidechainServiceClient.
-type sidechainServiceClient struct {
-	getDetectedWithdrawals *connect.Client[v1.GetDetectedWithdrawalsRequest, v1.GetDetectedWithdrawalsResponse]
-	getWithdrawalByTxid    *connect.Client[v1.GetWithdrawalByTxidRequest, v1.GetWithdrawalByTxidResponse]
-}
-
-// GetDetectedWithdrawals calls sidechain.v1.SidechainService.GetDetectedWithdrawals.
-func (c *sidechainServiceClient) GetDetectedWithdrawals(ctx context.Context, req *connect.Request[v1.GetDetectedWithdrawalsRequest]) (*connect.Response[v1.GetDetectedWithdrawalsResponse], error) {
-	return c.getDetectedWithdrawals.CallUnary(ctx, req)
-}
-
-// GetWithdrawalByTxid calls sidechain.v1.SidechainService.GetWithdrawalByTxid.
-func (c *sidechainServiceClient) GetWithdrawalByTxid(ctx context.Context, req *connect.Request[v1.GetWithdrawalByTxidRequest]) (*connect.Response[v1.GetWithdrawalByTxidResponse], error) {
-	return c.getWithdrawalByTxid.CallUnary(ctx, req)
+// NewSidechainServiceClient constructs a client for the sidechain.v1.SidechainService service.
+// Multiple service clients may share a single connect.Client.
+func NewSidechainServiceClient(client *connect.Client) SidechainServiceClient {
+	return &sidechainServiceClient{client: client}
 }
 
 // SidechainServiceHandler is an implementation of the sidechain.v1.SidechainService service.
 type SidechainServiceHandler interface {
-	// GetDetectedWithdrawals returns all detected fast withdrawal transactions
-	GetDetectedWithdrawals(context.Context, *connect.Request[v1.GetDetectedWithdrawalsRequest]) (*connect.Response[v1.GetDetectedWithdrawalsResponse], error)
-	// GetWithdrawalByTxid returns a specific withdrawal by transaction ID
-	GetWithdrawalByTxid(context.Context, *connect.Request[v1.GetWithdrawalByTxidRequest]) (*connect.Response[v1.GetWithdrawalByTxidResponse], error)
+	GetDetectedWithdrawals(context.Context, *v1.GetDetectedWithdrawalsRequest) (*v1.GetDetectedWithdrawalsResponse, error)
+	GetWithdrawalByTxid(context.Context, *v1.GetWithdrawalByTxidRequest) (*v1.GetWithdrawalByTxidResponse, error)
 }
 
-// NewSidechainServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewSidechainServiceHandler(svc SidechainServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	sidechainServiceMethods := v1.File_sidechain_v1_sidechain_proto.Services().ByName("SidechainService").Methods()
-	sidechainServiceGetDetectedWithdrawalsHandler := connect.NewUnaryHandler(
-		SidechainServiceGetDetectedWithdrawalsProcedure,
-		svc.GetDetectedWithdrawals,
-		connect.WithSchema(sidechainServiceMethods.ByName("GetDetectedWithdrawals")),
-		connect.WithHandlerOptions(opts...),
+// RegisterSidechainServiceHandler registers svc as the sidechain.v1.SidechainService implementation
+// on server.
+func RegisterSidechainServiceHandler(server *connect.Server, svc SidechainServiceHandler) {
+	adapter := sidechainServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: sidechainServiceGetDetectedWithdrawalsSpec(), Handler: adapter.getDetectedWithdrawals},
+		connect.Method{Spec: sidechainServiceGetWithdrawalByTxidSpec(), Handler: adapter.getWithdrawalByTxid},
 	)
-	sidechainServiceGetWithdrawalByTxidHandler := connect.NewUnaryHandler(
-		SidechainServiceGetWithdrawalByTxidProcedure,
-		svc.GetWithdrawalByTxid,
-		connect.WithSchema(sidechainServiceMethods.ByName("GetWithdrawalByTxid")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/sidechain.v1.SidechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case SidechainServiceGetDetectedWithdrawalsProcedure:
-			sidechainServiceGetDetectedWithdrawalsHandler.ServeHTTP(w, r)
-		case SidechainServiceGetWithdrawalByTxidProcedure:
-			sidechainServiceGetWithdrawalByTxidHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedSidechainServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSidechainServiceHandler struct{}
 
-func (UnimplementedSidechainServiceHandler) GetDetectedWithdrawals(context.Context, *connect.Request[v1.GetDetectedWithdrawalsRequest]) (*connect.Response[v1.GetDetectedWithdrawalsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("sidechain.v1.SidechainService.GetDetectedWithdrawals is not implemented"))
+func (UnimplementedSidechainServiceHandler) GetDetectedWithdrawals(context.Context, *v1.GetDetectedWithdrawalsRequest) (*v1.GetDetectedWithdrawalsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "sidechain.v1.SidechainService.GetDetectedWithdrawals is not implemented")
 }
 
-func (UnimplementedSidechainServiceHandler) GetWithdrawalByTxid(context.Context, *connect.Request[v1.GetWithdrawalByTxidRequest]) (*connect.Response[v1.GetWithdrawalByTxidResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("sidechain.v1.SidechainService.GetWithdrawalByTxid is not implemented"))
+func (UnimplementedSidechainServiceHandler) GetWithdrawalByTxid(context.Context, *v1.GetWithdrawalByTxidRequest) (*v1.GetWithdrawalByTxidResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "sidechain.v1.SidechainService.GetWithdrawalByTxid is not implemented")
+}
+
+type sidechainServiceClient struct {
+	client *connect.Client
+}
+
+func (c *sidechainServiceClient) GetDetectedWithdrawals(ctx context.Context, req *v1.GetDetectedWithdrawalsRequest) (*v1.GetDetectedWithdrawalsResponse, error) {
+	var res v1.GetDetectedWithdrawalsResponse
+	if err := c.client.CallUnary(ctx, sidechainServiceGetDetectedWithdrawalsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *sidechainServiceClient) GetWithdrawalByTxid(ctx context.Context, req *v1.GetWithdrawalByTxidRequest) (*v1.GetWithdrawalByTxidResponse, error) {
+	var res v1.GetWithdrawalByTxidResponse
+	if err := c.client.CallUnary(ctx, sidechainServiceGetWithdrawalByTxidSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type sidechainServiceHandler struct{ svc SidechainServiceHandler }
+
+func (h sidechainServiceHandler) getDetectedWithdrawals(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetDetectedWithdrawalsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetDetectedWithdrawals(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h sidechainServiceHandler) getWithdrawalByTxid(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWithdrawalByTxidRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWithdrawalByTxid(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

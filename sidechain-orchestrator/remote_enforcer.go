@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"connectrpc.com/grpchealth"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -90,7 +91,7 @@ type enforcerHealthCheck struct {
 // network publishes its validator address before the host stands up, and this
 // install runs none of it, so an unreachable host is not a fault here.
 func remoteEnforcerCheckError(network string, err error) error {
-	if connect.CodeOf(err) == connect.CodeUnavailable {
+	if connect.CodeOf(err) == connect.CodeUnavailable || connectv1.CodeOf(err) == connectv1.CodeUnavailable {
 		return fmt.Errorf("the remote enforcer for %s is not live yet", network)
 	}
 	return fmt.Errorf("check the remote validator service: %w", err)
@@ -110,7 +111,7 @@ func (h *enforcerHealthCheck) Check(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	health := grpchealth.NewClient(h.orch.enforcerHTTP(), endpoint, connect.WithGRPC())
+	health := grpchealth.NewClient(h.orch.enforcerHTTP(), endpoint, connectv1.WithGRPC())
 	status, err := health.Check(ctx, &grpchealth.CheckRequest{Service: "cusf.mainchain.v1.ValidatorService"})
 	if err != nil {
 		return remoteEnforcerCheckError(config.NetworkDisplayName(config.Network(h.orch.CurrentNetwork())), err)
@@ -118,7 +119,7 @@ func (h *enforcerHealthCheck) Check(ctx context.Context) error {
 	if status.Status != grpchealth.StatusServing {
 		return fmt.Errorf("the remote validator service is not ready")
 	}
-	_, err = client.GetChainTip(ctx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	_, err = client.GetChainTip(ctx, &enforcerpb.GetChainTipRequest{})
 	return err
 }
 

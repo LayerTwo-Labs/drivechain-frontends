@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -218,7 +218,7 @@ func TestSendTransactionBip47WithoutAFeeEstimateBroadcastsNothing(t *testing.T) 
 		Destinations: map[string]int64{code: 50_000},
 	}
 
-	_, err = h.SendTransaction(ctx, connect.NewRequest(send))
+	_, err = h.SendTransaction(ctx, send)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "fee estimate")
 	assert.Empty(t, chain.broadcast, "no notification may go out before the payment is priced")
@@ -233,7 +233,7 @@ func TestSendTransactionBip47WithoutAFeeEstimateBroadcastsNothing(t *testing.T) 
 	// came from the missing estimate alone.
 	chain.feeErr = nil
 	chain.feeRate = 5
-	_, err = h.SendTransaction(ctx, connect.NewRequest(send))
+	_, err = h.SendTransaction(ctx, send)
 	require.NoError(t, err)
 	assert.Len(t, chain.broadcast, 2, "the notification and the payment both go out")
 
@@ -246,7 +246,7 @@ func TestSendTransactionBip47WithoutAFeeEstimateBroadcastsNothing(t *testing.T) 
 	nextIndex := state.NextSendIndex
 
 	chain.feeErr = errors.New("estimatefee: connection refused")
-	_, err = h.SendTransaction(ctx, connect.NewRequest(send))
+	_, err = h.SendTransaction(ctx, send)
 	require.Error(t, err)
 	assert.Len(t, chain.broadcast, 2, "a payment the wallet cannot price sends nothing")
 
@@ -281,10 +281,10 @@ func TestSendTransactionBip47NotificationPaysTheSendRate(t *testing.T) {
 	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
 	require.NoError(t, err)
 
-	_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err = h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:     w.ID,
 		Destinations: map[string]int64{recipient.Base58(): 50_000},
-	}))
+	})
 	require.NoError(t, err)
 	require.Len(t, chain.broadcast, 2)
 
@@ -324,10 +324,10 @@ func TestSendTransactionBip47AboveTheFeeCapBroadcastsNothing(t *testing.T) {
 	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
 	require.NoError(t, err)
 
-	_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err = h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:     w.ID,
 		Destinations: map[string]int64{recipient.Base58(): 50_000},
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Contains(t, err.Error(), "above the limit")
@@ -366,13 +366,13 @@ func TestPreviewSendBip47PricesTheNotification(t *testing.T) {
 	const rate = 5
 
 	preview := func() *pb.PreviewSendResponse {
-		resp, err := h.PreviewSend(context.Background(), connect.NewRequest(&pb.PreviewSendRequest{
+		resp, err := h.PreviewSend(context.Background(), &pb.PreviewSendRequest{
 			WalletId:           w.ID,
 			Destinations:       map[string]int64{code: 50_000},
 			FeeRateSatPerVbyte: rate,
-		}))
+		})
 		require.NoError(t, err)
-		return resp.Msg
+		return resp
 	}
 
 	first := preview()
@@ -389,13 +389,13 @@ func TestPreviewSendBip47PricesTheNotification(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, state, "a preview reserves no index")
 
-	_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err = h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:           w.ID,
 		Destinations:       map[string]int64{code: 50_000},
 		FeeRateSatPerVbyte: rate,
 		RequiredInputs:     first.Inputs,
 		NotificationInput:  first.NotificationInput,
-	}))
+	})
 	require.NoError(t, err)
 	require.Len(t, chain.broadcast, 2, "the notification and the payment both go out")
 
@@ -455,14 +455,14 @@ func TestPreviewSendBip47ReservesNoIndex(t *testing.T) {
 	require.NoError(t, err)
 	code := recipient.Base58()
 
-	resp, err := h.PreviewSend(context.Background(), connect.NewRequest(&pb.PreviewSendRequest{
+	resp, err := h.PreviewSend(context.Background(), &pb.PreviewSendRequest{
 		WalletId:           w.ID,
 		Destinations:       map[string]int64{code: 50_000},
 		FeeRateSatPerVbyte: 5,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Positive(t, resp.Msg.FeeSats)
-	assert.NotNil(t, resp.Msg.NotificationInput)
+	assert.Positive(t, resp.FeeSats)
+	assert.NotNil(t, resp.NotificationInput)
 	assert.Empty(t, chain.broadcast)
 
 	state, err := store.GetState(w.ID, code)
@@ -470,13 +470,13 @@ func TestPreviewSendBip47ReservesNoIndex(t *testing.T) {
 	assert.Nil(t, state, "a preview reserves no index")
 
 	require.NoError(t, store.MarkNotified(w.ID, code, strings.Repeat("cd", 32)))
-	resp, err = h.PreviewSend(context.Background(), connect.NewRequest(&pb.PreviewSendRequest{
+	resp, err = h.PreviewSend(context.Background(), &pb.PreviewSendRequest{
 		WalletId:           w.ID,
 		Destinations:       map[string]int64{code: 50_000},
 		FeeRateSatPerVbyte: 5,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Len(t, resp.Msg.Inputs, 1, "a notified recipient takes the payment alone, so its coins can be pinned")
+	assert.Len(t, resp.Inputs, 1, "a notified recipient takes the payment alone, so its coins can be pinned")
 	state, err = store.GetState(w.ID, code)
 	require.NoError(t, err)
 	assert.Zero(t, state.NextSendIndex, "a preview reserves no index")
@@ -511,24 +511,24 @@ func TestPreviewSendBip47OneCoinGivesAnEstimate(t *testing.T) {
 	code := recipient.Base58()
 	const rate = 5
 
-	resp, err := h.PreviewSend(context.Background(), connect.NewRequest(&pb.PreviewSendRequest{
+	resp, err := h.PreviewSend(context.Background(), &pb.PreviewSendRequest{
 		WalletId:           w.ID,
 		Destinations:       map[string]int64{code: 50_000},
 		FeeRateSatPerVbyte: rate,
-	}))
+	})
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.FeeIsEstimate)
-	assert.Positive(t, resp.Msg.FeeSats)
-	assert.Equal(t, bip47send.EstimateNotificationFee(rate), resp.Msg.NotificationFeeSats)
-	assert.Empty(t, resp.Msg.Inputs, "the payment coin does not exist before the notification")
-	assert.Nil(t, resp.Msg.NotificationInput)
+	assert.True(t, resp.FeeIsEstimate)
+	assert.Positive(t, resp.FeeSats)
+	assert.Equal(t, bip47send.EstimateNotificationFee(rate), resp.NotificationFeeSats)
+	assert.Empty(t, resp.Inputs, "the payment coin does not exist before the notification")
+	assert.Nil(t, resp.NotificationInput)
 	assert.Empty(t, chain.broadcast)
 
-	_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err = h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:           w.ID,
 		Destinations:       map[string]int64{code: 50_000},
 		FeeRateSatPerVbyte: rate,
-	}))
+	})
 	require.NoError(t, err)
 	assert.Len(t, chain.broadcast, 2, "the notification and the payment both go out")
 }
@@ -560,12 +560,12 @@ func TestPreviewSendBip47OneCoinRefusesWhatTheChangeCannotPay(t *testing.T) {
 	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
 	require.NoError(t, err)
 
-	_, err = h.PreviewSend(context.Background(), connect.NewRequest(&pb.PreviewSendRequest{
+	_, err = h.PreviewSend(context.Background(), &pb.PreviewSendRequest{
 		WalletId:              w.ID,
 		Destinations:          map[string]int64{recipient.Base58(): coinSats},
 		FeeRateSatPerVbyte:    5,
 		SubtractFeeFromAmount: true,
-	}))
+	})
 	require.ErrorContains(t, err, "after the BIP47 notification")
 }
 
@@ -603,10 +603,10 @@ func TestSendTransactionBip47StampsTheNetworkLockTime(t *testing.T) {
 			recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
 			require.NoError(t, err)
 
-			_, err = h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+			_, err = h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 				WalletId:     w.ID,
 				Destinations: map[string]int64{recipient.Base58(): 50_000},
-			}))
+			})
 			require.NoError(t, err)
 			require.Len(t, chain.broadcast, 2)
 

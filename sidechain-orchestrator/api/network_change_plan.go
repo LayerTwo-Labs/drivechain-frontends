@@ -1,9 +1,8 @@
 package api
 
 import (
-	"fmt"
-
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connectproto"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -50,12 +49,12 @@ func networkChangePlanToProto(p orchestrator.NetworkChangePlan) *pb.NetworkChang
 // requirementsUnmet refuses a change the user has not resolved, carrying the
 // plan as a detail so the frontend reads fields instead of parsing a string.
 func requirementsUnmet(p orchestrator.NetworkChangePlan) *connect.Error {
-	err := connect.NewError(
+	err := connect.Errorf(
 		connect.CodeFailedPrecondition,
-		fmt.Errorf("datadir not configured for %s", p.Network),
+		"datadir not configured for %s", p.Network,
 	)
-	if detail, derr := connect.NewErrorDetail(networkChangePlanToProto(p)); derr == nil {
-		err.AddDetail(detail)
+	if detail, derr := connectproto.NewErrorDetail(networkChangePlanToProto(p)); derr == nil {
+		err = err.WithDetail(detail)
 	}
 	return err
 }

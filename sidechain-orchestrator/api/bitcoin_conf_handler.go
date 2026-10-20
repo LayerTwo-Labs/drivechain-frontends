@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -27,14 +27,14 @@ func NewBitcoinConfHandler(orch *orchestrator.Orchestrator) *BitcoinConfHandler 
 	return &BitcoinConfHandler{orch: orch, conf: orch.BitcoinConf}
 }
 
-func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.Request[pb.GetBitcoinConfigRequest]) (*connect.Response[pb.GetBitcoinConfigResponse], error) {
+func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *pb.GetBitcoinConfigRequest) (*pb.GetBitcoinConfigResponse, error) {
 	if h.conf == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin config manager not initialized"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bitcoin config manager not initialized")
 	}
 
 	// Reload from disk to get latest state
 	if err := h.conf.LoadConfig(false); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("reload config: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("reload config: %w", err).Error())
 	}
 
 	network := h.conf.Network
@@ -69,7 +69,7 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		}
 	}
 
-	return connect.NewResponse(&pb.GetBitcoinConfigResponse{
+	return &pb.GetBitcoinConfigResponse{
 		Network:                   string(network),
 		RpcPort:                   int32(h.conf.GetRPCPort()),
 		HasPrivateConf:            h.conf.HasPrivateConf,
@@ -86,26 +86,26 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		EcashEsploraUrl:           config.EsploraURLForNetwork(config.NetworkECash),
 		EcashExplorerHost:         config.ECashExplorerHost(),
 		MustSelectDatadir:         h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{}).MustSelectDatadir,
-	}), nil
+	}, nil
 }
 
-func (h *BitcoinConfHandler) PrepareNetworkChange(ctx context.Context, req *connect.Request[pb.PrepareNetworkChangeRequest]) (*connect.Response[pb.NetworkChangePlan], error) {
-	network := strings.TrimSpace(req.Msg.Network)
+func (h *BitcoinConfHandler) PrepareNetworkChange(ctx context.Context, req *pb.PrepareNetworkChangeRequest) (*pb.NetworkChangePlan, error) {
+	network := strings.TrimSpace(req.Network)
 	if _, known := h.orch.NetworkForOption(network); !known {
 		if _, named := config.LookupNetwork(network); network != "" && !named {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network %q", network))
+			return nil, connect.Errorf(connect.CodeInvalidArgument, "unknown network %q", network)
 		}
 	}
 	plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{
 		Network:       network,
-		WalletBackend: walletBackendFromProto(req.Msg.WalletBackend),
-		WalletID:      strings.TrimSpace(req.Msg.WalletId),
+		WalletBackend: walletBackendFromProto(req.WalletBackend),
+		WalletID:      strings.TrimSpace(req.WalletId),
 	})
-	return connect.NewResponse(networkChangePlanToProto(plan)), nil
+	return networkChangePlanToProto(plan), nil
 }
 
-func (h *BitcoinConfHandler) ListNetworks(ctx context.Context, req *connect.Request[pb.ListNetworksRequest]) (*connect.Response[pb.ListNetworksResponse], error) {
-	return connect.NewResponse(&pb.ListNetworksResponse{Networks: networkOptionsToProto(h.orch.ListNetworks())}), nil
+func (h *BitcoinConfHandler) ListNetworks(ctx context.Context, req *pb.ListNetworksRequest) (*pb.ListNetworksResponse, error) {
+	return &pb.ListNetworksResponse{Networks: networkOptionsToProto(h.orch.ListNetworks())}, nil
 }
 
 func networkOptionsToProto(options []orchestrator.NetworkOption) []*pb.NetworkOption {
@@ -121,16 +121,16 @@ func networkOptionsToProto(options []orchestrator.NetworkOption) []*pb.NetworkOp
 	return rows
 }
 
-func (h *BitcoinConfHandler) TakeNewNetworks(ctx context.Context, req *connect.Request[pb.TakeNewNetworksRequest]) (*connect.Response[pb.TakeNewNetworksResponse], error) {
-	return connect.NewResponse(&pb.TakeNewNetworksResponse{Networks: networkOptionsToProto(h.orch.TakeNewNetworks())}), nil
+func (h *BitcoinConfHandler) TakeNewNetworks(ctx context.Context, req *pb.TakeNewNetworksRequest) (*pb.TakeNewNetworksResponse, error) {
+	return &pb.TakeNewNetworksResponse{Networks: networkOptionsToProto(h.orch.TakeNewNetworks())}, nil
 }
 
-func (h *BitcoinConfHandler) PlanECashSwitch(ctx context.Context, req *connect.Request[pb.PlanECashSwitchRequest]) (*connect.Response[pb.PlanECashSwitchResponse], error) {
-	plan, err := h.orch.PlanECashSwitch(strings.TrimSpace(req.Msg.NetworkId))
+func (h *BitcoinConfHandler) PlanECashSwitch(ctx context.Context, req *pb.PlanECashSwitchRequest) (*pb.PlanECashSwitchResponse, error) {
+	plan, err := h.orch.PlanECashSwitch(strings.TrimSpace(req.NetworkId))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.PlanECashSwitchResponse{
+	return &pb.PlanECashSwitchResponse{
 		FromId:        plan.FromID,
 		ToId:          plan.ToID,
 		RewindHeight:  plan.RewindHeight,
@@ -138,38 +138,38 @@ func (h *BitcoinConfHandler) PlanECashSwitch(ctx context.Context, req *connect.R
 		Blocked:       plan.Blocked,
 		HasChainData:  plan.HasChainData,
 		ChainId:       plan.ChainID,
-	}), nil
+	}, nil
 }
 
-func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *connect.Request[pb.SetBitcoinConfigNetworkRequest]) (*connect.Response[pb.SetBitcoinConfigNetworkResponse], error) {
+func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *pb.SetBitcoinConfigNetworkRequest) (*pb.SetBitcoinConfigNetworkResponse, error) {
 	if h.conf == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin config manager not initialized"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bitcoin config manager not initialized")
 	}
 
-	selection := strings.TrimSpace(req.Msg.Network)
+	selection := strings.TrimSpace(req.Network)
 	if selection == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network is required"))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "network is required")
 	}
 
 	network, ok := h.orch.NetworkForOption(selection)
 	if !ok {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network %q", selection))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "unknown network %q", selection)
 	}
 	networkStr := string(network)
 
-	if dataDir := strings.TrimSpace(req.Msg.DataDir); dataDir != "" {
+	if dataDir := strings.TrimSpace(req.DataDir); dataDir != "" {
 		if err := validateDirWritable(dataDir); err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err).Error())
 		}
 		if err := h.orch.EditBitcoinConfig(func() error {
 			return h.conf.UpdateDataDir(dataDir, network)
 		}); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err).Error())
 		}
 	}
 
 	if _, known := config.LookupNetwork(networkStr); networkStr != "" && !known {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network %q", networkStr))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "unknown network %q", networkStr)
 	}
 	// Apply is authoritative: re-plan so a stale prepare can't smuggle through a
 	// requirement the user never resolved.
@@ -191,21 +191,21 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 		// live chain; from another network the pick alone is the change.
 		if onECash && planErr == nil && ecashPlan.FromID != "" && ecashPlan.FromID != ecashPlan.ToID {
 			if err := h.orch.ApplyECashSwitch(ctx, selection); err != nil {
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("switch ecash network: %w", err))
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("switch ecash network: %w", err).Error())
 			}
-			return connect.NewResponse(&pb.SetBitcoinConfigNetworkResponse{
+			return &pb.SetBitcoinConfigNetworkResponse{
 				Applied: networkChangePlanToProto(h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{})),
-			}), nil
+			}, nil
 		}
 		if err := h.orch.SelectECashNetwork(selection); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("select ecash network: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("select ecash network: %w", err).Error())
 		}
 		// The swap below writes the conf and starts the binaries, and both read
 		// the id from memory. A pick that only reached the settings file would
 		// boot the network the user just left.
 		if planErr == nil {
 			if err := h.orch.AdoptECashID(ecashPlan.ToID); err != nil {
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("select ecash network: %w", err))
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("select ecash network: %w", err).Error())
 			}
 			previousECashID = ecashPlan.FromID
 		}
@@ -215,19 +215,19 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 	}
 
 	if err := h.orch.SwapNetwork(ctx, network); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("swap network: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("swap network: %w", err).Error())
 	}
 
-	return connect.NewResponse(&pb.SetBitcoinConfigNetworkResponse{Applied: networkChangePlanToProto(plan)}), nil
+	return &pb.SetBitcoinConfigNetworkResponse{Applied: networkChangePlanToProto(plan)}, nil
 }
 
-func (h *BitcoinConfHandler) WriteBitcoinConfig(ctx context.Context, req *connect.Request[pb.WriteBitcoinConfigRequest]) (*connect.Response[pb.WriteBitcoinConfigResponse], error) {
+func (h *BitcoinConfHandler) WriteBitcoinConfig(ctx context.Context, req *pb.WriteBitcoinConfigRequest) (*pb.WriteBitcoinConfigResponse, error) {
 	if h.conf == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin config manager not initialized"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bitcoin config manager not initialized")
 	}
 
 	if err := h.orch.EditBitcoinConfig(func() error {
-		if err := h.conf.WriteConfig(req.Msg.ConfigContent); err != nil {
+		if err := h.conf.WriteConfig(req.ConfigContent); err != nil {
 			return fmt.Errorf("write config: %w", err)
 		}
 		if err := h.conf.LoadConfig(false); err != nil {
@@ -235,42 +235,42 @@ func (h *BitcoinConfHandler) WriteBitcoinConfig(ctx context.Context, req *connec
 		}
 		return nil
 	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.WriteBitcoinConfigResponse{}), nil
+	return &pb.WriteBitcoinConfigResponse{}, nil
 }
 
-func (h *BitcoinConfHandler) SetBitcoinConfigDataDir(ctx context.Context, req *connect.Request[pb.SetBitcoinConfigDataDirRequest]) (*connect.Response[pb.SetBitcoinConfigDataDirResponse], error) {
+func (h *BitcoinConfHandler) SetBitcoinConfigDataDir(ctx context.Context, req *pb.SetBitcoinConfigDataDirRequest) (*pb.SetBitcoinConfigDataDirResponse, error) {
 	if h.conf == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin config manager not initialized"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bitcoin config manager not initialized")
 	}
 
-	networkStr := strings.TrimSpace(req.Msg.Network)
+	networkStr := strings.TrimSpace(req.Network)
 	if networkStr == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network is required"))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "network is required")
 	}
 	forNetwork, known := config.LookupNetwork(networkStr)
 	if !known {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network %q", networkStr))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "unknown network %q", networkStr)
 	}
 
-	dataDir := strings.TrimSpace(req.Msg.DataDir)
+	dataDir := strings.TrimSpace(req.DataDir)
 
 	// Validate writability when setting (not clearing) a datadir.
 	if dataDir != "" {
 		if err := validateDirWritable(dataDir); err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err).Error())
 		}
 	}
 
 	if err := h.orch.EditBitcoinConfig(func() error {
 		return h.conf.UpdateDataDir(dataDir, forNetwork)
 	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err).Error())
 	}
 
-	return connect.NewResponse(&pb.SetBitcoinConfigDataDirResponse{}), nil
+	return &pb.SetBitcoinConfigDataDirResponse{}, nil
 }
 
 // validateDirWritable creates and removes a probe file to confirm the

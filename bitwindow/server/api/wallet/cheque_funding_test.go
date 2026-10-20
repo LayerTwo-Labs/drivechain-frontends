@@ -2,11 +2,10 @@ package wallet_test
 
 import (
 	"context"
-	"errors"
 	"sync/atomic"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -36,64 +35,64 @@ type fakeOrchestrator struct {
 }
 
 func (f *fakeOrchestrator) GetWalletStatus(
-	context.Context, *connect.Request[orchpb.GetWalletStatusRequest],
-) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
+	context.Context, *orchpb.GetWalletStatusRequest,
+) (*orchpb.GetWalletStatusResponse, error) {
 	state := orchpb.WalletState_WALLET_STATE_UNLOCKED
 	if f.locked {
 		state = orchpb.WalletState_WALLET_STATE_LOCKED
 	}
-	return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: state}), nil
+	return &orchpb.GetWalletStatusResponse{State: state}, nil
 }
 
 func (f *fakeOrchestrator) ListWallets(
-	context.Context, *connect.Request[orchpb.ListWalletsRequest],
-) (*connect.Response[orchpb.ListWalletsResponse], error) {
+	context.Context, *orchpb.ListWalletsRequest,
+) (*orchpb.ListWalletsResponse, error) {
 	resp := &orchpb.ListWalletsResponse{ActiveWalletId: testWalletID}
 	if !f.locked {
 		resp.Wallets = []*orchpb.WalletMetadata{{Id: testWalletID, WalletType: orchpb.WalletType_WALLET_TYPE_ELECTRUM}}
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // The runtime hands over the frozen coins on a timer, whatever else runs.
 func (f *fakeOrchestrator) SetFrozenCoins(
-	context.Context, *connect.Request[orchpb.SetFrozenCoinsRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	context.Context, *orchpb.SetFrozenCoinsRequest,
+) (*emptypb.Empty, error) {
+	return &emptypb.Empty{}, nil
 }
 
 // The pollers ask before each tick. A full-mode answer keeps them running,
 // which is what these tests exercise.
 func (f *fakeOrchestrator) GetNodeMode(
-	_ context.Context, _ *connect.Request[orchpb.GetNodeModeRequest],
-) (*connect.Response[orchpb.GetNodeModeResponse], error) {
-	return connect.NewResponse(&orchpb.GetNodeModeResponse{
+	_ context.Context, _ *orchpb.GetNodeModeRequest,
+) (*orchpb.GetNodeModeResponse, error) {
+	return &orchpb.GetNodeModeResponse{
 		Mode: orchpb.NodeMode_NODE_MODE_FULL,
-	}), nil
+	}, nil
 }
 
 // Seeds come from the local wallet file in tests, so refuse here and let the
 // engine fall through.
 func (f *fakeOrchestrator) GetWalletSeed(
-	_ context.Context, _ *connect.Request[orchpb.GetWalletSeedRequest],
-) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+	_ context.Context, _ *orchpb.GetWalletSeedRequest,
+) (*orchpb.GetWalletSeedResponse, error) {
 	if f.seedHex != "" {
-		return connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: f.seedHex}), nil
+		return &orchpb.GetWalletSeedResponse{SeedHex: f.seedHex}, nil
 	}
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("no orchestrator seed in tests"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "no orchestrator seed in tests")
 }
 
 func (f *fakeOrchestrator) GetAddressUnspent(
-	_ context.Context, req *connect.Request[orchpb.GetAddressUnspentRequest],
-) (*connect.Response[orchpb.GetAddressUnspentResponse], error) {
-	if req.Msg.Address != f.address {
-		return connect.NewResponse(&orchpb.GetAddressUnspentResponse{}), nil
+	_ context.Context, req *orchpb.GetAddressUnspentRequest,
+) (*orchpb.GetAddressUnspentResponse, error) {
+	if req.Address != f.address {
+		return &orchpb.GetAddressUnspentResponse{}, nil
 	}
 	utxos := f.utxos
 	if f.perCall != nil {
 		utxos = f.perCall(f.calls.Add(1))
 	}
-	return connect.NewResponse(&orchpb.GetAddressUnspentResponse{Utxos: utxos, TipHeight: 100}), nil
+	return &orchpb.GetAddressUnspentResponse{Utxos: utxos, TipHeight: 100}, nil
 }
 
 func TestCheckChequeFunding_UnfundedCheck(t *testing.T) {
@@ -102,18 +101,18 @@ func TestCheckChequeFunding_UnfundedCheck(t *testing.T) {
 
 	chequeAddr := "tb1qtestaddress000000000000000000000000000"
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr})),
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr})),
 	)
 
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.False(t, resp.Msg.Funded)
+	require.False(t, resp.Funded)
 }
 
 func TestCheckChequeFunding_DetectsUnconfirmedTx(t *testing.T) {
@@ -124,7 +123,7 @@ func TestCheckChequeFunding_DetectsUnconfirmedTx(t *testing.T) {
 	fundingTxid := "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"
 
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
 				{Txid: fundingTxid, Vout: 0, ValueSats: 100_000_000, Confirmations: 0},
@@ -135,14 +134,14 @@ func TestCheckChequeFunding_DetectsUnconfirmedTx(t *testing.T) {
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.True(t, resp.Msg.Funded)
-	require.Equal(t, []string{fundingTxid}, resp.Msg.FundedTxids)
-	require.EqualValues(t, 0, resp.Msg.MinConfirmations)
+	require.True(t, resp.Funded)
+	require.Equal(t, []string{fundingTxid}, resp.FundedTxids)
+	require.EqualValues(t, 0, resp.MinConfirmations)
 }
 
 func TestCheckChequeFunding_DetectsConfirmedTx(t *testing.T) {
@@ -152,7 +151,7 @@ func TestCheckChequeFunding_DetectsConfirmedTx(t *testing.T) {
 	chequeAddr := "tb1qconfirmedtestaddr0000000000000000000000"
 
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
 				{
@@ -168,14 +167,14 @@ func TestCheckChequeFunding_DetectsConfirmedTx(t *testing.T) {
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 50_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.True(t, resp.Msg.Funded)
-	require.Equal(t, uint64(50_000_000), resp.Msg.ActualAmountSats)
-	require.EqualValues(t, 3, resp.Msg.MinConfirmations)
+	require.True(t, resp.Funded)
+	require.Equal(t, uint64(50_000_000), resp.ActualAmountSats)
+	require.EqualValues(t, 3, resp.MinConfirmations)
 }
 
 func TestCheckChequeFunding_PersistsFundingToDatabase(t *testing.T) {
@@ -186,7 +185,7 @@ func TestCheckChequeFunding_PersistsFundingToDatabase(t *testing.T) {
 	fundingTxid := "dead0000dead0000dead0000dead0000dead0000dead0000dead0000dead0000"
 
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
 				{Txid: fundingTxid, Vout: 0, ValueSats: 100_000_000},
@@ -197,12 +196,12 @@ func TestCheckChequeFunding_PersistsFundingToDatabase(t *testing.T) {
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.True(t, resp.Msg.Funded)
+	require.True(t, resp.Funded)
 
 	cheque, err := cheques.Get(t.Context(), db, testWalletID, chequeID)
 	require.NoError(t, err)
@@ -221,7 +220,7 @@ func TestCheckChequeFunding_MultipleUTXOs(t *testing.T) {
 	second := "bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000"
 
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
 				{Txid: first, Vout: 0, ValueSats: 100_000_000, Confirmations: 0},
@@ -233,17 +232,17 @@ func TestCheckChequeFunding_MultipleUTXOs(t *testing.T) {
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 200_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.True(t, resp.Msg.Funded)
-	require.Equal(t, uint64(200_000_000), resp.Msg.ActualAmountSats)
-	require.Len(t, resp.Msg.FundedTxids, 2)
-	require.Contains(t, resp.Msg.FundedTxids, first)
-	require.Contains(t, resp.Msg.FundedTxids, second)
-	require.EqualValues(t, 0, resp.Msg.MinConfirmations, "the least-confirmed output sets the floor")
+	require.True(t, resp.Funded)
+	require.Equal(t, uint64(200_000_000), resp.ActualAmountSats)
+	require.Len(t, resp.FundedTxids, 2)
+	require.Contains(t, resp.FundedTxids, first)
+	require.Contains(t, resp.FundedTxids, second)
+	require.EqualValues(t, 0, resp.MinConfirmations, "the least-confirmed output sets the floor")
 }
 
 func TestCheckChequeFunding_TwoOutputsFromOneTransaction(t *testing.T) {
@@ -253,7 +252,7 @@ func TestCheckChequeFunding_TwoOutputsFromOneTransaction(t *testing.T) {
 	address := "tb1qtestaddress000000000000000000000000000"
 	txid := "aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000"
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: address,
 			utxos: []*orchpb.AddressUnspentOutput{
 				{Txid: txid, Vout: 1, ValueSats: 600, Confirmations: 3},
@@ -265,14 +264,14 @@ func TestCheckChequeFunding_TwoOutputsFromOneTransaction(t *testing.T) {
 	require.NoError(t, err)
 
 	for range 2 {
-		resp, err := cli.CheckChequeFunding(ctx, connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+		resp, err := cli.CheckChequeFunding(ctx, &walletv1.CheckChequeFundingRequest{
 			WalletId: testWalletID,
 			Id:       id,
-		}))
+		})
 		require.NoError(t, err)
-		require.True(t, resp.Msg.Funded)
-		require.Equal(t, uint64(1000), resp.Msg.ActualAmountSats)
-		require.Equal(t, []string{txid}, resp.Msg.FundedTxids)
+		require.True(t, resp.Funded)
+		require.Equal(t, uint64(1000), resp.ActualAmountSats)
+		require.Equal(t, []string{txid}, resp.FundedTxids)
 	}
 
 	type outputRow struct {
@@ -309,7 +308,7 @@ func TestCheckChequeFunding_RefusesDeleteAfterAnotherPayment(t *testing.T) {
 			first := "aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000"
 			second := "bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000"
 			cli := walletv1connect.NewWalletServiceClient(
-				apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+				apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 					address: address,
 					perCall: func(n int32) []*orchpb.AddressUnspentOutput {
 						if n == 1 {
@@ -321,18 +320,18 @@ func TestCheckChequeFunding_RefusesDeleteAfterAnotherPayment(t *testing.T) {
 			)
 			id, err := cheques.Create(ctx, db, testWalletID, 0, 1000, address)
 			require.NoError(t, err)
-			request := connect.NewRequest(&walletv1.CheckChequeFundingRequest{WalletId: testWalletID, Id: id})
+			request := &walletv1.CheckChequeFundingRequest{WalletId: testWalletID, Id: id}
 			_, err = cli.CheckChequeFunding(ctx, request)
 			require.NoError(t, err)
 			require.NoError(t, cheques.UpdateSwept(ctx, db, testWalletID, id, "sweep"))
 
 			resp, err := cli.CheckChequeFunding(ctx, request)
 			require.NoError(t, err)
-			require.Equal(t, uint64(tt.amount), resp.Msg.ActualAmountSats)
-			_, err = cli.DeleteCheque(ctx, connect.NewRequest(&walletv1.DeleteChequeRequest{
+			require.Equal(t, uint64(tt.amount), resp.ActualAmountSats)
+			_, err = cli.DeleteCheque(ctx, &walletv1.DeleteChequeRequest{
 				WalletId: testWalletID,
 				Id:       id,
-			}))
+			})
 			require.ErrorContains(t, err, "cannot delete funded cheque")
 			require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 
@@ -352,7 +351,7 @@ func TestCheckChequeFunding_PartialFunding(t *testing.T) {
 	chequeAddr := "tb1qpartialtestaddr0000000000000000000000000"
 
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
 				{
@@ -368,14 +367,14 @@ func TestCheckChequeFunding_PartialFunding(t *testing.T) {
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	resp, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.False(t, resp.Msg.Funded, "should NOT be fully funded with only half the amount")
-	require.Equal(t, uint64(50_000_000), resp.Msg.ActualAmountSats)
-	require.Len(t, resp.Msg.FundedTxids, 1, "should still track the partial txid")
+	require.False(t, resp.Funded, "should NOT be fully funded with only half the amount")
+	require.Equal(t, uint64(50_000_000), resp.ActualAmountSats)
+	require.Len(t, resp.FundedTxids, 1, "should still track the partial txid")
 }
 
 // Mirrors the Flutter polling loop: the first poll can race the broadcast and
@@ -388,7 +387,7 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 	fundingTxid := "feed0000feed0000feed0000feed0000feed0000feed0000feed0000feed0000"
 
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			perCall: func(n int32) []*orchpb.AddressUnspentOutput {
 				if n == 1 {
@@ -404,22 +403,22 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 210_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	respFirst, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	respFirst, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.False(t, respFirst.Msg.Funded)
-	require.Empty(t, respFirst.Msg.FundedTxids)
+	require.False(t, respFirst.Funded)
+	require.Empty(t, respFirst.FundedTxids)
 
-	respSecond, err := cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	respSecond, err := cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
-	require.True(t, respSecond.Msg.Funded, "second poll should detect the broadcast")
-	require.Equal(t, []string{fundingTxid}, respSecond.Msg.FundedTxids)
-	require.Equal(t, uint64(210_000_000), respSecond.Msg.ActualAmountSats)
+	require.True(t, respSecond.Funded, "second poll should detect the broadcast")
+	require.Equal(t, []string{fundingTxid}, respSecond.FundedTxids)
+	require.Equal(t, uint64(210_000_000), respSecond.ActualAmountSats)
 
 	persisted, err := cheques.Get(t.Context(), db, testWalletID, chequeID)
 	require.NoError(t, err)
@@ -437,15 +436,15 @@ func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
 	chequeAddr := "tb1qnoelectrumtestaddr0000000000000000000"
 
 	// No WithOrchestrator: cheques have no other chain source.
-	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db))
+	cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db))
 
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	_, err = cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }
 
@@ -455,7 +454,7 @@ func TestCheckChequeFunding_ReportsAFailedSweptMark(t *testing.T) {
 
 	chequeAddr := "tb1qsweptmarktestaddr00000000000000000000000"
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr})),
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr})),
 	)
 
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
@@ -467,10 +466,10 @@ func TestCheckChequeFunding_ReportsAFailedSweptMark(t *testing.T) {
 		BEGIN SELECT RAISE(ABORT, 'sweep refused'); END`)
 	require.NoError(t, err)
 
-	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	_, err = cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	require.ErrorContains(t, err, "mark cheque swept")
 }
@@ -481,7 +480,7 @@ func TestChequeReads_ReportAFailedKeyDerivation(t *testing.T) {
 
 	chequeAddr := "tb1qkeyfailtestaddr000000000000000000000000"
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr, seedHex: "not-hex"})),
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{address: chequeAddr, seedHex: "not-hex"})),
 	)
 
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
@@ -490,18 +489,18 @@ func TestChequeReads_ReportAFailedKeyDerivation(t *testing.T) {
 		[]cheques.FundingOutput{{Txid: "f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000"}}, 100_000_000))
 
 	t.Run("GetCheque", func(t *testing.T) {
-		_, err := cli.GetCheque(t.Context(), connect.NewRequest(&walletv1.GetChequeRequest{
+		_, err := cli.GetCheque(t.Context(), &walletv1.GetChequeRequest{
 			WalletId: testWalletID,
 			Id:       chequeID,
-		}))
+		})
 		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 		require.ErrorContains(t, err, "private key")
 	})
 
 	t.Run("ListCheques", func(t *testing.T) {
-		_, err := cli.ListCheques(t.Context(), connect.NewRequest(&walletv1.ListChequesRequest{
+		_, err := cli.ListCheques(t.Context(), &walletv1.ListChequesRequest{
 			WalletId: testWalletID,
-		}))
+		})
 		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 		require.ErrorContains(t, err, "private key")
 	})
@@ -512,9 +511,9 @@ type downOrchestrator struct {
 }
 
 func (d *downOrchestrator) GetAddressUnspent(
-	context.Context, *connect.Request[orchpb.GetAddressUnspentRequest],
-) (*connect.Response[orchpb.GetAddressUnspentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnavailable, errors.New("esplora down"))
+	context.Context, *orchpb.GetAddressUnspentRequest,
+) (*orchpb.GetAddressUnspentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnavailable, "esplora down")
 }
 
 func TestCheckChequeFunding_FailedQueryNamesTheAddress(t *testing.T) {
@@ -523,16 +522,16 @@ func TestCheckChequeFunding_FailedQueryNamesTheAddress(t *testing.T) {
 
 	chequeAddr := "tb1qtestaddress000000000000000000000000000"
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&downOrchestrator{&fakeOrchestrator{address: chequeAddr}})),
+		apitests.RPC(t, db, apitests.WithOrchestrator(&downOrchestrator{&fakeOrchestrator{address: chequeAddr}})),
 	)
 
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	_, err = cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	require.ErrorContains(t, err, "query UTXOs of "+chequeAddr)
 	require.ErrorContains(t, err, "esplora down")

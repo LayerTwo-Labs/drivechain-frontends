@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -11,7 +11,7 @@ import (
 
 func (h *WalletHandler) hwiRunner() (*wallet.HWIRunner, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 	return wallet.NewHWIRunner(h.engine.Network()), nil
 }
@@ -25,13 +25,13 @@ func hwiSelector(d *pb.HardwareDeviceSelector) wallet.HardwareSelector {
 
 func (h *WalletHandler) EnumerateHardwareDevices(
 	ctx context.Context,
-	req *connect.Request[pb.EnumerateHardwareDevicesRequest],
-) (*connect.Response[pb.EnumerateHardwareDevicesResponse], error) {
+	req *pb.EnumerateHardwareDevicesRequest,
+) (*pb.EnumerateHardwareDevicesResponse, error) {
 	runner, err := h.hwiRunner()
 	if err != nil {
 		return nil, err
 	}
-	devices, err := runner.Enumerate(ctx, req.Msg.Passphrase)
+	devices, err := runner.Enumerate(ctx, req.Passphrase)
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -49,89 +49,89 @@ func (h *WalletHandler) EnumerateHardwareDevices(
 			ErrorCode:       int32(d.Code),
 		})
 	}
-	return connect.NewResponse(&pb.EnumerateHardwareDevicesResponse{Devices: out}), nil
+	return &pb.EnumerateHardwareDevicesResponse{Devices: out}, nil
 }
 
 func (h *WalletHandler) GetHardwareXpub(
 	ctx context.Context,
-	req *connect.Request[pb.GetHardwareXpubRequest],
-) (*connect.Response[pb.GetHardwareXpubResponse], error) {
+	req *pb.GetHardwareXpubRequest,
+) (*pb.GetHardwareXpubResponse, error) {
 	runner, err := h.hwiRunner()
 	if err != nil {
 		return nil, err
 	}
-	xpub, err := runner.GetXpub(ctx, hwiSelector(req.Msg.Device), req.Msg.DerivationPath)
+	xpub, err := runner.GetXpub(ctx, hwiSelector(req.Device), req.DerivationPath)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.GetHardwareXpubResponse{Xpub: xpub}), nil
+	return &pb.GetHardwareXpubResponse{Xpub: xpub}, nil
 }
 
 func (h *WalletHandler) SignPsbtWithDevice(
 	ctx context.Context,
-	req *connect.Request[pb.SignPsbtWithDeviceRequest],
-) (*connect.Response[pb.SignPsbtWithDeviceResponse], error) {
+	req *pb.SignPsbtWithDeviceRequest,
+) (*pb.SignPsbtWithDeviceResponse, error) {
 	runner, err := h.hwiRunner()
 	if err != nil {
 		return nil, err
 	}
-	signed, err := runner.SignPSBT(ctx, hwiSelector(req.Msg.Device), req.Msg.PsbtBase64)
+	signed, err := runner.SignPSBT(ctx, hwiSelector(req.Device), req.PsbtBase64)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.SignPsbtWithDeviceResponse{PsbtBase64: signed}), nil
+	return &pb.SignPsbtWithDeviceResponse{PsbtBase64: signed}, nil
 }
 
 func (h *WalletHandler) PromptDevicePin(
 	ctx context.Context,
-	req *connect.Request[pb.PromptDevicePinRequest],
-) (*connect.Response[pb.PromptDevicePinResponse], error) {
+	req *pb.PromptDevicePinRequest,
+) (*pb.PromptDevicePinResponse, error) {
 	runner, err := h.hwiRunner()
 	if err != nil {
 		return nil, err
 	}
-	if err := runner.PromptPin(ctx, hwiSelector(req.Msg.Device)); err != nil {
+	if err := runner.PromptPin(ctx, hwiSelector(req.Device)); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.PromptDevicePinResponse{}), nil
+	return &pb.PromptDevicePinResponse{}, nil
 }
 
 func (h *WalletHandler) SendDevicePin(
 	ctx context.Context,
-	req *connect.Request[pb.SendDevicePinRequest],
-) (*connect.Response[pb.SendDevicePinResponse], error) {
+	req *pb.SendDevicePinRequest,
+) (*pb.SendDevicePinResponse, error) {
 	runner, err := h.hwiRunner()
 	if err != nil {
 		return nil, err
 	}
-	if err := runner.SendPin(ctx, hwiSelector(req.Msg.Device), req.Msg.Pin); err != nil {
+	if err := runner.SendPin(ctx, hwiSelector(req.Device), req.Pin); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.SendDevicePinResponse{}), nil
+	return &pb.SendDevicePinResponse{}, nil
 }
 
 func (h *WalletHandler) CloseDevice(
 	ctx context.Context,
-	req *connect.Request[pb.CloseDeviceRequest],
-) (*connect.Response[pb.CloseDeviceResponse], error) {
+	req *pb.CloseDeviceRequest,
+) (*pb.CloseDeviceResponse, error) {
 	runner, err := h.hwiRunner()
 	if err != nil {
 		return nil, err
 	}
-	if err := runner.Close(ctx, hwiSelector(req.Msg.Device)); err != nil {
+	if err := runner.Close(ctx, hwiSelector(req.Device)); err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.CloseDeviceResponse{}), nil
+	return &pb.CloseDeviceResponse{}, nil
 }
 
 func (h *WalletHandler) DeriveKeystore(
 	ctx context.Context,
-	req *connect.Request[pb.DeriveKeystoreRequest],
-) (*connect.Response[pb.DeriveKeystoreResponse], error) {
+	req *pb.DeriveKeystoreRequest,
+) (*pb.DeriveKeystoreResponse, error) {
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	msg := req.Msg
+	msg := req
 	src := wallet.KeystoreSource{Mnemonic: msg.Mnemonic, Passphrase: msg.Passphrase, RawKey: msg.RawKey}
 	if msg.Device != nil {
 		sel := hwiSelector(msg.Device)
@@ -141,10 +141,10 @@ func (h *WalletHandler) DeriveKeystore(
 	if err != nil {
 		return nil, rpcError(err)
 	}
-	return connect.NewResponse(&pb.DeriveKeystoreResponse{
+	return &pb.DeriveKeystoreResponse{
 		Xpub:        out.Xpub,
 		Fingerprint: out.Fingerprint,
 		OriginPath:  out.OriginPath,
 		Descriptor_: out.Descriptor,
-	}), nil
+	}, nil
 }

@@ -258,19 +258,15 @@ func TestDeniabilityEngine(t *testing.T) {
 		mockOrch.EXPECT().
 			SetFrozenCoins(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+			Return(&emptypb.Empty{}, nil)
 		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
-				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
-			}, nil)
+			Return(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"}, nil)
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
 			Times(1).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "new-txid"}, nil)
 		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
 
 		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 2, 1*time.Hour, 3, nil)
@@ -363,19 +359,15 @@ func TestDeniabilityEngine(t *testing.T) {
 		mockOrch.EXPECT().
 			SetFrozenCoins(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+			Return(&emptypb.Empty{}, nil)
 		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
-				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
-			}, nil)
+			Return(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"}, nil)
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
 			Times(1).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "new-txid"}, nil)
 		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
 
 		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
@@ -474,21 +466,17 @@ func TestDeniabilityEngine(t *testing.T) {
 		mockOrch.EXPECT().
 			SetFrozenCoins(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+			Return(&emptypb.Empty{}, nil)
 		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
-				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
-			}, nil)
+			Return(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"}, nil)
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
 			Times(1).
-			DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
-				assert.Equal(t, map[string]int64{"bc1qtest": 546}, req.Msg.Destinations)
-				return &connect.Response[orchpb.SendTransactionResponse]{
-					Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
-				}, nil
+			DoAndReturn(func(_ context.Context, req *orchpb.SendTransactionRequest) (*orchpb.SendTransactionResponse, error) {
+				assert.Equal(t, map[string]int64{"bc1qtest": 546}, req.Destinations)
+				return &orchpb.SendTransactionResponse{Txid: "new-txid"}, nil
 			})
 		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
 
@@ -531,21 +519,17 @@ func TestDeniabilityEngine(t *testing.T) {
 		mockOrch.EXPECT().
 			SetFrozenCoins(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+			Return(&emptypb.Empty{}, nil)
 		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
-				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
-			}, nil)
+			Return(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"}, nil)
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
 			Times(8).
-			DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
-				assert.Equal(t, map[string]int64{"bc1qtest": 546}, req.Msg.Destinations)
-				return &connect.Response[orchpb.SendTransactionResponse]{
-					Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
-				}, nil
+			DoAndReturn(func(_ context.Context, req *orchpb.SendTransactionRequest) (*orchpb.SendTransactionResponse, error) {
+				assert.Equal(t, map[string]int64{"bc1qtest": 546}, req.Destinations)
+				return &orchpb.SendTransactionResponse{Txid: "new-txid"}, nil
 			})
 		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
 
@@ -584,9 +568,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
-				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
-			}, nil)
+			Return(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"}, nil)
 		mockOrch.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).Times(0)
 		mockOrch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Times(0)
 		walletEngine := testDenialWalletEngineWithFrozen(t, mockBitcoind, mockOrch, func(context.Context) ([]string, error) {

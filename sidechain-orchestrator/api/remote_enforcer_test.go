@@ -1,13 +1,13 @@
 package api
 
 import (
+	"connectrpc.com/connect/v2/connecthttp"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -28,28 +28,28 @@ type ctipValidator struct {
 	err    error
 }
 
-func (v ctipValidator) GetChainTip(context.Context, *connect.Request[enforcerpb.GetChainTipRequest]) (*connect.Response[enforcerpb.GetChainTipResponse], error) {
-	return connect.NewResponse(&enforcerpb.GetChainTipResponse{
+func (v ctipValidator) GetChainTip(context.Context, *enforcerpb.GetChainTipRequest) (*enforcerpb.GetChainTipResponse, error) {
+	return &enforcerpb.GetChainTipResponse{
 		BlockHeaderInfo: &enforcerpb.BlockHeaderInfo{Height: v.height},
-	}), nil
+	}, nil
 }
 
-func (v ctipValidator) GetSidechains(context.Context, *connect.Request[enforcerpb.GetSidechainsRequest]) (*connect.Response[enforcerpb.GetSidechainsResponse], error) {
-	return connect.NewResponse(&enforcerpb.GetSidechainsResponse{
+func (v ctipValidator) GetSidechains(context.Context, *enforcerpb.GetSidechainsRequest) (*enforcerpb.GetSidechainsResponse, error) {
+	return &enforcerpb.GetSidechainsResponse{
 		Sidechains: lo.Map(v.slots, func(slot uint32, _ int) *enforcerpb.GetSidechainsResponse_SidechainInfo {
 			return &enforcerpb.GetSidechainsResponse_SidechainInfo{SidechainNumber: wrapperspb.UInt32(slot)}
 		}),
-	}), nil
+	}, nil
 }
 
-func (v ctipValidator) GetCtip(_ context.Context, req *connect.Request[enforcerpb.GetCtipRequest]) (*connect.Response[enforcerpb.GetCtipResponse], error) {
-	if req.Msg.GetSidechainNumber().GetValue() != 9 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wrong sidechain slot"))
+func (v ctipValidator) GetCtip(_ context.Context, req *enforcerpb.GetCtipRequest) (*enforcerpb.GetCtipResponse, error) {
+	if req.GetSidechainNumber().GetValue() != 9 {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "wrong sidechain slot")
 	}
 	if v.err != nil {
 		return nil, v.err
 	}
-	return connect.NewResponse(&enforcerpb.GetCtipResponse{Ctip: v.ctip}), nil
+	return &enforcerpb.GetCtipResponse{Ctip: v.ctip}, nil
 }
 
 func TestDepositReadsTheEnforcerInBothModes(t *testing.T) {
@@ -69,12 +69,13 @@ func TestDepositReadsTheEnforcerInBothModes(t *testing.T) {
 					Vout:  2,
 					Value: 12000,
 				}},
-				{name: "unavailable", err: connect.NewError(connect.CodeUnavailable, fmt.Errorf("validator is unavailable"))},
+				{name: "unavailable", err: connect.Errorf(connect.CodeUnavailable, "validator is unavailable")},
 			} {
 				t.Run(state.name, func(t *testing.T) {
 					mux := http.NewServeMux()
-					path, handler := enforcerrpc.NewValidatorServiceHandler(ctipValidator{height: 100, slots: state.slots, ctip: state.ctip, err: state.err})
-					mux.Handle(path, handler)
+					rpcServer := connect.NewServer()
+					enforcerrpc.RegisterValidatorServiceHandler(rpcServer, ctipValidator{height: 100, slots: state.slots, ctip: state.ctip, err: state.err})
+					connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 					server := h2cServer(mux)
 					t.Cleanup(server.Close)
 					host, port := hostPort(t, server)

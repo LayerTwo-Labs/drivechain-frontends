@@ -7,7 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
@@ -103,10 +104,11 @@ func (r *connectRemote) clientFor(catalog netcatalog.Catalog) coinnewsv1connect.
 	if !ok || net.Services.CoinNews.URL == "" {
 		return nil
 	}
-	return coinnewsv1connect.NewCoinNewsServiceClient(
+	return coinnewsv1connect.NewCoinNewsServiceClient(connect.NewClient(connecthttp.NewTransport(
 		&http.Client{Timeout: 30 * time.Second},
 		net.Services.CoinNews.URL,
-	)
+		connecthttp.WithReadMaxBytes(0),
+	)))
 }
 
 func (r *connectRemote) ListFrontPage(ctx context.Context, topicHex string, limit uint32) ([]RemoteItem, error) {
@@ -118,13 +120,13 @@ func (r *connectRemote) ListFrontPage(ctx context.Context, topicHex string, limi
 	if topicHex != "" {
 		req.TopicHex = &topicHex
 	}
-	res, err := client.ListFrontPage(ctx, connect.NewRequest(req))
+	res, err := client.ListFrontPage(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	out := make([]RemoteItem, len(res.Msg.Items))
-	for i, item := range res.Msg.Items {
+	out := make([]RemoteItem, len(res.Items))
+	for i, item := range res.Items {
 		out[i] = RemoteItem{
 			ItemIDHex: item.ItemIdHex,
 			TopicHex:  item.TopicHex,

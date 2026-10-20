@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -37,7 +37,7 @@ func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
 		GetWalletSeed(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: chequeSeedHex}), nil).
+		Return(&orchpb.GetWalletSeedResponse{SeedHex: chequeSeedHex}, nil).
 		AnyTimes()
 	return testChequeEngineWith(t, chain, orch)
 }
@@ -209,7 +209,7 @@ func TestRecoverChequesOnUnlockSkipsASeedlessWallet(t *testing.T) {
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().
 		GetWalletSeed(gomock.Any(), gomock.Any()).
-		Return(nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet holds no master seed"))).
+		Return(nil, connect.NewError(connect.CodeFailedPrecondition, "wallet holds no master seed")).
 		AnyTimes()
 	engine := testChequeEngineWith(t, chain, orch)
 	engine.scanRetry = time.Millisecond
@@ -411,7 +411,7 @@ func TestChequeEngineSweep(t *testing.T) {
 		require.NoError(t, err)
 		chain := &fakeChain{
 			funded:       map[string][]ChequeUTXO{candidates[0].Address: testUTXOs()},
-			broadcastErr: connect.NewError(connect.CodeFailedPrecondition, errors.New("txn-mempool-conflict")),
+			broadcastErr: connect.NewError(connect.CodeFailedPrecondition, "txn-mempool-conflict"),
 		}
 		engine := testChequeEngine(t, chain)
 

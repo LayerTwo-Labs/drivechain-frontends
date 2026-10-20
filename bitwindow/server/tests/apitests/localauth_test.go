@@ -6,7 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/grpcreflect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/require"
@@ -34,23 +36,23 @@ func TestLocalAuth(t *testing.T) {
 	apitests.ExpectCoreWalletSetup(bitcoind)
 	bitcoind.EXPECT().
 		GetRawMempool(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.GetRawMempoolResponse]{Msg: &corepb.GetRawMempoolResponse{}}, nil).
+		Return(&connectv1.Response[corepb.GetRawMempoolResponse]{Msg: &corepb.GetRawMempoolResponse{}}, nil).
 		AnyTimes()
 	bitcoind.EXPECT().
 		GetBlockchainInfo(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.GetBlockchainInfoResponse]{Msg: &corepb.GetBlockchainInfoResponse{Chain: "regtest"}}, nil).
+		Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{Msg: &corepb.GetBlockchainInfoResponse{Chain: "regtest"}}, nil).
 		AnyTimes()
 
 	validator := mocks.NewMockValidatorServiceClient(ctrl)
 	validator.EXPECT().
 		GetChainInfo(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[mainchainv1.GetChainInfoResponse]{Msg: &mainchainv1.GetChainInfoResponse{}}, nil).
+		Return(&mainchainv1.GetChainInfoResponse{}, nil).
 		AnyTimes()
 
 	crypto := mocks.NewMockCryptoServiceClient(ctrl)
 	crypto.EXPECT().
 		Ripemd160(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[cryptov1.Ripemd160Response]{Msg: &cryptov1.Ripemd160Response{}}, nil).
+		Return(&cryptov1.Ripemd160Response{}, nil).
 		AnyTimes()
 
 	dir := t.TempDir()
@@ -88,9 +90,9 @@ func TestLocalAuth(t *testing.T) {
 			methods := service.Methods()
 			for i := range methods.Len() {
 				procedure := "/" + string(service.FullName()) + "/" + string(methods.Get(i).Name())
-				var connectErr *connect.Error
+				var connectErr *connectv1.Error
 				require.ErrorAs(t, callWithoutToken(t, h2, baseURL+procedure, methods.Get(i)), &connectErr, procedure)
-				require.Equal(t, connect.CodeUnauthenticated, connectErr.Code(), procedure)
+				require.Equal(t, connectv1.CodeUnauthenticated, connectErr.Code(), procedure)
 				require.Equal(t, localauth.TokenRejectedMessage, connectErr.Message(), procedure)
 				checked++
 			}
@@ -111,10 +113,11 @@ func TestLocalAuth(t *testing.T) {
 	})
 
 	t.Run("a call with the cookie token passes auth", func(t *testing.T) {
-		cli := healthv1connect.NewHealthServiceClient(httpClient, baseURL,
-			connect.WithInterceptors(localauth.Interceptor(dir)))
+		cli := healthv1connect.NewHealthServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, baseURL,
+			connecthttp.WithReadMaxBytes(0),
+		), localauth.ClientInterceptor(dir)))
 
-		_, err := cli.Check(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.Check(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
 	})
 }
@@ -135,14 +138,14 @@ func http2Client(t *testing.T) *http.Client {
 func callWithoutToken(t *testing.T, h2 *http.Client, url string, method protoreflect.MethodDescriptor) error {
 	t.Helper()
 
-	client := connect.NewClient[emptypb.Empty, emptypb.Empty](h2, url)
+	client := connectv1.NewClient[emptypb.Empty, emptypb.Empty](h2, url)
 	switch {
 	case !method.IsStreamingClient() && !method.IsStreamingServer():
-		_, err := client.CallUnary(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := client.CallUnary(t.Context(), connectv1.NewRequest(&emptypb.Empty{}))
 		return err
 
 	case !method.IsStreamingClient():
-		stream, err := client.CallServerStream(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		stream, err := client.CallServerStream(t.Context(), connectv1.NewRequest(&emptypb.Empty{}))
 		if err != nil {
 			return err
 		}

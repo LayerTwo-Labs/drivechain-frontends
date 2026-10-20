@@ -3,7 +3,8 @@ package wallet_test
 import (
 	"testing"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,21 +27,21 @@ func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 	db := database.Test(t)
 	mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
 	apitests.ExpectOrchestratorReads(mockOrch)
-	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
+	cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(mockOrch)))
 
 	ctx := t.Context()
 	frozen := true
-	_, err := cli.SetUTXOMetadata(ctx, connect.NewRequest(&walletv1.SetUTXOMetadataRequest{
+	_, err := cli.SetUTXOMetadata(ctx, &walletv1.SetUTXOMetadataRequest{
 		Outpoint: "frozen:0",
 		IsFrozen: &frozen,
-	}))
+	})
 	require.NoError(t, err)
 
-	_, err = cli.SendTransaction(ctx, connect.NewRequest(&walletv1.SendTransactionRequest{
+	_, err = cli.SendTransaction(ctx, &walletv1.SendTransactionRequest{
 		WalletId:       "test-wallet-id-1234",
 		Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
 		RequiredInputs: []*walletv1.UnspentOutput{{Output: "frozen:0"}},
-	}))
+	})
 	require.ErrorContains(t, err, engines.ErrFrozenInput.Error())
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
@@ -55,14 +56,14 @@ func TestSetUTXOMetadataReportsAFailedPush(t *testing.T) {
 	mockOrch.EXPECT().
 		SetFrozenCoins(gomock.Any(), gomock.Any()).
 		AnyTimes().
-		Return((*connect.Response[emptypb.Empty])(nil), connect.NewError(connect.CodeUnavailable, assert.AnError))
-	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
+		Return((*emptypb.Empty)(nil), connect.NewError(connect.CodeUnavailable, assert.AnError.Error()).WithCause(assert.AnError))
+	cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(mockOrch)))
 
 	frozen := true
-	_, err := cli.SetUTXOMetadata(t.Context(), connect.NewRequest(&walletv1.SetUTXOMetadataRequest{
+	_, err := cli.SetUTXOMetadata(t.Context(), &walletv1.SetUTXOMetadataRequest{
 		Outpoint: "aa:0",
 		IsFrozen: &frozen,
-	}))
+	})
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }
 
@@ -72,23 +73,23 @@ func TestSendRefusesAFrozenInputInAnySpelling(t *testing.T) {
 	db := database.Test(t)
 	mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
 	apitests.ExpectOrchestratorReads(mockOrch)
-	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
+	cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(mockOrch)))
 
 	ctx := t.Context()
 	frozen := true
-	_, err := cli.SetUTXOMetadata(ctx, connect.NewRequest(&walletv1.SetUTXOMetadataRequest{
+	_, err := cli.SetUTXOMetadata(ctx, &walletv1.SetUTXOMetadataRequest{
 		Outpoint: "abcdef:1",
 		IsFrozen: &frozen,
-	}))
+	})
 	require.NoError(t, err)
 
 	for _, spelling := range []string{"ABCDEF:1", "abcdef:01", "ABCDEF:01"} {
 		t.Run(spelling, func(t *testing.T) {
-			_, err := cli.SendTransaction(t.Context(), connect.NewRequest(&walletv1.SendTransactionRequest{
+			_, err := cli.SendTransaction(t.Context(), &walletv1.SendTransactionRequest{
 				WalletId:       "test-wallet-id-1234",
 				Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
 				RequiredInputs: []*walletv1.UnspentOutput{{Output: spelling}},
-			}))
+			})
 			require.ErrorContains(t, err, "is frozen")
 		})
 	}
@@ -107,31 +108,31 @@ func TestSendTransactionWithRequiredInputs(t *testing.T) {
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(
-				_ any, req *connect.Request[orchpb.SendTransactionRequest],
-			) (*connect.Response[orchpb.SendTransactionResponse], error) {
-				sent = append(sent, req.Msg)
-				return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: "sent"}), nil
+				_ any, req *orchpb.SendTransactionRequest,
+			) (*orchpb.SendTransactionResponse, error) {
+				sent = append(sent, req)
+				return &orchpb.SendTransactionResponse{Txid: "sent"}, nil
 			}).
 			Times(1)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		mockBitcoind.EXPECT().GetRawMempool(gomock.Any(), gomock.Any()).
-			Return(connect.NewResponse(&corepb.GetRawMempoolResponse{}), nil).AnyTimes()
+			Return(connectv1.NewResponse(&corepb.GetRawMempoolResponse{}), nil).AnyTimes()
 		mockBitcoind.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).Times(0)
 		mockBitcoind.EXPECT().CreateRawTransaction(gomock.Any(), gomock.Any()).Times(0)
 		mockBitcoind.EXPECT().SignRawTransactionWithWallet(gomock.Any(), gomock.Any()).Times(0)
 		mockBitcoind.EXPECT().SendRawTransaction(gomock.Any(), gomock.Any()).Times(0)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db,
+		cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db,
 			apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.SendTransaction(t.Context(), connect.NewRequest(&walletv1.SendTransactionRequest{
+		resp, err := cli.SendTransaction(t.Context(), &walletv1.SendTransactionRequest{
 			WalletId:       testWalletID,
 			Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
 			FixedFeeSats:   500,
 			RequiredInputs: []*walletv1.UnspentOutput{{Output: txid + ":1", ValueSats: 80_000}},
-		}))
+		})
 		require.NoError(t, err)
-		require.Equal(t, "sent", resp.Msg.Txid)
+		require.Equal(t, "sent", resp.Txid)
 
 		require.Len(t, sent, 1)
 		require.Equal(t, testWalletID, sent[0].WalletId)
@@ -154,13 +155,13 @@ func TestSendTransactionWithRequiredInputs(t *testing.T) {
 			mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
 			apitests.ExpectOrchestratorReads(mockOrch)
 			mockOrch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Times(0)
-			cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithOrchestrator(mockOrch)))
+			cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(mockOrch)))
 
-			_, err := cli.SendTransaction(t.Context(), connect.NewRequest(&walletv1.SendTransactionRequest{
+			_, err := cli.SendTransaction(t.Context(), &walletv1.SendTransactionRequest{
 				WalletId:       testWalletID,
 				Destinations:   map[string]uint64{"bcrt1qdest": 50_000},
 				RequiredInputs: []*walletv1.UnspentOutput{{Output: outpoint}},
-			}))
+			})
 			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		})
 	}

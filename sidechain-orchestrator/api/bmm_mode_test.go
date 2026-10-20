@@ -7,7 +7,7 @@ import (
 	"io"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -82,12 +82,12 @@ func TestBMMLightModePreparesCoins(t *testing.T) {
 	}}
 	h.wallet = wallet
 
-	resp, err := h.PrepareBMM(context.Background(), connect.NewRequest(&bmmpb.PrepareBMMRequest{
+	resp, err := h.PrepareBMM(context.Background(), &bmmpb.PrepareBMMRequest{
 		Targets: []*bmmpb.PrepareBMMTarget{{WalletId: "bidder", MaxBidSats: 30_000}},
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Wallets, 1)
-	assert.EqualValues(t, 1, resp.Msg.Wallets[0].UsableCoins)
+	require.Len(t, resp.Wallets, 1)
+	assert.EqualValues(t, 1, resp.Wallets[0].UsableCoins)
 	assert.Empty(t, wallet.sends, "one coin funds one sidechain")
 }
 
@@ -107,15 +107,15 @@ func TestBMMLightModeSplitsPastAnUnconfirmedCoin(t *testing.T) {
 	}
 	h.wallet = wallet
 
-	resp, err := h.PrepareBMM(context.Background(), connect.NewRequest(&bmmpb.PrepareBMMRequest{
+	resp, err := h.PrepareBMM(context.Background(), &bmmpb.PrepareBMMRequest{
 		Targets: []*bmmpb.PrepareBMMTarget{
 			{WalletId: "bidder", MaxBidSats: 30_000},
 			{WalletId: "bidder", MaxBidSats: 30_000},
 		},
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Wallets, 1)
-	assert.EqualValues(t, 1, resp.Msg.Wallets[0].UsableCoins, "the unconfirmed coin counts for nothing")
+	require.Len(t, resp.Wallets, 1)
+	assert.EqualValues(t, 1, resp.Wallets[0].UsableCoins, "the unconfirmed coin counts for nothing")
 	require.Len(t, wallet.sends, 1, "the wallet splits the confirmed coin")
 	assert.Equal(t, confirmed, wallet.sends[0].RequiredInputs[0].Txid)
 }
@@ -135,7 +135,7 @@ func TestBMMListBidsReadsNoCore(t *testing.T) {
 			// No enforcer answers this handler, so the call fails on that
 			// rather than on the node mode.
 			_, err := h.ListBids(context.Background(),
-				connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER}))
+				&bmmpb.ListBidsRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER})
 			require.Error(t, err)
 			assert.NotEqual(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 		})
@@ -149,15 +149,15 @@ func TestBMMLightModeKeepsStopAndPaidHistory(t *testing.T) {
 	round := bmmstate.Round{Sidechain: int32(sidechain), PrevMainHash: "paid", Result: engines.ResultWon, WinnerBidSats: 1000}
 	require.NoError(t, store.Save(round))
 	require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, orchestrator.NodeModeLight))
-	_, err := h.Stop(context.Background(), connect.NewRequest(&bmmpb.StopRequest{Sidechain: sidechain}))
+	_, err := h.Stop(context.Background(), &bmmpb.StopRequest{Sidechain: sidechain})
 	require.NoError(t, err)
 	targets, err := store.Targets()
 	require.NoError(t, err)
 	require.Empty(t, targets)
-	response, err := h.GetRoundBids(context.Background(), connect.NewRequest(&bmmpb.GetRoundBidsRequest{Sidechain: sidechain, PrevMainHash: "paid"}))
+	response, err := h.GetRoundBids(context.Background(), &bmmpb.GetRoundBidsRequest{Sidechain: sidechain, PrevMainHash: "paid"})
 	require.NoError(t, err)
-	require.Equal(t, engines.ResultWon, response.Msg.Round.Result)
-	require.EqualValues(t, 1000, response.Msg.Round.WinnerBidSats)
+	require.Equal(t, engines.ResultWon, response.Round.Result)
+	require.EqualValues(t, 1000, response.Round.WinnerBidSats)
 	state, err := h.state(context.Background(), sidechain)
 	require.NoError(t, err)
 	require.False(t, state.Running)

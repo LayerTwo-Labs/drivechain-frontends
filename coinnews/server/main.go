@@ -15,7 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/grpcreflect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
+	"connectrpc.com/grpcreflect/v2"
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/coinnews/server/api"
@@ -96,21 +98,9 @@ func main() {
 		}()
 	}
 
-	mux := http.NewServeMux()
-	path, handler := connectrpc.NewCoinNewsServiceHandler(&api.Handler{DB: db, Log: log.With().Str("component", "api").Logger()})
-	mux.Handle(path, handler)
+	mux := newMux(&api.Handler{DB: db, Log: log.With().Str("component", "api").Logger()})
 
-	// Server reflection lets grpcurl/buf curl and other generic
-	// clients discover the service without a local copy of the proto.
-	reflector := grpcreflect.NewStaticReflector(connectrpc.CoinNewsServiceName)
-	mux.Handle(grpcreflect.NewHandlerV1(reflector))
-	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok\n"))
-	})
-
-	log.Info().Str("listen", *listen).Str("rpc_path", path).Msg("coinnews-server: starting")
+	log.Info().Str("listen", *listen).Str("rpc_path", "/"+connectrpc.CoinNewsServiceName+"/").Msg("coinnews-server: starting")
 	srv := &http.Server{
 		Addr:              *listen,
 		Handler:           corsMiddleware(mux),
@@ -131,6 +121,21 @@ func main() {
 		log.Fatal().Err(err).Msg("server")
 	}
 	log.Info().Msg("coinnews-server: shutdown clean")
+}
+
+func newMux(handler *api.Handler) *http.ServeMux {
+	mux := http.NewServeMux()
+	server := connect.NewServer()
+	connectrpc.RegisterCoinNewsServiceHandler(server, handler)
+	grpcreflect.Register(server, grpcreflect.WithNamer(grpcreflect.NamerFunc(func() []string {
+		return []string{connectrpc.CoinNewsServiceName}
+	})))
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok\n"))
+	})
+	return mux
 }
 
 // corsMiddleware allows the Next.js frontend (different host in

@@ -1,10 +1,9 @@
 package wallet
 
 import (
-	"errors"
 	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 )
 
 const (
@@ -84,11 +83,11 @@ func planCancel(tx cancelTx) (*CancelPlan, string) {
 // than maxFeeSats.
 func (c *CancelPreview) allows(maxFeeSats int64) error {
 	if c.Plan == nil {
-		return connect.NewError(connect.CodeFailedPrecondition, errors.New(c.Reason))
+		return connect.NewError(connect.CodeFailedPrecondition, c.Reason)
 	}
 	if c.Plan.FeeSats > maxFeeSats {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"the cancel fee rose to %d sats, over the %d sats you confirmed", c.Plan.FeeSats, maxFeeSats))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"the cancel fee rose to %d sats, over the %d sats you confirmed", c.Plan.FeeSats, maxFeeSats)
 	}
 	return nil
 }

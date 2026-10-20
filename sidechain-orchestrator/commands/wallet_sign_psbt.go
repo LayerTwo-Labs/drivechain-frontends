@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -54,12 +53,12 @@ func runWalletSignPSBT(cctx *cli.Context, client rpc.WalletManagerServiceClient)
 	if err != nil {
 		return err
 	}
-	wallets, err := client.ListWallets(cctx.Context, connect.NewRequest(&pb.ListWalletsRequest{}))
+	wallets, err := client.ListWallets(cctx.Context, &pb.ListWalletsRequest{})
 	if err != nil {
 		return fmt.Errorf("read the wallets: %w", err)
 	}
 	var selected *pb.WalletMetadata
-	for _, wallet := range wallets.Msg.Wallets {
+	for _, wallet := range wallets.Wallets {
 		if wallet.Id == walletID {
 			selected = wallet
 			break
@@ -75,17 +74,17 @@ func runWalletSignPSBT(cctx *cli.Context, client rpc.WalletManagerServiceClient)
 		(selected.WatchOnly || selected.HardwareDeviceType != "" || selected.HardwareFingerprint != "") {
 		return fmt.Errorf("use a Bitcoin Core wallet with local private keys to sign this PSBT")
 	}
-	decoded, err := client.DecodeTransaction(cctx.Context, connect.NewRequest(&pb.DecodeTransactionRequest{
+	decoded, err := client.DecodeTransaction(cctx.Context, &pb.DecodeTransactionRequest{
 		WalletId: walletID, Input: packet,
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("read the PSBT transaction: %w", err)
 	}
-	if !decoded.Msg.IsPsbt || !decoded.Msg.HasFee || decoded.Msg.FeeSats < 0 {
+	if !decoded.IsPsbt || !decoded.HasFee || decoded.FeeSats < 0 {
 		return fmt.Errorf("the PSBT has no exact network fee")
 	}
 	preview := fmt.Sprintf("Sign PSBT\nWallet: %s\n", walletID)
-	for _, output := range decoded.Msg.Outputs {
+	for _, output := range decoded.Outputs {
 		preview += fmt.Sprintf("Output %d: %d satoshis\n", output.Index, output.ValueSats)
 		if output.Address != "" {
 			preview += fmt.Sprintf("  Address: %s\n", output.Address)
@@ -109,11 +108,11 @@ func runWalletSignPSBT(cctx *cli.Context, client rpc.WalletManagerServiceClient)
 			preview += fmt.Sprintf("  Script: %s\n", output.ScriptPubkeyAsm)
 		}
 	}
-	preview += fmt.Sprintf("Network fee: %d satoshis\n", decoded.Msg.FeeSats)
+	preview += fmt.Sprintf("Network fee: %d satoshis\n", decoded.FeeSats)
 	if _, err := io.WriteString(cctx.App.Writer, preview); err != nil {
 		return fmt.Errorf("write the PSBT preview: %w", err)
 	}
-	if err := writeTransactionWarning(cctx.App.Writer, decoded.Msg.WarningMessage); err != nil {
+	if err := writeTransactionWarning(cctx.App.Writer, decoded.WarningMessage); err != nil {
 		return err
 	}
 	if !cctx.Bool("yes") {
@@ -129,13 +128,13 @@ func runWalletSignPSBT(cctx *cli.Context, client rpc.WalletManagerServiceClient)
 			return fmt.Errorf("you did not approve the signatures")
 		}
 	}
-	signed, err := client.SignPsbt(cctx.Context, connect.NewRequest(&pb.SignPsbtRequest{
+	signed, err := client.SignPsbt(cctx.Context, &pb.SignPsbtRequest{
 		WalletId: walletID, PsbtBase64: packet,
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("sign the PSBT: %w", err)
 	}
-	if err := writePSBTFile(outputPath, signed.Msg.PsbtBase64); err != nil {
+	if err := writePSBTFile(outputPath, signed.PsbtBase64); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(cctx.App.Writer, "PSBT file: %s\nThe command did not broadcast the transaction.\n", outputPath); err != nil {

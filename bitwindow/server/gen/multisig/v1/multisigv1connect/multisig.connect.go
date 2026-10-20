@@ -5,375 +5,425 @@
 package multisigv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// MultisigServiceName is the fully-qualified name of the MultisigService service.
 	MultisigServiceName = "multisig.v1.MultisigService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// MultisigServiceListGroupsProcedure is the fully-qualified name of the MultisigService's
-	// ListGroups RPC.
+	// MultisigServiceListGroupsProcedure is the procedure name of the MultisigService's ListGroups RPC.
 	MultisigServiceListGroupsProcedure = "/multisig.v1.MultisigService/ListGroups"
-	// MultisigServiceSaveGroupProcedure is the fully-qualified name of the MultisigService's SaveGroup
-	// RPC.
+	// MultisigServiceSaveGroupProcedure is the procedure name of the MultisigService's SaveGroup RPC.
 	MultisigServiceSaveGroupProcedure = "/multisig.v1.MultisigService/SaveGroup"
-	// MultisigServiceDeleteGroupProcedure is the fully-qualified name of the MultisigService's
-	// DeleteGroup RPC.
+	// MultisigServiceDeleteGroupProcedure is the procedure name of the MultisigService's DeleteGroup
+	// RPC.
 	MultisigServiceDeleteGroupProcedure = "/multisig.v1.MultisigService/DeleteGroup"
-	// MultisigServiceListTransactionsProcedure is the fully-qualified name of the MultisigService's
+	// MultisigServiceListTransactionsProcedure is the procedure name of the MultisigService's
 	// ListTransactions RPC.
 	MultisigServiceListTransactionsProcedure = "/multisig.v1.MultisigService/ListTransactions"
-	// MultisigServiceGetTransactionProcedure is the fully-qualified name of the MultisigService's
+	// MultisigServiceGetTransactionProcedure is the procedure name of the MultisigService's
 	// GetTransaction RPC.
 	MultisigServiceGetTransactionProcedure = "/multisig.v1.MultisigService/GetTransaction"
-	// MultisigServiceGetTransactionByTxidProcedure is the fully-qualified name of the MultisigService's
+	// MultisigServiceGetTransactionByTxidProcedure is the procedure name of the MultisigService's
 	// GetTransactionByTxid RPC.
 	MultisigServiceGetTransactionByTxidProcedure = "/multisig.v1.MultisigService/GetTransactionByTxid"
-	// MultisigServiceSaveTransactionProcedure is the fully-qualified name of the MultisigService's
+	// MultisigServiceSaveTransactionProcedure is the procedure name of the MultisigService's
 	// SaveTransaction RPC.
 	MultisigServiceSaveTransactionProcedure = "/multisig.v1.MultisigService/SaveTransaction"
-	// MultisigServiceListSoloKeysProcedure is the fully-qualified name of the MultisigService's
-	// ListSoloKeys RPC.
+	// MultisigServiceListSoloKeysProcedure is the procedure name of the MultisigService's ListSoloKeys
+	// RPC.
 	MultisigServiceListSoloKeysProcedure = "/multisig.v1.MultisigService/ListSoloKeys"
-	// MultisigServiceAddSoloKeyProcedure is the fully-qualified name of the MultisigService's
-	// AddSoloKey RPC.
+	// MultisigServiceAddSoloKeyProcedure is the procedure name of the MultisigService's AddSoloKey RPC.
 	MultisigServiceAddSoloKeyProcedure = "/multisig.v1.MultisigService/AddSoloKey"
-	// MultisigServiceGetNextAccountIndexProcedure is the fully-qualified name of the MultisigService's
+	// MultisigServiceGetNextAccountIndexProcedure is the procedure name of the MultisigService's
 	// GetNextAccountIndex RPC.
 	MultisigServiceGetNextAccountIndexProcedure = "/multisig.v1.MultisigService/GetNextAccountIndex"
 )
 
+var (
+	multisigServiceListGroupsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("ListGroups"),
+			Procedure:  MultisigServiceListGroupsProcedure,
+		}
+	})
+	multisigServiceSaveGroupSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("SaveGroup"),
+			Procedure:  MultisigServiceSaveGroupProcedure,
+		}
+	})
+	multisigServiceDeleteGroupSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("DeleteGroup"),
+			Procedure:  MultisigServiceDeleteGroupProcedure,
+		}
+	})
+	multisigServiceListTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("ListTransactions"),
+			Procedure:  MultisigServiceListTransactionsProcedure,
+		}
+	})
+	multisigServiceGetTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("GetTransaction"),
+			Procedure:  MultisigServiceGetTransactionProcedure,
+		}
+	})
+	multisigServiceGetTransactionByTxidSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("GetTransactionByTxid"),
+			Procedure:  MultisigServiceGetTransactionByTxidProcedure,
+		}
+	})
+	multisigServiceSaveTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("SaveTransaction"),
+			Procedure:  MultisigServiceSaveTransactionProcedure,
+		}
+	})
+	multisigServiceListSoloKeysSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("ListSoloKeys"),
+			Procedure:  MultisigServiceListSoloKeysProcedure,
+		}
+	})
+	multisigServiceAddSoloKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("AddSoloKey"),
+			Procedure:  MultisigServiceAddSoloKeyProcedure,
+		}
+	})
+	multisigServiceGetNextAccountIndexSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods().ByName("GetNextAccountIndex"),
+			Procedure:  MultisigServiceGetNextAccountIndexProcedure,
+		}
+	})
+)
+
 // MultisigServiceClient is a client for the multisig.v1.MultisigService service.
 type MultisigServiceClient interface {
-	// Group CRUD
-	ListGroups(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListGroupsResponse], error)
-	SaveGroup(context.Context, *connect.Request[v1.SaveGroupRequest]) (*connect.Response[v1.SaveGroupResponse], error)
-	DeleteGroup(context.Context, *connect.Request[v1.DeleteGroupRequest]) (*connect.Response[emptypb.Empty], error)
-	// Transaction CRUD
-	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
-	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.MultisigTransaction], error)
-	GetTransactionByTxid(context.Context, *connect.Request[v1.GetTransactionByTxidRequest]) (*connect.Response[v1.MultisigTransaction], error)
-	SaveTransaction(context.Context, *connect.Request[v1.SaveTransactionRequest]) (*connect.Response[v1.SaveTransactionResponse], error)
-	// Solo key management
-	ListSoloKeys(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListSoloKeysResponse], error)
-	AddSoloKey(context.Context, *connect.Request[v1.AddSoloKeyRequest]) (*connect.Response[emptypb.Empty], error)
-	// Account index
-	GetNextAccountIndex(context.Context, *connect.Request[v1.GetNextAccountIndexRequest]) (*connect.Response[v1.GetNextAccountIndexResponse], error)
+	ListGroups(context.Context, *emptypb.Empty) (*v1.ListGroupsResponse, error)
+	SaveGroup(context.Context, *v1.SaveGroupRequest) (*v1.SaveGroupResponse, error)
+	DeleteGroup(context.Context, *v1.DeleteGroupRequest) (*emptypb.Empty, error)
+	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.MultisigTransaction, error)
+	GetTransactionByTxid(context.Context, *v1.GetTransactionByTxidRequest) (*v1.MultisigTransaction, error)
+	SaveTransaction(context.Context, *v1.SaveTransactionRequest) (*v1.SaveTransactionResponse, error)
+	ListSoloKeys(context.Context, *emptypb.Empty) (*v1.ListSoloKeysResponse, error)
+	AddSoloKey(context.Context, *v1.AddSoloKeyRequest) (*emptypb.Empty, error)
+	GetNextAccountIndex(context.Context, *v1.GetNextAccountIndexRequest) (*v1.GetNextAccountIndexResponse, error)
 }
 
-// NewMultisigServiceClient constructs a client for the multisig.v1.MultisigService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewMultisigServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MultisigServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	multisigServiceMethods := v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods()
-	return &multisigServiceClient{
-		listGroups: connect.NewClient[emptypb.Empty, v1.ListGroupsResponse](
-			httpClient,
-			baseURL+MultisigServiceListGroupsProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("ListGroups")),
-			connect.WithClientOptions(opts...),
-		),
-		saveGroup: connect.NewClient[v1.SaveGroupRequest, v1.SaveGroupResponse](
-			httpClient,
-			baseURL+MultisigServiceSaveGroupProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("SaveGroup")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteGroup: connect.NewClient[v1.DeleteGroupRequest, emptypb.Empty](
-			httpClient,
-			baseURL+MultisigServiceDeleteGroupProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("DeleteGroup")),
-			connect.WithClientOptions(opts...),
-		),
-		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
-			httpClient,
-			baseURL+MultisigServiceListTransactionsProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("ListTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransaction: connect.NewClient[v1.GetTransactionRequest, v1.MultisigTransaction](
-			httpClient,
-			baseURL+MultisigServiceGetTransactionProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("GetTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransactionByTxid: connect.NewClient[v1.GetTransactionByTxidRequest, v1.MultisigTransaction](
-			httpClient,
-			baseURL+MultisigServiceGetTransactionByTxidProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("GetTransactionByTxid")),
-			connect.WithClientOptions(opts...),
-		),
-		saveTransaction: connect.NewClient[v1.SaveTransactionRequest, v1.SaveTransactionResponse](
-			httpClient,
-			baseURL+MultisigServiceSaveTransactionProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("SaveTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		listSoloKeys: connect.NewClient[emptypb.Empty, v1.ListSoloKeysResponse](
-			httpClient,
-			baseURL+MultisigServiceListSoloKeysProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("ListSoloKeys")),
-			connect.WithClientOptions(opts...),
-		),
-		addSoloKey: connect.NewClient[v1.AddSoloKeyRequest, emptypb.Empty](
-			httpClient,
-			baseURL+MultisigServiceAddSoloKeyProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("AddSoloKey")),
-			connect.WithClientOptions(opts...),
-		),
-		getNextAccountIndex: connect.NewClient[v1.GetNextAccountIndexRequest, v1.GetNextAccountIndexResponse](
-			httpClient,
-			baseURL+MultisigServiceGetNextAccountIndexProcedure,
-			connect.WithSchema(multisigServiceMethods.ByName("GetNextAccountIndex")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// multisigServiceClient implements MultisigServiceClient.
-type multisigServiceClient struct {
-	listGroups           *connect.Client[emptypb.Empty, v1.ListGroupsResponse]
-	saveGroup            *connect.Client[v1.SaveGroupRequest, v1.SaveGroupResponse]
-	deleteGroup          *connect.Client[v1.DeleteGroupRequest, emptypb.Empty]
-	listTransactions     *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
-	getTransaction       *connect.Client[v1.GetTransactionRequest, v1.MultisigTransaction]
-	getTransactionByTxid *connect.Client[v1.GetTransactionByTxidRequest, v1.MultisigTransaction]
-	saveTransaction      *connect.Client[v1.SaveTransactionRequest, v1.SaveTransactionResponse]
-	listSoloKeys         *connect.Client[emptypb.Empty, v1.ListSoloKeysResponse]
-	addSoloKey           *connect.Client[v1.AddSoloKeyRequest, emptypb.Empty]
-	getNextAccountIndex  *connect.Client[v1.GetNextAccountIndexRequest, v1.GetNextAccountIndexResponse]
-}
-
-// ListGroups calls multisig.v1.MultisigService.ListGroups.
-func (c *multisigServiceClient) ListGroups(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListGroupsResponse], error) {
-	return c.listGroups.CallUnary(ctx, req)
-}
-
-// SaveGroup calls multisig.v1.MultisigService.SaveGroup.
-func (c *multisigServiceClient) SaveGroup(ctx context.Context, req *connect.Request[v1.SaveGroupRequest]) (*connect.Response[v1.SaveGroupResponse], error) {
-	return c.saveGroup.CallUnary(ctx, req)
-}
-
-// DeleteGroup calls multisig.v1.MultisigService.DeleteGroup.
-func (c *multisigServiceClient) DeleteGroup(ctx context.Context, req *connect.Request[v1.DeleteGroupRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.deleteGroup.CallUnary(ctx, req)
-}
-
-// ListTransactions calls multisig.v1.MultisigService.ListTransactions.
-func (c *multisigServiceClient) ListTransactions(ctx context.Context, req *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
-	return c.listTransactions.CallUnary(ctx, req)
-}
-
-// GetTransaction calls multisig.v1.MultisigService.GetTransaction.
-func (c *multisigServiceClient) GetTransaction(ctx context.Context, req *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.MultisigTransaction], error) {
-	return c.getTransaction.CallUnary(ctx, req)
-}
-
-// GetTransactionByTxid calls multisig.v1.MultisigService.GetTransactionByTxid.
-func (c *multisigServiceClient) GetTransactionByTxid(ctx context.Context, req *connect.Request[v1.GetTransactionByTxidRequest]) (*connect.Response[v1.MultisigTransaction], error) {
-	return c.getTransactionByTxid.CallUnary(ctx, req)
-}
-
-// SaveTransaction calls multisig.v1.MultisigService.SaveTransaction.
-func (c *multisigServiceClient) SaveTransaction(ctx context.Context, req *connect.Request[v1.SaveTransactionRequest]) (*connect.Response[v1.SaveTransactionResponse], error) {
-	return c.saveTransaction.CallUnary(ctx, req)
-}
-
-// ListSoloKeys calls multisig.v1.MultisigService.ListSoloKeys.
-func (c *multisigServiceClient) ListSoloKeys(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListSoloKeysResponse], error) {
-	return c.listSoloKeys.CallUnary(ctx, req)
-}
-
-// AddSoloKey calls multisig.v1.MultisigService.AddSoloKey.
-func (c *multisigServiceClient) AddSoloKey(ctx context.Context, req *connect.Request[v1.AddSoloKeyRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.addSoloKey.CallUnary(ctx, req)
-}
-
-// GetNextAccountIndex calls multisig.v1.MultisigService.GetNextAccountIndex.
-func (c *multisigServiceClient) GetNextAccountIndex(ctx context.Context, req *connect.Request[v1.GetNextAccountIndexRequest]) (*connect.Response[v1.GetNextAccountIndexResponse], error) {
-	return c.getNextAccountIndex.CallUnary(ctx, req)
+// NewMultisigServiceClient constructs a client for the multisig.v1.MultisigService service.
+// Multiple service clients may share a single connect.Client.
+func NewMultisigServiceClient(client *connect.Client) MultisigServiceClient {
+	return &multisigServiceClient{client: client}
 }
 
 // MultisigServiceHandler is an implementation of the multisig.v1.MultisigService service.
 type MultisigServiceHandler interface {
-	// Group CRUD
-	ListGroups(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListGroupsResponse], error)
-	SaveGroup(context.Context, *connect.Request[v1.SaveGroupRequest]) (*connect.Response[v1.SaveGroupResponse], error)
-	DeleteGroup(context.Context, *connect.Request[v1.DeleteGroupRequest]) (*connect.Response[emptypb.Empty], error)
-	// Transaction CRUD
-	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
-	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.MultisigTransaction], error)
-	GetTransactionByTxid(context.Context, *connect.Request[v1.GetTransactionByTxidRequest]) (*connect.Response[v1.MultisigTransaction], error)
-	SaveTransaction(context.Context, *connect.Request[v1.SaveTransactionRequest]) (*connect.Response[v1.SaveTransactionResponse], error)
-	// Solo key management
-	ListSoloKeys(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListSoloKeysResponse], error)
-	AddSoloKey(context.Context, *connect.Request[v1.AddSoloKeyRequest]) (*connect.Response[emptypb.Empty], error)
-	// Account index
-	GetNextAccountIndex(context.Context, *connect.Request[v1.GetNextAccountIndexRequest]) (*connect.Response[v1.GetNextAccountIndexResponse], error)
+	ListGroups(context.Context, *emptypb.Empty) (*v1.ListGroupsResponse, error)
+	SaveGroup(context.Context, *v1.SaveGroupRequest) (*v1.SaveGroupResponse, error)
+	DeleteGroup(context.Context, *v1.DeleteGroupRequest) (*emptypb.Empty, error)
+	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.MultisigTransaction, error)
+	GetTransactionByTxid(context.Context, *v1.GetTransactionByTxidRequest) (*v1.MultisigTransaction, error)
+	SaveTransaction(context.Context, *v1.SaveTransactionRequest) (*v1.SaveTransactionResponse, error)
+	ListSoloKeys(context.Context, *emptypb.Empty) (*v1.ListSoloKeysResponse, error)
+	AddSoloKey(context.Context, *v1.AddSoloKeyRequest) (*emptypb.Empty, error)
+	GetNextAccountIndex(context.Context, *v1.GetNextAccountIndexRequest) (*v1.GetNextAccountIndexResponse, error)
 }
 
-// NewMultisigServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewMultisigServiceHandler(svc MultisigServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	multisigServiceMethods := v1.File_multisig_v1_multisig_proto.Services().ByName("MultisigService").Methods()
-	multisigServiceListGroupsHandler := connect.NewUnaryHandler(
-		MultisigServiceListGroupsProcedure,
-		svc.ListGroups,
-		connect.WithSchema(multisigServiceMethods.ByName("ListGroups")),
-		connect.WithHandlerOptions(opts...),
+// RegisterMultisigServiceHandler registers svc as the multisig.v1.MultisigService implementation on
+// server.
+func RegisterMultisigServiceHandler(server *connect.Server, svc MultisigServiceHandler) {
+	adapter := multisigServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: multisigServiceListGroupsSpec(), Handler: adapter.listGroups},
+		connect.Method{Spec: multisigServiceSaveGroupSpec(), Handler: adapter.saveGroup},
+		connect.Method{Spec: multisigServiceDeleteGroupSpec(), Handler: adapter.deleteGroup},
+		connect.Method{Spec: multisigServiceListTransactionsSpec(), Handler: adapter.listTransactions},
+		connect.Method{Spec: multisigServiceGetTransactionSpec(), Handler: adapter.getTransaction},
+		connect.Method{Spec: multisigServiceGetTransactionByTxidSpec(), Handler: adapter.getTransactionByTxid},
+		connect.Method{Spec: multisigServiceSaveTransactionSpec(), Handler: adapter.saveTransaction},
+		connect.Method{Spec: multisigServiceListSoloKeysSpec(), Handler: adapter.listSoloKeys},
+		connect.Method{Spec: multisigServiceAddSoloKeySpec(), Handler: adapter.addSoloKey},
+		connect.Method{Spec: multisigServiceGetNextAccountIndexSpec(), Handler: adapter.getNextAccountIndex},
 	)
-	multisigServiceSaveGroupHandler := connect.NewUnaryHandler(
-		MultisigServiceSaveGroupProcedure,
-		svc.SaveGroup,
-		connect.WithSchema(multisigServiceMethods.ByName("SaveGroup")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceDeleteGroupHandler := connect.NewUnaryHandler(
-		MultisigServiceDeleteGroupProcedure,
-		svc.DeleteGroup,
-		connect.WithSchema(multisigServiceMethods.ByName("DeleteGroup")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceListTransactionsHandler := connect.NewUnaryHandler(
-		MultisigServiceListTransactionsProcedure,
-		svc.ListTransactions,
-		connect.WithSchema(multisigServiceMethods.ByName("ListTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceGetTransactionHandler := connect.NewUnaryHandler(
-		MultisigServiceGetTransactionProcedure,
-		svc.GetTransaction,
-		connect.WithSchema(multisigServiceMethods.ByName("GetTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceGetTransactionByTxidHandler := connect.NewUnaryHandler(
-		MultisigServiceGetTransactionByTxidProcedure,
-		svc.GetTransactionByTxid,
-		connect.WithSchema(multisigServiceMethods.ByName("GetTransactionByTxid")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceSaveTransactionHandler := connect.NewUnaryHandler(
-		MultisigServiceSaveTransactionProcedure,
-		svc.SaveTransaction,
-		connect.WithSchema(multisigServiceMethods.ByName("SaveTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceListSoloKeysHandler := connect.NewUnaryHandler(
-		MultisigServiceListSoloKeysProcedure,
-		svc.ListSoloKeys,
-		connect.WithSchema(multisigServiceMethods.ByName("ListSoloKeys")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceAddSoloKeyHandler := connect.NewUnaryHandler(
-		MultisigServiceAddSoloKeyProcedure,
-		svc.AddSoloKey,
-		connect.WithSchema(multisigServiceMethods.ByName("AddSoloKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigServiceGetNextAccountIndexHandler := connect.NewUnaryHandler(
-		MultisigServiceGetNextAccountIndexProcedure,
-		svc.GetNextAccountIndex,
-		connect.WithSchema(multisigServiceMethods.ByName("GetNextAccountIndex")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/multisig.v1.MultisigService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case MultisigServiceListGroupsProcedure:
-			multisigServiceListGroupsHandler.ServeHTTP(w, r)
-		case MultisigServiceSaveGroupProcedure:
-			multisigServiceSaveGroupHandler.ServeHTTP(w, r)
-		case MultisigServiceDeleteGroupProcedure:
-			multisigServiceDeleteGroupHandler.ServeHTTP(w, r)
-		case MultisigServiceListTransactionsProcedure:
-			multisigServiceListTransactionsHandler.ServeHTTP(w, r)
-		case MultisigServiceGetTransactionProcedure:
-			multisigServiceGetTransactionHandler.ServeHTTP(w, r)
-		case MultisigServiceGetTransactionByTxidProcedure:
-			multisigServiceGetTransactionByTxidHandler.ServeHTTP(w, r)
-		case MultisigServiceSaveTransactionProcedure:
-			multisigServiceSaveTransactionHandler.ServeHTTP(w, r)
-		case MultisigServiceListSoloKeysProcedure:
-			multisigServiceListSoloKeysHandler.ServeHTTP(w, r)
-		case MultisigServiceAddSoloKeyProcedure:
-			multisigServiceAddSoloKeyHandler.ServeHTTP(w, r)
-		case MultisigServiceGetNextAccountIndexProcedure:
-			multisigServiceGetNextAccountIndexHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedMultisigServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedMultisigServiceHandler struct{}
 
-func (UnimplementedMultisigServiceHandler) ListGroups(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListGroupsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.ListGroups is not implemented"))
+func (UnimplementedMultisigServiceHandler) ListGroups(context.Context, *emptypb.Empty) (*v1.ListGroupsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.ListGroups is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) SaveGroup(context.Context, *connect.Request[v1.SaveGroupRequest]) (*connect.Response[v1.SaveGroupResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.SaveGroup is not implemented"))
+func (UnimplementedMultisigServiceHandler) SaveGroup(context.Context, *v1.SaveGroupRequest) (*v1.SaveGroupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.SaveGroup is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) DeleteGroup(context.Context, *connect.Request[v1.DeleteGroupRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.DeleteGroup is not implemented"))
+func (UnimplementedMultisigServiceHandler) DeleteGroup(context.Context, *v1.DeleteGroupRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.DeleteGroup is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.ListTransactions is not implemented"))
+func (UnimplementedMultisigServiceHandler) ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.ListTransactions is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.MultisigTransaction], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.GetTransaction is not implemented"))
+func (UnimplementedMultisigServiceHandler) GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.MultisigTransaction, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.GetTransaction is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) GetTransactionByTxid(context.Context, *connect.Request[v1.GetTransactionByTxidRequest]) (*connect.Response[v1.MultisigTransaction], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.GetTransactionByTxid is not implemented"))
+func (UnimplementedMultisigServiceHandler) GetTransactionByTxid(context.Context, *v1.GetTransactionByTxidRequest) (*v1.MultisigTransaction, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.GetTransactionByTxid is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) SaveTransaction(context.Context, *connect.Request[v1.SaveTransactionRequest]) (*connect.Response[v1.SaveTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.SaveTransaction is not implemented"))
+func (UnimplementedMultisigServiceHandler) SaveTransaction(context.Context, *v1.SaveTransactionRequest) (*v1.SaveTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.SaveTransaction is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) ListSoloKeys(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListSoloKeysResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.ListSoloKeys is not implemented"))
+func (UnimplementedMultisigServiceHandler) ListSoloKeys(context.Context, *emptypb.Empty) (*v1.ListSoloKeysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.ListSoloKeys is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) AddSoloKey(context.Context, *connect.Request[v1.AddSoloKeyRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.AddSoloKey is not implemented"))
+func (UnimplementedMultisigServiceHandler) AddSoloKey(context.Context, *v1.AddSoloKeyRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.AddSoloKey is not implemented")
 }
 
-func (UnimplementedMultisigServiceHandler) GetNextAccountIndex(context.Context, *connect.Request[v1.GetNextAccountIndexRequest]) (*connect.Response[v1.GetNextAccountIndexResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisig.v1.MultisigService.GetNextAccountIndex is not implemented"))
+func (UnimplementedMultisigServiceHandler) GetNextAccountIndex(context.Context, *v1.GetNextAccountIndexRequest) (*v1.GetNextAccountIndexResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisig.v1.MultisigService.GetNextAccountIndex is not implemented")
+}
+
+type multisigServiceClient struct {
+	client *connect.Client
+}
+
+func (c *multisigServiceClient) ListGroups(ctx context.Context, req *emptypb.Empty) (*v1.ListGroupsResponse, error) {
+	var res v1.ListGroupsResponse
+	if err := c.client.CallUnary(ctx, multisigServiceListGroupsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) SaveGroup(ctx context.Context, req *v1.SaveGroupRequest) (*v1.SaveGroupResponse, error) {
+	var res v1.SaveGroupResponse
+	if err := c.client.CallUnary(ctx, multisigServiceSaveGroupSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) DeleteGroup(ctx context.Context, req *v1.DeleteGroupRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, multisigServiceDeleteGroupSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) ListTransactions(ctx context.Context, req *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error) {
+	var res v1.ListTransactionsResponse
+	if err := c.client.CallUnary(ctx, multisigServiceListTransactionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) GetTransaction(ctx context.Context, req *v1.GetTransactionRequest) (*v1.MultisigTransaction, error) {
+	var res v1.MultisigTransaction
+	if err := c.client.CallUnary(ctx, multisigServiceGetTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) GetTransactionByTxid(ctx context.Context, req *v1.GetTransactionByTxidRequest) (*v1.MultisigTransaction, error) {
+	var res v1.MultisigTransaction
+	if err := c.client.CallUnary(ctx, multisigServiceGetTransactionByTxidSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) SaveTransaction(ctx context.Context, req *v1.SaveTransactionRequest) (*v1.SaveTransactionResponse, error) {
+	var res v1.SaveTransactionResponse
+	if err := c.client.CallUnary(ctx, multisigServiceSaveTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) ListSoloKeys(ctx context.Context, req *emptypb.Empty) (*v1.ListSoloKeysResponse, error) {
+	var res v1.ListSoloKeysResponse
+	if err := c.client.CallUnary(ctx, multisigServiceListSoloKeysSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) AddSoloKey(ctx context.Context, req *v1.AddSoloKeyRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, multisigServiceAddSoloKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigServiceClient) GetNextAccountIndex(ctx context.Context, req *v1.GetNextAccountIndexRequest) (*v1.GetNextAccountIndexResponse, error) {
+	var res v1.GetNextAccountIndexResponse
+	if err := c.client.CallUnary(ctx, multisigServiceGetNextAccountIndexSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type multisigServiceHandler struct{ svc MultisigServiceHandler }
+
+func (h multisigServiceHandler) listGroups(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListGroups(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) saveGroup(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SaveGroupRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SaveGroup(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) deleteGroup(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteGroupRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteGroup(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) listTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTransactions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) getTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) getTransactionByTxid(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTransactionByTxidRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTransactionByTxid(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) saveTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SaveTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SaveTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) listSoloKeys(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSoloKeys(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) addSoloKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddSoloKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddSoloKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigServiceHandler) getNextAccountIndex(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNextAccountIndexRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNextAccountIndex(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

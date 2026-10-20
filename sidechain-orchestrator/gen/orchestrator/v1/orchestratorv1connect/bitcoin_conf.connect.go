@@ -5,336 +5,353 @@
 package orchestratorv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BitcoinConfServiceName is the fully-qualified name of the BitcoinConfService service.
 	BitcoinConfServiceName = "orchestrator.v1.BitcoinConfService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BitcoinConfServiceGetBitcoinConfigProcedure is the fully-qualified name of the
-	// BitcoinConfService's GetBitcoinConfig RPC.
+	// BitcoinConfServiceGetBitcoinConfigProcedure is the procedure name of the BitcoinConfService's
+	// GetBitcoinConfig RPC.
 	BitcoinConfServiceGetBitcoinConfigProcedure = "/orchestrator.v1.BitcoinConfService/GetBitcoinConfig"
-	// BitcoinConfServicePrepareNetworkChangeProcedure is the fully-qualified name of the
-	// BitcoinConfService's PrepareNetworkChange RPC.
+	// BitcoinConfServicePrepareNetworkChangeProcedure is the procedure name of the BitcoinConfService's
+	// PrepareNetworkChange RPC.
 	BitcoinConfServicePrepareNetworkChangeProcedure = "/orchestrator.v1.BitcoinConfService/PrepareNetworkChange"
-	// BitcoinConfServiceListNetworksProcedure is the fully-qualified name of the BitcoinConfService's
+	// BitcoinConfServiceListNetworksProcedure is the procedure name of the BitcoinConfService's
 	// ListNetworks RPC.
 	BitcoinConfServiceListNetworksProcedure = "/orchestrator.v1.BitcoinConfService/ListNetworks"
-	// BitcoinConfServiceTakeNewNetworksProcedure is the fully-qualified name of the
-	// BitcoinConfService's TakeNewNetworks RPC.
+	// BitcoinConfServiceTakeNewNetworksProcedure is the procedure name of the BitcoinConfService's
+	// TakeNewNetworks RPC.
 	BitcoinConfServiceTakeNewNetworksProcedure = "/orchestrator.v1.BitcoinConfService/TakeNewNetworks"
-	// BitcoinConfServicePlanECashSwitchProcedure is the fully-qualified name of the
-	// BitcoinConfService's PlanECashSwitch RPC.
+	// BitcoinConfServicePlanECashSwitchProcedure is the procedure name of the BitcoinConfService's
+	// PlanECashSwitch RPC.
 	BitcoinConfServicePlanECashSwitchProcedure = "/orchestrator.v1.BitcoinConfService/PlanECashSwitch"
-	// BitcoinConfServiceSetBitcoinConfigNetworkProcedure is the fully-qualified name of the
+	// BitcoinConfServiceSetBitcoinConfigNetworkProcedure is the procedure name of the
 	// BitcoinConfService's SetBitcoinConfigNetwork RPC.
 	BitcoinConfServiceSetBitcoinConfigNetworkProcedure = "/orchestrator.v1.BitcoinConfService/SetBitcoinConfigNetwork"
-	// BitcoinConfServiceSetBitcoinConfigDataDirProcedure is the fully-qualified name of the
+	// BitcoinConfServiceSetBitcoinConfigDataDirProcedure is the procedure name of the
 	// BitcoinConfService's SetBitcoinConfigDataDir RPC.
 	BitcoinConfServiceSetBitcoinConfigDataDirProcedure = "/orchestrator.v1.BitcoinConfService/SetBitcoinConfigDataDir"
-	// BitcoinConfServiceWriteBitcoinConfigProcedure is the fully-qualified name of the
-	// BitcoinConfService's WriteBitcoinConfig RPC.
+	// BitcoinConfServiceWriteBitcoinConfigProcedure is the procedure name of the BitcoinConfService's
+	// WriteBitcoinConfig RPC.
 	BitcoinConfServiceWriteBitcoinConfigProcedure = "/orchestrator.v1.BitcoinConfService/WriteBitcoinConfig"
+)
+
+var (
+	bitcoinConfServiceGetBitcoinConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("GetBitcoinConfig"),
+			Procedure:  BitcoinConfServiceGetBitcoinConfigProcedure,
+		}
+	})
+	bitcoinConfServicePrepareNetworkChangeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("PrepareNetworkChange"),
+			Procedure:  BitcoinConfServicePrepareNetworkChangeProcedure,
+		}
+	})
+	bitcoinConfServiceListNetworksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("ListNetworks"),
+			Procedure:  BitcoinConfServiceListNetworksProcedure,
+		}
+	})
+	bitcoinConfServiceTakeNewNetworksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("TakeNewNetworks"),
+			Procedure:  BitcoinConfServiceTakeNewNetworksProcedure,
+		}
+	})
+	bitcoinConfServicePlanECashSwitchSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("PlanECashSwitch"),
+			Procedure:  BitcoinConfServicePlanECashSwitchProcedure,
+		}
+	})
+	bitcoinConfServiceSetBitcoinConfigNetworkSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("SetBitcoinConfigNetwork"),
+			Procedure:  BitcoinConfServiceSetBitcoinConfigNetworkProcedure,
+		}
+	})
+	bitcoinConfServiceSetBitcoinConfigDataDirSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("SetBitcoinConfigDataDir"),
+			Procedure:  BitcoinConfServiceSetBitcoinConfigDataDirProcedure,
+		}
+	})
+	bitcoinConfServiceWriteBitcoinConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("WriteBitcoinConfig"),
+			Procedure:  BitcoinConfServiceWriteBitcoinConfigProcedure,
+		}
+	})
 )
 
 // BitcoinConfServiceClient is a client for the orchestrator.v1.BitcoinConfService service.
 type BitcoinConfServiceClient interface {
-	// Get current Bitcoin Core configuration state.
-	GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error)
-	// Report what the user must resolve before a network and/or wallet-backend
-	// change can be applied. Side-effect free.
-	PrepareNetworkChange(context.Context, *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error)
-	// The networks the user can pick, from the published catalog plus regtest.
-	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
-	// The networks that appeared in the catalog since the last call, so the app
-	// can name them in a notice. Reporting a network also marks it told: a
-	// second call returns it no more. A first run reports nothing.
-	TakeNewNetworks(context.Context, *connect.Request[v1.TakeNewNetworksRequest]) (*connect.Response[v1.TakeNewNetworksResponse], error)
-	// What a move to another eCash network costs. Both fork mainnet, so the
-	// blocks below the lower fork height are shared and the move is a reset
-	// rather than a resync. Side-effect free.
-	PlanECashSwitch(context.Context, *connect.Request[v1.PlanECashSwitchRequest]) (*connect.Response[v1.PlanECashSwitchResponse], error)
-	// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
-	// name (signet, mainnet, ecash, regtest).
-	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
-	// Set the Bitcoin Core datadir for a specific network.
-	SetBitcoinConfigDataDir(context.Context, *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error)
-	// Write raw Bitcoin Core configuration content.
-	WriteBitcoinConfig(context.Context, *connect.Request[v1.WriteBitcoinConfigRequest]) (*connect.Response[v1.WriteBitcoinConfigResponse], error)
+	GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error)
+	PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error)
+	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+	TakeNewNetworks(context.Context, *v1.TakeNewNetworksRequest) (*v1.TakeNewNetworksResponse, error)
+	PlanECashSwitch(context.Context, *v1.PlanECashSwitchRequest) (*v1.PlanECashSwitchResponse, error)
+	SetBitcoinConfigNetwork(context.Context, *v1.SetBitcoinConfigNetworkRequest) (*v1.SetBitcoinConfigNetworkResponse, error)
+	SetBitcoinConfigDataDir(context.Context, *v1.SetBitcoinConfigDataDirRequest) (*v1.SetBitcoinConfigDataDirResponse, error)
+	WriteBitcoinConfig(context.Context, *v1.WriteBitcoinConfigRequest) (*v1.WriteBitcoinConfigResponse, error)
 }
 
 // NewBitcoinConfServiceClient constructs a client for the orchestrator.v1.BitcoinConfService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewBitcoinConfServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BitcoinConfServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	bitcoinConfServiceMethods := v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods()
-	return &bitcoinConfServiceClient{
-		getBitcoinConfig: connect.NewClient[v1.GetBitcoinConfigRequest, v1.GetBitcoinConfigResponse](
-			httpClient,
-			baseURL+BitcoinConfServiceGetBitcoinConfigProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("GetBitcoinConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		prepareNetworkChange: connect.NewClient[v1.PrepareNetworkChangeRequest, v1.NetworkChangePlan](
-			httpClient,
-			baseURL+BitcoinConfServicePrepareNetworkChangeProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("PrepareNetworkChange")),
-			connect.WithClientOptions(opts...),
-		),
-		listNetworks: connect.NewClient[v1.ListNetworksRequest, v1.ListNetworksResponse](
-			httpClient,
-			baseURL+BitcoinConfServiceListNetworksProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("ListNetworks")),
-			connect.WithClientOptions(opts...),
-		),
-		takeNewNetworks: connect.NewClient[v1.TakeNewNetworksRequest, v1.TakeNewNetworksResponse](
-			httpClient,
-			baseURL+BitcoinConfServiceTakeNewNetworksProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("TakeNewNetworks")),
-			connect.WithClientOptions(opts...),
-		),
-		planECashSwitch: connect.NewClient[v1.PlanECashSwitchRequest, v1.PlanECashSwitchResponse](
-			httpClient,
-			baseURL+BitcoinConfServicePlanECashSwitchProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("PlanECashSwitch")),
-			connect.WithClientOptions(opts...),
-		),
-		setBitcoinConfigNetwork: connect.NewClient[v1.SetBitcoinConfigNetworkRequest, v1.SetBitcoinConfigNetworkResponse](
-			httpClient,
-			baseURL+BitcoinConfServiceSetBitcoinConfigNetworkProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("SetBitcoinConfigNetwork")),
-			connect.WithClientOptions(opts...),
-		),
-		setBitcoinConfigDataDir: connect.NewClient[v1.SetBitcoinConfigDataDirRequest, v1.SetBitcoinConfigDataDirResponse](
-			httpClient,
-			baseURL+BitcoinConfServiceSetBitcoinConfigDataDirProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("SetBitcoinConfigDataDir")),
-			connect.WithClientOptions(opts...),
-		),
-		writeBitcoinConfig: connect.NewClient[v1.WriteBitcoinConfigRequest, v1.WriteBitcoinConfigResponse](
-			httpClient,
-			baseURL+BitcoinConfServiceWriteBitcoinConfigProcedure,
-			connect.WithSchema(bitcoinConfServiceMethods.ByName("WriteBitcoinConfig")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// bitcoinConfServiceClient implements BitcoinConfServiceClient.
-type bitcoinConfServiceClient struct {
-	getBitcoinConfig        *connect.Client[v1.GetBitcoinConfigRequest, v1.GetBitcoinConfigResponse]
-	prepareNetworkChange    *connect.Client[v1.PrepareNetworkChangeRequest, v1.NetworkChangePlan]
-	listNetworks            *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
-	takeNewNetworks         *connect.Client[v1.TakeNewNetworksRequest, v1.TakeNewNetworksResponse]
-	planECashSwitch         *connect.Client[v1.PlanECashSwitchRequest, v1.PlanECashSwitchResponse]
-	setBitcoinConfigNetwork *connect.Client[v1.SetBitcoinConfigNetworkRequest, v1.SetBitcoinConfigNetworkResponse]
-	setBitcoinConfigDataDir *connect.Client[v1.SetBitcoinConfigDataDirRequest, v1.SetBitcoinConfigDataDirResponse]
-	writeBitcoinConfig      *connect.Client[v1.WriteBitcoinConfigRequest, v1.WriteBitcoinConfigResponse]
-}
-
-// GetBitcoinConfig calls orchestrator.v1.BitcoinConfService.GetBitcoinConfig.
-func (c *bitcoinConfServiceClient) GetBitcoinConfig(ctx context.Context, req *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error) {
-	return c.getBitcoinConfig.CallUnary(ctx, req)
-}
-
-// PrepareNetworkChange calls orchestrator.v1.BitcoinConfService.PrepareNetworkChange.
-func (c *bitcoinConfServiceClient) PrepareNetworkChange(ctx context.Context, req *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error) {
-	return c.prepareNetworkChange.CallUnary(ctx, req)
-}
-
-// ListNetworks calls orchestrator.v1.BitcoinConfService.ListNetworks.
-func (c *bitcoinConfServiceClient) ListNetworks(ctx context.Context, req *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error) {
-	return c.listNetworks.CallUnary(ctx, req)
-}
-
-// TakeNewNetworks calls orchestrator.v1.BitcoinConfService.TakeNewNetworks.
-func (c *bitcoinConfServiceClient) TakeNewNetworks(ctx context.Context, req *connect.Request[v1.TakeNewNetworksRequest]) (*connect.Response[v1.TakeNewNetworksResponse], error) {
-	return c.takeNewNetworks.CallUnary(ctx, req)
-}
-
-// PlanECashSwitch calls orchestrator.v1.BitcoinConfService.PlanECashSwitch.
-func (c *bitcoinConfServiceClient) PlanECashSwitch(ctx context.Context, req *connect.Request[v1.PlanECashSwitchRequest]) (*connect.Response[v1.PlanECashSwitchResponse], error) {
-	return c.planECashSwitch.CallUnary(ctx, req)
-}
-
-// SetBitcoinConfigNetwork calls orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork.
-func (c *bitcoinConfServiceClient) SetBitcoinConfigNetwork(ctx context.Context, req *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error) {
-	return c.setBitcoinConfigNetwork.CallUnary(ctx, req)
-}
-
-// SetBitcoinConfigDataDir calls orchestrator.v1.BitcoinConfService.SetBitcoinConfigDataDir.
-func (c *bitcoinConfServiceClient) SetBitcoinConfigDataDir(ctx context.Context, req *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error) {
-	return c.setBitcoinConfigDataDir.CallUnary(ctx, req)
-}
-
-// WriteBitcoinConfig calls orchestrator.v1.BitcoinConfService.WriteBitcoinConfig.
-func (c *bitcoinConfServiceClient) WriteBitcoinConfig(ctx context.Context, req *connect.Request[v1.WriteBitcoinConfigRequest]) (*connect.Response[v1.WriteBitcoinConfigResponse], error) {
-	return c.writeBitcoinConfig.CallUnary(ctx, req)
+// service. Multiple service clients may share a single connect.Client.
+func NewBitcoinConfServiceClient(client *connect.Client) BitcoinConfServiceClient {
+	return &bitcoinConfServiceClient{client: client}
 }
 
 // BitcoinConfServiceHandler is an implementation of the orchestrator.v1.BitcoinConfService service.
 type BitcoinConfServiceHandler interface {
-	// Get current Bitcoin Core configuration state.
-	GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error)
-	// Report what the user must resolve before a network and/or wallet-backend
-	// change can be applied. Side-effect free.
-	PrepareNetworkChange(context.Context, *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error)
-	// The networks the user can pick, from the published catalog plus regtest.
-	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
-	// The networks that appeared in the catalog since the last call, so the app
-	// can name them in a notice. Reporting a network also marks it told: a
-	// second call returns it no more. A first run reports nothing.
-	TakeNewNetworks(context.Context, *connect.Request[v1.TakeNewNetworksRequest]) (*connect.Response[v1.TakeNewNetworksResponse], error)
-	// What a move to another eCash network costs. Both fork mainnet, so the
-	// blocks below the lower fork height are shared and the move is a reset
-	// rather than a resync. Side-effect free.
-	PlanECashSwitch(context.Context, *connect.Request[v1.PlanECashSwitchRequest]) (*connect.Response[v1.PlanECashSwitchResponse], error)
-	// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
-	// name (signet, mainnet, ecash, regtest).
-	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
-	// Set the Bitcoin Core datadir for a specific network.
-	SetBitcoinConfigDataDir(context.Context, *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error)
-	// Write raw Bitcoin Core configuration content.
-	WriteBitcoinConfig(context.Context, *connect.Request[v1.WriteBitcoinConfigRequest]) (*connect.Response[v1.WriteBitcoinConfigResponse], error)
+	GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error)
+	PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error)
+	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+	TakeNewNetworks(context.Context, *v1.TakeNewNetworksRequest) (*v1.TakeNewNetworksResponse, error)
+	PlanECashSwitch(context.Context, *v1.PlanECashSwitchRequest) (*v1.PlanECashSwitchResponse, error)
+	SetBitcoinConfigNetwork(context.Context, *v1.SetBitcoinConfigNetworkRequest) (*v1.SetBitcoinConfigNetworkResponse, error)
+	SetBitcoinConfigDataDir(context.Context, *v1.SetBitcoinConfigDataDirRequest) (*v1.SetBitcoinConfigDataDirResponse, error)
+	WriteBitcoinConfig(context.Context, *v1.WriteBitcoinConfigRequest) (*v1.WriteBitcoinConfigResponse, error)
 }
 
-// NewBitcoinConfServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewBitcoinConfServiceHandler(svc BitcoinConfServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bitcoinConfServiceMethods := v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods()
-	bitcoinConfServiceGetBitcoinConfigHandler := connect.NewUnaryHandler(
-		BitcoinConfServiceGetBitcoinConfigProcedure,
-		svc.GetBitcoinConfig,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("GetBitcoinConfig")),
-		connect.WithHandlerOptions(opts...),
+// RegisterBitcoinConfServiceHandler registers svc as the orchestrator.v1.BitcoinConfService
+// implementation on server.
+func RegisterBitcoinConfServiceHandler(server *connect.Server, svc BitcoinConfServiceHandler) {
+	adapter := bitcoinConfServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: bitcoinConfServiceGetBitcoinConfigSpec(), Handler: adapter.getBitcoinConfig},
+		connect.Method{Spec: bitcoinConfServicePrepareNetworkChangeSpec(), Handler: adapter.prepareNetworkChange},
+		connect.Method{Spec: bitcoinConfServiceListNetworksSpec(), Handler: adapter.listNetworks},
+		connect.Method{Spec: bitcoinConfServiceTakeNewNetworksSpec(), Handler: adapter.takeNewNetworks},
+		connect.Method{Spec: bitcoinConfServicePlanECashSwitchSpec(), Handler: adapter.planECashSwitch},
+		connect.Method{Spec: bitcoinConfServiceSetBitcoinConfigNetworkSpec(), Handler: adapter.setBitcoinConfigNetwork},
+		connect.Method{Spec: bitcoinConfServiceSetBitcoinConfigDataDirSpec(), Handler: adapter.setBitcoinConfigDataDir},
+		connect.Method{Spec: bitcoinConfServiceWriteBitcoinConfigSpec(), Handler: adapter.writeBitcoinConfig},
 	)
-	bitcoinConfServicePrepareNetworkChangeHandler := connect.NewUnaryHandler(
-		BitcoinConfServicePrepareNetworkChangeProcedure,
-		svc.PrepareNetworkChange,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("PrepareNetworkChange")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoinConfServiceListNetworksHandler := connect.NewUnaryHandler(
-		BitcoinConfServiceListNetworksProcedure,
-		svc.ListNetworks,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("ListNetworks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoinConfServiceTakeNewNetworksHandler := connect.NewUnaryHandler(
-		BitcoinConfServiceTakeNewNetworksProcedure,
-		svc.TakeNewNetworks,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("TakeNewNetworks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoinConfServicePlanECashSwitchHandler := connect.NewUnaryHandler(
-		BitcoinConfServicePlanECashSwitchProcedure,
-		svc.PlanECashSwitch,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("PlanECashSwitch")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoinConfServiceSetBitcoinConfigNetworkHandler := connect.NewUnaryHandler(
-		BitcoinConfServiceSetBitcoinConfigNetworkProcedure,
-		svc.SetBitcoinConfigNetwork,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("SetBitcoinConfigNetwork")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoinConfServiceSetBitcoinConfigDataDirHandler := connect.NewUnaryHandler(
-		BitcoinConfServiceSetBitcoinConfigDataDirProcedure,
-		svc.SetBitcoinConfigDataDir,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("SetBitcoinConfigDataDir")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoinConfServiceWriteBitcoinConfigHandler := connect.NewUnaryHandler(
-		BitcoinConfServiceWriteBitcoinConfigProcedure,
-		svc.WriteBitcoinConfig,
-		connect.WithSchema(bitcoinConfServiceMethods.ByName("WriteBitcoinConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/orchestrator.v1.BitcoinConfService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case BitcoinConfServiceGetBitcoinConfigProcedure:
-			bitcoinConfServiceGetBitcoinConfigHandler.ServeHTTP(w, r)
-		case BitcoinConfServicePrepareNetworkChangeProcedure:
-			bitcoinConfServicePrepareNetworkChangeHandler.ServeHTTP(w, r)
-		case BitcoinConfServiceListNetworksProcedure:
-			bitcoinConfServiceListNetworksHandler.ServeHTTP(w, r)
-		case BitcoinConfServiceTakeNewNetworksProcedure:
-			bitcoinConfServiceTakeNewNetworksHandler.ServeHTTP(w, r)
-		case BitcoinConfServicePlanECashSwitchProcedure:
-			bitcoinConfServicePlanECashSwitchHandler.ServeHTTP(w, r)
-		case BitcoinConfServiceSetBitcoinConfigNetworkProcedure:
-			bitcoinConfServiceSetBitcoinConfigNetworkHandler.ServeHTTP(w, r)
-		case BitcoinConfServiceSetBitcoinConfigDataDirProcedure:
-			bitcoinConfServiceSetBitcoinConfigDataDirHandler.ServeHTTP(w, r)
-		case BitcoinConfServiceWriteBitcoinConfigProcedure:
-			bitcoinConfServiceWriteBitcoinConfigHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedBitcoinConfServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBitcoinConfServiceHandler struct{}
 
-func (UnimplementedBitcoinConfServiceHandler) GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.GetBitcoinConfig is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.GetBitcoinConfig is not implemented")
 }
 
-func (UnimplementedBitcoinConfServiceHandler) PrepareNetworkChange(context.Context, *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.PrepareNetworkChange is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.PrepareNetworkChange is not implemented")
 }
 
-func (UnimplementedBitcoinConfServiceHandler) ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.ListNetworks is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.ListNetworks is not implemented")
 }
 
-func (UnimplementedBitcoinConfServiceHandler) TakeNewNetworks(context.Context, *connect.Request[v1.TakeNewNetworksRequest]) (*connect.Response[v1.TakeNewNetworksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.TakeNewNetworks is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) TakeNewNetworks(context.Context, *v1.TakeNewNetworksRequest) (*v1.TakeNewNetworksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.TakeNewNetworks is not implemented")
 }
 
-func (UnimplementedBitcoinConfServiceHandler) PlanECashSwitch(context.Context, *connect.Request[v1.PlanECashSwitchRequest]) (*connect.Response[v1.PlanECashSwitchResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.PlanECashSwitch is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) PlanECashSwitch(context.Context, *v1.PlanECashSwitchRequest) (*v1.PlanECashSwitchResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.PlanECashSwitch is not implemented")
 }
 
-func (UnimplementedBitcoinConfServiceHandler) SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) SetBitcoinConfigNetwork(context.Context, *v1.SetBitcoinConfigNetworkRequest) (*v1.SetBitcoinConfigNetworkResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork is not implemented")
 }
 
-func (UnimplementedBitcoinConfServiceHandler) SetBitcoinConfigDataDir(context.Context, *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.SetBitcoinConfigDataDir is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) SetBitcoinConfigDataDir(context.Context, *v1.SetBitcoinConfigDataDirRequest) (*v1.SetBitcoinConfigDataDirResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.SetBitcoinConfigDataDir is not implemented")
 }
 
-func (UnimplementedBitcoinConfServiceHandler) WriteBitcoinConfig(context.Context, *connect.Request[v1.WriteBitcoinConfigRequest]) (*connect.Response[v1.WriteBitcoinConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.WriteBitcoinConfig is not implemented"))
+func (UnimplementedBitcoinConfServiceHandler) WriteBitcoinConfig(context.Context, *v1.WriteBitcoinConfigRequest) (*v1.WriteBitcoinConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.WriteBitcoinConfig is not implemented")
+}
+
+type bitcoinConfServiceClient struct {
+	client *connect.Client
+}
+
+func (c *bitcoinConfServiceClient) GetBitcoinConfig(ctx context.Context, req *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error) {
+	var res v1.GetBitcoinConfigResponse
+	if err := c.client.CallUnary(ctx, bitcoinConfServiceGetBitcoinConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) PrepareNetworkChange(ctx context.Context, req *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error) {
+	var res v1.NetworkChangePlan
+	if err := c.client.CallUnary(ctx, bitcoinConfServicePrepareNetworkChangeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) ListNetworks(ctx context.Context, req *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
+	var res v1.ListNetworksResponse
+	if err := c.client.CallUnary(ctx, bitcoinConfServiceListNetworksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) TakeNewNetworks(ctx context.Context, req *v1.TakeNewNetworksRequest) (*v1.TakeNewNetworksResponse, error) {
+	var res v1.TakeNewNetworksResponse
+	if err := c.client.CallUnary(ctx, bitcoinConfServiceTakeNewNetworksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) PlanECashSwitch(ctx context.Context, req *v1.PlanECashSwitchRequest) (*v1.PlanECashSwitchResponse, error) {
+	var res v1.PlanECashSwitchResponse
+	if err := c.client.CallUnary(ctx, bitcoinConfServicePlanECashSwitchSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) SetBitcoinConfigNetwork(ctx context.Context, req *v1.SetBitcoinConfigNetworkRequest) (*v1.SetBitcoinConfigNetworkResponse, error) {
+	var res v1.SetBitcoinConfigNetworkResponse
+	if err := c.client.CallUnary(ctx, bitcoinConfServiceSetBitcoinConfigNetworkSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) SetBitcoinConfigDataDir(ctx context.Context, req *v1.SetBitcoinConfigDataDirRequest) (*v1.SetBitcoinConfigDataDirResponse, error) {
+	var res v1.SetBitcoinConfigDataDirResponse
+	if err := c.client.CallUnary(ctx, bitcoinConfServiceSetBitcoinConfigDataDirSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) WriteBitcoinConfig(ctx context.Context, req *v1.WriteBitcoinConfigRequest) (*v1.WriteBitcoinConfigResponse, error) {
+	var res v1.WriteBitcoinConfigResponse
+	if err := c.client.CallUnary(ctx, bitcoinConfServiceWriteBitcoinConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type bitcoinConfServiceHandler struct{ svc BitcoinConfServiceHandler }
+
+func (h bitcoinConfServiceHandler) getBitcoinConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBitcoinConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBitcoinConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) prepareNetworkChange(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PrepareNetworkChangeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PrepareNetworkChange(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) listNetworks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListNetworksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListNetworks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) takeNewNetworks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TakeNewNetworksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.TakeNewNetworks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) planECashSwitch(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PlanECashSwitchRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PlanECashSwitch(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) setBitcoinConfigNetwork(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetBitcoinConfigNetworkRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetBitcoinConfigNetwork(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) setBitcoinConfigDataDir(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetBitcoinConfigDataDirRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetBitcoinConfigDataDir(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) writeBitcoinConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WriteBitcoinConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.WriteBitcoinConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

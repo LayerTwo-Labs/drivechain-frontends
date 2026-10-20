@@ -13,7 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -155,7 +157,13 @@ func WithOrchestratorControl(handler orchctlrpc.OrchestratorServiceHandler) Serv
 	return func(opt *configg) { opt.control = handler }
 }
 
-func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClient, string) {
+func RPC(t *testing.T, database *sql.DB, options ...ServerOpt) *connect.Client {
+	t.Helper()
+	client, address := API(t, database, options...)
+	return connect.NewClient(connecthttp.NewTransport(client, address, connecthttp.WithReadMaxBytes(0)))
+}
+
+func API(t *testing.T, database *sql.DB, options ...ServerOpt) (*http.Client, string) {
 	ctrl := gomock.NewController(t)
 
 	// Create isolated logger for this test to avoid race conditions
@@ -178,7 +186,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	if mock, ok := conf.bitcoind.(*mocks.MockBitcoinServiceClient); ok {
 		mock.EXPECT().
 			GetZmqNotifications(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("no ZMQ in tests"))).
+			Return(nil, connectv1.NewError(connectv1.CodeUnavailable, errors.New("no ZMQ in tests"))).
 			AnyTimes()
 	}
 
@@ -339,7 +347,7 @@ func makeWalletWatchOnly(t *testing.T, walletDir string) {
 	require.NoError(t, os.WriteFile(walletPath, data, 0600))
 }
 
-func serve(t *testing.T, server *api.Server) (connect.HTTPClient, string) {
+func serve(t *testing.T, server *api.Server) (*http.Client, string) {
 	testServer := httptest.NewUnstartedServer(server.Handler())
 	// Bidi streams such as gRPC reflection need HTTP/2, as Server.Serve allows.
 	testServer.Config.Protocols = new(http.Protocols)
@@ -374,7 +382,7 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 	// Core is down, so the parser waits. An empty chain makes the parser
 	// purge the block rows a test seeds. These go first to match ahead of
 	// the height 1 answer of ExpectCoreWalletSetup.
-	down := connect.NewError(connect.CodeUnavailable, errors.New("core is down"))
+	down := connect.NewError(connect.CodeUnavailable, "core is down")
 	mock.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).Return(nil, down).AnyTimes()
 	mock.EXPECT().GetRawMempool(gomock.Any(), gomock.Any()).Return(nil, down).AnyTimes()
 
@@ -382,7 +390,7 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 
 	mock.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ListWalletsResponse]{
+		Return(&connectv1.Response[corepb.ListWalletsResponse]{
 			Msg: &corepb.ListWalletsResponse{
 				Wallets: []string{},
 			},
@@ -400,7 +408,9 @@ func orchestratorServer(t *testing.T, control orchctlrpc.OrchestratorServiceHand
 		control = orchctlrpc.UnimplementedOrchestratorServiceHandler{}
 	}
 	mux := http.NewServeMux()
-	mux.Handle(orchctlrpc.NewOrchestratorServiceHandler(control))
+	srv := connect.NewServer()
+	orchctlrpc.RegisterOrchestratorServiceHandler(srv, control)
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	return server.URL
@@ -412,10 +422,12 @@ func orchestratorServer(t *testing.T, control orchctlrpc.OrchestratorServiceHand
 func CoreWalletOrchestrator(t *testing.T) orchrpc.WalletManagerServiceClient {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.Handle(orchrpc.NewWalletManagerServiceHandler(coreWalletManager{}))
+	srv := connect.NewServer()
+	orchrpc.RegisterWalletManagerServiceHandler(srv, coreWalletManager{})
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return orchrpc.NewWalletManagerServiceClient(server.Client(), server.URL)
+	return orchrpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 type coreWalletManager struct {
@@ -434,18 +446,18 @@ type openWallet struct {
 }
 
 func (o openWallet) ListWallets(
-	context.Context, *connect.Request[orchpb.ListWalletsRequest],
-) (*connect.Response[orchpb.ListWalletsResponse], error) {
-	return connect.NewResponse(&orchpb.ListWalletsResponse{
+	context.Context, *orchpb.ListWalletsRequest,
+) (*orchpb.ListWalletsResponse, error) {
+	return &orchpb.ListWalletsResponse{
 		Wallets:        []*orchpb.WalletMetadata{o.wallet},
 		ActiveWalletId: o.wallet.Id,
-	}), nil
+	}, nil
 }
 
 func (o openWallet) GetWalletStatus(
-	context.Context, *connect.Request[orchpb.GetWalletStatusRequest],
-) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
-	return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED}), nil
+	context.Context, *orchpb.GetWalletStatusRequest,
+) (*orchpb.GetWalletStatusResponse, error) {
+	return &orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED}, nil
 }
 
 // fixtureOrchestrator returns an orchestrator client in full mode whose
@@ -457,10 +469,12 @@ func fixtureOrchestrator(t *testing.T, walletDir string) orchrpc.WalletManagerSe
 	t.Cleanup(svc.Close)
 
 	mux := http.NewServeMux()
-	mux.Handle(orchrpc.NewWalletManagerServiceHandler(fixtureWalletManager{wallets: orchapi.NewWalletHandler(svc)}))
+	srv := connect.NewServer()
+	orchrpc.RegisterWalletManagerServiceHandler(srv, fixtureWalletManager{wallets: orchapi.NewWalletHandler(svc)})
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return orchrpc.NewWalletManagerServiceClient(server.Client(), server.URL)
+	return orchrpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 // PasswordWalletOrchestrator returns the fixture orchestrator of
@@ -478,47 +492,47 @@ type fixtureWalletManager struct {
 }
 
 func (m fixtureWalletManager) GetWalletStatus(
-	ctx context.Context, req *connect.Request[orchpb.GetWalletStatusRequest],
-) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
+	ctx context.Context, req *orchpb.GetWalletStatusRequest,
+) (*orchpb.GetWalletStatusResponse, error) {
 	return m.wallets.GetWalletStatus(ctx, req)
 }
 
 func (m fixtureWalletManager) UnlockWallet(
-	ctx context.Context, req *connect.Request[orchpb.UnlockWalletRequest],
-) (*connect.Response[orchpb.UnlockWalletResponse], error) {
+	ctx context.Context, req *orchpb.UnlockWalletRequest,
+) (*orchpb.UnlockWalletResponse, error) {
 	return m.wallets.UnlockWallet(ctx, req)
 }
 
 func (m fixtureWalletManager) LockWallet(
-	ctx context.Context, req *connect.Request[orchpb.LockWalletRequest],
-) (*connect.Response[orchpb.LockWalletResponse], error) {
+	ctx context.Context, req *orchpb.LockWalletRequest,
+) (*orchpb.LockWalletResponse, error) {
 	return m.wallets.LockWallet(ctx, req)
 }
 
 func (m fixtureWalletManager) ListWallets(
-	ctx context.Context, req *connect.Request[orchpb.ListWalletsRequest],
-) (*connect.Response[orchpb.ListWalletsResponse], error) {
+	ctx context.Context, req *orchpb.ListWalletsRequest,
+) (*orchpb.ListWalletsResponse, error) {
 	return m.wallets.ListWallets(ctx, req)
 }
 
 func (m fixtureWalletManager) GetWalletSeed(
-	ctx context.Context, req *connect.Request[orchpb.GetWalletSeedRequest],
-) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+	ctx context.Context, req *orchpb.GetWalletSeedRequest,
+) (*orchpb.GetWalletSeedResponse, error) {
 	return m.wallets.GetWalletSeed(ctx, req)
 }
 
 func (fixtureWalletManager) GetNodeMode(
-	context.Context, *connect.Request[orchpb.GetNodeModeRequest],
-) (*connect.Response[orchpb.GetNodeModeResponse], error) {
-	return connect.NewResponse(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}), nil
+	context.Context, *orchpb.GetNodeModeRequest,
+) (*orchpb.GetNodeModeResponse, error) {
+	return &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}, nil
 }
 
 func (coreWalletManager) CreateBitcoinCoreWallet(
-	_ context.Context, req *connect.Request[orchpb.CreateBitcoinCoreWalletRequest],
-) (*connect.Response[orchpb.CreateBitcoinCoreWalletResponse], error) {
-	return connect.NewResponse(&orchpb.CreateBitcoinCoreWalletResponse{
-		CoreWalletName: "wallet_" + req.Msg.WalletId[:8],
-	}), nil
+	_ context.Context, req *orchpb.CreateBitcoinCoreWalletRequest,
+) (*orchpb.CreateBitcoinCoreWalletResponse, error) {
+	return &orchpb.CreateBitcoinCoreWalletResponse{
+		CoreWalletName: "wallet_" + req.WalletId[:8],
+	}, nil
 }
 
 // ExpectCoreWalletSetup allows the calls the wallet engine makes in the
@@ -530,28 +544,28 @@ func (coreWalletManager) CreateBitcoinCoreWallet(
 func ExpectCoreWalletSetup(mock *mocks.MockBitcoinServiceClient) {
 	mock.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ListWalletsResponse]{
+		Return(&connectv1.Response[corepb.ListWalletsResponse]{
 			Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 		}, nil).
 		AnyTimes()
 
 	mock.EXPECT().
 		CreateWallet(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.CreateWalletResponse]{
+		Return(&connectv1.Response[corepb.CreateWalletResponse]{
 			Msg: &corepb.CreateWalletResponse{},
 		}, nil).
 		AnyTimes()
 
 	mock.EXPECT().
 		ImportDescriptors(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ImportDescriptorsResponse]{
+		Return(&connectv1.Response[corepb.ImportDescriptorsResponse]{
 			Msg: &corepb.ImportDescriptorsResponse{},
 		}, nil).
 		AnyTimes()
 
 	mock.EXPECT().
 		ListTransactions(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ListTransactionsResponse]{
+		Return(&connectv1.Response[corepb.ListTransactionsResponse]{
 			Msg: &corepb.ListTransactionsResponse{},
 		}, nil).
 		AnyTimes()
@@ -562,7 +576,7 @@ func ExpectCoreWalletSetup(mock *mocks.MockBitcoinServiceClient) {
 	// catch-all swallows the counted expectations a test sets for its own
 	// heights.
 	mock.EXPECT().
-		GetBlockHash(gomock.Any(), gomock.Cond(func(req *connect.Request[corepb.GetBlockHashRequest]) bool {
+		GetBlockHash(gomock.Any(), gomock.Cond(func(req *connectv1.Request[corepb.GetBlockHashRequest]) bool {
 			return req.Msg.GetHeight() == 1
 		})).
 		Return(nil, errors.New("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
@@ -580,7 +594,7 @@ func ExpectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 	// Every send hands over the coins the user froze first.
 	mock.EXPECT().
 		SetFrozenCoins(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil).
+		Return(&emptypb.Empty{}, nil).
 		AnyTimes()
 }
 
@@ -590,44 +604,34 @@ func expectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 
 	mock.EXPECT().
 		GetWalletSeed(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetWalletSeedResponse]{
-			Msg: &orchpb.GetWalletSeedResponse{SeedHex: seedHex},
-		}, nil).
+		Return(&orchpb.GetWalletSeedResponse{SeedHex: seedHex}, nil).
 		AnyTimes()
 
 	mock.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.ListWalletsResponse]{
-			Msg: &orchpb.ListWalletsResponse{
-				Wallets: []*orchpb.WalletMetadata{{
-					Id:         fixtureWalletID,
-					Name:       "Test Wallet",
-					WalletType: orchpb.WalletType_WALLET_TYPE_ELECTRUM,
-				}},
-				ActiveWalletId: fixtureWalletID,
-			},
+		Return(&orchpb.ListWalletsResponse{
+			Wallets: []*orchpb.WalletMetadata{{
+				Id:         fixtureWalletID,
+				Name:       "Test Wallet",
+				WalletType: orchpb.WalletType_WALLET_TYPE_ELECTRUM,
+			}},
+			ActiveWalletId: fixtureWalletID,
 		}, nil).
 		AnyTimes()
 
 	mock.EXPECT().
 		GetAddressUnspent(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetAddressUnspentResponse]{
-			Msg: &orchpb.GetAddressUnspentResponse{},
-		}, nil).
+		Return(&orchpb.GetAddressUnspentResponse{}, nil).
 		AnyTimes()
 
 	mock.EXPECT().
 		GetWalletStatus(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetWalletStatusResponse]{
-			Msg: &orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED},
-		}, nil).
+		Return(&orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED}, nil).
 		AnyTimes()
 
 	mock.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
-		}, nil).
+		Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}, nil).
 		AnyTimes()
 }
 

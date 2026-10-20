@@ -8,13 +8,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
-	"github.com/samber/lo"
 	"strconv"
 	"strings"
 	"sync"
 
-	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+	"github.com/samber/lo"
+
+	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -25,33 +26,33 @@ import (
 // CreateDeposit builds a BIP300 M5: it spends the sidechain's current treasury
 // output and pays a larger one back, naming the depositor in an OP_RETURN.
 func (h *WalletHandler) CreateDeposit(
-	ctx context.Context, req *connect.Request[wpb.CreateDepositRequest],
-) (*connect.Response[wpb.CreateDepositResponse], error) {
-	if req.Msg.AmountSats <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("amount_sats must be positive"))
+	ctx context.Context, req *wpb.CreateDepositRequest,
+) (*wpb.CreateDepositResponse, error) {
+	if req.AmountSats <= 0 {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "amount_sats must be positive")
 	}
-	if req.Msg.FeeSats <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("fee_sats must be positive"))
+	if req.FeeSats <= 0 {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "fee_sats must be positive")
 	}
-	if req.Msg.Destination == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("destination must be set"))
+	if req.Destination == "" {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "destination must be set")
 	}
-	if req.Msg.Slot < 0 || req.Msg.Slot > 255 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("slot must be 0-255"))
+	if req.Slot < 0 || req.Slot > 255 {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "slot must be 0-255")
 	}
-	slot := uint8(req.Msg.Slot)
+	slot := uint8(req.Slot)
 
-	destination, err := depositDestination(slot, req.Msg.Destination)
+	destination, err := depositDestination(slot, req.Destination)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// Held past the broadcast and the record below: two overlapping calls would
@@ -65,10 +66,10 @@ func (h *WalletHandler) CreateDeposit(
 	}
 	walletHeight, err := h.engine.ChainForWallet(walletID).TipHeight(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the mainchain tip: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the mainchain tip: %w", err).Error())
 	}
 	if err := depositTreasuryReady(treasury, walletHeight, slot); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 	treasuryHex := hex.EncodeToString(orchestrator.M8TreasuryScript(slot))
 	var externalInputs []*wpb.ExternalInput
@@ -77,17 +78,17 @@ func (h *WalletHandler) CreateDeposit(
 	start, startErr := h.depositStart(ctx, treasury, walletID, slot)
 	switch {
 	case errors.Is(startErr, errTreasuryAmbiguous):
-		return nil, connect.NewError(connect.CodeResourceExhausted, startErr)
+		return nil, connect.NewError(connect.CodeResourceExhausted, startErr.Error()).WithCause(startErr)
 	case startErr != nil:
-		return nil, connect.NewError(connect.CodeUnavailable, startErr)
+		return nil, connect.NewError(connect.CodeUnavailable, startErr.Error()).WithCause(startErr)
 	}
 	if start != nil {
 		tip, tipErr := treasuryTip(ctx, h.engine.ChainForWallet(walletID), slot, *start, h.recordedTipOf(slot))
 		switch {
 		case errors.Is(tipErr, errTreasuryChainFull), errors.Is(tipErr, errTreasurySpentElsewhere):
-			return nil, connect.NewError(connect.CodeResourceExhausted, tipErr)
+			return nil, connect.NewError(connect.CodeResourceExhausted, tipErr.Error()).WithCause(tipErr)
 		case tipErr != nil:
-			return nil, connect.NewError(connect.CodeUnavailable, tipErr)
+			return nil, connect.NewError(connect.CodeUnavailable, tipErr.Error()).WithCause(tipErr)
 		}
 		if tip.ancestors > 0 {
 			h.svc.Log().Info().Uint8("slot", slot).Int("ancestors", tip.ancestors).
@@ -102,50 +103,50 @@ func (h *WalletHandler) CreateDeposit(
 		}}
 	}
 
-	treasurySats := oldTreasurySats + req.Msg.AmountSats
+	treasurySats := oldTreasurySats + req.AmountSats
 
 	h.svc.Log().Info().Uint8("slot", slot).Str("destination", destination).
-		Int64("amount_sats", req.Msg.AmountSats).Int64("fee_sats", req.Msg.FeeSats).
+		Int64("amount_sats", req.AmountSats).Int64("fee_sats", req.FeeSats).
 		Int64("old_treasury_sats", oldTreasurySats).Int64("new_treasury_sats", treasurySats).
 		Int("external_inputs", len(externalInputs)).Msg("building the deposit")
 
-	send, err := h.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
-		WalletId:       req.Msg.WalletId,
+	send, err := h.SendTransaction(ctx, &wpb.SendTransactionRequest{
+		WalletId:       req.WalletId,
 		RawOutputs:     []*wpb.RawOutput{{ValueSats: treasurySats, ScriptHex: treasuryHex}},
 		OpReturnHex:    hex.EncodeToString([]byte(destination)),
 		ExternalInputs: externalInputs,
-		FixedFeeSats:   req.Msg.FeeSats,
-	}))
+		FixedFeeSats:   req.FeeSats,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	h.svc.Log().Info().Str("txid", send.Msg.Txid).Uint8("slot", slot).
-		Int64("amount_sats", req.Msg.AmountSats).Msg("broadcast the deposit")
+	h.svc.Log().Info().Str("txid", send.Txid).Uint8("slot", slot).
+		Int64("amount_sats", req.AmountSats).Msg("broadcast the deposit")
 
 	// An M5 is an ordinary transaction on the wire, so nothing later can tell
 	// it apart from a normal send. Record it while we still know.
 	if err := h.recordDeposit(ctx, wallet.SidechainDeposit{
-		Txid:        send.Msg.Txid,
+		Txid:        send.Txid,
 		WalletID:    walletID,
 		Slot:        uint32(slot),
 		Destination: destination,
-		AmountSats:  req.Msg.AmountSats,
-		FeeSats:     req.Msg.FeeSats,
+		AmountSats:  req.AmountSats,
+		FeeSats:     req.FeeSats,
 	}); err != nil {
 		// The broadcast already happened, so failing the call would report a
 		// deposit that did not land. This row is the only record of it, and
 		// the next deposit to the slot builds on it, so the slot is now in an
 		// unknown state until a block settles it.
 		h.depositSlotBlind.Store(h.blindKey(slot), treasury.ctip.GetTxid().GetHex().GetValue())
-		h.svc.Log().Error().Err(err).Str("txid", send.Msg.Txid).Uint8("slot", slot).
+		h.svc.Log().Error().Err(err).Str("txid", send.Txid).Uint8("slot", slot).
 			Msg("could not record the deposit, holding the slot until a block lands")
 	}
 
-	return connect.NewResponse(&wpb.CreateDepositResponse{
-		Txid:         send.Msg.Txid,
+	return &wpb.CreateDepositResponse{
+		Txid:         send.Txid,
 		TreasurySats: treasurySats,
-	}), nil
+	}, nil
 }
 
 // depositDestination unwraps the s<slot>_<address>_<checksum> deposit form to
@@ -215,31 +216,31 @@ func (h *WalletHandler) lockDepositSlot(slot uint8) func() {
 // whether the slot holds an active sidechain.
 func (h *WalletHandler) enforcerTreasury(ctx context.Context, slot uint32) (sidechainTreasury, error) {
 	if h.orch == nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not wired"))
+		return sidechainTreasury{}, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not wired")
 	}
 
 	validator, err := h.orch.EnforcerValidator()
 	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		return sidechainTreasury{}, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 	_, height, err := h.orch.ChainTip(ctx)
 	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the enforcer tip: %w", err))
+		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the enforcer tip: %w", err).Error())
 	}
-	ctip, err := validator.GetCtip(ctx, connect.NewRequest(&enforcerpb.GetCtipRequest{
+	ctip, err := validator.GetCtip(ctx, &enforcerpb.GetCtipRequest{
 		SidechainNumber: wrapperspb.UInt32(slot),
-	}))
+	})
 	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get ctip: %w", err))
+		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get ctip: %w", err).Error())
 	}
-	sidechains, err := validator.GetSidechains(ctx, connect.NewRequest(&enforcerpb.GetSidechainsRequest{}))
+	sidechains, err := validator.GetSidechains(ctx, &enforcerpb.GetSidechainsRequest{})
 	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get sidechains: %w", err))
+		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get sidechains: %w", err).Error())
 	}
 	return sidechainTreasury{
 		enforcerHeight: int(height),
-		ctip:           ctip.Msg.GetCtip(),
-		slotActive: lo.ContainsBy(sidechains.Msg.GetSidechains(), func(s *enforcerpb.GetSidechainsResponse_SidechainInfo) bool {
+		ctip:           ctip.GetCtip(),
+		slotActive: lo.ContainsBy(sidechains.GetSidechains(), func(s *enforcerpb.GetSidechainsResponse_SidechainInfo) bool {
 			return s.GetSidechainNumber().GetValue() == slot
 		}),
 	}, nil
@@ -249,13 +250,13 @@ func (h *WalletHandler) enforcerTreasury(ctx context.Context, slot uint32) (side
 // enforcer used to keep a global list in its own wallet; it runs none, so only
 // our own deposits are knowable.
 func (h *WalletHandler) ListSidechainDeposits(
-	ctx context.Context, req *connect.Request[wpb.ListSidechainDepositsRequest],
-) (*connect.Response[wpb.ListSidechainDepositsResponse], error) {
-	deposits, err := h.svc.SidechainDeposits(ctx, req.Msg.Slot, req.Msg.WalletId)
+	ctx context.Context, req *wpb.ListSidechainDepositsRequest,
+) (*wpb.ListSidechainDepositsResponse, error) {
+	deposits, err := h.svc.SidechainDeposits(ctx, req.Slot, req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&wpb.ListSidechainDepositsResponse{
+	return &wpb.ListSidechainDepositsResponse{
 		Deposits: lo.Map(deposits, func(d wallet.SidechainDeposit, _ int) *wpb.SidechainDeposit {
 			return &wpb.SidechainDeposit{
 				Txid:          d.Txid,
@@ -269,7 +270,7 @@ func (h *WalletHandler) ListSidechainDeposits(
 				DroppedAt:     isoOrEmpty(d.DroppedAt),
 			}
 		}),
-	}), nil
+	}, nil
 }
 
 func isoOrEmpty(t time.Time) string {
@@ -301,14 +302,14 @@ func (h *WalletHandler) depositConfirmations(ctx context.Context, d wallet.Sidec
 // GetSidechainDepositTotals sums what this install deposited. The wallet
 // overview shows it, and only our own record knows it.
 func (h *WalletHandler) GetSidechainDepositTotals(
-	ctx context.Context, req *connect.Request[wpb.GetSidechainDepositTotalsRequest],
-) (*connect.Response[wpb.GetSidechainDepositTotalsResponse], error) {
-	total, recent, err := h.svc.SidechainDepositTotals(ctx, time.Unix(req.Msg.SinceUnix, 0), req.Msg.WalletId)
+	ctx context.Context, req *wpb.GetSidechainDepositTotalsRequest,
+) (*wpb.GetSidechainDepositTotalsResponse, error) {
+	total, recent, err := h.svc.SidechainDepositTotals(ctx, time.Unix(req.SinceUnix, 0), req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&wpb.GetSidechainDepositTotalsResponse{
+	return &wpb.GetSidechainDepositTotalsResponse{
 		TotalSats:  total,
 		RecentSats: recent,
-	}), nil
+	}, nil
 }

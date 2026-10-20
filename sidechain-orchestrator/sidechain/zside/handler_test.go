@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -57,7 +56,7 @@ func TestHandlerCallsTheZSideWalletMethods(t *testing.T) {
 		{
 			name: "withdraw",
 			call: func(h *Handler) error {
-				_, err := h.Withdraw(ctx, connect.NewRequest(&pb.WithdrawRequest{Address: "bc1q", AmountSats: 5000, SideFeeSats: 10, MainFeeSats: 20}))
+				_, err := h.Withdraw(ctx, &pb.WithdrawRequest{Address: "bc1q", AmountSats: 5000, SideFeeSats: 10, MainFeeSats: 20})
 				return err
 			},
 			want: recordedCall{Method: "create_withdrawal", Params: []any{"bc1q", 5000.0, 10.0, 20.0}},
@@ -65,7 +64,7 @@ func TestHandlerCallsTheZSideWalletMethods(t *testing.T) {
 		{
 			name: "transfer",
 			call: func(h *Handler) error {
-				_, err := h.Transfer(ctx, connect.NewRequest(&pb.TransferRequest{Address: "t-addr", AmountSats: 700, FeeSats: 3}))
+				_, err := h.Transfer(ctx, &pb.TransferRequest{Address: "t-addr", AmountSats: 700, FeeSats: 3})
 				return err
 			},
 			want: recordedCall{Method: "create_transparent_transfer", Params: []any{"t-addr", 700.0, 3.0}},
@@ -73,7 +72,7 @@ func TestHandlerCallsTheZSideWalletMethods(t *testing.T) {
 		{
 			name: "transparent transfer",
 			call: func(h *Handler) error {
-				_, err := h.TransparentTransfer(ctx, connect.NewRequest(&pb.TransparentTransferRequest{Address: "t-addr", AmountSats: 700, FeeSats: 3}))
+				_, err := h.TransparentTransfer(ctx, &pb.TransparentTransferRequest{Address: "t-addr", AmountSats: 700, FeeSats: 3})
 				return err
 			},
 			want: recordedCall{Method: "create_transparent_transfer", Params: []any{"t-addr", 700.0, 3.0}},
@@ -81,7 +80,7 @@ func TestHandlerCallsTheZSideWalletMethods(t *testing.T) {
 		{
 			name: "shielded transfer",
 			call: func(h *Handler) error {
-				_, err := h.ShieldedTransfer(ctx, connect.NewRequest(&pb.ShieldedTransferRequest{Address: "z-addr", AmountSats: 800, FeeSats: 4}))
+				_, err := h.ShieldedTransfer(ctx, &pb.ShieldedTransferRequest{Address: "z-addr", AmountSats: 800, FeeSats: 4})
 				return err
 			},
 			want: recordedCall{Method: "create_shielded_transfer", Params: []any{"z-addr", 800.0, 4.0}},
@@ -89,7 +88,7 @@ func TestHandlerCallsTheZSideWalletMethods(t *testing.T) {
 		{
 			name: "shield",
 			call: func(h *Handler) error {
-				_, err := h.Shield(ctx, connect.NewRequest(&pb.ShieldRequest{AmountSats: 900, FeeSats: 5}))
+				_, err := h.Shield(ctx, &pb.ShieldRequest{AmountSats: 900, FeeSats: 5})
 				return err
 			},
 			want: recordedCall{Method: "create_shield", Params: []any{900.0, 5.0}},
@@ -97,7 +96,7 @@ func TestHandlerCallsTheZSideWalletMethods(t *testing.T) {
 		{
 			name: "unshield",
 			call: func(h *Handler) error {
-				_, err := h.Unshield(ctx, connect.NewRequest(&pb.UnshieldRequest{AmountSats: 900, FeeSats: 5}))
+				_, err := h.Unshield(ctx, &pb.UnshieldRequest{AmountSats: 900, FeeSats: 5})
 				return err
 			},
 			want: recordedCall{Method: "create_unshield", Params: []any{900.0, 5.0}},
@@ -114,9 +113,9 @@ func TestHandlerCallsTheZSideWalletMethods(t *testing.T) {
 // get_bmm_inclusions answers a list of mainchain block hashes.
 func TestHandlerReturnsTheBmmInclusions(t *testing.T) {
 	handler, calls := recordingHandler(t, []string{"aa", "bb"})
-	resp, err := handler.GetBmmInclusions(context.Background(), connect.NewRequest(&pb.GetBmmInclusionsRequest{BlockHash: "cc"}))
+	resp, err := handler.GetBmmInclusions(context.Background(), &pb.GetBmmInclusionsRequest{BlockHash: "cc"})
 	require.NoError(t, err)
-	assert.JSONEq(t, `["aa","bb"]`, resp.Msg.Inclusions)
+	assert.JSONEq(t, `["aa","bb"]`, resp.Inclusions)
 	assert.Equal(t, []recordedCall{{Method: "get_bmm_inclusions", Params: []any{"cc"}}}, *calls)
 }
 
@@ -139,11 +138,11 @@ func TestHandlerListsCoinsAsTheMempoolLeavesThem(t *testing.T) {
 		}},
 	})
 
-	resp, err := NewHandler(node.JSONRPCProxy).GetWalletUtxos(context.Background(), connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+	resp, err := NewHandler(node.JSONRPCProxy).GetWalletUtxos(context.Background(), &pb.GetWalletUtxosRequest{})
 	require.NoError(t, err)
 
 	var got []map[string]any
-	require.NoError(t, json.Unmarshal([]byte(resp.Msg.UtxosJson), &got))
+	require.NoError(t, json.Unmarshal([]byte(resp.UtxosJson), &got))
 	require.Len(t, got, 2)
 	assert.Equal(t, "t-one", got[0]["output"].(map[string]any)["address"])
 	assert.Nil(t, got[0]["confirmed"])

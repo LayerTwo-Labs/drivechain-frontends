@@ -14,7 +14,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -23,6 +23,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1/bmmv1connect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -59,22 +60,22 @@ type bidWallet interface {
 	// its coin by hand and pins it, so the coin has to leave the list here.
 	HeldCoins() map[string]bool
 	ListUnspent(
-		context.Context, *connect.Request[wpb.ListUnspentRequest],
-	) (*connect.Response[wpb.ListUnspentResponse], error)
+		context.Context, *wpb.ListUnspentRequest,
+	) (*wpb.ListUnspentResponse, error)
 	GetNewAddress(
-		context.Context, *connect.Request[wpb.GetNewAddressRequest],
-	) (*connect.Response[wpb.GetNewAddressResponse], error)
+		context.Context, *wpb.GetNewAddressRequest,
+	) (*wpb.GetNewAddressResponse, error)
 	SendTransaction(
-		context.Context, *connect.Request[wpb.SendTransactionRequest],
-	) (*connect.Response[wpb.SendTransactionResponse], error)
+		context.Context, *wpb.SendTransactionRequest,
+	) (*wpb.SendTransactionResponse, error)
 	// GetTransactionDetails and ListTransactions read our own bids. An install
 	// with no Bitcoin Core reads them here.
 	GetTransactionDetails(
-		context.Context, *connect.Request[wpb.GetTransactionDetailsRequest],
-	) (*connect.Response[wpb.GetTransactionDetailsResponse], error)
+		context.Context, *wpb.GetTransactionDetailsRequest,
+	) (*wpb.GetTransactionDetailsResponse, error)
 	ListTransactions(
-		context.Context, *connect.Request[wpb.ListTransactionsRequest],
-	) (*connect.Response[wpb.ListTransactionsResponse], error)
+		context.Context, *wpb.ListTransactionsRequest,
+	) (*wpb.ListTransactionsResponse, error)
 	// TxStatus reads the chain status of one transaction from the chain source.
 	TxStatus(ctx context.Context, txid string) (wallet.EsploraStatus, error)
 }
@@ -153,7 +154,7 @@ func (h *BMMHandler) requireEnforcerSynced(ctx context.Context) error {
 	}
 	status, err := read(ctx)
 	if err != nil {
-		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read sync status: %w", err))
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read sync status: %w", err).Error())
 	}
 	return enforcerBiddingBlocked(status, h.runsLocalCore())
 }
@@ -163,22 +164,22 @@ func (h *BMMHandler) requireEnforcerSynced(ctx context.Context) error {
 // Bitcoin Core, which reports a mainchain error at all times.
 func enforcerBiddingBlocked(status *orchestrator.SyncStatus, readsCore bool) error {
 	if status == nil || status.Enforcer == nil || (readsCore && status.Mainchain == nil) {
-		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("sync status unavailable"))
+		return connect.Errorf(connect.CodeUnavailable, "sync status unavailable")
 	}
 	if readsCore && status.Mainchain.Error != "" {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"bitcoin core is not available: %s", status.Mainchain.Error))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"bitcoin core is not available: %s", status.Mainchain.Error)
 	}
 	if msg := status.Enforcer.Error; msg != "" {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("enforcer is not available: %s", msg))
+		return connect.Errorf(connect.CodeFailedPrecondition, "enforcer is not available: %s", msg)
 	}
 	if !readsCore {
 		return enforcerLevelWithChainSource(status)
 	}
 	if status.Enforcer.Headers <= 0 || status.Enforcer.Blocks != status.Enforcer.Headers {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+		return connect.Errorf(connect.CodeFailedPrecondition,
 			"enforcer is still syncing: %d of %d blocks", status.Enforcer.Blocks, status.Enforcer.Headers,
-		))
+		)
 	}
 	return nil
 }
@@ -190,77 +191,77 @@ func enforcerBiddingBlocked(status *orchestrator.SyncStatus, readsCore bool) err
 func enforcerLevelWithChainSource(status *orchestrator.SyncStatus) error {
 	source := status.ChainSource
 	if source == nil || source.Error != "" || source.Blocks <= 0 {
-		return connect.NewError(connect.CodeUnavailable, fmt.Errorf(
-			"the wallet chain source reports no tip to measure the enforcer against"))
+		return connect.Errorf(connect.CodeUnavailable,
+			"the wallet chain source reports no tip to measure the enforcer against")
 	}
 	if status.Enforcer.Blocks < source.Blocks {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+		return connect.Errorf(connect.CodeFailedPrecondition,
 			"enforcer is still syncing: %d of %d blocks", status.Enforcer.Blocks, source.Blocks,
-		))
+		)
 	}
 	return nil
 }
 
 func (h *BMMHandler) Start(
-	ctx context.Context, req *connect.Request[bmmpb.StartRequest],
-) (*connect.Response[bmmpb.StartResponse], error) {
+	ctx context.Context, req *bmmpb.StartRequest,
+) (*bmmpb.StartResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bmm engine not wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bmm engine not wired")
 	}
-	if _, err := h.sidechainConfig(req.Msg.Sidechain); err != nil {
+	if _, err := h.sidechainConfig(req.Sidechain); err != nil {
 		return nil, err
 	}
-	if req.Msg.MaxBidSats <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("max_bid_sats must be positive"))
+	if req.MaxBidSats <= 0 {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "max_bid_sats must be positive")
 	}
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
 	}
 	// Past validation, an engine failure is a storage one, not a client one.
-	if err := h.engine.Start(ctx, req.Msg.Sidechain, req.Msg.WalletId,
-		req.Msg.MaxBidSats, req.Msg.CapToBlockWorth); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := h.engine.Start(ctx, req.Sidechain, req.WalletId,
+		req.MaxBidSats, req.CapToBlockWorth); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&bmmpb.StartResponse{}), nil
+	return &bmmpb.StartResponse{}, nil
 }
 
 func (h *BMMHandler) Stop(
-	ctx context.Context, req *connect.Request[bmmpb.StopRequest],
-) (*connect.Response[bmmpb.StopResponse], error) {
+	ctx context.Context, req *bmmpb.StopRequest,
+) (*bmmpb.StopResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bmm engine not wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bmm engine not wired")
 	}
-	if err := h.engine.Stop(req.Msg.Sidechain); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := h.engine.Stop(req.Sidechain); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&bmmpb.StopResponse{}), nil
+	return &bmmpb.StopResponse{}, nil
 }
 
 func (h *BMMHandler) ClearHistory(
-	ctx context.Context, req *connect.Request[bmmpb.ClearHistoryRequest],
-) (*connect.Response[bmmpb.ClearHistoryResponse], error) {
+	ctx context.Context, req *bmmpb.ClearHistoryRequest,
+) (*bmmpb.ClearHistoryResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bmm engine not wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bmm engine not wired")
 	}
-	if err := h.engine.ClearHistory(req.Msg.Sidechain); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := h.engine.ClearHistory(req.Sidechain); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&bmmpb.ClearHistoryResponse{}), nil
+	return &bmmpb.ClearHistoryResponse{}, nil
 }
 
 // Watch streams the full bidding state on every change, so a reconnect needs
 // no delta merge.
 func (h *BMMHandler) Watch(
-	ctx context.Context, req *connect.Request[bmmpb.WatchRequest], stream *connect.ServerStream[bmmpb.WatchResponse],
+	ctx context.Context, req *bmmpb.WatchRequest, stream bmmv1connect.BMMServiceWatchServerStream,
 ) error {
 	if h.engine == nil {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bmm engine not wired"))
+		return connect.Errorf(connect.CodeFailedPrecondition, "bmm engine not wired")
 	}
 
 	changed := h.engine.Subscribe(ctx)
 
 	send := func() error {
-		state, err := h.state(ctx, req.Msg.Sidechain)
+		state, err := h.state(ctx, req.Sidechain)
 		if err != nil {
 			return err
 		}
@@ -295,7 +296,7 @@ func (h *BMMHandler) state(ctx context.Context, sidechain pb.BinaryType) (*bmmpb
 
 	history, err := h.engine.History(sidechain)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	out := &bmmpb.WatchResponse{
@@ -312,19 +313,19 @@ func (h *BMMHandler) state(ctx context.Context, sidechain pb.BinaryType) (*bmmpb
 }
 
 func (h *BMMHandler) GetRoundBids(
-	ctx context.Context, req *connect.Request[bmmpb.GetRoundBidsRequest],
-) (*connect.Response[bmmpb.GetRoundBidsResponse], error) {
+	ctx context.Context, req *bmmpb.GetRoundBidsRequest,
+) (*bmmpb.GetRoundBidsResponse, error) {
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bmm engine not wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bmm engine not wired")
 	}
-	round, err := h.engine.Round(req.Msg.Sidechain, req.Msg.PrevMainHash)
+	round, err := h.engine.Round(req.Sidechain, req.PrevMainHash)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if round == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("round %s not found", req.Msg.PrevMainHash))
+		return nil, connect.Errorf(connect.CodeNotFound, "round %s not found", req.PrevMainHash)
 	}
-	return connect.NewResponse(&bmmpb.GetRoundBidsResponse{Round: roundToProto(*round)}), nil
+	return &bmmpb.GetRoundBidsResponse{Round: roundToProto(*round)}, nil
 }
 
 func roundToProto(r bmmstate.Round) *bmmpb.Round {
@@ -421,15 +422,15 @@ func (h *BMMHandler) TemplateWorth(ctx context.Context, sidechainType pb.BinaryT
 // CreateBid assembles a sidechain block and broadcasts an M8 bid for it. The
 // bid is the transaction's fee, which is the only thing a miner can collect.
 func (h *BMMHandler) CreateBid(
-	ctx context.Context, req *connect.Request[bmmpb.CreateBidRequest],
-) (*connect.Response[bmmpb.CreateBidResponse], error) {
-	if err := checkBidInput(req.Msg.BidSats, req.Msg.FeeRateSatVb); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	ctx context.Context, req *bmmpb.CreateBidRequest,
+) (*bmmpb.CreateBidResponse, error) {
+	if err := checkBidInput(req.BidSats, req.FeeRateSatVb); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
 	}
-	cfg, proxy, err := h.sidechainTarget(req.Msg.Sidechain)
+	cfg, proxy, err := h.sidechainTarget(req.Sidechain)
 	if err != nil {
 		return nil, err
 	}
@@ -437,30 +438,30 @@ func (h *BMMHandler) CreateBid(
 	template, err := proxy.GetBlockTemplate(ctx)
 	if errors.Is(err, sidechain.ErrNotReady) {
 		// FailedPrecondition makes the engine ask again on this tip.
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get block template: %w", err))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get block template: %w", err).Error())
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get block template: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get block template: %w", err).Error())
 	}
 	prevMainHash, err := templatePrevMainHash(template.Block)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode block header: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode block header: %w", err).Error())
 	}
 
 	// A bid only reaches the next block, so building on a tip the caller has
 	// already moved past would spend the fee on a round that cannot be won.
-	if want := req.Msg.ExpectPrevMainHash; want != "" && want != prevMainHash {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+	if want := req.ExpectPrevMainHash; want != "" && want != prevMainHash {
+		return nil, connect.Errorf(connect.CodeFailedPrecondition,
 			"sidechain builds on %s, not the current tip %s", prevMainHash, want,
-		))
+		)
 	}
 
 	sizing := bidInput{
-		bidSats:         req.Msg.BidSats,
-		rateSatVb:       req.Msg.FeeRateSatVb,
+		bidSats:         req.BidSats,
+		rateSatVb:       req.FeeRateSatVb,
 		blockWorthSats:  template.FeesSats,
-		maxBidSats:      req.Msg.MaxBidSats,
-		capToBlockWorth: req.Msg.CapToBlockWorth,
+		maxBidSats:      req.MaxBidSats,
+		capToBlockWorth: req.CapToBlockWorth,
 	}
 	bidSats, byRate := bidSizing(sizing)
 
@@ -468,14 +469,14 @@ func (h *BMMHandler) CreateBid(
 		uint8(cfg.Slot), template.CriticalHash, prevMainHash,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build bmm request: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build bmm request: %w", err).Error())
 	}
 
 	// Spending the earlier bid's inputs again replaces it, rather than
 	// bidding against it: only one M8 per slot can be accepted.
 	var requiredInputs []*wpb.UnspentOutput
-	if req.Msg.ReplaceTxid != "" {
-		replacement, err := h.bids().Replacement(ctx, req.Msg.WalletId, req.Msg.ReplaceTxid)
+	if req.ReplaceTxid != "" {
+		replacement, err := h.bids().Replacement(ctx, req.WalletId, req.ReplaceTxid)
 		if err != nil {
 			return nil, err
 		}
@@ -483,15 +484,15 @@ func (h *BMMHandler) CreateBid(
 		ceiling := bidCeiling(sizing)
 		raised, ok := replacementBid(bidSats, replacement.FloorSats, ceiling)
 		if !ok {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+			return nil, connect.Errorf(connect.CodeFailedPrecondition,
 				"replacing %s costs %d sats, over the %d sat ceiling",
-				req.Msg.ReplaceTxid, replacement.FloorSats, ceiling))
+				req.ReplaceTxid, replacement.FloorSats, ceiling)
 		}
 		if raised != bidSats {
 			bidSats, byRate = raised, false
 		}
 	} else {
-		coin, err := h.slotCoin(ctx, req.Msg, cfg.Slot, pinSats(bidSats, byRate, req.Msg.FeeRateSatVb))
+		coin, err := h.slotCoin(ctx, req, cfg.Slot, pinSats(bidSats, byRate, req.FeeRateSatVb))
 		if err != nil {
 			return nil, err
 		}
@@ -505,7 +506,7 @@ func (h *BMMHandler) CreateBid(
 	// inputs, or signs a multisig descriptor, builds a larger transaction than
 	// any fixed amount assumes, and would then pay under the rate it asked for.
 	sendReq := &wpb.SendTransactionRequest{
-		WalletId: req.Msg.WalletId,
+		WalletId: req.WalletId,
 		RawOutputs: []*wpb.RawOutput{{
 			ValueSats: 0,
 			ScriptHex: hex.EncodeToString(script),
@@ -514,12 +515,12 @@ func (h *BMMHandler) CreateBid(
 		Replaceable:    true,
 	}
 	if byRate {
-		sendReq.FeeRateSatPerVbyte = int64(math.Ceil(req.Msg.FeeRateSatVb))
+		sendReq.FeeRateSatPerVbyte = int64(math.Ceil(req.FeeRateSatVb))
 	} else {
 		sendReq.FixedFeeSats = bidSats
 	}
 
-	send, err := h.wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	send, err := h.wallet.SendTransaction(ctx, sendReq)
 	if err != nil {
 		return nil, err
 	}
@@ -530,79 +531,79 @@ func (h *BMMHandler) CreateBid(
 	// The fee is spent by now, so a lookup that misses — an electrum broadcast
 	// the local node has not seen, or a block that already took it — reports
 	// the asking price rather than losing the bid.
-	paid, ok, err := h.bids().PaidSats(ctx, req.Msg.WalletId, send.Msg.Txid)
+	paid, ok, err := h.bids().PaidSats(ctx, req.WalletId, send.Txid)
 	switch {
 	case err != nil:
-		bidSats = askingBidSats(bidSats, byRate, req.Msg.FeeRateSatVb)
-		zerolog.Ctx(ctx).Warn().Err(err).Str("txid", send.Msg.Txid).
+		bidSats = askingBidSats(bidSats, byRate, req.FeeRateSatVb)
+		zerolog.Ctx(ctx).Warn().Err(err).Str("txid", send.Txid).
 			Msg("could not read what the bid paid, reporting what it asked for")
 	case ok:
 		bidSats = paid
 	default:
-		bidSats = askingBidSats(bidSats, byRate, req.Msg.FeeRateSatVb)
+		bidSats = askingBidSats(bidSats, byRate, req.FeeRateSatVb)
 	}
 
-	return connect.NewResponse(&bmmpb.CreateBidResponse{
+	return &bmmpb.CreateBidResponse{
 		CriticalHash: template.CriticalHash,
-		BmmTxid:      send.Msg.Txid,
+		BmmTxid:      send.Txid,
 		FeesSats:     template.FeesSats,
 		BlockJson:    string(template.Block),
 		PrevMainHash: prevMainHash,
 		BidSats:      bidSats,
-	}), nil
+	}, nil
 }
 
 func (h *BMMHandler) ConnectBid(
-	ctx context.Context, req *connect.Request[bmmpb.ConnectBidRequest],
-) (*connect.Response[bmmpb.ConnectBidResponse], error) {
-	_, proxy, err := h.sidechainTarget(req.Msg.Sidechain)
+	ctx context.Context, req *bmmpb.ConnectBidRequest,
+) (*bmmpb.ConnectBidResponse, error) {
+	_, proxy, err := h.sidechainTarget(req.Sidechain)
 	if err != nil {
 		return nil, err
 	}
 
 	// A sidechain reports an inclusion only for a block it already holds, and it
 	// gets ours from this very call.
-	mainBlockHash := req.Msg.MainBlockHash
+	mainBlockHash := req.MainBlockHash
 	if mainBlockHash == "" {
-		inclusions, err := bmmInclusions(ctx, proxy, req.Msg.CriticalHash)
+		inclusions, err := bmmInclusions(ctx, proxy, req.CriticalHash)
 		if err != nil {
 			return nil, err
 		}
 		mainBlockHash = connectTarget("", inclusions)
 		if mainBlockHash == "" {
-			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+			return &bmmpb.ConnectBidResponse{}, nil
 		}
 	}
 
-	connected, err := proxy.ConnectBlock(ctx, json.RawMessage(req.Msg.BlockJson), mainBlockHash)
+	connected, err := proxy.ConnectBlock(ctx, json.RawMessage(req.BlockJson), mainBlockHash)
 	if err != nil {
 		if code, ok := jsonrpc.ErrorCode(err); ok && code == jsonrpcInvalidParams {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("connect block: %w", err))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("connect block: %w", err).Error())
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("connect block: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("connect block: %w", err).Error())
 	}
 	var held bool
 	if !connected {
 		// A sidechain learns of an inclusion by polling, and refuses every block
 		// until it does. The empty answer names no block, which is how the caller
 		// tells that wait from a refusal it must not repeat.
-		inclusions, err := bmmInclusions(ctx, proxy, req.Msg.CriticalHash)
+		inclusions, err := bmmInclusions(ctx, proxy, req.CriticalHash)
 		if err != nil {
 			return nil, err
 		}
 		if connectTarget(mainBlockHash, inclusions) == "" {
-			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+			return &bmmpb.ConnectBidResponse{}, nil
 		}
-		held, err = proxy.ChainHolds(ctx, req.Msg.CriticalHash, heldBlockDepth)
+		held, err = proxy.ChainHolds(ctx, req.CriticalHash, heldBlockDepth)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the sidechain chain: %w", err))
+			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the sidechain chain: %w", err).Error())
 		}
 	}
-	return connect.NewResponse(&bmmpb.ConnectBidResponse{
+	return &bmmpb.ConnectBidResponse{
 		Connected:     connected,
 		MainBlockHash: mainBlockHash,
 		Held:          held,
-	}), nil
+	}, nil
 }
 
 // jsonrpcInvalidParams is the answer of a node that cannot decode the block it got.
@@ -614,7 +615,7 @@ const heldBlockDepth = 11
 func bmmInclusions(ctx context.Context, proxy sidechain.BMMNode, criticalHash string) ([]string, error) {
 	inclusions, err := proxy.GetBmmInclusions(ctx, criticalHash)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err).Error())
 	}
 	return inclusions, nil
 }
@@ -641,47 +642,47 @@ func connectTarget(want string, inclusions []string) string {
 // that one can mine it. An empty prev main hash reads the tip, which is the
 // round a bidder opens now.
 func (h *BMMHandler) ListBids(
-	ctx context.Context, req *connect.Request[bmmpb.ListBidsRequest],
-) (*connect.Response[bmmpb.ListBidsResponse], error) {
-	cfg, err := h.sidechainConfig(req.Msg.Sidechain)
+	ctx context.Context, req *bmmpb.ListBidsRequest,
+) (*bmmpb.ListBidsResponse, error) {
+	cfg, err := h.sidechainConfig(req.Sidechain)
 	if err != nil {
 		return nil, err
 	}
-	bids, err := h.bids().Rivals(ctx, cfg.Slot, req.Msg.PrevMainHash)
+	bids, err := h.bids().Rivals(ctx, cfg.Slot, req.PrevMainHash)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
+	return &bmmpb.ListBidsResponse{Bids: bids}, nil
 }
 
 // enforcerBids reads the seen BMM requests of one parent block. An empty prev
 // main hash reads the mainchain tip.
 func (h *BMMHandler) enforcerBids(ctx context.Context, slot int, prevMainHash string) ([]*bmmpb.Bid, error) {
 	if h.orch == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not wired")
 	}
 	if prevMainHash == "" {
 		tip, _, err := h.orch.ChainTip(ctx)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the mainchain tip: %w", err))
+			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the mainchain tip: %w", err).Error())
 		}
 		prevMainHash = tip
 	}
 
 	validator, err := h.orch.EnforcerValidator()
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
-	resp, err := validator.GetSeenBmmRequests(ctx, connect.NewRequest(&enforcerpb.GetSeenBmmRequestsRequest{
+	resp, err := validator.GetSeenBmmRequests(ctx, &enforcerpb.GetSeenBmmRequestsRequest{
 		PrevBlockHash:   &commonv1.ReverseHex{Hex: wrapperspb.String(prevMainHash)},
 		SidechainNumber: wrapperspb.UInt32(uint32(slot)),
-	}))
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the bmm bids: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the bmm bids: %w", err).Error())
 	}
 
-	bids := make([]*bmmpb.Bid, 0, len(resp.Msg.GetRequests()))
-	for _, request := range resp.Msg.GetRequests() {
+	bids := make([]*bmmpb.Bid, 0, len(resp.GetRequests()))
+	for _, request := range resp.GetRequests() {
 		bids = append(bids, &bmmpb.Bid{
 			Txid:         request.GetTxid().GetHex().GetValue(),
 			CriticalHash: request.GetCriticalHash().GetHex().GetValue(),
@@ -763,8 +764,8 @@ func (h *BMMHandler) slotCoin(
 	if coin == nil {
 		// PrepareBMM pays the missing coins. The engine opens the round again on
 		// the next tick, once one of them lands.
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"the wallet holds no coin of its own for slot %d", slot))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition,
+			"the wallet holds no coin of its own for slot %d", slot)
 	}
 	return coin, nil
 }
@@ -786,13 +787,13 @@ func betterSlotCoin(a, b *wpb.UnspentOutput, slotSats int64) bool {
 // PrepareBMM gives every bidding sidechain a coin of its own, and splits one
 // large coin when a wallet holds too few.
 func (h *BMMHandler) PrepareBMM(
-	ctx context.Context, req *connect.Request[bmmpb.PrepareBMMRequest],
-) (*connect.Response[bmmpb.PrepareBMMResponse], error) {
-	if len(req.Msg.Targets) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("targets must name a sidechain"))
+	ctx context.Context, req *bmmpb.PrepareBMMRequest,
+) (*bmmpb.PrepareBMMResponse, error) {
+	if len(req.Targets) == 0 {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "targets must name a sidechain")
 	}
 	if h.wallet == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "no wallet is wired")
 	}
 
 	// Two targets can name one wallet, by its id and by the empty active id, and
@@ -801,15 +802,15 @@ func (h *BMMHandler) PrepareBMM(
 		sidechains int32
 		maxBidSats int64
 	}
-	wants := make(map[string]*want, len(req.Msg.Targets))
+	wants := make(map[string]*want, len(req.Targets))
 	var order []string
-	for _, target := range req.Msg.Targets {
+	for _, target := range req.Targets {
 		if target.MaxBidSats <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("max_bid_sats must be positive"))
+			return nil, connect.Errorf(connect.CodeInvalidArgument, "max_bid_sats must be positive")
 		}
 		walletID, err := h.wallet.ResolveWalletID(target.WalletId)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 		}
 		w, ok := wants[walletID]
 		if !ok {
@@ -841,7 +842,7 @@ func (h *BMMHandler) PrepareBMM(
 	if failure != nil {
 		return nil, failure
 	}
-	return connect.NewResponse(out), nil
+	return out, nil
 }
 
 // prepareWallet counts the coins one wallet can bid from, and pays the missing
@@ -918,15 +919,15 @@ func (h *BMMHandler) readWalletCoins(
 	ctx context.Context, walletID string, slot int,
 ) (*walletCoins, error) {
 	if h.wallet == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "no wallet is wired")
 	}
 	resolved, err := h.wallet.ResolveWalletID(walletID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
-	unspent, err := h.wallet.ListUnspent(ctx, connect.NewRequest(&wpb.ListUnspentRequest{
+	unspent, err := h.wallet.ListUnspent(ctx, &wpb.ListUnspentRequest{
 		WalletId: resolved,
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -938,7 +939,7 @@ func (h *BMMHandler) readWalletCoins(
 	// catches up. An opening bid over one of those conflicts with that bid, and
 	// the node refuses it at the same fee.
 	bids := newBidCache(h)
-	spent, err := h.bidSpentCoins(ctx, lo.Map(unspent.Msg.Utxos, func(u *wpb.UnspentOutput, _ int) wallet.Outpoint {
+	spent, err := h.bidSpentCoins(ctx, lo.Map(unspent.Utxos, func(u *wpb.UnspentOutput, _ int) wallet.Outpoint {
 		return wallet.Outpoint{TxID: u.Txid, Vout: int(u.Vout), Confirmed: u.Confirmations > 0}
 	}), bids)
 	if err != nil {
@@ -948,7 +949,7 @@ func (h *BMMHandler) readWalletCoins(
 	frozen := h.wallet.HeldCoins()
 
 	out := &walletCoins{held: held}
-	for _, u := range unspent.Msg.Utxos {
+	for _, u := range unspent.Utxos {
 		if !u.Spendable {
 			continue
 		}
@@ -1003,37 +1004,37 @@ func (h *BMMHandler) splitBMMCoins(
 ) (string, error) {
 	want := int64(count)*coinSats + bmmSlotCoinFeeSats
 	if source == nil || source.AmountSats < want {
-		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"no coin holds the %d sats that %d more bmm coins cost", want, count))
+		return "", connect.Errorf(connect.CodeFailedPrecondition,
+			"no coin holds the %d sats that %d more bmm coins cost", want, count)
 	}
 
 	destinations := make(map[string]int64, count)
 	for range count {
-		addr, err := h.wallet.GetNewAddress(ctx, connect.NewRequest(&wpb.GetNewAddressRequest{
+		addr, err := h.wallet.GetNewAddress(ctx, &wpb.GetNewAddressRequest{
 			WalletId: walletID,
-		}))
+		})
 		if err != nil {
 			return "", err
 		}
-		destinations[addr.Msg.Address] = coinSats
+		destinations[addr.Address] = coinSats
 	}
 	if len(destinations) != count {
-		return "", connect.NewError(connect.CodeInternal, fmt.Errorf(
-			"the wallet named %d addresses for %d bmm coins", len(destinations), count))
+		return "", connect.Errorf(connect.CodeInternal,
+			"the wallet named %d addresses for %d bmm coins", len(destinations), count)
 	}
 
-	send, err := h.wallet.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
+	send, err := h.wallet.SendTransaction(ctx, &wpb.SendTransactionRequest{
 		WalletId:       walletID,
 		Destinations:   destinations,
 		RequiredInputs: []*wpb.UnspentOutput{source},
 		// The source pays this exact fee, or coin selection reaches for a second
 		// coin and puts the split on another slot's lineage.
 		FixedFeeSats: bmmSlotCoinFeeSats,
-	}))
+	})
 	if err != nil {
 		return "", err
 	}
-	return send.Msg.Txid, nil
+	return send.Txid, nil
 }
 
 // pendingSplit is a coin split a wallet waits for.
@@ -1146,14 +1147,14 @@ func (h *BMMHandler) Commitment(
 		return "", err
 	}
 
-	resp, err := validator.GetBmmHStarCommitment(ctx, connect.NewRequest(&enforcerpb.GetBmmHStarCommitmentRequest{
+	resp, err := validator.GetBmmHStarCommitment(ctx, &enforcerpb.GetBmmHStarCommitmentRequest{
 		BlockHash:   &commonv1.ReverseHex{Hex: wrapperspb.String(mainBlockHash)},
 		SidechainId: wrapperspb.UInt32(uint32(cfg.Slot)),
-	}))
+	})
 	if err != nil {
 		return "", fmt.Errorf("get bmm commitment: %w", err)
 	}
-	return resp.Msg.GetCommitment().GetCommitment().GetHex().GetValue(), nil
+	return resp.GetCommitment().GetCommitment().GetHex().GetValue(), nil
 }
 
 // BlockAfter returns the mainchain block that follows prevMainHash on the chain
@@ -1167,14 +1168,14 @@ func (h *BMMHandler) BlockAfter(ctx context.Context, prevMainHash, tipHash strin
 		return "", err
 	}
 
-	resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(&enforcerpb.GetBlockHeaderInfoRequest{
+	resp, err := validator.GetBlockHeaderInfo(ctx, &enforcerpb.GetBlockHeaderInfoRequest{
 		BlockHash:    &commonv1.ReverseHex{Hex: wrapperspb.String(tipHash)},
 		MaxAncestors: lo.ToPtr(uint32(bmmAncestorWalk)),
-	}))
+	})
 	if err != nil {
 		return "", fmt.Errorf("get block header info: %w", err)
 	}
-	for _, info := range resp.Msg.GetHeaderInfos() {
+	for _, info := range resp.GetHeaderInfos() {
 		if info.GetPrevBlockHash().GetHex().GetValue() == prevMainHash {
 			return info.GetBlockHash().GetHex().GetValue(), nil
 		}
@@ -1191,7 +1192,7 @@ func (h *BMMHandler) sidechainTarget(
 	}
 	node, err := bmmNode(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
 	if err != nil {
-		return orchestrator.BinaryConfig{}, nil, connect.NewError(connect.CodeUnavailable, err)
+		return orchestrator.BinaryConfig{}, nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	return cfg, node, nil
 }
@@ -1200,8 +1201,8 @@ func (h *BMMHandler) sidechainTarget(
 // claims on the mainchain.
 func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryConfig, error) {
 	if h.orch == nil {
-		return orchestrator.BinaryConfig{}, connect.NewError(
-			connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not wired"),
+		return orchestrator.BinaryConfig{}, connect.Errorf(
+			connect.CodeFailedPrecondition, "orchestrator not wired",
 		)
 	}
 	name, _, err := sidechainNames(binary)
@@ -1210,13 +1211,13 @@ func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryC
 	}
 	cfg, ok := h.orch.Configs()[name]
 	if !ok {
-		return orchestrator.BinaryConfig{}, connect.NewError(
-			connect.CodeNotFound, fmt.Errorf("sidechain %s is not configured", name),
+		return orchestrator.BinaryConfig{}, connect.Errorf(
+			connect.CodeNotFound, "sidechain %s is not configured", name,
 		)
 	}
 	if cfg.Slot < 0 || cfg.Slot > 255 {
-		return orchestrator.BinaryConfig{}, connect.NewError(
-			connect.CodeFailedPrecondition, fmt.Errorf("sidechain %s has no valid slot", name),
+		return orchestrator.BinaryConfig{}, connect.Errorf(
+			connect.CodeFailedPrecondition, "sidechain %s has no valid slot", name,
 		)
 	}
 	return cfg, nil

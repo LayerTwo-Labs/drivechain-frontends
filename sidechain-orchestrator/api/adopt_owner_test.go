@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
@@ -51,9 +51,9 @@ func TestAdoptOwnerRejectsLateLease(t *testing.T) {
 			}
 			orch := &orchestrator.Orchestrator{}
 			orch.SetLease(clients)
-			response, err := NewHandler(orch).AdoptOwner(ctx, connect.NewRequest(&pb.AdoptOwnerRequest{
+			response, err := NewHandler(orch).AdoptOwner(ctx, &pb.AdoptOwnerRequest{
 				OwnerPid: int32(os.Getpid()),
-			}))
+			})
 			require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 			require.Nil(t, response)
 		})
@@ -63,9 +63,9 @@ func TestAdoptOwnerRejectsLateLease(t *testing.T) {
 func TestAdoptOwnerAcceptsLiveLease(t *testing.T) {
 	orch := &orchestrator.Orchestrator{}
 	orch.SetLease(lease.New(os.Getpid(), time.Minute, func() {}))
-	response, err := NewHandler(orch).AdoptOwner(context.Background(), connect.NewRequest(&pb.AdoptOwnerRequest{
+	response, err := NewHandler(orch).AdoptOwner(context.Background(), &pb.AdoptOwnerRequest{
 		OwnerPid: int32(os.Getpid()),
-	}))
+	})
 	require.NoError(t, err)
-	require.False(t, response.Msg.CanceledExit)
+	require.False(t, response.CanceledExit)
 }

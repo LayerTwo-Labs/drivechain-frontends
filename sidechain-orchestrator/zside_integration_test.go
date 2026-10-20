@@ -13,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1/bmmv1connect"
@@ -87,55 +88,55 @@ func TestZSideWallet(t *testing.T) {
 	startOrchestrator(t, orchBin, home, mainDir)
 	httpClient := &http.Client{Timeout: 120 * time.Second}
 	orchURL := fmt.Sprintf("http://127.0.0.1:%d", orchestratorPort)
-	wallets := walletmanagerv1connect.NewWalletManagerServiceClient(httpClient, orchURL)
-	bmm := bmmv1connect.NewBMMServiceClient(httpClient, orchURL)
-	zside := zsidev1connect.NewZSideServiceClient(httpClient, orchURL)
+	wallets := walletmanagerv1connect.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
+	bmm := bmmv1connect.NewBMMServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
+	zside := zsidev1connect.NewZSideServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
 	waitFor(t, 60*time.Second, "drivechaind", func() bool {
-		_, err := wallets.GetWalletStatus(ctx, connect.NewRequest(&wmpb.GetWalletStatusRequest{}))
+		_, err := wallets.GetWalletStatus(ctx, &wmpb.GetWalletStatusRequest{})
 		return err == nil
 	})
 	waitFor(t, 90*time.Second, "zside through drivechaind", func() bool {
-		_, err := zside.GetBlockCount(ctx, connect.NewRequest(&zpb.GetBlockCountRequest{}))
+		_, err := zside.GetBlockCount(ctx, &zpb.GetBlockCountRequest{})
 		return err == nil
 	})
 
-	mnemonic, err := zside.GenerateMnemonic(ctx, connect.NewRequest(&zpb.GenerateMnemonicRequest{}))
+	mnemonic, err := zside.GenerateMnemonic(ctx, &zpb.GenerateMnemonicRequest{})
 	require.NoError(t, err, "generate mnemonic")
-	_, err = zside.SetSeedFromMnemonic(ctx, connect.NewRequest(&zpb.SetSeedFromMnemonicRequest{
-		Mnemonic: mnemonic.Msg.Mnemonic,
-	}))
+	_, err = zside.SetSeedFromMnemonic(ctx, &zpb.SetSeedFromMnemonicRequest{
+		Mnemonic: mnemonic.Mnemonic,
+	})
 	require.NoError(t, err, "set seed")
 
 	// Only a Bitcoin Core wallet can build the bare scriptPubKey an M8 needs.
 	generateWallet(ctx, t, wallets, "enforcer")
 	coreWallet := generateWallet(ctx, t, wallets, "core")
-	_, err = wallets.SwitchWallet(ctx, connect.NewRequest(&wmpb.SwitchWalletRequest{WalletId: coreWallet}))
+	_, err = wallets.SwitchWallet(ctx, &wmpb.SwitchWalletRequest{WalletId: coreWallet})
 	require.NoError(t, err)
-	mainAddr, err := wallets.GetNewAddress(ctx, connect.NewRequest(&wmpb.GetNewAddressRequest{}))
+	mainAddr, err := wallets.GetNewAddress(ctx, &wmpb.GetNewAddressRequest{})
 	require.NoError(t, err)
-	mineMainchain(ctx, t, enforcer, 150, mainAddr.Msg.Address)
+	mineMainchain(ctx, t, enforcer, 150, mainAddr.Address)
 	waitFor(t, 60*time.Second, "bidding funds", func() bool {
-		bal, err := wallets.GetBalance(ctx, connect.NewRequest(&wmpb.GetBalanceRequest{}))
-		return err == nil && bal.Msg.ConfirmedSats > 0
+		bal, err := wallets.GetBalance(ctx, &wmpb.GetBalanceRequest{})
+		return err == nil && bal.ConfirmedSats > 0
 	})
 
 	mainchain := newCoreRPC(t, filepath.Join(mainDir, "regtest"), mainchainRPCPort)
 	height := func(t *testing.T) int64 {
 		t.Helper()
-		resp, err := zside.GetBlockCount(ctx, connect.NewRequest(&zpb.GetBlockCountRequest{}))
+		resp, err := zside.GetBlockCount(ctx, &zpb.GetBlockCountRequest{})
 		require.NoError(t, err)
-		return resp.Msg.Count
+		return resp.Count
 	}
 	blindMergeMine := func(t *testing.T) {
 		t.Helper()
 		before := height(t)
-		bid, err := bmm.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
+		bid, err := bmm.CreateBid(ctx, &bmmpb.CreateBidRequest{
 			Sidechain: orchpb.BinaryType_BINARY_TYPE_ZSIDE,
 			BidSats:   1000,
-		}))
+		})
 		require.NoError(t, err, "create bid")
-		require.NotEmpty(t, bid.Msg.BmmTxid)
-		mineMainchain(ctx, t, enforcer, 1, mainAddr.Msg.Address)
+		require.NotEmpty(t, bid.BmmTxid)
+		mineMainchain(ctx, t, enforcer, 1, mainAddr.Address)
 		// The node lists no inclusion for a mainchain block it was not given, so
 		// the test names it, as the BMM engine does.
 		var included string
@@ -143,18 +144,18 @@ func TestZSideWallet(t *testing.T) {
 
 		deadline := time.Now().Add(60 * time.Second)
 		for {
-			resp, err := bmm.ConnectBid(ctx, connect.NewRequest(&bmmpb.ConnectBidRequest{
+			resp, err := bmm.ConnectBid(ctx, &bmmpb.ConnectBidRequest{
 				Sidechain:     orchpb.BinaryType_BINARY_TYPE_ZSIDE,
-				CriticalHash:  bid.Msg.CriticalHash,
-				BlockJson:     bid.Msg.BlockJson,
+				CriticalHash:  bid.CriticalHash,
+				BlockJson:     bid.BlockJson,
 				MainBlockHash: included,
-			}))
-			require.NoError(t, err, "connect bid %s", bid.Msg.CriticalHash)
-			if resp.Msg.Connected {
+			})
+			require.NoError(t, err, "connect bid %s", bid.CriticalHash)
+			if resp.Connected {
 				break
 			}
 			if time.Now().After(deadline) {
-				t.Fatalf("bid %s for %s in block %s never connected", bid.Msg.BmmTxid, bid.Msg.CriticalHash, included)
+				t.Fatalf("bid %s for %s in block %s never connected", bid.BmmTxid, bid.CriticalHash, included)
 			}
 			time.Sleep(time.Second)
 		}
@@ -162,10 +163,10 @@ func TestZSideWallet(t *testing.T) {
 	}
 	balance := func(t *testing.T) *zpb.GetBalanceResponse {
 		t.Helper()
-		resp, err := zside.GetBalance(ctx, connect.NewRequest(&zpb.GetBalanceRequest{}))
+		resp, err := zside.GetBalance(ctx, &zpb.GetBalanceRequest{})
 		require.NoError(t, err)
-		t.Logf("balance: shielded %d, transparent %d", resp.Msg.TotalShieldedSats, resp.Msg.TotalTransparentSats)
-		return resp.Msg
+		t.Logf("balance: shielded %d, transparent %d", resp.TotalShieldedSats, resp.TotalTransparentSats)
+		return resp
 	}
 
 	// A transaction no block can take would sit in every later template.
@@ -173,7 +174,7 @@ func TestZSideWallet(t *testing.T) {
 		if !t.Failed() {
 			return
 		}
-		_, err := zside.RemoveFromMempool(ctx, connect.NewRequest(&zpb.RemoveFromMempoolRequest{Txid: txid}))
+		_, err := zside.RemoveFromMempool(ctx, &zpb.RemoveFromMempoolRequest{Txid: txid})
 		if err != nil {
 			t.Errorf("remove %s from the mempool: %v", txid, err)
 		}
@@ -196,18 +197,18 @@ func TestZSideWallet(t *testing.T) {
 	})
 
 	t.Run("deposit", func(t *testing.T) {
-		addr, err := zside.GetNewTransparentAddress(ctx, connect.NewRequest(&zpb.GetNewTransparentAddressRequest{}))
+		addr, err := zside.GetNewTransparentAddress(ctx, &zpb.GetNewTransparentAddressRequest{})
 		require.NoError(t, err)
-		deposit, err := wallets.CreateDeposit(ctx, connect.NewRequest(&wmpb.CreateDepositRequest{
+		deposit, err := wallets.CreateDeposit(ctx, &wmpb.CreateDepositRequest{
 			Slot:        zsideSlot,
-			Destination: formatDepositAddress(addr.Msg.Address, zsideSlot),
+			Destination: formatDepositAddress(addr.Address, zsideSlot),
 			AmountSats:  depositSats,
 			FeeSats:     10_000,
-		}))
+		})
 		require.NoError(t, err, "create deposit")
-		require.NotEmpty(t, deposit.Msg.Txid)
+		require.NotEmpty(t, deposit.Txid)
 
-		mineMainchain(ctx, t, enforcer, 1, mainAddr.Msg.Address)
+		mineMainchain(ctx, t, enforcer, 1, mainAddr.Address)
 		blindMergeMine(t)
 		require.EqualValues(t, depositSats, balance(t).TotalTransparentSats)
 	})
@@ -215,50 +216,50 @@ func TestZSideWallet(t *testing.T) {
 	// The wallet spends only confirmed coins, so each transfer gets its own block.
 	t.Run("transparent transfer", func(t *testing.T) {
 		before := balance(t)
-		dest, err := zside.GetNewTransparentAddress(ctx, connect.NewRequest(&zpb.GetNewTransparentAddressRequest{}))
+		dest, err := zside.GetNewTransparentAddress(ctx, &zpb.GetNewTransparentAddressRequest{})
 		require.NoError(t, err)
-		transfer, err := zside.TransparentTransfer(ctx, connect.NewRequest(&zpb.TransparentTransferRequest{
-			Address: dest.Msg.Address, AmountSats: moveSats, FeeSats: feeSats,
-		}))
+		transfer, err := zside.TransparentTransfer(ctx, &zpb.TransparentTransferRequest{
+			Address: dest.Address, AmountSats: moveSats, FeeSats: feeSats,
+		})
 		require.NoError(t, err, "transparent transfer")
-		defer dropOnFailure(t, transfer.Msg.Txid)
+		defer dropOnFailure(t, transfer.Txid)
 		blindMergeMine(t)
 		require.InDelta(t, before.TotalTransparentSats-feeSats, balance(t).TotalTransparentSats, zsideFeeSlack)
 	})
 
 	t.Run("transfer", func(t *testing.T) {
 		before := balance(t)
-		dest, err := zside.GetNewTransparentAddress(ctx, connect.NewRequest(&zpb.GetNewTransparentAddressRequest{}))
+		dest, err := zside.GetNewTransparentAddress(ctx, &zpb.GetNewTransparentAddressRequest{})
 		require.NoError(t, err)
-		transfer, err := zside.Transfer(ctx, connect.NewRequest(&zpb.TransferRequest{
-			Address: dest.Msg.Address, AmountSats: moveSats, FeeSats: feeSats,
-		}))
+		transfer, err := zside.Transfer(ctx, &zpb.TransferRequest{
+			Address: dest.Address, AmountSats: moveSats, FeeSats: feeSats,
+		})
 		require.NoError(t, err, "transfer")
-		defer dropOnFailure(t, transfer.Msg.Txid)
-		coins, err := zside.GetWalletUtxos(ctx, connect.NewRequest(&zpb.GetWalletUtxosRequest{}))
+		defer dropOnFailure(t, transfer.Txid)
+		coins, err := zside.GetWalletUtxos(ctx, &zpb.GetWalletUtxosRequest{})
 		require.NoError(t, err, "wallet coins with a transfer in the mempool")
-		require.Contains(t, coins.Msg.UtxosJson, `"confirmed":false`, "the change of the transfer waits in the mempool")
+		require.Contains(t, coins.UtxosJson, `"confirmed":false`, "the change of the transfer waits in the mempool")
 		blindMergeMine(t)
 		require.InDelta(t, before.TotalTransparentSats-feeSats, balance(t).TotalTransparentSats, zsideFeeSlack)
 	})
 
 	t.Run("withdraw", func(t *testing.T) {
-		dest, err := wallets.GetNewAddress(ctx, connect.NewRequest(&wmpb.GetNewAddressRequest{}))
+		dest, err := wallets.GetNewAddress(ctx, &wmpb.GetNewAddressRequest{})
 		require.NoError(t, err)
-		withdrawal, err := zside.Withdraw(ctx, connect.NewRequest(&zpb.WithdrawRequest{
-			Address: dest.Msg.Address, AmountSats: withdrawSats, SideFeeSats: feeSats, MainFeeSats: 10_000,
-		}))
+		withdrawal, err := zside.Withdraw(ctx, &zpb.WithdrawRequest{
+			Address: dest.Address, AmountSats: withdrawSats, SideFeeSats: feeSats, MainFeeSats: 10_000,
+		})
 		require.NoError(t, err, "withdraw")
-		defer dropOnFailure(t, withdrawal.Msg.Txid)
+		defer dropOnFailure(t, withdrawal.Txid)
 
 		// The node bundles withdrawals only at some heights, so mine until it does.
 		for range 12 {
 			blindMergeMine(t)
-			bundle, err := zside.GetPendingWithdrawalBundle(ctx, connect.NewRequest(&zpb.GetPendingWithdrawalBundleRequest{}))
+			bundle, err := zside.GetPendingWithdrawalBundle(ctx, &zpb.GetPendingWithdrawalBundleRequest{})
 			require.NoError(t, err)
-			if bundle.Msg.BundleJson != "" && bundle.Msg.BundleJson != "null" {
-				require.Contains(t, bundle.Msg.BundleJson, fmt.Sprintf(`"main_address":%q`, dest.Msg.Address))
-				require.Contains(t, bundle.Msg.BundleJson, fmt.Sprintf(`"value":%d`, withdrawSats))
+			if bundle.BundleJson != "" && bundle.BundleJson != "null" {
+				require.Contains(t, bundle.BundleJson, fmt.Sprintf(`"main_address":%q`, dest.Address))
+				require.Contains(t, bundle.BundleJson, fmt.Sprintf(`"value":%d`, withdrawSats))
 				t.Logf("pending withdrawal bundle at zSide height %d", height(t))
 				return
 			}
@@ -268,9 +269,9 @@ func TestZSideWallet(t *testing.T) {
 
 	t.Run("shield", func(t *testing.T) {
 		before := balance(t)
-		shield, err := zside.Shield(ctx, connect.NewRequest(&zpb.ShieldRequest{AmountSats: shieldSats, FeeSats: feeSats}))
+		shield, err := zside.Shield(ctx, &zpb.ShieldRequest{AmountSats: shieldSats, FeeSats: feeSats})
 		require.NoError(t, err, "shield")
-		defer dropOnFailure(t, shield.Msg.Txid)
+		defer dropOnFailure(t, shield.Txid)
 		blindMergeMine(t)
 		after := balance(t)
 		require.EqualValues(t, before.TotalShieldedSats+shieldSats, after.TotalShieldedSats)
@@ -282,13 +283,13 @@ func TestZSideWallet(t *testing.T) {
 
 	t.Run("shielded transfer", func(t *testing.T) {
 		before := balance(t)
-		dest, err := zside.GetNewShieldedAddress(ctx, connect.NewRequest(&zpb.GetNewShieldedAddressRequest{}))
+		dest, err := zside.GetNewShieldedAddress(ctx, &zpb.GetNewShieldedAddressRequest{})
 		require.NoError(t, err)
-		transfer, err := zside.ShieldedTransfer(ctx, connect.NewRequest(&zpb.ShieldedTransferRequest{
-			Address: dest.Msg.Address, AmountSats: moveSats, FeeSats: feeSats,
-		}))
+		transfer, err := zside.ShieldedTransfer(ctx, &zpb.ShieldedTransferRequest{
+			Address: dest.Address, AmountSats: moveSats, FeeSats: feeSats,
+		})
 		require.NoError(t, err, "shielded transfer")
-		defer dropOnFailure(t, transfer.Msg.Txid)
+		defer dropOnFailure(t, transfer.Txid)
 		blindMergeMine(t)
 		require.EqualValues(t, before.TotalShieldedSats-feeSats, balance(t).TotalShieldedSats)
 		for range zsideAnchorDepth {
@@ -298,9 +299,9 @@ func TestZSideWallet(t *testing.T) {
 
 	t.Run("unshield", func(t *testing.T) {
 		before := balance(t)
-		unshield, err := zside.Unshield(ctx, connect.NewRequest(&zpb.UnshieldRequest{AmountSats: unshieldSats, FeeSats: feeSats}))
+		unshield, err := zside.Unshield(ctx, &zpb.UnshieldRequest{AmountSats: unshieldSats, FeeSats: feeSats})
 		require.NoError(t, err, "unshield")
-		defer dropOnFailure(t, unshield.Msg.Txid)
+		defer dropOnFailure(t, unshield.Txid)
 		blindMergeMine(t)
 		after := balance(t)
 		require.EqualValues(t, before.TotalShieldedSats-unshieldSats-feeSats, after.TotalShieldedSats)

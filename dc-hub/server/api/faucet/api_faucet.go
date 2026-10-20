@@ -2,14 +2,14 @@ package api_faucet
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"strings"
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	pb "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/hub/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/hub/v1/hubv1connect"
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -58,55 +58,55 @@ func (s *Server) resetIfWindowElapsed(now time.Time) {
 }
 
 // DispenseCoins implements faucetv1connect.FaucetServiceHandler.
-func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.DispenseCoinsRequest]) (*connect.Response[pb.DispenseCoinsResponse], error) {
+func (s *Server) DispenseCoins(ctx context.Context, c *pb.DispenseCoinsRequest) (*pb.DispenseCoinsResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.resetIfWindowElapsed(time.Now())
 
-	amount, err := s.validateDispenseArgs(c.Msg)
+	amount, err := s.validateDispenseArgs(c)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	if s.totalDispensed+amount.ToBTC() > MaxCoinsPer5Min {
-		return nil, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf(
+		return nil, connect.Errorf(connect.CodeResourceExhausted,
 			"the faucet has hit its dispensation limit, try again in %s",
 			formatDuration(time.Until(s.windowEnds)),
-		))
+		)
 	}
 
-	s.recordDispensation(c.Msg.Destination, amount.ToBTC())
+	s.recordDispensation(c.Destination, amount.ToBTC())
 
-	txid, err := s.bitcoind.SendToAddress(ctx, &connect.Request[btcpb.SendToAddressRequest]{
+	txid, err := s.bitcoind.SendToAddress(ctx, &connectv1.Request[btcpb.SendToAddressRequest]{
 		Msg: &btcpb.SendToAddressRequest{
-			Address: c.Msg.Destination,
+			Address: c.Destination,
 			Amount:  amount.ToBTC(),
 			Comment: "faucet-dispensation",
 		},
 	})
 	if err != nil {
-		s.undoDispensation(c.Msg.Destination, amount.ToBTC())
+		s.undoDispensation(c.Destination, amount.ToBTC())
 	}
 
 	switch {
 	case err != nil && strings.Contains(err.Error(), "Insufficient funds"):
 		msg := "The faucet is out of funds. Please try again later."
-		return nil, connect.NewError(connect.CodeResourceExhausted, errors.New(msg))
+		return nil, connect.NewError(connect.CodeResourceExhausted, msg)
 
 	case err != nil && isInvalidAddressError(err):
 		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("The bitcoin-address is not valid"))
+			"The bitcoin-address is not valid")
 
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("dispense coins: %w", err))
+		return nil, connect.Errorf(connect.CodeInternal, "dispense coins: %s", err).WithCause(err)
 	}
 
-	fmt.Printf("sent %.8f to %s in %s\n", amount.ToBTC(), c.Msg.Destination, txid.Msg.Txid)
+	fmt.Printf("sent %.8f to %s in %s\n", amount.ToBTC(), c.Destination, txid.Msg.Txid)
 
-	return connect.NewResponse(&pb.DispenseCoinsResponse{
+	return &pb.DispenseCoinsResponse{
 		Txid: txid.Msg.Txid,
-	}), nil
+	}, nil
 }
 
 // formatDuration renders d as a user-friendly string like
@@ -168,14 +168,14 @@ func (s *Server) validateDispenseArgs(req *pb.DispenseCoinsRequest) (btcutil.Amo
 }
 
 // ListClaims implements faucetv1connect.FaucetServiceHandler.
-func (s *Server) ListClaims(ctx context.Context, req *connect.Request[pb.ListClaimsRequest]) (*connect.Response[pb.ListClaimsResponse], error) {
-	txs, err := s.bitcoind.ListTransactions(ctx, &connect.Request[btcpb.ListTransactionsRequest]{
+func (s *Server) ListClaims(ctx context.Context, req *pb.ListClaimsRequest) (*pb.ListClaimsResponse, error) {
+	txs, err := s.bitcoind.ListTransactions(ctx, &connectv1.Request[btcpb.ListTransactionsRequest]{
 		Msg: &btcpb.ListTransactionsRequest{
 			Count: 1000,
 		},
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list transactions: %w", err))
+		return nil, connect.Errorf(connect.CodeInternal, "list transactions: %s", err).WithCause(err)
 	}
 
 	transactions := lo.Filter(txs.Msg.Transactions, func(tx *btcpb.GetTransactionResponse, index int) bool {
@@ -192,28 +192,28 @@ func (s *Server) ListClaims(ctx context.Context, req *connect.Request[pb.ListCla
 		return tx
 	})
 
-	return connect.NewResponse(&pb.ListClaimsResponse{
+	return &pb.ListClaimsResponse{
 		Transactions: transactions,
-	}), nil
+	}, nil
 }
 
 // GetStatus implements faucetv1connect.FaucetServiceHandler. It reports the
 // faucet's balance and whether it currently has enough funds to serve requests.
-func (s *Server) GetStatus(ctx context.Context, req *connect.Request[pb.GetStatusRequest]) (*connect.Response[pb.GetStatusResponse], error) {
+func (s *Server) GetStatus(ctx context.Context, req *pb.GetStatusRequest) (*pb.GetStatusResponse, error) {
 
 	const minHealthyBalance = 10
 
-	balances, err := s.bitcoind.GetBalances(ctx, &connect.Request[btcpb.GetBalancesRequest]{})
+	balances, err := s.bitcoind.GetBalances(ctx, &connectv1.Request[btcpb.GetBalancesRequest]{})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get balances: %w", err))
+		return nil, connect.Errorf(connect.CodeInternal, "get balances: %s", err).WithCause(err)
 	}
 
 	mine := balances.Msg.GetMine()
 	available := mine.GetTrusted()
 
-	return connect.NewResponse(&pb.GetStatusResponse{
+	return &pb.GetStatusResponse{
 		Available: available,
 		Pending:   mine.GetUntrustedPending() + mine.GetImmature(),
 		Healthy:   available > minHealthyBalance,
-	}), nil
+	}, nil
 }

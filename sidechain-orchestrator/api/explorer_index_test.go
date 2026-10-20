@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
@@ -224,13 +224,13 @@ func TestGetBlockResolvesTheMainchainForAnIndex(t *testing.T) {
 		return json.RawMessage(`{"height":996817,"time":9581}`), nil
 	})
 
-	resp, err := handler.GetBlock(context.Background(), connect.NewRequest(&pb.GetBlockRequest{
+	resp, err := handler.GetBlock(context.Background(), &pb.GetBlockRequest{
 		Chain: "thunder", Hash: "b43",
-	}))
+	})
 	if err != nil {
 		t.Fatalf("read the block: %v", err)
 	}
-	out := resp.Msg
+	out := resp
 
 	if got := out.GetBlock().GetMainchainHeight(); got != 996816 {
 		t.Errorf("the parent row names block %d, want 996816", got)
@@ -267,9 +267,9 @@ func TestStampRowsKeepsATimeTheRowAlreadyHas(t *testing.T) {
 // through sourceOf, which falls back when no test replaced the seam.
 func TestHandlerWithNoSeamAnswersAnError(t *testing.T) {
 	handler := &ExplorerHandler{}
-	_, err := handler.GetOverview(context.Background(), connect.NewRequest(&pb.GetOverviewRequest{
+	_, err := handler.GetOverview(context.Background(), &pb.GetOverviewRequest{
 		Chain: "thunder",
-	}))
+	})
 	if err == nil {
 		t.Fatal("a handler with no orchestrator answered a page")
 	}

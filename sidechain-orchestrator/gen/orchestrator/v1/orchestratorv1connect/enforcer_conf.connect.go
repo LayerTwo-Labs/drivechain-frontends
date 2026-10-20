@@ -5,170 +5,169 @@
 package orchestratorv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// EnforcerConfServiceName is the fully-qualified name of the EnforcerConfService service.
 	EnforcerConfServiceName = "orchestrator.v1.EnforcerConfService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// EnforcerConfServiceGetEnforcerConfigProcedure is the fully-qualified name of the
-	// EnforcerConfService's GetEnforcerConfig RPC.
+	// EnforcerConfServiceGetEnforcerConfigProcedure is the procedure name of the EnforcerConfService's
+	// GetEnforcerConfig RPC.
 	EnforcerConfServiceGetEnforcerConfigProcedure = "/orchestrator.v1.EnforcerConfService/GetEnforcerConfig"
-	// EnforcerConfServiceWriteEnforcerConfigProcedure is the fully-qualified name of the
+	// EnforcerConfServiceWriteEnforcerConfigProcedure is the procedure name of the
 	// EnforcerConfService's WriteEnforcerConfig RPC.
 	EnforcerConfServiceWriteEnforcerConfigProcedure = "/orchestrator.v1.EnforcerConfService/WriteEnforcerConfig"
-	// EnforcerConfServiceSyncNodeRpcFromBitcoinConfProcedure is the fully-qualified name of the
+	// EnforcerConfServiceSyncNodeRpcFromBitcoinConfProcedure is the procedure name of the
 	// EnforcerConfService's SyncNodeRpcFromBitcoinConf RPC.
 	EnforcerConfServiceSyncNodeRpcFromBitcoinConfProcedure = "/orchestrator.v1.EnforcerConfService/SyncNodeRpcFromBitcoinConf"
 )
 
+var (
+	enforcerConfServiceGetEnforcerConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_enforcer_conf_proto.Services().ByName("EnforcerConfService").Methods().ByName("GetEnforcerConfig"),
+			Procedure:  EnforcerConfServiceGetEnforcerConfigProcedure,
+		}
+	})
+	enforcerConfServiceWriteEnforcerConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_enforcer_conf_proto.Services().ByName("EnforcerConfService").Methods().ByName("WriteEnforcerConfig"),
+			Procedure:  EnforcerConfServiceWriteEnforcerConfigProcedure,
+		}
+	})
+	enforcerConfServiceSyncNodeRpcFromBitcoinConfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_enforcer_conf_proto.Services().ByName("EnforcerConfService").Methods().ByName("SyncNodeRpcFromBitcoinConf"),
+			Procedure:  EnforcerConfServiceSyncNodeRpcFromBitcoinConfProcedure,
+		}
+	})
+)
+
 // EnforcerConfServiceClient is a client for the orchestrator.v1.EnforcerConfService service.
 type EnforcerConfServiceClient interface {
-	// Get current Enforcer configuration state.
-	GetEnforcerConfig(context.Context, *connect.Request[v1.GetEnforcerConfigRequest]) (*connect.Response[v1.GetEnforcerConfigResponse], error)
-	// Write Enforcer configuration content.
-	WriteEnforcerConfig(context.Context, *connect.Request[v1.WriteEnforcerConfigRequest]) (*connect.Response[v1.WriteEnforcerConfigResponse], error)
-	// Sync node-rpc settings from Bitcoin Core config.
-	SyncNodeRpcFromBitcoinConf(context.Context, *connect.Request[v1.SyncNodeRpcFromBitcoinConfRequest]) (*connect.Response[v1.SyncNodeRpcFromBitcoinConfResponse], error)
+	GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error)
+	WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error)
+	SyncNodeRpcFromBitcoinConf(context.Context, *v1.SyncNodeRpcFromBitcoinConfRequest) (*v1.SyncNodeRpcFromBitcoinConfResponse, error)
 }
 
 // NewEnforcerConfServiceClient constructs a client for the orchestrator.v1.EnforcerConfService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewEnforcerConfServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EnforcerConfServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	enforcerConfServiceMethods := v1.File_orchestrator_v1_enforcer_conf_proto.Services().ByName("EnforcerConfService").Methods()
-	return &enforcerConfServiceClient{
-		getEnforcerConfig: connect.NewClient[v1.GetEnforcerConfigRequest, v1.GetEnforcerConfigResponse](
-			httpClient,
-			baseURL+EnforcerConfServiceGetEnforcerConfigProcedure,
-			connect.WithSchema(enforcerConfServiceMethods.ByName("GetEnforcerConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		writeEnforcerConfig: connect.NewClient[v1.WriteEnforcerConfigRequest, v1.WriteEnforcerConfigResponse](
-			httpClient,
-			baseURL+EnforcerConfServiceWriteEnforcerConfigProcedure,
-			connect.WithSchema(enforcerConfServiceMethods.ByName("WriteEnforcerConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		syncNodeRpcFromBitcoinConf: connect.NewClient[v1.SyncNodeRpcFromBitcoinConfRequest, v1.SyncNodeRpcFromBitcoinConfResponse](
-			httpClient,
-			baseURL+EnforcerConfServiceSyncNodeRpcFromBitcoinConfProcedure,
-			connect.WithSchema(enforcerConfServiceMethods.ByName("SyncNodeRpcFromBitcoinConf")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// enforcerConfServiceClient implements EnforcerConfServiceClient.
-type enforcerConfServiceClient struct {
-	getEnforcerConfig          *connect.Client[v1.GetEnforcerConfigRequest, v1.GetEnforcerConfigResponse]
-	writeEnforcerConfig        *connect.Client[v1.WriteEnforcerConfigRequest, v1.WriteEnforcerConfigResponse]
-	syncNodeRpcFromBitcoinConf *connect.Client[v1.SyncNodeRpcFromBitcoinConfRequest, v1.SyncNodeRpcFromBitcoinConfResponse]
-}
-
-// GetEnforcerConfig calls orchestrator.v1.EnforcerConfService.GetEnforcerConfig.
-func (c *enforcerConfServiceClient) GetEnforcerConfig(ctx context.Context, req *connect.Request[v1.GetEnforcerConfigRequest]) (*connect.Response[v1.GetEnforcerConfigResponse], error) {
-	return c.getEnforcerConfig.CallUnary(ctx, req)
-}
-
-// WriteEnforcerConfig calls orchestrator.v1.EnforcerConfService.WriteEnforcerConfig.
-func (c *enforcerConfServiceClient) WriteEnforcerConfig(ctx context.Context, req *connect.Request[v1.WriteEnforcerConfigRequest]) (*connect.Response[v1.WriteEnforcerConfigResponse], error) {
-	return c.writeEnforcerConfig.CallUnary(ctx, req)
-}
-
-// SyncNodeRpcFromBitcoinConf calls orchestrator.v1.EnforcerConfService.SyncNodeRpcFromBitcoinConf.
-func (c *enforcerConfServiceClient) SyncNodeRpcFromBitcoinConf(ctx context.Context, req *connect.Request[v1.SyncNodeRpcFromBitcoinConfRequest]) (*connect.Response[v1.SyncNodeRpcFromBitcoinConfResponse], error) {
-	return c.syncNodeRpcFromBitcoinConf.CallUnary(ctx, req)
+// service. Multiple service clients may share a single connect.Client.
+func NewEnforcerConfServiceClient(client *connect.Client) EnforcerConfServiceClient {
+	return &enforcerConfServiceClient{client: client}
 }
 
 // EnforcerConfServiceHandler is an implementation of the orchestrator.v1.EnforcerConfService
 // service.
 type EnforcerConfServiceHandler interface {
-	// Get current Enforcer configuration state.
-	GetEnforcerConfig(context.Context, *connect.Request[v1.GetEnforcerConfigRequest]) (*connect.Response[v1.GetEnforcerConfigResponse], error)
-	// Write Enforcer configuration content.
-	WriteEnforcerConfig(context.Context, *connect.Request[v1.WriteEnforcerConfigRequest]) (*connect.Response[v1.WriteEnforcerConfigResponse], error)
-	// Sync node-rpc settings from Bitcoin Core config.
-	SyncNodeRpcFromBitcoinConf(context.Context, *connect.Request[v1.SyncNodeRpcFromBitcoinConfRequest]) (*connect.Response[v1.SyncNodeRpcFromBitcoinConfResponse], error)
+	GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error)
+	WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error)
+	SyncNodeRpcFromBitcoinConf(context.Context, *v1.SyncNodeRpcFromBitcoinConfRequest) (*v1.SyncNodeRpcFromBitcoinConfResponse, error)
 }
 
-// NewEnforcerConfServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewEnforcerConfServiceHandler(svc EnforcerConfServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	enforcerConfServiceMethods := v1.File_orchestrator_v1_enforcer_conf_proto.Services().ByName("EnforcerConfService").Methods()
-	enforcerConfServiceGetEnforcerConfigHandler := connect.NewUnaryHandler(
-		EnforcerConfServiceGetEnforcerConfigProcedure,
-		svc.GetEnforcerConfig,
-		connect.WithSchema(enforcerConfServiceMethods.ByName("GetEnforcerConfig")),
-		connect.WithHandlerOptions(opts...),
+// RegisterEnforcerConfServiceHandler registers svc as the orchestrator.v1.EnforcerConfService
+// implementation on server.
+func RegisterEnforcerConfServiceHandler(server *connect.Server, svc EnforcerConfServiceHandler) {
+	adapter := enforcerConfServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: enforcerConfServiceGetEnforcerConfigSpec(), Handler: adapter.getEnforcerConfig},
+		connect.Method{Spec: enforcerConfServiceWriteEnforcerConfigSpec(), Handler: adapter.writeEnforcerConfig},
+		connect.Method{Spec: enforcerConfServiceSyncNodeRpcFromBitcoinConfSpec(), Handler: adapter.syncNodeRpcFromBitcoinConf},
 	)
-	enforcerConfServiceWriteEnforcerConfigHandler := connect.NewUnaryHandler(
-		EnforcerConfServiceWriteEnforcerConfigProcedure,
-		svc.WriteEnforcerConfig,
-		connect.WithSchema(enforcerConfServiceMethods.ByName("WriteEnforcerConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	enforcerConfServiceSyncNodeRpcFromBitcoinConfHandler := connect.NewUnaryHandler(
-		EnforcerConfServiceSyncNodeRpcFromBitcoinConfProcedure,
-		svc.SyncNodeRpcFromBitcoinConf,
-		connect.WithSchema(enforcerConfServiceMethods.ByName("SyncNodeRpcFromBitcoinConf")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/orchestrator.v1.EnforcerConfService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case EnforcerConfServiceGetEnforcerConfigProcedure:
-			enforcerConfServiceGetEnforcerConfigHandler.ServeHTTP(w, r)
-		case EnforcerConfServiceWriteEnforcerConfigProcedure:
-			enforcerConfServiceWriteEnforcerConfigHandler.ServeHTTP(w, r)
-		case EnforcerConfServiceSyncNodeRpcFromBitcoinConfProcedure:
-			enforcerConfServiceSyncNodeRpcFromBitcoinConfHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedEnforcerConfServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedEnforcerConfServiceHandler struct{}
 
-func (UnimplementedEnforcerConfServiceHandler) GetEnforcerConfig(context.Context, *connect.Request[v1.GetEnforcerConfigRequest]) (*connect.Response[v1.GetEnforcerConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.EnforcerConfService.GetEnforcerConfig is not implemented"))
+func (UnimplementedEnforcerConfServiceHandler) GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.EnforcerConfService.GetEnforcerConfig is not implemented")
 }
 
-func (UnimplementedEnforcerConfServiceHandler) WriteEnforcerConfig(context.Context, *connect.Request[v1.WriteEnforcerConfigRequest]) (*connect.Response[v1.WriteEnforcerConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.EnforcerConfService.WriteEnforcerConfig is not implemented"))
+func (UnimplementedEnforcerConfServiceHandler) WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.EnforcerConfService.WriteEnforcerConfig is not implemented")
 }
 
-func (UnimplementedEnforcerConfServiceHandler) SyncNodeRpcFromBitcoinConf(context.Context, *connect.Request[v1.SyncNodeRpcFromBitcoinConfRequest]) (*connect.Response[v1.SyncNodeRpcFromBitcoinConfResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.EnforcerConfService.SyncNodeRpcFromBitcoinConf is not implemented"))
+func (UnimplementedEnforcerConfServiceHandler) SyncNodeRpcFromBitcoinConf(context.Context, *v1.SyncNodeRpcFromBitcoinConfRequest) (*v1.SyncNodeRpcFromBitcoinConfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.EnforcerConfService.SyncNodeRpcFromBitcoinConf is not implemented")
+}
+
+type enforcerConfServiceClient struct {
+	client *connect.Client
+}
+
+func (c *enforcerConfServiceClient) GetEnforcerConfig(ctx context.Context, req *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error) {
+	var res v1.GetEnforcerConfigResponse
+	if err := c.client.CallUnary(ctx, enforcerConfServiceGetEnforcerConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *enforcerConfServiceClient) WriteEnforcerConfig(ctx context.Context, req *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error) {
+	var res v1.WriteEnforcerConfigResponse
+	if err := c.client.CallUnary(ctx, enforcerConfServiceWriteEnforcerConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *enforcerConfServiceClient) SyncNodeRpcFromBitcoinConf(ctx context.Context, req *v1.SyncNodeRpcFromBitcoinConfRequest) (*v1.SyncNodeRpcFromBitcoinConfResponse, error) {
+	var res v1.SyncNodeRpcFromBitcoinConfResponse
+	if err := c.client.CallUnary(ctx, enforcerConfServiceSyncNodeRpcFromBitcoinConfSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type enforcerConfServiceHandler struct{ svc EnforcerConfServiceHandler }
+
+func (h enforcerConfServiceHandler) getEnforcerConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetEnforcerConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetEnforcerConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h enforcerConfServiceHandler) writeEnforcerConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WriteEnforcerConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.WriteEnforcerConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h enforcerConfServiceHandler) syncNodeRpcFromBitcoinConf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SyncNodeRpcFromBitcoinConfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SyncNodeRpcFromBitcoinConf(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }
