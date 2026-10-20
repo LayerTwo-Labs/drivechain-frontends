@@ -73,11 +73,21 @@ class PortfolioDashboard extends StatelessWidget {
                 Expanded(
                   flex: 1,
                   child: SailCard(
-                    title: 'Allocation',
+                    title: 'Estimated allocation',
                     child: model.isLoading
                         ? const SizedBox(
                             height: 200,
                             child: Center(child: SailCircularProgressIndicator()),
+                          )
+                        : !model.hasAllocation
+                        ? SizedBox(
+                            height: 200,
+                            child: Center(
+                              child: SailText.secondary13(
+                                model.allocationError ?? 'Price data is unavailable',
+                                color: model.allocationError == null ? null : theme.colors.error,
+                              ),
+                            ),
                           )
                         : model.holdings.isEmpty
                         ? SizedBox(
@@ -304,7 +314,7 @@ class _PieChartPainter extends CustomPainter {
 
     for (int i = 0; i < holdings.length; i++) {
       final holding = holdings[i];
-      final sweepAngle = (holding.percentageOfPortfolio / 100) * 2 * pi;
+      final sweepAngle = (holding.percentageOfPortfolio! / 100) * 2 * pi;
 
       final paint = Paint()
         ..style = PaintingStyle.fill
@@ -365,6 +375,7 @@ class _HoldingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final percentage = holding.percentageOfPortfolio;
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -436,7 +447,7 @@ class _HoldingRow extends StatelessWidget {
           SizedBox(
             width: 80,
             child: SailText.primary13(
-              '${holding.percentageOfPortfolio.toStringAsFixed(1)}%',
+              percentage == null ? '—' : '${percentage.toStringAsFixed(1)}%',
               textAlign: TextAlign.right,
               bold: true,
             ),
@@ -477,9 +488,14 @@ class PortfolioDashboardViewModel extends BaseViewModel {
     bitAssetsProvider.addListener(notifyListeners);
   }
 
-  bool get isLoading => analyticsProvider.isLoadingHoldings;
+  bool get isLoading => analyticsProvider.isLoadingHoldings || analyticsProvider.isLoadingPools;
 
   List<AssetHolding> get holdings => analyticsProvider.holdings;
+  String? get allocationError => analyticsProvider.holdingsError != null || analyticsProvider.poolsError != null
+      ? 'Cannot load portfolio data'
+      : null;
+  bool get hasAllocation =>
+      allocationError == null && holdings.every((holding) => holding.percentageOfPortfolio != null);
 
   int get totalBtcBalance => analyticsProvider.totalBtcBalance;
   int get pendingBtcBalance => analyticsProvider.pendingBtcBalance;

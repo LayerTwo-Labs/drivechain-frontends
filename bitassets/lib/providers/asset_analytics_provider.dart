@@ -12,12 +12,14 @@ class AssetHolding {
   final String assetId;
   final String? assetName;
   final int amount;
-  final double percentageOfPortfolio;
+  final double? estimatedValueSats;
+  final double? percentageOfPortfolio;
 
   AssetHolding({
     required this.assetId,
     required this.assetName,
     required this.amount,
+    required this.estimatedValueSats,
     required this.percentageOfPortfolio,
   });
 
@@ -137,8 +139,36 @@ class AssetAnalyticsProvider extends ChangeNotifier {
       _fetchPools(),
     ]);
 
+    _updatePortfolioValues();
     _isFetching = false;
     notifyListeners();
+  }
+
+  void _updatePortfolioValues() {
+    final prices = {
+      if (poolsError == null)
+        for (final pool in pools)
+          if (pool.asset0 == 'btc' && pool.reserve0 > 0 && pool.reserve1 > 0) pool.asset1: pool.priceRatio,
+    };
+    final values = holdings.map((holding) {
+      if (holdingsError != null) return null;
+      if (holding.isBtc || holding.amount == 0) return holding.amount.toDouble();
+      final price = prices[holding.assetId];
+      return price == null ? null : holding.amount * price;
+    }).toList();
+    final hasAllValues = values.every((value) => value != null);
+    final totalValue = values.fold(0.0, (sum, value) => sum + (value ?? 0));
+
+    holdings = [
+      for (var index = 0; index < holdings.length; index++)
+        AssetHolding(
+          assetId: holdings[index].assetId,
+          assetName: holdings[index].assetName,
+          amount: holdings[index].amount,
+          estimatedValueSats: values[index],
+          percentageOfPortfolio: hasAllValues && totalValue > 0 ? values[index]! / totalValue * 100 : null,
+        ),
+    ];
   }
 
   Future<void> _fetchHoldings() async {
@@ -154,9 +184,7 @@ class AssetAnalyticsProvider extends ChangeNotifier {
       final utxos = await rpc.listUTXOs();
 
       final assetAmounts = bitAssetAmounts(utxos);
-      final totalValue = assetAmounts.values.fold(totalBtcBalance, (sum, amount) => sum + amount);
 
-      // Create holdings list with percentages
       final newHoldings = <AssetHolding>[];
 
       // Add BTC holding
@@ -166,7 +194,8 @@ class AssetAnalyticsProvider extends ChangeNotifier {
             assetId: 'btc',
             assetName: '${activeTicker.symbol} (Native)',
             amount: totalBtcBalance + pendingBtcBalance,
-            percentageOfPortfolio: totalValue > 0 ? ((totalBtcBalance + pendingBtcBalance) / totalValue) * 100 : 100,
+            estimatedValueSats: null,
+            percentageOfPortfolio: null,
           ),
         );
       }
@@ -178,7 +207,8 @@ class AssetAnalyticsProvider extends ChangeNotifier {
             assetId: entry.key,
             assetName: null, // Will be resolved by UI if needed
             amount: entry.value,
-            percentageOfPortfolio: totalValue > 0 ? (entry.value / totalValue) * 100 : 0,
+            estimatedValueSats: null,
+            percentageOfPortfolio: null,
           ),
         );
       }
