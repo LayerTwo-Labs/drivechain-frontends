@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -59,6 +61,79 @@ func TestWalletStatusAndUnlockCodes(t *testing.T) {
 	_, err = h.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: "pass"}))
 	require.NoError(t, err)
 	require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, status().State)
+}
+
+func TestWalletPasswordCodes(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		call func(*WalletHandler, string) error
+	}{
+		{"unlock", func(h *WalletHandler, password string) error {
+			_, err := h.UnlockWallet(t.Context(), connect.NewRequest(&pb.UnlockWalletRequest{Password: password}))
+			return err
+		}},
+		{"change password", func(h *WalletHandler, password string) error {
+			_, err := h.ChangePassword(t.Context(), connect.NewRequest(&pb.ChangePasswordRequest{
+				OldPassword: password,
+				NewPassword: "newpass",
+			}))
+			return err
+		}},
+		{"remove encryption", func(h *WalletHandler, password string) error {
+			_, err := h.RemoveEncryption(t.Context(), connect.NewRequest(&pb.RemoveEncryptionRequest{Password: password}))
+			return err
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			svc := wallet.NewService(t.TempDir(), zerolog.Nop())
+			require.NoError(t, svc.Init())
+			t.Cleanup(svc.Close)
+			_, err := svc.GenerateWallet("Password", "", "", nil)
+			require.NoError(t, err)
+			h := NewWalletHandler(svc)
+
+			err = test.call(h, "pass")
+			require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+			require.ErrorIs(t, err, wallet.ErrNotEncrypted)
+
+			require.NoError(t, svc.EncryptWallet("pass"))
+			svc.LockWallet()
+
+			err = test.call(h, "wrong")
+			require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+			require.ErrorIs(t, err, wallet.ErrIncorrectPassword)
+			require.Equal(t, wallet.StateLocked, svc.State())
+			require.True(t, svc.IsEncrypted())
+
+			require.NoError(t, test.call(h, "pass"))
+		})
+	}
+}
+
+func TestChangePasswordFileError(t *testing.T) {
+	dir := t.TempDir()
+	svc := wallet.NewService(dir, zerolog.Nop())
+	require.NoError(t, svc.Init())
+	t.Cleanup(svc.Close)
+	_, err := svc.GenerateWallet("Password", "", "", nil)
+	require.NoError(t, err)
+	require.NoError(t, svc.EncryptWallet("oldpass"))
+	svc.LockWallet()
+
+	metaPath := filepath.Join(dir, "wallet_encryption.json")
+	require.NoError(t, os.Chmod(metaPath, 0400))
+	require.NoError(t, os.Mkdir(metaPath+".tmp", 0700))
+
+	_, err = NewWalletHandler(svc).ChangePassword(t.Context(), connect.NewRequest(&pb.ChangePasswordRequest{
+		OldPassword: "oldpass",
+		NewPassword: "newpass",
+	}))
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	require.ErrorContains(t, err, "write encryption metadata")
+	var pathErr *os.PathError
+	require.ErrorAs(t, err, &pathErr)
+	require.NoError(t, svc.UnlockWallet("oldpass"))
+	require.Equal(t, "Password", svc.ActiveWalletName())
 }
 
 func TestLockSendsALockedFrame(t *testing.T) {

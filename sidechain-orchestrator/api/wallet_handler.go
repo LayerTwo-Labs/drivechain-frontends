@@ -160,14 +160,8 @@ func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request
 }
 
 func (h *WalletHandler) UnlockWallet(ctx context.Context, req *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[pb.UnlockWalletResponse], error) {
-	err := h.svc.UnlockWallet(req.Msg.Password)
-	switch {
-	case errors.Is(err, wallet.ErrIncorrectPassword):
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
-	case errors.Is(err, wallet.ErrNotEncrypted):
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := h.svc.UnlockWallet(req.Msg.Password); err != nil {
+		return nil, rpcError(err)
 	}
 	return connect.NewResponse(&pb.UnlockWalletResponse{}), nil
 }
@@ -186,14 +180,14 @@ func (h *WalletHandler) EncryptWallet(ctx context.Context, req *connect.Request[
 
 func (h *WalletHandler) ChangePassword(ctx context.Context, req *connect.Request[pb.ChangePasswordRequest]) (*connect.Response[pb.ChangePasswordResponse], error) {
 	if err := h.svc.ChangePassword(req.Msg.OldPassword, req.Msg.NewPassword); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, rpcError(err)
 	}
 	return connect.NewResponse(&pb.ChangePasswordResponse{}), nil
 }
 
 func (h *WalletHandler) RemoveEncryption(ctx context.Context, req *connect.Request[pb.RemoveEncryptionRequest]) (*connect.Response[pb.RemoveEncryptionResponse], error) {
 	if err := h.svc.RemoveEncryption(req.Msg.Password); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, rpcError(err)
 	}
 	return connect.NewResponse(&pb.RemoveEncryptionResponse{}), nil
 }
@@ -732,14 +726,19 @@ func (h *WalletHandler) requireEngine() error {
 	return nil
 }
 
-// rpcError passes through errors that already carry a connect code and
-// wraps everything else as internal.
 func rpcError(err error) error {
 	var ce *connect.Error
 	if errors.As(err, &ce) {
 		return ce
 	}
-	return connect.NewError(connect.CodeInternal, err)
+	switch {
+	case errors.Is(err, wallet.ErrIncorrectPassword):
+		return connect.NewError(connect.CodeUnauthenticated, err)
+	case errors.Is(err, wallet.ErrNotEncrypted):
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	default:
+		return connect.NewError(connect.CodeInternal, err)
+	}
 }
 
 func (h *WalletHandler) CreateBitcoinCoreWallet(ctx context.Context, req *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
