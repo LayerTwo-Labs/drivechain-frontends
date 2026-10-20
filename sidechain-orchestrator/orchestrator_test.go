@@ -65,6 +65,15 @@ func newTestProcessManager(t *testing.T) (*ProcessManager, string) {
 	return pm, dir
 }
 
+// stopOnCleanup kills the process at cleanup and waits for its log tail to finish.
+func stopOnCleanup(t *testing.T, pm *ProcessManager, name string) {
+	t.Helper()
+	t.Cleanup(func() {
+		_ = pm.Stop(context.Background(), name, true)
+		pm.WaitForExit(name, 5*time.Second)
+	})
+}
+
 func newTestDownloadManager(t *testing.T) (*DownloadManager, string) {
 	t.Helper()
 	dir := t.TempDir()

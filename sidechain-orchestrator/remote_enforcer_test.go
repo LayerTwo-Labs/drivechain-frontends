@@ -446,6 +446,7 @@ func installRemoteTestDaemon(t *testing.T, o *Orchestrator) (BinaryConfig, map[s
 		o.StopAllMonitors()
 		if o.process.IsRunning(cfg.Name) {
 			require.NoError(t, o.Stop(context.Background(), cfg.Name, true, StopOptions{ForceBackend: true}))
+			o.process.WaitForExit(cfg.Name, 5*time.Second)
 		}
 	})
 	return cfg, env, argsPath

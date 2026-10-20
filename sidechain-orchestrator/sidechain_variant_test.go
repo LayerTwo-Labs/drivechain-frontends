@@ -349,7 +349,7 @@ func TestOrchestrator_ForceBackend_AdoptsProdPidWhenTestSidechainsEnabled(t *tes
 	pid, err := pm.StartWithOptions(context.Background(), cfg, []string{"30"}, nil, ProcessStartOptions{ForceBackend: true})
 	require.NoError(t, err)
 	require.NotZero(t, pid)
-	t.Cleanup(func() { _ = pm.Stop(context.Background(), cfg.Name, true) })
+	stopOnCleanup(t, pm, cfg.Name)
 
 	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, log)
 
@@ -396,7 +396,7 @@ func TestOrchestrator_StopStopsManagedSidechainGUICompanion(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = o.process.Stop(context.Background(), guiName, true) })
+	stopOnCleanup(t, o.process, guiName)
 
 	assert.True(t, o.process.IsRunning(guiName))
 	assert.False(t, o.process.IsRunning(cfg.Name), "GUI companion must not occupy the backend daemon slot")
@@ -409,7 +409,7 @@ func TestOrchestrator_StopStopsManagedSidechainGUICompanion(t *testing.T) {
 		ProcessStartOptions{ForceBackend: true},
 	)
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = o.process.Stop(context.Background(), cfg.Name, true) })
+	stopOnCleanup(t, o.process, cfg.Name)
 
 	require.NoError(t, o.Stop(context.Background(), cfg.Name, false))
 	assert.False(t, o.process.IsRunning(guiName), "Stop(sidechain) must stop the managed GUI companion")
@@ -446,7 +446,7 @@ func TestOrchestrator_AdoptsGUICompanionUnderGUISlot(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = origin.process.Stop(context.Background(), guiName, true) })
+	stopOnCleanup(t, origin.process, guiName)
 
 	next := New(dataDir, "signet", t.TempDir(), []BinaryConfig{cfg}, log)
 	require.NoError(t, next.AdoptOrphans(context.Background()))
