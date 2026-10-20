@@ -366,7 +366,8 @@ func TestService_CreateDenial(t *testing.T) {
 
 		denials, err := deniability.List(t.Context(), database)
 		require.NoError(t, err)
-		assert.Len(t, denials, 1)
+		require.Len(t, denials, 1)
+		denialID := denials[0].ID
 		assert.EqualValues(t, 1, denials[0].ID)
 		assert.Equal(t, "abc123", denials[0].TipTXID)
 		assert.Equal(t, int32(0), denials[0].TipVout)
@@ -389,7 +390,10 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
 		assert.Empty(t, denials[0].TargetUTXOSizes)
 
-		require.NoError(t, deniability.Cancel(t.Context(), database, denials[0].ID, "stopped by the user"))
+		_, err = cli.PauseDenial(t.Context(), connect.NewRequest(&v1.PauseDenialRequest{Id: denialID}))
+		require.NoError(t, err)
+		_, err = cli.CancelDenial(t.Context(), connect.NewRequest(&v1.CancelDenialRequest{Id: denialID}))
+		require.NoError(t, err)
 		_, err = cli.CreateDenial(t.Context(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:            "abc123",
 			Vout:            0,
@@ -402,10 +406,14 @@ func TestService_CreateDenial(t *testing.T) {
 		denials, err = deniability.List(t.Context(), database)
 		require.NoError(t, err)
 		require.Len(t, denials, 1)
+		assert.Equal(t, denialID, denials[0].ID)
 		assert.EqualValues(t, int32(120), denials[0].DelayDuration.Seconds())
 		assert.Equal(t, int32(3), denials[0].NumHops)
 		assert.Equal(t, deniability.TargetSizes{0, 1000, 2000}, denials[0].TargetUTXOSizes)
+		assert.Nil(t, denials[0].PausedAt)
 		assert.Nil(t, denials[0].CancelledAt)
+		assert.Nil(t, denials[0].CancelReason)
+		assert.NotNil(t, denials[0].NextExecution)
 	})
 
 	t.Run("multiple denials different utxos", func(t *testing.T) {

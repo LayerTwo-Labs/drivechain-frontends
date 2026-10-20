@@ -343,7 +343,7 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, targetSizes TargetSizes, txid string, vout int32) error {
 	err := database.CheckOne(db.ExecContext(ctx, `
 		UPDATE denials
-		SET delay_duration = ?, num_hops = num_hops + ?, target_utxo_sizes = ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
+		SET delay_duration = ?, num_hops = num_hops + ?, target_utxo_sizes = ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, paused_at = NULL, updated_at = ?
 		WHERE id = ?
 	`, delay, numHops, targetSizes, txid, vout, time.Now(), id))
 	switch {
