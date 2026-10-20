@@ -71,7 +71,7 @@ func TestScanForFunds(t *testing.T) {
 		assert.Equal(t, uint32(3), recoveries[0].Index)
 		assert.Equal(t, address, recoveries[0].Address)
 		assert.Equal(t, uint64(100_000), recoveries[0].Amount)
-		assert.Equal(t, []cheques.FundingOutput{{Txid: testUTXOs()[0].TxID}}, recoveries[0].Outputs)
+		assert.Equal(t, []cheques.FundingOutput{{Txid: testUTXOs()[0].TxID, ValueSats: 100_000}}, recoveries[0].Outputs)
 		assert.Len(t, chain.queried, 24)
 	})
 
@@ -149,12 +149,19 @@ func TestRecoverChequesOnUnlockKeepsTheBlockHeight(t *testing.T) {
 	require.NoError(t, err)
 	utxos := testUTXOs()
 	utxos[0].Height = 123
+	utxos[0].Vout = 2
 	chain.funded[address] = utxos
 
 	engine.recoverChequesOnUnlock(ctx)
 
 	var height sql.NullInt64
-	require.NoError(t, engine.db.QueryRowContext(ctx, `SELECT block_height FROM cheque_funding_outputs`).Scan(&height))
+	var vout int32
+	var valueSats int64
+	require.NoError(t, engine.db.QueryRowContext(ctx, `
+		SELECT vout, value_sats, block_height FROM cheque_funding_outputs
+	`).Scan(&vout, &valueSats, &height))
+	assert.Equal(t, utxos[0].Vout, vout)
+	assert.Equal(t, utxos[0].ValueSats, valueSats)
 	require.Equal(t, sql.NullInt64{Int64: 123, Valid: true}, height)
 }
 

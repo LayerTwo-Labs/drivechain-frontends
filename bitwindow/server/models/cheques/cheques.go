@@ -174,10 +174,11 @@ func attachFundingOutputs(ctx context.Context, db *sql.DB, cheques []*Cheque) er
 	return nil
 }
 
-// FundingOutput is one transaction paying a cheque. BlockHeight is 0 while it
-// is unconfirmed.
+// FundingOutput is one cheque output. BlockHeight is 0 before block inclusion.
 type FundingOutput struct {
 	Txid        string
+	Vout        int32
+	ValueSats   int64
 	BlockHeight uint32
 }
 
@@ -192,7 +193,8 @@ func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, o
 
 	if err := database.CheckOne(tx.ExecContext(ctx, `
 		UPDATE cheques
-		SET actual_amount_sats = ?, funded_at = COALESCE(funded_at, ?)
+		SET actual_amount_sats = ?, funded_at = COALESCE(funded_at, ?),
+		    swept_txid = NULL, swept_at = NULL
 		WHERE wallet_id = ? AND id = ?
 	`, actualAmount, now, walletID, id)); err != nil {
 		return fmt.Errorf("update funding: %w", err)
@@ -216,10 +218,11 @@ func recordFundingOutputs(ctx context.Context, tx *sql.Tx, chequeID int64, outpu
 		}
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats, block_height)
-			VALUES (?, ?, 0, 0, ?)
+			VALUES (?, ?, ?, ?, ?)
 			ON CONFLICT (cheque_id, txid, vout) DO UPDATE
-			SET block_height = COALESCE(excluded.block_height, block_height)
-		`, chequeID, out.Txid, height); err != nil {
+			SET value_sats = excluded.value_sats,
+			    block_height = COALESCE(excluded.block_height, block_height)
+		`, chequeID, out.Txid, out.Vout, out.ValueSats, height); err != nil {
 			return fmt.Errorf("record funding output: %w", err)
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"time"
 
 	"connectrpc.com/connect"
@@ -191,7 +192,9 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, gapLim
 		var outputs []cheques.FundingOutput
 		for _, utxo := range utxos {
 			amountSats += uint64(utxo.ValueSats)
-			outputs = append(outputs, cheques.FundingOutput{Txid: utxo.TxID, BlockHeight: utxo.Height})
+			outputs = append(outputs, cheques.FundingOutput{
+				Txid: utxo.TxID, Vout: utxo.Vout, ValueSats: utxo.ValueSats, BlockHeight: utxo.Height,
+			})
 		}
 
 		recoveries = append(recoveries, ChequeRecovery{
@@ -254,8 +257,12 @@ func (e *ChequeEngine) CheckFunding(ctx context.Context, cheque *cheques.Cheque)
 	var outputs []cheques.FundingOutput
 	for _, utxo := range utxos {
 		funding.AmountSats += uint64(utxo.ValueSats)
-		funding.Txids = append(funding.Txids, utxo.TxID)
-		outputs = append(outputs, cheques.FundingOutput{Txid: utxo.TxID, BlockHeight: utxo.Height})
+		if !slices.Contains(funding.Txids, utxo.TxID) {
+			funding.Txids = append(funding.Txids, utxo.TxID)
+		}
+		outputs = append(outputs, cheques.FundingOutput{
+			Txid: utxo.TxID, Vout: utxo.Vout, ValueSats: utxo.ValueSats, BlockHeight: utxo.Height,
+		})
 		funding.MinConfirmations = min(funding.MinConfirmations, uint32(utxo.Confirmations))
 	}
 
@@ -267,7 +274,7 @@ func (e *ChequeEngine) CheckFunding(ctx context.Context, cheque *cheques.Cheque)
 		Int64("id", cheque.ID).
 		Str("address", cheque.Address).
 		Uint64("amount_sats", funding.AmountSats).
-		Int("utxo_count", len(funding.Txids)).
+		Int("utxo_count", len(utxos)).
 		Msg("cheque funded")
 
 	updated, err := cheques.Get(ctx, e.db, cheque.WalletID, cheque.ID)
