@@ -1318,7 +1318,7 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 	}
 	if err != nil || !meta.Encrypted {
 		s.log.Warn().Err(err).Msg("change password failed: wallet is not encrypted")
-		return fmt.Errorf("wallet is not encrypted")
+		return ErrNotEncrypted
 	}
 
 	salt, err := base64.StdEncoding.DecodeString(meta.Salt)
@@ -1335,7 +1335,7 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 	plaintext, err := Decrypt(string(data), oldKey)
 	if err != nil {
 		s.log.Warn().Msg("change password failed: incorrect old password")
-		return fmt.Errorf("incorrect old password")
+		return ErrIncorrectPassword
 	}
 
 	newSalt, err := GenerateSalt()
@@ -1391,7 +1391,7 @@ func (s *Service) RemoveEncryption(password string) error {
 
 	if !s.isEncrypted() {
 		s.log.Warn().Msg("remove encryption failed: wallet is not encrypted")
-		return fmt.Errorf("wallet is not encrypted")
+		return ErrNotEncrypted
 	}
 
 	meta, err := s.loadMetadata()
@@ -1430,7 +1430,7 @@ func (s *Service) RemoveEncryption(password string) error {
 			return nil
 		}
 		s.log.Warn().Msg("remove encryption failed: incorrect password")
-		return fmt.Errorf("incorrect password")
+		return ErrIncorrectPassword
 	}
 
 	// Backup

@@ -219,6 +219,14 @@ func TestServiceLocksWhenARestoreReplacesTheWallet(t *testing.T) {
 }
 
 func TestServiceChangePassword(t *testing.T) {
+	t.Run("unencrypted wallet", func(t *testing.T) {
+		svc := newTestService(t)
+		_, err := svc.GenerateWallet("Password", "", "", testSlots)
+		require.NoError(t, err)
+
+		require.ErrorIs(t, svc.ChangePassword("oldpass", "newpass"), ErrNotEncrypted)
+	})
+
 	t.Run("new password replaces old", func(t *testing.T) {
 		svc := newTestService(t)
 
@@ -228,7 +236,7 @@ func TestServiceChangePassword(t *testing.T) {
 		require.NoError(t, svc.EncryptWallet("oldpass"))
 
 		err = svc.ChangePassword("wrongold", "newpass")
-		require.ErrorContains(t, err, "incorrect old password")
+		require.ErrorIs(t, err, ErrIncorrectPassword)
 
 		require.NoError(t, svc.ChangePassword("oldpass", "newpass"))
 
@@ -275,7 +283,7 @@ func TestServiceRemoveEncryption(t *testing.T) {
 
 	// Remove with wrong password
 	err = svc.RemoveEncryption("wrongpass")
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrIncorrectPassword)
 
 	// Remove with correct password
 	require.NoError(t, svc.RemoveEncryption("mypass"))
@@ -551,7 +559,7 @@ func TestServiceRemoveEncryptionWithoutEncryption(t *testing.T) {
 	require.NoError(t, err)
 
 	err = svc.RemoveEncryption("password")
-	assert.Error(t, err, "should fail to remove encryption when not encrypted")
+	assert.ErrorIs(t, err, ErrNotEncrypted)
 }
 
 func TestServiceDoubleEncrypt(t *testing.T) {
