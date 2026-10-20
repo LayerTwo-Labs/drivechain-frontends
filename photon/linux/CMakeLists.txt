@@ -54,6 +54,14 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 
+# The runner loads the bundled copy on systems without libgles2. It goes in
+# lib/gles, outside the RUNPATH, so a system copy loads first.
+find_library(GLESV2_LIBRARY NAMES libGLESv2.so.2)
+if(NOT GLESV2_LIBRARY)
+  message(FATAL_ERROR "libGLESv2.so.2 not found. Install libgles2.")
+endif()
+get_filename_component(GLESV2_LIBRARY_FILE "${GLESV2_LIBRARY}" REALPATH)
+
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
@@ -99,6 +107,9 @@ install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}
 
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
+
+install(FILES "${GLESV2_LIBRARY_FILE}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/gles"
+  RENAME "libGLESv2.so.2" COMPONENT Runtime)
 
 foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
   install(FILES "${bundled_library}"
