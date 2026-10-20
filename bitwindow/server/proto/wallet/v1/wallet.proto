@@ -3,6 +3,7 @@ syntax = "proto3";
 package wallet.v1;
 
 import "bitwindowd/v1/bitwindowd.proto";
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -102,6 +103,17 @@ message GetStatsRequest {
 }
 
 message SendTransactionRequest {
+  option (buf.validate.message).cel = {
+    id: "send.outputs"
+    message: "the request must include a destination"
+    expression: "size(this.destinations) > 0"
+  };
+  option (buf.validate.message).cel = {
+    id: "send.fees"
+    message: "the request cannot set both fee rate and fixed fee"
+    expression: "this.fee_sat_per_vbyte == 0u || this.fixed_fee_sats == 0u"
+  };
+
   string wallet_id = 1;
 
   // Map of destination address to amount in satoshi.

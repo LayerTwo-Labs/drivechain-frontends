@@ -1235,6 +1235,7 @@ const SendTransactionRequest$json = {
     {'1': 'replaceable', '3': 11, '4': 1, '5': 8, '10': 'replaceable'},
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
+  '7': {},
   '9': [
     {'1': 8, '2': 9},
   ],
@@ -1265,7 +1266,12 @@ final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64De
     'Z2VyLnYxLlJhd091dHB1dFIKcmF3T3V0cHV0cxJICg9leHRlcm5hbF9pbnB1dHMYCiADKAsyHy'
     '53YWxsZXRtYW5hZ2VyLnYxLkV4dGVybmFsSW5wdXRSDmV4dGVybmFsSW5wdXRzEiAKC3JlcGxh'
     'Y2VhYmxlGAsgASgIUgtyZXBsYWNlYWJsZRo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYAS'
-    'ABKAlSA2tleRIUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgBSgQICBAJ');
+    'ABKAlSA2tleRIUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgBOpkCukiVAhqTAQoMc2VuZC5vdXRw'
+    'dXRzEix0aGUgcmVxdWVzdCBtdXN0IGluY2x1ZGUgYXQgbGVhc3Qgb25lIG91dHB1dBpVc2l6ZS'
+    'h0aGlzLmRlc3RpbmF0aW9ucykgPiAwIHx8IHRoaXMub3BfcmV0dXJuX2hleCAhPSAnJyB8fCBz'
+    'aXplKHRoaXMucmF3X291dHB1dHMpID4gMBp9CglzZW5kLmZlZXMSMnRoZSByZXF1ZXN0IGNhbm'
+    '5vdCBzZXQgYm90aCBmZWUgcmF0ZSBhbmQgZml4ZWQgZmVlGjx0aGlzLmZlZV9yYXRlX3NhdF9w'
+    'ZXJfdmJ5dGUgPD0gMCB8fCB0aGlzLmZpeGVkX2ZlZV9zYXRzIDw9IDBKBAgIEAk=');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {

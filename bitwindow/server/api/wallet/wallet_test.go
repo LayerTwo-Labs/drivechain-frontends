@@ -82,7 +82,7 @@ func TestSendTransaction(t *testing.T) {
 		{
 			name:    "no destination",
 			req:     &walletv1.SendTransactionRequest{},
-			wantErr: "must provide a destination",
+			wantErr: "the request must include a destination",
 		},
 		{
 			name:    "an amount below dust",
@@ -96,7 +96,7 @@ func TestSendTransaction(t *testing.T) {
 				FeeSatPerVbyte: 2,
 				FixedFeeSats:   500,
 			},
-			wantErr: "cannot provide both fee rate and fee amount",
+			wantErr: "the request cannot set both fee rate and fixed fee",
 		},
 		{
 			name: "an input with no vout",

@@ -7,6 +7,7 @@
 package walletmanagerv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -10720,7 +10721,7 @@ var File_walletmanager_v1_walletmanager_proto protoreflect.FileDescriptor
 
 const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\n" +
-	"$walletmanager/v1/walletmanager.proto\x12\x10walletmanager.v1\x1a\"orchestrator/v1/orchestrator.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x18\n" +
+	"$walletmanager/v1/walletmanager.proto\x12\x10walletmanager.v1\x1a\x1bbuf/validate/validate.proto\x1a\"orchestrator/v1/orchestrator.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x18\n" +
 	"\x16GetWalletStatusRequest\"\x87\x02\n" +
 	"\x17GetWalletStatusResponse\x12!\n" +
 	"\n" +
@@ -11017,7 +11018,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x15GetNewAddressResponse\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x14\n" +
 	"\x05index\x18\x02 \x01(\x05R\x05index\x12'\n" +
-	"\x0fderivation_path\x18\x03 \x01(\tR\x0ederivationPath\"\xfa\x05\n" +
+	"\x0fderivation_path\x18\x03 \x01(\tR\x0ederivationPath\"\x96\b\n" +
 	"\x16SendTransactionRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12^\n" +
 	"\fdestinations\x18\x02 \x03(\v2:.walletmanager.v1.SendTransactionRequest.DestinationsEntryR\fdestinations\x122\n" +
@@ -11035,7 +11036,9 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\vreplaceable\x18\v \x01(\bR\vreplaceable\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01J\x04\b\b\x10\t\"-\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01:\x99\x02\xbaH\x95\x02\x1a\x93\x01\n" +
+	"\fsend.outputs\x12,the request must include at least one output\x1aUsize(this.destinations) > 0 || this.op_return_hex != '' || size(this.raw_outputs) > 0\x1a}\n" +
+	"\tsend.fees\x122the request cannot set both fee rate and fixed fee\x1a<this.fee_rate_sat_per_vbyte <= 0 || this.fixed_fee_sats <= 0J\x04\b\b\x10\t\"-\n" +
 	"\x17SendTransactionResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xa8\x03\n" +
 	"\x12PreviewSendRequest\x12\x1b\n" +
