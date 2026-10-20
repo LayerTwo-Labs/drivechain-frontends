@@ -245,8 +245,9 @@ func TestDeniabilityEngine(t *testing.T) {
 		}
 	})
 
-	t.Run("executeDenial", func(t *testing.T) {
+	t.Run("a denial saves one hop before its next execution", func(t *testing.T) {
 		t.Parallel()
+		ctrl := gomock.NewController(t)
 		db := database.Test(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
@@ -258,7 +259,6 @@ func TestDeniabilityEngine(t *testing.T) {
 			SetFrozenCoins(gomock.Any(), gomock.Any()).
 			AnyTimes().
 			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
-		// With a client wired, the engine reads the Core wallet name there.
 		mockOrch.EXPECT().
 			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
 			AnyTimes().
@@ -267,69 +267,59 @@ func TestDeniabilityEngine(t *testing.T) {
 			}, nil)
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			AnyTimes().
+			Times(1).
 			Return(&connect.Response[orchpb.SendTransactionResponse]{
 				Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
 			}, nil)
 		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
 
-		// Create a denial with empty wallet_id (legacy behavior)
-		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 2, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
-		// The send path asks for a change address too.
 		mockBitcoind.EXPECT().
 			GetNewAddress(gomock.Any(), gomock.Any()).
-			AnyTimes().
+			Times(1).
 			Return(&connect.Response[corepb.GetNewAddressResponse]{
 				Msg: &corepb.GetNewAddressResponse{Address: "bc1qtest"},
 			}, nil)
 
-		// Core signs and broadcasts a raw transaction.
-		mockBitcoind.EXPECT().
-			CreateRawTransaction(gomock.Any(), gomock.Any()).
-			AnyTimes().
-			Return(&connect.Response[corepb.CreateRawTransactionResponse]{
-				Msg: &corepb.CreateRawTransactionResponse{Tx: &corepb.RawTransaction{Hex: "raw-tx-hex"}},
-			}, nil)
-
-		mockBitcoind.EXPECT().
-			SignRawTransactionWithWallet(gomock.Any(), gomock.Any()).
-			AnyTimes().
-			Return(&connect.Response[corepb.SignRawTransactionWithWalletResponse]{
-				Msg: &corepb.SignRawTransactionWithWalletResponse{Hex: "signed-tx-hex", Complete: true},
-			}, nil)
-
-		mockBitcoind.EXPECT().
-			SendRawTransaction(gomock.Any(), gomock.Any()).
-			AnyTimes().
-			Return(&connect.Response[corepb.SendRawTransactionResponse]{
-				Msg: &corepb.SendRawTransactionResponse{Txid: "new-txid"},
-			}, nil)
-
-		// waitForTXToAppear keeps reading until the new txid shows up.
 		mockBitcoind.EXPECT().
 			ListUnspent(gomock.Any(), gomock.Any()).
-			AnyTimes().
+			MinTimes(3).
 			Return(&connect.Response[corepb.ListUnspentResponse]{
 				Msg: &corepb.ListUnspentResponse{
 					Unspent: []*corepb.UnspentOutput{
-						{Txid: "test-txid", Address: "bc1qsource", Vout: 0, Amount: 0.01, Confirmations: 6},
-						{Txid: "new-txid", Address: "bc1qtest", Vout: 0, Amount: 0.005, Confirmations: 1},
+						{Txid: "new-txid", Address: "bc1qtest", Vout: 3, Amount: 0.005, Confirmations: 1},
 					},
 				},
 			}, nil)
 
-		// Execute denial
 		err = engine.ExecuteDenial(ctx, []*engines.UTXO{
-			{Txid: "test-txid", Vout: 0, ValueSats: 1000000},
+			{Txid: "test-txid", Vout: 2, ValueSats: 1000000},
 		}, denial)
 		require.NoError(t, err)
 
-		// Verify execution was recorded
 		denial, err = deniability.Get(ctx, db, denial.ID)
 		require.NoError(t, err)
-		assert.NotNil(t, denial)
+		assert.Equal(t, "new-txid", denial.TipTXID)
+		assert.Equal(t, int32(3), denial.TipVout)
+		require.Len(t, denial.ExecutedDenials, 1)
+		execution := denial.ExecutedDenials[0]
+		assert.Equal(t, denial.ID, execution.DenialID)
+		assert.Equal(t, "test-txid", execution.FromTxID)
+		assert.Equal(t, int32(2), execution.FromVout)
+		assert.Equal(t, "new-txid", execution.ToTxID)
+		require.NotNil(t, denial.NextExecution)
+		assert.Equal(t, execution.CreatedAt.Add(denial.DelayDuration), *denial.NextExecution)
+		require.True(t, denial.NextExecution.After(time.Now()))
+
+		runCtx, cancel := context.WithTimeout(ctx, 2500*time.Millisecond)
+		defer cancel()
+		require.NoError(t, engine.Run(runCtx))
+
+		savedDenial, err := deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.Equal(t, denial, savedDenial)
 	})
 
 	t.Run("processUTXO with insufficient amount", func(t *testing.T) {
