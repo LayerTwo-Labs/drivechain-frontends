@@ -330,11 +330,9 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			continue
 		}
 
-		if !tx.txTime.IsZero() && time.Since(tx.txTime) > notificationBacklog {
-			if !notified {
-				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
-					return fmt.Errorf("mark backlog transaction %s notified: %w", txid, err)
-				}
+		if !notified && !tx.txTime.IsZero() && time.Since(tx.txTime) > notificationBacklog {
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
+				return fmt.Errorf("mark backlog transaction %s notified: %w", txid, err)
 			}
 			if !confNotified && confirmations >= 1 {
 				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {

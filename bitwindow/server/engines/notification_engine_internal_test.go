@@ -56,6 +56,43 @@ func TestProcessWalletTransactions_HistoryIsNotAnnounced(t *testing.T) {
 	}
 }
 
+func TestProcessWalletTransactions_ConfirmsAfterBacklog(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+
+	const txid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const eventID = "wallet-a:" + txid
+	require.NoError(t, notifications.MarkNotified(ctx, db, notifications.EventTypeTransaction, eventID))
+
+	engine := NewNotificationEngine(db, nil, nil)
+	events := engine.Subscribe(ctx)
+	txs := []*corepb.GetTransactionResponse{{
+		Txid:          txid,
+		Amount:        0.25,
+		Confirmations: 1,
+		Time:          timestamppb.New(time.Now().Add(-25 * time.Hour)),
+	}}
+
+	require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", txs))
+
+	event := nextEvent(t, events).GetTransaction()
+	require.Equal(t, notificationv1.TransactionEvent_TYPE_CONFIRMED, event.GetType())
+	require.Equal(t, txid, event.GetTxid())
+	require.Equal(t, uint64(25_000_000), event.GetAmountSats())
+	require.Equal(t, uint32(1), event.GetConfirmations())
+
+	notified, err := notifications.HasBeenNotified(ctx, db, notifications.EventTypeTransactionConf, eventID+":confirmed")
+	require.NoError(t, err)
+	require.True(t, notified)
+
+	require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", txs))
+	select {
+	case event := <-events:
+		t.Fatalf("received a duplicate notification: %v", event)
+	default:
+	}
+}
+
 // The same txid shows up in every wallet that takes part in it, so dedup has to
 // be per-wallet. Otherwise the first wallet we process swallows the
 // notification for all the others.
