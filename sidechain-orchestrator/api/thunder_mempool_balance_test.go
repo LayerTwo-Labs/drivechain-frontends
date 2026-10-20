@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -108,12 +108,12 @@ func TestThunderBalanceTracksMempoolSpendAndReceipt(t *testing.T) {
 							handler := NewHandler(orch)
 							handler.SetSidechainBalance("thunder", sidechain.NewJSONRPCProxy(host, port).GetBalance)
 
-							response, err := handler.GetSidechainBalance(context.Background(), connect.NewRequest(&pb.GetSidechainBalanceRequest{
+							response, err := handler.GetSidechainBalance(context.Background(), &pb.GetSidechainBalanceRequest{
 								Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER,
-							}))
+							})
 							require.NoError(t, err)
-							assert.Equal(t, state.wantConfirmed, response.Msg.ConfirmedSats)
-							assert.Equal(t, state.wantPending, response.Msg.PendingSats)
+							assert.Equal(t, state.wantConfirmed, response.ConfirmedSats)
+							assert.Equal(t, state.wantPending, response.PendingSats)
 						})
 					}
 				})
@@ -158,9 +158,9 @@ func TestThunderBalanceReportsAMempoolFault(t *testing.T) {
 	handler := NewHandler(orch)
 	handler.SetSidechainBalance("thunder", sidechain.NewJSONRPCProxy(host, port).GetBalance)
 
-	response, err := handler.GetSidechainBalance(t.Context(), connect.NewRequest(&pb.GetSidechainBalanceRequest{
+	response, err := handler.GetSidechainBalance(t.Context(), &pb.GetSidechainBalanceRequest{
 		Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER,
-	}))
+	})
 	require.ErrorContains(t, err, "request timed out")
 	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	assert.Nil(t, response)

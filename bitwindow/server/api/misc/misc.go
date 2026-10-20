@@ -8,7 +8,8 @@ import (
 	"math"
 	"strings"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -60,15 +61,15 @@ type Server struct {
 const listOPReturnLimit = 1000
 
 // ListOPReturn implements miscv1connect.MiscServiceHandler.
-func (s *Server) ListOPReturn(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListOPReturnResponse], error) {
+func (s *Server) ListOPReturn(ctx context.Context, req *emptypb.Empty) (*miscv1.ListOPReturnResponse, error) {
 	opReturns, err := opreturns.List(ctx, s.database, listOPReturnLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(&miscv1.ListOPReturnResponse{
+	return &miscv1.ListOPReturnResponse{
 		OpReturns: lo.Map(opReturns, opReturnToProto),
-	}), nil
+	}, nil
 }
 
 func opReturnToProto(opReturn opreturns.OPReturn, _ int) *miscv1.OPReturn {
@@ -87,23 +88,23 @@ func opReturnToProto(opReturn opreturns.OPReturn, _ int) *miscv1.OPReturn {
 }
 
 // BroadcastNews implements miscv1connect.MiscServiceHandler.
-func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.BroadcastNewsRequest]) (*connect.Response[miscv1.BroadcastNewsResponse], error) {
-	if req.Msg.Topic == "" {
+func (s *Server) BroadcastNews(ctx context.Context, req *miscv1.BroadcastNewsRequest) (*miscv1.BroadcastNewsResponse, error) {
+	if req.Topic == "" {
 		err := errors.New("topic must be set")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	topicID, err := opreturns.ValidNewsTopicID(req.Msg.Topic)
+	topicID, err := opreturns.ValidNewsTopicID(req.Topic)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	if strings.TrimSpace(req.Msg.Headline) == "" {
+	if strings.TrimSpace(req.Headline) == "" {
 		err := errors.New("headline must be set")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	if len([]byte(req.Msg.Headline)) > 64 {
+	if len([]byte(req.Headline)) > 64 {
 		err := errors.New("headline cannot be longer than 64 bytes")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	exists, err := opreturns.TopicExists(ctx, s.database, topicID)
 	if err != nil {
@@ -111,20 +112,20 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	}
 	if !exists {
 		err := errors.New("topic does not exist")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	storyBytes, err := opreturns.EncodeNewsMessageWithOptions(topicID, req.Msg.Headline, req.Msg.Content, opreturns.StoryOptions{
-		URL:     req.Msg.Url,
-		Lang:    req.Msg.Lang,
-		Subtype: req.Msg.Subtype,
-		NSFW:    req.Msg.Nsfw,
+	storyBytes, err := opreturns.EncodeNewsMessageWithOptions(topicID, req.Headline, req.Content, opreturns.StoryOptions{
+		URL:     req.Url,
+		Lang:    req.Lang,
+		Subtype: req.Subtype,
+		NSFW:    req.Nsfw,
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	txid, err := s.walletEngine.BroadcastOpReturn(ctx, storyBytes, req.Msg.FeeSatPerVbyte, req.Msg.FeeSats)
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, storyBytes, req.FeeSatPerVbyte, req.FeeSats)
 	if err != nil {
 		return nil, fmt.Errorf("broadcast news: %w", err)
 	}
@@ -132,40 +133,40 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	log := zerolog.Ctx(ctx)
 	log.Info().
 		Hex("topic", topicID[:]).
-		Str("headline", req.Msg.Headline).
+		Str("headline", req.Headline).
 		Str("txid", txid).
 		Msg("broadcast news transaction")
 
-	return connect.NewResponse(&miscv1.BroadcastNewsResponse{
+	return &miscv1.BroadcastNewsResponse{
 		Txid: txid,
-	}), nil
+	}, nil
 }
 
 // UpvoteNews implements miscv1connect.MiscServiceHandler. It signs a
 // CoinNews Vote (kind=0x04) over the target story with this node's
 // identity key and broadcasts it as an OP_RETURN.
-func (s *Server) UpvoteNews(ctx context.Context, req *connect.Request[miscv1.UpvoteNewsRequest]) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
-	return s.broadcastVote(ctx, req.Msg, codec.TypeUpvote)
+func (s *Server) UpvoteNews(ctx context.Context, req *miscv1.UpvoteNewsRequest) (*miscv1.UpvoteNewsResponse, error) {
+	return s.broadcastVote(ctx, req, codec.TypeUpvote)
 }
 
 // DownvoteNews implements miscv1connect.MiscServiceHandler. Same as
 // UpvoteNews but signs a downvote (kind=0x05).
-func (s *Server) DownvoteNews(ctx context.Context, req *connect.Request[miscv1.UpvoteNewsRequest]) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
-	return s.broadcastVote(ctx, req.Msg, codec.TypeDownvote)
+func (s *Server) DownvoteNews(ctx context.Context, req *miscv1.UpvoteNewsRequest) (*miscv1.UpvoteNewsResponse, error) {
+	return s.broadcastVote(ctx, req, codec.TypeDownvote)
 }
 
 func parseItemID(hexID, field string) (codec.ItemID, error) {
 	id, err := codec.ParseItemID(hexID)
 	if err != nil {
 		return codec.ItemID{}, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("%s must be %d-byte hex: %w", field, codec.ItemIDLen, err))
+			fmt.Sprintf("%s must be %d-byte hex: %s", field, codec.ItemIDLen, err)).WithCause(err)
 	}
 	return id, nil
 }
 
 // broadcastVote signs a CoinNews Vote of the given kind over the target
 // story with this node's identity key and broadcasts it as an OP_RETURN.
-func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsRequest, kind codec.TypeTag) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
+func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsRequest, kind codec.TypeTag) (*miscv1.UpvoteNewsResponse, error) {
 	target, err := parseItemID(req.ItemId, "item_id")
 	if err != nil {
 		return nil, err
@@ -200,30 +201,30 @@ func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsReques
 		Str("txid", txid).
 		Msg("broadcast vote transaction")
 
-	return connect.NewResponse(&miscv1.UpvoteNewsResponse{
+	return &miscv1.UpvoteNewsResponse{
 		Txid: txid,
-	}), nil
+	}, nil
 }
 
 // EstimateNewsFee implements miscv1connect.MiscServiceHandler. It encodes the
 // payload the action would broadcast and prices the transaction that holds it.
-func (s *Server) EstimateNewsFee(ctx context.Context, req *connect.Request[miscv1.EstimateNewsFeeRequest]) (*connect.Response[miscv1.EstimateNewsFeeResponse], error) {
-	payload, err := newsPayloadFor(req.Msg)
+func (s *Server) EstimateNewsFee(ctx context.Context, req *miscv1.EstimateNewsFeeRequest) (*miscv1.EstimateNewsFeeResponse, error) {
+	payload, err := newsPayloadFor(req)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	rate, err := s.walletEngine.EstimateFeeRate(ctx, 6)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("estimate fee rate: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Sprintf("estimate fee rate: %s", err)).WithCause(err)
 	}
 
 	vsize := engines.OpReturnTxVbytes(len(payload))
-	return connect.NewResponse(&miscv1.EstimateNewsFeeResponse{
+	return &miscv1.EstimateNewsFeeResponse{
 		Vsize:          vsize,
 		FeeSatPerVbyte: rate,
 		FeeSats:        uint64(math.Ceil(float64(vsize) * rate)),
-	}), nil
+	}, nil
 }
 
 // newsPayloadFor encodes the exact bytes the action would put in the OP_RETURN.
@@ -258,18 +259,18 @@ func newsPayloadFor(req *miscv1.EstimateNewsFeeRequest) ([]byte, error) {
 }
 
 // CreateTopic implements miscv1connect.MiscServiceHandler.
-func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.CreateTopicRequest]) (*connect.Response[miscv1.CreateTopicResponse], error) {
-	topicID, err := opreturns.ValidNewsTopicID(req.Msg.Topic)
+func (s *Server) CreateTopic(ctx context.Context, req *miscv1.CreateTopicRequest) (*miscv1.CreateTopicResponse, error) {
+	topicID, err := opreturns.ValidNewsTopicID(req.Topic)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	if req.Msg.Name == "" {
+	if req.Name == "" {
 		err := errors.New("title must be set")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	if len([]byte(req.Msg.Name)) > 64 {
+	if len([]byte(req.Name)) > 64 {
 		err := errors.New("title cannot be longer than 64 bytes")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	exists, err := opreturns.TopicExists(ctx, s.database, topicID)
@@ -279,18 +280,18 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 
 	if exists {
 		err := errors.New("topic already exists")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// Calculate retention days (default to 7)
-	retentionDays := req.Msg.RetentionDays
+	retentionDays := req.RetentionDays
 	if retentionDays == 0 {
 		retentionDays = 7 // Default to 7 days
 	}
 
-	topicCreationBytes, err := opreturns.EncodeTopicCreationMessageNewFormat(topicID, req.Msg.Name, retentionDays)
+	topicCreationBytes, err := opreturns.EncodeTopicCreationMessageNewFormat(topicID, req.Name, retentionDays)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	txid, err := s.walletEngine.BroadcastOpReturn(ctx, topicCreationBytes, 0, 0)
 	if err != nil {
@@ -300,25 +301,25 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	log := zerolog.Ctx(ctx)
 	log.Info().
 		Stringer("topic", topicID).
-		Str("title", req.Msg.Name).
+		Str("title", req.Name).
 		Str("txid", txid).
 		Msg("broadcast create topic transaction")
 
-	return connect.NewResponse(&miscv1.CreateTopicResponse{
+	return &miscv1.CreateTopicResponse{
 		Txid: txid,
-	}), nil
+	}, nil
 }
 
 // ListTopics implements miscv1connect.MiscServiceHandler.
-func (s *Server) ListTopics(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListTopicsResponse], error) {
+func (s *Server) ListTopics(ctx context.Context, req *emptypb.Empty) (*miscv1.ListTopicsResponse, error) {
 	topics, err := opreturns.ListTopics(ctx, s.database)
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(&miscv1.ListTopicsResponse{
+	return &miscv1.ListTopicsResponse{
 		Topics: lo.Map(topics, topicToProto),
-	}), nil
+	}, nil
 }
 
 func topicToProto(topic opreturns.Topic, _ int) *miscv1.Topic {
@@ -334,16 +335,16 @@ func topicToProto(topic opreturns.Topic, _ int) *miscv1.Topic {
 }
 
 // ListCoinNews implements miscv1connect.MiscServiceHandler.
-func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.ListCoinNewsRequest]) (*connect.Response[miscv1.ListCoinNewsResponse], error) {
+func (s *Server) ListCoinNews(ctx context.Context, req *miscv1.ListCoinNewsRequest) (*miscv1.ListCoinNewsResponse, error) {
 	var topicID opreturns.TopicID
-	if req.Msg.Topic != nil {
+	if req.Topic != nil {
 		var err error
-		topicID, err = opreturns.ValidNewsTopicID(*req.Msg.Topic)
+		topicID, err = opreturns.ValidNewsTopicID(*req.Topic)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 	}
-	res, err := s.listRemoteCoinNews(ctx, req.Msg.Topic)
+	res, err := s.listRemoteCoinNews(ctx, req.Topic)
 	// No published indexer for this network, so the local index answers.
 	if !errors.Is(err, engines.ErrNoIndexer) {
 		return res, err
@@ -355,7 +356,7 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 	}
 
 	// Filter by topic if provided
-	if req.Msg.Topic != nil {
+	if req.Topic != nil {
 		news = lo.Filter(news, func(coinNews opreturns.CoinNews, _ int) bool {
 			return coinNews.Topic == topicID
 		})
@@ -367,14 +368,14 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 		news = news[:100]
 	}
 
-	return connect.NewResponse(&miscv1.ListCoinNewsResponse{
+	return &miscv1.ListCoinNewsResponse{
 		CoinNews: lo.Map(news, coinNewsToProto),
-	}), nil
+	}, nil
 }
 
 // listRemoteCoinNews serves the feed straight from the network's indexer.
 // The indexer already ranks and decodes, so nothing is re-parsed here.
-func (s *Server) listRemoteCoinNews(ctx context.Context, topic *string) (*connect.Response[miscv1.ListCoinNewsResponse], error) {
+func (s *Server) listRemoteCoinNews(ctx context.Context, topic *string) (*miscv1.ListCoinNewsResponse, error) {
 	var topicHex string
 	if topic != nil {
 		// already validated as four-byte hex by the caller
@@ -383,7 +384,7 @@ func (s *Server) listRemoteCoinNews(ctx context.Context, topic *string) (*connec
 
 	items, err := s.remoteCoinNews.ListFrontPage(ctx, topicHex, 100)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read coin news indexer: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Sprintf("read coin news indexer: %s", err)).WithCause(err)
 	}
 
 	out := make([]*miscv1.CoinNews, len(items))
@@ -404,7 +405,7 @@ func (s *Server) listRemoteCoinNews(ctx context.Context, topic *string) (*connec
 			Vout:       item.Vout,
 		}
 	}
-	return connect.NewResponse(&miscv1.ListCoinNewsResponse{CoinNews: out}), nil
+	return &miscv1.ListCoinNewsResponse{CoinNews: out}, nil
 }
 
 func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
@@ -433,15 +434,15 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 // CoinNews Comment (0x03) on the parent Item with this node's identity
 // key and broadcasts it as an OP_RETURN. The body and optional url/lang/
 // reply_quote ride in the trailing TLV section (spec §7, §10).
-func (s *Server) CommentNews(ctx context.Context, req *connect.Request[miscv1.CommentNewsRequest]) (*connect.Response[miscv1.CommentNewsResponse], error) {
-	parent, err := parseItemID(req.Msg.ParentId, "parent_id")
+func (s *Server) CommentNews(ctx context.Context, req *miscv1.CommentNewsRequest) (*miscv1.CommentNewsResponse, error) {
+	parent, err := parseItemID(req.ParentId, "parent_id")
 	if err != nil {
 		return nil, err
 	}
 
-	if strings.TrimSpace(req.Msg.Body) == "" && req.Msg.Url == "" {
+	if strings.TrimSpace(req.Body) == "" && req.Url == "" {
 		err := errors.New("comment must have a body or url")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	priv, xpk, err := cnstore.LoadOrCreateIdentity(ctx, s.database)
@@ -449,7 +450,7 @@ func (s *Server) CommentNews(ctx context.Context, req *connect.Request[miscv1.Co
 		return nil, fmt.Errorf("comment news: load identity: %w", err)
 	}
 
-	tlvs := commentTLVs(req.Msg)
+	tlvs := commentTLVs(req)
 	blob, err := codec.SerialiseTLVs(tlvs)
 	if err != nil {
 		return nil, fmt.Errorf("comment news: serialise tlvs: %w", err)
@@ -467,19 +468,19 @@ func (s *Server) CommentNews(ctx context.Context, req *connect.Request[miscv1.Co
 		return nil, fmt.Errorf("comment news: encode comment: %w", err)
 	}
 
-	txid, err := s.walletEngine.BroadcastOpReturn(ctx, commentBytes, req.Msg.FeeSatPerVbyte, req.Msg.FeeSats)
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, commentBytes, req.FeeSatPerVbyte, req.FeeSats)
 	if err != nil {
 		return nil, fmt.Errorf("comment news: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().
-		Str("parent_id", req.Msg.ParentId).
+		Str("parent_id", req.ParentId).
 		Str("txid", txid).
 		Msg("broadcast comment transaction")
 
-	return connect.NewResponse(&miscv1.CommentNewsResponse{
+	return &miscv1.CommentNewsResponse{
 		Txid: txid,
-	}), nil
+	}, nil
 }
 
 // commentTLVs builds the trailing TLV section for a comment from the
@@ -503,8 +504,8 @@ func commentTLVs(req *miscv1.CommentNewsRequest) []codec.TLV {
 }
 
 // ListComments implements miscv1connect.MiscServiceHandler.
-func (s *Server) ListComments(ctx context.Context, req *connect.Request[miscv1.ListCommentsRequest]) (*connect.Response[miscv1.ListCommentsResponse], error) {
-	root, err := parseItemID(req.Msg.ItemId, "item_id")
+func (s *Server) ListComments(ctx context.Context, req *miscv1.ListCommentsRequest) (*miscv1.ListCommentsResponse, error) {
+	root, err := parseItemID(req.ItemId, "item_id")
 	if err != nil {
 		return nil, err
 	}
@@ -513,9 +514,9 @@ func (s *Server) ListComments(ctx context.Context, req *connect.Request[miscv1.L
 	if err != nil {
 		return nil, fmt.Errorf("list comments: %w", err)
 	}
-	return connect.NewResponse(&miscv1.ListCommentsResponse{
+	return &miscv1.ListCommentsResponse{
 		Comments: lo.Map(comments, commentToProto),
-	}), nil
+	}, nil
 }
 
 func commentToProto(c cnstore.Comment, _ int) *miscv1.Comment {
@@ -535,15 +536,15 @@ func commentToProto(c cnstore.Comment, _ int) *miscv1.Comment {
 }
 
 // TimestampFile implements miscv1connect.MiscServiceHandler.
-func (s *Server) TimestampFile(ctx context.Context, req *connect.Request[miscv1.TimestampFileRequest]) (*connect.Response[miscv1.TimestampFileResponse], error) {
-	if req.Msg.Filename == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("filename must be set"))
+func (s *Server) TimestampFile(ctx context.Context, req *miscv1.TimestampFileRequest) (*miscv1.TimestampFileResponse, error) {
+	if req.Filename == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "filename must be set")
 	}
-	if len(req.Msg.FileData) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file data must be set"))
+	if len(req.FileData) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "file data must be set")
 	}
 
-	ts, err := s.timestampEngine.TimestampFile(ctx, req.Msg.Filename, req.Msg.FileData)
+	ts, err := s.timestampEngine.TimestampFile(ctx, req.Filename, req.FileData)
 	if err != nil {
 		return nil, fmt.Errorf("timestamp file: %w", err)
 	}
@@ -553,15 +554,15 @@ func (s *Server) TimestampFile(ctx context.Context, req *connect.Request[miscv1.
 		txid = *ts.TxID
 	}
 
-	return connect.NewResponse(&miscv1.TimestampFileResponse{
+	return &miscv1.TimestampFileResponse{
 		Id:       ts.ID,
 		FileHash: ts.FileHash,
 		Txid:     txid,
-	}), nil
+	}, nil
 }
 
 // ListTimestamps implements miscv1connect.MiscServiceHandler.
-func (s *Server) ListTimestamps(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListTimestampsResponse], error) {
+func (s *Server) ListTimestamps(ctx context.Context, req *emptypb.Empty) (*miscv1.ListTimestampsResponse, error) {
 	tsList, err := s.timestampEngine.ListTimestamps(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list timestamps: %w", err)
@@ -572,11 +573,11 @@ func (s *Server) ListTimestamps(ctx context.Context, req *connect.Request[emptyp
 		return nil, err
 	}
 
-	return connect.NewResponse(&miscv1.ListTimestampsResponse{
+	return &miscv1.ListTimestampsResponse{
 		Timestamps: lo.Map(tsList, func(ts timestamps.FileTimestamp, _ int) *miscv1.FileTimestamp {
 			return timestampToProto(ts, currentBlockHeight)
 		}),
-	}), nil
+	}, nil
 }
 
 func timestampToProto(ts timestamps.FileTimestamp, currentBlockHeight int64) *miscv1.FileTimestamp {
@@ -605,28 +606,28 @@ func timestampToProto(ts timestamps.FileTimestamp, currentBlockHeight int64) *mi
 }
 
 // VerifyTimestamp implements miscv1connect.MiscServiceHandler.
-func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv1.VerifyTimestampRequest]) (*connect.Response[miscv1.VerifyTimestampResponse], error) {
-	if len(req.Msg.FileData) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file data must be set"))
+func (s *Server) VerifyTimestamp(ctx context.Context, req *miscv1.VerifyTimestampRequest) (*miscv1.VerifyTimestampResponse, error) {
+	if len(req.FileData) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "file data must be set")
 	}
 
 	filename := ""
-	if req.Msg.Filename != nil {
-		filename = *req.Msg.Filename
+	if req.Filename != nil {
+		filename = *req.Filename
 	}
 
-	ts, err := s.timestampEngine.VerifyTimestamp(ctx, req.Msg.FileData, filename)
+	ts, err := s.timestampEngine.VerifyTimestamp(ctx, req.FileData, filename)
 	switch {
 	case errors.Is(err, engines.ErrTimestampNotFound):
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("verify timestamp: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("verify timestamp: %s", err)).WithCause(err)
 	}
 	if ts.Status == timestamps.StatusFailed {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the timestamp transaction failed"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "the timestamp transaction failed")
 	}
 	if ts.Status != timestamps.StatusConfirmed {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the timestamp is not confirmed yet"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "the timestamp is not confirmed yet")
 	}
 
 	currentBlockHeight, err := s.getCurrentBlockHeight(ctx)
@@ -634,10 +635,10 @@ func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv
 		return nil, err
 	}
 
-	return connect.NewResponse(&miscv1.VerifyTimestampResponse{
+	return &miscv1.VerifyTimestampResponse{
 		Timestamp: timestampToProto(*ts, currentBlockHeight),
 		Message:   fmt.Sprintf("File verified! Transaction: %s", *ts.TxID),
-	}), nil
+	}, nil
 }
 
 // getCurrentBlockHeight gives 0 in light mode, which runs no local Bitcoin Core.
@@ -649,7 +650,7 @@ func (s *Server) getCurrentBlockHeight(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	info, err := bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
+	info, err := bitcoind.GetBlockchainInfo(ctx, &connectv1.Request[corepb.GetBlockchainInfoRequest]{})
 	if err != nil {
 		return 0, fmt.Errorf("get blockchain info: %w", err)
 	}

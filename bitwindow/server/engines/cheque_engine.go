@@ -11,7 +11,7 @@ import (
 	"slices"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -230,7 +230,7 @@ func (e *ChequeEngine) CheckFunding(ctx context.Context, cheque *cheques.Cheque)
 
 	utxos, err := e.chain.AddressUnspent(ctx, cheque.Address)
 	if err != nil {
-		return ChequeFunding{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs of %s: %w", cheque.Address, err))
+		return ChequeFunding{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs of %s: %w", cheque.Address, err).Error()).WithCause(err)
 	}
 
 	log.Debug().
@@ -247,7 +247,7 @@ func (e *ChequeEngine) CheckFunding(ctx context.Context, cheque *cheques.Cheque)
 
 			// Only a full chain scan finds the spending tx of a watched address.
 			if err := cheques.UpdateSwept(ctx, e.db, cheque.WalletID, cheque.ID, "swept_externally"); err != nil {
-				return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque swept: %w", err))
+				return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque swept: %w", err).Error()).WithCause(err)
 			}
 		}
 		return ChequeFunding{}, nil
@@ -267,7 +267,7 @@ func (e *ChequeEngine) CheckFunding(ctx context.Context, cheque *cheques.Cheque)
 	}
 
 	if err := cheques.UpdateFunding(ctx, e.db, cheque.WalletID, cheque.ID, outputs, funding.AmountSats); err != nil {
-		return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("update funding: %w", err))
+		return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("update funding: %w", err).Error()).WithCause(err)
 	}
 
 	log.Info().
@@ -279,7 +279,7 @@ func (e *ChequeEngine) CheckFunding(ctx context.Context, cheque *cheques.Cheque)
 
 	updated, err := cheques.Get(ctx, e.db, cheque.WalletID, cheque.ID)
 	if err != nil {
-		return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("refetch cheque: %w", err))
+		return ChequeFunding{}, connect.NewError(connect.CodeInternal, fmt.Errorf("refetch cheque: %w", err).Error()).WithCause(err)
 	}
 	funding.Funded = updated.IsFunded()
 	funding.FundedAt = updated.FundedAt
@@ -302,10 +302,10 @@ func (e *ChequeEngine) Sweep(
 
 	source, err := ResolveSweepSource(ctx, e.chain, wifKey, e.chainParams)
 	if err != nil {
-		return ChequeSweep{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err))
+		return ChequeSweep{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("query UTXOs: %w", err).Error()).WithCause(err)
 	}
 	if len(source.UTXOs) == 0 {
-		return ChequeSweep{}, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
+		return ChequeSweep{}, connect.NewError(connect.CodeNotFound, "no funds found at this address")
 	}
 
 	totalAmount := source.TotalSats()
@@ -317,7 +317,7 @@ func (e *ChequeEngine) Sweep(
 	case errors.Is(err, sql.ErrNoRows):
 		log.Debug().Str("address", source.Address).Msg("swept key is not a cheque of this wallet")
 	case err != nil:
-		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque at %s: %w", source.Address, err))
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("find cheque at %s: %w", source.Address, err).Error()).WithCause(err)
 	}
 
 	feeSatPerVbyte, err = e.SweepFeeRate(ctx, feeSatPerVbyte)
@@ -328,19 +328,19 @@ func (e *ChequeEngine) Sweep(
 	unsignedTx, err := BuildSweepTx(source, destination, feeSatPerVbyte, e.chainParams)
 	switch {
 	case errors.Is(err, ErrInvalidSweep):
-		return ChequeSweep{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("build transaction: %w", err))
+		return ChequeSweep{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("build transaction: %w", err).Error()).WithCause(err)
 	case err != nil:
-		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err).Error()).WithCause(err)
 	}
 
 	signedTx, err := SignSweepTx(unsignedTx, source, wifKey, e.chainParams)
 	if err != nil {
-		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err).Error()).WithCause(err)
 	}
 
 	var txBytes bytes.Buffer
 	if err := signedTx.Serialize(&txBytes); err != nil {
-		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
+		return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err).Error()).WithCause(err)
 	}
 
 	txid, err := e.chain.Broadcast(ctx, hex.EncodeToString(txBytes.Bytes()))
@@ -350,7 +350,7 @@ func (e *ChequeEngine) Sweep(
 
 	if cheque != nil && cheque.SweptTxid == nil {
 		if err := cheques.UpdateSwept(ctx, e.db, walletID, cheque.ID, txid); err != nil {
-			return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque %d swept by %s: %w", cheque.ID, txid, err))
+			return ChequeSweep{}, connect.NewError(connect.CodeInternal, fmt.Errorf("mark cheque %d swept by %s: %w", cheque.ID, txid, err).Error()).WithCause(err)
 		}
 	}
 
@@ -372,7 +372,7 @@ func (e *ChequeEngine) SweepFeeRate(ctx context.Context, requested uint64) (uint
 	}
 	rate, err := e.chain.FeeRateSatPerVByte(ctx, 6)
 	if err != nil {
-		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("estimate fee: %w", err))
+		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("estimate fee: %w", err).Error()).WithCause(err)
 	}
 	return uint64(math.Ceil(rate)), nil
 }

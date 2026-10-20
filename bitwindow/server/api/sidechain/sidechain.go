@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -23,41 +23,41 @@ func New(monitor *engines.SidechainMonitorEngine) *Server {
 
 func (s *Server) GetDetectedWithdrawals(
 	ctx context.Context,
-	req *connect.Request[pb.GetDetectedWithdrawalsRequest],
-) (*connect.Response[pb.GetDetectedWithdrawalsResponse], error) {
+	req *pb.GetDetectedWithdrawalsRequest,
+) (*pb.GetDetectedWithdrawalsResponse, error) {
 	withdrawals, err := s.monitor.GetDetectedWithdrawals(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	// Convert to protobuf
 	pbWithdrawals := make([]*pb.DetectedWithdrawal, 0, len(withdrawals))
 	for _, w := range withdrawals {
 		// Filter by sidechain if requested
-		if req.Msg.Sidechain != nil && *req.Msg.Sidechain != w.Sidechain {
+		if req.Sidechain != nil && *req.Sidechain != w.Sidechain {
 			continue
 		}
 
 		pbWithdrawals = append(pbWithdrawals, withdrawalToProto(w))
 
 		// Apply limit if specified
-		if req.Msg.Limit != nil && len(pbWithdrawals) >= int(*req.Msg.Limit) {
+		if req.Limit != nil && len(pbWithdrawals) >= int(*req.Limit) {
 			break
 		}
 	}
 
-	return connect.NewResponse(&pb.GetDetectedWithdrawalsResponse{
+	return &pb.GetDetectedWithdrawalsResponse{
 		Withdrawals: pbWithdrawals,
-	}), nil
+	}, nil
 }
 
 func (s *Server) GetWithdrawalByTxid(
 	ctx context.Context,
-	req *connect.Request[pb.GetWithdrawalByTxidRequest],
-) (*connect.Response[pb.GetWithdrawalByTxidResponse], error) {
-	withdrawal, err := s.monitor.GetWithdrawalByTxid(ctx, req.Msg.Txid)
+	req *pb.GetWithdrawalByTxidRequest,
+) (*pb.GetWithdrawalByTxidResponse, error) {
+	withdrawal, err := s.monitor.GetWithdrawalByTxid(ctx, req.Txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get withdrawal %s: %w", req.Msg.Txid, err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("get withdrawal %s: %s", req.Txid, err)).WithCause(err)
 	}
 
 	resp := &pb.GetWithdrawalByTxidResponse{}
@@ -66,7 +66,7 @@ func (s *Server) GetWithdrawalByTxid(
 		resp.Withdrawal = withdrawalToProto(*withdrawal)
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func withdrawalToProto(w engines.DetectedWithdrawal) *pb.DetectedWithdrawal {

@@ -4,13 +4,13 @@ go 1.27.0
 
 require (
 	connectrpc.com/connect v1.19.0
-	connectrpc.com/grpcreflect v1.3.0
+	connectrpc.com/connect/v2 v2.0.1
+	connectrpc.com/grpcreflect/v2 v2.0.0
 	github.com/LayerTwo-Labs/sidesail/coinnews/codec v0.0.0
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.46.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -23,7 +23,6 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

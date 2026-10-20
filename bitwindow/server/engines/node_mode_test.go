@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
@@ -21,9 +20,7 @@ func nodeModeWith(t *testing.T, mode orchpb.NodeMode) *NodeMode {
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		AnyTimes().
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
-		}, nil)
+		Return(&orchpb.GetNodeModeResponse{Mode: mode}, nil)
 
 	return NewNodeMode(client)
 }
@@ -55,9 +52,7 @@ func TestRunsLocalNodeKeepsTheLastAnswer(t *testing.T) {
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
-		}, nil)
+		Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT}, nil)
 	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 
 	nodeMode.expire()
@@ -74,9 +69,7 @@ func TestRunsLocalNodeKeepsAFullAnswer(t *testing.T) {
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
-		}, nil)
+		Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}, nil)
 	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 
 	nodeMode.expire()
@@ -94,9 +87,7 @@ func TestModeCachesTheRead(t *testing.T) {
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Times(1).
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
-		}, nil)
+		Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}, nil)
 
 	for range 5 {
 		require.True(t, nodeMode.RunsLocalNode(t.Context()))
@@ -110,17 +101,13 @@ func TestModeReReadsAfterTheCacheExpires(t *testing.T) {
 
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
-		}, nil)
+		Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT}, nil)
 	require.False(t, nodeMode.RunsLocalNode(t.Context()))
 
 	nodeMode.expire()
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
-		}, nil)
+		Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}, nil)
 	require.True(t, nodeMode.RunsLocalNode(t.Context()))
 }
 
@@ -133,11 +120,9 @@ func TestModeCollapsesConcurrentReads(t *testing.T) {
 	client.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Times(1).
-		DoAndReturn(func(context.Context, *connect.Request[orchpb.GetNodeModeRequest]) (*connect.Response[orchpb.GetNodeModeResponse], error) {
+		DoAndReturn(func(context.Context, *orchpb.GetNodeModeRequest) (*orchpb.GetNodeModeResponse, error) {
 			time.Sleep(100 * time.Millisecond)
-			return &connect.Response[orchpb.GetNodeModeResponse]{
-				Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
-			}, nil
+			return &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL}, nil
 		})
 
 	var wg sync.WaitGroup

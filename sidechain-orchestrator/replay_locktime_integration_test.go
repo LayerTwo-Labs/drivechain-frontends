@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
@@ -45,12 +44,12 @@ func TestReplayLockTime(t *testing.T) {
 
 		dest := freshAddress(ctx, t, node)
 
-		normal, err := node.WalletClient.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+		normal, err := node.WalletClient.SendTransaction(ctx, &pb.SendTransactionRequest{
 			Destinations: map[string]int64{dest: 100_000_000},
-		}))
+		})
 		require.NoError(t, err, "normal send should succeed on stock bitcoind")
 		require.NoError(t, node.Mine(ctx, t, 1))
-		requireConfirmed(ctx, t, node, normal.Msg.Txid)
+		requireConfirmed(ctx, t, node, normal.Txid)
 
 		for _, lockTime := range []uint32{betanetLockTime, ecashMainnetLockTime} {
 			_, err = broadcastProtected(ctx, t, node, dest, lockTime)
@@ -161,9 +160,9 @@ func startFundedNode(t *testing.T, bitcoindBin string) *testharness.Node {
 
 func freshAddress(ctx context.Context, t *testing.T, n *testharness.Node) string {
 	t.Helper()
-	resp, err := n.WalletClient.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+	resp, err := n.WalletClient.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 	require.NoError(t, err)
-	return resp.Msg.Address
+	return resp.Address
 }
 
 func requireConfirmed(ctx context.Context, t *testing.T, n *testharness.Node, txid string) {

@@ -5,169 +5,168 @@
 package orchestratorv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ZSideConfServiceName is the fully-qualified name of the ZSideConfService service.
 	ZSideConfServiceName = "orchestrator.v1.ZSideConfService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ZSideConfServiceGetZSideConfigProcedure is the fully-qualified name of the ZSideConfService's
+	// ZSideConfServiceGetZSideConfigProcedure is the procedure name of the ZSideConfService's
 	// GetZSideConfig RPC.
 	ZSideConfServiceGetZSideConfigProcedure = "/orchestrator.v1.ZSideConfService/GetZSideConfig"
-	// ZSideConfServiceWriteZSideConfigProcedure is the fully-qualified name of the ZSideConfService's
+	// ZSideConfServiceWriteZSideConfigProcedure is the procedure name of the ZSideConfService's
 	// WriteZSideConfig RPC.
 	ZSideConfServiceWriteZSideConfigProcedure = "/orchestrator.v1.ZSideConfService/WriteZSideConfig"
-	// ZSideConfServiceSyncNetworkFromBitcoinConfProcedure is the fully-qualified name of the
+	// ZSideConfServiceSyncNetworkFromBitcoinConfProcedure is the procedure name of the
 	// ZSideConfService's SyncNetworkFromBitcoinConf RPC.
 	ZSideConfServiceSyncNetworkFromBitcoinConfProcedure = "/orchestrator.v1.ZSideConfService/SyncNetworkFromBitcoinConf"
 )
 
+var (
+	zSideConfServiceGetZSideConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_zside_conf_proto.Services().ByName("ZSideConfService").Methods().ByName("GetZSideConfig"),
+			Procedure:  ZSideConfServiceGetZSideConfigProcedure,
+		}
+	})
+	zSideConfServiceWriteZSideConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_zside_conf_proto.Services().ByName("ZSideConfService").Methods().ByName("WriteZSideConfig"),
+			Procedure:  ZSideConfServiceWriteZSideConfigProcedure,
+		}
+	})
+	zSideConfServiceSyncNetworkFromBitcoinConfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_zside_conf_proto.Services().ByName("ZSideConfService").Methods().ByName("SyncNetworkFromBitcoinConf"),
+			Procedure:  ZSideConfServiceSyncNetworkFromBitcoinConfProcedure,
+		}
+	})
+)
+
 // ZSideConfServiceClient is a client for the orchestrator.v1.ZSideConfService service.
 type ZSideConfServiceClient interface {
-	// Get current ZSide sidechain configuration state.
-	GetZSideConfig(context.Context, *connect.Request[v1.GetZSideConfigRequest]) (*connect.Response[v1.GetZSideConfigResponse], error)
-	// Write ZSide configuration content.
-	WriteZSideConfig(context.Context, *connect.Request[v1.WriteZSideConfigRequest]) (*connect.Response[v1.WriteZSideConfigResponse], error)
-	// Sync network from Bitcoin Core config.
-	SyncNetworkFromBitcoinConf(context.Context, *connect.Request[v1.ZSideSyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.ZSideSyncNetworkFromBitcoinConfResponse], error)
+	GetZSideConfig(context.Context, *v1.GetZSideConfigRequest) (*v1.GetZSideConfigResponse, error)
+	WriteZSideConfig(context.Context, *v1.WriteZSideConfigRequest) (*v1.WriteZSideConfigResponse, error)
+	SyncNetworkFromBitcoinConf(context.Context, *v1.ZSideSyncNetworkFromBitcoinConfRequest) (*v1.ZSideSyncNetworkFromBitcoinConfResponse, error)
 }
 
 // NewZSideConfServiceClient constructs a client for the orchestrator.v1.ZSideConfService service.
-// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
-// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewZSideConfServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ZSideConfServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	zSideConfServiceMethods := v1.File_orchestrator_v1_zside_conf_proto.Services().ByName("ZSideConfService").Methods()
-	return &zSideConfServiceClient{
-		getZSideConfig: connect.NewClient[v1.GetZSideConfigRequest, v1.GetZSideConfigResponse](
-			httpClient,
-			baseURL+ZSideConfServiceGetZSideConfigProcedure,
-			connect.WithSchema(zSideConfServiceMethods.ByName("GetZSideConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		writeZSideConfig: connect.NewClient[v1.WriteZSideConfigRequest, v1.WriteZSideConfigResponse](
-			httpClient,
-			baseURL+ZSideConfServiceWriteZSideConfigProcedure,
-			connect.WithSchema(zSideConfServiceMethods.ByName("WriteZSideConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		syncNetworkFromBitcoinConf: connect.NewClient[v1.ZSideSyncNetworkFromBitcoinConfRequest, v1.ZSideSyncNetworkFromBitcoinConfResponse](
-			httpClient,
-			baseURL+ZSideConfServiceSyncNetworkFromBitcoinConfProcedure,
-			connect.WithSchema(zSideConfServiceMethods.ByName("SyncNetworkFromBitcoinConf")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// zSideConfServiceClient implements ZSideConfServiceClient.
-type zSideConfServiceClient struct {
-	getZSideConfig             *connect.Client[v1.GetZSideConfigRequest, v1.GetZSideConfigResponse]
-	writeZSideConfig           *connect.Client[v1.WriteZSideConfigRequest, v1.WriteZSideConfigResponse]
-	syncNetworkFromBitcoinConf *connect.Client[v1.ZSideSyncNetworkFromBitcoinConfRequest, v1.ZSideSyncNetworkFromBitcoinConfResponse]
-}
-
-// GetZSideConfig calls orchestrator.v1.ZSideConfService.GetZSideConfig.
-func (c *zSideConfServiceClient) GetZSideConfig(ctx context.Context, req *connect.Request[v1.GetZSideConfigRequest]) (*connect.Response[v1.GetZSideConfigResponse], error) {
-	return c.getZSideConfig.CallUnary(ctx, req)
-}
-
-// WriteZSideConfig calls orchestrator.v1.ZSideConfService.WriteZSideConfig.
-func (c *zSideConfServiceClient) WriteZSideConfig(ctx context.Context, req *connect.Request[v1.WriteZSideConfigRequest]) (*connect.Response[v1.WriteZSideConfigResponse], error) {
-	return c.writeZSideConfig.CallUnary(ctx, req)
-}
-
-// SyncNetworkFromBitcoinConf calls orchestrator.v1.ZSideConfService.SyncNetworkFromBitcoinConf.
-func (c *zSideConfServiceClient) SyncNetworkFromBitcoinConf(ctx context.Context, req *connect.Request[v1.ZSideSyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.ZSideSyncNetworkFromBitcoinConfResponse], error) {
-	return c.syncNetworkFromBitcoinConf.CallUnary(ctx, req)
+// Multiple service clients may share a single connect.Client.
+func NewZSideConfServiceClient(client *connect.Client) ZSideConfServiceClient {
+	return &zSideConfServiceClient{client: client}
 }
 
 // ZSideConfServiceHandler is an implementation of the orchestrator.v1.ZSideConfService service.
 type ZSideConfServiceHandler interface {
-	// Get current ZSide sidechain configuration state.
-	GetZSideConfig(context.Context, *connect.Request[v1.GetZSideConfigRequest]) (*connect.Response[v1.GetZSideConfigResponse], error)
-	// Write ZSide configuration content.
-	WriteZSideConfig(context.Context, *connect.Request[v1.WriteZSideConfigRequest]) (*connect.Response[v1.WriteZSideConfigResponse], error)
-	// Sync network from Bitcoin Core config.
-	SyncNetworkFromBitcoinConf(context.Context, *connect.Request[v1.ZSideSyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.ZSideSyncNetworkFromBitcoinConfResponse], error)
+	GetZSideConfig(context.Context, *v1.GetZSideConfigRequest) (*v1.GetZSideConfigResponse, error)
+	WriteZSideConfig(context.Context, *v1.WriteZSideConfigRequest) (*v1.WriteZSideConfigResponse, error)
+	SyncNetworkFromBitcoinConf(context.Context, *v1.ZSideSyncNetworkFromBitcoinConfRequest) (*v1.ZSideSyncNetworkFromBitcoinConfResponse, error)
 }
 
-// NewZSideConfServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewZSideConfServiceHandler(svc ZSideConfServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	zSideConfServiceMethods := v1.File_orchestrator_v1_zside_conf_proto.Services().ByName("ZSideConfService").Methods()
-	zSideConfServiceGetZSideConfigHandler := connect.NewUnaryHandler(
-		ZSideConfServiceGetZSideConfigProcedure,
-		svc.GetZSideConfig,
-		connect.WithSchema(zSideConfServiceMethods.ByName("GetZSideConfig")),
-		connect.WithHandlerOptions(opts...),
+// RegisterZSideConfServiceHandler registers svc as the orchestrator.v1.ZSideConfService
+// implementation on server.
+func RegisterZSideConfServiceHandler(server *connect.Server, svc ZSideConfServiceHandler) {
+	adapter := zSideConfServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: zSideConfServiceGetZSideConfigSpec(), Handler: adapter.getZSideConfig},
+		connect.Method{Spec: zSideConfServiceWriteZSideConfigSpec(), Handler: adapter.writeZSideConfig},
+		connect.Method{Spec: zSideConfServiceSyncNetworkFromBitcoinConfSpec(), Handler: adapter.syncNetworkFromBitcoinConf},
 	)
-	zSideConfServiceWriteZSideConfigHandler := connect.NewUnaryHandler(
-		ZSideConfServiceWriteZSideConfigProcedure,
-		svc.WriteZSideConfig,
-		connect.WithSchema(zSideConfServiceMethods.ByName("WriteZSideConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	zSideConfServiceSyncNetworkFromBitcoinConfHandler := connect.NewUnaryHandler(
-		ZSideConfServiceSyncNetworkFromBitcoinConfProcedure,
-		svc.SyncNetworkFromBitcoinConf,
-		connect.WithSchema(zSideConfServiceMethods.ByName("SyncNetworkFromBitcoinConf")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/orchestrator.v1.ZSideConfService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ZSideConfServiceGetZSideConfigProcedure:
-			zSideConfServiceGetZSideConfigHandler.ServeHTTP(w, r)
-		case ZSideConfServiceWriteZSideConfigProcedure:
-			zSideConfServiceWriteZSideConfigHandler.ServeHTTP(w, r)
-		case ZSideConfServiceSyncNetworkFromBitcoinConfProcedure:
-			zSideConfServiceSyncNetworkFromBitcoinConfHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedZSideConfServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedZSideConfServiceHandler struct{}
 
-func (UnimplementedZSideConfServiceHandler) GetZSideConfig(context.Context, *connect.Request[v1.GetZSideConfigRequest]) (*connect.Response[v1.GetZSideConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.ZSideConfService.GetZSideConfig is not implemented"))
+func (UnimplementedZSideConfServiceHandler) GetZSideConfig(context.Context, *v1.GetZSideConfigRequest) (*v1.GetZSideConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.ZSideConfService.GetZSideConfig is not implemented")
 }
 
-func (UnimplementedZSideConfServiceHandler) WriteZSideConfig(context.Context, *connect.Request[v1.WriteZSideConfigRequest]) (*connect.Response[v1.WriteZSideConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.ZSideConfService.WriteZSideConfig is not implemented"))
+func (UnimplementedZSideConfServiceHandler) WriteZSideConfig(context.Context, *v1.WriteZSideConfigRequest) (*v1.WriteZSideConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.ZSideConfService.WriteZSideConfig is not implemented")
 }
 
-func (UnimplementedZSideConfServiceHandler) SyncNetworkFromBitcoinConf(context.Context, *connect.Request[v1.ZSideSyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.ZSideSyncNetworkFromBitcoinConfResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.ZSideConfService.SyncNetworkFromBitcoinConf is not implemented"))
+func (UnimplementedZSideConfServiceHandler) SyncNetworkFromBitcoinConf(context.Context, *v1.ZSideSyncNetworkFromBitcoinConfRequest) (*v1.ZSideSyncNetworkFromBitcoinConfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.ZSideConfService.SyncNetworkFromBitcoinConf is not implemented")
+}
+
+type zSideConfServiceClient struct {
+	client *connect.Client
+}
+
+func (c *zSideConfServiceClient) GetZSideConfig(ctx context.Context, req *v1.GetZSideConfigRequest) (*v1.GetZSideConfigResponse, error) {
+	var res v1.GetZSideConfigResponse
+	if err := c.client.CallUnary(ctx, zSideConfServiceGetZSideConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideConfServiceClient) WriteZSideConfig(ctx context.Context, req *v1.WriteZSideConfigRequest) (*v1.WriteZSideConfigResponse, error) {
+	var res v1.WriteZSideConfigResponse
+	if err := c.client.CallUnary(ctx, zSideConfServiceWriteZSideConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideConfServiceClient) SyncNetworkFromBitcoinConf(ctx context.Context, req *v1.ZSideSyncNetworkFromBitcoinConfRequest) (*v1.ZSideSyncNetworkFromBitcoinConfResponse, error) {
+	var res v1.ZSideSyncNetworkFromBitcoinConfResponse
+	if err := c.client.CallUnary(ctx, zSideConfServiceSyncNetworkFromBitcoinConfSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type zSideConfServiceHandler struct{ svc ZSideConfServiceHandler }
+
+func (h zSideConfServiceHandler) getZSideConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetZSideConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetZSideConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideConfServiceHandler) writeZSideConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WriteZSideConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.WriteZSideConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideConfServiceHandler) syncNetworkFromBitcoinConf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ZSideSyncNetworkFromBitcoinConfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SyncNetworkFromBitcoinConf(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

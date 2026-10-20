@@ -5,396 +5,447 @@
 package bmmv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BMMServiceName is the fully-qualified name of the BMMService service.
 	BMMServiceName = "bmm.v1.BMMService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BMMServiceStartProcedure is the fully-qualified name of the BMMService's Start RPC.
+	// BMMServiceStartProcedure is the procedure name of the BMMService's Start RPC.
 	BMMServiceStartProcedure = "/bmm.v1.BMMService/Start"
-	// BMMServiceStopProcedure is the fully-qualified name of the BMMService's Stop RPC.
+	// BMMServiceStopProcedure is the procedure name of the BMMService's Stop RPC.
 	BMMServiceStopProcedure = "/bmm.v1.BMMService/Stop"
-	// BMMServiceClearHistoryProcedure is the fully-qualified name of the BMMService's ClearHistory RPC.
+	// BMMServiceClearHistoryProcedure is the procedure name of the BMMService's ClearHistory RPC.
 	BMMServiceClearHistoryProcedure = "/bmm.v1.BMMService/ClearHistory"
-	// BMMServiceWatchProcedure is the fully-qualified name of the BMMService's Watch RPC.
+	// BMMServiceWatchProcedure is the procedure name of the BMMService's Watch RPC.
 	BMMServiceWatchProcedure = "/bmm.v1.BMMService/Watch"
-	// BMMServiceGetRoundBidsProcedure is the fully-qualified name of the BMMService's GetRoundBids RPC.
+	// BMMServiceGetRoundBidsProcedure is the procedure name of the BMMService's GetRoundBids RPC.
 	BMMServiceGetRoundBidsProcedure = "/bmm.v1.BMMService/GetRoundBids"
-	// BMMServiceCreateBidProcedure is the fully-qualified name of the BMMService's CreateBid RPC.
+	// BMMServiceCreateBidProcedure is the procedure name of the BMMService's CreateBid RPC.
 	BMMServiceCreateBidProcedure = "/bmm.v1.BMMService/CreateBid"
-	// BMMServiceConnectBidProcedure is the fully-qualified name of the BMMService's ConnectBid RPC.
+	// BMMServiceConnectBidProcedure is the procedure name of the BMMService's ConnectBid RPC.
 	BMMServiceConnectBidProcedure = "/bmm.v1.BMMService/ConnectBid"
-	// BMMServiceCancelBidProcedure is the fully-qualified name of the BMMService's CancelBid RPC.
+	// BMMServiceCancelBidProcedure is the procedure name of the BMMService's CancelBid RPC.
 	BMMServiceCancelBidProcedure = "/bmm.v1.BMMService/CancelBid"
-	// BMMServiceListBidsProcedure is the fully-qualified name of the BMMService's ListBids RPC.
+	// BMMServiceListBidsProcedure is the procedure name of the BMMService's ListBids RPC.
 	BMMServiceListBidsProcedure = "/bmm.v1.BMMService/ListBids"
-	// BMMServicePrepareBMMProcedure is the fully-qualified name of the BMMService's PrepareBMM RPC.
+	// BMMServicePrepareBMMProcedure is the procedure name of the BMMService's PrepareBMM RPC.
 	BMMServicePrepareBMMProcedure = "/bmm.v1.BMMService/PrepareBMM"
+)
+
+var (
+	bMMServiceStartSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("Start"),
+			Procedure:  BMMServiceStartProcedure,
+		}
+	})
+	bMMServiceStopSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("Stop"),
+			Procedure:  BMMServiceStopProcedure,
+		}
+	})
+	bMMServiceClearHistorySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("ClearHistory"),
+			Procedure:  BMMServiceClearHistoryProcedure,
+		}
+	})
+	bMMServiceWatchSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("Watch"),
+			Procedure:  BMMServiceWatchProcedure,
+		}
+	})
+	bMMServiceGetRoundBidsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("GetRoundBids"),
+			Procedure:  BMMServiceGetRoundBidsProcedure,
+		}
+	})
+	bMMServiceCreateBidSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("CreateBid"),
+			Procedure:  BMMServiceCreateBidProcedure,
+		}
+	})
+	bMMServiceConnectBidSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("ConnectBid"),
+			Procedure:  BMMServiceConnectBidProcedure,
+		}
+	})
+	bMMServiceCancelBidSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("CancelBid"),
+			Procedure:  BMMServiceCancelBidProcedure,
+		}
+	})
+	bMMServiceListBidsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("ListBids"),
+			Procedure:  BMMServiceListBidsProcedure,
+		}
+	})
+	bMMServicePrepareBMMSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods().ByName("PrepareBMM"),
+			Procedure:  BMMServicePrepareBMMProcedure,
+		}
+	})
 )
 
 // BMMServiceClient is a client for the bmm.v1.BMMService service.
 type BMMServiceClient interface {
-	// Start bids on every new mainchain tip and connects the blocks miners take,
-	// until Stop. Bids are funded by the wallet the request names, and are
-	// opened at Core's next block fee and raised toward max_bid_sats when a
-	// competitor outbids us.
-	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	ClearHistory(context.Context, *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error)
-	// Watch streams the round being bid on now plus recent finished rounds. The
-	// full state goes out on every frame, so a reconnect needs no delta merge.
-	Watch(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
-	// GetRoundBids returns every bid seen for one round. A losing bid never
-	// confirms and leaves the mempool, so this is limited to what was observed
-	// while that round was open.
-	GetRoundBids(context.Context, *connect.Request[v1.GetRoundBidsRequest]) (*connect.Response[v1.GetRoundBidsResponse], error)
-	// CreateBid assembles a sidechain block and broadcasts one M8 bid for it;
-	// ConnectBid connects that block once a miner includes the bid. Use these to
-	// drive a single attempt by hand; Start does both on a loop.
-	CreateBid(context.Context, *connect.Request[v1.CreateBidRequest]) (*connect.Response[v1.CreateBidResponse], error)
-	ConnectBid(context.Context, *connect.Request[v1.ConnectBidRequest]) (*connect.Response[v1.ConnectBidResponse], error)
-	// CancelBid replaces a stranded bid with a payment back to its own wallet,
-	// so the coins under it come back. A bid that can still win is refused.
-	CancelBid(context.Context, *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error)
-	// ListBids reads the competing bids for the slot out of the mainchain
-	// mempool, highest bid first.
-	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
-	// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
-	// and splits one large coin when the wallet holds too few. One wallet funds
-	// them all, and a bid over another slot's bid change dies when that slot
-	// replaces its own bid.
-	PrepareBMM(context.Context, *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error)
+	Start(context.Context, *v1.StartRequest) (*v1.StartResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	ClearHistory(context.Context, *v1.ClearHistoryRequest) (*v1.ClearHistoryResponse, error)
+	Watch(context.Context, *v1.WatchRequest) (BMMServiceWatchClientStream, error)
+	GetRoundBids(context.Context, *v1.GetRoundBidsRequest) (*v1.GetRoundBidsResponse, error)
+	CreateBid(context.Context, *v1.CreateBidRequest) (*v1.CreateBidResponse, error)
+	ConnectBid(context.Context, *v1.ConnectBidRequest) (*v1.ConnectBidResponse, error)
+	CancelBid(context.Context, *v1.CancelBidRequest) (*v1.CancelBidResponse, error)
+	ListBids(context.Context, *v1.ListBidsRequest) (*v1.ListBidsResponse, error)
+	PrepareBMM(context.Context, *v1.PrepareBMMRequest) (*v1.PrepareBMMResponse, error)
 }
 
-// NewBMMServiceClient constructs a client for the bmm.v1.BMMService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewBMMServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BMMServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	bMMServiceMethods := v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods()
-	return &bMMServiceClient{
-		start: connect.NewClient[v1.StartRequest, v1.StartResponse](
-			httpClient,
-			baseURL+BMMServiceStartProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("Start")),
-			connect.WithClientOptions(opts...),
-		),
-		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
-			httpClient,
-			baseURL+BMMServiceStopProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		clearHistory: connect.NewClient[v1.ClearHistoryRequest, v1.ClearHistoryResponse](
-			httpClient,
-			baseURL+BMMServiceClearHistoryProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("ClearHistory")),
-			connect.WithClientOptions(opts...),
-		),
-		watch: connect.NewClient[v1.WatchRequest, v1.WatchResponse](
-			httpClient,
-			baseURL+BMMServiceWatchProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("Watch")),
-			connect.WithClientOptions(opts...),
-		),
-		getRoundBids: connect.NewClient[v1.GetRoundBidsRequest, v1.GetRoundBidsResponse](
-			httpClient,
-			baseURL+BMMServiceGetRoundBidsProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("GetRoundBids")),
-			connect.WithClientOptions(opts...),
-		),
-		createBid: connect.NewClient[v1.CreateBidRequest, v1.CreateBidResponse](
-			httpClient,
-			baseURL+BMMServiceCreateBidProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("CreateBid")),
-			connect.WithClientOptions(opts...),
-		),
-		connectBid: connect.NewClient[v1.ConnectBidRequest, v1.ConnectBidResponse](
-			httpClient,
-			baseURL+BMMServiceConnectBidProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("ConnectBid")),
-			connect.WithClientOptions(opts...),
-		),
-		cancelBid: connect.NewClient[v1.CancelBidRequest, v1.CancelBidResponse](
-			httpClient,
-			baseURL+BMMServiceCancelBidProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("CancelBid")),
-			connect.WithClientOptions(opts...),
-		),
-		listBids: connect.NewClient[v1.ListBidsRequest, v1.ListBidsResponse](
-			httpClient,
-			baseURL+BMMServiceListBidsProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("ListBids")),
-			connect.WithClientOptions(opts...),
-		),
-		prepareBMM: connect.NewClient[v1.PrepareBMMRequest, v1.PrepareBMMResponse](
-			httpClient,
-			baseURL+BMMServicePrepareBMMProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("PrepareBMM")),
-			connect.WithClientOptions(opts...),
-		),
+// NewBMMServiceClient constructs a client for the bmm.v1.BMMService service. Multiple service
+// clients may share a single connect.Client.
+func NewBMMServiceClient(client *connect.Client) BMMServiceClient {
+	return &bMMServiceClient{client: client}
+}
+
+// BMMServiceWatchClientStream is the client stream for the BMMService's Watch RPC.
+type BMMServiceWatchClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s BMMServiceWatchClientStream) Receive() (*v1.WatchResponse, error) {
+	var res v1.WatchResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// bMMServiceClient implements BMMServiceClient.
-type bMMServiceClient struct {
-	start        *connect.Client[v1.StartRequest, v1.StartResponse]
-	stop         *connect.Client[v1.StopRequest, v1.StopResponse]
-	clearHistory *connect.Client[v1.ClearHistoryRequest, v1.ClearHistoryResponse]
-	watch        *connect.Client[v1.WatchRequest, v1.WatchResponse]
-	getRoundBids *connect.Client[v1.GetRoundBidsRequest, v1.GetRoundBidsResponse]
-	createBid    *connect.Client[v1.CreateBidRequest, v1.CreateBidResponse]
-	connectBid   *connect.Client[v1.ConnectBidRequest, v1.ConnectBidResponse]
-	cancelBid    *connect.Client[v1.CancelBidRequest, v1.CancelBidResponse]
-	listBids     *connect.Client[v1.ListBidsRequest, v1.ListBidsResponse]
-	prepareBMM   *connect.Client[v1.PrepareBMMRequest, v1.PrepareBMMResponse]
-}
-
-// Start calls bmm.v1.BMMService.Start.
-func (c *bMMServiceClient) Start(ctx context.Context, req *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error) {
-	return c.start.CallUnary(ctx, req)
-}
-
-// Stop calls bmm.v1.BMMService.Stop.
-func (c *bMMServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return c.stop.CallUnary(ctx, req)
-}
-
-// ClearHistory calls bmm.v1.BMMService.ClearHistory.
-func (c *bMMServiceClient) ClearHistory(ctx context.Context, req *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error) {
-	return c.clearHistory.CallUnary(ctx, req)
-}
-
-// Watch calls bmm.v1.BMMService.Watch.
-func (c *bMMServiceClient) Watch(ctx context.Context, req *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error) {
-	return c.watch.CallServerStream(ctx, req)
-}
-
-// GetRoundBids calls bmm.v1.BMMService.GetRoundBids.
-func (c *bMMServiceClient) GetRoundBids(ctx context.Context, req *connect.Request[v1.GetRoundBidsRequest]) (*connect.Response[v1.GetRoundBidsResponse], error) {
-	return c.getRoundBids.CallUnary(ctx, req)
-}
-
-// CreateBid calls bmm.v1.BMMService.CreateBid.
-func (c *bMMServiceClient) CreateBid(ctx context.Context, req *connect.Request[v1.CreateBidRequest]) (*connect.Response[v1.CreateBidResponse], error) {
-	return c.createBid.CallUnary(ctx, req)
-}
-
-// ConnectBid calls bmm.v1.BMMService.ConnectBid.
-func (c *bMMServiceClient) ConnectBid(ctx context.Context, req *connect.Request[v1.ConnectBidRequest]) (*connect.Response[v1.ConnectBidResponse], error) {
-	return c.connectBid.CallUnary(ctx, req)
-}
-
-// CancelBid calls bmm.v1.BMMService.CancelBid.
-func (c *bMMServiceClient) CancelBid(ctx context.Context, req *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error) {
-	return c.cancelBid.CallUnary(ctx, req)
-}
-
-// ListBids calls bmm.v1.BMMService.ListBids.
-func (c *bMMServiceClient) ListBids(ctx context.Context, req *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error) {
-	return c.listBids.CallUnary(ctx, req)
-}
-
-// PrepareBMM calls bmm.v1.BMMService.PrepareBMM.
-func (c *bMMServiceClient) PrepareBMM(ctx context.Context, req *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error) {
-	return c.prepareBMM.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s BMMServiceWatchClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // BMMServiceHandler is an implementation of the bmm.v1.BMMService service.
 type BMMServiceHandler interface {
-	// Start bids on every new mainchain tip and connects the blocks miners take,
-	// until Stop. Bids are funded by the wallet the request names, and are
-	// opened at Core's next block fee and raised toward max_bid_sats when a
-	// competitor outbids us.
-	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	ClearHistory(context.Context, *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error)
-	// Watch streams the round being bid on now plus recent finished rounds. The
-	// full state goes out on every frame, so a reconnect needs no delta merge.
-	Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error
-	// GetRoundBids returns every bid seen for one round. A losing bid never
-	// confirms and leaves the mempool, so this is limited to what was observed
-	// while that round was open.
-	GetRoundBids(context.Context, *connect.Request[v1.GetRoundBidsRequest]) (*connect.Response[v1.GetRoundBidsResponse], error)
-	// CreateBid assembles a sidechain block and broadcasts one M8 bid for it;
-	// ConnectBid connects that block once a miner includes the bid. Use these to
-	// drive a single attempt by hand; Start does both on a loop.
-	CreateBid(context.Context, *connect.Request[v1.CreateBidRequest]) (*connect.Response[v1.CreateBidResponse], error)
-	ConnectBid(context.Context, *connect.Request[v1.ConnectBidRequest]) (*connect.Response[v1.ConnectBidResponse], error)
-	// CancelBid replaces a stranded bid with a payment back to its own wallet,
-	// so the coins under it come back. A bid that can still win is refused.
-	CancelBid(context.Context, *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error)
-	// ListBids reads the competing bids for the slot out of the mainchain
-	// mempool, highest bid first.
-	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
-	// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
-	// and splits one large coin when the wallet holds too few. One wallet funds
-	// them all, and a bid over another slot's bid change dies when that slot
-	// replaces its own bid.
-	PrepareBMM(context.Context, *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error)
+	Start(context.Context, *v1.StartRequest) (*v1.StartResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	ClearHistory(context.Context, *v1.ClearHistoryRequest) (*v1.ClearHistoryResponse, error)
+	Watch(context.Context, *v1.WatchRequest, BMMServiceWatchServerStream) error
+	GetRoundBids(context.Context, *v1.GetRoundBidsRequest) (*v1.GetRoundBidsResponse, error)
+	CreateBid(context.Context, *v1.CreateBidRequest) (*v1.CreateBidResponse, error)
+	ConnectBid(context.Context, *v1.ConnectBidRequest) (*v1.ConnectBidResponse, error)
+	CancelBid(context.Context, *v1.CancelBidRequest) (*v1.CancelBidResponse, error)
+	ListBids(context.Context, *v1.ListBidsRequest) (*v1.ListBidsResponse, error)
+	PrepareBMM(context.Context, *v1.PrepareBMMRequest) (*v1.PrepareBMMResponse, error)
 }
 
-// NewBMMServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewBMMServiceHandler(svc BMMServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bMMServiceMethods := v1.File_bmm_v1_bmm_proto.Services().ByName("BMMService").Methods()
-	bMMServiceStartHandler := connect.NewUnaryHandler(
-		BMMServiceStartProcedure,
-		svc.Start,
-		connect.WithSchema(bMMServiceMethods.ByName("Start")),
-		connect.WithHandlerOptions(opts...),
+// RegisterBMMServiceHandler registers svc as the bmm.v1.BMMService implementation on server.
+func RegisterBMMServiceHandler(server *connect.Server, svc BMMServiceHandler) {
+	adapter := bMMServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: bMMServiceStartSpec(), Handler: adapter.start},
+		connect.Method{Spec: bMMServiceStopSpec(), Handler: adapter.stop},
+		connect.Method{Spec: bMMServiceClearHistorySpec(), Handler: adapter.clearHistory},
+		connect.Method{Spec: bMMServiceWatchSpec(), Handler: adapter.watch},
+		connect.Method{Spec: bMMServiceGetRoundBidsSpec(), Handler: adapter.getRoundBids},
+		connect.Method{Spec: bMMServiceCreateBidSpec(), Handler: adapter.createBid},
+		connect.Method{Spec: bMMServiceConnectBidSpec(), Handler: adapter.connectBid},
+		connect.Method{Spec: bMMServiceCancelBidSpec(), Handler: adapter.cancelBid},
+		connect.Method{Spec: bMMServiceListBidsSpec(), Handler: adapter.listBids},
+		connect.Method{Spec: bMMServicePrepareBMMSpec(), Handler: adapter.prepareBMM},
 	)
-	bMMServiceStopHandler := connect.NewUnaryHandler(
-		BMMServiceStopProcedure,
-		svc.Stop,
-		connect.WithSchema(bMMServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServiceClearHistoryHandler := connect.NewUnaryHandler(
-		BMMServiceClearHistoryProcedure,
-		svc.ClearHistory,
-		connect.WithSchema(bMMServiceMethods.ByName("ClearHistory")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServiceWatchHandler := connect.NewServerStreamHandler(
-		BMMServiceWatchProcedure,
-		svc.Watch,
-		connect.WithSchema(bMMServiceMethods.ByName("Watch")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServiceGetRoundBidsHandler := connect.NewUnaryHandler(
-		BMMServiceGetRoundBidsProcedure,
-		svc.GetRoundBids,
-		connect.WithSchema(bMMServiceMethods.ByName("GetRoundBids")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServiceCreateBidHandler := connect.NewUnaryHandler(
-		BMMServiceCreateBidProcedure,
-		svc.CreateBid,
-		connect.WithSchema(bMMServiceMethods.ByName("CreateBid")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServiceConnectBidHandler := connect.NewUnaryHandler(
-		BMMServiceConnectBidProcedure,
-		svc.ConnectBid,
-		connect.WithSchema(bMMServiceMethods.ByName("ConnectBid")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServiceCancelBidHandler := connect.NewUnaryHandler(
-		BMMServiceCancelBidProcedure,
-		svc.CancelBid,
-		connect.WithSchema(bMMServiceMethods.ByName("CancelBid")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServiceListBidsHandler := connect.NewUnaryHandler(
-		BMMServiceListBidsProcedure,
-		svc.ListBids,
-		connect.WithSchema(bMMServiceMethods.ByName("ListBids")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bMMServicePrepareBMMHandler := connect.NewUnaryHandler(
-		BMMServicePrepareBMMProcedure,
-		svc.PrepareBMM,
-		connect.WithSchema(bMMServiceMethods.ByName("PrepareBMM")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/bmm.v1.BMMService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case BMMServiceStartProcedure:
-			bMMServiceStartHandler.ServeHTTP(w, r)
-		case BMMServiceStopProcedure:
-			bMMServiceStopHandler.ServeHTTP(w, r)
-		case BMMServiceClearHistoryProcedure:
-			bMMServiceClearHistoryHandler.ServeHTTP(w, r)
-		case BMMServiceWatchProcedure:
-			bMMServiceWatchHandler.ServeHTTP(w, r)
-		case BMMServiceGetRoundBidsProcedure:
-			bMMServiceGetRoundBidsHandler.ServeHTTP(w, r)
-		case BMMServiceCreateBidProcedure:
-			bMMServiceCreateBidHandler.ServeHTTP(w, r)
-		case BMMServiceConnectBidProcedure:
-			bMMServiceConnectBidHandler.ServeHTTP(w, r)
-		case BMMServiceCancelBidProcedure:
-			bMMServiceCancelBidHandler.ServeHTTP(w, r)
-		case BMMServiceListBidsProcedure:
-			bMMServiceListBidsHandler.ServeHTTP(w, r)
-		case BMMServicePrepareBMMProcedure:
-			bMMServicePrepareBMMHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// BMMServiceWatchServerStream is the server stream for the BMMService's Watch RPC.
+type BMMServiceWatchServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s BMMServiceWatchServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s BMMServiceWatchServerStream) Send(res *v1.WatchResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedBMMServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBMMServiceHandler struct{}
 
-func (UnimplementedBMMServiceHandler) Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.Start is not implemented"))
+func (UnimplementedBMMServiceHandler) Start(context.Context, *v1.StartRequest) (*v1.StartResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.Start is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.Stop is not implemented"))
+func (UnimplementedBMMServiceHandler) Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.Stop is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) ClearHistory(context.Context, *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.ClearHistory is not implemented"))
+func (UnimplementedBMMServiceHandler) ClearHistory(context.Context, *v1.ClearHistoryRequest) (*v1.ClearHistoryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.ClearHistory is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.Watch is not implemented"))
+func (UnimplementedBMMServiceHandler) Watch(context.Context, *v1.WatchRequest, BMMServiceWatchServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.Watch is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) GetRoundBids(context.Context, *connect.Request[v1.GetRoundBidsRequest]) (*connect.Response[v1.GetRoundBidsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.GetRoundBids is not implemented"))
+func (UnimplementedBMMServiceHandler) GetRoundBids(context.Context, *v1.GetRoundBidsRequest) (*v1.GetRoundBidsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.GetRoundBids is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) CreateBid(context.Context, *connect.Request[v1.CreateBidRequest]) (*connect.Response[v1.CreateBidResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.CreateBid is not implemented"))
+func (UnimplementedBMMServiceHandler) CreateBid(context.Context, *v1.CreateBidRequest) (*v1.CreateBidResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.CreateBid is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) ConnectBid(context.Context, *connect.Request[v1.ConnectBidRequest]) (*connect.Response[v1.ConnectBidResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.ConnectBid is not implemented"))
+func (UnimplementedBMMServiceHandler) ConnectBid(context.Context, *v1.ConnectBidRequest) (*v1.ConnectBidResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.ConnectBid is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) CancelBid(context.Context, *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.CancelBid is not implemented"))
+func (UnimplementedBMMServiceHandler) CancelBid(context.Context, *v1.CancelBidRequest) (*v1.CancelBidResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.CancelBid is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.ListBids is not implemented"))
+func (UnimplementedBMMServiceHandler) ListBids(context.Context, *v1.ListBidsRequest) (*v1.ListBidsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.ListBids is not implemented")
 }
 
-func (UnimplementedBMMServiceHandler) PrepareBMM(context.Context, *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.PrepareBMM is not implemented"))
+func (UnimplementedBMMServiceHandler) PrepareBMM(context.Context, *v1.PrepareBMMRequest) (*v1.PrepareBMMResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bmm.v1.BMMService.PrepareBMM is not implemented")
+}
+
+type bMMServiceClient struct {
+	client *connect.Client
+}
+
+func (c *bMMServiceClient) Start(ctx context.Context, req *v1.StartRequest) (*v1.StartResponse, error) {
+	var res v1.StartResponse
+	if err := c.client.CallUnary(ctx, bMMServiceStartSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) Stop(ctx context.Context, req *v1.StopRequest) (*v1.StopResponse, error) {
+	var res v1.StopResponse
+	if err := c.client.CallUnary(ctx, bMMServiceStopSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) ClearHistory(ctx context.Context, req *v1.ClearHistoryRequest) (*v1.ClearHistoryResponse, error) {
+	var res v1.ClearHistoryResponse
+	if err := c.client.CallUnary(ctx, bMMServiceClearHistorySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) Watch(ctx context.Context, req *v1.WatchRequest) (BMMServiceWatchClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, bMMServiceWatchSpec(), req)
+	if err != nil {
+		return BMMServiceWatchClientStream{}, err
+	}
+	return BMMServiceWatchClientStream{stream: stream}, nil
+}
+
+func (c *bMMServiceClient) GetRoundBids(ctx context.Context, req *v1.GetRoundBidsRequest) (*v1.GetRoundBidsResponse, error) {
+	var res v1.GetRoundBidsResponse
+	if err := c.client.CallUnary(ctx, bMMServiceGetRoundBidsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) CreateBid(ctx context.Context, req *v1.CreateBidRequest) (*v1.CreateBidResponse, error) {
+	var res v1.CreateBidResponse
+	if err := c.client.CallUnary(ctx, bMMServiceCreateBidSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) ConnectBid(ctx context.Context, req *v1.ConnectBidRequest) (*v1.ConnectBidResponse, error) {
+	var res v1.ConnectBidResponse
+	if err := c.client.CallUnary(ctx, bMMServiceConnectBidSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) CancelBid(ctx context.Context, req *v1.CancelBidRequest) (*v1.CancelBidResponse, error) {
+	var res v1.CancelBidResponse
+	if err := c.client.CallUnary(ctx, bMMServiceCancelBidSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) ListBids(ctx context.Context, req *v1.ListBidsRequest) (*v1.ListBidsResponse, error) {
+	var res v1.ListBidsResponse
+	if err := c.client.CallUnary(ctx, bMMServiceListBidsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bMMServiceClient) PrepareBMM(ctx context.Context, req *v1.PrepareBMMRequest) (*v1.PrepareBMMResponse, error) {
+	var res v1.PrepareBMMResponse
+	if err := c.client.CallUnary(ctx, bMMServicePrepareBMMSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type bMMServiceHandler struct{ svc BMMServiceHandler }
+
+func (h bMMServiceHandler) start(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StartRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Start(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) stop(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Stop(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) clearHistory(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ClearHistoryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ClearHistory(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) watch(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.Watch(ctx, &req, BMMServiceWatchServerStream{stream: stream})
+}
+
+func (h bMMServiceHandler) getRoundBids(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetRoundBidsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetRoundBids(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) createBid(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateBidRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateBid(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) connectBid(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConnectBidRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ConnectBid(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) cancelBid(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CancelBidRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CancelBid(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) listBids(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBidsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBids(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bMMServiceHandler) prepareBMM(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PrepareBMMRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PrepareBMM(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

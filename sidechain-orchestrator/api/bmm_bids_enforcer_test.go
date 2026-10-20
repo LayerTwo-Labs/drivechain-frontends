@@ -1,12 +1,13 @@
 package api
 
 import (
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"context"
 	"io"
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,11 +30,11 @@ type bidValidator struct {
 }
 
 func (v *bidValidator) GetSeenBmmRequests(
-	_ context.Context, req *connect.Request[enforcerpb.GetSeenBmmRequestsRequest],
-) (*connect.Response[enforcerpb.GetSeenBmmRequestsResponse], error) {
-	v.askedParent = req.Msg.GetPrevBlockHash().GetHex().GetValue()
-	v.askedSlot = req.Msg.GetSidechainNumber().GetValue()
-	return connect.NewResponse(&enforcerpb.GetSeenBmmRequestsResponse{
+	_ context.Context, req *enforcerpb.GetSeenBmmRequestsRequest,
+) (*enforcerpb.GetSeenBmmRequestsResponse, error) {
+	v.askedParent = req.GetPrevBlockHash().GetHex().GetValue()
+	v.askedSlot = req.GetSidechainNumber().GetValue()
+	return &enforcerpb.GetSeenBmmRequestsResponse{
 		Requests: []*enforcerpb.GetSeenBmmRequestsResponse_BmmRequest{
 			{
 				SidechainNumber: 9,
@@ -48,7 +49,7 @@ func (v *bidValidator) GetSeenBmmRequests(
 				BidSats:         25_000,
 			},
 		},
-	}), nil
+	}, nil
 }
 
 // The enforcer holds every bid the mainchain mempool carries, so both modes
@@ -59,8 +60,9 @@ func TestListBidsReadsTheEnforcerInBothModes(t *testing.T) {
 		t.Run(string(mode), func(t *testing.T) {
 			validator := &bidValidator{}
 			mux := http.NewServeMux()
-			path, handler := enforcerrpc.NewValidatorServiceHandler(validator)
-			mux.Handle(path, handler)
+			rpcServer := connect.NewServer()
+			enforcerrpc.RegisterValidatorServiceHandler(rpcServer, validator)
+			connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 			server := h2cServer(mux)
 			t.Cleanup(server.Close)
 			host, port := hostPort(t, server)
@@ -81,18 +83,18 @@ func TestListBidsReadsTheEnforcerInBothModes(t *testing.T) {
 			require.Equal(t, mode, orch.NodeMode())
 
 			resp, err := NewBMMHandler(orch, nil).ListBids(context.Background(),
-				connect.NewRequest(&bmmpb.ListBidsRequest{
+				&bmmpb.ListBidsRequest{
 					Sidechain:    pb.BinaryType_BINARY_TYPE_THUNDER,
 					PrevMainHash: "parent-1",
-				}))
+				})
 			require.NoError(t, err)
 
-			require.Len(t, resp.Msg.Bids, 2)
-			assert.Equal(t, "rich", resp.Msg.Bids[0].Txid, "the highest bid comes first")
-			assert.EqualValues(t, 25_000, resp.Msg.Bids[0].BidSats)
-			assert.Equal(t, "block-b", resp.Msg.Bids[0].CriticalHash)
-			assert.Equal(t, "parent-1", resp.Msg.Bids[0].PrevMainHash)
-			assert.Equal(t, "cheap", resp.Msg.Bids[1].Txid)
+			require.Len(t, resp.Bids, 2)
+			assert.Equal(t, "rich", resp.Bids[0].Txid, "the highest bid comes first")
+			assert.EqualValues(t, 25_000, resp.Bids[0].BidSats)
+			assert.Equal(t, "block-b", resp.Bids[0].CriticalHash)
+			assert.Equal(t, "parent-1", resp.Bids[0].PrevMainHash)
+			assert.Equal(t, "cheap", resp.Bids[1].Txid)
 
 			assert.Equal(t, "parent-1", validator.askedParent)
 			assert.EqualValues(t, 9, validator.askedSlot)

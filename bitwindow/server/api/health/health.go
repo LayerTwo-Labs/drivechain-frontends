@@ -6,7 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
@@ -49,20 +50,20 @@ type Server struct {
 	crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }
 
-// Check implements healthv1connect.HealthServiceHandler.
-func (s *Server) Check(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[healthv1.CheckResponse], error) {
+// Check implements rpc.HealthServiceHandler.
+func (s *Server) Check(ctx context.Context, _ *emptypb.Empty) (*healthv1.CheckResponse, error) {
 
 	statuses, err := s.getServiceStatuses(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&healthv1.CheckResponse{
+	return &healthv1.CheckResponse{
 		ServiceStatuses: statuses,
-	}), nil
+	}, nil
 }
 
-func (s *Server) Watch(ctx context.Context, _ *connect.Request[emptypb.Empty], stream *connect.ServerStream[healthv1.CheckResponse]) error {
+func (s *Server) Watch(ctx context.Context, _ *emptypb.Empty, stream rpc.HealthServiceWatchServerStream) error {
 	type serviceStatusEvent struct {
 		name   string
 		status bool
@@ -202,21 +203,21 @@ func (s *Server) getServiceStatuses(ctx context.Context) ([]*healthv1.CheckRespo
 
 	pool.Go("bitcoind", func(ctx context.Context) (*healthv1.CheckResponse_ServiceStatus, error) {
 		return checkHealth(ctx, "bitcoind", s.bitcoind, func(ctx context.Context, client corerpc.BitcoinServiceClient) error {
-			_, err := client.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+			_, err := client.GetBlockchainInfo(ctx, connectv1.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 			return err
 		}), nil
 	})
 
 	pool.Go("enforcer", func(ctx context.Context) (*healthv1.CheckResponse_ServiceStatus, error) {
 		return checkHealth(ctx, "enforcer", s.enforcer, func(ctx context.Context, client validatorrpc.ValidatorServiceClient) error {
-			_, err := client.GetChainInfo(ctx, connect.NewRequest(&mainchainv1.GetChainInfoRequest{}))
+			_, err := client.GetChainInfo(ctx, &mainchainv1.GetChainInfoRequest{})
 			return err
 		}), nil
 	})
 
 	pool.Go("crypto", func(ctx context.Context) (*healthv1.CheckResponse_ServiceStatus, error) {
 		return checkHealth(ctx, "crypto", s.crypto, func(ctx context.Context, client cryptorpc.CryptoServiceClient) error {
-			_, err := client.Ripemd160(ctx, connect.NewRequest(&cryptov1.Ripemd160Request{
+			_, err := client.Ripemd160(ctx, &cryptov1.Ripemd160Request{
 				Msg: &commonv1.Hex{
 					Hex: &wrapperspb.StringValue{
 						// pass a valid hex string here, so that the
@@ -224,7 +225,7 @@ func (s *Server) getServiceStatuses(ctx context.Context) ([]*healthv1.CheckRespo
 						Value: "deadbeef",
 					},
 				},
-			}))
+			})
 			return err
 		}), nil
 	})

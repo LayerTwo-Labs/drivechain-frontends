@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/require"
@@ -21,9 +21,7 @@ func engineWithMode(t *testing.T, mode orchpb.NodeMode, err error) *engines.Wall
 	orch.EXPECT().
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		AnyTimes().
-		Return(&connect.Response[orchpb.GetNodeModeResponse]{
-			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
-		}, err)
+		Return(&orchpb.GetNodeModeResponse{Mode: mode}, err)
 	return engines.NewWalletEngine(
 		func(context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
 		orch,
@@ -50,7 +48,7 @@ func TestRequireFullNodeAllowsFullMode(t *testing.T) {
 // An unreadable mode must not read as full. Failing open would let the call
 // through to a daemon that is not there, with a confusing error.
 func TestRequireFullNodeReportsAnUnreadableMode(t *testing.T) {
-	boom := connect.NewError(connect.CodeInternal, context.DeadlineExceeded)
+	boom := connect.NewError(connect.CodeInternal, context.DeadlineExceeded.Error()).WithCause(context.DeadlineExceeded)
 	e := engineWithMode(t, orchpb.NodeMode_NODE_MODE_UNSPECIFIED, boom)
 
 	err := e.RequireFullNode(t.Context(), "proposing a sidechain")

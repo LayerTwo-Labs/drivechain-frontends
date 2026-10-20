@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/samber/lo"
@@ -138,12 +137,12 @@ func enforcerAt(t *testing.T, tip uint32, activations map[uint32]uint32) *servic
 	}
 	validator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
 	validator.EXPECT().GetChainTip(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&validatorpb.GetChainTipResponse{
+		Return(&validatorpb.GetChainTipResponse{
 			BlockHeaderInfo: &validatorpb.BlockHeaderInfo{Height: tip},
-		}), nil).
+		}, nil).
 		AnyTimes()
 	validator.EXPECT().GetSidechains(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&validatorpb.GetSidechainsResponse{Sidechains: sidechains}), nil).
+		Return(&validatorpb.GetSidechainsResponse{Sidechains: sidechains}, nil).
 		AnyTimes()
 	return service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
 		return validator, nil

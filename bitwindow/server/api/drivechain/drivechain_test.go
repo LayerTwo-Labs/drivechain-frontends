@@ -2,10 +2,9 @@ package drivechain_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -35,13 +34,11 @@ func TestService_ListSidechains(t *testing.T) {
 		// Mock GetChainTip
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
@@ -49,32 +46,30 @@ func TestService_ListSidechains(t *testing.T) {
 		// Mock GetSidechains
 		mockValidator.EXPECT().
 			GetSidechains(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
-				Msg: &mainchainv1.GetSidechainsResponse{
-					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
-						{
-							SidechainNumber: wrapperspb.UInt32(0),
-							Declaration: &mainchainv1.SidechainDeclaration{
-								SidechainDeclaration: &mainchainv1.SidechainDeclaration_V0_{
-									V0: &mainchainv1.SidechainDeclaration_V0{
-										Title:       wrapperspb.String("Test Sidechain"),
-										Description: wrapperspb.String("A test sidechain"),
-										HashId_1: &commonv1.ConsensusHex{
-											Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000000"),
-										},
-										HashId_2: &commonv1.Hex{
-											Hex: wrapperspb.String("0000000000000000000000000000000000000000"),
-										},
+			Return(&mainchainv1.GetSidechainsResponse{
+				Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
+					{
+						SidechainNumber: wrapperspb.UInt32(0),
+						Declaration: &mainchainv1.SidechainDeclaration{
+							SidechainDeclaration: &mainchainv1.SidechainDeclaration_V0_{
+								V0: &mainchainv1.SidechainDeclaration_V0{
+									Title:       wrapperspb.String("Test Sidechain"),
+									Description: wrapperspb.String("A test sidechain"),
+									HashId_1: &commonv1.ConsensusHex{
+										Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000000"),
+									},
+									HashId_2: &commonv1.Hex{
+										Hex: wrapperspb.String("0000000000000000000000000000000000000000"),
 									},
 								},
 							},
-							Description: &commonv1.ConsensusHex{
-								Hex: wrapperspb.String("deadbeef"),
-							},
-							VoteCount:        wrapperspb.UInt32(100),
-							ProposalHeight:   wrapperspb.UInt32(50),
-							ActivationHeight: wrapperspb.UInt32(60),
 						},
+						Description: &commonv1.ConsensusHex{
+							Hex: wrapperspb.String("deadbeef"),
+						},
+						VoteCount:        wrapperspb.UInt32(100),
+						ProposalHeight:   wrapperspb.UInt32(50),
+						ActivationHeight: wrapperspb.UInt32(60),
 					},
 				},
 			}, nil)
@@ -82,26 +77,24 @@ func TestService_ListSidechains(t *testing.T) {
 		// Mock GetCtip for sidechain 0
 		mockValidator.EXPECT().
 			GetCtip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetCtipResponse]{
-				Msg: &mainchainv1.GetCtipResponse{
-					Ctip: &mainchainv1.GetCtipResponse_Ctip{
-						Txid: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
-						},
-						Vout:           0,
-						Value:          1000000,
-						SequenceNumber: 1,
+			Return(&mainchainv1.GetCtipResponse{
+				Ctip: &mainchainv1.GetCtipResponse_Ctip{
+					Txid: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
 					},
+					Vout:           0,
+					Value:          1000000,
+					SequenceNumber: 1,
 				},
 			}, nil)
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		resp, err := cli.ListSidechains(t.Context(), &pb.ListSidechainsRequest{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Sidechains, 1)
-		assert.Equal(t, "Test Sidechain", resp.Msg.Sidechains[0].Title)
-		assert.Equal(t, uint32(0), resp.Msg.Sidechains[0].Slot)
+		require.Len(t, resp.Sidechains, 1)
+		assert.Equal(t, "Test Sidechain", resp.Sidechains[0].Title)
+		assert.Equal(t, uint32(0), resp.Sidechains[0].Slot)
 	})
 
 	t.Run("handles nil declaration", func(t *testing.T) {
@@ -114,13 +107,11 @@ func TestService_ListSidechains(t *testing.T) {
 
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
@@ -129,35 +120,33 @@ func TestService_ListSidechains(t *testing.T) {
 		// decode as a v0 declaration, which the spec allows.
 		mockValidator.EXPECT().
 			GetSidechains(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
-				Msg: &mainchainv1.GetSidechainsResponse{
-					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
-						{
-							SidechainNumber: wrapperspb.UInt32(7),
-							Declaration:     nil,
-							Description: &commonv1.ConsensusHex{
-								Hex: wrapperspb.String("deadbeef"),
-							},
-							VoteCount:        wrapperspb.UInt32(100),
-							ProposalHeight:   wrapperspb.UInt32(50),
-							ActivationHeight: wrapperspb.UInt32(60),
+			Return(&mainchainv1.GetSidechainsResponse{
+				Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
+					{
+						SidechainNumber: wrapperspb.UInt32(7),
+						Declaration:     nil,
+						Description: &commonv1.ConsensusHex{
+							Hex: wrapperspb.String("deadbeef"),
 						},
+						VoteCount:        wrapperspb.UInt32(100),
+						ProposalHeight:   wrapperspb.UInt32(50),
+						ActivationHeight: wrapperspb.UInt32(60),
 					},
 				},
 			}, nil)
 
 		mockValidator.EXPECT().
 			GetCtip(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeNotFound, nil))
+			Return(nil, connect.NewError(connect.CodeNotFound, ""))
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		resp, err := cli.ListSidechains(t.Context(), &pb.ListSidechainsRequest{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Sidechains, 1)
-		assert.Empty(t, resp.Msg.Sidechains[0].Title)
-		assert.Equal(t, uint32(7), resp.Msg.Sidechains[0].Slot)
-		assert.Equal(t, "deadbeef", resp.Msg.Sidechains[0].DescriptionHex)
+		require.Len(t, resp.Sidechains, 1)
+		assert.Empty(t, resp.Sidechains[0].Title)
+		assert.Equal(t, uint32(7), resp.Sidechains[0].Slot)
+		assert.Equal(t, "deadbeef", resp.Sidechains[0].DescriptionHex)
 	})
 
 	t.Run("handles empty sidechains", func(t *testing.T) {
@@ -170,30 +159,26 @@ func TestService_ListSidechains(t *testing.T) {
 
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
 
 		mockValidator.EXPECT().
 			GetSidechains(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
-				Msg: &mainchainv1.GetSidechainsResponse{
-					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{},
-				},
+			Return(&mainchainv1.GetSidechainsResponse{
+				Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{},
 			}, nil)
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		resp, err := cli.ListSidechains(t.Context(), &pb.ListSidechainsRequest{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Sidechains)
+		assert.Empty(t, resp.Sidechains)
 	})
 
 	t.Run("a failed ctip read returns the error", func(t *testing.T) {
@@ -202,32 +187,28 @@ func TestService_ListSidechains(t *testing.T) {
 		mockValidator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
 		mockValidator.EXPECT().
 			GetSidechains(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
-				Msg: &mainchainv1.GetSidechainsResponse{
-					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
-						{SidechainNumber: wrapperspb.UInt32(2)},
-					},
+			Return(&mainchainv1.GetSidechainsResponse{
+				Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
+					{SidechainNumber: wrapperspb.UInt32(2)},
 				},
 			}, nil)
 		mockValidator.EXPECT().
 			GetCtip(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("enforcer went away")))
+			Return(nil, connect.NewError(connect.CodeUnavailable, "enforcer went away"))
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, database.Test(t), apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, database.Test(t), apitests.WithValidator(mockValidator)))
 
-		_, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		_, err := cli.ListSidechains(t.Context(), &pb.ListSidechainsRequest{})
 		require.ErrorContains(t, err, "enforcer went away")
 		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	})
@@ -242,11 +223,11 @@ func TestService_ListSidechains(t *testing.T) {
 
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, nil))
+			Return(nil, connect.NewError(connect.CodeUnavailable, ""))
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		_, err := cli.ListSidechains(t.Context(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		_, err := cli.ListSidechains(t.Context(), &pb.ListSidechainsRequest{})
 		require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	})
 }
@@ -264,46 +245,42 @@ func TestService_ListSidechainProposals(t *testing.T) {
 
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
 
 		mockValidator.EXPECT().
 			GetSidechainProposals(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainProposalsResponse]{
-				Msg: &mainchainv1.GetSidechainProposalsResponse{
-					SidechainProposals: []*mainchainv1.GetSidechainProposalsResponse_SidechainProposal{
-						{
-							SidechainNumber: wrapperspb.UInt32(5),
-							Description: &commonv1.ConsensusHex{
-								Hex: wrapperspb.String("deadbeef"),
-							},
-							DescriptionSha256DHash: &commonv1.ReverseHex{
-								Hex: wrapperspb.String("abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"),
-							},
-							VoteCount:      wrapperspb.UInt32(50),
-							ProposalHeight: wrapperspb.UInt32(80),
-							ProposalAge:    wrapperspb.UInt32(20),
+			Return(&mainchainv1.GetSidechainProposalsResponse{
+				SidechainProposals: []*mainchainv1.GetSidechainProposalsResponse_SidechainProposal{
+					{
+						SidechainNumber: wrapperspb.UInt32(5),
+						Description: &commonv1.ConsensusHex{
+							Hex: wrapperspb.String("deadbeef"),
 						},
+						DescriptionSha256DHash: &commonv1.ReverseHex{
+							Hex: wrapperspb.String("abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"),
+						},
+						VoteCount:      wrapperspb.UInt32(50),
+						ProposalHeight: wrapperspb.UInt32(80),
+						ProposalAge:    wrapperspb.UInt32(20),
 					},
 				},
 			}, nil)
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechainProposals(t.Context(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
+		resp, err := cli.ListSidechainProposals(t.Context(), &pb.ListSidechainProposalsRequest{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Proposals, 1)
-		assert.Equal(t, uint32(5), resp.Msg.Proposals[0].Slot)
-		assert.Equal(t, uint32(50), resp.Msg.Proposals[0].VoteCount)
-		assert.Equal(t, []byte{0xde, 0xad, 0xbe, 0xef}, resp.Msg.Proposals[0].Data)
+		require.Len(t, resp.Proposals, 1)
+		assert.Equal(t, uint32(5), resp.Proposals[0].Slot)
+		assert.Equal(t, uint32(50), resp.Proposals[0].VoteCount)
+		assert.Equal(t, []byte{0xde, 0xad, 0xbe, 0xef}, resp.Proposals[0].Data)
 	})
 
 	t.Run("handles empty proposals", func(t *testing.T) {
@@ -316,30 +293,26 @@ func TestService_ListSidechainProposals(t *testing.T) {
 
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
 
 		mockValidator.EXPECT().
 			GetSidechainProposals(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainProposalsResponse]{
-				Msg: &mainchainv1.GetSidechainProposalsResponse{
-					SidechainProposals: []*mainchainv1.GetSidechainProposalsResponse_SidechainProposal{},
-				},
+			Return(&mainchainv1.GetSidechainProposalsResponse{
+				SidechainProposals: []*mainchainv1.GetSidechainProposalsResponse_SidechainProposal{},
 			}, nil)
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListSidechainProposals(t.Context(), connect.NewRequest(&pb.ListSidechainProposalsRequest{}))
+		resp, err := cli.ListSidechainProposals(t.Context(), &pb.ListSidechainProposalsRequest{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Proposals)
+		assert.Empty(t, resp.Proposals)
 	})
 }
 
@@ -350,12 +323,12 @@ func TestService_ProposeSidechain(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db))
 
-		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), &pb.ProposeSidechainRequest{
 			Slot:  256, // invalid, must be 0-255
 			Title: "Test",
-		}))
+		})
 		require.ErrorContains(t, err, "slot must be 0-255")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -364,12 +337,12 @@ func TestService_ProposeSidechain(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db))
 
-		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), &pb.ProposeSidechainRequest{
 			Slot:  0,
 			Title: "", // empty title
-		}))
+		})
 		require.ErrorContains(t, err, "title required")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -378,13 +351,13 @@ func TestService_ProposeSidechain(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db))
 
-		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), &pb.ProposeSidechainRequest{
 			Slot:    0,
 			Title:   "Test",
 			Hashid1: "tooshort", // must be 64 hex chars
-		}))
+		})
 		require.ErrorContains(t, err, "hashid1 must be 64 hex chars")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
@@ -393,28 +366,28 @@ func TestService_ProposeSidechain(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db))
 
-		_, err := cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		_, err := cli.ProposeSidechain(t.Context(), &pb.ProposeSidechainRequest{
 			Slot:    0,
 			Title:   "Test",
 			Hashid2: "tooshort", // must be 40 hex chars
-		}))
+		})
 		require.ErrorContains(t, err, "hashid2 must be 40 hex chars")
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
-	proposeWith := func(t *testing.T, producer *fakeProducer) (*connect.Response[pb.ProposeSidechainResponse], error) {
+	proposeWith := func(t *testing.T, producer *fakeProducer) (*pb.ProposeSidechainResponse, error) {
 		orchestrator := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 		apitests.ExpectOrchestratorReads(orchestrator)
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, database.Test(t),
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, database.Test(t),
 			apitests.WithOrchestrator(orchestrator),
 			apitests.WithBlockProducer(producer),
 		))
-		return cli.ProposeSidechain(t.Context(), connect.NewRequest(&pb.ProposeSidechainRequest{
+		return cli.ProposeSidechain(t.Context(), &pb.ProposeSidechainRequest{
 			Slot:  3,
 			Title: "RISCy",
-		}))
+		})
 	}
 
 	t.Run("submits the proposal", func(t *testing.T) {
@@ -423,7 +396,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 		producer := &fakeProducer{}
 		resp, err := proposeWith(t, producer)
 		require.NoError(t, err)
-		assert.True(t, resp.Msg.Success)
+		assert.True(t, resp.Success)
 		require.NotNil(t, producer.submitted)
 		assert.Equal(t, uint32(3), producer.submitted.GetSidechainId().GetValue())
 		assert.Equal(t, "RISCy", producer.submitted.GetDeclaration().GetV0().GetTitle().GetValue())
@@ -432,7 +405,7 @@ func TestService_ProposeSidechain(t *testing.T) {
 	t.Run("reports an enforcer refusal", func(t *testing.T) {
 		t.Parallel()
 
-		producer := &fakeProducer{err: connect.NewError(connect.CodeAlreadyExists, errors.New("Sidechain proposal already exists"))}
+		producer := &fakeProducer{err: connect.NewError(connect.CodeAlreadyExists, "Sidechain proposal already exists")}
 		_, err := proposeWith(t, producer)
 		require.ErrorContains(t, err, "Sidechain proposal already exists")
 		assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
@@ -445,12 +418,12 @@ type fakeProducer struct {
 	submitted *mainchainv1.SubmitSidechainProposalRequest
 }
 
-func (f *fakeProducer) SubmitSidechainProposal(_ context.Context, req *connect.Request[mainchainv1.SubmitSidechainProposalRequest]) (*connect.Response[mainchainv1.SubmitSidechainProposalResponse], error) {
-	f.submitted = req.Msg
+func (f *fakeProducer) SubmitSidechainProposal(_ context.Context, req *mainchainv1.SubmitSidechainProposalRequest) (*mainchainv1.SubmitSidechainProposalResponse, error) {
+	f.submitted = req
 	if f.err != nil {
 		return nil, f.err
 	}
-	return connect.NewResponse(&mainchainv1.SubmitSidechainProposalResponse{}), nil
+	return &mainchainv1.SubmitSidechainProposalResponse{}, nil
 }
 
 func TestService_ListWithdrawals(t *testing.T) {
@@ -466,30 +439,26 @@ func TestService_ListWithdrawals(t *testing.T) {
 
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
 
 		mockValidator.EXPECT().
 			GetSidechains(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
-				Msg: &mainchainv1.GetSidechainsResponse{
-					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{},
-				},
+			Return(&mainchainv1.GetSidechainsResponse{
+				Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{},
 			}, nil)
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		_, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{
+		_, err := cli.ListWithdrawals(t.Context(), &pb.ListWithdrawalsRequest{
 			SidechainId: 99, // non-existent
-		}))
+		})
 		require.ErrorContains(t, err, "sidechain 99 not found")
 		assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
@@ -500,14 +469,14 @@ func TestService_ListWithdrawals(t *testing.T) {
 		mockValidator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(connect.NewResponse(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(100, activationHash)}), nil)
+			Return(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(100, activationHash)}, nil)
 		mockValidator.EXPECT().
 			GetSidechains(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("enforcer went away")))
+			Return(nil, connect.NewError(connect.CodeUnavailable, "enforcer went away"))
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, database.Test(t), apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, database.Test(t), apitests.WithValidator(mockValidator)))
 
-		_, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{SidechainId: 0}))
+		_, err := cli.ListWithdrawals(t.Context(), &pb.ListWithdrawalsRequest{SidechainId: 0})
 		require.ErrorContains(t, err, "enforcer went away")
 		assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	})
@@ -522,30 +491,26 @@ func TestService_ListWithdrawals(t *testing.T) {
 
 		mockValidator.EXPECT().
 			GetChainTip(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
-				Msg: &mainchainv1.GetChainTipResponse{
-					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
-						Height: 100,
-						BlockHash: &commonv1.ReverseHex{
-							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
-						},
+			Return(&mainchainv1.GetChainTipResponse{
+				BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+					Height: 100,
+					BlockHash: &commonv1.ReverseHex{
+						Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
 					},
 				},
 			}, nil)
 
 		mockValidator.EXPECT().
 			GetSidechains(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
-				Msg: &mainchainv1.GetSidechainsResponse{
-					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
-						{
-							SidechainNumber:  wrapperspb.UInt32(0),
-							ActivationHeight: wrapperspb.UInt32(50),
-							Declaration: &mainchainv1.SidechainDeclaration{
-								SidechainDeclaration: &mainchainv1.SidechainDeclaration_V0_{
-									V0: &mainchainv1.SidechainDeclaration_V0{
-										Title: wrapperspb.String("Test"),
-									},
+			Return(&mainchainv1.GetSidechainsResponse{
+				Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
+					{
+						SidechainNumber:  wrapperspb.UInt32(0),
+						ActivationHeight: wrapperspb.UInt32(50),
+						Declaration: &mainchainv1.SidechainDeclaration{
+							SidechainDeclaration: &mainchainv1.SidechainDeclaration_V0_{
+								V0: &mainchainv1.SidechainDeclaration_V0{
+									Title: wrapperspb.String("Test"),
 								},
 							},
 						},
@@ -556,14 +521,12 @@ func TestService_ListWithdrawals(t *testing.T) {
 		// Mock GetBlockHeaderInfo for activation block lookup
 		mockValidator.EXPECT().
 			GetBlockHeaderInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetBlockHeaderInfoResponse]{
-				Msg: &mainchainv1.GetBlockHeaderInfoResponse{
-					HeaderInfos: []*mainchainv1.BlockHeaderInfo{
-						{
-							Height: 50,
-							BlockHash: &commonv1.ReverseHex{
-								Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000050"),
-							},
+			Return(&mainchainv1.GetBlockHeaderInfoResponse{
+				HeaderInfos: []*mainchainv1.BlockHeaderInfo{
+					{
+						Height: 50,
+						BlockHash: &commonv1.ReverseHex{
+							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000050"),
 						},
 					},
 				},
@@ -572,19 +535,17 @@ func TestService_ListWithdrawals(t *testing.T) {
 		// Mock GetTwoWayPegData
 		mockValidator.EXPECT().
 			GetTwoWayPegData(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetTwoWayPegDataResponse]{
-				Msg: &mainchainv1.GetTwoWayPegDataResponse{
-					Blocks: []*mainchainv1.GetTwoWayPegDataResponse_ResponseItem{},
-				},
+			Return(&mainchainv1.GetTwoWayPegDataResponse{
+				Blocks: []*mainchainv1.GetTwoWayPegDataResponse_ResponseItem{},
 			}, nil)
 
-		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+		cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 
-		resp, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{
+		resp, err := cli.ListWithdrawals(t.Context(), &pb.ListWithdrawalsRequest{
 			SidechainId: 0,
-		}))
+		})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Bundles)
+		assert.Empty(t, resp.Bundles)
 	})
 
 	t.Run("reads on from the cached block while it stays on the chain", func(t *testing.T) {
@@ -625,38 +586,38 @@ func listWithdrawalsTwice(t *testing.T, ancestorAt100 string) []string {
 
 	gomock.InOrder(
 		mockValidator.EXPECT().GetChainTip(gomock.Any(), gomock.Any()).
-			Return(connect.NewResponse(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(100, firstTip)}), nil),
+			Return(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(100, firstTip)}, nil),
 		mockValidator.EXPECT().GetChainTip(gomock.Any(), gomock.Any()).
-			Return(connect.NewResponse(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(101, secondTip)}), nil),
+			Return(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(101, secondTip)}, nil),
 	)
 
 	mockValidator.EXPECT().GetSidechains(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&mainchainv1.GetSidechainsResponse{
+		Return(&mainchainv1.GetSidechainsResponse{
 			Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{{
 				SidechainNumber:  wrapperspb.UInt32(0),
 				ActivationHeight: wrapperspb.UInt32(50),
 			}},
-		}), nil).AnyTimes()
+		}, nil).AnyTimes()
 
 	mockValidator.EXPECT().GetBlockHeaderInfo(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, req *connect.Request[mainchainv1.GetBlockHeaderInfoRequest]) (*connect.Response[mainchainv1.GetBlockHeaderInfoResponse], error) {
+		DoAndReturn(func(_ context.Context, req *mainchainv1.GetBlockHeaderInfoRequest) (*mainchainv1.GetBlockHeaderInfoResponse, error) {
 			headers := []*mainchainv1.BlockHeaderInfo{header(50, activationHash)}
-			if req.Msg.BlockHash.Hex.Value == secondTip {
+			if req.BlockHash.Hex.Value == secondTip {
 				headers = append(headers, header(101, secondTip), header(100, ancestorAt100))
 			}
-			return connect.NewResponse(&mainchainv1.GetBlockHeaderInfoResponse{HeaderInfos: headers}), nil
+			return &mainchainv1.GetBlockHeaderInfoResponse{HeaderInfos: headers}, nil
 		}).AnyTimes()
 
 	var starts []string
 	mockValidator.EXPECT().GetTwoWayPegData(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, req *connect.Request[mainchainv1.GetTwoWayPegDataRequest]) (*connect.Response[mainchainv1.GetTwoWayPegDataResponse], error) {
-			starts = append(starts, req.Msg.StartBlockHash.Hex.Value)
-			return connect.NewResponse(&mainchainv1.GetTwoWayPegDataResponse{}), nil
+		DoAndReturn(func(_ context.Context, req *mainchainv1.GetTwoWayPegDataRequest) (*mainchainv1.GetTwoWayPegDataResponse, error) {
+			starts = append(starts, req.StartBlockHash.Hex.Value)
+			return &mainchainv1.GetTwoWayPegDataResponse{}, nil
 		}).Times(2)
 
-	cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+	cli := rpc.NewDrivechainServiceClient(apitests.RPC(t, db, apitests.WithValidator(mockValidator)))
 	for range 2 {
-		_, err := cli.ListWithdrawals(t.Context(), connect.NewRequest(&pb.ListWithdrawalsRequest{SidechainId: 0}))
+		_, err := cli.ListWithdrawals(t.Context(), &pb.ListWithdrawalsRequest{SidechainId: 0})
 		require.NoError(t, err)
 	}
 	return starts

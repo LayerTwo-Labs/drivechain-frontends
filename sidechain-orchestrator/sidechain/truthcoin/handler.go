@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"connectrpc.com/connect"
-
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1"
 	svc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
@@ -39,283 +37,283 @@ func (h *Handler) WalletBalance(ctx context.Context) (total, available int64, er
 
 // --- Common Node methods ---
 
-func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
+func (h *Handler) GetBalance(ctx context.Context, req *pb.GetBalanceRequest) (*pb.GetBalanceResponse, error) {
 	total, available, err := h.WalletBalance(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBalanceResponse{
+	return &pb.GetBalanceResponse{
 		TotalSats:     total,
 		AvailableSats: available,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) GetBlockCount(ctx context.Context, req *connect.Request[pb.GetBlockCountRequest]) (*connect.Response[pb.GetBlockCountResponse], error) {
+func (h *Handler) GetBlockCount(ctx context.Context, req *pb.GetBlockCountRequest) (*pb.GetBlockCountResponse, error) {
 	count, err := h.proxy.GetBlockCount(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBlockCountResponse{Count: count}), nil
+	return &pb.GetBlockCountResponse{Count: count}, nil
 }
 
-func (h *Handler) Stop(ctx context.Context, req *connect.Request[pb.StopRequest]) (*connect.Response[pb.StopResponse], error) {
+func (h *Handler) Stop(ctx context.Context, req *pb.StopRequest) (*pb.StopResponse, error) {
 	if err := h.proxy.Stop(ctx); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.StopResponse{}), nil
+	return &pb.StopResponse{}, nil
 }
 
-func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
+func (h *Handler) GetNewAddress(ctx context.Context, req *pb.GetNewAddressRequest) (*pb.GetNewAddressResponse, error) {
 	address, err := h.proxy.GetNewAddress(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetNewAddressResponse{Address: address}), nil
+	return &pb.GetNewAddressResponse{Address: address}, nil
 }
 
-func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.WithdrawRequest]) (*connect.Response[pb.WithdrawResponse], error) {
-	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats}
+func (h *Handler) Withdraw(ctx context.Context, req *pb.WithdrawRequest) (*pb.WithdrawResponse, error) {
+	params := []any{req.Address, req.AmountSats, req.SideFeeSats, req.MainFeeSats}
 	var txid string
 	if err := h.proxy.Client.Call(ctx, "create_withdrawal", params, &txid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.WithdrawResponse{Txid: txid}), nil
+	return &pb.WithdrawResponse{Txid: txid}, nil
 }
 
-func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
-	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
+func (h *Handler) Transfer(ctx context.Context, req *pb.TransferRequest) (*pb.TransferResponse, error) {
+	params := []any{req.Address, req.AmountSats, req.FeeSats}
 	var txid string
 	if err := h.proxy.Client.Call(ctx, "create_transfer", params, &txid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.TransferResponse{Txid: txid}), nil
+	return &pb.TransferResponse{Txid: txid}, nil
 }
 
-func (h *Handler) Mine(ctx context.Context, req *connect.Request[pb.MineRequest]) (*connect.Response[pb.MineResponse], error) {
-	raw, err := h.proxy.Mine(ctx, req.Msg.FeeSats)
+func (h *Handler) Mine(ctx context.Context, req *pb.MineRequest) (*pb.MineResponse, error) {
+	raw, err := h.proxy.Mine(ctx, req.FeeSats)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MineResponse{BmmResultJson: string(raw)}), nil
+	return &pb.MineResponse{BmmResultJson: string(raw)}, nil
 }
 
-func (h *Handler) GetPendingWithdrawalBundle(ctx context.Context, req *connect.Request[pb.GetPendingWithdrawalBundleRequest]) (*connect.Response[pb.GetPendingWithdrawalBundleResponse], error) {
+func (h *Handler) GetPendingWithdrawalBundle(ctx context.Context, req *pb.GetPendingWithdrawalBundleRequest) (*pb.GetPendingWithdrawalBundleResponse, error) {
 	raw, err := h.proxy.GetPendingWithdrawalBundle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetPendingWithdrawalBundleResponse{BundleJson: string(raw)}), nil
+	return &pb.GetPendingWithdrawalBundleResponse{BundleJson: string(raw)}, nil
 }
 
-func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.GetWalletUtxosRequest]) (*connect.Response[pb.GetWalletUtxosResponse], error) {
+func (h *Handler) GetWalletUtxos(ctx context.Context, req *pb.GetWalletUtxosRequest) (*pb.GetWalletUtxosResponse, error) {
 	raw, err := h.proxy.GetWalletUtxos(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetWalletUtxosResponse{UtxosJson: string(raw)}), nil
+	return &pb.GetWalletUtxosResponse{UtxosJson: string(raw)}, nil
 }
 
-func (h *Handler) ListUtxos(ctx context.Context, req *connect.Request[pb.ListUtxosRequest]) (*connect.Response[pb.ListUtxosResponse], error) {
+func (h *Handler) ListUtxos(ctx context.Context, req *pb.ListUtxosRequest) (*pb.ListUtxosResponse, error) {
 	raw, err := h.proxy.ListUtxos(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.ListUtxosResponse{UtxosJson: string(raw)}), nil
+	return &pb.ListUtxosResponse{UtxosJson: string(raw)}, nil
 }
 
-func (h *Handler) RemoveFromMempool(ctx context.Context, req *connect.Request[pb.RemoveFromMempoolRequest]) (*connect.Response[pb.RemoveFromMempoolResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "remove_from_mempool", []any{req.Msg.Txid}, nil); err != nil {
+func (h *Handler) RemoveFromMempool(ctx context.Context, req *pb.RemoveFromMempoolRequest) (*pb.RemoveFromMempoolResponse, error) {
+	if err := h.proxy.Client.Call(ctx, "remove_from_mempool", []any{req.Txid}, nil); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.RemoveFromMempoolResponse{}), nil
+	return &pb.RemoveFromMempoolResponse{}, nil
 }
 
-func (h *Handler) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *connect.Request[pb.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[pb.GetLatestFailedWithdrawalBundleHeightResponse], error) {
+func (h *Handler) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *pb.GetLatestFailedWithdrawalBundleHeightRequest) (*pb.GetLatestFailedWithdrawalBundleHeightResponse, error) {
 	height, err := h.proxy.GetLatestFailedWithdrawalBundleHeight(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetLatestFailedWithdrawalBundleHeightResponse{Height: height}), nil
+	return &pb.GetLatestFailedWithdrawalBundleHeightResponse{Height: height}, nil
 }
 
-func (h *Handler) GenerateMnemonic(ctx context.Context, req *connect.Request[pb.GenerateMnemonicRequest]) (*connect.Response[pb.GenerateMnemonicResponse], error) {
+func (h *Handler) GenerateMnemonic(ctx context.Context, req *pb.GenerateMnemonicRequest) (*pb.GenerateMnemonicResponse, error) {
 	var mnemonic string
 	if err := h.proxy.Client.Call(ctx, "generate_mnemonic", nil, &mnemonic); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GenerateMnemonicResponse{Mnemonic: mnemonic}), nil
+	return &pb.GenerateMnemonicResponse{Mnemonic: mnemonic}, nil
 }
 
-func (h *Handler) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[pb.SetSeedFromMnemonicRequest]) (*connect.Response[pb.SetSeedFromMnemonicResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "set_seed_from_mnemonic", []any{req.Msg.Mnemonic}, nil); err != nil {
+func (h *Handler) SetSeedFromMnemonic(ctx context.Context, req *pb.SetSeedFromMnemonicRequest) (*pb.SetSeedFromMnemonicResponse, error) {
+	if err := h.proxy.Client.Call(ctx, "set_seed_from_mnemonic", []any{req.Mnemonic}, nil); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SetSeedFromMnemonicResponse{}), nil
+	return &pb.SetSeedFromMnemonicResponse{}, nil
 }
 
-func (h *Handler) CallRaw(ctx context.Context, req *connect.Request[pb.CallRawRequest]) (*connect.Response[pb.CallRawResponse], error) {
+func (h *Handler) CallRaw(ctx context.Context, req *pb.CallRawRequest) (*pb.CallRawResponse, error) {
 	var params any
-	if req.Msg.ParamsJson != "" {
-		if err := json.Unmarshal([]byte(req.Msg.ParamsJson), &params); err != nil {
+	if req.ParamsJson != "" {
+		if err := json.Unmarshal([]byte(req.ParamsJson), &params); err != nil {
 			return nil, fmt.Errorf("unmarshal params: %w", err)
 		}
 	}
-	raw, err := h.proxy.CallRaw(ctx, req.Msg.Method, params)
+	raw, err := h.proxy.CallRaw(ctx, req.Method, params)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.CallRawResponse{ResultJson: string(raw)}), nil
+	return &pb.CallRawResponse{ResultJson: string(raw)}, nil
 }
 
 // --- Truthcoin-specific methods ---
 
-func (h *Handler) GetSidechainWealth(ctx context.Context, req *connect.Request[pb.GetSidechainWealthRequest]) (*connect.Response[pb.GetSidechainWealthResponse], error) {
+func (h *Handler) GetSidechainWealth(ctx context.Context, req *pb.GetSidechainWealthRequest) (*pb.GetSidechainWealthResponse, error) {
 	var sats int64
 	if err := h.proxy.Client.Call(ctx, "sidechain_wealth", nil, &sats); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetSidechainWealthResponse{Sats: sats}), nil
+	return &pb.GetSidechainWealthResponse{Sats: sats}, nil
 }
 
-func (h *Handler) CreateDeposit(ctx context.Context, req *connect.Request[pb.CreateDepositRequest]) (*connect.Response[pb.CreateDepositResponse], error) {
+func (h *Handler) CreateDeposit(ctx context.Context, req *pb.CreateDepositRequest) (*pb.CreateDepositResponse, error) {
 	var txid string
-	params := []any{req.Msg.Address, req.Msg.ValueSats, req.Msg.FeeSats}
+	params := []any{req.Address, req.ValueSats, req.FeeSats}
 	if err := h.proxy.Client.Call(ctx, "create_deposit", params, &txid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.CreateDepositResponse{Txid: txid}), nil
+	return &pb.CreateDepositResponse{Txid: txid}, nil
 }
 
-func (h *Handler) ConnectPeer(ctx context.Context, req *connect.Request[pb.ConnectPeerRequest]) (*connect.Response[pb.ConnectPeerResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "connect_peer", []any{req.Msg.Address}, nil); err != nil {
+func (h *Handler) ConnectPeer(ctx context.Context, req *pb.ConnectPeerRequest) (*pb.ConnectPeerResponse, error) {
+	if err := h.proxy.Client.Call(ctx, "connect_peer", []any{req.Address}, nil); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.ConnectPeerResponse{}), nil
+	return &pb.ConnectPeerResponse{}, nil
 }
 
-func (h *Handler) ListPeers(ctx context.Context, req *connect.Request[pb.ListPeersRequest]) (*connect.Response[pb.ListPeersResponse], error) {
+func (h *Handler) ListPeers(ctx context.Context, req *pb.ListPeersRequest) (*pb.ListPeersResponse, error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "list_peers", nil)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.ListPeersResponse{PeersJson: string(raw)}), nil
+	return &pb.ListPeersResponse{PeersJson: string(raw)}, nil
 }
 
-func (h *Handler) GetBlock(ctx context.Context, req *connect.Request[pb.GetBlockRequest]) (*connect.Response[pb.GetBlockResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_block", []any{req.Msg.Hash})
+func (h *Handler) GetBlock(ctx context.Context, req *pb.GetBlockRequest) (*pb.GetBlockResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_block", []any{req.Hash})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBlockResponse{BlockJson: optionalJSON(raw)}), nil
+	return &pb.GetBlockResponse{BlockJson: optionalJSON(raw)}, nil
 }
 
-func (h *Handler) GetBestMainchainBlockHash(ctx context.Context, req *connect.Request[pb.GetBestMainchainBlockHashRequest]) (*connect.Response[pb.GetBestMainchainBlockHashResponse], error) {
+func (h *Handler) GetBestMainchainBlockHash(ctx context.Context, req *pb.GetBestMainchainBlockHashRequest) (*pb.GetBestMainchainBlockHashResponse, error) {
 	var hash string
 	if err := h.proxy.Client.Call(ctx, "get_best_mainchain_block_hash", nil, &hash); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBestMainchainBlockHashResponse{Hash: hash}), nil
+	return &pb.GetBestMainchainBlockHashResponse{Hash: hash}, nil
 }
 
-func (h *Handler) GetBestSidechainBlockHash(ctx context.Context, req *connect.Request[pb.GetBestSidechainBlockHashRequest]) (*connect.Response[pb.GetBestSidechainBlockHashResponse], error) {
+func (h *Handler) GetBestSidechainBlockHash(ctx context.Context, req *pb.GetBestSidechainBlockHashRequest) (*pb.GetBestSidechainBlockHashResponse, error) {
 	var hash string
 	if err := h.proxy.Client.Call(ctx, "get_best_sidechain_block_hash", nil, &hash); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBestSidechainBlockHashResponse{Hash: hash}), nil
+	return &pb.GetBestSidechainBlockHashResponse{Hash: hash}, nil
 }
 
-func (h *Handler) GetBmmInclusions(ctx context.Context, req *connect.Request[pb.GetBmmInclusionsRequest]) (*connect.Response[pb.GetBmmInclusionsResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash})
+func (h *Handler) GetBmmInclusions(ctx context.Context, req *pb.GetBmmInclusionsRequest) (*pb.GetBmmInclusionsResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_bmm_inclusions", []any{req.BlockHash})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: string(raw)}), nil
+	return &pb.GetBmmInclusionsResponse{Inclusions: string(raw)}, nil
 }
 
-func (h *Handler) RefreshWallet(ctx context.Context, req *connect.Request[pb.RefreshWalletRequest]) (*connect.Response[pb.RefreshWalletResponse], error) {
+func (h *Handler) RefreshWallet(ctx context.Context, req *pb.RefreshWalletRequest) (*pb.RefreshWalletResponse, error) {
 	if err := h.proxy.Client.Call(ctx, "refresh_wallet", nil, nil); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.RefreshWalletResponse{}), nil
+	return &pb.RefreshWalletResponse{}, nil
 }
 
-func (h *Handler) GetTransaction(ctx context.Context, req *connect.Request[pb.GetTransactionRequest]) (*connect.Response[pb.GetTransactionResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction", []any{req.Msg.Txid})
+func (h *Handler) GetTransaction(ctx context.Context, req *pb.GetTransactionRequest) (*pb.GetTransactionResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction", []any{req.Txid})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetTransactionResponse{TransactionJson: string(raw)}), nil
+	return &pb.GetTransactionResponse{TransactionJson: string(raw)}, nil
 }
 
-func (h *Handler) GetTransactionInfo(ctx context.Context, req *connect.Request[pb.GetTransactionInfoRequest]) (*connect.Response[pb.GetTransactionInfoResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction_info", []any{req.Msg.Txid})
+func (h *Handler) GetTransactionInfo(ctx context.Context, req *pb.GetTransactionInfoRequest) (*pb.GetTransactionInfoResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction_info", []any{req.Txid})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetTransactionInfoResponse{TransactionInfoJson: string(raw)}), nil
+	return &pb.GetTransactionInfoResponse{TransactionInfoJson: string(raw)}, nil
 }
 
-func (h *Handler) GetWalletAddresses(ctx context.Context, req *connect.Request[pb.GetWalletAddressesRequest]) (*connect.Response[pb.GetWalletAddressesResponse], error) {
+func (h *Handler) GetWalletAddresses(ctx context.Context, req *pb.GetWalletAddressesRequest) (*pb.GetWalletAddressesResponse, error) {
 	var addresses []string
 	if err := h.proxy.Client.Call(ctx, "get_wallet_addresses", nil, &addresses); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetWalletAddressesResponse{Addresses: addresses}), nil
+	return &pb.GetWalletAddressesResponse{Addresses: addresses}, nil
 }
 
-func (h *Handler) MyUtxos(ctx context.Context, req *connect.Request[pb.MyUtxosRequest]) (*connect.Response[pb.MyUtxosResponse], error) {
+func (h *Handler) MyUtxos(ctx context.Context, req *pb.MyUtxosRequest) (*pb.MyUtxosResponse, error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "get_wallet_utxos", nil)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MyUtxosResponse{UtxosJson: string(raw)}), nil
+	return &pb.MyUtxosResponse{UtxosJson: string(raw)}, nil
 }
 
-func (h *Handler) MyUnconfirmedUtxos(ctx context.Context, req *connect.Request[pb.MyUnconfirmedUtxosRequest]) (*connect.Response[pb.MyUnconfirmedUtxosResponse], error) {
+func (h *Handler) MyUnconfirmedUtxos(ctx context.Context, req *pb.MyUnconfirmedUtxosRequest) (*pb.MyUnconfirmedUtxosResponse, error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "my_unconfirmed_utxos", nil)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MyUnconfirmedUtxosResponse{UtxosJson: string(raw)}), nil
+	return &pb.MyUnconfirmedUtxosResponse{UtxosJson: string(raw)}, nil
 }
 
 // --- Prediction Markets ---
 
-func (h *Handler) CalculateInitialLiquidity(ctx context.Context, req *connect.Request[pb.CalculateInitialLiquidityRequest]) (*connect.Response[pb.CalculateInitialLiquidityResponse], error) {
-	request := map[string]any{"beta": req.Msg.Beta}
-	if req.Msg.NumOutcomes != nil {
-		request["num_outcomes"] = *req.Msg.NumOutcomes
+func (h *Handler) CalculateInitialLiquidity(ctx context.Context, req *pb.CalculateInitialLiquidityRequest) (*pb.CalculateInitialLiquidityResponse, error) {
+	request := map[string]any{"beta": req.Beta}
+	if req.NumOutcomes != nil {
+		request["num_outcomes"] = *req.NumOutcomes
 	}
-	if req.Msg.Dimensions != nil {
-		request["dimensions"] = *req.Msg.Dimensions
+	if req.Dimensions != nil {
+		request["dimensions"] = *req.Dimensions
 	}
 	raw, err := h.proxy.Client.CallRaw(ctx, "calculate_initial_liquidity", []any{request})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.CalculateInitialLiquidityResponse{ResultJson: string(raw)}), nil
+	return &pb.CalculateInitialLiquidityResponse{ResultJson: string(raw)}, nil
 }
 
-func (h *Handler) MarketCreate(ctx context.Context, req *connect.Request[pb.MarketCreateRequest]) (*connect.Response[pb.MarketCreateResponse], error) {
+func (h *Handler) MarketCreate(ctx context.Context, req *pb.MarketCreateRequest) (*pb.MarketCreateResponse, error) {
 	var dimensions []any
-	if err := json.Unmarshal([]byte(req.Msg.Dimensions), &dimensions); err != nil {
+	if err := json.Unmarshal([]byte(req.Dimensions), &dimensions); err != nil {
 		return nil, fmt.Errorf("unmarshal dimensions: %w", err)
 	}
 	request := map[string]any{
-		"title":       req.Msg.Title,
-		"description": req.Msg.Description,
+		"title":       req.Title,
+		"description": req.Description,
 		"dimensions":  dimensions,
-		"tx_fee_sats": req.Msg.FeeSats,
+		"tx_fee_sats": req.FeeSats,
 	}
-	if req.Msg.Beta != nil {
-		request["beta"] = *req.Msg.Beta
+	if req.Beta != nil {
+		request["beta"] = *req.Beta
 	}
-	if req.Msg.TradingFee != nil {
-		request["trading_fee"] = *req.Msg.TradingFee
+	if req.TradingFee != nil {
+		request["trading_fee"] = *req.TradingFee
 	}
-	if req.Msg.InitialLiquidity != nil {
-		request["initial_liquidity"] = *req.Msg.InitialLiquidity
+	if req.InitialLiquidity != nil {
+		request["initial_liquidity"] = *req.InitialLiquidity
 	}
 	var result struct {
 		Txid string `json:"txid"`
@@ -323,83 +321,83 @@ func (h *Handler) MarketCreate(ctx context.Context, req *connect.Request[pb.Mark
 	if err := h.proxy.Client.Call(ctx, "market_create", []any{request}, &result); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketCreateResponse{Txid: result.Txid}), nil
+	return &pb.MarketCreateResponse{Txid: result.Txid}, nil
 }
 
-func (h *Handler) MarketList(ctx context.Context, req *connect.Request[pb.MarketListRequest]) (*connect.Response[pb.MarketListResponse], error) {
+func (h *Handler) MarketList(ctx context.Context, req *pb.MarketListRequest) (*pb.MarketListResponse, error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "market_list", nil)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketListResponse{MarketsJson: string(raw)}), nil
+	return &pb.MarketListResponse{MarketsJson: string(raw)}, nil
 }
 
-func (h *Handler) MarketGet(ctx context.Context, req *connect.Request[pb.MarketGetRequest]) (*connect.Response[pb.MarketGetResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "market_get", []any{req.Msg.MarketId})
+func (h *Handler) MarketGet(ctx context.Context, req *pb.MarketGetRequest) (*pb.MarketGetResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "market_get", []any{req.MarketId})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketGetResponse{MarketJson: optionalJSON(raw)}), nil
+	return &pb.MarketGetResponse{MarketJson: optionalJSON(raw)}, nil
 }
 
-func (h *Handler) MarketBuy(ctx context.Context, req *connect.Request[pb.MarketBuyRequest]) (*connect.Response[pb.MarketBuyResponse], error) {
+func (h *Handler) MarketBuy(ctx context.Context, req *pb.MarketBuyRequest) (*pb.MarketBuyResponse, error) {
 	request := map[string]any{
-		"market_id":     req.Msg.MarketId,
-		"outcome_index": req.Msg.OutcomeIndex,
-		"shares_amount": int64(req.Msg.SharesAmount),
+		"market_id":     req.MarketId,
+		"outcome_index": req.OutcomeIndex,
+		"shares_amount": int64(req.SharesAmount),
 	}
-	if req.Msg.DryRun != nil {
-		request["dry_run"] = *req.Msg.DryRun
+	if req.DryRun != nil {
+		request["dry_run"] = *req.DryRun
 	}
-	if req.Msg.MaxCost != nil {
-		request["max_cost"] = *req.Msg.MaxCost
+	if req.MaxCost != nil {
+		request["max_cost"] = *req.MaxCost
 	}
 	raw, err := h.proxy.Client.CallRaw(ctx, "market_buy", []any{request})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketBuyResponse{ResultJson: string(raw)}), nil
+	return &pb.MarketBuyResponse{ResultJson: string(raw)}, nil
 }
 
-func (h *Handler) MarketSell(ctx context.Context, req *connect.Request[pb.MarketSellRequest]) (*connect.Response[pb.MarketSellResponse], error) {
+func (h *Handler) MarketSell(ctx context.Context, req *pb.MarketSellRequest) (*pb.MarketSellResponse, error) {
 	request := map[string]any{
-		"market_id":      req.Msg.MarketId,
-		"outcome_index":  req.Msg.OutcomeIndex,
-		"shares_amount":  req.Msg.SharesAmount,
-		"seller_address": req.Msg.SellerAddress,
+		"market_id":      req.MarketId,
+		"outcome_index":  req.OutcomeIndex,
+		"shares_amount":  req.SharesAmount,
+		"seller_address": req.SellerAddress,
 	}
-	if req.Msg.DryRun != nil {
-		request["dry_run"] = *req.Msg.DryRun
+	if req.DryRun != nil {
+		request["dry_run"] = *req.DryRun
 	}
-	if req.Msg.MinProceeds != nil {
-		request["min_proceeds"] = *req.Msg.MinProceeds
+	if req.MinProceeds != nil {
+		request["min_proceeds"] = *req.MinProceeds
 	}
 	raw, err := h.proxy.Client.CallRaw(ctx, "market_sell", []any{request})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketSellResponse{ResultJson: string(raw)}), nil
+	return &pb.MarketSellResponse{ResultJson: string(raw)}, nil
 }
 
-func (h *Handler) MarketPositions(ctx context.Context, req *connect.Request[pb.MarketPositionsRequest]) (*connect.Response[pb.MarketPositionsResponse], error) {
-	params := []any{req.Msg.Address, req.Msg.MarketId}
+func (h *Handler) MarketPositions(ctx context.Context, req *pb.MarketPositionsRequest) (*pb.MarketPositionsResponse, error) {
+	params := []any{req.Address, req.MarketId}
 	raw, err := h.proxy.Client.CallRaw(ctx, "market_positions", params)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketPositionsResponse{PositionsJson: string(raw)}), nil
+	return &pb.MarketPositionsResponse{PositionsJson: string(raw)}, nil
 }
 
-func (h *Handler) MarketAmplifyBeta(ctx context.Context, req *connect.Request[pb.MarketAmplifyBetaRequest]) (*connect.Response[pb.MarketAmplifyBetaResponse], error) {
+func (h *Handler) MarketAmplifyBeta(ctx context.Context, req *pb.MarketAmplifyBetaRequest) (*pb.MarketAmplifyBetaResponse, error) {
 	request := map[string]any{
-		"market_id":   req.Msg.MarketId,
-		"amount_sats": req.Msg.AmountSats,
+		"market_id":   req.MarketId,
+		"amount_sats": req.AmountSats,
 	}
 	var txid string
 	if err := h.proxy.Client.Call(ctx, "market_amplify_beta", []any{request}, &txid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketAmplifyBetaResponse{Txid: txid}), nil
+	return &pb.MarketAmplifyBetaResponse{Txid: txid}, nil
 }
 
 // --- Slots ---
@@ -414,32 +412,32 @@ func (h *Handler) claimDecisions(ctx context.Context, claim map[string]any) (str
 	return result.Txid, nil
 }
 
-func (h *Handler) SlotStatus(ctx context.Context, req *connect.Request[pb.SlotStatusRequest]) (*connect.Response[pb.SlotStatusResponse], error) {
+func (h *Handler) SlotStatus(ctx context.Context, req *pb.SlotStatusRequest) (*pb.SlotStatusResponse, error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "decision_status", nil)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SlotStatusResponse{StatusJson: string(raw)}), nil
+	return &pb.SlotStatusResponse{StatusJson: string(raw)}, nil
 }
 
-func (h *Handler) SlotList(ctx context.Context, req *connect.Request[pb.SlotListRequest]) (*connect.Response[pb.SlotListResponse], error) {
+func (h *Handler) SlotList(ctx context.Context, req *pb.SlotListRequest) (*pb.SlotListResponse, error) {
 	filter := map[string]any{
-		"period": req.Msg.Period,
-		"status": req.Msg.Status,
+		"period": req.Period,
+		"status": req.Status,
 	}
 	raw, err := h.proxy.Client.CallRaw(ctx, "decision_list", []any{filter})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SlotListResponse{SlotsJson: string(raw)}), nil
+	return &pb.SlotListResponse{SlotsJson: string(raw)}, nil
 }
 
-func (h *Handler) SlotGet(ctx context.Context, req *connect.Request[pb.SlotGetRequest]) (*connect.Response[pb.SlotGetResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "decision_get", []any{req.Msg.SlotId})
+func (h *Handler) SlotGet(ctx context.Context, req *pb.SlotGetRequest) (*pb.SlotGetResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "decision_get", []any{req.SlotId})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SlotGetResponse{SlotJson: optionalJSON(raw)}), nil
+	return &pb.SlotGetResponse{SlotJson: optionalJSON(raw)}, nil
 }
 
 // optionalJSON maps the JSON null a node returns for a missing item to "",
@@ -451,124 +449,124 @@ func optionalJSON(raw json.RawMessage) string {
 	return string(raw)
 }
 
-func (h *Handler) SlotClaim(ctx context.Context, req *connect.Request[pb.SlotClaimRequest]) (*connect.Response[pb.SlotClaimResponse], error) {
+func (h *Handler) SlotClaim(ctx context.Context, req *pb.SlotClaimRequest) (*pb.SlotClaimResponse, error) {
 	decisionType := "binary"
-	if req.Msg.GetIsScaled() {
+	if req.GetIsScaled() {
 		decisionType = "scaled"
 	}
 	txid, err := h.claimDecisions(ctx, map[string]any{
 		"decision_type": decisionType,
 		"decisions": []any{map[string]any{
-			"period_index": req.Msg.PeriodIndex,
-			"header":       req.Msg.Question,
+			"period_index": req.PeriodIndex,
+			"header":       req.Question,
 		}},
-		"min":         req.Msg.Min,
-		"max":         req.Msg.Max,
-		"tx_fee_sats": req.Msg.FeeSats,
+		"min":         req.Min,
+		"max":         req.Max,
+		"tx_fee_sats": req.FeeSats,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SlotClaimResponse{Txid: txid}), nil
+	return &pb.SlotClaimResponse{Txid: txid}, nil
 }
 
-func (h *Handler) SlotClaimCategory(ctx context.Context, req *connect.Request[pb.SlotClaimCategoryRequest]) (*connect.Response[pb.SlotClaimCategoryResponse], error) {
+func (h *Handler) SlotClaimCategory(ctx context.Context, req *pb.SlotClaimCategoryRequest) (*pb.SlotClaimCategoryResponse, error) {
 	decisions := []any{}
-	if req.Msg.SlotsJson != "" {
-		if err := json.Unmarshal([]byte(req.Msg.SlotsJson), &decisions); err != nil {
+	if req.SlotsJson != "" {
+		if err := json.Unmarshal([]byte(req.SlotsJson), &decisions); err != nil {
 			return nil, fmt.Errorf("unmarshal slots: %w", err)
 		}
 	}
 	txid, err := h.claimDecisions(ctx, map[string]any{
 		"decision_type": "category",
 		"decisions":     decisions,
-		"tx_fee_sats":   req.Msg.FeeSats,
+		"tx_fee_sats":   req.FeeSats,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SlotClaimCategoryResponse{Txid: txid}), nil
+	return &pb.SlotClaimCategoryResponse{Txid: txid}, nil
 }
 
 // --- Voting ---
 
-func (h *Handler) GetVoterAddress(ctx context.Context, req *connect.Request[pb.GetVoterAddressRequest]) (*connect.Response[pb.GetVoterAddressResponse], error) {
+func (h *Handler) GetVoterAddress(ctx context.Context, req *pb.GetVoterAddressRequest) (*pb.GetVoterAddressResponse, error) {
 	var address string
 	if err := h.proxy.Client.Call(ctx, "get_voter_address", nil, &address); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetVoterAddressResponse{Address: address}), nil
+	return &pb.GetVoterAddressResponse{Address: address}, nil
 }
 
-func (h *Handler) VoteVoter(ctx context.Context, req *connect.Request[pb.VoteVoterRequest]) (*connect.Response[pb.VoteVoterResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "vote_voter", []any{req.Msg.Address})
+func (h *Handler) VoteVoter(ctx context.Context, req *pb.VoteVoterRequest) (*pb.VoteVoterResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "vote_voter", []any{req.Address})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VoteVoterResponse{VoterJson: optionalJSON(raw)}), nil
+	return &pb.VoteVoterResponse{VoterJson: optionalJSON(raw)}, nil
 }
 
-func (h *Handler) VoteVoters(ctx context.Context, req *connect.Request[pb.VoteVotersRequest]) (*connect.Response[pb.VoteVotersResponse], error) {
+func (h *Handler) VoteVoters(ctx context.Context, req *pb.VoteVotersRequest) (*pb.VoteVotersResponse, error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "vote_voters", nil)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VoteVotersResponse{VotersJson: string(raw)}), nil
+	return &pb.VoteVotersResponse{VotersJson: string(raw)}, nil
 }
 
-func (h *Handler) VoteSubmit(ctx context.Context, req *connect.Request[pb.VoteSubmitRequest]) (*connect.Response[pb.VoteSubmitResponse], error) {
+func (h *Handler) VoteSubmit(ctx context.Context, req *pb.VoteSubmitRequest) (*pb.VoteSubmitResponse, error) {
 	var votes any
-	if req.Msg.VotesJson != "" {
-		if err := json.Unmarshal([]byte(req.Msg.VotesJson), &votes); err != nil {
+	if req.VotesJson != "" {
+		if err := json.Unmarshal([]byte(req.VotesJson), &votes); err != nil {
 			return nil, fmt.Errorf("unmarshal votes: %w", err)
 		}
 	}
 	var txid string
-	params := []any{votes, req.Msg.FeeSats}
+	params := []any{votes, req.FeeSats}
 	if err := h.proxy.Client.Call(ctx, "vote_submit", params, &txid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VoteSubmitResponse{Txid: txid}), nil
+	return &pb.VoteSubmitResponse{Txid: txid}, nil
 }
 
-func (h *Handler) VoteList(ctx context.Context, req *connect.Request[pb.VoteListRequest]) (*connect.Response[pb.VoteListResponse], error) {
+func (h *Handler) VoteList(ctx context.Context, req *pb.VoteListRequest) (*pb.VoteListResponse, error) {
 	filter := map[string]any{
-		"voter":       req.Msg.Voter,
-		"decision_id": req.Msg.DecisionId,
-		"period_id":   req.Msg.PeriodId,
+		"voter":       req.Voter,
+		"decision_id": req.DecisionId,
+		"period_id":   req.PeriodId,
 	}
 	raw, err := h.proxy.Client.CallRaw(ctx, "vote_list", []any{filter})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VoteListResponse{VotesJson: string(raw)}), nil
+	return &pb.VoteListResponse{VotesJson: string(raw)}, nil
 }
 
-func (h *Handler) VotePeriod(ctx context.Context, req *connect.Request[pb.VotePeriodRequest]) (*connect.Response[pb.VotePeriodResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "vote_period", []any{req.Msg.PeriodId})
+func (h *Handler) VotePeriod(ctx context.Context, req *pb.VotePeriodRequest) (*pb.VotePeriodResponse, error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "vote_period", []any{req.PeriodId})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VotePeriodResponse{PeriodJson: optionalJSON(raw)}), nil
+	return &pb.VotePeriodResponse{PeriodJson: optionalJSON(raw)}, nil
 }
 
 // --- Votecoin ---
 
-func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.VotecoinTransferRequest]) (*connect.Response[pb.VotecoinTransferResponse], error) {
+func (h *Handler) VotecoinTransfer(ctx context.Context, req *pb.VotecoinTransferRequest) (*pb.VotecoinTransferResponse, error) {
 	var txid string
-	params := []any{req.Msg.Dest, votecoinAmount(req.Msg.VotecoinAmount, req.Msg.Amount), req.Msg.FeeSats} //nolint:staticcheck // old clients send Amount
+	params := []any{req.Dest, votecoinAmount(req.VotecoinAmount, req.Amount), req.FeeSats} //nolint:staticcheck // old clients send Amount
 	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VotecoinTransferResponse{Txid: txid}), nil
+	return &pb.VotecoinTransferResponse{Txid: txid}, nil
 }
 
-func (h *Handler) VotecoinBalance(ctx context.Context, req *connect.Request[pb.VotecoinBalanceRequest]) (*connect.Response[pb.VotecoinBalanceResponse], error) {
+func (h *Handler) VotecoinBalance(ctx context.Context, req *pb.VotecoinBalanceRequest) (*pb.VotecoinBalanceResponse, error) {
 	var balance float64
-	if err := h.proxy.Client.Call(ctx, "votecoin_balance", []any{req.Msg.Address}, &balance); err != nil {
+	if err := h.proxy.Client.Call(ctx, "votecoin_balance", []any{req.Address}, &balance); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VotecoinBalanceResponse{Balance: int64(balance), VotecoinBalance: balance}), nil //nolint:staticcheck // old clients read Balance
+	return &pb.VotecoinBalanceResponse{Balance: int64(balance), VotecoinBalance: balance}, nil //nolint:staticcheck // old clients read Balance
 }
 
 // votecoinAmount reads the deprecated whole-unit amount when an old client
@@ -580,80 +578,80 @@ func votecoinAmount(amount *float64, deprecatedAmount int64) float64 {
 	return float64(deprecatedAmount)
 }
 
-func (h *Handler) TransferVotecoin(ctx context.Context, req *connect.Request[pb.TransferVotecoinRequest]) (*connect.Response[pb.TransferVotecoinResponse], error) {
+func (h *Handler) TransferVotecoin(ctx context.Context, req *pb.TransferVotecoinRequest) (*pb.TransferVotecoinResponse, error) {
 	var txid string
-	params := []any{req.Msg.Dest, votecoinAmount(req.Msg.VotecoinAmount, req.Msg.Amount), req.Msg.FeeSats} //nolint:staticcheck // old clients send Amount
+	params := []any{req.Dest, votecoinAmount(req.VotecoinAmount, req.Amount), req.FeeSats} //nolint:staticcheck // old clients send Amount
 	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.TransferVotecoinResponse{Txid: txid}), nil
+	return &pb.TransferVotecoinResponse{Txid: txid}, nil
 }
 
 // --- Crypto utilities ---
 
-func (h *Handler) GetNewEncryptionKey(ctx context.Context, req *connect.Request[pb.GetNewEncryptionKeyRequest]) (*connect.Response[pb.GetNewEncryptionKeyResponse], error) {
+func (h *Handler) GetNewEncryptionKey(ctx context.Context, req *pb.GetNewEncryptionKeyRequest) (*pb.GetNewEncryptionKeyResponse, error) {
 	var key string
 	if err := h.proxy.Client.Call(ctx, "get_new_encryption_key", nil, &key); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetNewEncryptionKeyResponse{Key: key}), nil
+	return &pb.GetNewEncryptionKeyResponse{Key: key}, nil
 }
 
-func (h *Handler) GetNewVerifyingKey(ctx context.Context, req *connect.Request[pb.GetNewVerifyingKeyRequest]) (*connect.Response[pb.GetNewVerifyingKeyResponse], error) {
+func (h *Handler) GetNewVerifyingKey(ctx context.Context, req *pb.GetNewVerifyingKeyRequest) (*pb.GetNewVerifyingKeyResponse, error) {
 	var key string
 	if err := h.proxy.Client.Call(ctx, "get_new_verifying_key", nil, &key); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetNewVerifyingKeyResponse{Key: key}), nil
+	return &pb.GetNewVerifyingKeyResponse{Key: key}, nil
 }
 
-func (h *Handler) EncryptMsg(ctx context.Context, req *connect.Request[pb.EncryptMsgRequest]) (*connect.Response[pb.EncryptMsgResponse], error) {
+func (h *Handler) EncryptMsg(ctx context.Context, req *pb.EncryptMsgRequest) (*pb.EncryptMsgResponse, error) {
 	var ciphertext string
-	params := []any{req.Msg.EncryptionPubkey, req.Msg.Msg}
+	params := []any{req.EncryptionPubkey, req.Msg}
 	if err := h.proxy.Client.Call(ctx, "encrypt_msg", params, &ciphertext); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.EncryptMsgResponse{Ciphertext: ciphertext}), nil
+	return &pb.EncryptMsgResponse{Ciphertext: ciphertext}, nil
 }
 
-func (h *Handler) DecryptMsg(ctx context.Context, req *connect.Request[pb.DecryptMsgRequest]) (*connect.Response[pb.DecryptMsgResponse], error) {
+func (h *Handler) DecryptMsg(ctx context.Context, req *pb.DecryptMsgRequest) (*pb.DecryptMsgResponse, error) {
 	var plaintext string
-	params := []any{req.Msg.EncryptionPubkey, req.Msg.Ciphertext}
+	params := []any{req.EncryptionPubkey, req.Ciphertext}
 	if err := h.proxy.Client.Call(ctx, "decrypt_msg", params, &plaintext); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.DecryptMsgResponse{Plaintext: plaintext}), nil
+	return &pb.DecryptMsgResponse{Plaintext: plaintext}, nil
 }
 
-func (h *Handler) SignArbitraryMsg(ctx context.Context, req *connect.Request[pb.SignArbitraryMsgRequest]) (*connect.Response[pb.SignArbitraryMsgResponse], error) {
+func (h *Handler) SignArbitraryMsg(ctx context.Context, req *pb.SignArbitraryMsgRequest) (*pb.SignArbitraryMsgResponse, error) {
 	var signature string
-	params := []any{req.Msg.VerifyingKey, req.Msg.Msg}
+	params := []any{req.VerifyingKey, req.Msg}
 	if err := h.proxy.Client.Call(ctx, "sign_arbitrary_msg", params, &signature); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SignArbitraryMsgResponse{Signature: signature}), nil
+	return &pb.SignArbitraryMsgResponse{Signature: signature}, nil
 }
 
-func (h *Handler) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Request[pb.SignArbitraryMsgAsAddrRequest]) (*connect.Response[pb.SignArbitraryMsgAsAddrResponse], error) {
+func (h *Handler) SignArbitraryMsgAsAddr(ctx context.Context, req *pb.SignArbitraryMsgAsAddrRequest) (*pb.SignArbitraryMsgAsAddrResponse, error) {
 	var result struct {
 		VerifyingKey string `json:"verifying_key"`
 		Signature    string `json:"signature"`
 	}
-	params := []any{req.Msg.Address, req.Msg.Msg}
+	params := []any{req.Address, req.Msg}
 	if err := h.proxy.Client.Call(ctx, "sign_arbitrary_msg_as_addr", params, &result); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SignArbitraryMsgAsAddrResponse{
+	return &pb.SignArbitraryMsgAsAddrResponse{
 		VerifyingKey: result.VerifyingKey,
 		Signature:    result.Signature,
-	}), nil
+	}, nil
 }
 
-func (h *Handler) VerifySignature(ctx context.Context, req *connect.Request[pb.VerifySignatureRequest]) (*connect.Response[pb.VerifySignatureResponse], error) {
+func (h *Handler) VerifySignature(ctx context.Context, req *pb.VerifySignatureRequest) (*pb.VerifySignatureResponse, error) {
 	var valid bool
-	params := []any{req.Msg.Signature, req.Msg.VerifyingKey, req.Msg.Dst, req.Msg.Msg}
+	params := []any{req.Signature, req.VerifyingKey, req.Dst, req.Msg}
 	if err := h.proxy.Client.Call(ctx, "verify_signature", params, &valid); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VerifySignatureResponse{Valid: valid}), nil
+	return &pb.VerifySignatureResponse{Valid: valid}, nil
 }

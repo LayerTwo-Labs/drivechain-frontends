@@ -8,11 +8,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/grpcreflect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -101,7 +105,6 @@ type Runtime struct {
 	db       *sql.DB
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	mux      *http.ServeMux
-	services []string // service paths registered on mux, for grpcreflect
 
 	walletEngine       *engines.WalletEngine
 	chequeEngine       *engines.ChequeEngine
@@ -230,17 +233,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		return engines.NewZmqEngine(addr).SubscribeSequence(ctx)
 	}, rt.walletEngine.NodeMode())
 
-	// Register Connect sub-handlers on rt.mux. All registrations capture
-	// rt's db + engines, so when this runtime is replaced, none of these
-	// handler bodies are reachable through the new mux.
-	register := func(servicePath string, h http.Handler) {
-		rt.mux.Handle(servicePath, h)
-		rt.services = append(rt.services, servicePath)
-	}
-
-	// All bitwindowd endpoints require the local-auth cookie (one interceptor,
-	// every handler). Disabled automatically when no cookie exists.
-	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), recoverInterceptor{}, localauth.Interceptor(s.svcs.BitwindowDir))}
+	rpcServer := connect.NewServer(logInterceptor(), recoverInterceptor(), localauth.ServerInterceptor(s.svcs.BitwindowDir), errorInterceptor())
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
@@ -248,94 +241,83 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	{
 		pools := miningpools.New(ctx, conf.BitcoinCoreNetwork, networkID, conf.Datadir, s.svcs.MiningPoolFetch)
 		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, rt.mempoolWatcher, pools, conf, s.Recycle)
-		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
-		register(path, h)
+		bitwindowdv1connect.RegisterBitwindowdServiceHandler(rpcServer, bwSvc)
 	}
 	{
 		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.walletEngine, m4.WithdrawalMaxAge(conf.BitcoinCoreNetwork, networkID))
-		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
-		register(path, h)
+		drivechainv1connect.RegisterDrivechainServiceHandler(rpcServer, drivechainSvc)
 	}
 	{
 		orchestrator := dial.Orchestrator(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
 		restartL1 := func(ctx context.Context) error {
-			_, err := orchestrator.RestartL1(ctx, connect.NewRequest(&orchctlpb.RestartL1Request{}))
+			_, err := orchestrator.RestartL1(ctx, &orchctlpb.RestartL1Request{})
 			return err
 		}
 		rt.walletSvc = api_wallet.New(rt.db, s.Bitcoind, s.Enforcer, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
-		path, h := walletv1connect.NewWalletServiceHandler(rt.walletSvc, stdOpts...)
-		register(path, h)
+		walletv1connect.RegisterWalletServiceHandler(rpcServer, rt.walletSvc)
 	}
 	{
 		miscSvc := api_misc.New(rt.db, rt.timestampEngine, s.Bitcoind, rt.walletEngine,
 			engines.NewRemoteCoinNews(string(conf.BitcoinCoreNetwork), networkID))
-		path, h := miscv1connect.NewMiscServiceHandler(miscSvc, stdOpts...)
-		register(path, h)
+		miscv1connect.RegisterMiscServiceHandler(rpcServer, miscSvc)
 	}
 	{
 		healthSvc := api_health.New(rt.db, s.Bitcoind, s.Enforcer, s.Crypto)
-		path, h := healthv1connect.NewHealthServiceHandler(healthSvc, stdOpts...)
-		register(path, h)
+		healthv1connect.RegisterHealthServiceHandler(rpcServer, healthSvc)
 	}
 	{
 		m4Svc := api_m4.NewServer(rt.m4Engine, s.BlockProducer)
-		path, h := m4v1connect.NewM4ServiceHandler(m4Svc, stdOpts...)
-		register(path, h)
+		m4v1connect.RegisterM4ServiceHandler(rpcServer, m4Svc)
 	}
 	{
 		notifSvc := api_notification.New(rt.notificationEngine)
-		path, h := notificationv1connect.NewNotificationServiceHandler(notifSvc, stdOpts...)
-		register(path, h)
+		notificationv1connect.RegisterNotificationServiceHandler(rpcServer, notifSvc)
 	}
 	{
 		bitdriveSvc := api_bitdrive.New(rt.db, rt.bitdriveEngine)
-		path, h := bitdrivev1connect.NewBitDriveServiceHandler(bitdriveSvc, stdOpts...)
-		register(path, h)
+		bitdrivev1connect.RegisterBitDriveServiceHandler(rpcServer, bitdriveSvc)
 	}
 	{
 		utilsSvc := api_utils.New(rt.chainParams)
-		path, h := utilsv1connect.NewUtilsServiceHandler(utilsSvc, stdOpts...)
-		register(path, h)
+		utilsv1connect.RegisterUtilsServiceHandler(rpcServer, utilsSvc)
 	}
 	{
 		sidechainSvc := api_sidechain.New(rt.sidechainMonitor)
-		path, h := sidechainv1connect.NewSidechainServiceHandler(sidechainSvc, stdOpts...)
-		register(path, h)
+		sidechainv1connect.RegisterSidechainServiceHandler(rpcServer, sidechainSvc)
 	}
 	{
 		multisigSvc := api_multisig.New(rt.db)
-		path, h := multisigv1connect.NewMultisigServiceHandler(multisigSvc, stdOpts...)
-		register(path, h)
+		multisigv1connect.RegisterMultisigServiceHandler(rpcServer, multisigSvc)
 	}
 	{
 		walletPsbtSvc := api_walletpsbt.New(rt.db)
-		path, h := walletpsbtv1connect.NewWalletPsbtServiceHandler(walletPsbtSvc, stdOpts...)
-		register(path, h)
+		walletpsbtv1connect.RegisterWalletPsbtServiceHandler(rpcServer, walletPsbtSvc)
 	}
 	// Enforcer bridge — single impl serves three separate services
 	enforcerSvc := api_enforcer.New(s.Enforcer, s.Crypto, s.BlockProducer, s.Mining, rt.walletEngine)
 	{
-		path, h := validatorrpc.NewValidatorServiceHandler(enforcerSvc, stdOpts...)
-		register(path, h)
+		validatorrpc.RegisterValidatorServiceHandler(rpcServer, enforcerSvc)
 	}
 	{
-		path, h := cryptorpc.NewCryptoServiceHandler(enforcerSvc, stdOpts...)
-		register(path, h)
+		cryptorpc.RegisterCryptoServiceHandler(rpcServer, enforcerSvc)
 	}
 	{
-		path, h := validatorrpc.NewBlockProducerServiceHandler(enforcerSvc, stdOpts...)
-		register(path, h)
+		validatorrpc.RegisterBlockProducerServiceHandler(rpcServer, enforcerSvc)
 	}
 	{
-		path, h := validatorrpc.NewMiningServiceHandler(enforcerSvc, stdOpts...)
-		register(path, h)
+		validatorrpc.RegisterMiningServiceHandler(rpcServer, enforcerSvc)
 	}
 	rt.mux.Handle("/enforcer/jsonrpc", localauth.Middleware(s.svcs.BitwindowDir, enforcerproxy.JSONRPC(s.svcs.EnforcerJSONRPCAddr)))
 
-	// gRPC reflection. Each runtime mux gets its own reflector so listing
-	// stays accurate after a recycle (set is identical across runtimes,
-	// but rt-local for clarity).
-	reflector := grpcreflect.NewStaticReflector(rt.services...)
+	connecthttp.Mount(rt.mux, rpcServer, connecthttp.WithReadMaxBytes(0))
+	var services []string
+	for spec := range rpcServer.Specs() {
+		name := strings.TrimPrefix(spec.Procedure[:strings.LastIndex(spec.Procedure, "/")], "/")
+		if !slices.Contains(services, name) {
+			services = append(services, name)
+		}
+	}
+	reflector := grpcreflect.NewStaticReflector(services...)
 	rt.mux.Handle(grpcreflect.NewHandlerV1(reflector))
 	rt.mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
 
@@ -415,7 +397,9 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 				log.Warn().Err(err).Msg("ZMQ engine stopped, retrying")
 			case ctx.Err() != nil:
 				return
-			case connect.CodeOf(err) == connect.CodeUnavailable || isBitcoinCoreStartupError(err.Error()):
+			case connect.CodeOf(err) == connect.CodeUnavailable,
+				connectv1.CodeOf(err) == connectv1.CodeUnavailable,
+				isBitcoinCoreStartupError(err.Error()):
 				log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
 			default:
 				log.Error().Err(err).Msg("acquire ZMQ engine")
@@ -464,14 +448,14 @@ func coreRawCall(s *Server) engines.RawCall {
 		if err != nil {
 			return nil, err
 		}
-		resp, err := client.CoreRawCall(ctx, connect.NewRequest(&orchctlpb.CoreRawCallRequest{
+		resp, err := client.CoreRawCall(ctx, &orchctlpb.CoreRawCallRequest{
 			Method:     method,
 			ParamsJson: string(paramsJSON),
-		}))
+		})
 		if err != nil {
 			return nil, err
 		}
-		return json.RawMessage(resp.Msg.ResultJson), nil
+		return json.RawMessage(resp.ResultJson), nil
 	}
 }
 
@@ -481,7 +465,7 @@ func zmqAddress(ctx context.Context, bitcoind *service.Service[corerpc.BitcoinSe
 	if err != nil {
 		return "", err
 	}
-	notifs, err := btc.GetZmqNotifications(ctx, connect.NewRequest(&emptypb.Empty{}))
+	notifs, err := btc.GetZmqNotifications(ctx, connectv1.NewRequest(&emptypb.Empty{}))
 	if err != nil {
 		return "", fmt.Errorf("get zmq notifications: %w", err)
 	}
@@ -573,12 +557,12 @@ func activeSidechainSlots(ctx context.Context, enforcer *service.Service[validat
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	resp, err := client.GetSidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get sidechains: %w", err)
 	}
-	slots := make([]uint32, 0, len(resp.Msg.GetSidechains()))
-	for _, sc := range resp.Msg.GetSidechains() {
+	slots := make([]uint32, 0, len(resp.GetSidechains()))
+	for _, sc := range resp.GetSidechains() {
 		slots = append(slots, sc.GetSidechainNumber().GetValue())
 	}
 	return slots, nil

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
@@ -42,48 +41,48 @@ func TestCoreWalletBurnIntegration(t *testing.T) {
 
 	t.Run("BurnThroughTheWalletService", func(t *testing.T) {
 		client := node.WalletClient
-		status, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		status, err := client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		walletID := status.Msg.ActiveWalletId
+		walletID := status.ActiveWalletId
 		requireCoreWallet(t, ctx, client, walletID)
 
-		derived, err := client.DeriveAddresses(ctx, connect.NewRequest(&pb.DeriveAddressesRequest{
+		derived, err := client.DeriveAddresses(ctx, &pb.DeriveAddressesRequest{
 			WalletId: walletID, StartIndex: 0, Count: 1,
-		}))
+		})
 		require.NoError(t, err)
-		require.Len(t, derived.Msg.Addresses, 1)
-		first := derived.Msg.Addresses[0]
+		require.Len(t, derived.Addresses, 1)
+		first := derived.Addresses[0]
 		requireCoreReceiveAddress(t, ctx, node.CoreRPC, first)
 		dataScript := addressDataScript(t, first)
 
-		created, err := client.CreatePsbt(ctx, connect.NewRequest(&pb.CreatePsbtRequest{
+		created, err := client.CreatePsbt(ctx, &pb.CreatePsbtRequest{
 			WalletId:     walletID,
 			Destinations: map[string]int64{burnAddress: coreBurnSats},
 			OpReturnHex:  hex.EncodeToString([]byte(first)),
-		}))
+		})
 		require.NoError(t, err)
 
-		preview, err := client.DecodeTransaction(ctx, connect.NewRequest(&pb.DecodeTransactionRequest{
-			WalletId: walletID, Input: created.Msg.PsbtBase64, CheckOwnership: true,
-		}))
+		preview, err := client.DecodeTransaction(ctx, &pb.DecodeTransactionRequest{
+			WalletId: walletID, Input: created.PsbtBase64, CheckOwnership: true,
+		})
 		require.NoError(t, err)
-		requireBurnPreview(t, preview.Msg, burnScript, dataScript)
-		require.Zero(t, preview.Msg.Locktime, "regtest takes no replay locktime")
+		requireBurnPreview(t, preview, burnScript, dataScript)
+		require.Zero(t, preview.Locktime, "regtest takes no replay locktime")
 
-		signed, err := client.SignPsbt(ctx, connect.NewRequest(&pb.SignPsbtRequest{
-			WalletId: walletID, PsbtBase64: created.Msg.PsbtBase64,
-		}))
+		signed, err := client.SignPsbt(ctx, &pb.SignPsbtRequest{
+			WalletId: walletID, PsbtBase64: created.PsbtBase64,
+		})
 		require.NoError(t, err)
-		final, err := client.FinalizePsbt(ctx, connect.NewRequest(&pb.FinalizePsbtRequest{PsbtBase64: signed.Msg.PsbtBase64}))
+		final, err := client.FinalizePsbt(ctx, &pb.FinalizePsbtRequest{PsbtBase64: signed.PsbtBase64})
 		require.NoError(t, err)
-		sent, err := client.BroadcastTransaction(ctx, connect.NewRequest(&pb.BroadcastTransactionRequest{
-			WalletId: walletID, TxHex: final.Msg.RawTxHex,
-		}))
+		sent, err := client.BroadcastTransaction(ctx, &pb.BroadcastTransactionRequest{
+			WalletId: walletID, TxHex: final.RawTxHex,
+		})
 		require.NoError(t, err)
-		require.Equal(t, preview.Msg.Txid, sent.Msg.Txid)
+		require.Equal(t, preview.Txid, sent.Txid)
 
 		require.NoError(t, node.MineToAddress(ctx, 1, first))
-		mined, err := node.CoreRPC.GetRawTransaction(ctx, sent.Msg.Txid)
+		mined, err := node.CoreRPC.GetRawTransaction(ctx, sent.Txid)
 		require.NoError(t, err)
 		require.Positive(t, mined.Confirmations)
 		onChain, err := wallet.DecodeTransaction(mined.Hex, net)
@@ -169,12 +168,12 @@ func addressDataScript(t *testing.T, address string) []byte {
 }
 
 func requireCoreWallet(t *testing.T, ctx context.Context, client interface {
-	ListWallets(context.Context, *connect.Request[pb.ListWalletsRequest]) (*connect.Response[pb.ListWalletsResponse], error)
+	ListWallets(context.Context, *pb.ListWalletsRequest) (*pb.ListWalletsResponse, error)
 }, walletID string) {
 	t.Helper()
-	wallets, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+	wallets, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 	require.NoError(t, err)
-	for _, w := range wallets.Msg.Wallets {
+	for _, w := range wallets.Wallets {
 		if w.Id == walletID {
 			require.Equal(t, pb.WalletType_WALLET_TYPE_BITCOIN_CORE, w.WalletType)
 			return

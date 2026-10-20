@@ -5,109 +5,128 @@
 package notificationv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// NotificationServiceName is the fully-qualified name of the NotificationService service.
 	NotificationServiceName = "notification.v1.NotificationService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// NotificationServiceWatchProcedure is the fully-qualified name of the NotificationService's Watch
-	// RPC.
+	// NotificationServiceWatchProcedure is the procedure name of the NotificationService's Watch RPC.
 	NotificationServiceWatchProcedure = "/notification.v1.NotificationService/Watch"
+)
+
+var (
+	notificationServiceWatchSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_notification_v1_notification_proto.Services().ByName("NotificationService").Methods().ByName("Watch"),
+			Procedure:  NotificationServiceWatchProcedure,
+		}
+	})
 )
 
 // NotificationServiceClient is a client for the notification.v1.NotificationService service.
 type NotificationServiceClient interface {
-	// Watch returns a stream of notification events
-	Watch(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
+	Watch(context.Context, *emptypb.Empty) (NotificationServiceWatchClientStream, error)
 }
 
 // NewNotificationServiceClient constructs a client for the notification.v1.NotificationService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewNotificationServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NotificationServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	notificationServiceMethods := v1.File_notification_v1_notification_proto.Services().ByName("NotificationService").Methods()
-	return &notificationServiceClient{
-		watch: connect.NewClient[emptypb.Empty, v1.WatchResponse](
-			httpClient,
-			baseURL+NotificationServiceWatchProcedure,
-			connect.WithSchema(notificationServiceMethods.ByName("Watch")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewNotificationServiceClient(client *connect.Client) NotificationServiceClient {
+	return &notificationServiceClient{client: client}
+}
+
+// NotificationServiceWatchClientStream is the client stream for the NotificationService's Watch
+// RPC.
+type NotificationServiceWatchClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s NotificationServiceWatchClientStream) Receive() (*v1.WatchResponse, error) {
+	var res v1.WatchResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// notificationServiceClient implements NotificationServiceClient.
-type notificationServiceClient struct {
-	watch *connect.Client[emptypb.Empty, v1.WatchResponse]
-}
-
-// Watch calls notification.v1.NotificationService.Watch.
-func (c *notificationServiceClient) Watch(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchResponse], error) {
-	return c.watch.CallServerStream(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s NotificationServiceWatchClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // NotificationServiceHandler is an implementation of the notification.v1.NotificationService
 // service.
 type NotificationServiceHandler interface {
-	// Watch returns a stream of notification events
-	Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchResponse]) error
+	Watch(context.Context, *emptypb.Empty, NotificationServiceWatchServerStream) error
 }
 
-// NewNotificationServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewNotificationServiceHandler(svc NotificationServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	notificationServiceMethods := v1.File_notification_v1_notification_proto.Services().ByName("NotificationService").Methods()
-	notificationServiceWatchHandler := connect.NewServerStreamHandler(
-		NotificationServiceWatchProcedure,
-		svc.Watch,
-		connect.WithSchema(notificationServiceMethods.ByName("Watch")),
-		connect.WithHandlerOptions(opts...),
+// RegisterNotificationServiceHandler registers svc as the notification.v1.NotificationService
+// implementation on server.
+func RegisterNotificationServiceHandler(server *connect.Server, svc NotificationServiceHandler) {
+	adapter := notificationServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: notificationServiceWatchSpec(), Handler: adapter.watch},
 	)
-	return "/notification.v1.NotificationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case NotificationServiceWatchProcedure:
-			notificationServiceWatchHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// NotificationServiceWatchServerStream is the server stream for the NotificationService's Watch
+// RPC.
+type NotificationServiceWatchServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s NotificationServiceWatchServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s NotificationServiceWatchServerStream) Send(res *v1.WatchResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedNotificationServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNotificationServiceHandler struct{}
 
-func (UnimplementedNotificationServiceHandler) Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("notification.v1.NotificationService.Watch is not implemented"))
+func (UnimplementedNotificationServiceHandler) Watch(context.Context, *emptypb.Empty, NotificationServiceWatchServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "notification.v1.NotificationService.Watch is not implemented")
+}
+
+type notificationServiceClient struct {
+	client *connect.Client
+}
+
+func (c *notificationServiceClient) Watch(ctx context.Context, req *emptypb.Empty) (NotificationServiceWatchClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, notificationServiceWatchSpec(), req)
+	if err != nil {
+		return NotificationServiceWatchClientStream{}, err
+	}
+	return NotificationServiceWatchClientStream{stream: stream}, nil
+}
+
+type notificationServiceHandler struct{ svc NotificationServiceHandler }
+
+func (h notificationServiceHandler) watch(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.Watch(ctx, &req, NotificationServiceWatchServerStream{stream: stream})
 }

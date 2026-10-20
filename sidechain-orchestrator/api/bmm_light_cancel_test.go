@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -61,11 +61,11 @@ func lightCancel(t *testing.T, w *fakeBidWallet, txid string) (*bmmpb.CancelBidR
 	h := lightHandler(t)
 	h.wallet = w
 	h.chainTip = func(context.Context) (string, error) { return cancelTip, nil }
-	resp, err := h.CancelBid(context.Background(), connect.NewRequest(&bmmpb.CancelBidRequest{Txid: txid}))
+	resp, err := h.CancelBid(context.Background(), &bmmpb.CancelBidRequest{Txid: txid})
 	if err != nil {
 		return nil, err
 	}
-	return resp.Msg, nil
+	return resp, nil
 }
 
 func TestDescendantsWalksEveryChild(t *testing.T) {

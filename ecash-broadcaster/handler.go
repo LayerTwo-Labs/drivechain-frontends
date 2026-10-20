@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	ecashv1 "github.com/LayerTwo-Labs/sidesail/ecash-broadcaster/gen/ecash/v1"
 )
@@ -16,16 +15,16 @@ type handler struct {
 
 func (h *handler) BroadcastECashTx(
 	ctx context.Context,
-	req *connect.Request[ecashv1.BroadcastECashTxRequest],
-) (*connect.Response[ecashv1.BroadcastECashTxResponse], error) {
-	if req.Msg.SignedHex == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("signed_hex is required"))
+	req *ecashv1.BroadcastECashTxRequest,
+) (*ecashv1.BroadcastECashTxResponse, error) {
+	if req.SignedHex == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "signed_hex is required")
 	}
 
-	txid, err := h.bitcoind.sendRawTransaction(ctx, req.Msg.SignedHex)
+	txid, err := h.bitcoind.sendRawTransaction(ctx, req.SignedHex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast: %w", err))
+		return nil, connect.Errorf(connect.CodeInternal, "broadcast: %s", err).WithCause(err)
 	}
 
-	return connect.NewResponse(&ecashv1.BroadcastECashTxResponse{Txid: txid}), nil
+	return &ecashv1.BroadcastECashTxResponse{Txid: txid}, nil
 }

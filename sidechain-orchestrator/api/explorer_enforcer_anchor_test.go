@@ -1,13 +1,14 @@
 package api
 
 import (
+	"connectrpc.com/connect/v2/connecthttp"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,33 +44,34 @@ func (c *headerChain) header(height uint32) *enforcerpb.BlockHeaderInfo {
 }
 
 func (c *headerChain) GetChainTip(
-	context.Context, *connect.Request[enforcerpb.GetChainTipRequest],
-) (*connect.Response[enforcerpb.GetChainTipResponse], error) {
-	return connect.NewResponse(&enforcerpb.GetChainTipResponse{BlockHeaderInfo: c.header(c.tip)}), nil
+	context.Context, *enforcerpb.GetChainTipRequest,
+) (*enforcerpb.GetChainTipResponse, error) {
+	return &enforcerpb.GetChainTipResponse{BlockHeaderInfo: c.header(c.tip)}, nil
 }
 
 func (c *headerChain) GetBlockHeaderInfo(
-	_ context.Context, req *connect.Request[enforcerpb.GetBlockHeaderInfoRequest],
-) (*connect.Response[enforcerpb.GetBlockHeaderInfoResponse], error) {
+	_ context.Context, req *enforcerpb.GetBlockHeaderInfoRequest,
+) (*enforcerpb.GetBlockHeaderInfoResponse, error) {
 	c.calls++
 	var start uint32
-	if _, err := fmt.Sscanf(req.Msg.GetBlockHash().GetHex().GetValue(), "h%d", &start); err != nil || start > c.tip {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no block %s", req.Msg.GetBlockHash()))
+	if _, err := fmt.Sscanf(req.GetBlockHash().GetHex().GetValue(), "h%d", &start); err != nil || start > c.tip {
+		return nil, connect.Errorf(connect.CodeNotFound, "no block %s", req.GetBlockHash())
 	}
-	count := min(req.Msg.GetMaxAncestors()+1, c.pageSize)
+	count := min(req.GetMaxAncestors()+1, c.pageSize)
 	c.largest = max(c.largest, count)
 	var out []*enforcerpb.BlockHeaderInfo
 	for height := start; height >= 100 && uint32(len(out)) < count; height-- {
 		out = append(out, c.header(height))
 	}
-	return connect.NewResponse(&enforcerpb.GetBlockHeaderInfoResponse{HeaderInfos: out}), nil
+	return &enforcerpb.GetBlockHeaderInfoResponse{HeaderInfos: out}, nil
 }
 
 func lightExplorer(t *testing.T, chain *headerChain) *ExplorerHandler {
 	t.Helper()
 	mux := http.NewServeMux()
-	path, handler := enforcerrpc.NewValidatorServiceHandler(chain)
-	mux.Handle(path, handler)
+	rpcServer := connect.NewServer()
+	enforcerrpc.RegisterValidatorServiceHandler(rpcServer, chain)
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := h2cServer(mux)
 	t.Cleanup(server.Close)
 	host, port := hostPort(t, server)

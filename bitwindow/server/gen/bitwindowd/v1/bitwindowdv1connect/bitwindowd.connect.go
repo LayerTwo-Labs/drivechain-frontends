@@ -5,820 +5,945 @@
 package bitwindowdv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BitwindowdServiceName is the fully-qualified name of the BitwindowdService service.
 	BitwindowdServiceName = "bitwindowd.v1.BitwindowdService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BitwindowdServiceStopProcedure is the fully-qualified name of the BitwindowdService's Stop RPC.
+	// BitwindowdServiceStopProcedure is the procedure name of the BitwindowdService's Stop RPC.
 	BitwindowdServiceStopProcedure = "/bitwindowd.v1.BitwindowdService/Stop"
-	// BitwindowdServiceCreateDenialProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceCreateDenialProcedure is the procedure name of the BitwindowdService's
 	// CreateDenial RPC.
 	BitwindowdServiceCreateDenialProcedure = "/bitwindowd.v1.BitwindowdService/CreateDenial"
-	// BitwindowdServiceCancelDenialProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceCancelDenialProcedure is the procedure name of the BitwindowdService's
 	// CancelDenial RPC.
 	BitwindowdServiceCancelDenialProcedure = "/bitwindowd.v1.BitwindowdService/CancelDenial"
-	// BitwindowdServicePauseDenialProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServicePauseDenialProcedure is the procedure name of the BitwindowdService's
 	// PauseDenial RPC.
 	BitwindowdServicePauseDenialProcedure = "/bitwindowd.v1.BitwindowdService/PauseDenial"
-	// BitwindowdServiceResumeDenialProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceResumeDenialProcedure is the procedure name of the BitwindowdService's
 	// ResumeDenial RPC.
 	BitwindowdServiceResumeDenialProcedure = "/bitwindowd.v1.BitwindowdService/ResumeDenial"
-	// BitwindowdServiceCreateAddressBookEntryProcedure is the fully-qualified name of the
-	// BitwindowdService's CreateAddressBookEntry RPC.
+	// BitwindowdServiceCreateAddressBookEntryProcedure is the procedure name of the BitwindowdService's
+	// CreateAddressBookEntry RPC.
 	BitwindowdServiceCreateAddressBookEntryProcedure = "/bitwindowd.v1.BitwindowdService/CreateAddressBookEntry"
-	// BitwindowdServiceListAddressBookProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceListAddressBookProcedure is the procedure name of the BitwindowdService's
 	// ListAddressBook RPC.
 	BitwindowdServiceListAddressBookProcedure = "/bitwindowd.v1.BitwindowdService/ListAddressBook"
-	// BitwindowdServiceUpdateAddressBookEntryProcedure is the fully-qualified name of the
-	// BitwindowdService's UpdateAddressBookEntry RPC.
+	// BitwindowdServiceUpdateAddressBookEntryProcedure is the procedure name of the BitwindowdService's
+	// UpdateAddressBookEntry RPC.
 	BitwindowdServiceUpdateAddressBookEntryProcedure = "/bitwindowd.v1.BitwindowdService/UpdateAddressBookEntry"
-	// BitwindowdServiceDeleteAddressBookEntryProcedure is the fully-qualified name of the
-	// BitwindowdService's DeleteAddressBookEntry RPC.
+	// BitwindowdServiceDeleteAddressBookEntryProcedure is the procedure name of the BitwindowdService's
+	// DeleteAddressBookEntry RPC.
 	BitwindowdServiceDeleteAddressBookEntryProcedure = "/bitwindowd.v1.BitwindowdService/DeleteAddressBookEntry"
-	// BitwindowdServiceGetSyncInfoProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceGetSyncInfoProcedure is the procedure name of the BitwindowdService's
 	// GetSyncInfo RPC.
 	BitwindowdServiceGetSyncInfoProcedure = "/bitwindowd.v1.BitwindowdService/GetSyncInfo"
-	// BitwindowdServiceSetTransactionNoteProcedure is the fully-qualified name of the
-	// BitwindowdService's SetTransactionNote RPC.
+	// BitwindowdServiceSetTransactionNoteProcedure is the procedure name of the BitwindowdService's
+	// SetTransactionNote RPC.
 	BitwindowdServiceSetTransactionNoteProcedure = "/bitwindowd.v1.BitwindowdService/SetTransactionNote"
-	// BitwindowdServiceExportLabelsProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceExportLabelsProcedure is the procedure name of the BitwindowdService's
 	// ExportLabels RPC.
 	BitwindowdServiceExportLabelsProcedure = "/bitwindowd.v1.BitwindowdService/ExportLabels"
-	// BitwindowdServiceImportLabelsProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceImportLabelsProcedure is the procedure name of the BitwindowdService's
 	// ImportLabels RPC.
 	BitwindowdServiceImportLabelsProcedure = "/bitwindowd.v1.BitwindowdService/ImportLabels"
-	// BitwindowdServiceGetFireplaceStatsProcedure is the fully-qualified name of the
-	// BitwindowdService's GetFireplaceStats RPC.
+	// BitwindowdServiceGetFireplaceStatsProcedure is the procedure name of the BitwindowdService's
+	// GetFireplaceStats RPC.
 	BitwindowdServiceGetFireplaceStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetFireplaceStats"
-	// BitwindowdServiceListRecentTransactionsProcedure is the fully-qualified name of the
-	// BitwindowdService's ListRecentTransactions RPC.
+	// BitwindowdServiceListRecentTransactionsProcedure is the procedure name of the BitwindowdService's
+	// ListRecentTransactions RPC.
 	BitwindowdServiceListRecentTransactionsProcedure = "/bitwindowd.v1.BitwindowdService/ListRecentTransactions"
-	// BitwindowdServiceListBlocksProcedure is the fully-qualified name of the BitwindowdService's
-	// ListBlocks RPC.
+	// BitwindowdServiceListBlocksProcedure is the procedure name of the BitwindowdService's ListBlocks
+	// RPC.
 	BitwindowdServiceListBlocksProcedure = "/bitwindowd.v1.BitwindowdService/ListBlocks"
-	// BitwindowdServiceGetNetworkStatsProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceGetNetworkStatsProcedure is the procedure name of the BitwindowdService's
 	// GetNetworkStats RPC.
 	BitwindowdServiceGetNetworkStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetNetworkStats"
-	// BitwindowdServiceSetMempoolWatchProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceSetMempoolWatchProcedure is the procedure name of the BitwindowdService's
 	// SetMempoolWatch RPC.
 	BitwindowdServiceSetMempoolWatchProcedure = "/bitwindowd.v1.BitwindowdService/SetMempoolWatch"
-	// BitwindowdServiceResetMempoolWatchProcedure is the fully-qualified name of the
-	// BitwindowdService's ResetMempoolWatch RPC.
+	// BitwindowdServiceResetMempoolWatchProcedure is the procedure name of the BitwindowdService's
+	// ResetMempoolWatch RPC.
 	BitwindowdServiceResetMempoolWatchProcedure = "/bitwindowd.v1.BitwindowdService/ResetMempoolWatch"
-	// BitwindowdServiceGetMempoolWatchStatusProcedure is the fully-qualified name of the
-	// BitwindowdService's GetMempoolWatchStatus RPC.
+	// BitwindowdServiceGetMempoolWatchStatusProcedure is the procedure name of the BitwindowdService's
+	// GetMempoolWatchStatus RPC.
 	BitwindowdServiceGetMempoolWatchStatusProcedure = "/bitwindowd.v1.BitwindowdService/GetMempoolWatchStatus"
-	// BitwindowdServiceListMempoolTransactionsProcedure is the fully-qualified name of the
+	// BitwindowdServiceListMempoolTransactionsProcedure is the procedure name of the
 	// BitwindowdService's ListMempoolTransactions RPC.
 	BitwindowdServiceListMempoolTransactionsProcedure = "/bitwindowd.v1.BitwindowdService/ListMempoolTransactions"
-	// BitwindowdServiceListBlockStatsProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceListBlockStatsProcedure is the procedure name of the BitwindowdService's
 	// ListBlockStats RPC.
 	BitwindowdServiceListBlockStatsProcedure = "/bitwindowd.v1.BitwindowdService/ListBlockStats"
-	// BitwindowdServiceListMiningPoolsProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceListMiningPoolsProcedure is the procedure name of the BitwindowdService's
 	// ListMiningPools RPC.
 	BitwindowdServiceListMiningPoolsProcedure = "/bitwindowd.v1.BitwindowdService/ListMiningPools"
-	// BitwindowdServiceUpdateNetworkProcedure is the fully-qualified name of the BitwindowdService's
+	// BitwindowdServiceUpdateNetworkProcedure is the procedure name of the BitwindowdService's
 	// UpdateNetwork RPC.
 	BitwindowdServiceUpdateNetworkProcedure = "/bitwindowd.v1.BitwindowdService/UpdateNetwork"
 )
 
+var (
+	bitwindowdServiceStopSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("Stop"),
+			Procedure:  BitwindowdServiceStopProcedure,
+		}
+	})
+	bitwindowdServiceCreateDenialSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("CreateDenial"),
+			Procedure:  BitwindowdServiceCreateDenialProcedure,
+		}
+	})
+	bitwindowdServiceCancelDenialSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("CancelDenial"),
+			Procedure:  BitwindowdServiceCancelDenialProcedure,
+		}
+	})
+	bitwindowdServicePauseDenialSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("PauseDenial"),
+			Procedure:  BitwindowdServicePauseDenialProcedure,
+		}
+	})
+	bitwindowdServiceResumeDenialSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ResumeDenial"),
+			Procedure:  BitwindowdServiceResumeDenialProcedure,
+		}
+	})
+	bitwindowdServiceCreateAddressBookEntrySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("CreateAddressBookEntry"),
+			Procedure:  BitwindowdServiceCreateAddressBookEntryProcedure,
+		}
+	})
+	bitwindowdServiceListAddressBookSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ListAddressBook"),
+			Procedure:  BitwindowdServiceListAddressBookProcedure,
+		}
+	})
+	bitwindowdServiceUpdateAddressBookEntrySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("UpdateAddressBookEntry"),
+			Procedure:  BitwindowdServiceUpdateAddressBookEntryProcedure,
+		}
+	})
+	bitwindowdServiceDeleteAddressBookEntrySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("DeleteAddressBookEntry"),
+			Procedure:  BitwindowdServiceDeleteAddressBookEntryProcedure,
+		}
+	})
+	bitwindowdServiceGetSyncInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("GetSyncInfo"),
+			Procedure:  BitwindowdServiceGetSyncInfoProcedure,
+		}
+	})
+	bitwindowdServiceSetTransactionNoteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("SetTransactionNote"),
+			Procedure:  BitwindowdServiceSetTransactionNoteProcedure,
+		}
+	})
+	bitwindowdServiceExportLabelsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ExportLabels"),
+			Procedure:  BitwindowdServiceExportLabelsProcedure,
+		}
+	})
+	bitwindowdServiceImportLabelsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ImportLabels"),
+			Procedure:  BitwindowdServiceImportLabelsProcedure,
+		}
+	})
+	bitwindowdServiceGetFireplaceStatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("GetFireplaceStats"),
+			Procedure:  BitwindowdServiceGetFireplaceStatsProcedure,
+		}
+	})
+	bitwindowdServiceListRecentTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ListRecentTransactions"),
+			Procedure:  BitwindowdServiceListRecentTransactionsProcedure,
+		}
+	})
+	bitwindowdServiceListBlocksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ListBlocks"),
+			Procedure:  BitwindowdServiceListBlocksProcedure,
+		}
+	})
+	bitwindowdServiceGetNetworkStatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("GetNetworkStats"),
+			Procedure:  BitwindowdServiceGetNetworkStatsProcedure,
+		}
+	})
+	bitwindowdServiceSetMempoolWatchSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("SetMempoolWatch"),
+			Procedure:  BitwindowdServiceSetMempoolWatchProcedure,
+		}
+	})
+	bitwindowdServiceResetMempoolWatchSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ResetMempoolWatch"),
+			Procedure:  BitwindowdServiceResetMempoolWatchProcedure,
+		}
+	})
+	bitwindowdServiceGetMempoolWatchStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("GetMempoolWatchStatus"),
+			Procedure:  BitwindowdServiceGetMempoolWatchStatusProcedure,
+		}
+	})
+	bitwindowdServiceListMempoolTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ListMempoolTransactions"),
+			Procedure:  BitwindowdServiceListMempoolTransactionsProcedure,
+		}
+	})
+	bitwindowdServiceListBlockStatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ListBlockStats"),
+			Procedure:  BitwindowdServiceListBlockStatsProcedure,
+		}
+	})
+	bitwindowdServiceListMiningPoolsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ListMiningPools"),
+			Procedure:  BitwindowdServiceListMiningPoolsProcedure,
+		}
+	})
+	bitwindowdServiceUpdateNetworkSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("UpdateNetwork"),
+			Procedure:  BitwindowdServiceUpdateNetworkProcedure,
+		}
+	})
+)
+
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceClient interface {
-	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
-	// detached and drains bitcoind/enforcer over ~90s in the background), then
-	// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
-	// immediately. Pass skip_downstream=true to leave the orchestratord stack
-	// running (only bitwindowd dies).
-	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	// Deniability operations
-	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	PauseDenial(context.Context, *connect.Request[v1.PauseDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	ResumeDenial(context.Context, *connect.Request[v1.ResumeDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	// Wallet operations
-	CreateAddressBookEntry(context.Context, *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[v1.CreateAddressBookEntryResponse], error)
-	ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error)
-	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
-	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
-	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
-	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
-	// BIP329 label import/export. ExportLabels emits one JSONL object per
-	// labelled item (address book, tx note, UTXO label). ImportLabels parses
-	// BIP329 JSONL and writes into the matching store, skipping unknown or
-	// malformed lines.
-	ExportLabels(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error)
-	ImportLabels(context.Context, *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error)
-	GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error)
-	// Lists the most recent transactions, both confirmed and unconfirmed.
-	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
-	// Lists blocks with pagination support
-	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
-	// Get network statistics
-	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
-	// Mempool watch: records every tx in the mempool and how long it has waited.
-	SetMempoolWatch(context.Context, *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error)
-	// Forgets everything recorded and starts over from the current mempool.
-	ResetMempoolWatch(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	GetMempoolWatchStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error)
-	ListMempoolTransactions(context.Context, *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error)
-	ListBlockStats(context.Context, *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error)
-	// Mining pools: which pools mined the recent blocks.
-	ListMiningPools(context.Context, *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error)
-	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
-	// (network-scoped folder) is co-located with the orchestrator update.
-	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
-	// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
-	// then exit so the launcher restarts bitwindowd with a fresh DB scoped
-	// to the new network. Returns once orchestratord acknowledges the swap;
-	// the bitwindowd process exit happens shortly after.
-	UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error)
+	Stop(context.Context, *v1.BitwindowdServiceStopRequest) (*emptypb.Empty, error)
+	CreateDenial(context.Context, *v1.CreateDenialRequest) (*emptypb.Empty, error)
+	CancelDenial(context.Context, *v1.CancelDenialRequest) (*emptypb.Empty, error)
+	PauseDenial(context.Context, *v1.PauseDenialRequest) (*emptypb.Empty, error)
+	ResumeDenial(context.Context, *v1.ResumeDenialRequest) (*emptypb.Empty, error)
+	CreateAddressBookEntry(context.Context, *v1.CreateAddressBookEntryRequest) (*v1.CreateAddressBookEntryResponse, error)
+	ListAddressBook(context.Context, *emptypb.Empty) (*v1.ListAddressBookResponse, error)
+	UpdateAddressBookEntry(context.Context, *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error)
+	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
+	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
+	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
+	ExportLabels(context.Context, *emptypb.Empty) (*v1.ExportLabelsResponse, error)
+	ImportLabels(context.Context, *v1.ImportLabelsRequest) (*v1.ImportLabelsResponse, error)
+	GetFireplaceStats(context.Context, *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error)
+	ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error)
+	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	GetNetworkStats(context.Context, *emptypb.Empty) (*v1.GetNetworkStatsResponse, error)
+	SetMempoolWatch(context.Context, *v1.SetMempoolWatchRequest) (*emptypb.Empty, error)
+	ResetMempoolWatch(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	GetMempoolWatchStatus(context.Context, *emptypb.Empty) (*v1.GetMempoolWatchStatusResponse, error)
+	ListMempoolTransactions(context.Context, *v1.ListMempoolTransactionsRequest) (*v1.ListMempoolTransactionsResponse, error)
+	ListBlockStats(context.Context, *v1.ListBlockStatsRequest) (*v1.ListBlockStatsResponse, error)
+	ListMiningPools(context.Context, *v1.ListMiningPoolsRequest) (*v1.ListMiningPoolsResponse, error)
+	UpdateNetwork(context.Context, *v1.UpdateNetworkRequest) (*v1.UpdateNetworkResponse, error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
-// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
-// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BitwindowdServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	bitwindowdServiceMethods := v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods()
-	return &bitwindowdServiceClient{
-		stop: connect.NewClient[v1.BitwindowdServiceStopRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceStopProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		createDenial: connect.NewClient[v1.CreateDenialRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceCreateDenialProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("CreateDenial")),
-			connect.WithClientOptions(opts...),
-		),
-		cancelDenial: connect.NewClient[v1.CancelDenialRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceCancelDenialProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("CancelDenial")),
-			connect.WithClientOptions(opts...),
-		),
-		pauseDenial: connect.NewClient[v1.PauseDenialRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServicePauseDenialProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("PauseDenial")),
-			connect.WithClientOptions(opts...),
-		),
-		resumeDenial: connect.NewClient[v1.ResumeDenialRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceResumeDenialProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ResumeDenial")),
-			connect.WithClientOptions(opts...),
-		),
-		createAddressBookEntry: connect.NewClient[v1.CreateAddressBookEntryRequest, v1.CreateAddressBookEntryResponse](
-			httpClient,
-			baseURL+BitwindowdServiceCreateAddressBookEntryProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("CreateAddressBookEntry")),
-			connect.WithClientOptions(opts...),
-		),
-		listAddressBook: connect.NewClient[emptypb.Empty, v1.ListAddressBookResponse](
-			httpClient,
-			baseURL+BitwindowdServiceListAddressBookProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ListAddressBook")),
-			connect.WithClientOptions(opts...),
-		),
-		updateAddressBookEntry: connect.NewClient[v1.UpdateAddressBookEntryRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceUpdateAddressBookEntryProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateAddressBookEntry")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteAddressBookEntry: connect.NewClient[v1.DeleteAddressBookEntryRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceDeleteAddressBookEntryProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("DeleteAddressBookEntry")),
-			connect.WithClientOptions(opts...),
-		),
-		getSyncInfo: connect.NewClient[emptypb.Empty, v1.GetSyncInfoResponse](
-			httpClient,
-			baseURL+BitwindowdServiceGetSyncInfoProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("GetSyncInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		setTransactionNote: connect.NewClient[v1.SetTransactionNoteRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceSetTransactionNoteProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("SetTransactionNote")),
-			connect.WithClientOptions(opts...),
-		),
-		exportLabels: connect.NewClient[emptypb.Empty, v1.ExportLabelsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceExportLabelsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ExportLabels")),
-			connect.WithClientOptions(opts...),
-		),
-		importLabels: connect.NewClient[v1.ImportLabelsRequest, v1.ImportLabelsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceImportLabelsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ImportLabels")),
-			connect.WithClientOptions(opts...),
-		),
-		getFireplaceStats: connect.NewClient[emptypb.Empty, v1.GetFireplaceStatsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceGetFireplaceStatsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("GetFireplaceStats")),
-			connect.WithClientOptions(opts...),
-		),
-		listRecentTransactions: connect.NewClient[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceListRecentTransactionsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ListRecentTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-		listBlocks: connect.NewClient[v1.ListBlocksRequest, v1.ListBlocksResponse](
-			httpClient,
-			baseURL+BitwindowdServiceListBlocksProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlocks")),
-			connect.WithClientOptions(opts...),
-		),
-		getNetworkStats: connect.NewClient[emptypb.Empty, v1.GetNetworkStatsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceGetNetworkStatsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
-			connect.WithClientOptions(opts...),
-		),
-		setMempoolWatch: connect.NewClient[v1.SetMempoolWatchRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceSetMempoolWatchProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("SetMempoolWatch")),
-			connect.WithClientOptions(opts...),
-		),
-		resetMempoolWatch: connect.NewClient[emptypb.Empty, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceResetMempoolWatchProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ResetMempoolWatch")),
-			connect.WithClientOptions(opts...),
-		),
-		getMempoolWatchStatus: connect.NewClient[emptypb.Empty, v1.GetMempoolWatchStatusResponse](
-			httpClient,
-			baseURL+BitwindowdServiceGetMempoolWatchStatusProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("GetMempoolWatchStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		listMempoolTransactions: connect.NewClient[v1.ListMempoolTransactionsRequest, v1.ListMempoolTransactionsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceListMempoolTransactionsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ListMempoolTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-		listBlockStats: connect.NewClient[v1.ListBlockStatsRequest, v1.ListBlockStatsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceListBlockStatsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlockStats")),
-			connect.WithClientOptions(opts...),
-		),
-		listMiningPools: connect.NewClient[v1.ListMiningPoolsRequest, v1.ListMiningPoolsResponse](
-			httpClient,
-			baseURL+BitwindowdServiceListMiningPoolsProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ListMiningPools")),
-			connect.WithClientOptions(opts...),
-		),
-		updateNetwork: connect.NewClient[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse](
-			httpClient,
-			baseURL+BitwindowdServiceUpdateNetworkProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateNetwork")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// bitwindowdServiceClient implements BitwindowdServiceClient.
-type bitwindowdServiceClient struct {
-	stop                    *connect.Client[v1.BitwindowdServiceStopRequest, emptypb.Empty]
-	createDenial            *connect.Client[v1.CreateDenialRequest, emptypb.Empty]
-	cancelDenial            *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
-	pauseDenial             *connect.Client[v1.PauseDenialRequest, emptypb.Empty]
-	resumeDenial            *connect.Client[v1.ResumeDenialRequest, emptypb.Empty]
-	createAddressBookEntry  *connect.Client[v1.CreateAddressBookEntryRequest, v1.CreateAddressBookEntryResponse]
-	listAddressBook         *connect.Client[emptypb.Empty, v1.ListAddressBookResponse]
-	updateAddressBookEntry  *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
-	deleteAddressBookEntry  *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
-	getSyncInfo             *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
-	setTransactionNote      *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
-	exportLabels            *connect.Client[emptypb.Empty, v1.ExportLabelsResponse]
-	importLabels            *connect.Client[v1.ImportLabelsRequest, v1.ImportLabelsResponse]
-	getFireplaceStats       *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
-	listRecentTransactions  *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
-	listBlocks              *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
-	getNetworkStats         *connect.Client[emptypb.Empty, v1.GetNetworkStatsResponse]
-	setMempoolWatch         *connect.Client[v1.SetMempoolWatchRequest, emptypb.Empty]
-	resetMempoolWatch       *connect.Client[emptypb.Empty, emptypb.Empty]
-	getMempoolWatchStatus   *connect.Client[emptypb.Empty, v1.GetMempoolWatchStatusResponse]
-	listMempoolTransactions *connect.Client[v1.ListMempoolTransactionsRequest, v1.ListMempoolTransactionsResponse]
-	listBlockStats          *connect.Client[v1.ListBlockStatsRequest, v1.ListBlockStatsResponse]
-	listMiningPools         *connect.Client[v1.ListMiningPoolsRequest, v1.ListMiningPoolsResponse]
-	updateNetwork           *connect.Client[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse]
-}
-
-// Stop calls bitwindowd.v1.BitwindowdService.Stop.
-func (c *bitwindowdServiceClient) Stop(ctx context.Context, req *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.stop.CallUnary(ctx, req)
-}
-
-// CreateDenial calls bitwindowd.v1.BitwindowdService.CreateDenial.
-func (c *bitwindowdServiceClient) CreateDenial(ctx context.Context, req *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.createDenial.CallUnary(ctx, req)
-}
-
-// CancelDenial calls bitwindowd.v1.BitwindowdService.CancelDenial.
-func (c *bitwindowdServiceClient) CancelDenial(ctx context.Context, req *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.cancelDenial.CallUnary(ctx, req)
-}
-
-// PauseDenial calls bitwindowd.v1.BitwindowdService.PauseDenial.
-func (c *bitwindowdServiceClient) PauseDenial(ctx context.Context, req *connect.Request[v1.PauseDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.pauseDenial.CallUnary(ctx, req)
-}
-
-// ResumeDenial calls bitwindowd.v1.BitwindowdService.ResumeDenial.
-func (c *bitwindowdServiceClient) ResumeDenial(ctx context.Context, req *connect.Request[v1.ResumeDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.resumeDenial.CallUnary(ctx, req)
-}
-
-// CreateAddressBookEntry calls bitwindowd.v1.BitwindowdService.CreateAddressBookEntry.
-func (c *bitwindowdServiceClient) CreateAddressBookEntry(ctx context.Context, req *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[v1.CreateAddressBookEntryResponse], error) {
-	return c.createAddressBookEntry.CallUnary(ctx, req)
-}
-
-// ListAddressBook calls bitwindowd.v1.BitwindowdService.ListAddressBook.
-func (c *bitwindowdServiceClient) ListAddressBook(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error) {
-	return c.listAddressBook.CallUnary(ctx, req)
-}
-
-// UpdateAddressBookEntry calls bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry.
-func (c *bitwindowdServiceClient) UpdateAddressBookEntry(ctx context.Context, req *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.updateAddressBookEntry.CallUnary(ctx, req)
-}
-
-// DeleteAddressBookEntry calls bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry.
-func (c *bitwindowdServiceClient) DeleteAddressBookEntry(ctx context.Context, req *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.deleteAddressBookEntry.CallUnary(ctx, req)
-}
-
-// GetSyncInfo calls bitwindowd.v1.BitwindowdService.GetSyncInfo.
-func (c *bitwindowdServiceClient) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error) {
-	return c.getSyncInfo.CallUnary(ctx, req)
-}
-
-// SetTransactionNote calls bitwindowd.v1.BitwindowdService.SetTransactionNote.
-func (c *bitwindowdServiceClient) SetTransactionNote(ctx context.Context, req *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.setTransactionNote.CallUnary(ctx, req)
-}
-
-// ExportLabels calls bitwindowd.v1.BitwindowdService.ExportLabels.
-func (c *bitwindowdServiceClient) ExportLabels(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error) {
-	return c.exportLabels.CallUnary(ctx, req)
-}
-
-// ImportLabels calls bitwindowd.v1.BitwindowdService.ImportLabels.
-func (c *bitwindowdServiceClient) ImportLabels(ctx context.Context, req *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error) {
-	return c.importLabels.CallUnary(ctx, req)
-}
-
-// GetFireplaceStats calls bitwindowd.v1.BitwindowdService.GetFireplaceStats.
-func (c *bitwindowdServiceClient) GetFireplaceStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error) {
-	return c.getFireplaceStats.CallUnary(ctx, req)
-}
-
-// ListRecentTransactions calls bitwindowd.v1.BitwindowdService.ListRecentTransactions.
-func (c *bitwindowdServiceClient) ListRecentTransactions(ctx context.Context, req *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error) {
-	return c.listRecentTransactions.CallUnary(ctx, req)
-}
-
-// ListBlocks calls bitwindowd.v1.BitwindowdService.ListBlocks.
-func (c *bitwindowdServiceClient) ListBlocks(ctx context.Context, req *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
-	return c.listBlocks.CallUnary(ctx, req)
-}
-
-// GetNetworkStats calls bitwindowd.v1.BitwindowdService.GetNetworkStats.
-func (c *bitwindowdServiceClient) GetNetworkStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error) {
-	return c.getNetworkStats.CallUnary(ctx, req)
-}
-
-// SetMempoolWatch calls bitwindowd.v1.BitwindowdService.SetMempoolWatch.
-func (c *bitwindowdServiceClient) SetMempoolWatch(ctx context.Context, req *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.setMempoolWatch.CallUnary(ctx, req)
-}
-
-// ResetMempoolWatch calls bitwindowd.v1.BitwindowdService.ResetMempoolWatch.
-func (c *bitwindowdServiceClient) ResetMempoolWatch(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return c.resetMempoolWatch.CallUnary(ctx, req)
-}
-
-// GetMempoolWatchStatus calls bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus.
-func (c *bitwindowdServiceClient) GetMempoolWatchStatus(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error) {
-	return c.getMempoolWatchStatus.CallUnary(ctx, req)
-}
-
-// ListMempoolTransactions calls bitwindowd.v1.BitwindowdService.ListMempoolTransactions.
-func (c *bitwindowdServiceClient) ListMempoolTransactions(ctx context.Context, req *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error) {
-	return c.listMempoolTransactions.CallUnary(ctx, req)
-}
-
-// ListBlockStats calls bitwindowd.v1.BitwindowdService.ListBlockStats.
-func (c *bitwindowdServiceClient) ListBlockStats(ctx context.Context, req *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error) {
-	return c.listBlockStats.CallUnary(ctx, req)
-}
-
-// ListMiningPools calls bitwindowd.v1.BitwindowdService.ListMiningPools.
-func (c *bitwindowdServiceClient) ListMiningPools(ctx context.Context, req *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error) {
-	return c.listMiningPools.CallUnary(ctx, req)
-}
-
-// UpdateNetwork calls bitwindowd.v1.BitwindowdService.UpdateNetwork.
-func (c *bitwindowdServiceClient) UpdateNetwork(ctx context.Context, req *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {
-	return c.updateNetwork.CallUnary(ctx, req)
+// Multiple service clients may share a single connect.Client.
+func NewBitwindowdServiceClient(client *connect.Client) BitwindowdServiceClient {
+	return &bitwindowdServiceClient{client: client}
 }
 
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
-	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
-	// detached and drains bitcoind/enforcer over ~90s in the background), then
-	// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
-	// immediately. Pass skip_downstream=true to leave the orchestratord stack
-	// running (only bitwindowd dies).
-	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	// Deniability operations
-	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	PauseDenial(context.Context, *connect.Request[v1.PauseDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	ResumeDenial(context.Context, *connect.Request[v1.ResumeDenialRequest]) (*connect.Response[emptypb.Empty], error)
-	// Wallet operations
-	CreateAddressBookEntry(context.Context, *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[v1.CreateAddressBookEntryResponse], error)
-	ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error)
-	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
-	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
-	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
-	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
-	// BIP329 label import/export. ExportLabels emits one JSONL object per
-	// labelled item (address book, tx note, UTXO label). ImportLabels parses
-	// BIP329 JSONL and writes into the matching store, skipping unknown or
-	// malformed lines.
-	ExportLabels(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error)
-	ImportLabels(context.Context, *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error)
-	GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error)
-	// Lists the most recent transactions, both confirmed and unconfirmed.
-	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
-	// Lists blocks with pagination support
-	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
-	// Get network statistics
-	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
-	// Mempool watch: records every tx in the mempool and how long it has waited.
-	SetMempoolWatch(context.Context, *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error)
-	// Forgets everything recorded and starts over from the current mempool.
-	ResetMempoolWatch(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	GetMempoolWatchStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error)
-	ListMempoolTransactions(context.Context, *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error)
-	ListBlockStats(context.Context, *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error)
-	// Mining pools: which pools mined the recent blocks.
-	ListMiningPools(context.Context, *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error)
-	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
-	// (network-scoped folder) is co-located with the orchestrator update.
-	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
-	// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
-	// then exit so the launcher restarts bitwindowd with a fresh DB scoped
-	// to the new network. Returns once orchestratord acknowledges the swap;
-	// the bitwindowd process exit happens shortly after.
-	UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error)
+	Stop(context.Context, *v1.BitwindowdServiceStopRequest) (*emptypb.Empty, error)
+	CreateDenial(context.Context, *v1.CreateDenialRequest) (*emptypb.Empty, error)
+	CancelDenial(context.Context, *v1.CancelDenialRequest) (*emptypb.Empty, error)
+	PauseDenial(context.Context, *v1.PauseDenialRequest) (*emptypb.Empty, error)
+	ResumeDenial(context.Context, *v1.ResumeDenialRequest) (*emptypb.Empty, error)
+	CreateAddressBookEntry(context.Context, *v1.CreateAddressBookEntryRequest) (*v1.CreateAddressBookEntryResponse, error)
+	ListAddressBook(context.Context, *emptypb.Empty) (*v1.ListAddressBookResponse, error)
+	UpdateAddressBookEntry(context.Context, *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error)
+	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
+	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
+	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
+	ExportLabels(context.Context, *emptypb.Empty) (*v1.ExportLabelsResponse, error)
+	ImportLabels(context.Context, *v1.ImportLabelsRequest) (*v1.ImportLabelsResponse, error)
+	GetFireplaceStats(context.Context, *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error)
+	ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error)
+	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	GetNetworkStats(context.Context, *emptypb.Empty) (*v1.GetNetworkStatsResponse, error)
+	SetMempoolWatch(context.Context, *v1.SetMempoolWatchRequest) (*emptypb.Empty, error)
+	ResetMempoolWatch(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	GetMempoolWatchStatus(context.Context, *emptypb.Empty) (*v1.GetMempoolWatchStatusResponse, error)
+	ListMempoolTransactions(context.Context, *v1.ListMempoolTransactionsRequest) (*v1.ListMempoolTransactionsResponse, error)
+	ListBlockStats(context.Context, *v1.ListBlockStatsRequest) (*v1.ListBlockStatsResponse, error)
+	ListMiningPools(context.Context, *v1.ListMiningPoolsRequest) (*v1.ListMiningPoolsResponse, error)
+	UpdateNetwork(context.Context, *v1.UpdateNetworkRequest) (*v1.UpdateNetworkResponse, error)
 }
 
-// NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bitwindowdServiceMethods := v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods()
-	bitwindowdServiceStopHandler := connect.NewUnaryHandler(
-		BitwindowdServiceStopProcedure,
-		svc.Stop,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
+// RegisterBitwindowdServiceHandler registers svc as the bitwindowd.v1.BitwindowdService
+// implementation on server.
+func RegisterBitwindowdServiceHandler(server *connect.Server, svc BitwindowdServiceHandler) {
+	adapter := bitwindowdServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: bitwindowdServiceStopSpec(), Handler: adapter.stop},
+		connect.Method{Spec: bitwindowdServiceCreateDenialSpec(), Handler: adapter.createDenial},
+		connect.Method{Spec: bitwindowdServiceCancelDenialSpec(), Handler: adapter.cancelDenial},
+		connect.Method{Spec: bitwindowdServicePauseDenialSpec(), Handler: adapter.pauseDenial},
+		connect.Method{Spec: bitwindowdServiceResumeDenialSpec(), Handler: adapter.resumeDenial},
+		connect.Method{Spec: bitwindowdServiceCreateAddressBookEntrySpec(), Handler: adapter.createAddressBookEntry},
+		connect.Method{Spec: bitwindowdServiceListAddressBookSpec(), Handler: adapter.listAddressBook},
+		connect.Method{Spec: bitwindowdServiceUpdateAddressBookEntrySpec(), Handler: adapter.updateAddressBookEntry},
+		connect.Method{Spec: bitwindowdServiceDeleteAddressBookEntrySpec(), Handler: adapter.deleteAddressBookEntry},
+		connect.Method{Spec: bitwindowdServiceGetSyncInfoSpec(), Handler: adapter.getSyncInfo},
+		connect.Method{Spec: bitwindowdServiceSetTransactionNoteSpec(), Handler: adapter.setTransactionNote},
+		connect.Method{Spec: bitwindowdServiceExportLabelsSpec(), Handler: adapter.exportLabels},
+		connect.Method{Spec: bitwindowdServiceImportLabelsSpec(), Handler: adapter.importLabels},
+		connect.Method{Spec: bitwindowdServiceGetFireplaceStatsSpec(), Handler: adapter.getFireplaceStats},
+		connect.Method{Spec: bitwindowdServiceListRecentTransactionsSpec(), Handler: adapter.listRecentTransactions},
+		connect.Method{Spec: bitwindowdServiceListBlocksSpec(), Handler: adapter.listBlocks},
+		connect.Method{Spec: bitwindowdServiceGetNetworkStatsSpec(), Handler: adapter.getNetworkStats},
+		connect.Method{Spec: bitwindowdServiceSetMempoolWatchSpec(), Handler: adapter.setMempoolWatch},
+		connect.Method{Spec: bitwindowdServiceResetMempoolWatchSpec(), Handler: adapter.resetMempoolWatch},
+		connect.Method{Spec: bitwindowdServiceGetMempoolWatchStatusSpec(), Handler: adapter.getMempoolWatchStatus},
+		connect.Method{Spec: bitwindowdServiceListMempoolTransactionsSpec(), Handler: adapter.listMempoolTransactions},
+		connect.Method{Spec: bitwindowdServiceListBlockStatsSpec(), Handler: adapter.listBlockStats},
+		connect.Method{Spec: bitwindowdServiceListMiningPoolsSpec(), Handler: adapter.listMiningPools},
+		connect.Method{Spec: bitwindowdServiceUpdateNetworkSpec(), Handler: adapter.updateNetwork},
 	)
-	bitwindowdServiceCreateDenialHandler := connect.NewUnaryHandler(
-		BitwindowdServiceCreateDenialProcedure,
-		svc.CreateDenial,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("CreateDenial")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceCancelDenialHandler := connect.NewUnaryHandler(
-		BitwindowdServiceCancelDenialProcedure,
-		svc.CancelDenial,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("CancelDenial")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServicePauseDenialHandler := connect.NewUnaryHandler(
-		BitwindowdServicePauseDenialProcedure,
-		svc.PauseDenial,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("PauseDenial")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceResumeDenialHandler := connect.NewUnaryHandler(
-		BitwindowdServiceResumeDenialProcedure,
-		svc.ResumeDenial,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ResumeDenial")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceCreateAddressBookEntryHandler := connect.NewUnaryHandler(
-		BitwindowdServiceCreateAddressBookEntryProcedure,
-		svc.CreateAddressBookEntry,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("CreateAddressBookEntry")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceListAddressBookHandler := connect.NewUnaryHandler(
-		BitwindowdServiceListAddressBookProcedure,
-		svc.ListAddressBook,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ListAddressBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceUpdateAddressBookEntryHandler := connect.NewUnaryHandler(
-		BitwindowdServiceUpdateAddressBookEntryProcedure,
-		svc.UpdateAddressBookEntry,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateAddressBookEntry")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceDeleteAddressBookEntryHandler := connect.NewUnaryHandler(
-		BitwindowdServiceDeleteAddressBookEntryProcedure,
-		svc.DeleteAddressBookEntry,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("DeleteAddressBookEntry")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceGetSyncInfoHandler := connect.NewUnaryHandler(
-		BitwindowdServiceGetSyncInfoProcedure,
-		svc.GetSyncInfo,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("GetSyncInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceSetTransactionNoteHandler := connect.NewUnaryHandler(
-		BitwindowdServiceSetTransactionNoteProcedure,
-		svc.SetTransactionNote,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("SetTransactionNote")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceExportLabelsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceExportLabelsProcedure,
-		svc.ExportLabels,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ExportLabels")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceImportLabelsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceImportLabelsProcedure,
-		svc.ImportLabels,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ImportLabels")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceGetFireplaceStatsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceGetFireplaceStatsProcedure,
-		svc.GetFireplaceStats,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("GetFireplaceStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceListRecentTransactionsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceListRecentTransactionsProcedure,
-		svc.ListRecentTransactions,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ListRecentTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceListBlocksHandler := connect.NewUnaryHandler(
-		BitwindowdServiceListBlocksProcedure,
-		svc.ListBlocks,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlocks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceGetNetworkStatsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceGetNetworkStatsProcedure,
-		svc.GetNetworkStats,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceSetMempoolWatchHandler := connect.NewUnaryHandler(
-		BitwindowdServiceSetMempoolWatchProcedure,
-		svc.SetMempoolWatch,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("SetMempoolWatch")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceResetMempoolWatchHandler := connect.NewUnaryHandler(
-		BitwindowdServiceResetMempoolWatchProcedure,
-		svc.ResetMempoolWatch,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ResetMempoolWatch")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceGetMempoolWatchStatusHandler := connect.NewUnaryHandler(
-		BitwindowdServiceGetMempoolWatchStatusProcedure,
-		svc.GetMempoolWatchStatus,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("GetMempoolWatchStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceListMempoolTransactionsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceListMempoolTransactionsProcedure,
-		svc.ListMempoolTransactions,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ListMempoolTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceListBlockStatsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceListBlockStatsProcedure,
-		svc.ListBlockStats,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlockStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceListMiningPoolsHandler := connect.NewUnaryHandler(
-		BitwindowdServiceListMiningPoolsProcedure,
-		svc.ListMiningPools,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ListMiningPools")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceUpdateNetworkHandler := connect.NewUnaryHandler(
-		BitwindowdServiceUpdateNetworkProcedure,
-		svc.UpdateNetwork,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateNetwork")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case BitwindowdServiceStopProcedure:
-			bitwindowdServiceStopHandler.ServeHTTP(w, r)
-		case BitwindowdServiceCreateDenialProcedure:
-			bitwindowdServiceCreateDenialHandler.ServeHTTP(w, r)
-		case BitwindowdServiceCancelDenialProcedure:
-			bitwindowdServiceCancelDenialHandler.ServeHTTP(w, r)
-		case BitwindowdServicePauseDenialProcedure:
-			bitwindowdServicePauseDenialHandler.ServeHTTP(w, r)
-		case BitwindowdServiceResumeDenialProcedure:
-			bitwindowdServiceResumeDenialHandler.ServeHTTP(w, r)
-		case BitwindowdServiceCreateAddressBookEntryProcedure:
-			bitwindowdServiceCreateAddressBookEntryHandler.ServeHTTP(w, r)
-		case BitwindowdServiceListAddressBookProcedure:
-			bitwindowdServiceListAddressBookHandler.ServeHTTP(w, r)
-		case BitwindowdServiceUpdateAddressBookEntryProcedure:
-			bitwindowdServiceUpdateAddressBookEntryHandler.ServeHTTP(w, r)
-		case BitwindowdServiceDeleteAddressBookEntryProcedure:
-			bitwindowdServiceDeleteAddressBookEntryHandler.ServeHTTP(w, r)
-		case BitwindowdServiceGetSyncInfoProcedure:
-			bitwindowdServiceGetSyncInfoHandler.ServeHTTP(w, r)
-		case BitwindowdServiceSetTransactionNoteProcedure:
-			bitwindowdServiceSetTransactionNoteHandler.ServeHTTP(w, r)
-		case BitwindowdServiceExportLabelsProcedure:
-			bitwindowdServiceExportLabelsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceImportLabelsProcedure:
-			bitwindowdServiceImportLabelsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceGetFireplaceStatsProcedure:
-			bitwindowdServiceGetFireplaceStatsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceListRecentTransactionsProcedure:
-			bitwindowdServiceListRecentTransactionsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceListBlocksProcedure:
-			bitwindowdServiceListBlocksHandler.ServeHTTP(w, r)
-		case BitwindowdServiceGetNetworkStatsProcedure:
-			bitwindowdServiceGetNetworkStatsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceSetMempoolWatchProcedure:
-			bitwindowdServiceSetMempoolWatchHandler.ServeHTTP(w, r)
-		case BitwindowdServiceResetMempoolWatchProcedure:
-			bitwindowdServiceResetMempoolWatchHandler.ServeHTTP(w, r)
-		case BitwindowdServiceGetMempoolWatchStatusProcedure:
-			bitwindowdServiceGetMempoolWatchStatusHandler.ServeHTTP(w, r)
-		case BitwindowdServiceListMempoolTransactionsProcedure:
-			bitwindowdServiceListMempoolTransactionsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceListBlockStatsProcedure:
-			bitwindowdServiceListBlockStatsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceListMiningPoolsProcedure:
-			bitwindowdServiceListMiningPoolsHandler.ServeHTTP(w, r)
-		case BitwindowdServiceUpdateNetworkProcedure:
-			bitwindowdServiceUpdateNetworkHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedBitwindowdServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBitwindowdServiceHandler struct{}
 
-func (UnimplementedBitwindowdServiceHandler) Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.Stop is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) Stop(context.Context, *v1.BitwindowdServiceStopRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.Stop is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.CreateDenial is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) CreateDenial(context.Context, *v1.CreateDenialRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.CreateDenial is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.CancelDenial is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) CancelDenial(context.Context, *v1.CancelDenialRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.CancelDenial is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) PauseDenial(context.Context, *connect.Request[v1.PauseDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.PauseDenial is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) PauseDenial(context.Context, *v1.PauseDenialRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.PauseDenial is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ResumeDenial(context.Context, *connect.Request[v1.ResumeDenialRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ResumeDenial is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ResumeDenial(context.Context, *v1.ResumeDenialRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ResumeDenial is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) CreateAddressBookEntry(context.Context, *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[v1.CreateAddressBookEntryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.CreateAddressBookEntry is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) CreateAddressBookEntry(context.Context, *v1.CreateAddressBookEntryRequest) (*v1.CreateAddressBookEntryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.CreateAddressBookEntry is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListAddressBook is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ListAddressBook(context.Context, *emptypb.Empty) (*v1.ListAddressBookResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListAddressBook is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) UpdateAddressBookEntry(context.Context, *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetSyncInfo is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.GetSyncInfo is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.SetTransactionNote is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.SetTransactionNote is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ExportLabels(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ExportLabels is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ExportLabels(context.Context, *emptypb.Empty) (*v1.ExportLabelsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ExportLabels is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ImportLabels(context.Context, *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ImportLabels is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ImportLabels(context.Context, *v1.ImportLabelsRequest) (*v1.ImportLabelsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ImportLabels is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetFireplaceStats is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) GetFireplaceStats(context.Context, *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.GetFireplaceStats is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListRecentTransactions is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListRecentTransactions is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListBlocks is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListBlocks is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetNetworkStats is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) GetNetworkStats(context.Context, *emptypb.Empty) (*v1.GetNetworkStatsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.GetNetworkStats is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) SetMempoolWatch(context.Context, *connect.Request[v1.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.SetMempoolWatch is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) SetMempoolWatch(context.Context, *v1.SetMempoolWatchRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.SetMempoolWatch is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ResetMempoolWatch(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ResetMempoolWatch is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ResetMempoolWatch(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ResetMempoolWatch is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) GetMempoolWatchStatus(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetMempoolWatchStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) GetMempoolWatchStatus(context.Context, *emptypb.Empty) (*v1.GetMempoolWatchStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ListMempoolTransactions(context.Context, *connect.Request[v1.ListMempoolTransactionsRequest]) (*connect.Response[v1.ListMempoolTransactionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListMempoolTransactions is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ListMempoolTransactions(context.Context, *v1.ListMempoolTransactionsRequest) (*v1.ListMempoolTransactionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListMempoolTransactions is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ListBlockStats(context.Context, *connect.Request[v1.ListBlockStatsRequest]) (*connect.Response[v1.ListBlockStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListBlockStats is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ListBlockStats(context.Context, *v1.ListBlockStatsRequest) (*v1.ListBlockStatsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListBlockStats is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) ListMiningPools(context.Context, *connect.Request[v1.ListMiningPoolsRequest]) (*connect.Response[v1.ListMiningPoolsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListMiningPools is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) ListMiningPools(context.Context, *v1.ListMiningPoolsRequest) (*v1.ListMiningPoolsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListMiningPools is not implemented")
 }
 
-func (UnimplementedBitwindowdServiceHandler) UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.UpdateNetwork is not implemented"))
+func (UnimplementedBitwindowdServiceHandler) UpdateNetwork(context.Context, *v1.UpdateNetworkRequest) (*v1.UpdateNetworkResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.UpdateNetwork is not implemented")
+}
+
+type bitwindowdServiceClient struct {
+	client *connect.Client
+}
+
+func (c *bitwindowdServiceClient) Stop(ctx context.Context, req *v1.BitwindowdServiceStopRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceStopSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) CreateDenial(ctx context.Context, req *v1.CreateDenialRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceCreateDenialSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) CancelDenial(ctx context.Context, req *v1.CancelDenialRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceCancelDenialSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) PauseDenial(ctx context.Context, req *v1.PauseDenialRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServicePauseDenialSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ResumeDenial(ctx context.Context, req *v1.ResumeDenialRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceResumeDenialSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) CreateAddressBookEntry(ctx context.Context, req *v1.CreateAddressBookEntryRequest) (*v1.CreateAddressBookEntryResponse, error) {
+	var res v1.CreateAddressBookEntryResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceCreateAddressBookEntrySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ListAddressBook(ctx context.Context, req *emptypb.Empty) (*v1.ListAddressBookResponse, error) {
+	var res v1.ListAddressBookResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceListAddressBookSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) UpdateAddressBookEntry(ctx context.Context, req *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceUpdateAddressBookEntrySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) DeleteAddressBookEntry(ctx context.Context, req *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceDeleteAddressBookEntrySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) GetSyncInfo(ctx context.Context, req *emptypb.Empty) (*v1.GetSyncInfoResponse, error) {
+	var res v1.GetSyncInfoResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceGetSyncInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) SetTransactionNote(ctx context.Context, req *v1.SetTransactionNoteRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceSetTransactionNoteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ExportLabels(ctx context.Context, req *emptypb.Empty) (*v1.ExportLabelsResponse, error) {
+	var res v1.ExportLabelsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceExportLabelsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ImportLabels(ctx context.Context, req *v1.ImportLabelsRequest) (*v1.ImportLabelsResponse, error) {
+	var res v1.ImportLabelsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceImportLabelsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) GetFireplaceStats(ctx context.Context, req *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error) {
+	var res v1.GetFireplaceStatsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceGetFireplaceStatsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ListRecentTransactions(ctx context.Context, req *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error) {
+	var res v1.ListRecentTransactionsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceListRecentTransactionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ListBlocks(ctx context.Context, req *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error) {
+	var res v1.ListBlocksResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceListBlocksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*v1.GetNetworkStatsResponse, error) {
+	var res v1.GetNetworkStatsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceGetNetworkStatsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) SetMempoolWatch(ctx context.Context, req *v1.SetMempoolWatchRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceSetMempoolWatchSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ResetMempoolWatch(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitwindowdServiceResetMempoolWatchSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) GetMempoolWatchStatus(ctx context.Context, req *emptypb.Empty) (*v1.GetMempoolWatchStatusResponse, error) {
+	var res v1.GetMempoolWatchStatusResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceGetMempoolWatchStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ListMempoolTransactions(ctx context.Context, req *v1.ListMempoolTransactionsRequest) (*v1.ListMempoolTransactionsResponse, error) {
+	var res v1.ListMempoolTransactionsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceListMempoolTransactionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ListBlockStats(ctx context.Context, req *v1.ListBlockStatsRequest) (*v1.ListBlockStatsResponse, error) {
+	var res v1.ListBlockStatsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceListBlockStatsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ListMiningPools(ctx context.Context, req *v1.ListMiningPoolsRequest) (*v1.ListMiningPoolsResponse, error) {
+	var res v1.ListMiningPoolsResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceListMiningPoolsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) UpdateNetwork(ctx context.Context, req *v1.UpdateNetworkRequest) (*v1.UpdateNetworkResponse, error) {
+	var res v1.UpdateNetworkResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceUpdateNetworkSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type bitwindowdServiceHandler struct{ svc BitwindowdServiceHandler }
+
+func (h bitwindowdServiceHandler) stop(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.BitwindowdServiceStopRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Stop(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) createDenial(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDenialRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDenial(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) cancelDenial(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CancelDenialRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CancelDenial(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) pauseDenial(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PauseDenialRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PauseDenial(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) resumeDenial(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ResumeDenialRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ResumeDenial(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) createAddressBookEntry(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateAddressBookEntryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateAddressBookEntry(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) listAddressBook(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListAddressBook(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) updateAddressBookEntry(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateAddressBookEntryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateAddressBookEntry(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) deleteAddressBookEntry(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteAddressBookEntryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteAddressBookEntry(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) getSyncInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSyncInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) setTransactionNote(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetTransactionNoteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetTransactionNote(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) exportLabels(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ExportLabels(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) importLabels(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ImportLabelsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ImportLabels(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) getFireplaceStats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFireplaceStats(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) listRecentTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListRecentTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRecentTransactions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) listBlocks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBlocksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBlocks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) getNetworkStats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNetworkStats(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) setMempoolWatch(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetMempoolWatchRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetMempoolWatch(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) resetMempoolWatch(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ResetMempoolWatch(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) getMempoolWatchStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMempoolWatchStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) listMempoolTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListMempoolTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListMempoolTransactions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) listBlockStats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBlockStatsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBlockStats(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) listMiningPools(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListMiningPoolsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListMiningPools(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) updateNetwork(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateNetworkRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateNetwork(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

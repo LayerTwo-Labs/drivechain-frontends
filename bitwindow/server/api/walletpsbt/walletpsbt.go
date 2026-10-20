@@ -3,9 +3,8 @@ package walletpsbt
 import (
 	"context"
 	"database/sql"
-	"errors"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -26,37 +25,37 @@ func New(db *sql.DB) *Server {
 
 func (s *Server) ListDrafts(
 	ctx context.Context,
-	req *connect.Request[pb.ListDraftsRequest],
-) (*connect.Response[pb.ListDraftsResponse], error) {
-	if req.Msg.WalletId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet id is required"))
+	req *pb.ListDraftsRequest,
+) (*pb.ListDraftsResponse, error) {
+	if req.WalletId == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "wallet id is required")
 	}
 
-	drafts, err := s.store.List(ctx, req.Msg.WalletId)
+	drafts, err := s.store.List(ctx, req.WalletId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.ListDraftsResponse{
+	return &pb.ListDraftsResponse{
 		Drafts: lo.Map(drafts, func(d walletpsbt.Draft, _ int) *pb.PsbtDraft {
 			return draftToProto(d)
 		}),
-	}), nil
+	}, nil
 }
 
 func (s *Server) SaveDraft(
 	ctx context.Context,
-	req *connect.Request[pb.SaveDraftRequest],
-) (*connect.Response[pb.SaveDraftResponse], error) {
-	pd := req.Msg.Draft
+	req *pb.SaveDraftRequest,
+) (*pb.SaveDraftResponse, error) {
+	pd := req.Draft
 	if pd == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("draft is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "draft is required")
 	}
 	if pd.WalletId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "wallet id is required")
 	}
 	if pd.PsbtBase64 == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("psbt is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "psbt is required")
 	}
 
 	saved, err := s.store.Save(ctx, walletpsbt.Draft{
@@ -67,23 +66,23 @@ func (s *Server) SaveDraft(
 		Txid:       pd.Txid,
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.SaveDraftResponse{Draft: draftToProto(saved)}), nil
+	return &pb.SaveDraftResponse{Draft: draftToProto(saved)}, nil
 }
 
 func (s *Server) DeleteDraft(
 	ctx context.Context,
-	req *connect.Request[pb.DeleteDraftRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	if req.Msg.Id == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("draft id is required"))
+	req *pb.DeleteDraftRequest,
+) (*emptypb.Empty, error) {
+	if req.Id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "draft id is required")
 	}
-	if err := s.store.Delete(ctx, req.Msg.Id); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := s.store.Delete(ctx, req.Id); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 func draftToProto(d walletpsbt.Draft) *pb.PsbtDraft {

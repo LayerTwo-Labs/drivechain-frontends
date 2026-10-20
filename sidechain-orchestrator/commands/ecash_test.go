@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
@@ -34,39 +35,42 @@ type ecashMigrationServer struct {
 	statusCalls  int
 }
 
-func (s *ecashMigrationServer) PreviewECashMigration(_ context.Context, req *connect.Request[pb.PreviewECashMigrationRequest]) (*connect.Response[pb.PreviewECashMigrationResponse], error) {
-	s.previews = append(s.previews, req.Msg)
+func (s *ecashMigrationServer) PreviewECashMigration(_ context.Context, req *pb.PreviewECashMigrationRequest) (*pb.PreviewECashMigrationResponse, error) {
+	s.previews = append(s.previews, req)
 	if s.previewError != nil {
 		return nil, s.previewError
 	}
-	return connect.NewResponse(&pb.PreviewECashMigrationResponse{Status: s.preview}), nil
+	return &pb.PreviewECashMigrationResponse{Status: s.preview}, nil
 }
 
-func (s *ecashMigrationServer) StartECashMigration(_ context.Context, req *connect.Request[pb.StartECashMigrationRequest]) (*connect.Response[pb.StartECashMigrationResponse], error) {
-	s.starts = append(s.starts, req.Msg)
+func (s *ecashMigrationServer) StartECashMigration(_ context.Context, req *pb.StartECashMigrationRequest) (*pb.StartECashMigrationResponse, error) {
+	s.starts = append(s.starts, req)
 	if s.startError != nil {
 		return nil, s.startError
 	}
-	return connect.NewResponse(&pb.StartECashMigrationResponse{Status: s.start}), nil
+	return &pb.StartECashMigrationResponse{Status: s.start}, nil
 }
 
-func (s *ecashMigrationServer) GetECashMigrationStatus(_ context.Context, _ *connect.Request[pb.GetECashMigrationStatusRequest]) (*connect.Response[pb.GetECashMigrationStatusResponse], error) {
+func (s *ecashMigrationServer) GetECashMigrationStatus(_ context.Context, _ *pb.GetECashMigrationStatusRequest) (*pb.GetECashMigrationStatusResponse, error) {
 	s.statusCalls++
 	if s.statusError != nil {
 		return nil, s.statusError
 	}
 	if s.statusCalls > len(s.statuses) {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("the test has no more status data"))
+		return nil, connect.NewError(connect.CodeInternal, "the test has no more status data")
 	}
-	return connect.NewResponse(&pb.GetECashMigrationStatusResponse{Status: s.statuses[s.statusCalls-1]}), nil
+	return &pb.GetECashMigrationStatusResponse{Status: s.statuses[s.statusCalls-1]}, nil
 }
 
 func newECashMigrationClient(t *testing.T, service *ecashMigrationServer) rpc.OrchestratorServiceClient {
 	t.Helper()
-	_, handler := rpc.NewOrchestratorServiceHandler(service)
+	rpcServer := connect.NewServer()
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, service)
+	handler := http.NewServeMux()
+	connecthttp.Mount(handler, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	return rpc.NewOrchestratorServiceClient(server.Client(), server.URL)
+	return rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func ecashCommandContext(t *testing.T, command *cli.Command, args ...string) (*cli.Context, *bytes.Buffer) {
@@ -238,7 +242,7 @@ func TestECashPreviewRejectsDifferentNetworks(t *testing.T) {
 func TestECashMigrateReturnsStatusRPCError(t *testing.T) {
 	service := &ecashMigrationServer{
 		start:       ecashTestStatus(),
-		statusError: connect.NewError(connect.CodeUnavailable, errors.New("the daemon stopped")),
+		statusError: connect.NewError(connect.CodeUnavailable, "the daemon stopped"),
 	}
 	cctx, _ := ecashCommandContext(t, ecashMigrateCommand, "--from", "alphanet", "--to", "betanet", "--yes")
 
@@ -328,7 +332,10 @@ func TestECashCommandUsesRPCAddressAndAuthCookie(t *testing.T) {
 	_, err := localauth.WriteCookie(cookieDir)
 	require.NoError(t, err)
 	service := &ecashMigrationServer{preview: ecashTestStatus()}
-	_, handler := rpc.NewOrchestratorServiceHandler(service, connect.WithInterceptors(localauth.Interceptor(cookieDir)))
+	rpcServer := connect.NewServer(localauth.ServerInterceptor(cookieDir))
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, service)
+	handler := http.NewServeMux()
+	connecthttp.Mount(handler, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 	out := new(bytes.Buffer)

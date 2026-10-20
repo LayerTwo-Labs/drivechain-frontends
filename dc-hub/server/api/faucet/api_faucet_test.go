@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	pb "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/hub/v1"
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -15,16 +16,16 @@ type fakeBitcoind struct {
 	sent []float64
 }
 
-func (f *fakeBitcoind) SendToAddress(_ context.Context, req *connect.Request[btcpb.SendToAddressRequest]) (*connect.Response[btcpb.SendToAddressResponse], error) {
+func (f *fakeBitcoind) SendToAddress(_ context.Context, req *connectv1.Request[btcpb.SendToAddressRequest]) (*connectv1.Response[btcpb.SendToAddressResponse], error) {
 	f.sent = append(f.sent, req.Msg.Amount)
-	return connect.NewResponse(&btcpb.SendToAddressResponse{Txid: "txid"}), nil
+	return connectv1.NewResponse(&btcpb.SendToAddressResponse{Txid: "txid"}), nil
 }
 
 func dispense(s *Server, amount float64) error {
-	_, err := s.DispenseCoins(context.Background(), connect.NewRequest(&pb.DispenseCoinsRequest{
+	_, err := s.DispenseCoins(context.Background(), &pb.DispenseCoinsRequest{
 		Destination: "bc1qdestination",
 		Amount:      amount,
-	}))
+	})
 	return err
 }
 

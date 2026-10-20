@@ -8,7 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/require"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -36,9 +37,9 @@ func TestGetDownloadStatus_EmptyWhenNothingInFlight(t *testing.T) {
 	client, stop := startTestOrchService(t, orch)
 	defer stop()
 
-	resp, err := client.GetDownloadStatus(context.Background(), connect.NewRequest(&pb.GetDownloadStatusRequest{}))
+	resp, err := client.GetDownloadStatus(context.Background(), &pb.GetDownloadStatusRequest{})
 	require.NoError(t, err)
-	require.Empty(t, resp.Msg.Downloads)
+	require.Empty(t, resp.Downloads)
 }
 
 // TestGetDownloadStatus_ReportsInFlightDownload exercises the live path:
@@ -90,10 +91,10 @@ func TestGetDownloadStatus_ReportsInFlightDownload(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	_, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
+	_, err := client.DownloadBinary(ctx, &pb.DownloadBinaryRequest{
 		Name:  "streamtest",
 		Force: true,
-	}))
+	})
 	require.NoError(t, err)
 
 	// Spin until the manager records something running, then sample the RPC.
@@ -104,11 +105,11 @@ func TestGetDownloadStatus_ReportsInFlightDownload(t *testing.T) {
 
 	// streamtest isn't a known BinaryType in the proto enum, so the handler
 	// drops it from the response — exercise the empty-after-drop path.
-	resp, err := client.GetDownloadStatus(ctx, connect.NewRequest(&pb.GetDownloadStatusRequest{}))
+	resp, err := client.GetDownloadStatus(ctx, &pb.GetDownloadStatusRequest{})
 	require.NoError(t, err)
 	require.Empty(
 		t,
-		resp.Msg.Downloads,
+		resp.Downloads,
 		"unknown binary names must be dropped, not shipped as UNSPECIFIED",
 	)
 
@@ -157,10 +158,10 @@ func TestGetDownloadStatus_KnownBinaryReportsTypedEnum(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	_, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
+	_, err := client.DownloadBinary(ctx, &pb.DownloadBinaryRequest{
 		Name:  "thunder",
 		Force: true,
-	}))
+	})
 	require.NoError(t, err)
 
 	require.Eventually(t, func() bool {
@@ -168,10 +169,10 @@ func TestGetDownloadStatus_KnownBinaryReportsTypedEnum(t *testing.T) {
 		return running
 	}, eventuallyTimeout, eventuallyPoll, "download never registered as running")
 
-	resp, err := client.GetDownloadStatus(ctx, connect.NewRequest(&pb.GetDownloadStatusRequest{}))
+	resp, err := client.GetDownloadStatus(ctx, &pb.GetDownloadStatusRequest{})
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Downloads, 1)
-	require.Equal(t, pb.BinaryType_BINARY_TYPE_THUNDER, resp.Msg.Downloads[0].Binary)
+	require.Len(t, resp.Downloads, 1)
+	require.Equal(t, pb.BinaryType_BINARY_TYPE_THUNDER, resp.Downloads[0].Binary)
 
 	releaseOnce.Do(func() { close(hold) })
 	waitForDownloadEnd(t, orch, "thunder")
@@ -193,9 +194,10 @@ func waitForDownloadEnd(t *testing.T, orch *orchestrator.Orchestrator, name stri
 func startTestOrchService(t *testing.T, orch *orchestrator.Orchestrator) (rpc.OrchestratorServiceClient, func()) {
 	t.Helper()
 	mux := http.NewServeMux()
-	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
-	mux.Handle(path, h)
+	rpcServer := connect.NewServer()
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, NewHandler(orch))
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	srv := h2cServer(mux)
-	client := rpc.NewOrchestratorServiceClient(h2cClient(), srv.URL, connect.WithGRPC())
+	client := rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(h2cClient(), srv.URL, connecthttp.WithReadMaxBytes(0), connecthttp.WithGRPC())))
 	return client, srv.Close
 }

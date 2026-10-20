@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/samber/lo"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -20,7 +20,7 @@ type coreBids struct{ h *BMMHandler }
 func (c coreBids) spends(ctx context.Context, _, txid string) ([]*wpb.UnspentOutput, error) {
 	raw, err := c.h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err))
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err).Error())
 	}
 	var tx struct {
 		Vin []struct {
@@ -29,10 +29,10 @@ func (c coreBids) spends(ctx context.Context, _, txid string) ([]*wpb.UnspentOut
 		} `json:"vin"`
 	}
 	if err := json.Unmarshal(raw, &tx); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode bid %s: %w", txid, err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode bid %s: %w", txid, err).Error())
 	}
 	if len(tx.Vin) == 0 {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bid %s has no inputs to reuse", txid))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "bid %s has no inputs to reuse", txid)
 	}
 	return lo.Map(tx.Vin, func(in struct {
 		Txid string `json:"txid"`
@@ -107,7 +107,7 @@ func (c coreBids) mempoolFees(ctx context.Context, txid string) (mempoolFeeSats,
 	}
 	if err := json.Unmarshal(raw, &entry); err != nil {
 		return mempoolFeeSats{}, false, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("decode mempool entry %s: %w", txid, err))
+			fmt.Errorf("decode mempool entry %s: %w", txid, err).Error())
 	}
 	return mempoolFeeSats{
 		Base:     int64(math.Round(entry.Fees.Base * 1e8)),
@@ -154,11 +154,11 @@ func (c coreBids) mempoolDescendants(ctx context.Context, txid string) []string 
 func (c coreBids) PendingTxids(ctx context.Context, _ []string) (map[string]bool, error) {
 	raw, err := c.h.coreCall(ctx, "getrawmempool", "[false]")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get raw mempool: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get raw mempool: %w", err).Error())
 	}
 	var txids []string
 	if err := json.Unmarshal(raw, &txids); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode mempool: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode mempool: %w", err).Error())
 	}
 	held := make(map[string]bool, len(txids))
 	for _, txid := range txids {
@@ -184,13 +184,13 @@ func (c coreBids) request(ctx context.Context, _, txid string) (*orchestrator.Bm
 func (c coreBids) vsize(ctx context.Context, _, txid string) (int64, error) {
 	raw, err := c.h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
 	if err != nil {
-		return 0, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err))
+		return 0, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err).Error())
 	}
 	var tx struct {
 		Vsize int64 `json:"vsize"`
 	}
 	if err := json.Unmarshal(raw, &tx); err != nil {
-		return 0, connect.NewError(connect.CodeInternal, fmt.Errorf("decode bid %s: %w", txid, err))
+		return 0, connect.NewError(connect.CodeInternal, fmt.Errorf("decode bid %s: %w", txid, err).Error())
 	}
 	return tx.Vsize, nil
 }
@@ -198,7 +198,7 @@ func (c coreBids) vsize(ctx context.Context, _, txid string) (int64, error) {
 func (c coreBids) outputValues(ctx context.Context, _, txid string) ([]int64, error) {
 	values, err := outputValuesSats(ctx, c.h.coreCall, txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	return values, nil
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -64,85 +64,85 @@ type fakeBackend struct {
 }
 
 func (f *fakeBackend) CreateBid(
-	_ context.Context, req *connect.Request[bmmpb.CreateBidRequest],
-) (*connect.Response[bmmpb.CreateBidResponse], error) {
+	_ context.Context, req *bmmpb.CreateBidRequest,
+) (*bmmpb.CreateBidResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.bidErr != nil {
 		return nil, f.bidErr
 	}
 	f.bids++
-	f.lastReplace = req.Msg.ReplaceTxid
-	f.lastBidSats = req.Msg.BidSats
-	bid := req.Msg.BidSats
+	f.lastReplace = req.ReplaceTxid
+	f.lastBidSats = req.BidSats
+	bid := req.BidSats
 	// A rate-sized bid costs whatever the wallet builds. The real handler
 	// reads that back off the chain, so the fake reports it too.
-	if bid == 0 && req.Msg.FeeRateSatVb > 0 {
-		bid = int64(math.Ceil(req.Msg.FeeRateSatVb * fakeBidVsize))
+	if bid == 0 && req.FeeRateSatVb > 0 {
+		bid = int64(math.Ceil(req.FeeRateSatVb * fakeBidVsize))
 	}
-	if req.Msg.CapToBlockWorth && f.feesSats > 0 && bid > f.feesSats {
+	if req.CapToBlockWorth && f.feesSats > 0 && bid > f.feesSats {
 		bid = f.feesSats
 	}
-	if req.Msg.MaxBidSats > 0 && bid > req.Msg.MaxBidSats {
-		bid = req.Msg.MaxBidSats
+	if req.MaxBidSats > 0 && bid > req.MaxBidSats {
+		bid = req.MaxBidSats
 	}
 	f.lastBidSats = bid
-	f.lastExpectTip = req.Msg.ExpectPrevMainHash
-	f.lastWalletID = req.Msg.WalletId
-	f.lastFeeRate = req.Msg.FeeRateSatVb
-	return connect.NewResponse(&bmmpb.CreateBidResponse{
+	f.lastExpectTip = req.ExpectPrevMainHash
+	f.lastWalletID = req.WalletId
+	f.lastFeeRate = req.FeeRateSatVb
+	return &bmmpb.CreateBidResponse{
 		CriticalHash: "critical",
 		BmmTxid:      "txid-" + string(rune('0'+f.bids)),
 		FeesSats:     f.feesSats,
 		BlockJson:    "side:" + f.sideTip,
-		PrevMainHash: req.Msg.ExpectPrevMainHash,
+		PrevMainHash: req.ExpectPrevMainHash,
 		BidSats:      bid,
-	}), nil
+	}, nil
 }
 
 func (f *fakeBackend) ConnectBid(
-	_ context.Context, req *connect.Request[bmmpb.ConnectBidRequest],
-) (*connect.Response[bmmpb.ConnectBidResponse], error) {
+	_ context.Context, req *bmmpb.ConnectBidRequest,
+) (*bmmpb.ConnectBidResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.connects++
-	f.lastMainBlockHash = req.Msg.MainBlockHash
+	f.lastMainBlockHash = req.MainBlockHash
 	if f.connectErr != nil {
 		return nil, f.connectErr
 	}
 	// The handler names no block while the sidechain reports no inclusion for
 	// the critical hash.
 	if f.noInclusion {
-		return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+		return &bmmpb.ConnectBidResponse{}, nil
 	}
 	// The handler echoes the block it connected on, resolving it itself only
 	// when the caller named none.
-	main := req.Msg.MainBlockHash
+	main := req.MainBlockHash
 	if main == "" {
 		main = "mainblock"
 	}
-	return connect.NewResponse(&bmmpb.ConnectBidResponse{
+	return &bmmpb.ConnectBidResponse{
 		Connected:     f.connected,
 		MainBlockHash: main,
 		Held:          f.held,
-	}), nil
+	}, nil
 }
 
 // ListBids answers for one parent block, as the enforcer does.
 func (f *fakeBackend) ListBids(
-	_ context.Context, req *connect.Request[bmmpb.ListBidsRequest],
-) (*connect.Response[bmmpb.ListBidsResponse], error) {
+	_ context.Context, req *bmmpb.ListBidsRequest,
+) (*bmmpb.ListBidsResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	bids := make([]*bmmpb.Bid, 0, len(f.others))
 	for _, bid := range f.others {
-		if req.Msg.PrevMainHash != "" && bid.PrevMainHash != "" &&
-			bid.PrevMainHash != req.Msg.PrevMainHash {
+		if req.PrevMainHash != "" && bid.PrevMainHash != "" &&
+			bid.PrevMainHash != req.PrevMainHash {
 			continue
 		}
 		bids = append(bids, bid)
 	}
-	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
+	return &bmmpb.ListBidsResponse{Bids: bids}, nil
 }
 
 func (f *fakeBackend) MempoolTxids(_ context.Context, walletIDs []string) (map[string]bool, error) {
@@ -167,28 +167,28 @@ func (f *fakeBackend) Mined(_ context.Context, txid string) (bool, error) {
 }
 
 func (f *fakeBackend) PrepareBMM(
-	_ context.Context, req *connect.Request[bmmpb.PrepareBMMRequest],
-) (*connect.Response[bmmpb.PrepareBMMResponse], error) {
+	_ context.Context, req *bmmpb.PrepareBMMRequest,
+) (*bmmpb.PrepareBMMResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.prepares++
-	f.lastPrepare = req.Msg
+	f.lastPrepare = req
 	if f.prepareErr != nil {
 		return nil, f.prepareErr
 	}
-	wanted := int32(len(req.Msg.Targets))
+	wanted := int32(len(req.Targets))
 	usable := wanted
 	if f.shortCoins {
 		usable = wanted - 1
 	}
-	return connect.NewResponse(&bmmpb.PrepareBMMResponse{
+	return &bmmpb.PrepareBMMResponse{
 		Wallets: []*bmmpb.PrepareBMMWallet{{
-			WalletId:    req.Msg.Targets[0].WalletId,
+			WalletId:    req.Targets[0].WalletId,
 			UsableCoins: usable,
 			WantedCoins: wanted,
 			SplitTxid:   f.splitTxid,
 		}},
-	}), nil
+	}, nil
 }
 
 func (f *fakeBackend) Commitment(_ context.Context, _ pb.BinaryType, main string) (string, error) {
@@ -1154,7 +1154,7 @@ func TestBmmEngineDoesNotSettleAnOpenRoundOnStop(t *testing.T) {
 // a round every time the enforcer catches up mid-tick.
 func TestBmmEngineRetriesAfterAPreconditionRefusal(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
-	backend.bidErr = connect.NewError(connect.CodeFailedPrecondition, errors.New("enforcer is still syncing"))
+	backend.bidErr = connect.NewError(connect.CodeFailedPrecondition, "enforcer is still syncing")
 	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 10_000, false))
 
 	ctx := context.Background()
@@ -1554,7 +1554,7 @@ func TestBmmEngineRetriesWhenTheHeldCheckFails(t *testing.T) {
 func TestBmmEngineRetiresABlockTheSidechainCannotDecode(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.connectErr = connect.NewError(connect.CodeInvalidArgument,
-		errors.New("connect block: rpc error -32602: Invalid params"))
+		"connect block: rpc error -32602: Invalid params")
 
 	round := unconnectedRound("undecodable-round", 996770)
 	engine.mu.Lock()
@@ -2097,7 +2097,7 @@ func TestBmmEngineRetriesARefusedFeeRebuildOnlyWhenTheFeesRiseAgain(t *testing.T
 	require.Equal(t, 1, backend.bids)
 
 	backend.feesSats = 13_500
-	backend.bidErr = connect.NewError(connect.CodeFailedPrecondition, errors.New("over the ceiling"))
+	backend.bidErr = connect.NewError(connect.CodeFailedPrecondition, "over the ceiling")
 	engine.tick(ctx)
 	engine.tick(ctx)
 

@@ -5,169 +5,168 @@
 package orchestratorv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ThunderConfServiceName is the fully-qualified name of the ThunderConfService service.
 	ThunderConfServiceName = "orchestrator.v1.ThunderConfService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ThunderConfServiceGetThunderConfigProcedure is the fully-qualified name of the
-	// ThunderConfService's GetThunderConfig RPC.
+	// ThunderConfServiceGetThunderConfigProcedure is the procedure name of the ThunderConfService's
+	// GetThunderConfig RPC.
 	ThunderConfServiceGetThunderConfigProcedure = "/orchestrator.v1.ThunderConfService/GetThunderConfig"
-	// ThunderConfServiceWriteThunderConfigProcedure is the fully-qualified name of the
-	// ThunderConfService's WriteThunderConfig RPC.
+	// ThunderConfServiceWriteThunderConfigProcedure is the procedure name of the ThunderConfService's
+	// WriteThunderConfig RPC.
 	ThunderConfServiceWriteThunderConfigProcedure = "/orchestrator.v1.ThunderConfService/WriteThunderConfig"
-	// ThunderConfServiceSyncNetworkFromBitcoinConfProcedure is the fully-qualified name of the
+	// ThunderConfServiceSyncNetworkFromBitcoinConfProcedure is the procedure name of the
 	// ThunderConfService's SyncNetworkFromBitcoinConf RPC.
 	ThunderConfServiceSyncNetworkFromBitcoinConfProcedure = "/orchestrator.v1.ThunderConfService/SyncNetworkFromBitcoinConf"
 )
 
+var (
+	thunderConfServiceGetThunderConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_thunder_conf_proto.Services().ByName("ThunderConfService").Methods().ByName("GetThunderConfig"),
+			Procedure:  ThunderConfServiceGetThunderConfigProcedure,
+		}
+	})
+	thunderConfServiceWriteThunderConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_thunder_conf_proto.Services().ByName("ThunderConfService").Methods().ByName("WriteThunderConfig"),
+			Procedure:  ThunderConfServiceWriteThunderConfigProcedure,
+		}
+	})
+	thunderConfServiceSyncNetworkFromBitcoinConfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_orchestrator_v1_thunder_conf_proto.Services().ByName("ThunderConfService").Methods().ByName("SyncNetworkFromBitcoinConf"),
+			Procedure:  ThunderConfServiceSyncNetworkFromBitcoinConfProcedure,
+		}
+	})
+)
+
 // ThunderConfServiceClient is a client for the orchestrator.v1.ThunderConfService service.
 type ThunderConfServiceClient interface {
-	// Get current Thunder sidechain configuration state.
-	GetThunderConfig(context.Context, *connect.Request[v1.GetThunderConfigRequest]) (*connect.Response[v1.GetThunderConfigResponse], error)
-	// Write Thunder configuration content.
-	WriteThunderConfig(context.Context, *connect.Request[v1.WriteThunderConfigRequest]) (*connect.Response[v1.WriteThunderConfigResponse], error)
-	// Sync network from Bitcoin Core config.
-	SyncNetworkFromBitcoinConf(context.Context, *connect.Request[v1.SyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.SyncNetworkFromBitcoinConfResponse], error)
+	GetThunderConfig(context.Context, *v1.GetThunderConfigRequest) (*v1.GetThunderConfigResponse, error)
+	WriteThunderConfig(context.Context, *v1.WriteThunderConfigRequest) (*v1.WriteThunderConfigResponse, error)
+	SyncNetworkFromBitcoinConf(context.Context, *v1.SyncNetworkFromBitcoinConfRequest) (*v1.SyncNetworkFromBitcoinConfResponse, error)
 }
 
 // NewThunderConfServiceClient constructs a client for the orchestrator.v1.ThunderConfService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewThunderConfServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ThunderConfServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	thunderConfServiceMethods := v1.File_orchestrator_v1_thunder_conf_proto.Services().ByName("ThunderConfService").Methods()
-	return &thunderConfServiceClient{
-		getThunderConfig: connect.NewClient[v1.GetThunderConfigRequest, v1.GetThunderConfigResponse](
-			httpClient,
-			baseURL+ThunderConfServiceGetThunderConfigProcedure,
-			connect.WithSchema(thunderConfServiceMethods.ByName("GetThunderConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		writeThunderConfig: connect.NewClient[v1.WriteThunderConfigRequest, v1.WriteThunderConfigResponse](
-			httpClient,
-			baseURL+ThunderConfServiceWriteThunderConfigProcedure,
-			connect.WithSchema(thunderConfServiceMethods.ByName("WriteThunderConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		syncNetworkFromBitcoinConf: connect.NewClient[v1.SyncNetworkFromBitcoinConfRequest, v1.SyncNetworkFromBitcoinConfResponse](
-			httpClient,
-			baseURL+ThunderConfServiceSyncNetworkFromBitcoinConfProcedure,
-			connect.WithSchema(thunderConfServiceMethods.ByName("SyncNetworkFromBitcoinConf")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// thunderConfServiceClient implements ThunderConfServiceClient.
-type thunderConfServiceClient struct {
-	getThunderConfig           *connect.Client[v1.GetThunderConfigRequest, v1.GetThunderConfigResponse]
-	writeThunderConfig         *connect.Client[v1.WriteThunderConfigRequest, v1.WriteThunderConfigResponse]
-	syncNetworkFromBitcoinConf *connect.Client[v1.SyncNetworkFromBitcoinConfRequest, v1.SyncNetworkFromBitcoinConfResponse]
-}
-
-// GetThunderConfig calls orchestrator.v1.ThunderConfService.GetThunderConfig.
-func (c *thunderConfServiceClient) GetThunderConfig(ctx context.Context, req *connect.Request[v1.GetThunderConfigRequest]) (*connect.Response[v1.GetThunderConfigResponse], error) {
-	return c.getThunderConfig.CallUnary(ctx, req)
-}
-
-// WriteThunderConfig calls orchestrator.v1.ThunderConfService.WriteThunderConfig.
-func (c *thunderConfServiceClient) WriteThunderConfig(ctx context.Context, req *connect.Request[v1.WriteThunderConfigRequest]) (*connect.Response[v1.WriteThunderConfigResponse], error) {
-	return c.writeThunderConfig.CallUnary(ctx, req)
-}
-
-// SyncNetworkFromBitcoinConf calls orchestrator.v1.ThunderConfService.SyncNetworkFromBitcoinConf.
-func (c *thunderConfServiceClient) SyncNetworkFromBitcoinConf(ctx context.Context, req *connect.Request[v1.SyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.SyncNetworkFromBitcoinConfResponse], error) {
-	return c.syncNetworkFromBitcoinConf.CallUnary(ctx, req)
+// service. Multiple service clients may share a single connect.Client.
+func NewThunderConfServiceClient(client *connect.Client) ThunderConfServiceClient {
+	return &thunderConfServiceClient{client: client}
 }
 
 // ThunderConfServiceHandler is an implementation of the orchestrator.v1.ThunderConfService service.
 type ThunderConfServiceHandler interface {
-	// Get current Thunder sidechain configuration state.
-	GetThunderConfig(context.Context, *connect.Request[v1.GetThunderConfigRequest]) (*connect.Response[v1.GetThunderConfigResponse], error)
-	// Write Thunder configuration content.
-	WriteThunderConfig(context.Context, *connect.Request[v1.WriteThunderConfigRequest]) (*connect.Response[v1.WriteThunderConfigResponse], error)
-	// Sync network from Bitcoin Core config.
-	SyncNetworkFromBitcoinConf(context.Context, *connect.Request[v1.SyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.SyncNetworkFromBitcoinConfResponse], error)
+	GetThunderConfig(context.Context, *v1.GetThunderConfigRequest) (*v1.GetThunderConfigResponse, error)
+	WriteThunderConfig(context.Context, *v1.WriteThunderConfigRequest) (*v1.WriteThunderConfigResponse, error)
+	SyncNetworkFromBitcoinConf(context.Context, *v1.SyncNetworkFromBitcoinConfRequest) (*v1.SyncNetworkFromBitcoinConfResponse, error)
 }
 
-// NewThunderConfServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewThunderConfServiceHandler(svc ThunderConfServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	thunderConfServiceMethods := v1.File_orchestrator_v1_thunder_conf_proto.Services().ByName("ThunderConfService").Methods()
-	thunderConfServiceGetThunderConfigHandler := connect.NewUnaryHandler(
-		ThunderConfServiceGetThunderConfigProcedure,
-		svc.GetThunderConfig,
-		connect.WithSchema(thunderConfServiceMethods.ByName("GetThunderConfig")),
-		connect.WithHandlerOptions(opts...),
+// RegisterThunderConfServiceHandler registers svc as the orchestrator.v1.ThunderConfService
+// implementation on server.
+func RegisterThunderConfServiceHandler(server *connect.Server, svc ThunderConfServiceHandler) {
+	adapter := thunderConfServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: thunderConfServiceGetThunderConfigSpec(), Handler: adapter.getThunderConfig},
+		connect.Method{Spec: thunderConfServiceWriteThunderConfigSpec(), Handler: adapter.writeThunderConfig},
+		connect.Method{Spec: thunderConfServiceSyncNetworkFromBitcoinConfSpec(), Handler: adapter.syncNetworkFromBitcoinConf},
 	)
-	thunderConfServiceWriteThunderConfigHandler := connect.NewUnaryHandler(
-		ThunderConfServiceWriteThunderConfigProcedure,
-		svc.WriteThunderConfig,
-		connect.WithSchema(thunderConfServiceMethods.ByName("WriteThunderConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderConfServiceSyncNetworkFromBitcoinConfHandler := connect.NewUnaryHandler(
-		ThunderConfServiceSyncNetworkFromBitcoinConfProcedure,
-		svc.SyncNetworkFromBitcoinConf,
-		connect.WithSchema(thunderConfServiceMethods.ByName("SyncNetworkFromBitcoinConf")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/orchestrator.v1.ThunderConfService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ThunderConfServiceGetThunderConfigProcedure:
-			thunderConfServiceGetThunderConfigHandler.ServeHTTP(w, r)
-		case ThunderConfServiceWriteThunderConfigProcedure:
-			thunderConfServiceWriteThunderConfigHandler.ServeHTTP(w, r)
-		case ThunderConfServiceSyncNetworkFromBitcoinConfProcedure:
-			thunderConfServiceSyncNetworkFromBitcoinConfHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedThunderConfServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedThunderConfServiceHandler struct{}
 
-func (UnimplementedThunderConfServiceHandler) GetThunderConfig(context.Context, *connect.Request[v1.GetThunderConfigRequest]) (*connect.Response[v1.GetThunderConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.ThunderConfService.GetThunderConfig is not implemented"))
+func (UnimplementedThunderConfServiceHandler) GetThunderConfig(context.Context, *v1.GetThunderConfigRequest) (*v1.GetThunderConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.ThunderConfService.GetThunderConfig is not implemented")
 }
 
-func (UnimplementedThunderConfServiceHandler) WriteThunderConfig(context.Context, *connect.Request[v1.WriteThunderConfigRequest]) (*connect.Response[v1.WriteThunderConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.ThunderConfService.WriteThunderConfig is not implemented"))
+func (UnimplementedThunderConfServiceHandler) WriteThunderConfig(context.Context, *v1.WriteThunderConfigRequest) (*v1.WriteThunderConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.ThunderConfService.WriteThunderConfig is not implemented")
 }
 
-func (UnimplementedThunderConfServiceHandler) SyncNetworkFromBitcoinConf(context.Context, *connect.Request[v1.SyncNetworkFromBitcoinConfRequest]) (*connect.Response[v1.SyncNetworkFromBitcoinConfResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.ThunderConfService.SyncNetworkFromBitcoinConf is not implemented"))
+func (UnimplementedThunderConfServiceHandler) SyncNetworkFromBitcoinConf(context.Context, *v1.SyncNetworkFromBitcoinConfRequest) (*v1.SyncNetworkFromBitcoinConfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.ThunderConfService.SyncNetworkFromBitcoinConf is not implemented")
+}
+
+type thunderConfServiceClient struct {
+	client *connect.Client
+}
+
+func (c *thunderConfServiceClient) GetThunderConfig(ctx context.Context, req *v1.GetThunderConfigRequest) (*v1.GetThunderConfigResponse, error) {
+	var res v1.GetThunderConfigResponse
+	if err := c.client.CallUnary(ctx, thunderConfServiceGetThunderConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderConfServiceClient) WriteThunderConfig(ctx context.Context, req *v1.WriteThunderConfigRequest) (*v1.WriteThunderConfigResponse, error) {
+	var res v1.WriteThunderConfigResponse
+	if err := c.client.CallUnary(ctx, thunderConfServiceWriteThunderConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderConfServiceClient) SyncNetworkFromBitcoinConf(ctx context.Context, req *v1.SyncNetworkFromBitcoinConfRequest) (*v1.SyncNetworkFromBitcoinConfResponse, error) {
+	var res v1.SyncNetworkFromBitcoinConfResponse
+	if err := c.client.CallUnary(ctx, thunderConfServiceSyncNetworkFromBitcoinConfSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type thunderConfServiceHandler struct{ svc ThunderConfServiceHandler }
+
+func (h thunderConfServiceHandler) getThunderConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetThunderConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetThunderConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderConfServiceHandler) writeThunderConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WriteThunderConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.WriteThunderConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderConfServiceHandler) syncNetworkFromBitcoinConf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SyncNetworkFromBitcoinConfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SyncNetworkFromBitcoinConf(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

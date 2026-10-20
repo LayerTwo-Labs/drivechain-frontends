@@ -10,7 +10,7 @@ import (
 	"slices"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,18 +88,18 @@ func TestSolanaBidCommitsToTheTemplate(t *testing.T) {
 	}
 	h := solanaHandler(t, host, port, wallet)
 
-	resp, err := h.CreateBid(context.Background(), connect.NewRequest(&bmmpb.CreateBidRequest{
+	resp, err := h.CreateBid(context.Background(), &bmmpb.CreateBidRequest{
 		Sidechain:  pb.BinaryType_BINARY_TYPE_SOLANA,
 		WalletId:   "bidder",
 		BidSats:    1_000,
 		MaxBidSats: 30_000,
-	}))
+	})
 	require.NoError(t, err)
 
-	assert.Equal(t, solanaCritical, resp.Msg.CriticalHash)
-	assert.Equal(t, solanaPrevMain, resp.Msg.PrevMainHash)
-	assert.Equal(t, int64(7000), resp.Msg.FeesSats)
-	assert.JSONEq(t, solanaBlock, resp.Msg.BlockJson)
+	assert.Equal(t, solanaCritical, resp.CriticalHash)
+	assert.Equal(t, solanaPrevMain, resp.PrevMainHash)
+	assert.Equal(t, int64(7000), resp.FeesSats)
+	assert.JSONEq(t, solanaBlock, resp.BlockJson)
 
 	require.Len(t, wallet.sends, 1)
 	send := wallet.sends[0]
@@ -127,15 +127,15 @@ func TestSolanaConnectBidSendsTheBlockAndTheMainBlock(t *testing.T) {
 	host, port, seen := solanaNode(t)
 	h := solanaHandler(t, host, port, &fakeBidWallet{})
 
-	resp, err := h.ConnectBid(context.Background(), connect.NewRequest(&bmmpb.ConnectBidRequest{
+	resp, err := h.ConnectBid(context.Background(), &bmmpb.ConnectBidRequest{
 		Sidechain:    pb.BinaryType_BINARY_TYPE_SOLANA,
 		CriticalHash: solanaCritical,
 		BlockJson:    solanaBlock,
-	}))
+	})
 	require.NoError(t, err)
 
-	assert.True(t, resp.Msg.Connected)
-	assert.Equal(t, solanaMainBlock, resp.Msg.MainBlockHash)
+	assert.True(t, resp.Connected)
+	assert.Equal(t, solanaMainBlock, resp.MainBlockHash)
 	assert.JSONEq(t, `["`+solanaCritical+`"]`, string(seen["get_bmm_inclusions"]))
 	assert.JSONEq(t, `[`+solanaBlock+`,"`+solanaMainBlock+`"]`, string(seen["connect_block"]))
 }
@@ -150,11 +150,11 @@ func TestConnectBidNamesAnUndecodableBlock(t *testing.T) {
 	host, port := hostPort(t, srv)
 	h := solanaHandler(t, host, port, &fakeBidWallet{})
 
-	_, err := h.ConnectBid(context.Background(), connect.NewRequest(&bmmpb.ConnectBidRequest{
+	_, err := h.ConnectBid(context.Background(), &bmmpb.ConnectBidRequest{
 		Sidechain:     pb.BinaryType_BINARY_TYPE_SOLANA,
 		CriticalHash:  solanaCritical,
 		BlockJson:     solanaBlock,
 		MainBlockHash: solanaMainBlock,
-	}))
+	})
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }

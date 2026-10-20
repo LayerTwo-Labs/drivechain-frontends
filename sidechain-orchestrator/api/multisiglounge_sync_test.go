@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -216,10 +215,10 @@ func TestSyncGroupBalanceE2E(t *testing.T) {
 	group := loungeSyncTestGroup(t)
 
 	// First SyncGroup creates the watch-only wallet from the Phase-1 descriptors.
-	resp, err := h.SyncGroup(context.Background(), connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	resp, err := h.SyncGroup(context.Background(), &pb.SyncGroupRequest{Group: group})
 	require.NoError(t, err)
-	require.Equal(t, int64(0), resp.Msg.ConfirmedSats)
-	require.Equal(t, uint32(0), resp.Msg.UtxoCount)
+	require.Equal(t, int64(0), resp.ConfirmedSats)
+	require.Equal(t, uint32(0), resp.UtxoCount)
 
 	// Fund the multisig wallet.
 	rt.rpcInto(t, "", "createwallet", `["fund"]`, nil)
@@ -232,13 +231,13 @@ func TestSyncGroupBalanceE2E(t *testing.T) {
 	rt.rpcInto(t, "fund", "sendtoaddress", fmt.Sprintf(`[%q,"1.0"]`, msAddr), nil)
 	rt.rpcInto(t, "", "generatetoaddress", fmt.Sprintf(`[1,%q]`, fundAddr), nil)
 
-	resp, err = h.SyncGroup(context.Background(), connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	resp, err = h.SyncGroup(context.Background(), &pb.SyncGroupRequest{Group: group})
 	require.NoError(t, err)
-	require.Equal(t, int64(100_000_000), resp.Msg.ConfirmedSats, "1 BTC confirmed")
-	require.Equal(t, uint32(1), resp.Msg.UtxoCount)
-	require.Len(t, resp.Msg.Utxos, 1)
-	require.Equal(t, int64(100_000_000), resp.Msg.Utxos[0].AmountSats)
-	require.Equal(t, msAddr, resp.Msg.Utxos[0].Address)
+	require.Equal(t, int64(100_000_000), resp.ConfirmedSats, "1 BTC confirmed")
+	require.Equal(t, uint32(1), resp.UtxoCount)
+	require.Len(t, resp.Utxos, 1)
+	require.Equal(t, int64(100_000_000), resp.Utxos[0].AmountSats)
+	require.Equal(t, msAddr, resp.Utxos[0].Address)
 }
 
 func TestRestoreHistoryE2E(t *testing.T) {
@@ -248,7 +247,7 @@ func TestRestoreHistoryE2E(t *testing.T) {
 	ctx := context.Background()
 
 	// Create + fund the watch-only wallet.
-	_, err := h.SyncGroup(ctx, connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	_, err := h.SyncGroup(ctx, &pb.SyncGroupRequest{Group: group})
 	require.NoError(t, err)
 
 	rt.rpcInto(t, "", "createwallet", `["fund"]`, nil)
@@ -289,22 +288,22 @@ func TestRestoreHistoryE2E(t *testing.T) {
 	signedB := signOnce(3, funded.PSBT)
 
 	// Combine + broadcast via the handler.
-	cab, err := h.CombineAndBroadcast(ctx, connect.NewRequest(&pb.CombineAndBroadcastRequest{
+	cab, err := h.CombineAndBroadcast(ctx, &pb.CombineAndBroadcastRequest{
 		Psbts: []string{signedA, signedB},
 		Group: group,
-	}))
+	})
 	require.NoError(t, err)
-	spendTxid := cab.Msg.Txid
+	spendTxid := cab.Txid
 	require.Len(t, spendTxid, 64)
 
 	// Confirm to 6 blocks so the spend reconstructs as "confirmed".
 	rt.rpcInto(t, "", "generatetoaddress", fmt.Sprintf(`[6,%q]`, fundAddr), nil)
 
-	resp, err := h.RestoreHistory(ctx, connect.NewRequest(&pb.RestoreHistoryRequest{Group: group}))
+	resp, err := h.RestoreHistory(ctx, &pb.RestoreHistoryRequest{Group: group})
 	require.NoError(t, err)
 
 	var spend *pb.MultisigHistoryTx
-	for _, tx := range resp.Msg.Transactions {
+	for _, tx := range resp.Transactions {
 		if tx.Txid == spendTxid {
 			spend = tx
 		}
@@ -376,12 +375,12 @@ func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
 				return nil, fmt.Errorf("unexpected method %s", method)
 			})
 
-			resp, err := h.RestoreHistory(context.Background(), connect.NewRequest(&pb.RestoreHistoryRequest{
+			resp, err := h.RestoreHistory(context.Background(), &pb.RestoreHistoryRequest{
 				Group: &pb.GroupData{Id: "restore", WatchWalletName: "ms_test"},
-			}))
+			})
 			require.NoError(t, err)
-			require.Len(t, resp.Msg.Transactions, 1)
-			tx := resp.Msg.Transactions[0]
+			require.Len(t, resp.Transactions, 1)
+			tx := resp.Transactions[0]
 			require.Equal(t, tt.isDeposit, tx.IsDeposit)
 			require.Equal(t, tt.amountSats, tx.AmountSats)
 			require.Equal(t, tt.destination, tx.Destination)
@@ -454,7 +453,7 @@ func TestCreateSpendPsbtE2E(t *testing.T) {
 	group := loungeSyncTestGroup(t)
 	ctx := context.Background()
 
-	_, err := h.SyncGroup(ctx, connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	_, err := h.SyncGroup(ctx, &pb.SyncGroupRequest{Group: group})
 	require.NoError(t, err)
 
 	rt.rpcInto(t, "", "createwallet", `["fund"]`, nil)
@@ -469,13 +468,13 @@ func TestCreateSpendPsbtE2E(t *testing.T) {
 	var dest string
 	rt.rpcInto(t, "fund", "getnewaddress", "", &dest)
 
-	resp, err := h.CreateSpendPsbt(ctx, connect.NewRequest(&pb.CreateSpendPsbtRequest{
+	resp, err := h.CreateSpendPsbt(ctx, &pb.CreateSpendPsbtRequest{
 		Group:        group,
 		Destinations: []*pb.SpendDestination{{Address: dest, Sats: 50_000_000}},
-	}))
+	})
 	require.NoError(t, err)
-	require.NotEmpty(t, resp.Msg.PsbtBase64)
-	require.Positive(t, resp.Msg.FeeSats)
+	require.NotEmpty(t, resp.PsbtBase64)
+	require.Positive(t, resp.FeeSats)
 
 	// The returned PSBT decodes, draws inputs from the watch wallet, and pays the
 	// destination.
@@ -490,7 +489,7 @@ func TestCreateSpendPsbtE2E(t *testing.T) {
 			} `json:"vout"`
 		} `json:"tx"`
 	}
-	rt.rpcInto(t, "", "decodepsbt", fmt.Sprintf(`[%q]`, resp.Msg.PsbtBase64), &decoded)
+	rt.rpcInto(t, "", "decodepsbt", fmt.Sprintf(`[%q]`, resp.PsbtBase64), &decoded)
 	require.NotEmpty(t, decoded.Tx.Vin, "PSBT must spend wallet inputs")
 	var paysDest bool
 	for _, o := range decoded.Tx.Vout {
@@ -517,10 +516,10 @@ func TestCreateSpendPsbtE2E(t *testing.T) {
 		rt.rpcInto(t, "", "descriptorprocesspsbt", fmt.Sprintf(`[%q,%s,"ALL",true,false]`, base, string(descs)), &r)
 		return r.PSBT
 	}
-	cab, err := h.CombineAndBroadcast(ctx, connect.NewRequest(&pb.CombineAndBroadcastRequest{
-		Psbts: []string{signOnce(2, resp.Msg.PsbtBase64), signOnce(3, resp.Msg.PsbtBase64)},
+	cab, err := h.CombineAndBroadcast(ctx, &pb.CombineAndBroadcastRequest{
+		Psbts: []string{signOnce(2, resp.PsbtBase64), signOnce(3, resp.PsbtBase64)},
 		Group: group,
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, cab.Msg.Txid, 64, "the CreateSpendPsbt output must sign+combine+broadcast end to end")
+	require.Len(t, cab.Txid, 64, "the CreateSpendPsbt output must sign+combine+broadcast end to end")
 }

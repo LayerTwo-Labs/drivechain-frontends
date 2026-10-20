@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"golang.org/x/sync/singleflight"
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -47,15 +47,15 @@ func (n *NodeMode) Mode(ctx context.Context) (orchpb.NodeMode, error) {
 	}
 
 	read, err, _ := n.reads.Do("mode", func() (any, error) {
-		resp, err := n.client.GetNodeMode(ctx, connect.NewRequest(&orchpb.GetNodeModeRequest{}))
+		resp, err := n.client.GetNodeMode(ctx, &orchpb.GetNodeModeRequest{})
 		if err != nil {
 			return orchpb.NodeMode_NODE_MODE_UNSPECIFIED, err
 		}
 
 		n.mu.Lock()
-		n.cached, n.readAt = resp.Msg.Mode, time.Now()
+		n.cached, n.readAt = resp.Mode, time.Now()
 		n.mu.Unlock()
-		return resp.Msg.Mode, nil
+		return resp.Mode, nil
 	})
 	if err != nil {
 		return orchpb.NodeMode_NODE_MODE_UNSPECIFIED, err
@@ -98,11 +98,11 @@ func (n *NodeMode) RequireFullNode(ctx context.Context, op string) error {
 	mode, err := n.Mode(ctx)
 	if err != nil {
 		return connect.NewError(connect.CodeUnavailable,
-			fmt.Errorf("%s: read the node mode: %w", op, err))
+			fmt.Errorf("%s: read the node mode: %w", op, err).Error()).WithCause(err)
 	}
 	if mode == orchpb.NodeMode_NODE_MODE_LIGHT {
-		return connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("%s needs full mode, which runs a local Bitcoin node and the enforcer", op))
+		return connect.Errorf(connect.CodeFailedPrecondition,
+			"%s needs full mode, which runs a local Bitcoin node and the enforcer", op)
 	}
 	return nil
 }

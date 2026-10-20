@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -212,11 +212,11 @@ func TestDecodeTransactionReturnsTheBurnWarning(t *testing.T) {
 			if !explicitWallet {
 				walletID = ""
 			}
-			response, err := h.DecodeTransaction(context.Background(), connect.NewRequest(&pb.DecodeTransactionRequest{
+			response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{
 				Input: input, WalletId: walletID,
-			}))
+			})
 			require.NoError(t, err)
-			require.Equal(t, warningTestMessage, response.Msg.WarningMessage)
+			require.Equal(t, warningTestMessage, response.WarningMessage)
 		}
 	}
 }
@@ -225,11 +225,11 @@ func TestGetTransactionDetailsReturnsTheBurnWarning(t *testing.T) {
 	raw, _, tx := warningTransaction(t, warningOutputs(t))
 	backend := &warningBackend{detailsProvider: detailsProvider{rawTx: tx}, hexByID: map[string]string{tx.TxID: raw}}
 	h, walletID := newWarningHandler(t, backend)
-	response, err := h.GetTransactionDetails(context.Background(), connect.NewRequest(&pb.GetTransactionDetailsRequest{
+	response, err := h.GetTransactionDetails(context.Background(), &pb.GetTransactionDetailsRequest{
 		WalletId: walletID, Txid: tx.TxID,
-	}))
+	})
 	require.NoError(t, err)
-	require.Equal(t, warningTestMessage, response.Msg.Transaction.WarningMessage)
+	require.Equal(t, warningTestMessage, response.Transaction.WarningMessage)
 	require.Equal(t, []string{tx.TxID}, backend.readIDs)
 }
 
@@ -249,20 +249,20 @@ func TestListTransactionsWarnsAllRowsAndReadsEachTransactionOnce(t *testing.T) {
 		},
 	}
 	h, walletID := newWarningHandler(t, backend)
-	response, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+	response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 	require.NoError(t, err)
 	require.Equal(t, []string{tx.TxID, ordinaryTx.TxID, paymentTx.TxID}, backend.readIDs)
 	require.Equal(t, walletID, backend.walletID)
-	for _, entry := range response.Msg.Transactions {
+	for _, entry := range response.Transactions {
 		if entry.Txid == tx.TxID {
 			require.Equal(t, warningTestMessage, entry.WarningMessage)
 		} else {
 			require.Empty(t, entry.WarningMessage)
 		}
 	}
-	repeated, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+	repeated, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 	require.NoError(t, err)
-	require.Equal(t, response.Msg, repeated.Msg)
+	require.Equal(t, response, repeated)
 	require.Equal(t, []string{tx.TxID, ordinaryTx.TxID, paymentTx.TxID}, backend.readIDs)
 }
 
@@ -278,13 +278,13 @@ func TestListTransactionsWarnsWithoutTheBurnAddressRow(t *testing.T) {
 		},
 	}
 	h, walletID := newWarningHandler(t, backend)
-	response, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{
+	response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{
 		WalletId: walletID, Count: 1,
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, response.Msg.Transactions, 1)
-	require.Empty(t, response.Msg.Transactions[0].Address)
-	require.Equal(t, warningTestMessage, response.Msg.Transactions[0].WarningMessage)
+	require.Len(t, response.Transactions, 1)
+	require.Empty(t, response.Transactions[0].Address)
+	require.Equal(t, warningTestMessage, response.Transactions[0].WarningMessage)
 	require.Equal(t, []string{tx.TxID}, backend.readIDs)
 }
 
@@ -298,12 +298,12 @@ func TestListTransactionsKeepsTheCacheAcrossNetworkChanges(t *testing.T) {
 		afterRead: func() { config.SetECashNetworkID("betanet") },
 	}
 	h, walletID := newWarningHandler(t, backend)
-	_, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+	_, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 	require.NoError(t, err)
 	config.SetECashNetworkID("alphanet")
-	response, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+	response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 	require.NoError(t, err)
-	require.Equal(t, warningTestMessage, response.Msg.Transactions[0].WarningMessage)
+	require.Equal(t, warningTestMessage, response.Transactions[0].WarningMessage)
 	require.Equal(t, []string{tx.TxID}, backend.readIDs)
 }
 
@@ -325,9 +325,9 @@ func TestListTransactionsNamesTheNetworkOfEachRead(t *testing.T) {
 		{"alphanet", warningTestMessage},
 	} {
 		config.SetECashNetworkID(tc.id)
-		response, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+		response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 		require.NoError(t, err)
-		require.Equal(t, tc.message, response.Msg.Transactions[0].WarningMessage)
+		require.Equal(t, tc.message, response.Transactions[0].WarningMessage)
 	}
 	require.Equal(t, []string{tx.TxID, tx.TxID}, backend.readIDs)
 }
@@ -348,7 +348,7 @@ func TestListTransactionsReturnsWarningReadErrors(t *testing.T) {
 				hexByID:      map[string]string{"burn": tc.raw}, readError: tc.err,
 			}
 			h, walletID := newWarningHandler(t, backend)
-			response, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+			response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 			require.Nil(t, response)
 			require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 		})
@@ -374,9 +374,9 @@ func TestListTransactionsSkipsWarningsOutsideBurnNetworks(t *testing.T) {
 			h, walletID := newWarningHandler(t, backend)
 			require.NoError(t, h.svc.RebindNetwork(string(tc.network)))
 			config.SetECashNetworkID(tc.id)
-			response, err := h.ListTransactions(context.Background(), connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletID}))
+			response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 			require.NoError(t, err)
-			require.Empty(t, response.Msg.Transactions[0].WarningMessage)
+			require.Empty(t, response.Transactions[0].WarningMessage)
 			require.Empty(t, backend.readIDs)
 		})
 	}

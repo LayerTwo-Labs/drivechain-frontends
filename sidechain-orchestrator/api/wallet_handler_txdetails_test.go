@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -106,18 +106,18 @@ func TestGetTransactionDetailsMarksTheChangeOutput(t *testing.T) {
 	}
 	h, walletID := newDetailsHandler(t, fake)
 
-	resp, err := h.GetTransactionDetails(context.Background(), connect.NewRequest(&pb.GetTransactionDetailsRequest{
+	resp, err := h.GetTransactionDetails(context.Background(), &pb.GetTransactionDetailsRequest{
 		WalletId: walletID,
 		Txid:     "tx",
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Outputs, 3)
+	require.Len(t, resp.Outputs, 3)
 
-	assert.False(t, resp.Msg.Outputs[0].IsMine, "the payment leaves the wallet")
-	assert.False(t, resp.Msg.Outputs[0].IsChange)
-	assert.False(t, resp.Msg.Outputs[1].IsMine, "an OP_RETURN output has no address")
-	assert.True(t, resp.Msg.Outputs[2].IsMine)
-	assert.True(t, resp.Msg.Outputs[2].IsChange)
+	assert.False(t, resp.Outputs[0].IsMine, "the payment leaves the wallet")
+	assert.False(t, resp.Outputs[0].IsChange)
+	assert.False(t, resp.Outputs[1].IsMine, "an OP_RETURN output has no address")
+	assert.True(t, resp.Outputs[2].IsMine)
+	assert.True(t, resp.Outputs[2].IsChange)
 	assert.Equal(t, []string{"stranger", "", "change"}, fake.askedOwned)
 }
 
@@ -128,15 +128,15 @@ func TestGetTransactionDetailsMarksAReceiveOutput(t *testing.T) {
 	}
 	h, walletID := newDetailsHandler(t, fake)
 
-	resp, err := h.GetTransactionDetails(context.Background(), connect.NewRequest(&pb.GetTransactionDetailsRequest{
+	resp, err := h.GetTransactionDetails(context.Background(), &pb.GetTransactionDetailsRequest{
 		WalletId: walletID,
 		Txid:     "tx",
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Outputs, 3)
+	require.Len(t, resp.Outputs, 3)
 
-	assert.True(t, resp.Msg.Outputs[0].IsMine)
-	assert.False(t, resp.Msg.Outputs[0].IsChange, "a receive address is not change")
+	assert.True(t, resp.Outputs[0].IsMine)
+	assert.False(t, resp.Outputs[0].IsChange, "a receive address is not change")
 }
 
 func TestGetTransactionDetailsFailsOnAnOwnershipError(t *testing.T) {
@@ -146,10 +146,10 @@ func TestGetTransactionDetailsFailsOnAnOwnershipError(t *testing.T) {
 	}
 	h, walletID := newDetailsHandler(t, fake)
 
-	_, err := h.GetTransactionDetails(context.Background(), connect.NewRequest(&pb.GetTransactionDetailsRequest{
+	_, err := h.GetTransactionDetails(context.Background(), &pb.GetTransactionDetailsRequest{
 		WalletId: walletID,
 		Txid:     "tx",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 }
@@ -159,16 +159,16 @@ func TestSetFrozenCoinsRecordsTheWholeSet(t *testing.T) {
 	h, _ := newDetailsHandler(t, fake)
 	ctx := context.Background()
 
-	_, err := h.SetFrozenCoins(ctx, connect.NewRequest(&pb.SetFrozenCoinsRequest{
+	_, err := h.SetFrozenCoins(ctx, &pb.SetFrozenCoinsRequest{
 		Outpoints: []*pb.FrozenOutpoint{{Txid: "held", Vout: 1}},
-	}))
+	})
 	require.NoError(t, err)
 
 	held := h.svc.HeldCoins()
 	assert.True(t, held[wallet.Outpoint{TxID: "held", Vout: 1}.Key()])
 
 	// An unfreeze arrives as a smaller set, and it must free the coin.
-	_, err = h.SetFrozenCoins(ctx, connect.NewRequest(&pb.SetFrozenCoinsRequest{}))
+	_, err = h.SetFrozenCoins(ctx, &pb.SetFrozenCoinsRequest{})
 	require.NoError(t, err)
 	assert.Empty(t, h.svc.HeldCoins())
 }
@@ -177,9 +177,9 @@ func TestSetFrozenCoinsRefusesACoinWithoutATxid(t *testing.T) {
 	fake := &detailsProvider{rawTx: paymentWithChange()}
 	h, _ := newDetailsHandler(t, fake)
 
-	_, err := h.SetFrozenCoins(context.Background(), connect.NewRequest(&pb.SetFrozenCoinsRequest{
+	_, err := h.SetFrozenCoins(context.Background(), &pb.SetFrozenCoinsRequest{
 		Outpoints: []*pb.FrozenOutpoint{{Vout: 1}},
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -209,12 +209,12 @@ func TestCreateCpfpRefusesAFrozenParent(t *testing.T) {
 	h, walletID := newDetailsHandler(t, fake)
 	h.svc.SetHeldCoins([]wallet.Outpoint{{TxID: "parent", Vout: 1}})
 
-	_, err := h.CreateCpfp(context.Background(), connect.NewRequest(&pb.CreateCpfpRequest{
+	_, err := h.CreateCpfp(context.Background(), &pb.CreateCpfpRequest{
 		WalletId:      walletID,
 		ParentTxid:    "parent",
 		ParentVout:    1,
 		TargetFeeRate: 10,
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Contains(t, err.Error(), "is frozen")
@@ -226,11 +226,11 @@ func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 	h, walletID := newDetailsHandler(t, fake)
 	h.svc.SetHeldCoins([]wallet.Outpoint{{TxID: "frozen", Vout: 0}})
 
-	_, err := h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err := h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:       walletID,
 		Destinations:   map[string]int64{"bcrt1qdest": 50_000},
 		RequiredInputs: []*pb.UnspentOutput{{Txid: "frozen", Vout: 0}},
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Contains(t, err.Error(), "is frozen")
@@ -242,11 +242,11 @@ func TestSendAllowsAPinThatIsNotFrozen(t *testing.T) {
 	h, walletID := newDetailsHandler(t, fake)
 	h.svc.SetHeldCoins([]wallet.Outpoint{{TxID: "frozen", Vout: 0}})
 
-	_, err := h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
+	_, err := h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
 		WalletId:       walletID,
 		Destinations:   map[string]int64{"bcrt1qdest": 50_000},
 		RequiredInputs: []*pb.UnspentOutput{{Txid: "free", Vout: 0}},
-	}))
+	})
 	// The fake backend cannot send, so the call fails later than the check.
 	require.Error(t, err)
 	assert.NotContains(t, err.Error(), "is frozen")
@@ -270,10 +270,10 @@ func TestBroadcastRefusesAFrozenInput(t *testing.T) {
 
 	h.svc.SetHeldCoins([]wallet.Outpoint{{TxID: parent.String(), Vout: 1}})
 
-	_, err = h.BroadcastTransaction(context.Background(), connect.NewRequest(&pb.BroadcastTransactionRequest{
+	_, err = h.BroadcastTransaction(context.Background(), &pb.BroadcastTransactionRequest{
 		WalletId: walletID,
 		TxHex:    hex.EncodeToString(raw.Bytes()),
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Contains(t, err.Error(), "is frozen")

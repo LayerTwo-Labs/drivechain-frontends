@@ -5,1873 +5,2187 @@
 package truthcoinv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// TruthcoinServiceName is the fully-qualified name of the TruthcoinService service.
 	TruthcoinServiceName = "truthcoin.v1.TruthcoinService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// TruthcoinServiceGetBalanceProcedure is the fully-qualified name of the TruthcoinService's
-	// GetBalance RPC.
+	// TruthcoinServiceGetBalanceProcedure is the procedure name of the TruthcoinService's GetBalance
+	// RPC.
 	TruthcoinServiceGetBalanceProcedure = "/truthcoin.v1.TruthcoinService/GetBalance"
-	// TruthcoinServiceGetBlockCountProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetBlockCountProcedure is the procedure name of the TruthcoinService's
 	// GetBlockCount RPC.
 	TruthcoinServiceGetBlockCountProcedure = "/truthcoin.v1.TruthcoinService/GetBlockCount"
-	// TruthcoinServiceStopProcedure is the fully-qualified name of the TruthcoinService's Stop RPC.
+	// TruthcoinServiceStopProcedure is the procedure name of the TruthcoinService's Stop RPC.
 	TruthcoinServiceStopProcedure = "/truthcoin.v1.TruthcoinService/Stop"
-	// TruthcoinServiceGetNewAddressProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetNewAddressProcedure is the procedure name of the TruthcoinService's
 	// GetNewAddress RPC.
 	TruthcoinServiceGetNewAddressProcedure = "/truthcoin.v1.TruthcoinService/GetNewAddress"
-	// TruthcoinServiceWithdrawProcedure is the fully-qualified name of the TruthcoinService's Withdraw
-	// RPC.
+	// TruthcoinServiceWithdrawProcedure is the procedure name of the TruthcoinService's Withdraw RPC.
 	TruthcoinServiceWithdrawProcedure = "/truthcoin.v1.TruthcoinService/Withdraw"
-	// TruthcoinServiceTransferProcedure is the fully-qualified name of the TruthcoinService's Transfer
-	// RPC.
+	// TruthcoinServiceTransferProcedure is the procedure name of the TruthcoinService's Transfer RPC.
 	TruthcoinServiceTransferProcedure = "/truthcoin.v1.TruthcoinService/Transfer"
-	// TruthcoinServiceGetSidechainWealthProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetSidechainWealthProcedure is the procedure name of the TruthcoinService's
 	// GetSidechainWealth RPC.
 	TruthcoinServiceGetSidechainWealthProcedure = "/truthcoin.v1.TruthcoinService/GetSidechainWealth"
-	// TruthcoinServiceCreateDepositProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceCreateDepositProcedure is the procedure name of the TruthcoinService's
 	// CreateDeposit RPC.
 	TruthcoinServiceCreateDepositProcedure = "/truthcoin.v1.TruthcoinService/CreateDeposit"
-	// TruthcoinServiceGetPendingWithdrawalBundleProcedure is the fully-qualified name of the
+	// TruthcoinServiceGetPendingWithdrawalBundleProcedure is the procedure name of the
 	// TruthcoinService's GetPendingWithdrawalBundle RPC.
 	TruthcoinServiceGetPendingWithdrawalBundleProcedure = "/truthcoin.v1.TruthcoinService/GetPendingWithdrawalBundle"
-	// TruthcoinServiceConnectPeerProcedure is the fully-qualified name of the TruthcoinService's
-	// ConnectPeer RPC.
-	TruthcoinServiceConnectPeerProcedure = "/truthcoin.v1.TruthcoinService/ConnectPeer"
-	// TruthcoinServiceListPeersProcedure is the fully-qualified name of the TruthcoinService's
-	// ListPeers RPC.
-	TruthcoinServiceListPeersProcedure = "/truthcoin.v1.TruthcoinService/ListPeers"
-	// TruthcoinServiceMineProcedure is the fully-qualified name of the TruthcoinService's Mine RPC.
-	TruthcoinServiceMineProcedure = "/truthcoin.v1.TruthcoinService/Mine"
-	// TruthcoinServiceGetBlockProcedure is the fully-qualified name of the TruthcoinService's GetBlock
+	// TruthcoinServiceConnectPeerProcedure is the procedure name of the TruthcoinService's ConnectPeer
 	// RPC.
+	TruthcoinServiceConnectPeerProcedure = "/truthcoin.v1.TruthcoinService/ConnectPeer"
+	// TruthcoinServiceListPeersProcedure is the procedure name of the TruthcoinService's ListPeers RPC.
+	TruthcoinServiceListPeersProcedure = "/truthcoin.v1.TruthcoinService/ListPeers"
+	// TruthcoinServiceMineProcedure is the procedure name of the TruthcoinService's Mine RPC.
+	TruthcoinServiceMineProcedure = "/truthcoin.v1.TruthcoinService/Mine"
+	// TruthcoinServiceGetBlockProcedure is the procedure name of the TruthcoinService's GetBlock RPC.
 	TruthcoinServiceGetBlockProcedure = "/truthcoin.v1.TruthcoinService/GetBlock"
-	// TruthcoinServiceGetBestMainchainBlockHashProcedure is the fully-qualified name of the
+	// TruthcoinServiceGetBestMainchainBlockHashProcedure is the procedure name of the
 	// TruthcoinService's GetBestMainchainBlockHash RPC.
 	TruthcoinServiceGetBestMainchainBlockHashProcedure = "/truthcoin.v1.TruthcoinService/GetBestMainchainBlockHash"
-	// TruthcoinServiceGetBestSidechainBlockHashProcedure is the fully-qualified name of the
+	// TruthcoinServiceGetBestSidechainBlockHashProcedure is the procedure name of the
 	// TruthcoinService's GetBestSidechainBlockHash RPC.
 	TruthcoinServiceGetBestSidechainBlockHashProcedure = "/truthcoin.v1.TruthcoinService/GetBestSidechainBlockHash"
-	// TruthcoinServiceGetBmmInclusionsProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetBmmInclusionsProcedure is the procedure name of the TruthcoinService's
 	// GetBmmInclusions RPC.
 	TruthcoinServiceGetBmmInclusionsProcedure = "/truthcoin.v1.TruthcoinService/GetBmmInclusions"
-	// TruthcoinServiceGetWalletUtxosProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetWalletUtxosProcedure is the procedure name of the TruthcoinService's
 	// GetWalletUtxos RPC.
 	TruthcoinServiceGetWalletUtxosProcedure = "/truthcoin.v1.TruthcoinService/GetWalletUtxos"
-	// TruthcoinServiceListUtxosProcedure is the fully-qualified name of the TruthcoinService's
-	// ListUtxos RPC.
+	// TruthcoinServiceListUtxosProcedure is the procedure name of the TruthcoinService's ListUtxos RPC.
 	TruthcoinServiceListUtxosProcedure = "/truthcoin.v1.TruthcoinService/ListUtxos"
-	// TruthcoinServiceRemoveFromMempoolProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceRemoveFromMempoolProcedure is the procedure name of the TruthcoinService's
 	// RemoveFromMempool RPC.
 	TruthcoinServiceRemoveFromMempoolProcedure = "/truthcoin.v1.TruthcoinService/RemoveFromMempool"
-	// TruthcoinServiceGetLatestFailedWithdrawalBundleHeightProcedure is the fully-qualified name of the
+	// TruthcoinServiceGetLatestFailedWithdrawalBundleHeightProcedure is the procedure name of the
 	// TruthcoinService's GetLatestFailedWithdrawalBundleHeight RPC.
 	TruthcoinServiceGetLatestFailedWithdrawalBundleHeightProcedure = "/truthcoin.v1.TruthcoinService/GetLatestFailedWithdrawalBundleHeight"
-	// TruthcoinServiceGenerateMnemonicProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGenerateMnemonicProcedure is the procedure name of the TruthcoinService's
 	// GenerateMnemonic RPC.
 	TruthcoinServiceGenerateMnemonicProcedure = "/truthcoin.v1.TruthcoinService/GenerateMnemonic"
-	// TruthcoinServiceSetSeedFromMnemonicProcedure is the fully-qualified name of the
-	// TruthcoinService's SetSeedFromMnemonic RPC.
+	// TruthcoinServiceSetSeedFromMnemonicProcedure is the procedure name of the TruthcoinService's
+	// SetSeedFromMnemonic RPC.
 	TruthcoinServiceSetSeedFromMnemonicProcedure = "/truthcoin.v1.TruthcoinService/SetSeedFromMnemonic"
-	// TruthcoinServiceCallRawProcedure is the fully-qualified name of the TruthcoinService's CallRaw
-	// RPC.
+	// TruthcoinServiceCallRawProcedure is the procedure name of the TruthcoinService's CallRaw RPC.
 	TruthcoinServiceCallRawProcedure = "/truthcoin.v1.TruthcoinService/CallRaw"
-	// TruthcoinServiceRefreshWalletProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceRefreshWalletProcedure is the procedure name of the TruthcoinService's
 	// RefreshWallet RPC.
 	TruthcoinServiceRefreshWalletProcedure = "/truthcoin.v1.TruthcoinService/RefreshWallet"
-	// TruthcoinServiceGetTransactionProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetTransactionProcedure is the procedure name of the TruthcoinService's
 	// GetTransaction RPC.
 	TruthcoinServiceGetTransactionProcedure = "/truthcoin.v1.TruthcoinService/GetTransaction"
-	// TruthcoinServiceGetTransactionInfoProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetTransactionInfoProcedure is the procedure name of the TruthcoinService's
 	// GetTransactionInfo RPC.
 	TruthcoinServiceGetTransactionInfoProcedure = "/truthcoin.v1.TruthcoinService/GetTransactionInfo"
-	// TruthcoinServiceGetWalletAddressesProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetWalletAddressesProcedure is the procedure name of the TruthcoinService's
 	// GetWalletAddresses RPC.
 	TruthcoinServiceGetWalletAddressesProcedure = "/truthcoin.v1.TruthcoinService/GetWalletAddresses"
-	// TruthcoinServiceMyUtxosProcedure is the fully-qualified name of the TruthcoinService's MyUtxos
-	// RPC.
+	// TruthcoinServiceMyUtxosProcedure is the procedure name of the TruthcoinService's MyUtxos RPC.
 	TruthcoinServiceMyUtxosProcedure = "/truthcoin.v1.TruthcoinService/MyUtxos"
-	// TruthcoinServiceMyUnconfirmedUtxosProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceMyUnconfirmedUtxosProcedure is the procedure name of the TruthcoinService's
 	// MyUnconfirmedUtxos RPC.
 	TruthcoinServiceMyUnconfirmedUtxosProcedure = "/truthcoin.v1.TruthcoinService/MyUnconfirmedUtxos"
-	// TruthcoinServiceCalculateInitialLiquidityProcedure is the fully-qualified name of the
+	// TruthcoinServiceCalculateInitialLiquidityProcedure is the procedure name of the
 	// TruthcoinService's CalculateInitialLiquidity RPC.
 	TruthcoinServiceCalculateInitialLiquidityProcedure = "/truthcoin.v1.TruthcoinService/CalculateInitialLiquidity"
-	// TruthcoinServiceMarketCreateProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceMarketCreateProcedure is the procedure name of the TruthcoinService's
 	// MarketCreate RPC.
 	TruthcoinServiceMarketCreateProcedure = "/truthcoin.v1.TruthcoinService/MarketCreate"
-	// TruthcoinServiceMarketListProcedure is the fully-qualified name of the TruthcoinService's
-	// MarketList RPC.
+	// TruthcoinServiceMarketListProcedure is the procedure name of the TruthcoinService's MarketList
+	// RPC.
 	TruthcoinServiceMarketListProcedure = "/truthcoin.v1.TruthcoinService/MarketList"
-	// TruthcoinServiceMarketGetProcedure is the fully-qualified name of the TruthcoinService's
-	// MarketGet RPC.
+	// TruthcoinServiceMarketGetProcedure is the procedure name of the TruthcoinService's MarketGet RPC.
 	TruthcoinServiceMarketGetProcedure = "/truthcoin.v1.TruthcoinService/MarketGet"
-	// TruthcoinServiceMarketBuyProcedure is the fully-qualified name of the TruthcoinService's
-	// MarketBuy RPC.
+	// TruthcoinServiceMarketBuyProcedure is the procedure name of the TruthcoinService's MarketBuy RPC.
 	TruthcoinServiceMarketBuyProcedure = "/truthcoin.v1.TruthcoinService/MarketBuy"
-	// TruthcoinServiceMarketSellProcedure is the fully-qualified name of the TruthcoinService's
-	// MarketSell RPC.
+	// TruthcoinServiceMarketSellProcedure is the procedure name of the TruthcoinService's MarketSell
+	// RPC.
 	TruthcoinServiceMarketSellProcedure = "/truthcoin.v1.TruthcoinService/MarketSell"
-	// TruthcoinServiceMarketPositionsProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceMarketPositionsProcedure is the procedure name of the TruthcoinService's
 	// MarketPositions RPC.
 	TruthcoinServiceMarketPositionsProcedure = "/truthcoin.v1.TruthcoinService/MarketPositions"
-	// TruthcoinServiceMarketAmplifyBetaProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceMarketAmplifyBetaProcedure is the procedure name of the TruthcoinService's
 	// MarketAmplifyBeta RPC.
 	TruthcoinServiceMarketAmplifyBetaProcedure = "/truthcoin.v1.TruthcoinService/MarketAmplifyBeta"
-	// TruthcoinServiceSlotStatusProcedure is the fully-qualified name of the TruthcoinService's
-	// SlotStatus RPC.
+	// TruthcoinServiceSlotStatusProcedure is the procedure name of the TruthcoinService's SlotStatus
+	// RPC.
 	TruthcoinServiceSlotStatusProcedure = "/truthcoin.v1.TruthcoinService/SlotStatus"
-	// TruthcoinServiceSlotListProcedure is the fully-qualified name of the TruthcoinService's SlotList
-	// RPC.
+	// TruthcoinServiceSlotListProcedure is the procedure name of the TruthcoinService's SlotList RPC.
 	TruthcoinServiceSlotListProcedure = "/truthcoin.v1.TruthcoinService/SlotList"
-	// TruthcoinServiceSlotGetProcedure is the fully-qualified name of the TruthcoinService's SlotGet
-	// RPC.
+	// TruthcoinServiceSlotGetProcedure is the procedure name of the TruthcoinService's SlotGet RPC.
 	TruthcoinServiceSlotGetProcedure = "/truthcoin.v1.TruthcoinService/SlotGet"
-	// TruthcoinServiceSlotClaimProcedure is the fully-qualified name of the TruthcoinService's
-	// SlotClaim RPC.
+	// TruthcoinServiceSlotClaimProcedure is the procedure name of the TruthcoinService's SlotClaim RPC.
 	TruthcoinServiceSlotClaimProcedure = "/truthcoin.v1.TruthcoinService/SlotClaim"
-	// TruthcoinServiceSlotClaimCategoryProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceSlotClaimCategoryProcedure is the procedure name of the TruthcoinService's
 	// SlotClaimCategory RPC.
 	TruthcoinServiceSlotClaimCategoryProcedure = "/truthcoin.v1.TruthcoinService/SlotClaimCategory"
-	// TruthcoinServiceGetVoterAddressProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetVoterAddressProcedure is the procedure name of the TruthcoinService's
 	// GetVoterAddress RPC.
 	TruthcoinServiceGetVoterAddressProcedure = "/truthcoin.v1.TruthcoinService/GetVoterAddress"
-	// TruthcoinServiceVoteVoterProcedure is the fully-qualified name of the TruthcoinService's
-	// VoteVoter RPC.
+	// TruthcoinServiceVoteVoterProcedure is the procedure name of the TruthcoinService's VoteVoter RPC.
 	TruthcoinServiceVoteVoterProcedure = "/truthcoin.v1.TruthcoinService/VoteVoter"
-	// TruthcoinServiceVoteVotersProcedure is the fully-qualified name of the TruthcoinService's
-	// VoteVoters RPC.
-	TruthcoinServiceVoteVotersProcedure = "/truthcoin.v1.TruthcoinService/VoteVoters"
-	// TruthcoinServiceVoteSubmitProcedure is the fully-qualified name of the TruthcoinService's
-	// VoteSubmit RPC.
-	TruthcoinServiceVoteSubmitProcedure = "/truthcoin.v1.TruthcoinService/VoteSubmit"
-	// TruthcoinServiceVoteListProcedure is the fully-qualified name of the TruthcoinService's VoteList
+	// TruthcoinServiceVoteVotersProcedure is the procedure name of the TruthcoinService's VoteVoters
 	// RPC.
+	TruthcoinServiceVoteVotersProcedure = "/truthcoin.v1.TruthcoinService/VoteVoters"
+	// TruthcoinServiceVoteSubmitProcedure is the procedure name of the TruthcoinService's VoteSubmit
+	// RPC.
+	TruthcoinServiceVoteSubmitProcedure = "/truthcoin.v1.TruthcoinService/VoteSubmit"
+	// TruthcoinServiceVoteListProcedure is the procedure name of the TruthcoinService's VoteList RPC.
 	TruthcoinServiceVoteListProcedure = "/truthcoin.v1.TruthcoinService/VoteList"
-	// TruthcoinServiceVotePeriodProcedure is the fully-qualified name of the TruthcoinService's
-	// VotePeriod RPC.
+	// TruthcoinServiceVotePeriodProcedure is the procedure name of the TruthcoinService's VotePeriod
+	// RPC.
 	TruthcoinServiceVotePeriodProcedure = "/truthcoin.v1.TruthcoinService/VotePeriod"
-	// TruthcoinServiceVotecoinTransferProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceVotecoinTransferProcedure is the procedure name of the TruthcoinService's
 	// VotecoinTransfer RPC.
 	TruthcoinServiceVotecoinTransferProcedure = "/truthcoin.v1.TruthcoinService/VotecoinTransfer"
-	// TruthcoinServiceVotecoinBalanceProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceVotecoinBalanceProcedure is the procedure name of the TruthcoinService's
 	// VotecoinBalance RPC.
 	TruthcoinServiceVotecoinBalanceProcedure = "/truthcoin.v1.TruthcoinService/VotecoinBalance"
-	// TruthcoinServiceTransferVotecoinProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceTransferVotecoinProcedure is the procedure name of the TruthcoinService's
 	// TransferVotecoin RPC.
 	TruthcoinServiceTransferVotecoinProcedure = "/truthcoin.v1.TruthcoinService/TransferVotecoin"
-	// TruthcoinServiceGetNewEncryptionKeyProcedure is the fully-qualified name of the
-	// TruthcoinService's GetNewEncryptionKey RPC.
+	// TruthcoinServiceGetNewEncryptionKeyProcedure is the procedure name of the TruthcoinService's
+	// GetNewEncryptionKey RPC.
 	TruthcoinServiceGetNewEncryptionKeyProcedure = "/truthcoin.v1.TruthcoinService/GetNewEncryptionKey"
-	// TruthcoinServiceGetNewVerifyingKeyProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceGetNewVerifyingKeyProcedure is the procedure name of the TruthcoinService's
 	// GetNewVerifyingKey RPC.
 	TruthcoinServiceGetNewVerifyingKeyProcedure = "/truthcoin.v1.TruthcoinService/GetNewVerifyingKey"
-	// TruthcoinServiceEncryptMsgProcedure is the fully-qualified name of the TruthcoinService's
-	// EncryptMsg RPC.
+	// TruthcoinServiceEncryptMsgProcedure is the procedure name of the TruthcoinService's EncryptMsg
+	// RPC.
 	TruthcoinServiceEncryptMsgProcedure = "/truthcoin.v1.TruthcoinService/EncryptMsg"
-	// TruthcoinServiceDecryptMsgProcedure is the fully-qualified name of the TruthcoinService's
-	// DecryptMsg RPC.
+	// TruthcoinServiceDecryptMsgProcedure is the procedure name of the TruthcoinService's DecryptMsg
+	// RPC.
 	TruthcoinServiceDecryptMsgProcedure = "/truthcoin.v1.TruthcoinService/DecryptMsg"
-	// TruthcoinServiceSignArbitraryMsgProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceSignArbitraryMsgProcedure is the procedure name of the TruthcoinService's
 	// SignArbitraryMsg RPC.
 	TruthcoinServiceSignArbitraryMsgProcedure = "/truthcoin.v1.TruthcoinService/SignArbitraryMsg"
-	// TruthcoinServiceSignArbitraryMsgAsAddrProcedure is the fully-qualified name of the
-	// TruthcoinService's SignArbitraryMsgAsAddr RPC.
+	// TruthcoinServiceSignArbitraryMsgAsAddrProcedure is the procedure name of the TruthcoinService's
+	// SignArbitraryMsgAsAddr RPC.
 	TruthcoinServiceSignArbitraryMsgAsAddrProcedure = "/truthcoin.v1.TruthcoinService/SignArbitraryMsgAsAddr"
-	// TruthcoinServiceVerifySignatureProcedure is the fully-qualified name of the TruthcoinService's
+	// TruthcoinServiceVerifySignatureProcedure is the procedure name of the TruthcoinService's
 	// VerifySignature RPC.
 	TruthcoinServiceVerifySignatureProcedure = "/truthcoin.v1.TruthcoinService/VerifySignature"
 )
 
+var (
+	truthcoinServiceGetBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetBalance"),
+			Procedure:  TruthcoinServiceGetBalanceProcedure,
+		}
+	})
+	truthcoinServiceGetBlockCountSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetBlockCount"),
+			Procedure:  TruthcoinServiceGetBlockCountProcedure,
+		}
+	})
+	truthcoinServiceStopSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("Stop"),
+			Procedure:  TruthcoinServiceStopProcedure,
+		}
+	})
+	truthcoinServiceGetNewAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetNewAddress"),
+			Procedure:  TruthcoinServiceGetNewAddressProcedure,
+		}
+	})
+	truthcoinServiceWithdrawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("Withdraw"),
+			Procedure:  TruthcoinServiceWithdrawProcedure,
+		}
+	})
+	truthcoinServiceTransferSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("Transfer"),
+			Procedure:  TruthcoinServiceTransferProcedure,
+		}
+	})
+	truthcoinServiceGetSidechainWealthSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetSidechainWealth"),
+			Procedure:  TruthcoinServiceGetSidechainWealthProcedure,
+		}
+	})
+	truthcoinServiceCreateDepositSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("CreateDeposit"),
+			Procedure:  TruthcoinServiceCreateDepositProcedure,
+		}
+	})
+	truthcoinServiceGetPendingWithdrawalBundleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetPendingWithdrawalBundle"),
+			Procedure:  TruthcoinServiceGetPendingWithdrawalBundleProcedure,
+		}
+	})
+	truthcoinServiceConnectPeerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("ConnectPeer"),
+			Procedure:  TruthcoinServiceConnectPeerProcedure,
+		}
+	})
+	truthcoinServiceListPeersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("ListPeers"),
+			Procedure:  TruthcoinServiceListPeersProcedure,
+		}
+	})
+	truthcoinServiceMineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("Mine"),
+			Procedure:  TruthcoinServiceMineProcedure,
+		}
+	})
+	truthcoinServiceGetBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetBlock"),
+			Procedure:  TruthcoinServiceGetBlockProcedure,
+		}
+	})
+	truthcoinServiceGetBestMainchainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetBestMainchainBlockHash"),
+			Procedure:  TruthcoinServiceGetBestMainchainBlockHashProcedure,
+		}
+	})
+	truthcoinServiceGetBestSidechainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetBestSidechainBlockHash"),
+			Procedure:  TruthcoinServiceGetBestSidechainBlockHashProcedure,
+		}
+	})
+	truthcoinServiceGetBmmInclusionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetBmmInclusions"),
+			Procedure:  TruthcoinServiceGetBmmInclusionsProcedure,
+		}
+	})
+	truthcoinServiceGetWalletUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetWalletUtxos"),
+			Procedure:  TruthcoinServiceGetWalletUtxosProcedure,
+		}
+	})
+	truthcoinServiceListUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("ListUtxos"),
+			Procedure:  TruthcoinServiceListUtxosProcedure,
+		}
+	})
+	truthcoinServiceRemoveFromMempoolSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("RemoveFromMempool"),
+			Procedure:  TruthcoinServiceRemoveFromMempoolProcedure,
+		}
+	})
+	truthcoinServiceGetLatestFailedWithdrawalBundleHeightSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetLatestFailedWithdrawalBundleHeight"),
+			Procedure:  TruthcoinServiceGetLatestFailedWithdrawalBundleHeightProcedure,
+		}
+	})
+	truthcoinServiceGenerateMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GenerateMnemonic"),
+			Procedure:  TruthcoinServiceGenerateMnemonicProcedure,
+		}
+	})
+	truthcoinServiceSetSeedFromMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SetSeedFromMnemonic"),
+			Procedure:  TruthcoinServiceSetSeedFromMnemonicProcedure,
+		}
+	})
+	truthcoinServiceCallRawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("CallRaw"),
+			Procedure:  TruthcoinServiceCallRawProcedure,
+		}
+	})
+	truthcoinServiceRefreshWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("RefreshWallet"),
+			Procedure:  TruthcoinServiceRefreshWalletProcedure,
+		}
+	})
+	truthcoinServiceGetTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetTransaction"),
+			Procedure:  TruthcoinServiceGetTransactionProcedure,
+		}
+	})
+	truthcoinServiceGetTransactionInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetTransactionInfo"),
+			Procedure:  TruthcoinServiceGetTransactionInfoProcedure,
+		}
+	})
+	truthcoinServiceGetWalletAddressesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetWalletAddresses"),
+			Procedure:  TruthcoinServiceGetWalletAddressesProcedure,
+		}
+	})
+	truthcoinServiceMyUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MyUtxos"),
+			Procedure:  TruthcoinServiceMyUtxosProcedure,
+		}
+	})
+	truthcoinServiceMyUnconfirmedUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MyUnconfirmedUtxos"),
+			Procedure:  TruthcoinServiceMyUnconfirmedUtxosProcedure,
+		}
+	})
+	truthcoinServiceCalculateInitialLiquiditySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("CalculateInitialLiquidity"),
+			Procedure:  TruthcoinServiceCalculateInitialLiquidityProcedure,
+		}
+	})
+	truthcoinServiceMarketCreateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MarketCreate"),
+			Procedure:  TruthcoinServiceMarketCreateProcedure,
+		}
+	})
+	truthcoinServiceMarketListSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MarketList"),
+			Procedure:  TruthcoinServiceMarketListProcedure,
+		}
+	})
+	truthcoinServiceMarketGetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MarketGet"),
+			Procedure:  TruthcoinServiceMarketGetProcedure,
+		}
+	})
+	truthcoinServiceMarketBuySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MarketBuy"),
+			Procedure:  TruthcoinServiceMarketBuyProcedure,
+		}
+	})
+	truthcoinServiceMarketSellSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MarketSell"),
+			Procedure:  TruthcoinServiceMarketSellProcedure,
+		}
+	})
+	truthcoinServiceMarketPositionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MarketPositions"),
+			Procedure:  TruthcoinServiceMarketPositionsProcedure,
+		}
+	})
+	truthcoinServiceMarketAmplifyBetaSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("MarketAmplifyBeta"),
+			Procedure:  TruthcoinServiceMarketAmplifyBetaProcedure,
+		}
+	})
+	truthcoinServiceSlotStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SlotStatus"),
+			Procedure:  TruthcoinServiceSlotStatusProcedure,
+		}
+	})
+	truthcoinServiceSlotListSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SlotList"),
+			Procedure:  TruthcoinServiceSlotListProcedure,
+		}
+	})
+	truthcoinServiceSlotGetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SlotGet"),
+			Procedure:  TruthcoinServiceSlotGetProcedure,
+		}
+	})
+	truthcoinServiceSlotClaimSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SlotClaim"),
+			Procedure:  TruthcoinServiceSlotClaimProcedure,
+		}
+	})
+	truthcoinServiceSlotClaimCategorySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SlotClaimCategory"),
+			Procedure:  TruthcoinServiceSlotClaimCategoryProcedure,
+		}
+	})
+	truthcoinServiceGetVoterAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetVoterAddress"),
+			Procedure:  TruthcoinServiceGetVoterAddressProcedure,
+		}
+	})
+	truthcoinServiceVoteVoterSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VoteVoter"),
+			Procedure:  TruthcoinServiceVoteVoterProcedure,
+		}
+	})
+	truthcoinServiceVoteVotersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VoteVoters"),
+			Procedure:  TruthcoinServiceVoteVotersProcedure,
+		}
+	})
+	truthcoinServiceVoteSubmitSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VoteSubmit"),
+			Procedure:  TruthcoinServiceVoteSubmitProcedure,
+		}
+	})
+	truthcoinServiceVoteListSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VoteList"),
+			Procedure:  TruthcoinServiceVoteListProcedure,
+		}
+	})
+	truthcoinServiceVotePeriodSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VotePeriod"),
+			Procedure:  TruthcoinServiceVotePeriodProcedure,
+		}
+	})
+	truthcoinServiceVotecoinTransferSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VotecoinTransfer"),
+			Procedure:  TruthcoinServiceVotecoinTransferProcedure,
+		}
+	})
+	truthcoinServiceVotecoinBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VotecoinBalance"),
+			Procedure:  TruthcoinServiceVotecoinBalanceProcedure,
+		}
+	})
+	truthcoinServiceTransferVotecoinSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("TransferVotecoin"),
+			Procedure:  TruthcoinServiceTransferVotecoinProcedure,
+		}
+	})
+	truthcoinServiceGetNewEncryptionKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetNewEncryptionKey"),
+			Procedure:  TruthcoinServiceGetNewEncryptionKeyProcedure,
+		}
+	})
+	truthcoinServiceGetNewVerifyingKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("GetNewVerifyingKey"),
+			Procedure:  TruthcoinServiceGetNewVerifyingKeyProcedure,
+		}
+	})
+	truthcoinServiceEncryptMsgSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("EncryptMsg"),
+			Procedure:  TruthcoinServiceEncryptMsgProcedure,
+		}
+	})
+	truthcoinServiceDecryptMsgSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("DecryptMsg"),
+			Procedure:  TruthcoinServiceDecryptMsgProcedure,
+		}
+	})
+	truthcoinServiceSignArbitraryMsgSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SignArbitraryMsg"),
+			Procedure:  TruthcoinServiceSignArbitraryMsgProcedure,
+		}
+	})
+	truthcoinServiceSignArbitraryMsgAsAddrSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("SignArbitraryMsgAsAddr"),
+			Procedure:  TruthcoinServiceSignArbitraryMsgAsAddrProcedure,
+		}
+	})
+	truthcoinServiceVerifySignatureSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods().ByName("VerifySignature"),
+			Procedure:  TruthcoinServiceVerifySignatureProcedure,
+		}
+	})
+)
+
 // TruthcoinServiceClient is a client for the truthcoin.v1.TruthcoinService service.
 type TruthcoinServiceClient interface {
-	// Get wallet balance (total and available).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the truthcoin node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain.
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Refresh wallet state.
-	RefreshWallet(context.Context, *connect.Request[v1.RefreshWalletRequest]) (*connect.Response[v1.RefreshWalletResponse], error)
-	// Get transaction by txid.
-	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
-	// Get transaction info.
-	GetTransactionInfo(context.Context, *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error)
-	// Get wallet addresses.
-	GetWalletAddresses(context.Context, *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error)
-	// Get owned UTXOs (confirmed).
-	MyUtxos(context.Context, *connect.Request[v1.MyUtxosRequest]) (*connect.Response[v1.MyUtxosResponse], error)
-	// Get owned UTXOs (unconfirmed).
-	MyUnconfirmedUtxos(context.Context, *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error)
-	// Calculate initial liquidity required for market creation.
-	CalculateInitialLiquidity(context.Context, *connect.Request[v1.CalculateInitialLiquidityRequest]) (*connect.Response[v1.CalculateInitialLiquidityResponse], error)
-	// Create a new prediction market.
-	MarketCreate(context.Context, *connect.Request[v1.MarketCreateRequest]) (*connect.Response[v1.MarketCreateResponse], error)
-	// List all markets.
-	MarketList(context.Context, *connect.Request[v1.MarketListRequest]) (*connect.Response[v1.MarketListResponse], error)
-	// Get a specific market.
-	MarketGet(context.Context, *connect.Request[v1.MarketGetRequest]) (*connect.Response[v1.MarketGetResponse], error)
-	// Buy shares in a market.
-	MarketBuy(context.Context, *connect.Request[v1.MarketBuyRequest]) (*connect.Response[v1.MarketBuyResponse], error)
-	// Sell shares in a market.
-	MarketSell(context.Context, *connect.Request[v1.MarketSellRequest]) (*connect.Response[v1.MarketSellResponse], error)
-	// Get positions in a market.
-	MarketPositions(context.Context, *connect.Request[v1.MarketPositionsRequest]) (*connect.Response[v1.MarketPositionsResponse], error)
-	// Add liquidity to a market that a wallet address created.
-	MarketAmplifyBeta(context.Context, *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error)
-	// Get slot system status and configuration.
-	SlotStatus(context.Context, *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error)
-	// List slots with optional filtering.
-	SlotList(context.Context, *connect.Request[v1.SlotListRequest]) (*connect.Response[v1.SlotListResponse], error)
-	// Get a specific slot by ID.
-	SlotGet(context.Context, *connect.Request[v1.SlotGetRequest]) (*connect.Response[v1.SlotGetResponse], error)
-	// Claim a decision slot.
-	SlotClaim(context.Context, *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error)
-	// Claim multiple slots as a category.
-	SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error)
-	// Get the voter address of the wallet.
-	GetVoterAddress(context.Context, *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error)
-	// Get voter info.
-	VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error)
-	// List all voters.
-	VoteVoters(context.Context, *connect.Request[v1.VoteVotersRequest]) (*connect.Response[v1.VoteVotersResponse], error)
-	// Submit votes (batch).
-	VoteSubmit(context.Context, *connect.Request[v1.VoteSubmitRequest]) (*connect.Response[v1.VoteSubmitResponse], error)
-	// List votes with optional filters.
-	VoteList(context.Context, *connect.Request[v1.VoteListRequest]) (*connect.Response[v1.VoteListResponse], error)
-	// Get voting period information.
-	VotePeriod(context.Context, *connect.Request[v1.VotePeriodRequest]) (*connect.Response[v1.VotePeriodResponse], error)
-	// Transfer votecoins.
-	VotecoinTransfer(context.Context, *connect.Request[v1.VotecoinTransferRequest]) (*connect.Response[v1.VotecoinTransferResponse], error)
-	// Get votecoin balance for an address.
-	VotecoinBalance(context.Context, *connect.Request[v1.VotecoinBalanceRequest]) (*connect.Response[v1.VotecoinBalanceResponse], error)
-	// Transfer votecoin (alternative method).
-	TransferVotecoin(context.Context, *connect.Request[v1.TransferVotecoinRequest]) (*connect.Response[v1.TransferVotecoinResponse], error)
-	// Get a new encryption key.
-	GetNewEncryptionKey(context.Context, *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error)
-	// Get a new verifying key.
-	GetNewVerifyingKey(context.Context, *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error)
-	// Encrypt a message.
-	EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error)
-	// Decrypt a message.
-	DecryptMsg(context.Context, *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error)
-	// Sign an arbitrary message with verifying key.
-	SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error)
-	// Sign an arbitrary message as address.
-	SignArbitraryMsgAsAddr(context.Context, *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error)
-	// Verify a signature.
-	VerifySignature(context.Context, *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	RefreshWallet(context.Context, *v1.RefreshWalletRequest) (*v1.RefreshWalletResponse, error)
+	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	GetTransactionInfo(context.Context, *v1.GetTransactionInfoRequest) (*v1.GetTransactionInfoResponse, error)
+	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	MyUtxos(context.Context, *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error)
+	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	CalculateInitialLiquidity(context.Context, *v1.CalculateInitialLiquidityRequest) (*v1.CalculateInitialLiquidityResponse, error)
+	MarketCreate(context.Context, *v1.MarketCreateRequest) (*v1.MarketCreateResponse, error)
+	MarketList(context.Context, *v1.MarketListRequest) (*v1.MarketListResponse, error)
+	MarketGet(context.Context, *v1.MarketGetRequest) (*v1.MarketGetResponse, error)
+	MarketBuy(context.Context, *v1.MarketBuyRequest) (*v1.MarketBuyResponse, error)
+	MarketSell(context.Context, *v1.MarketSellRequest) (*v1.MarketSellResponse, error)
+	MarketPositions(context.Context, *v1.MarketPositionsRequest) (*v1.MarketPositionsResponse, error)
+	MarketAmplifyBeta(context.Context, *v1.MarketAmplifyBetaRequest) (*v1.MarketAmplifyBetaResponse, error)
+	SlotStatus(context.Context, *v1.SlotStatusRequest) (*v1.SlotStatusResponse, error)
+	SlotList(context.Context, *v1.SlotListRequest) (*v1.SlotListResponse, error)
+	SlotGet(context.Context, *v1.SlotGetRequest) (*v1.SlotGetResponse, error)
+	SlotClaim(context.Context, *v1.SlotClaimRequest) (*v1.SlotClaimResponse, error)
+	SlotClaimCategory(context.Context, *v1.SlotClaimCategoryRequest) (*v1.SlotClaimCategoryResponse, error)
+	GetVoterAddress(context.Context, *v1.GetVoterAddressRequest) (*v1.GetVoterAddressResponse, error)
+	VoteVoter(context.Context, *v1.VoteVoterRequest) (*v1.VoteVoterResponse, error)
+	VoteVoters(context.Context, *v1.VoteVotersRequest) (*v1.VoteVotersResponse, error)
+	VoteSubmit(context.Context, *v1.VoteSubmitRequest) (*v1.VoteSubmitResponse, error)
+	VoteList(context.Context, *v1.VoteListRequest) (*v1.VoteListResponse, error)
+	VotePeriod(context.Context, *v1.VotePeriodRequest) (*v1.VotePeriodResponse, error)
+	VotecoinTransfer(context.Context, *v1.VotecoinTransferRequest) (*v1.VotecoinTransferResponse, error)
+	VotecoinBalance(context.Context, *v1.VotecoinBalanceRequest) (*v1.VotecoinBalanceResponse, error)
+	TransferVotecoin(context.Context, *v1.TransferVotecoinRequest) (*v1.TransferVotecoinResponse, error)
+	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
 }
 
-// NewTruthcoinServiceClient constructs a client for the truthcoin.v1.TruthcoinService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewTruthcoinServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TruthcoinServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	truthcoinServiceMethods := v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods()
-	return &truthcoinServiceClient{
-		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetBalanceProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlockCount: connect.NewClient[v1.GetBlockCountRequest, v1.GetBlockCountResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetBlockCountProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetBlockCount")),
-			connect.WithClientOptions(opts...),
-		),
-		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
-			httpClient,
-			baseURL+TruthcoinServiceStopProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetNewAddressProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetNewAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		withdraw: connect.NewClient[v1.WithdrawRequest, v1.WithdrawResponse](
-			httpClient,
-			baseURL+TruthcoinServiceWithdrawProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("Withdraw")),
-			connect.WithClientOptions(opts...),
-		),
-		transfer: connect.NewClient[v1.TransferRequest, v1.TransferResponse](
-			httpClient,
-			baseURL+TruthcoinServiceTransferProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("Transfer")),
-			connect.WithClientOptions(opts...),
-		),
-		getSidechainWealth: connect.NewClient[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetSidechainWealthProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetSidechainWealth")),
-			connect.WithClientOptions(opts...),
-		),
-		createDeposit: connect.NewClient[v1.CreateDepositRequest, v1.CreateDepositResponse](
-			httpClient,
-			baseURL+TruthcoinServiceCreateDepositProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("CreateDeposit")),
-			connect.WithClientOptions(opts...),
-		),
-		getPendingWithdrawalBundle: connect.NewClient[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetPendingWithdrawalBundleProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetPendingWithdrawalBundle")),
-			connect.WithClientOptions(opts...),
-		),
-		connectPeer: connect.NewClient[v1.ConnectPeerRequest, v1.ConnectPeerResponse](
-			httpClient,
-			baseURL+TruthcoinServiceConnectPeerProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("ConnectPeer")),
-			connect.WithClientOptions(opts...),
-		),
-		listPeers: connect.NewClient[v1.ListPeersRequest, v1.ListPeersResponse](
-			httpClient,
-			baseURL+TruthcoinServiceListPeersProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("ListPeers")),
-			connect.WithClientOptions(opts...),
-		),
-		mine: connect.NewClient[v1.MineRequest, v1.MineResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMineProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("Mine")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetBlockProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestMainchainBlockHash: connect.NewClient[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetBestMainchainBlockHashProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetBestMainchainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestSidechainBlockHash: connect.NewClient[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetBestSidechainBlockHashProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetBestSidechainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBmmInclusions: connect.NewClient[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetBmmInclusionsProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetBmmInclusions")),
-			connect.WithClientOptions(opts...),
-		),
-		getWalletUtxos: connect.NewClient[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetWalletUtxosProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetWalletUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		listUtxos: connect.NewClient[v1.ListUtxosRequest, v1.ListUtxosResponse](
-			httpClient,
-			baseURL+TruthcoinServiceListUtxosProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("ListUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		removeFromMempool: connect.NewClient[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse](
-			httpClient,
-			baseURL+TruthcoinServiceRemoveFromMempoolProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("RemoveFromMempool")),
-			connect.WithClientOptions(opts...),
-		),
-		getLatestFailedWithdrawalBundleHeight: connect.NewClient[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-			connect.WithClientOptions(opts...),
-		),
-		generateMnemonic: connect.NewClient[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGenerateMnemonicProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GenerateMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		setSeedFromMnemonic: connect.NewClient[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSetSeedFromMnemonicProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SetSeedFromMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		callRaw: connect.NewClient[v1.CallRawRequest, v1.CallRawResponse](
-			httpClient,
-			baseURL+TruthcoinServiceCallRawProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("CallRaw")),
-			connect.WithClientOptions(opts...),
-		),
-		refreshWallet: connect.NewClient[v1.RefreshWalletRequest, v1.RefreshWalletResponse](
-			httpClient,
-			baseURL+TruthcoinServiceRefreshWalletProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("RefreshWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransaction: connect.NewClient[v1.GetTransactionRequest, v1.GetTransactionResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetTransactionProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransactionInfo: connect.NewClient[v1.GetTransactionInfoRequest, v1.GetTransactionInfoResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetTransactionInfoProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetTransactionInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		getWalletAddresses: connect.NewClient[v1.GetWalletAddressesRequest, v1.GetWalletAddressesResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetWalletAddressesProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetWalletAddresses")),
-			connect.WithClientOptions(opts...),
-		),
-		myUtxos: connect.NewClient[v1.MyUtxosRequest, v1.MyUtxosResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMyUtxosProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MyUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		myUnconfirmedUtxos: connect.NewClient[v1.MyUnconfirmedUtxosRequest, v1.MyUnconfirmedUtxosResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMyUnconfirmedUtxosProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MyUnconfirmedUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		calculateInitialLiquidity: connect.NewClient[v1.CalculateInitialLiquidityRequest, v1.CalculateInitialLiquidityResponse](
-			httpClient,
-			baseURL+TruthcoinServiceCalculateInitialLiquidityProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("CalculateInitialLiquidity")),
-			connect.WithClientOptions(opts...),
-		),
-		marketCreate: connect.NewClient[v1.MarketCreateRequest, v1.MarketCreateResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMarketCreateProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MarketCreate")),
-			connect.WithClientOptions(opts...),
-		),
-		marketList: connect.NewClient[v1.MarketListRequest, v1.MarketListResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMarketListProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MarketList")),
-			connect.WithClientOptions(opts...),
-		),
-		marketGet: connect.NewClient[v1.MarketGetRequest, v1.MarketGetResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMarketGetProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MarketGet")),
-			connect.WithClientOptions(opts...),
-		),
-		marketBuy: connect.NewClient[v1.MarketBuyRequest, v1.MarketBuyResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMarketBuyProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MarketBuy")),
-			connect.WithClientOptions(opts...),
-		),
-		marketSell: connect.NewClient[v1.MarketSellRequest, v1.MarketSellResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMarketSellProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MarketSell")),
-			connect.WithClientOptions(opts...),
-		),
-		marketPositions: connect.NewClient[v1.MarketPositionsRequest, v1.MarketPositionsResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMarketPositionsProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MarketPositions")),
-			connect.WithClientOptions(opts...),
-		),
-		marketAmplifyBeta: connect.NewClient[v1.MarketAmplifyBetaRequest, v1.MarketAmplifyBetaResponse](
-			httpClient,
-			baseURL+TruthcoinServiceMarketAmplifyBetaProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("MarketAmplifyBeta")),
-			connect.WithClientOptions(opts...),
-		),
-		slotStatus: connect.NewClient[v1.SlotStatusRequest, v1.SlotStatusResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSlotStatusProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SlotStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		slotList: connect.NewClient[v1.SlotListRequest, v1.SlotListResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSlotListProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SlotList")),
-			connect.WithClientOptions(opts...),
-		),
-		slotGet: connect.NewClient[v1.SlotGetRequest, v1.SlotGetResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSlotGetProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SlotGet")),
-			connect.WithClientOptions(opts...),
-		),
-		slotClaim: connect.NewClient[v1.SlotClaimRequest, v1.SlotClaimResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSlotClaimProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaim")),
-			connect.WithClientOptions(opts...),
-		),
-		slotClaimCategory: connect.NewClient[v1.SlotClaimCategoryRequest, v1.SlotClaimCategoryResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSlotClaimCategoryProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaimCategory")),
-			connect.WithClientOptions(opts...),
-		),
-		getVoterAddress: connect.NewClient[v1.GetVoterAddressRequest, v1.GetVoterAddressResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetVoterAddressProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetVoterAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		voteVoter: connect.NewClient[v1.VoteVoterRequest, v1.VoteVoterResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVoteVoterProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VoteVoter")),
-			connect.WithClientOptions(opts...),
-		),
-		voteVoters: connect.NewClient[v1.VoteVotersRequest, v1.VoteVotersResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVoteVotersProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VoteVoters")),
-			connect.WithClientOptions(opts...),
-		),
-		voteSubmit: connect.NewClient[v1.VoteSubmitRequest, v1.VoteSubmitResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVoteSubmitProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VoteSubmit")),
-			connect.WithClientOptions(opts...),
-		),
-		voteList: connect.NewClient[v1.VoteListRequest, v1.VoteListResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVoteListProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VoteList")),
-			connect.WithClientOptions(opts...),
-		),
-		votePeriod: connect.NewClient[v1.VotePeriodRequest, v1.VotePeriodResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVotePeriodProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VotePeriod")),
-			connect.WithClientOptions(opts...),
-		),
-		votecoinTransfer: connect.NewClient[v1.VotecoinTransferRequest, v1.VotecoinTransferResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVotecoinTransferProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VotecoinTransfer")),
-			connect.WithClientOptions(opts...),
-		),
-		votecoinBalance: connect.NewClient[v1.VotecoinBalanceRequest, v1.VotecoinBalanceResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVotecoinBalanceProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VotecoinBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		transferVotecoin: connect.NewClient[v1.TransferVotecoinRequest, v1.TransferVotecoinResponse](
-			httpClient,
-			baseURL+TruthcoinServiceTransferVotecoinProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("TransferVotecoin")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewEncryptionKey: connect.NewClient[v1.GetNewEncryptionKeyRequest, v1.GetNewEncryptionKeyResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetNewEncryptionKeyProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetNewEncryptionKey")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewVerifyingKey: connect.NewClient[v1.GetNewVerifyingKeyRequest, v1.GetNewVerifyingKeyResponse](
-			httpClient,
-			baseURL+TruthcoinServiceGetNewVerifyingKeyProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("GetNewVerifyingKey")),
-			connect.WithClientOptions(opts...),
-		),
-		encryptMsg: connect.NewClient[v1.EncryptMsgRequest, v1.EncryptMsgResponse](
-			httpClient,
-			baseURL+TruthcoinServiceEncryptMsgProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("EncryptMsg")),
-			connect.WithClientOptions(opts...),
-		),
-		decryptMsg: connect.NewClient[v1.DecryptMsgRequest, v1.DecryptMsgResponse](
-			httpClient,
-			baseURL+TruthcoinServiceDecryptMsgProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("DecryptMsg")),
-			connect.WithClientOptions(opts...),
-		),
-		signArbitraryMsg: connect.NewClient[v1.SignArbitraryMsgRequest, v1.SignArbitraryMsgResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSignArbitraryMsgProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SignArbitraryMsg")),
-			connect.WithClientOptions(opts...),
-		),
-		signArbitraryMsgAsAddr: connect.NewClient[v1.SignArbitraryMsgAsAddrRequest, v1.SignArbitraryMsgAsAddrResponse](
-			httpClient,
-			baseURL+TruthcoinServiceSignArbitraryMsgAsAddrProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("SignArbitraryMsgAsAddr")),
-			connect.WithClientOptions(opts...),
-		),
-		verifySignature: connect.NewClient[v1.VerifySignatureRequest, v1.VerifySignatureResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVerifySignatureProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VerifySignature")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// truthcoinServiceClient implements TruthcoinServiceClient.
-type truthcoinServiceClient struct {
-	getBalance                            *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
-	getBlockCount                         *connect.Client[v1.GetBlockCountRequest, v1.GetBlockCountResponse]
-	stop                                  *connect.Client[v1.StopRequest, v1.StopResponse]
-	getNewAddress                         *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
-	withdraw                              *connect.Client[v1.WithdrawRequest, v1.WithdrawResponse]
-	transfer                              *connect.Client[v1.TransferRequest, v1.TransferResponse]
-	getSidechainWealth                    *connect.Client[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse]
-	createDeposit                         *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
-	getPendingWithdrawalBundle            *connect.Client[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse]
-	connectPeer                           *connect.Client[v1.ConnectPeerRequest, v1.ConnectPeerResponse]
-	listPeers                             *connect.Client[v1.ListPeersRequest, v1.ListPeersResponse]
-	mine                                  *connect.Client[v1.MineRequest, v1.MineResponse]
-	getBlock                              *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	getBestMainchainBlockHash             *connect.Client[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse]
-	getBestSidechainBlockHash             *connect.Client[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse]
-	getBmmInclusions                      *connect.Client[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse]
-	getWalletUtxos                        *connect.Client[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse]
-	listUtxos                             *connect.Client[v1.ListUtxosRequest, v1.ListUtxosResponse]
-	removeFromMempool                     *connect.Client[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse]
-	getLatestFailedWithdrawalBundleHeight *connect.Client[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse]
-	generateMnemonic                      *connect.Client[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse]
-	setSeedFromMnemonic                   *connect.Client[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse]
-	callRaw                               *connect.Client[v1.CallRawRequest, v1.CallRawResponse]
-	refreshWallet                         *connect.Client[v1.RefreshWalletRequest, v1.RefreshWalletResponse]
-	getTransaction                        *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
-	getTransactionInfo                    *connect.Client[v1.GetTransactionInfoRequest, v1.GetTransactionInfoResponse]
-	getWalletAddresses                    *connect.Client[v1.GetWalletAddressesRequest, v1.GetWalletAddressesResponse]
-	myUtxos                               *connect.Client[v1.MyUtxosRequest, v1.MyUtxosResponse]
-	myUnconfirmedUtxos                    *connect.Client[v1.MyUnconfirmedUtxosRequest, v1.MyUnconfirmedUtxosResponse]
-	calculateInitialLiquidity             *connect.Client[v1.CalculateInitialLiquidityRequest, v1.CalculateInitialLiquidityResponse]
-	marketCreate                          *connect.Client[v1.MarketCreateRequest, v1.MarketCreateResponse]
-	marketList                            *connect.Client[v1.MarketListRequest, v1.MarketListResponse]
-	marketGet                             *connect.Client[v1.MarketGetRequest, v1.MarketGetResponse]
-	marketBuy                             *connect.Client[v1.MarketBuyRequest, v1.MarketBuyResponse]
-	marketSell                            *connect.Client[v1.MarketSellRequest, v1.MarketSellResponse]
-	marketPositions                       *connect.Client[v1.MarketPositionsRequest, v1.MarketPositionsResponse]
-	marketAmplifyBeta                     *connect.Client[v1.MarketAmplifyBetaRequest, v1.MarketAmplifyBetaResponse]
-	slotStatus                            *connect.Client[v1.SlotStatusRequest, v1.SlotStatusResponse]
-	slotList                              *connect.Client[v1.SlotListRequest, v1.SlotListResponse]
-	slotGet                               *connect.Client[v1.SlotGetRequest, v1.SlotGetResponse]
-	slotClaim                             *connect.Client[v1.SlotClaimRequest, v1.SlotClaimResponse]
-	slotClaimCategory                     *connect.Client[v1.SlotClaimCategoryRequest, v1.SlotClaimCategoryResponse]
-	getVoterAddress                       *connect.Client[v1.GetVoterAddressRequest, v1.GetVoterAddressResponse]
-	voteVoter                             *connect.Client[v1.VoteVoterRequest, v1.VoteVoterResponse]
-	voteVoters                            *connect.Client[v1.VoteVotersRequest, v1.VoteVotersResponse]
-	voteSubmit                            *connect.Client[v1.VoteSubmitRequest, v1.VoteSubmitResponse]
-	voteList                              *connect.Client[v1.VoteListRequest, v1.VoteListResponse]
-	votePeriod                            *connect.Client[v1.VotePeriodRequest, v1.VotePeriodResponse]
-	votecoinTransfer                      *connect.Client[v1.VotecoinTransferRequest, v1.VotecoinTransferResponse]
-	votecoinBalance                       *connect.Client[v1.VotecoinBalanceRequest, v1.VotecoinBalanceResponse]
-	transferVotecoin                      *connect.Client[v1.TransferVotecoinRequest, v1.TransferVotecoinResponse]
-	getNewEncryptionKey                   *connect.Client[v1.GetNewEncryptionKeyRequest, v1.GetNewEncryptionKeyResponse]
-	getNewVerifyingKey                    *connect.Client[v1.GetNewVerifyingKeyRequest, v1.GetNewVerifyingKeyResponse]
-	encryptMsg                            *connect.Client[v1.EncryptMsgRequest, v1.EncryptMsgResponse]
-	decryptMsg                            *connect.Client[v1.DecryptMsgRequest, v1.DecryptMsgResponse]
-	signArbitraryMsg                      *connect.Client[v1.SignArbitraryMsgRequest, v1.SignArbitraryMsgResponse]
-	signArbitraryMsgAsAddr                *connect.Client[v1.SignArbitraryMsgAsAddrRequest, v1.SignArbitraryMsgAsAddrResponse]
-	verifySignature                       *connect.Client[v1.VerifySignatureRequest, v1.VerifySignatureResponse]
-}
-
-// GetBalance calls truthcoin.v1.TruthcoinService.GetBalance.
-func (c *truthcoinServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return c.getBalance.CallUnary(ctx, req)
-}
-
-// GetBlockCount calls truthcoin.v1.TruthcoinService.GetBlockCount.
-func (c *truthcoinServiceClient) GetBlockCount(ctx context.Context, req *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return c.getBlockCount.CallUnary(ctx, req)
-}
-
-// Stop calls truthcoin.v1.TruthcoinService.Stop.
-func (c *truthcoinServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return c.stop.CallUnary(ctx, req)
-}
-
-// GetNewAddress calls truthcoin.v1.TruthcoinService.GetNewAddress.
-func (c *truthcoinServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return c.getNewAddress.CallUnary(ctx, req)
-}
-
-// Withdraw calls truthcoin.v1.TruthcoinService.Withdraw.
-func (c *truthcoinServiceClient) Withdraw(ctx context.Context, req *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return c.withdraw.CallUnary(ctx, req)
-}
-
-// Transfer calls truthcoin.v1.TruthcoinService.Transfer.
-func (c *truthcoinServiceClient) Transfer(ctx context.Context, req *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return c.transfer.CallUnary(ctx, req)
-}
-
-// GetSidechainWealth calls truthcoin.v1.TruthcoinService.GetSidechainWealth.
-func (c *truthcoinServiceClient) GetSidechainWealth(ctx context.Context, req *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return c.getSidechainWealth.CallUnary(ctx, req)
-}
-
-// CreateDeposit calls truthcoin.v1.TruthcoinService.CreateDeposit.
-func (c *truthcoinServiceClient) CreateDeposit(ctx context.Context, req *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return c.createDeposit.CallUnary(ctx, req)
-}
-
-// GetPendingWithdrawalBundle calls truthcoin.v1.TruthcoinService.GetPendingWithdrawalBundle.
-func (c *truthcoinServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return c.getPendingWithdrawalBundle.CallUnary(ctx, req)
-}
-
-// ConnectPeer calls truthcoin.v1.TruthcoinService.ConnectPeer.
-func (c *truthcoinServiceClient) ConnectPeer(ctx context.Context, req *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return c.connectPeer.CallUnary(ctx, req)
-}
-
-// ListPeers calls truthcoin.v1.TruthcoinService.ListPeers.
-func (c *truthcoinServiceClient) ListPeers(ctx context.Context, req *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return c.listPeers.CallUnary(ctx, req)
-}
-
-// Mine calls truthcoin.v1.TruthcoinService.Mine.
-func (c *truthcoinServiceClient) Mine(ctx context.Context, req *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return c.mine.CallUnary(ctx, req)
-}
-
-// GetBlock calls truthcoin.v1.TruthcoinService.GetBlock.
-func (c *truthcoinServiceClient) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return c.getBlock.CallUnary(ctx, req)
-}
-
-// GetBestMainchainBlockHash calls truthcoin.v1.TruthcoinService.GetBestMainchainBlockHash.
-func (c *truthcoinServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return c.getBestMainchainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBestSidechainBlockHash calls truthcoin.v1.TruthcoinService.GetBestSidechainBlockHash.
-func (c *truthcoinServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return c.getBestSidechainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBmmInclusions calls truthcoin.v1.TruthcoinService.GetBmmInclusions.
-func (c *truthcoinServiceClient) GetBmmInclusions(ctx context.Context, req *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return c.getBmmInclusions.CallUnary(ctx, req)
-}
-
-// GetWalletUtxos calls truthcoin.v1.TruthcoinService.GetWalletUtxos.
-func (c *truthcoinServiceClient) GetWalletUtxos(ctx context.Context, req *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return c.getWalletUtxos.CallUnary(ctx, req)
-}
-
-// ListUtxos calls truthcoin.v1.TruthcoinService.ListUtxos.
-func (c *truthcoinServiceClient) ListUtxos(ctx context.Context, req *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return c.listUtxos.CallUnary(ctx, req)
-}
-
-// RemoveFromMempool calls truthcoin.v1.TruthcoinService.RemoveFromMempool.
-func (c *truthcoinServiceClient) RemoveFromMempool(ctx context.Context, req *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return c.removeFromMempool.CallUnary(ctx, req)
-}
-
-// GetLatestFailedWithdrawalBundleHeight calls
-// truthcoin.v1.TruthcoinService.GetLatestFailedWithdrawalBundleHeight.
-func (c *truthcoinServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return c.getLatestFailedWithdrawalBundleHeight.CallUnary(ctx, req)
-}
-
-// GenerateMnemonic calls truthcoin.v1.TruthcoinService.GenerateMnemonic.
-func (c *truthcoinServiceClient) GenerateMnemonic(ctx context.Context, req *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return c.generateMnemonic.CallUnary(ctx, req)
-}
-
-// SetSeedFromMnemonic calls truthcoin.v1.TruthcoinService.SetSeedFromMnemonic.
-func (c *truthcoinServiceClient) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return c.setSeedFromMnemonic.CallUnary(ctx, req)
-}
-
-// CallRaw calls truthcoin.v1.TruthcoinService.CallRaw.
-func (c *truthcoinServiceClient) CallRaw(ctx context.Context, req *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return c.callRaw.CallUnary(ctx, req)
-}
-
-// RefreshWallet calls truthcoin.v1.TruthcoinService.RefreshWallet.
-func (c *truthcoinServiceClient) RefreshWallet(ctx context.Context, req *connect.Request[v1.RefreshWalletRequest]) (*connect.Response[v1.RefreshWalletResponse], error) {
-	return c.refreshWallet.CallUnary(ctx, req)
-}
-
-// GetTransaction calls truthcoin.v1.TruthcoinService.GetTransaction.
-func (c *truthcoinServiceClient) GetTransaction(ctx context.Context, req *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
-	return c.getTransaction.CallUnary(ctx, req)
-}
-
-// GetTransactionInfo calls truthcoin.v1.TruthcoinService.GetTransactionInfo.
-func (c *truthcoinServiceClient) GetTransactionInfo(ctx context.Context, req *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error) {
-	return c.getTransactionInfo.CallUnary(ctx, req)
-}
-
-// GetWalletAddresses calls truthcoin.v1.TruthcoinService.GetWalletAddresses.
-func (c *truthcoinServiceClient) GetWalletAddresses(ctx context.Context, req *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error) {
-	return c.getWalletAddresses.CallUnary(ctx, req)
-}
-
-// MyUtxos calls truthcoin.v1.TruthcoinService.MyUtxos.
-func (c *truthcoinServiceClient) MyUtxos(ctx context.Context, req *connect.Request[v1.MyUtxosRequest]) (*connect.Response[v1.MyUtxosResponse], error) {
-	return c.myUtxos.CallUnary(ctx, req)
-}
-
-// MyUnconfirmedUtxos calls truthcoin.v1.TruthcoinService.MyUnconfirmedUtxos.
-func (c *truthcoinServiceClient) MyUnconfirmedUtxos(ctx context.Context, req *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error) {
-	return c.myUnconfirmedUtxos.CallUnary(ctx, req)
-}
-
-// CalculateInitialLiquidity calls truthcoin.v1.TruthcoinService.CalculateInitialLiquidity.
-func (c *truthcoinServiceClient) CalculateInitialLiquidity(ctx context.Context, req *connect.Request[v1.CalculateInitialLiquidityRequest]) (*connect.Response[v1.CalculateInitialLiquidityResponse], error) {
-	return c.calculateInitialLiquidity.CallUnary(ctx, req)
-}
-
-// MarketCreate calls truthcoin.v1.TruthcoinService.MarketCreate.
-func (c *truthcoinServiceClient) MarketCreate(ctx context.Context, req *connect.Request[v1.MarketCreateRequest]) (*connect.Response[v1.MarketCreateResponse], error) {
-	return c.marketCreate.CallUnary(ctx, req)
-}
-
-// MarketList calls truthcoin.v1.TruthcoinService.MarketList.
-func (c *truthcoinServiceClient) MarketList(ctx context.Context, req *connect.Request[v1.MarketListRequest]) (*connect.Response[v1.MarketListResponse], error) {
-	return c.marketList.CallUnary(ctx, req)
-}
-
-// MarketGet calls truthcoin.v1.TruthcoinService.MarketGet.
-func (c *truthcoinServiceClient) MarketGet(ctx context.Context, req *connect.Request[v1.MarketGetRequest]) (*connect.Response[v1.MarketGetResponse], error) {
-	return c.marketGet.CallUnary(ctx, req)
-}
-
-// MarketBuy calls truthcoin.v1.TruthcoinService.MarketBuy.
-func (c *truthcoinServiceClient) MarketBuy(ctx context.Context, req *connect.Request[v1.MarketBuyRequest]) (*connect.Response[v1.MarketBuyResponse], error) {
-	return c.marketBuy.CallUnary(ctx, req)
-}
-
-// MarketSell calls truthcoin.v1.TruthcoinService.MarketSell.
-func (c *truthcoinServiceClient) MarketSell(ctx context.Context, req *connect.Request[v1.MarketSellRequest]) (*connect.Response[v1.MarketSellResponse], error) {
-	return c.marketSell.CallUnary(ctx, req)
-}
-
-// MarketPositions calls truthcoin.v1.TruthcoinService.MarketPositions.
-func (c *truthcoinServiceClient) MarketPositions(ctx context.Context, req *connect.Request[v1.MarketPositionsRequest]) (*connect.Response[v1.MarketPositionsResponse], error) {
-	return c.marketPositions.CallUnary(ctx, req)
-}
-
-// MarketAmplifyBeta calls truthcoin.v1.TruthcoinService.MarketAmplifyBeta.
-func (c *truthcoinServiceClient) MarketAmplifyBeta(ctx context.Context, req *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error) {
-	return c.marketAmplifyBeta.CallUnary(ctx, req)
-}
-
-// SlotStatus calls truthcoin.v1.TruthcoinService.SlotStatus.
-func (c *truthcoinServiceClient) SlotStatus(ctx context.Context, req *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error) {
-	return c.slotStatus.CallUnary(ctx, req)
-}
-
-// SlotList calls truthcoin.v1.TruthcoinService.SlotList.
-func (c *truthcoinServiceClient) SlotList(ctx context.Context, req *connect.Request[v1.SlotListRequest]) (*connect.Response[v1.SlotListResponse], error) {
-	return c.slotList.CallUnary(ctx, req)
-}
-
-// SlotGet calls truthcoin.v1.TruthcoinService.SlotGet.
-func (c *truthcoinServiceClient) SlotGet(ctx context.Context, req *connect.Request[v1.SlotGetRequest]) (*connect.Response[v1.SlotGetResponse], error) {
-	return c.slotGet.CallUnary(ctx, req)
-}
-
-// SlotClaim calls truthcoin.v1.TruthcoinService.SlotClaim.
-func (c *truthcoinServiceClient) SlotClaim(ctx context.Context, req *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error) {
-	return c.slotClaim.CallUnary(ctx, req)
-}
-
-// SlotClaimCategory calls truthcoin.v1.TruthcoinService.SlotClaimCategory.
-func (c *truthcoinServiceClient) SlotClaimCategory(ctx context.Context, req *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error) {
-	return c.slotClaimCategory.CallUnary(ctx, req)
-}
-
-// GetVoterAddress calls truthcoin.v1.TruthcoinService.GetVoterAddress.
-func (c *truthcoinServiceClient) GetVoterAddress(ctx context.Context, req *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error) {
-	return c.getVoterAddress.CallUnary(ctx, req)
-}
-
-// VoteVoter calls truthcoin.v1.TruthcoinService.VoteVoter.
-func (c *truthcoinServiceClient) VoteVoter(ctx context.Context, req *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error) {
-	return c.voteVoter.CallUnary(ctx, req)
-}
-
-// VoteVoters calls truthcoin.v1.TruthcoinService.VoteVoters.
-func (c *truthcoinServiceClient) VoteVoters(ctx context.Context, req *connect.Request[v1.VoteVotersRequest]) (*connect.Response[v1.VoteVotersResponse], error) {
-	return c.voteVoters.CallUnary(ctx, req)
-}
-
-// VoteSubmit calls truthcoin.v1.TruthcoinService.VoteSubmit.
-func (c *truthcoinServiceClient) VoteSubmit(ctx context.Context, req *connect.Request[v1.VoteSubmitRequest]) (*connect.Response[v1.VoteSubmitResponse], error) {
-	return c.voteSubmit.CallUnary(ctx, req)
-}
-
-// VoteList calls truthcoin.v1.TruthcoinService.VoteList.
-func (c *truthcoinServiceClient) VoteList(ctx context.Context, req *connect.Request[v1.VoteListRequest]) (*connect.Response[v1.VoteListResponse], error) {
-	return c.voteList.CallUnary(ctx, req)
-}
-
-// VotePeriod calls truthcoin.v1.TruthcoinService.VotePeriod.
-func (c *truthcoinServiceClient) VotePeriod(ctx context.Context, req *connect.Request[v1.VotePeriodRequest]) (*connect.Response[v1.VotePeriodResponse], error) {
-	return c.votePeriod.CallUnary(ctx, req)
-}
-
-// VotecoinTransfer calls truthcoin.v1.TruthcoinService.VotecoinTransfer.
-func (c *truthcoinServiceClient) VotecoinTransfer(ctx context.Context, req *connect.Request[v1.VotecoinTransferRequest]) (*connect.Response[v1.VotecoinTransferResponse], error) {
-	return c.votecoinTransfer.CallUnary(ctx, req)
-}
-
-// VotecoinBalance calls truthcoin.v1.TruthcoinService.VotecoinBalance.
-func (c *truthcoinServiceClient) VotecoinBalance(ctx context.Context, req *connect.Request[v1.VotecoinBalanceRequest]) (*connect.Response[v1.VotecoinBalanceResponse], error) {
-	return c.votecoinBalance.CallUnary(ctx, req)
-}
-
-// TransferVotecoin calls truthcoin.v1.TruthcoinService.TransferVotecoin.
-func (c *truthcoinServiceClient) TransferVotecoin(ctx context.Context, req *connect.Request[v1.TransferVotecoinRequest]) (*connect.Response[v1.TransferVotecoinResponse], error) {
-	return c.transferVotecoin.CallUnary(ctx, req)
-}
-
-// GetNewEncryptionKey calls truthcoin.v1.TruthcoinService.GetNewEncryptionKey.
-func (c *truthcoinServiceClient) GetNewEncryptionKey(ctx context.Context, req *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error) {
-	return c.getNewEncryptionKey.CallUnary(ctx, req)
-}
-
-// GetNewVerifyingKey calls truthcoin.v1.TruthcoinService.GetNewVerifyingKey.
-func (c *truthcoinServiceClient) GetNewVerifyingKey(ctx context.Context, req *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error) {
-	return c.getNewVerifyingKey.CallUnary(ctx, req)
-}
-
-// EncryptMsg calls truthcoin.v1.TruthcoinService.EncryptMsg.
-func (c *truthcoinServiceClient) EncryptMsg(ctx context.Context, req *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error) {
-	return c.encryptMsg.CallUnary(ctx, req)
-}
-
-// DecryptMsg calls truthcoin.v1.TruthcoinService.DecryptMsg.
-func (c *truthcoinServiceClient) DecryptMsg(ctx context.Context, req *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error) {
-	return c.decryptMsg.CallUnary(ctx, req)
-}
-
-// SignArbitraryMsg calls truthcoin.v1.TruthcoinService.SignArbitraryMsg.
-func (c *truthcoinServiceClient) SignArbitraryMsg(ctx context.Context, req *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error) {
-	return c.signArbitraryMsg.CallUnary(ctx, req)
-}
-
-// SignArbitraryMsgAsAddr calls truthcoin.v1.TruthcoinService.SignArbitraryMsgAsAddr.
-func (c *truthcoinServiceClient) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error) {
-	return c.signArbitraryMsgAsAddr.CallUnary(ctx, req)
-}
-
-// VerifySignature calls truthcoin.v1.TruthcoinService.VerifySignature.
-func (c *truthcoinServiceClient) VerifySignature(ctx context.Context, req *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error) {
-	return c.verifySignature.CallUnary(ctx, req)
+// NewTruthcoinServiceClient constructs a client for the truthcoin.v1.TruthcoinService service.
+// Multiple service clients may share a single connect.Client.
+func NewTruthcoinServiceClient(client *connect.Client) TruthcoinServiceClient {
+	return &truthcoinServiceClient{client: client}
 }
 
 // TruthcoinServiceHandler is an implementation of the truthcoin.v1.TruthcoinService service.
 type TruthcoinServiceHandler interface {
-	// Get wallet balance (total and available).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the truthcoin node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain.
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Refresh wallet state.
-	RefreshWallet(context.Context, *connect.Request[v1.RefreshWalletRequest]) (*connect.Response[v1.RefreshWalletResponse], error)
-	// Get transaction by txid.
-	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
-	// Get transaction info.
-	GetTransactionInfo(context.Context, *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error)
-	// Get wallet addresses.
-	GetWalletAddresses(context.Context, *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error)
-	// Get owned UTXOs (confirmed).
-	MyUtxos(context.Context, *connect.Request[v1.MyUtxosRequest]) (*connect.Response[v1.MyUtxosResponse], error)
-	// Get owned UTXOs (unconfirmed).
-	MyUnconfirmedUtxos(context.Context, *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error)
-	// Calculate initial liquidity required for market creation.
-	CalculateInitialLiquidity(context.Context, *connect.Request[v1.CalculateInitialLiquidityRequest]) (*connect.Response[v1.CalculateInitialLiquidityResponse], error)
-	// Create a new prediction market.
-	MarketCreate(context.Context, *connect.Request[v1.MarketCreateRequest]) (*connect.Response[v1.MarketCreateResponse], error)
-	// List all markets.
-	MarketList(context.Context, *connect.Request[v1.MarketListRequest]) (*connect.Response[v1.MarketListResponse], error)
-	// Get a specific market.
-	MarketGet(context.Context, *connect.Request[v1.MarketGetRequest]) (*connect.Response[v1.MarketGetResponse], error)
-	// Buy shares in a market.
-	MarketBuy(context.Context, *connect.Request[v1.MarketBuyRequest]) (*connect.Response[v1.MarketBuyResponse], error)
-	// Sell shares in a market.
-	MarketSell(context.Context, *connect.Request[v1.MarketSellRequest]) (*connect.Response[v1.MarketSellResponse], error)
-	// Get positions in a market.
-	MarketPositions(context.Context, *connect.Request[v1.MarketPositionsRequest]) (*connect.Response[v1.MarketPositionsResponse], error)
-	// Add liquidity to a market that a wallet address created.
-	MarketAmplifyBeta(context.Context, *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error)
-	// Get slot system status and configuration.
-	SlotStatus(context.Context, *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error)
-	// List slots with optional filtering.
-	SlotList(context.Context, *connect.Request[v1.SlotListRequest]) (*connect.Response[v1.SlotListResponse], error)
-	// Get a specific slot by ID.
-	SlotGet(context.Context, *connect.Request[v1.SlotGetRequest]) (*connect.Response[v1.SlotGetResponse], error)
-	// Claim a decision slot.
-	SlotClaim(context.Context, *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error)
-	// Claim multiple slots as a category.
-	SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error)
-	// Get the voter address of the wallet.
-	GetVoterAddress(context.Context, *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error)
-	// Get voter info.
-	VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error)
-	// List all voters.
-	VoteVoters(context.Context, *connect.Request[v1.VoteVotersRequest]) (*connect.Response[v1.VoteVotersResponse], error)
-	// Submit votes (batch).
-	VoteSubmit(context.Context, *connect.Request[v1.VoteSubmitRequest]) (*connect.Response[v1.VoteSubmitResponse], error)
-	// List votes with optional filters.
-	VoteList(context.Context, *connect.Request[v1.VoteListRequest]) (*connect.Response[v1.VoteListResponse], error)
-	// Get voting period information.
-	VotePeriod(context.Context, *connect.Request[v1.VotePeriodRequest]) (*connect.Response[v1.VotePeriodResponse], error)
-	// Transfer votecoins.
-	VotecoinTransfer(context.Context, *connect.Request[v1.VotecoinTransferRequest]) (*connect.Response[v1.VotecoinTransferResponse], error)
-	// Get votecoin balance for an address.
-	VotecoinBalance(context.Context, *connect.Request[v1.VotecoinBalanceRequest]) (*connect.Response[v1.VotecoinBalanceResponse], error)
-	// Transfer votecoin (alternative method).
-	TransferVotecoin(context.Context, *connect.Request[v1.TransferVotecoinRequest]) (*connect.Response[v1.TransferVotecoinResponse], error)
-	// Get a new encryption key.
-	GetNewEncryptionKey(context.Context, *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error)
-	// Get a new verifying key.
-	GetNewVerifyingKey(context.Context, *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error)
-	// Encrypt a message.
-	EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error)
-	// Decrypt a message.
-	DecryptMsg(context.Context, *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error)
-	// Sign an arbitrary message with verifying key.
-	SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error)
-	// Sign an arbitrary message as address.
-	SignArbitraryMsgAsAddr(context.Context, *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error)
-	// Verify a signature.
-	VerifySignature(context.Context, *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	RefreshWallet(context.Context, *v1.RefreshWalletRequest) (*v1.RefreshWalletResponse, error)
+	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	GetTransactionInfo(context.Context, *v1.GetTransactionInfoRequest) (*v1.GetTransactionInfoResponse, error)
+	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	MyUtxos(context.Context, *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error)
+	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	CalculateInitialLiquidity(context.Context, *v1.CalculateInitialLiquidityRequest) (*v1.CalculateInitialLiquidityResponse, error)
+	MarketCreate(context.Context, *v1.MarketCreateRequest) (*v1.MarketCreateResponse, error)
+	MarketList(context.Context, *v1.MarketListRequest) (*v1.MarketListResponse, error)
+	MarketGet(context.Context, *v1.MarketGetRequest) (*v1.MarketGetResponse, error)
+	MarketBuy(context.Context, *v1.MarketBuyRequest) (*v1.MarketBuyResponse, error)
+	MarketSell(context.Context, *v1.MarketSellRequest) (*v1.MarketSellResponse, error)
+	MarketPositions(context.Context, *v1.MarketPositionsRequest) (*v1.MarketPositionsResponse, error)
+	MarketAmplifyBeta(context.Context, *v1.MarketAmplifyBetaRequest) (*v1.MarketAmplifyBetaResponse, error)
+	SlotStatus(context.Context, *v1.SlotStatusRequest) (*v1.SlotStatusResponse, error)
+	SlotList(context.Context, *v1.SlotListRequest) (*v1.SlotListResponse, error)
+	SlotGet(context.Context, *v1.SlotGetRequest) (*v1.SlotGetResponse, error)
+	SlotClaim(context.Context, *v1.SlotClaimRequest) (*v1.SlotClaimResponse, error)
+	SlotClaimCategory(context.Context, *v1.SlotClaimCategoryRequest) (*v1.SlotClaimCategoryResponse, error)
+	GetVoterAddress(context.Context, *v1.GetVoterAddressRequest) (*v1.GetVoterAddressResponse, error)
+	VoteVoter(context.Context, *v1.VoteVoterRequest) (*v1.VoteVoterResponse, error)
+	VoteVoters(context.Context, *v1.VoteVotersRequest) (*v1.VoteVotersResponse, error)
+	VoteSubmit(context.Context, *v1.VoteSubmitRequest) (*v1.VoteSubmitResponse, error)
+	VoteList(context.Context, *v1.VoteListRequest) (*v1.VoteListResponse, error)
+	VotePeriod(context.Context, *v1.VotePeriodRequest) (*v1.VotePeriodResponse, error)
+	VotecoinTransfer(context.Context, *v1.VotecoinTransferRequest) (*v1.VotecoinTransferResponse, error)
+	VotecoinBalance(context.Context, *v1.VotecoinBalanceRequest) (*v1.VotecoinBalanceResponse, error)
+	TransferVotecoin(context.Context, *v1.TransferVotecoinRequest) (*v1.TransferVotecoinResponse, error)
+	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
 }
 
-// NewTruthcoinServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewTruthcoinServiceHandler(svc TruthcoinServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	truthcoinServiceMethods := v1.File_truthcoin_v1_truthcoin_proto.Services().ByName("TruthcoinService").Methods()
-	truthcoinServiceGetBalanceHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetBalanceProcedure,
-		svc.GetBalance,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetBalance")),
-		connect.WithHandlerOptions(opts...),
+// RegisterTruthcoinServiceHandler registers svc as the truthcoin.v1.TruthcoinService implementation
+// on server.
+func RegisterTruthcoinServiceHandler(server *connect.Server, svc TruthcoinServiceHandler) {
+	adapter := truthcoinServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: truthcoinServiceGetBalanceSpec(), Handler: adapter.getBalance},
+		connect.Method{Spec: truthcoinServiceGetBlockCountSpec(), Handler: adapter.getBlockCount},
+		connect.Method{Spec: truthcoinServiceStopSpec(), Handler: adapter.stop},
+		connect.Method{Spec: truthcoinServiceGetNewAddressSpec(), Handler: adapter.getNewAddress},
+		connect.Method{Spec: truthcoinServiceWithdrawSpec(), Handler: adapter.withdraw},
+		connect.Method{Spec: truthcoinServiceTransferSpec(), Handler: adapter.transfer},
+		connect.Method{Spec: truthcoinServiceGetSidechainWealthSpec(), Handler: adapter.getSidechainWealth},
+		connect.Method{Spec: truthcoinServiceCreateDepositSpec(), Handler: adapter.createDeposit},
+		connect.Method{Spec: truthcoinServiceGetPendingWithdrawalBundleSpec(), Handler: adapter.getPendingWithdrawalBundle},
+		connect.Method{Spec: truthcoinServiceConnectPeerSpec(), Handler: adapter.connectPeer},
+		connect.Method{Spec: truthcoinServiceListPeersSpec(), Handler: adapter.listPeers},
+		connect.Method{Spec: truthcoinServiceMineSpec(), Handler: adapter.mine},
+		connect.Method{Spec: truthcoinServiceGetBlockSpec(), Handler: adapter.getBlock},
+		connect.Method{Spec: truthcoinServiceGetBestMainchainBlockHashSpec(), Handler: adapter.getBestMainchainBlockHash},
+		connect.Method{Spec: truthcoinServiceGetBestSidechainBlockHashSpec(), Handler: adapter.getBestSidechainBlockHash},
+		connect.Method{Spec: truthcoinServiceGetBmmInclusionsSpec(), Handler: adapter.getBmmInclusions},
+		connect.Method{Spec: truthcoinServiceGetWalletUtxosSpec(), Handler: adapter.getWalletUtxos},
+		connect.Method{Spec: truthcoinServiceListUtxosSpec(), Handler: adapter.listUtxos},
+		connect.Method{Spec: truthcoinServiceRemoveFromMempoolSpec(), Handler: adapter.removeFromMempool},
+		connect.Method{Spec: truthcoinServiceGetLatestFailedWithdrawalBundleHeightSpec(), Handler: adapter.getLatestFailedWithdrawalBundleHeight},
+		connect.Method{Spec: truthcoinServiceGenerateMnemonicSpec(), Handler: adapter.generateMnemonic},
+		connect.Method{Spec: truthcoinServiceSetSeedFromMnemonicSpec(), Handler: adapter.setSeedFromMnemonic},
+		connect.Method{Spec: truthcoinServiceCallRawSpec(), Handler: adapter.callRaw},
+		connect.Method{Spec: truthcoinServiceRefreshWalletSpec(), Handler: adapter.refreshWallet},
+		connect.Method{Spec: truthcoinServiceGetTransactionSpec(), Handler: adapter.getTransaction},
+		connect.Method{Spec: truthcoinServiceGetTransactionInfoSpec(), Handler: adapter.getTransactionInfo},
+		connect.Method{Spec: truthcoinServiceGetWalletAddressesSpec(), Handler: adapter.getWalletAddresses},
+		connect.Method{Spec: truthcoinServiceMyUtxosSpec(), Handler: adapter.myUtxos},
+		connect.Method{Spec: truthcoinServiceMyUnconfirmedUtxosSpec(), Handler: adapter.myUnconfirmedUtxos},
+		connect.Method{Spec: truthcoinServiceCalculateInitialLiquiditySpec(), Handler: adapter.calculateInitialLiquidity},
+		connect.Method{Spec: truthcoinServiceMarketCreateSpec(), Handler: adapter.marketCreate},
+		connect.Method{Spec: truthcoinServiceMarketListSpec(), Handler: adapter.marketList},
+		connect.Method{Spec: truthcoinServiceMarketGetSpec(), Handler: adapter.marketGet},
+		connect.Method{Spec: truthcoinServiceMarketBuySpec(), Handler: adapter.marketBuy},
+		connect.Method{Spec: truthcoinServiceMarketSellSpec(), Handler: adapter.marketSell},
+		connect.Method{Spec: truthcoinServiceMarketPositionsSpec(), Handler: adapter.marketPositions},
+		connect.Method{Spec: truthcoinServiceMarketAmplifyBetaSpec(), Handler: adapter.marketAmplifyBeta},
+		connect.Method{Spec: truthcoinServiceSlotStatusSpec(), Handler: adapter.slotStatus},
+		connect.Method{Spec: truthcoinServiceSlotListSpec(), Handler: adapter.slotList},
+		connect.Method{Spec: truthcoinServiceSlotGetSpec(), Handler: adapter.slotGet},
+		connect.Method{Spec: truthcoinServiceSlotClaimSpec(), Handler: adapter.slotClaim},
+		connect.Method{Spec: truthcoinServiceSlotClaimCategorySpec(), Handler: adapter.slotClaimCategory},
+		connect.Method{Spec: truthcoinServiceGetVoterAddressSpec(), Handler: adapter.getVoterAddress},
+		connect.Method{Spec: truthcoinServiceVoteVoterSpec(), Handler: adapter.voteVoter},
+		connect.Method{Spec: truthcoinServiceVoteVotersSpec(), Handler: adapter.voteVoters},
+		connect.Method{Spec: truthcoinServiceVoteSubmitSpec(), Handler: adapter.voteSubmit},
+		connect.Method{Spec: truthcoinServiceVoteListSpec(), Handler: adapter.voteList},
+		connect.Method{Spec: truthcoinServiceVotePeriodSpec(), Handler: adapter.votePeriod},
+		connect.Method{Spec: truthcoinServiceVotecoinTransferSpec(), Handler: adapter.votecoinTransfer},
+		connect.Method{Spec: truthcoinServiceVotecoinBalanceSpec(), Handler: adapter.votecoinBalance},
+		connect.Method{Spec: truthcoinServiceTransferVotecoinSpec(), Handler: adapter.transferVotecoin},
+		connect.Method{Spec: truthcoinServiceGetNewEncryptionKeySpec(), Handler: adapter.getNewEncryptionKey},
+		connect.Method{Spec: truthcoinServiceGetNewVerifyingKeySpec(), Handler: adapter.getNewVerifyingKey},
+		connect.Method{Spec: truthcoinServiceEncryptMsgSpec(), Handler: adapter.encryptMsg},
+		connect.Method{Spec: truthcoinServiceDecryptMsgSpec(), Handler: adapter.decryptMsg},
+		connect.Method{Spec: truthcoinServiceSignArbitraryMsgSpec(), Handler: adapter.signArbitraryMsg},
+		connect.Method{Spec: truthcoinServiceSignArbitraryMsgAsAddrSpec(), Handler: adapter.signArbitraryMsgAsAddr},
+		connect.Method{Spec: truthcoinServiceVerifySignatureSpec(), Handler: adapter.verifySignature},
 	)
-	truthcoinServiceGetBlockCountHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetBlockCountProcedure,
-		svc.GetBlockCount,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetBlockCount")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceStopHandler := connect.NewUnaryHandler(
-		TruthcoinServiceStopProcedure,
-		svc.Stop,
-		connect.WithSchema(truthcoinServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetNewAddressHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetNewAddressProcedure,
-		svc.GetNewAddress,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetNewAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceWithdrawHandler := connect.NewUnaryHandler(
-		TruthcoinServiceWithdrawProcedure,
-		svc.Withdraw,
-		connect.WithSchema(truthcoinServiceMethods.ByName("Withdraw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceTransferHandler := connect.NewUnaryHandler(
-		TruthcoinServiceTransferProcedure,
-		svc.Transfer,
-		connect.WithSchema(truthcoinServiceMethods.ByName("Transfer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetSidechainWealthHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetSidechainWealthProcedure,
-		svc.GetSidechainWealth,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetSidechainWealth")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceCreateDepositHandler := connect.NewUnaryHandler(
-		TruthcoinServiceCreateDepositProcedure,
-		svc.CreateDeposit,
-		connect.WithSchema(truthcoinServiceMethods.ByName("CreateDeposit")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetPendingWithdrawalBundleHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetPendingWithdrawalBundleProcedure,
-		svc.GetPendingWithdrawalBundle,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetPendingWithdrawalBundle")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceConnectPeerHandler := connect.NewUnaryHandler(
-		TruthcoinServiceConnectPeerProcedure,
-		svc.ConnectPeer,
-		connect.WithSchema(truthcoinServiceMethods.ByName("ConnectPeer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceListPeersHandler := connect.NewUnaryHandler(
-		TruthcoinServiceListPeersProcedure,
-		svc.ListPeers,
-		connect.WithSchema(truthcoinServiceMethods.ByName("ListPeers")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMineHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMineProcedure,
-		svc.Mine,
-		connect.WithSchema(truthcoinServiceMethods.ByName("Mine")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetBlockHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetBlockProcedure,
-		svc.GetBlock,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetBestMainchainBlockHashHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetBestMainchainBlockHashProcedure,
-		svc.GetBestMainchainBlockHash,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetBestMainchainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetBestSidechainBlockHashHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetBestSidechainBlockHashProcedure,
-		svc.GetBestSidechainBlockHash,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetBestSidechainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetBmmInclusionsHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetBmmInclusionsProcedure,
-		svc.GetBmmInclusions,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetBmmInclusions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetWalletUtxosHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetWalletUtxosProcedure,
-		svc.GetWalletUtxos,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetWalletUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceListUtxosHandler := connect.NewUnaryHandler(
-		TruthcoinServiceListUtxosProcedure,
-		svc.ListUtxos,
-		connect.WithSchema(truthcoinServiceMethods.ByName("ListUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceRemoveFromMempoolHandler := connect.NewUnaryHandler(
-		TruthcoinServiceRemoveFromMempoolProcedure,
-		svc.RemoveFromMempool,
-		connect.WithSchema(truthcoinServiceMethods.ByName("RemoveFromMempool")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetLatestFailedWithdrawalBundleHeightHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-		svc.GetLatestFailedWithdrawalBundleHeight,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGenerateMnemonicHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGenerateMnemonicProcedure,
-		svc.GenerateMnemonic,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GenerateMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSetSeedFromMnemonicHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSetSeedFromMnemonicProcedure,
-		svc.SetSeedFromMnemonic,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SetSeedFromMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceCallRawHandler := connect.NewUnaryHandler(
-		TruthcoinServiceCallRawProcedure,
-		svc.CallRaw,
-		connect.WithSchema(truthcoinServiceMethods.ByName("CallRaw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceRefreshWalletHandler := connect.NewUnaryHandler(
-		TruthcoinServiceRefreshWalletProcedure,
-		svc.RefreshWallet,
-		connect.WithSchema(truthcoinServiceMethods.ByName("RefreshWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetTransactionHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetTransactionProcedure,
-		svc.GetTransaction,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetTransactionInfoHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetTransactionInfoProcedure,
-		svc.GetTransactionInfo,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetTransactionInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetWalletAddressesHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetWalletAddressesProcedure,
-		svc.GetWalletAddresses,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetWalletAddresses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMyUtxosHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMyUtxosProcedure,
-		svc.MyUtxos,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MyUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMyUnconfirmedUtxosHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMyUnconfirmedUtxosProcedure,
-		svc.MyUnconfirmedUtxos,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MyUnconfirmedUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceCalculateInitialLiquidityHandler := connect.NewUnaryHandler(
-		TruthcoinServiceCalculateInitialLiquidityProcedure,
-		svc.CalculateInitialLiquidity,
-		connect.WithSchema(truthcoinServiceMethods.ByName("CalculateInitialLiquidity")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMarketCreateHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMarketCreateProcedure,
-		svc.MarketCreate,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MarketCreate")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMarketListHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMarketListProcedure,
-		svc.MarketList,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MarketList")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMarketGetHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMarketGetProcedure,
-		svc.MarketGet,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MarketGet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMarketBuyHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMarketBuyProcedure,
-		svc.MarketBuy,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MarketBuy")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMarketSellHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMarketSellProcedure,
-		svc.MarketSell,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MarketSell")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMarketPositionsHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMarketPositionsProcedure,
-		svc.MarketPositions,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MarketPositions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceMarketAmplifyBetaHandler := connect.NewUnaryHandler(
-		TruthcoinServiceMarketAmplifyBetaProcedure,
-		svc.MarketAmplifyBeta,
-		connect.WithSchema(truthcoinServiceMethods.ByName("MarketAmplifyBeta")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSlotStatusHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSlotStatusProcedure,
-		svc.SlotStatus,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SlotStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSlotListHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSlotListProcedure,
-		svc.SlotList,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SlotList")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSlotGetHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSlotGetProcedure,
-		svc.SlotGet,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SlotGet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSlotClaimHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSlotClaimProcedure,
-		svc.SlotClaim,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaim")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSlotClaimCategoryHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSlotClaimCategoryProcedure,
-		svc.SlotClaimCategory,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaimCategory")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetVoterAddressHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetVoterAddressProcedure,
-		svc.GetVoterAddress,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetVoterAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVoteVoterHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVoteVoterProcedure,
-		svc.VoteVoter,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VoteVoter")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVoteVotersHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVoteVotersProcedure,
-		svc.VoteVoters,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VoteVoters")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVoteSubmitHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVoteSubmitProcedure,
-		svc.VoteSubmit,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VoteSubmit")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVoteListHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVoteListProcedure,
-		svc.VoteList,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VoteList")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVotePeriodHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVotePeriodProcedure,
-		svc.VotePeriod,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VotePeriod")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVotecoinTransferHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVotecoinTransferProcedure,
-		svc.VotecoinTransfer,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VotecoinTransfer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVotecoinBalanceHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVotecoinBalanceProcedure,
-		svc.VotecoinBalance,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VotecoinBalance")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceTransferVotecoinHandler := connect.NewUnaryHandler(
-		TruthcoinServiceTransferVotecoinProcedure,
-		svc.TransferVotecoin,
-		connect.WithSchema(truthcoinServiceMethods.ByName("TransferVotecoin")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetNewEncryptionKeyHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetNewEncryptionKeyProcedure,
-		svc.GetNewEncryptionKey,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetNewEncryptionKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceGetNewVerifyingKeyHandler := connect.NewUnaryHandler(
-		TruthcoinServiceGetNewVerifyingKeyProcedure,
-		svc.GetNewVerifyingKey,
-		connect.WithSchema(truthcoinServiceMethods.ByName("GetNewVerifyingKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceEncryptMsgHandler := connect.NewUnaryHandler(
-		TruthcoinServiceEncryptMsgProcedure,
-		svc.EncryptMsg,
-		connect.WithSchema(truthcoinServiceMethods.ByName("EncryptMsg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceDecryptMsgHandler := connect.NewUnaryHandler(
-		TruthcoinServiceDecryptMsgProcedure,
-		svc.DecryptMsg,
-		connect.WithSchema(truthcoinServiceMethods.ByName("DecryptMsg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSignArbitraryMsgHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSignArbitraryMsgProcedure,
-		svc.SignArbitraryMsg,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SignArbitraryMsg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceSignArbitraryMsgAsAddrHandler := connect.NewUnaryHandler(
-		TruthcoinServiceSignArbitraryMsgAsAddrProcedure,
-		svc.SignArbitraryMsgAsAddr,
-		connect.WithSchema(truthcoinServiceMethods.ByName("SignArbitraryMsgAsAddr")),
-		connect.WithHandlerOptions(opts...),
-	)
-	truthcoinServiceVerifySignatureHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVerifySignatureProcedure,
-		svc.VerifySignature,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VerifySignature")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/truthcoin.v1.TruthcoinService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case TruthcoinServiceGetBalanceProcedure:
-			truthcoinServiceGetBalanceHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetBlockCountProcedure:
-			truthcoinServiceGetBlockCountHandler.ServeHTTP(w, r)
-		case TruthcoinServiceStopProcedure:
-			truthcoinServiceStopHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetNewAddressProcedure:
-			truthcoinServiceGetNewAddressHandler.ServeHTTP(w, r)
-		case TruthcoinServiceWithdrawProcedure:
-			truthcoinServiceWithdrawHandler.ServeHTTP(w, r)
-		case TruthcoinServiceTransferProcedure:
-			truthcoinServiceTransferHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetSidechainWealthProcedure:
-			truthcoinServiceGetSidechainWealthHandler.ServeHTTP(w, r)
-		case TruthcoinServiceCreateDepositProcedure:
-			truthcoinServiceCreateDepositHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetPendingWithdrawalBundleProcedure:
-			truthcoinServiceGetPendingWithdrawalBundleHandler.ServeHTTP(w, r)
-		case TruthcoinServiceConnectPeerProcedure:
-			truthcoinServiceConnectPeerHandler.ServeHTTP(w, r)
-		case TruthcoinServiceListPeersProcedure:
-			truthcoinServiceListPeersHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMineProcedure:
-			truthcoinServiceMineHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetBlockProcedure:
-			truthcoinServiceGetBlockHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetBestMainchainBlockHashProcedure:
-			truthcoinServiceGetBestMainchainBlockHashHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetBestSidechainBlockHashProcedure:
-			truthcoinServiceGetBestSidechainBlockHashHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetBmmInclusionsProcedure:
-			truthcoinServiceGetBmmInclusionsHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetWalletUtxosProcedure:
-			truthcoinServiceGetWalletUtxosHandler.ServeHTTP(w, r)
-		case TruthcoinServiceListUtxosProcedure:
-			truthcoinServiceListUtxosHandler.ServeHTTP(w, r)
-		case TruthcoinServiceRemoveFromMempoolProcedure:
-			truthcoinServiceRemoveFromMempoolHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetLatestFailedWithdrawalBundleHeightProcedure:
-			truthcoinServiceGetLatestFailedWithdrawalBundleHeightHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGenerateMnemonicProcedure:
-			truthcoinServiceGenerateMnemonicHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSetSeedFromMnemonicProcedure:
-			truthcoinServiceSetSeedFromMnemonicHandler.ServeHTTP(w, r)
-		case TruthcoinServiceCallRawProcedure:
-			truthcoinServiceCallRawHandler.ServeHTTP(w, r)
-		case TruthcoinServiceRefreshWalletProcedure:
-			truthcoinServiceRefreshWalletHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetTransactionProcedure:
-			truthcoinServiceGetTransactionHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetTransactionInfoProcedure:
-			truthcoinServiceGetTransactionInfoHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetWalletAddressesProcedure:
-			truthcoinServiceGetWalletAddressesHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMyUtxosProcedure:
-			truthcoinServiceMyUtxosHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMyUnconfirmedUtxosProcedure:
-			truthcoinServiceMyUnconfirmedUtxosHandler.ServeHTTP(w, r)
-		case TruthcoinServiceCalculateInitialLiquidityProcedure:
-			truthcoinServiceCalculateInitialLiquidityHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMarketCreateProcedure:
-			truthcoinServiceMarketCreateHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMarketListProcedure:
-			truthcoinServiceMarketListHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMarketGetProcedure:
-			truthcoinServiceMarketGetHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMarketBuyProcedure:
-			truthcoinServiceMarketBuyHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMarketSellProcedure:
-			truthcoinServiceMarketSellHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMarketPositionsProcedure:
-			truthcoinServiceMarketPositionsHandler.ServeHTTP(w, r)
-		case TruthcoinServiceMarketAmplifyBetaProcedure:
-			truthcoinServiceMarketAmplifyBetaHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSlotStatusProcedure:
-			truthcoinServiceSlotStatusHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSlotListProcedure:
-			truthcoinServiceSlotListHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSlotGetProcedure:
-			truthcoinServiceSlotGetHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSlotClaimProcedure:
-			truthcoinServiceSlotClaimHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSlotClaimCategoryProcedure:
-			truthcoinServiceSlotClaimCategoryHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetVoterAddressProcedure:
-			truthcoinServiceGetVoterAddressHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVoteVoterProcedure:
-			truthcoinServiceVoteVoterHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVoteVotersProcedure:
-			truthcoinServiceVoteVotersHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVoteSubmitProcedure:
-			truthcoinServiceVoteSubmitHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVoteListProcedure:
-			truthcoinServiceVoteListHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVotePeriodProcedure:
-			truthcoinServiceVotePeriodHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVotecoinTransferProcedure:
-			truthcoinServiceVotecoinTransferHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVotecoinBalanceProcedure:
-			truthcoinServiceVotecoinBalanceHandler.ServeHTTP(w, r)
-		case TruthcoinServiceTransferVotecoinProcedure:
-			truthcoinServiceTransferVotecoinHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetNewEncryptionKeyProcedure:
-			truthcoinServiceGetNewEncryptionKeyHandler.ServeHTTP(w, r)
-		case TruthcoinServiceGetNewVerifyingKeyProcedure:
-			truthcoinServiceGetNewVerifyingKeyHandler.ServeHTTP(w, r)
-		case TruthcoinServiceEncryptMsgProcedure:
-			truthcoinServiceEncryptMsgHandler.ServeHTTP(w, r)
-		case TruthcoinServiceDecryptMsgProcedure:
-			truthcoinServiceDecryptMsgHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSignArbitraryMsgProcedure:
-			truthcoinServiceSignArbitraryMsgHandler.ServeHTTP(w, r)
-		case TruthcoinServiceSignArbitraryMsgAsAddrProcedure:
-			truthcoinServiceSignArbitraryMsgAsAddrHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVerifySignatureProcedure:
-			truthcoinServiceVerifySignatureHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedTruthcoinServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTruthcoinServiceHandler struct{}
 
-func (UnimplementedTruthcoinServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetBalance is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetBalance is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetBlockCount is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetBlockCount is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.Stop is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.Stop is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetNewAddress is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetNewAddress is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.Withdraw is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.Withdraw is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.Transfer is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.Transfer is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetSidechainWealth is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetSidechainWealth is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.CreateDeposit is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.CreateDeposit is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetPendingWithdrawalBundle is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetPendingWithdrawalBundle is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.ConnectPeer is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.ConnectPeer is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.ListPeers is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.ListPeers is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.Mine is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.Mine is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetBlock is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetBlock is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetBestMainchainBlockHash is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetBestMainchainBlockHash is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetBestSidechainBlockHash is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetBestSidechainBlockHash is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetBmmInclusions is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetBmmInclusions is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetWalletUtxos is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetWalletUtxos is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.ListUtxos is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.ListUtxos is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.RemoveFromMempool is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.RemoveFromMempool is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetLatestFailedWithdrawalBundleHeight is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetLatestFailedWithdrawalBundleHeight is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GenerateMnemonic is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GenerateMnemonic is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SetSeedFromMnemonic is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SetSeedFromMnemonic is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.CallRaw is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.CallRaw is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) RefreshWallet(context.Context, *connect.Request[v1.RefreshWalletRequest]) (*connect.Response[v1.RefreshWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.RefreshWallet is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) RefreshWallet(context.Context, *v1.RefreshWalletRequest) (*v1.RefreshWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.RefreshWallet is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetTransaction is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetTransaction is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetTransactionInfo(context.Context, *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetTransactionInfo is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetTransactionInfo(context.Context, *v1.GetTransactionInfoRequest) (*v1.GetTransactionInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetTransactionInfo is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetWalletAddresses(context.Context, *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetWalletAddresses is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetWalletAddresses is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MyUtxos(context.Context, *connect.Request[v1.MyUtxosRequest]) (*connect.Response[v1.MyUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MyUtxos is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MyUtxos(context.Context, *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MyUtxos is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MyUnconfirmedUtxos(context.Context, *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MyUnconfirmedUtxos is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MyUnconfirmedUtxos is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) CalculateInitialLiquidity(context.Context, *connect.Request[v1.CalculateInitialLiquidityRequest]) (*connect.Response[v1.CalculateInitialLiquidityResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.CalculateInitialLiquidity is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) CalculateInitialLiquidity(context.Context, *v1.CalculateInitialLiquidityRequest) (*v1.CalculateInitialLiquidityResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.CalculateInitialLiquidity is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MarketCreate(context.Context, *connect.Request[v1.MarketCreateRequest]) (*connect.Response[v1.MarketCreateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketCreate is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MarketCreate(context.Context, *v1.MarketCreateRequest) (*v1.MarketCreateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MarketCreate is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MarketList(context.Context, *connect.Request[v1.MarketListRequest]) (*connect.Response[v1.MarketListResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketList is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MarketList(context.Context, *v1.MarketListRequest) (*v1.MarketListResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MarketList is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MarketGet(context.Context, *connect.Request[v1.MarketGetRequest]) (*connect.Response[v1.MarketGetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketGet is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MarketGet(context.Context, *v1.MarketGetRequest) (*v1.MarketGetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MarketGet is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MarketBuy(context.Context, *connect.Request[v1.MarketBuyRequest]) (*connect.Response[v1.MarketBuyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketBuy is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MarketBuy(context.Context, *v1.MarketBuyRequest) (*v1.MarketBuyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MarketBuy is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MarketSell(context.Context, *connect.Request[v1.MarketSellRequest]) (*connect.Response[v1.MarketSellResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketSell is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MarketSell(context.Context, *v1.MarketSellRequest) (*v1.MarketSellResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MarketSell is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MarketPositions(context.Context, *connect.Request[v1.MarketPositionsRequest]) (*connect.Response[v1.MarketPositionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketPositions is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MarketPositions(context.Context, *v1.MarketPositionsRequest) (*v1.MarketPositionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MarketPositions is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) MarketAmplifyBeta(context.Context, *connect.Request[v1.MarketAmplifyBetaRequest]) (*connect.Response[v1.MarketAmplifyBetaResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.MarketAmplifyBeta is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) MarketAmplifyBeta(context.Context, *v1.MarketAmplifyBetaRequest) (*v1.MarketAmplifyBetaResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.MarketAmplifyBeta is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SlotStatus(context.Context, *connect.Request[v1.SlotStatusRequest]) (*connect.Response[v1.SlotStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotStatus is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SlotStatus(context.Context, *v1.SlotStatusRequest) (*v1.SlotStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SlotStatus is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SlotList(context.Context, *connect.Request[v1.SlotListRequest]) (*connect.Response[v1.SlotListResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotList is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SlotList(context.Context, *v1.SlotListRequest) (*v1.SlotListResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SlotList is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SlotGet(context.Context, *connect.Request[v1.SlotGetRequest]) (*connect.Response[v1.SlotGetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotGet is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SlotGet(context.Context, *v1.SlotGetRequest) (*v1.SlotGetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SlotGet is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SlotClaim(context.Context, *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotClaim is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SlotClaim(context.Context, *v1.SlotClaimRequest) (*v1.SlotClaimResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SlotClaim is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotClaimCategory is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SlotClaimCategory(context.Context, *v1.SlotClaimCategoryRequest) (*v1.SlotClaimCategoryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SlotClaimCategory is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetVoterAddress(context.Context, *connect.Request[v1.GetVoterAddressRequest]) (*connect.Response[v1.GetVoterAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetVoterAddress is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetVoterAddress(context.Context, *v1.GetVoterAddressRequest) (*v1.GetVoterAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetVoterAddress is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VoteVoter is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VoteVoter(context.Context, *v1.VoteVoterRequest) (*v1.VoteVoterResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VoteVoter is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VoteVoters(context.Context, *connect.Request[v1.VoteVotersRequest]) (*connect.Response[v1.VoteVotersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VoteVoters is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VoteVoters(context.Context, *v1.VoteVotersRequest) (*v1.VoteVotersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VoteVoters is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VoteSubmit(context.Context, *connect.Request[v1.VoteSubmitRequest]) (*connect.Response[v1.VoteSubmitResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VoteSubmit is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VoteSubmit(context.Context, *v1.VoteSubmitRequest) (*v1.VoteSubmitResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VoteSubmit is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VoteList(context.Context, *connect.Request[v1.VoteListRequest]) (*connect.Response[v1.VoteListResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VoteList is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VoteList(context.Context, *v1.VoteListRequest) (*v1.VoteListResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VoteList is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VotePeriod(context.Context, *connect.Request[v1.VotePeriodRequest]) (*connect.Response[v1.VotePeriodResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VotePeriod is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VotePeriod(context.Context, *v1.VotePeriodRequest) (*v1.VotePeriodResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VotePeriod is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VotecoinTransfer(context.Context, *connect.Request[v1.VotecoinTransferRequest]) (*connect.Response[v1.VotecoinTransferResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VotecoinTransfer is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VotecoinTransfer(context.Context, *v1.VotecoinTransferRequest) (*v1.VotecoinTransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VotecoinTransfer is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VotecoinBalance(context.Context, *connect.Request[v1.VotecoinBalanceRequest]) (*connect.Response[v1.VotecoinBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VotecoinBalance is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VotecoinBalance(context.Context, *v1.VotecoinBalanceRequest) (*v1.VotecoinBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VotecoinBalance is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) TransferVotecoin(context.Context, *connect.Request[v1.TransferVotecoinRequest]) (*connect.Response[v1.TransferVotecoinResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.TransferVotecoin is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) TransferVotecoin(context.Context, *v1.TransferVotecoinRequest) (*v1.TransferVotecoinResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.TransferVotecoin is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetNewEncryptionKey(context.Context, *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetNewEncryptionKey is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetNewEncryptionKey is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) GetNewVerifyingKey(context.Context, *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.GetNewVerifyingKey is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.GetNewVerifyingKey is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.EncryptMsg is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.EncryptMsg is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) DecryptMsg(context.Context, *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.DecryptMsg is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.DecryptMsg is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SignArbitraryMsg is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SignArbitraryMsg is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) SignArbitraryMsgAsAddr(context.Context, *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SignArbitraryMsgAsAddr is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.SignArbitraryMsgAsAddr is not implemented")
 }
 
-func (UnimplementedTruthcoinServiceHandler) VerifySignature(context.Context, *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VerifySignature is not implemented"))
+func (UnimplementedTruthcoinServiceHandler) VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "truthcoin.v1.TruthcoinService.VerifySignature is not implemented")
+}
+
+type truthcoinServiceClient struct {
+	client *connect.Client
+}
+
+func (c *truthcoinServiceClient) GetBalance(ctx context.Context, req *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	var res v1.GetBalanceResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetBlockCount(ctx context.Context, req *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	var res v1.GetBlockCountResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetBlockCountSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) Stop(ctx context.Context, req *v1.StopRequest) (*v1.StopResponse, error) {
+	var res v1.StopResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceStopSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetNewAddress(ctx context.Context, req *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	var res v1.GetNewAddressResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetNewAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) Withdraw(ctx context.Context, req *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	var res v1.WithdrawResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceWithdrawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) Transfer(ctx context.Context, req *v1.TransferRequest) (*v1.TransferResponse, error) {
+	var res v1.TransferResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetSidechainWealth(ctx context.Context, req *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	var res v1.GetSidechainWealthResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetSidechainWealthSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) CreateDeposit(ctx context.Context, req *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	var res v1.CreateDepositResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceCreateDepositSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	var res v1.GetPendingWithdrawalBundleResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetPendingWithdrawalBundleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) ConnectPeer(ctx context.Context, req *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	var res v1.ConnectPeerResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceConnectPeerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) ListPeers(ctx context.Context, req *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	var res v1.ListPeersResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceListPeersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) Mine(ctx context.Context, req *v1.MineRequest) (*v1.MineResponse, error) {
+	var res v1.MineResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMineSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetBlock(ctx context.Context, req *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	var res v1.GetBlockResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetBlockSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	var res v1.GetBestMainchainBlockHashResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetBestMainchainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	var res v1.GetBestSidechainBlockHashResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetBestSidechainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetBmmInclusions(ctx context.Context, req *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	var res v1.GetBmmInclusionsResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetBmmInclusionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetWalletUtxos(ctx context.Context, req *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	var res v1.GetWalletUtxosResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetWalletUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) ListUtxos(ctx context.Context, req *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	var res v1.ListUtxosResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceListUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) RemoveFromMempool(ctx context.Context, req *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	var res v1.RemoveFromMempoolResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceRemoveFromMempoolSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	var res v1.GetLatestFailedWithdrawalBundleHeightResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetLatestFailedWithdrawalBundleHeightSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GenerateMnemonic(ctx context.Context, req *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	var res v1.GenerateMnemonicResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGenerateMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SetSeedFromMnemonic(ctx context.Context, req *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	var res v1.SetSeedFromMnemonicResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSetSeedFromMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) CallRaw(ctx context.Context, req *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	var res v1.CallRawResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceCallRawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) RefreshWallet(ctx context.Context, req *v1.RefreshWalletRequest) (*v1.RefreshWalletResponse, error) {
+	var res v1.RefreshWalletResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceRefreshWalletSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetTransaction(ctx context.Context, req *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error) {
+	var res v1.GetTransactionResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetTransactionInfo(ctx context.Context, req *v1.GetTransactionInfoRequest) (*v1.GetTransactionInfoResponse, error) {
+	var res v1.GetTransactionInfoResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetTransactionInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetWalletAddresses(ctx context.Context, req *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error) {
+	var res v1.GetWalletAddressesResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetWalletAddressesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MyUtxos(ctx context.Context, req *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error) {
+	var res v1.MyUtxosResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMyUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MyUnconfirmedUtxos(ctx context.Context, req *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error) {
+	var res v1.MyUnconfirmedUtxosResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMyUnconfirmedUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) CalculateInitialLiquidity(ctx context.Context, req *v1.CalculateInitialLiquidityRequest) (*v1.CalculateInitialLiquidityResponse, error) {
+	var res v1.CalculateInitialLiquidityResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceCalculateInitialLiquiditySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MarketCreate(ctx context.Context, req *v1.MarketCreateRequest) (*v1.MarketCreateResponse, error) {
+	var res v1.MarketCreateResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMarketCreateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MarketList(ctx context.Context, req *v1.MarketListRequest) (*v1.MarketListResponse, error) {
+	var res v1.MarketListResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMarketListSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MarketGet(ctx context.Context, req *v1.MarketGetRequest) (*v1.MarketGetResponse, error) {
+	var res v1.MarketGetResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMarketGetSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MarketBuy(ctx context.Context, req *v1.MarketBuyRequest) (*v1.MarketBuyResponse, error) {
+	var res v1.MarketBuyResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMarketBuySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MarketSell(ctx context.Context, req *v1.MarketSellRequest) (*v1.MarketSellResponse, error) {
+	var res v1.MarketSellResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMarketSellSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MarketPositions(ctx context.Context, req *v1.MarketPositionsRequest) (*v1.MarketPositionsResponse, error) {
+	var res v1.MarketPositionsResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMarketPositionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) MarketAmplifyBeta(ctx context.Context, req *v1.MarketAmplifyBetaRequest) (*v1.MarketAmplifyBetaResponse, error) {
+	var res v1.MarketAmplifyBetaResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceMarketAmplifyBetaSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SlotStatus(ctx context.Context, req *v1.SlotStatusRequest) (*v1.SlotStatusResponse, error) {
+	var res v1.SlotStatusResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSlotStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SlotList(ctx context.Context, req *v1.SlotListRequest) (*v1.SlotListResponse, error) {
+	var res v1.SlotListResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSlotListSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SlotGet(ctx context.Context, req *v1.SlotGetRequest) (*v1.SlotGetResponse, error) {
+	var res v1.SlotGetResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSlotGetSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SlotClaim(ctx context.Context, req *v1.SlotClaimRequest) (*v1.SlotClaimResponse, error) {
+	var res v1.SlotClaimResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSlotClaimSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SlotClaimCategory(ctx context.Context, req *v1.SlotClaimCategoryRequest) (*v1.SlotClaimCategoryResponse, error) {
+	var res v1.SlotClaimCategoryResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSlotClaimCategorySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetVoterAddress(ctx context.Context, req *v1.GetVoterAddressRequest) (*v1.GetVoterAddressResponse, error) {
+	var res v1.GetVoterAddressResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetVoterAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VoteVoter(ctx context.Context, req *v1.VoteVoterRequest) (*v1.VoteVoterResponse, error) {
+	var res v1.VoteVoterResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVoteVoterSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VoteVoters(ctx context.Context, req *v1.VoteVotersRequest) (*v1.VoteVotersResponse, error) {
+	var res v1.VoteVotersResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVoteVotersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VoteSubmit(ctx context.Context, req *v1.VoteSubmitRequest) (*v1.VoteSubmitResponse, error) {
+	var res v1.VoteSubmitResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVoteSubmitSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VoteList(ctx context.Context, req *v1.VoteListRequest) (*v1.VoteListResponse, error) {
+	var res v1.VoteListResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVoteListSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VotePeriod(ctx context.Context, req *v1.VotePeriodRequest) (*v1.VotePeriodResponse, error) {
+	var res v1.VotePeriodResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVotePeriodSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VotecoinTransfer(ctx context.Context, req *v1.VotecoinTransferRequest) (*v1.VotecoinTransferResponse, error) {
+	var res v1.VotecoinTransferResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVotecoinTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VotecoinBalance(ctx context.Context, req *v1.VotecoinBalanceRequest) (*v1.VotecoinBalanceResponse, error) {
+	var res v1.VotecoinBalanceResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVotecoinBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) TransferVotecoin(ctx context.Context, req *v1.TransferVotecoinRequest) (*v1.TransferVotecoinResponse, error) {
+	var res v1.TransferVotecoinResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceTransferVotecoinSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetNewEncryptionKey(ctx context.Context, req *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error) {
+	var res v1.GetNewEncryptionKeyResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetNewEncryptionKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) GetNewVerifyingKey(ctx context.Context, req *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error) {
+	var res v1.GetNewVerifyingKeyResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceGetNewVerifyingKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) EncryptMsg(ctx context.Context, req *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error) {
+	var res v1.EncryptMsgResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceEncryptMsgSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) DecryptMsg(ctx context.Context, req *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error) {
+	var res v1.DecryptMsgResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceDecryptMsgSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SignArbitraryMsg(ctx context.Context, req *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error) {
+	var res v1.SignArbitraryMsgResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSignArbitraryMsgSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) SignArbitraryMsgAsAddr(ctx context.Context, req *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error) {
+	var res v1.SignArbitraryMsgAsAddrResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceSignArbitraryMsgAsAddrSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *truthcoinServiceClient) VerifySignature(ctx context.Context, req *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error) {
+	var res v1.VerifySignatureResponse
+	if err := c.client.CallUnary(ctx, truthcoinServiceVerifySignatureSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type truthcoinServiceHandler struct{ svc TruthcoinServiceHandler }
+
+func (h truthcoinServiceHandler) getBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getBlockCount(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockCountRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlockCount(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) stop(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Stop(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getNewAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) withdraw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WithdrawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Withdraw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) transfer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TransferRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Transfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getSidechainWealth(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainWealthRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSidechainWealth(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) createDeposit(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDepositRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDeposit(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getPendingWithdrawalBundle(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPendingWithdrawalBundleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPendingWithdrawalBundle(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) connectPeer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConnectPeerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ConnectPeer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) listPeers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPeersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPeers(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) mine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Mine(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlock(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getBestMainchainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestMainchainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestMainchainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getBestSidechainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestSidechainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestSidechainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getBmmInclusions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBmmInclusionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBmmInclusions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getWalletUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) listUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) removeFromMempool(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveFromMempoolRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveFromMempool(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getLatestFailedWithdrawalBundleHeight(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetLatestFailedWithdrawalBundleHeightRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLatestFailedWithdrawalBundleHeight(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) generateMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GenerateMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GenerateMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) setSeedFromMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetSeedFromMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetSeedFromMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) callRaw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CallRawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CallRaw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) refreshWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RefreshWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RefreshWallet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getTransactionInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTransactionInfoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTransactionInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getWalletAddresses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletAddressesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletAddresses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) myUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MyUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MyUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) myUnconfirmedUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MyUnconfirmedUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MyUnconfirmedUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) calculateInitialLiquidity(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CalculateInitialLiquidityRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CalculateInitialLiquidity(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) marketCreate(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MarketCreateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarketCreate(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) marketList(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MarketListRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarketList(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) marketGet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MarketGetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarketGet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) marketBuy(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MarketBuyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarketBuy(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) marketSell(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MarketSellRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarketSell(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) marketPositions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MarketPositionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarketPositions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) marketAmplifyBeta(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MarketAmplifyBetaRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarketAmplifyBeta(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) slotStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SlotStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SlotStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) slotList(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SlotListRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SlotList(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) slotGet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SlotGetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SlotGet(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) slotClaim(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SlotClaimRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SlotClaim(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) slotClaimCategory(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SlotClaimCategoryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SlotClaimCategory(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getVoterAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetVoterAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetVoterAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) voteVoter(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VoteVoterRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VoteVoter(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) voteVoters(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VoteVotersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VoteVoters(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) voteSubmit(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VoteSubmitRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VoteSubmit(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) voteList(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VoteListRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VoteList(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) votePeriod(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VotePeriodRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VotePeriod(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) votecoinTransfer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VotecoinTransferRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VotecoinTransfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) votecoinBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VotecoinBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VotecoinBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) transferVotecoin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TransferVotecoinRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.TransferVotecoin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getNewEncryptionKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewEncryptionKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewEncryptionKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) getNewVerifyingKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewVerifyingKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewVerifyingKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) encryptMsg(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EncryptMsgRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EncryptMsg(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) decryptMsg(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DecryptMsgRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DecryptMsg(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) signArbitraryMsg(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignArbitraryMsgRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignArbitraryMsg(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) signArbitraryMsgAsAddr(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignArbitraryMsgAsAddrRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignArbitraryMsgAsAddr(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h truthcoinServiceHandler) verifySignature(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VerifySignatureRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VerifySignature(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

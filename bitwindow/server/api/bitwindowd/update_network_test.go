@@ -2,13 +2,13 @@ package bitwindowd_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/require"
 
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
@@ -29,30 +29,33 @@ type migrationNetworkServer struct {
 	calls       chan string
 }
 
-func (s *migrationNetworkServer) PlanECashSwitch(_ context.Context, req *connect.Request[orchpb.PlanECashSwitchRequest]) (*connect.Response[orchpb.PlanECashSwitchResponse], error) {
-	s.calls <- "plan:" + req.Msg.NetworkId
-	return connect.NewResponse(s.plan), nil
+func (s *migrationNetworkServer) PlanECashSwitch(_ context.Context, req *orchpb.PlanECashSwitchRequest) (*orchpb.PlanECashSwitchResponse, error) {
+	s.calls <- "plan:" + req.NetworkId
+	return s.plan, nil
 }
 
-func (s *migrationNetworkServer) GetECashMigrationStatus(context.Context, *connect.Request[orchpb.GetECashMigrationStatusRequest]) (*connect.Response[orchpb.GetECashMigrationStatusResponse], error) {
+func (s *migrationNetworkServer) GetECashMigrationStatus(context.Context, *orchpb.GetECashMigrationStatusRequest) (*orchpb.GetECashMigrationStatusResponse, error) {
 	s.calls <- "status"
 	if s.statusError != nil {
 		return nil, s.statusError
 	}
-	return connect.NewResponse(&orchpb.GetECashMigrationStatusResponse{Status: s.status}), nil
+	return &orchpb.GetECashMigrationStatusResponse{Status: s.status}, nil
 }
 
-func (s *migrationNetworkServer) SetBitcoinConfigNetwork(_ context.Context, req *connect.Request[orchpb.SetBitcoinConfigNetworkRequest]) (*connect.Response[orchpb.SetBitcoinConfigNetworkResponse], error) {
-	s.calls <- "select:" + req.Msg.Network
-	return connect.NewResponse(&orchpb.SetBitcoinConfigNetworkResponse{}), nil
+func (s *migrationNetworkServer) SetBitcoinConfigNetwork(_ context.Context, req *orchpb.SetBitcoinConfigNetworkRequest) (*orchpb.SetBitcoinConfigNetworkResponse, error) {
+	s.calls <- "select:" + req.Network
+	return &orchpb.SetBitcoinConfigNetworkResponse{}, nil
 }
 
 func newMigrationNetworkServer(t *testing.T, handler *migrationNetworkServer) string {
 	t.Helper()
 	handler.calls = make(chan string, 10)
 	mux := http.NewServeMux()
-	mux.Handle(orchrpc.NewBitcoinConfServiceHandler(handler))
-	mux.Handle(orchrpc.NewOrchestratorServiceHandler(handler))
+	srv := connect.NewServer()
+	orchrpc.RegisterBitcoinConfServiceHandler(srv, handler)
+	orchrpc.RegisterOrchestratorServiceHandler(srv, handler)
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
+
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	return server.URL
@@ -125,7 +128,7 @@ func TestUpdateNetworkKeepsCompletedMigrationRows(t *testing.T) {
 				return engines.ResetChainData(ctx, db, height)
 			})
 
-			_, err = server.UpdateNetwork(t.Context(), connect.NewRequest(&pb.UpdateNetworkRequest{Network: "ecash", NetworkId: "betanet"}))
+			_, err = server.UpdateNetwork(t.Context(), &pb.UpdateNetworkRequest{Network: "ecash", NetworkId: "betanet"})
 			require.NoError(t, err)
 			for _, table := range []string{"processed_blocks", "op_returns"} {
 				var heights string
@@ -149,7 +152,7 @@ func TestUpdateNetworkKeepsCompletedMigrationRows(t *testing.T) {
 func TestUpdateNetworkReturnsMigrationStatusError(t *testing.T) {
 	handler := &migrationNetworkServer{
 		plan:        &orchpb.PlanECashSwitchResponse{FromId: "betanet", ToId: "betanet"},
-		statusError: connect.NewError(connect.CodeUnavailable, errors.New("The migration status is unavailable.")),
+		statusError: connect.NewError(connect.CodeUnavailable, "The migration status is unavailable."),
 	}
 	conf := config.Config{Datadir: t.TempDir(), OrchestratorAddr: newMigrationNetworkServer(t, handler)}
 	server := api_bitwindowd.New(nil, nil, nil, nil, nil, nil, conf, func(context.Context, config.Network, string, uint32) error {
@@ -157,7 +160,7 @@ func TestUpdateNetworkReturnsMigrationStatusError(t *testing.T) {
 		return nil
 	})
 
-	_, err := server.UpdateNetwork(t.Context(), connect.NewRequest(&pb.UpdateNetworkRequest{Network: "ecash", NetworkId: "betanet"}))
+	_, err := server.UpdateNetwork(t.Context(), &pb.UpdateNetworkRequest{Network: "ecash", NetworkId: "betanet"})
 	require.ErrorContains(t, err, "The migration status is unavailable.")
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	var calls []string

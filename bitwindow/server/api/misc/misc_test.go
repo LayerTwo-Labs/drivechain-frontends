@@ -12,7 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -39,11 +40,11 @@ func TestService_ListOPReturn(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListOPReturn(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListOPReturn(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.OpReturns)
+		assert.Empty(t, resp.OpReturns)
 	})
 
 	t.Run("list op returns with data", func(t *testing.T) {
@@ -63,15 +64,15 @@ func TestService_ListOPReturn(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListOPReturn(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListOPReturn(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.OpReturns, 1)
-		assert.Equal(t, "test message", resp.Msg.OpReturns[0].Message)
-		assert.Equal(t, "txid1", resp.Msg.OpReturns[0].Txid)
-		assert.EqualValues(t, 0, resp.Msg.OpReturns[0].Vout)
-		assert.EqualValues(t, 100, lo.FromPtr(resp.Msg.OpReturns[0].Height))
+		require.Len(t, resp.OpReturns, 1)
+		assert.Equal(t, "test message", resp.OpReturns[0].Message)
+		assert.Equal(t, "txid1", resp.OpReturns[0].Txid)
+		assert.EqualValues(t, 0, resp.OpReturns[0].Vout)
+		assert.EqualValues(t, 100, lo.FromPtr(resp.OpReturns[0].Height))
 	})
 }
 
@@ -87,37 +88,35 @@ func TestService_BroadcastNews(t *testing.T) {
 
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "test-txid"}, nil)
 
 		database := database.Test(t)
 		ctx := t.Context()
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		resp, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
-		}))
+		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Txid)
 	})
 
 	t.Run("broadcast news with empty topic", func(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    "",
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
-		}))
+		})
 		require.ErrorContains(t, err, "topic must be set")
 	})
 
@@ -125,13 +124,13 @@ func TestService_BroadcastNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    "123456", // Too short, should be 8 hex characters (4 bytes)
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
-		}))
+		})
 		require.ErrorContains(t, err, "is not 4 bytes")
 	})
 
@@ -145,13 +144,13 @@ func TestService_BroadcastNews(t *testing.T) {
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "",
 			Content:  "https://example.com/news",
-		}))
+		})
 		require.ErrorContains(t, err, "headline must be set")
 	})
 
@@ -163,17 +162,17 @@ func TestService_BroadcastNews(t *testing.T) {
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
 		// Whitespace-only headlines previously passed validation, got
 		// stored as spaces, and rendered blank in the UI Title column.
 		for _, h := range []string{"   ", "\t", "\n", " \t "} {
 			t.Run(fmt.Sprintf("%q", h), func(t *testing.T) {
-				_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+				_, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 					Topic:    topicID.String(),
 					Headline: h,
 					Content:  "content",
-				}))
+				})
 				require.ErrorContains(t, err, "headline must be set")
 			})
 		}
@@ -188,14 +187,14 @@ func TestService_BroadcastNews(t *testing.T) {
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
 		longHeadline := strings.Repeat("a", 65) // 65 characters, exceeds 64 limit
-		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: longHeadline,
 			Content:  "https://example.com/news",
-		}))
+		})
 		require.ErrorContains(t, err, "headline cannot be longer than 64 bytes")
 	})
 
@@ -203,13 +202,13 @@ func TestService_BroadcastNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		_, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    "87654321", // Non-existent topic (4 bytes)
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
-		}))
+		})
 		require.ErrorContains(t, err, "topic does not exist")
 	})
 
@@ -224,23 +223,21 @@ func TestService_BroadcastNews(t *testing.T) {
 
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "test-txid"}, nil)
 
 		database := database.Test(t)
 		ctx := t.Context()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		resp, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  "This is the news content",
-		}))
+		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Txid)
 	})
 
 	t.Run("broadcast news with hex content", func(t *testing.T) {
@@ -252,25 +249,23 @@ func TestService_BroadcastNews(t *testing.T) {
 
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "test-txid"}, nil)
 
 		database := database.Test(t)
 		ctx := t.Context()
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		hexContent := hex.EncodeToString([]byte("hex content"))
-		resp, err := cli.BroadcastNews(t.Context(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+		resp, err := cli.BroadcastNews(t.Context(), &miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  hexContent,
-		}))
+		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Txid)
 	})
 }
 
@@ -285,70 +280,68 @@ func TestService_VotesAndComments(t *testing.T) {
 		apitests.ExpectOrchestratorReads(mockOrch)
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
-			}, nil).AnyTimes()
+			Return(&orchpb.SendTransactionResponse{Txid: "test-txid"}, nil).AnyTimes()
 		return mockOrch
 	}
 
 	t.Run("upvote success", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.UpvoteNews(t.Context(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
+		resp, err := cli.UpvoteNews(t.Context(), &miscv1.UpvoteNewsRequest{ItemId: validItemID})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Txid)
 	})
 
 	t.Run("downvote success", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.DownvoteNews(t.Context(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
+		resp, err := cli.DownvoteNews(t.Context(), &miscv1.UpvoteNewsRequest{ItemId: validItemID})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Txid)
 	})
 
 	t.Run("vote rejects malformed item_id", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		_, err := cli.UpvoteNews(t.Context(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: "nothex"}))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t)))
+		_, err := cli.UpvoteNews(t.Context(), &miscv1.UpvoteNewsRequest{ItemId: "nothex"})
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		assert.Contains(t, err.Error(), "item_id must be")
 	})
 
 	t.Run("comment rejects a short parent_id", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		_, err := cli.CommentNews(t.Context(), connect.NewRequest(&miscv1.CommentNewsRequest{ParentId: "abcd", Body: "hi"}))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t)))
+		_, err := cli.CommentNews(t.Context(), &miscv1.CommentNewsRequest{ParentId: "abcd", Body: "hi"})
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		assert.Contains(t, err.Error(), "parent_id must be")
 	})
 
 	t.Run("list comments rejects a malformed item_id", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		_, err := cli.ListComments(t.Context(), connect.NewRequest(&miscv1.ListCommentsRequest{ItemId: "nothex"}))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t)))
+		_, err := cli.ListComments(t.Context(), &miscv1.ListCommentsRequest{ItemId: "nothex"})
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		assert.Contains(t, err.Error(), "item_id must be")
 	})
 
 	t.Run("comment success", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.CommentNews(t.Context(), connect.NewRequest(&miscv1.CommentNewsRequest{
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
+		resp, err := cli.CommentNews(t.Context(), &miscv1.CommentNewsRequest{
 			ParentId: validItemID,
 			Body:     "great article",
-		}))
+		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Txid)
 	})
 
 	t.Run("comment rejects empty body and url", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		_, err := cli.CommentNews(t.Context(), connect.NewRequest(&miscv1.CommentNewsRequest{
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t)))
+		_, err := cli.CommentNews(t.Context(), &miscv1.CommentNewsRequest{
 			ParentId: validItemID,
 			Body:     "  ",
-		}))
+		})
 		require.ErrorContains(t, err, "body or url")
 	})
 
@@ -358,16 +351,16 @@ func TestService_VotesAndComments(t *testing.T) {
 		apitests.ExpectOrchestratorReads(mockOrch)
 		mockOrch.EXPECT().
 			EstimateFee(gomock.Any(), gomock.Any()).
-			Return(connect.NewResponse(&orchpb.EstimateFeeResponse{SatPerVbyte: 1}), nil).
+			Return(&orchpb.EstimateFeeResponse{SatPerVbyte: 1}, nil).
 			AnyTimes()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(mockOrch)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t), apitests.WithOrchestrator(mockOrch)))
 
-		estimate := func(body, url string) (*connect.Response[miscv1.EstimateNewsFeeResponse], error) {
-			return cli.EstimateNewsFee(t.Context(), connect.NewRequest(&miscv1.EstimateNewsFeeRequest{
+		estimate := func(body, url string) (*miscv1.EstimateNewsFeeResponse, error) {
+			return cli.EstimateNewsFee(t.Context(), &miscv1.EstimateNewsFeeRequest{
 				Action: miscv1.NewsAction_NEWS_ACTION_COMMENT,
 				Body:   body,
 				Url:    url,
-			}))
+			})
 		}
 
 		urlOnly, err := estimate("", "https://example.com/a")
@@ -376,8 +369,8 @@ func TestService_VotesAndComments(t *testing.T) {
 		require.NoError(t, err)
 		both, err := estimate("hi", "https://example.com/a")
 		require.NoError(t, err)
-		assert.Greater(t, both.Msg.Vsize, bodyOnly.Msg.Vsize)
-		assert.Greater(t, both.Msg.Vsize, urlOnly.Msg.Vsize)
+		assert.Greater(t, both.Vsize, bodyOnly.Vsize)
+		assert.Greater(t, both.Vsize, urlOnly.Vsize)
 
 		_, err = estimate("  ", "")
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -386,10 +379,10 @@ func TestService_VotesAndComments(t *testing.T) {
 
 	t.Run("list comments empty", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
-		resp, err := cli.ListComments(t.Context(), connect.NewRequest(&miscv1.ListCommentsRequest{ItemId: validItemID}))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t)))
+		resp, err := cli.ListComments(t.Context(), &miscv1.ListCommentsRequest{ItemId: validItemID})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Comments)
+		assert.Empty(t, resp.Comments)
 	})
 }
 
@@ -405,31 +398,29 @@ func TestService_CreateTopic(t *testing.T) {
 
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "test-txid"}, nil)
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		resp, err := cli.CreateTopic(t.Context(), &miscv1.CreateTopicRequest{
 			Topic: "deadbeef",
 			Name:  "Test Topic",
-		}))
+		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Txid)
 	})
 
 	t.Run("create topic with empty topic", func(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), &miscv1.CreateTopicRequest{
 			Topic: "",
 			Name:  "Test Topic",
-		}))
+		})
 		require.ErrorContains(t, err, "topic ID is empty")
 	})
 
@@ -437,12 +428,12 @@ func TestService_CreateTopic(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), &miscv1.CreateTopicRequest{
 			Topic: "123456", // Too short, should be 8 hex characters (4 bytes)
 			Name:  "Test Topic",
-		}))
+		})
 		require.ErrorContains(t, err, "is not 4 bytes")
 	})
 
@@ -450,12 +441,12 @@ func TestService_CreateTopic(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), &miscv1.CreateTopicRequest{
 			Topic: validTopicID().String(),
 			Name:  "",
-		}))
+		})
 		require.ErrorContains(t, err, "title must be set")
 	})
 
@@ -463,13 +454,13 @@ func TestService_CreateTopic(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
 		longName := bytes.Repeat(make([]byte, 65), 64) // 65 bytes, exceeds 64 limit
-		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), &miscv1.CreateTopicRequest{
 			Topic: validTopicID().String(),
 			Name:  string(longName),
-		}))
+		})
 		require.ErrorContains(t, err, "title cannot be longer than 64 bytes")
 	})
 
@@ -481,12 +472,12 @@ func TestService_CreateTopic(t *testing.T) {
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Existing Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.CreateTopic(t.Context(), connect.NewRequest(&miscv1.CreateTopicRequest{
+		_, err := cli.CreateTopic(t.Context(), &miscv1.CreateTopicRequest{
 			Topic: topicID.String(),
 			Name:  "New Topic",
-		}))
+		})
 		require.ErrorContains(t, err, "topic already exists")
 	})
 }
@@ -498,14 +489,14 @@ func TestService_ListTopics(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListTopics(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTopics(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
 		// A fresh DB ships the two bootstrap default topics.
-		require.Len(t, resp.Msg.Topics, 2)
-		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(tp *miscv1.Topic) bool { return tp.Name == "US Weekly" }))
-		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(tp *miscv1.Topic) bool { return tp.Name == "Japan Weekly" }))
+		require.Len(t, resp.Topics, 2)
+		assert.True(t, lo.ContainsBy(resp.Topics, func(tp *miscv1.Topic) bool { return tp.Name == "US Weekly" }))
+		assert.True(t, lo.ContainsBy(resp.Topics, func(tp *miscv1.Topic) bool { return tp.Name == "Japan Weekly" }))
 	})
 
 	t.Run("list topics with data", func(t *testing.T) {
@@ -518,16 +509,16 @@ func TestService_ListTopics(t *testing.T) {
 		topicID2 := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID2, "Bitcoin Weekly", 51)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListTopics(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTopics(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Topics, 4) // 2 seeded + 2 bootstrap defaults
+		require.Len(t, resp.Topics, 4) // 2 seeded + 2 bootstrap defaults
 
-		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(topic *miscv1.Topic) bool {
+		assert.True(t, lo.ContainsBy(resp.Topics, func(topic *miscv1.Topic) bool {
 			return topic.Topic == topicID1.String()
 		}), "topic 1 not found")
-		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(topic *miscv1.Topic) bool {
+		assert.True(t, lo.ContainsBy(resp.Topics, func(topic *miscv1.Topic) bool {
 			return topic.Topic == topicID2.String()
 		}), "topic 2 not found")
 	})
@@ -540,11 +531,11 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), &miscv1.ListCoinNewsRequest{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.CoinNews)
+		assert.Empty(t, resp.CoinNews)
 	})
 
 	t.Run("list coin news with data", func(t *testing.T) {
@@ -563,20 +554,20 @@ func TestService_ListCoinNews(t *testing.T) {
 		headline2 := "News Headline 2"
 		seedCurrentNews(t, ctx, database, topicID2, headline2, "Content for news 2", 4, time.Now().Add(-1*time.Hour))
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), &miscv1.ListCoinNewsRequest{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.CoinNews, 2)
+		require.Len(t, resp.CoinNews, 2)
 
 		// Ranked by §13 score: with no votes the older story scores
 		// higher (numerator −1 over a larger age denominator).
-		assert.Equal(t, topicID1.String(), resp.Msg.CoinNews[0].Topic)
-		assert.Equal(t, "News Headline 1", resp.Msg.CoinNews[0].Headline)
-		assert.Equal(t, "Content for news 1", resp.Msg.CoinNews[0].Content)
-		assert.Equal(t, topicID2.String(), resp.Msg.CoinNews[1].Topic)
-		assert.Equal(t, "News Headline 2", resp.Msg.CoinNews[1].Headline)
-		assert.Equal(t, "Content for news 2", resp.Msg.CoinNews[1].Content)
+		assert.Equal(t, topicID1.String(), resp.CoinNews[0].Topic)
+		assert.Equal(t, "News Headline 1", resp.CoinNews[0].Headline)
+		assert.Equal(t, "Content for news 1", resp.CoinNews[0].Content)
+		assert.Equal(t, topicID2.String(), resp.CoinNews[1].Topic)
+		assert.Equal(t, "News Headline 2", resp.CoinNews[1].Headline)
+		assert.Equal(t, "Content for news 2", resp.CoinNews[1].Content)
 	})
 
 	t.Run("list coin news filtered by topic", func(t *testing.T) {
@@ -597,17 +588,17 @@ func TestService_ListCoinNews(t *testing.T) {
 		headline2 := "News Headline 2"
 		seedCurrentNews(t, ctx, database, secondTopicID, headline2, "Content for news 2", 4, time.Now().Add(time.Second))
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
 		// Filter by topic
 		topic := firstTopicID.String()
-		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{
+		resp, err := cli.ListCoinNews(t.Context(), &miscv1.ListCoinNewsRequest{
 			Topic: &topic,
-		}))
+		})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.CoinNews, 1)
-		assert.Equal(t, topic, resp.Msg.CoinNews[0].Topic)
-		assert.Equal(t, "News Headline 1", resp.Msg.CoinNews[0].Headline)
+		require.Len(t, resp.CoinNews, 1)
+		assert.Equal(t, topic, resp.CoinNews[0].Topic)
+		assert.Equal(t, "News Headline 1", resp.CoinNews[0].Headline)
 	})
 
 	t.Run("list coin news ranked by score", func(t *testing.T) {
@@ -629,16 +620,16 @@ func TestService_ListCoinNews(t *testing.T) {
 		headline3 := "Latest News"
 		seedCurrentNews(t, ctx, database, firstTopicID, headline3, "Content for latest news", 5, time.Now().Add(-1*time.Hour))
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), &miscv1.ListCoinNewsRequest{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.CoinNews, 3)
+		require.Len(t, resp.CoinNews, 3)
 
 		// §13 ranking: with no votes, older stories score higher.
-		assert.Equal(t, "Old News", resp.Msg.CoinNews[0].Headline)
-		assert.Equal(t, "Recent News", resp.Msg.CoinNews[1].Headline)
-		assert.Equal(t, "Latest News", resp.Msg.CoinNews[2].Headline)
+		assert.Equal(t, "Old News", resp.CoinNews[0].Headline)
+		assert.Equal(t, "Recent News", resp.CoinNews[1].Headline)
+		assert.Equal(t, "Latest News", resp.CoinNews[2].Headline)
 	})
 
 	t.Run("list coin news limited to 100 entries", func(t *testing.T) {
@@ -657,12 +648,12 @@ func TestService_ListCoinNews(t *testing.T) {
 			seedCurrentNews(t, ctx, database, firstTopicID, headline, "Content for news", 3+i, time.Now().Add(time.Duration(i)*time.Second))
 		}
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		resp, err := cli.ListCoinNews(t.Context(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
+		resp, err := cli.ListCoinNews(t.Context(), &miscv1.ListCoinNewsRequest{})
 		require.NoError(t, err)
 		// Should be limited to 100 entries
-		assert.Len(t, resp.Msg.CoinNews, 100)
+		assert.Len(t, resp.CoinNews, 100)
 	})
 }
 
@@ -734,33 +725,31 @@ func TestService_TimestampFile(t *testing.T) {
 
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "timestamp-txid"}, nil)
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database, apitests.WithOrchestrator(mockOrch)))
 
-		resp, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		resp, err := cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "test-document.pdf",
 			FileData: []byte("This is the content of the test document"),
-		}))
+		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Id)
-		assert.NotEmpty(t, resp.Msg.FileHash)
-		assert.NotEmpty(t, resp.Msg.Txid)
+		assert.NotEmpty(t, resp.Id)
+		assert.NotEmpty(t, resp.FileHash)
+		assert.NotEmpty(t, resp.Txid)
 	})
 
 	t.Run("timestamp file with empty filename", func(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "",
 			FileData: []byte("content"),
-		}))
+		})
 		require.ErrorContains(t, err, "filename must be set")
 	})
 
@@ -768,12 +757,12 @@ func TestService_TimestampFile(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "test.pdf",
 			FileData: []byte{},
-		}))
+		})
 		require.ErrorContains(t, err, "file data must be set")
 	})
 
@@ -787,33 +776,31 @@ func TestService_TimestampFile(t *testing.T) {
 		// Only one transaction should be sent
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid"},
-			}, nil).
+			Return(&orchpb.SendTransactionResponse{Txid: "timestamp-txid"}, nil).
 			Times(1)
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		fileData := []byte("duplicate content")
 
 		// First timestamp
-		resp1, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		resp1, err := cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "first.pdf",
 			FileData: fileData,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Second timestamp with same content
-		resp2, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		resp2, err := cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "second.pdf",
 			FileData: fileData,
-		}))
+		})
 		require.NoError(t, err)
 
 		// Should return the same timestamp ID and hash
-		assert.Equal(t, resp1.Msg.Id, resp2.Msg.Id)
-		assert.Equal(t, resp1.Msg.FileHash, resp2.Msg.FileHash)
+		assert.Equal(t, resp1.Id, resp2.Id)
+		assert.Equal(t, resp1.FileHash, resp2.FileHash)
 	})
 }
 
@@ -829,20 +816,20 @@ func TestService_ListTimestamps(t *testing.T) {
 		// Background operations
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).
 			AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Required for ListTimestamps to get current block height
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Chain:  "signet",
 					Blocks: 1000,
@@ -851,11 +838,11 @@ func TestService_ListTimestamps(t *testing.T) {
 			AnyTimes()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTimestamps(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Timestamps)
+		assert.Empty(t, resp.Timestamps)
 	})
 
 	t.Run("list timestamps with data", func(t *testing.T) {
@@ -868,28 +855,26 @@ func TestService_ListTimestamps(t *testing.T) {
 
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid-1"},
-			}, nil).
+			Return(&orchpb.SendTransactionResponse{Txid: "timestamp-txid-1"}, nil).
 			Times(2)
 
 		// Background operations
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).
 			AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Required for ListTimestamps to get current block height
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Chain:  "signet",
 					Blocks: 1000,
@@ -898,27 +883,27 @@ func TestService_ListTimestamps(t *testing.T) {
 			AnyTimes()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database,
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database,
 			apitests.WithOrchestrator(mockOrch),
 			apitests.WithBitcoind(mockBitcoind),
 		))
 
 		// Create some timestamps
-		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "file1.pdf",
 			FileData: []byte("content 1"),
-		}))
+		})
 		require.NoError(t, err)
 
-		_, err = cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err = cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "file2.pdf",
 			FileData: []byte("content 2"),
-		}))
+		})
 		require.NoError(t, err)
 
-		resp, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTimestamps(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Timestamps, 2)
+		require.Len(t, resp.Timestamps, 2)
 	})
 }
 
@@ -933,12 +918,12 @@ func TestService_ListTimestampsBlockHeight(t *testing.T) {
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, errors.New("core is down"))).
+			Return(nil, connectv1.NewError(connectv1.CodeUnavailable, errors.New("core is down"))).
 			AnyTimes()
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
 
-		_, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.ListTimestamps(t.Context(), &emptypb.Empty{})
 		require.ErrorContains(t, err, "core is down")
 	})
 
@@ -949,22 +934,20 @@ func TestService_ListTimestampsBlockHeight(t *testing.T) {
 		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
 		mockOrch.EXPECT().
 			GetNodeMode(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.GetNodeModeResponse]{
-				Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT},
-			}, nil).
+			Return(&orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_LIGHT}, nil).
 			AnyTimes()
 		apitests.ExpectOrchestratorReads(mockOrch)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t),
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t),
 			apitests.WithOrchestrator(mockOrch),
 			apitests.WithBitcoind(mockBitcoind),
 		))
 
-		resp, err := cli.ListTimestamps(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		resp, err := cli.ListTimestamps(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Timestamps)
+		assert.Empty(t, resp.Timestamps)
 	})
 }
 
@@ -975,11 +958,11 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
+		_, err := cli.VerifyTimestamp(t.Context(), &miscv1.VerifyTimestampRequest{
 			FileData: []byte("unknown content"),
-		}))
+		})
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
@@ -987,11 +970,11 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database))
 
-		_, err := cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
+		_, err := cli.VerifyTimestamp(t.Context(), &miscv1.VerifyTimestampRequest{
 			FileData: []byte{},
-		}))
+		})
 		require.ErrorContains(t, err, "file data must be set")
 	})
 
@@ -1005,27 +988,25 @@ func TestService_VerifyTimestamp(t *testing.T) {
 
 		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[orchpb.SendTransactionResponse]{
-				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid"},
-			}, nil)
+			Return(&orchpb.SendTransactionResponse{Txid: "timestamp-txid"}, nil)
 
 		// Background operations
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
 				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
 			}, nil).
 			AnyTimes()
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Required for VerifyTimestamp to get current block height
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
 					Chain:  "signet",
 					Blocks: 1000,
@@ -1034,7 +1015,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 			AnyTimes()
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database,
+		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database,
 			apitests.WithOrchestrator(mockOrch),
 			apitests.WithBitcoind(mockBitcoind),
 		))
@@ -1042,16 +1023,16 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		fileData := []byte("content to verify")
 
 		// First create the timestamp
-		_, err := cli.TimestampFile(t.Context(), connect.NewRequest(&miscv1.TimestampFileRequest{
+		_, err := cli.TimestampFile(t.Context(), &miscv1.TimestampFileRequest{
 			Filename: "verify-test.pdf",
 			FileData: fileData,
-		}))
+		})
 		require.NoError(t, err)
 
-		verify := func() (*connect.Response[miscv1.VerifyTimestampResponse], error) {
-			return cli.VerifyTimestamp(t.Context(), connect.NewRequest(&miscv1.VerifyTimestampRequest{
+		verify := func() (*miscv1.VerifyTimestampResponse, error) {
+			return cli.VerifyTimestamp(t.Context(), &miscv1.VerifyTimestampRequest{
 				FileData: fileData,
-			}))
+			})
 		}
 
 		_, err = verify()
@@ -1072,7 +1053,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		require.NoError(t, timestamps.Update(t.Context(), database, rows[0].ID, nil, &height, timestamps.StatusConfirmed, &confirmedAt))
 		resp, err := verify()
 		require.NoError(t, err)
-		assert.NotNil(t, resp.Msg.Timestamp)
-		assert.Contains(t, resp.Msg.Message, "verified")
+		assert.NotNil(t, resp.Timestamp)
+		assert.Contains(t, resp.Message, "verified")
 	})
 }

@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/grpchealth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 )
 
@@ -24,18 +24,15 @@ func TestRemoteHealthFailureClearsStartupState(t *testing.T) {
 			checker := grpchealth.NewStaticChecker(service)
 			checker.SetStatus(service, grpchealth.StatusNotServing)
 			mux := http.NewServeMux()
-			path, handler := grpchealth.NewHandler(checker)
 			var checks atomic.Int32
+			path, handler := grpchealth.NewHandler(checker)
 			mux.Handle(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				handler.ServeHTTP(w, r)
 				checks.Add(1)
 			}))
-			mux.Handle(enforcerrpc.ValidatorServiceGetChainTipProcedure, connect.NewUnaryHandler(
-				enforcerrpc.ValidatorServiceGetChainTipProcedure,
-				func(context.Context, *connect.Request[enforcerpb.GetChainTipRequest]) (*connect.Response[enforcerpb.GetChainTipResponse], error) {
-					return connect.NewResponse(&enforcerpb.GetChainTipResponse{BlockHeaderInfo: &enforcerpb.BlockHeaderInfo{Height: 42}}), nil
-				},
-			))
+			rpcServer := connect.NewServer()
+			enforcerrpc.RegisterValidatorServiceHandler(rpcServer, remoteValidator{height: 42})
+			connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 			server := httptest.NewUnstartedServer(mux)
 			server.Config.Protocols = new(http.Protocols)
 			server.Config.Protocols.SetHTTP1(true)

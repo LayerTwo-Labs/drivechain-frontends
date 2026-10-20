@@ -5,413 +5,456 @@
 package bbcv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bbc/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BbcServiceName is the fully-qualified name of the BbcService service.
 	BbcServiceName = "bbc.v1.BbcService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BbcServiceGetBlockCountProcedure is the fully-qualified name of the BbcService's GetBlockCount
-	// RPC.
+	// BbcServiceGetBlockCountProcedure is the procedure name of the BbcService's GetBlockCount RPC.
 	BbcServiceGetBlockCountProcedure = "/bbc.v1.BbcService/GetBlockCount"
-	// BbcServiceGetBlockchainInfoProcedure is the fully-qualified name of the BbcService's
-	// GetBlockchainInfo RPC.
-	BbcServiceGetBlockchainInfoProcedure = "/bbc.v1.BbcService/GetBlockchainInfo"
-	// BbcServiceGetSidechainInfoProcedure is the fully-qualified name of the BbcService's
-	// GetSidechainInfo RPC.
-	BbcServiceGetSidechainInfoProcedure = "/bbc.v1.BbcService/GetSidechainInfo"
-	// BbcServiceGetMainchainTipProcedure is the fully-qualified name of the BbcService's
-	// GetMainchainTip RPC.
-	BbcServiceGetMainchainTipProcedure = "/bbc.v1.BbcService/GetMainchainTip"
-	// BbcServiceGetBmmCommitmentProcedure is the fully-qualified name of the BbcService's
-	// GetBmmCommitment RPC.
-	BbcServiceGetBmmCommitmentProcedure = "/bbc.v1.BbcService/GetBmmCommitment"
-	// BbcServiceGetNewAddressProcedure is the fully-qualified name of the BbcService's GetNewAddress
+	// BbcServiceGetBlockchainInfoProcedure is the procedure name of the BbcService's GetBlockchainInfo
 	// RPC.
+	BbcServiceGetBlockchainInfoProcedure = "/bbc.v1.BbcService/GetBlockchainInfo"
+	// BbcServiceGetSidechainInfoProcedure is the procedure name of the BbcService's GetSidechainInfo
+	// RPC.
+	BbcServiceGetSidechainInfoProcedure = "/bbc.v1.BbcService/GetSidechainInfo"
+	// BbcServiceGetMainchainTipProcedure is the procedure name of the BbcService's GetMainchainTip RPC.
+	BbcServiceGetMainchainTipProcedure = "/bbc.v1.BbcService/GetMainchainTip"
+	// BbcServiceGetBmmCommitmentProcedure is the procedure name of the BbcService's GetBmmCommitment
+	// RPC.
+	BbcServiceGetBmmCommitmentProcedure = "/bbc.v1.BbcService/GetBmmCommitment"
+	// BbcServiceGetNewAddressProcedure is the procedure name of the BbcService's GetNewAddress RPC.
 	BbcServiceGetNewAddressProcedure = "/bbc.v1.BbcService/GetNewAddress"
-	// BbcServiceSendProcedure is the fully-qualified name of the BbcService's Send RPC.
+	// BbcServiceSendProcedure is the procedure name of the BbcService's Send RPC.
 	BbcServiceSendProcedure = "/bbc.v1.BbcService/Send"
-	// BbcServiceEstimateFeeProcedure is the fully-qualified name of the BbcService's EstimateFee RPC.
+	// BbcServiceEstimateFeeProcedure is the procedure name of the BbcService's EstimateFee RPC.
 	BbcServiceEstimateFeeProcedure = "/bbc.v1.BbcService/EstimateFee"
-	// BbcServiceListUtxosProcedure is the fully-qualified name of the BbcService's ListUtxos RPC.
+	// BbcServiceListUtxosProcedure is the procedure name of the BbcService's ListUtxos RPC.
 	BbcServiceListUtxosProcedure = "/bbc.v1.BbcService/ListUtxos"
-	// BbcServiceListTransactionsProcedure is the fully-qualified name of the BbcService's
-	// ListTransactions RPC.
+	// BbcServiceListTransactionsProcedure is the procedure name of the BbcService's ListTransactions
+	// RPC.
 	BbcServiceListTransactionsProcedure = "/bbc.v1.BbcService/ListTransactions"
-	// BbcServiceStopProcedure is the fully-qualified name of the BbcService's Stop RPC.
+	// BbcServiceStopProcedure is the procedure name of the BbcService's Stop RPC.
 	BbcServiceStopProcedure = "/bbc.v1.BbcService/Stop"
+)
+
+var (
+	bbcServiceGetBlockCountSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("GetBlockCount"),
+			Procedure:  BbcServiceGetBlockCountProcedure,
+		}
+	})
+	bbcServiceGetBlockchainInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("GetBlockchainInfo"),
+			Procedure:  BbcServiceGetBlockchainInfoProcedure,
+		}
+	})
+	bbcServiceGetSidechainInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("GetSidechainInfo"),
+			Procedure:  BbcServiceGetSidechainInfoProcedure,
+		}
+	})
+	bbcServiceGetMainchainTipSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("GetMainchainTip"),
+			Procedure:  BbcServiceGetMainchainTipProcedure,
+		}
+	})
+	bbcServiceGetBmmCommitmentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("GetBmmCommitment"),
+			Procedure:  BbcServiceGetBmmCommitmentProcedure,
+		}
+	})
+	bbcServiceGetNewAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("GetNewAddress"),
+			Procedure:  BbcServiceGetNewAddressProcedure,
+		}
+	})
+	bbcServiceSendSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("Send"),
+			Procedure:  BbcServiceSendProcedure,
+		}
+	})
+	bbcServiceEstimateFeeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("EstimateFee"),
+			Procedure:  BbcServiceEstimateFeeProcedure,
+		}
+	})
+	bbcServiceListUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("ListUtxos"),
+			Procedure:  BbcServiceListUtxosProcedure,
+		}
+	})
+	bbcServiceListTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("ListTransactions"),
+			Procedure:  BbcServiceListTransactionsProcedure,
+		}
+	})
+	bbcServiceStopSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods().ByName("Stop"),
+			Procedure:  BbcServiceStopProcedure,
+		}
+	})
 )
 
 // BbcServiceClient is a client for the bbc.v1.BbcService service.
 type BbcServiceClient interface {
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Get the node's chain state.
-	GetBlockchainInfo(context.Context, *connect.Request[v1.GetBlockchainInfoRequest]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
-	// Report whether the node has caught up with the mainchain.
-	GetSidechainInfo(context.Context, *connect.Request[v1.GetSidechainInfoRequest]) (*connect.Response[v1.GetSidechainInfoResponse], error)
-	// Get the mainchain block hash the node is following.
-	GetMainchainTip(context.Context, *connect.Request[v1.GetMainchainTipRequest]) (*connect.Response[v1.GetMainchainTipResponse], error)
-	// Get the sidechain block a mainchain block commits to, empty when none.
-	GetBmmCommitment(context.Context, *connect.Request[v1.GetBmmCommitmentRequest]) (*connect.Response[v1.GetBmmCommitmentResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Send to a sidechain address.
-	Send(context.Context, *connect.Request[v1.SendRequest]) (*connect.Response[v1.SendResponse], error)
-	// Estimate the fee rate in sats per kvB.
-	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
-	// List wallet UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// List wallet transactions, most recent first.
-	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
-	// Stop the node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	GetBlockchainInfo(context.Context, *v1.GetBlockchainInfoRequest) (*v1.GetBlockchainInfoResponse, error)
+	GetSidechainInfo(context.Context, *v1.GetSidechainInfoRequest) (*v1.GetSidechainInfoResponse, error)
+	GetMainchainTip(context.Context, *v1.GetMainchainTipRequest) (*v1.GetMainchainTipResponse, error)
+	GetBmmCommitment(context.Context, *v1.GetBmmCommitmentRequest) (*v1.GetBmmCommitmentResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Send(context.Context, *v1.SendRequest) (*v1.SendResponse, error)
+	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
 }
 
-// NewBbcServiceClient constructs a client for the bbc.v1.BbcService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewBbcServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BbcServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	bbcServiceMethods := v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods()
-	return &bbcServiceClient{
-		getBlockCount: connect.NewClient[v1.GetBlockCountRequest, v1.GetBlockCountResponse](
-			httpClient,
-			baseURL+BbcServiceGetBlockCountProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("GetBlockCount")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlockchainInfo: connect.NewClient[v1.GetBlockchainInfoRequest, v1.GetBlockchainInfoResponse](
-			httpClient,
-			baseURL+BbcServiceGetBlockchainInfoProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("GetBlockchainInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		getSidechainInfo: connect.NewClient[v1.GetSidechainInfoRequest, v1.GetSidechainInfoResponse](
-			httpClient,
-			baseURL+BbcServiceGetSidechainInfoProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("GetSidechainInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		getMainchainTip: connect.NewClient[v1.GetMainchainTipRequest, v1.GetMainchainTipResponse](
-			httpClient,
-			baseURL+BbcServiceGetMainchainTipProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("GetMainchainTip")),
-			connect.WithClientOptions(opts...),
-		),
-		getBmmCommitment: connect.NewClient[v1.GetBmmCommitmentRequest, v1.GetBmmCommitmentResponse](
-			httpClient,
-			baseURL+BbcServiceGetBmmCommitmentProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("GetBmmCommitment")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
-			httpClient,
-			baseURL+BbcServiceGetNewAddressProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("GetNewAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		send: connect.NewClient[v1.SendRequest, v1.SendResponse](
-			httpClient,
-			baseURL+BbcServiceSendProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("Send")),
-			connect.WithClientOptions(opts...),
-		),
-		estimateFee: connect.NewClient[v1.EstimateFeeRequest, v1.EstimateFeeResponse](
-			httpClient,
-			baseURL+BbcServiceEstimateFeeProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("EstimateFee")),
-			connect.WithClientOptions(opts...),
-		),
-		listUtxos: connect.NewClient[v1.ListUtxosRequest, v1.ListUtxosResponse](
-			httpClient,
-			baseURL+BbcServiceListUtxosProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("ListUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
-			httpClient,
-			baseURL+BbcServiceListTransactionsProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("ListTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
-			httpClient,
-			baseURL+BbcServiceStopProcedure,
-			connect.WithSchema(bbcServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// bbcServiceClient implements BbcServiceClient.
-type bbcServiceClient struct {
-	getBlockCount     *connect.Client[v1.GetBlockCountRequest, v1.GetBlockCountResponse]
-	getBlockchainInfo *connect.Client[v1.GetBlockchainInfoRequest, v1.GetBlockchainInfoResponse]
-	getSidechainInfo  *connect.Client[v1.GetSidechainInfoRequest, v1.GetSidechainInfoResponse]
-	getMainchainTip   *connect.Client[v1.GetMainchainTipRequest, v1.GetMainchainTipResponse]
-	getBmmCommitment  *connect.Client[v1.GetBmmCommitmentRequest, v1.GetBmmCommitmentResponse]
-	getNewAddress     *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
-	send              *connect.Client[v1.SendRequest, v1.SendResponse]
-	estimateFee       *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
-	listUtxos         *connect.Client[v1.ListUtxosRequest, v1.ListUtxosResponse]
-	listTransactions  *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
-	stop              *connect.Client[v1.StopRequest, v1.StopResponse]
-}
-
-// GetBlockCount calls bbc.v1.BbcService.GetBlockCount.
-func (c *bbcServiceClient) GetBlockCount(ctx context.Context, req *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return c.getBlockCount.CallUnary(ctx, req)
-}
-
-// GetBlockchainInfo calls bbc.v1.BbcService.GetBlockchainInfo.
-func (c *bbcServiceClient) GetBlockchainInfo(ctx context.Context, req *connect.Request[v1.GetBlockchainInfoRequest]) (*connect.Response[v1.GetBlockchainInfoResponse], error) {
-	return c.getBlockchainInfo.CallUnary(ctx, req)
-}
-
-// GetSidechainInfo calls bbc.v1.BbcService.GetSidechainInfo.
-func (c *bbcServiceClient) GetSidechainInfo(ctx context.Context, req *connect.Request[v1.GetSidechainInfoRequest]) (*connect.Response[v1.GetSidechainInfoResponse], error) {
-	return c.getSidechainInfo.CallUnary(ctx, req)
-}
-
-// GetMainchainTip calls bbc.v1.BbcService.GetMainchainTip.
-func (c *bbcServiceClient) GetMainchainTip(ctx context.Context, req *connect.Request[v1.GetMainchainTipRequest]) (*connect.Response[v1.GetMainchainTipResponse], error) {
-	return c.getMainchainTip.CallUnary(ctx, req)
-}
-
-// GetBmmCommitment calls bbc.v1.BbcService.GetBmmCommitment.
-func (c *bbcServiceClient) GetBmmCommitment(ctx context.Context, req *connect.Request[v1.GetBmmCommitmentRequest]) (*connect.Response[v1.GetBmmCommitmentResponse], error) {
-	return c.getBmmCommitment.CallUnary(ctx, req)
-}
-
-// GetNewAddress calls bbc.v1.BbcService.GetNewAddress.
-func (c *bbcServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return c.getNewAddress.CallUnary(ctx, req)
-}
-
-// Send calls bbc.v1.BbcService.Send.
-func (c *bbcServiceClient) Send(ctx context.Context, req *connect.Request[v1.SendRequest]) (*connect.Response[v1.SendResponse], error) {
-	return c.send.CallUnary(ctx, req)
-}
-
-// EstimateFee calls bbc.v1.BbcService.EstimateFee.
-func (c *bbcServiceClient) EstimateFee(ctx context.Context, req *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error) {
-	return c.estimateFee.CallUnary(ctx, req)
-}
-
-// ListUtxos calls bbc.v1.BbcService.ListUtxos.
-func (c *bbcServiceClient) ListUtxos(ctx context.Context, req *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return c.listUtxos.CallUnary(ctx, req)
-}
-
-// ListTransactions calls bbc.v1.BbcService.ListTransactions.
-func (c *bbcServiceClient) ListTransactions(ctx context.Context, req *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
-	return c.listTransactions.CallUnary(ctx, req)
-}
-
-// Stop calls bbc.v1.BbcService.Stop.
-func (c *bbcServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return c.stop.CallUnary(ctx, req)
+// NewBbcServiceClient constructs a client for the bbc.v1.BbcService service. Multiple service
+// clients may share a single connect.Client.
+func NewBbcServiceClient(client *connect.Client) BbcServiceClient {
+	return &bbcServiceClient{client: client}
 }
 
 // BbcServiceHandler is an implementation of the bbc.v1.BbcService service.
 type BbcServiceHandler interface {
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Get the node's chain state.
-	GetBlockchainInfo(context.Context, *connect.Request[v1.GetBlockchainInfoRequest]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
-	// Report whether the node has caught up with the mainchain.
-	GetSidechainInfo(context.Context, *connect.Request[v1.GetSidechainInfoRequest]) (*connect.Response[v1.GetSidechainInfoResponse], error)
-	// Get the mainchain block hash the node is following.
-	GetMainchainTip(context.Context, *connect.Request[v1.GetMainchainTipRequest]) (*connect.Response[v1.GetMainchainTipResponse], error)
-	// Get the sidechain block a mainchain block commits to, empty when none.
-	GetBmmCommitment(context.Context, *connect.Request[v1.GetBmmCommitmentRequest]) (*connect.Response[v1.GetBmmCommitmentResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Send to a sidechain address.
-	Send(context.Context, *connect.Request[v1.SendRequest]) (*connect.Response[v1.SendResponse], error)
-	// Estimate the fee rate in sats per kvB.
-	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
-	// List wallet UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// List wallet transactions, most recent first.
-	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
-	// Stop the node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	GetBlockchainInfo(context.Context, *v1.GetBlockchainInfoRequest) (*v1.GetBlockchainInfoResponse, error)
+	GetSidechainInfo(context.Context, *v1.GetSidechainInfoRequest) (*v1.GetSidechainInfoResponse, error)
+	GetMainchainTip(context.Context, *v1.GetMainchainTipRequest) (*v1.GetMainchainTipResponse, error)
+	GetBmmCommitment(context.Context, *v1.GetBmmCommitmentRequest) (*v1.GetBmmCommitmentResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Send(context.Context, *v1.SendRequest) (*v1.SendResponse, error)
+	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
 }
 
-// NewBbcServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewBbcServiceHandler(svc BbcServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bbcServiceMethods := v1.File_bbc_v1_bbc_proto.Services().ByName("BbcService").Methods()
-	bbcServiceGetBlockCountHandler := connect.NewUnaryHandler(
-		BbcServiceGetBlockCountProcedure,
-		svc.GetBlockCount,
-		connect.WithSchema(bbcServiceMethods.ByName("GetBlockCount")),
-		connect.WithHandlerOptions(opts...),
+// RegisterBbcServiceHandler registers svc as the bbc.v1.BbcService implementation on server.
+func RegisterBbcServiceHandler(server *connect.Server, svc BbcServiceHandler) {
+	adapter := bbcServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: bbcServiceGetBlockCountSpec(), Handler: adapter.getBlockCount},
+		connect.Method{Spec: bbcServiceGetBlockchainInfoSpec(), Handler: adapter.getBlockchainInfo},
+		connect.Method{Spec: bbcServiceGetSidechainInfoSpec(), Handler: adapter.getSidechainInfo},
+		connect.Method{Spec: bbcServiceGetMainchainTipSpec(), Handler: adapter.getMainchainTip},
+		connect.Method{Spec: bbcServiceGetBmmCommitmentSpec(), Handler: adapter.getBmmCommitment},
+		connect.Method{Spec: bbcServiceGetNewAddressSpec(), Handler: adapter.getNewAddress},
+		connect.Method{Spec: bbcServiceSendSpec(), Handler: adapter.send},
+		connect.Method{Spec: bbcServiceEstimateFeeSpec(), Handler: adapter.estimateFee},
+		connect.Method{Spec: bbcServiceListUtxosSpec(), Handler: adapter.listUtxos},
+		connect.Method{Spec: bbcServiceListTransactionsSpec(), Handler: adapter.listTransactions},
+		connect.Method{Spec: bbcServiceStopSpec(), Handler: adapter.stop},
 	)
-	bbcServiceGetBlockchainInfoHandler := connect.NewUnaryHandler(
-		BbcServiceGetBlockchainInfoProcedure,
-		svc.GetBlockchainInfo,
-		connect.WithSchema(bbcServiceMethods.ByName("GetBlockchainInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceGetSidechainInfoHandler := connect.NewUnaryHandler(
-		BbcServiceGetSidechainInfoProcedure,
-		svc.GetSidechainInfo,
-		connect.WithSchema(bbcServiceMethods.ByName("GetSidechainInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceGetMainchainTipHandler := connect.NewUnaryHandler(
-		BbcServiceGetMainchainTipProcedure,
-		svc.GetMainchainTip,
-		connect.WithSchema(bbcServiceMethods.ByName("GetMainchainTip")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceGetBmmCommitmentHandler := connect.NewUnaryHandler(
-		BbcServiceGetBmmCommitmentProcedure,
-		svc.GetBmmCommitment,
-		connect.WithSchema(bbcServiceMethods.ByName("GetBmmCommitment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceGetNewAddressHandler := connect.NewUnaryHandler(
-		BbcServiceGetNewAddressProcedure,
-		svc.GetNewAddress,
-		connect.WithSchema(bbcServiceMethods.ByName("GetNewAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceSendHandler := connect.NewUnaryHandler(
-		BbcServiceSendProcedure,
-		svc.Send,
-		connect.WithSchema(bbcServiceMethods.ByName("Send")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceEstimateFeeHandler := connect.NewUnaryHandler(
-		BbcServiceEstimateFeeProcedure,
-		svc.EstimateFee,
-		connect.WithSchema(bbcServiceMethods.ByName("EstimateFee")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceListUtxosHandler := connect.NewUnaryHandler(
-		BbcServiceListUtxosProcedure,
-		svc.ListUtxos,
-		connect.WithSchema(bbcServiceMethods.ByName("ListUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceListTransactionsHandler := connect.NewUnaryHandler(
-		BbcServiceListTransactionsProcedure,
-		svc.ListTransactions,
-		connect.WithSchema(bbcServiceMethods.ByName("ListTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bbcServiceStopHandler := connect.NewUnaryHandler(
-		BbcServiceStopProcedure,
-		svc.Stop,
-		connect.WithSchema(bbcServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/bbc.v1.BbcService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case BbcServiceGetBlockCountProcedure:
-			bbcServiceGetBlockCountHandler.ServeHTTP(w, r)
-		case BbcServiceGetBlockchainInfoProcedure:
-			bbcServiceGetBlockchainInfoHandler.ServeHTTP(w, r)
-		case BbcServiceGetSidechainInfoProcedure:
-			bbcServiceGetSidechainInfoHandler.ServeHTTP(w, r)
-		case BbcServiceGetMainchainTipProcedure:
-			bbcServiceGetMainchainTipHandler.ServeHTTP(w, r)
-		case BbcServiceGetBmmCommitmentProcedure:
-			bbcServiceGetBmmCommitmentHandler.ServeHTTP(w, r)
-		case BbcServiceGetNewAddressProcedure:
-			bbcServiceGetNewAddressHandler.ServeHTTP(w, r)
-		case BbcServiceSendProcedure:
-			bbcServiceSendHandler.ServeHTTP(w, r)
-		case BbcServiceEstimateFeeProcedure:
-			bbcServiceEstimateFeeHandler.ServeHTTP(w, r)
-		case BbcServiceListUtxosProcedure:
-			bbcServiceListUtxosHandler.ServeHTTP(w, r)
-		case BbcServiceListTransactionsProcedure:
-			bbcServiceListTransactionsHandler.ServeHTTP(w, r)
-		case BbcServiceStopProcedure:
-			bbcServiceStopHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedBbcServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBbcServiceHandler struct{}
 
-func (UnimplementedBbcServiceHandler) GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.GetBlockCount is not implemented"))
+func (UnimplementedBbcServiceHandler) GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.GetBlockCount is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) GetBlockchainInfo(context.Context, *connect.Request[v1.GetBlockchainInfoRequest]) (*connect.Response[v1.GetBlockchainInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.GetBlockchainInfo is not implemented"))
+func (UnimplementedBbcServiceHandler) GetBlockchainInfo(context.Context, *v1.GetBlockchainInfoRequest) (*v1.GetBlockchainInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.GetBlockchainInfo is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) GetSidechainInfo(context.Context, *connect.Request[v1.GetSidechainInfoRequest]) (*connect.Response[v1.GetSidechainInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.GetSidechainInfo is not implemented"))
+func (UnimplementedBbcServiceHandler) GetSidechainInfo(context.Context, *v1.GetSidechainInfoRequest) (*v1.GetSidechainInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.GetSidechainInfo is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) GetMainchainTip(context.Context, *connect.Request[v1.GetMainchainTipRequest]) (*connect.Response[v1.GetMainchainTipResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.GetMainchainTip is not implemented"))
+func (UnimplementedBbcServiceHandler) GetMainchainTip(context.Context, *v1.GetMainchainTipRequest) (*v1.GetMainchainTipResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.GetMainchainTip is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) GetBmmCommitment(context.Context, *connect.Request[v1.GetBmmCommitmentRequest]) (*connect.Response[v1.GetBmmCommitmentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.GetBmmCommitment is not implemented"))
+func (UnimplementedBbcServiceHandler) GetBmmCommitment(context.Context, *v1.GetBmmCommitmentRequest) (*v1.GetBmmCommitmentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.GetBmmCommitment is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.GetNewAddress is not implemented"))
+func (UnimplementedBbcServiceHandler) GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.GetNewAddress is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) Send(context.Context, *connect.Request[v1.SendRequest]) (*connect.Response[v1.SendResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.Send is not implemented"))
+func (UnimplementedBbcServiceHandler) Send(context.Context, *v1.SendRequest) (*v1.SendResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.Send is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.EstimateFee is not implemented"))
+func (UnimplementedBbcServiceHandler) EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.EstimateFee is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.ListUtxos is not implemented"))
+func (UnimplementedBbcServiceHandler) ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.ListUtxos is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.ListTransactions is not implemented"))
+func (UnimplementedBbcServiceHandler) ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.ListTransactions is not implemented")
 }
 
-func (UnimplementedBbcServiceHandler) Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bbc.v1.BbcService.Stop is not implemented"))
+func (UnimplementedBbcServiceHandler) Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bbc.v1.BbcService.Stop is not implemented")
+}
+
+type bbcServiceClient struct {
+	client *connect.Client
+}
+
+func (c *bbcServiceClient) GetBlockCount(ctx context.Context, req *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	var res v1.GetBlockCountResponse
+	if err := c.client.CallUnary(ctx, bbcServiceGetBlockCountSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) GetBlockchainInfo(ctx context.Context, req *v1.GetBlockchainInfoRequest) (*v1.GetBlockchainInfoResponse, error) {
+	var res v1.GetBlockchainInfoResponse
+	if err := c.client.CallUnary(ctx, bbcServiceGetBlockchainInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) GetSidechainInfo(ctx context.Context, req *v1.GetSidechainInfoRequest) (*v1.GetSidechainInfoResponse, error) {
+	var res v1.GetSidechainInfoResponse
+	if err := c.client.CallUnary(ctx, bbcServiceGetSidechainInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) GetMainchainTip(ctx context.Context, req *v1.GetMainchainTipRequest) (*v1.GetMainchainTipResponse, error) {
+	var res v1.GetMainchainTipResponse
+	if err := c.client.CallUnary(ctx, bbcServiceGetMainchainTipSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) GetBmmCommitment(ctx context.Context, req *v1.GetBmmCommitmentRequest) (*v1.GetBmmCommitmentResponse, error) {
+	var res v1.GetBmmCommitmentResponse
+	if err := c.client.CallUnary(ctx, bbcServiceGetBmmCommitmentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) GetNewAddress(ctx context.Context, req *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	var res v1.GetNewAddressResponse
+	if err := c.client.CallUnary(ctx, bbcServiceGetNewAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) Send(ctx context.Context, req *v1.SendRequest) (*v1.SendResponse, error) {
+	var res v1.SendResponse
+	if err := c.client.CallUnary(ctx, bbcServiceSendSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) EstimateFee(ctx context.Context, req *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error) {
+	var res v1.EstimateFeeResponse
+	if err := c.client.CallUnary(ctx, bbcServiceEstimateFeeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) ListUtxos(ctx context.Context, req *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	var res v1.ListUtxosResponse
+	if err := c.client.CallUnary(ctx, bbcServiceListUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) ListTransactions(ctx context.Context, req *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error) {
+	var res v1.ListTransactionsResponse
+	if err := c.client.CallUnary(ctx, bbcServiceListTransactionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bbcServiceClient) Stop(ctx context.Context, req *v1.StopRequest) (*v1.StopResponse, error) {
+	var res v1.StopResponse
+	if err := c.client.CallUnary(ctx, bbcServiceStopSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type bbcServiceHandler struct{ svc BbcServiceHandler }
+
+func (h bbcServiceHandler) getBlockCount(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockCountRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlockCount(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) getBlockchainInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockchainInfoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlockchainInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) getSidechainInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainInfoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSidechainInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) getMainchainTip(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetMainchainTipRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMainchainTip(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) getBmmCommitment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBmmCommitmentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBmmCommitment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) getNewAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) send(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SendRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Send(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) estimateFee(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EstimateFeeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EstimateFee(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) listUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) listTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTransactions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bbcServiceHandler) stop(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Stop(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

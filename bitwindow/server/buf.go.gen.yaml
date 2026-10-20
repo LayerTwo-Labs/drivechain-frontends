@@ -22,7 +22,7 @@ plugins:
 
   # Generates client and server stubs for connectrpc.com/connect.
   # Compatible with the gRPC, gRPC-Web, and Connect RPC protocols.
-  - remote: buf.build/connectrpc/go:v1.21.0
+  - remote: buf.build/connectrpc/go:v2.0.1
     out: gen
     opt:
       - paths=source_relative

@@ -20,7 +20,8 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"golang.org/x/net/http2"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -2611,14 +2612,15 @@ func (o *Orchestrator) callEnforcerStopRPC() error {
 			},
 		},
 	}
-	client := enforcerrpc.NewValidatorServiceClient(
+	client := enforcerrpc.NewValidatorServiceClient(connect.NewClient(connecthttp.NewTransport(
 		httpClient,
 		cfg.RPCURL(),
-		connect.WithGRPC(),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	)))
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	_, err := client.Stop(rpcCtx, connect.NewRequest(&enforcerpb.StopRequest{}))
+	_, err := client.Stop(rpcCtx, &enforcerpb.StopRequest{})
 	return err
 }
 
@@ -3345,7 +3347,7 @@ func (o *Orchestrator) EnforcerValidator() (enforcerrpc.ValidatorServiceClient, 
 	if err != nil {
 		return nil, err
 	}
-	return enforcerrpc.NewValidatorServiceClient(o.enforcerHTTP(), endpoint, connect.WithGRPC()), nil
+	return enforcerrpc.NewValidatorServiceClient(connect.NewClient(connecthttp.NewTransport(o.enforcerHTTP(), endpoint, connecthttp.WithReadMaxBytes(0), connecthttp.WithGRPC()))), nil
 }
 
 // ChainTip returns the mainchain tip the enforcer has validated.
@@ -3354,11 +3356,11 @@ func (o *Orchestrator) ChainTip(ctx context.Context) (string, int32, error) {
 	if err != nil {
 		return "", 0, err
 	}
-	resp, err := validator.GetChainTip(ctx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	resp, err := validator.GetChainTip(ctx, &enforcerpb.GetChainTipRequest{})
 	if err != nil {
 		return "", 0, err
 	}
-	info := resp.Msg.GetBlockHeaderInfo()
+	info := resp.GetBlockHeaderInfo()
 	return info.GetBlockHash().GetHex().GetValue(), int32(info.GetHeight()), nil
 }
 
@@ -3604,12 +3606,12 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 	}
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	resp, err := client.GetChainTip(rpcCtx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	resp, err := client.GetChainTip(rpcCtx, &enforcerpb.GetChainTipRequest{})
 	if err != nil {
 		return nil, err
 	}
 	return &ChainSyncResult{
-		Blocks: int64(resp.Msg.GetBlockHeaderInfo().GetHeight()),
+		Blocks: int64(resp.GetBlockHeaderInfo().GetHeight()),
 	}, nil
 }
 

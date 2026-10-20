@@ -5,817 +5,935 @@
 package thunderv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ThunderServiceName is the fully-qualified name of the ThunderService service.
 	ThunderServiceName = "thunder.v1.ThunderService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ThunderServiceGetBalanceProcedure is the fully-qualified name of the ThunderService's GetBalance
-	// RPC.
+	// ThunderServiceGetBalanceProcedure is the procedure name of the ThunderService's GetBalance RPC.
 	ThunderServiceGetBalanceProcedure = "/thunder.v1.ThunderService/GetBalance"
-	// ThunderServiceGetBlockCountProcedure is the fully-qualified name of the ThunderService's
-	// GetBlockCount RPC.
+	// ThunderServiceGetBlockCountProcedure is the procedure name of the ThunderService's GetBlockCount
+	// RPC.
 	ThunderServiceGetBlockCountProcedure = "/thunder.v1.ThunderService/GetBlockCount"
-	// ThunderServiceStopProcedure is the fully-qualified name of the ThunderService's Stop RPC.
+	// ThunderServiceStopProcedure is the procedure name of the ThunderService's Stop RPC.
 	ThunderServiceStopProcedure = "/thunder.v1.ThunderService/Stop"
-	// ThunderServiceGetNewAddressProcedure is the fully-qualified name of the ThunderService's
-	// GetNewAddress RPC.
+	// ThunderServiceGetNewAddressProcedure is the procedure name of the ThunderService's GetNewAddress
+	// RPC.
 	ThunderServiceGetNewAddressProcedure = "/thunder.v1.ThunderService/GetNewAddress"
-	// ThunderServiceWithdrawProcedure is the fully-qualified name of the ThunderService's Withdraw RPC.
+	// ThunderServiceWithdrawProcedure is the procedure name of the ThunderService's Withdraw RPC.
 	ThunderServiceWithdrawProcedure = "/thunder.v1.ThunderService/Withdraw"
-	// ThunderServiceTransferProcedure is the fully-qualified name of the ThunderService's Transfer RPC.
+	// ThunderServiceTransferProcedure is the procedure name of the ThunderService's Transfer RPC.
 	ThunderServiceTransferProcedure = "/thunder.v1.ThunderService/Transfer"
-	// ThunderServiceGetSidechainWealthProcedure is the fully-qualified name of the ThunderService's
+	// ThunderServiceGetSidechainWealthProcedure is the procedure name of the ThunderService's
 	// GetSidechainWealth RPC.
 	ThunderServiceGetSidechainWealthProcedure = "/thunder.v1.ThunderService/GetSidechainWealth"
-	// ThunderServiceCreateDepositProcedure is the fully-qualified name of the ThunderService's
-	// CreateDeposit RPC.
-	ThunderServiceCreateDepositProcedure = "/thunder.v1.ThunderService/CreateDeposit"
-	// ThunderServiceGetPendingWithdrawalBundleProcedure is the fully-qualified name of the
-	// ThunderService's GetPendingWithdrawalBundle RPC.
-	ThunderServiceGetPendingWithdrawalBundleProcedure = "/thunder.v1.ThunderService/GetPendingWithdrawalBundle"
-	// ThunderServiceConnectPeerProcedure is the fully-qualified name of the ThunderService's
-	// ConnectPeer RPC.
-	ThunderServiceConnectPeerProcedure = "/thunder.v1.ThunderService/ConnectPeer"
-	// ThunderServiceListPeersProcedure is the fully-qualified name of the ThunderService's ListPeers
+	// ThunderServiceCreateDepositProcedure is the procedure name of the ThunderService's CreateDeposit
 	// RPC.
+	ThunderServiceCreateDepositProcedure = "/thunder.v1.ThunderService/CreateDeposit"
+	// ThunderServiceGetPendingWithdrawalBundleProcedure is the procedure name of the ThunderService's
+	// GetPendingWithdrawalBundle RPC.
+	ThunderServiceGetPendingWithdrawalBundleProcedure = "/thunder.v1.ThunderService/GetPendingWithdrawalBundle"
+	// ThunderServiceConnectPeerProcedure is the procedure name of the ThunderService's ConnectPeer RPC.
+	ThunderServiceConnectPeerProcedure = "/thunder.v1.ThunderService/ConnectPeer"
+	// ThunderServiceListPeersProcedure is the procedure name of the ThunderService's ListPeers RPC.
 	ThunderServiceListPeersProcedure = "/thunder.v1.ThunderService/ListPeers"
-	// ThunderServiceMineProcedure is the fully-qualified name of the ThunderService's Mine RPC.
+	// ThunderServiceMineProcedure is the procedure name of the ThunderService's Mine RPC.
 	ThunderServiceMineProcedure = "/thunder.v1.ThunderService/Mine"
-	// ThunderServiceGetBlockProcedure is the fully-qualified name of the ThunderService's GetBlock RPC.
+	// ThunderServiceGetBlockProcedure is the procedure name of the ThunderService's GetBlock RPC.
 	ThunderServiceGetBlockProcedure = "/thunder.v1.ThunderService/GetBlock"
-	// ThunderServiceGetBestMainchainBlockHashProcedure is the fully-qualified name of the
-	// ThunderService's GetBestMainchainBlockHash RPC.
+	// ThunderServiceGetBestMainchainBlockHashProcedure is the procedure name of the ThunderService's
+	// GetBestMainchainBlockHash RPC.
 	ThunderServiceGetBestMainchainBlockHashProcedure = "/thunder.v1.ThunderService/GetBestMainchainBlockHash"
-	// ThunderServiceGetBestSidechainBlockHashProcedure is the fully-qualified name of the
-	// ThunderService's GetBestSidechainBlockHash RPC.
+	// ThunderServiceGetBestSidechainBlockHashProcedure is the procedure name of the ThunderService's
+	// GetBestSidechainBlockHash RPC.
 	ThunderServiceGetBestSidechainBlockHashProcedure = "/thunder.v1.ThunderService/GetBestSidechainBlockHash"
-	// ThunderServiceGetBmmInclusionsProcedure is the fully-qualified name of the ThunderService's
+	// ThunderServiceGetBmmInclusionsProcedure is the procedure name of the ThunderService's
 	// GetBmmInclusions RPC.
 	ThunderServiceGetBmmInclusionsProcedure = "/thunder.v1.ThunderService/GetBmmInclusions"
-	// ThunderServiceGetWalletUtxosProcedure is the fully-qualified name of the ThunderService's
+	// ThunderServiceGetWalletUtxosProcedure is the procedure name of the ThunderService's
 	// GetWalletUtxos RPC.
 	ThunderServiceGetWalletUtxosProcedure = "/thunder.v1.ThunderService/GetWalletUtxos"
-	// ThunderServiceListUtxosProcedure is the fully-qualified name of the ThunderService's ListUtxos
-	// RPC.
+	// ThunderServiceListUtxosProcedure is the procedure name of the ThunderService's ListUtxos RPC.
 	ThunderServiceListUtxosProcedure = "/thunder.v1.ThunderService/ListUtxos"
-	// ThunderServiceRemoveFromMempoolProcedure is the fully-qualified name of the ThunderService's
+	// ThunderServiceRemoveFromMempoolProcedure is the procedure name of the ThunderService's
 	// RemoveFromMempool RPC.
 	ThunderServiceRemoveFromMempoolProcedure = "/thunder.v1.ThunderService/RemoveFromMempool"
-	// ThunderServiceGetLatestFailedWithdrawalBundleHeightProcedure is the fully-qualified name of the
+	// ThunderServiceGetLatestFailedWithdrawalBundleHeightProcedure is the procedure name of the
 	// ThunderService's GetLatestFailedWithdrawalBundleHeight RPC.
 	ThunderServiceGetLatestFailedWithdrawalBundleHeightProcedure = "/thunder.v1.ThunderService/GetLatestFailedWithdrawalBundleHeight"
-	// ThunderServiceGenerateMnemonicProcedure is the fully-qualified name of the ThunderService's
+	// ThunderServiceGenerateMnemonicProcedure is the procedure name of the ThunderService's
 	// GenerateMnemonic RPC.
 	ThunderServiceGenerateMnemonicProcedure = "/thunder.v1.ThunderService/GenerateMnemonic"
-	// ThunderServiceSetSeedFromMnemonicProcedure is the fully-qualified name of the ThunderService's
+	// ThunderServiceSetSeedFromMnemonicProcedure is the procedure name of the ThunderService's
 	// SetSeedFromMnemonic RPC.
 	ThunderServiceSetSeedFromMnemonicProcedure = "/thunder.v1.ThunderService/SetSeedFromMnemonic"
-	// ThunderServiceCallRawProcedure is the fully-qualified name of the ThunderService's CallRaw RPC.
+	// ThunderServiceCallRawProcedure is the procedure name of the ThunderService's CallRaw RPC.
 	ThunderServiceCallRawProcedure = "/thunder.v1.ThunderService/CallRaw"
-	// ThunderServiceListWalletTransactionsProcedure is the fully-qualified name of the ThunderService's
+	// ThunderServiceListWalletTransactionsProcedure is the procedure name of the ThunderService's
 	// ListWalletTransactions RPC.
 	ThunderServiceListWalletTransactionsProcedure = "/thunder.v1.ThunderService/ListWalletTransactions"
 )
 
+var (
+	thunderServiceGetBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetBalance"),
+			Procedure:  ThunderServiceGetBalanceProcedure,
+		}
+	})
+	thunderServiceGetBlockCountSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetBlockCount"),
+			Procedure:  ThunderServiceGetBlockCountProcedure,
+		}
+	})
+	thunderServiceStopSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("Stop"),
+			Procedure:  ThunderServiceStopProcedure,
+		}
+	})
+	thunderServiceGetNewAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetNewAddress"),
+			Procedure:  ThunderServiceGetNewAddressProcedure,
+		}
+	})
+	thunderServiceWithdrawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("Withdraw"),
+			Procedure:  ThunderServiceWithdrawProcedure,
+		}
+	})
+	thunderServiceTransferSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("Transfer"),
+			Procedure:  ThunderServiceTransferProcedure,
+		}
+	})
+	thunderServiceGetSidechainWealthSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetSidechainWealth"),
+			Procedure:  ThunderServiceGetSidechainWealthProcedure,
+		}
+	})
+	thunderServiceCreateDepositSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("CreateDeposit"),
+			Procedure:  ThunderServiceCreateDepositProcedure,
+		}
+	})
+	thunderServiceGetPendingWithdrawalBundleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetPendingWithdrawalBundle"),
+			Procedure:  ThunderServiceGetPendingWithdrawalBundleProcedure,
+		}
+	})
+	thunderServiceConnectPeerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("ConnectPeer"),
+			Procedure:  ThunderServiceConnectPeerProcedure,
+		}
+	})
+	thunderServiceListPeersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("ListPeers"),
+			Procedure:  ThunderServiceListPeersProcedure,
+		}
+	})
+	thunderServiceMineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("Mine"),
+			Procedure:  ThunderServiceMineProcedure,
+		}
+	})
+	thunderServiceGetBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetBlock"),
+			Procedure:  ThunderServiceGetBlockProcedure,
+		}
+	})
+	thunderServiceGetBestMainchainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetBestMainchainBlockHash"),
+			Procedure:  ThunderServiceGetBestMainchainBlockHashProcedure,
+		}
+	})
+	thunderServiceGetBestSidechainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetBestSidechainBlockHash"),
+			Procedure:  ThunderServiceGetBestSidechainBlockHashProcedure,
+		}
+	})
+	thunderServiceGetBmmInclusionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetBmmInclusions"),
+			Procedure:  ThunderServiceGetBmmInclusionsProcedure,
+		}
+	})
+	thunderServiceGetWalletUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetWalletUtxos"),
+			Procedure:  ThunderServiceGetWalletUtxosProcedure,
+		}
+	})
+	thunderServiceListUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("ListUtxos"),
+			Procedure:  ThunderServiceListUtxosProcedure,
+		}
+	})
+	thunderServiceRemoveFromMempoolSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("RemoveFromMempool"),
+			Procedure:  ThunderServiceRemoveFromMempoolProcedure,
+		}
+	})
+	thunderServiceGetLatestFailedWithdrawalBundleHeightSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GetLatestFailedWithdrawalBundleHeight"),
+			Procedure:  ThunderServiceGetLatestFailedWithdrawalBundleHeightProcedure,
+		}
+	})
+	thunderServiceGenerateMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("GenerateMnemonic"),
+			Procedure:  ThunderServiceGenerateMnemonicProcedure,
+		}
+	})
+	thunderServiceSetSeedFromMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("SetSeedFromMnemonic"),
+			Procedure:  ThunderServiceSetSeedFromMnemonicProcedure,
+		}
+	})
+	thunderServiceCallRawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("CallRaw"),
+			Procedure:  ThunderServiceCallRawProcedure,
+		}
+	})
+	thunderServiceListWalletTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods().ByName("ListWalletTransactions"),
+			Procedure:  ThunderServiceListWalletTransactionsProcedure,
+		}
+	})
+)
+
 // ThunderServiceClient is a client for the thunder.v1.ThunderService service.
 type ThunderServiceClient interface {
-	// Get wallet balance (total and available).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the thunder node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain.
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Lists the wallet transaction history through the Esplora index. The node
-	// itself keeps no address history.
-	ListWalletTransactions(context.Context, *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	ListWalletTransactions(context.Context, *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error)
 }
 
-// NewThunderServiceClient constructs a client for the thunder.v1.ThunderService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewThunderServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ThunderServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	thunderServiceMethods := v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods()
-	return &thunderServiceClient{
-		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
-			httpClient,
-			baseURL+ThunderServiceGetBalanceProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlockCount: connect.NewClient[v1.GetBlockCountRequest, v1.GetBlockCountResponse](
-			httpClient,
-			baseURL+ThunderServiceGetBlockCountProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetBlockCount")),
-			connect.WithClientOptions(opts...),
-		),
-		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
-			httpClient,
-			baseURL+ThunderServiceStopProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
-			httpClient,
-			baseURL+ThunderServiceGetNewAddressProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetNewAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		withdraw: connect.NewClient[v1.WithdrawRequest, v1.WithdrawResponse](
-			httpClient,
-			baseURL+ThunderServiceWithdrawProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("Withdraw")),
-			connect.WithClientOptions(opts...),
-		),
-		transfer: connect.NewClient[v1.TransferRequest, v1.TransferResponse](
-			httpClient,
-			baseURL+ThunderServiceTransferProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("Transfer")),
-			connect.WithClientOptions(opts...),
-		),
-		getSidechainWealth: connect.NewClient[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse](
-			httpClient,
-			baseURL+ThunderServiceGetSidechainWealthProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetSidechainWealth")),
-			connect.WithClientOptions(opts...),
-		),
-		createDeposit: connect.NewClient[v1.CreateDepositRequest, v1.CreateDepositResponse](
-			httpClient,
-			baseURL+ThunderServiceCreateDepositProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("CreateDeposit")),
-			connect.WithClientOptions(opts...),
-		),
-		getPendingWithdrawalBundle: connect.NewClient[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse](
-			httpClient,
-			baseURL+ThunderServiceGetPendingWithdrawalBundleProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetPendingWithdrawalBundle")),
-			connect.WithClientOptions(opts...),
-		),
-		connectPeer: connect.NewClient[v1.ConnectPeerRequest, v1.ConnectPeerResponse](
-			httpClient,
-			baseURL+ThunderServiceConnectPeerProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("ConnectPeer")),
-			connect.WithClientOptions(opts...),
-		),
-		listPeers: connect.NewClient[v1.ListPeersRequest, v1.ListPeersResponse](
-			httpClient,
-			baseURL+ThunderServiceListPeersProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("ListPeers")),
-			connect.WithClientOptions(opts...),
-		),
-		mine: connect.NewClient[v1.MineRequest, v1.MineResponse](
-			httpClient,
-			baseURL+ThunderServiceMineProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("Mine")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
-			httpClient,
-			baseURL+ThunderServiceGetBlockProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestMainchainBlockHash: connect.NewClient[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse](
-			httpClient,
-			baseURL+ThunderServiceGetBestMainchainBlockHashProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetBestMainchainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestSidechainBlockHash: connect.NewClient[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse](
-			httpClient,
-			baseURL+ThunderServiceGetBestSidechainBlockHashProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetBestSidechainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBmmInclusions: connect.NewClient[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse](
-			httpClient,
-			baseURL+ThunderServiceGetBmmInclusionsProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetBmmInclusions")),
-			connect.WithClientOptions(opts...),
-		),
-		getWalletUtxos: connect.NewClient[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse](
-			httpClient,
-			baseURL+ThunderServiceGetWalletUtxosProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetWalletUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		listUtxos: connect.NewClient[v1.ListUtxosRequest, v1.ListUtxosResponse](
-			httpClient,
-			baseURL+ThunderServiceListUtxosProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("ListUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		removeFromMempool: connect.NewClient[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse](
-			httpClient,
-			baseURL+ThunderServiceRemoveFromMempoolProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("RemoveFromMempool")),
-			connect.WithClientOptions(opts...),
-		),
-		getLatestFailedWithdrawalBundleHeight: connect.NewClient[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse](
-			httpClient,
-			baseURL+ThunderServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-			connect.WithClientOptions(opts...),
-		),
-		generateMnemonic: connect.NewClient[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse](
-			httpClient,
-			baseURL+ThunderServiceGenerateMnemonicProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("GenerateMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		setSeedFromMnemonic: connect.NewClient[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse](
-			httpClient,
-			baseURL+ThunderServiceSetSeedFromMnemonicProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("SetSeedFromMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		callRaw: connect.NewClient[v1.CallRawRequest, v1.CallRawResponse](
-			httpClient,
-			baseURL+ThunderServiceCallRawProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("CallRaw")),
-			connect.WithClientOptions(opts...),
-		),
-		listWalletTransactions: connect.NewClient[v1.ListWalletTransactionsRequest, v1.ListWalletTransactionsResponse](
-			httpClient,
-			baseURL+ThunderServiceListWalletTransactionsProcedure,
-			connect.WithSchema(thunderServiceMethods.ByName("ListWalletTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// thunderServiceClient implements ThunderServiceClient.
-type thunderServiceClient struct {
-	getBalance                            *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
-	getBlockCount                         *connect.Client[v1.GetBlockCountRequest, v1.GetBlockCountResponse]
-	stop                                  *connect.Client[v1.StopRequest, v1.StopResponse]
-	getNewAddress                         *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
-	withdraw                              *connect.Client[v1.WithdrawRequest, v1.WithdrawResponse]
-	transfer                              *connect.Client[v1.TransferRequest, v1.TransferResponse]
-	getSidechainWealth                    *connect.Client[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse]
-	createDeposit                         *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
-	getPendingWithdrawalBundle            *connect.Client[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse]
-	connectPeer                           *connect.Client[v1.ConnectPeerRequest, v1.ConnectPeerResponse]
-	listPeers                             *connect.Client[v1.ListPeersRequest, v1.ListPeersResponse]
-	mine                                  *connect.Client[v1.MineRequest, v1.MineResponse]
-	getBlock                              *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	getBestMainchainBlockHash             *connect.Client[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse]
-	getBestSidechainBlockHash             *connect.Client[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse]
-	getBmmInclusions                      *connect.Client[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse]
-	getWalletUtxos                        *connect.Client[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse]
-	listUtxos                             *connect.Client[v1.ListUtxosRequest, v1.ListUtxosResponse]
-	removeFromMempool                     *connect.Client[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse]
-	getLatestFailedWithdrawalBundleHeight *connect.Client[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse]
-	generateMnemonic                      *connect.Client[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse]
-	setSeedFromMnemonic                   *connect.Client[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse]
-	callRaw                               *connect.Client[v1.CallRawRequest, v1.CallRawResponse]
-	listWalletTransactions                *connect.Client[v1.ListWalletTransactionsRequest, v1.ListWalletTransactionsResponse]
-}
-
-// GetBalance calls thunder.v1.ThunderService.GetBalance.
-func (c *thunderServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return c.getBalance.CallUnary(ctx, req)
-}
-
-// GetBlockCount calls thunder.v1.ThunderService.GetBlockCount.
-func (c *thunderServiceClient) GetBlockCount(ctx context.Context, req *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return c.getBlockCount.CallUnary(ctx, req)
-}
-
-// Stop calls thunder.v1.ThunderService.Stop.
-func (c *thunderServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return c.stop.CallUnary(ctx, req)
-}
-
-// GetNewAddress calls thunder.v1.ThunderService.GetNewAddress.
-func (c *thunderServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return c.getNewAddress.CallUnary(ctx, req)
-}
-
-// Withdraw calls thunder.v1.ThunderService.Withdraw.
-func (c *thunderServiceClient) Withdraw(ctx context.Context, req *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return c.withdraw.CallUnary(ctx, req)
-}
-
-// Transfer calls thunder.v1.ThunderService.Transfer.
-func (c *thunderServiceClient) Transfer(ctx context.Context, req *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return c.transfer.CallUnary(ctx, req)
-}
-
-// GetSidechainWealth calls thunder.v1.ThunderService.GetSidechainWealth.
-func (c *thunderServiceClient) GetSidechainWealth(ctx context.Context, req *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return c.getSidechainWealth.CallUnary(ctx, req)
-}
-
-// CreateDeposit calls thunder.v1.ThunderService.CreateDeposit.
-func (c *thunderServiceClient) CreateDeposit(ctx context.Context, req *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return c.createDeposit.CallUnary(ctx, req)
-}
-
-// GetPendingWithdrawalBundle calls thunder.v1.ThunderService.GetPendingWithdrawalBundle.
-func (c *thunderServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return c.getPendingWithdrawalBundle.CallUnary(ctx, req)
-}
-
-// ConnectPeer calls thunder.v1.ThunderService.ConnectPeer.
-func (c *thunderServiceClient) ConnectPeer(ctx context.Context, req *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return c.connectPeer.CallUnary(ctx, req)
-}
-
-// ListPeers calls thunder.v1.ThunderService.ListPeers.
-func (c *thunderServiceClient) ListPeers(ctx context.Context, req *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return c.listPeers.CallUnary(ctx, req)
-}
-
-// Mine calls thunder.v1.ThunderService.Mine.
-func (c *thunderServiceClient) Mine(ctx context.Context, req *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return c.mine.CallUnary(ctx, req)
-}
-
-// GetBlock calls thunder.v1.ThunderService.GetBlock.
-func (c *thunderServiceClient) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return c.getBlock.CallUnary(ctx, req)
-}
-
-// GetBestMainchainBlockHash calls thunder.v1.ThunderService.GetBestMainchainBlockHash.
-func (c *thunderServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return c.getBestMainchainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBestSidechainBlockHash calls thunder.v1.ThunderService.GetBestSidechainBlockHash.
-func (c *thunderServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return c.getBestSidechainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBmmInclusions calls thunder.v1.ThunderService.GetBmmInclusions.
-func (c *thunderServiceClient) GetBmmInclusions(ctx context.Context, req *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return c.getBmmInclusions.CallUnary(ctx, req)
-}
-
-// GetWalletUtxos calls thunder.v1.ThunderService.GetWalletUtxos.
-func (c *thunderServiceClient) GetWalletUtxos(ctx context.Context, req *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return c.getWalletUtxos.CallUnary(ctx, req)
-}
-
-// ListUtxos calls thunder.v1.ThunderService.ListUtxos.
-func (c *thunderServiceClient) ListUtxos(ctx context.Context, req *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return c.listUtxos.CallUnary(ctx, req)
-}
-
-// RemoveFromMempool calls thunder.v1.ThunderService.RemoveFromMempool.
-func (c *thunderServiceClient) RemoveFromMempool(ctx context.Context, req *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return c.removeFromMempool.CallUnary(ctx, req)
-}
-
-// GetLatestFailedWithdrawalBundleHeight calls
-// thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight.
-func (c *thunderServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return c.getLatestFailedWithdrawalBundleHeight.CallUnary(ctx, req)
-}
-
-// GenerateMnemonic calls thunder.v1.ThunderService.GenerateMnemonic.
-func (c *thunderServiceClient) GenerateMnemonic(ctx context.Context, req *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return c.generateMnemonic.CallUnary(ctx, req)
-}
-
-// SetSeedFromMnemonic calls thunder.v1.ThunderService.SetSeedFromMnemonic.
-func (c *thunderServiceClient) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return c.setSeedFromMnemonic.CallUnary(ctx, req)
-}
-
-// CallRaw calls thunder.v1.ThunderService.CallRaw.
-func (c *thunderServiceClient) CallRaw(ctx context.Context, req *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return c.callRaw.CallUnary(ctx, req)
-}
-
-// ListWalletTransactions calls thunder.v1.ThunderService.ListWalletTransactions.
-func (c *thunderServiceClient) ListWalletTransactions(ctx context.Context, req *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error) {
-	return c.listWalletTransactions.CallUnary(ctx, req)
+// NewThunderServiceClient constructs a client for the thunder.v1.ThunderService service. Multiple
+// service clients may share a single connect.Client.
+func NewThunderServiceClient(client *connect.Client) ThunderServiceClient {
+	return &thunderServiceClient{client: client}
 }
 
 // ThunderServiceHandler is an implementation of the thunder.v1.ThunderService service.
 type ThunderServiceHandler interface {
-	// Get wallet balance (total and available).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the thunder node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain.
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Lists the wallet transaction history through the Esplora index. The node
-	// itself keeps no address history.
-	ListWalletTransactions(context.Context, *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	ListWalletTransactions(context.Context, *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error)
 }
 
-// NewThunderServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewThunderServiceHandler(svc ThunderServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	thunderServiceMethods := v1.File_thunder_v1_thunder_proto.Services().ByName("ThunderService").Methods()
-	thunderServiceGetBalanceHandler := connect.NewUnaryHandler(
-		ThunderServiceGetBalanceProcedure,
-		svc.GetBalance,
-		connect.WithSchema(thunderServiceMethods.ByName("GetBalance")),
-		connect.WithHandlerOptions(opts...),
+// RegisterThunderServiceHandler registers svc as the thunder.v1.ThunderService implementation on
+// server.
+func RegisterThunderServiceHandler(server *connect.Server, svc ThunderServiceHandler) {
+	adapter := thunderServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: thunderServiceGetBalanceSpec(), Handler: adapter.getBalance},
+		connect.Method{Spec: thunderServiceGetBlockCountSpec(), Handler: adapter.getBlockCount},
+		connect.Method{Spec: thunderServiceStopSpec(), Handler: adapter.stop},
+		connect.Method{Spec: thunderServiceGetNewAddressSpec(), Handler: adapter.getNewAddress},
+		connect.Method{Spec: thunderServiceWithdrawSpec(), Handler: adapter.withdraw},
+		connect.Method{Spec: thunderServiceTransferSpec(), Handler: adapter.transfer},
+		connect.Method{Spec: thunderServiceGetSidechainWealthSpec(), Handler: adapter.getSidechainWealth},
+		connect.Method{Spec: thunderServiceCreateDepositSpec(), Handler: adapter.createDeposit},
+		connect.Method{Spec: thunderServiceGetPendingWithdrawalBundleSpec(), Handler: adapter.getPendingWithdrawalBundle},
+		connect.Method{Spec: thunderServiceConnectPeerSpec(), Handler: adapter.connectPeer},
+		connect.Method{Spec: thunderServiceListPeersSpec(), Handler: adapter.listPeers},
+		connect.Method{Spec: thunderServiceMineSpec(), Handler: adapter.mine},
+		connect.Method{Spec: thunderServiceGetBlockSpec(), Handler: adapter.getBlock},
+		connect.Method{Spec: thunderServiceGetBestMainchainBlockHashSpec(), Handler: adapter.getBestMainchainBlockHash},
+		connect.Method{Spec: thunderServiceGetBestSidechainBlockHashSpec(), Handler: adapter.getBestSidechainBlockHash},
+		connect.Method{Spec: thunderServiceGetBmmInclusionsSpec(), Handler: adapter.getBmmInclusions},
+		connect.Method{Spec: thunderServiceGetWalletUtxosSpec(), Handler: adapter.getWalletUtxos},
+		connect.Method{Spec: thunderServiceListUtxosSpec(), Handler: adapter.listUtxos},
+		connect.Method{Spec: thunderServiceRemoveFromMempoolSpec(), Handler: adapter.removeFromMempool},
+		connect.Method{Spec: thunderServiceGetLatestFailedWithdrawalBundleHeightSpec(), Handler: adapter.getLatestFailedWithdrawalBundleHeight},
+		connect.Method{Spec: thunderServiceGenerateMnemonicSpec(), Handler: adapter.generateMnemonic},
+		connect.Method{Spec: thunderServiceSetSeedFromMnemonicSpec(), Handler: adapter.setSeedFromMnemonic},
+		connect.Method{Spec: thunderServiceCallRawSpec(), Handler: adapter.callRaw},
+		connect.Method{Spec: thunderServiceListWalletTransactionsSpec(), Handler: adapter.listWalletTransactions},
 	)
-	thunderServiceGetBlockCountHandler := connect.NewUnaryHandler(
-		ThunderServiceGetBlockCountProcedure,
-		svc.GetBlockCount,
-		connect.WithSchema(thunderServiceMethods.ByName("GetBlockCount")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceStopHandler := connect.NewUnaryHandler(
-		ThunderServiceStopProcedure,
-		svc.Stop,
-		connect.WithSchema(thunderServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetNewAddressHandler := connect.NewUnaryHandler(
-		ThunderServiceGetNewAddressProcedure,
-		svc.GetNewAddress,
-		connect.WithSchema(thunderServiceMethods.ByName("GetNewAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceWithdrawHandler := connect.NewUnaryHandler(
-		ThunderServiceWithdrawProcedure,
-		svc.Withdraw,
-		connect.WithSchema(thunderServiceMethods.ByName("Withdraw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceTransferHandler := connect.NewUnaryHandler(
-		ThunderServiceTransferProcedure,
-		svc.Transfer,
-		connect.WithSchema(thunderServiceMethods.ByName("Transfer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetSidechainWealthHandler := connect.NewUnaryHandler(
-		ThunderServiceGetSidechainWealthProcedure,
-		svc.GetSidechainWealth,
-		connect.WithSchema(thunderServiceMethods.ByName("GetSidechainWealth")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceCreateDepositHandler := connect.NewUnaryHandler(
-		ThunderServiceCreateDepositProcedure,
-		svc.CreateDeposit,
-		connect.WithSchema(thunderServiceMethods.ByName("CreateDeposit")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetPendingWithdrawalBundleHandler := connect.NewUnaryHandler(
-		ThunderServiceGetPendingWithdrawalBundleProcedure,
-		svc.GetPendingWithdrawalBundle,
-		connect.WithSchema(thunderServiceMethods.ByName("GetPendingWithdrawalBundle")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceConnectPeerHandler := connect.NewUnaryHandler(
-		ThunderServiceConnectPeerProcedure,
-		svc.ConnectPeer,
-		connect.WithSchema(thunderServiceMethods.ByName("ConnectPeer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceListPeersHandler := connect.NewUnaryHandler(
-		ThunderServiceListPeersProcedure,
-		svc.ListPeers,
-		connect.WithSchema(thunderServiceMethods.ByName("ListPeers")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceMineHandler := connect.NewUnaryHandler(
-		ThunderServiceMineProcedure,
-		svc.Mine,
-		connect.WithSchema(thunderServiceMethods.ByName("Mine")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetBlockHandler := connect.NewUnaryHandler(
-		ThunderServiceGetBlockProcedure,
-		svc.GetBlock,
-		connect.WithSchema(thunderServiceMethods.ByName("GetBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetBestMainchainBlockHashHandler := connect.NewUnaryHandler(
-		ThunderServiceGetBestMainchainBlockHashProcedure,
-		svc.GetBestMainchainBlockHash,
-		connect.WithSchema(thunderServiceMethods.ByName("GetBestMainchainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetBestSidechainBlockHashHandler := connect.NewUnaryHandler(
-		ThunderServiceGetBestSidechainBlockHashProcedure,
-		svc.GetBestSidechainBlockHash,
-		connect.WithSchema(thunderServiceMethods.ByName("GetBestSidechainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetBmmInclusionsHandler := connect.NewUnaryHandler(
-		ThunderServiceGetBmmInclusionsProcedure,
-		svc.GetBmmInclusions,
-		connect.WithSchema(thunderServiceMethods.ByName("GetBmmInclusions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetWalletUtxosHandler := connect.NewUnaryHandler(
-		ThunderServiceGetWalletUtxosProcedure,
-		svc.GetWalletUtxos,
-		connect.WithSchema(thunderServiceMethods.ByName("GetWalletUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceListUtxosHandler := connect.NewUnaryHandler(
-		ThunderServiceListUtxosProcedure,
-		svc.ListUtxos,
-		connect.WithSchema(thunderServiceMethods.ByName("ListUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceRemoveFromMempoolHandler := connect.NewUnaryHandler(
-		ThunderServiceRemoveFromMempoolProcedure,
-		svc.RemoveFromMempool,
-		connect.WithSchema(thunderServiceMethods.ByName("RemoveFromMempool")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGetLatestFailedWithdrawalBundleHeightHandler := connect.NewUnaryHandler(
-		ThunderServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-		svc.GetLatestFailedWithdrawalBundleHeight,
-		connect.WithSchema(thunderServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceGenerateMnemonicHandler := connect.NewUnaryHandler(
-		ThunderServiceGenerateMnemonicProcedure,
-		svc.GenerateMnemonic,
-		connect.WithSchema(thunderServiceMethods.ByName("GenerateMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceSetSeedFromMnemonicHandler := connect.NewUnaryHandler(
-		ThunderServiceSetSeedFromMnemonicProcedure,
-		svc.SetSeedFromMnemonic,
-		connect.WithSchema(thunderServiceMethods.ByName("SetSeedFromMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceCallRawHandler := connect.NewUnaryHandler(
-		ThunderServiceCallRawProcedure,
-		svc.CallRaw,
-		connect.WithSchema(thunderServiceMethods.ByName("CallRaw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	thunderServiceListWalletTransactionsHandler := connect.NewUnaryHandler(
-		ThunderServiceListWalletTransactionsProcedure,
-		svc.ListWalletTransactions,
-		connect.WithSchema(thunderServiceMethods.ByName("ListWalletTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/thunder.v1.ThunderService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ThunderServiceGetBalanceProcedure:
-			thunderServiceGetBalanceHandler.ServeHTTP(w, r)
-		case ThunderServiceGetBlockCountProcedure:
-			thunderServiceGetBlockCountHandler.ServeHTTP(w, r)
-		case ThunderServiceStopProcedure:
-			thunderServiceStopHandler.ServeHTTP(w, r)
-		case ThunderServiceGetNewAddressProcedure:
-			thunderServiceGetNewAddressHandler.ServeHTTP(w, r)
-		case ThunderServiceWithdrawProcedure:
-			thunderServiceWithdrawHandler.ServeHTTP(w, r)
-		case ThunderServiceTransferProcedure:
-			thunderServiceTransferHandler.ServeHTTP(w, r)
-		case ThunderServiceGetSidechainWealthProcedure:
-			thunderServiceGetSidechainWealthHandler.ServeHTTP(w, r)
-		case ThunderServiceCreateDepositProcedure:
-			thunderServiceCreateDepositHandler.ServeHTTP(w, r)
-		case ThunderServiceGetPendingWithdrawalBundleProcedure:
-			thunderServiceGetPendingWithdrawalBundleHandler.ServeHTTP(w, r)
-		case ThunderServiceConnectPeerProcedure:
-			thunderServiceConnectPeerHandler.ServeHTTP(w, r)
-		case ThunderServiceListPeersProcedure:
-			thunderServiceListPeersHandler.ServeHTTP(w, r)
-		case ThunderServiceMineProcedure:
-			thunderServiceMineHandler.ServeHTTP(w, r)
-		case ThunderServiceGetBlockProcedure:
-			thunderServiceGetBlockHandler.ServeHTTP(w, r)
-		case ThunderServiceGetBestMainchainBlockHashProcedure:
-			thunderServiceGetBestMainchainBlockHashHandler.ServeHTTP(w, r)
-		case ThunderServiceGetBestSidechainBlockHashProcedure:
-			thunderServiceGetBestSidechainBlockHashHandler.ServeHTTP(w, r)
-		case ThunderServiceGetBmmInclusionsProcedure:
-			thunderServiceGetBmmInclusionsHandler.ServeHTTP(w, r)
-		case ThunderServiceGetWalletUtxosProcedure:
-			thunderServiceGetWalletUtxosHandler.ServeHTTP(w, r)
-		case ThunderServiceListUtxosProcedure:
-			thunderServiceListUtxosHandler.ServeHTTP(w, r)
-		case ThunderServiceRemoveFromMempoolProcedure:
-			thunderServiceRemoveFromMempoolHandler.ServeHTTP(w, r)
-		case ThunderServiceGetLatestFailedWithdrawalBundleHeightProcedure:
-			thunderServiceGetLatestFailedWithdrawalBundleHeightHandler.ServeHTTP(w, r)
-		case ThunderServiceGenerateMnemonicProcedure:
-			thunderServiceGenerateMnemonicHandler.ServeHTTP(w, r)
-		case ThunderServiceSetSeedFromMnemonicProcedure:
-			thunderServiceSetSeedFromMnemonicHandler.ServeHTTP(w, r)
-		case ThunderServiceCallRawProcedure:
-			thunderServiceCallRawHandler.ServeHTTP(w, r)
-		case ThunderServiceListWalletTransactionsProcedure:
-			thunderServiceListWalletTransactionsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedThunderServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedThunderServiceHandler struct{}
 
-func (UnimplementedThunderServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetBalance is not implemented"))
+func (UnimplementedThunderServiceHandler) GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetBalance is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetBlockCount is not implemented"))
+func (UnimplementedThunderServiceHandler) GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetBlockCount is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.Stop is not implemented"))
+func (UnimplementedThunderServiceHandler) Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.Stop is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetNewAddress is not implemented"))
+func (UnimplementedThunderServiceHandler) GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetNewAddress is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.Withdraw is not implemented"))
+func (UnimplementedThunderServiceHandler) Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.Withdraw is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.Transfer is not implemented"))
+func (UnimplementedThunderServiceHandler) Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.Transfer is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetSidechainWealth is not implemented"))
+func (UnimplementedThunderServiceHandler) GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetSidechainWealth is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.CreateDeposit is not implemented"))
+func (UnimplementedThunderServiceHandler) CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.CreateDeposit is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetPendingWithdrawalBundle is not implemented"))
+func (UnimplementedThunderServiceHandler) GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetPendingWithdrawalBundle is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.ConnectPeer is not implemented"))
+func (UnimplementedThunderServiceHandler) ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.ConnectPeer is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.ListPeers is not implemented"))
+func (UnimplementedThunderServiceHandler) ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.ListPeers is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.Mine is not implemented"))
+func (UnimplementedThunderServiceHandler) Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.Mine is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetBlock is not implemented"))
+func (UnimplementedThunderServiceHandler) GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetBlock is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetBestMainchainBlockHash is not implemented"))
+func (UnimplementedThunderServiceHandler) GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetBestMainchainBlockHash is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetBestSidechainBlockHash is not implemented"))
+func (UnimplementedThunderServiceHandler) GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetBestSidechainBlockHash is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetBmmInclusions is not implemented"))
+func (UnimplementedThunderServiceHandler) GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetBmmInclusions is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetWalletUtxos is not implemented"))
+func (UnimplementedThunderServiceHandler) GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetWalletUtxos is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.ListUtxos is not implemented"))
+func (UnimplementedThunderServiceHandler) ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.ListUtxos is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.RemoveFromMempool is not implemented"))
+func (UnimplementedThunderServiceHandler) RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.RemoveFromMempool is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight is not implemented"))
+func (UnimplementedThunderServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.GenerateMnemonic is not implemented"))
+func (UnimplementedThunderServiceHandler) GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.GenerateMnemonic is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.SetSeedFromMnemonic is not implemented"))
+func (UnimplementedThunderServiceHandler) SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.SetSeedFromMnemonic is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.CallRaw is not implemented"))
+func (UnimplementedThunderServiceHandler) CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.CallRaw is not implemented")
 }
 
-func (UnimplementedThunderServiceHandler) ListWalletTransactions(context.Context, *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.ListWalletTransactions is not implemented"))
+func (UnimplementedThunderServiceHandler) ListWalletTransactions(context.Context, *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "thunder.v1.ThunderService.ListWalletTransactions is not implemented")
+}
+
+type thunderServiceClient struct {
+	client *connect.Client
+}
+
+func (c *thunderServiceClient) GetBalance(ctx context.Context, req *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	var res v1.GetBalanceResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetBlockCount(ctx context.Context, req *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	var res v1.GetBlockCountResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetBlockCountSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) Stop(ctx context.Context, req *v1.StopRequest) (*v1.StopResponse, error) {
+	var res v1.StopResponse
+	if err := c.client.CallUnary(ctx, thunderServiceStopSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetNewAddress(ctx context.Context, req *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	var res v1.GetNewAddressResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetNewAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) Withdraw(ctx context.Context, req *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	var res v1.WithdrawResponse
+	if err := c.client.CallUnary(ctx, thunderServiceWithdrawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) Transfer(ctx context.Context, req *v1.TransferRequest) (*v1.TransferResponse, error) {
+	var res v1.TransferResponse
+	if err := c.client.CallUnary(ctx, thunderServiceTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetSidechainWealth(ctx context.Context, req *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	var res v1.GetSidechainWealthResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetSidechainWealthSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) CreateDeposit(ctx context.Context, req *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	var res v1.CreateDepositResponse
+	if err := c.client.CallUnary(ctx, thunderServiceCreateDepositSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	var res v1.GetPendingWithdrawalBundleResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetPendingWithdrawalBundleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) ConnectPeer(ctx context.Context, req *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	var res v1.ConnectPeerResponse
+	if err := c.client.CallUnary(ctx, thunderServiceConnectPeerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) ListPeers(ctx context.Context, req *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	var res v1.ListPeersResponse
+	if err := c.client.CallUnary(ctx, thunderServiceListPeersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) Mine(ctx context.Context, req *v1.MineRequest) (*v1.MineResponse, error) {
+	var res v1.MineResponse
+	if err := c.client.CallUnary(ctx, thunderServiceMineSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetBlock(ctx context.Context, req *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	var res v1.GetBlockResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetBlockSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	var res v1.GetBestMainchainBlockHashResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetBestMainchainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	var res v1.GetBestSidechainBlockHashResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetBestSidechainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetBmmInclusions(ctx context.Context, req *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	var res v1.GetBmmInclusionsResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetBmmInclusionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetWalletUtxos(ctx context.Context, req *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	var res v1.GetWalletUtxosResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetWalletUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) ListUtxos(ctx context.Context, req *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	var res v1.ListUtxosResponse
+	if err := c.client.CallUnary(ctx, thunderServiceListUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) RemoveFromMempool(ctx context.Context, req *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	var res v1.RemoveFromMempoolResponse
+	if err := c.client.CallUnary(ctx, thunderServiceRemoveFromMempoolSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	var res v1.GetLatestFailedWithdrawalBundleHeightResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGetLatestFailedWithdrawalBundleHeightSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) GenerateMnemonic(ctx context.Context, req *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	var res v1.GenerateMnemonicResponse
+	if err := c.client.CallUnary(ctx, thunderServiceGenerateMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) SetSeedFromMnemonic(ctx context.Context, req *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	var res v1.SetSeedFromMnemonicResponse
+	if err := c.client.CallUnary(ctx, thunderServiceSetSeedFromMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) CallRaw(ctx context.Context, req *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	var res v1.CallRawResponse
+	if err := c.client.CallUnary(ctx, thunderServiceCallRawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *thunderServiceClient) ListWalletTransactions(ctx context.Context, req *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error) {
+	var res v1.ListWalletTransactionsResponse
+	if err := c.client.CallUnary(ctx, thunderServiceListWalletTransactionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type thunderServiceHandler struct{ svc ThunderServiceHandler }
+
+func (h thunderServiceHandler) getBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getBlockCount(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockCountRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlockCount(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) stop(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Stop(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getNewAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) withdraw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WithdrawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Withdraw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) transfer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TransferRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Transfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getSidechainWealth(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainWealthRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSidechainWealth(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) createDeposit(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDepositRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDeposit(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getPendingWithdrawalBundle(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPendingWithdrawalBundleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPendingWithdrawalBundle(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) connectPeer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConnectPeerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ConnectPeer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) listPeers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPeersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPeers(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) mine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Mine(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlock(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getBestMainchainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestMainchainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestMainchainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getBestSidechainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestSidechainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestSidechainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getBmmInclusions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBmmInclusionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBmmInclusions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getWalletUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) listUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) removeFromMempool(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveFromMempoolRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveFromMempool(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) getLatestFailedWithdrawalBundleHeight(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetLatestFailedWithdrawalBundleHeightRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLatestFailedWithdrawalBundleHeight(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) generateMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GenerateMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GenerateMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) setSeedFromMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetSeedFromMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetSeedFromMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) callRaw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CallRawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CallRaw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h thunderServiceHandler) listWalletTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListWalletTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListWalletTransactions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

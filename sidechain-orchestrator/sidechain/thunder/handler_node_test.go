@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -35,11 +35,11 @@ func TestWalletCallsUseNodeWithIndex(t *testing.T) {
 			result: `{"total_sats":7000,"available_sats":6000}`, request: "balance",
 			want: [2]int64{7000, 6000},
 			call: func(h *Handler) (any, error) {
-				resp, err := h.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+				resp, err := h.GetBalance(ctx, &pb.GetBalanceRequest{})
 				if err != nil {
 					return nil, err
 				}
-				return [2]int64{resp.Msg.TotalSats, resp.Msg.AvailableSats}, nil
+				return [2]int64{resp.TotalSats, resp.AvailableSats}, nil
 			},
 		},
 		{
@@ -55,48 +55,48 @@ func TestWalletCallsUseNodeWithIndex(t *testing.T) {
 			name: "address", method: "get_new_address",
 			result: `"node-address"`, request: "get_new_address", want: "node-address",
 			call: func(h *Handler) (any, error) {
-				resp, err := h.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+				resp, err := h.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 				if err != nil {
 					return nil, err
 				}
-				return resp.Msg.Address, nil
+				return resp.Address, nil
 			},
 		},
 		{
 			name: "transfer", method: "create_transfer",
 			result: `"transfer-id"`, request: `create_transfer ["alice",5000,100]`, want: "transfer-id",
 			call: func(h *Handler) (any, error) {
-				resp, err := h.Transfer(ctx, connect.NewRequest(&pb.TransferRequest{
+				resp, err := h.Transfer(ctx, &pb.TransferRequest{
 					Address: "alice", AmountSats: 5000, FeeSats: 100,
-				}))
+				})
 				if err != nil {
 					return nil, err
 				}
-				return resp.Msg.Txid, nil
+				return resp.Txid, nil
 			},
 		},
 		{
 			name: "withdrawal", method: "create_withdrawal",
 			result: `"withdrawal-id"`, request: `create_withdrawal ["main-address",5000,100,200]`, want: "withdrawal-id",
 			call: func(h *Handler) (any, error) {
-				resp, err := h.Withdraw(ctx, connect.NewRequest(&pb.WithdrawRequest{
+				resp, err := h.Withdraw(ctx, &pb.WithdrawRequest{
 					Address: "main-address", AmountSats: 5000, SideFeeSats: 100, MainFeeSats: 200,
-				}))
+				})
 				if err != nil {
 					return nil, err
 				}
-				return resp.Msg.Txid, nil
+				return resp.Txid, nil
 			},
 		},
 		{
 			name: "UTXOs", method: "get_wallet_utxos",
 			result: `[]`, request: "get_wallet_utxos", want: "[]",
 			call: func(h *Handler) (any, error) {
-				resp, err := h.GetWalletUtxos(ctx, connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+				resp, err := h.GetWalletUtxos(ctx, &pb.GetWalletUtxosRequest{})
 				if err != nil {
 					return nil, err
 				}
-				return resp.Msg.UtxosJson, nil
+				return resp.UtxosJson, nil
 			},
 		},
 	}
@@ -137,12 +137,12 @@ func TestWalletUTXOsKeepMempoolWithIndex(t *testing.T) {
 		]}}]`,
 	})
 	h := NewHandlerWithIndex(proxy, "http://127.0.0.1:1")
-	resp, err := h.GetWalletUtxos(context.Background(), connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+	resp, err := h.GetWalletUtxos(context.Background(), &pb.GetWalletUtxosRequest{})
 	require.NoError(t, err)
 	assert.JSONEq(t, `[
 		{"outpoint":{"Regular":{"txid":"old","vout":0}},"output":{"address":"mine","content":{"Value":2000}}},
 		{"outpoint":{"Regular":{"txid":"pending","vout":0}},"output":{"address":"mine","content":{"Value":10000}},"confirmed":false}
-	]`, resp.Msg.UtxosJson)
+	]`, resp.UtxosJson)
 	assert.Equal(t, []string{"get_wallet_utxos", "get_wallet_addresses", "list_mempool"}, *seen)
 }
 
@@ -155,9 +155,9 @@ func TestWalletUTXOsAskNoBlockTemplate(t *testing.T) {
 		"get_wallet_utxos":     confirmed,
 		"get_wallet_addresses": `["mine"]`,
 	})
-	resp, err := NewHandler(proxy).GetWalletUtxos(context.Background(), connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+	resp, err := NewHandler(proxy).GetWalletUtxos(context.Background(), &pb.GetWalletUtxosRequest{})
 	require.NoError(t, err)
-	assert.JSONEq(t, confirmed, resp.Msg.UtxosJson)
+	assert.JSONEq(t, confirmed, resp.UtxosJson)
 	assert.Equal(t, []string{"get_wallet_utxos", "get_wallet_addresses", "list_mempool"}, *seen)
 }
 
@@ -168,7 +168,7 @@ func TestListTransactionsReportsIndexError(t *testing.T) {
 	}))
 	defer index.Close()
 	_, err := NewHandlerWithIndex(proxy, index.URL).ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	require.ErrorContains(t, err, "503")
 	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	assert.Equal(t, []string{"get_wallet_addresses"}, *seen)
@@ -190,13 +190,13 @@ func TestListTransactionsReadsEmptyIndex(t *testing.T) {
 	}))
 	defer index.Close()
 	resp, err := NewHandlerWithIndex(proxy, index.URL).ListWalletTransactions(context.Background(),
-		connect.NewRequest(&pb.ListWalletTransactionsRequest{}))
+		&pb.ListWalletTransactionsRequest{})
 	require.NoError(t, err)
-	assert.Zero(t, resp.Msg.TipHeight)
-	require.Len(t, resp.Msg.Transactions, 1)
-	assert.Equal(t, "pending", resp.Msg.Transactions[0].Txid)
-	assert.Equal(t, int64(100), resp.Msg.Transactions[0].ValueSats)
-	assert.False(t, resp.Msg.Transactions[0].Confirmed)
+	assert.Zero(t, resp.TipHeight)
+	require.Len(t, resp.Transactions, 1)
+	assert.Equal(t, "pending", resp.Transactions[0].Txid)
+	assert.Equal(t, int64(100), resp.Transactions[0].ValueSats)
+	assert.False(t, resp.Transactions[0].Confirmed)
 	assert.Equal(t, []string{"get_wallet_addresses"}, *seen)
 }
 
@@ -204,8 +204,8 @@ func TestListTransactionsReadsEmptyIndex(t *testing.T) {
 func TestGetBmmInclusionsReadsTheList(t *testing.T) {
 	proxy, seen := sendMethodNode(t, map[string]string{"get_bmm_inclusions": `["main-a","main-b"]`})
 	resp, err := NewHandler(proxy).GetBmmInclusions(context.Background(),
-		connect.NewRequest(&pb.GetBmmInclusionsRequest{BlockHash: "side"}))
+		&pb.GetBmmInclusionsRequest{BlockHash: "side"})
 	require.NoError(t, err)
-	assert.JSONEq(t, `["main-a","main-b"]`, resp.Msg.Inclusions)
+	assert.JSONEq(t, `["main-a","main-b"]`, resp.Inclusions)
 	assert.Equal(t, []string{`get_bmm_inclusions ["side"]`}, *seen)
 }

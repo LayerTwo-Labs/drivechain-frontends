@@ -2,10 +2,10 @@ package connector
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 )
 
@@ -51,10 +51,10 @@ func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 	if err != nil {
 		s.setConnected(ctx, false)
 		var zero T
-		return zero, connect.NewError(
+		return zero, connect.Errorf(
 			connect.CodeUnavailable,
-			fmt.Errorf("%s does not accept connections: %w", s.name, err),
-		)
+			"%s does not accept connections: %s", s.name, err,
+		).WithCause(err)
 	} else {
 		s.mu.Lock()
 		s.client = client
@@ -74,4 +74,17 @@ func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 		zerolog.Ctx(ctx).Info().
 			Msgf("%s changed connected to: %t", s.name, val)
 	}
+}
+
+// ForwardError keeps a remote RPC error public at a proxy route.
+func ForwardError(err error) error {
+	var remote *connect.Error
+	if !errors.As(err, &remote) || !remote.IsRemote() {
+		return err
+	}
+	result := connect.NewError(remote.Code(), remote.Message()).WithCause(err)
+	for _, detail := range remote.Details() {
+		result = result.WithDetail(detail)
+	}
+	return result
 }

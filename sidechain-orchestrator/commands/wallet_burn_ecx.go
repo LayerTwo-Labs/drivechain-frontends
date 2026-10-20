@@ -11,7 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	confpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	confrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
@@ -41,12 +42,13 @@ func newWalletBurnECXCommand(burnAddress string, minimumSats int64) *cli.Command
 			&cli.StringSliceFlag{Name: "signed-psbt", Usage: "combine a cosigner PSBT file with --psbt-in; repeat for each cosigner"},
 		},
 		Action: func(cctx *cli.Context) error {
-			conf := confrpc.NewBitcoinConfServiceClient(
+			conf := confrpc.NewBitcoinConfServiceClient(connect.NewClient(connecthttp.NewTransport(
 				http.DefaultClient,
 				"http://"+cctx.String("rpcserver"),
-				connect.WithGRPC(),
-				connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
-			)
+				connecthttp.WithReadMaxBytes(0),
+				connecthttp.WithGRPC(),
+			), localauth.ClientInterceptor(cookieDir(cctx)),
+			))
 			return runWalletBurnECX(cctx, newWalletClient(cctx), conf, burnAddress, minimumSats)
 		},
 	}
@@ -62,13 +64,13 @@ type burnWalletState struct {
 }
 
 func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServiceClient, conf confrpc.BitcoinConfServiceClient) error {
-	networks, err := conf.ListNetworks(cctx.Context, connect.NewRequest(&confpb.ListNetworksRequest{}))
+	networks, err := conf.ListNetworks(cctx.Context, &confpb.ListNetworksRequest{})
 	if err != nil {
 		return fmt.Errorf("read the network: %w", err)
 	}
 	var current wallet.ECXBurnNetwork
 	var lockTime uint32
-	for _, network := range networks.Msg.Networks {
+	for _, network := range networks.Networks {
 		if network.IsCurrent {
 			if network.Network == "ecash" {
 				current = wallet.ECXBurnNetworkByID(network.Id)
@@ -88,11 +90,11 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 	if s.network != current {
 		return fmt.Errorf("the network changed; create the burn again")
 	}
-	status, err := client.GetWalletStatus(cctx.Context, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+	status, err := client.GetWalletStatus(cctx.Context, &pb.GetWalletStatusRequest{})
 	if err != nil {
 		return fmt.Errorf("read the wallet status: %w", err)
 	}
-	switch status.Msg.State {
+	switch status.State {
 	case pb.WalletState_WALLET_STATE_NO_WALLET:
 		return fmt.Errorf("select a wallet to burn coins")
 	case pb.WalletState_WALLET_STATE_LOCKED:
@@ -100,20 +102,20 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 	}
 	if s.active {
 		if s.walletID == "" {
-			s.walletID = status.Msg.ActiveWalletId
+			s.walletID = status.ActiveWalletId
 		}
-		if s.walletID == "" || status.Msg.ActiveWalletId != s.walletID {
+		if s.walletID == "" || status.ActiveWalletId != s.walletID {
 			return fmt.Errorf("the active wallet changed; create the burn again")
 		}
 	}
-	wallets, err := client.ListWallets(cctx.Context, connect.NewRequest(&pb.ListWalletsRequest{}))
+	wallets, err := client.ListWallets(cctx.Context, &pb.ListWalletsRequest{})
 	if err != nil {
 		return fmt.Errorf("read the wallets: %w", err)
 	}
-	if s.active && wallets.Msg.ActiveWalletId != s.walletID {
+	if s.active && wallets.ActiveWalletId != s.walletID {
 		return fmt.Errorf("the active wallet changed; create the burn again")
 	}
-	for _, wallet := range wallets.Msg.Wallets {
+	for _, wallet := range wallets.Wallets {
 		if wallet.Id != s.walletID {
 			continue
 		}
@@ -171,16 +173,16 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 	if err := state.check(cctx, client, conf); err != nil {
 		return err
 	}
-	derived, err := client.DeriveAddresses(cctx.Context, connect.NewRequest(&pb.DeriveAddressesRequest{
+	derived, err := client.DeriveAddresses(cctx.Context, &pb.DeriveAddressesRequest{
 		WalletId: state.walletID, StartIndex: 0, Count: 1,
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("derive the first wallet address: %w", err)
 	}
-	if len(derived.Msg.Addresses) != 1 || derived.Msg.Addresses[0] == "" {
+	if len(derived.Addresses) != 1 || derived.Addresses[0] == "" {
 		return fmt.Errorf("the wallet returned no first address")
 	}
-	address := derived.Msg.Addresses[0]
+	address := derived.Addresses[0]
 	dataScript, err := txscript.NewScriptBuilder().AddOp(txscript.OP_RETURN).AddData([]byte(address)).Script()
 	if err != nil {
 		return fmt.Errorf("create the address script: %w", err)
@@ -195,16 +197,16 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 			return err
 		}
 	} else {
-		created, err := client.CreatePsbt(cctx.Context, connect.NewRequest(&pb.CreatePsbtRequest{
+		created, err := client.CreatePsbt(cctx.Context, &pb.CreatePsbtRequest{
 			WalletId:           state.walletID,
 			Destinations:       map[string]int64{burnAddress: amount},
 			FeeRateSatPerVbyte: cctx.Int64("fee-rate"),
 			OpReturnHex:        hex.EncodeToString([]byte(address)),
-		}))
+		})
 		if err != nil {
 			return fmt.Errorf("create the burn transaction: %w", err)
 		}
-		packet = created.Msg.PsbtBase64
+		packet = created.PsbtBase64
 	}
 	if err := state.check(cctx, client, conf); err != nil {
 		return err
@@ -218,27 +220,27 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 			}
 			packets = append(packets, signed)
 		}
-		combined, err := client.CombinePsbt(cctx.Context, connect.NewRequest(&pb.CombinePsbtRequest{PsbtBase64: packets}))
+		combined, err := client.CombinePsbt(cctx.Context, &pb.CombinePsbtRequest{PsbtBase64: packets})
 		if err != nil {
 			return fmt.Errorf("combine the burn signatures: %w", err)
 		}
 		if err := state.check(cctx, client, conf); err != nil {
 			return err
 		}
-		packet = combined.Msg.PsbtBase64
+		packet = combined.PsbtBase64
 	}
 	if inputPath != "" {
 		if err := wallet.CheckPSBTInputs(packet); err != nil {
 			return err
 		}
 	}
-	decoded, err := client.DecodeTransaction(cctx.Context, connect.NewRequest(&pb.DecodeTransactionRequest{
+	decoded, err := client.DecodeTransaction(cctx.Context, &pb.DecodeTransactionRequest{
 		WalletId: state.walletID, Input: packet, CheckOwnership: true,
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("read the burn transaction: %w", err)
 	}
-	if err := checkBurnPreview(decoded.Msg, state.lockTime, amount, burnScript, dataScript); err != nil {
+	if err := checkBurnPreview(decoded, state.lockTime, amount, burnScript, dataScript); err != nil {
 		return err
 	}
 	if err := state.check(cctx, client, conf); err != nil {
@@ -246,25 +248,25 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 	}
 	ready := true
 	if state.multisig {
-		status, err := client.MultisigPsbtStatus(cctx.Context, connect.NewRequest(&pb.MultisigPsbtStatusRequest{
+		status, err := client.MultisigPsbtStatus(cctx.Context, &pb.MultisigPsbtStatusRequest{
 			WalletId: state.walletID, PsbtBase64: packet,
-		}))
+		})
 		if err != nil {
 			return fmt.Errorf("read the burn signatures: %w", err)
 		}
 		if err := state.check(cctx, client, conf); err != nil {
 			return err
 		}
-		ready = status.Msg.Finalizable
+		ready = status.Finalizable
 	}
 	creditSats := state.network.CreditSats(amount)
 	preview := fmt.Sprintf("Burn Transaction\nWallet: %s\n%s burn: %s coins (%d satoshis)\nTo BitcoinEater: %s\nThis transaction burns %s coins.\nOP_RETURN: 0 satoshis\nECX address: %s\nThe address used is the first address of this wallet.\nYou will receive 1/%d of the amount you burn as real ECX at this address.\nThe credit rounds up to a whole ECX satoshi.\nReal ECX credit: %s ECX\nNetwork fee: %s %s coins (%d satoshis)\nTotal from %s: %s coins\nYou cannot reverse this burn\n",
 		state.walletID, state.network.Name, formatBurnCoins(amount, 8), amount, burnAddress, state.network.Name, address, state.network.CreditDivisor, formatBurnCoins(creditSats, 8),
-		formatBurnCoins(decoded.Msg.FeeSats, 8), state.network.Name, decoded.Msg.FeeSats, state.network.Name, formatBurnCoins(amount+decoded.Msg.FeeSats, 8))
+		formatBurnCoins(decoded.FeeSats, 8), state.network.Name, decoded.FeeSats, state.network.Name, formatBurnCoins(amount+decoded.FeeSats, 8))
 	if _, err := io.WriteString(cctx.App.Writer, preview); err != nil {
 		return fmt.Errorf("write the burn preview: %w", err)
 	}
-	if err := writeTransactionWarning(cctx.App.Writer, decoded.Msg.WarningMessage); err != nil {
+	if err := writeTransactionWarning(cctx.App.Writer, decoded.WarningMessage); err != nil {
 		return err
 	}
 	if !ready {
@@ -304,34 +306,34 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 		return err
 	}
 	if inputPath == "" {
-		signed, err := client.SignPsbt(cctx.Context, connect.NewRequest(&pb.SignPsbtRequest{
+		signed, err := client.SignPsbt(cctx.Context, &pb.SignPsbtRequest{
 			WalletId: state.walletID, PsbtBase64: packet,
-		}))
+		})
 		if err != nil {
 			return fmt.Errorf("sign the burn transaction: %w", err)
 		}
 		if err := state.check(cctx, client, conf); err != nil {
 			return err
 		}
-		packet = signed.Msg.PsbtBase64
+		packet = signed.PsbtBase64
 	}
-	final, err := client.FinalizePsbt(cctx.Context, connect.NewRequest(&pb.FinalizePsbtRequest{PsbtBase64: packet}))
+	final, err := client.FinalizePsbt(cctx.Context, &pb.FinalizePsbtRequest{PsbtBase64: packet})
 	if err != nil {
 		return fmt.Errorf("finalize the burn transaction: %w", err)
 	}
 	if err := state.check(cctx, client, conf); err != nil {
 		return err
 	}
-	sent, err := client.BroadcastTransaction(cctx.Context, connect.NewRequest(&pb.BroadcastTransactionRequest{
-		WalletId: state.walletID, TxHex: final.Msg.RawTxHex,
-	}))
+	sent, err := client.BroadcastTransaction(cctx.Context, &pb.BroadcastTransactionRequest{
+		WalletId: state.walletID, TxHex: final.RawTxHex,
+	})
 	if err != nil {
 		return fmt.Errorf("broadcast the burn transaction: %w", err)
 	}
 	receipt := fmt.Sprintf("Burn sent: %s\nECX credit pending: %s ECX\nECX address: %s\nYour real ECX credit remains pending.\n",
-		sent.Msg.Txid, formatBurnCoins(creditSats, 8), address)
+		sent.Txid, formatBurnCoins(creditSats, 8), address)
 	if _, err := io.WriteString(cctx.App.Writer, receipt); err != nil {
-		return fmt.Errorf("write the receipt for %s: %w", sent.Msg.Txid, err)
+		return fmt.Errorf("write the receipt for %s: %w", sent.Txid, err)
 	}
 	return nil
 }

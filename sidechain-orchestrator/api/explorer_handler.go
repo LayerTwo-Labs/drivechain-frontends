@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -92,18 +92,18 @@ func (s source) cacheKey(hash string) string { return s.origin + ":" + hash }
 // sourceFor selects the local node.
 func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	if h.orch == nil {
-		return source{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("orchestrator not wired"))
+		return source{}, connect.Errorf(connect.CodeFailedPrecondition,
+			"orchestrator not wired")
 	}
 	chain = strings.TrimSpace(chain)
 	if chain == "" {
-		return source{}, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("name a chain"))
+		return source{}, connect.Errorf(connect.CodeInvalidArgument,
+			"name a chain")
 	}
 	cfg, ok := h.orch.Configs()[chain]
 	if !ok {
-		return source{}, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("sidechain %s is not configured", chain))
+		return source{}, connect.Errorf(connect.CodeNotFound,
+			"sidechain %s is not configured", chain)
 	}
 	network := config.NetworkFromString(h.orch.CurrentNetwork())
 
@@ -119,7 +119,7 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	}
 	node, err := sidechainNode(cfg, network)
 	if err != nil {
-		return source{}, connect.NewError(connect.CodeUnavailable, err)
+		return source{}, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	out.node = node
 	return out, nil
@@ -127,9 +127,9 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 
 // GetOverview answers the explorer landing page.
 func (h *ExplorerHandler) GetOverview(
-	ctx context.Context, req *connect.Request[pb.GetOverviewRequest],
-) (*connect.Response[pb.GetOverviewResponse], error) {
-	src, err := h.sourceOf(req.Msg.GetChain())
+	ctx context.Context, req *pb.GetOverviewRequest,
+) (*pb.GetOverviewResponse, error) {
+	src, err := h.sourceOf(req.GetChain())
 	if err != nil {
 		return nil, err
 	}
@@ -148,21 +148,21 @@ func (h *ExplorerHandler) GetOverview(
 		out.Treasury = h.enforcerTreasury(ctx, src.slot)
 	}
 	h.resolveMainchain(ctx, out.GetBlocks()...)
-	return connect.NewResponse(out), nil
+	return out, nil
 }
 
 func indexOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, error) {
 	blocks, err := src.index.Blocks(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	recent, err := src.index.RecentActivity(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	pool, err := src.index.Mempool(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 
 	out := &pb.GetOverviewResponse{
@@ -222,7 +222,7 @@ func fillIndexBlockDeposits(ctx context.Context, src source, blocks []*pb.Block)
 func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	out := &pb.GetOverviewResponse{Source: "node", Mempool: &pb.Mempool{}}
 	if count <= 0 {
@@ -233,12 +233,12 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 
 	hash, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	var next string
 	if err := json.Unmarshal(hash, &next); err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the tip hash: %w", err))
+			fmt.Errorf("read the tip hash: %w", err).Error())
 	}
 
 	// The walk reads far more blocks than the page keeps. Only a kept block,
@@ -299,7 +299,7 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 	// The unconfirmed rows lead the mined ones, the way an explorer reads.
 	pool, err := sidechain.Mempool(ctx, src.node)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	out.Mempool.TxCount = uint32(len(pool))
 	out.Recent = append(mempoolActivity(pool), out.Recent...)
@@ -322,12 +322,12 @@ func (h *ExplorerHandler) enforcerTreasury(ctx context.Context, slot uint32) *pb
 	if err != nil {
 		return nil
 	}
-	chains, err := validator.GetSidechains(ctx, connect.NewRequest(&enforcerpb.GetSidechainsRequest{}))
+	chains, err := validator.GetSidechains(ctx, &enforcerpb.GetSidechainsRequest{})
 	if err != nil {
 		return nil
 	}
 	var out *pb.Treasury
-	for _, c := range chains.Msg.GetSidechains() {
+	for _, c := range chains.GetSidechains() {
 		if c.GetSidechainNumber().GetValue() != slot {
 			continue
 		}
@@ -337,13 +337,13 @@ func (h *ExplorerHandler) enforcerTreasury(ctx context.Context, slot uint32) *pb
 		return nil
 	}
 
-	ctip, err := validator.GetCtip(ctx, connect.NewRequest(&enforcerpb.GetCtipRequest{
+	ctip, err := validator.GetCtip(ctx, &enforcerpb.GetCtipRequest{
 		SidechainNumber: wrapperspb.UInt32(slot),
-	}))
+	})
 	if err != nil {
 		return out
 	}
-	if c := ctip.Msg.GetCtip(); c != nil {
+	if c := ctip.GetCtip(); c != nil {
 		out.BalanceSats = int64(c.GetValue())
 		out.CtipTxid = c.GetTxid().GetHex().GetValue()
 		out.CtipVout = c.GetVout()
@@ -353,36 +353,36 @@ func (h *ExplorerHandler) enforcerTreasury(ctx context.Context, slot uint32) *pb
 
 // GetBlock reads one block and what it carried.
 func (h *ExplorerHandler) GetBlock(
-	ctx context.Context, req *connect.Request[pb.GetBlockRequest],
-) (*connect.Response[pb.GetBlockResponse], error) {
-	src, err := h.sourceOf(req.Msg.GetChain())
+	ctx context.Context, req *pb.GetBlockRequest,
+) (*pb.GetBlockResponse, error) {
+	src, err := h.sourceOf(req.GetChain())
 	if err != nil {
 		return nil, err
 	}
-	hash := strings.TrimSpace(req.Msg.GetHash())
+	hash := strings.TrimSpace(req.GetHash())
 
 	if src.index != nil {
 		if hash == "" {
-			hash, err = src.index.BlockHashAtHeight(ctx, req.Msg.GetHeight())
+			hash, err = src.index.BlockHashAtHeight(ctx, req.GetHeight())
 			if err != nil {
-				return nil, connect.NewError(connect.CodeNotFound, err)
+				return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 			}
 			hash = strings.TrimSpace(hash)
 		}
 		block, err := src.index.Block(ctx, hash)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeNotFound, err)
+			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		}
 		rows, err := src.index.BlockActivity(ctx, hash)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		}
 		out := &pb.GetBlockResponse{Block: newBlock(block), Activity: activityList(rows)}
 		countDeposits(out.Block, out.Activity)
 		h.resolveMainchain(ctx, out.Block)
 		stampRows(out.Block, out.Activity)
 		h.resolveBid(ctx, src.slot, out.Block)
-		return connect.NewResponse(out), nil
+		return out, nil
 	}
 
 	if src.core {
@@ -391,15 +391,15 @@ func (h *ExplorerHandler) GetBlock(
 		if hash != "" {
 			block, activity, err = coreBlockByHash(ctx, src, hash)
 		} else {
-			block, activity, err = coreBlockAtHeight(ctx, src, req.Msg.GetHeight())
+			block, activity, err = coreBlockAtHeight(ctx, src, req.GetHeight())
 		}
 		if err != nil {
 			return nil, err
 		}
-		return connect.NewResponse(&pb.GetBlockResponse{Block: block, Activity: activity}), nil
+		return &pb.GetBlockResponse{Block: block, Activity: activity}, nil
 	}
 
-	height := req.Msg.GetHeight()
+	height := req.GetHeight()
 	if hash == "" {
 		hash, err = nodeHashAtHeight(ctx, src, height)
 		if err != nil {
@@ -420,7 +420,7 @@ func (h *ExplorerHandler) GetBlock(
 	h.resolveMainchain(ctx, block)
 	stampRows(block, activity)
 	h.resolveBid(ctx, src.slot, block)
-	return connect.NewResponse(&pb.GetBlockResponse{Block: block, Activity: activity}), nil
+	return &pb.GetBlockResponse{Block: block, Activity: activity}, nil
 }
 
 // countDeposits fills in what a block took from the mainchain, for a source
@@ -440,15 +440,15 @@ func countDeposits(block *pb.Block, rows []*pb.Activity) {
 
 // GetTransaction reads one transaction.
 func (h *ExplorerHandler) GetTransaction(
-	ctx context.Context, req *connect.Request[pb.GetTransactionRequest],
-) (*connect.Response[pb.GetTransactionResponse], error) {
-	src, err := h.sourceOf(req.Msg.GetChain())
+	ctx context.Context, req *pb.GetTransactionRequest,
+) (*pb.GetTransactionResponse, error) {
+	src, err := h.sourceOf(req.GetChain())
 	if err != nil {
 		return nil, err
 	}
-	txid := strings.TrimSpace(req.Msg.GetTxid())
+	txid := strings.TrimSpace(req.GetTxid())
 	if txid == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name a txid"))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "name a txid")
 	}
 	if src.index == nil {
 		read := nodeTransaction
@@ -459,29 +459,29 @@ func (h *ExplorerHandler) GetTransaction(
 		if err != nil {
 			return nil, err
 		}
-		return connect.NewResponse(&pb.GetTransactionResponse{Transaction: out}), nil
+		return &pb.GetTransactionResponse{Transaction: out}, nil
 	}
 	tx, err := src.index.Tx(ctx, txid)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.GetTransactionResponse{Transaction: newTransaction(tx)}), nil
+	return &pb.GetTransactionResponse{Transaction: newTransaction(tx)}, nil
 }
 
 // nodeHeightOfHash walks down from the tip to the height of one hash.
 func nodeHeightOfHash(ctx context.Context, src source, hash string) (uint32, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return 0, connect.NewError(connect.CodeUnavailable, err)
+		return 0, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	raw, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
 	if err != nil {
-		return 0, connect.NewError(connect.CodeUnavailable, err)
+		return 0, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	var at string
 	if err := json.Unmarshal(raw, &at); err != nil {
 		return 0, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the tip hash: %w", err))
+			fmt.Errorf("read the tip hash: %w", err).Error())
 	}
 
 	for height := count - 1; height >= 0; height-- {
@@ -498,21 +498,21 @@ func nodeHeightOfHash(ctx context.Context, src source, hash string) (uint32, err
 		}
 		at = *prev
 	}
-	return 0, connect.NewError(connect.CodeNotFound,
-		fmt.Errorf("no block on %s hashes to %s", src.name, hash))
+	return 0, connect.Errorf(connect.CodeNotFound,
+		"no block on %s hashes to %s", src.name, hash)
 }
 
 // GetAddress reads what an address holds and what it did.
 func (h *ExplorerHandler) GetAddress(
-	ctx context.Context, req *connect.Request[pb.GetAddressRequest],
-) (*connect.Response[pb.GetAddressResponse], error) {
-	src, err := h.sourceOf(req.Msg.GetChain())
+	ctx context.Context, req *pb.GetAddressRequest,
+) (*pb.GetAddressResponse, error) {
+	src, err := h.sourceOf(req.GetChain())
 	if err != nil {
 		return nil, err
 	}
-	address := strings.TrimSpace(req.Msg.GetAddress())
+	address := strings.TrimSpace(req.GetAddress())
 	if address == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name an address"))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "name an address")
 	}
 	// No node holds an address index, so an address always reads the hosted
 	// one, whether the app runs a full node or a light client.
@@ -521,19 +521,19 @@ func (h *ExplorerHandler) GetAddress(
 		index = h.addressIndex(src.name)
 	}
 	if index == nil {
-		return nil, connect.NewError(connect.CodeUnimplemented,
-			fmt.Errorf("%s has no index, and a node keeps no address history", src.name))
+		return nil, connect.Errorf(connect.CodeUnimplemented,
+			"%s has no index, and a node keeps no address history", src.name)
 	}
 
 	stats, err := index.AddressStats(ctx, address)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 	// The first page already carries the unconfirmed rows, so a separate
 	// mempool read would list every one of them twice.
 	history, err := sidechainesplora.NewWallet(index).AddressHistory(ctx, address)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 
 	out := &pb.GetAddressResponse{
@@ -554,14 +554,14 @@ func (h *ExplorerHandler) GetAddress(
 	// from their own route.
 	deposits, err := index.AddressDeposits(ctx, address)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	for _, deposit := range deposits {
 		out.Transactions = append(out.Transactions, depositTransaction(address, deposit))
 		out.TxCount++
 	}
 	sortNewestFirst(out.Transactions)
-	return connect.NewResponse(out), nil
+	return out, nil
 }
 
 // sortNewestFirst orders an address history the way the view reads it: the
@@ -608,9 +608,9 @@ func depositTransaction(address string, deposit sidechainesplora.UTXO) *pb.Trans
 
 // GetWithdrawals reads the bundle the chain proposes to the mainchain.
 func (h *ExplorerHandler) GetWithdrawals(
-	ctx context.Context, req *connect.Request[pb.GetWithdrawalsRequest],
-) (*connect.Response[pb.GetWithdrawalsResponse], error) {
-	src, err := h.sourceOf(req.Msg.GetChain())
+	ctx context.Context, req *pb.GetWithdrawalsRequest,
+) (*pb.GetWithdrawalsResponse, error) {
+	src, err := h.sourceOf(req.GetChain())
 	if err != nil {
 		return nil, err
 	}
@@ -618,29 +618,29 @@ func (h *ExplorerHandler) GetWithdrawals(
 	if src.index != nil {
 		state, err := src.index.Withdrawals(ctx)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		}
 		out.Bundle = parseBundle(state.Bundle)
 		if state.LastFailedHeight != nil {
 			out.LastFailedHeight = *state.LastFailedHeight
 		}
-		return connect.NewResponse(out), nil
+		return out, nil
 	}
 
 	bundles, err := withdrawalNode(src.node, src.name)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnimplemented, err)
+		return nil, connect.NewError(connect.CodeUnimplemented, err.Error()).WithCause(err)
 	}
 	raw, err := bundles.GetPendingWithdrawalBundle(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	out.Bundle = parseBundle(raw)
 	height, err := bundles.GetLatestFailedWithdrawalBundleHeight(ctx)
 	if err == nil && height >= 0 {
 		out.LastFailedHeight = uint32(height)
 	}
-	return connect.NewResponse(out), nil
+	return out, nil
 }
 
 // nodeHashAtHeight walks down from the tip to the hash at one height. No
@@ -648,21 +648,21 @@ func (h *ExplorerHandler) GetWithdrawals(
 func nodeHashAtHeight(ctx context.Context, src source, height uint32) (string, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return "", connect.NewError(connect.CodeUnavailable, err)
+		return "", connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	if count <= 0 || height > uint32(count-1) {
-		return "", connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("%s holds no block at height %d", src.name, height))
+		return "", connect.Errorf(connect.CodeNotFound,
+			"%s holds no block at height %d", src.name, height)
 	}
 
 	raw, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
 	if err != nil {
-		return "", connect.NewError(connect.CodeUnavailable, err)
+		return "", connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	var hash string
 	if err := json.Unmarshal(raw, &hash); err != nil {
 		return "", connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the tip hash: %w", err))
+			fmt.Errorf("read the tip hash: %w", err).Error())
 	}
 
 	for at := uint32(count - 1); at > height; at-- {
@@ -838,16 +838,16 @@ func nodeHeader(ctx context.Context, src source, hash string) (nodeHeaderJSON, e
 	// "Invalid params", whatever the older handlers pass.
 	raw, err := src.node.CallRaw(ctx, "get_block", []string{hash})
 	if err != nil {
-		return nodeHeaderJSON{}, connect.NewError(connect.CodeUnavailable, err)
+		return nodeHeaderJSON{}, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	if len(raw) == 0 || string(raw) == "null" {
-		return nodeHeaderJSON{}, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("no block on %s hashes to %s", src.name, hash))
+		return nodeHeaderJSON{}, connect.Errorf(connect.CodeNotFound,
+			"no block on %s hashes to %s", src.name, hash)
 	}
 	var block nodeHeaderJSON
 	if err := json.Unmarshal(raw, &block); err != nil {
 		return nodeHeaderJSON{}, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read block %s: %w", hash, err))
+			fmt.Errorf("read block %s: %w", hash, err).Error())
 	}
 	return block, nil
 }
@@ -944,7 +944,7 @@ func readNodeBlock(
 	var index nodeBlockIndex
 	if err := json.Unmarshal(rawIndex, &index); err != nil {
 		return nil, nil, state, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the block index of %s: %w", hash, err))
+			fmt.Errorf("read the block index of %s: %w", hash, err).Error())
 	}
 
 	// The block index names the txids in body order, so a transaction pairs

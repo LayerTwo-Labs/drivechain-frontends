@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -61,17 +60,17 @@ func recordingHandler(t *testing.T, result string) (*Handler, *[]recordedCall) {
 func TestHandlerSendsTheCreateMethods(t *testing.T) {
 	h, calls := recordingHandler(t, `"txid1"`)
 
-	transfer, err := h.Transfer(context.Background(), connect.NewRequest(&pb.TransferRequest{
+	transfer, err := h.Transfer(context.Background(), &pb.TransferRequest{
 		Address: "dest", AmountSats: 5000, FeeSats: 100,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "txid1", transfer.Msg.Txid)
+	assert.Equal(t, "txid1", transfer.Txid)
 
-	withdraw, err := h.Withdraw(context.Background(), connect.NewRequest(&pb.WithdrawRequest{
+	withdraw, err := h.Withdraw(context.Background(), &pb.WithdrawRequest{
 		Address: "bc1qmain", AmountSats: 7000, SideFeeSats: 100, MainFeeSats: 200,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "txid1", withdraw.Msg.Txid)
+	assert.Equal(t, "txid1", withdraw.Txid)
 
 	require.Len(t, *calls, 2)
 	assert.Equal(t, "create_transfer", (*calls)[0].Method)
@@ -101,13 +100,13 @@ func TestVotecoinTransferSendsNoMemo(t *testing.T) {
 	h, calls := recordingHandler(t, `"txid1"`)
 	memo := "hello"
 
-	_, err := h.VotecoinTransfer(context.Background(), connect.NewRequest(&pb.VotecoinTransferRequest{
+	_, err := h.VotecoinTransfer(context.Background(), &pb.VotecoinTransferRequest{
 		Dest: "dest", Amount: 3, FeeSats: 100, Memo: &memo, //nolint:staticcheck // old clients send Amount
-	}))
+	})
 	require.NoError(t, err)
-	_, err = h.TransferVotecoin(context.Background(), connect.NewRequest(&pb.TransferVotecoinRequest{
+	_, err = h.TransferVotecoin(context.Background(), &pb.TransferVotecoinRequest{
 		Dest: "dest", Amount: 3, FeeSats: 100, Memo: &memo, //nolint:staticcheck // old clients send Amount
-	}))
+	})
 	require.NoError(t, err)
 
 	require.Len(t, *calls, 2)
@@ -122,13 +121,13 @@ func TestVotecoinTransferSendsTheFractionalAmount(t *testing.T) {
 	h, calls := recordingHandler(t, `"txid1"`)
 	amount := 0.25
 
-	_, err := h.VotecoinTransfer(context.Background(), connect.NewRequest(&pb.VotecoinTransferRequest{
+	_, err := h.VotecoinTransfer(context.Background(), &pb.VotecoinTransferRequest{
 		Dest: "dest", VotecoinAmount: &amount, FeeSats: 100,
-	}))
+	})
 	require.NoError(t, err)
-	_, err = h.TransferVotecoin(context.Background(), connect.NewRequest(&pb.TransferVotecoinRequest{
+	_, err = h.TransferVotecoin(context.Background(), &pb.TransferVotecoinRequest{
 		Dest: "dest", VotecoinAmount: &amount, FeeSats: 100,
-	}))
+	})
 	require.NoError(t, err)
 
 	require.Len(t, *calls, 2)
@@ -142,10 +141,10 @@ func TestVotecoinTransferSendsTheFractionalAmount(t *testing.T) {
 func TestVotecoinBalanceReadsAFraction(t *testing.T) {
 	h, _ := recordingHandler(t, `0.75`)
 
-	resp, err := h.VotecoinBalance(context.Background(), connect.NewRequest(&pb.VotecoinBalanceRequest{Address: "voter"}))
+	resp, err := h.VotecoinBalance(context.Background(), &pb.VotecoinBalanceRequest{Address: "voter"})
 	require.NoError(t, err)
-	assert.InDelta(t, 0.75, resp.Msg.VotecoinBalance, 0)
-	assert.Equal(t, int64(0), resp.Msg.Balance) //nolint:staticcheck // old clients read Balance
+	assert.InDelta(t, 0.75, resp.VotecoinBalance, 0)
+	assert.Equal(t, int64(0), resp.Balance) //nolint:staticcheck // old clients read Balance
 }
 
 // get_bmm_inclusions answers a list of mainchain block hashes.
@@ -153,9 +152,9 @@ func TestGetBmmInclusionsReadsAList(t *testing.T) {
 	const inclusions = `["000000000000000007677bb6ca40424eb40afe6979f52f98579ba7ed1ddbac79"]`
 	h, _ := recordingHandler(t, inclusions)
 
-	resp, err := h.GetBmmInclusions(context.Background(), connect.NewRequest(&pb.GetBmmInclusionsRequest{BlockHash: "aa"}))
+	resp, err := h.GetBmmInclusions(context.Background(), &pb.GetBmmInclusionsRequest{BlockHash: "aa"})
 	require.NoError(t, err)
-	assert.JSONEq(t, inclusions, resp.Msg.Inclusions)
+	assert.JSONEq(t, inclusions, resp.Inclusions)
 
 	host, port, _ := callRecorder(t, inclusions)
 	hashes, err := NewClient(host, port, "").GetBMMInclusions(context.Background(), "aa")
@@ -167,18 +166,18 @@ func TestGetBmmInclusionsReadsAList(t *testing.T) {
 func TestGetBlockMapsAMissingBlockToEmpty(t *testing.T) {
 	h, _ := recordingHandler(t, `null`)
 
-	resp, err := h.GetBlock(context.Background(), connect.NewRequest(&pb.GetBlockRequest{Hash: "aa"}))
+	resp, err := h.GetBlock(context.Background(), &pb.GetBlockRequest{Hash: "aa"})
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.BlockJson)
+	assert.Empty(t, resp.BlockJson)
 }
 
 // get_voter_address answers the base58 address of wallet index 0.
 func TestGetVoterAddressReadsTheAddress(t *testing.T) {
 	h, calls := recordingHandler(t, `"Xc3D7ZjNez3ReowLm1yz1zSvYe1"`)
 
-	resp, err := h.GetVoterAddress(context.Background(), connect.NewRequest(&pb.GetVoterAddressRequest{}))
+	resp, err := h.GetVoterAddress(context.Background(), &pb.GetVoterAddressRequest{})
 	require.NoError(t, err)
-	assert.Equal(t, "Xc3D7ZjNez3ReowLm1yz1zSvYe1", resp.Msg.Address)
+	assert.Equal(t, "Xc3D7ZjNez3ReowLm1yz1zSvYe1", resp.Address)
 
 	require.Len(t, *calls, 1)
 	assert.Equal(t, "get_voter_address", (*calls)[0].Method)
@@ -188,11 +187,11 @@ func TestGetVoterAddressReadsTheAddress(t *testing.T) {
 func TestMarketAmplifyBetaSendsTheRequest(t *testing.T) {
 	h, calls := recordingHandler(t, `"txid1"`)
 
-	resp, err := h.MarketAmplifyBeta(context.Background(), connect.NewRequest(&pb.MarketAmplifyBetaRequest{
+	resp, err := h.MarketAmplifyBeta(context.Background(), &pb.MarketAmplifyBetaRequest{
 		MarketId: "5e5ed0d19c4f", AmountSats: 50000,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "txid1", resp.Msg.Txid)
+	assert.Equal(t, "txid1", resp.Txid)
 
 	require.Len(t, *calls, 1)
 	assert.Equal(t, "market_amplify_beta", (*calls)[0].Method)

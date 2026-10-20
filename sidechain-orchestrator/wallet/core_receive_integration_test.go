@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -32,24 +31,24 @@ func TestCoreReceiveBalancesMatchTheCoins(t *testing.T) {
 	defer cancel()
 	client := node.WalletClient
 
-	status, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+	status, err := client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 	require.NoError(t, err)
-	walletID := status.Msg.ActiveWalletId
+	walletID := status.ActiveWalletId
 	requireCoreWallet(t, ctx, client, walletID)
 
 	checkAgrees := func(t *testing.T, stage string) {
 		t.Helper()
-		unspent, err := client.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletID}))
+		unspent, err := client.ListUnspent(ctx, &pb.ListUnspentRequest{WalletId: walletID})
 		require.NoError(t, err)
-		receive, err := client.ListReceiveAddresses(ctx, connect.NewRequest(&pb.ListReceiveAddressesRequest{WalletId: walletID}))
+		receive, err := client.ListReceiveAddresses(ctx, &pb.ListReceiveAddressesRequest{WalletId: walletID})
 		require.NoError(t, err)
 
 		coins := map[string]int64{}
-		for _, u := range unspent.Msg.Utxos {
+		for _, u := range unspent.Utxos {
 			coins[u.Address] += u.AmountSats
 		}
 		listed := map[string]bool{}
-		for _, a := range receive.Msg.Addresses {
+		for _, a := range receive.Addresses {
 			listed[a.Address] = true
 			require.Equal(t, coins[a.Address], a.AmountSats,
 				"%s: address %s holds %d satoshis in the coin list", stage, a.Address, coins[a.Address])
@@ -81,13 +80,13 @@ func TestCoreLegacyReceiveSkipsTheBip47Key(t *testing.T) {
 	client := node.WalletClient
 
 	const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-	gen, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+	gen, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 		Name:           "Legacy",
 		CustomMnemonic: mnemonic,
 		ScriptType:     "legacy",
-	}))
+	})
 	require.NoError(t, err)
-	walletID := gen.Msg.WalletId
+	walletID := gen.WalletId
 	requireCoreWallet(t, ctx, client, walletID)
 	coreName := "wallet_" + walletID[:8]
 
@@ -98,7 +97,7 @@ func TestCoreLegacyReceiveSkipsTheBip47Key(t *testing.T) {
 	// The first read loads the Core wallet, and the backend imports the
 	// notification key in the background. Its address is then the only
 	// unused one Core lists.
-	_, err = client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{WalletId: walletID}))
+	_, err = client.GetBalance(ctx, &pb.GetBalanceRequest{WalletId: walletID})
 	require.NoError(t, err)
 	require.Eventually(t, func() bool {
 		info, err := node.CoreRPC.GetAddressInfo(ctx, coreName, notification.EncodeAddress())
@@ -109,11 +108,11 @@ func TestCoreLegacyReceiveSkipsTheBip47Key(t *testing.T) {
 	require.NotContains(t, info.ParentDesc, "*")
 
 	for range 3 {
-		resp, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{WalletId: walletID}))
+		resp, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{WalletId: walletID})
 		require.NoError(t, err)
-		require.NotEqual(t, notification.EncodeAddress(), resp.Msg.Address)
-		info, err := node.CoreRPC.GetAddressInfo(ctx, coreName, resp.Msg.Address)
+		require.NotEqual(t, notification.EncodeAddress(), resp.Address)
+		info, err := node.CoreRPC.GetAddressInfo(ctx, coreName, resp.Address)
 		require.NoError(t, err)
-		require.Contains(t, info.ParentDesc, "*", resp.Msg.Address)
+		require.Contains(t, info.ParentDesc, "*", resp.Address)
 	}
 }

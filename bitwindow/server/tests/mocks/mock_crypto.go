@@ -13,7 +13,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	connect "connectrpc.com/connect"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -43,10 +42,10 @@ func (m *MockCryptoServiceClient) EXPECT() *MockCryptoServiceClientMockRecorder 
 }
 
 // HmacSha512 mocks base method.
-func (m *MockCryptoServiceClient) HmacSha512(arg0 context.Context, arg1 *connect.Request[cryptov1.HmacSha512Request]) (*connect.Response[cryptov1.HmacSha512Response], error) {
+func (m *MockCryptoServiceClient) HmacSha512(arg0 context.Context, arg1 *cryptov1.HmacSha512Request) (*cryptov1.HmacSha512Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HmacSha512", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.HmacSha512Response])
+	ret0, _ := ret[0].(*cryptov1.HmacSha512Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -58,10 +57,10 @@ func (mr *MockCryptoServiceClientMockRecorder) HmacSha512(arg0, arg1 any) *gomoc
 }
 
 // Ripemd160 mocks base method.
-func (m *MockCryptoServiceClient) Ripemd160(arg0 context.Context, arg1 *connect.Request[cryptov1.Ripemd160Request]) (*connect.Response[cryptov1.Ripemd160Response], error) {
+func (m *MockCryptoServiceClient) Ripemd160(arg0 context.Context, arg1 *cryptov1.Ripemd160Request) (*cryptov1.Ripemd160Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Ripemd160", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Ripemd160Response])
+	ret0, _ := ret[0].(*cryptov1.Ripemd160Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -73,10 +72,10 @@ func (mr *MockCryptoServiceClientMockRecorder) Ripemd160(arg0, arg1 any) *gomock
 }
 
 // Secp256K1SecretKeyToPublicKey mocks base method.
-func (m *MockCryptoServiceClient) Secp256K1SecretKeyToPublicKey(arg0 context.Context, arg1 *connect.Request[cryptov1.Secp256K1SecretKeyToPublicKeyRequest]) (*connect.Response[cryptov1.Secp256K1SecretKeyToPublicKeyResponse], error) {
+func (m *MockCryptoServiceClient) Secp256K1SecretKeyToPublicKey(arg0 context.Context, arg1 *cryptov1.Secp256K1SecretKeyToPublicKeyRequest) (*cryptov1.Secp256K1SecretKeyToPublicKeyResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Secp256K1SecretKeyToPublicKey", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Secp256K1SecretKeyToPublicKeyResponse])
+	ret0, _ := ret[0].(*cryptov1.Secp256K1SecretKeyToPublicKeyResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -88,10 +87,10 @@ func (mr *MockCryptoServiceClientMockRecorder) Secp256K1SecretKeyToPublicKey(arg
 }
 
 // Secp256K1Sign mocks base method.
-func (m *MockCryptoServiceClient) Secp256K1Sign(arg0 context.Context, arg1 *connect.Request[cryptov1.Secp256K1SignRequest]) (*connect.Response[cryptov1.Secp256K1SignResponse], error) {
+func (m *MockCryptoServiceClient) Secp256K1Sign(arg0 context.Context, arg1 *cryptov1.Secp256K1SignRequest) (*cryptov1.Secp256K1SignResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Secp256K1Sign", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Secp256K1SignResponse])
+	ret0, _ := ret[0].(*cryptov1.Secp256K1SignResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -103,10 +102,10 @@ func (mr *MockCryptoServiceClientMockRecorder) Secp256K1Sign(arg0, arg1 any) *go
 }
 
 // Secp256K1Verify mocks base method.
-func (m *MockCryptoServiceClient) Secp256K1Verify(arg0 context.Context, arg1 *connect.Request[cryptov1.Secp256K1VerifyRequest]) (*connect.Response[cryptov1.Secp256K1VerifyResponse], error) {
+func (m *MockCryptoServiceClient) Secp256K1Verify(arg0 context.Context, arg1 *cryptov1.Secp256K1VerifyRequest) (*cryptov1.Secp256K1VerifyResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Secp256K1Verify", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Secp256K1VerifyResponse])
+	ret0, _ := ret[0].(*cryptov1.Secp256K1VerifyResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -142,10 +141,10 @@ func (m *MockCryptoServiceHandler) EXPECT() *MockCryptoServiceHandlerMockRecorde
 }
 
 // HmacSha512 mocks base method.
-func (m *MockCryptoServiceHandler) HmacSha512(arg0 context.Context, arg1 *connect.Request[cryptov1.HmacSha512Request]) (*connect.Response[cryptov1.HmacSha512Response], error) {
+func (m *MockCryptoServiceHandler) HmacSha512(arg0 context.Context, arg1 *cryptov1.HmacSha512Request) (*cryptov1.HmacSha512Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HmacSha512", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.HmacSha512Response])
+	ret0, _ := ret[0].(*cryptov1.HmacSha512Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -157,10 +156,10 @@ func (mr *MockCryptoServiceHandlerMockRecorder) HmacSha512(arg0, arg1 any) *gomo
 }
 
 // Ripemd160 mocks base method.
-func (m *MockCryptoServiceHandler) Ripemd160(arg0 context.Context, arg1 *connect.Request[cryptov1.Ripemd160Request]) (*connect.Response[cryptov1.Ripemd160Response], error) {
+func (m *MockCryptoServiceHandler) Ripemd160(arg0 context.Context, arg1 *cryptov1.Ripemd160Request) (*cryptov1.Ripemd160Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Ripemd160", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Ripemd160Response])
+	ret0, _ := ret[0].(*cryptov1.Ripemd160Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -172,10 +171,10 @@ func (mr *MockCryptoServiceHandlerMockRecorder) Ripemd160(arg0, arg1 any) *gomoc
 }
 
 // Secp256K1SecretKeyToPublicKey mocks base method.
-func (m *MockCryptoServiceHandler) Secp256K1SecretKeyToPublicKey(arg0 context.Context, arg1 *connect.Request[cryptov1.Secp256K1SecretKeyToPublicKeyRequest]) (*connect.Response[cryptov1.Secp256K1SecretKeyToPublicKeyResponse], error) {
+func (m *MockCryptoServiceHandler) Secp256K1SecretKeyToPublicKey(arg0 context.Context, arg1 *cryptov1.Secp256K1SecretKeyToPublicKeyRequest) (*cryptov1.Secp256K1SecretKeyToPublicKeyResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Secp256K1SecretKeyToPublicKey", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Secp256K1SecretKeyToPublicKeyResponse])
+	ret0, _ := ret[0].(*cryptov1.Secp256K1SecretKeyToPublicKeyResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -187,10 +186,10 @@ func (mr *MockCryptoServiceHandlerMockRecorder) Secp256K1SecretKeyToPublicKey(ar
 }
 
 // Secp256K1Sign mocks base method.
-func (m *MockCryptoServiceHandler) Secp256K1Sign(arg0 context.Context, arg1 *connect.Request[cryptov1.Secp256K1SignRequest]) (*connect.Response[cryptov1.Secp256K1SignResponse], error) {
+func (m *MockCryptoServiceHandler) Secp256K1Sign(arg0 context.Context, arg1 *cryptov1.Secp256K1SignRequest) (*cryptov1.Secp256K1SignResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Secp256K1Sign", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Secp256K1SignResponse])
+	ret0, _ := ret[0].(*cryptov1.Secp256K1SignResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -202,10 +201,10 @@ func (mr *MockCryptoServiceHandlerMockRecorder) Secp256K1Sign(arg0, arg1 any) *g
 }
 
 // Secp256K1Verify mocks base method.
-func (m *MockCryptoServiceHandler) Secp256K1Verify(arg0 context.Context, arg1 *connect.Request[cryptov1.Secp256K1VerifyRequest]) (*connect.Response[cryptov1.Secp256K1VerifyResponse], error) {
+func (m *MockCryptoServiceHandler) Secp256K1Verify(arg0 context.Context, arg1 *cryptov1.Secp256K1VerifyRequest) (*cryptov1.Secp256K1VerifyResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Secp256K1Verify", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[cryptov1.Secp256K1VerifyResponse])
+	ret0, _ := ret[0].(*cryptov1.Secp256K1VerifyResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

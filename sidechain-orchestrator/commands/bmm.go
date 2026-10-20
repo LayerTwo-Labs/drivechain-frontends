@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/urfave/cli/v2"
 
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
@@ -20,12 +21,13 @@ import (
 )
 
 func newBMMClient(cctx *cli.Context) bmmv1connect.BMMServiceClient {
-	return bmmv1connect.NewBMMServiceClient(
+	return bmmv1connect.NewBMMServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		fmt.Sprintf("http://%s", cctx.String("rpcserver")),
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), localauth.ClientInterceptor(cookieDir(cctx)),
+	))
 }
 
 // sidechainType resolves a name the way a person would type it: "bbc"
@@ -75,15 +77,15 @@ var bmmMineCommand = &cli.Command{
 		client := newBMMClient(cctx)
 
 		for i := 1; i <= cctx.Int("blocks"); i++ {
-			bid, err := client.CreateBid(cctx.Context, connect.NewRequest(&bmmpb.CreateBidRequest{
+			bid, err := client.CreateBid(cctx.Context, &bmmpb.CreateBidRequest{
 				Sidechain: sidechain,
 				WalletId:  cctx.String("wallet"),
 				BidSats:   cctx.Int64("bid"),
-			}))
+			})
 			if err != nil {
 				return fmt.Errorf("create bid %d: %w", i, err)
 			}
-			fmt.Printf("bid %d broadcast: %s\n", i, bid.Msg.BmmTxid)
+			fmt.Printf("bid %d broadcast: %s\n", i, bid.BmmTxid)
 
 			// A bid is worth nothing until a mainchain miner takes it. On a real
 			// network that is somebody else's decision and all we can do is
@@ -95,13 +97,13 @@ var bmmMineCommand = &cli.Command{
 			}
 			deadline := time.Now().Add(cctx.Duration("timeout"))
 			for {
-				connected, err := client.ConnectBid(cctx.Context, connect.NewRequest(&bmmpb.ConnectBidRequest{
+				connected, err := client.ConnectBid(cctx.Context, &bmmpb.ConnectBidRequest{
 					Sidechain:    sidechain,
-					CriticalHash: bid.Msg.CriticalHash,
-					BlockJson:    bid.Msg.BlockJson,
-				}))
-				if err == nil && connected.Msg.Connected {
-					fmt.Printf("  connected in mainchain block %s\n", connected.Msg.MainBlockHash)
+					CriticalHash: bid.CriticalHash,
+					BlockJson:    bid.BlockJson,
+				})
+				if err == nil && connected.Connected {
+					fmt.Printf("  connected in mainchain block %s\n", connected.MainBlockHash)
 					break
 				}
 				if time.Now().After(deadline) {
@@ -121,21 +123,22 @@ func generateMainchainBlock(cctx *cli.Context) error {
 	// An empty wallet id resolves to the active wallet. resolveWalletID would
 	// read this command's positional argument, which names a sidechain.
 	wallet := newWalletClient(cctx)
-	address, err := wallet.GetNewAddress(cctx.Context, connect.NewRequest(&walletpb.GetNewAddressRequest{}))
+	address, err := wallet.GetNewAddress(cctx.Context, &walletpb.GetNewAddressRequest{})
 	if err != nil {
 		return fmt.Errorf("get an address to mine to: %w", err)
 	}
 
-	mining := mainchainv1connect.NewMiningServiceClient(
+	mining := mainchainv1connect.NewMiningServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		fmt.Sprintf("http://%s", cctx.String("rpcserver")),
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
-	)
-	_, err = mining.GenerateToAddress(cctx.Context, connect.NewRequest(&mainchainpb.GenerateToAddressRequest{
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), localauth.ClientInterceptor(cookieDir(cctx)),
+	))
+	_, err = mining.GenerateToAddress(cctx.Context, &mainchainpb.GenerateToAddressRequest{
 		Blocks:  wrapperspb.UInt32(1),
-		Address: address.Msg.Address,
-	}))
+		Address: address.Address,
+	})
 	return err
 }
 
@@ -160,12 +163,12 @@ var bmmStartCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		if _, err := newBMMClient(cctx).Start(cctx.Context, connect.NewRequest(&bmmpb.StartRequest{
+		if _, err := newBMMClient(cctx).Start(cctx.Context, &bmmpb.StartRequest{
 			Sidechain:       sidechain,
 			WalletId:        cctx.String("wallet"),
 			MaxBidSats:      cctx.Int64("max-bid"),
 			CapToBlockWorth: cctx.Bool("cap-to-block-worth"),
-		})); err != nil {
+		}); err != nil {
 			return err
 		}
 		fmt.Printf("bidding on %s\n", cctx.Args().First())
@@ -185,9 +188,9 @@ var bmmStopCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		if _, err := newBMMClient(cctx).Stop(cctx.Context, connect.NewRequest(&bmmpb.StopRequest{
+		if _, err := newBMMClient(cctx).Stop(cctx.Context, &bmmpb.StopRequest{
 			Sidechain: sidechain,
-		})); err != nil {
+		}); err != nil {
 			return err
 		}
 		fmt.Printf("stopped bidding on %s\n", cctx.Args().First())

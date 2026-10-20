@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/samber/lo"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -23,16 +23,16 @@ func (w walletBids) details(
 	ctx context.Context, walletID, txid string,
 ) (*wpb.GetTransactionDetailsResponse, error) {
 	if w.h.wallet == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "no wallet is wired")
 	}
-	resp, err := w.h.wallet.GetTransactionDetails(ctx, connect.NewRequest(&wpb.GetTransactionDetailsRequest{
+	resp, err := w.h.wallet.GetTransactionDetails(ctx, &wpb.GetTransactionDetailsRequest{
 		WalletId: walletID,
 		Txid:     txid,
-	}))
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err))
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err).Error())
 	}
-	return resp.Msg, nil
+	return resp, nil
 }
 
 func (w walletBids) spends(ctx context.Context, walletID, txid string) ([]*wpb.UnspentOutput, error) {
@@ -41,8 +41,8 @@ func (w walletBids) spends(ctx context.Context, walletID, txid string) ([]*wpb.U
 		return nil, err
 	}
 	if len(details.Inputs) == 0 {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("bid %s has no inputs to reuse", txid))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition,
+			"bid %s has no inputs to reuse", txid)
 	}
 	return lo.Map(details.Inputs, func(in *wpb.TransactionInput, _ int) *wpb.UnspentOutput {
 		return &wpb.UnspentOutput{Txid: in.PrevTxid, Vout: in.PrevVout}
@@ -152,14 +152,14 @@ func walletGone(err error, walletID string) bool {
 // wallet in walletIDs. The first id names the current funding wallet.
 func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[string]bool, error) {
 	if w.h.wallet == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "no wallet is wired")
 	}
 	held := make(map[string]bool)
 	for i, walletID := range lo.Uniq(walletIDs) {
-		resp, err := w.h.wallet.ListTransactions(ctx, connect.NewRequest(&wpb.ListTransactionsRequest{
+		resp, err := w.h.wallet.ListTransactions(ctx, &wpb.ListTransactionsRequest{
 			WalletId: walletID,
 			Count:    pendingListCount,
-		}))
+		})
 		if err != nil {
 			// A stored round names its funding wallet forever, so the tail of
 			// this list can name a wallet the user deleted since. Only that
@@ -168,9 +168,9 @@ func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[s
 			if i > 0 && walletGone(err, walletID) {
 				continue
 			}
-			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("list the wallet transactions: %w", err))
+			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("list the wallet transactions: %w", err).Error())
 		}
-		for _, tx := range resp.Msg.Transactions {
+		for _, tx := range resp.Transactions {
 			if tx.Confirmations == 0 {
 				held[tx.Txid] = true
 			}
@@ -182,11 +182,11 @@ func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[s
 // mined reads the chain source, because the wallet cache lags a new block.
 func (w walletBids) mined(ctx context.Context, txid string) (bool, error) {
 	if w.h.wallet == nil {
-		return false, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+		return false, connect.Errorf(connect.CodeFailedPrecondition, "no wallet is wired")
 	}
 	status, err := w.h.wallet.TxStatus(ctx, txid)
 	if err != nil {
-		return false, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the chain status of %s: %w", txid, err))
+		return false, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the chain status of %s: %w", txid, err).Error())
 	}
 	return status.Confirmed, nil
 }

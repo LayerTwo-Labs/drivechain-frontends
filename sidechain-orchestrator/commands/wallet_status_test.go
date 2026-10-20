@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"context"
 	"flag"
 	"io"
@@ -10,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/stretchr/testify/require"
@@ -22,20 +23,21 @@ type statusTestDaemon struct {
 	generated *pb.GenerateWalletRequest
 }
 
-func (d *statusTestDaemon) GetWalletStatus(context.Context, *connect.Request[pb.GetWalletStatusRequest]) (*connect.Response[pb.GetWalletStatusResponse], error) {
-	return connect.NewResponse(&pb.GetWalletStatusResponse{State: pb.WalletState_WALLET_STATE_NO_WALLET}), nil
+func (d *statusTestDaemon) GetWalletStatus(context.Context, *pb.GetWalletStatusRequest) (*pb.GetWalletStatusResponse, error) {
+	return &pb.GetWalletStatusResponse{State: pb.WalletState_WALLET_STATE_NO_WALLET}, nil
 }
 
-func (d *statusTestDaemon) GenerateWallet(_ context.Context, req *connect.Request[pb.GenerateWalletRequest]) (*connect.Response[pb.GenerateWalletResponse], error) {
-	d.generated = req.Msg
-	return connect.NewResponse(&pb.GenerateWalletResponse{WalletId: "new-wallet"}), nil
+func (d *statusTestDaemon) GenerateWallet(_ context.Context, req *pb.GenerateWalletRequest) (*pb.GenerateWalletResponse, error) {
+	d.generated = req
+	return &pb.GenerateWalletResponse{WalletId: "new-wallet"}, nil
 }
 
 func TestWalletStatusCreatesCoreWalletWhenNoneExists(t *testing.T) {
 	daemon := &statusTestDaemon{}
 	mux := http.NewServeMux()
-	path, handler := rpc.NewWalletManagerServiceHandler(daemon)
-	mux.Handle(path, handler)
+	rpcServer := connect.NewServer()
+	rpc.RegisterWalletManagerServiceHandler(rpcServer, daemon)
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 

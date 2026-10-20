@@ -5,417 +5,460 @@
 package bitdrivev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BitDriveServiceName is the fully-qualified name of the BitDriveService service.
 	BitDriveServiceName = "bitdrive.v1.BitDriveService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BitDriveServiceStoreFileProcedure is the fully-qualified name of the BitDriveService's StoreFile
-	// RPC.
+	// BitDriveServiceStoreFileProcedure is the procedure name of the BitDriveService's StoreFile RPC.
 	BitDriveServiceStoreFileProcedure = "/bitdrive.v1.BitDriveService/StoreFile"
-	// BitDriveServiceRetrieveContentProcedure is the fully-qualified name of the BitDriveService's
+	// BitDriveServiceRetrieveContentProcedure is the procedure name of the BitDriveService's
 	// RetrieveContent RPC.
 	BitDriveServiceRetrieveContentProcedure = "/bitdrive.v1.BitDriveService/RetrieveContent"
-	// BitDriveServiceScanForFilesProcedure is the fully-qualified name of the BitDriveService's
-	// ScanForFiles RPC.
+	// BitDriveServiceScanForFilesProcedure is the procedure name of the BitDriveService's ScanForFiles
+	// RPC.
 	BitDriveServiceScanForFilesProcedure = "/bitdrive.v1.BitDriveService/ScanForFiles"
-	// BitDriveServiceDownloadPendingFilesProcedure is the fully-qualified name of the BitDriveService's
+	// BitDriveServiceDownloadPendingFilesProcedure is the procedure name of the BitDriveService's
 	// DownloadPendingFiles RPC.
 	BitDriveServiceDownloadPendingFilesProcedure = "/bitdrive.v1.BitDriveService/DownloadPendingFiles"
-	// BitDriveServiceListFilesProcedure is the fully-qualified name of the BitDriveService's ListFiles
-	// RPC.
+	// BitDriveServiceListFilesProcedure is the procedure name of the BitDriveService's ListFiles RPC.
 	BitDriveServiceListFilesProcedure = "/bitdrive.v1.BitDriveService/ListFiles"
-	// BitDriveServiceGetFileProcedure is the fully-qualified name of the BitDriveService's GetFile RPC.
+	// BitDriveServiceGetFileProcedure is the procedure name of the BitDriveService's GetFile RPC.
 	BitDriveServiceGetFileProcedure = "/bitdrive.v1.BitDriveService/GetFile"
-	// BitDriveServiceDeleteFileProcedure is the fully-qualified name of the BitDriveService's
-	// DeleteFile RPC.
+	// BitDriveServiceDeleteFileProcedure is the procedure name of the BitDriveService's DeleteFile RPC.
 	BitDriveServiceDeleteFileProcedure = "/bitdrive.v1.BitDriveService/DeleteFile"
-	// BitDriveServiceStoreMultisigDataProcedure is the fully-qualified name of the BitDriveService's
+	// BitDriveServiceStoreMultisigDataProcedure is the procedure name of the BitDriveService's
 	// StoreMultisigData RPC.
 	BitDriveServiceStoreMultisigDataProcedure = "/bitdrive.v1.BitDriveService/StoreMultisigData"
-	// BitDriveServiceWipeDataProcedure is the fully-qualified name of the BitDriveService's WipeData
-	// RPC.
+	// BitDriveServiceWipeDataProcedure is the procedure name of the BitDriveService's WipeData RPC.
 	BitDriveServiceWipeDataProcedure = "/bitdrive.v1.BitDriveService/WipeData"
-	// BitDriveServiceGetBitdriveDirProcedure is the fully-qualified name of the BitDriveService's
+	// BitDriveServiceGetBitdriveDirProcedure is the procedure name of the BitDriveService's
 	// GetBitdriveDir RPC.
 	BitDriveServiceGetBitdriveDirProcedure = "/bitdrive.v1.BitDriveService/GetBitdriveDir"
-	// BitDriveServiceOpenBitdriveDirProcedure is the fully-qualified name of the BitDriveService's
+	// BitDriveServiceOpenBitdriveDirProcedure is the procedure name of the BitDriveService's
 	// OpenBitdriveDir RPC.
 	BitDriveServiceOpenBitdriveDirProcedure = "/bitdrive.v1.BitDriveService/OpenBitdriveDir"
 )
 
+var (
+	bitDriveServiceStoreFileSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("StoreFile"),
+			Procedure:  BitDriveServiceStoreFileProcedure,
+		}
+	})
+	bitDriveServiceRetrieveContentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("RetrieveContent"),
+			Procedure:  BitDriveServiceRetrieveContentProcedure,
+		}
+	})
+	bitDriveServiceScanForFilesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("ScanForFiles"),
+			Procedure:  BitDriveServiceScanForFilesProcedure,
+		}
+	})
+	bitDriveServiceDownloadPendingFilesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("DownloadPendingFiles"),
+			Procedure:  BitDriveServiceDownloadPendingFilesProcedure,
+		}
+	})
+	bitDriveServiceListFilesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("ListFiles"),
+			Procedure:  BitDriveServiceListFilesProcedure,
+		}
+	})
+	bitDriveServiceGetFileSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("GetFile"),
+			Procedure:  BitDriveServiceGetFileProcedure,
+		}
+	})
+	bitDriveServiceDeleteFileSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("DeleteFile"),
+			Procedure:  BitDriveServiceDeleteFileProcedure,
+		}
+	})
+	bitDriveServiceStoreMultisigDataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("StoreMultisigData"),
+			Procedure:  BitDriveServiceStoreMultisigDataProcedure,
+		}
+	})
+	bitDriveServiceWipeDataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("WipeData"),
+			Procedure:  BitDriveServiceWipeDataProcedure,
+		}
+	})
+	bitDriveServiceGetBitdriveDirSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("GetBitdriveDir"),
+			Procedure:  BitDriveServiceGetBitdriveDirProcedure,
+		}
+	})
+	bitDriveServiceOpenBitdriveDirSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods().ByName("OpenBitdriveDir"),
+			Procedure:  BitDriveServiceOpenBitdriveDirProcedure,
+		}
+	})
+)
+
 // BitDriveServiceClient is a client for the bitdrive.v1.BitDriveService service.
 type BitDriveServiceClient interface {
-	// Store file/content to blockchain with optional encryption
-	StoreFile(context.Context, *connect.Request[v1.StoreFileRequest]) (*connect.Response[v1.StoreFileResponse], error)
-	// Retrieve content from blockchain by txid
-	RetrieveContent(context.Context, *connect.Request[v1.RetrieveContentRequest]) (*connect.Response[v1.RetrieveContentResponse], error)
-	// Scan for files in wallet transactions
-	ScanForFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ScanForFilesResponse], error)
-	// Download/restore pending files
-	DownloadPendingFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.DownloadPendingFilesResponse], error)
-	// List stored files from local storage
-	ListFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListFilesResponse], error)
-	// Get file details
-	GetFile(context.Context, *connect.Request[v1.GetFileRequest]) (*connect.Response[v1.GetFileResponse], error)
-	// Delete local file (does not affect blockchain)
-	DeleteFile(context.Context, *connect.Request[v1.DeleteFileRequest]) (*connect.Response[emptypb.Empty], error)
-	// Store multisig group data on blockchain
-	StoreMultisigData(context.Context, *connect.Request[v1.StoreMultisigDataRequest]) (*connect.Response[v1.StoreMultisigDataResponse], error)
-	// Wipe all local BitDrive data
-	WipeData(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	// Get the BitDrive data directory path
-	GetBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBitdriveDirResponse], error)
-	// Open the BitDrive data directory in the OS file manager
-	OpenBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	StoreFile(context.Context, *v1.StoreFileRequest) (*v1.StoreFileResponse, error)
+	RetrieveContent(context.Context, *v1.RetrieveContentRequest) (*v1.RetrieveContentResponse, error)
+	ScanForFiles(context.Context, *emptypb.Empty) (*v1.ScanForFilesResponse, error)
+	DownloadPendingFiles(context.Context, *emptypb.Empty) (*v1.DownloadPendingFilesResponse, error)
+	ListFiles(context.Context, *emptypb.Empty) (*v1.ListFilesResponse, error)
+	GetFile(context.Context, *v1.GetFileRequest) (*v1.GetFileResponse, error)
+	DeleteFile(context.Context, *v1.DeleteFileRequest) (*emptypb.Empty, error)
+	StoreMultisigData(context.Context, *v1.StoreMultisigDataRequest) (*v1.StoreMultisigDataResponse, error)
+	WipeData(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	GetBitdriveDir(context.Context, *emptypb.Empty) (*v1.GetBitdriveDirResponse, error)
+	OpenBitdriveDir(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 }
 
-// NewBitDriveServiceClient constructs a client for the bitdrive.v1.BitDriveService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewBitDriveServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BitDriveServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	bitDriveServiceMethods := v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods()
-	return &bitDriveServiceClient{
-		storeFile: connect.NewClient[v1.StoreFileRequest, v1.StoreFileResponse](
-			httpClient,
-			baseURL+BitDriveServiceStoreFileProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("StoreFile")),
-			connect.WithClientOptions(opts...),
-		),
-		retrieveContent: connect.NewClient[v1.RetrieveContentRequest, v1.RetrieveContentResponse](
-			httpClient,
-			baseURL+BitDriveServiceRetrieveContentProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("RetrieveContent")),
-			connect.WithClientOptions(opts...),
-		),
-		scanForFiles: connect.NewClient[emptypb.Empty, v1.ScanForFilesResponse](
-			httpClient,
-			baseURL+BitDriveServiceScanForFilesProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("ScanForFiles")),
-			connect.WithClientOptions(opts...),
-		),
-		downloadPendingFiles: connect.NewClient[emptypb.Empty, v1.DownloadPendingFilesResponse](
-			httpClient,
-			baseURL+BitDriveServiceDownloadPendingFilesProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("DownloadPendingFiles")),
-			connect.WithClientOptions(opts...),
-		),
-		listFiles: connect.NewClient[emptypb.Empty, v1.ListFilesResponse](
-			httpClient,
-			baseURL+BitDriveServiceListFilesProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("ListFiles")),
-			connect.WithClientOptions(opts...),
-		),
-		getFile: connect.NewClient[v1.GetFileRequest, v1.GetFileResponse](
-			httpClient,
-			baseURL+BitDriveServiceGetFileProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("GetFile")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteFile: connect.NewClient[v1.DeleteFileRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitDriveServiceDeleteFileProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("DeleteFile")),
-			connect.WithClientOptions(opts...),
-		),
-		storeMultisigData: connect.NewClient[v1.StoreMultisigDataRequest, v1.StoreMultisigDataResponse](
-			httpClient,
-			baseURL+BitDriveServiceStoreMultisigDataProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("StoreMultisigData")),
-			connect.WithClientOptions(opts...),
-		),
-		wipeData: connect.NewClient[emptypb.Empty, emptypb.Empty](
-			httpClient,
-			baseURL+BitDriveServiceWipeDataProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("WipeData")),
-			connect.WithClientOptions(opts...),
-		),
-		getBitdriveDir: connect.NewClient[emptypb.Empty, v1.GetBitdriveDirResponse](
-			httpClient,
-			baseURL+BitDriveServiceGetBitdriveDirProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("GetBitdriveDir")),
-			connect.WithClientOptions(opts...),
-		),
-		openBitdriveDir: connect.NewClient[emptypb.Empty, emptypb.Empty](
-			httpClient,
-			baseURL+BitDriveServiceOpenBitdriveDirProcedure,
-			connect.WithSchema(bitDriveServiceMethods.ByName("OpenBitdriveDir")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// bitDriveServiceClient implements BitDriveServiceClient.
-type bitDriveServiceClient struct {
-	storeFile            *connect.Client[v1.StoreFileRequest, v1.StoreFileResponse]
-	retrieveContent      *connect.Client[v1.RetrieveContentRequest, v1.RetrieveContentResponse]
-	scanForFiles         *connect.Client[emptypb.Empty, v1.ScanForFilesResponse]
-	downloadPendingFiles *connect.Client[emptypb.Empty, v1.DownloadPendingFilesResponse]
-	listFiles            *connect.Client[emptypb.Empty, v1.ListFilesResponse]
-	getFile              *connect.Client[v1.GetFileRequest, v1.GetFileResponse]
-	deleteFile           *connect.Client[v1.DeleteFileRequest, emptypb.Empty]
-	storeMultisigData    *connect.Client[v1.StoreMultisigDataRequest, v1.StoreMultisigDataResponse]
-	wipeData             *connect.Client[emptypb.Empty, emptypb.Empty]
-	getBitdriveDir       *connect.Client[emptypb.Empty, v1.GetBitdriveDirResponse]
-	openBitdriveDir      *connect.Client[emptypb.Empty, emptypb.Empty]
-}
-
-// StoreFile calls bitdrive.v1.BitDriveService.StoreFile.
-func (c *bitDriveServiceClient) StoreFile(ctx context.Context, req *connect.Request[v1.StoreFileRequest]) (*connect.Response[v1.StoreFileResponse], error) {
-	return c.storeFile.CallUnary(ctx, req)
-}
-
-// RetrieveContent calls bitdrive.v1.BitDriveService.RetrieveContent.
-func (c *bitDriveServiceClient) RetrieveContent(ctx context.Context, req *connect.Request[v1.RetrieveContentRequest]) (*connect.Response[v1.RetrieveContentResponse], error) {
-	return c.retrieveContent.CallUnary(ctx, req)
-}
-
-// ScanForFiles calls bitdrive.v1.BitDriveService.ScanForFiles.
-func (c *bitDriveServiceClient) ScanForFiles(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ScanForFilesResponse], error) {
-	return c.scanForFiles.CallUnary(ctx, req)
-}
-
-// DownloadPendingFiles calls bitdrive.v1.BitDriveService.DownloadPendingFiles.
-func (c *bitDriveServiceClient) DownloadPendingFiles(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.DownloadPendingFilesResponse], error) {
-	return c.downloadPendingFiles.CallUnary(ctx, req)
-}
-
-// ListFiles calls bitdrive.v1.BitDriveService.ListFiles.
-func (c *bitDriveServiceClient) ListFiles(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListFilesResponse], error) {
-	return c.listFiles.CallUnary(ctx, req)
-}
-
-// GetFile calls bitdrive.v1.BitDriveService.GetFile.
-func (c *bitDriveServiceClient) GetFile(ctx context.Context, req *connect.Request[v1.GetFileRequest]) (*connect.Response[v1.GetFileResponse], error) {
-	return c.getFile.CallUnary(ctx, req)
-}
-
-// DeleteFile calls bitdrive.v1.BitDriveService.DeleteFile.
-func (c *bitDriveServiceClient) DeleteFile(ctx context.Context, req *connect.Request[v1.DeleteFileRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.deleteFile.CallUnary(ctx, req)
-}
-
-// StoreMultisigData calls bitdrive.v1.BitDriveService.StoreMultisigData.
-func (c *bitDriveServiceClient) StoreMultisigData(ctx context.Context, req *connect.Request[v1.StoreMultisigDataRequest]) (*connect.Response[v1.StoreMultisigDataResponse], error) {
-	return c.storeMultisigData.CallUnary(ctx, req)
-}
-
-// WipeData calls bitdrive.v1.BitDriveService.WipeData.
-func (c *bitDriveServiceClient) WipeData(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return c.wipeData.CallUnary(ctx, req)
-}
-
-// GetBitdriveDir calls bitdrive.v1.BitDriveService.GetBitdriveDir.
-func (c *bitDriveServiceClient) GetBitdriveDir(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBitdriveDirResponse], error) {
-	return c.getBitdriveDir.CallUnary(ctx, req)
-}
-
-// OpenBitdriveDir calls bitdrive.v1.BitDriveService.OpenBitdriveDir.
-func (c *bitDriveServiceClient) OpenBitdriveDir(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return c.openBitdriveDir.CallUnary(ctx, req)
+// NewBitDriveServiceClient constructs a client for the bitdrive.v1.BitDriveService service.
+// Multiple service clients may share a single connect.Client.
+func NewBitDriveServiceClient(client *connect.Client) BitDriveServiceClient {
+	return &bitDriveServiceClient{client: client}
 }
 
 // BitDriveServiceHandler is an implementation of the bitdrive.v1.BitDriveService service.
 type BitDriveServiceHandler interface {
-	// Store file/content to blockchain with optional encryption
-	StoreFile(context.Context, *connect.Request[v1.StoreFileRequest]) (*connect.Response[v1.StoreFileResponse], error)
-	// Retrieve content from blockchain by txid
-	RetrieveContent(context.Context, *connect.Request[v1.RetrieveContentRequest]) (*connect.Response[v1.RetrieveContentResponse], error)
-	// Scan for files in wallet transactions
-	ScanForFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ScanForFilesResponse], error)
-	// Download/restore pending files
-	DownloadPendingFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.DownloadPendingFilesResponse], error)
-	// List stored files from local storage
-	ListFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListFilesResponse], error)
-	// Get file details
-	GetFile(context.Context, *connect.Request[v1.GetFileRequest]) (*connect.Response[v1.GetFileResponse], error)
-	// Delete local file (does not affect blockchain)
-	DeleteFile(context.Context, *connect.Request[v1.DeleteFileRequest]) (*connect.Response[emptypb.Empty], error)
-	// Store multisig group data on blockchain
-	StoreMultisigData(context.Context, *connect.Request[v1.StoreMultisigDataRequest]) (*connect.Response[v1.StoreMultisigDataResponse], error)
-	// Wipe all local BitDrive data
-	WipeData(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
-	// Get the BitDrive data directory path
-	GetBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBitdriveDirResponse], error)
-	// Open the BitDrive data directory in the OS file manager
-	OpenBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	StoreFile(context.Context, *v1.StoreFileRequest) (*v1.StoreFileResponse, error)
+	RetrieveContent(context.Context, *v1.RetrieveContentRequest) (*v1.RetrieveContentResponse, error)
+	ScanForFiles(context.Context, *emptypb.Empty) (*v1.ScanForFilesResponse, error)
+	DownloadPendingFiles(context.Context, *emptypb.Empty) (*v1.DownloadPendingFilesResponse, error)
+	ListFiles(context.Context, *emptypb.Empty) (*v1.ListFilesResponse, error)
+	GetFile(context.Context, *v1.GetFileRequest) (*v1.GetFileResponse, error)
+	DeleteFile(context.Context, *v1.DeleteFileRequest) (*emptypb.Empty, error)
+	StoreMultisigData(context.Context, *v1.StoreMultisigDataRequest) (*v1.StoreMultisigDataResponse, error)
+	WipeData(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	GetBitdriveDir(context.Context, *emptypb.Empty) (*v1.GetBitdriveDirResponse, error)
+	OpenBitdriveDir(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 }
 
-// NewBitDriveServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewBitDriveServiceHandler(svc BitDriveServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bitDriveServiceMethods := v1.File_bitdrive_v1_bitdrive_proto.Services().ByName("BitDriveService").Methods()
-	bitDriveServiceStoreFileHandler := connect.NewUnaryHandler(
-		BitDriveServiceStoreFileProcedure,
-		svc.StoreFile,
-		connect.WithSchema(bitDriveServiceMethods.ByName("StoreFile")),
-		connect.WithHandlerOptions(opts...),
+// RegisterBitDriveServiceHandler registers svc as the bitdrive.v1.BitDriveService implementation on
+// server.
+func RegisterBitDriveServiceHandler(server *connect.Server, svc BitDriveServiceHandler) {
+	adapter := bitDriveServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: bitDriveServiceStoreFileSpec(), Handler: adapter.storeFile},
+		connect.Method{Spec: bitDriveServiceRetrieveContentSpec(), Handler: adapter.retrieveContent},
+		connect.Method{Spec: bitDriveServiceScanForFilesSpec(), Handler: adapter.scanForFiles},
+		connect.Method{Spec: bitDriveServiceDownloadPendingFilesSpec(), Handler: adapter.downloadPendingFiles},
+		connect.Method{Spec: bitDriveServiceListFilesSpec(), Handler: adapter.listFiles},
+		connect.Method{Spec: bitDriveServiceGetFileSpec(), Handler: adapter.getFile},
+		connect.Method{Spec: bitDriveServiceDeleteFileSpec(), Handler: adapter.deleteFile},
+		connect.Method{Spec: bitDriveServiceStoreMultisigDataSpec(), Handler: adapter.storeMultisigData},
+		connect.Method{Spec: bitDriveServiceWipeDataSpec(), Handler: adapter.wipeData},
+		connect.Method{Spec: bitDriveServiceGetBitdriveDirSpec(), Handler: adapter.getBitdriveDir},
+		connect.Method{Spec: bitDriveServiceOpenBitdriveDirSpec(), Handler: adapter.openBitdriveDir},
 	)
-	bitDriveServiceRetrieveContentHandler := connect.NewUnaryHandler(
-		BitDriveServiceRetrieveContentProcedure,
-		svc.RetrieveContent,
-		connect.WithSchema(bitDriveServiceMethods.ByName("RetrieveContent")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceScanForFilesHandler := connect.NewUnaryHandler(
-		BitDriveServiceScanForFilesProcedure,
-		svc.ScanForFiles,
-		connect.WithSchema(bitDriveServiceMethods.ByName("ScanForFiles")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceDownloadPendingFilesHandler := connect.NewUnaryHandler(
-		BitDriveServiceDownloadPendingFilesProcedure,
-		svc.DownloadPendingFiles,
-		connect.WithSchema(bitDriveServiceMethods.ByName("DownloadPendingFiles")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceListFilesHandler := connect.NewUnaryHandler(
-		BitDriveServiceListFilesProcedure,
-		svc.ListFiles,
-		connect.WithSchema(bitDriveServiceMethods.ByName("ListFiles")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceGetFileHandler := connect.NewUnaryHandler(
-		BitDriveServiceGetFileProcedure,
-		svc.GetFile,
-		connect.WithSchema(bitDriveServiceMethods.ByName("GetFile")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceDeleteFileHandler := connect.NewUnaryHandler(
-		BitDriveServiceDeleteFileProcedure,
-		svc.DeleteFile,
-		connect.WithSchema(bitDriveServiceMethods.ByName("DeleteFile")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceStoreMultisigDataHandler := connect.NewUnaryHandler(
-		BitDriveServiceStoreMultisigDataProcedure,
-		svc.StoreMultisigData,
-		connect.WithSchema(bitDriveServiceMethods.ByName("StoreMultisigData")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceWipeDataHandler := connect.NewUnaryHandler(
-		BitDriveServiceWipeDataProcedure,
-		svc.WipeData,
-		connect.WithSchema(bitDriveServiceMethods.ByName("WipeData")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceGetBitdriveDirHandler := connect.NewUnaryHandler(
-		BitDriveServiceGetBitdriveDirProcedure,
-		svc.GetBitdriveDir,
-		connect.WithSchema(bitDriveServiceMethods.ByName("GetBitdriveDir")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitDriveServiceOpenBitdriveDirHandler := connect.NewUnaryHandler(
-		BitDriveServiceOpenBitdriveDirProcedure,
-		svc.OpenBitdriveDir,
-		connect.WithSchema(bitDriveServiceMethods.ByName("OpenBitdriveDir")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/bitdrive.v1.BitDriveService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case BitDriveServiceStoreFileProcedure:
-			bitDriveServiceStoreFileHandler.ServeHTTP(w, r)
-		case BitDriveServiceRetrieveContentProcedure:
-			bitDriveServiceRetrieveContentHandler.ServeHTTP(w, r)
-		case BitDriveServiceScanForFilesProcedure:
-			bitDriveServiceScanForFilesHandler.ServeHTTP(w, r)
-		case BitDriveServiceDownloadPendingFilesProcedure:
-			bitDriveServiceDownloadPendingFilesHandler.ServeHTTP(w, r)
-		case BitDriveServiceListFilesProcedure:
-			bitDriveServiceListFilesHandler.ServeHTTP(w, r)
-		case BitDriveServiceGetFileProcedure:
-			bitDriveServiceGetFileHandler.ServeHTTP(w, r)
-		case BitDriveServiceDeleteFileProcedure:
-			bitDriveServiceDeleteFileHandler.ServeHTTP(w, r)
-		case BitDriveServiceStoreMultisigDataProcedure:
-			bitDriveServiceStoreMultisigDataHandler.ServeHTTP(w, r)
-		case BitDriveServiceWipeDataProcedure:
-			bitDriveServiceWipeDataHandler.ServeHTTP(w, r)
-		case BitDriveServiceGetBitdriveDirProcedure:
-			bitDriveServiceGetBitdriveDirHandler.ServeHTTP(w, r)
-		case BitDriveServiceOpenBitdriveDirProcedure:
-			bitDriveServiceOpenBitdriveDirHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedBitDriveServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBitDriveServiceHandler struct{}
 
-func (UnimplementedBitDriveServiceHandler) StoreFile(context.Context, *connect.Request[v1.StoreFileRequest]) (*connect.Response[v1.StoreFileResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.StoreFile is not implemented"))
+func (UnimplementedBitDriveServiceHandler) StoreFile(context.Context, *v1.StoreFileRequest) (*v1.StoreFileResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.StoreFile is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) RetrieveContent(context.Context, *connect.Request[v1.RetrieveContentRequest]) (*connect.Response[v1.RetrieveContentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.RetrieveContent is not implemented"))
+func (UnimplementedBitDriveServiceHandler) RetrieveContent(context.Context, *v1.RetrieveContentRequest) (*v1.RetrieveContentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.RetrieveContent is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) ScanForFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ScanForFilesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.ScanForFiles is not implemented"))
+func (UnimplementedBitDriveServiceHandler) ScanForFiles(context.Context, *emptypb.Empty) (*v1.ScanForFilesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.ScanForFiles is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) DownloadPendingFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.DownloadPendingFilesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.DownloadPendingFiles is not implemented"))
+func (UnimplementedBitDriveServiceHandler) DownloadPendingFiles(context.Context, *emptypb.Empty) (*v1.DownloadPendingFilesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.DownloadPendingFiles is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) ListFiles(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListFilesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.ListFiles is not implemented"))
+func (UnimplementedBitDriveServiceHandler) ListFiles(context.Context, *emptypb.Empty) (*v1.ListFilesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.ListFiles is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) GetFile(context.Context, *connect.Request[v1.GetFileRequest]) (*connect.Response[v1.GetFileResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.GetFile is not implemented"))
+func (UnimplementedBitDriveServiceHandler) GetFile(context.Context, *v1.GetFileRequest) (*v1.GetFileResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.GetFile is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) DeleteFile(context.Context, *connect.Request[v1.DeleteFileRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.DeleteFile is not implemented"))
+func (UnimplementedBitDriveServiceHandler) DeleteFile(context.Context, *v1.DeleteFileRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.DeleteFile is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) StoreMultisigData(context.Context, *connect.Request[v1.StoreMultisigDataRequest]) (*connect.Response[v1.StoreMultisigDataResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.StoreMultisigData is not implemented"))
+func (UnimplementedBitDriveServiceHandler) StoreMultisigData(context.Context, *v1.StoreMultisigDataRequest) (*v1.StoreMultisigDataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.StoreMultisigData is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) WipeData(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.WipeData is not implemented"))
+func (UnimplementedBitDriveServiceHandler) WipeData(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.WipeData is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) GetBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBitdriveDirResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.GetBitdriveDir is not implemented"))
+func (UnimplementedBitDriveServiceHandler) GetBitdriveDir(context.Context, *emptypb.Empty) (*v1.GetBitdriveDirResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.GetBitdriveDir is not implemented")
 }
 
-func (UnimplementedBitDriveServiceHandler) OpenBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.OpenBitdriveDir is not implemented"))
+func (UnimplementedBitDriveServiceHandler) OpenBitdriveDir(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitdrive.v1.BitDriveService.OpenBitdriveDir is not implemented")
+}
+
+type bitDriveServiceClient struct {
+	client *connect.Client
+}
+
+func (c *bitDriveServiceClient) StoreFile(ctx context.Context, req *v1.StoreFileRequest) (*v1.StoreFileResponse, error) {
+	var res v1.StoreFileResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceStoreFileSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) RetrieveContent(ctx context.Context, req *v1.RetrieveContentRequest) (*v1.RetrieveContentResponse, error) {
+	var res v1.RetrieveContentResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceRetrieveContentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) ScanForFiles(ctx context.Context, req *emptypb.Empty) (*v1.ScanForFilesResponse, error) {
+	var res v1.ScanForFilesResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceScanForFilesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) DownloadPendingFiles(ctx context.Context, req *emptypb.Empty) (*v1.DownloadPendingFilesResponse, error) {
+	var res v1.DownloadPendingFilesResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceDownloadPendingFilesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) ListFiles(ctx context.Context, req *emptypb.Empty) (*v1.ListFilesResponse, error) {
+	var res v1.ListFilesResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceListFilesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) GetFile(ctx context.Context, req *v1.GetFileRequest) (*v1.GetFileResponse, error) {
+	var res v1.GetFileResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceGetFileSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) DeleteFile(ctx context.Context, req *v1.DeleteFileRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitDriveServiceDeleteFileSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) StoreMultisigData(ctx context.Context, req *v1.StoreMultisigDataRequest) (*v1.StoreMultisigDataResponse, error) {
+	var res v1.StoreMultisigDataResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceStoreMultisigDataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) WipeData(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitDriveServiceWipeDataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) GetBitdriveDir(ctx context.Context, req *emptypb.Empty) (*v1.GetBitdriveDirResponse, error) {
+	var res v1.GetBitdriveDirResponse
+	if err := c.client.CallUnary(ctx, bitDriveServiceGetBitdriveDirSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitDriveServiceClient) OpenBitdriveDir(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, bitDriveServiceOpenBitdriveDirSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type bitDriveServiceHandler struct{ svc BitDriveServiceHandler }
+
+func (h bitDriveServiceHandler) storeFile(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StoreFileRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StoreFile(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) retrieveContent(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RetrieveContentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RetrieveContent(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) scanForFiles(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ScanForFiles(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) downloadPendingFiles(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DownloadPendingFiles(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) listFiles(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFiles(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) getFile(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetFileRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFile(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) deleteFile(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteFileRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteFile(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) storeMultisigData(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StoreMultisigDataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StoreMultisigData(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) wipeData(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.WipeData(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) getBitdriveDir(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBitdriveDir(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitDriveServiceHandler) openBitdriveDir(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.OpenBitdriveDir(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

@@ -5,141 +5,161 @@
 package healthv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// HealthServiceName is the fully-qualified name of the HealthService service.
 	HealthServiceName = "health.v1.HealthService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// HealthServiceCheckProcedure is the fully-qualified name of the HealthService's Check RPC.
+	// HealthServiceCheckProcedure is the procedure name of the HealthService's Check RPC.
 	HealthServiceCheckProcedure = "/health.v1.HealthService/Check"
-	// HealthServiceWatchProcedure is the fully-qualified name of the HealthService's Watch RPC.
+	// HealthServiceWatchProcedure is the procedure name of the HealthService's Watch RPC.
 	HealthServiceWatchProcedure = "/health.v1.HealthService/Watch"
+)
+
+var (
+	healthServiceCheckSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_health_v1_health_proto.Services().ByName("HealthService").Methods().ByName("Check"),
+			Procedure:  HealthServiceCheckProcedure,
+		}
+	})
+	healthServiceWatchSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_health_v1_health_proto.Services().ByName("HealthService").Methods().ByName("Watch"),
+			Procedure:  HealthServiceWatchProcedure,
+		}
+	})
 )
 
 // HealthServiceClient is a client for the health.v1.HealthService service.
 type HealthServiceClient interface {
-	// Check status of requested services
-	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-	Check(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CheckResponse], error)
-	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
-	Watch(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.CheckResponse], error)
+	Check(context.Context, *emptypb.Empty) (*v1.CheckResponse, error)
+	Watch(context.Context, *emptypb.Empty) (HealthServiceWatchClientStream, error)
 }
 
-// NewHealthServiceClient constructs a client for the health.v1.HealthService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewHealthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) HealthServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	healthServiceMethods := v1.File_health_v1_health_proto.Services().ByName("HealthService").Methods()
-	return &healthServiceClient{
-		check: connect.NewClient[emptypb.Empty, v1.CheckResponse](
-			httpClient,
-			baseURL+HealthServiceCheckProcedure,
-			connect.WithSchema(healthServiceMethods.ByName("Check")),
-			connect.WithClientOptions(opts...),
-		),
-		watch: connect.NewClient[emptypb.Empty, v1.CheckResponse](
-			httpClient,
-			baseURL+HealthServiceWatchProcedure,
-			connect.WithSchema(healthServiceMethods.ByName("Watch")),
-			connect.WithClientOptions(opts...),
-		),
+// NewHealthServiceClient constructs a client for the health.v1.HealthService service. Multiple
+// service clients may share a single connect.Client.
+func NewHealthServiceClient(client *connect.Client) HealthServiceClient {
+	return &healthServiceClient{client: client}
+}
+
+// HealthServiceWatchClientStream is the client stream for the HealthService's Watch RPC.
+type HealthServiceWatchClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s HealthServiceWatchClientStream) Receive() (*v1.CheckResponse, error) {
+	var res v1.CheckResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// healthServiceClient implements HealthServiceClient.
-type healthServiceClient struct {
-	check *connect.Client[emptypb.Empty, v1.CheckResponse]
-	watch *connect.Client[emptypb.Empty, v1.CheckResponse]
-}
-
-// Check calls health.v1.HealthService.Check.
-func (c *healthServiceClient) Check(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.CheckResponse], error) {
-	return c.check.CallUnary(ctx, req)
-}
-
-// Watch calls health.v1.HealthService.Watch.
-func (c *healthServiceClient) Watch(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.CheckResponse], error) {
-	return c.watch.CallServerStream(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s HealthServiceWatchClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // HealthServiceHandler is an implementation of the health.v1.HealthService service.
 type HealthServiceHandler interface {
-	// Check status of requested services
-	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-	Check(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CheckResponse], error)
-	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
-	Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.CheckResponse]) error
+	Check(context.Context, *emptypb.Empty) (*v1.CheckResponse, error)
+	Watch(context.Context, *emptypb.Empty, HealthServiceWatchServerStream) error
 }
 
-// NewHealthServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewHealthServiceHandler(svc HealthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	healthServiceMethods := v1.File_health_v1_health_proto.Services().ByName("HealthService").Methods()
-	healthServiceCheckHandler := connect.NewUnaryHandler(
-		HealthServiceCheckProcedure,
-		svc.Check,
-		connect.WithSchema(healthServiceMethods.ByName("Check")),
-		connect.WithHandlerOptions(opts...),
+// RegisterHealthServiceHandler registers svc as the health.v1.HealthService implementation on
+// server.
+func RegisterHealthServiceHandler(server *connect.Server, svc HealthServiceHandler) {
+	adapter := healthServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: healthServiceCheckSpec(), Handler: adapter.check},
+		connect.Method{Spec: healthServiceWatchSpec(), Handler: adapter.watch},
 	)
-	healthServiceWatchHandler := connect.NewServerStreamHandler(
-		HealthServiceWatchProcedure,
-		svc.Watch,
-		connect.WithSchema(healthServiceMethods.ByName("Watch")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/health.v1.HealthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case HealthServiceCheckProcedure:
-			healthServiceCheckHandler.ServeHTTP(w, r)
-		case HealthServiceWatchProcedure:
-			healthServiceWatchHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// HealthServiceWatchServerStream is the server stream for the HealthService's Watch RPC.
+type HealthServiceWatchServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s HealthServiceWatchServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s HealthServiceWatchServerStream) Send(res *v1.CheckResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedHealthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedHealthServiceHandler struct{}
 
-func (UnimplementedHealthServiceHandler) Check(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CheckResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("health.v1.HealthService.Check is not implemented"))
+func (UnimplementedHealthServiceHandler) Check(context.Context, *emptypb.Empty) (*v1.CheckResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "health.v1.HealthService.Check is not implemented")
 }
 
-func (UnimplementedHealthServiceHandler) Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.CheckResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("health.v1.HealthService.Watch is not implemented"))
+func (UnimplementedHealthServiceHandler) Watch(context.Context, *emptypb.Empty, HealthServiceWatchServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "health.v1.HealthService.Watch is not implemented")
+}
+
+type healthServiceClient struct {
+	client *connect.Client
+}
+
+func (c *healthServiceClient) Check(ctx context.Context, req *emptypb.Empty) (*v1.CheckResponse, error) {
+	var res v1.CheckResponse
+	if err := c.client.CallUnary(ctx, healthServiceCheckSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *healthServiceClient) Watch(ctx context.Context, req *emptypb.Empty) (HealthServiceWatchClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, healthServiceWatchSpec(), req)
+	if err != nil {
+		return HealthServiceWatchClientStream{}, err
+	}
+	return HealthServiceWatchClientStream{stream: stream}, nil
+}
+
+type healthServiceHandler struct{ svc HealthServiceHandler }
+
+func (h healthServiceHandler) check(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Check(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h healthServiceHandler) watch(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.Watch(ctx, &req, HealthServiceWatchServerStream{stream: stream})
 }

@@ -3,12 +3,14 @@ package notification_test
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -26,21 +28,32 @@ func TestWatch(t *testing.T) {
 		go func() { done <- engine.Run(runCtx) }()
 
 		mux := http.NewServeMux()
-		mux.Handle(rpc.NewNotificationServiceHandler(notification.New(engine)))
+		srv := connect.NewServer()
+		rpc.RegisterNotificationServiceHandler(srv, notification.New(engine))
+		connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 		server := httptest.NewServer(mux)
 		t.Cleanup(server.Close)
 
-		client := rpc.NewNotificationServiceClient(server.Client(), server.URL)
+		client := rpc.NewNotificationServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 		ended := make(chan error, 1)
 		go func() {
-			stream, err := client.Watch(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+			stream, err := client.Watch(t.Context(), &emptypb.Empty{})
 			if err != nil {
 				ended <- err
 				return
 			}
-			for stream.Receive() {
+			var streamErr error
+			for {
+				_, err := stream.Receive()
+				if err != nil {
+					streamErr = err
+					break
+				}
 			}
-			ended <- errors.Join(stream.Err(), stream.Close())
+			if errors.Is(streamErr, io.EOF) {
+				streamErr = nil
+			}
+			ended <- errors.Join(streamErr, stream.Close())
 		}()
 
 		stop()

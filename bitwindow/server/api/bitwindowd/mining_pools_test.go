@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/assert"
@@ -82,10 +82,10 @@ func TestService_ListMiningPools(t *testing.T) {
 		}))
 		server := api_bitwindowd.New(nil, db, nil, nil, nil, regtestRegistry(t), config.Config{}, nil)
 
-		response, err := server.ListMiningPools(t.Context(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
+		response, err := server.ListMiningPools(t.Context(), &v1.ListMiningPoolsRequest{})
 		require.NoError(t, err)
 
-		msg := response.Msg
+		msg := response
 		assert.EqualValues(t, 3, msg.BlockCount)
 		assert.EqualValues(t, 11, msg.FromHeight)
 		assert.EqualValues(t, 13, msg.ToHeight)
@@ -120,12 +120,12 @@ func TestService_ListMiningPools(t *testing.T) {
 		}))
 		server := api_bitwindowd.New(nil, db, nil, nil, nil, regtestRegistry(t), config.Config{}, nil)
 
-		response, err := server.ListMiningPools(t.Context(), connect.NewRequest(&v1.ListMiningPoolsRequest{
+		response, err := server.ListMiningPools(t.Context(), &v1.ListMiningPoolsRequest{
 			Window: v1.MiningPoolWindow_MINING_POOL_WINDOW_1W,
-		}))
+		})
 		require.NoError(t, err)
-		assert.EqualValues(t, 2, response.Msg.BlockCount)
-		assert.EqualValues(t, 10, response.Msg.FromHeight)
+		assert.EqualValues(t, 2, response.BlockCount)
+		assert.EqualValues(t, 10, response.FromHeight)
 	})
 
 	t.Run("a network with no registry lists only Unknown", func(t *testing.T) {
@@ -137,11 +137,11 @@ func TestService_ListMiningPools(t *testing.T) {
 		registry := miningpools.New(t.Context(), config.NetworkSignet, "", "", offlineRegistry)
 		server := api_bitwindowd.New(nil, db, nil, nil, nil, registry, config.Config{}, nil)
 
-		response, err := server.ListMiningPools(t.Context(), connect.NewRequest(&v1.ListMiningPoolsRequest{}))
+		response, err := server.ListMiningPools(t.Context(), &v1.ListMiningPoolsRequest{})
 		require.NoError(t, err)
-		assert.False(t, response.Msg.RegistryAvailable)
-		require.Len(t, response.Msg.Pools, 1)
-		assert.Equal(t, miningpools.Unknown.Name, response.Msg.Pools[0].Pool.Name)
+		assert.False(t, response.RegistryAvailable)
+		require.Len(t, response.Pools, 1)
+		assert.Equal(t, miningpools.Unknown.Name, response.Pools[0].Pool.Name)
 	})
 }
 
@@ -165,14 +165,14 @@ func TestService_ListBlocksNamesThePool(t *testing.T) {
 
 			mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
-				Return(connect.NewResponse(&corepb.GetBlockchainInfoResponse{Blocks: 100, BestBlockHash: "hash100"}), nil)
+				Return(connectv1.NewResponse(&corepb.GetBlockchainInfoResponse{Blocks: 100, BestBlockHash: "hash100"}), nil)
 			mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
-					return connect.NewResponse(&corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)}), nil
+				DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockHashRequest]) (*connectv1.Response[corepb.GetBlockHashResponse], error) {
+					return connectv1.NewResponse(&corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)}), nil
 				}).AnyTimes()
 			mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
-					return connect.NewResponse(&corepb.GetBlockResponse{Height: 100, Hash: req.Msg.Hash}), nil
+				DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
+					return connectv1.NewResponse(&corepb.GetBlockResponse{Height: 100, Hash: req.Msg.Hash}), nil
 				}).AnyTimes()
 			core := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
 				return mockBitcoind, nil
@@ -180,10 +180,10 @@ func TestService_ListBlocksNamesThePool(t *testing.T) {
 			conf := config.Config{BitcoinCoreNetwork: config.NetworkRegtest}
 			server := api_bitwindowd.New(nil, db, core, nil, nil, regtestRegistry(t), conf, nil)
 
-			response, err := server.ListBlocks(t.Context(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
+			response, err := server.ListBlocks(t.Context(), &v1.ListBlocksRequest{PageSize: 1})
 			require.NoError(t, err)
-			require.Len(t, response.Msg.RecentBlocks, 1)
-			assert.Equal(t, test.wantPool, response.Msg.RecentBlocks[0].GetPool().GetName())
+			require.Len(t, response.RecentBlocks, 1)
+			assert.Equal(t, test.wantPool, response.RecentBlocks[0].GetPool().GetName())
 		})
 	}
 }

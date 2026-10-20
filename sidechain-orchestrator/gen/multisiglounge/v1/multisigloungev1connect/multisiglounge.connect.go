@@ -5,382 +5,392 @@
 package multisigloungev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// MultisigLoungeServiceName is the fully-qualified name of the MultisigLoungeService service.
 	MultisigLoungeServiceName = "multisiglounge.v1.MultisigLoungeService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// MultisigLoungeServiceBuildDescriptorsProcedure is the fully-qualified name of the
+	// MultisigLoungeServiceBuildDescriptorsProcedure is the procedure name of the
 	// MultisigLoungeService's BuildDescriptors RPC.
 	MultisigLoungeServiceBuildDescriptorsProcedure = "/multisiglounge.v1.MultisigLoungeService/BuildDescriptors"
-	// MultisigLoungeServiceValidatePsbtProcedure is the fully-qualified name of the
-	// MultisigLoungeService's ValidatePsbt RPC.
+	// MultisigLoungeServiceValidatePsbtProcedure is the procedure name of the MultisigLoungeService's
+	// ValidatePsbt RPC.
 	MultisigLoungeServiceValidatePsbtProcedure = "/multisiglounge.v1.MultisigLoungeService/ValidatePsbt"
-	// MultisigLoungeServicePublishGroupProcedure is the fully-qualified name of the
-	// MultisigLoungeService's PublishGroup RPC.
+	// MultisigLoungeServicePublishGroupProcedure is the procedure name of the MultisigLoungeService's
+	// PublishGroup RPC.
 	MultisigLoungeServicePublishGroupProcedure = "/multisiglounge.v1.MultisigLoungeService/PublishGroup"
-	// MultisigLoungeServiceImportGroupFromTxidProcedure is the fully-qualified name of the
+	// MultisigLoungeServiceImportGroupFromTxidProcedure is the procedure name of the
 	// MultisigLoungeService's ImportGroupFromTxid RPC.
 	MultisigLoungeServiceImportGroupFromTxidProcedure = "/multisiglounge.v1.MultisigLoungeService/ImportGroupFromTxid"
-	// MultisigLoungeServiceSignTransactionProcedure is the fully-qualified name of the
+	// MultisigLoungeServiceSignTransactionProcedure is the procedure name of the
 	// MultisigLoungeService's SignTransaction RPC.
 	MultisigLoungeServiceSignTransactionProcedure = "/multisiglounge.v1.MultisigLoungeService/SignTransaction"
-	// MultisigLoungeServiceCombineAndBroadcastProcedure is the fully-qualified name of the
+	// MultisigLoungeServiceCombineAndBroadcastProcedure is the procedure name of the
 	// MultisigLoungeService's CombineAndBroadcast RPC.
 	MultisigLoungeServiceCombineAndBroadcastProcedure = "/multisiglounge.v1.MultisigLoungeService/CombineAndBroadcast"
-	// MultisigLoungeServiceSyncGroupProcedure is the fully-qualified name of the
-	// MultisigLoungeService's SyncGroup RPC.
+	// MultisigLoungeServiceSyncGroupProcedure is the procedure name of the MultisigLoungeService's
+	// SyncGroup RPC.
 	MultisigLoungeServiceSyncGroupProcedure = "/multisiglounge.v1.MultisigLoungeService/SyncGroup"
-	// MultisigLoungeServiceRestoreHistoryProcedure is the fully-qualified name of the
-	// MultisigLoungeService's RestoreHistory RPC.
+	// MultisigLoungeServiceRestoreHistoryProcedure is the procedure name of the MultisigLoungeService's
+	// RestoreHistory RPC.
 	MultisigLoungeServiceRestoreHistoryProcedure = "/multisiglounge.v1.MultisigLoungeService/RestoreHistory"
-	// MultisigLoungeServiceCreateSpendPsbtProcedure is the fully-qualified name of the
+	// MultisigLoungeServiceCreateSpendPsbtProcedure is the procedure name of the
 	// MultisigLoungeService's CreateSpendPsbt RPC.
 	MultisigLoungeServiceCreateSpendPsbtProcedure = "/multisiglounge.v1.MultisigLoungeService/CreateSpendPsbt"
 )
 
+var (
+	multisigLoungeServiceBuildDescriptorsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("BuildDescriptors"),
+			Procedure:  MultisigLoungeServiceBuildDescriptorsProcedure,
+		}
+	})
+	multisigLoungeServiceValidatePsbtSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("ValidatePsbt"),
+			Procedure:  MultisigLoungeServiceValidatePsbtProcedure,
+		}
+	})
+	multisigLoungeServicePublishGroupSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("PublishGroup"),
+			Procedure:  MultisigLoungeServicePublishGroupProcedure,
+		}
+	})
+	multisigLoungeServiceImportGroupFromTxidSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("ImportGroupFromTxid"),
+			Procedure:  MultisigLoungeServiceImportGroupFromTxidProcedure,
+		}
+	})
+	multisigLoungeServiceSignTransactionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("SignTransaction"),
+			Procedure:  MultisigLoungeServiceSignTransactionProcedure,
+		}
+	})
+	multisigLoungeServiceCombineAndBroadcastSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("CombineAndBroadcast"),
+			Procedure:  MultisigLoungeServiceCombineAndBroadcastProcedure,
+		}
+	})
+	multisigLoungeServiceSyncGroupSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("SyncGroup"),
+			Procedure:  MultisigLoungeServiceSyncGroupProcedure,
+		}
+	})
+	multisigLoungeServiceRestoreHistorySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("RestoreHistory"),
+			Procedure:  MultisigLoungeServiceRestoreHistoryProcedure,
+		}
+	})
+	multisigLoungeServiceCreateSpendPsbtSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods().ByName("CreateSpendPsbt"),
+			Procedure:  MultisigLoungeServiceCreateSpendPsbtProcedure,
+		}
+	})
+)
+
 // MultisigLoungeServiceClient is a client for the multisiglounge.v1.MultisigLoungeService service.
 type MultisigLoungeServiceClient interface {
-	// BuildDescriptors builds the receive (/0/*) and change (/1/*) watch-only
-	// wsh(sortedmulti) descriptors for a multisig group, with checksums.
-	BuildDescriptors(context.Context, *connect.Request[v1.BuildDescriptorsRequest]) (*connect.Response[v1.BuildDescriptorsResponse], error)
-	// ValidatePsbt parses a base64 PSBT and reports signature progress. When a
-	// group is supplied, inputs whose script does not belong to the group's
-	// descriptor are rejected.
-	ValidatePsbt(context.Context, *connect.Request[v1.ValidatePsbtRequest]) (*connect.Response[v1.ValidatePsbtResponse], error)
-	// PublishGroup encodes a multisig group as an OP_RETURN payload (the
-	// BitWindow wire format) and broadcasts it, funding a fresh own address.
-	// Returns the broadcast txid.
-	PublishGroup(context.Context, *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error)
-	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
-	// multisig group, and reports which of the group's keys belong to the wallet.
-	ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error)
-	// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
-	// deriving the wallet's keys server-side from its seed. The PSBT must belong
-	// to the group (foreign inputs are rejected).
-	SignTransaction(context.Context, *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error)
-	// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
-	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
-	// never broadcast.
-	CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error)
-	// SyncGroup ensures the group's watch-only wallet exists (creating it from the
-	// Phase-1 descriptors if missing) and returns its balance and UTXOs.
-	SyncGroup(context.Context, *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error)
-	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
-	// the group's spend/receive records with per-tx signature counts and status.
-	RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error)
-	// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
-	// watch-only wallet to the given destinations (ensuring the wallet exists).
-	CreateSpendPsbt(context.Context, *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error)
+	BuildDescriptors(context.Context, *v1.BuildDescriptorsRequest) (*v1.BuildDescriptorsResponse, error)
+	ValidatePsbt(context.Context, *v1.ValidatePsbtRequest) (*v1.ValidatePsbtResponse, error)
+	PublishGroup(context.Context, *v1.PublishGroupRequest) (*v1.PublishGroupResponse, error)
+	ImportGroupFromTxid(context.Context, *v1.ImportGroupFromTxidRequest) (*v1.ImportGroupFromTxidResponse, error)
+	SignTransaction(context.Context, *v1.SignTransactionRequest) (*v1.SignTransactionResponse, error)
+	CombineAndBroadcast(context.Context, *v1.CombineAndBroadcastRequest) (*v1.CombineAndBroadcastResponse, error)
+	SyncGroup(context.Context, *v1.SyncGroupRequest) (*v1.SyncGroupResponse, error)
+	RestoreHistory(context.Context, *v1.RestoreHistoryRequest) (*v1.RestoreHistoryResponse, error)
+	CreateSpendPsbt(context.Context, *v1.CreateSpendPsbtRequest) (*v1.CreateSpendPsbtResponse, error)
 }
 
 // NewMultisigLoungeServiceClient constructs a client for the
-// multisiglounge.v1.MultisigLoungeService service. By default, it uses the Connect protocol with
-// the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To use
-// the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewMultisigLoungeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MultisigLoungeServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	multisigLoungeServiceMethods := v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods()
-	return &multisigLoungeServiceClient{
-		buildDescriptors: connect.NewClient[v1.BuildDescriptorsRequest, v1.BuildDescriptorsResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceBuildDescriptorsProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("BuildDescriptors")),
-			connect.WithClientOptions(opts...),
-		),
-		validatePsbt: connect.NewClient[v1.ValidatePsbtRequest, v1.ValidatePsbtResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceValidatePsbtProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("ValidatePsbt")),
-			connect.WithClientOptions(opts...),
-		),
-		publishGroup: connect.NewClient[v1.PublishGroupRequest, v1.PublishGroupResponse](
-			httpClient,
-			baseURL+MultisigLoungeServicePublishGroupProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("PublishGroup")),
-			connect.WithClientOptions(opts...),
-		),
-		importGroupFromTxid: connect.NewClient[v1.ImportGroupFromTxidRequest, v1.ImportGroupFromTxidResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceImportGroupFromTxidProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("ImportGroupFromTxid")),
-			connect.WithClientOptions(opts...),
-		),
-		signTransaction: connect.NewClient[v1.SignTransactionRequest, v1.SignTransactionResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceSignTransactionProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("SignTransaction")),
-			connect.WithClientOptions(opts...),
-		),
-		combineAndBroadcast: connect.NewClient[v1.CombineAndBroadcastRequest, v1.CombineAndBroadcastResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceCombineAndBroadcastProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("CombineAndBroadcast")),
-			connect.WithClientOptions(opts...),
-		),
-		syncGroup: connect.NewClient[v1.SyncGroupRequest, v1.SyncGroupResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceSyncGroupProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("SyncGroup")),
-			connect.WithClientOptions(opts...),
-		),
-		restoreHistory: connect.NewClient[v1.RestoreHistoryRequest, v1.RestoreHistoryResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceRestoreHistoryProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("RestoreHistory")),
-			connect.WithClientOptions(opts...),
-		),
-		createSpendPsbt: connect.NewClient[v1.CreateSpendPsbtRequest, v1.CreateSpendPsbtResponse](
-			httpClient,
-			baseURL+MultisigLoungeServiceCreateSpendPsbtProcedure,
-			connect.WithSchema(multisigLoungeServiceMethods.ByName("CreateSpendPsbt")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// multisigLoungeServiceClient implements MultisigLoungeServiceClient.
-type multisigLoungeServiceClient struct {
-	buildDescriptors    *connect.Client[v1.BuildDescriptorsRequest, v1.BuildDescriptorsResponse]
-	validatePsbt        *connect.Client[v1.ValidatePsbtRequest, v1.ValidatePsbtResponse]
-	publishGroup        *connect.Client[v1.PublishGroupRequest, v1.PublishGroupResponse]
-	importGroupFromTxid *connect.Client[v1.ImportGroupFromTxidRequest, v1.ImportGroupFromTxidResponse]
-	signTransaction     *connect.Client[v1.SignTransactionRequest, v1.SignTransactionResponse]
-	combineAndBroadcast *connect.Client[v1.CombineAndBroadcastRequest, v1.CombineAndBroadcastResponse]
-	syncGroup           *connect.Client[v1.SyncGroupRequest, v1.SyncGroupResponse]
-	restoreHistory      *connect.Client[v1.RestoreHistoryRequest, v1.RestoreHistoryResponse]
-	createSpendPsbt     *connect.Client[v1.CreateSpendPsbtRequest, v1.CreateSpendPsbtResponse]
-}
-
-// BuildDescriptors calls multisiglounge.v1.MultisigLoungeService.BuildDescriptors.
-func (c *multisigLoungeServiceClient) BuildDescriptors(ctx context.Context, req *connect.Request[v1.BuildDescriptorsRequest]) (*connect.Response[v1.BuildDescriptorsResponse], error) {
-	return c.buildDescriptors.CallUnary(ctx, req)
-}
-
-// ValidatePsbt calls multisiglounge.v1.MultisigLoungeService.ValidatePsbt.
-func (c *multisigLoungeServiceClient) ValidatePsbt(ctx context.Context, req *connect.Request[v1.ValidatePsbtRequest]) (*connect.Response[v1.ValidatePsbtResponse], error) {
-	return c.validatePsbt.CallUnary(ctx, req)
-}
-
-// PublishGroup calls multisiglounge.v1.MultisigLoungeService.PublishGroup.
-func (c *multisigLoungeServiceClient) PublishGroup(ctx context.Context, req *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error) {
-	return c.publishGroup.CallUnary(ctx, req)
-}
-
-// ImportGroupFromTxid calls multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid.
-func (c *multisigLoungeServiceClient) ImportGroupFromTxid(ctx context.Context, req *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error) {
-	return c.importGroupFromTxid.CallUnary(ctx, req)
-}
-
-// SignTransaction calls multisiglounge.v1.MultisigLoungeService.SignTransaction.
-func (c *multisigLoungeServiceClient) SignTransaction(ctx context.Context, req *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error) {
-	return c.signTransaction.CallUnary(ctx, req)
-}
-
-// CombineAndBroadcast calls multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast.
-func (c *multisigLoungeServiceClient) CombineAndBroadcast(ctx context.Context, req *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error) {
-	return c.combineAndBroadcast.CallUnary(ctx, req)
-}
-
-// SyncGroup calls multisiglounge.v1.MultisigLoungeService.SyncGroup.
-func (c *multisigLoungeServiceClient) SyncGroup(ctx context.Context, req *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error) {
-	return c.syncGroup.CallUnary(ctx, req)
-}
-
-// RestoreHistory calls multisiglounge.v1.MultisigLoungeService.RestoreHistory.
-func (c *multisigLoungeServiceClient) RestoreHistory(ctx context.Context, req *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error) {
-	return c.restoreHistory.CallUnary(ctx, req)
-}
-
-// CreateSpendPsbt calls multisiglounge.v1.MultisigLoungeService.CreateSpendPsbt.
-func (c *multisigLoungeServiceClient) CreateSpendPsbt(ctx context.Context, req *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error) {
-	return c.createSpendPsbt.CallUnary(ctx, req)
+// multisiglounge.v1.MultisigLoungeService service. Multiple service clients may share a single
+// connect.Client.
+func NewMultisigLoungeServiceClient(client *connect.Client) MultisigLoungeServiceClient {
+	return &multisigLoungeServiceClient{client: client}
 }
 
 // MultisigLoungeServiceHandler is an implementation of the multisiglounge.v1.MultisigLoungeService
 // service.
 type MultisigLoungeServiceHandler interface {
-	// BuildDescriptors builds the receive (/0/*) and change (/1/*) watch-only
-	// wsh(sortedmulti) descriptors for a multisig group, with checksums.
-	BuildDescriptors(context.Context, *connect.Request[v1.BuildDescriptorsRequest]) (*connect.Response[v1.BuildDescriptorsResponse], error)
-	// ValidatePsbt parses a base64 PSBT and reports signature progress. When a
-	// group is supplied, inputs whose script does not belong to the group's
-	// descriptor are rejected.
-	ValidatePsbt(context.Context, *connect.Request[v1.ValidatePsbtRequest]) (*connect.Response[v1.ValidatePsbtResponse], error)
-	// PublishGroup encodes a multisig group as an OP_RETURN payload (the
-	// BitWindow wire format) and broadcasts it, funding a fresh own address.
-	// Returns the broadcast txid.
-	PublishGroup(context.Context, *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error)
-	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
-	// multisig group, and reports which of the group's keys belong to the wallet.
-	ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error)
-	// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
-	// deriving the wallet's keys server-side from its seed. The PSBT must belong
-	// to the group (foreign inputs are rejected).
-	SignTransaction(context.Context, *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error)
-	// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
-	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
-	// never broadcast.
-	CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error)
-	// SyncGroup ensures the group's watch-only wallet exists (creating it from the
-	// Phase-1 descriptors if missing) and returns its balance and UTXOs.
-	SyncGroup(context.Context, *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error)
-	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
-	// the group's spend/receive records with per-tx signature counts and status.
-	RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error)
-	// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
-	// watch-only wallet to the given destinations (ensuring the wallet exists).
-	CreateSpendPsbt(context.Context, *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error)
+	BuildDescriptors(context.Context, *v1.BuildDescriptorsRequest) (*v1.BuildDescriptorsResponse, error)
+	ValidatePsbt(context.Context, *v1.ValidatePsbtRequest) (*v1.ValidatePsbtResponse, error)
+	PublishGroup(context.Context, *v1.PublishGroupRequest) (*v1.PublishGroupResponse, error)
+	ImportGroupFromTxid(context.Context, *v1.ImportGroupFromTxidRequest) (*v1.ImportGroupFromTxidResponse, error)
+	SignTransaction(context.Context, *v1.SignTransactionRequest) (*v1.SignTransactionResponse, error)
+	CombineAndBroadcast(context.Context, *v1.CombineAndBroadcastRequest) (*v1.CombineAndBroadcastResponse, error)
+	SyncGroup(context.Context, *v1.SyncGroupRequest) (*v1.SyncGroupResponse, error)
+	RestoreHistory(context.Context, *v1.RestoreHistoryRequest) (*v1.RestoreHistoryResponse, error)
+	CreateSpendPsbt(context.Context, *v1.CreateSpendPsbtRequest) (*v1.CreateSpendPsbtResponse, error)
 }
 
-// NewMultisigLoungeServiceHandler builds an HTTP handler from the service implementation. It
-// returns the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	multisigLoungeServiceMethods := v1.File_multisiglounge_v1_multisiglounge_proto.Services().ByName("MultisigLoungeService").Methods()
-	multisigLoungeServiceBuildDescriptorsHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceBuildDescriptorsProcedure,
-		svc.BuildDescriptors,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("BuildDescriptors")),
-		connect.WithHandlerOptions(opts...),
+// RegisterMultisigLoungeServiceHandler registers svc as the multisiglounge.v1.MultisigLoungeService
+// implementation on server.
+func RegisterMultisigLoungeServiceHandler(server *connect.Server, svc MultisigLoungeServiceHandler) {
+	adapter := multisigLoungeServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: multisigLoungeServiceBuildDescriptorsSpec(), Handler: adapter.buildDescriptors},
+		connect.Method{Spec: multisigLoungeServiceValidatePsbtSpec(), Handler: adapter.validatePsbt},
+		connect.Method{Spec: multisigLoungeServicePublishGroupSpec(), Handler: adapter.publishGroup},
+		connect.Method{Spec: multisigLoungeServiceImportGroupFromTxidSpec(), Handler: adapter.importGroupFromTxid},
+		connect.Method{Spec: multisigLoungeServiceSignTransactionSpec(), Handler: adapter.signTransaction},
+		connect.Method{Spec: multisigLoungeServiceCombineAndBroadcastSpec(), Handler: adapter.combineAndBroadcast},
+		connect.Method{Spec: multisigLoungeServiceSyncGroupSpec(), Handler: adapter.syncGroup},
+		connect.Method{Spec: multisigLoungeServiceRestoreHistorySpec(), Handler: adapter.restoreHistory},
+		connect.Method{Spec: multisigLoungeServiceCreateSpendPsbtSpec(), Handler: adapter.createSpendPsbt},
 	)
-	multisigLoungeServiceValidatePsbtHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceValidatePsbtProcedure,
-		svc.ValidatePsbt,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("ValidatePsbt")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigLoungeServicePublishGroupHandler := connect.NewUnaryHandler(
-		MultisigLoungeServicePublishGroupProcedure,
-		svc.PublishGroup,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("PublishGroup")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigLoungeServiceImportGroupFromTxidHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceImportGroupFromTxidProcedure,
-		svc.ImportGroupFromTxid,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("ImportGroupFromTxid")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigLoungeServiceSignTransactionHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceSignTransactionProcedure,
-		svc.SignTransaction,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("SignTransaction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigLoungeServiceCombineAndBroadcastHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceCombineAndBroadcastProcedure,
-		svc.CombineAndBroadcast,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("CombineAndBroadcast")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigLoungeServiceSyncGroupHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceSyncGroupProcedure,
-		svc.SyncGroup,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("SyncGroup")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigLoungeServiceRestoreHistoryHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceRestoreHistoryProcedure,
-		svc.RestoreHistory,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("RestoreHistory")),
-		connect.WithHandlerOptions(opts...),
-	)
-	multisigLoungeServiceCreateSpendPsbtHandler := connect.NewUnaryHandler(
-		MultisigLoungeServiceCreateSpendPsbtProcedure,
-		svc.CreateSpendPsbt,
-		connect.WithSchema(multisigLoungeServiceMethods.ByName("CreateSpendPsbt")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/multisiglounge.v1.MultisigLoungeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case MultisigLoungeServiceBuildDescriptorsProcedure:
-			multisigLoungeServiceBuildDescriptorsHandler.ServeHTTP(w, r)
-		case MultisigLoungeServiceValidatePsbtProcedure:
-			multisigLoungeServiceValidatePsbtHandler.ServeHTTP(w, r)
-		case MultisigLoungeServicePublishGroupProcedure:
-			multisigLoungeServicePublishGroupHandler.ServeHTTP(w, r)
-		case MultisigLoungeServiceImportGroupFromTxidProcedure:
-			multisigLoungeServiceImportGroupFromTxidHandler.ServeHTTP(w, r)
-		case MultisigLoungeServiceSignTransactionProcedure:
-			multisigLoungeServiceSignTransactionHandler.ServeHTTP(w, r)
-		case MultisigLoungeServiceCombineAndBroadcastProcedure:
-			multisigLoungeServiceCombineAndBroadcastHandler.ServeHTTP(w, r)
-		case MultisigLoungeServiceSyncGroupProcedure:
-			multisigLoungeServiceSyncGroupHandler.ServeHTTP(w, r)
-		case MultisigLoungeServiceRestoreHistoryProcedure:
-			multisigLoungeServiceRestoreHistoryHandler.ServeHTTP(w, r)
-		case MultisigLoungeServiceCreateSpendPsbtProcedure:
-			multisigLoungeServiceCreateSpendPsbtHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedMultisigLoungeServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedMultisigLoungeServiceHandler struct{}
 
-func (UnimplementedMultisigLoungeServiceHandler) BuildDescriptors(context.Context, *connect.Request[v1.BuildDescriptorsRequest]) (*connect.Response[v1.BuildDescriptorsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.BuildDescriptors is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) BuildDescriptors(context.Context, *v1.BuildDescriptorsRequest) (*v1.BuildDescriptorsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.BuildDescriptors is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) ValidatePsbt(context.Context, *connect.Request[v1.ValidatePsbtRequest]) (*connect.Response[v1.ValidatePsbtResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.ValidatePsbt is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) ValidatePsbt(context.Context, *v1.ValidatePsbtRequest) (*v1.ValidatePsbtResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.ValidatePsbt is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) PublishGroup(context.Context, *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.PublishGroup is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) PublishGroup(context.Context, *v1.PublishGroupRequest) (*v1.PublishGroupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.PublishGroup is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) ImportGroupFromTxid(context.Context, *v1.ImportGroupFromTxidRequest) (*v1.ImportGroupFromTxidResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) SignTransaction(context.Context, *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.SignTransaction is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) SignTransaction(context.Context, *v1.SignTransactionRequest) (*v1.SignTransactionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.SignTransaction is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) CombineAndBroadcast(context.Context, *v1.CombineAndBroadcastRequest) (*v1.CombineAndBroadcastResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) SyncGroup(context.Context, *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.SyncGroup is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) SyncGroup(context.Context, *v1.SyncGroupRequest) (*v1.SyncGroupResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.SyncGroup is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.RestoreHistory is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) RestoreHistory(context.Context, *v1.RestoreHistoryRequest) (*v1.RestoreHistoryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.RestoreHistory is not implemented")
 }
 
-func (UnimplementedMultisigLoungeServiceHandler) CreateSpendPsbt(context.Context, *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.CreateSpendPsbt is not implemented"))
+func (UnimplementedMultisigLoungeServiceHandler) CreateSpendPsbt(context.Context, *v1.CreateSpendPsbtRequest) (*v1.CreateSpendPsbtResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "multisiglounge.v1.MultisigLoungeService.CreateSpendPsbt is not implemented")
+}
+
+type multisigLoungeServiceClient struct {
+	client *connect.Client
+}
+
+func (c *multisigLoungeServiceClient) BuildDescriptors(ctx context.Context, req *v1.BuildDescriptorsRequest) (*v1.BuildDescriptorsResponse, error) {
+	var res v1.BuildDescriptorsResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceBuildDescriptorsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) ValidatePsbt(ctx context.Context, req *v1.ValidatePsbtRequest) (*v1.ValidatePsbtResponse, error) {
+	var res v1.ValidatePsbtResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceValidatePsbtSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) PublishGroup(ctx context.Context, req *v1.PublishGroupRequest) (*v1.PublishGroupResponse, error) {
+	var res v1.PublishGroupResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServicePublishGroupSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) ImportGroupFromTxid(ctx context.Context, req *v1.ImportGroupFromTxidRequest) (*v1.ImportGroupFromTxidResponse, error) {
+	var res v1.ImportGroupFromTxidResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceImportGroupFromTxidSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) SignTransaction(ctx context.Context, req *v1.SignTransactionRequest) (*v1.SignTransactionResponse, error) {
+	var res v1.SignTransactionResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceSignTransactionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) CombineAndBroadcast(ctx context.Context, req *v1.CombineAndBroadcastRequest) (*v1.CombineAndBroadcastResponse, error) {
+	var res v1.CombineAndBroadcastResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceCombineAndBroadcastSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) SyncGroup(ctx context.Context, req *v1.SyncGroupRequest) (*v1.SyncGroupResponse, error) {
+	var res v1.SyncGroupResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceSyncGroupSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) RestoreHistory(ctx context.Context, req *v1.RestoreHistoryRequest) (*v1.RestoreHistoryResponse, error) {
+	var res v1.RestoreHistoryResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceRestoreHistorySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *multisigLoungeServiceClient) CreateSpendPsbt(ctx context.Context, req *v1.CreateSpendPsbtRequest) (*v1.CreateSpendPsbtResponse, error) {
+	var res v1.CreateSpendPsbtResponse
+	if err := c.client.CallUnary(ctx, multisigLoungeServiceCreateSpendPsbtSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type multisigLoungeServiceHandler struct{ svc MultisigLoungeServiceHandler }
+
+func (h multisigLoungeServiceHandler) buildDescriptors(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.BuildDescriptorsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.BuildDescriptors(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) validatePsbt(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ValidatePsbtRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ValidatePsbt(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) publishGroup(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PublishGroupRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PublishGroup(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) importGroupFromTxid(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ImportGroupFromTxidRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ImportGroupFromTxid(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) signTransaction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignTransactionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignTransaction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) combineAndBroadcast(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CombineAndBroadcastRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CombineAndBroadcast(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) syncGroup(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SyncGroupRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SyncGroup(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) restoreHistory(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RestoreHistoryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RestoreHistory(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h multisigLoungeServiceHandler) createSpendPsbt(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateSpendPsbtRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateSpendPsbt(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

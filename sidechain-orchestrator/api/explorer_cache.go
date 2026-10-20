@@ -5,7 +5,6 @@ import (
 	"slices"
 	"sync"
 
-	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -187,11 +186,11 @@ func (h *ExplorerHandler) anchorFromEnforcer(ctx context.Context, hash string) (
 		return mainchainAnchor{}, false
 	}
 	out := mainchainAnchor{parentHeight: parent[0].GetHeight()}
-	tip, err := validator.GetChainTip(ctx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	tip, err := validator.GetChainTip(ctx, &enforcerpb.GetChainTipRequest{})
 	if err != nil {
 		return out, true
 	}
-	from := tip.Msg.GetBlockHeaderInfo()
+	from := tip.GetBlockHeaderInfo()
 	for from.GetHeight() > out.parentHeight {
 		headers, err := enforcerHeaders(ctx, validator,
 			from.GetBlockHash().GetHex().GetValue(), min(from.GetHeight()-out.parentHeight-1, enforcerHeaderPage))
@@ -225,15 +224,14 @@ func (h *ExplorerHandler) anchorFromEnforcer(ctx context.Context, hash string) (
 func enforcerHeaders(
 	ctx context.Context, validator enforcerrpc.ValidatorServiceClient, hash string, ancestors uint32,
 ) ([]*enforcerpb.BlockHeaderInfo, error) {
-	resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(
-		&enforcerpb.GetBlockHeaderInfoRequest{
-			BlockHash:    &commonv1.ReverseHex{Hex: wrapperspb.String(hash)},
-			MaxAncestors: &ancestors,
-		}))
+	resp, err := validator.GetBlockHeaderInfo(ctx, &enforcerpb.GetBlockHeaderInfoRequest{
+		BlockHash:    &commonv1.ReverseHex{Hex: wrapperspb.String(hash)},
+		MaxAncestors: &ancestors,
+	})
 	if err != nil {
 		return nil, err
 	}
-	return resp.Msg.GetHeaderInfos(), nil
+	return resp.GetHeaderInfos(), nil
 }
 
 // carrierAnchors names, for each header, the anchor of the block before it.

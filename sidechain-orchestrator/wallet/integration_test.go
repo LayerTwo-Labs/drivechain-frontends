@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -67,103 +66,103 @@ func TestWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		// Clean slate.
-		_, err := client.DeleteAllWallets(ctx, connect.NewRequest(&pb.DeleteAllWalletsRequest{}))
+		_, err := client.DeleteAllWallets(ctx, &pb.DeleteAllWalletsRequest{})
 		require.NoError(t, err, "DeleteAllWallets")
 
 		// GenerateWallet → verify response.
-		genResp, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		genResp, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "Wallet-A1",
-		}))
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, genResp.Msg.WalletId)
-		require.NotEmpty(t, genResp.Msg.Mnemonic)
-		walletA1ID := genResp.Msg.WalletId
+		require.NotEmpty(t, genResp.WalletId)
+		require.NotEmpty(t, genResp.Mnemonic)
+		walletA1ID := genResp.WalletId
 		t.Logf("generated wallet A1: %s", walletA1ID)
 
 		// ListWallets → shows up.
-		listResp, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		listResp, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
-		require.Len(t, listResp.Msg.Wallets, 1)
-		require.Equal(t, walletA1ID, listResp.Msg.Wallets[0].Id)
+		require.Len(t, listResp.Wallets, 1)
+		require.Equal(t, walletA1ID, listResp.Wallets[0].Id)
 
-		statusResp, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		statusResp, err := client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, statusResp.Msg.State)
-		require.False(t, statusResp.Msg.Encrypted)
+		require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, statusResp.State)
+		require.False(t, statusResp.Encrypted)
 
 		// Create a second wallet and switch back.
-		genResp2, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		genResp2, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "Wallet-A2",
-		}))
+		})
 		require.NoError(t, err)
-		walletA2ID := genResp2.Msg.WalletId
+		walletA2ID := genResp2.WalletId
 
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: walletA1ID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: walletA1ID})
 		require.NoError(t, err)
 
-		statusResp, err = client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		statusResp, err = client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		require.Equal(t, walletA1ID, statusResp.Msg.ActiveWalletId)
+		require.Equal(t, walletA1ID, statusResp.ActiveWalletId)
 
 		// UpdateWalletMetadata.
-		_, err = client.UpdateWalletMetadata(ctx, connect.NewRequest(&pb.UpdateWalletMetadataRequest{
+		_, err = client.UpdateWalletMetadata(ctx, &pb.UpdateWalletMetadataRequest{
 			WalletId: walletA1ID,
 			Name:     "Wallet-A1-Renamed",
-		}))
+		})
 		require.NoError(t, err)
 
 		// EncryptWallet.
-		_, err = client.EncryptWallet(ctx, connect.NewRequest(&pb.EncryptWalletRequest{Password: "pass1"}))
+		_, err = client.EncryptWallet(ctx, &pb.EncryptWalletRequest{Password: "pass1"})
 		require.NoError(t, err)
 
-		statusResp, err = client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		statusResp, err = client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		require.True(t, statusResp.Msg.Encrypted)
+		require.True(t, statusResp.Encrypted)
 
 		// LockWallet.
-		_, err = client.LockWallet(ctx, connect.NewRequest(&pb.LockWalletRequest{}))
+		_, err = client.LockWallet(ctx, &pb.LockWalletRequest{})
 		require.NoError(t, err)
 
-		statusResp, err = client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		statusResp, err = client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		require.Equal(t, pb.WalletState_WALLET_STATE_LOCKED, statusResp.Msg.State)
+		require.Equal(t, pb.WalletState_WALLET_STATE_LOCKED, statusResp.State)
 
 		// UnlockWallet.
-		_, err = client.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: "pass1"}))
+		_, err = client.UnlockWallet(ctx, &pb.UnlockWalletRequest{Password: "pass1"})
 		require.NoError(t, err)
 
-		statusResp, err = client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		statusResp, err = client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, statusResp.Msg.State)
+		require.Equal(t, pb.WalletState_WALLET_STATE_UNLOCKED, statusResp.State)
 
 		// ChangePassword.
-		_, err = client.ChangePassword(ctx, connect.NewRequest(&pb.ChangePasswordRequest{
+		_, err = client.ChangePassword(ctx, &pb.ChangePasswordRequest{
 			OldPassword: "pass1",
 			NewPassword: "pass2",
-		}))
+		})
 		require.NoError(t, err)
 
 		// Lock + unlock with new password.
-		_, err = client.LockWallet(ctx, connect.NewRequest(&pb.LockWalletRequest{}))
+		_, err = client.LockWallet(ctx, &pb.LockWalletRequest{})
 		require.NoError(t, err)
-		_, err = client.UnlockWallet(ctx, connect.NewRequest(&pb.UnlockWalletRequest{Password: "pass2"}))
+		_, err = client.UnlockWallet(ctx, &pb.UnlockWalletRequest{Password: "pass2"})
 		require.NoError(t, err)
 
 		// RemoveEncryption.
-		_, err = client.RemoveEncryption(ctx, connect.NewRequest(&pb.RemoveEncryptionRequest{Password: "pass2"}))
+		_, err = client.RemoveEncryption(ctx, &pb.RemoveEncryptionRequest{Password: "pass2"})
 		require.NoError(t, err)
 
-		statusResp, err = client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		statusResp, err = client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		require.False(t, statusResp.Msg.Encrypted)
+		require.False(t, statusResp.Encrypted)
 
 		// DeleteWallet (the second one).
-		_, err = client.DeleteWallet(ctx, connect.NewRequest(&pb.DeleteWalletRequest{WalletId: walletA2ID}))
+		_, err = client.DeleteWallet(ctx, &pb.DeleteWalletRequest{WalletId: walletA2ID})
 		require.NoError(t, err)
 
-		listResp, err = client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		listResp, err = client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
-		require.Len(t, listResp.Msg.Wallets, 1)
+		require.Len(t, listResp.Wallets, 1)
 	})
 
 	// =========================================================================
@@ -175,28 +174,28 @@ func TestWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		// The first wallet from Phase 1 should still be active (type=enforcer).
-		genResp, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		genResp, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "Core-Wallet-A",
-		}))
+		})
 		require.NoError(t, err)
-		_ = genResp.Msg.WalletId
+		_ = genResp.WalletId
 
 		// EnsureCoreWallets → descriptor wallet created in Core.
-		ensureResp, err := client.EnsureCoreWallets(ctx, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
+		ensureResp, err := client.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
 		require.NoError(t, err)
-		require.Greater(t, ensureResp.Msg.SyncedCount, int32(0))
+		require.Greater(t, ensureResp.SyncedCount, int32(0))
 
 		// Switch to the bitcoinCore wallet.
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{
-			WalletId: genResp.Msg.WalletId,
-		}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{
+			WalletId: genResp.WalletId,
+		})
 		require.NoError(t, err)
 
 		// GetNewAddress → returns bcrt1... address.
-		addrResp, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		addrResp, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 		require.NoError(t, err)
-		require.True(t, strings.HasPrefix(addrResp.Msg.Address, "bcrt1"), "expected bcrt1 prefix, got %s", addrResp.Msg.Address)
-		addr := addrResp.Msg.Address
+		require.True(t, strings.HasPrefix(addrResp.Address, "bcrt1"), "expected bcrt1 prefix, got %s", addrResp.Address)
+		addr := addrResp.Address
 
 		// Mine 101 blocks to that address.
 		err = nodeA.MineToAddress(ctx, 101, addr)
@@ -204,18 +203,18 @@ func TestWalletIntegration(t *testing.T) {
 
 		// GetBalance → verify > 0 (poll on Windows where indexing is slow).
 		nodeA.WaitForBalance(t)
-		balResp, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+		balResp, err := client.GetBalance(ctx, &pb.GetBalanceRequest{})
 		require.NoError(t, err)
-		require.Greater(t, balResp.Msg.ConfirmedSats, float64(0), "balance should be positive after mining")
-		t.Logf("balance after mining: %f sats", balResp.Msg.ConfirmedSats)
+		require.Greater(t, balResp.ConfirmedSats, float64(0), "balance should be positive after mining")
+		t.Logf("balance after mining: %f sats", balResp.ConfirmedSats)
 
 		// ListTransactions → verify coinbase txs.
-		txResp, err := client.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{Count: 10}))
+		txResp, err := client.ListTransactions(ctx, &pb.ListTransactionsRequest{Count: 10})
 		require.NoError(t, err)
-		require.NotEmpty(t, txResp.Msg.Transactions)
+		require.NotEmpty(t, txResp.Transactions)
 		// At least one should be immature or generate.
 		found := false
-		for _, tx := range txResp.Msg.Transactions {
+		for _, tx := range txResp.Transactions {
 			if tx.Category == "immature" || tx.Category == "generate" {
 				found = true
 				break
@@ -224,22 +223,22 @@ func TestWalletIntegration(t *testing.T) {
 		require.True(t, found, "expected at least one coinbase transaction")
 
 		// ListUnspent → verify UTXOs exist.
-		utxoResp, err := client.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{}))
+		utxoResp, err := client.ListUnspent(ctx, &pb.ListUnspentRequest{})
 		require.NoError(t, err)
-		require.NotEmpty(t, utxoResp.Msg.Utxos)
+		require.NotEmpty(t, utxoResp.Utxos)
 
 		// ListReceiveAddresses → verify.
-		rcvResp, err := client.ListReceiveAddresses(ctx, connect.NewRequest(&pb.ListReceiveAddressesRequest{}))
+		rcvResp, err := client.ListReceiveAddresses(ctx, &pb.ListReceiveAddressesRequest{})
 		require.NoError(t, err)
-		require.NotEmpty(t, rcvResp.Msg.Addresses)
+		require.NotEmpty(t, rcvResp.Addresses)
 
 		// GetTransactionDetails on a coinbase tx.
-		if len(txResp.Msg.Transactions) > 0 {
-			txid := txResp.Msg.Transactions[0].Txid
-			detailResp, err := client.GetTransactionDetails(ctx, connect.NewRequest(&pb.GetTransactionDetailsRequest{Txid: txid}))
+		if len(txResp.Transactions) > 0 {
+			txid := txResp.Transactions[0].Txid
+			detailResp, err := client.GetTransactionDetails(ctx, &pb.GetTransactionDetailsRequest{Txid: txid})
 			require.NoError(t, err)
-			require.NotNil(t, detailResp.Msg.Transaction)
-			require.NotEmpty(t, detailResp.Msg.RawHex)
+			require.NotNil(t, detailResp.Transaction)
+			require.NotEmpty(t, detailResp.RawHex)
 		}
 	})
 
@@ -255,17 +254,17 @@ func TestWalletIntegration(t *testing.T) {
 		_ = addrB
 
 		// Get a fresh address on B.
-		addrBResp, err := nodeB.WalletClient.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		addrBResp, err := nodeB.WalletClient.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 		require.NoError(t, err)
-		addrBRecv := addrBResp.Msg.Address
+		addrBRecv := addrBResp.Address
 
 		// Send 1 BTC from A to B.
-		sendResp, err := nodeA.WalletClient.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+		sendResp, err := nodeA.WalletClient.SendTransaction(ctx, &pb.SendTransactionRequest{
 			Destinations: map[string]int64{addrBRecv: 100_000_000}, // 1 BTC in sats
-		}))
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, sendResp.Msg.Txid)
-		t.Logf("sent tx: %s", sendResp.Msg.Txid)
+		require.NotEmpty(t, sendResp.Txid)
+		t.Logf("sent tx: %s", sendResp.Txid)
 
 		// Mine 1 block on A.
 		err = nodeA.Mine(ctx, t, 1)
@@ -275,20 +274,20 @@ func TestWalletIntegration(t *testing.T) {
 		nodeA.WaitForSync(t, nodeB)
 
 		// GetBalance on B → verify ~1 BTC (100_000_000 sats).
-		balB, err := nodeB.WalletClient.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+		balB, err := nodeB.WalletClient.GetBalance(ctx, &pb.GetBalanceRequest{})
 		require.NoError(t, err)
 		// B had mining rewards + 1 BTC received. Just check the received tx shows up.
-		txsB, err := nodeB.WalletClient.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{Count: 200}))
+		txsB, err := nodeB.WalletClient.ListTransactions(ctx, &pb.ListTransactionsRequest{Count: 200})
 		require.NoError(t, err)
 		foundReceive := false
-		for _, tx := range txsB.Msg.Transactions {
+		for _, tx := range txsB.Transactions {
 			if tx.Category == "receive" && tx.AmountSats == 100_000_000 {
 				foundReceive = true
 				break
 			}
 		}
 		require.True(t, foundReceive, "B should have a 1 BTC receive tx")
-		t.Logf("B balance: %f sats (confirmed)", balB.Msg.ConfirmedSats)
+		t.Logf("B balance: %f sats (confirmed)", balB.ConfirmedSats)
 	})
 
 	// =========================================================================
@@ -300,43 +299,43 @@ func TestWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		// Create a second bitcoinCore wallet on A.
-		gen2, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		gen2, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "Second-Core-Wallet",
-		}))
+		})
 		require.NoError(t, err)
-		wallet2ID := gen2.Msg.WalletId
+		wallet2ID := gen2.WalletId
 
 		// EnsureCoreWallets → both exist in Core.
-		_, err = client.EnsureCoreWallets(ctx, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
+		_, err = client.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
 		require.NoError(t, err)
 
 		// Get address on second wallet.
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: wallet2ID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: wallet2ID})
 		require.NoError(t, err)
 
-		addrResp, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		addrResp, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 		require.NoError(t, err)
-		addr2 := addrResp.Msg.Address
+		addr2 := addrResp.Address
 
 		// Switch back to the wallet Phase 3 funded. Picking "the first Core
 		// wallet" would land on Wallet-A1, which holds nothing.
-		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		list, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
 		var coreWalletID string
-		for _, w := range list.Msg.Wallets {
+		for _, w := range list.Wallets {
 			if w.Name == "Core-Wallet-A" {
 				coreWalletID = w.Id
 				break
 			}
 		}
 		require.NotEmpty(t, coreWalletID, "Phase 3 must leave a funded Core-Wallet-A")
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: coreWalletID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: coreWalletID})
 		require.NoError(t, err)
 
 		// Send from first to second.
-		_, err = client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+		_, err = client.SendTransaction(ctx, &pb.SendTransactionRequest{
 			Destinations: map[string]int64{addr2: 50_000_000}, // 0.5 BTC
-		}))
+		})
 		require.NoError(t, err)
 
 		// Mine 1 block.
@@ -344,14 +343,14 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check balance on second wallet.
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: wallet2ID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: wallet2ID})
 		require.NoError(t, err)
 
 		nodeA.WaitForBalance(t)
-		balResp, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+		balResp, err := client.GetBalance(ctx, &pb.GetBalanceRequest{})
 		require.NoError(t, err)
-		require.Greater(t, balResp.Msg.ConfirmedSats, float64(0), "second wallet should have received funds")
-		t.Logf("second wallet balance: %f sats", balResp.Msg.ConfirmedSats)
+		require.Greater(t, balResp.ConfirmedSats, float64(0), "second wallet should have received funds")
+		t.Logf("second wallet balance: %f sats", balResp.ConfirmedSats)
 	})
 
 	// =========================================================================
@@ -365,64 +364,64 @@ func TestWalletIntegration(t *testing.T) {
 		// Create watch-only wallet from an xpub descriptor.
 		// Generate a fresh keypair so we get a valid tpub for regtest.
 		woXpub := generateTestXpub(t)
-		woResp, err := client.CreateWatchOnlyWallet(ctx, connect.NewRequest(&pb.CreateWatchOnlyWalletRequest{
+		woResp, err := client.CreateWatchOnlyWallet(ctx, &pb.CreateWatchOnlyWalletRequest{
 			Name:             "WatchOnly-Test",
 			XpubOrDescriptor: fmt.Sprintf("wpkh(%s/0/*)", woXpub),
 			GradientJson:     `{"background_svg":""}`,
-		}))
+		})
 		require.NoError(t, err)
-		woID := woResp.Msg.WalletId
+		woID := woResp.WalletId
 
 		// EnsureCoreWallets.
-		_, err = client.EnsureCoreWallets(ctx, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
+		_, err = client.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
 		require.NoError(t, err)
 
 		// Switch to watch-only.
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: woID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: woID})
 		require.NoError(t, err)
 
 		// Get an address from the watch-only wallet.
-		woAddrResp, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		woAddrResp, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 		require.NoError(t, err)
-		woAddr := woAddrResp.Msg.Address
+		woAddr := woAddrResp.Address
 		require.True(t, strings.HasPrefix(woAddr, "bcrt1"))
 
 		// Switch to funded wallet and send to watch-only address.
-		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		list, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
 		var fundedID string
-		for _, w := range list.Msg.Wallets {
+		for _, w := range list.Wallets {
 			if w.Name == "Core-Wallet-A" {
 				fundedID = w.Id
 				break
 			}
 		}
 		require.NotEmpty(t, fundedID)
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: fundedID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: fundedID})
 		require.NoError(t, err)
 
-		_, err = client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+		_, err = client.SendTransaction(ctx, &pb.SendTransactionRequest{
 			Destinations: map[string]int64{woAddr: 10_000_000},
-		}))
+		})
 		require.NoError(t, err)
 
 		err = nodeA.Mine(ctx, t, 1)
 		require.NoError(t, err)
 
 		// Switch to watch-only and check balance.
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: woID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: woID})
 		require.NoError(t, err)
 
 		nodeA.WaitForBalance(t)
-		balResp, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+		balResp, err := client.GetBalance(ctx, &pb.GetBalanceRequest{})
 		require.NoError(t, err)
-		require.Greater(t, balResp.Msg.ConfirmedSats, float64(0), "watch-only should see balance")
-		t.Logf("watch-only balance: %f sats", balResp.Msg.ConfirmedSats)
+		require.Greater(t, balResp.ConfirmedSats, float64(0), "watch-only should see balance")
+		t.Logf("watch-only balance: %f sats", balResp.ConfirmedSats)
 
 		// SendTransaction from watch-only → should FAIL (no private keys).
-		_, err = client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+		_, err = client.SendTransaction(ctx, &pb.SendTransactionRequest{
 			Destinations: map[string]int64{"bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080": 1_000_000},
-		}))
+		})
 		require.Error(t, err, "sending from watch-only wallet should fail")
 		t.Logf("watch-only send correctly failed: %v", err)
 	})
@@ -436,66 +435,66 @@ func TestWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		// Switch to a funded bitcoinCore wallet.
-		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		list, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
 		var fundedID string
-		for _, w := range list.Msg.Wallets {
+		for _, w := range list.Wallets {
 			if w.Name == "Core-Wallet-A" {
 				fundedID = w.Id
 				break
 			}
 		}
 		require.NotEmpty(t, fundedID)
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: fundedID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: fundedID})
 		require.NoError(t, err)
 
 		// Send a transaction.
-		addrResp, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		addrResp, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 		require.NoError(t, err)
 
-		sendResp, err := client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
-			Destinations: map[string]int64{addrResp.Msg.Address: 5_000_000},
-		}))
+		sendResp, err := client.SendTransaction(ctx, &pb.SendTransactionRequest{
+			Destinations: map[string]int64{addrResp.Address: 5_000_000},
+		})
 		require.NoError(t, err)
-		origTxid := sendResp.Msg.Txid
+		origTxid := sendResp.Txid
 
 		// The preview reports the fee, the size and the change output that pays.
-		preview, err := client.PreviewBumpFee(ctx, connect.NewRequest(&pb.PreviewBumpFeeRequest{
+		preview, err := client.PreviewBumpFee(ctx, &pb.PreviewBumpFeeRequest{
 			Txid: origTxid,
-		}))
+		})
 		require.NoError(t, err)
-		require.Empty(t, preview.Msg.Reason)
-		require.NotNil(t, preview.Msg.Plan)
-		require.Positive(t, preview.Msg.OldFeeSats)
-		require.Positive(t, preview.Msg.VsizeVbytes)
-		require.NotEmpty(t, preview.Msg.Outputs)
+		require.Empty(t, preview.Reason)
+		require.NotNil(t, preview.Plan)
+		require.Positive(t, preview.OldFeeSats)
+		require.Positive(t, preview.VsizeVbytes)
+		require.NotEmpty(t, preview.Outputs)
 		var changeOutputs int
-		for _, out := range preview.Msg.Outputs {
+		for _, out := range preview.Outputs {
 			if out.IsChange {
 				changeOutputs++
 			}
 		}
 		require.Equal(t, 1, changeOutputs, "the send returns change, and the preview marks it")
-		require.False(t, preview.Msg.Plan.ReducesPayment, "the change pays, not the recipient")
+		require.False(t, preview.Plan.ReducesPayment, "the change pays, not the recipient")
 
-		newRate := preview.Msg.SuggestedFeeRate + 5
-		bumpResp, err := client.BumpFee(ctx, connect.NewRequest(&pb.BumpFeeRequest{
+		newRate := preview.SuggestedFeeRate + 5
+		bumpResp, err := client.BumpFee(ctx, &pb.BumpFeeRequest{
 			Txid:       origTxid,
 			NewFeeRate: newRate,
-		}))
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, bumpResp.Msg.NewTxid)
-		require.NotEqual(t, origTxid, bumpResp.Msg.NewTxid)
-		require.NotNil(t, bumpResp.Msg.Plan)
-		require.Greater(t, bumpResp.Msg.Plan.NewFeeSats, bumpResp.Msg.Plan.OldFeeSats,
+		require.NotEmpty(t, bumpResp.NewTxid)
+		require.NotEqual(t, origTxid, bumpResp.NewTxid)
+		require.NotNil(t, bumpResp.Plan)
+		require.Greater(t, bumpResp.Plan.NewFeeSats, bumpResp.Plan.OldFeeSats,
 			"the replacement pays more than the transaction it replaces")
-		t.Logf("bumped fee: %s → %s (%d → %d sats)", origTxid, bumpResp.Msg.NewTxid,
-			bumpResp.Msg.Plan.OldFeeSats, bumpResp.Msg.Plan.NewFeeSats)
+		t.Logf("bumped fee: %s → %s (%d → %d sats)", origTxid, bumpResp.NewTxid,
+			bumpResp.Plan.OldFeeSats, bumpResp.Plan.NewFeeSats)
 
 		// A confirmed transaction has no replacement.
-		_, err = client.PreviewBumpFee(ctx, connect.NewRequest(&pb.PreviewBumpFeeRequest{
+		_, err = client.PreviewBumpFee(ctx, &pb.PreviewBumpFeeRequest{
 			Txid: "0000000000000000000000000000000000000000000000000000000000000000",
-		}))
+		})
 		require.Error(t, err, "a transaction that waits in no mempool cannot be replaced")
 
 		// Mine 1 block.
@@ -512,30 +511,30 @@ func TestWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		// DeleteAllWallets on A → wipes everything.
-		_, err := client.DeleteAllWallets(ctx, connect.NewRequest(&pb.DeleteAllWalletsRequest{}))
+		_, err := client.DeleteAllWallets(ctx, &pb.DeleteAllWalletsRequest{})
 		require.NoError(t, err)
 
-		statusResp, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		statusResp, err := client.GetWalletStatus(ctx, &pb.GetWalletStatusRequest{})
 		require.NoError(t, err)
-		require.Equal(t, pb.WalletState_WALLET_STATE_NO_WALLET, statusResp.Msg.State)
+		require.Equal(t, pb.WalletState_WALLET_STATE_NO_WALLET, statusResp.State)
 
 		// GenerateWallet → fresh start.
-		genResp, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		genResp, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "Fresh-Wallet",
-		}))
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, genResp.Msg.WalletId)
+		require.NotEmpty(t, genResp.WalletId)
 
 		// Generate a second (bitcoinCore type) so EnsureCoreWallets has something.
-		gen2, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		gen2, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "Fresh-Core",
-		}))
+		})
 		require.NoError(t, err)
 		_ = gen2
 
 		// EnsureCoreWallets → works from scratch.
-		ensureResp, err := client.EnsureCoreWallets(ctx, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
+		ensureResp, err := client.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
 		require.NoError(t, err)
-		require.Greater(t, ensureResp.Msg.SyncedCount, int32(0))
+		require.Greater(t, ensureResp.SyncedCount, int32(0))
 	})
 }

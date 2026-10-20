@@ -5,164 +5,169 @@
 package walletpsbtv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// WalletPsbtServiceName is the fully-qualified name of the WalletPsbtService service.
 	WalletPsbtServiceName = "walletpsbt.v1.WalletPsbtService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// WalletPsbtServiceListDraftsProcedure is the fully-qualified name of the WalletPsbtService's
-	// ListDrafts RPC.
+	// WalletPsbtServiceListDraftsProcedure is the procedure name of the WalletPsbtService's ListDrafts
+	// RPC.
 	WalletPsbtServiceListDraftsProcedure = "/walletpsbt.v1.WalletPsbtService/ListDrafts"
-	// WalletPsbtServiceSaveDraftProcedure is the fully-qualified name of the WalletPsbtService's
-	// SaveDraft RPC.
+	// WalletPsbtServiceSaveDraftProcedure is the procedure name of the WalletPsbtService's SaveDraft
+	// RPC.
 	WalletPsbtServiceSaveDraftProcedure = "/walletpsbt.v1.WalletPsbtService/SaveDraft"
-	// WalletPsbtServiceDeleteDraftProcedure is the fully-qualified name of the WalletPsbtService's
+	// WalletPsbtServiceDeleteDraftProcedure is the procedure name of the WalletPsbtService's
 	// DeleteDraft RPC.
 	WalletPsbtServiceDeleteDraftProcedure = "/walletpsbt.v1.WalletPsbtService/DeleteDraft"
 )
 
+var (
+	walletPsbtServiceListDraftsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletpsbt_v1_walletpsbt_proto.Services().ByName("WalletPsbtService").Methods().ByName("ListDrafts"),
+			Procedure:  WalletPsbtServiceListDraftsProcedure,
+		}
+	})
+	walletPsbtServiceSaveDraftSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletpsbt_v1_walletpsbt_proto.Services().ByName("WalletPsbtService").Methods().ByName("SaveDraft"),
+			Procedure:  WalletPsbtServiceSaveDraftProcedure,
+		}
+	})
+	walletPsbtServiceDeleteDraftSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletpsbt_v1_walletpsbt_proto.Services().ByName("WalletPsbtService").Methods().ByName("DeleteDraft"),
+			Procedure:  WalletPsbtServiceDeleteDraftProcedure,
+		}
+	})
+)
+
 // WalletPsbtServiceClient is a client for the walletpsbt.v1.WalletPsbtService service.
 type WalletPsbtServiceClient interface {
-	ListDrafts(context.Context, *connect.Request[v1.ListDraftsRequest]) (*connect.Response[v1.ListDraftsResponse], error)
-	SaveDraft(context.Context, *connect.Request[v1.SaveDraftRequest]) (*connect.Response[v1.SaveDraftResponse], error)
-	DeleteDraft(context.Context, *connect.Request[v1.DeleteDraftRequest]) (*connect.Response[emptypb.Empty], error)
+	ListDrafts(context.Context, *v1.ListDraftsRequest) (*v1.ListDraftsResponse, error)
+	SaveDraft(context.Context, *v1.SaveDraftRequest) (*v1.SaveDraftResponse, error)
+	DeleteDraft(context.Context, *v1.DeleteDraftRequest) (*emptypb.Empty, error)
 }
 
 // NewWalletPsbtServiceClient constructs a client for the walletpsbt.v1.WalletPsbtService service.
-// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
-// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewWalletPsbtServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) WalletPsbtServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	walletPsbtServiceMethods := v1.File_walletpsbt_v1_walletpsbt_proto.Services().ByName("WalletPsbtService").Methods()
-	return &walletPsbtServiceClient{
-		listDrafts: connect.NewClient[v1.ListDraftsRequest, v1.ListDraftsResponse](
-			httpClient,
-			baseURL+WalletPsbtServiceListDraftsProcedure,
-			connect.WithSchema(walletPsbtServiceMethods.ByName("ListDrafts")),
-			connect.WithClientOptions(opts...),
-		),
-		saveDraft: connect.NewClient[v1.SaveDraftRequest, v1.SaveDraftResponse](
-			httpClient,
-			baseURL+WalletPsbtServiceSaveDraftProcedure,
-			connect.WithSchema(walletPsbtServiceMethods.ByName("SaveDraft")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteDraft: connect.NewClient[v1.DeleteDraftRequest, emptypb.Empty](
-			httpClient,
-			baseURL+WalletPsbtServiceDeleteDraftProcedure,
-			connect.WithSchema(walletPsbtServiceMethods.ByName("DeleteDraft")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// walletPsbtServiceClient implements WalletPsbtServiceClient.
-type walletPsbtServiceClient struct {
-	listDrafts  *connect.Client[v1.ListDraftsRequest, v1.ListDraftsResponse]
-	saveDraft   *connect.Client[v1.SaveDraftRequest, v1.SaveDraftResponse]
-	deleteDraft *connect.Client[v1.DeleteDraftRequest, emptypb.Empty]
-}
-
-// ListDrafts calls walletpsbt.v1.WalletPsbtService.ListDrafts.
-func (c *walletPsbtServiceClient) ListDrafts(ctx context.Context, req *connect.Request[v1.ListDraftsRequest]) (*connect.Response[v1.ListDraftsResponse], error) {
-	return c.listDrafts.CallUnary(ctx, req)
-}
-
-// SaveDraft calls walletpsbt.v1.WalletPsbtService.SaveDraft.
-func (c *walletPsbtServiceClient) SaveDraft(ctx context.Context, req *connect.Request[v1.SaveDraftRequest]) (*connect.Response[v1.SaveDraftResponse], error) {
-	return c.saveDraft.CallUnary(ctx, req)
-}
-
-// DeleteDraft calls walletpsbt.v1.WalletPsbtService.DeleteDraft.
-func (c *walletPsbtServiceClient) DeleteDraft(ctx context.Context, req *connect.Request[v1.DeleteDraftRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.deleteDraft.CallUnary(ctx, req)
+// Multiple service clients may share a single connect.Client.
+func NewWalletPsbtServiceClient(client *connect.Client) WalletPsbtServiceClient {
+	return &walletPsbtServiceClient{client: client}
 }
 
 // WalletPsbtServiceHandler is an implementation of the walletpsbt.v1.WalletPsbtService service.
 type WalletPsbtServiceHandler interface {
-	ListDrafts(context.Context, *connect.Request[v1.ListDraftsRequest]) (*connect.Response[v1.ListDraftsResponse], error)
-	SaveDraft(context.Context, *connect.Request[v1.SaveDraftRequest]) (*connect.Response[v1.SaveDraftResponse], error)
-	DeleteDraft(context.Context, *connect.Request[v1.DeleteDraftRequest]) (*connect.Response[emptypb.Empty], error)
+	ListDrafts(context.Context, *v1.ListDraftsRequest) (*v1.ListDraftsResponse, error)
+	SaveDraft(context.Context, *v1.SaveDraftRequest) (*v1.SaveDraftResponse, error)
+	DeleteDraft(context.Context, *v1.DeleteDraftRequest) (*emptypb.Empty, error)
 }
 
-// NewWalletPsbtServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewWalletPsbtServiceHandler(svc WalletPsbtServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	walletPsbtServiceMethods := v1.File_walletpsbt_v1_walletpsbt_proto.Services().ByName("WalletPsbtService").Methods()
-	walletPsbtServiceListDraftsHandler := connect.NewUnaryHandler(
-		WalletPsbtServiceListDraftsProcedure,
-		svc.ListDrafts,
-		connect.WithSchema(walletPsbtServiceMethods.ByName("ListDrafts")),
-		connect.WithHandlerOptions(opts...),
+// RegisterWalletPsbtServiceHandler registers svc as the walletpsbt.v1.WalletPsbtService
+// implementation on server.
+func RegisterWalletPsbtServiceHandler(server *connect.Server, svc WalletPsbtServiceHandler) {
+	adapter := walletPsbtServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: walletPsbtServiceListDraftsSpec(), Handler: adapter.listDrafts},
+		connect.Method{Spec: walletPsbtServiceSaveDraftSpec(), Handler: adapter.saveDraft},
+		connect.Method{Spec: walletPsbtServiceDeleteDraftSpec(), Handler: adapter.deleteDraft},
 	)
-	walletPsbtServiceSaveDraftHandler := connect.NewUnaryHandler(
-		WalletPsbtServiceSaveDraftProcedure,
-		svc.SaveDraft,
-		connect.WithSchema(walletPsbtServiceMethods.ByName("SaveDraft")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletPsbtServiceDeleteDraftHandler := connect.NewUnaryHandler(
-		WalletPsbtServiceDeleteDraftProcedure,
-		svc.DeleteDraft,
-		connect.WithSchema(walletPsbtServiceMethods.ByName("DeleteDraft")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/walletpsbt.v1.WalletPsbtService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case WalletPsbtServiceListDraftsProcedure:
-			walletPsbtServiceListDraftsHandler.ServeHTTP(w, r)
-		case WalletPsbtServiceSaveDraftProcedure:
-			walletPsbtServiceSaveDraftHandler.ServeHTTP(w, r)
-		case WalletPsbtServiceDeleteDraftProcedure:
-			walletPsbtServiceDeleteDraftHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedWalletPsbtServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedWalletPsbtServiceHandler struct{}
 
-func (UnimplementedWalletPsbtServiceHandler) ListDrafts(context.Context, *connect.Request[v1.ListDraftsRequest]) (*connect.Response[v1.ListDraftsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletpsbt.v1.WalletPsbtService.ListDrafts is not implemented"))
+func (UnimplementedWalletPsbtServiceHandler) ListDrafts(context.Context, *v1.ListDraftsRequest) (*v1.ListDraftsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletpsbt.v1.WalletPsbtService.ListDrafts is not implemented")
 }
 
-func (UnimplementedWalletPsbtServiceHandler) SaveDraft(context.Context, *connect.Request[v1.SaveDraftRequest]) (*connect.Response[v1.SaveDraftResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletpsbt.v1.WalletPsbtService.SaveDraft is not implemented"))
+func (UnimplementedWalletPsbtServiceHandler) SaveDraft(context.Context, *v1.SaveDraftRequest) (*v1.SaveDraftResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletpsbt.v1.WalletPsbtService.SaveDraft is not implemented")
 }
 
-func (UnimplementedWalletPsbtServiceHandler) DeleteDraft(context.Context, *connect.Request[v1.DeleteDraftRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletpsbt.v1.WalletPsbtService.DeleteDraft is not implemented"))
+func (UnimplementedWalletPsbtServiceHandler) DeleteDraft(context.Context, *v1.DeleteDraftRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletpsbt.v1.WalletPsbtService.DeleteDraft is not implemented")
+}
+
+type walletPsbtServiceClient struct {
+	client *connect.Client
+}
+
+func (c *walletPsbtServiceClient) ListDrafts(ctx context.Context, req *v1.ListDraftsRequest) (*v1.ListDraftsResponse, error) {
+	var res v1.ListDraftsResponse
+	if err := c.client.CallUnary(ctx, walletPsbtServiceListDraftsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletPsbtServiceClient) SaveDraft(ctx context.Context, req *v1.SaveDraftRequest) (*v1.SaveDraftResponse, error) {
+	var res v1.SaveDraftResponse
+	if err := c.client.CallUnary(ctx, walletPsbtServiceSaveDraftSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletPsbtServiceClient) DeleteDraft(ctx context.Context, req *v1.DeleteDraftRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, walletPsbtServiceDeleteDraftSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type walletPsbtServiceHandler struct{ svc WalletPsbtServiceHandler }
+
+func (h walletPsbtServiceHandler) listDrafts(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListDraftsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListDrafts(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletPsbtServiceHandler) saveDraft(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SaveDraftRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SaveDraft(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletPsbtServiceHandler) deleteDraft(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteDraftRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteDraft(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

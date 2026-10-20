@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	connectv2 "connectrpc.com/connect/v2"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -25,15 +26,15 @@ type openWalletClient struct {
 	wallet *orchpb.WalletMetadata
 }
 
-func (o openWalletClient) ListWallets(context.Context, *connect.Request[orchpb.ListWalletsRequest]) (*connect.Response[orchpb.ListWalletsResponse], error) {
-	return connect.NewResponse(&orchpb.ListWalletsResponse{
+func (o openWalletClient) ListWallets(context.Context, *orchpb.ListWalletsRequest) (*orchpb.ListWalletsResponse, error) {
+	return &orchpb.ListWalletsResponse{
 		Wallets:        []*orchpb.WalletMetadata{o.wallet},
 		ActiveWalletId: o.wallet.Id,
-	}), nil
+	}, nil
 }
 
-func (o openWalletClient) GetWalletStatus(context.Context, *connect.Request[orchpb.GetWalletStatusRequest]) (*connect.Response[orchpb.GetWalletStatusResponse], error) {
-	return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED}), nil
+func (o openWalletClient) GetWalletStatus(context.Context, *orchpb.GetWalletStatusRequest) (*orchpb.GetWalletStatusResponse, error) {
+	return &orchpb.GetWalletStatusResponse{State: orchpb.WalletState_WALLET_STATE_UNLOCKED}, nil
 }
 
 // stubOrchWalletClient fails CreateBitcoinCoreWallet with a fixed error.
@@ -42,7 +43,7 @@ type stubOrchWalletClient struct {
 	err error
 }
 
-func (s stubOrchWalletClient) CreateBitcoinCoreWallet(context.Context, *connect.Request[orchpb.CreateBitcoinCoreWalletRequest]) (*connect.Response[orchpb.CreateBitcoinCoreWalletResponse], error) {
+func (s stubOrchWalletClient) CreateBitcoinCoreWallet(context.Context, *orchpb.CreateBitcoinCoreWalletRequest) (*orchpb.CreateBitcoinCoreWalletResponse, error) {
 	return nil, s.err
 }
 
@@ -50,8 +51,8 @@ func (s stubOrchWalletClient) CreateBitcoinCoreWallet(context.Context, *connect.
 // error reaches the caller. Only the orchestrator creates a Core wallet.
 func TestEnsureWatchOnlyWalletTransientOrchestratorError(t *testing.T) {
 	for _, orchErr := range []error{
-		connect.NewError(connect.CodeInternal, errors.New("-28: Verifying blocks…")),
-		connect.NewError(connect.CodeUnavailable, errors.New("connection refused")),
+		connectv2.NewError(connectv2.CodeInternal, "-28: Verifying blocks…"),
+		connectv2.NewError(connectv2.CodeUnavailable, "connection refused"),
 	} {
 		e := NewWalletEngine(nil, stubOrchWalletClient{err: orchErr}, &chaincfg.MainNetParams, nil)
 
@@ -115,19 +116,19 @@ func TestCoreWalletName(t *testing.T) {
 	orch := mocks.NewMockWalletManagerServiceClient(ctrl)
 	orch.EXPECT().
 		CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ any, req *connect.Request[orchpb.CreateBitcoinCoreWalletRequest]) (*connect.Response[orchpb.CreateBitcoinCoreWalletResponse], error) {
-			return connect.NewResponse(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_" + req.Msg.WalletId[:8]}), nil
+		DoAndReturn(func(_ any, req *orchpb.CreateBitcoinCoreWalletRequest) (*orchpb.CreateBitcoinCoreWalletResponse, error) {
+			return &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_" + req.WalletId[:8]}, nil
 		}).
 		AnyTimes()
 	orch.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+		Return(&orchpb.ListWalletsResponse{
 			Wallets: []*orchpb.WalletMetadata{
 				{Id: "deadbeefcafebabe", Name: "watch", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE, WatchOnly: true},
 				{Id: "cafebabedeadbeef", Name: "seed", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE},
 			},
 			ActiveWalletId: "cafebabedeadbeef",
-		}), nil).
+		}, nil).
 		AnyTimes()
 
 	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -172,9 +173,9 @@ func TestGetStarterSeed(t *testing.T) {
 
 	t.Run("no starter wallet returns error", func(t *testing.T) {
 		engine, orch := newSeedTestEngine(t)
-		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(&orchpb.ListWalletsResponse{
 			Wallets: []*orchpb.WalletMetadata{{Id: "local"}},
-		}), nil)
+		}, nil)
 
 		seed, err := engine.GetStarterSeed(t.Context())
 		require.ErrorContains(t, err, "no starter wallet")
@@ -183,13 +184,13 @@ func TestGetStarterSeed(t *testing.T) {
 
 	t.Run("returns seed of starter, not first wallet", func(t *testing.T) {
 		engine, orch := newSeedTestEngine(t)
-		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(&orchpb.ListWalletsResponse{
 			Wallets: []*orchpb.WalletMetadata{{Id: "local"}, {Id: "starter", IsStarter: true}},
-		}), nil)
+		}, nil)
 		orch.EXPECT().GetWalletSeed(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ any, req *connect.Request[orchpb.GetWalletSeedRequest]) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
-				require.Equal(t, "starter", req.Msg.WalletId)
-				return connect.NewResponse(&orchpb.GetWalletSeedResponse{SeedHex: starterSeedHex}), nil
+			func(_ any, req *orchpb.GetWalletSeedRequest) (*orchpb.GetWalletSeedResponse, error) {
+				require.Equal(t, "starter", req.WalletId)
+				return &orchpb.GetWalletSeedResponse{SeedHex: starterSeedHex}, nil
 			})
 
 		seed, err := engine.GetStarterSeed(t.Context())
@@ -200,7 +201,7 @@ func TestGetStarterSeed(t *testing.T) {
 	t.Run("a canceled context reaches the orchestrator", func(t *testing.T) {
 		engine, orch := newSeedTestEngine(t)
 		orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(ctx context.Context, _ *connect.Request[orchpb.ListWalletsRequest]) (*connect.Response[orchpb.ListWalletsResponse], error) {
+			func(ctx context.Context, _ *orchpb.ListWalletsRequest) (*orchpb.ListWalletsResponse, error) {
 				return nil, ctx.Err()
 			})
 
@@ -215,10 +216,10 @@ func TestGetWalletSeed(t *testing.T) {
 	t.Run("a wallet with no seed fails the precondition", func(t *testing.T) {
 		engine, orch := newSeedTestEngine(t)
 		orch.EXPECT().GetWalletSeed(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet watch holds no master seed")))
+			Return(nil, connectv2.NewError(connectv2.CodeFailedPrecondition, "wallet watch holds no master seed"))
 
 		_, err := engine.GetWalletSeed(t.Context(), "watch")
-		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.Equal(t, connectv2.CodeFailedPrecondition, connectv2.CodeOf(err))
 	})
 
 	t.Run("orchestrator error does not fall back to local seed", func(t *testing.T) {
@@ -233,7 +234,7 @@ func TestGetWalletSeed(t *testing.T) {
 	t.Run("a canceled context reaches the orchestrator", func(t *testing.T) {
 		engine, orch := newSeedTestEngine(t)
 		orch.EXPECT().GetWalletSeed(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(ctx context.Context, _ *connect.Request[orchpb.GetWalletSeedRequest]) (*connect.Response[orchpb.GetWalletSeedResponse], error) {
+			func(ctx context.Context, _ *orchpb.GetWalletSeedRequest) (*orchpb.GetWalletSeedResponse, error) {
 				return nil, ctx.Err()
 			})
 
@@ -246,13 +247,13 @@ func TestGetWalletSeed(t *testing.T) {
 
 func TestGetWalletInfo(t *testing.T) {
 	engine, orch := newSeedTestEngine(t)
-	orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.ListWalletsResponse{
+	orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).Return(&orchpb.ListWalletsResponse{
 		Wallets: []*orchpb.WalletMetadata{
 			{Id: "a", Name: "Alpha", WalletType: orchpb.WalletType_WALLET_TYPE_ELECTRUM},
 			{Id: "b", Name: "Beta", WalletType: orchpb.WalletType_WALLET_TYPE_BITCOIN_CORE, ScriptType: "taproot", AccountIndex: 3},
 		},
 		ActiveWalletId: "a",
-	}), nil).Times(3)
+	}, nil).Times(3)
 
 	info, err := engine.GetWalletInfo(t.Context(), "b")
 	require.NoError(t, err)
@@ -269,15 +270,15 @@ func TestGetWalletInfo(t *testing.T) {
 func TestGetWalletInfoWhileLocked(t *testing.T) {
 	engine, orch := newSeedTestEngine(t)
 	orch.EXPECT().ListWallets(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&orchpb.ListWalletsResponse{ActiveWalletId: "a"}), nil)
+		Return(&orchpb.ListWalletsResponse{ActiveWalletId: "a"}, nil)
 
 	_, err := engine.GetWalletInfo(t.Context(), "a")
 	require.ErrorContains(t, err, "no wallet is unlocked")
 }
 
 func TestWalletEngineLockState(t *testing.T) {
-	status := func(state orchpb.WalletState) *connect.Response[orchpb.GetWalletStatusResponse] {
-		return connect.NewResponse(&orchpb.GetWalletStatusResponse{State: state})
+	status := func(state orchpb.WalletState) *orchpb.GetWalletStatusResponse {
+		return &orchpb.GetWalletStatusResponse{State: state}
 	}
 
 	t.Run("the orchestrator state decides", func(t *testing.T) {
@@ -306,11 +307,11 @@ func TestWalletEngineLockState(t *testing.T) {
 	t.Run("unlock and lock go to the orchestrator", func(t *testing.T) {
 		engine, orch := newSeedTestEngine(t)
 		orch.EXPECT().UnlockWallet(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ context.Context, req *connect.Request[orchpb.UnlockWalletRequest]) (*connect.Response[orchpb.UnlockWalletResponse], error) {
-				require.Equal(t, "hunter2", req.Msg.Password)
-				return connect.NewResponse(&orchpb.UnlockWalletResponse{}), nil
+			func(_ context.Context, req *orchpb.UnlockWalletRequest) (*orchpb.UnlockWalletResponse, error) {
+				require.Equal(t, "hunter2", req.Password)
+				return &orchpb.UnlockWalletResponse{}, nil
 			})
-		orch.EXPECT().LockWallet(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&orchpb.LockWalletResponse{}), nil)
+		orch.EXPECT().LockWallet(gomock.Any(), gomock.Any()).Return(&orchpb.LockWalletResponse{}, nil)
 
 		require.NoError(t, engine.Unlock(t.Context(), "hunter2"))
 		require.NoError(t, engine.Lock(t.Context()))
@@ -319,9 +320,9 @@ func TestWalletEngineLockState(t *testing.T) {
 	t.Run("a wrong password keeps its code", func(t *testing.T) {
 		engine, orch := newSeedTestEngine(t)
 		orch.EXPECT().UnlockWallet(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnauthenticated, errors.New("incorrect password")))
+			Return(nil, connectv2.NewError(connectv2.CodeUnauthenticated, "incorrect password"))
 
 		err := engine.Unlock(t.Context(), "wrong")
-		require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+		require.Equal(t, connectv2.CodeUnauthenticated, connectv2.CodeOf(err))
 	})
 }

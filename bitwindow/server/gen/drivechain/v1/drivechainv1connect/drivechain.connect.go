@@ -5,221 +5,242 @@
 package drivechainv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// DrivechainServiceName is the fully-qualified name of the DrivechainService service.
 	DrivechainServiceName = "drivechain.v1.DrivechainService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DrivechainServiceListSidechainsProcedure is the fully-qualified name of the DrivechainService's
+	// DrivechainServiceListSidechainsProcedure is the procedure name of the DrivechainService's
 	// ListSidechains RPC.
 	DrivechainServiceListSidechainsProcedure = "/drivechain.v1.DrivechainService/ListSidechains"
-	// DrivechainServiceListSidechainProposalsProcedure is the fully-qualified name of the
-	// DrivechainService's ListSidechainProposals RPC.
+	// DrivechainServiceListSidechainProposalsProcedure is the procedure name of the DrivechainService's
+	// ListSidechainProposals RPC.
 	DrivechainServiceListSidechainProposalsProcedure = "/drivechain.v1.DrivechainService/ListSidechainProposals"
-	// DrivechainServiceProposeSidechainProcedure is the fully-qualified name of the DrivechainService's
+	// DrivechainServiceProposeSidechainProcedure is the procedure name of the DrivechainService's
 	// ProposeSidechain RPC.
 	DrivechainServiceProposeSidechainProcedure = "/drivechain.v1.DrivechainService/ProposeSidechain"
-	// DrivechainServiceListWithdrawalsProcedure is the fully-qualified name of the DrivechainService's
+	// DrivechainServiceListWithdrawalsProcedure is the procedure name of the DrivechainService's
 	// ListWithdrawals RPC.
 	DrivechainServiceListWithdrawalsProcedure = "/drivechain.v1.DrivechainService/ListWithdrawals"
-	// DrivechainServiceListRecentActionsProcedure is the fully-qualified name of the
-	// DrivechainService's ListRecentActions RPC.
+	// DrivechainServiceListRecentActionsProcedure is the procedure name of the DrivechainService's
+	// ListRecentActions RPC.
 	DrivechainServiceListRecentActionsProcedure = "/drivechain.v1.DrivechainService/ListRecentActions"
+)
+
+var (
+	drivechainServiceListSidechainsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods().ByName("ListSidechains"),
+			Procedure:  DrivechainServiceListSidechainsProcedure,
+		}
+	})
+	drivechainServiceListSidechainProposalsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods().ByName("ListSidechainProposals"),
+			Procedure:  DrivechainServiceListSidechainProposalsProcedure,
+		}
+	})
+	drivechainServiceProposeSidechainSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods().ByName("ProposeSidechain"),
+			Procedure:  DrivechainServiceProposeSidechainProcedure,
+		}
+	})
+	drivechainServiceListWithdrawalsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods().ByName("ListWithdrawals"),
+			Procedure:  DrivechainServiceListWithdrawalsProcedure,
+		}
+	})
+	drivechainServiceListRecentActionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods().ByName("ListRecentActions"),
+			Procedure:  DrivechainServiceListRecentActionsProcedure,
+		}
+	})
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
 type DrivechainServiceClient interface {
-	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
-	ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error)
-	ProposeSidechain(context.Context, *connect.Request[v1.ProposeSidechainRequest]) (*connect.Response[v1.ProposeSidechainResponse], error)
-	ListWithdrawals(context.Context, *connect.Request[v1.ListWithdrawalsRequest]) (*connect.Response[v1.ListWithdrawalsResponse], error)
-	ListRecentActions(context.Context, *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error)
+	ListSidechains(context.Context, *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error)
+	ListSidechainProposals(context.Context, *v1.ListSidechainProposalsRequest) (*v1.ListSidechainProposalsResponse, error)
+	ProposeSidechain(context.Context, *v1.ProposeSidechainRequest) (*v1.ProposeSidechainResponse, error)
+	ListWithdrawals(context.Context, *v1.ListWithdrawalsRequest) (*v1.ListWithdrawalsResponse, error)
+	ListRecentActions(context.Context, *v1.ListRecentActionsRequest) (*v1.ListRecentActionsResponse, error)
 }
 
 // NewDrivechainServiceClient constructs a client for the drivechain.v1.DrivechainService service.
-// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
-// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DrivechainServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	drivechainServiceMethods := v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods()
-	return &drivechainServiceClient{
-		listSidechains: connect.NewClient[v1.ListSidechainsRequest, v1.ListSidechainsResponse](
-			httpClient,
-			baseURL+DrivechainServiceListSidechainsProcedure,
-			connect.WithSchema(drivechainServiceMethods.ByName("ListSidechains")),
-			connect.WithClientOptions(opts...),
-		),
-		listSidechainProposals: connect.NewClient[v1.ListSidechainProposalsRequest, v1.ListSidechainProposalsResponse](
-			httpClient,
-			baseURL+DrivechainServiceListSidechainProposalsProcedure,
-			connect.WithSchema(drivechainServiceMethods.ByName("ListSidechainProposals")),
-			connect.WithClientOptions(opts...),
-		),
-		proposeSidechain: connect.NewClient[v1.ProposeSidechainRequest, v1.ProposeSidechainResponse](
-			httpClient,
-			baseURL+DrivechainServiceProposeSidechainProcedure,
-			connect.WithSchema(drivechainServiceMethods.ByName("ProposeSidechain")),
-			connect.WithClientOptions(opts...),
-		),
-		listWithdrawals: connect.NewClient[v1.ListWithdrawalsRequest, v1.ListWithdrawalsResponse](
-			httpClient,
-			baseURL+DrivechainServiceListWithdrawalsProcedure,
-			connect.WithSchema(drivechainServiceMethods.ByName("ListWithdrawals")),
-			connect.WithClientOptions(opts...),
-		),
-		listRecentActions: connect.NewClient[v1.ListRecentActionsRequest, v1.ListRecentActionsResponse](
-			httpClient,
-			baseURL+DrivechainServiceListRecentActionsProcedure,
-			connect.WithSchema(drivechainServiceMethods.ByName("ListRecentActions")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// drivechainServiceClient implements DrivechainServiceClient.
-type drivechainServiceClient struct {
-	listSidechains         *connect.Client[v1.ListSidechainsRequest, v1.ListSidechainsResponse]
-	listSidechainProposals *connect.Client[v1.ListSidechainProposalsRequest, v1.ListSidechainProposalsResponse]
-	proposeSidechain       *connect.Client[v1.ProposeSidechainRequest, v1.ProposeSidechainResponse]
-	listWithdrawals        *connect.Client[v1.ListWithdrawalsRequest, v1.ListWithdrawalsResponse]
-	listRecentActions      *connect.Client[v1.ListRecentActionsRequest, v1.ListRecentActionsResponse]
-}
-
-// ListSidechains calls drivechain.v1.DrivechainService.ListSidechains.
-func (c *drivechainServiceClient) ListSidechains(ctx context.Context, req *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error) {
-	return c.listSidechains.CallUnary(ctx, req)
-}
-
-// ListSidechainProposals calls drivechain.v1.DrivechainService.ListSidechainProposals.
-func (c *drivechainServiceClient) ListSidechainProposals(ctx context.Context, req *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error) {
-	return c.listSidechainProposals.CallUnary(ctx, req)
-}
-
-// ProposeSidechain calls drivechain.v1.DrivechainService.ProposeSidechain.
-func (c *drivechainServiceClient) ProposeSidechain(ctx context.Context, req *connect.Request[v1.ProposeSidechainRequest]) (*connect.Response[v1.ProposeSidechainResponse], error) {
-	return c.proposeSidechain.CallUnary(ctx, req)
-}
-
-// ListWithdrawals calls drivechain.v1.DrivechainService.ListWithdrawals.
-func (c *drivechainServiceClient) ListWithdrawals(ctx context.Context, req *connect.Request[v1.ListWithdrawalsRequest]) (*connect.Response[v1.ListWithdrawalsResponse], error) {
-	return c.listWithdrawals.CallUnary(ctx, req)
-}
-
-// ListRecentActions calls drivechain.v1.DrivechainService.ListRecentActions.
-func (c *drivechainServiceClient) ListRecentActions(ctx context.Context, req *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error) {
-	return c.listRecentActions.CallUnary(ctx, req)
+// Multiple service clients may share a single connect.Client.
+func NewDrivechainServiceClient(client *connect.Client) DrivechainServiceClient {
+	return &drivechainServiceClient{client: client}
 }
 
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
-	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
-	ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error)
-	ProposeSidechain(context.Context, *connect.Request[v1.ProposeSidechainRequest]) (*connect.Response[v1.ProposeSidechainResponse], error)
-	ListWithdrawals(context.Context, *connect.Request[v1.ListWithdrawalsRequest]) (*connect.Response[v1.ListWithdrawalsResponse], error)
-	ListRecentActions(context.Context, *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error)
+	ListSidechains(context.Context, *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error)
+	ListSidechainProposals(context.Context, *v1.ListSidechainProposalsRequest) (*v1.ListSidechainProposalsResponse, error)
+	ProposeSidechain(context.Context, *v1.ProposeSidechainRequest) (*v1.ProposeSidechainResponse, error)
+	ListWithdrawals(context.Context, *v1.ListWithdrawalsRequest) (*v1.ListWithdrawalsResponse, error)
+	ListRecentActions(context.Context, *v1.ListRecentActionsRequest) (*v1.ListRecentActionsResponse, error)
 }
 
-// NewDrivechainServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	drivechainServiceMethods := v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods()
-	drivechainServiceListSidechainsHandler := connect.NewUnaryHandler(
-		DrivechainServiceListSidechainsProcedure,
-		svc.ListSidechains,
-		connect.WithSchema(drivechainServiceMethods.ByName("ListSidechains")),
-		connect.WithHandlerOptions(opts...),
+// RegisterDrivechainServiceHandler registers svc as the drivechain.v1.DrivechainService
+// implementation on server.
+func RegisterDrivechainServiceHandler(server *connect.Server, svc DrivechainServiceHandler) {
+	adapter := drivechainServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: drivechainServiceListSidechainsSpec(), Handler: adapter.listSidechains},
+		connect.Method{Spec: drivechainServiceListSidechainProposalsSpec(), Handler: adapter.listSidechainProposals},
+		connect.Method{Spec: drivechainServiceProposeSidechainSpec(), Handler: adapter.proposeSidechain},
+		connect.Method{Spec: drivechainServiceListWithdrawalsSpec(), Handler: adapter.listWithdrawals},
+		connect.Method{Spec: drivechainServiceListRecentActionsSpec(), Handler: adapter.listRecentActions},
 	)
-	drivechainServiceListSidechainProposalsHandler := connect.NewUnaryHandler(
-		DrivechainServiceListSidechainProposalsProcedure,
-		svc.ListSidechainProposals,
-		connect.WithSchema(drivechainServiceMethods.ByName("ListSidechainProposals")),
-		connect.WithHandlerOptions(opts...),
-	)
-	drivechainServiceProposeSidechainHandler := connect.NewUnaryHandler(
-		DrivechainServiceProposeSidechainProcedure,
-		svc.ProposeSidechain,
-		connect.WithSchema(drivechainServiceMethods.ByName("ProposeSidechain")),
-		connect.WithHandlerOptions(opts...),
-	)
-	drivechainServiceListWithdrawalsHandler := connect.NewUnaryHandler(
-		DrivechainServiceListWithdrawalsProcedure,
-		svc.ListWithdrawals,
-		connect.WithSchema(drivechainServiceMethods.ByName("ListWithdrawals")),
-		connect.WithHandlerOptions(opts...),
-	)
-	drivechainServiceListRecentActionsHandler := connect.NewUnaryHandler(
-		DrivechainServiceListRecentActionsProcedure,
-		svc.ListRecentActions,
-		connect.WithSchema(drivechainServiceMethods.ByName("ListRecentActions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case DrivechainServiceListSidechainsProcedure:
-			drivechainServiceListSidechainsHandler.ServeHTTP(w, r)
-		case DrivechainServiceListSidechainProposalsProcedure:
-			drivechainServiceListSidechainProposalsHandler.ServeHTTP(w, r)
-		case DrivechainServiceProposeSidechainProcedure:
-			drivechainServiceProposeSidechainHandler.ServeHTTP(w, r)
-		case DrivechainServiceListWithdrawalsProcedure:
-			drivechainServiceListWithdrawalsHandler.ServeHTTP(w, r)
-		case DrivechainServiceListRecentActionsProcedure:
-			drivechainServiceListRecentActionsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedDrivechainServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDrivechainServiceHandler struct{}
 
-func (UnimplementedDrivechainServiceHandler) ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListSidechains is not implemented"))
+func (UnimplementedDrivechainServiceHandler) ListSidechains(context.Context, *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "drivechain.v1.DrivechainService.ListSidechains is not implemented")
 }
 
-func (UnimplementedDrivechainServiceHandler) ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListSidechainProposals is not implemented"))
+func (UnimplementedDrivechainServiceHandler) ListSidechainProposals(context.Context, *v1.ListSidechainProposalsRequest) (*v1.ListSidechainProposalsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "drivechain.v1.DrivechainService.ListSidechainProposals is not implemented")
 }
 
-func (UnimplementedDrivechainServiceHandler) ProposeSidechain(context.Context, *connect.Request[v1.ProposeSidechainRequest]) (*connect.Response[v1.ProposeSidechainResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ProposeSidechain is not implemented"))
+func (UnimplementedDrivechainServiceHandler) ProposeSidechain(context.Context, *v1.ProposeSidechainRequest) (*v1.ProposeSidechainResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "drivechain.v1.DrivechainService.ProposeSidechain is not implemented")
 }
 
-func (UnimplementedDrivechainServiceHandler) ListWithdrawals(context.Context, *connect.Request[v1.ListWithdrawalsRequest]) (*connect.Response[v1.ListWithdrawalsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListWithdrawals is not implemented"))
+func (UnimplementedDrivechainServiceHandler) ListWithdrawals(context.Context, *v1.ListWithdrawalsRequest) (*v1.ListWithdrawalsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "drivechain.v1.DrivechainService.ListWithdrawals is not implemented")
 }
 
-func (UnimplementedDrivechainServiceHandler) ListRecentActions(context.Context, *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListRecentActions is not implemented"))
+func (UnimplementedDrivechainServiceHandler) ListRecentActions(context.Context, *v1.ListRecentActionsRequest) (*v1.ListRecentActionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "drivechain.v1.DrivechainService.ListRecentActions is not implemented")
+}
+
+type drivechainServiceClient struct {
+	client *connect.Client
+}
+
+func (c *drivechainServiceClient) ListSidechains(ctx context.Context, req *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error) {
+	var res v1.ListSidechainsResponse
+	if err := c.client.CallUnary(ctx, drivechainServiceListSidechainsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *drivechainServiceClient) ListSidechainProposals(ctx context.Context, req *v1.ListSidechainProposalsRequest) (*v1.ListSidechainProposalsResponse, error) {
+	var res v1.ListSidechainProposalsResponse
+	if err := c.client.CallUnary(ctx, drivechainServiceListSidechainProposalsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *drivechainServiceClient) ProposeSidechain(ctx context.Context, req *v1.ProposeSidechainRequest) (*v1.ProposeSidechainResponse, error) {
+	var res v1.ProposeSidechainResponse
+	if err := c.client.CallUnary(ctx, drivechainServiceProposeSidechainSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *drivechainServiceClient) ListWithdrawals(ctx context.Context, req *v1.ListWithdrawalsRequest) (*v1.ListWithdrawalsResponse, error) {
+	var res v1.ListWithdrawalsResponse
+	if err := c.client.CallUnary(ctx, drivechainServiceListWithdrawalsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *drivechainServiceClient) ListRecentActions(ctx context.Context, req *v1.ListRecentActionsRequest) (*v1.ListRecentActionsResponse, error) {
+	var res v1.ListRecentActionsResponse
+	if err := c.client.CallUnary(ctx, drivechainServiceListRecentActionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type drivechainServiceHandler struct{ svc DrivechainServiceHandler }
+
+func (h drivechainServiceHandler) listSidechains(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListSidechainsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSidechains(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h drivechainServiceHandler) listSidechainProposals(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListSidechainProposalsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSidechainProposals(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h drivechainServiceHandler) proposeSidechain(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ProposeSidechainRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ProposeSidechain(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h drivechainServiceHandler) listWithdrawals(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListWithdrawalsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListWithdrawals(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h drivechainServiceHandler) listRecentActions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListRecentActionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRecentActions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

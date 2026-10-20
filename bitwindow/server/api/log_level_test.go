@@ -7,13 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
 	utilsv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
@@ -70,50 +70,52 @@ type panicUtils struct {
 	utilsv1connect.UnimplementedUtilsServiceHandler
 }
 
-func (panicUtils) ParseBitcoinURI(context.Context, *connect.Request[utilsv1.ParseBitcoinURIRequest]) (*connect.Response[utilsv1.ParseBitcoinURIResponse], error) {
+func (panicUtils) ParseBitcoinURI(context.Context, *utilsv1.ParseBitcoinURIRequest) (*utilsv1.ParseBitcoinURIResponse, error) {
 	panic("boom")
 }
 
-func (panicUtils) ValidateBitcoinURI(context.Context, *connect.Request[utilsv1.ValidateBitcoinURIRequest]) (*connect.Response[utilsv1.ValidateBitcoinURIResponse], error) {
-	return connect.NewResponse(&utilsv1.ValidateBitcoinURIResponse{Valid: true}), nil
+func (panicUtils) ValidateBitcoinURI(context.Context, *utilsv1.ValidateBitcoinURIRequest) (*utilsv1.ValidateBitcoinURIResponse, error) {
+	return &utilsv1.ValidateBitcoinURIResponse{Valid: true}, nil
 }
 
 type panicNotification struct {
 	notificationv1connect.UnimplementedNotificationServiceHandler
 }
 
-func (panicNotification) Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[notificationv1.WatchResponse]) error {
+func (panicNotification) Watch(context.Context, *emptypb.Empty, notificationv1connect.NotificationServiceWatchServerStream) error {
 	panic("boom")
 }
 
 func TestRecoverInterceptor(t *testing.T) {
-	opts := connect.WithInterceptors(logInterceptor(), recoverInterceptor{})
 	mux := http.NewServeMux()
-	mux.Handle(utilsv1connect.NewUtilsServiceHandler(panicUtils{}, opts))
-	mux.Handle(notificationv1connect.NewNotificationServiceHandler(panicNotification{}, opts))
+	server := connect.NewServer(logInterceptor(), recoverInterceptor())
+	utilsv1connect.RegisterUtilsServiceHandler(server, panicUtils{})
+	notificationv1connect.RegisterNotificationServiceHandler(server, panicNotification{})
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
+
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
 	t.Run("a unary panic gives CodeInternal and the server keeps serving", func(t *testing.T) {
-		cli := utilsv1connect.NewUtilsServiceClient(srv.Client(), srv.URL)
+		cli := utilsv1connect.NewUtilsServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 
-		_, err := cli.ParseBitcoinURI(t.Context(), connect.NewRequest(&utilsv1.ParseBitcoinURIRequest{}))
+		_, err := cli.ParseBitcoinURI(t.Context(), &utilsv1.ParseBitcoinURIRequest{})
 		require.ErrorContains(t, err, "panic in /utils.v1.UtilsService/ParseBitcoinURI")
 		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 
-		resp, err := cli.ValidateBitcoinURI(t.Context(), connect.NewRequest(&utilsv1.ValidateBitcoinURIRequest{}))
+		resp, err := cli.ValidateBitcoinURI(t.Context(), &utilsv1.ValidateBitcoinURIRequest{})
 		require.NoError(t, err)
-		require.True(t, resp.Msg.Valid)
+		require.True(t, resp.Valid)
 	})
 
 	t.Run("a stream panic gives CodeInternal", func(t *testing.T) {
-		cli := notificationv1connect.NewNotificationServiceClient(srv.Client(), srv.URL)
+		cli := notificationv1connect.NewNotificationServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 
-		stream, err := cli.Watch(t.Context(), connect.NewRequest(&emptypb.Empty{}))
+		stream, err := cli.Watch(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
-		require.False(t, stream.Receive())
-		require.ErrorContains(t, stream.Err(), "panic in /notification.v1.NotificationService/Watch")
-		require.Equal(t, connect.CodeInternal, connect.CodeOf(stream.Err()))
+		_, err = stream.Receive()
+		require.ErrorContains(t, err, "panic in /notification.v1.NotificationService/Watch")
+		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 		require.NoError(t, stream.Close())
 	})
 }

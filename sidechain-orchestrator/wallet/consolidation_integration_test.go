@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/stretchr/testify/assert"
@@ -76,23 +75,23 @@ func sendConsolidation(
 ) (txid string, destination string, totalSats int64) {
 	t.Helper()
 
-	addrResp, err := node.WalletClient.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+	addrResp, err := node.WalletClient.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 	require.NoError(t, err, "get a fresh address for the consolidation")
-	destination = addrResp.Msg.Address
+	destination = addrResp.Address
 
 	for _, utxo := range inputs {
 		totalSats += utxo.AmountSats
 	}
 
-	sendResp, err := node.WalletClient.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+	sendResp, err := node.WalletClient.SendTransaction(ctx, &pb.SendTransactionRequest{
 		Destinations:          map[string]int64{destination: totalSats},
 		FeeRateSatPerVbyte:    1,
 		SubtractFeeFromAmount: true,
 		RequiredInputs:        inputs,
-	}))
+	})
 	require.NoError(t, err, "broadcast the consolidation of %d coins", len(inputs))
 
-	return sendResp.Msg.Txid, destination, totalSats
+	return sendResp.Txid, destination, totalSats
 }
 
 // TestConsolidationIntegration mines 1000 blocks, consolidates half the coins,
@@ -111,11 +110,11 @@ func TestConsolidationIntegration(t *testing.T) {
 	// holds two script kinds and a coin count caps nothing.
 	segwitAddress := node.FundWallet(t)
 
-	taprootResp, err := node.WalletClient.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{
+	taprootResp, err := node.WalletClient.GetNewAddress(ctx, &pb.GetNewAddressRequest{
 		AddressType: pb.AddressType_ADDRESS_TYPE_TAPROOT,
-	}))
+	})
 	require.NoError(t, err, "get a taproot address")
-	taprootAddress := taprootResp.Msg.Address
+	taprootAddress := taprootResp.Address
 	require.NotEqual(t, segwitAddress, taprootAddress)
 
 	mineBlocks(ctx, t, node, taprootAddress, 450)
@@ -127,9 +126,9 @@ func TestConsolidationIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1000, height, "the chain holds 1000 blocks")
 
-	unspentResp, err := node.WalletClient.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{}))
+	unspentResp, err := node.WalletClient.ListUnspent(ctx, &pb.ListUnspentRequest{})
 	require.NoError(t, err)
-	coins := unspentResp.Msg.Utxos
+	coins := unspentResp.Utxos
 	require.GreaterOrEqual(t, len(coins), 800, "1000 blocks leave the mature coinbase coins")
 
 	kinds := map[int32]int{}
@@ -186,11 +185,11 @@ func TestConsolidationIntegration(t *testing.T) {
 			{"second half", secondTxid, secondHalf, secondAddress, secondTotalSats},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				decoded, err := node.WalletClient.DecodeTransaction(ctx, connect.NewRequest(&pb.DecodeTransactionRequest{
+				decoded, err := node.WalletClient.DecodeTransaction(ctx, &pb.DecodeTransactionRequest{
 					Input: tc.txid,
-				}))
+				})
 				require.NoError(t, err)
-				msg := decoded.Msg
+				msg := decoded
 
 				wanted := make(map[string]bool, len(tc.inputs))
 				for _, utxo := range tc.inputs {
@@ -263,27 +262,27 @@ func TestConsolidationIntegration(t *testing.T) {
 
 		var blockhash string
 		for _, txid := range []string{firstTxid, secondTxid} {
-			details, err := node.WalletClient.GetTransactionDetails(ctx, connect.NewRequest(&pb.GetTransactionDetailsRequest{
+			details, err := node.WalletClient.GetTransactionDetails(ctx, &pb.GetTransactionDetailsRequest{
 				Txid: txid,
-			}))
+			})
 			require.NoError(t, err)
-			require.GreaterOrEqual(t, details.Msg.Confirmations, int32(1), "transaction %s confirms", txid)
-			require.NotEmpty(t, details.Msg.Blockhash)
+			require.GreaterOrEqual(t, details.Confirmations, int32(1), "transaction %s confirms", txid)
+			require.NotEmpty(t, details.Blockhash)
 
 			if blockhash == "" {
-				blockhash = details.Msg.Blockhash
+				blockhash = details.Blockhash
 				continue
 			}
-			require.Equal(t, blockhash, details.Msg.Blockhash, "one block holds both transactions")
+			require.Equal(t, blockhash, details.Blockhash, "one block holds both transactions")
 		}
 	})
 
 	t.Run("the merged coins are gone and two coins take their place", func(t *testing.T) {
-		afterResp, err := node.WalletClient.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{}))
+		afterResp, err := node.WalletClient.ListUnspent(ctx, &pb.ListUnspentRequest{})
 		require.NoError(t, err)
 
 		merged := map[string]bool{}
-		for _, coin := range afterResp.Msg.Utxos {
+		for _, coin := range afterResp.Utxos {
 			require.False(t, spent[outpoint(coin.Txid, coin.Vout)],
 				"coin %s:%d went into a consolidation and must be spent", coin.Txid, coin.Vout)
 			if coin.Txid == firstTxid || coin.Txid == secondTxid {

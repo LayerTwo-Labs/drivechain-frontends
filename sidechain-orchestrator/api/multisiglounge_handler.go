@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1/multisigloungev1connect"
@@ -106,42 +106,42 @@ func protoToLoungeGroup(g *pb.MultisigGroup) wallet.MultisigLoungeGroup {
 
 func (h *MultisigLoungeHandler) BuildDescriptors(
 	ctx context.Context,
-	req *connect.Request[pb.BuildDescriptorsRequest],
-) (*connect.Response[pb.BuildDescriptorsResponse], error) {
-	group := req.Msg.GetGroup()
+	req *pb.BuildDescriptorsRequest,
+) (*pb.BuildDescriptorsResponse, error) {
+	group := req.GetGroup()
 	if group == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup.Error()).WithCause(errMissingGroup)
 	}
-	receive, change, err := wallet.BuildMultisigLoungeDescriptorsTyped(protoToLoungeGroup(group), req.Msg.GetScriptType())
+	receive, change, err := wallet.BuildMultisigLoungeDescriptorsTyped(protoToLoungeGroup(group), req.GetScriptType())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&pb.BuildDescriptorsResponse{
+	return &pb.BuildDescriptorsResponse{
 		ReceiveDescriptor: receive,
 		ChangeDescriptor:  change,
-	}), nil
+	}, nil
 }
 
 func (h *MultisigLoungeHandler) ValidatePsbt(
 	ctx context.Context,
-	req *connect.Request[pb.ValidatePsbtRequest],
-) (*connect.Response[pb.ValidatePsbtResponse], error) {
+	req *pb.ValidatePsbtRequest,
+) (*pb.ValidatePsbtResponse, error) {
 	var group *wallet.MultisigLoungeGroup
-	if g := req.Msg.GetGroup(); g != nil {
+	if g := req.GetGroup(); g != nil {
 		lg := protoToLoungeGroup(g)
 		group = &lg
 	}
 
-	res, err := wallet.ValidateMultisigPsbt(req.Msg.GetPsbtBase64(), int(req.Msg.GetRequiredSigs()), group)
+	res, err := wallet.ValidateMultisigPsbt(req.GetPsbtBase64(), int(req.GetRequiredSigs()), group)
 	if err != nil {
-		return connect.NewResponse(&pb.ValidatePsbtResponse{Error: err.Error()}), nil
+		return &pb.ValidatePsbtResponse{Error: err.Error()}, nil
 	}
-	return connect.NewResponse(&pb.ValidatePsbtResponse{
+	return &pb.ValidatePsbtResponse{
 		HasSignatures:  res.HasSignatures,
 		SignatureCount: uint32(res.SignatureCount),
 		IsComplete:     res.IsComplete,
 		Finalizable:    res.Finalizable,
-	}), nil
+	}, nil
 }
 
 func optStr(s string) *string {
@@ -215,32 +215,32 @@ func groupDataToProto(g wallet.MultisigGroupData) *pb.GroupData {
 
 func (h *MultisigLoungeHandler) PublishGroup(
 	ctx context.Context,
-	req *connect.Request[pb.PublishGroupRequest],
-) (*connect.Response[pb.PublishGroupResponse], error) {
-	group := req.Msg.GetGroup()
+	req *pb.PublishGroupRequest,
+) (*pb.PublishGroupResponse, error) {
+	group := req.GetGroup()
 	if group == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup.Error()).WithCause(errMissingGroup)
 	}
-	if req.Msg.GetWalletId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("wallet_id is required"))
+	if req.GetWalletId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "wallet_id is required")
 	}
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.GetWalletId())
+	walletID, err := h.engine.ResolveWalletID(req.GetWalletId())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	message, err := wallet.EncodeGroupOpReturn(protoToGroupData(group), uint32(time.Now().Unix()))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("encode group op_return: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("encode group op_return: %w", err).Error())
 	}
 
 	derived, err := h.engine.Backend().NextReceiveAddress(ctx, walletID, wallet.ScriptNativeSegwit)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get receive address: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get receive address: %w", err).Error())
 	}
 
 	txid, err := h.engine.Backend().Send(ctx, walletID, wallet.SendRequest{
@@ -251,46 +251,46 @@ func (h *MultisigLoungeHandler) PublishGroup(
 		return nil, rpcError(err)
 	}
 
-	return connect.NewResponse(&pb.PublishGroupResponse{Txid: txid}), nil
+	return &pb.PublishGroupResponse{Txid: txid}, nil
 }
 
 func (h *MultisigLoungeHandler) ImportGroupFromTxid(
 	ctx context.Context,
-	req *connect.Request[pb.ImportGroupFromTxidRequest],
-) (*connect.Response[pb.ImportGroupFromTxidResponse], error) {
-	if req.Msg.GetTxid() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("txid is required"))
+	req *pb.ImportGroupFromTxidRequest,
+) (*pb.ImportGroupFromTxidResponse, error) {
+	if req.GetTxid() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "txid is required")
 	}
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.GetWalletId())
+	walletID, err := h.engine.ResolveWalletID(req.GetWalletId())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	rawTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, req.Msg.GetTxid())
+	rawTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, req.GetTxid())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err).Error())
 	}
 
 	message, err := wallet.ExtractOpReturnMessage(rawTx.Vout)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 
 	groupData, err := wallet.DecodeGroupOpReturn(message)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	indices := h.detectWalletKeys(walletID, groupData)
 
-	return connect.NewResponse(&pb.ImportGroupFromTxidResponse{
+	return &pb.ImportGroupFromTxidResponse{
 		Group:            groupDataToProto(groupData),
 		WalletKeyIndices: indices,
-	}), nil
+	}, nil
 }
 
 // detectWalletKeys returns the indices of group keys whose xpub the wallet can
@@ -363,36 +363,36 @@ func (h *MultisigLoungeHandler) coreCallWallet(ctx context.Context, wallet, meth
 
 func (h *MultisigLoungeHandler) SignTransaction(
 	ctx context.Context,
-	req *connect.Request[pb.SignTransactionRequest],
-) (*connect.Response[pb.SignTransactionResponse], error) {
-	group := req.Msg.GetGroup()
+	req *pb.SignTransactionRequest,
+) (*pb.SignTransactionResponse, error) {
+	group := req.GetGroup()
 	if group == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup.Error()).WithCause(errMissingGroup)
 	}
-	if req.Msg.GetPsbtBase64() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("psbt_base64 is required"))
+	if req.GetPsbtBase64() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "psbt_base64 is required")
 	}
 	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 	if err := h.requireCoreCaller(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.GetWalletId())
+	walletID, err := h.engine.ResolveWalletID(req.GetWalletId())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	seedHex := h.walletSeedHex(walletID)
 	if seedHex == "" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet has no seed; cannot sign"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "wallet has no seed; cannot sign")
 	}
 
 	loungeGroup := groupDataToLoungeGroup(group)
 
 	// Reject a PSBT that does not belong to this group before signing it.
-	if _, err := wallet.ValidateMultisigPsbt(req.Msg.GetPsbtBase64(), int(group.GetM()), &loungeGroup); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("psbt does not match group: %w", err))
+	if _, err := wallet.ValidateMultisigPsbt(req.GetPsbtBase64(), int(group.GetM()), &loungeGroup); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("psbt does not match group: %w", err).Error())
 	}
 
 	// Derive the wallet's xprv for every group key the wallet owns, keyed by xpub
@@ -412,15 +412,15 @@ func (h *MultisigLoungeHandler) SignTransaction(
 		}
 	}
 	if len(signWithXprv) == 0 {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet owns none of the group's keys; cannot sign"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "wallet owns none of the group's keys; cannot sign")
 	}
 
 	receiveDesc, changeDesc, err := wallet.BuildMultisigSigningDescriptors(loungeGroup, signWithXprv)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build signing descriptors: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build signing descriptors: %w", err).Error())
 	}
 
-	before := countPsbtSignatures(req.Msg.GetPsbtBase64())
+	before := countPsbtSignatures(req.GetPsbtBase64())
 
 	// descriptorprocesspsbt(psbt, descriptors, sighashtype, bip32derivs, finalize=false)
 	var res struct {
@@ -428,16 +428,16 @@ func (h *MultisigLoungeHandler) SignTransaction(
 		Complete bool   `json:"complete"`
 	}
 	if err := h.coreCall(ctx, "descriptorprocesspsbt", []interface{}{
-		req.Msg.GetPsbtBase64(),
+		req.GetPsbtBase64(),
 		[]string{receiveDesc, changeDesc},
 		"ALL",
 		true,
 		false,
 	}, &res); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("descriptorprocesspsbt: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("descriptorprocesspsbt: %w", err).Error())
 	}
 	if res.PSBT == "" {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("descriptorprocesspsbt returned an empty psbt"))
+		return nil, connect.NewError(connect.CodeInternal, "descriptorprocesspsbt returned an empty psbt")
 	}
 
 	added := countPsbtSignatures(res.PSBT) - before
@@ -445,32 +445,32 @@ func (h *MultisigLoungeHandler) SignTransaction(
 		added = 0
 	}
 
-	return connect.NewResponse(&pb.SignTransactionResponse{
+	return &pb.SignTransactionResponse{
 		PsbtBase64:      res.PSBT,
 		AddedSignatures: uint32(added),
 		IsComplete:      res.Complete,
-	}), nil
+	}, nil
 }
 
 func (h *MultisigLoungeHandler) CombineAndBroadcast(
 	ctx context.Context,
-	req *connect.Request[pb.CombineAndBroadcastRequest],
-) (*connect.Response[pb.CombineAndBroadcastResponse], error) {
-	psbts := req.Msg.GetPsbts()
+	req *pb.CombineAndBroadcastRequest,
+) (*pb.CombineAndBroadcastResponse, error) {
+	psbts := req.GetPsbts()
 	if len(psbts) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("no psbts provided"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "no psbts provided")
 	}
 	if err := h.requireCoreCaller(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	// Reject any PSBT that does not belong to the group before combining, so a
 	// foreign/stale PSBT can't poison the combined transaction.
-	if group := req.Msg.GetGroup(); group != nil {
+	if group := req.GetGroup(); group != nil {
 		loungeGroup := groupDataToLoungeGroup(group)
 		for i, p := range psbts {
 			if _, err := wallet.ValidateMultisigPsbt(p, int(group.GetM()), &loungeGroup); err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("psbt %d does not match group: %w", i, err))
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("psbt %d does not match group: %w", i, err).Error())
 			}
 		}
 	}
@@ -482,7 +482,7 @@ func (h *MultisigLoungeHandler) CombineAndBroadcast(
 		unique := dedupeStrings(psbts)
 		if len(unique) > 1 {
 			if err := h.coreCall(ctx, "combinepsbt", []interface{}{unique}, &combined); err != nil {
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("combinepsbt: %w", err))
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("combinepsbt: %w", err).Error())
 			}
 		} else {
 			combined = unique[0]
@@ -494,19 +494,19 @@ func (h *MultisigLoungeHandler) CombineAndBroadcast(
 		Complete bool   `json:"complete"`
 	}
 	if err := h.coreCall(ctx, "finalizepsbt", []interface{}{combined}, &fin); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("finalizepsbt: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("finalizepsbt: %w", err).Error())
 	}
 	if !fin.Complete || fin.Hex == "" {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("psbt is not finalizable (threshold of signatures not reached); not broadcasting"))
+			"psbt is not finalizable (threshold of signatures not reached); not broadcasting")
 	}
 
 	var txid string
 	if err := h.coreCall(ctx, "sendrawtransaction", []interface{}{fin.Hex}, &txid); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sendrawtransaction: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sendrawtransaction: %w", err).Error())
 	}
 
-	return connect.NewResponse(&pb.CombineAndBroadcastResponse{Txid: txid}), nil
+	return &pb.CombineAndBroadcastResponse{Txid: txid}, nil
 }
 
 // watchWalletName returns the group's watch-only wallet name, defaulting to the
@@ -653,19 +653,19 @@ func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.Gro
 
 func (h *MultisigLoungeHandler) SyncGroup(
 	ctx context.Context,
-	req *connect.Request[pb.SyncGroupRequest],
-) (*connect.Response[pb.SyncGroupResponse], error) {
-	group := req.Msg.GetGroup()
+	req *pb.SyncGroupRequest,
+) (*pb.SyncGroupResponse, error) {
+	group := req.GetGroup()
 	if group == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup.Error()).WithCause(errMissingGroup)
 	}
 	if err := h.requireCoreCaller(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	name, err := h.ensureWatchWallet(ctx, group)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	// getbalances reports confirmed (trusted) and pending (untrusted_pending)
@@ -681,7 +681,7 @@ func (h *MultisigLoungeHandler) SyncGroup(
 		} `json:"watchonly"`
 	}
 	if err := h.coreCallWallet(ctx, name, "getbalances", nil, &balances); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getbalances: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getbalances: %w", err).Error())
 	}
 	confirmed := balances.Mine.Trusted + balances.Watchonly.Trusted
 	pending := balances.Mine.UntrustedPending + balances.Watchonly.UntrustedPending
@@ -700,7 +700,7 @@ func (h *MultisigLoungeHandler) SyncGroup(
 	// listunspent(minconf=0, maxconf=9999999, [], include_unsafe=true)
 	if err := h.coreCallWallet(ctx, name, "listunspent",
 		[]interface{}{0, 9999999, []string{}, true}, &utxos); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("listunspent: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("listunspent: %w", err).Error())
 	}
 
 	pbUtxos := make([]*pb.MultisigUtxo, 0, len(utxos))
@@ -718,29 +718,29 @@ func (h *MultisigLoungeHandler) SyncGroup(
 		})
 	}
 
-	return connect.NewResponse(&pb.SyncGroupResponse{
+	return &pb.SyncGroupResponse{
 		ConfirmedSats: btcToSatsInt(confirmed),
 		PendingSats:   btcToSatsInt(pending),
 		UtxoCount:     uint32(len(utxos)),
 		Utxos:         pbUtxos,
-	}), nil
+	}, nil
 }
 
 func (h *MultisigLoungeHandler) RestoreHistory(
 	ctx context.Context,
-	req *connect.Request[pb.RestoreHistoryRequest],
-) (*connect.Response[pb.RestoreHistoryResponse], error) {
-	group := req.Msg.GetGroup()
+	req *pb.RestoreHistoryRequest,
+) (*pb.RestoreHistoryResponse, error) {
+	group := req.GetGroup()
 	if group == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup.Error()).WithCause(errMissingGroup)
 	}
 	if err := h.requireCoreCaller(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	name, err := h.ensureWatchWallet(ctx, group)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	// listtransactions("*", 1000, 0, include_watchonly=true)
@@ -754,7 +754,7 @@ func (h *MultisigLoungeHandler) RestoreHistory(
 	}
 	if err := h.coreCallWallet(ctx, name, "listtransactions",
 		[]interface{}{"*", 1000, 0, true}, &txs); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("listtransactions: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("listtransactions: %w", err).Error())
 	}
 
 	seen := map[string]bool{}
@@ -830,35 +830,35 @@ func (h *MultisigLoungeHandler) RestoreHistory(
 		})
 	}
 
-	return connect.NewResponse(&pb.RestoreHistoryResponse{Transactions: out}), nil
+	return &pb.RestoreHistoryResponse{Transactions: out}, nil
 }
 
 func (h *MultisigLoungeHandler) CreateSpendPsbt(
 	ctx context.Context,
-	req *connect.Request[pb.CreateSpendPsbtRequest],
-) (*connect.Response[pb.CreateSpendPsbtResponse], error) {
-	group := req.Msg.GetGroup()
+	req *pb.CreateSpendPsbtRequest,
+) (*pb.CreateSpendPsbtResponse, error) {
+	group := req.GetGroup()
 	if group == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup.Error()).WithCause(errMissingGroup)
 	}
-	if len(req.Msg.GetDestinations()) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one destination is required"))
+	if len(req.GetDestinations()) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "at least one destination is required")
 	}
 	if err := h.requireCoreCaller(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	name, err := h.ensureWatchWallet(ctx, group)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	// Destinations as {address: btc}, mirroring the Dart walletcreatefundedpsbt
 	// call which passes BTC amounts.
-	outputs := make(map[string]float64, len(req.Msg.GetDestinations()))
-	for _, d := range req.Msg.GetDestinations() {
+	outputs := make(map[string]float64, len(req.GetDestinations()))
+	for _, d := range req.GetDestinations() {
 		if d.GetAddress() == "" || d.GetSats() <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("each destination needs an address and a positive sats amount"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, "each destination needs an address and a positive sats amount")
 		}
 		outputs[d.GetAddress()] = float64(d.GetSats()) / 1e8
 	}
@@ -869,7 +869,7 @@ func (h *MultisigLoungeHandler) CreateSpendPsbt(
 		"includeWatching": true,
 		"changePosition":  1,
 	}
-	if rate := req.Msg.GetFeeRateSatVb(); rate > 0 {
+	if rate := req.GetFeeRateSatVb(); rate > 0 {
 		options["fee_rate"] = rate
 	}
 
@@ -880,16 +880,16 @@ func (h *MultisigLoungeHandler) CreateSpendPsbt(
 	// walletcreatefundedpsbt([], outputs, 0, options)
 	if err := h.coreCallWallet(ctx, name, "walletcreatefundedpsbt",
 		[]interface{}{[]interface{}{}, outputs, 0, options}, &res); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("walletcreatefundedpsbt: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("walletcreatefundedpsbt: %w", err).Error())
 	}
 	if res.PSBT == "" {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("walletcreatefundedpsbt returned an empty psbt"))
+		return nil, connect.NewError(connect.CodeInternal, "walletcreatefundedpsbt returned an empty psbt")
 	}
 
-	return connect.NewResponse(&pb.CreateSpendPsbtResponse{
+	return &pb.CreateSpendPsbtResponse{
 		PsbtBase64: res.PSBT,
 		FeeSats:    btcToSatsInt(res.Fee),
-	}), nil
+	}, nil
 }
 
 func btcToSatsInt(btc float64) int64 {

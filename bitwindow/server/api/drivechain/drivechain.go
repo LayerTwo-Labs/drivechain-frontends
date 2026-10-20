@@ -4,12 +4,11 @@ import (
 	"cmp"
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"slices"
 	"sync"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -90,21 +89,21 @@ func (s *Server) chainTip(ctx context.Context) (validatorrpc.ValidatorServiceCli
 		return nil, nil, fmt.Errorf("enforcer: %w", err)
 	}
 
-	chainTipResp, err := enforcer.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	chainTipResp, err := enforcer.GetChainTip(ctx, &validatorpb.GetChainTipRequest{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("get chain tip: %w", err)
 	}
 
-	tip := chainTipResp.Msg.BlockHeaderInfo
+	tip := chainTipResp.BlockHeaderInfo
 	if tip.GetBlockHash().GetHex() == nil {
-		return nil, nil, connect.NewError(connect.CodeInternal, errors.New("chain tip missing block hash"))
+		return nil, nil, connect.NewError(connect.CodeInternal, "chain tip missing block hash")
 	}
 	return enforcer, tip, nil
 }
 
 // ListSidechainProposals implements drivechainv1connect.DrivechainServiceHandler.
 // Uses caching to avoid repeated enforcer calls.
-func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
+func (s *Server) ListSidechainProposals(ctx context.Context, c *pb.ListSidechainProposalsRequest) (*pb.ListSidechainProposalsResponse, error) {
 	log := zerolog.Ctx(ctx)
 
 	enforcer, tip, err := s.chainTip(ctx)
@@ -120,20 +119,20 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 
 	if cache != nil && cache.lastBlockHash == currentBlockHash {
 		log.Debug().Msg("ListSidechainProposals: returning cached data")
-		return connect.NewResponse(&pb.ListSidechainProposalsResponse{
+		return &pb.ListSidechainProposalsResponse{
 			Proposals: cache.proposals,
-		}), nil
+		}, nil
 	}
 
 	// Cache miss - fetch fresh data
-	sidechainProposals, err := enforcer.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
+	sidechainProposals, err := enforcer.GetSidechainProposals(ctx, &validatorpb.GetSidechainProposalsRequest{})
 	if err != nil {
 		err = fmt.Errorf("enforcer/validator: get sidechain proposals: %w", err)
 		return nil, err
 	}
 
-	proposals := make([]*pb.SidechainProposal, 0, len(sidechainProposals.Msg.SidechainProposals))
-	for _, proposal := range sidechainProposals.Msg.SidechainProposals {
+	proposals := make([]*pb.SidechainProposal, 0, len(sidechainProposals.SidechainProposals))
+	for _, proposal := range sidechainProposals.SidechainProposals {
 		data, err := hex.DecodeString(proposal.Description.Hex.Value)
 		if err != nil {
 			return nil, fmt.Errorf("decode description of sidechain proposal %d: %w", proposal.SidechainNumber.Value, err)
@@ -160,14 +159,14 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 		Int("count", len(proposals)).
 		Msg("ListSidechainProposals: fetched and cached")
 
-	return connect.NewResponse(&pb.ListSidechainProposalsResponse{
+	return &pb.ListSidechainProposalsResponse{
 		Proposals: proposals,
-	}), nil
+	}, nil
 }
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
 // Uses caching to avoid repeated enforcer calls for GetCtip on every sidechain.
-func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
+func (s *Server) ListSidechains(ctx context.Context, _ *pb.ListSidechainsRequest) (*pb.ListSidechainsResponse, error) {
 	enforcer, tip, err := s.chainTip(ctx)
 	if err != nil {
 		return nil, err
@@ -180,20 +179,20 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	s.sidechainsCacheMu.RUnlock()
 
 	if cache != nil && cache.lastBlockHash == currentBlockHash {
-		return connect.NewResponse(&pb.ListSidechainsResponse{
+		return &pb.ListSidechainsResponse{
 			Sidechains: cache.sidechains,
-		}), nil
+		}, nil
 	}
 
-	sidechains, err := enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	sidechains, err := enforcer.GetSidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		err = fmt.Errorf("enforcer/validator: get sidechains: %w", err)
 		return nil, err
 	}
 
 	// Loop over all sidechains and get their chaintip if available
-	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
-	for _, sidechain := range sidechains.Msg.Sidechains {
+	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Sidechains))
+	for _, sidechain := range sidechains.Sidechains {
 		// The enforcer reports a nil declaration for descriptions that aren't a v0
 		// declaration, which is legal. Use nil-safe getters throughout.
 		declaration := sidechain.GetDeclaration().GetV0()
@@ -212,14 +211,14 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 
 		// A sidechain with no deposits has no ctip.
 		ctipResponse, err := enforcer.GetCtip(ctx,
-			connect.NewRequest(&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sc.Slot)}),
+			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sc.Slot)},
 		)
 		switch {
 		case err != nil && connect.CodeOf(err) == connect.CodeNotFound:
 		case err != nil:
 			return nil, fmt.Errorf("get ctip of sidechain %d: %w", sc.Slot, err)
-		case ctipResponse.Msg.Ctip != nil:
-			ctip := ctipResponse.Msg.Ctip
+		case ctipResponse.Ctip != nil:
+			ctip := ctipResponse.Ctip
 			txidHash, err := chainhash.NewHashFromStr(ctip.GetTxid().GetHex().GetValue())
 			if err != nil {
 				return nil, fmt.Errorf("parse ctip txid of sidechain %d: %w", sc.Slot, err)
@@ -241,32 +240,32 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	}
 	s.sidechainsCacheMu.Unlock()
 
-	return connect.NewResponse(&pb.ListSidechainsResponse{
+	return &pb.ListSidechainsResponse{
 		Sidechains: sidechainList,
-	}), nil
+	}, nil
 }
 
 // ProposeSidechain implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ProposeSidechain(
 	ctx context.Context,
-	c *connect.Request[pb.ProposeSidechainRequest],
-) (*connect.Response[pb.ProposeSidechainResponse], error) {
+	c *pb.ProposeSidechainRequest,
+) (*pb.ProposeSidechainResponse, error) {
 	// Validation
-	if c.Msg.Slot > 255 {
+	if c.Slot > 255 {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("slot must be 0-255"))
+			"slot must be 0-255")
 	}
-	if c.Msg.Title == "" {
+	if c.Title == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("title required"))
+			"title required")
 	}
-	if c.Msg.Hashid1 != "" && len(c.Msg.Hashid1) != 64 {
+	if c.Hashid1 != "" && len(c.Hashid1) != 64 {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("hashid1 must be 64 hex chars (256 bits)"))
+			"hashid1 must be 64 hex chars (256 bits)")
 	}
-	if c.Msg.Hashid2 != "" && len(c.Msg.Hashid2) != 40 {
+	if c.Hashid2 != "" && len(c.Hashid2) != 40 {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("hashid2 must be 40 hex chars (160 bits)"))
+			"hashid2 must be 40 hex chars (160 bits)")
 	}
 
 	if err := s.walletEngine.RequireFullNode(ctx, "proposing a sidechain"); err != nil {
@@ -276,24 +275,24 @@ func (s *Server) ProposeSidechain(
 	producer, err := s.blockProducer.Get(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable,
-			fmt.Errorf("block producer unavailable: %w", err))
+			fmt.Sprintf("block producer unavailable: %s", err)).WithCause(err)
 	}
 
 	// Build SidechainDeclaration V0
 	declarationV0 := &validatorpb.SidechainDeclaration_V0{
-		Title:       wrapperspb.String(c.Msg.Title),
-		Description: wrapperspb.String(c.Msg.Description),
+		Title:       wrapperspb.String(c.Title),
+		Description: wrapperspb.String(c.Description),
 	}
 
 	// Add hash IDs if provided
-	if c.Msg.Hashid1 != "" {
+	if c.Hashid1 != "" {
 		declarationV0.HashId_1 = &commonpb.ConsensusHex{
-			Hex: wrapperspb.String(c.Msg.Hashid1),
+			Hex: wrapperspb.String(c.Hashid1),
 		}
 	}
-	if c.Msg.Hashid2 != "" {
+	if c.Hashid2 != "" {
 		declarationV0.HashId_2 = &commonpb.Hex{
-			Hex: wrapperspb.String(c.Msg.Hashid2),
+			Hex: wrapperspb.String(c.Hashid2),
 		}
 	}
 
@@ -303,29 +302,29 @@ func (s *Server) ProposeSidechain(
 		},
 	}
 
-	_, err = producer.SubmitSidechainProposal(ctx, connect.NewRequest(&validatorpb.SubmitSidechainProposalRequest{
-		SidechainId: wrapperspb.UInt32(c.Msg.Slot),
+	_, err = producer.SubmitSidechainProposal(ctx, &validatorpb.SubmitSidechainProposalRequest{
+		SidechainId: wrapperspb.UInt32(c.Slot),
 		Declaration: declaration,
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("propose sidechain: %w", err)
 	}
 
-	return connect.NewResponse(&pb.ProposeSidechainResponse{
+	return &pb.ProposeSidechainResponse{
 		Success: true,
-		Message: fmt.Sprintf("Sidechain %d proposal saved. It goes into the chain only when this node mines a block.", c.Msg.Slot),
-	}), nil
+		Message: fmt.Sprintf("Sidechain %d proposal saved. It goes into the chain only when this node mines a block.", c.Slot),
+	}, nil
 }
 
 // ListWithdrawals implements drivechainv1connect.DrivechainServiceHandler.
 // Uses caching to avoid re-scanning the entire blockchain on every call.
 func (s *Server) ListWithdrawals(
 	ctx context.Context,
-	c *connect.Request[pb.ListWithdrawalsRequest],
-) (*connect.Response[pb.ListWithdrawalsResponse], error) {
+	c *pb.ListWithdrawalsRequest,
+) (*pb.ListWithdrawalsResponse, error) {
 	log := zerolog.Ctx(ctx)
 
-	sidechainID := c.Msg.SidechainId
+	sidechainID := c.SidechainId
 
 	enforcer, tip, err := s.chainTip(ctx)
 	if err != nil {
@@ -345,32 +344,32 @@ func (s *Server) ListWithdrawals(
 			Uint32("sidechain", sidechainID).
 			Uint32("height", currentHeight).
 			Msg("ListWithdrawals: returning cached data")
-		return connect.NewResponse(&pb.ListWithdrawalsResponse{
+		return &pb.ListWithdrawalsResponse{
 			Bundles: s.updateBundleAges(cache.bundles, currentHeight),
-		}), nil
+		}, nil
 	}
 
 	// Get sidechains to find activation height
-	sidechainsResp, err := enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	sidechainsResp, err := enforcer.GetSidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get sidechains: %w", err)
 	}
 
 	// Find the sidechain we're looking for
-	sidechain, found := lo.Find(sidechainsResp.Msg.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) bool {
+	sidechain, found := lo.Find(sidechainsResp.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) bool {
 		return sc.SidechainNumber != nil && sc.SidechainNumber.Value == sidechainID
 	})
 
 	if !found || sidechain.ActivationHeight == nil {
-		return nil, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("sidechain %d not found", sidechainID))
+		return nil, connect.Errorf(connect.CodeNotFound,
+			"sidechain %d not found", sidechainID)
 	}
 
 	activationHeight := sidechain.ActivationHeight.Value
 
 	if currentHeight < activationHeight {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("activation height %d is greater than current height %d", activationHeight, currentHeight))
+		return nil, connect.Errorf(connect.CodeInternal,
+			"activation height %d is greater than current height %d", activationHeight, currentHeight)
 	}
 
 	// Determine start block for fetching
@@ -381,14 +380,14 @@ func (s *Server) ListWithdrawals(
 	if cache != nil && cache.activationHeight == activationHeight &&
 		cache.lastBlockHeight > 0 && cache.lastBlockHeight <= currentHeight {
 		ancestors := currentHeight - cache.lastBlockHeight
-		headersResp, err := enforcer.GetBlockHeaderInfo(ctx, connect.NewRequest(&validatorpb.GetBlockHeaderInfoRequest{
+		headersResp, err := enforcer.GetBlockHeaderInfo(ctx, &validatorpb.GetBlockHeaderInfoRequest{
 			BlockHash:    tip.BlockHash,
 			MaxAncestors: &ancestors,
-		}))
+		})
 		if err != nil {
 			return nil, fmt.Errorf("get cached block header: %w", err)
 		}
-		reuseCache = cacheOnChain(cache, headersResp.Msg.HeaderInfos)
+		reuseCache = cacheOnChain(cache, headersResp.HeaderInfos)
 		if !reuseCache {
 			log.Info().
 				Uint32("sidechain", sidechainID).
@@ -413,21 +412,21 @@ func (s *Server) ListWithdrawals(
 		// No cache or activation height changed - need full fetch from activation
 		// Get the activation block hash
 		ancestorsNeeded := currentHeight - activationHeight
-		activationBlockResp, err := enforcer.GetBlockHeaderInfo(ctx, connect.NewRequest(&validatorpb.GetBlockHeaderInfoRequest{
+		activationBlockResp, err := enforcer.GetBlockHeaderInfo(ctx, &validatorpb.GetBlockHeaderInfoRequest{
 			BlockHash:    tip.BlockHash,
 			MaxAncestors: &ancestorsNeeded,
-		}))
+		})
 		if err != nil {
 			return nil, fmt.Errorf("get activation block header: %w", err)
 		}
 
-		activationBlock, found := lo.Find(activationBlockResp.Msg.HeaderInfos, func(headerInfo *validatorpb.BlockHeaderInfo) bool {
+		activationBlock, found := lo.Find(activationBlockResp.HeaderInfos, func(headerInfo *validatorpb.BlockHeaderInfo) bool {
 			return headerInfo.Height == activationHeight
 		})
 
 		if !found || activationBlock.BlockHash == nil || activationBlock.BlockHash.Hex == nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("no block at activation height %d", activationHeight))
+			return nil, connect.Errorf(connect.CodeInternal,
+				"no block at activation height %d", activationHeight)
 		}
 
 		startBlockHash = activationBlock.BlockHash.Hex.Value
@@ -440,17 +439,17 @@ func (s *Server) ListWithdrawals(
 	}
 
 	// Fetch peg data from start to current tip
-	pegData, err := enforcer.GetTwoWayPegData(ctx, connect.NewRequest(&validatorpb.GetTwoWayPegDataRequest{
+	pegData, err := enforcer.GetTwoWayPegData(ctx, &validatorpb.GetTwoWayPegDataRequest{
 		SidechainId:    wrapperspb.UInt32(sidechainID),
 		StartBlockHash: &commonpb.ReverseHex{Hex: wrapperspb.String(startBlockHash)},
 		EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(currentBlockHash)},
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("get two-way peg data: %w", err)
 	}
 
 	// Process new blocks and extract withdrawal bundle events
-	newBundles := s.processPegDataBlocks(pegData.Msg.Blocks, sidechainID)
+	newBundles := s.processPegDataBlocks(pegData.Blocks, sidechainID)
 
 	// Merge existing and new bundles
 	allBundles := s.mergeBundles(existingBundles, newBundles)
@@ -465,9 +464,9 @@ func (s *Server) ListWithdrawals(
 	}
 	s.withdrawalCacheMu.Unlock()
 
-	return connect.NewResponse(&pb.ListWithdrawalsResponse{
+	return &pb.ListWithdrawalsResponse{
 		Bundles: s.updateBundleAges(allBundles, currentHeight),
-	}), nil
+	}, nil
 }
 
 // cacheOnChain reports whether the cached block is in headers, the ancestors
@@ -597,7 +596,7 @@ func (s *Server) updateBundleAges(bundles []*pb.WithdrawalBundle, currentHeight 
 // ListRecentActions implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListRecentActions(
 	ctx context.Context,
-	_ *connect.Request[pb.ListRecentActionsRequest],
-) (*connect.Response[pb.ListRecentActionsResponse], error) {
-	return connect.NewResponse(&pb.ListRecentActionsResponse{}), nil
+	_ *pb.ListRecentActionsRequest,
+) (*pb.ListRecentActionsResponse, error) {
+	return &pb.ListRecentActionsResponse{}, nil
 }

@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -52,7 +51,7 @@ func TestMarketCreateSendsRequestObject(t *testing.T) {
 
 	beta := 7.0
 	tradingFee := 0.005
-	resp, err := h.MarketCreate(context.Background(), connect.NewRequest(&pb.MarketCreateRequest{
+	resp, err := h.MarketCreate(context.Background(), &pb.MarketCreateRequest{
 		Title:       "Will it rain?",
 		Description: "weather market",
 		Dimensions:  `[{"type":"existing","id":"deadbeef"}]`,
@@ -60,9 +59,9 @@ func TestMarketCreateSendsRequestObject(t *testing.T) {
 		Beta:        &beta,
 		TradingFee:  &tradingFee,
 		Tags:        []string{"weather"},
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "txid123", resp.Msg.Txid)
+	assert.Equal(t, "txid123", resp.Txid)
 
 	require.Len(t, *params, 1)
 	assert.JSONEq(t, `[{
@@ -78,12 +77,12 @@ func TestMarketCreateSendsRequestObject(t *testing.T) {
 func TestMarketCreateRejectsNonJSONDimensions(t *testing.T) {
 	h, _ := capturingRPC(t, `{"txid":"txid123","market_id":"market1","claimed_decisions":[]}`)
 
-	_, err := h.MarketCreate(context.Background(), connect.NewRequest(&pb.MarketCreateRequest{
+	_, err := h.MarketCreate(context.Background(), &pb.MarketCreateRequest{
 		Title:       "Will it rain?",
 		Description: "weather market",
 		Dimensions:  "[deadbeef]",
 		FeeSats:     1000,
-	}))
+	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unmarshal dimensions")
 }
@@ -94,14 +93,14 @@ func TestMarketBuySendsRequestObject(t *testing.T) {
 	dryRun := true
 	feeSats := int64(1000)
 	maxCost := int64(5000)
-	_, err := h.MarketBuy(context.Background(), connect.NewRequest(&pb.MarketBuyRequest{
+	_, err := h.MarketBuy(context.Background(), &pb.MarketBuyRequest{
 		MarketId:     "market1",
 		OutcomeIndex: 2,
 		SharesAmount: 7,
 		DryRun:       &dryRun,
 		FeeSats:      &feeSats,
 		MaxCost:      &maxCost,
-	}))
+	})
 	require.NoError(t, err)
 
 	require.Len(t, *params, 1)
@@ -120,15 +119,15 @@ func TestCalculateInitialLiquiditySendsRequestObject(t *testing.T) {
 
 	numOutcomes := int32(2)
 	dimensions := "[slot1]"
-	_, err := h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+	_, err := h.CalculateInitialLiquidity(context.Background(), &pb.CalculateInitialLiquidityRequest{
 		Beta:        7,
 		NumOutcomes: &numOutcomes,
-	}))
+	})
 	require.NoError(t, err)
-	_, err = h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+	_, err = h.CalculateInitialLiquidity(context.Background(), &pb.CalculateInitialLiquidityRequest{
 		Beta:       7,
 		Dimensions: &dimensions,
-	}))
+	})
 	require.NoError(t, err)
 
 	require.Len(t, *params, 2)
@@ -142,7 +141,7 @@ func TestMarketSellSendsRequestObject(t *testing.T) {
 	dryRun := false
 	feeSats := int64(1000)
 	minProceeds := int64(50)
-	_, err := h.MarketSell(context.Background(), connect.NewRequest(&pb.MarketSellRequest{
+	_, err := h.MarketSell(context.Background(), &pb.MarketSellRequest{
 		MarketId:      "market1",
 		OutcomeIndex:  2,
 		SharesAmount:  7,
@@ -150,7 +149,7 @@ func TestMarketSellSendsRequestObject(t *testing.T) {
 		DryRun:        &dryRun,
 		FeeSats:       &feeSats,
 		MinProceeds:   &minProceeds,
-	}))
+	})
 	require.NoError(t, err)
 
 	require.Len(t, *params, 1)
@@ -168,14 +167,14 @@ func TestMarketSellSendsRequestObject(t *testing.T) {
 func TestVerifySignatureSendsSignatureFirst(t *testing.T) {
 	h, params := capturingRPC(t, `true`)
 
-	resp, err := h.VerifySignature(context.Background(), connect.NewRequest(&pb.VerifySignatureRequest{
+	resp, err := h.VerifySignature(context.Background(), &pb.VerifySignatureRequest{
 		Msg:          "the message",
 		Signature:    "0xsig",
 		VerifyingKey: "ba-svk1key",
 		Dst:          "arbitrary",
-	}))
+	})
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Valid)
+	assert.True(t, resp.Valid)
 
 	require.Len(t, *params, 1)
 	assert.JSONEq(t, `["0xsig","ba-svk1key","arbitrary","the message"]`, string((*params)[0]))
@@ -185,12 +184,12 @@ func TestCalculateInitialLiquidityReturnsNodeResult(t *testing.T) {
 	h, params := capturingRPC(t, `{"beta":7.0,"num_outcomes":2,"initial_liquidity_sats":5,"min_treasury_sats":5,"market_config":"1 dimensions","outcome_breakdown":"binary(2) = 2 outcomes"}`)
 
 	dimensions := "[870000]"
-	resp, err := h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+	resp, err := h.CalculateInitialLiquidity(context.Background(), &pb.CalculateInitialLiquidityRequest{
 		Beta:       7,
 		Dimensions: &dimensions,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Contains(t, resp.Msg.ResultJson, `"initial_liquidity_sats":5`)
+	assert.Contains(t, resp.ResultJson, `"initial_liquidity_sats":5`)
 
 	require.Len(t, *params, 1)
 	assert.JSONEq(t, `[{"beta": 7.0, "dimensions": "[870000]"}]`, string((*params)[0]))
@@ -200,10 +199,10 @@ func TestCalculateInitialLiquiditySendsOutcomeCount(t *testing.T) {
 	h, params := capturingRPC(t, `{"beta":7.0,"num_outcomes":3,"initial_liquidity_sats":8,"min_treasury_sats":8,"market_config":"","outcome_breakdown":""}`)
 
 	numOutcomes := int32(3)
-	_, err := h.CalculateInitialLiquidity(context.Background(), connect.NewRequest(&pb.CalculateInitialLiquidityRequest{
+	_, err := h.CalculateInitialLiquidity(context.Background(), &pb.CalculateInitialLiquidityRequest{
 		Beta:        7,
 		NumOutcomes: &numOutcomes,
-	}))
+	})
 	require.NoError(t, err)
 
 	require.Len(t, *params, 1)
@@ -214,15 +213,15 @@ func TestCalculateInitialLiquiditySendsOutcomeCount(t *testing.T) {
 func TestVotecoinBalanceReadsFraction(t *testing.T) {
 	h, _ := capturingRPC(t, `0.25`)
 
-	resp, err := h.VotecoinBalance(context.Background(), connect.NewRequest(&pb.VotecoinBalanceRequest{Address: "3dWL5oSH54rxzXbU5RVi7bBkeuWd"}))
+	resp, err := h.VotecoinBalance(context.Background(), &pb.VotecoinBalanceRequest{Address: "3dWL5oSH54rxzXbU5RVi7bBkeuWd"})
 	require.NoError(t, err)
-	assert.Equal(t, 0.25, resp.Msg.VotecoinBalance)
+	assert.Equal(t, 0.25, resp.VotecoinBalance)
 }
 
 func TestMarketGetUnknownMarketIsEmpty(t *testing.T) {
 	h, _ := capturingRPC(t, `null`)
 
-	resp, err := h.MarketGet(context.Background(), connect.NewRequest(&pb.MarketGetRequest{MarketId: "9f843b33f009"}))
+	resp, err := h.MarketGet(context.Background(), &pb.MarketGetRequest{MarketId: "9f843b33f009"})
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.MarketJson)
+	assert.Empty(t, resp.MarketJson)
 }

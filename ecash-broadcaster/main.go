@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/LayerTwo-Labs/sidesail/ecash-broadcaster/gen/ecash/v1/ecashv1connect"
 )
 
@@ -24,15 +26,12 @@ func main() {
 
 	h := &handler{bitcoind: newBitcoindClient(*host, *port, *user, *pass)}
 
-	mux := http.NewServeMux()
-	mux.Handle(ecashv1connect.NewECashBroadcastServiceHandler(h))
-
 	protocols := new(http.Protocols)
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 	srv := &http.Server{
 		Addr:      *listen,
-		Handler:   mux,
+		Handler:   newMux(h),
 		Protocols: protocols,
 	}
 
@@ -53,4 +52,12 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("shutdown: %v", err)
 	}
+}
+
+func newMux(handler *handler) *http.ServeMux {
+	mux := http.NewServeMux()
+	server := connect.NewServer()
+	ecashv1connect.RegisterECashBroadcastServiceHandler(server, handler)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
+	return mux
 }

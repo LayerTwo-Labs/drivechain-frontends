@@ -2,11 +2,12 @@ package commands
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"text/tabwriter"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	"github.com/urfave/cli/v2"
 )
@@ -45,13 +46,13 @@ var rejectBlockCommand = &cli.Command{
 			BlockHash:           hash,
 			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
 		}
-		resp, err := newClient(cctx).RejectBlock(cctx.Context, connect.NewRequest(req))
+		resp, err := newClient(cctx).RejectBlock(cctx.Context, req)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("core tip: %d %s\n", resp.Msg.CoreHeight, resp.Msg.CoreTipHash)
-		switch resp.Msg.Outcome {
+		fmt.Printf("core tip: %d %s\n", resp.CoreHeight, resp.CoreTipHash)
+		switch resp.Outcome {
 		case pb.RejectOutcome_REJECT_OUTCOME_SWITCHED_BRANCH:
 			fmt.Println("chain:    followed another branch")
 		case pb.RejectOutcome_REJECT_OUTCOME_PARKED_ON_PARENT:
@@ -61,18 +62,18 @@ var rejectBlockCommand = &cli.Command{
 		default:
 			fmt.Println("chain:    unchanged")
 		}
-		if resp.Msg.EnforcerError != "" {
-			return fmt.Errorf("core moved but the enforcer did not follow: %s", resp.Msg.EnforcerError)
+		if resp.EnforcerError != "" {
+			return fmt.Errorf("core moved but the enforcer did not follow: %s", resp.EnforcerError)
 		}
-		if !resp.Msg.EnforcerChecked {
+		if !resp.EnforcerChecked {
 			fmt.Println("enforcer: not queried, it reads the chain on its next start")
 			return nil
 		}
-		if resp.Msg.EnforcerRebuilt {
+		if resp.EnforcerRebuilt {
 			fmt.Println("enforcer: validator chain deleted, rebuilds from the local core")
 			return nil
 		}
-		fmt.Printf("enforcer: on core's chain, tip %d\n", resp.Msg.EnforcerHeight)
+		fmt.Printf("enforcer: on core's chain, tip %d\n", resp.EnforcerHeight)
 		return nil
 	},
 }
@@ -99,21 +100,26 @@ var resetToBlockCommand = &cli.Command{
 			Target:              target,
 			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
 		}
-		stream, err := newClient(cctx).ResetToBlock(cctx.Context, connect.NewRequest(req))
+		stream, err := newClient(cctx).ResetToBlock(cctx.Context, req)
 		if err != nil {
 			return err
 		}
 		defer func() { _ = stream.Close() }()
 
 		var last *pb.ResetToBlockResponse
-		for stream.Receive() {
-			msg := stream.Msg()
+		for {
+			msg2, err := stream.Receive()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				return err
+			}
+			msg := msg2
 			last = msg
 			fmt.Printf("%-13s %s\n", resetPhaseLabel(msg.Phase), msg.Message)
 		}
-		if err := stream.Err(); err != nil {
-			return err
-		}
+
 		if last == nil {
 			return fmt.Errorf("the reset reported nothing")
 		}
@@ -171,24 +177,24 @@ var acceptBlockCommand = &cli.Command{
 			BlockHash:           hash,
 			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
 		}
-		resp, err := newClient(cctx).AcceptBlock(cctx.Context, connect.NewRequest(req))
+		resp, err := newClient(cctx).AcceptBlock(cctx.Context, req)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("core tip: %d %s\n", resp.Msg.CoreHeight, resp.Msg.CoreTipHash)
-		if resp.Msg.EnforcerError != "" {
-			return fmt.Errorf("core moved but the enforcer did not follow: %s", resp.Msg.EnforcerError)
+		fmt.Printf("core tip: %d %s\n", resp.CoreHeight, resp.CoreTipHash)
+		if resp.EnforcerError != "" {
+			return fmt.Errorf("core moved but the enforcer did not follow: %s", resp.EnforcerError)
 		}
-		if !resp.Msg.EnforcerChecked {
+		if !resp.EnforcerChecked {
 			fmt.Println("enforcer: not queried, it reads the chain on its next start")
 			return nil
 		}
-		if resp.Msg.EnforcerRebuilt {
+		if resp.EnforcerRebuilt {
 			fmt.Println("enforcer: validator chain deleted, rebuilds from the local core")
 			return nil
 		}
-		fmt.Printf("enforcer: on core's chain, tip %d\n", resp.Msg.EnforcerHeight)
+		fmt.Printf("enforcer: on core's chain, tip %d\n", resp.EnforcerHeight)
 		return nil
 	},
 }
@@ -277,13 +283,13 @@ var resetPreviewCommand = &cli.Command{
 			return err
 		}
 		client := newClient(cctx)
-		resp, err := client.GatherFilesToDelete(cctx.Context, connect.NewRequest(&pb.GatherFilesToDeleteRequest{
+		resp, err := client.GatherFilesToDelete(cctx.Context, &pb.GatherFilesToDeleteRequest{
 			Items: resetSpecs(cctx),
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		if len(resp.Msg.Files) == 0 {
+		if len(resp.Files) == 0 {
 			fmt.Println("nothing to delete")
 			return nil
 		}
@@ -291,7 +297,7 @@ var resetPreviewCommand = &cli.Command{
 		var totalBytes int64
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 		_, _ = fmt.Fprintln(tw, "CATEGORY\tSIZE\tPATH\tKIND")
-		for _, f := range resp.Msg.Files {
+		for _, f := range resp.Files {
 			kind := "file"
 			if f.IsDirectory {
 				kind = "dir"
@@ -302,7 +308,7 @@ var resetPreviewCommand = &cli.Command{
 		if err := tw.Flush(); err != nil {
 			return err
 		}
-		fmt.Printf("\n%d items, %s total\n", len(resp.Msg.Files), humanBytes(totalBytes))
+		fmt.Printf("\n%d items, %s total\n", len(resp.Files), humanBytes(totalBytes))
 		return nil
 	},
 }
@@ -326,27 +332,34 @@ var resetRunCommand = &cli.Command{
 		client := newClient(cctx)
 
 		// Gather the concrete paths, then hand them to the dumb deleter.
-		gathered, err := client.GatherFilesToDelete(cctx.Context, connect.NewRequest(&pb.GatherFilesToDeleteRequest{
+		gathered, err := client.GatherFilesToDelete(cctx.Context, &pb.GatherFilesToDeleteRequest{
 			Items: resetSpecs(cctx),
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		if len(gathered.Msg.Files) == 0 {
+		if len(gathered.Files) == 0 {
 			fmt.Println("nothing to delete")
 			return nil
 		}
 
 		// Hand the same selection to the deleter; it re-resolves paths
 		// server-side so only gather-reported files can be removed.
-		stream, err := client.DeleteFiles(cctx.Context, connect.NewRequest(&pb.DeleteFilesRequest{Items: resetSpecs(cctx)}))
+		stream, err := client.DeleteFiles(cctx.Context, &pb.DeleteFilesRequest{Items: resetSpecs(cctx)})
 		if err != nil {
 			return err
 		}
 
 		deleted, failed := 0, 0
-		for stream.Receive() {
-			msg := stream.Msg()
+		for {
+			msg2, err := stream.Receive()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				return err
+			}
+			msg := msg2
 			if msg.Error == "" {
 				deleted++
 				fmt.Printf("  ok    %s\n", msg.Path)
@@ -355,9 +368,7 @@ var resetRunCommand = &cli.Command{
 				fmt.Printf("  FAIL  %s (%s)\n", msg.Path, msg.Error)
 			}
 		}
-		if err := stream.Err(); err != nil {
-			return err
-		}
+
 		fmt.Printf("\ndeleted %d, failed %d\n", deleted, failed)
 		if failed > 0 {
 			return fmt.Errorf("%d of %d deletions failed", failed, deleted+failed)

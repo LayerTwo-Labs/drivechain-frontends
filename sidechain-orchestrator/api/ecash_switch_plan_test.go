@@ -2,12 +2,14 @@ package api
 
 import (
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
@@ -47,14 +49,17 @@ func TestPlanECashSwitchHandlerReportsChainData(t *testing.T) {
 			if test.badBlocksDir {
 				o.BitcoinConf.Config.SetSetting("blocksdir", "[", "main")
 			}
-			_, handler := rpc.NewBitcoinConfServiceHandler(NewBitcoinConfHandler(o))
+			rpcServer := connect.NewServer()
+			rpc.RegisterBitcoinConfServiceHandler(rpcServer, NewBitcoinConfHandler(o))
+			handler := http.NewServeMux()
+			connecthttp.Mount(handler, rpcServer, connecthttp.WithReadMaxBytes(0))
 			server := httptest.NewServer(handler)
 			t.Cleanup(server.Close)
-			client := rpc.NewBitcoinConfServiceClient(server.Client(), server.URL)
+			client := rpc.NewBitcoinConfServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 
-			response, err := client.PlanECashSwitch(t.Context(), connect.NewRequest(&pb.PlanECashSwitchRequest{
+			response, err := client.PlanECashSwitch(t.Context(), &pb.PlanECashSwitchRequest{
 				NetworkId: " betanet ",
-			}))
+			})
 
 			if test.errorText != "" {
 				require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -63,9 +68,9 @@ func TestPlanECashSwitchHandlerReportsChainData(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, "betanet", response.Msg.ToId)
-			require.Equal(t, test.hasChainData, response.Msg.HasChainData)
-			require.Equal(t, test.chainID, response.Msg.ChainId)
+			require.Equal(t, "betanet", response.ToId)
+			require.Equal(t, test.hasChainData, response.HasChainData)
+			require.Equal(t, test.chainID, response.ChainId)
 		})
 	}
 }

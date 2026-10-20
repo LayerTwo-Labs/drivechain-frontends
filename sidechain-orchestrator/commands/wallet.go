@@ -2,7 +2,9 @@ package commands
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,7 +12,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
@@ -24,12 +27,13 @@ const satsPerBTC = 100_000_000
 func newWalletClient(cctx *cli.Context) rpc.WalletManagerServiceClient {
 	addr := cctx.String("rpcserver")
 	url := fmt.Sprintf("http://%s", addr)
-	return rpc.NewWalletManagerServiceClient(
+	return rpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		url,
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), localauth.ClientInterceptor(cookieDir(cctx)),
+	))
 }
 
 // resolveWalletID returns the positional wallet-id arg, falling back to the
@@ -39,14 +43,14 @@ func resolveWalletID(cctx *cli.Context, client rpc.WalletManagerServiceClient) (
 	if cctx.NArg() >= 1 {
 		return cctx.Args().First(), nil
 	}
-	resp, err := client.GetWalletStatus(cctx.Context, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+	resp, err := client.GetWalletStatus(cctx.Context, &pb.GetWalletStatusRequest{})
 	if err != nil {
 		return "", fmt.Errorf("get wallet status: %w", err)
 	}
-	if resp.Msg.State == pb.WalletState_WALLET_STATE_NO_WALLET || resp.Msg.ActiveWalletId == "" {
+	if resp.State == pb.WalletState_WALLET_STATE_NO_WALLET || resp.ActiveWalletId == "" {
 		return "", fmt.Errorf("no active wallet — pass a wallet id or run `wallet setactive <id>`")
 	}
-	return resp.Msg.ActiveWalletId, nil
+	return resp.ActiveWalletId, nil
 }
 
 // confirmOrAbort prompts on stdin unless `--yes` was passed. Returns an error
@@ -115,18 +119,18 @@ var walletBackupsCommand = &cli.Command{
 	Usage:   "List local wallet backups available for restore",
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		resp, err := client.ListWalletBackups(cctx.Context, connect.NewRequest(&pb.ListWalletBackupsRequest{}))
+		resp, err := client.ListWalletBackups(cctx.Context, &pb.ListWalletBackupsRequest{})
 		if err != nil {
 			return err
 		}
-		if len(resp.Msg.Backups) == 0 {
+		if len(resp.Backups) == 0 {
 			fmt.Println("no wallet backups")
 			return nil
 		}
 
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 		_, _ = fmt.Fprintln(tw, "ID\tCREATED\tENCRYPTED\tVALID\tWALLETS\tLATEST KNOWN BALANCE")
-		for _, backup := range resp.Msg.Backups {
+		for _, backup := range resp.Backups {
 			createdAt := "-"
 			if backup.CreatedAt != nil {
 				createdAt = backup.CreatedAt.AsTime().Local().Format("2006-01-02 15:04:05")
@@ -172,17 +176,23 @@ var walletRestoreCommand = &cli.Command{
 		}
 
 		client := newWalletClient(cctx)
-		stream, err := client.RestoreWalletBackupStream(cctx.Context, connect.NewRequest(&pb.RestoreWalletBackupRequest{
+		stream, err := client.RestoreWalletBackupStream(cctx.Context, &pb.RestoreWalletBackupRequest{
 			BackupId: backupID,
 			Password: cctx.String("password"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
 
 		stepNames := map[string]string{}
-		for stream.Receive() {
-			msg := stream.Msg()
+		var streamErr error
+		for {
+			msg2, err := stream.Receive()
+			if err != nil {
+				streamErr = err
+				break
+			}
+			msg := msg2
 			if len(msg.Steps) > 0 {
 				fmt.Println("restore plan:")
 				for _, step := range msg.Steps {
@@ -218,7 +228,10 @@ var walletRestoreCommand = &cli.Command{
 				}
 			}
 		}
-		return stream.Err()
+		if errors.Is(streamErr, io.EOF) {
+			streamErr = nil
+		}
+		return streamErr
 	},
 }
 
@@ -227,12 +240,12 @@ var walletStatusCommand = &cli.Command{
 	Usage: "Show wallet status",
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		resp, err := client.GetWalletStatus(cctx.Context, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		resp, err := client.GetWalletStatus(cctx.Context, &pb.GetWalletStatusRequest{})
 		if err != nil {
 			return err
 		}
 
-		s := resp.Msg
+		s := resp
 		if s.State == pb.WalletState_WALLET_STATE_NO_WALLET {
 			fmt.Println("no wallet is created yet. would you like to create a wallet now? [Y/n]")
 			if confirmYes() {
@@ -319,16 +332,16 @@ var walletCreateCommand = &cli.Command{
 			if name == "" {
 				name = "Bitcoin Core Wallet"
 			}
-			resp, err := client.GenerateWallet(cctx.Context, connect.NewRequest(&pb.GenerateWalletRequest{
+			resp, err := client.GenerateWallet(cctx.Context, &pb.GenerateWalletRequest{
 				Name:           name,
 				CustomMnemonic: cctx.String("mnemonic"),
 				Passphrase:     cctx.String("passphrase"),
-			}))
+			})
 			if err != nil {
 				return err
 			}
-			fmt.Printf("wallet created: %s\n", resp.Msg.WalletId)
-			fmt.Printf("\n⚠️  BACK UP YOUR MNEMONIC:\n\n  %s\n\n", resp.Msg.Mnemonic)
+			fmt.Printf("wallet created: %s\n", resp.WalletId)
+			fmt.Printf("\n⚠️  BACK UP YOUR MNEMONIC:\n\n  %s\n\n", resp.Mnemonic)
 			return nil
 		case "electrum":
 			if cctx.String("passphrase") != "" {
@@ -338,16 +351,16 @@ var walletCreateCommand = &cli.Command{
 			if name == "" {
 				name = "Electrum Wallet"
 			}
-			resp, err := client.CreateElectrumWallet(cctx.Context, connect.NewRequest(&pb.CreateElectrumWalletRequest{
+			resp, err := client.CreateElectrumWallet(cctx.Context, &pb.CreateElectrumWalletRequest{
 				Name:           name,
 				CustomMnemonic: cctx.String("mnemonic"),
 				ScriptType:     cctx.String("script-type"),
-			}))
+			})
 			if err != nil {
 				return err
 			}
-			fmt.Printf("electrum wallet created: %s\n", resp.Msg.WalletId)
-			fmt.Printf("\n⚠️  Reveal + back up the seed with: wallet seed %s\n\n", resp.Msg.WalletId)
+			fmt.Printf("electrum wallet created: %s\n", resp.WalletId)
+			fmt.Printf("\n⚠️  Reveal + back up the seed with: wallet seed %s\n\n", resp.WalletId)
 			return nil
 		default:
 			return fmt.Errorf("unknown wallet type %q (want core or electrum)", cctx.String("type"))
@@ -367,17 +380,17 @@ var walletListCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		resp, err := client.ListWallets(cctx.Context, connect.NewRequest(&pb.ListWalletsRequest{}))
+		resp, err := client.ListWallets(cctx.Context, &pb.ListWalletsRequest{})
 		if err != nil {
 			return err
 		}
 
-		if len(resp.Msg.Wallets) == 0 {
+		if len(resp.Wallets) == 0 {
 			fmt.Println("no wallets")
 			return nil
 		}
 
-		activeID := resp.Msg.ActiveWalletId
+		activeID := resp.ActiveWalletId
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 		verbose := cctx.Bool("verbose")
 		if verbose {
@@ -385,7 +398,7 @@ var walletListCommand = &cli.Command{
 		} else {
 			_, _ = fmt.Fprintln(tw, "ACTIVE\tID\tNAME\tTYPE\tCREATED\tBIP47")
 		}
-		for _, w := range resp.Msg.Wallets {
+		for _, w := range resp.Wallets {
 			marker := " "
 			if w.Id == activeID {
 				marker = "*"
@@ -418,9 +431,9 @@ var walletSetActiveCommand = &cli.Command{
 		}
 
 		client := newWalletClient(cctx)
-		_, err := client.SwitchWallet(cctx.Context, connect.NewRequest(&pb.SwitchWalletRequest{
+		_, err := client.SwitchWallet(cctx.Context, &pb.SwitchWalletRequest{
 			WalletId: cctx.Args().First(),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -448,7 +461,7 @@ var walletDeleteCommand = &cli.Command{
 			if !confirmYes() {
 				return fmt.Errorf("aborted")
 			}
-			_, err := client.DeleteAllWallets(cctx.Context, connect.NewRequest(&pb.DeleteAllWalletsRequest{}))
+			_, err := client.DeleteAllWallets(cctx.Context, &pb.DeleteAllWalletsRequest{})
 			if err != nil {
 				return err
 			}
@@ -461,9 +474,9 @@ var walletDeleteCommand = &cli.Command{
 		}
 
 		walletID := cctx.Args().First()
-		_, err := client.DeleteWallet(cctx.Context, connect.NewRequest(&pb.DeleteWalletRequest{
+		_, err := client.DeleteWallet(cctx.Context, &pb.DeleteWalletRequest{
 			WalletId: walletID,
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -478,7 +491,7 @@ var walletLockCommand = &cli.Command{
 	Usage: "Lock the wallet",
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		_, err := client.LockWallet(cctx.Context, connect.NewRequest(&pb.LockWalletRequest{}))
+		_, err := client.LockWallet(cctx.Context, &pb.LockWalletRequest{})
 		if err != nil {
 			return err
 		}
@@ -499,9 +512,9 @@ var walletUnlockCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		_, err := client.UnlockWallet(cctx.Context, connect.NewRequest(&pb.UnlockWalletRequest{
+		_, err := client.UnlockWallet(cctx.Context, &pb.UnlockWalletRequest{
 			Password: cctx.String("password"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -522,9 +535,9 @@ var walletEncryptCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		_, err := client.EncryptWallet(cctx.Context, connect.NewRequest(&pb.EncryptWalletRequest{
+		_, err := client.EncryptWallet(cctx.Context, &pb.EncryptWalletRequest{
 			Password: cctx.String("password"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -546,10 +559,10 @@ var walletChangePasswordCommand = &cli.Command{
 			return err
 		}
 		client := newWalletClient(cctx)
-		_, err := client.ChangePassword(cctx.Context, connect.NewRequest(&pb.ChangePasswordRequest{
+		_, err := client.ChangePassword(cctx.Context, &pb.ChangePasswordRequest{
 			OldPassword: cctx.String("old"),
 			NewPassword: cctx.String("new"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -570,9 +583,9 @@ var walletRemoveEncryptionCommand = &cli.Command{
 			return err
 		}
 		client := newWalletClient(cctx)
-		_, err := client.RemoveEncryption(cctx.Context, connect.NewRequest(&pb.RemoveEncryptionRequest{
+		_, err := client.RemoveEncryption(cctx.Context, &pb.RemoveEncryptionRequest{
 			Password: cctx.String("password"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -594,11 +607,11 @@ var walletRenameCommand = &cli.Command{
 			return fmt.Errorf("usage: drivechain-cli wallet rename <wallet-id> --name NAME [--gradient JSON]")
 		}
 		client := newWalletClient(cctx)
-		_, err := client.UpdateWalletMetadata(cctx.Context, connect.NewRequest(&pb.UpdateWalletMetadataRequest{
+		_, err := client.UpdateWalletMetadata(cctx.Context, &pb.UpdateWalletMetadataRequest{
 			WalletId:     cctx.Args().First(),
 			Name:         cctx.String("name"),
 			GradientJson: cctx.String("gradient"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -621,17 +634,17 @@ var walletSeedCommand = &cli.Command{
 		}
 
 		client := newWalletClient(cctx)
-		resp, err := client.GetWalletSeed(cctx.Context, connect.NewRequest(&pb.GetWalletSeedRequest{
+		resp, err := client.GetWalletSeed(cctx.Context, &pb.GetWalletSeedRequest{
 			WalletId: walletID,
-		}))
+		})
 		if err != nil {
 			return err
 		}
 
 		fmt.Print("⚠️  SENSITIVE — do not share!\n\n")
-		fmt.Printf("seed:     %s\n", resp.Msg.SeedHex)
-		if resp.Msg.Mnemonic != "" {
-			fmt.Printf("mnemonic: %s\n", resp.Msg.Mnemonic)
+		fmt.Printf("seed:     %s\n", resp.SeedHex)
+		if resp.Mnemonic != "" {
+			fmt.Printf("mnemonic: %s\n", resp.Mnemonic)
 		}
 		return nil
 	},
@@ -647,12 +660,12 @@ var walletBalanceCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.GetBalance(cctx.Context, connect.NewRequest(&pb.GetBalanceRequest{WalletId: walletID}))
+		resp, err := client.GetBalance(cctx.Context, &pb.GetBalanceRequest{WalletId: walletID})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("confirmed:   %s BTC (%.0f sats)\n", satsToBtc(resp.Msg.ConfirmedSats), resp.Msg.ConfirmedSats)
-		fmt.Printf("unconfirmed: %s BTC (%.0f sats)\n", satsToBtc(resp.Msg.UnconfirmedSats), resp.Msg.UnconfirmedSats)
+		fmt.Printf("confirmed:   %s BTC (%.0f sats)\n", satsToBtc(resp.ConfirmedSats), resp.ConfirmedSats)
+		fmt.Printf("unconfirmed: %s BTC (%.0f sats)\n", satsToBtc(resp.UnconfirmedSats), resp.UnconfirmedSats)
 		return nil
 	},
 }
@@ -667,11 +680,11 @@ var walletNewAddressCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.GetNewAddress(cctx.Context, connect.NewRequest(&pb.GetNewAddressRequest{WalletId: walletID}))
+		resp, err := client.GetNewAddress(cctx.Context, &pb.GetNewAddressRequest{WalletId: walletID})
 		if err != nil {
 			return err
 		}
-		fmt.Println(resp.Msg.Address)
+		fmt.Println(resp.Address)
 		return nil
 	},
 }
@@ -686,17 +699,17 @@ var walletAddressesCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.ListReceiveAddresses(cctx.Context, connect.NewRequest(&pb.ListReceiveAddressesRequest{WalletId: walletID}))
+		resp, err := client.ListReceiveAddresses(cctx.Context, &pb.ListReceiveAddressesRequest{WalletId: walletID})
 		if err != nil {
 			return err
 		}
-		if len(resp.Msg.Addresses) == 0 {
+		if len(resp.Addresses) == 0 {
 			fmt.Println("no receive addresses")
 			return nil
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 		_, _ = fmt.Fprintln(tw, "ADDRESS\tRECEIVED (BTC)\tTX COUNT\tLABEL")
-		for _, a := range resp.Msg.Addresses {
+		for _, a := range resp.Addresses {
 			label := a.Label
 			if label == "" {
 				label = "-"
@@ -721,20 +734,20 @@ var walletTransactionsCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.ListTransactions(cctx.Context, connect.NewRequest(&pb.ListTransactionsRequest{
+		resp, err := client.ListTransactions(cctx.Context, &pb.ListTransactionsRequest{
 			WalletId: walletID,
 			Count:    int32(cctx.Int("count")),
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		if len(resp.Msg.Transactions) == 0 {
+		if len(resp.Transactions) == 0 {
 			fmt.Println("no transactions")
 			return nil
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 		_, _ = fmt.Fprintln(tw, "TIME\tCATEGORY\tAMOUNT (BTC)\tCONF\tTXID")
-		for _, t := range resp.Msg.Transactions {
+		for _, t := range resp.Transactions {
 			ts := "-"
 			if t.Time != 0 {
 				ts = time.Unix(t.Time, 0).Format("2006-01-02 15:04")
@@ -759,17 +772,17 @@ var walletUnspentCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.ListUnspent(cctx.Context, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletID}))
+		resp, err := client.ListUnspent(cctx.Context, &pb.ListUnspentRequest{WalletId: walletID})
 		if err != nil {
 			return err
 		}
-		if len(resp.Msg.Utxos) == 0 {
+		if len(resp.Utxos) == 0 {
 			fmt.Println("no unspent outputs")
 			return nil
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 		_, _ = fmt.Fprintln(tw, "OUTPOINT\tADDRESS\tBTC\tCONF\tLABEL")
-		for _, u := range resp.Msg.Utxos {
+		for _, u := range resp.Utxos {
 			label := u.Label
 			if label == "" {
 				label = "-"
@@ -820,18 +833,18 @@ var walletSendCommand = &cli.Command{
 			return err
 		}
 
-		resp, err := client.SendTransaction(cctx.Context, connect.NewRequest(&pb.SendTransactionRequest{
+		resp, err := client.SendTransaction(cctx.Context, &pb.SendTransactionRequest{
 			WalletId:              walletID,
 			Destinations:          destinations,
 			FeeRateSatPerVbyte:    cctx.Int64("fee-rate"),
 			FixedFeeSats:          cctx.Int64("fixed-fee-sats"),
 			SubtractFeeFromAmount: cctx.Bool("subtract-fee"),
 			OpReturnHex:           opReturnHex,
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("sent: %s\n", resp.Msg.Txid)
+		fmt.Printf("sent: %s\n", resp.Txid)
 		return nil
 	},
 }
@@ -860,14 +873,14 @@ var walletTxCommand = &cli.Command{
 			txid = cctx.Args().Get(1)
 		}
 
-		resp, err := client.GetTransactionDetails(cctx.Context, connect.NewRequest(&pb.GetTransactionDetailsRequest{
+		resp, err := client.GetTransactionDetails(cctx.Context, &pb.GetTransactionDetailsRequest{
 			WalletId: walletID,
 			Txid:     txid,
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		m := resp.Msg
+		m := resp
 		fmt.Printf("txid:           %s\n", m.Transaction.Txid)
 		if err := writeTransactionWarning(os.Stdout, m.Transaction.WarningMessage); err != nil {
 			return err
@@ -939,16 +952,16 @@ var walletBumpFeeCommand = &cli.Command{
 		}
 
 		if cctx.Bool("preview") {
-			resp, err := client.PreviewBumpFee(cctx.Context, connect.NewRequest(&pb.PreviewBumpFeeRequest{
+			resp, err := client.PreviewBumpFee(cctx.Context, &pb.PreviewBumpFeeRequest{
 				WalletId:    walletID,
 				Txid:        txid,
 				NewFeeRate:  cctx.Int64("fee-rate"),
 				FeeFromVout: feeFromVout,
-			}))
+			})
 			if err != nil {
 				return err
 			}
-			msg := resp.Msg
+			msg := resp
 			fmt.Printf("inputs: %d, size: %d vB\n", msg.InputCount, msg.VsizeVbytes)
 			fmt.Printf("fee now: %d sats (%.2f sat/vB), suggested rate: %d sat/vB\n",
 				msg.OldFeeSats, msg.OldFeeRateSatVb, msg.SuggestedFeeRate)
@@ -967,17 +980,17 @@ var walletBumpFeeCommand = &cli.Command{
 			return nil
 		}
 
-		resp, err := client.BumpFee(cctx.Context, connect.NewRequest(&pb.BumpFeeRequest{
+		resp, err := client.BumpFee(cctx.Context, &pb.BumpFeeRequest{
 			WalletId:    walletID,
 			Txid:        txid,
 			NewFeeRate:  cctx.Int64("fee-rate"),
 			FeeFromVout: feeFromVout,
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("replaced txid: %s\n", resp.Msg.NewTxid)
-		printBumpFeePlan(resp.Msg.Plan)
+		fmt.Printf("replaced txid: %s\n", resp.NewTxid)
+		printBumpFeePlan(resp.Plan)
 		return nil
 	},
 }
@@ -1012,15 +1025,15 @@ var walletDeriveCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.DeriveAddresses(cctx.Context, connect.NewRequest(&pb.DeriveAddressesRequest{
+		resp, err := client.DeriveAddresses(cctx.Context, &pb.DeriveAddressesRequest{
 			WalletId:   walletID,
 			StartIndex: int32(cctx.Int("start")),
 			Count:      int32(cctx.Int("count")),
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		for i, a := range resp.Msg.Addresses {
+		for i, a := range resp.Addresses {
 			fmt.Printf("%d\t%s\n", int(cctx.Int("start"))+i, a)
 		}
 		return nil
@@ -1037,15 +1050,15 @@ var walletWatchOnlyCreateCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		resp, err := client.CreateWatchOnlyWallet(cctx.Context, connect.NewRequest(&pb.CreateWatchOnlyWalletRequest{
+		resp, err := client.CreateWatchOnlyWallet(cctx.Context, &pb.CreateWatchOnlyWalletRequest{
 			Name:             cctx.String("name"),
 			XpubOrDescriptor: cctx.String("xpub-or-descriptor"),
 			GradientJson:     cctx.String("gradient"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("watch-only wallet created: %s\n", resp.Msg.WalletId)
+		fmt.Printf("watch-only wallet created: %s\n", resp.WalletId)
 		return nil
 	},
 }
@@ -1060,13 +1073,13 @@ var walletCoreCreateCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.CreateBitcoinCoreWallet(cctx.Context, connect.NewRequest(&pb.CreateBitcoinCoreWalletRequest{
+		resp, err := client.CreateBitcoinCoreWallet(cctx.Context, &pb.CreateBitcoinCoreWalletRequest{
 			WalletId: walletID,
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("core wallet ready: %s\n", resp.Msg.CoreWalletName)
+		fmt.Printf("core wallet ready: %s\n", resp.CoreWalletName)
 		return nil
 	},
 }
@@ -1076,11 +1089,11 @@ var walletEnsureCoreCommand = &cli.Command{
 	Usage: "Create missing Bitcoin Core wallets for every entry in wallet.json",
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		resp, err := client.EnsureCoreWallets(cctx.Context, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
+		resp, err := client.EnsureCoreWallets(cctx.Context, &pb.EnsureCoreWalletsRequest{})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("synced %d wallet(s)\n", resp.Msg.SyncedCount)
+		fmt.Printf("synced %d wallet(s)\n", resp.SyncedCount)
 		return nil
 	},
 }

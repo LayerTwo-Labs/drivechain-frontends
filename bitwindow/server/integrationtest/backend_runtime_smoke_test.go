@@ -21,7 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -46,10 +47,10 @@ func TestBackendRuntimeOwnershipSmoke(t *testing.T) {
 
 	node := newOrchestratorOnlyNode(t)
 
-	_, err := node.WalletClient.GenerateWallet(ctx, connect.NewRequest(&walletpb.GenerateWalletRequest{
+	_, err := node.WalletClient.GenerateWallet(ctx, &walletpb.GenerateWalletRequest{
 		Name:           "backend-runtime-enforcer",
 		CustomMnemonic: testEnforcerMnemonic,
-	}))
+	})
 	require.NoError(t, err)
 
 	bitwindowdBin := buildBitwindowd(t, t.TempDir())
@@ -60,30 +61,32 @@ func TestBackendRuntimeOwnershipSmoke(t *testing.T) {
 	proc := startBitwindowd(t, bitwindowdBin, node, apiHost, logDir)
 	defer stopCmdProcess(t, proc)
 
-	authIC := localauth.Interceptor(node.BitwindowDir)
-	healthClient := healthv1connect.NewHealthServiceClient(
+	authIC := localauth.ClientInterceptor(node.BitwindowDir)
+	healthClient := healthv1connect.NewHealthServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		bitwindowdURL,
-		connect.WithInterceptors(authIC),
-	)
-	orchClient := orchrpc.NewOrchestratorServiceClient(
+		connecthttp.WithReadMaxBytes(0),
+	), authIC,
+	))
+	orchClient := orchrpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		fmt.Sprintf("http://127.0.0.1:%d", node.OrchdGRPCPort),
-		connect.WithGRPC(),
-		connect.WithInterceptors(authIC),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), authIC,
+	))
 
 	waitForBitwindowdHealth(t, ctx, healthClient)
 	waitForBinaryReady(t, ctx, orchClient, "bitcoind")
 	waitForEnforcerBlockchainInfo(t, ctx, orchClient)
 
-	mainchainInfo, err := orchClient.GetMainchainBlockchainInfo(ctx, connect.NewRequest(&orchpb.GetMainchainBlockchainInfoRequest{}))
+	mainchainInfo, err := orchClient.GetMainchainBlockchainInfo(ctx, &orchpb.GetMainchainBlockchainInfoRequest{})
 	require.NoError(t, err)
-	require.Equal(t, "regtest", mainchainInfo.Msg.GetChain())
+	require.Equal(t, "regtest", mainchainInfo.GetChain())
 
-	statusResp, err := healthClient.Check(ctx, connect.NewRequest(&emptypb.Empty{}))
+	statusResp, err := healthClient.Check(ctx, &emptypb.Empty{})
 	require.NoError(t, err)
-	require.Equal(t, healthv1.CheckResponse_STATUS_SERVING, serviceStatus(statusResp.Msg, "bitcoind"))
+	require.Equal(t, healthv1.CheckResponse_STATUS_SERVING, serviceStatus(statusResp, "bitcoind"))
 }
 
 func buildBitwindowd(t *testing.T, outDir string) string {
@@ -263,12 +266,13 @@ port=%d
 		BitcoindP2PPort:  p2pPort,
 		OrchdGRPCPort:    grpcPort,
 		EnforcerGRPCPort: basePort + 212,
-		WalletClient: walletrpc.NewWalletManagerServiceClient(
+		WalletClient: walletrpc.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(
 			http.DefaultClient,
 			fmt.Sprintf("http://127.0.0.1:%d", grpcPort),
-			connect.WithGRPC(),
-			connect.WithInterceptors(localauth.Interceptor(bitwindowDir)),
-		),
+			connecthttp.WithReadMaxBytes(0),
+			connecthttp.WithGRPC(),
+		), localauth.ClientInterceptor(bitwindowDir),
+		)),
 	}
 
 	return node
@@ -449,9 +453,9 @@ func waitForBitwindowdHealth(t *testing.T, ctx context.Context, client healthv1c
 	var lastErr error
 	deadline := time.Now().Add(90 * time.Second)
 	for time.Now().Before(deadline) {
-		resp, err := client.Check(ctx, connect.NewRequest(&emptypb.Empty{}))
+		resp, err := client.Check(ctx, &emptypb.Empty{})
 		if err == nil {
-			require.NotNil(t, resp.Msg)
+			require.NotNil(t, resp)
 			return
 		}
 		lastErr = err
@@ -471,9 +475,9 @@ func waitForBinaryReady(t *testing.T, ctx context.Context, client orchrpc.Orches
 
 	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
-		resp, err := client.GetBinaryStatus(ctx, connect.NewRequest(&orchpb.GetBinaryStatusRequest{Name: name}))
+		resp, err := client.GetBinaryStatus(ctx, &orchpb.GetBinaryStatusRequest{Name: name})
 		if err == nil {
-			lastStatus = resp.Msg.GetStatus()
+			lastStatus = resp.GetStatus()
 			if lastStatus.GetRunning() && lastStatus.GetConnected() && lastStatus.GetHealthy() {
 				return lastStatus
 			}
@@ -499,9 +503,9 @@ func waitForEnforcerBlockchainInfo(t *testing.T, ctx context.Context, client orc
 	var lastErr error
 	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
-		resp, err := client.GetEnforcerBlockchainInfo(ctx, connect.NewRequest(&orchpb.GetEnforcerBlockchainInfoRequest{}))
+		resp, err := client.GetEnforcerBlockchainInfo(ctx, &orchpb.GetEnforcerBlockchainInfoRequest{})
 		if err == nil {
-			require.NotNil(t, resp.Msg)
+			require.NotNil(t, resp)
 			return
 		}
 		lastErr = err

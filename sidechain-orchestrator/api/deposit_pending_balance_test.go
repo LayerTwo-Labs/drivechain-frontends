@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -102,11 +101,9 @@ func newDepositTestHandler(t *testing.T, state *depositNodeState) (*Handler, *wa
 
 func thunderBalance(t *testing.T, handler *Handler) (confirmed, pending uint64) {
 	t.Helper()
-	response, err := handler.GetSidechainBalance(context.Background(), connect.NewRequest(
-		&pb.GetSidechainBalanceRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER},
-	))
+	response, err := handler.GetSidechainBalance(context.Background(), &pb.GetSidechainBalanceRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER})
 	require.NoError(t, err)
-	return response.Msg.ConfirmedSats, response.Msg.PendingSats
+	return response.ConfirmedSats, response.PendingSats
 }
 
 // depositCoins writes the coin listing a sidechain answers for these deposit

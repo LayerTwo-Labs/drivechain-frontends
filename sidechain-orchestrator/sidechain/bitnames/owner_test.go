@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -83,9 +83,7 @@ func TestGetBitNameOwnerDistinguishesLookupErrors(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			proxy, _ := sendMethodNode(t, map[string]string{"list_utxos": test.utxos})
-			_, err := NewHandler(proxy).GetBitNameOwner(context.Background(), connect.NewRequest(
-				&pb.GetBitNameOwnerRequest{Bitname: "unknown"},
-			))
+			_, err := NewHandler(proxy).GetBitNameOwner(context.Background(), &pb.GetBitNameOwnerRequest{Bitname: "unknown"})
 			require.Error(t, err)
 			assert.Equal(t, test.code, connect.CodeOf(err))
 		})

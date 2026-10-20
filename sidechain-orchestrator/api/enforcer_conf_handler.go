@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -22,14 +22,14 @@ func NewEnforcerConfHandler(conf *config.EnforcerConfManager) *EnforcerConfHandl
 	return &EnforcerConfHandler{conf: conf}
 }
 
-func (h *EnforcerConfHandler) GetEnforcerConfig(ctx context.Context, req *connect.Request[pb.GetEnforcerConfigRequest]) (*connect.Response[pb.GetEnforcerConfigResponse], error) {
+func (h *EnforcerConfHandler) GetEnforcerConfig(ctx context.Context, req *pb.GetEnforcerConfigRequest) (*pb.GetEnforcerConfigResponse, error) {
 	if h.conf == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("enforcer config manager not initialized"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "enforcer config manager not initialized")
 	}
 
 	// Reload from disk to get latest state
 	if err := h.conf.LoadConfig(); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("reload config: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("reload config: %w", err).Error())
 	}
 
 	var configContent string
@@ -37,7 +37,7 @@ func (h *EnforcerConfHandler) GetEnforcerConfig(ctx context.Context, req *connec
 		configContent = h.conf.Config.Serialize()
 	}
 
-	return connect.NewResponse(&pb.GetEnforcerConfigResponse{
+	return &pb.GetEnforcerConfigResponse{
 		ConfigContent: configContent,
 		ConfigPath:    h.conf.ConfigPath,
 		// node-rpc-* are no longer persisted in enforcer.conf — they're
@@ -48,29 +48,29 @@ func (h *EnforcerConfHandler) GetEnforcerConfig(ctx context.Context, req *connec
 		DefaultConfig:           h.conf.GetDefaultConfig(),
 		CliArgs:                 h.conf.GetCliArgs(),
 		ExpectedNodeRpcSettings: h.conf.GetExpectedNodeRpcSettings(),
-	}), nil
+	}, nil
 }
 
-func (h *EnforcerConfHandler) WriteEnforcerConfig(ctx context.Context, req *connect.Request[pb.WriteEnforcerConfigRequest]) (*connect.Response[pb.WriteEnforcerConfigResponse], error) {
+func (h *EnforcerConfHandler) WriteEnforcerConfig(ctx context.Context, req *pb.WriteEnforcerConfigRequest) (*pb.WriteEnforcerConfigResponse, error) {
 	if h.conf == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("enforcer config manager not initialized"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "enforcer config manager not initialized")
 	}
 
-	h.conf.Config = config.ParseEnforcerConfig(req.Msg.ConfigContent)
+	h.conf.Config = config.ParseEnforcerConfig(req.ConfigContent)
 
 	if err := h.conf.SaveConfig(); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save config: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save config: %w", err).Error())
 	}
 
-	return connect.NewResponse(&pb.WriteEnforcerConfigResponse{}), nil
+	return &pb.WriteEnforcerConfigResponse{}, nil
 }
 
-func (h *EnforcerConfHandler) SyncNodeRpcFromBitcoinConf(ctx context.Context, req *connect.Request[pb.SyncNodeRpcFromBitcoinConfRequest]) (*connect.Response[pb.SyncNodeRpcFromBitcoinConfResponse], error) {
+func (h *EnforcerConfHandler) SyncNodeRpcFromBitcoinConf(ctx context.Context, req *pb.SyncNodeRpcFromBitcoinConfRequest) (*pb.SyncNodeRpcFromBitcoinConfResponse, error) {
 	if h.conf == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("enforcer config manager not initialized"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "enforcer config manager not initialized")
 	}
 	// No-op: node-rpc-* are now overlaid from bitcoin.conf at boot, so
 	// there's nothing to sync into the persisted file. Kept callable so
 	// older clients that still invoke this RPC don't error out.
-	return connect.NewResponse(&pb.SyncNodeRpcFromBitcoinConfResponse{}), nil
+	return &pb.SyncNodeRpcFromBitcoinConfResponse{}, nil
 }

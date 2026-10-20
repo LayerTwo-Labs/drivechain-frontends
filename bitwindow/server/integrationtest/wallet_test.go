@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/tyler-smith/go-bip32"
 
@@ -64,53 +63,53 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		// The first wallet carries the starter material. It stays unfunded.
-		_, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		_, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "bw-primary",
-		}))
+		})
 		require.NoError(t, err)
 
 		// GenerateWallet (bitcoinCore).
-		genResp, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
+		genResp, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{
 			Name: "bw-core",
-		}))
+		})
 		require.NoError(t, err)
-		coreID := genResp.Msg.WalletId
+		coreID := genResp.WalletId
 
 		// EnsureCoreWallets.
-		_, err = client.EnsureCoreWallets(ctx, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
+		_, err = client.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
 		require.NoError(t, err)
 
 		// Switch to the bitcoinCore wallet.
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: coreID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: coreID})
 		require.NoError(t, err)
 
 		// GetNewAddress.
-		addrResp, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		addrResp, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 		require.NoError(t, err)
-		require.True(t, strings.HasPrefix(addrResp.Msg.Address, "bcrt1"))
+		require.True(t, strings.HasPrefix(addrResp.Address, "bcrt1"))
 
 		// Mine blocks.
-		err = nodeA.MineToAddress(ctx, 101, addrResp.Msg.Address)
+		err = nodeA.MineToAddress(ctx, 101, addrResp.Address)
 		require.NoError(t, err)
 
 		// GetBalance.
-		bal, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+		bal, err := client.GetBalance(ctx, &pb.GetBalanceRequest{})
 		require.NoError(t, err)
-		require.Greater(t, bal.Msg.ConfirmedSats, float64(0))
-		t.Logf("balance: %f sats", bal.Msg.ConfirmedSats)
+		require.Greater(t, bal.ConfirmedSats, float64(0))
+		t.Logf("balance: %f sats", bal.ConfirmedSats)
 
 		// SendTransaction cross-node.
 		_ = nodeB.FundWallet(t)
 
-		addrBResp, err := nodeB.WalletClient.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		addrBResp, err := nodeB.WalletClient.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
 		require.NoError(t, err)
 
-		sendResp, err := client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
-			Destinations: map[string]int64{addrBResp.Msg.Address: 50_000_000},
-		}))
+		sendResp, err := client.SendTransaction(ctx, &pb.SendTransactionRequest{
+			Destinations: map[string]int64{addrBResp.Address: 50_000_000},
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, sendResp.Msg.Txid)
-		t.Logf("sent tx: %s", sendResp.Msg.Txid)
+		require.NotEmpty(t, sendResp.Txid)
+		t.Logf("sent tx: %s", sendResp.Txid)
 
 		err = nodeA.Mine(ctx, t, 1)
 		require.NoError(t, err)
@@ -118,10 +117,10 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		nodeA.WaitForSync(t, nodeB)
 
 		// Verify on B side.
-		txsB, err := nodeB.WalletClient.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{Count: 200}))
+		txsB, err := nodeB.WalletClient.ListTransactions(ctx, &pb.ListTransactionsRequest{Count: 200})
 		require.NoError(t, err)
 		foundReceive := false
-		for _, tx := range txsB.Msg.Transactions {
+		for _, tx := range txsB.Transactions {
 			if tx.Category == "receive" && tx.AmountSats == 50_000_000 {
 				foundReceive = true
 				break
@@ -139,59 +138,59 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		woXpub := generateTestXpub(t)
-		woResp, err := client.CreateWatchOnlyWallet(ctx, connect.NewRequest(&pb.CreateWatchOnlyWalletRequest{
+		woResp, err := client.CreateWatchOnlyWallet(ctx, &pb.CreateWatchOnlyWalletRequest{
 			Name:             "bw-watch",
 			XpubOrDescriptor: fmt.Sprintf("wpkh(%s/0/*)", woXpub),
 			GradientJson:     `{"background_svg":""}`,
-		}))
+		})
 		require.NoError(t, err)
-		woID := woResp.Msg.WalletId
+		woID := woResp.WalletId
 
-		_, err = client.EnsureCoreWallets(ctx, connect.NewRequest(&pb.EnsureCoreWalletsRequest{}))
-		require.NoError(t, err)
-
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: woID}))
+		_, err = client.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
 		require.NoError(t, err)
 
-		addrResp, err := client.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: woID})
 		require.NoError(t, err)
-		require.True(t, strings.HasPrefix(addrResp.Msg.Address, "bcrt1"))
+
+		addrResp, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{})
+		require.NoError(t, err)
+		require.True(t, strings.HasPrefix(addrResp.Address, "bcrt1"))
 
 		// Send from the wallet Phase 1 mined to. The first Core wallet in the
 		// list is bw-primary, which holds nothing.
-		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		list, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
 		var fundedID string
-		for _, w := range list.Msg.Wallets {
+		for _, w := range list.Wallets {
 			if w.Name == "bw-core" {
 				fundedID = w.Id
 				break
 			}
 		}
 		require.NotEmpty(t, fundedID)
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: fundedID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: fundedID})
 		require.NoError(t, err)
 
-		_, err = client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
-			Destinations: map[string]int64{addrResp.Msg.Address: 5_000_000},
-		}))
+		_, err = client.SendTransaction(ctx, &pb.SendTransactionRequest{
+			Destinations: map[string]int64{addrResp.Address: 5_000_000},
+		})
 		require.NoError(t, err)
 
 		err = nodeA.Mine(ctx, t, 1)
 		require.NoError(t, err)
 
-		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: woID}))
+		_, err = client.SwitchWallet(ctx, &pb.SwitchWalletRequest{WalletId: woID})
 		require.NoError(t, err)
 
-		bal, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+		bal, err := client.GetBalance(ctx, &pb.GetBalanceRequest{})
 		require.NoError(t, err)
-		require.Greater(t, bal.Msg.ConfirmedSats, float64(0))
-		t.Logf("watch-only balance: %f sats", bal.Msg.ConfirmedSats)
+		require.Greater(t, bal.ConfirmedSats, float64(0))
+		t.Logf("watch-only balance: %f sats", bal.ConfirmedSats)
 
 		// Send from watch-only should fail.
-		_, err = client.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
+		_, err = client.SendTransaction(ctx, &pb.SendTransactionRequest{
 			Destinations: map[string]int64{"bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080": 1_000_000},
-		}))
+		})
 		require.ErrorContains(t, err, "Private keys are disabled for this wallet")
 		t.Logf("watch-only send correctly failed: %v", err)
 	})
@@ -204,10 +203,10 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		defer cancel()
 		client := nodeA.WalletClient
 
-		walletList, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		walletList, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
 		var primaryID string
-		for _, w := range walletList.Msg.Wallets {
+		for _, w := range walletList.Wallets {
 			if w.Name == "bw-primary" {
 				primaryID = w.Id
 				break
@@ -215,21 +214,21 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		}
 		require.NotEmpty(t, primaryID)
 
-		seedResp, err := client.GetWalletSeed(ctx, connect.NewRequest(&pb.GetWalletSeedRequest{WalletId: primaryID}))
+		seedResp, err := client.GetWalletSeed(ctx, &pb.GetWalletSeedRequest{WalletId: primaryID})
 		require.NoError(t, err)
-		require.NotEmpty(t, seedResp.Msg.SeedHex)
-		require.Len(t, seedResp.Msg.SeedHex, 128) // 64 bytes = 128 hex chars
-		t.Logf("primary seed (first 16 chars): %s...", seedResp.Msg.SeedHex[:16])
+		require.NotEmpty(t, seedResp.SeedHex)
+		require.Len(t, seedResp.SeedHex, 128) // 64 bytes = 128 hex chars
+		t.Logf("primary seed (first 16 chars): %s...", seedResp.SeedHex[:16])
 
-		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		list, err := client.ListWallets(ctx, &pb.ListWalletsRequest{})
 		require.NoError(t, err)
-		require.NotEmpty(t, list.Msg.Wallets)
+		require.NotEmpty(t, list.Wallets)
 
-		seedResp2, err := client.GetWalletSeed(ctx, connect.NewRequest(&pb.GetWalletSeedRequest{
-			WalletId: list.Msg.Wallets[0].Id,
-		}))
+		seedResp2, err := client.GetWalletSeed(ctx, &pb.GetWalletSeedRequest{
+			WalletId: list.Wallets[0].Id,
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, seedResp2.Msg.SeedHex)
+		require.NotEmpty(t, seedResp2.SeedHex)
 	})
 
 }

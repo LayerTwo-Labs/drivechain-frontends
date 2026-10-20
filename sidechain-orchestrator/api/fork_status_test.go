@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -19,9 +18,9 @@ func TestGetForkStatusReportsTheNetworkReplayLockTime(t *testing.T) {
 		config.SetECashEndpoints(entry)
 
 		response, err := NewHandler(&orchestrator.Orchestrator{Network: "ecash"}).
-			GetForkStatus(context.Background(), connect.NewRequest(&pb.GetForkStatusRequest{}))
+			GetForkStatus(context.Background(), &pb.GetForkStatusRequest{})
 		config.SetECashEndpoints(previous)
 		require.NoError(t, err)
-		require.Equal(t, lockTime, response.Msg.ReplayLockTime)
+		require.Equal(t, lockTime, response.ReplayLockTime)
 	}
 }

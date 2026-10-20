@@ -3,7 +3,6 @@ package wallet_test
 import (
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -22,7 +21,7 @@ func TestCheckChequeFunding_RecordsTheFundingBlock(t *testing.T) {
 	fundingTxid := "feed0000feed0000feed0000feed0000feed0000feed0000feed0000feed0000"
 
 	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+		apitests.RPC(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
 				{Txid: fundingTxid, Vout: 0, ValueSats: 100_000_000, Confirmations: 3},
@@ -33,10 +32,10 @@ func TestCheckChequeFunding_RecordsTheFundingBlock(t *testing.T) {
 	chequeID, err := cheques.Create(t.Context(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	_, err = cli.CheckChequeFunding(t.Context(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	_, err = cli.CheckChequeFunding(t.Context(), &walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
-	}))
+	})
 	require.NoError(t, err)
 
 	var height int64

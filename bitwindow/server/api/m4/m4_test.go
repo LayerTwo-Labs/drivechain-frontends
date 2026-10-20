@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,11 +30,11 @@ func TestService_GetM4History(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := m4v1connect.NewM4ServiceClient(apitests.API(t, db))
+		cli := m4v1connect.NewM4ServiceClient(apitests.RPC(t, db))
 
-		resp, err := cli.GetM4History(t.Context(), connect.NewRequest(&m4pb.GetM4HistoryRequest{}))
+		resp, err := cli.GetM4History(t.Context(), &m4pb.GetM4HistoryRequest{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.History)
+		assert.Empty(t, resp.History)
 	})
 
 	t.Run("respects limit parameter", func(t *testing.T) {
@@ -47,11 +47,11 @@ func TestService_GetM4History(t *testing.T) {
 				height, fmt.Sprintf("hash%d", height))
 			require.NoError(t, err)
 		}
-		cli := m4v1connect.NewM4ServiceClient(apitests.API(t, db))
+		cli := m4v1connect.NewM4ServiceClient(apitests.RPC(t, db))
 		heights := func(limit uint32) []uint32 {
-			resp, err := cli.GetM4History(t.Context(), connect.NewRequest(&m4pb.GetM4HistoryRequest{Limit: limit}))
+			resp, err := cli.GetM4History(t.Context(), &m4pb.GetM4HistoryRequest{Limit: limit})
 			require.NoError(t, err)
-			return lo.Map(resp.Msg.History, func(e *m4pb.M4HistoryEntry, _ int) uint32 { return e.BlockHeight })
+			return lo.Map(resp.History, func(e *m4pb.M4HistoryEntry, _ int) uint32 { return e.BlockHeight })
 		}
 
 		assert.Equal(t, []uint32{8, 7, 6, 5, 4, 3}, heights(0))
@@ -71,7 +71,7 @@ type fakeProducer struct {
 	acks   []*mainchainv1.WithdrawalBundleAck
 }
 
-func (f *fakeProducer) GetBlockProducerState(context.Context, *connect.Request[mainchainv1.GetBlockProducerStateRequest]) (*connect.Response[mainchainv1.GetBlockProducerStateResponse], error) {
+func (f *fakeProducer) GetBlockProducerState(context.Context, *mainchainv1.GetBlockProducerStateRequest) (*mainchainv1.GetBlockProducerStateResponse, error) {
 	f.mu.Lock()
 	resp := &mainchainv1.GetBlockProducerStateResponse{
 		WithdrawalBundlePolicy: f.policy,
@@ -80,30 +80,30 @@ func (f *fakeProducer) GetBlockProducerState(context.Context, *connect.Request[m
 	f.mu.Unlock()
 	// Widen the gap between a read and the write that follows it.
 	time.Sleep(time.Millisecond)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
-func (f *fakeProducer) SetWithdrawalBundleAck(_ context.Context, req *connect.Request[mainchainv1.SetWithdrawalBundleAckRequest]) (*connect.Response[mainchainv1.SetWithdrawalBundleAckResponse], error) {
+func (f *fakeProducer) SetWithdrawalBundleAck(_ context.Context, req *mainchainv1.SetWithdrawalBundleAckRequest) (*mainchainv1.SetWithdrawalBundleAckResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.acks = slices.DeleteFunc(f.acks, func(ack *mainchainv1.WithdrawalBundleAck) bool {
-		return ack.GetSidechainNumber().GetValue() == req.Msg.GetSidechainNumber().GetValue() &&
-			ack.GetM6Id().GetHex().GetValue() == req.Msg.GetM6Id().GetHex().GetValue()
+		return ack.GetSidechainNumber().GetValue() == req.GetSidechainNumber().GetValue() &&
+			ack.GetM6Id().GetHex().GetValue() == req.GetM6Id().GetHex().GetValue()
 	})
-	if req.Msg.Ack {
+	if req.Ack {
 		f.acks = append(f.acks, &mainchainv1.WithdrawalBundleAck{
-			SidechainNumber: req.Msg.SidechainNumber,
-			M6Id:            req.Msg.M6Id,
+			SidechainNumber: req.SidechainNumber,
+			M6Id:            req.M6Id,
 		})
 	}
-	return connect.NewResponse(&mainchainv1.SetWithdrawalBundleAckResponse{}), nil
+	return &mainchainv1.SetWithdrawalBundleAckResponse{}, nil
 }
 
-func (f *fakeProducer) SetWithdrawalBundlePolicy(_ context.Context, req *connect.Request[mainchainv1.SetWithdrawalBundlePolicyRequest]) (*connect.Response[mainchainv1.SetWithdrawalBundlePolicyResponse], error) {
+func (f *fakeProducer) SetWithdrawalBundlePolicy(_ context.Context, req *mainchainv1.SetWithdrawalBundlePolicyRequest) (*mainchainv1.SetWithdrawalBundlePolicyResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.policy = req.Msg.Policy
-	return connect.NewResponse(&mainchainv1.SetWithdrawalBundlePolicyResponse{}), nil
+	f.policy = req.Policy
+	return &mainchainv1.SetWithdrawalBundlePolicyResponse{}, nil
 }
 
 func ack(slot uint32, m6id string) *mainchainv1.WithdrawalBundleAck {
@@ -114,7 +114,7 @@ func ack(slot uint32, m6id string) *mainchainv1.WithdrawalBundleAck {
 }
 
 func newClient(t *testing.T, producer *fakeProducer) m4v1connect.M4ServiceClient {
-	return m4v1connect.NewM4ServiceClient(apitests.API(t, database.Test(t), apitests.WithBlockProducer(producer)))
+	return m4v1connect.NewM4ServiceClient(apitests.RPC(t, database.Test(t), apitests.WithBlockProducer(producer)))
 }
 
 func TestService_GetVotes(t *testing.T) {
@@ -124,12 +124,12 @@ func TestService_GetVotes(t *testing.T) {
 		policy: mainchainv1.WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_ALARM,
 		acks:   []*mainchainv1.WithdrawalBundleAck{ack(9, m6idA)},
 	}
-	resp, err := newClient(t, producer).GetVotes(t.Context(), connect.NewRequest(&m4pb.GetVotesRequest{}))
+	resp, err := newClient(t, producer).GetVotes(t.Context(), &m4pb.GetVotesRequest{})
 	require.NoError(t, err)
-	assert.Equal(t, m4pb.VotePolicy_VOTE_POLICY_ALARM, resp.Msg.Policy)
-	require.Len(t, resp.Msg.Upvotes, 1)
-	assert.Equal(t, uint32(9), resp.Msg.Upvotes[0].SidechainSlot)
-	assert.Equal(t, m6idA, resp.Msg.Upvotes[0].M6Id)
+	assert.Equal(t, m4pb.VotePolicy_VOTE_POLICY_ALARM, resp.Policy)
+	require.Len(t, resp.Upvotes, 1)
+	assert.Equal(t, uint32(9), resp.Upvotes[0].SidechainSlot)
+	assert.Equal(t, m6idA, resp.Upvotes[0].M6Id)
 }
 
 func TestService_SetBundleUpvote(t *testing.T) {
@@ -146,10 +146,10 @@ func TestService_SetBundleUpvote(t *testing.T) {
 
 		producer := &fakeProducer{}
 		m6id := m6idA
-		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), &m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
 			M6Id:          &m6id,
-		}))
+		})
 		require.NoError(t, err)
 		assert.Equal(t, []string{"9:aa"}, upvoted(producer))
 	})
@@ -159,10 +159,10 @@ func TestService_SetBundleUpvote(t *testing.T) {
 
 		producer := &fakeProducer{acks: []*mainchainv1.WithdrawalBundleAck{ack(9, m6idA), ack(2, m6idB)}}
 		m6id := m6idB
-		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), &m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
 			M6Id:          &m6id,
-		}))
+		})
 		require.NoError(t, err)
 		assert.ElementsMatch(t, []string{"2:bb", "9:bb"}, upvoted(producer))
 	})
@@ -176,10 +176,10 @@ func TestService_SetBundleUpvote(t *testing.T) {
 		for i := range 20 {
 			m6id := []string{m6idA, m6idB}[i%2]
 			wg.Go(func() {
-				_, err := cli.SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+				_, err := cli.SetBundleUpvote(t.Context(), &m4pb.SetBundleUpvoteRequest{
 					SidechainSlot: 9,
 					M6Id:          &m6id,
-				}))
+				})
 				assert.NoError(t, err)
 			})
 		}
@@ -191,9 +191,9 @@ func TestService_SetBundleUpvote(t *testing.T) {
 		t.Parallel()
 
 		producer := &fakeProducer{acks: []*mainchainv1.WithdrawalBundleAck{ack(9, m6idA), ack(2, m6idB)}}
-		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, producer).SetBundleUpvote(t.Context(), &m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
-		}))
+		})
 		require.NoError(t, err)
 		assert.Equal(t, []string{"2:bb"}, upvoted(producer))
 	})
@@ -202,19 +202,19 @@ func TestService_SetBundleUpvote(t *testing.T) {
 		t.Parallel()
 
 		m6id := "bundle-a"
-		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(t.Context(), &m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 9,
 			M6Id:          &m6id,
-		}))
+		})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
 	t.Run("rejects a slot above 255", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(t.Context(), connect.NewRequest(&m4pb.SetBundleUpvoteRequest{
+		_, err := newClient(t, &fakeProducer{}).SetBundleUpvote(t.Context(), &m4pb.SetBundleUpvoteRequest{
 			SidechainSlot: 256,
-		}))
+		})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }
@@ -226,9 +226,9 @@ func TestService_SetVotePolicy(t *testing.T) {
 		t.Parallel()
 
 		producer := &fakeProducer{}
-		_, err := newClient(t, producer).SetVotePolicy(t.Context(), connect.NewRequest(&m4pb.SetVotePolicyRequest{
+		_, err := newClient(t, producer).SetVotePolicy(t.Context(), &m4pb.SetVotePolicyRequest{
 			Policy: m4pb.VotePolicy_VOTE_POLICY_UPVOTE_ALL,
-		}))
+		})
 		require.NoError(t, err)
 		assert.Equal(t, mainchainv1.WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_ALL, producer.policy)
 	})
@@ -236,7 +236,7 @@ func TestService_SetVotePolicy(t *testing.T) {
 	t.Run("rejects an unspecified policy", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := newClient(t, &fakeProducer{}).SetVotePolicy(t.Context(), connect.NewRequest(&m4pb.SetVotePolicyRequest{}))
+		_, err := newClient(t, &fakeProducer{}).SetVotePolicy(t.Context(), &m4pb.SetVotePolicyRequest{})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }

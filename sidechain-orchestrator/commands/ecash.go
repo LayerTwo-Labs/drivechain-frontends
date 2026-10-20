@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/urfave/cli/v2"
@@ -65,21 +64,21 @@ func runECashMigrate(cctx *cli.Context, client rpc.OrchestratorServiceClient, in
 	}
 
 	if cctx.Bool("preview") || !cctx.Bool("yes") {
-		resp, err := client.PreviewECashMigration(cctx.Context, connect.NewRequest(&pb.PreviewECashMigrationRequest{
+		resp, err := client.PreviewECashMigration(cctx.Context, &pb.PreviewECashMigrationRequest{
 			FromId: fromID,
 			ToId:   toID,
-		}))
+		})
 		if err != nil {
 			return fmt.Errorf("get the migration preview: %w", err)
 		}
-		if err := checkECashMigrationTarget(resp.Msg.Status, fromID, toID); err != nil {
+		if err := checkECashMigrationTarget(resp.Status, fromID, toID); err != nil {
 			return err
 		}
-		if err := writeECashMigrationStatus(cctx.App.Writer, resp.Msg.Status, cctx.Bool("json")); err != nil {
+		if err := writeECashMigrationStatus(cctx.App.Writer, resp.Status, cctx.Bool("json")); err != nil {
 			return err
 		}
-		if resp.Msg.Status.Error != "" {
-			return errors.New(resp.Msg.Status.Error)
+		if resp.Status.Error != "" {
+			return errors.New(resp.Status.Error)
 		}
 		if cctx.Bool("preview") {
 			return nil
@@ -100,14 +99,14 @@ func runECashMigrate(cctx *cli.Context, client rpc.OrchestratorServiceClient, in
 		}
 	}
 
-	resp, err := client.StartECashMigration(cctx.Context, connect.NewRequest(&pb.StartECashMigrationRequest{
+	resp, err := client.StartECashMigration(cctx.Context, &pb.StartECashMigrationRequest{
 		FromId: fromID,
 		ToId:   toID,
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("start the migration: %w", err)
 	}
-	status := resp.Msg.Status
+	status := resp.Status
 	if err := checkECashMigrationTarget(status, fromID, toID); err != nil {
 		return err
 	}
@@ -151,11 +150,11 @@ func runECashMigrate(cctx *cli.Context, client rpc.OrchestratorServiceClient, in
 			return fmt.Errorf("the daemon keeps the migration job; use ecash migration-status: %w", cctx.Err())
 		case <-timer.C:
 		}
-		next, err := client.GetECashMigrationStatus(cctx.Context, connect.NewRequest(&pb.GetECashMigrationStatusRequest{}))
+		next, err := client.GetECashMigrationStatus(cctx.Context, &pb.GetECashMigrationStatusRequest{})
 		if err != nil {
 			return fmt.Errorf("read the migration status; use ecash migration-status to check the daemon: %w", err)
 		}
-		status = next.Msg.Status
+		status = next.Status
 	}
 }
 
@@ -163,15 +162,15 @@ func runECashMigrationStatus(cctx *cli.Context, client rpc.OrchestratorServiceCl
 	if cctx.NArg() != 0 {
 		return errors.New("migration-status accepts no positional arguments")
 	}
-	resp, err := client.GetECashMigrationStatus(cctx.Context, connect.NewRequest(&pb.GetECashMigrationStatusRequest{}))
+	resp, err := client.GetECashMigrationStatus(cctx.Context, &pb.GetECashMigrationStatusRequest{})
 	if err != nil {
 		return fmt.Errorf("read the migration status: %w", err)
 	}
-	if err := writeECashMigrationStatus(cctx.App.Writer, resp.Msg.Status, cctx.Bool("json")); err != nil {
+	if err := writeECashMigrationStatus(cctx.App.Writer, resp.Status, cctx.Bool("json")); err != nil {
 		return err
 	}
-	if resp.Msg.Status.Error != "" {
-		return errors.New(resp.Msg.Status.Error)
+	if resp.Status.Error != "" {
+		return errors.New(resp.Status.Error)
 	}
 	return nil
 }

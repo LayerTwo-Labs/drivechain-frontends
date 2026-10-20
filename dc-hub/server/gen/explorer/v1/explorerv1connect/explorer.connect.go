@@ -5,136 +5,131 @@
 package explorerv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/dc-hub/server/gen/explorer/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ExplorerServiceName is the fully-qualified name of the ExplorerService service.
 	ExplorerServiceName = "explorer.v1.ExplorerService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ExplorerServiceGetChainTipsProcedure is the fully-qualified name of the ExplorerService's
-	// GetChainTips RPC.
+	// ExplorerServiceGetChainTipsProcedure is the procedure name of the ExplorerService's GetChainTips
+	// RPC.
 	ExplorerServiceGetChainTipsProcedure = "/explorer.v1.ExplorerService/GetChainTips"
-	// ExplorerServiceListSidechainsProcedure is the fully-qualified name of the ExplorerService's
+	// ExplorerServiceListSidechainsProcedure is the procedure name of the ExplorerService's
 	// ListSidechains RPC.
 	ExplorerServiceListSidechainsProcedure = "/explorer.v1.ExplorerService/ListSidechains"
 )
 
+var (
+	explorerServiceGetChainTipsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("GetChainTips"),
+			Procedure:  ExplorerServiceGetChainTipsProcedure,
+		}
+	})
+	explorerServiceListSidechainsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods().ByName("ListSidechains"),
+			Procedure:  ExplorerServiceListSidechainsProcedure,
+		}
+	})
+)
+
 // ExplorerServiceClient is a client for the explorer.v1.ExplorerService service.
 type ExplorerServiceClient interface {
-	GetChainTips(context.Context, *connect.Request[v1.GetChainTipsRequest]) (*connect.Response[v1.GetChainTipsResponse], error)
-	// Lists active and proposed side chains.
-	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
+	GetChainTips(context.Context, *v1.GetChainTipsRequest) (*v1.GetChainTipsResponse, error)
+	ListSidechains(context.Context, *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error)
 }
 
-// NewExplorerServiceClient constructs a client for the explorer.v1.ExplorerService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewExplorerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ExplorerServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	explorerServiceMethods := v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods()
-	return &explorerServiceClient{
-		getChainTips: connect.NewClient[v1.GetChainTipsRequest, v1.GetChainTipsResponse](
-			httpClient,
-			baseURL+ExplorerServiceGetChainTipsProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("GetChainTips")),
-			connect.WithClientOptions(opts...),
-		),
-		listSidechains: connect.NewClient[v1.ListSidechainsRequest, v1.ListSidechainsResponse](
-			httpClient,
-			baseURL+ExplorerServiceListSidechainsProcedure,
-			connect.WithSchema(explorerServiceMethods.ByName("ListSidechains")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// explorerServiceClient implements ExplorerServiceClient.
-type explorerServiceClient struct {
-	getChainTips   *connect.Client[v1.GetChainTipsRequest, v1.GetChainTipsResponse]
-	listSidechains *connect.Client[v1.ListSidechainsRequest, v1.ListSidechainsResponse]
-}
-
-// GetChainTips calls explorer.v1.ExplorerService.GetChainTips.
-func (c *explorerServiceClient) GetChainTips(ctx context.Context, req *connect.Request[v1.GetChainTipsRequest]) (*connect.Response[v1.GetChainTipsResponse], error) {
-	return c.getChainTips.CallUnary(ctx, req)
-}
-
-// ListSidechains calls explorer.v1.ExplorerService.ListSidechains.
-func (c *explorerServiceClient) ListSidechains(ctx context.Context, req *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error) {
-	return c.listSidechains.CallUnary(ctx, req)
+// NewExplorerServiceClient constructs a client for the explorer.v1.ExplorerService service.
+// Multiple service clients may share a single connect.Client.
+func NewExplorerServiceClient(client *connect.Client) ExplorerServiceClient {
+	return &explorerServiceClient{client: client}
 }
 
 // ExplorerServiceHandler is an implementation of the explorer.v1.ExplorerService service.
 type ExplorerServiceHandler interface {
-	GetChainTips(context.Context, *connect.Request[v1.GetChainTipsRequest]) (*connect.Response[v1.GetChainTipsResponse], error)
-	// Lists active and proposed side chains.
-	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
+	GetChainTips(context.Context, *v1.GetChainTipsRequest) (*v1.GetChainTipsResponse, error)
+	ListSidechains(context.Context, *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error)
 }
 
-// NewExplorerServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewExplorerServiceHandler(svc ExplorerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	explorerServiceMethods := v1.File_explorer_v1_explorer_proto.Services().ByName("ExplorerService").Methods()
-	explorerServiceGetChainTipsHandler := connect.NewUnaryHandler(
-		ExplorerServiceGetChainTipsProcedure,
-		svc.GetChainTips,
-		connect.WithSchema(explorerServiceMethods.ByName("GetChainTips")),
-		connect.WithHandlerOptions(opts...),
+// RegisterExplorerServiceHandler registers svc as the explorer.v1.ExplorerService implementation on
+// server.
+func RegisterExplorerServiceHandler(server *connect.Server, svc ExplorerServiceHandler) {
+	adapter := explorerServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: explorerServiceGetChainTipsSpec(), Handler: adapter.getChainTips},
+		connect.Method{Spec: explorerServiceListSidechainsSpec(), Handler: adapter.listSidechains},
 	)
-	explorerServiceListSidechainsHandler := connect.NewUnaryHandler(
-		ExplorerServiceListSidechainsProcedure,
-		svc.ListSidechains,
-		connect.WithSchema(explorerServiceMethods.ByName("ListSidechains")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/explorer.v1.ExplorerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ExplorerServiceGetChainTipsProcedure:
-			explorerServiceGetChainTipsHandler.ServeHTTP(w, r)
-		case ExplorerServiceListSidechainsProcedure:
-			explorerServiceListSidechainsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedExplorerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedExplorerServiceHandler struct{}
 
-func (UnimplementedExplorerServiceHandler) GetChainTips(context.Context, *connect.Request[v1.GetChainTipsRequest]) (*connect.Response[v1.GetChainTipsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetChainTips is not implemented"))
+func (UnimplementedExplorerServiceHandler) GetChainTips(context.Context, *v1.GetChainTipsRequest) (*v1.GetChainTipsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.GetChainTips is not implemented")
 }
 
-func (UnimplementedExplorerServiceHandler) ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.ListSidechains is not implemented"))
+func (UnimplementedExplorerServiceHandler) ListSidechains(context.Context, *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "explorer.v1.ExplorerService.ListSidechains is not implemented")
+}
+
+type explorerServiceClient struct {
+	client *connect.Client
+}
+
+func (c *explorerServiceClient) GetChainTips(ctx context.Context, req *v1.GetChainTipsRequest) (*v1.GetChainTipsResponse, error) {
+	var res v1.GetChainTipsResponse
+	if err := c.client.CallUnary(ctx, explorerServiceGetChainTipsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *explorerServiceClient) ListSidechains(ctx context.Context, req *v1.ListSidechainsRequest) (*v1.ListSidechainsResponse, error) {
+	var res v1.ListSidechainsResponse
+	if err := c.client.CallUnary(ctx, explorerServiceListSidechainsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type explorerServiceHandler struct{ svc ExplorerServiceHandler }
+
+func (h explorerServiceHandler) getChainTips(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetChainTipsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetChainTips(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h explorerServiceHandler) listSidechains(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListSidechainsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSidechains(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -27,49 +27,49 @@ type Handler struct {
 	Log zerolog.Logger
 }
 
-func (h *Handler) ListFrontPage(ctx context.Context, req *connect.Request[pb.ListFrontPageRequest]) (*connect.Response[pb.ListFrontPageResponse], error) {
-	filter, err := feedFilter(req.Msg.Limit, req.Msg.Offset, store.SortScoreDesc, req.Msg.Subtype, req.Msg.TopicHex)
+func (h *Handler) ListFrontPage(ctx context.Context, req *pb.ListFrontPageRequest) (*pb.ListFrontPageResponse, error) {
+	filter, err := feedFilter(req.Limit, req.Offset, store.SortScoreDesc, req.Subtype, req.TopicHex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	items, err := store.ListFeed(ctx, h.DB, filter)
 	if err != nil {
 		return nil, h.errInternal(err)
 	}
-	return connect.NewResponse(&pb.ListFrontPageResponse{Items: marshalItems(items)}), nil
+	return &pb.ListFrontPageResponse{Items: marshalItems(items)}, nil
 }
 
-func (h *Handler) ListNewFeed(ctx context.Context, req *connect.Request[pb.ListNewFeedRequest]) (*connect.Response[pb.ListNewFeedResponse], error) {
-	filter, err := feedFilter(req.Msg.Limit, req.Msg.Offset, store.SortNewest, req.Msg.Subtype, req.Msg.TopicHex)
+func (h *Handler) ListNewFeed(ctx context.Context, req *pb.ListNewFeedRequest) (*pb.ListNewFeedResponse, error) {
+	filter, err := feedFilter(req.Limit, req.Offset, store.SortNewest, req.Subtype, req.TopicHex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	items, err := store.ListFeed(ctx, h.DB, filter)
 	if err != nil {
 		return nil, h.errInternal(err)
 	}
-	return connect.NewResponse(&pb.ListNewFeedResponse{Items: marshalItems(items)}), nil
+	return &pb.ListNewFeedResponse{Items: marshalItems(items)}, nil
 }
 
-func (h *Handler) GetItem(ctx context.Context, req *connect.Request[pb.GetItemRequest]) (*connect.Response[pb.GetItemResponse], error) {
-	id, err := codec.ParseItemID(req.Msg.ItemIdHex)
+func (h *Handler) GetItem(ctx context.Context, req *pb.GetItemRequest) (*pb.GetItemResponse, error) {
+	id, err := codec.ParseItemID(req.ItemIdHex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	fi, err := store.GetItem(ctx, h.DB, id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("item %s not found", id))
+		return nil, connect.Errorf(connect.CodeNotFound, "item %s not found", id)
 	}
 	if err != nil {
 		return nil, h.errInternal(err)
 	}
-	return connect.NewResponse(&pb.GetItemResponse{Item: marshalItem(fi)}), nil
+	return &pb.GetItemResponse{Item: marshalItem(fi)}, nil
 }
 
-func (h *Handler) ListThread(ctx context.Context, req *connect.Request[pb.ListThreadRequest]) (*connect.Response[pb.ListThreadResponse], error) {
-	id, err := codec.ParseItemID(req.Msg.RootIdHex)
+func (h *Handler) ListThread(ctx context.Context, req *pb.ListThreadRequest) (*pb.ListThreadResponse, error) {
+	id, err := codec.ParseItemID(req.RootIdHex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	rows, err := store.ListThread(ctx, h.DB, id)
 	if err != nil {
@@ -79,41 +79,41 @@ func (h *Handler) ListThread(ctx context.Context, req *connect.Request[pb.ListTh
 	for i, r := range rows {
 		out[i] = marshalComment(r)
 	}
-	return connect.NewResponse(&pb.ListThreadResponse{Comments: out}), nil
+	return &pb.ListThreadResponse{Comments: out}, nil
 }
 
-func (h *Handler) ListByAuthor(ctx context.Context, req *connect.Request[pb.ListByAuthorRequest]) (*connect.Response[pb.ListByAuthorResponse], error) {
-	xpkBytes, err := hex.DecodeString(req.Msg.AuthorXpkHex)
+func (h *Handler) ListByAuthor(ctx context.Context, req *pb.ListByAuthorRequest) (*pb.ListByAuthorResponse, error) {
+	xpkBytes, err := hex.DecodeString(req.AuthorXpkHex)
 	if err != nil || len(xpkBytes) != 32 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("author_xpk_hex must be 32 bytes hex"))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "author_xpk_hex must be 32 bytes hex")
 	}
 	var xpk [32]byte
 	copy(xpk[:], xpkBytes)
-	items, err := store.ListByAuthor(ctx, h.DB, xpk, req.Msg.Limit, req.Msg.Offset)
+	items, err := store.ListByAuthor(ctx, h.DB, xpk, req.Limit, req.Offset)
 	if err != nil {
 		return nil, h.errInternal(err)
 	}
-	return connect.NewResponse(&pb.ListByAuthorResponse{Items: marshalItems(items)}), nil
+	return &pb.ListByAuthorResponse{Items: marshalItems(items)}, nil
 }
 
-func (h *Handler) ListByTopic(ctx context.Context, req *connect.Request[pb.ListByTopicRequest]) (*connect.Response[pb.ListByTopicResponse], error) {
-	topic, err := parseTopic(req.Msg.TopicHex)
+func (h *Handler) ListByTopic(ctx context.Context, req *pb.ListByTopicRequest) (*pb.ListByTopicResponse, error) {
+	topic, err := parseTopic(req.TopicHex)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	items, err := store.ListFeed(ctx, h.DB, store.FeedFilter{
 		Topic:  &topic,
 		Sort:   store.SortNewest,
-		Limit:  req.Msg.Limit,
-		Offset: req.Msg.Offset,
+		Limit:  req.Limit,
+		Offset: req.Offset,
 	})
 	if err != nil {
 		return nil, h.errInternal(err)
 	}
-	return connect.NewResponse(&pb.ListByTopicResponse{Items: marshalItems(items)}), nil
+	return &pb.ListByTopicResponse{Items: marshalItems(items)}, nil
 }
 
-func (h *Handler) ListTopics(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListTopicsResponse], error) {
+func (h *Handler) ListTopics(ctx context.Context, _ *emptypb.Empty) (*pb.ListTopicsResponse, error) {
 	topics, err := store.ListTopics(ctx, h.DB)
 	if err != nil {
 		return nil, h.errInternal(err)
@@ -128,7 +128,7 @@ func (h *Handler) ListTopics(ctx context.Context, _ *connect.Request[emptypb.Emp
 			Txid:          t.TxID,
 		}
 	}
-	return connect.NewResponse(&pb.ListTopicsResponse{Topics: out}), nil
+	return &pb.ListTopicsResponse{Topics: out}, nil
 }
 
 func feedFilter(limit, offset uint32, sort store.FeedSort, sub *pb.Subtype, topicHex *string) (store.FeedFilter, error) {
@@ -208,5 +208,5 @@ func marshalComment(c store.CommentRow) *pb.Comment {
 
 func (h *Handler) errInternal(err error) error {
 	h.Log.Error().Err(err).Msg("api call failed")
-	return connect.NewError(connect.CodeInternal, errors.New("internal error"))
+	return connect.NewError(connect.CodeInternal, "internal error")
 }

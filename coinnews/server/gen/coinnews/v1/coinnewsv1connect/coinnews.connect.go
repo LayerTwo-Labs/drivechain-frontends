@@ -5,293 +5,314 @@
 package coinnewsv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// CoinNewsServiceName is the fully-qualified name of the CoinNewsService service.
 	CoinNewsServiceName = "coinnews.v1.CoinNewsService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// CoinNewsServiceListFrontPageProcedure is the fully-qualified name of the CoinNewsService's
+	// CoinNewsServiceListFrontPageProcedure is the procedure name of the CoinNewsService's
 	// ListFrontPage RPC.
 	CoinNewsServiceListFrontPageProcedure = "/coinnews.v1.CoinNewsService/ListFrontPage"
-	// CoinNewsServiceListNewFeedProcedure is the fully-qualified name of the CoinNewsService's
-	// ListNewFeed RPC.
+	// CoinNewsServiceListNewFeedProcedure is the procedure name of the CoinNewsService's ListNewFeed
+	// RPC.
 	CoinNewsServiceListNewFeedProcedure = "/coinnews.v1.CoinNewsService/ListNewFeed"
-	// CoinNewsServiceGetItemProcedure is the fully-qualified name of the CoinNewsService's GetItem RPC.
+	// CoinNewsServiceGetItemProcedure is the procedure name of the CoinNewsService's GetItem RPC.
 	CoinNewsServiceGetItemProcedure = "/coinnews.v1.CoinNewsService/GetItem"
-	// CoinNewsServiceListThreadProcedure is the fully-qualified name of the CoinNewsService's
-	// ListThread RPC.
+	// CoinNewsServiceListThreadProcedure is the procedure name of the CoinNewsService's ListThread RPC.
 	CoinNewsServiceListThreadProcedure = "/coinnews.v1.CoinNewsService/ListThread"
-	// CoinNewsServiceListByAuthorProcedure is the fully-qualified name of the CoinNewsService's
-	// ListByAuthor RPC.
+	// CoinNewsServiceListByAuthorProcedure is the procedure name of the CoinNewsService's ListByAuthor
+	// RPC.
 	CoinNewsServiceListByAuthorProcedure = "/coinnews.v1.CoinNewsService/ListByAuthor"
-	// CoinNewsServiceListByTopicProcedure is the fully-qualified name of the CoinNewsService's
-	// ListByTopic RPC.
+	// CoinNewsServiceListByTopicProcedure is the procedure name of the CoinNewsService's ListByTopic
+	// RPC.
 	CoinNewsServiceListByTopicProcedure = "/coinnews.v1.CoinNewsService/ListByTopic"
-	// CoinNewsServiceListTopicsProcedure is the fully-qualified name of the CoinNewsService's
-	// ListTopics RPC.
+	// CoinNewsServiceListTopicsProcedure is the procedure name of the CoinNewsService's ListTopics RPC.
 	CoinNewsServiceListTopicsProcedure = "/coinnews.v1.CoinNewsService/ListTopics"
+)
+
+var (
+	coinNewsServiceListFrontPageSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods().ByName("ListFrontPage"),
+			Procedure:  CoinNewsServiceListFrontPageProcedure,
+		}
+	})
+	coinNewsServiceListNewFeedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods().ByName("ListNewFeed"),
+			Procedure:  CoinNewsServiceListNewFeedProcedure,
+		}
+	})
+	coinNewsServiceGetItemSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods().ByName("GetItem"),
+			Procedure:  CoinNewsServiceGetItemProcedure,
+		}
+	})
+	coinNewsServiceListThreadSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods().ByName("ListThread"),
+			Procedure:  CoinNewsServiceListThreadProcedure,
+		}
+	})
+	coinNewsServiceListByAuthorSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods().ByName("ListByAuthor"),
+			Procedure:  CoinNewsServiceListByAuthorProcedure,
+		}
+	})
+	coinNewsServiceListByTopicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods().ByName("ListByTopic"),
+			Procedure:  CoinNewsServiceListByTopicProcedure,
+		}
+	})
+	coinNewsServiceListTopicsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods().ByName("ListTopics"),
+			Procedure:  CoinNewsServiceListTopicsProcedure,
+		}
+	})
 )
 
 // CoinNewsServiceClient is a client for the coinnews.v1.CoinNewsService service.
 type CoinNewsServiceClient interface {
-	// List the front-page items, ranked by HN score (spec §13).
-	ListFrontPage(context.Context, *connect.Request[v1.ListFrontPageRequest]) (*connect.Response[v1.ListFrontPageResponse], error)
-	// Newest items, ordered by canonical scan order DESC.
-	ListNewFeed(context.Context, *connect.Request[v1.ListNewFeedRequest]) (*connect.Response[v1.ListNewFeedResponse], error)
-	// One item by its hex-encoded ItemID.
-	GetItem(context.Context, *connect.Request[v1.GetItemRequest]) (*connect.Response[v1.GetItemResponse], error)
-	// Every comment under a root item, depth-first.
-	ListThread(context.Context, *connect.Request[v1.ListThreadRequest]) (*connect.Response[v1.ListThreadResponse], error)
-	// Items authored by `author_xpk_hex` (32-byte x-only pubkey).
-	ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error)
-	// Items in `topic_hex` (4-byte topic).
-	ListByTopic(context.Context, *connect.Request[v1.ListByTopicRequest]) (*connect.Response[v1.ListByTopicResponse], error)
-	// All known topics. Display-only metadata; topic IDs are canonical.
-	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
+	ListFrontPage(context.Context, *v1.ListFrontPageRequest) (*v1.ListFrontPageResponse, error)
+	ListNewFeed(context.Context, *v1.ListNewFeedRequest) (*v1.ListNewFeedResponse, error)
+	GetItem(context.Context, *v1.GetItemRequest) (*v1.GetItemResponse, error)
+	ListThread(context.Context, *v1.ListThreadRequest) (*v1.ListThreadResponse, error)
+	ListByAuthor(context.Context, *v1.ListByAuthorRequest) (*v1.ListByAuthorResponse, error)
+	ListByTopic(context.Context, *v1.ListByTopicRequest) (*v1.ListByTopicResponse, error)
+	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
 }
 
-// NewCoinNewsServiceClient constructs a client for the coinnews.v1.CoinNewsService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewCoinNewsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) CoinNewsServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	coinNewsServiceMethods := v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods()
-	return &coinNewsServiceClient{
-		listFrontPage: connect.NewClient[v1.ListFrontPageRequest, v1.ListFrontPageResponse](
-			httpClient,
-			baseURL+CoinNewsServiceListFrontPageProcedure,
-			connect.WithSchema(coinNewsServiceMethods.ByName("ListFrontPage")),
-			connect.WithClientOptions(opts...),
-		),
-		listNewFeed: connect.NewClient[v1.ListNewFeedRequest, v1.ListNewFeedResponse](
-			httpClient,
-			baseURL+CoinNewsServiceListNewFeedProcedure,
-			connect.WithSchema(coinNewsServiceMethods.ByName("ListNewFeed")),
-			connect.WithClientOptions(opts...),
-		),
-		getItem: connect.NewClient[v1.GetItemRequest, v1.GetItemResponse](
-			httpClient,
-			baseURL+CoinNewsServiceGetItemProcedure,
-			connect.WithSchema(coinNewsServiceMethods.ByName("GetItem")),
-			connect.WithClientOptions(opts...),
-		),
-		listThread: connect.NewClient[v1.ListThreadRequest, v1.ListThreadResponse](
-			httpClient,
-			baseURL+CoinNewsServiceListThreadProcedure,
-			connect.WithSchema(coinNewsServiceMethods.ByName("ListThread")),
-			connect.WithClientOptions(opts...),
-		),
-		listByAuthor: connect.NewClient[v1.ListByAuthorRequest, v1.ListByAuthorResponse](
-			httpClient,
-			baseURL+CoinNewsServiceListByAuthorProcedure,
-			connect.WithSchema(coinNewsServiceMethods.ByName("ListByAuthor")),
-			connect.WithClientOptions(opts...),
-		),
-		listByTopic: connect.NewClient[v1.ListByTopicRequest, v1.ListByTopicResponse](
-			httpClient,
-			baseURL+CoinNewsServiceListByTopicProcedure,
-			connect.WithSchema(coinNewsServiceMethods.ByName("ListByTopic")),
-			connect.WithClientOptions(opts...),
-		),
-		listTopics: connect.NewClient[emptypb.Empty, v1.ListTopicsResponse](
-			httpClient,
-			baseURL+CoinNewsServiceListTopicsProcedure,
-			connect.WithSchema(coinNewsServiceMethods.ByName("ListTopics")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// coinNewsServiceClient implements CoinNewsServiceClient.
-type coinNewsServiceClient struct {
-	listFrontPage *connect.Client[v1.ListFrontPageRequest, v1.ListFrontPageResponse]
-	listNewFeed   *connect.Client[v1.ListNewFeedRequest, v1.ListNewFeedResponse]
-	getItem       *connect.Client[v1.GetItemRequest, v1.GetItemResponse]
-	listThread    *connect.Client[v1.ListThreadRequest, v1.ListThreadResponse]
-	listByAuthor  *connect.Client[v1.ListByAuthorRequest, v1.ListByAuthorResponse]
-	listByTopic   *connect.Client[v1.ListByTopicRequest, v1.ListByTopicResponse]
-	listTopics    *connect.Client[emptypb.Empty, v1.ListTopicsResponse]
-}
-
-// ListFrontPage calls coinnews.v1.CoinNewsService.ListFrontPage.
-func (c *coinNewsServiceClient) ListFrontPage(ctx context.Context, req *connect.Request[v1.ListFrontPageRequest]) (*connect.Response[v1.ListFrontPageResponse], error) {
-	return c.listFrontPage.CallUnary(ctx, req)
-}
-
-// ListNewFeed calls coinnews.v1.CoinNewsService.ListNewFeed.
-func (c *coinNewsServiceClient) ListNewFeed(ctx context.Context, req *connect.Request[v1.ListNewFeedRequest]) (*connect.Response[v1.ListNewFeedResponse], error) {
-	return c.listNewFeed.CallUnary(ctx, req)
-}
-
-// GetItem calls coinnews.v1.CoinNewsService.GetItem.
-func (c *coinNewsServiceClient) GetItem(ctx context.Context, req *connect.Request[v1.GetItemRequest]) (*connect.Response[v1.GetItemResponse], error) {
-	return c.getItem.CallUnary(ctx, req)
-}
-
-// ListThread calls coinnews.v1.CoinNewsService.ListThread.
-func (c *coinNewsServiceClient) ListThread(ctx context.Context, req *connect.Request[v1.ListThreadRequest]) (*connect.Response[v1.ListThreadResponse], error) {
-	return c.listThread.CallUnary(ctx, req)
-}
-
-// ListByAuthor calls coinnews.v1.CoinNewsService.ListByAuthor.
-func (c *coinNewsServiceClient) ListByAuthor(ctx context.Context, req *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error) {
-	return c.listByAuthor.CallUnary(ctx, req)
-}
-
-// ListByTopic calls coinnews.v1.CoinNewsService.ListByTopic.
-func (c *coinNewsServiceClient) ListByTopic(ctx context.Context, req *connect.Request[v1.ListByTopicRequest]) (*connect.Response[v1.ListByTopicResponse], error) {
-	return c.listByTopic.CallUnary(ctx, req)
-}
-
-// ListTopics calls coinnews.v1.CoinNewsService.ListTopics.
-func (c *coinNewsServiceClient) ListTopics(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error) {
-	return c.listTopics.CallUnary(ctx, req)
+// NewCoinNewsServiceClient constructs a client for the coinnews.v1.CoinNewsService service.
+// Multiple service clients may share a single connect.Client.
+func NewCoinNewsServiceClient(client *connect.Client) CoinNewsServiceClient {
+	return &coinNewsServiceClient{client: client}
 }
 
 // CoinNewsServiceHandler is an implementation of the coinnews.v1.CoinNewsService service.
 type CoinNewsServiceHandler interface {
-	// List the front-page items, ranked by HN score (spec §13).
-	ListFrontPage(context.Context, *connect.Request[v1.ListFrontPageRequest]) (*connect.Response[v1.ListFrontPageResponse], error)
-	// Newest items, ordered by canonical scan order DESC.
-	ListNewFeed(context.Context, *connect.Request[v1.ListNewFeedRequest]) (*connect.Response[v1.ListNewFeedResponse], error)
-	// One item by its hex-encoded ItemID.
-	GetItem(context.Context, *connect.Request[v1.GetItemRequest]) (*connect.Response[v1.GetItemResponse], error)
-	// Every comment under a root item, depth-first.
-	ListThread(context.Context, *connect.Request[v1.ListThreadRequest]) (*connect.Response[v1.ListThreadResponse], error)
-	// Items authored by `author_xpk_hex` (32-byte x-only pubkey).
-	ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error)
-	// Items in `topic_hex` (4-byte topic).
-	ListByTopic(context.Context, *connect.Request[v1.ListByTopicRequest]) (*connect.Response[v1.ListByTopicResponse], error)
-	// All known topics. Display-only metadata; topic IDs are canonical.
-	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
+	ListFrontPage(context.Context, *v1.ListFrontPageRequest) (*v1.ListFrontPageResponse, error)
+	ListNewFeed(context.Context, *v1.ListNewFeedRequest) (*v1.ListNewFeedResponse, error)
+	GetItem(context.Context, *v1.GetItemRequest) (*v1.GetItemResponse, error)
+	ListThread(context.Context, *v1.ListThreadRequest) (*v1.ListThreadResponse, error)
+	ListByAuthor(context.Context, *v1.ListByAuthorRequest) (*v1.ListByAuthorResponse, error)
+	ListByTopic(context.Context, *v1.ListByTopicRequest) (*v1.ListByTopicResponse, error)
+	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
 }
 
-// NewCoinNewsServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewCoinNewsServiceHandler(svc CoinNewsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	coinNewsServiceMethods := v1.File_coinnews_v1_coinnews_proto.Services().ByName("CoinNewsService").Methods()
-	coinNewsServiceListFrontPageHandler := connect.NewUnaryHandler(
-		CoinNewsServiceListFrontPageProcedure,
-		svc.ListFrontPage,
-		connect.WithSchema(coinNewsServiceMethods.ByName("ListFrontPage")),
-		connect.WithHandlerOptions(opts...),
+// RegisterCoinNewsServiceHandler registers svc as the coinnews.v1.CoinNewsService implementation on
+// server.
+func RegisterCoinNewsServiceHandler(server *connect.Server, svc CoinNewsServiceHandler) {
+	adapter := coinNewsServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: coinNewsServiceListFrontPageSpec(), Handler: adapter.listFrontPage},
+		connect.Method{Spec: coinNewsServiceListNewFeedSpec(), Handler: adapter.listNewFeed},
+		connect.Method{Spec: coinNewsServiceGetItemSpec(), Handler: adapter.getItem},
+		connect.Method{Spec: coinNewsServiceListThreadSpec(), Handler: adapter.listThread},
+		connect.Method{Spec: coinNewsServiceListByAuthorSpec(), Handler: adapter.listByAuthor},
+		connect.Method{Spec: coinNewsServiceListByTopicSpec(), Handler: adapter.listByTopic},
+		connect.Method{Spec: coinNewsServiceListTopicsSpec(), Handler: adapter.listTopics},
 	)
-	coinNewsServiceListNewFeedHandler := connect.NewUnaryHandler(
-		CoinNewsServiceListNewFeedProcedure,
-		svc.ListNewFeed,
-		connect.WithSchema(coinNewsServiceMethods.ByName("ListNewFeed")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coinNewsServiceGetItemHandler := connect.NewUnaryHandler(
-		CoinNewsServiceGetItemProcedure,
-		svc.GetItem,
-		connect.WithSchema(coinNewsServiceMethods.ByName("GetItem")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coinNewsServiceListThreadHandler := connect.NewUnaryHandler(
-		CoinNewsServiceListThreadProcedure,
-		svc.ListThread,
-		connect.WithSchema(coinNewsServiceMethods.ByName("ListThread")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coinNewsServiceListByAuthorHandler := connect.NewUnaryHandler(
-		CoinNewsServiceListByAuthorProcedure,
-		svc.ListByAuthor,
-		connect.WithSchema(coinNewsServiceMethods.ByName("ListByAuthor")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coinNewsServiceListByTopicHandler := connect.NewUnaryHandler(
-		CoinNewsServiceListByTopicProcedure,
-		svc.ListByTopic,
-		connect.WithSchema(coinNewsServiceMethods.ByName("ListByTopic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coinNewsServiceListTopicsHandler := connect.NewUnaryHandler(
-		CoinNewsServiceListTopicsProcedure,
-		svc.ListTopics,
-		connect.WithSchema(coinNewsServiceMethods.ByName("ListTopics")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/coinnews.v1.CoinNewsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case CoinNewsServiceListFrontPageProcedure:
-			coinNewsServiceListFrontPageHandler.ServeHTTP(w, r)
-		case CoinNewsServiceListNewFeedProcedure:
-			coinNewsServiceListNewFeedHandler.ServeHTTP(w, r)
-		case CoinNewsServiceGetItemProcedure:
-			coinNewsServiceGetItemHandler.ServeHTTP(w, r)
-		case CoinNewsServiceListThreadProcedure:
-			coinNewsServiceListThreadHandler.ServeHTTP(w, r)
-		case CoinNewsServiceListByAuthorProcedure:
-			coinNewsServiceListByAuthorHandler.ServeHTTP(w, r)
-		case CoinNewsServiceListByTopicProcedure:
-			coinNewsServiceListByTopicHandler.ServeHTTP(w, r)
-		case CoinNewsServiceListTopicsProcedure:
-			coinNewsServiceListTopicsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedCoinNewsServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedCoinNewsServiceHandler struct{}
 
-func (UnimplementedCoinNewsServiceHandler) ListFrontPage(context.Context, *connect.Request[v1.ListFrontPageRequest]) (*connect.Response[v1.ListFrontPageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("coinnews.v1.CoinNewsService.ListFrontPage is not implemented"))
+func (UnimplementedCoinNewsServiceHandler) ListFrontPage(context.Context, *v1.ListFrontPageRequest) (*v1.ListFrontPageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "coinnews.v1.CoinNewsService.ListFrontPage is not implemented")
 }
 
-func (UnimplementedCoinNewsServiceHandler) ListNewFeed(context.Context, *connect.Request[v1.ListNewFeedRequest]) (*connect.Response[v1.ListNewFeedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("coinnews.v1.CoinNewsService.ListNewFeed is not implemented"))
+func (UnimplementedCoinNewsServiceHandler) ListNewFeed(context.Context, *v1.ListNewFeedRequest) (*v1.ListNewFeedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "coinnews.v1.CoinNewsService.ListNewFeed is not implemented")
 }
 
-func (UnimplementedCoinNewsServiceHandler) GetItem(context.Context, *connect.Request[v1.GetItemRequest]) (*connect.Response[v1.GetItemResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("coinnews.v1.CoinNewsService.GetItem is not implemented"))
+func (UnimplementedCoinNewsServiceHandler) GetItem(context.Context, *v1.GetItemRequest) (*v1.GetItemResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "coinnews.v1.CoinNewsService.GetItem is not implemented")
 }
 
-func (UnimplementedCoinNewsServiceHandler) ListThread(context.Context, *connect.Request[v1.ListThreadRequest]) (*connect.Response[v1.ListThreadResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("coinnews.v1.CoinNewsService.ListThread is not implemented"))
+func (UnimplementedCoinNewsServiceHandler) ListThread(context.Context, *v1.ListThreadRequest) (*v1.ListThreadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "coinnews.v1.CoinNewsService.ListThread is not implemented")
 }
 
-func (UnimplementedCoinNewsServiceHandler) ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("coinnews.v1.CoinNewsService.ListByAuthor is not implemented"))
+func (UnimplementedCoinNewsServiceHandler) ListByAuthor(context.Context, *v1.ListByAuthorRequest) (*v1.ListByAuthorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "coinnews.v1.CoinNewsService.ListByAuthor is not implemented")
 }
 
-func (UnimplementedCoinNewsServiceHandler) ListByTopic(context.Context, *connect.Request[v1.ListByTopicRequest]) (*connect.Response[v1.ListByTopicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("coinnews.v1.CoinNewsService.ListByTopic is not implemented"))
+func (UnimplementedCoinNewsServiceHandler) ListByTopic(context.Context, *v1.ListByTopicRequest) (*v1.ListByTopicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "coinnews.v1.CoinNewsService.ListByTopic is not implemented")
 }
 
-func (UnimplementedCoinNewsServiceHandler) ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("coinnews.v1.CoinNewsService.ListTopics is not implemented"))
+func (UnimplementedCoinNewsServiceHandler) ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "coinnews.v1.CoinNewsService.ListTopics is not implemented")
+}
+
+type coinNewsServiceClient struct {
+	client *connect.Client
+}
+
+func (c *coinNewsServiceClient) ListFrontPage(ctx context.Context, req *v1.ListFrontPageRequest) (*v1.ListFrontPageResponse, error) {
+	var res v1.ListFrontPageResponse
+	if err := c.client.CallUnary(ctx, coinNewsServiceListFrontPageSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coinNewsServiceClient) ListNewFeed(ctx context.Context, req *v1.ListNewFeedRequest) (*v1.ListNewFeedResponse, error) {
+	var res v1.ListNewFeedResponse
+	if err := c.client.CallUnary(ctx, coinNewsServiceListNewFeedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coinNewsServiceClient) GetItem(ctx context.Context, req *v1.GetItemRequest) (*v1.GetItemResponse, error) {
+	var res v1.GetItemResponse
+	if err := c.client.CallUnary(ctx, coinNewsServiceGetItemSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coinNewsServiceClient) ListThread(ctx context.Context, req *v1.ListThreadRequest) (*v1.ListThreadResponse, error) {
+	var res v1.ListThreadResponse
+	if err := c.client.CallUnary(ctx, coinNewsServiceListThreadSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coinNewsServiceClient) ListByAuthor(ctx context.Context, req *v1.ListByAuthorRequest) (*v1.ListByAuthorResponse, error) {
+	var res v1.ListByAuthorResponse
+	if err := c.client.CallUnary(ctx, coinNewsServiceListByAuthorSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coinNewsServiceClient) ListByTopic(ctx context.Context, req *v1.ListByTopicRequest) (*v1.ListByTopicResponse, error) {
+	var res v1.ListByTopicResponse
+	if err := c.client.CallUnary(ctx, coinNewsServiceListByTopicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coinNewsServiceClient) ListTopics(ctx context.Context, req *emptypb.Empty) (*v1.ListTopicsResponse, error) {
+	var res v1.ListTopicsResponse
+	if err := c.client.CallUnary(ctx, coinNewsServiceListTopicsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type coinNewsServiceHandler struct{ svc CoinNewsServiceHandler }
+
+func (h coinNewsServiceHandler) listFrontPage(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFrontPageRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFrontPage(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coinNewsServiceHandler) listNewFeed(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListNewFeedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListNewFeed(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coinNewsServiceHandler) getItem(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetItemRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetItem(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coinNewsServiceHandler) listThread(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListThreadRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListThread(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coinNewsServiceHandler) listByAuthor(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListByAuthorRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListByAuthor(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coinNewsServiceHandler) listByTopic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListByTopicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListByTopic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coinNewsServiceHandler) listTopics(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTopics(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

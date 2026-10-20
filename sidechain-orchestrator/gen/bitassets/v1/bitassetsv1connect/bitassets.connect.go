@@ -5,1563 +5,1822 @@
 package bitassetsv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BitAssetsServiceName is the fully-qualified name of the BitAssetsService service.
 	BitAssetsServiceName = "bitassets.v1.BitAssetsService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BitAssetsServiceGetBalanceProcedure is the fully-qualified name of the BitAssetsService's
-	// GetBalance RPC.
+	// BitAssetsServiceGetBalanceProcedure is the procedure name of the BitAssetsService's GetBalance
+	// RPC.
 	BitAssetsServiceGetBalanceProcedure = "/bitassets.v1.BitAssetsService/GetBalance"
-	// BitAssetsServiceGetBlockCountProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetBlockCountProcedure is the procedure name of the BitAssetsService's
 	// GetBlockCount RPC.
 	BitAssetsServiceGetBlockCountProcedure = "/bitassets.v1.BitAssetsService/GetBlockCount"
-	// BitAssetsServiceStopProcedure is the fully-qualified name of the BitAssetsService's Stop RPC.
+	// BitAssetsServiceStopProcedure is the procedure name of the BitAssetsService's Stop RPC.
 	BitAssetsServiceStopProcedure = "/bitassets.v1.BitAssetsService/Stop"
-	// BitAssetsServiceGetNewAddressProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetNewAddressProcedure is the procedure name of the BitAssetsService's
 	// GetNewAddress RPC.
 	BitAssetsServiceGetNewAddressProcedure = "/bitassets.v1.BitAssetsService/GetNewAddress"
-	// BitAssetsServiceWithdrawProcedure is the fully-qualified name of the BitAssetsService's Withdraw
-	// RPC.
+	// BitAssetsServiceWithdrawProcedure is the procedure name of the BitAssetsService's Withdraw RPC.
 	BitAssetsServiceWithdrawProcedure = "/bitassets.v1.BitAssetsService/Withdraw"
-	// BitAssetsServiceTransferProcedure is the fully-qualified name of the BitAssetsService's Transfer
-	// RPC.
+	// BitAssetsServiceTransferProcedure is the procedure name of the BitAssetsService's Transfer RPC.
 	BitAssetsServiceTransferProcedure = "/bitassets.v1.BitAssetsService/Transfer"
-	// BitAssetsServiceGetSidechainWealthProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetSidechainWealthProcedure is the procedure name of the BitAssetsService's
 	// GetSidechainWealth RPC.
 	BitAssetsServiceGetSidechainWealthProcedure = "/bitassets.v1.BitAssetsService/GetSidechainWealth"
-	// BitAssetsServiceCreateDepositProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceCreateDepositProcedure is the procedure name of the BitAssetsService's
 	// CreateDeposit RPC.
 	BitAssetsServiceCreateDepositProcedure = "/bitassets.v1.BitAssetsService/CreateDeposit"
-	// BitAssetsServiceGetPendingWithdrawalBundleProcedure is the fully-qualified name of the
+	// BitAssetsServiceGetPendingWithdrawalBundleProcedure is the procedure name of the
 	// BitAssetsService's GetPendingWithdrawalBundle RPC.
 	BitAssetsServiceGetPendingWithdrawalBundleProcedure = "/bitassets.v1.BitAssetsService/GetPendingWithdrawalBundle"
-	// BitAssetsServiceConnectPeerProcedure is the fully-qualified name of the BitAssetsService's
-	// ConnectPeer RPC.
-	BitAssetsServiceConnectPeerProcedure = "/bitassets.v1.BitAssetsService/ConnectPeer"
-	// BitAssetsServiceForgetPeerProcedure is the fully-qualified name of the BitAssetsService's
-	// ForgetPeer RPC.
-	BitAssetsServiceForgetPeerProcedure = "/bitassets.v1.BitAssetsService/ForgetPeer"
-	// BitAssetsServiceListPeersProcedure is the fully-qualified name of the BitAssetsService's
-	// ListPeers RPC.
-	BitAssetsServiceListPeersProcedure = "/bitassets.v1.BitAssetsService/ListPeers"
-	// BitAssetsServiceMineProcedure is the fully-qualified name of the BitAssetsService's Mine RPC.
-	BitAssetsServiceMineProcedure = "/bitassets.v1.BitAssetsService/Mine"
-	// BitAssetsServiceGetBlockProcedure is the fully-qualified name of the BitAssetsService's GetBlock
+	// BitAssetsServiceConnectPeerProcedure is the procedure name of the BitAssetsService's ConnectPeer
 	// RPC.
+	BitAssetsServiceConnectPeerProcedure = "/bitassets.v1.BitAssetsService/ConnectPeer"
+	// BitAssetsServiceForgetPeerProcedure is the procedure name of the BitAssetsService's ForgetPeer
+	// RPC.
+	BitAssetsServiceForgetPeerProcedure = "/bitassets.v1.BitAssetsService/ForgetPeer"
+	// BitAssetsServiceListPeersProcedure is the procedure name of the BitAssetsService's ListPeers RPC.
+	BitAssetsServiceListPeersProcedure = "/bitassets.v1.BitAssetsService/ListPeers"
+	// BitAssetsServiceMineProcedure is the procedure name of the BitAssetsService's Mine RPC.
+	BitAssetsServiceMineProcedure = "/bitassets.v1.BitAssetsService/Mine"
+	// BitAssetsServiceGetBlockProcedure is the procedure name of the BitAssetsService's GetBlock RPC.
 	BitAssetsServiceGetBlockProcedure = "/bitassets.v1.BitAssetsService/GetBlock"
-	// BitAssetsServiceGetBestMainchainBlockHashProcedure is the fully-qualified name of the
+	// BitAssetsServiceGetBestMainchainBlockHashProcedure is the procedure name of the
 	// BitAssetsService's GetBestMainchainBlockHash RPC.
 	BitAssetsServiceGetBestMainchainBlockHashProcedure = "/bitassets.v1.BitAssetsService/GetBestMainchainBlockHash"
-	// BitAssetsServiceGetBestSidechainBlockHashProcedure is the fully-qualified name of the
+	// BitAssetsServiceGetBestSidechainBlockHashProcedure is the procedure name of the
 	// BitAssetsService's GetBestSidechainBlockHash RPC.
 	BitAssetsServiceGetBestSidechainBlockHashProcedure = "/bitassets.v1.BitAssetsService/GetBestSidechainBlockHash"
-	// BitAssetsServiceGetBmmInclusionsProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetBmmInclusionsProcedure is the procedure name of the BitAssetsService's
 	// GetBmmInclusions RPC.
 	BitAssetsServiceGetBmmInclusionsProcedure = "/bitassets.v1.BitAssetsService/GetBmmInclusions"
-	// BitAssetsServiceGetWalletUtxosProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetWalletUtxosProcedure is the procedure name of the BitAssetsService's
 	// GetWalletUtxos RPC.
 	BitAssetsServiceGetWalletUtxosProcedure = "/bitassets.v1.BitAssetsService/GetWalletUtxos"
-	// BitAssetsServiceListUtxosProcedure is the fully-qualified name of the BitAssetsService's
-	// ListUtxos RPC.
+	// BitAssetsServiceListUtxosProcedure is the procedure name of the BitAssetsService's ListUtxos RPC.
 	BitAssetsServiceListUtxosProcedure = "/bitassets.v1.BitAssetsService/ListUtxos"
-	// BitAssetsServiceRemoveFromMempoolProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceRemoveFromMempoolProcedure is the procedure name of the BitAssetsService's
 	// RemoveFromMempool RPC.
 	BitAssetsServiceRemoveFromMempoolProcedure = "/bitassets.v1.BitAssetsService/RemoveFromMempool"
-	// BitAssetsServiceGetLatestFailedWithdrawalBundleHeightProcedure is the fully-qualified name of the
+	// BitAssetsServiceGetLatestFailedWithdrawalBundleHeightProcedure is the procedure name of the
 	// BitAssetsService's GetLatestFailedWithdrawalBundleHeight RPC.
 	BitAssetsServiceGetLatestFailedWithdrawalBundleHeightProcedure = "/bitassets.v1.BitAssetsService/GetLatestFailedWithdrawalBundleHeight"
-	// BitAssetsServiceGenerateMnemonicProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGenerateMnemonicProcedure is the procedure name of the BitAssetsService's
 	// GenerateMnemonic RPC.
 	BitAssetsServiceGenerateMnemonicProcedure = "/bitassets.v1.BitAssetsService/GenerateMnemonic"
-	// BitAssetsServiceSetSeedFromMnemonicProcedure is the fully-qualified name of the
-	// BitAssetsService's SetSeedFromMnemonic RPC.
+	// BitAssetsServiceSetSeedFromMnemonicProcedure is the procedure name of the BitAssetsService's
+	// SetSeedFromMnemonic RPC.
 	BitAssetsServiceSetSeedFromMnemonicProcedure = "/bitassets.v1.BitAssetsService/SetSeedFromMnemonic"
-	// BitAssetsServiceCallRawProcedure is the fully-qualified name of the BitAssetsService's CallRaw
-	// RPC.
+	// BitAssetsServiceCallRawProcedure is the procedure name of the BitAssetsService's CallRaw RPC.
 	BitAssetsServiceCallRawProcedure = "/bitassets.v1.BitAssetsService/CallRaw"
-	// BitAssetsServiceGetBitAssetDataProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetBitAssetDataProcedure is the procedure name of the BitAssetsService's
 	// GetBitAssetData RPC.
 	BitAssetsServiceGetBitAssetDataProcedure = "/bitassets.v1.BitAssetsService/GetBitAssetData"
-	// BitAssetsServiceListBitAssetsProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceListBitAssetsProcedure is the procedure name of the BitAssetsService's
 	// ListBitAssets RPC.
 	BitAssetsServiceListBitAssetsProcedure = "/bitassets.v1.BitAssetsService/ListBitAssets"
-	// BitAssetsServiceRegisterBitAssetProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceRegisterBitAssetProcedure is the procedure name of the BitAssetsService's
 	// RegisterBitAsset RPC.
 	BitAssetsServiceRegisterBitAssetProcedure = "/bitassets.v1.BitAssetsService/RegisterBitAsset"
-	// BitAssetsServiceReserveBitAssetProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceReserveBitAssetProcedure is the procedure name of the BitAssetsService's
 	// ReserveBitAsset RPC.
 	BitAssetsServiceReserveBitAssetProcedure = "/bitassets.v1.BitAssetsService/ReserveBitAsset"
-	// BitAssetsServiceTransferBitAssetProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceTransferBitAssetProcedure is the procedure name of the BitAssetsService's
 	// TransferBitAsset RPC.
 	BitAssetsServiceTransferBitAssetProcedure = "/bitassets.v1.BitAssetsService/TransferBitAsset"
-	// BitAssetsServiceGetNewEncryptionKeyProcedure is the fully-qualified name of the
-	// BitAssetsService's GetNewEncryptionKey RPC.
+	// BitAssetsServiceGetNewEncryptionKeyProcedure is the procedure name of the BitAssetsService's
+	// GetNewEncryptionKey RPC.
 	BitAssetsServiceGetNewEncryptionKeyProcedure = "/bitassets.v1.BitAssetsService/GetNewEncryptionKey"
-	// BitAssetsServiceGetNewVerifyingKeyProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetNewVerifyingKeyProcedure is the procedure name of the BitAssetsService's
 	// GetNewVerifyingKey RPC.
 	BitAssetsServiceGetNewVerifyingKeyProcedure = "/bitassets.v1.BitAssetsService/GetNewVerifyingKey"
-	// BitAssetsServiceDecryptMsgProcedure is the fully-qualified name of the BitAssetsService's
-	// DecryptMsg RPC.
+	// BitAssetsServiceDecryptMsgProcedure is the procedure name of the BitAssetsService's DecryptMsg
+	// RPC.
 	BitAssetsServiceDecryptMsgProcedure = "/bitassets.v1.BitAssetsService/DecryptMsg"
-	// BitAssetsServiceEncryptMsgProcedure is the fully-qualified name of the BitAssetsService's
-	// EncryptMsg RPC.
+	// BitAssetsServiceEncryptMsgProcedure is the procedure name of the BitAssetsService's EncryptMsg
+	// RPC.
 	BitAssetsServiceEncryptMsgProcedure = "/bitassets.v1.BitAssetsService/EncryptMsg"
-	// BitAssetsServiceSignArbitraryMsgProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceSignArbitraryMsgProcedure is the procedure name of the BitAssetsService's
 	// SignArbitraryMsg RPC.
 	BitAssetsServiceSignArbitraryMsgProcedure = "/bitassets.v1.BitAssetsService/SignArbitraryMsg"
-	// BitAssetsServiceSignArbitraryMsgAsAddrProcedure is the fully-qualified name of the
-	// BitAssetsService's SignArbitraryMsgAsAddr RPC.
+	// BitAssetsServiceSignArbitraryMsgAsAddrProcedure is the procedure name of the BitAssetsService's
+	// SignArbitraryMsgAsAddr RPC.
 	BitAssetsServiceSignArbitraryMsgAsAddrProcedure = "/bitassets.v1.BitAssetsService/SignArbitraryMsgAsAddr"
-	// BitAssetsServiceVerifySignatureProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceVerifySignatureProcedure is the procedure name of the BitAssetsService's
 	// VerifySignature RPC.
 	BitAssetsServiceVerifySignatureProcedure = "/bitassets.v1.BitAssetsService/VerifySignature"
-	// BitAssetsServiceGetWalletAddressesProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetWalletAddressesProcedure is the procedure name of the BitAssetsService's
 	// GetWalletAddresses RPC.
 	BitAssetsServiceGetWalletAddressesProcedure = "/bitassets.v1.BitAssetsService/GetWalletAddresses"
-	// BitAssetsServiceMyUnconfirmedUtxosProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceMyUnconfirmedUtxosProcedure is the procedure name of the BitAssetsService's
 	// MyUnconfirmedUtxos RPC.
 	BitAssetsServiceMyUnconfirmedUtxosProcedure = "/bitassets.v1.BitAssetsService/MyUnconfirmedUtxos"
-	// BitAssetsServiceOpenapiSchemaProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceOpenapiSchemaProcedure is the procedure name of the BitAssetsService's
 	// OpenapiSchema RPC.
 	BitAssetsServiceOpenapiSchemaProcedure = "/bitassets.v1.BitAssetsService/OpenapiSchema"
-	// BitAssetsServiceAmmBurnProcedure is the fully-qualified name of the BitAssetsService's AmmBurn
-	// RPC.
+	// BitAssetsServiceAmmBurnProcedure is the procedure name of the BitAssetsService's AmmBurn RPC.
 	BitAssetsServiceAmmBurnProcedure = "/bitassets.v1.BitAssetsService/AmmBurn"
-	// BitAssetsServiceAmmMintProcedure is the fully-qualified name of the BitAssetsService's AmmMint
-	// RPC.
+	// BitAssetsServiceAmmMintProcedure is the procedure name of the BitAssetsService's AmmMint RPC.
 	BitAssetsServiceAmmMintProcedure = "/bitassets.v1.BitAssetsService/AmmMint"
-	// BitAssetsServiceAmmSwapProcedure is the fully-qualified name of the BitAssetsService's AmmSwap
-	// RPC.
+	// BitAssetsServiceAmmSwapProcedure is the procedure name of the BitAssetsService's AmmSwap RPC.
 	BitAssetsServiceAmmSwapProcedure = "/bitassets.v1.BitAssetsService/AmmSwap"
-	// BitAssetsServiceGetAmmPoolStateProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceGetAmmPoolStateProcedure is the procedure name of the BitAssetsService's
 	// GetAmmPoolState RPC.
 	BitAssetsServiceGetAmmPoolStateProcedure = "/bitassets.v1.BitAssetsService/GetAmmPoolState"
-	// BitAssetsServiceGetAmmPriceProcedure is the fully-qualified name of the BitAssetsService's
-	// GetAmmPrice RPC.
+	// BitAssetsServiceGetAmmPriceProcedure is the procedure name of the BitAssetsService's GetAmmPrice
+	// RPC.
 	BitAssetsServiceGetAmmPriceProcedure = "/bitassets.v1.BitAssetsService/GetAmmPrice"
-	// BitAssetsServiceDutchAuctionBidProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceDutchAuctionBidProcedure is the procedure name of the BitAssetsService's
 	// DutchAuctionBid RPC.
 	BitAssetsServiceDutchAuctionBidProcedure = "/bitassets.v1.BitAssetsService/DutchAuctionBid"
-	// BitAssetsServiceDutchAuctionCollectProcedure is the fully-qualified name of the
-	// BitAssetsService's DutchAuctionCollect RPC.
+	// BitAssetsServiceDutchAuctionCollectProcedure is the procedure name of the BitAssetsService's
+	// DutchAuctionCollect RPC.
 	BitAssetsServiceDutchAuctionCollectProcedure = "/bitassets.v1.BitAssetsService/DutchAuctionCollect"
-	// BitAssetsServiceDutchAuctionCreateProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceDutchAuctionCreateProcedure is the procedure name of the BitAssetsService's
 	// DutchAuctionCreate RPC.
 	BitAssetsServiceDutchAuctionCreateProcedure = "/bitassets.v1.BitAssetsService/DutchAuctionCreate"
-	// BitAssetsServiceDutchAuctionsProcedure is the fully-qualified name of the BitAssetsService's
+	// BitAssetsServiceDutchAuctionsProcedure is the procedure name of the BitAssetsService's
 	// DutchAuctions RPC.
 	BitAssetsServiceDutchAuctionsProcedure = "/bitassets.v1.BitAssetsService/DutchAuctions"
 )
 
+var (
+	bitAssetsServiceGetBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetBalance"),
+			Procedure:  BitAssetsServiceGetBalanceProcedure,
+		}
+	})
+	bitAssetsServiceGetBlockCountSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetBlockCount"),
+			Procedure:  BitAssetsServiceGetBlockCountProcedure,
+		}
+	})
+	bitAssetsServiceStopSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("Stop"),
+			Procedure:  BitAssetsServiceStopProcedure,
+		}
+	})
+	bitAssetsServiceGetNewAddressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetNewAddress"),
+			Procedure:  BitAssetsServiceGetNewAddressProcedure,
+		}
+	})
+	bitAssetsServiceWithdrawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("Withdraw"),
+			Procedure:  BitAssetsServiceWithdrawProcedure,
+		}
+	})
+	bitAssetsServiceTransferSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("Transfer"),
+			Procedure:  BitAssetsServiceTransferProcedure,
+		}
+	})
+	bitAssetsServiceGetSidechainWealthSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetSidechainWealth"),
+			Procedure:  BitAssetsServiceGetSidechainWealthProcedure,
+		}
+	})
+	bitAssetsServiceCreateDepositSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("CreateDeposit"),
+			Procedure:  BitAssetsServiceCreateDepositProcedure,
+		}
+	})
+	bitAssetsServiceGetPendingWithdrawalBundleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetPendingWithdrawalBundle"),
+			Procedure:  BitAssetsServiceGetPendingWithdrawalBundleProcedure,
+		}
+	})
+	bitAssetsServiceConnectPeerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("ConnectPeer"),
+			Procedure:  BitAssetsServiceConnectPeerProcedure,
+		}
+	})
+	bitAssetsServiceForgetPeerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("ForgetPeer"),
+			Procedure:  BitAssetsServiceForgetPeerProcedure,
+		}
+	})
+	bitAssetsServiceListPeersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("ListPeers"),
+			Procedure:  BitAssetsServiceListPeersProcedure,
+		}
+	})
+	bitAssetsServiceMineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("Mine"),
+			Procedure:  BitAssetsServiceMineProcedure,
+		}
+	})
+	bitAssetsServiceGetBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetBlock"),
+			Procedure:  BitAssetsServiceGetBlockProcedure,
+		}
+	})
+	bitAssetsServiceGetBestMainchainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetBestMainchainBlockHash"),
+			Procedure:  BitAssetsServiceGetBestMainchainBlockHashProcedure,
+		}
+	})
+	bitAssetsServiceGetBestSidechainBlockHashSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetBestSidechainBlockHash"),
+			Procedure:  BitAssetsServiceGetBestSidechainBlockHashProcedure,
+		}
+	})
+	bitAssetsServiceGetBmmInclusionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetBmmInclusions"),
+			Procedure:  BitAssetsServiceGetBmmInclusionsProcedure,
+		}
+	})
+	bitAssetsServiceGetWalletUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetWalletUtxos"),
+			Procedure:  BitAssetsServiceGetWalletUtxosProcedure,
+		}
+	})
+	bitAssetsServiceListUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("ListUtxos"),
+			Procedure:  BitAssetsServiceListUtxosProcedure,
+		}
+	})
+	bitAssetsServiceRemoveFromMempoolSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("RemoveFromMempool"),
+			Procedure:  BitAssetsServiceRemoveFromMempoolProcedure,
+		}
+	})
+	bitAssetsServiceGetLatestFailedWithdrawalBundleHeightSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetLatestFailedWithdrawalBundleHeight"),
+			Procedure:  BitAssetsServiceGetLatestFailedWithdrawalBundleHeightProcedure,
+		}
+	})
+	bitAssetsServiceGenerateMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GenerateMnemonic"),
+			Procedure:  BitAssetsServiceGenerateMnemonicProcedure,
+		}
+	})
+	bitAssetsServiceSetSeedFromMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("SetSeedFromMnemonic"),
+			Procedure:  BitAssetsServiceSetSeedFromMnemonicProcedure,
+		}
+	})
+	bitAssetsServiceCallRawSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("CallRaw"),
+			Procedure:  BitAssetsServiceCallRawProcedure,
+		}
+	})
+	bitAssetsServiceGetBitAssetDataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetBitAssetData"),
+			Procedure:  BitAssetsServiceGetBitAssetDataProcedure,
+		}
+	})
+	bitAssetsServiceListBitAssetsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("ListBitAssets"),
+			Procedure:  BitAssetsServiceListBitAssetsProcedure,
+		}
+	})
+	bitAssetsServiceRegisterBitAssetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("RegisterBitAsset"),
+			Procedure:  BitAssetsServiceRegisterBitAssetProcedure,
+		}
+	})
+	bitAssetsServiceReserveBitAssetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("ReserveBitAsset"),
+			Procedure:  BitAssetsServiceReserveBitAssetProcedure,
+		}
+	})
+	bitAssetsServiceTransferBitAssetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("TransferBitAsset"),
+			Procedure:  BitAssetsServiceTransferBitAssetProcedure,
+		}
+	})
+	bitAssetsServiceGetNewEncryptionKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetNewEncryptionKey"),
+			Procedure:  BitAssetsServiceGetNewEncryptionKeyProcedure,
+		}
+	})
+	bitAssetsServiceGetNewVerifyingKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetNewVerifyingKey"),
+			Procedure:  BitAssetsServiceGetNewVerifyingKeyProcedure,
+		}
+	})
+	bitAssetsServiceDecryptMsgSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("DecryptMsg"),
+			Procedure:  BitAssetsServiceDecryptMsgProcedure,
+		}
+	})
+	bitAssetsServiceEncryptMsgSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("EncryptMsg"),
+			Procedure:  BitAssetsServiceEncryptMsgProcedure,
+		}
+	})
+	bitAssetsServiceSignArbitraryMsgSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("SignArbitraryMsg"),
+			Procedure:  BitAssetsServiceSignArbitraryMsgProcedure,
+		}
+	})
+	bitAssetsServiceSignArbitraryMsgAsAddrSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("SignArbitraryMsgAsAddr"),
+			Procedure:  BitAssetsServiceSignArbitraryMsgAsAddrProcedure,
+		}
+	})
+	bitAssetsServiceVerifySignatureSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("VerifySignature"),
+			Procedure:  BitAssetsServiceVerifySignatureProcedure,
+		}
+	})
+	bitAssetsServiceGetWalletAddressesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetWalletAddresses"),
+			Procedure:  BitAssetsServiceGetWalletAddressesProcedure,
+		}
+	})
+	bitAssetsServiceMyUnconfirmedUtxosSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("MyUnconfirmedUtxos"),
+			Procedure:  BitAssetsServiceMyUnconfirmedUtxosProcedure,
+		}
+	})
+	bitAssetsServiceOpenapiSchemaSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("OpenapiSchema"),
+			Procedure:  BitAssetsServiceOpenapiSchemaProcedure,
+		}
+	})
+	bitAssetsServiceAmmBurnSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("AmmBurn"),
+			Procedure:  BitAssetsServiceAmmBurnProcedure,
+		}
+	})
+	bitAssetsServiceAmmMintSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("AmmMint"),
+			Procedure:  BitAssetsServiceAmmMintProcedure,
+		}
+	})
+	bitAssetsServiceAmmSwapSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("AmmSwap"),
+			Procedure:  BitAssetsServiceAmmSwapProcedure,
+		}
+	})
+	bitAssetsServiceGetAmmPoolStateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetAmmPoolState"),
+			Procedure:  BitAssetsServiceGetAmmPoolStateProcedure,
+		}
+	})
+	bitAssetsServiceGetAmmPriceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("GetAmmPrice"),
+			Procedure:  BitAssetsServiceGetAmmPriceProcedure,
+		}
+	})
+	bitAssetsServiceDutchAuctionBidSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("DutchAuctionBid"),
+			Procedure:  BitAssetsServiceDutchAuctionBidProcedure,
+		}
+	})
+	bitAssetsServiceDutchAuctionCollectSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("DutchAuctionCollect"),
+			Procedure:  BitAssetsServiceDutchAuctionCollectProcedure,
+		}
+	})
+	bitAssetsServiceDutchAuctionCreateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("DutchAuctionCreate"),
+			Procedure:  BitAssetsServiceDutchAuctionCreateProcedure,
+		}
+	})
+	bitAssetsServiceDutchAuctionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods().ByName("DutchAuctions"),
+			Procedure:  BitAssetsServiceDutchAuctionsProcedure,
+		}
+	})
+)
+
 // BitAssetsServiceClient is a client for the bitassets.v1.BitAssetsService service.
 type BitAssetsServiceClient interface {
-	// Get wallet balance (total and available).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the bitassets node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain.
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// Forget a peer.
-	ForgetPeer(context.Context, *connect.Request[v1.ForgetPeerRequest]) (*connect.Response[v1.ForgetPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Get BitAsset data by asset ID.
-	GetBitAssetData(context.Context, *connect.Request[v1.GetBitAssetDataRequest]) (*connect.Response[v1.GetBitAssetDataResponse], error)
-	// List all BitAssets.
-	ListBitAssets(context.Context, *connect.Request[v1.ListBitAssetsRequest]) (*connect.Response[v1.ListBitAssetsResponse], error)
-	// Register a BitAsset.
-	RegisterBitAsset(context.Context, *connect.Request[v1.RegisterBitAssetRequest]) (*connect.Response[v1.RegisterBitAssetResponse], error)
-	// Reserve a BitAsset.
-	ReserveBitAsset(context.Context, *connect.Request[v1.ReserveBitAssetRequest]) (*connect.Response[v1.ReserveBitAssetResponse], error)
-	// Transfer a BitAsset token.
-	TransferBitAsset(context.Context, *connect.Request[v1.TransferBitAssetRequest]) (*connect.Response[v1.TransferBitAssetResponse], error)
-	// Get a new encryption key.
-	GetNewEncryptionKey(context.Context, *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error)
-	// Get a new verifying key.
-	GetNewVerifyingKey(context.Context, *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error)
-	// Decrypt a message.
-	DecryptMsg(context.Context, *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error)
-	// Encrypt a message.
-	EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error)
-	// Sign an arbitrary message with the specified verifying key.
-	SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error)
-	// Sign an arbitrary message as a specific address.
-	SignArbitraryMsgAsAddr(context.Context, *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error)
-	// Verify a signature.
-	VerifySignature(context.Context, *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error)
-	// Get wallet addresses.
-	GetWalletAddresses(context.Context, *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error)
-	// List unconfirmed owned UTXOs.
-	MyUnconfirmedUtxos(context.Context, *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error)
-	// Get OpenAPI schema.
-	OpenapiSchema(context.Context, *connect.Request[v1.OpenapiSchemaRequest]) (*connect.Response[v1.OpenapiSchemaResponse], error)
-	// Burn an AMM position.
-	AmmBurn(context.Context, *connect.Request[v1.AmmBurnRequest]) (*connect.Response[v1.AmmBurnResponse], error)
-	// Mint an AMM position.
-	AmmMint(context.Context, *connect.Request[v1.AmmMintRequest]) (*connect.Response[v1.AmmMintResponse], error)
-	// AMM swap.
-	AmmSwap(context.Context, *connect.Request[v1.AmmSwapRequest]) (*connect.Response[v1.AmmSwapResponse], error)
-	// Get the state of the specified AMM pool.
-	GetAmmPoolState(context.Context, *connect.Request[v1.GetAmmPoolStateRequest]) (*connect.Response[v1.GetAmmPoolStateResponse], error)
-	// Get the current price for the specified pair.
-	GetAmmPrice(context.Context, *connect.Request[v1.GetAmmPriceRequest]) (*connect.Response[v1.GetAmmPriceResponse], error)
-	// Bid on a dutch auction.
-	DutchAuctionBid(context.Context, *connect.Request[v1.DutchAuctionBidRequest]) (*connect.Response[v1.DutchAuctionBidResponse], error)
-	// Collect from a dutch auction.
-	DutchAuctionCollect(context.Context, *connect.Request[v1.DutchAuctionCollectRequest]) (*connect.Response[v1.DutchAuctionCollectResponse], error)
-	// Create a dutch auction.
-	DutchAuctionCreate(context.Context, *connect.Request[v1.DutchAuctionCreateRequest]) (*connect.Response[v1.DutchAuctionCreateResponse], error)
-	// List all dutch auctions.
-	DutchAuctions(context.Context, *connect.Request[v1.DutchAuctionsRequest]) (*connect.Response[v1.DutchAuctionsResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ForgetPeer(context.Context, *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	GetBitAssetData(context.Context, *v1.GetBitAssetDataRequest) (*v1.GetBitAssetDataResponse, error)
+	ListBitAssets(context.Context, *v1.ListBitAssetsRequest) (*v1.ListBitAssetsResponse, error)
+	RegisterBitAsset(context.Context, *v1.RegisterBitAssetRequest) (*v1.RegisterBitAssetResponse, error)
+	ReserveBitAsset(context.Context, *v1.ReserveBitAssetRequest) (*v1.ReserveBitAssetResponse, error)
+	TransferBitAsset(context.Context, *v1.TransferBitAssetRequest) (*v1.TransferBitAssetResponse, error)
+	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
+	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	OpenapiSchema(context.Context, *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error)
+	AmmBurn(context.Context, *v1.AmmBurnRequest) (*v1.AmmBurnResponse, error)
+	AmmMint(context.Context, *v1.AmmMintRequest) (*v1.AmmMintResponse, error)
+	AmmSwap(context.Context, *v1.AmmSwapRequest) (*v1.AmmSwapResponse, error)
+	GetAmmPoolState(context.Context, *v1.GetAmmPoolStateRequest) (*v1.GetAmmPoolStateResponse, error)
+	GetAmmPrice(context.Context, *v1.GetAmmPriceRequest) (*v1.GetAmmPriceResponse, error)
+	DutchAuctionBid(context.Context, *v1.DutchAuctionBidRequest) (*v1.DutchAuctionBidResponse, error)
+	DutchAuctionCollect(context.Context, *v1.DutchAuctionCollectRequest) (*v1.DutchAuctionCollectResponse, error)
+	DutchAuctionCreate(context.Context, *v1.DutchAuctionCreateRequest) (*v1.DutchAuctionCreateResponse, error)
+	DutchAuctions(context.Context, *v1.DutchAuctionsRequest) (*v1.DutchAuctionsResponse, error)
 }
 
-// NewBitAssetsServiceClient constructs a client for the bitassets.v1.BitAssetsService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewBitAssetsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BitAssetsServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	bitAssetsServiceMethods := v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods()
-	return &bitAssetsServiceClient{
-		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetBalanceProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetBalance")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlockCount: connect.NewClient[v1.GetBlockCountRequest, v1.GetBlockCountResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetBlockCountProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetBlockCount")),
-			connect.WithClientOptions(opts...),
-		),
-		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
-			httpClient,
-			baseURL+BitAssetsServiceStopProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetNewAddressProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetNewAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		withdraw: connect.NewClient[v1.WithdrawRequest, v1.WithdrawResponse](
-			httpClient,
-			baseURL+BitAssetsServiceWithdrawProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("Withdraw")),
-			connect.WithClientOptions(opts...),
-		),
-		transfer: connect.NewClient[v1.TransferRequest, v1.TransferResponse](
-			httpClient,
-			baseURL+BitAssetsServiceTransferProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("Transfer")),
-			connect.WithClientOptions(opts...),
-		),
-		getSidechainWealth: connect.NewClient[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetSidechainWealthProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetSidechainWealth")),
-			connect.WithClientOptions(opts...),
-		),
-		createDeposit: connect.NewClient[v1.CreateDepositRequest, v1.CreateDepositResponse](
-			httpClient,
-			baseURL+BitAssetsServiceCreateDepositProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("CreateDeposit")),
-			connect.WithClientOptions(opts...),
-		),
-		getPendingWithdrawalBundle: connect.NewClient[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetPendingWithdrawalBundleProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetPendingWithdrawalBundle")),
-			connect.WithClientOptions(opts...),
-		),
-		connectPeer: connect.NewClient[v1.ConnectPeerRequest, v1.ConnectPeerResponse](
-			httpClient,
-			baseURL+BitAssetsServiceConnectPeerProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("ConnectPeer")),
-			connect.WithClientOptions(opts...),
-		),
-		forgetPeer: connect.NewClient[v1.ForgetPeerRequest, v1.ForgetPeerResponse](
-			httpClient,
-			baseURL+BitAssetsServiceForgetPeerProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("ForgetPeer")),
-			connect.WithClientOptions(opts...),
-		),
-		listPeers: connect.NewClient[v1.ListPeersRequest, v1.ListPeersResponse](
-			httpClient,
-			baseURL+BitAssetsServiceListPeersProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("ListPeers")),
-			connect.WithClientOptions(opts...),
-		),
-		mine: connect.NewClient[v1.MineRequest, v1.MineResponse](
-			httpClient,
-			baseURL+BitAssetsServiceMineProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("Mine")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetBlockProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestMainchainBlockHash: connect.NewClient[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetBestMainchainBlockHashProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetBestMainchainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBestSidechainBlockHash: connect.NewClient[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetBestSidechainBlockHashProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetBestSidechainBlockHash")),
-			connect.WithClientOptions(opts...),
-		),
-		getBmmInclusions: connect.NewClient[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetBmmInclusionsProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetBmmInclusions")),
-			connect.WithClientOptions(opts...),
-		),
-		getWalletUtxos: connect.NewClient[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetWalletUtxosProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetWalletUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		listUtxos: connect.NewClient[v1.ListUtxosRequest, v1.ListUtxosResponse](
-			httpClient,
-			baseURL+BitAssetsServiceListUtxosProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("ListUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		removeFromMempool: connect.NewClient[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse](
-			httpClient,
-			baseURL+BitAssetsServiceRemoveFromMempoolProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("RemoveFromMempool")),
-			connect.WithClientOptions(opts...),
-		),
-		getLatestFailedWithdrawalBundleHeight: connect.NewClient[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-			connect.WithClientOptions(opts...),
-		),
-		generateMnemonic: connect.NewClient[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGenerateMnemonicProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GenerateMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		setSeedFromMnemonic: connect.NewClient[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse](
-			httpClient,
-			baseURL+BitAssetsServiceSetSeedFromMnemonicProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("SetSeedFromMnemonic")),
-			connect.WithClientOptions(opts...),
-		),
-		callRaw: connect.NewClient[v1.CallRawRequest, v1.CallRawResponse](
-			httpClient,
-			baseURL+BitAssetsServiceCallRawProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("CallRaw")),
-			connect.WithClientOptions(opts...),
-		),
-		getBitAssetData: connect.NewClient[v1.GetBitAssetDataRequest, v1.GetBitAssetDataResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetBitAssetDataProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetBitAssetData")),
-			connect.WithClientOptions(opts...),
-		),
-		listBitAssets: connect.NewClient[v1.ListBitAssetsRequest, v1.ListBitAssetsResponse](
-			httpClient,
-			baseURL+BitAssetsServiceListBitAssetsProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("ListBitAssets")),
-			connect.WithClientOptions(opts...),
-		),
-		registerBitAsset: connect.NewClient[v1.RegisterBitAssetRequest, v1.RegisterBitAssetResponse](
-			httpClient,
-			baseURL+BitAssetsServiceRegisterBitAssetProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("RegisterBitAsset")),
-			connect.WithClientOptions(opts...),
-		),
-		reserveBitAsset: connect.NewClient[v1.ReserveBitAssetRequest, v1.ReserveBitAssetResponse](
-			httpClient,
-			baseURL+BitAssetsServiceReserveBitAssetProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("ReserveBitAsset")),
-			connect.WithClientOptions(opts...),
-		),
-		transferBitAsset: connect.NewClient[v1.TransferBitAssetRequest, v1.TransferBitAssetResponse](
-			httpClient,
-			baseURL+BitAssetsServiceTransferBitAssetProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("TransferBitAsset")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewEncryptionKey: connect.NewClient[v1.GetNewEncryptionKeyRequest, v1.GetNewEncryptionKeyResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetNewEncryptionKeyProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetNewEncryptionKey")),
-			connect.WithClientOptions(opts...),
-		),
-		getNewVerifyingKey: connect.NewClient[v1.GetNewVerifyingKeyRequest, v1.GetNewVerifyingKeyResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetNewVerifyingKeyProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetNewVerifyingKey")),
-			connect.WithClientOptions(opts...),
-		),
-		decryptMsg: connect.NewClient[v1.DecryptMsgRequest, v1.DecryptMsgResponse](
-			httpClient,
-			baseURL+BitAssetsServiceDecryptMsgProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("DecryptMsg")),
-			connect.WithClientOptions(opts...),
-		),
-		encryptMsg: connect.NewClient[v1.EncryptMsgRequest, v1.EncryptMsgResponse](
-			httpClient,
-			baseURL+BitAssetsServiceEncryptMsgProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("EncryptMsg")),
-			connect.WithClientOptions(opts...),
-		),
-		signArbitraryMsg: connect.NewClient[v1.SignArbitraryMsgRequest, v1.SignArbitraryMsgResponse](
-			httpClient,
-			baseURL+BitAssetsServiceSignArbitraryMsgProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("SignArbitraryMsg")),
-			connect.WithClientOptions(opts...),
-		),
-		signArbitraryMsgAsAddr: connect.NewClient[v1.SignArbitraryMsgAsAddrRequest, v1.SignArbitraryMsgAsAddrResponse](
-			httpClient,
-			baseURL+BitAssetsServiceSignArbitraryMsgAsAddrProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("SignArbitraryMsgAsAddr")),
-			connect.WithClientOptions(opts...),
-		),
-		verifySignature: connect.NewClient[v1.VerifySignatureRequest, v1.VerifySignatureResponse](
-			httpClient,
-			baseURL+BitAssetsServiceVerifySignatureProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("VerifySignature")),
-			connect.WithClientOptions(opts...),
-		),
-		getWalletAddresses: connect.NewClient[v1.GetWalletAddressesRequest, v1.GetWalletAddressesResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetWalletAddressesProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetWalletAddresses")),
-			connect.WithClientOptions(opts...),
-		),
-		myUnconfirmedUtxos: connect.NewClient[v1.MyUnconfirmedUtxosRequest, v1.MyUnconfirmedUtxosResponse](
-			httpClient,
-			baseURL+BitAssetsServiceMyUnconfirmedUtxosProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("MyUnconfirmedUtxos")),
-			connect.WithClientOptions(opts...),
-		),
-		openapiSchema: connect.NewClient[v1.OpenapiSchemaRequest, v1.OpenapiSchemaResponse](
-			httpClient,
-			baseURL+BitAssetsServiceOpenapiSchemaProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("OpenapiSchema")),
-			connect.WithClientOptions(opts...),
-		),
-		ammBurn: connect.NewClient[v1.AmmBurnRequest, v1.AmmBurnResponse](
-			httpClient,
-			baseURL+BitAssetsServiceAmmBurnProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("AmmBurn")),
-			connect.WithClientOptions(opts...),
-		),
-		ammMint: connect.NewClient[v1.AmmMintRequest, v1.AmmMintResponse](
-			httpClient,
-			baseURL+BitAssetsServiceAmmMintProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("AmmMint")),
-			connect.WithClientOptions(opts...),
-		),
-		ammSwap: connect.NewClient[v1.AmmSwapRequest, v1.AmmSwapResponse](
-			httpClient,
-			baseURL+BitAssetsServiceAmmSwapProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("AmmSwap")),
-			connect.WithClientOptions(opts...),
-		),
-		getAmmPoolState: connect.NewClient[v1.GetAmmPoolStateRequest, v1.GetAmmPoolStateResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetAmmPoolStateProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetAmmPoolState")),
-			connect.WithClientOptions(opts...),
-		),
-		getAmmPrice: connect.NewClient[v1.GetAmmPriceRequest, v1.GetAmmPriceResponse](
-			httpClient,
-			baseURL+BitAssetsServiceGetAmmPriceProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("GetAmmPrice")),
-			connect.WithClientOptions(opts...),
-		),
-		dutchAuctionBid: connect.NewClient[v1.DutchAuctionBidRequest, v1.DutchAuctionBidResponse](
-			httpClient,
-			baseURL+BitAssetsServiceDutchAuctionBidProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctionBid")),
-			connect.WithClientOptions(opts...),
-		),
-		dutchAuctionCollect: connect.NewClient[v1.DutchAuctionCollectRequest, v1.DutchAuctionCollectResponse](
-			httpClient,
-			baseURL+BitAssetsServiceDutchAuctionCollectProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctionCollect")),
-			connect.WithClientOptions(opts...),
-		),
-		dutchAuctionCreate: connect.NewClient[v1.DutchAuctionCreateRequest, v1.DutchAuctionCreateResponse](
-			httpClient,
-			baseURL+BitAssetsServiceDutchAuctionCreateProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctionCreate")),
-			connect.WithClientOptions(opts...),
-		),
-		dutchAuctions: connect.NewClient[v1.DutchAuctionsRequest, v1.DutchAuctionsResponse](
-			httpClient,
-			baseURL+BitAssetsServiceDutchAuctionsProcedure,
-			connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctions")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// bitAssetsServiceClient implements BitAssetsServiceClient.
-type bitAssetsServiceClient struct {
-	getBalance                            *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
-	getBlockCount                         *connect.Client[v1.GetBlockCountRequest, v1.GetBlockCountResponse]
-	stop                                  *connect.Client[v1.StopRequest, v1.StopResponse]
-	getNewAddress                         *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
-	withdraw                              *connect.Client[v1.WithdrawRequest, v1.WithdrawResponse]
-	transfer                              *connect.Client[v1.TransferRequest, v1.TransferResponse]
-	getSidechainWealth                    *connect.Client[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse]
-	createDeposit                         *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
-	getPendingWithdrawalBundle            *connect.Client[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse]
-	connectPeer                           *connect.Client[v1.ConnectPeerRequest, v1.ConnectPeerResponse]
-	forgetPeer                            *connect.Client[v1.ForgetPeerRequest, v1.ForgetPeerResponse]
-	listPeers                             *connect.Client[v1.ListPeersRequest, v1.ListPeersResponse]
-	mine                                  *connect.Client[v1.MineRequest, v1.MineResponse]
-	getBlock                              *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	getBestMainchainBlockHash             *connect.Client[v1.GetBestMainchainBlockHashRequest, v1.GetBestMainchainBlockHashResponse]
-	getBestSidechainBlockHash             *connect.Client[v1.GetBestSidechainBlockHashRequest, v1.GetBestSidechainBlockHashResponse]
-	getBmmInclusions                      *connect.Client[v1.GetBmmInclusionsRequest, v1.GetBmmInclusionsResponse]
-	getWalletUtxos                        *connect.Client[v1.GetWalletUtxosRequest, v1.GetWalletUtxosResponse]
-	listUtxos                             *connect.Client[v1.ListUtxosRequest, v1.ListUtxosResponse]
-	removeFromMempool                     *connect.Client[v1.RemoveFromMempoolRequest, v1.RemoveFromMempoolResponse]
-	getLatestFailedWithdrawalBundleHeight *connect.Client[v1.GetLatestFailedWithdrawalBundleHeightRequest, v1.GetLatestFailedWithdrawalBundleHeightResponse]
-	generateMnemonic                      *connect.Client[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse]
-	setSeedFromMnemonic                   *connect.Client[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse]
-	callRaw                               *connect.Client[v1.CallRawRequest, v1.CallRawResponse]
-	getBitAssetData                       *connect.Client[v1.GetBitAssetDataRequest, v1.GetBitAssetDataResponse]
-	listBitAssets                         *connect.Client[v1.ListBitAssetsRequest, v1.ListBitAssetsResponse]
-	registerBitAsset                      *connect.Client[v1.RegisterBitAssetRequest, v1.RegisterBitAssetResponse]
-	reserveBitAsset                       *connect.Client[v1.ReserveBitAssetRequest, v1.ReserveBitAssetResponse]
-	transferBitAsset                      *connect.Client[v1.TransferBitAssetRequest, v1.TransferBitAssetResponse]
-	getNewEncryptionKey                   *connect.Client[v1.GetNewEncryptionKeyRequest, v1.GetNewEncryptionKeyResponse]
-	getNewVerifyingKey                    *connect.Client[v1.GetNewVerifyingKeyRequest, v1.GetNewVerifyingKeyResponse]
-	decryptMsg                            *connect.Client[v1.DecryptMsgRequest, v1.DecryptMsgResponse]
-	encryptMsg                            *connect.Client[v1.EncryptMsgRequest, v1.EncryptMsgResponse]
-	signArbitraryMsg                      *connect.Client[v1.SignArbitraryMsgRequest, v1.SignArbitraryMsgResponse]
-	signArbitraryMsgAsAddr                *connect.Client[v1.SignArbitraryMsgAsAddrRequest, v1.SignArbitraryMsgAsAddrResponse]
-	verifySignature                       *connect.Client[v1.VerifySignatureRequest, v1.VerifySignatureResponse]
-	getWalletAddresses                    *connect.Client[v1.GetWalletAddressesRequest, v1.GetWalletAddressesResponse]
-	myUnconfirmedUtxos                    *connect.Client[v1.MyUnconfirmedUtxosRequest, v1.MyUnconfirmedUtxosResponse]
-	openapiSchema                         *connect.Client[v1.OpenapiSchemaRequest, v1.OpenapiSchemaResponse]
-	ammBurn                               *connect.Client[v1.AmmBurnRequest, v1.AmmBurnResponse]
-	ammMint                               *connect.Client[v1.AmmMintRequest, v1.AmmMintResponse]
-	ammSwap                               *connect.Client[v1.AmmSwapRequest, v1.AmmSwapResponse]
-	getAmmPoolState                       *connect.Client[v1.GetAmmPoolStateRequest, v1.GetAmmPoolStateResponse]
-	getAmmPrice                           *connect.Client[v1.GetAmmPriceRequest, v1.GetAmmPriceResponse]
-	dutchAuctionBid                       *connect.Client[v1.DutchAuctionBidRequest, v1.DutchAuctionBidResponse]
-	dutchAuctionCollect                   *connect.Client[v1.DutchAuctionCollectRequest, v1.DutchAuctionCollectResponse]
-	dutchAuctionCreate                    *connect.Client[v1.DutchAuctionCreateRequest, v1.DutchAuctionCreateResponse]
-	dutchAuctions                         *connect.Client[v1.DutchAuctionsRequest, v1.DutchAuctionsResponse]
-}
-
-// GetBalance calls bitassets.v1.BitAssetsService.GetBalance.
-func (c *bitAssetsServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return c.getBalance.CallUnary(ctx, req)
-}
-
-// GetBlockCount calls bitassets.v1.BitAssetsService.GetBlockCount.
-func (c *bitAssetsServiceClient) GetBlockCount(ctx context.Context, req *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return c.getBlockCount.CallUnary(ctx, req)
-}
-
-// Stop calls bitassets.v1.BitAssetsService.Stop.
-func (c *bitAssetsServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return c.stop.CallUnary(ctx, req)
-}
-
-// GetNewAddress calls bitassets.v1.BitAssetsService.GetNewAddress.
-func (c *bitAssetsServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return c.getNewAddress.CallUnary(ctx, req)
-}
-
-// Withdraw calls bitassets.v1.BitAssetsService.Withdraw.
-func (c *bitAssetsServiceClient) Withdraw(ctx context.Context, req *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return c.withdraw.CallUnary(ctx, req)
-}
-
-// Transfer calls bitassets.v1.BitAssetsService.Transfer.
-func (c *bitAssetsServiceClient) Transfer(ctx context.Context, req *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return c.transfer.CallUnary(ctx, req)
-}
-
-// GetSidechainWealth calls bitassets.v1.BitAssetsService.GetSidechainWealth.
-func (c *bitAssetsServiceClient) GetSidechainWealth(ctx context.Context, req *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return c.getSidechainWealth.CallUnary(ctx, req)
-}
-
-// CreateDeposit calls bitassets.v1.BitAssetsService.CreateDeposit.
-func (c *bitAssetsServiceClient) CreateDeposit(ctx context.Context, req *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return c.createDeposit.CallUnary(ctx, req)
-}
-
-// GetPendingWithdrawalBundle calls bitassets.v1.BitAssetsService.GetPendingWithdrawalBundle.
-func (c *bitAssetsServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return c.getPendingWithdrawalBundle.CallUnary(ctx, req)
-}
-
-// ConnectPeer calls bitassets.v1.BitAssetsService.ConnectPeer.
-func (c *bitAssetsServiceClient) ConnectPeer(ctx context.Context, req *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return c.connectPeer.CallUnary(ctx, req)
-}
-
-// ForgetPeer calls bitassets.v1.BitAssetsService.ForgetPeer.
-func (c *bitAssetsServiceClient) ForgetPeer(ctx context.Context, req *connect.Request[v1.ForgetPeerRequest]) (*connect.Response[v1.ForgetPeerResponse], error) {
-	return c.forgetPeer.CallUnary(ctx, req)
-}
-
-// ListPeers calls bitassets.v1.BitAssetsService.ListPeers.
-func (c *bitAssetsServiceClient) ListPeers(ctx context.Context, req *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return c.listPeers.CallUnary(ctx, req)
-}
-
-// Mine calls bitassets.v1.BitAssetsService.Mine.
-func (c *bitAssetsServiceClient) Mine(ctx context.Context, req *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return c.mine.CallUnary(ctx, req)
-}
-
-// GetBlock calls bitassets.v1.BitAssetsService.GetBlock.
-func (c *bitAssetsServiceClient) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return c.getBlock.CallUnary(ctx, req)
-}
-
-// GetBestMainchainBlockHash calls bitassets.v1.BitAssetsService.GetBestMainchainBlockHash.
-func (c *bitAssetsServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return c.getBestMainchainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBestSidechainBlockHash calls bitassets.v1.BitAssetsService.GetBestSidechainBlockHash.
-func (c *bitAssetsServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return c.getBestSidechainBlockHash.CallUnary(ctx, req)
-}
-
-// GetBmmInclusions calls bitassets.v1.BitAssetsService.GetBmmInclusions.
-func (c *bitAssetsServiceClient) GetBmmInclusions(ctx context.Context, req *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return c.getBmmInclusions.CallUnary(ctx, req)
-}
-
-// GetWalletUtxos calls bitassets.v1.BitAssetsService.GetWalletUtxos.
-func (c *bitAssetsServiceClient) GetWalletUtxos(ctx context.Context, req *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return c.getWalletUtxos.CallUnary(ctx, req)
-}
-
-// ListUtxos calls bitassets.v1.BitAssetsService.ListUtxos.
-func (c *bitAssetsServiceClient) ListUtxos(ctx context.Context, req *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return c.listUtxos.CallUnary(ctx, req)
-}
-
-// RemoveFromMempool calls bitassets.v1.BitAssetsService.RemoveFromMempool.
-func (c *bitAssetsServiceClient) RemoveFromMempool(ctx context.Context, req *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return c.removeFromMempool.CallUnary(ctx, req)
-}
-
-// GetLatestFailedWithdrawalBundleHeight calls
-// bitassets.v1.BitAssetsService.GetLatestFailedWithdrawalBundleHeight.
-func (c *bitAssetsServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return c.getLatestFailedWithdrawalBundleHeight.CallUnary(ctx, req)
-}
-
-// GenerateMnemonic calls bitassets.v1.BitAssetsService.GenerateMnemonic.
-func (c *bitAssetsServiceClient) GenerateMnemonic(ctx context.Context, req *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return c.generateMnemonic.CallUnary(ctx, req)
-}
-
-// SetSeedFromMnemonic calls bitassets.v1.BitAssetsService.SetSeedFromMnemonic.
-func (c *bitAssetsServiceClient) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return c.setSeedFromMnemonic.CallUnary(ctx, req)
-}
-
-// CallRaw calls bitassets.v1.BitAssetsService.CallRaw.
-func (c *bitAssetsServiceClient) CallRaw(ctx context.Context, req *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return c.callRaw.CallUnary(ctx, req)
-}
-
-// GetBitAssetData calls bitassets.v1.BitAssetsService.GetBitAssetData.
-func (c *bitAssetsServiceClient) GetBitAssetData(ctx context.Context, req *connect.Request[v1.GetBitAssetDataRequest]) (*connect.Response[v1.GetBitAssetDataResponse], error) {
-	return c.getBitAssetData.CallUnary(ctx, req)
-}
-
-// ListBitAssets calls bitassets.v1.BitAssetsService.ListBitAssets.
-func (c *bitAssetsServiceClient) ListBitAssets(ctx context.Context, req *connect.Request[v1.ListBitAssetsRequest]) (*connect.Response[v1.ListBitAssetsResponse], error) {
-	return c.listBitAssets.CallUnary(ctx, req)
-}
-
-// RegisterBitAsset calls bitassets.v1.BitAssetsService.RegisterBitAsset.
-func (c *bitAssetsServiceClient) RegisterBitAsset(ctx context.Context, req *connect.Request[v1.RegisterBitAssetRequest]) (*connect.Response[v1.RegisterBitAssetResponse], error) {
-	return c.registerBitAsset.CallUnary(ctx, req)
-}
-
-// ReserveBitAsset calls bitassets.v1.BitAssetsService.ReserveBitAsset.
-func (c *bitAssetsServiceClient) ReserveBitAsset(ctx context.Context, req *connect.Request[v1.ReserveBitAssetRequest]) (*connect.Response[v1.ReserveBitAssetResponse], error) {
-	return c.reserveBitAsset.CallUnary(ctx, req)
-}
-
-// TransferBitAsset calls bitassets.v1.BitAssetsService.TransferBitAsset.
-func (c *bitAssetsServiceClient) TransferBitAsset(ctx context.Context, req *connect.Request[v1.TransferBitAssetRequest]) (*connect.Response[v1.TransferBitAssetResponse], error) {
-	return c.transferBitAsset.CallUnary(ctx, req)
-}
-
-// GetNewEncryptionKey calls bitassets.v1.BitAssetsService.GetNewEncryptionKey.
-func (c *bitAssetsServiceClient) GetNewEncryptionKey(ctx context.Context, req *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error) {
-	return c.getNewEncryptionKey.CallUnary(ctx, req)
-}
-
-// GetNewVerifyingKey calls bitassets.v1.BitAssetsService.GetNewVerifyingKey.
-func (c *bitAssetsServiceClient) GetNewVerifyingKey(ctx context.Context, req *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error) {
-	return c.getNewVerifyingKey.CallUnary(ctx, req)
-}
-
-// DecryptMsg calls bitassets.v1.BitAssetsService.DecryptMsg.
-func (c *bitAssetsServiceClient) DecryptMsg(ctx context.Context, req *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error) {
-	return c.decryptMsg.CallUnary(ctx, req)
-}
-
-// EncryptMsg calls bitassets.v1.BitAssetsService.EncryptMsg.
-func (c *bitAssetsServiceClient) EncryptMsg(ctx context.Context, req *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error) {
-	return c.encryptMsg.CallUnary(ctx, req)
-}
-
-// SignArbitraryMsg calls bitassets.v1.BitAssetsService.SignArbitraryMsg.
-func (c *bitAssetsServiceClient) SignArbitraryMsg(ctx context.Context, req *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error) {
-	return c.signArbitraryMsg.CallUnary(ctx, req)
-}
-
-// SignArbitraryMsgAsAddr calls bitassets.v1.BitAssetsService.SignArbitraryMsgAsAddr.
-func (c *bitAssetsServiceClient) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error) {
-	return c.signArbitraryMsgAsAddr.CallUnary(ctx, req)
-}
-
-// VerifySignature calls bitassets.v1.BitAssetsService.VerifySignature.
-func (c *bitAssetsServiceClient) VerifySignature(ctx context.Context, req *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error) {
-	return c.verifySignature.CallUnary(ctx, req)
-}
-
-// GetWalletAddresses calls bitassets.v1.BitAssetsService.GetWalletAddresses.
-func (c *bitAssetsServiceClient) GetWalletAddresses(ctx context.Context, req *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error) {
-	return c.getWalletAddresses.CallUnary(ctx, req)
-}
-
-// MyUnconfirmedUtxos calls bitassets.v1.BitAssetsService.MyUnconfirmedUtxos.
-func (c *bitAssetsServiceClient) MyUnconfirmedUtxos(ctx context.Context, req *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error) {
-	return c.myUnconfirmedUtxos.CallUnary(ctx, req)
-}
-
-// OpenapiSchema calls bitassets.v1.BitAssetsService.OpenapiSchema.
-func (c *bitAssetsServiceClient) OpenapiSchema(ctx context.Context, req *connect.Request[v1.OpenapiSchemaRequest]) (*connect.Response[v1.OpenapiSchemaResponse], error) {
-	return c.openapiSchema.CallUnary(ctx, req)
-}
-
-// AmmBurn calls bitassets.v1.BitAssetsService.AmmBurn.
-func (c *bitAssetsServiceClient) AmmBurn(ctx context.Context, req *connect.Request[v1.AmmBurnRequest]) (*connect.Response[v1.AmmBurnResponse], error) {
-	return c.ammBurn.CallUnary(ctx, req)
-}
-
-// AmmMint calls bitassets.v1.BitAssetsService.AmmMint.
-func (c *bitAssetsServiceClient) AmmMint(ctx context.Context, req *connect.Request[v1.AmmMintRequest]) (*connect.Response[v1.AmmMintResponse], error) {
-	return c.ammMint.CallUnary(ctx, req)
-}
-
-// AmmSwap calls bitassets.v1.BitAssetsService.AmmSwap.
-func (c *bitAssetsServiceClient) AmmSwap(ctx context.Context, req *connect.Request[v1.AmmSwapRequest]) (*connect.Response[v1.AmmSwapResponse], error) {
-	return c.ammSwap.CallUnary(ctx, req)
-}
-
-// GetAmmPoolState calls bitassets.v1.BitAssetsService.GetAmmPoolState.
-func (c *bitAssetsServiceClient) GetAmmPoolState(ctx context.Context, req *connect.Request[v1.GetAmmPoolStateRequest]) (*connect.Response[v1.GetAmmPoolStateResponse], error) {
-	return c.getAmmPoolState.CallUnary(ctx, req)
-}
-
-// GetAmmPrice calls bitassets.v1.BitAssetsService.GetAmmPrice.
-func (c *bitAssetsServiceClient) GetAmmPrice(ctx context.Context, req *connect.Request[v1.GetAmmPriceRequest]) (*connect.Response[v1.GetAmmPriceResponse], error) {
-	return c.getAmmPrice.CallUnary(ctx, req)
-}
-
-// DutchAuctionBid calls bitassets.v1.BitAssetsService.DutchAuctionBid.
-func (c *bitAssetsServiceClient) DutchAuctionBid(ctx context.Context, req *connect.Request[v1.DutchAuctionBidRequest]) (*connect.Response[v1.DutchAuctionBidResponse], error) {
-	return c.dutchAuctionBid.CallUnary(ctx, req)
-}
-
-// DutchAuctionCollect calls bitassets.v1.BitAssetsService.DutchAuctionCollect.
-func (c *bitAssetsServiceClient) DutchAuctionCollect(ctx context.Context, req *connect.Request[v1.DutchAuctionCollectRequest]) (*connect.Response[v1.DutchAuctionCollectResponse], error) {
-	return c.dutchAuctionCollect.CallUnary(ctx, req)
-}
-
-// DutchAuctionCreate calls bitassets.v1.BitAssetsService.DutchAuctionCreate.
-func (c *bitAssetsServiceClient) DutchAuctionCreate(ctx context.Context, req *connect.Request[v1.DutchAuctionCreateRequest]) (*connect.Response[v1.DutchAuctionCreateResponse], error) {
-	return c.dutchAuctionCreate.CallUnary(ctx, req)
-}
-
-// DutchAuctions calls bitassets.v1.BitAssetsService.DutchAuctions.
-func (c *bitAssetsServiceClient) DutchAuctions(ctx context.Context, req *connect.Request[v1.DutchAuctionsRequest]) (*connect.Response[v1.DutchAuctionsResponse], error) {
-	return c.dutchAuctions.CallUnary(ctx, req)
+// NewBitAssetsServiceClient constructs a client for the bitassets.v1.BitAssetsService service.
+// Multiple service clients may share a single connect.Client.
+func NewBitAssetsServiceClient(client *connect.Client) BitAssetsServiceClient {
+	return &bitAssetsServiceClient{client: client}
 }
 
 // BitAssetsServiceHandler is an implementation of the bitassets.v1.BitAssetsService service.
 type BitAssetsServiceHandler interface {
-	// Get wallet balance (total and available).
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
-	// Get current block count.
-	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
-	// Stop the bitassets node.
-	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
-	// Get a new address from the wallet.
-	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
-	// Withdraw to mainchain.
-	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
-	// Transfer within sidechain.
-	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
-	// Get total sidechain wealth in sats.
-	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
-	// Create a deposit transaction.
-	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
-	// Get pending withdrawal bundle.
-	GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error)
-	// Connect to a peer.
-	ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error)
-	// Forget a peer.
-	ForgetPeer(context.Context, *connect.Request[v1.ForgetPeerRequest]) (*connect.Response[v1.ForgetPeerResponse], error)
-	// List connected peers.
-	ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error)
-	// Mine a block.
-	Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error)
-	// Get block by hash.
-	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
-	// Get best mainchain block hash.
-	GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error)
-	// Get best sidechain block hash.
-	GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error)
-	// Get BMM inclusions for a block.
-	GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error)
-	// Get wallet UTXOs.
-	GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error)
-	// List all UTXOs.
-	ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error)
-	// Remove transaction from mempool.
-	RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error)
-	// Get latest failed withdrawal bundle height.
-	GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error)
-	// Generate a new mnemonic.
-	GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error)
-	// Set seed from mnemonic.
-	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
-	// Raw JSON-RPC passthrough for debug console.
-	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
-	// Get BitAsset data by asset ID.
-	GetBitAssetData(context.Context, *connect.Request[v1.GetBitAssetDataRequest]) (*connect.Response[v1.GetBitAssetDataResponse], error)
-	// List all BitAssets.
-	ListBitAssets(context.Context, *connect.Request[v1.ListBitAssetsRequest]) (*connect.Response[v1.ListBitAssetsResponse], error)
-	// Register a BitAsset.
-	RegisterBitAsset(context.Context, *connect.Request[v1.RegisterBitAssetRequest]) (*connect.Response[v1.RegisterBitAssetResponse], error)
-	// Reserve a BitAsset.
-	ReserveBitAsset(context.Context, *connect.Request[v1.ReserveBitAssetRequest]) (*connect.Response[v1.ReserveBitAssetResponse], error)
-	// Transfer a BitAsset token.
-	TransferBitAsset(context.Context, *connect.Request[v1.TransferBitAssetRequest]) (*connect.Response[v1.TransferBitAssetResponse], error)
-	// Get a new encryption key.
-	GetNewEncryptionKey(context.Context, *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error)
-	// Get a new verifying key.
-	GetNewVerifyingKey(context.Context, *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error)
-	// Decrypt a message.
-	DecryptMsg(context.Context, *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error)
-	// Encrypt a message.
-	EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error)
-	// Sign an arbitrary message with the specified verifying key.
-	SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error)
-	// Sign an arbitrary message as a specific address.
-	SignArbitraryMsgAsAddr(context.Context, *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error)
-	// Verify a signature.
-	VerifySignature(context.Context, *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error)
-	// Get wallet addresses.
-	GetWalletAddresses(context.Context, *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error)
-	// List unconfirmed owned UTXOs.
-	MyUnconfirmedUtxos(context.Context, *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error)
-	// Get OpenAPI schema.
-	OpenapiSchema(context.Context, *connect.Request[v1.OpenapiSchemaRequest]) (*connect.Response[v1.OpenapiSchemaResponse], error)
-	// Burn an AMM position.
-	AmmBurn(context.Context, *connect.Request[v1.AmmBurnRequest]) (*connect.Response[v1.AmmBurnResponse], error)
-	// Mint an AMM position.
-	AmmMint(context.Context, *connect.Request[v1.AmmMintRequest]) (*connect.Response[v1.AmmMintResponse], error)
-	// AMM swap.
-	AmmSwap(context.Context, *connect.Request[v1.AmmSwapRequest]) (*connect.Response[v1.AmmSwapResponse], error)
-	// Get the state of the specified AMM pool.
-	GetAmmPoolState(context.Context, *connect.Request[v1.GetAmmPoolStateRequest]) (*connect.Response[v1.GetAmmPoolStateResponse], error)
-	// Get the current price for the specified pair.
-	GetAmmPrice(context.Context, *connect.Request[v1.GetAmmPriceRequest]) (*connect.Response[v1.GetAmmPriceResponse], error)
-	// Bid on a dutch auction.
-	DutchAuctionBid(context.Context, *connect.Request[v1.DutchAuctionBidRequest]) (*connect.Response[v1.DutchAuctionBidResponse], error)
-	// Collect from a dutch auction.
-	DutchAuctionCollect(context.Context, *connect.Request[v1.DutchAuctionCollectRequest]) (*connect.Response[v1.DutchAuctionCollectResponse], error)
-	// Create a dutch auction.
-	DutchAuctionCreate(context.Context, *connect.Request[v1.DutchAuctionCreateRequest]) (*connect.Response[v1.DutchAuctionCreateResponse], error)
-	// List all dutch auctions.
-	DutchAuctions(context.Context, *connect.Request[v1.DutchAuctionsRequest]) (*connect.Response[v1.DutchAuctionsResponse], error)
+	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	ForgetPeer(context.Context, *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error)
+	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	GetBitAssetData(context.Context, *v1.GetBitAssetDataRequest) (*v1.GetBitAssetDataResponse, error)
+	ListBitAssets(context.Context, *v1.ListBitAssetsRequest) (*v1.ListBitAssetsResponse, error)
+	RegisterBitAsset(context.Context, *v1.RegisterBitAssetRequest) (*v1.RegisterBitAssetResponse, error)
+	ReserveBitAsset(context.Context, *v1.ReserveBitAssetRequest) (*v1.ReserveBitAssetResponse, error)
+	TransferBitAsset(context.Context, *v1.TransferBitAssetRequest) (*v1.TransferBitAssetResponse, error)
+	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
+	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	OpenapiSchema(context.Context, *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error)
+	AmmBurn(context.Context, *v1.AmmBurnRequest) (*v1.AmmBurnResponse, error)
+	AmmMint(context.Context, *v1.AmmMintRequest) (*v1.AmmMintResponse, error)
+	AmmSwap(context.Context, *v1.AmmSwapRequest) (*v1.AmmSwapResponse, error)
+	GetAmmPoolState(context.Context, *v1.GetAmmPoolStateRequest) (*v1.GetAmmPoolStateResponse, error)
+	GetAmmPrice(context.Context, *v1.GetAmmPriceRequest) (*v1.GetAmmPriceResponse, error)
+	DutchAuctionBid(context.Context, *v1.DutchAuctionBidRequest) (*v1.DutchAuctionBidResponse, error)
+	DutchAuctionCollect(context.Context, *v1.DutchAuctionCollectRequest) (*v1.DutchAuctionCollectResponse, error)
+	DutchAuctionCreate(context.Context, *v1.DutchAuctionCreateRequest) (*v1.DutchAuctionCreateResponse, error)
+	DutchAuctions(context.Context, *v1.DutchAuctionsRequest) (*v1.DutchAuctionsResponse, error)
 }
 
-// NewBitAssetsServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewBitAssetsServiceHandler(svc BitAssetsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bitAssetsServiceMethods := v1.File_bitassets_v1_bitassets_proto.Services().ByName("BitAssetsService").Methods()
-	bitAssetsServiceGetBalanceHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetBalanceProcedure,
-		svc.GetBalance,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetBalance")),
-		connect.WithHandlerOptions(opts...),
+// RegisterBitAssetsServiceHandler registers svc as the bitassets.v1.BitAssetsService implementation
+// on server.
+func RegisterBitAssetsServiceHandler(server *connect.Server, svc BitAssetsServiceHandler) {
+	adapter := bitAssetsServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: bitAssetsServiceGetBalanceSpec(), Handler: adapter.getBalance},
+		connect.Method{Spec: bitAssetsServiceGetBlockCountSpec(), Handler: adapter.getBlockCount},
+		connect.Method{Spec: bitAssetsServiceStopSpec(), Handler: adapter.stop},
+		connect.Method{Spec: bitAssetsServiceGetNewAddressSpec(), Handler: adapter.getNewAddress},
+		connect.Method{Spec: bitAssetsServiceWithdrawSpec(), Handler: adapter.withdraw},
+		connect.Method{Spec: bitAssetsServiceTransferSpec(), Handler: adapter.transfer},
+		connect.Method{Spec: bitAssetsServiceGetSidechainWealthSpec(), Handler: adapter.getSidechainWealth},
+		connect.Method{Spec: bitAssetsServiceCreateDepositSpec(), Handler: adapter.createDeposit},
+		connect.Method{Spec: bitAssetsServiceGetPendingWithdrawalBundleSpec(), Handler: adapter.getPendingWithdrawalBundle},
+		connect.Method{Spec: bitAssetsServiceConnectPeerSpec(), Handler: adapter.connectPeer},
+		connect.Method{Spec: bitAssetsServiceForgetPeerSpec(), Handler: adapter.forgetPeer},
+		connect.Method{Spec: bitAssetsServiceListPeersSpec(), Handler: adapter.listPeers},
+		connect.Method{Spec: bitAssetsServiceMineSpec(), Handler: adapter.mine},
+		connect.Method{Spec: bitAssetsServiceGetBlockSpec(), Handler: adapter.getBlock},
+		connect.Method{Spec: bitAssetsServiceGetBestMainchainBlockHashSpec(), Handler: adapter.getBestMainchainBlockHash},
+		connect.Method{Spec: bitAssetsServiceGetBestSidechainBlockHashSpec(), Handler: adapter.getBestSidechainBlockHash},
+		connect.Method{Spec: bitAssetsServiceGetBmmInclusionsSpec(), Handler: adapter.getBmmInclusions},
+		connect.Method{Spec: bitAssetsServiceGetWalletUtxosSpec(), Handler: adapter.getWalletUtxos},
+		connect.Method{Spec: bitAssetsServiceListUtxosSpec(), Handler: adapter.listUtxos},
+		connect.Method{Spec: bitAssetsServiceRemoveFromMempoolSpec(), Handler: adapter.removeFromMempool},
+		connect.Method{Spec: bitAssetsServiceGetLatestFailedWithdrawalBundleHeightSpec(), Handler: adapter.getLatestFailedWithdrawalBundleHeight},
+		connect.Method{Spec: bitAssetsServiceGenerateMnemonicSpec(), Handler: adapter.generateMnemonic},
+		connect.Method{Spec: bitAssetsServiceSetSeedFromMnemonicSpec(), Handler: adapter.setSeedFromMnemonic},
+		connect.Method{Spec: bitAssetsServiceCallRawSpec(), Handler: adapter.callRaw},
+		connect.Method{Spec: bitAssetsServiceGetBitAssetDataSpec(), Handler: adapter.getBitAssetData},
+		connect.Method{Spec: bitAssetsServiceListBitAssetsSpec(), Handler: adapter.listBitAssets},
+		connect.Method{Spec: bitAssetsServiceRegisterBitAssetSpec(), Handler: adapter.registerBitAsset},
+		connect.Method{Spec: bitAssetsServiceReserveBitAssetSpec(), Handler: adapter.reserveBitAsset},
+		connect.Method{Spec: bitAssetsServiceTransferBitAssetSpec(), Handler: adapter.transferBitAsset},
+		connect.Method{Spec: bitAssetsServiceGetNewEncryptionKeySpec(), Handler: adapter.getNewEncryptionKey},
+		connect.Method{Spec: bitAssetsServiceGetNewVerifyingKeySpec(), Handler: adapter.getNewVerifyingKey},
+		connect.Method{Spec: bitAssetsServiceDecryptMsgSpec(), Handler: adapter.decryptMsg},
+		connect.Method{Spec: bitAssetsServiceEncryptMsgSpec(), Handler: adapter.encryptMsg},
+		connect.Method{Spec: bitAssetsServiceSignArbitraryMsgSpec(), Handler: adapter.signArbitraryMsg},
+		connect.Method{Spec: bitAssetsServiceSignArbitraryMsgAsAddrSpec(), Handler: adapter.signArbitraryMsgAsAddr},
+		connect.Method{Spec: bitAssetsServiceVerifySignatureSpec(), Handler: adapter.verifySignature},
+		connect.Method{Spec: bitAssetsServiceGetWalletAddressesSpec(), Handler: adapter.getWalletAddresses},
+		connect.Method{Spec: bitAssetsServiceMyUnconfirmedUtxosSpec(), Handler: adapter.myUnconfirmedUtxos},
+		connect.Method{Spec: bitAssetsServiceOpenapiSchemaSpec(), Handler: adapter.openapiSchema},
+		connect.Method{Spec: bitAssetsServiceAmmBurnSpec(), Handler: adapter.ammBurn},
+		connect.Method{Spec: bitAssetsServiceAmmMintSpec(), Handler: adapter.ammMint},
+		connect.Method{Spec: bitAssetsServiceAmmSwapSpec(), Handler: adapter.ammSwap},
+		connect.Method{Spec: bitAssetsServiceGetAmmPoolStateSpec(), Handler: adapter.getAmmPoolState},
+		connect.Method{Spec: bitAssetsServiceGetAmmPriceSpec(), Handler: adapter.getAmmPrice},
+		connect.Method{Spec: bitAssetsServiceDutchAuctionBidSpec(), Handler: adapter.dutchAuctionBid},
+		connect.Method{Spec: bitAssetsServiceDutchAuctionCollectSpec(), Handler: adapter.dutchAuctionCollect},
+		connect.Method{Spec: bitAssetsServiceDutchAuctionCreateSpec(), Handler: adapter.dutchAuctionCreate},
+		connect.Method{Spec: bitAssetsServiceDutchAuctionsSpec(), Handler: adapter.dutchAuctions},
 	)
-	bitAssetsServiceGetBlockCountHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetBlockCountProcedure,
-		svc.GetBlockCount,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetBlockCount")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceStopHandler := connect.NewUnaryHandler(
-		BitAssetsServiceStopProcedure,
-		svc.Stop,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetNewAddressHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetNewAddressProcedure,
-		svc.GetNewAddress,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetNewAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceWithdrawHandler := connect.NewUnaryHandler(
-		BitAssetsServiceWithdrawProcedure,
-		svc.Withdraw,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("Withdraw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceTransferHandler := connect.NewUnaryHandler(
-		BitAssetsServiceTransferProcedure,
-		svc.Transfer,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("Transfer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetSidechainWealthHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetSidechainWealthProcedure,
-		svc.GetSidechainWealth,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetSidechainWealth")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceCreateDepositHandler := connect.NewUnaryHandler(
-		BitAssetsServiceCreateDepositProcedure,
-		svc.CreateDeposit,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("CreateDeposit")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetPendingWithdrawalBundleHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetPendingWithdrawalBundleProcedure,
-		svc.GetPendingWithdrawalBundle,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetPendingWithdrawalBundle")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceConnectPeerHandler := connect.NewUnaryHandler(
-		BitAssetsServiceConnectPeerProcedure,
-		svc.ConnectPeer,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("ConnectPeer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceForgetPeerHandler := connect.NewUnaryHandler(
-		BitAssetsServiceForgetPeerProcedure,
-		svc.ForgetPeer,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("ForgetPeer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceListPeersHandler := connect.NewUnaryHandler(
-		BitAssetsServiceListPeersProcedure,
-		svc.ListPeers,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("ListPeers")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceMineHandler := connect.NewUnaryHandler(
-		BitAssetsServiceMineProcedure,
-		svc.Mine,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("Mine")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetBlockHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetBlockProcedure,
-		svc.GetBlock,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetBestMainchainBlockHashHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetBestMainchainBlockHashProcedure,
-		svc.GetBestMainchainBlockHash,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetBestMainchainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetBestSidechainBlockHashHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetBestSidechainBlockHashProcedure,
-		svc.GetBestSidechainBlockHash,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetBestSidechainBlockHash")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetBmmInclusionsHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetBmmInclusionsProcedure,
-		svc.GetBmmInclusions,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetBmmInclusions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetWalletUtxosHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetWalletUtxosProcedure,
-		svc.GetWalletUtxos,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetWalletUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceListUtxosHandler := connect.NewUnaryHandler(
-		BitAssetsServiceListUtxosProcedure,
-		svc.ListUtxos,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("ListUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceRemoveFromMempoolHandler := connect.NewUnaryHandler(
-		BitAssetsServiceRemoveFromMempoolProcedure,
-		svc.RemoveFromMempool,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("RemoveFromMempool")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetLatestFailedWithdrawalBundleHeightHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetLatestFailedWithdrawalBundleHeightProcedure,
-		svc.GetLatestFailedWithdrawalBundleHeight,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetLatestFailedWithdrawalBundleHeight")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGenerateMnemonicHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGenerateMnemonicProcedure,
-		svc.GenerateMnemonic,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GenerateMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceSetSeedFromMnemonicHandler := connect.NewUnaryHandler(
-		BitAssetsServiceSetSeedFromMnemonicProcedure,
-		svc.SetSeedFromMnemonic,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("SetSeedFromMnemonic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceCallRawHandler := connect.NewUnaryHandler(
-		BitAssetsServiceCallRawProcedure,
-		svc.CallRaw,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("CallRaw")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetBitAssetDataHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetBitAssetDataProcedure,
-		svc.GetBitAssetData,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetBitAssetData")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceListBitAssetsHandler := connect.NewUnaryHandler(
-		BitAssetsServiceListBitAssetsProcedure,
-		svc.ListBitAssets,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("ListBitAssets")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceRegisterBitAssetHandler := connect.NewUnaryHandler(
-		BitAssetsServiceRegisterBitAssetProcedure,
-		svc.RegisterBitAsset,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("RegisterBitAsset")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceReserveBitAssetHandler := connect.NewUnaryHandler(
-		BitAssetsServiceReserveBitAssetProcedure,
-		svc.ReserveBitAsset,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("ReserveBitAsset")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceTransferBitAssetHandler := connect.NewUnaryHandler(
-		BitAssetsServiceTransferBitAssetProcedure,
-		svc.TransferBitAsset,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("TransferBitAsset")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetNewEncryptionKeyHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetNewEncryptionKeyProcedure,
-		svc.GetNewEncryptionKey,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetNewEncryptionKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetNewVerifyingKeyHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetNewVerifyingKeyProcedure,
-		svc.GetNewVerifyingKey,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetNewVerifyingKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceDecryptMsgHandler := connect.NewUnaryHandler(
-		BitAssetsServiceDecryptMsgProcedure,
-		svc.DecryptMsg,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("DecryptMsg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceEncryptMsgHandler := connect.NewUnaryHandler(
-		BitAssetsServiceEncryptMsgProcedure,
-		svc.EncryptMsg,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("EncryptMsg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceSignArbitraryMsgHandler := connect.NewUnaryHandler(
-		BitAssetsServiceSignArbitraryMsgProcedure,
-		svc.SignArbitraryMsg,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("SignArbitraryMsg")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceSignArbitraryMsgAsAddrHandler := connect.NewUnaryHandler(
-		BitAssetsServiceSignArbitraryMsgAsAddrProcedure,
-		svc.SignArbitraryMsgAsAddr,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("SignArbitraryMsgAsAddr")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceVerifySignatureHandler := connect.NewUnaryHandler(
-		BitAssetsServiceVerifySignatureProcedure,
-		svc.VerifySignature,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("VerifySignature")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetWalletAddressesHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetWalletAddressesProcedure,
-		svc.GetWalletAddresses,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetWalletAddresses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceMyUnconfirmedUtxosHandler := connect.NewUnaryHandler(
-		BitAssetsServiceMyUnconfirmedUtxosProcedure,
-		svc.MyUnconfirmedUtxos,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("MyUnconfirmedUtxos")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceOpenapiSchemaHandler := connect.NewUnaryHandler(
-		BitAssetsServiceOpenapiSchemaProcedure,
-		svc.OpenapiSchema,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("OpenapiSchema")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceAmmBurnHandler := connect.NewUnaryHandler(
-		BitAssetsServiceAmmBurnProcedure,
-		svc.AmmBurn,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("AmmBurn")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceAmmMintHandler := connect.NewUnaryHandler(
-		BitAssetsServiceAmmMintProcedure,
-		svc.AmmMint,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("AmmMint")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceAmmSwapHandler := connect.NewUnaryHandler(
-		BitAssetsServiceAmmSwapProcedure,
-		svc.AmmSwap,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("AmmSwap")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetAmmPoolStateHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetAmmPoolStateProcedure,
-		svc.GetAmmPoolState,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetAmmPoolState")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceGetAmmPriceHandler := connect.NewUnaryHandler(
-		BitAssetsServiceGetAmmPriceProcedure,
-		svc.GetAmmPrice,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("GetAmmPrice")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceDutchAuctionBidHandler := connect.NewUnaryHandler(
-		BitAssetsServiceDutchAuctionBidProcedure,
-		svc.DutchAuctionBid,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctionBid")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceDutchAuctionCollectHandler := connect.NewUnaryHandler(
-		BitAssetsServiceDutchAuctionCollectProcedure,
-		svc.DutchAuctionCollect,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctionCollect")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceDutchAuctionCreateHandler := connect.NewUnaryHandler(
-		BitAssetsServiceDutchAuctionCreateProcedure,
-		svc.DutchAuctionCreate,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctionCreate")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitAssetsServiceDutchAuctionsHandler := connect.NewUnaryHandler(
-		BitAssetsServiceDutchAuctionsProcedure,
-		svc.DutchAuctions,
-		connect.WithSchema(bitAssetsServiceMethods.ByName("DutchAuctions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/bitassets.v1.BitAssetsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case BitAssetsServiceGetBalanceProcedure:
-			bitAssetsServiceGetBalanceHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetBlockCountProcedure:
-			bitAssetsServiceGetBlockCountHandler.ServeHTTP(w, r)
-		case BitAssetsServiceStopProcedure:
-			bitAssetsServiceStopHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetNewAddressProcedure:
-			bitAssetsServiceGetNewAddressHandler.ServeHTTP(w, r)
-		case BitAssetsServiceWithdrawProcedure:
-			bitAssetsServiceWithdrawHandler.ServeHTTP(w, r)
-		case BitAssetsServiceTransferProcedure:
-			bitAssetsServiceTransferHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetSidechainWealthProcedure:
-			bitAssetsServiceGetSidechainWealthHandler.ServeHTTP(w, r)
-		case BitAssetsServiceCreateDepositProcedure:
-			bitAssetsServiceCreateDepositHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetPendingWithdrawalBundleProcedure:
-			bitAssetsServiceGetPendingWithdrawalBundleHandler.ServeHTTP(w, r)
-		case BitAssetsServiceConnectPeerProcedure:
-			bitAssetsServiceConnectPeerHandler.ServeHTTP(w, r)
-		case BitAssetsServiceForgetPeerProcedure:
-			bitAssetsServiceForgetPeerHandler.ServeHTTP(w, r)
-		case BitAssetsServiceListPeersProcedure:
-			bitAssetsServiceListPeersHandler.ServeHTTP(w, r)
-		case BitAssetsServiceMineProcedure:
-			bitAssetsServiceMineHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetBlockProcedure:
-			bitAssetsServiceGetBlockHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetBestMainchainBlockHashProcedure:
-			bitAssetsServiceGetBestMainchainBlockHashHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetBestSidechainBlockHashProcedure:
-			bitAssetsServiceGetBestSidechainBlockHashHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetBmmInclusionsProcedure:
-			bitAssetsServiceGetBmmInclusionsHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetWalletUtxosProcedure:
-			bitAssetsServiceGetWalletUtxosHandler.ServeHTTP(w, r)
-		case BitAssetsServiceListUtxosProcedure:
-			bitAssetsServiceListUtxosHandler.ServeHTTP(w, r)
-		case BitAssetsServiceRemoveFromMempoolProcedure:
-			bitAssetsServiceRemoveFromMempoolHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetLatestFailedWithdrawalBundleHeightProcedure:
-			bitAssetsServiceGetLatestFailedWithdrawalBundleHeightHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGenerateMnemonicProcedure:
-			bitAssetsServiceGenerateMnemonicHandler.ServeHTTP(w, r)
-		case BitAssetsServiceSetSeedFromMnemonicProcedure:
-			bitAssetsServiceSetSeedFromMnemonicHandler.ServeHTTP(w, r)
-		case BitAssetsServiceCallRawProcedure:
-			bitAssetsServiceCallRawHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetBitAssetDataProcedure:
-			bitAssetsServiceGetBitAssetDataHandler.ServeHTTP(w, r)
-		case BitAssetsServiceListBitAssetsProcedure:
-			bitAssetsServiceListBitAssetsHandler.ServeHTTP(w, r)
-		case BitAssetsServiceRegisterBitAssetProcedure:
-			bitAssetsServiceRegisterBitAssetHandler.ServeHTTP(w, r)
-		case BitAssetsServiceReserveBitAssetProcedure:
-			bitAssetsServiceReserveBitAssetHandler.ServeHTTP(w, r)
-		case BitAssetsServiceTransferBitAssetProcedure:
-			bitAssetsServiceTransferBitAssetHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetNewEncryptionKeyProcedure:
-			bitAssetsServiceGetNewEncryptionKeyHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetNewVerifyingKeyProcedure:
-			bitAssetsServiceGetNewVerifyingKeyHandler.ServeHTTP(w, r)
-		case BitAssetsServiceDecryptMsgProcedure:
-			bitAssetsServiceDecryptMsgHandler.ServeHTTP(w, r)
-		case BitAssetsServiceEncryptMsgProcedure:
-			bitAssetsServiceEncryptMsgHandler.ServeHTTP(w, r)
-		case BitAssetsServiceSignArbitraryMsgProcedure:
-			bitAssetsServiceSignArbitraryMsgHandler.ServeHTTP(w, r)
-		case BitAssetsServiceSignArbitraryMsgAsAddrProcedure:
-			bitAssetsServiceSignArbitraryMsgAsAddrHandler.ServeHTTP(w, r)
-		case BitAssetsServiceVerifySignatureProcedure:
-			bitAssetsServiceVerifySignatureHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetWalletAddressesProcedure:
-			bitAssetsServiceGetWalletAddressesHandler.ServeHTTP(w, r)
-		case BitAssetsServiceMyUnconfirmedUtxosProcedure:
-			bitAssetsServiceMyUnconfirmedUtxosHandler.ServeHTTP(w, r)
-		case BitAssetsServiceOpenapiSchemaProcedure:
-			bitAssetsServiceOpenapiSchemaHandler.ServeHTTP(w, r)
-		case BitAssetsServiceAmmBurnProcedure:
-			bitAssetsServiceAmmBurnHandler.ServeHTTP(w, r)
-		case BitAssetsServiceAmmMintProcedure:
-			bitAssetsServiceAmmMintHandler.ServeHTTP(w, r)
-		case BitAssetsServiceAmmSwapProcedure:
-			bitAssetsServiceAmmSwapHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetAmmPoolStateProcedure:
-			bitAssetsServiceGetAmmPoolStateHandler.ServeHTTP(w, r)
-		case BitAssetsServiceGetAmmPriceProcedure:
-			bitAssetsServiceGetAmmPriceHandler.ServeHTTP(w, r)
-		case BitAssetsServiceDutchAuctionBidProcedure:
-			bitAssetsServiceDutchAuctionBidHandler.ServeHTTP(w, r)
-		case BitAssetsServiceDutchAuctionCollectProcedure:
-			bitAssetsServiceDutchAuctionCollectHandler.ServeHTTP(w, r)
-		case BitAssetsServiceDutchAuctionCreateProcedure:
-			bitAssetsServiceDutchAuctionCreateHandler.ServeHTTP(w, r)
-		case BitAssetsServiceDutchAuctionsProcedure:
-			bitAssetsServiceDutchAuctionsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedBitAssetsServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBitAssetsServiceHandler struct{}
 
-func (UnimplementedBitAssetsServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetBalance is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetBalance is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetBlockCount is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetBlockCount is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.Stop is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.Stop is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetNewAddress is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetNewAddress is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.Withdraw is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.Withdraw is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.Transfer is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.Transfer is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetSidechainWealth is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetSidechainWealth is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.CreateDeposit is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.CreateDeposit is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetPendingWithdrawalBundle(context.Context, *connect.Request[v1.GetPendingWithdrawalBundleRequest]) (*connect.Response[v1.GetPendingWithdrawalBundleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetPendingWithdrawalBundle is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetPendingWithdrawalBundle is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) ConnectPeer(context.Context, *connect.Request[v1.ConnectPeerRequest]) (*connect.Response[v1.ConnectPeerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.ConnectPeer is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.ConnectPeer is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) ForgetPeer(context.Context, *connect.Request[v1.ForgetPeerRequest]) (*connect.Response[v1.ForgetPeerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.ForgetPeer is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) ForgetPeer(context.Context, *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.ForgetPeer is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) ListPeers(context.Context, *connect.Request[v1.ListPeersRequest]) (*connect.Response[v1.ListPeersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.ListPeers is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.ListPeers is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) Mine(context.Context, *connect.Request[v1.MineRequest]) (*connect.Response[v1.MineResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.Mine is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.Mine is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetBlock is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetBlock is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetBestMainchainBlockHash(context.Context, *connect.Request[v1.GetBestMainchainBlockHashRequest]) (*connect.Response[v1.GetBestMainchainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetBestMainchainBlockHash is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetBestMainchainBlockHash is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetBestSidechainBlockHash(context.Context, *connect.Request[v1.GetBestSidechainBlockHashRequest]) (*connect.Response[v1.GetBestSidechainBlockHashResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetBestSidechainBlockHash is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetBestSidechainBlockHash is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetBmmInclusions(context.Context, *connect.Request[v1.GetBmmInclusionsRequest]) (*connect.Response[v1.GetBmmInclusionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetBmmInclusions is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetBmmInclusions is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetWalletUtxos(context.Context, *connect.Request[v1.GetWalletUtxosRequest]) (*connect.Response[v1.GetWalletUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetWalletUtxos is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetWalletUtxos is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) ListUtxos(context.Context, *connect.Request[v1.ListUtxosRequest]) (*connect.Response[v1.ListUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.ListUtxos is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.ListUtxos is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) RemoveFromMempool(context.Context, *connect.Request[v1.RemoveFromMempoolRequest]) (*connect.Response[v1.RemoveFromMempoolResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.RemoveFromMempool is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.RemoveFromMempool is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *connect.Request[v1.GetLatestFailedWithdrawalBundleHeightRequest]) (*connect.Response[v1.GetLatestFailedWithdrawalBundleHeightResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetLatestFailedWithdrawalBundleHeight is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetLatestFailedWithdrawalBundleHeight is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GenerateMnemonic(context.Context, *connect.Request[v1.GenerateMnemonicRequest]) (*connect.Response[v1.GenerateMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GenerateMnemonic is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GenerateMnemonic is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.SetSeedFromMnemonic is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.SetSeedFromMnemonic is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.CallRaw is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.CallRaw is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetBitAssetData(context.Context, *connect.Request[v1.GetBitAssetDataRequest]) (*connect.Response[v1.GetBitAssetDataResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetBitAssetData is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetBitAssetData(context.Context, *v1.GetBitAssetDataRequest) (*v1.GetBitAssetDataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetBitAssetData is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) ListBitAssets(context.Context, *connect.Request[v1.ListBitAssetsRequest]) (*connect.Response[v1.ListBitAssetsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.ListBitAssets is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) ListBitAssets(context.Context, *v1.ListBitAssetsRequest) (*v1.ListBitAssetsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.ListBitAssets is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) RegisterBitAsset(context.Context, *connect.Request[v1.RegisterBitAssetRequest]) (*connect.Response[v1.RegisterBitAssetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.RegisterBitAsset is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) RegisterBitAsset(context.Context, *v1.RegisterBitAssetRequest) (*v1.RegisterBitAssetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.RegisterBitAsset is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) ReserveBitAsset(context.Context, *connect.Request[v1.ReserveBitAssetRequest]) (*connect.Response[v1.ReserveBitAssetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.ReserveBitAsset is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) ReserveBitAsset(context.Context, *v1.ReserveBitAssetRequest) (*v1.ReserveBitAssetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.ReserveBitAsset is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) TransferBitAsset(context.Context, *connect.Request[v1.TransferBitAssetRequest]) (*connect.Response[v1.TransferBitAssetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.TransferBitAsset is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) TransferBitAsset(context.Context, *v1.TransferBitAssetRequest) (*v1.TransferBitAssetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.TransferBitAsset is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetNewEncryptionKey(context.Context, *connect.Request[v1.GetNewEncryptionKeyRequest]) (*connect.Response[v1.GetNewEncryptionKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetNewEncryptionKey is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetNewEncryptionKey is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetNewVerifyingKey(context.Context, *connect.Request[v1.GetNewVerifyingKeyRequest]) (*connect.Response[v1.GetNewVerifyingKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetNewVerifyingKey is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetNewVerifyingKey is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) DecryptMsg(context.Context, *connect.Request[v1.DecryptMsgRequest]) (*connect.Response[v1.DecryptMsgResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.DecryptMsg is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.DecryptMsg is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.EncryptMsg is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.EncryptMsg is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.SignArbitraryMsg is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.SignArbitraryMsg is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) SignArbitraryMsgAsAddr(context.Context, *connect.Request[v1.SignArbitraryMsgAsAddrRequest]) (*connect.Response[v1.SignArbitraryMsgAsAddrResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.SignArbitraryMsgAsAddr is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.SignArbitraryMsgAsAddr is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) VerifySignature(context.Context, *connect.Request[v1.VerifySignatureRequest]) (*connect.Response[v1.VerifySignatureResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.VerifySignature is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.VerifySignature is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetWalletAddresses(context.Context, *connect.Request[v1.GetWalletAddressesRequest]) (*connect.Response[v1.GetWalletAddressesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetWalletAddresses is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetWalletAddresses is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) MyUnconfirmedUtxos(context.Context, *connect.Request[v1.MyUnconfirmedUtxosRequest]) (*connect.Response[v1.MyUnconfirmedUtxosResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.MyUnconfirmedUtxos is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.MyUnconfirmedUtxos is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) OpenapiSchema(context.Context, *connect.Request[v1.OpenapiSchemaRequest]) (*connect.Response[v1.OpenapiSchemaResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.OpenapiSchema is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) OpenapiSchema(context.Context, *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.OpenapiSchema is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) AmmBurn(context.Context, *connect.Request[v1.AmmBurnRequest]) (*connect.Response[v1.AmmBurnResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.AmmBurn is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) AmmBurn(context.Context, *v1.AmmBurnRequest) (*v1.AmmBurnResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.AmmBurn is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) AmmMint(context.Context, *connect.Request[v1.AmmMintRequest]) (*connect.Response[v1.AmmMintResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.AmmMint is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) AmmMint(context.Context, *v1.AmmMintRequest) (*v1.AmmMintResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.AmmMint is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) AmmSwap(context.Context, *connect.Request[v1.AmmSwapRequest]) (*connect.Response[v1.AmmSwapResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.AmmSwap is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) AmmSwap(context.Context, *v1.AmmSwapRequest) (*v1.AmmSwapResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.AmmSwap is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetAmmPoolState(context.Context, *connect.Request[v1.GetAmmPoolStateRequest]) (*connect.Response[v1.GetAmmPoolStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetAmmPoolState is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetAmmPoolState(context.Context, *v1.GetAmmPoolStateRequest) (*v1.GetAmmPoolStateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetAmmPoolState is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) GetAmmPrice(context.Context, *connect.Request[v1.GetAmmPriceRequest]) (*connect.Response[v1.GetAmmPriceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.GetAmmPrice is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) GetAmmPrice(context.Context, *v1.GetAmmPriceRequest) (*v1.GetAmmPriceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.GetAmmPrice is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) DutchAuctionBid(context.Context, *connect.Request[v1.DutchAuctionBidRequest]) (*connect.Response[v1.DutchAuctionBidResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.DutchAuctionBid is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) DutchAuctionBid(context.Context, *v1.DutchAuctionBidRequest) (*v1.DutchAuctionBidResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.DutchAuctionBid is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) DutchAuctionCollect(context.Context, *connect.Request[v1.DutchAuctionCollectRequest]) (*connect.Response[v1.DutchAuctionCollectResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.DutchAuctionCollect is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) DutchAuctionCollect(context.Context, *v1.DutchAuctionCollectRequest) (*v1.DutchAuctionCollectResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.DutchAuctionCollect is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) DutchAuctionCreate(context.Context, *connect.Request[v1.DutchAuctionCreateRequest]) (*connect.Response[v1.DutchAuctionCreateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.DutchAuctionCreate is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) DutchAuctionCreate(context.Context, *v1.DutchAuctionCreateRequest) (*v1.DutchAuctionCreateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.DutchAuctionCreate is not implemented")
 }
 
-func (UnimplementedBitAssetsServiceHandler) DutchAuctions(context.Context, *connect.Request[v1.DutchAuctionsRequest]) (*connect.Response[v1.DutchAuctionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitassets.v1.BitAssetsService.DutchAuctions is not implemented"))
+func (UnimplementedBitAssetsServiceHandler) DutchAuctions(context.Context, *v1.DutchAuctionsRequest) (*v1.DutchAuctionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitassets.v1.BitAssetsService.DutchAuctions is not implemented")
+}
+
+type bitAssetsServiceClient struct {
+	client *connect.Client
+}
+
+func (c *bitAssetsServiceClient) GetBalance(ctx context.Context, req *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
+	var res v1.GetBalanceResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetBalanceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetBlockCount(ctx context.Context, req *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error) {
+	var res v1.GetBlockCountResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetBlockCountSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) Stop(ctx context.Context, req *v1.StopRequest) (*v1.StopResponse, error) {
+	var res v1.StopResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceStopSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetNewAddress(ctx context.Context, req *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error) {
+	var res v1.GetNewAddressResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetNewAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) Withdraw(ctx context.Context, req *v1.WithdrawRequest) (*v1.WithdrawResponse, error) {
+	var res v1.WithdrawResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceWithdrawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) Transfer(ctx context.Context, req *v1.TransferRequest) (*v1.TransferResponse, error) {
+	var res v1.TransferResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetSidechainWealth(ctx context.Context, req *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error) {
+	var res v1.GetSidechainWealthResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetSidechainWealthSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) CreateDeposit(ctx context.Context, req *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
+	var res v1.CreateDepositResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceCreateDepositSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetPendingWithdrawalBundle(ctx context.Context, req *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error) {
+	var res v1.GetPendingWithdrawalBundleResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetPendingWithdrawalBundleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) ConnectPeer(ctx context.Context, req *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error) {
+	var res v1.ConnectPeerResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceConnectPeerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) ForgetPeer(ctx context.Context, req *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error) {
+	var res v1.ForgetPeerResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceForgetPeerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) ListPeers(ctx context.Context, req *v1.ListPeersRequest) (*v1.ListPeersResponse, error) {
+	var res v1.ListPeersResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceListPeersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) Mine(ctx context.Context, req *v1.MineRequest) (*v1.MineResponse, error) {
+	var res v1.MineResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceMineSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetBlock(ctx context.Context, req *v1.GetBlockRequest) (*v1.GetBlockResponse, error) {
+	var res v1.GetBlockResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetBlockSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetBestMainchainBlockHash(ctx context.Context, req *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error) {
+	var res v1.GetBestMainchainBlockHashResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetBestMainchainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetBestSidechainBlockHash(ctx context.Context, req *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error) {
+	var res v1.GetBestSidechainBlockHashResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetBestSidechainBlockHashSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetBmmInclusions(ctx context.Context, req *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error) {
+	var res v1.GetBmmInclusionsResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetBmmInclusionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetWalletUtxos(ctx context.Context, req *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error) {
+	var res v1.GetWalletUtxosResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetWalletUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) ListUtxos(ctx context.Context, req *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error) {
+	var res v1.ListUtxosResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceListUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) RemoveFromMempool(ctx context.Context, req *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error) {
+	var res v1.RemoveFromMempoolResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceRemoveFromMempoolSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetLatestFailedWithdrawalBundleHeight(ctx context.Context, req *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error) {
+	var res v1.GetLatestFailedWithdrawalBundleHeightResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetLatestFailedWithdrawalBundleHeightSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GenerateMnemonic(ctx context.Context, req *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	var res v1.GenerateMnemonicResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGenerateMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) SetSeedFromMnemonic(ctx context.Context, req *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error) {
+	var res v1.SetSeedFromMnemonicResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceSetSeedFromMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) CallRaw(ctx context.Context, req *v1.CallRawRequest) (*v1.CallRawResponse, error) {
+	var res v1.CallRawResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceCallRawSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetBitAssetData(ctx context.Context, req *v1.GetBitAssetDataRequest) (*v1.GetBitAssetDataResponse, error) {
+	var res v1.GetBitAssetDataResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetBitAssetDataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) ListBitAssets(ctx context.Context, req *v1.ListBitAssetsRequest) (*v1.ListBitAssetsResponse, error) {
+	var res v1.ListBitAssetsResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceListBitAssetsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) RegisterBitAsset(ctx context.Context, req *v1.RegisterBitAssetRequest) (*v1.RegisterBitAssetResponse, error) {
+	var res v1.RegisterBitAssetResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceRegisterBitAssetSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) ReserveBitAsset(ctx context.Context, req *v1.ReserveBitAssetRequest) (*v1.ReserveBitAssetResponse, error) {
+	var res v1.ReserveBitAssetResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceReserveBitAssetSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) TransferBitAsset(ctx context.Context, req *v1.TransferBitAssetRequest) (*v1.TransferBitAssetResponse, error) {
+	var res v1.TransferBitAssetResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceTransferBitAssetSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetNewEncryptionKey(ctx context.Context, req *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error) {
+	var res v1.GetNewEncryptionKeyResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetNewEncryptionKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetNewVerifyingKey(ctx context.Context, req *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error) {
+	var res v1.GetNewVerifyingKeyResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetNewVerifyingKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) DecryptMsg(ctx context.Context, req *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error) {
+	var res v1.DecryptMsgResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceDecryptMsgSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) EncryptMsg(ctx context.Context, req *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error) {
+	var res v1.EncryptMsgResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceEncryptMsgSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) SignArbitraryMsg(ctx context.Context, req *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error) {
+	var res v1.SignArbitraryMsgResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceSignArbitraryMsgSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) SignArbitraryMsgAsAddr(ctx context.Context, req *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error) {
+	var res v1.SignArbitraryMsgAsAddrResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceSignArbitraryMsgAsAddrSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) VerifySignature(ctx context.Context, req *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error) {
+	var res v1.VerifySignatureResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceVerifySignatureSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetWalletAddresses(ctx context.Context, req *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error) {
+	var res v1.GetWalletAddressesResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetWalletAddressesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) MyUnconfirmedUtxos(ctx context.Context, req *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error) {
+	var res v1.MyUnconfirmedUtxosResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceMyUnconfirmedUtxosSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) OpenapiSchema(ctx context.Context, req *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error) {
+	var res v1.OpenapiSchemaResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceOpenapiSchemaSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) AmmBurn(ctx context.Context, req *v1.AmmBurnRequest) (*v1.AmmBurnResponse, error) {
+	var res v1.AmmBurnResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceAmmBurnSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) AmmMint(ctx context.Context, req *v1.AmmMintRequest) (*v1.AmmMintResponse, error) {
+	var res v1.AmmMintResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceAmmMintSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) AmmSwap(ctx context.Context, req *v1.AmmSwapRequest) (*v1.AmmSwapResponse, error) {
+	var res v1.AmmSwapResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceAmmSwapSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetAmmPoolState(ctx context.Context, req *v1.GetAmmPoolStateRequest) (*v1.GetAmmPoolStateResponse, error) {
+	var res v1.GetAmmPoolStateResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetAmmPoolStateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) GetAmmPrice(ctx context.Context, req *v1.GetAmmPriceRequest) (*v1.GetAmmPriceResponse, error) {
+	var res v1.GetAmmPriceResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceGetAmmPriceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) DutchAuctionBid(ctx context.Context, req *v1.DutchAuctionBidRequest) (*v1.DutchAuctionBidResponse, error) {
+	var res v1.DutchAuctionBidResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceDutchAuctionBidSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) DutchAuctionCollect(ctx context.Context, req *v1.DutchAuctionCollectRequest) (*v1.DutchAuctionCollectResponse, error) {
+	var res v1.DutchAuctionCollectResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceDutchAuctionCollectSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) DutchAuctionCreate(ctx context.Context, req *v1.DutchAuctionCreateRequest) (*v1.DutchAuctionCreateResponse, error) {
+	var res v1.DutchAuctionCreateResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceDutchAuctionCreateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitAssetsServiceClient) DutchAuctions(ctx context.Context, req *v1.DutchAuctionsRequest) (*v1.DutchAuctionsResponse, error) {
+	var res v1.DutchAuctionsResponse
+	if err := c.client.CallUnary(ctx, bitAssetsServiceDutchAuctionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type bitAssetsServiceHandler struct{ svc BitAssetsServiceHandler }
+
+func (h bitAssetsServiceHandler) getBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBalance(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getBlockCount(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockCountRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlockCount(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) stop(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Stop(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getNewAddress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewAddressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) withdraw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WithdrawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Withdraw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) transfer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TransferRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Transfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getSidechainWealth(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainWealthRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSidechainWealth(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) createDeposit(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDepositRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDeposit(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getPendingWithdrawalBundle(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPendingWithdrawalBundleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPendingWithdrawalBundle(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) connectPeer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConnectPeerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ConnectPeer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) forgetPeer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ForgetPeerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ForgetPeer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) listPeers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPeersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPeers(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) mine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Mine(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBlockRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBlock(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getBestMainchainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestMainchainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestMainchainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getBestSidechainBlockHash(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBestSidechainBlockHashRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBestSidechainBlockHash(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getBmmInclusions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBmmInclusionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBmmInclusions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getWalletUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) listUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) removeFromMempool(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveFromMempoolRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveFromMempool(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getLatestFailedWithdrawalBundleHeight(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetLatestFailedWithdrawalBundleHeightRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLatestFailedWithdrawalBundleHeight(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) generateMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GenerateMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GenerateMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) setSeedFromMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetSeedFromMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetSeedFromMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) callRaw(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CallRawRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CallRaw(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getBitAssetData(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBitAssetDataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBitAssetData(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) listBitAssets(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBitAssetsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBitAssets(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) registerBitAsset(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RegisterBitAssetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RegisterBitAsset(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) reserveBitAsset(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ReserveBitAssetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ReserveBitAsset(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) transferBitAsset(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TransferBitAssetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.TransferBitAsset(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getNewEncryptionKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewEncryptionKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewEncryptionKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getNewVerifyingKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNewVerifyingKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNewVerifyingKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) decryptMsg(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DecryptMsgRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DecryptMsg(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) encryptMsg(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EncryptMsgRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EncryptMsg(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) signArbitraryMsg(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignArbitraryMsgRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignArbitraryMsg(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) signArbitraryMsgAsAddr(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignArbitraryMsgAsAddrRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignArbitraryMsgAsAddr(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) verifySignature(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.VerifySignatureRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.VerifySignature(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getWalletAddresses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWalletAddressesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWalletAddresses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) myUnconfirmedUtxos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MyUnconfirmedUtxosRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MyUnconfirmedUtxos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) openapiSchema(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.OpenapiSchemaRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.OpenapiSchema(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) ammBurn(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AmmBurnRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AmmBurn(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) ammMint(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AmmMintRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AmmMint(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) ammSwap(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AmmSwapRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AmmSwap(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getAmmPoolState(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetAmmPoolStateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetAmmPoolState(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) getAmmPrice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetAmmPriceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetAmmPrice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) dutchAuctionBid(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DutchAuctionBidRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DutchAuctionBid(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) dutchAuctionCollect(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DutchAuctionCollectRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DutchAuctionCollect(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) dutchAuctionCreate(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DutchAuctionCreateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DutchAuctionCreate(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitAssetsServiceHandler) dutchAuctions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DutchAuctionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DutchAuctions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

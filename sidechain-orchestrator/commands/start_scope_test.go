@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"errors"
 	"flag"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -11,7 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -82,7 +83,7 @@ func (f *fakeOrchestrator) runningNames() []string {
 	return names
 }
 
-func (f *fakeOrchestrator) ListBinaries(_ context.Context, _ *connect.Request[pb.ListBinariesRequest]) (*connect.Response[pb.ListBinariesResponse], error) {
+func (f *fakeOrchestrator) ListBinaries(_ context.Context, _ *pb.ListBinariesRequest) (*pb.ListBinariesResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -96,37 +97,37 @@ func (f *fakeOrchestrator) ListBinaries(_ context.Context, _ *connect.Request[pb
 			PortInUse:  !f.running[name] && f.portInUse[name],
 		})
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
-func (f *fakeOrchestrator) GetBinaryStatus(_ context.Context, req *connect.Request[pb.GetBinaryStatusRequest]) (*connect.Response[pb.GetBinaryStatusResponse], error) {
-	return connect.NewResponse(&pb.GetBinaryStatusResponse{
-		Status: &pb.BinaryStatusMsg{Name: req.Msg.Name, Downloaded: true, Downloadable: true},
-	}), nil
+func (f *fakeOrchestrator) GetBinaryStatus(_ context.Context, req *pb.GetBinaryStatusRequest) (*pb.GetBinaryStatusResponse, error) {
+	return &pb.GetBinaryStatusResponse{
+		Status: &pb.BinaryStatusMsg{Name: req.Name, Downloaded: true, Downloadable: true},
+	}, nil
 }
 
-func (f *fakeOrchestrator) StartWithL1(_ context.Context, req *connect.Request[pb.StartWithL1Request]) (*connect.Response[pb.StartWithL1Response], error) {
+func (f *fakeOrchestrator) StartWithL1(_ context.Context, req *pb.StartWithL1Request) (*pb.StartWithL1Response, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.running["bitcoind"] = true
 	f.running["enforcer"] = true
-	if f.opensWindow == req.Msg.Target {
-		f.windowOpen[req.Msg.Target] = true
+	if f.opensWindow == req.Target {
+		f.windowOpen[req.Target] = true
 	} else {
-		f.running[req.Msg.Target] = true
+		f.running[req.Target] = true
 	}
-	return connect.NewResponse(&pb.StartWithL1Response{}), nil
+	return &pb.StartWithL1Response{}, nil
 }
 
-func (f *fakeOrchestrator) StartBinary(_ context.Context, req *connect.Request[pb.StartBinaryRequest]) (*connect.Response[pb.StartBinaryResponse], error) {
+func (f *fakeOrchestrator) StartBinary(_ context.Context, req *pb.StartBinaryRequest) (*pb.StartBinaryResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.running[req.Msg.Name] = true
-	return connect.NewResponse(&pb.StartBinaryResponse{Pid: 1234}), nil
+	f.running[req.Name] = true
+	return &pb.StartBinaryResponse{Pid: 1234}, nil
 }
 
 // StreamLogs ends at once, which is the ctrl+c path the user hits.
-func (f *fakeOrchestrator) StreamLogs(_ context.Context, _ *connect.Request[pb.StreamLogsRequest], _ *connect.ServerStream[pb.StreamLogsResponse]) error {
+func (f *fakeOrchestrator) StreamLogs(_ context.Context, _ *pb.StreamLogsRequest, _ rpc.OrchestratorServiceStreamLogsServerStream) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for _, name := range f.startsDuringStream {
@@ -138,19 +139,19 @@ func (f *fakeOrchestrator) StreamLogs(_ context.Context, _ *connect.Request[pb.S
 	return f.streamErr
 }
 
-func (f *fakeOrchestrator) StopBinary(_ context.Context, req *connect.Request[pb.StopBinaryRequest]) (*connect.Response[pb.StopBinaryResponse], error) {
+func (f *fakeOrchestrator) StopBinary(_ context.Context, req *pb.StopBinaryRequest) (*pb.StopBinaryResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.stopped = append(f.stopped, req.Msg.Name)
-	if f.stopFailures[req.Msg.Name] {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("stop timed out"))
+	f.stopped = append(f.stopped, req.Name)
+	if f.stopFailures[req.Name] {
+		return nil, connect.NewError(connect.CodeInternal, "stop timed out")
 	}
-	delete(f.running, req.Msg.Name)
-	delete(f.windowOpen, req.Msg.Name)
-	return connect.NewResponse(&pb.StopBinaryResponse{}), nil
+	delete(f.running, req.Name)
+	delete(f.windowOpen, req.Name)
+	return &pb.StopBinaryResponse{}, nil
 }
 
-func (f *fakeOrchestrator) ShutdownAll(_ context.Context, _ *connect.Request[pb.ShutdownAllRequest], stream *connect.ServerStream[pb.ShutdownAllResponse]) error {
+func (f *fakeOrchestrator) ShutdownAll(_ context.Context, _ *pb.ShutdownAllRequest, stream rpc.OrchestratorServiceShutdownAllServerStream) error {
 	f.mu.Lock()
 	f.shutdownAlls++
 	f.mu.Unlock()
@@ -170,11 +171,17 @@ func newFakeOrchestrator(t *testing.T, alreadyRunning ...string) (*fakeOrchestra
 		fake.running[name] = true
 	}
 
-	_, handler := rpc.NewOrchestratorServiceHandler(fake)
+	rpcServer := connect.NewServer()
+
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, fake)
+
+	handler := http.NewServeMux()
+
+	connecthttp.Mount(handler, rpcServer, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
-	return fake, rpc.NewOrchestratorServiceClient(server.Client(), server.URL)
+	return fake, rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func startContext(t *testing.T, argv ...string) *cli.Context {
@@ -423,10 +430,16 @@ func TestWipe(t *testing.T) {
 		require.NoError(t, os.WriteFile(walletPath, []byte("keys"), 0o600))
 		require.NoError(t, os.WriteFile(dataPath, []byte("chain"), 0o600))
 
-		_, handler := rpc.NewOrchestratorServiceHandler(api.NewHandler(orch))
+		rpcServer := connect.NewServer()
+
+		rpc.RegisterOrchestratorServiceHandler(rpcServer, api.NewHandler(orch))
+
+		handler := http.NewServeMux()
+
+		connecthttp.Mount(handler, rpcServer, connecthttp.WithReadMaxBytes(0))
 		server := httptest.NewServer(handler)
 		t.Cleanup(server.Close)
-		client := rpc.NewOrchestratorServiceClient(server.Client(), server.URL)
+		client := rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
 
 		require.NoError(t, runWipe(wipeContext(t, "--include-wallets", "thunder"), client))
 
@@ -453,7 +466,7 @@ func TestWipe(t *testing.T) {
 
 func TestStartReportsALogStreamFailure(t *testing.T) {
 	fake, client := newFakeOrchestrator(t)
-	fake.streamErr = connect.NewError(connect.CodeNotFound, errors.New("no log for photon"))
+	fake.streamErr = connect.NewError(connect.CodeNotFound, "no log for photon")
 
 	require.ErrorContains(t, runStart(startContext(t, "photon"), client), "no log for photon")
 

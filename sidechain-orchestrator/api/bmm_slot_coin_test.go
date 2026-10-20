@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -143,25 +143,25 @@ func (w *fakeBidWallet) TxStatus(_ context.Context, txid string) (wallet.Esplora
 }
 
 func (w *fakeBidWallet) GetTransactionDetails(
-	_ context.Context, req *connect.Request[wpb.GetTransactionDetailsRequest],
-) (*connect.Response[wpb.GetTransactionDetailsResponse], error) {
-	details, ok := w.details[req.Msg.Txid]
+	_ context.Context, req *wpb.GetTransactionDetailsRequest,
+) (*wpb.GetTransactionDetailsResponse, error) {
+	details, ok := w.details[req.Txid]
 	if !ok {
-		return nil, fmt.Errorf("the wallet knows no transaction %s", req.Msg.Txid)
+		return nil, fmt.Errorf("the wallet knows no transaction %s", req.Txid)
 	}
-	return connect.NewResponse(details), nil
+	return details, nil
 }
 
 func (w *fakeBidWallet) ListTransactions(
-	_ context.Context, req *connect.Request[wpb.ListTransactionsRequest],
-) (*connect.Response[wpb.ListTransactionsResponse], error) {
-	w.listed = append(w.listed, req.Msg)
-	if err, ok := w.listErr[req.Msg.WalletId]; ok {
+	_ context.Context, req *wpb.ListTransactionsRequest,
+) (*wpb.ListTransactionsResponse, error) {
+	w.listed = append(w.listed, req)
+	if err, ok := w.listErr[req.WalletId]; ok {
 		return nil, err
 	}
 	// The handler defaults an unset count to 100, and the electrum backend cuts
 	// the list at it after sorting an unconfirmed row last.
-	count := int(req.Msg.Count)
+	count := int(req.Count)
 	if count <= 0 {
 		count = 100
 	}
@@ -169,7 +169,7 @@ func (w *fakeBidWallet) ListTransactions(
 	if count < len(txs) {
 		txs = txs[:count]
 	}
-	return connect.NewResponse(&wpb.ListTransactionsResponse{Transactions: txs}), nil
+	return &wpb.ListTransactionsResponse{Transactions: txs}, nil
 }
 
 // heldCoins names the coins a test froze, keyed txid:vout.
@@ -183,29 +183,29 @@ func (w *fakeBidWallet) ResolveWalletID(walletID string) (string, error) {
 }
 
 func (w *fakeBidWallet) ListUnspent(
-	_ context.Context, req *connect.Request[wpb.ListUnspentRequest],
-) (*connect.Response[wpb.ListUnspentResponse], error) {
+	_ context.Context, req *wpb.ListUnspentRequest,
+) (*wpb.ListUnspentResponse, error) {
 	utxos := w.utxos
 	if w.byWallet != nil {
-		utxos = w.byWallet[req.Msg.WalletId]
+		utxos = w.byWallet[req.WalletId]
 	}
-	return connect.NewResponse(&wpb.ListUnspentResponse{Utxos: utxos}), nil
+	return &wpb.ListUnspentResponse{Utxos: utxos}, nil
 }
 
 func (w *fakeBidWallet) GetNewAddress(
-	_ context.Context, _ *connect.Request[wpb.GetNewAddressRequest],
-) (*connect.Response[wpb.GetNewAddressResponse], error) {
+	_ context.Context, _ *wpb.GetNewAddressRequest,
+) (*wpb.GetNewAddressResponse, error) {
 	w.addresses++
-	return connect.NewResponse(&wpb.GetNewAddressResponse{
+	return &wpb.GetNewAddressResponse{
 		Address: fmt.Sprintf("address-%d", w.addresses),
-	}), nil
+	}, nil
 }
 
 func (w *fakeBidWallet) SendTransaction(
-	_ context.Context, req *connect.Request[wpb.SendTransactionRequest],
-) (*connect.Response[wpb.SendTransactionResponse], error) {
-	w.sends = append(w.sends, req.Msg)
-	return connect.NewResponse(&wpb.SendTransactionResponse{Txid: w.sendTxid}), nil
+	_ context.Context, req *wpb.SendTransactionRequest,
+) (*wpb.SendTransactionResponse, error) {
+	w.sends = append(w.sends, req)
+	return &wpb.SendTransactionResponse{Txid: w.sendTxid}, nil
 }
 
 func slotCoinHandler(t *testing.T, mempool *fakeSlotMempool, wallet *fakeBidWallet) *BMMHandler {
@@ -310,19 +310,19 @@ func TestSlotCoinGivesTwoSlotsTwoCoins(t *testing.T) {
 	assert.Empty(t, wallet.sends, "two free coins need no split")
 }
 
-func prepareRequest(sidechains int) *connect.Request[bmmpb.PrepareBMMRequest] {
+func prepareRequest(sidechains int) *bmmpb.PrepareBMMRequest {
 	targets := make([]*bmmpb.PrepareBMMTarget, 0, sidechains)
 	for range sidechains {
 		targets = append(targets, &bmmpb.PrepareBMMTarget{WalletId: "bidder", MaxBidSats: 30_000})
 	}
-	return connect.NewRequest(&bmmpb.PrepareBMMRequest{Targets: targets})
+	return &bmmpb.PrepareBMMRequest{Targets: targets}
 }
 
 // prepared reads the one wallet the tests below prepare.
-func prepared(t *testing.T, resp *connect.Response[bmmpb.PrepareBMMResponse]) *bmmpb.PrepareBMMWallet {
+func prepared(t *testing.T, resp *bmmpb.PrepareBMMResponse) *bmmpb.PrepareBMMWallet {
 	t.Helper()
-	require.Len(t, resp.Msg.Wallets, 1)
-	return resp.Msg.Wallets[0]
+	require.Len(t, resp.Wallets, 1)
+	return resp.Wallets[0]
 }
 
 // workingSats is the balance one sidechain bids many rounds from.
@@ -528,12 +528,12 @@ func TestPrepareBMMJoinsTheAliasesOfOneWallet(t *testing.T) {
 	}
 	h := slotCoinHandler(t, &fakeSlotMempool{}, wallet)
 
-	resp, err := h.PrepareBMM(context.Background(), connect.NewRequest(&bmmpb.PrepareBMMRequest{
+	resp, err := h.PrepareBMM(context.Background(), &bmmpb.PrepareBMMRequest{
 		Targets: []*bmmpb.PrepareBMMTarget{
 			{WalletId: "", MaxBidSats: 30_000},
 			{WalletId: "active", MaxBidSats: 45_000},
 		},
-	}))
+	})
 	require.NoError(t, err)
 
 	only := prepared(t, resp)
@@ -580,13 +580,13 @@ func TestPrepareBMMPreparesEveryWalletAfterAFailure(t *testing.T) {
 	}
 	h := slotCoinHandler(t, &fakeSlotMempool{}, wallet)
 
-	_, err := h.PrepareBMM(context.Background(), connect.NewRequest(&bmmpb.PrepareBMMRequest{
+	_, err := h.PrepareBMM(context.Background(), &bmmpb.PrepareBMMRequest{
 		Targets: []*bmmpb.PrepareBMMTarget{
 			{WalletId: "poor", MaxBidSats: 30_000},
 			{WalletId: "rich", MaxBidSats: 30_000},
 			{WalletId: "rich", MaxBidSats: 30_000},
 		},
-	}))
+	})
 
 	require.Error(t, err, "the poor wallet cannot pay for its coin")
 	require.Len(t, wallet.sends, 1, "the rich wallet still gets its coins")

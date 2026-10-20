@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -18,7 +19,8 @@ import (
 	"time"
 	"unicode"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
@@ -111,12 +113,13 @@ func cookieDir(cctx *cli.Context) string {
 func newClient(cctx *cli.Context) rpc.OrchestratorServiceClient {
 	addr := cctx.String("rpcserver")
 	url := fmt.Sprintf("http://%s", addr)
-	return rpc.NewOrchestratorServiceClient(
+	return rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		url,
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), localauth.ClientInterceptor(cookieDir(cctx)),
+	))
 }
 
 var downloadCommand = &cli.Command{
@@ -140,14 +143,14 @@ var downloadCommand = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
 			client := newClient(cctx)
-			resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
+			resp, err := client.ListBinaries(cctx.Context, &pb.ListBinariesRequest{})
 			if err != nil {
 				return fmt.Errorf("usage: drivechain-cli download <binary>\n  (could not fetch binary list: %w)", err)
 			}
 			fmt.Println("usage: drivechain-cli download <binary>")
 			fmt.Println()
 			fmt.Println("available binaries:")
-			for _, b := range resp.Msg.Binaries {
+			for _, b := range resp.Binaries {
 				if !b.Downloadable {
 					continue
 				}
@@ -209,13 +212,13 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 
 	autoDownload := cctx.Bool("auto-download") || os.Getenv("ORCHESTRATOR_AUTO_DOWNLOAD") != ""
 	for _, bin := range needed {
-		resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
+		resp, err := client.GetBinaryStatus(cctx.Context, &pb.GetBinaryStatusRequest{
 			Name: bin,
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		s := resp.Msg.Status
+		s := resp.Status
 		if s.Downloaded || !s.Downloadable {
 			continue
 		}
@@ -255,22 +258,22 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 		// Fire-and-forget on the server side — boot proceeds in a
 		// background goroutine. Poll GetSyncStatus / ListBinaries via
 		// `drivechain-cli status` for progress.
-		if _, err := client.StartWithL1(cctx.Context, connect.NewRequest(&pb.StartWithL1Request{
+		if _, err := client.StartWithL1(cctx.Context, &pb.StartWithL1Request{
 			Target:     name,
 			TargetArgs: cctx.StringSlice("args"),
-		})); err != nil {
+		}); err != nil {
 			return err
 		}
 		fmt.Println("L1 boot kicked off; poll status for progress")
 	} else {
-		resp, err := client.StartBinary(cctx.Context, connect.NewRequest(&pb.StartBinaryRequest{
+		resp, err := client.StartBinary(cctx.Context, &pb.StartBinaryRequest{
 			Name:      name,
 			ExtraArgs: cctx.StringSlice("args"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("started %s (PID %d)\n", name, resp.Msg.Pid)
+		fmt.Printf("started %s (PID %d)\n", name, resp.Pid)
 	}
 
 	if daemon {
@@ -290,20 +293,29 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 		cancel()
 	}()
 
-	logStream, err := client.StreamLogs(ctx, connect.NewRequest(&pb.StreamLogsRequest{
+	logStream, err := client.StreamLogs(ctx, &pb.StreamLogsRequest{
 		Name: name,
 		Tail: 10,
-	}))
+	})
 	if err != nil {
 		return err
 	}
-	for logStream.Receive() {
-		msg := logStream.Msg()
+	var streamErr2 error
+	for {
+		msg2, err := logStream.Receive()
+		if err != nil {
+			streamErr2 = err
+			break
+		}
+		msg := msg2
 		ts := time.Unix(msg.TimestampUnix, 0).Format("15:04:05")
 		fmt.Printf("[%s] %s\n", ts, msg.Line)
 	}
+	if errors.Is(streamErr2, io.EOF) {
+		streamErr2 = nil
+	}
 	var streamErr error
-	if err := logStream.Err(); err != nil && ctx.Err() == nil {
+	if err := streamErr2; err != nil && ctx.Err() == nil {
 		streamErr = fmt.Errorf("stream %s logs: %w", name, err)
 	}
 
@@ -345,7 +357,7 @@ func stopOneBinary(client rpc.OrchestratorServiceClient, name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), stopBinaryTimeout)
 	defer cancel()
 
-	_, err := client.StopBinary(ctx, connect.NewRequest(&pb.StopBinaryRequest{Name: name}))
+	_, err := client.StopBinary(ctx, &pb.StopBinaryRequest{Name: name})
 	return err
 }
 
@@ -362,17 +374,17 @@ type binarySnapshot struct {
 }
 
 func takeBinarySnapshot(ctx context.Context, client rpc.OrchestratorServiceClient) (binarySnapshot, error) {
-	resp, err := client.ListBinaries(ctx, connect.NewRequest(&pb.ListBinariesRequest{}))
+	resp, err := client.ListBinaries(ctx, &pb.ListBinariesRequest{})
 	if err != nil {
 		return binarySnapshot{}, fmt.Errorf("list binaries: %w", err)
 	}
 
 	snapshot := binarySnapshot{
-		daemons:    make(map[string]bool, len(resp.Msg.Binaries)),
-		busy:       make(map[string]bool, len(resp.Msg.Binaries)),
-		sidechains: make(map[string]bool, len(resp.Msg.Binaries)),
+		daemons:    make(map[string]bool, len(resp.Binaries)),
+		busy:       make(map[string]bool, len(resp.Binaries)),
+		sidechains: make(map[string]bool, len(resp.Binaries)),
 	}
-	for _, s := range resp.Msg.Binaries {
+	for _, s := range resp.Binaries {
 		if s.Running {
 			snapshot.daemons[s.Name] = true
 		}
@@ -459,10 +471,10 @@ var stopCommand = &cli.Command{
 		}
 
 		client := newClient(cctx)
-		_, err := client.StopBinary(cctx.Context, connect.NewRequest(&pb.StopBinaryRequest{
+		_, err := client.StopBinary(cctx.Context, &pb.StopBinaryRequest{
 			Name:  cctx.Args().First(),
 			Force: cctx.Bool("force"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -480,22 +492,22 @@ var statusCommand = &cli.Command{
 		client := newClient(cctx)
 
 		if cctx.NArg() > 0 {
-			resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
+			resp, err := client.GetBinaryStatus(cctx.Context, &pb.GetBinaryStatusRequest{
 				Name: cctx.Args().First(),
-			}))
+			})
 			if err != nil {
 				return err
 			}
-			printStatus(resp.Msg.Status)
+			printStatus(resp.Status)
 			return nil
 		}
 
-		resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
+		resp, err := client.ListBinaries(cctx.Context, &pb.ListBinariesRequest{})
 		if err != nil {
 			return err
 		}
 
-		for _, s := range resp.Msg.Binaries {
+		for _, s := range resp.Binaries {
 			printStatus(s)
 		}
 		return nil
@@ -528,7 +540,7 @@ func runWipe(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 		return err
 	}
 
-	if _, err := client.StopBinary(cctx.Context, connect.NewRequest(&pb.StopBinaryRequest{Name: name, Force: true})); err != nil {
+	if _, err := client.StopBinary(cctx.Context, &pb.StopBinaryRequest{Name: name, Force: true}); err != nil {
 		return fmt.Errorf("stop %s: %w", name, err)
 	}
 
@@ -540,25 +552,30 @@ func runWipe(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 	if cctx.Bool("include-wallets") {
 		deletions = append(deletions, pb.DeletionType_DELETION_TYPE_WALLET)
 	}
-	stream, err := client.DeleteFiles(cctx.Context, connect.NewRequest(&pb.DeleteFilesRequest{
+	stream, err := client.DeleteFiles(cctx.Context, &pb.DeleteFilesRequest{
 		Items: []*pb.SingleDeletion{{Binary: binary, Deletions: deletions}},
-	}))
+	})
 	if err != nil {
 		return err
 	}
 
 	var failed []string
-	for stream.Receive() {
-		msg := stream.Msg()
+	for {
+		msg2, err := stream.Receive()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
+		msg := msg2
 		if msg.Error != "" {
 			failed = append(failed, fmt.Sprintf("%s: %s", msg.Path, msg.Error))
 			continue
 		}
 		fmt.Printf("removed %s\n", msg.Path)
 	}
-	if err := stream.Err(); err != nil {
-		return err
-	}
+
 	if len(failed) > 0 {
 		return fmt.Errorf("wipe %s: %s", name, strings.Join(failed, "; "))
 	}
@@ -573,11 +590,11 @@ var infoCommand = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		client := newClient(cctx)
 
-		mainchain, err := client.GetMainchainBlockchainInfo(cctx.Context, connect.NewRequest(&pb.GetMainchainBlockchainInfoRequest{}))
+		mainchain, err := client.GetMainchainBlockchainInfo(cctx.Context, &pb.GetMainchainBlockchainInfoRequest{})
 		if err != nil {
 			fmt.Printf("mainchain: unavailable (%v)\n", err)
 		} else {
-			m := mainchain.Msg
+			m := mainchain
 			fmt.Println("mainchain:")
 			fmt.Printf("  chain:    %s\n", m.Chain)
 			fmt.Printf("  blocks:   %d\n", m.Blocks)
@@ -587,11 +604,11 @@ var infoCommand = &cli.Command{
 			fmt.Printf("  size:     %s\n", formatBytes(m.SizeOnDisk))
 		}
 
-		enforcer, err := client.GetEnforcerBlockchainInfo(cctx.Context, connect.NewRequest(&pb.GetEnforcerBlockchainInfoRequest{}))
+		enforcer, err := client.GetEnforcerBlockchainInfo(cctx.Context, &pb.GetEnforcerBlockchainInfoRequest{})
 		if err != nil {
 			fmt.Printf("\nenforcer: unavailable (%v)\n", err)
 		} else {
-			e := enforcer.Msg
+			e := enforcer
 			fmt.Println("\nenforcer:")
 			fmt.Printf("  blocks:   %d\n", e.Blocks)
 			fmt.Printf("  headers:  %d\n", e.Headers)
@@ -606,12 +623,12 @@ var balanceCommand = &cli.Command{
 	Usage: "Show mainchain wallet balance",
 	Action: func(cctx *cli.Context) error {
 		client := newClient(cctx)
-		resp, err := client.GetMainchainBalance(cctx.Context, connect.NewRequest(&pb.GetMainchainBalanceRequest{}))
+		resp, err := client.GetMainchainBalance(cctx.Context, &pb.GetMainchainBalanceRequest{})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("confirmed:   %.8f BTC\n", resp.Msg.Confirmed)
-		fmt.Printf("unconfirmed: %.8f BTC\n", resp.Msg.Unconfirmed)
+		fmt.Printf("confirmed:   %.8f BTC\n", resp.Confirmed)
+		fmt.Printf("unconfirmed: %.8f BTC\n", resp.Unconfirmed)
 		return nil
 	},
 }
@@ -621,12 +638,12 @@ var priceCommand = &cli.Command{
 	Usage: "Show current BTC/USD price",
 	Action: func(cctx *cli.Context) error {
 		client := newClient(cctx)
-		resp, err := client.GetBTCPrice(cctx.Context, connect.NewRequest(&pb.GetBTCPriceRequest{}))
+		resp, err := client.GetBTCPrice(cctx.Context, &pb.GetBTCPriceRequest{})
 		if err != nil {
 			return err
 		}
-		t := time.Unix(resp.Msg.LastUpdatedUnix, 0)
-		fmt.Printf("$%.2f (updated %s)\n", resp.Msg.Btcusd, t.Format("15:04:05"))
+		t := time.Unix(resp.LastUpdatedUnix, 0)
+		fmt.Printf("$%.2f (updated %s)\n", resp.Btcusd, t.Format("15:04:05"))
 		return nil
 	},
 }
@@ -636,7 +653,7 @@ var doctorCommand = &cli.Command{
 	Usage: "Check system health and suggest next steps",
 	Action: func(cctx *cli.Context) error {
 		client := newClient(cctx)
-		resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
+		resp, err := client.ListBinaries(cctx.Context, &pb.ListBinariesRequest{})
 		if err != nil {
 			return fmt.Errorf("cannot reach orchestrator daemon: %w", err)
 		}
@@ -645,7 +662,7 @@ var doctorCommand = &cli.Command{
 		var notRunning []string
 		allGood := true
 
-		for _, b := range resp.Msg.Binaries {
+		for _, b := range resp.Binaries {
 			if !b.Downloadable {
 				continue
 			}
@@ -702,12 +719,12 @@ var versionCommand = &cli.Command{
 	Usage: "Show version info for all binaries",
 	Action: func(cctx *cli.Context) error {
 		client := newClient(cctx)
-		resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
+		resp, err := client.ListBinaries(cctx.Context, &pb.ListBinariesRequest{})
 		if err != nil {
 			return fmt.Errorf("cannot reach orchestrator daemon: %w", err)
 		}
 
-		for _, b := range resp.Msg.Binaries {
+		for _, b := range resp.Binaries {
 			if !b.Downloadable {
 				continue
 			}
@@ -790,13 +807,13 @@ var updateCommand = &cli.Command{
 		client := newClient(cctx)
 
 		// Stop if running.
-		status, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{Name: name}))
+		status, err := client.GetBinaryStatus(cctx.Context, &pb.GetBinaryStatusRequest{Name: name})
 		if err != nil {
 			return err
 		}
-		if status.Msg.Status.Running {
+		if status.Status.Running {
 			fmt.Printf("stopping %s...\n", name)
-			if _, err := client.StopBinary(cctx.Context, connect.NewRequest(&pb.StopBinaryRequest{Name: name})); err != nil {
+			if _, err := client.StopBinary(cctx.Context, &pb.StopBinaryRequest{Name: name}); err != nil {
 				return fmt.Errorf("stop %s: %w", name, err)
 			}
 		}
@@ -869,10 +886,10 @@ func servedECashNetwork(cctx *cli.Context, bitwindowDir string) string {
 	defer cancel()
 
 	resp, err := newClient(cctx).GetPendingNetworkGeneration(
-		ctx, connect.NewRequest(&pb.GetPendingNetworkGenerationRequest{}),
+		ctx, &pb.GetPendingNetworkGenerationRequest{},
 	)
 	if err == nil {
-		return resp.Msg.CurrentNetworkId
+		return resp.CurrentNetworkId
 	}
 	// No daemon answers. The next start serves the network this install records,
 	// and only then the one compiled into the binary.
@@ -922,11 +939,11 @@ func formatBytes(b int64) string {
 func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name string, force, wait, forceBackend bool) error {
 	// DownloadBinary is fire-and-forget on the server — it returns before the
 	// file lands on disk.
-	if _, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
+	if _, err := client.DownloadBinary(ctx, &pb.DownloadBinaryRequest{
 		Name:         name,
 		Force:        force,
 		ForceBackend: forceBackend,
-	})); err != nil {
+	}); err != nil {
 		return err
 	}
 
@@ -940,11 +957,11 @@ func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name
 	defer cancel()
 	fmt.Printf("downloading %s (waiting for completion)...\n", name)
 	for {
-		resp, err := client.GetBinaryStatus(ctx, connect.NewRequest(&pb.GetBinaryStatusRequest{Name: name, ForceBackend: forceBackend}))
+		resp, err := client.GetBinaryStatus(ctx, &pb.GetBinaryStatusRequest{Name: name, ForceBackend: forceBackend})
 		if err != nil {
 			return fmt.Errorf("poll %s status: %w", name, err)
 		}
-		s := resp.Msg.Status
+		s := resp.Status
 		if s.Downloaded {
 			fmt.Printf("%s downloaded\n", name)
 			return nil
@@ -973,12 +990,12 @@ func confirmYes() bool {
 // printUsageWithBinaries prints a usage line and lists available binaries.
 func printUsageWithBinaries(cctx *cli.Context, command string) error {
 	client := newClient(cctx)
-	resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
+	resp, err := client.ListBinaries(cctx.Context, &pb.ListBinariesRequest{})
 	if err != nil {
 		return fmt.Errorf("usage: drivechain-cli %s <binary>", command)
 	}
 	fmt.Printf("usage: drivechain-cli %s <binary>\n\navailable binaries:\n", command)
-	for _, b := range resp.Msg.Binaries {
+	for _, b := range resp.Binaries {
 		fmt.Printf("  %s\n", b.Name)
 	}
 	return nil
@@ -1016,21 +1033,30 @@ var logsCommand = &cli.Command{
 		}
 
 		client := newClient(cctx)
-		stream, err := client.StreamLogs(cctx.Context, connect.NewRequest(&pb.StreamLogsRequest{
+		stream, err := client.StreamLogs(cctx.Context, &pb.StreamLogsRequest{
 			Name: cctx.Args().First(),
 			Tail: int32(cctx.Int("tail")),
-		}))
+		})
 		if err != nil {
 			return err
 		}
 
-		for stream.Receive() {
-			msg := stream.Msg()
+		var streamErr error
+		for {
+			msg2, err := stream.Receive()
+			if err != nil {
+				streamErr = err
+				break
+			}
+			msg := msg2
 			ts := time.Unix(msg.TimestampUnix, 0).Format("15:04:05")
 			fmt.Printf("[%s] [%s] %s\n", ts, msg.Stream, msg.Line)
 		}
+		if errors.Is(streamErr, io.EOF) {
+			streamErr = nil
+		}
 
-		return stream.Err()
+		return streamErr
 	},
 }
 
@@ -1045,15 +1071,21 @@ var shutdownCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		client := newClient(cctx)
-		stream, err := client.ShutdownAll(cctx.Context, connect.NewRequest(&pb.ShutdownAllRequest{
+		stream, err := client.ShutdownAll(cctx.Context, &pb.ShutdownAllRequest{
 			Force: cctx.Bool("force"),
-		}))
+		})
 		if err != nil {
 			return err
 		}
 
-		for stream.Receive() {
-			msg := stream.Msg()
+		var streamErr error
+		for {
+			msg2, err := stream.Receive()
+			if err != nil {
+				streamErr = err
+				break
+			}
+			msg := msg2
 			if msg.Error != "" {
 				fmt.Printf("error: %s\n", msg.Error)
 			}
@@ -1064,8 +1096,11 @@ var shutdownCommand = &cli.Command{
 				fmt.Println("shutdown complete")
 			}
 		}
+		if errors.Is(streamErr, io.EOF) {
+			streamErr = nil
+		}
 
-		return stream.Err()
+		return streamErr
 	},
 }
 
@@ -1257,26 +1292,26 @@ func runSidechainBalance(cctx *cli.Context, sidechainName string) error {
 	if err != nil {
 		return err
 	}
-	resp, err := client.GetSidechainBalance(cctx.Context, connect.NewRequest(&pb.GetSidechainBalanceRequest{
+	resp, err := client.GetSidechainBalance(cctx.Context, &pb.GetSidechainBalanceRequest{
 		Sidechain: binaryType,
-	}))
+	})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("confirmed: %s BTC (%d sats)\n", satsToBtcUint(resp.Msg.ConfirmedSats), resp.Msg.ConfirmedSats)
-	fmt.Printf("pending:   %s BTC (%d sats)\n", satsToBtcUint(resp.Msg.PendingSats), resp.Msg.PendingSats)
+	fmt.Printf("confirmed: %s BTC (%d sats)\n", satsToBtcUint(resp.ConfirmedSats), resp.ConfirmedSats)
+	fmt.Printf("pending:   %s BTC (%d sats)\n", satsToBtcUint(resp.PendingSats), resp.PendingSats)
 	return nil
 }
 
 func ensureSidechainDownloaded(cctx *cli.Context, client rpc.OrchestratorServiceClient, sidechainName, commandName string) error {
-	resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
+	resp, err := client.GetBinaryStatus(cctx.Context, &pb.GetBinaryStatusRequest{
 		Name: sidechainName,
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("failed to check %s status: %w", sidechainName, err)
 	}
 
-	status := resp.Msg.Status
+	status := resp.Status
 	if !status.Downloaded {
 		// Binary not downloaded - ask user or auto-download in CI
 		autoDownload := cctx.Bool("auto-download") || os.Getenv("ORCHESTRATOR_AUTO_DOWNLOAD") != ""

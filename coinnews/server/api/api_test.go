@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,21 +67,21 @@ func TestHandler_ListTopicsAndFeed(t *testing.T) {
 		}},
 	}))
 
-	topicsRes, err := h.ListTopics(ctx, connect.NewRequest(&emptypb.Empty{}))
+	topicsRes, err := h.ListTopics(ctx, &emptypb.Empty{})
 	require.NoError(t, err)
-	require.Len(t, topicsRes.Msg.Topics, 1)
-	assert.Equal(t, "Bitcoin", topicsRes.Msg.Topics[0].Name)
-	assert.Equal(t, "42544321", topicsRes.Msg.Topics[0].TopicHex)
+	require.Len(t, topicsRes.Topics, 1)
+	assert.Equal(t, "Bitcoin", topicsRes.Topics[0].Name)
+	assert.Equal(t, "42544321", topicsRes.Topics[0].TopicHex)
 
-	frontRes, err := h.ListFrontPage(ctx, connect.NewRequest(&pb.ListFrontPageRequest{Limit: 10}))
+	frontRes, err := h.ListFrontPage(ctx, &pb.ListFrontPageRequest{Limit: 10})
 	require.NoError(t, err)
-	require.Len(t, frontRes.Msg.Items, 1)
-	assert.Equal(t, "hello", frontRes.Msg.Items[0].Headline)
-	assert.Equal(t, "https://example.com/x", frontRes.Msg.Items[0].Url)
+	require.Len(t, frontRes.Items, 1)
+	assert.Equal(t, "hello", frontRes.Items[0].Headline)
+	assert.Equal(t, "https://example.com/x", frontRes.Items[0].Url)
 
-	newRes, err := h.ListNewFeed(ctx, connect.NewRequest(&pb.ListNewFeedRequest{Limit: 10}))
+	newRes, err := h.ListNewFeed(ctx, &pb.ListNewFeedRequest{Limit: 10})
 	require.NoError(t, err)
-	require.Len(t, newRes.Msg.Items, 1)
+	require.Len(t, newRes.Items, 1)
 }
 
 func TestHandler_GetItem_NotFound(t *testing.T) {
@@ -89,9 +89,9 @@ func TestHandler_GetItem_NotFound(t *testing.T) {
 	h := newHandler(t)
 	missing := make([]byte, codec.ItemIDLen)
 	missing[0] = 0xde
-	_, err := h.GetItem(context.Background(), connect.NewRequest(&pb.GetItemRequest{
+	_, err := h.GetItem(context.Background(), &pb.GetItemRequest{
 		ItemIdHex: hex.EncodeToString(missing),
-	}))
+	})
 	require.Error(t, err)
 	var ce *connect.Error
 	require.ErrorAs(t, err, &ce)
@@ -101,9 +101,9 @@ func TestHandler_GetItem_NotFound(t *testing.T) {
 func TestHandler_GetItem_BadID(t *testing.T) {
 	t.Parallel()
 	h := newHandler(t)
-	_, err := h.GetItem(context.Background(), connect.NewRequest(&pb.GetItemRequest{
+	_, err := h.GetItem(context.Background(), &pb.GetItemRequest{
 		ItemIdHex: "not-hex",
-	}))
+	})
 	require.Error(t, err)
 	var ce *connect.Error
 	require.ErrorAs(t, err, &ce)
@@ -129,19 +129,19 @@ func TestHandler_GetItem_RoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, feed, 1)
 
-	got, err := h.GetItem(ctx, connect.NewRequest(&pb.GetItemRequest{
+	got, err := h.GetItem(ctx, &pb.GetItemRequest{
 		ItemIdHex: hex.EncodeToString(feed[0].ItemID[:]),
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "hn-clone", got.Msg.Item.Headline)
+	assert.Equal(t, "hn-clone", got.Item.Headline)
 }
 
 func TestHandler_ListByAuthor_BadHex(t *testing.T) {
 	t.Parallel()
 	h := newHandler(t)
-	_, err := h.ListByAuthor(context.Background(), connect.NewRequest(&pb.ListByAuthorRequest{
+	_, err := h.ListByAuthor(context.Background(), &pb.ListByAuthorRequest{
 		AuthorXpkHex: "deadbeef", // not 32 bytes
-	}))
+	})
 	require.Error(t, err)
 	var ce *connect.Error
 	require.ErrorAs(t, err, &ce)
@@ -177,20 +177,20 @@ func TestHandler_ListByAuthor_OK(t *testing.T) {
 		},
 	}))
 
-	res, err := h.ListByAuthor(ctx, connect.NewRequest(&pb.ListByAuthorRequest{
+	res, err := h.ListByAuthor(ctx, &pb.ListByAuthorRequest{
 		AuthorXpkHex: hex.EncodeToString(xpk[:]),
 		Limit:        10,
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, res.Msg.Items, 1, "story author list pulls in stories the author commented on")
+	require.Len(t, res.Items, 1, "story author list pulls in stories the author commented on")
 }
 
 func TestHandler_ListByTopic_BadHex(t *testing.T) {
 	t.Parallel()
 	h := newHandler(t)
-	_, err := h.ListByTopic(context.Background(), connect.NewRequest(&pb.ListByTopicRequest{
+	_, err := h.ListByTopic(context.Background(), &pb.ListByTopicRequest{
 		TopicHex: "zz",
-	}))
+	})
 	require.Error(t, err)
 	var ce *connect.Error
 	require.ErrorAs(t, err, &ce)
@@ -202,10 +202,10 @@ func TestHandler_FeedBadTopicHex(t *testing.T) {
 	h := newHandler(t)
 	topicHex := "zz"
 
-	_, err := h.ListFrontPage(context.Background(), connect.NewRequest(&pb.ListFrontPageRequest{TopicHex: &topicHex}))
+	_, err := h.ListFrontPage(context.Background(), &pb.ListFrontPageRequest{TopicHex: &topicHex})
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 
-	_, err = h.ListNewFeed(context.Background(), connect.NewRequest(&pb.ListNewFeedRequest{TopicHex: &topicHex}))
+	_, err = h.ListNewFeed(context.Background(), &pb.ListNewFeedRequest{TopicHex: &topicHex})
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
@@ -237,12 +237,12 @@ func TestHandler_ListThread(t *testing.T) {
 		},
 	}))
 
-	res, err := h.ListThread(ctx, connect.NewRequest(&pb.ListThreadRequest{
+	res, err := h.ListThread(ctx, &pb.ListThreadRequest{
 		RootIdHex: hex.EncodeToString(feed[0].ItemID[:]),
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, res.Msg.Comments, 1)
-	assert.Equal(t, "+1", res.Msg.Comments[0].Body)
+	require.Len(t, res.Comments, 1)
+	assert.Equal(t, "+1", res.Comments[0].Body)
 }
 
 func TestHandler_InternalErrorHidesTheCause(t *testing.T) {
@@ -252,7 +252,7 @@ func TestHandler_InternalErrorHidesTheCause(t *testing.T) {
 	h.Log = zerolog.New(&logged)
 	require.NoError(t, h.DB.Close())
 
-	_, err := h.ListTopics(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	_, err := h.ListTopics(context.Background(), &emptypb.Empty{})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	var ce *connect.Error

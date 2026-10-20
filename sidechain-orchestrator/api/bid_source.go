@@ -6,7 +6,7 @@ import (
 	"maps"
 	"slices"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
@@ -150,8 +150,8 @@ func (s bidSource) Replacement(ctx context.Context, walletID, txid string) (Repl
 	var walk func(txid string, depth int) error
 	walk = func(txid string, depth int) error {
 		if depth > maxBidChain {
-			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-				"bid %s sits over more than %d unconfirmed bids", txid, maxBidChain))
+			return connect.Errorf(connect.CodeFailedPrecondition,
+				"bid %s sits over more than %d unconfirmed bids", txid, maxBidChain)
 		}
 		if !chainSeen[txid] {
 			chainSeen[txid] = true
@@ -188,8 +188,8 @@ func (s bidSource) Replacement(ctx context.Context, walletID, txid string) (Repl
 		return Replacement{}, err
 	}
 	if len(inputs) == 0 {
-		return Replacement{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("bid %s has no inputs to reuse", txid))
+		return Replacement{}, connect.Errorf(connect.CodeFailedPrecondition,
+			"bid %s has no inputs to reuse", txid)
 	}
 
 	evicted, err := s.own.evicted(ctx, walletID, roots, chain)

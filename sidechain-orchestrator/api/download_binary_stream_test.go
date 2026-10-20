@@ -12,7 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
@@ -67,21 +68,22 @@ func TestDownloadBinary_DispatchesAndCompletes(t *testing.T) {
 	})
 
 	mux := http.NewServeMux()
-	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
-	mux.Handle(path, h)
+	rpcServer := connect.NewServer()
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, NewHandler(orch))
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	connectSrv := h2cServer(mux)
 	defer connectSrv.Close()
 
-	client := rpc.NewOrchestratorServiceClient(h2cClient(), connectSrv.URL, connect.WithGRPC())
+	client := rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(h2cClient(), connectSrv.URL, connecthttp.WithReadMaxBytes(0), connecthttp.WithGRPC())))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// Unary call returns immediately — boot goroutine runs server-side.
-	resp, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
+	resp, err := client.DownloadBinary(ctx, &pb.DownloadBinaryRequest{
 		Name:  "streamtest",
 		Force: true,
-	}))
+	})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -111,15 +113,16 @@ func TestDownloadBinary_RejectsUnknownBinary(t *testing.T) {
 		Files:          map[string]string{currentPlatform(): "streamtest.zip"},
 	})
 	mux := http.NewServeMux()
-	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
-	mux.Handle(path, h)
+	rpcServer := connect.NewServer()
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, NewHandler(orch))
+	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	srv := h2cServer(mux)
 	defer srv.Close()
 
-	client := rpc.NewOrchestratorServiceClient(h2cClient(), srv.URL, connect.WithGRPC())
-	_, err := client.DownloadBinary(context.Background(), connect.NewRequest(&pb.DownloadBinaryRequest{
+	client := rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(h2cClient(), srv.URL, connecthttp.WithReadMaxBytes(0), connecthttp.WithGRPC())))
+	_, err := client.DownloadBinary(context.Background(), &pb.DownloadBinaryRequest{
 		Name: "no-such-binary",
-	}))
+	})
 	require.Error(t, err, "unknown binary must surface as an RPC error")
 }
 

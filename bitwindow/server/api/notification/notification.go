@@ -3,7 +3,6 @@ package notification
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -26,8 +25,8 @@ type Server struct {
 
 func (s *Server) Watch(
 	ctx context.Context,
-	req *connect.Request[emptypb.Empty],
-	stream *connect.ServerStream[notificationv1.WatchResponse],
+	req *emptypb.Empty,
+	stream rpc.NotificationServiceWatchServerStream,
 ) error {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("notification watch stream started")

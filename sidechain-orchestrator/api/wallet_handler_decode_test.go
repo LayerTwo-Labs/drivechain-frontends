@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -122,21 +122,21 @@ func TestDecodeTransactionChecksWalletOwnership(t *testing.T) {
 				fake.rawTx.Vout = append(fake.rawTx.Vout, wallet.RawTxOut{ScriptPubKey: wallet.ScriptPubKey{Address: address}})
 			}
 			h, walletID := newDecodeHandler(t, fake)
-			response, err := h.DecodeTransaction(context.Background(), connect.NewRequest(&pb.DecodeTransactionRequest{
+			response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{
 				Input: tc.input, WalletId: walletID, CheckOwnership: true,
-			}))
+			})
 			require.NoError(t, err)
 			require.Equal(t, walletID, fake.walletID)
 			require.Equal(t, addresses, fake.askedOwned)
-			require.Len(t, response.Msg.Outputs, 4)
-			require.False(t, response.Msg.Outputs[0].IsMine)
-			require.False(t, response.Msg.Outputs[0].IsChange)
-			require.True(t, response.Msg.Outputs[1].IsMine)
-			require.False(t, response.Msg.Outputs[1].IsChange)
-			require.True(t, response.Msg.Outputs[2].IsMine)
-			require.True(t, response.Msg.Outputs[2].IsChange)
-			require.False(t, response.Msg.Outputs[3].IsMine)
-			require.False(t, response.Msg.Outputs[3].IsChange)
+			require.Len(t, response.Outputs, 4)
+			require.False(t, response.Outputs[0].IsMine)
+			require.False(t, response.Outputs[0].IsChange)
+			require.True(t, response.Outputs[1].IsMine)
+			require.False(t, response.Outputs[1].IsChange)
+			require.True(t, response.Outputs[2].IsMine)
+			require.True(t, response.Outputs[2].IsChange)
+			require.False(t, response.Outputs[3].IsMine)
+			require.False(t, response.Outputs[3].IsChange)
 		})
 	}
 }
@@ -147,13 +147,13 @@ func TestDecodeTransactionKeepsStaticMetadata(t *testing.T) {
 	require.NoError(t, err)
 	fake := &decodeBackend{detailsProvider: detailsProvider{ownedErr: errors.New("unexpected wallet read")}}
 	h, _ := newDecodeHandler(t, fake)
-	response, err := h.DecodeTransaction(context.Background(), connect.NewRequest(&pb.DecodeTransactionRequest{Input: encoded}))
+	response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{Input: encoded})
 	require.NoError(t, err)
 	require.Empty(t, fake.askedOwned)
-	require.True(t, response.Msg.Outputs[0].IsChange)
-	require.True(t, response.Msg.Outputs[1].IsChange)
-	require.False(t, response.Msg.Outputs[2].IsChange)
-	for _, output := range response.Msg.Outputs {
+	require.True(t, response.Outputs[0].IsChange)
+	require.True(t, response.Outputs[1].IsChange)
+	require.False(t, response.Outputs[2].IsChange)
+	for _, output := range response.Outputs {
 		require.False(t, output.IsMine)
 	}
 }
@@ -179,14 +179,14 @@ func TestDecodeTransactionReadsLocalDataWithoutAnIndexer(t *testing.T) {
 			if !tc.wallet {
 				walletID = ""
 			}
-			response, err := h.DecodeTransaction(context.Background(), connect.NewRequest(&pb.DecodeTransactionRequest{
+			response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{
 				Input: tc.input, WalletId: walletID,
-			}))
+			})
 			require.NoError(t, err)
 			require.Zero(t, source.reads.Load())
-			require.Equal(t, packet.UnsignedTx.TxHash().String(), response.Msg.Txid)
-			require.Len(t, response.Msg.Outputs, len(packet.Outputs))
-			for _, output := range response.Msg.Outputs {
+			require.Equal(t, packet.UnsignedTx.TxHash().String(), response.Txid)
+			require.Len(t, response.Outputs, len(packet.Outputs))
+			for _, output := range response.Outputs {
 				require.False(t, output.IsMine)
 			}
 		})
@@ -199,9 +199,9 @@ func TestDecodeTransactionReturnsOwnershipError(t *testing.T) {
 	require.NoError(t, err)
 	fake := &decodeBackend{detailsProvider: detailsProvider{ownedErr: errors.New("wallet read failed")}}
 	h, walletID := newDecodeHandler(t, fake)
-	response, err := h.DecodeTransaction(context.Background(), connect.NewRequest(&pb.DecodeTransactionRequest{
+	response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{
 		Input: encoded, WalletId: walletID, CheckOwnership: true,
-	}))
+	})
 	require.Nil(t, response)
 	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 	require.ErrorContains(t, err, "wallet read failed")
@@ -222,9 +222,9 @@ func TestDecodeTransactionChecksOwnershipWithAnOfflineIndexer(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h, walletID, source := newOfflineDecodeHandler(t)
-			response, err := h.DecodeTransaction(context.Background(), connect.NewRequest(&pb.DecodeTransactionRequest{
+			response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{
 				Input: tc.input, WalletId: walletID, CheckOwnership: true,
-			}))
+			})
 			require.Nil(t, response)
 			require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 			require.ErrorContains(t, err, "the indexer is offline")

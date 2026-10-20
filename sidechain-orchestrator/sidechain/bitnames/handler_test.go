@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -45,6 +45,6 @@ func TestDataServerAddressErrorsWithNoAddress(t *testing.T) {
 
 func TestGetPendingPaymailIsUnimplemented(t *testing.T) {
 	_, err := NewHandler(sidechain.NewJSONRPCProxy("127.0.0.1", 1)).GetPendingPaymail(
-		context.Background(), connect.NewRequest(&pb.GetPendingPaymailRequest{}))
+		context.Background(), &pb.GetPendingPaymailRequest{})
 	assert.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
 }

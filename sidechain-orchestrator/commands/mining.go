@@ -9,7 +9,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/urfave/cli/v2"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/stratum/v1"
@@ -18,12 +19,13 @@ import (
 )
 
 func newStratumClient(cctx *cli.Context) stratumv1connect.StratumServiceClient {
-	return stratumv1connect.NewStratumServiceClient(
+	return stratumv1connect.NewStratumServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		fmt.Sprintf("http://%s", cctx.String("rpcserver")),
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithGRPC(),
+	), localauth.ClientInterceptor(cookieDir(cctx)),
+	))
 }
 
 var miningCommand = &cli.Command{
@@ -66,7 +68,7 @@ var cpuCommand = &cli.Command{
 			threads := uint32(cctx.Uint("threads"))
 			req.CpuThreads = &threads
 		}
-		if _, err := newStratumClient(cctx).SetMiningSettings(cctx.Context, connect.NewRequest(req)); err != nil {
+		if _, err := newStratumClient(cctx).SetMiningSettings(cctx.Context, req); err != nil {
 			return err
 		}
 		fmt.Printf("this computer mines: %s\n", cctx.Args().First())
@@ -99,7 +101,7 @@ var settingsCommand = &cli.Command{
 		if req.Port == nil && req.CpuThreads == nil && req.KeepMiningOnClose == nil {
 			return fmt.Errorf("usage: mining settings [--port=N] [--threads=N] [--keep-mining]")
 		}
-		if _, err := newStratumClient(cctx).SetMiningSettings(cctx.Context, connect.NewRequest(req)); err != nil {
+		if _, err := newStratumClient(cctx).SetMiningSettings(cctx.Context, req); err != nil {
 			return err
 		}
 		fmt.Println("mining settings saved")
@@ -126,9 +128,9 @@ var stratumStartCommand = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		// A port of zero takes the saved one, so a flag nobody set never
 		// overrules `mining settings --port`.
-		_, err := newStratumClient(cctx).StartStratum(cctx.Context, connect.NewRequest(&pb.StartStratumRequest{
+		_, err := newStratumClient(cctx).StartStratum(cctx.Context, &pb.StartStratumRequest{
 			Port: uint32(cctx.Uint("port")),
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -141,7 +143,7 @@ var stratumStopCommand = &cli.Command{
 	Name:  "stop",
 	Usage: "Stop the Stratum server",
 	Action: func(cctx *cli.Context) error {
-		if _, err := newStratumClient(cctx).StopStratum(cctx.Context, connect.NewRequest(&pb.StopStratumRequest{})); err != nil {
+		if _, err := newStratumClient(cctx).StopStratum(cctx.Context, &pb.StopStratumRequest{}); err != nil {
 			return err
 		}
 		fmt.Println("stratum server stopped")
@@ -153,11 +155,11 @@ var stratumStatusCommand = &cli.Command{
 	Name:  "status",
 	Usage: "Show the server, its miners and the blocks they found",
 	Action: func(cctx *cli.Context) error {
-		resp, err := newStratumClient(cctx).GetStratumStatus(cctx.Context, connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		resp, err := newStratumClient(cctx).GetStratumStatus(cctx.Context, &pb.GetStratumStatusRequest{})
 		if err != nil {
 			return err
 		}
-		return printStratumStatus(os.Stdout, resp.Msg, time.Now())
+		return printStratumStatus(os.Stdout, resp, time.Now())
 	},
 }
 
@@ -176,7 +178,7 @@ var stratumTargetCommand = &cli.Command{
 			return fmt.Errorf("usage: mining stratum target [flags] <solo|pool-id|custom>")
 		}
 		target := stratumTarget(cctx.Args().First(), cctx.String("url"), cctx.String("worker"), cctx.String("password"))
-		if _, err := newStratumClient(cctx).SetTarget(cctx.Context, connect.NewRequest(&pb.SetTargetRequest{Target: target})); err != nil {
+		if _, err := newStratumClient(cctx).SetTarget(cctx.Context, &pb.SetTargetRequest{Target: target}); err != nil {
 			return err
 		}
 		fmt.Printf("stratum target: %s\n", describeTarget(target))
@@ -220,10 +222,10 @@ var workModeCommand = &cli.Command{
 		if !ok {
 			return fmt.Errorf("work mode %q is not low, mid or high", cctx.Args().Get(1))
 		}
-		_, err := newStratumClient(cctx).SetWorkMode(cctx.Context, connect.NewRequest(&pb.SetWorkModeRequest{
+		_, err := newStratumClient(cctx).SetWorkMode(cctx.Context, &pb.SetWorkModeRequest{
 			Address: cctx.Args().First(),
 			Mode:    mode,
-		}))
+		})
 		if err != nil {
 			return err
 		}

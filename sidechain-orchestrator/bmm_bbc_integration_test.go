@@ -16,7 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1/bmmv1connect"
@@ -103,10 +104,10 @@ func TestBbcBMM(t *testing.T) {
 	startOrchestrator(t, orchBin, home, mainDir)
 	httpClient := &http.Client{Timeout: 60 * time.Second}
 	orchURL := fmt.Sprintf("http://127.0.0.1:%d", orchestratorPort)
-	wallets := walletmanagerv1connect.NewWalletManagerServiceClient(httpClient, orchURL)
-	bmm := bmmv1connect.NewBMMServiceClient(httpClient, orchURL)
+	wallets := walletmanagerv1connect.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
+	bmm := bmmv1connect.NewBMMServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
 	waitFor(t, 60*time.Second, "drivechaind", func() bool {
-		_, err := wallets.GetWalletStatus(ctx, connect.NewRequest(&wmpb.GetWalletStatusRequest{}))
+		_, err := wallets.GetWalletStatus(ctx, &wmpb.GetWalletStatusRequest{})
 		return err == nil
 	})
 
@@ -114,15 +115,15 @@ func TestBbcBMM(t *testing.T) {
 	// the bare scriptPubKey an M8 request needs, so bidding runs on a second.
 	generateWallet(ctx, t, wallets, "enforcer")
 	coreWallet := generateWallet(ctx, t, wallets, "core")
-	_, err := wallets.SwitchWallet(ctx, connect.NewRequest(&wmpb.SwitchWalletRequest{WalletId: coreWallet}))
+	_, err := wallets.SwitchWallet(ctx, &wmpb.SwitchWalletRequest{WalletId: coreWallet})
 	require.NoError(t, err)
 
-	addr, err := wallets.GetNewAddress(ctx, connect.NewRequest(&wmpb.GetNewAddressRequest{}))
+	addr, err := wallets.GetNewAddress(ctx, &wmpb.GetNewAddressRequest{})
 	require.NoError(t, err)
-	mineMainchain(ctx, t, enforcer, 150, addr.Msg.Address)
+	mineMainchain(ctx, t, enforcer, 150, addr.Address)
 	waitFor(t, 60*time.Second, "bidding funds", func() bool {
-		bal, err := wallets.GetBalance(ctx, connect.NewRequest(&wmpb.GetBalanceRequest{}))
-		return err == nil && bal.Msg.ConfirmedSats > 0
+		bal, err := wallets.GetBalance(ctx, &wmpb.GetBalanceRequest{})
+		return err == nil && bal.ConfirmedSats > 0
 	})
 
 	var height int64
@@ -130,29 +131,29 @@ func TestBbcBMM(t *testing.T) {
 	require.Zero(t, height, "sidechain should start empty")
 
 	blindMergeMine := func(cycle int64) {
-		bid, err := bmm.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
+		bid, err := bmm.CreateBid(ctx, &bmmpb.CreateBidRequest{
 			Sidechain: orchpb.BinaryType_BINARY_TYPE_BBC,
 			BidSats:   1000,
-		}))
+		})
 		require.NoError(t, err, "cycle %d: create bid", cycle)
-		require.NotEmpty(t, bid.Msg.BmmTxid, "bid must be broadcast on the mainchain")
-		require.NotEmpty(t, bid.Msg.PrevMainHash)
+		require.NotEmpty(t, bid.BmmTxid, "bid must be broadcast on the mainchain")
+		require.NotEmpty(t, bid.PrevMainHash)
 
-		mineMainchain(ctx, t, enforcer, 1, addr.Msg.Address)
+		mineMainchain(ctx, t, enforcer, 1, addr.Address)
 
 		// The sidechain node has to see the commitment in the new mainchain
 		// block before it will accept the block, and it learns that by polling.
 		var connected *bmmpb.ConnectBidResponse
 		waitFor(t, 60*time.Second, "bid inclusion", func() bool {
-			resp, err := bmm.ConnectBid(ctx, connect.NewRequest(&bmmpb.ConnectBidRequest{
+			resp, err := bmm.ConnectBid(ctx, &bmmpb.ConnectBidRequest{
 				Sidechain:    orchpb.BinaryType_BINARY_TYPE_BBC,
-				CriticalHash: bid.Msg.CriticalHash,
-				BlockJson:    bid.Msg.BlockJson,
-			}))
-			if err != nil || !resp.Msg.Connected {
+				CriticalHash: bid.CriticalHash,
+				BlockJson:    bid.BlockJson,
+			})
+			if err != nil || !resp.Connected {
 				return false
 			}
-			connected = resp.Msg
+			connected = resp
 			return true
 		})
 		require.NotEmpty(t, connected.MainBlockHash)
@@ -173,19 +174,19 @@ func TestBbcBMM(t *testing.T) {
 	var sideAddress string
 	require.NoError(t, sidechain.call(ctx, "getnewaddress", nil, &sideAddress))
 
-	deposit, err := wallets.CreateDeposit(ctx, connect.NewRequest(&wmpb.CreateDepositRequest{
+	deposit, err := wallets.CreateDeposit(ctx, &wmpb.CreateDepositRequest{
 		Slot:        bbcSlot,
 		Destination: sideAddress,
 		AmountSats:  depositSats,
 		FeeSats:     10_000,
-	}))
+	})
 	require.NoError(t, err, "create deposit")
-	require.NotEmpty(t, deposit.Msg.Txid)
-	require.EqualValues(t, depositSats, deposit.Msg.TreasurySats, "first deposit starts the treasury")
+	require.NotEmpty(t, deposit.Txid)
+	require.EqualValues(t, depositSats, deposit.TreasurySats, "first deposit starts the treasury")
 
 	// The deposit must confirm at or below the mainchain tip the next template
 	// builds on, or it falls outside the range that coinbase covers.
-	mineMainchain(ctx, t, enforcer, 1, addr.Msg.Address)
+	mineMainchain(ctx, t, enforcer, 1, addr.Address)
 	blindMergeMine(4)
 
 	var addressInfo struct {
@@ -340,9 +341,9 @@ func generateWallet(
 	wallets walletmanagerv1connect.WalletManagerServiceClient, name string,
 ) string {
 	t.Helper()
-	resp, err := wallets.GenerateWallet(ctx, connect.NewRequest(&wmpb.GenerateWalletRequest{Name: name}))
+	resp, err := wallets.GenerateWallet(ctx, &wmpb.GenerateWalletRequest{Name: name})
 	require.NoError(t, err)
-	return resp.Msg.WalletId
+	return resp.WalletId
 }
 
 func buildDrivechaind(t *testing.T) string {

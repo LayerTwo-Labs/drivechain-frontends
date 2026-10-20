@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	_ "github.com/mattn/go-sqlite3"
@@ -57,14 +56,14 @@ func timestampWallet(t *testing.T, txids ...string) *engines.WalletEngine {
 	t.Helper()
 	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
 	orch.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&emptypb.Empty{}), nil).
+		Return(&emptypb.Empty{}, nil).
 		AnyTimes()
 	sent := 0
 	orch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(context.Context, *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
+		DoAndReturn(func(context.Context, *orchpb.SendTransactionRequest) (*orchpb.SendTransactionResponse, error) {
 			txid := txids[sent]
 			sent++
-			return connect.NewResponse(&orchpb.SendTransactionResponse{Txid: txid}), nil
+			return &orchpb.SendTransactionResponse{Txid: txid}, nil
 		}).
 		AnyTimes()
 	return engines.NewWalletEngine(nil, apitests.OpenWallet(orch, &orchpb.WalletMetadata{Id: "a"}), &chaincfg.SigNetParams,

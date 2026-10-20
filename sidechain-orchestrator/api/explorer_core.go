@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 )
@@ -30,7 +30,7 @@ type coreBlock struct {
 func coreOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	out := &pb.GetOverviewResponse{Source: "node", Mempool: &pb.Mempool{}}
 	if count < 0 {
@@ -67,12 +67,12 @@ func coreOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 func coreBlockAtHeight(ctx context.Context, src source, height uint32) (*pb.Block, []*pb.Activity, error) {
 	raw, err := src.node.CallRaw(ctx, "getblockhash", []uint32{height})
 	if err != nil {
-		return nil, nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	var hash string
 	if err := json.Unmarshal(raw, &hash); err != nil {
 		return nil, nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the hash at height %d: %w", height, err))
+			fmt.Errorf("read the hash at height %d: %w", height, err).Error())
 	}
 	return coreBlockByHash(ctx, src, hash)
 }
@@ -95,12 +95,12 @@ func coreBlockByHash(ctx context.Context, src source, hash string) (*pb.Block, [
 func readCoreBlock(ctx context.Context, src source, hash string) (*pb.Block, []*pb.Activity, error) {
 	raw, err := src.node.CallRaw(ctx, "getblock", []any{hash, 1})
 	if err != nil {
-		return nil, nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	var block coreBlock
 	if err := json.Unmarshal(raw, &block); err != nil {
 		return nil, nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read block %s: %w", hash, err))
+			fmt.Errorf("read block %s: %w", hash, err).Error())
 	}
 
 	out := &pb.Block{
@@ -189,7 +189,7 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 	// "Invalid params", whatever the schema declares.
 	raw, err := src.node.CallRaw(ctx, "get_transaction", []string{txid})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	if len(raw) == 0 || string(raw) == "null" {
 		// A node answers only for what its wallet or its mempool holds. A
@@ -207,7 +207,7 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 	var tx nodeTx
 	if err := json.Unmarshal(body, &tx); err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read transaction %s: %w", txid, err))
+			fmt.Errorf("read transaction %s: %w", txid, err).Error())
 	}
 
 	out := &pb.Transaction{Txid: txid, Kind: pb.Kind_KIND_TRANSFER}
@@ -227,7 +227,7 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 			mainTxid, vout, err := parseMainchainOutpoint(*in.Deposit)
 			if err != nil {
 				return nil, connect.NewError(connect.CodeInternal,
-					fmt.Errorf("read transaction %s: %w", txid, err))
+					fmt.Errorf("read transaction %s: %w", txid, err).Error())
 			}
 			out.Inputs = append(out.Inputs, &pb.Coin{
 				Txid: mainTxid, Vout: vout, OutpointKind: "deposit",
@@ -302,7 +302,7 @@ func coreTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 		}
 		raw, err = src.node.CallRaw(ctx, "getrawtransaction", []any{txid, true, hash})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeNotFound, err)
+			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		}
 	}
 	var tx struct {
@@ -324,7 +324,7 @@ func coreTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 	}
 	if err := json.Unmarshal(raw, &tx); err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read transaction %s: %w", txid, err))
+			fmt.Errorf("read transaction %s: %w", txid, err).Error())
 	}
 
 	out := &pb.Transaction{
@@ -363,19 +363,19 @@ const searchBlockDepth = 200
 func minedTransaction(ctx context.Context, src source, txid string) (*pb.Transaction, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	if count <= 0 {
 		return nil, notFoundTransaction(src, txid)
 	}
 	raw, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	var hash string
 	if err := json.Unmarshal(raw, &hash); err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the tip hash: %w", err))
+			fmt.Errorf("read the tip hash: %w", err).Error())
 	}
 
 	for height := count - 1; height >= 0 && hash != ""; height-- {
@@ -400,9 +400,9 @@ func minedTransaction(ctx context.Context, src source, txid string) (*pb.Transac
 // notFoundTransaction says a node holds no such transaction, and why the
 // search is bounded.
 func notFoundTransaction(src source, txid string) error {
-	return connect.NewError(connect.CodeNotFound, fmt.Errorf(
+	return connect.Errorf(connect.CodeNotFound,
 		"%s holds no transaction %s in its newest %d blocks. A node keeps no transaction index",
-		src.name, txid, searchBlockDepth))
+		src.name, txid, searchBlockDepth)
 }
 
 // blockTransaction reads one transaction out of the block that carries it.
@@ -455,7 +455,7 @@ func coinFromContent(address string, content json.RawMessage, tx *pb.Transaction
 func coreBlockOf(ctx context.Context, src source, txid string) (string, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return "", connect.NewError(connect.CodeUnavailable, err)
+		return "", connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	for height := count; height >= 0 && count-height < searchBlockDepth; height-- {
 		block, activity, err := coreBlockAtHeight(ctx, src, uint32(height))

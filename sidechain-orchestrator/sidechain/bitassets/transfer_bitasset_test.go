@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -45,14 +44,14 @@ func TestTransferBitAssetSendsDestBeforeAssetID(t *testing.T) {
 	proxy, params := paramsNode(t, `"e3b0c44298fc1c149afbf4c8996fb924"`)
 
 	resp, err := NewHandler(proxy).TransferBitAsset(context.Background(),
-		connect.NewRequest(&pb.TransferBitAssetRequest{
+		&pb.TransferBitAssetRequest{
 			AssetId: "d228dfbdab4f8a9eb5eb4962ab38f4364b0b8b3035ce41eafd91ff672a6c6076",
 			Dest:    "3w3mR6SMpc3irb7etdJbDu5rLyLv",
 			Amount:  7000000,
 			FeeSats: 1000,
-		}))
+		})
 	require.NoError(t, err)
-	assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb924", resp.Msg.Txid)
+	assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb924", resp.Txid)
 
 	assert.Equal(t, []any{
 		"3w3mR6SMpc3irb7etdJbDu5rLyLv",
@@ -68,13 +67,13 @@ func TestVerifySignatureSendsSignatureFirst(t *testing.T) {
 	proxy, params := paramsNode(t, `true`)
 
 	resp, err := NewHandler(proxy).VerifySignature(context.Background(),
-		connect.NewRequest(&pb.VerifySignatureRequest{
+		&pb.VerifySignatureRequest{
 			Msg:          "the message",
 			Signature:    "0xsig",
 			VerifyingKey: "ba-svk1key",
-		}))
+		})
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Valid)
+	assert.True(t, resp.Valid)
 
 	assert.Equal(t, []any{"0xsig", "ba-svk1key", "arbitrary", "the message"}, *params)
 }

@@ -15,7 +15,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"connectrpc.com/connect"
+	connectv1 "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -138,60 +139,60 @@ func (s *Server) observeTip(height uint32, hash string) (changed bool) {
 //     one, rebuilds engines + sub-handlers, atomic-swaps the listener mux.
 //     The HTTP server stays bound to the same port across the swap.
 //  3. Return success.
-func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.UpdateNetworkRequest]) (*connect.Response[pb.UpdateNetworkResponse], error) {
-	if req.Msg.Network == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("network required"))
+func (s *Server) UpdateNetwork(ctx context.Context, req *pb.UpdateNetworkRequest) (*pb.UpdateNetworkResponse, error) {
+	if req.Network == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "network required")
 	}
 
-	network := config.Network(req.Msg.Network)
+	network := config.Network(req.Network)
 	if !isKnownNetwork(network) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network: %q", req.Msg.Network))
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "unknown network: %q", req.Network)
 	}
 
 	confClient := dial.BitcoinConf(s.config.OrchestratorAddr, s.config.BitwindowDir())
 	// The orchestrator takes the catalog id; this server takes the network it
 	// belongs to, because its own runtime is per-network.
-	target := req.Msg.NetworkId
+	target := req.NetworkId
 	if target == "" {
-		target = req.Msg.Network
+		target = req.Network
 	}
 	// Planned before the switch runs: once it has, the plan reads as a no-op.
 	var resetFrom uint32
-	if network == config.NetworkECash && req.Msg.NetworkId != "" {
-		plan, err := confClient.PlanECashSwitch(ctx, connect.NewRequest(&orchpb.PlanECashSwitchRequest{
-			NetworkId: req.Msg.NetworkId,
-		}))
+	if network == config.NetworkECash && req.NetworkId != "" {
+		plan, err := confClient.PlanECashSwitch(ctx, &orchpb.PlanECashSwitchRequest{
+			NetworkId: req.NetworkId,
+		})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.PlanECashSwitch: %w", err))
+			return nil, connect.NewError(connect.CodeOf(err), fmt.Sprintf("orchestrator.PlanECashSwitch: %s", err)).WithCause(err)
 		}
-		if plan.Msg.NeedsRollback {
-			resetFrom = plan.Msg.RewindHeight + 1
+		if plan.NeedsRollback {
+			resetFrom = plan.RewindHeight + 1
 		} else {
 			// A completed migration already moved Core, so the switch plan has no rollback.
 			client := dial.Orchestrator(s.config.OrchestratorAddr, s.config.BitwindowDir())
-			status, err := client.GetECashMigrationStatus(ctx, connect.NewRequest(&orchpb.GetECashMigrationStatusRequest{}))
+			status, err := client.GetECashMigrationStatus(ctx, &orchpb.GetECashMigrationStatusRequest{})
 			if err != nil {
-				return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.GetECashMigrationStatus: %w", err))
+				return nil, connect.NewError(connect.CodeOf(err), fmt.Sprintf("orchestrator.GetECashMigrationStatus: %s", err)).WithCause(err)
 			}
-			migration := status.Msg.GetStatus()
+			migration := status.GetStatus()
 			if migration.GetComplete() && migration.GetToId() == target && !migration.GetWalletOnly() {
 				resetFrom = uint32(migration.GetCommonHeight()) + 1
 			}
 		}
 	}
-	if _, err := confClient.SetBitcoinConfigNetwork(ctx, connect.NewRequest(&orchpb.SetBitcoinConfigNetworkRequest{
+	if _, err := confClient.SetBitcoinConfigNetwork(ctx, &orchpb.SetBitcoinConfigNetworkRequest{
 		Network: target,
-		DataDir: req.Msg.DataDir,
-	})); err != nil {
-		return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.SetBitcoinConfigNetwork: %w", err))
+		DataDir: req.DataDir,
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeOf(err), fmt.Sprintf("orchestrator.SetBitcoinConfigNetwork: %s", err)).WithCause(err)
 	}
 
 	if err := s.recycle(ctx, network, target, resetFrom); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("recycle runtime to %s: %w", network, err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("recycle runtime to %s: %s", network, err)).WithCause(err)
 	}
 
-	zerolog.Ctx(ctx).Info().Str("network", req.Msg.Network).Msg("network swap complete (in-process)")
-	return connect.NewResponse(&pb.UpdateNetworkResponse{}), nil
+	zerolog.Ctx(ctx).Info().Str("network", req.Network).Msg("network swap complete (in-process)")
+	return &pb.UpdateNetworkResponse{}, nil
 }
 
 func isKnownNetwork(n config.Network) bool {
@@ -209,10 +210,10 @@ func isKnownNetwork(n config.Network) bool {
 // own teardown. Acks the frontend in milliseconds so the window can
 // windowManager.destroy() immediately. With skip_downstream=true the
 // drivechaind stack stays running (only bitwindowd dies).
-func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
+func (s *Server) Stop(ctx context.Context, req *pb.BitwindowdServiceStopRequest) (*emptypb.Empty, error) {
 	log := zerolog.Ctx(ctx)
 
-	if req.Msg.SkipDownstream {
+	if req.SkipDownstream {
 		log.Info().Msg("skip_downstream=true, bitwindowd-only exit (drivechaind stays running)")
 	} else {
 		client := dial.Orchestrator(s.config.OrchestratorAddr, s.config.BitwindowDir())
@@ -222,7 +223,7 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 		rpcCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		// only_if_last: a sidechain frontend may hold drivechaind directly.
-		if _, err := client.Shutdown(rpcCtx, connect.NewRequest(&orchpb.ShutdownRequest{OnlyIfLast: true})); err != nil {
+		if _, err := client.Shutdown(rpcCtx, &orchpb.ShutdownRequest{OnlyIfLast: true}); err != nil {
 			log.Warn().Err(err).Msg("relay Shutdown to drivechaind (continuing with bitwindowd teardown)")
 		} else {
 			log.Info().Msg("drivechaind Shutdown relayed; it will drain children in the background")
@@ -236,94 +237,94 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 		s.onShutdown(context.WithoutCancel(ctx))
 	}()
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) CreateDenial(
 	ctx context.Context,
-	req *connect.Request[pb.CreateDenialRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	if req.Msg.DelaySeconds <= 0 {
+	req *pb.CreateDenialRequest,
+) (*emptypb.Empty, error) {
+	if req.DelaySeconds <= 0 {
 		err := errors.New("delay_seconds must be positive")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	if req.Msg.NumHops <= 0 {
+	if req.NumHops <= 0 {
 		err := errors.New("num_hops must be positive")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// Get active wallet to determine routing
 	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get active wallet: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("get active wallet: %s", err)).WithCause(err)
 	}
 
 	// Deniability requires spending, which a watch-only wallet cannot do.
 	if activeWallet.IsWatchOnly() {
 		err := errors.New("deniability is not supported for watch-only wallets")
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 
 	// List UTXOs based on wallet type
 	var utxoExists bool
 	switch activeWallet.WalletType {
 	case engines.WalletTypeBitcoinCore:
-		utxoExists, err = s.checkBitcoinCoreUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
+		utxoExists, err = s.checkBitcoinCoreUTXO(ctx, activeWallet.ID, req.Txid, req.Vout)
 	case engines.WalletTypeElectrum:
-		utxoExists, err = s.checkElectrumUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
+		utxoExists, err = s.checkElectrumUTXO(ctx, activeWallet.ID, req.Txid, req.Vout)
 	default:
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unknown wallet type: %s", activeWallet.WalletType))
+		return nil, connect.Errorf(connect.CodeInternal, "unknown wallet type: %s", activeWallet.WalletType)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if !utxoExists {
-		err := fmt.Errorf("utxo %s:%d not found in wallet", req.Msg.Txid, req.Msg.Vout)
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		err := fmt.Errorf("utxo %s:%d not found in wallet", req.Txid, req.Vout)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	denial, err := deniability.GetByTip(ctx, s.db, req.Msg.Txid, lo.ToPtr(int32(req.Msg.Vout)))
+	denial, err := deniability.GetByTip(ctx, s.db, req.Txid, lo.ToPtr(int32(req.Vout)))
 	if err != nil {
 		err = fmt.Errorf("get by tip: %w", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	if denial != nil {
 		if denial.CancelledAt == nil && (denial.NextExecution != nil || denial.PausedAt != nil) {
-			return nil, connect.NewError(connect.CodeAlreadyExists,
-				fmt.Errorf("denial %d already runs for %s:%d", denial.ID, req.Msg.Txid, req.Msg.Vout))
+			return nil, connect.Errorf(connect.CodeAlreadyExists,
+				"denial %d already runs for %s:%d", denial.ID, req.Txid, req.Vout)
 		}
 
 		zerolog.Ctx(ctx).Info().
 			Int64("denial_id", denial.ID).
-			Str("txid", req.Msg.Txid).
-			Uint32("vout", req.Msg.Vout).
-			Int32("delay_seconds", req.Msg.DelaySeconds).
-			Int32("num_hops", req.Msg.NumHops).
+			Str("txid", req.Txid).
+			Uint32("vout", req.Vout).
+			Int32("delay_seconds", req.DelaySeconds).
+			Int32("num_hops", req.NumHops).
 			Msg("CreateDenial: continue a stopped denial")
 
-		targetSizes := make(deniability.TargetSizes, denial.NumHops, int(denial.NumHops)+len(req.Msg.TargetUtxoSizes))
+		targetSizes := make(deniability.TargetSizes, denial.NumHops, int(denial.NumHops)+len(req.TargetUtxoSizes))
 		copy(targetSizes, denial.TargetUTXOSizes)
-		targetSizes = append(targetSizes, req.Msg.TargetUtxoSizes...)
+		targetSizes = append(targetSizes, req.TargetUtxoSizes...)
 		if err := deniability.Update(
-			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops,
-			targetSizes, req.Msg.Txid, int32(req.Msg.Vout),
+			ctx, s.db, denial.ID, time.Duration(req.DelaySeconds)*time.Second, req.NumHops,
+			targetSizes, req.Txid, int32(req.Vout),
 		); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 
-		return connect.NewResponse(&emptypb.Empty{}), nil
+		return &emptypb.Empty{}, nil
 	}
 
 	zerolog.Ctx(ctx).Info().
-		Str("txid", req.Msg.Txid).
-		Uint32("vout", req.Msg.Vout).
-		Int32("delay_seconds", req.Msg.DelaySeconds).
-		Int32("num_hops", req.Msg.NumHops).
+		Str("txid", req.Txid).
+		Uint32("vout", req.Vout).
+		Int32("delay_seconds", req.DelaySeconds).
+		Int32("num_hops", req.NumHops).
 		Str("wallet_id", activeWallet.ID).
-		Ints64("target_utxo_sizes", req.Msg.TargetUtxoSizes).
+		Ints64("target_utxo_sizes", req.TargetUtxoSizes).
 		Msg("CreateDenial: creating new denial")
 
 	// UTXO exists, create the denial with the wallet ID
@@ -331,91 +332,91 @@ func (s *Server) CreateDenial(
 		ctx,
 		s.db,
 		activeWallet.ID,
-		req.Msg.Txid,
-		int32(req.Msg.Vout),
-		time.Duration(req.Msg.DelaySeconds)*time.Second,
-		req.Msg.NumHops,
-		req.Msg.TargetUtxoSizes,
+		req.Txid,
+		int32(req.Vout),
+		time.Duration(req.DelaySeconds)*time.Second,
+		req.NumHops,
+		req.TargetUtxoSizes,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) CancelDenial(
 	ctx context.Context,
-	req *connect.Request[pb.CancelDenialRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	err := deniability.Cancel(ctx, s.db, req.Msg.Id, "cancelled by user")
+	req *pb.CancelDenialRequest,
+) (*emptypb.Empty, error) {
+	err := deniability.Cancel(ctx, s.db, req.Id, "cancelled by user")
 	switch {
 	case errors.Is(err, deniability.ErrNotFound):
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) PauseDenial(
 	ctx context.Context,
-	req *connect.Request[pb.PauseDenialRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	err := deniability.Pause(ctx, s.db, req.Msg.Id)
+	req *pb.PauseDenialRequest,
+) (*emptypb.Empty, error) {
+	err := deniability.Pause(ctx, s.db, req.Id)
 	switch {
 	case errors.Is(err, deniability.ErrNotFound):
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pause denial %d: %w", req.Msg.Id, err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("pause denial %d: %s", req.Id, err)).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) ResumeDenial(
 	ctx context.Context,
-	req *connect.Request[pb.ResumeDenialRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	err := deniability.Resume(ctx, s.db, req.Msg.Id)
+	req *pb.ResumeDenialRequest,
+) (*emptypb.Empty, error) {
+	err := deniability.Resume(ctx, s.db, req.Id)
 	switch {
 	case errors.Is(err, deniability.ErrNotFound):
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resume denial %d: %w", req.Msg.Id, err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("resume denial %d: %s", req.Id, err)).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Request[pb.CreateAddressBookEntryRequest]) (*connect.Response[pb.CreateAddressBookEntryResponse], error) {
-	direction, err := addressbook.DirectionFromProto(req.Msg.Direction)
+func (s *Server) CreateAddressBookEntry(ctx context.Context, req *pb.CreateAddressBookEntryRequest) (*pb.CreateAddressBookEntryResponse, error) {
+	direction, err := addressbook.DirectionFromProto(req.Direction)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	addr := strings.TrimSpace(req.Msg.Address)
+	addr := strings.TrimSpace(req.Address)
 	if err := validateAddressBookAddress(addr); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// A label must map to a single address. Saving the same address again
 	// sets its label.
-	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Msg.Label), func(entry addressbook.Entry) bool {
+	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Label), func(entry addressbook.Entry) bool {
 		return entry.Address == addr
 	}); err != nil {
 		return nil, err
 	}
 
 	// User-added addresses don't belong to a specific wallet (nil walletID)
-	if err := addressbook.Upsert(ctx, s.db, nil, req.Msg.Label, addr, direction); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := addressbook.Upsert(ctx, s.db, nil, req.Label, addr, direction); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	entries, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	entry, ok := lo.Find(entries, func(entry addressbook.Entry) bool {
@@ -423,12 +424,12 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 	})
 	if !ok {
 		err := fmt.Errorf("entry %s/%s missing after save", addr, direction)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.CreateAddressBookEntryResponse{
+	return &pb.CreateAddressBookEntryResponse{
 		Entry: EntryToProto(&entry),
-	}), nil
+	}, nil
 }
 
 func validateAddressBookAddress(addr string) error {
@@ -450,12 +451,12 @@ func (s *Server) checkLabelFree(ctx context.Context, label string, self func(add
 	}
 	entries, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("list address book entries: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Sprintf("list address book entries: %s", err)).WithCause(err)
 	}
 	if lo.ContainsBy(entries, func(entry addressbook.Entry) bool {
 		return !self(entry) && strings.EqualFold(strings.TrimSpace(entry.Label), label)
 	}) {
-		return connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("an address book entry with label %q already exists", label))
+		return connect.Errorf(connect.CodeAlreadyExists, "an address book entry with label %q already exists", label)
 	}
 	return nil
 }
@@ -476,10 +477,10 @@ func EntryToProto(entry *addressbook.Entry) *pb.AddressBookEntry {
 	}
 }
 
-func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListAddressBookResponse], error) {
+func (s *Server) ListAddressBook(ctx context.Context, req *emptypb.Empty) (*pb.ListAddressBookResponse, error) {
 	entries, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	var pbEntries []*pb.AddressBookEntry
@@ -487,58 +488,58 @@ func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[empty
 		pbEntries = append(pbEntries, EntryToProto(&entries[i]))
 	}
 
-	return connect.NewResponse(&pb.ListAddressBookResponse{
+	return &pb.ListAddressBookResponse{
 		Entries: pbEntries,
-	}), nil
+	}, nil
 }
 
-func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Request[pb.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Msg.Label), func(entry addressbook.Entry) bool {
-		return entry.ID == req.Msg.Id
+func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *pb.UpdateAddressBookEntryRequest) (*emptypb.Empty, error) {
+	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Label), func(entry addressbook.Entry) bool {
+		return entry.ID == req.Id
 	}); err != nil {
 		return nil, err
 	}
 
-	err := addressbook.UpdateLabel(ctx, s.db, req.Msg.Id, req.Msg.Label)
+	err := addressbook.UpdateLabel(ctx, s.db, req.Id, req.Label)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
+		return nil, connect.NewError(connect.CodeNotFound, "address book entry not found")
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *connect.Request[pb.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
-	err := addressbook.Delete(ctx, s.db, req.Msg.Id)
+func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *pb.DeleteAddressBookEntryRequest) (*emptypb.Empty, error) {
+	err := addressbook.Delete(ctx, s.db, req.Id)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("address book entry not found"))
+		return nil, connect.NewError(connect.CodeNotFound, "address book entry not found")
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 // GetSyncInfo implements bitwindowdv1connect.BitwindowdServiceHandler.
-func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetSyncInfoResponse], error) {
+func (s *Server) GetSyncInfo(ctx context.Context, req *emptypb.Empty) (*pb.GetSyncInfoResponse, error) {
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tip, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	tip, err := bitcoind.GetBlockchainInfo(ctx, connectv1.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		// Bitcoin Core returns -28 from every RPC while it's still loading the
 		// block index, verifying blocks, or rescanning the wallet. Treat that
 		// as "still booting" and surface the message so the UI can render
 		// "Verifying blocks…" instead of a misleading "0 / 0 blocks" state.
 		if msg := engines.ExtractBitcoindStartupMessage(err.Error()); msg != "" {
-			return connect.NewResponse(&pb.GetSyncInfoResponse{
+			return &pb.GetSyncInfoResponse{
 				StartupMessage: msg,
-			}), nil
+			}, nil
 		}
 		return nil, err
 	}
@@ -546,13 +547,13 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 	processedTip, err := blocks.GetProcessedTip(ctx, s.db)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get processed tip")
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	waitsForCore := engines.WaitsForCore(tip.Msg.InitialBlockDownload, s.config.BitcoinCoreNetwork)
 
 	if processedTip == nil {
-		return connect.NewResponse(&pb.GetSyncInfoResponse{
+		return &pb.GetSyncInfoResponse{
 			TipBlockHeight:      0,
 			TipBlockTime:        0,
 			TipBlockHash:        "",
@@ -560,7 +561,7 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 			HeaderHeight:        int64(tip.Msg.Headers),
 			SyncProgress:        0,
 			WaitsForCore:        waitsForCore,
-		}), nil
+		}, nil
 	}
 
 	var syncProgress float64
@@ -568,7 +569,7 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		syncProgress = float64(processedTip.Height) / float64(tip.Msg.Blocks)
 	}
 
-	return connect.NewResponse(&pb.GetSyncInfoResponse{
+	return &pb.GetSyncInfoResponse{
 		TipBlockHeight:      int64(processedTip.Height),
 		TipBlockTime:        processedTip.ProcessedAt.Unix(),
 		TipBlockHash:        processedTip.Hash.String(),
@@ -576,53 +577,53 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		SyncProgress:        syncProgress,
 		HeaderHeight:        int64(tip.Msg.Headers),
 		WaitsForCore:        waitsForCore,
-	}), nil
+	}, nil
 }
 
 // SetTransactionNote implements bitwindowdv1connect.BitwindowdServiceHandler.
-func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
-	walletID := req.Msg.WalletId
+func (s *Server) SetTransactionNote(ctx context.Context, req *pb.SetTransactionNoteRequest) (*emptypb.Empty, error) {
+	walletID := req.WalletId
 	if walletID == "" {
 		activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get active wallet: %w", err))
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Sprintf("get active wallet: %s", err)).WithCause(err)
 		}
 		walletID = activeWallet.ID
 	}
 
-	err := transactions.SetNote(ctx, s.db, walletID, req.Msg.Txid, req.Msg.Note)
+	err := transactions.SetNote(ctx, s.db, walletID, req.Txid, req.Note)
 	switch {
 	case errors.Is(err, transactions.ErrEmptyTxID):
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
 // ExportLabels implements bitwindowdv1connect.BitwindowdServiceHandler.
-func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.ExportLabelsResponse], error) {
+func (s *Server) ExportLabels(ctx context.Context, req *emptypb.Empty) (*pb.ExportLabelsResponse, error) {
 	addrs, err := addressbook.List(ctx, s.db)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	// BIP329 has no wallet field: a label file describes one wallet. Export the
 	// active wallet's notes, which is what importing one back in expects.
 	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get active wallet: %w", err))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Sprintf("get active wallet: %s", err)).WithCause(err)
 	}
 
 	notes, err := transactions.ListByWallet(ctx, s.db, activeWallet.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	utxos, err := utxometadata.Get(ctx, s.db, nil)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	var labels []bip329.Label
@@ -647,23 +648,23 @@ func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.
 
 	jsonl, err := bip329.Encode(labels)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.ExportLabelsResponse{Jsonl: jsonl}), nil
+	return &pb.ExportLabelsResponse{Jsonl: jsonl}, nil
 }
 
 // ImportLabels implements bitwindowdv1connect.BitwindowdServiceHandler.
-func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.ImportLabelsRequest]) (*connect.Response[pb.ImportLabelsResponse], error) {
-	labels, skipped, err := bip329.Decode(req.Msg.Jsonl)
+func (s *Server) ImportLabels(ctx context.Context, req *pb.ImportLabelsRequest) (*pb.ImportLabelsResponse, error) {
+	labels, skipped, err := bip329.Decode(req.Jsonl)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	// A BIP329 file describes one wallet, so its notes belong to the active one.
 	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get active wallet: %w", err))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Sprintf("get active wallet: %s", err)).WithCause(err)
 	}
 
 	resp := &pb.ImportLabelsResponse{Skipped: int64(skipped)}
@@ -727,62 +728,62 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 		}
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // GetFireplaceStats implements bitwindowdv1connect.BitwindowdServiceHandler.
-func (s *Server) GetFireplaceStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetFireplaceStatsResponse], error) {
+func (s *Server) GetFireplaceStats(ctx context.Context, req *emptypb.Empty) (*pb.GetFireplaceStatsResponse, error) {
 	// Calculate block count in last 24 hours
 	blockCount24h, err := blocks.CountSince(ctx, s.db, time.Now().Add(-24*time.Hour))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get block count: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("get block count: %s", err)).WithCause(err)
 	}
 
 	// Calculate transaction count in last 24 hours
 	txCount24h, err := blocks.TxCountSince(ctx, s.db, time.Now().Add(-24*time.Hour))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get transaction count: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("get transaction count: %s", err)).WithCause(err)
 	}
 
 	// Calculate coinnews count in last 7 days
 	coinnewsCount7d, err := cnstore.CountStoriesSince(ctx, s.db, time.Now().Add(-7*24*time.Hour))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get coinnews count: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("get coinnews count: %s", err)).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.GetFireplaceStatsResponse{
+	return &pb.GetFireplaceStatsResponse{
 		TransactionCount_24H: txCount24h,
 		CoinnewsCount_7D:     coinnewsCount7d,
 		BlockCount_24H:       blockCount24h,
-	}), nil
+	}, nil
 }
 
-func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlocksRequest]) (*connect.Response[pb.ListBlocksResponse], error) {
+func (s *Server) ListBlocks(ctx context.Context, c *pb.ListBlocksRequest) (*pb.ListBlocksResponse, error) {
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("bitcoind: %w", err)
 	}
 
-	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	info, err := bitcoind.GetBlockchainInfo(ctx, connectv1.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("bitcoind: get blockchain info: %w", err)
 	}
 	if info.Msg.InitialBlockDownload && config.IsFullChainNetwork(s.config.BitcoinCoreNetwork) {
-		return connect.NewResponse(&pb.ListBlocksResponse{}), nil
+		return &pb.ListBlocksResponse{}, nil
 	}
 	currentTip := info.Msg.Blocks
 	currentHash := info.Msg.BestBlockHash
 
 	// Default to most recent blocks if no pagination
 	startHeight := currentTip
-	if c.Msg.StartHeight > 0 {
-		startHeight = c.Msg.StartHeight
+	if c.StartHeight > 0 {
+		startHeight = c.StartHeight
 	}
 
 	// Default page size
 	pageSize := uint32(50)
-	if c.Msg.PageSize > 0 {
-		pageSize = c.Msg.PageSize
+	if c.PageSize > 0 {
+		pageSize = c.PageSize
 	}
 
 	currentValidity := blocksTip{height: currentTip, hash: currentHash}
@@ -800,10 +801,10 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 			// are shared and must be treated read-only by the caller.
 			out := make([]*pb.Block, len(entry.blocks))
 			copy(out, entry.blocks)
-			return connect.NewResponse(&pb.ListBlocksResponse{
+			return &pb.ListBlocksResponse{
 				RecentBlocks: out,
 				HasMore:      entry.hasMore,
-			}), nil
+			}, nil
 		}
 	}
 
@@ -819,7 +820,7 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 			if height < 0 {
 				return nil, nil
 			}
-			hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+			hash, err := bitcoind.GetBlockHash(ctx, connectv1.NewRequest(&corepb.GetBlockHashRequest{
 				Height: uint32(height),
 			}))
 			switch {
@@ -832,7 +833,7 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 				return nil, fmt.Errorf("bitcoind: get block hash %d: %w", height, err)
 			}
 
-			block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+			block, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 				Hash:      hash.Msg.Hash,
 			}))
@@ -887,20 +888,20 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 
 	out := make([]*pb.Block, len(blocks))
 	copy(out, blocks)
-	return connect.NewResponse(&pb.ListBlocksResponse{
+	return &pb.ListBlocksResponse{
 		RecentBlocks: out,
 		HasMore:      hasMore,
-	}), nil
+	}, nil
 }
 
-func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[pb.ListRecentTransactionsRequest]) (*connect.Response[pb.ListRecentTransactionsResponse], error) {
+func (s *Server) ListRecentTransactions(ctx context.Context, c *pb.ListRecentTransactionsRequest) (*pb.ListRecentTransactionsResponse, error) {
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("bitcoind: %w", err)
 	}
 
 	// First get mempool transactions
-	mempoolRes, err := bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
+	mempoolRes, err := bitcoind.GetRawMempool(ctx, connectv1.NewRequest(&corepb.GetRawMempoolRequest{
 		Verbose: true,
 	}))
 	if err != nil {
@@ -924,7 +925,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 			ConfirmedInBlock: nil,
 		})
 	}
-	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	info, err := bitcoind.GetBlockchainInfo(ctx, connectv1.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("bitcoind: get blockchain info: %w", err)
 	}
@@ -937,20 +938,20 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	// its client timeout. The user has nothing useful to look at in that
 	// window anyway — return mempool only and bail.
 	if info.Msg.InitialBlockDownload && config.IsFullChainNetwork(s.config.BitcoinCoreNetwork) {
-		return connect.NewResponse(&pb.ListRecentTransactionsResponse{
+		return &pb.ListRecentTransactionsResponse{
 			Transactions: transactions,
-		}), nil
+		}, nil
 	}
 
 	// Resolve the requested count up front so the block walk can stop as
 	// soon as we have enough.
 	count := int64(100)
-	if c.Msg.Count > 0 {
-		count = c.Msg.Count
+	if c.Count > 0 {
+		count = c.Count
 	}
 
 	// Get block at latest height
-	blockHashRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+	blockHashRes, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 		Hash:      info.Msg.BestBlockHash,
 		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
@@ -965,7 +966,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	currentHash := blockHashRes.Msg.Hash
 walkBlocks:
 	for i := 0; i < maxBlocks && currentHash != ""; i++ {
-		blockRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		blockRes, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 			Hash:      currentHash,
 			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
 		}))
@@ -978,7 +979,7 @@ walkBlocks:
 				continue
 			}
 
-			txRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+			txRes, err := bitcoind.GetRawTransaction(ctx, connectv1.NewRequest(&corepb.GetRawTransactionRequest{
 				Txid:      txid,
 				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 			}))
@@ -1018,17 +1019,17 @@ walkBlocks:
 	}
 	transactions = transactions[:count]
 
-	return connect.NewResponse(&pb.ListRecentTransactionsResponse{
+	return &pb.ListRecentTransactionsResponse{
 		Transactions: transactions,
-	}), nil
+	}, nil
 }
 
-func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNetworkStatsResponse], error) {
+func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.GetNetworkStatsResponse, error) {
 	// Light mode runs no local Bitcoin Core. Answer before the dial, so the
 	// caller gets one clear reason instead of a connection error each tick.
 	if !s.walletEngine.NodeMode().RunsLocalNode(ctx) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("network stats need full mode, which runs a local Bitcoin node"))
+			"network stats need full mode, which runs a local Bitcoin node")
 	}
 
 	bitcoind, err := s.bitcoind.Get(ctx)
@@ -1037,7 +1038,7 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	}
 
 	// Fetch blockchain info
-	blockchainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	blockchainInfo, err := bitcoind.GetBlockchainInfo(ctx, connectv1.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("get blockchain info: %w", err)
 	}
@@ -1051,13 +1052,13 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	// Get difficulty from latest block
 	difficulty := 0.0
 	if blockchainInfo.Msg.Blocks > 0 {
-		hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+		hash, err := bitcoind.GetBlockHash(ctx, connectv1.NewRequest(&corepb.GetBlockHashRequest{
 			Height: blockchainInfo.Msg.Blocks,
 		}))
 		if err != nil {
 			return nil, fmt.Errorf("get latest block hash: %w", err)
 		}
-		block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		block, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 			Hash:      hash.Msg.Hash,
 			Verbosity: 1,
 		}))
@@ -1067,18 +1068,18 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		difficulty = block.Msg.Difficulty
 	}
 
-	networkInfo, err := bitcoind.GetNetworkInfo(ctx, connect.NewRequest(&corepb.GetNetworkInfoRequest{}))
+	networkInfo, err := bitcoind.GetNetworkInfo(ctx, connectv1.NewRequest(&corepb.GetNetworkInfoRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("get network info: %w", err)
 	}
 
-	netTotals, err := bitcoind.GetNetTotals(ctx, connect.NewRequest(&corepb.GetNetTotalsRequest{}))
+	netTotals, err := bitcoind.GetNetTotals(ctx, connectv1.NewRequest(&corepb.GetNetTotalsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("get net totals: %w", err)
 	}
 
 	// Get peer info
-	peerInfo, err := bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
+	peerInfo, err := bitcoind.GetPeerInfo(ctx, connectv1.NewRequest(&corepb.GetPeerInfoRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("get peer info: %w", err)
 	}
@@ -1096,14 +1097,14 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 
 	bitcoindBandwidth, err := s.processBandwidth(ctx, "bitcoind")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	enforcerBandwidth, err := s.processBandwidth(ctx, "bip300301-enforcer")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&pb.GetNetworkStatsResponse{
+	return &pb.GetNetworkStatsResponse{
 		NetworkHashrate:    0, // Requires getmininginfo (mining-specific)
 		Difficulty:         difficulty,
 		PeerCount:          int32(len(peerInfo.Msg.Peers)),
@@ -1117,7 +1118,7 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		ConnectionsOut:     connectionsOut,
 		BitcoindBandwidth:  bitcoindBandwidth,
 		EnforcerBandwidth:  enforcerBandwidth,
-	}), nil
+	}, nil
 }
 
 // processBandwidth gives nil when no process has the name.
@@ -1192,14 +1193,14 @@ func (s *Server) getBlockAtHeight(ctx context.Context, height int64) (int64, err
 		return 0, fmt.Errorf("bitcoind: %w", err)
 	}
 
-	hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+	hash, err := bitcoind.GetBlockHash(ctx, connectv1.NewRequest(&corepb.GetBlockHashRequest{
 		Height: uint32(height),
 	}))
 	if err != nil {
 		return 0, fmt.Errorf("get block hash: %w", err)
 	}
 
-	block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+	block, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 		Hash:      hash.Msg.Hash,
 		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
@@ -1237,7 +1238,7 @@ func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid
 		return false, fmt.Errorf("bitcoind: %w", err)
 	}
 
-	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+	utxos, err := bitcoind.ListUnspent(ctx, connectv1.NewRequest(&corepb.ListUnspentRequest{
 		Wallet: walletName,
 	}))
 	if err != nil {
@@ -1248,45 +1249,45 @@ func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid
 		return utxo.Txid == txid && utxo.Vout == vout
 	}), nil
 }
-func (s *Server) SetMempoolWatch(ctx context.Context, req *connect.Request[pb.SetMempoolWatchRequest]) (*connect.Response[emptypb.Empty], error) {
-	if req.Msg.Enabled {
+func (s *Server) SetMempoolWatch(ctx context.Context, req *pb.SetMempoolWatchRequest) (*emptypb.Empty, error) {
+	if req.Enabled {
 		if err := s.walletEngine.NodeMode().RequireFullNode(ctx, "mempool watch"); err != nil {
 			return nil, err
 		}
 	}
-	if err := s.mempoolWatcher.SetEnabled(ctx, req.Msg.Enabled); err != nil {
+	if err := s.mempoolWatcher.SetEnabled(ctx, req.Enabled); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *Server) ResetMempoolWatch(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+func (s *Server) ResetMempoolWatch(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
 	if err := s.mempoolWatcher.Reset(ctx); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *Server) GetMempoolWatchStatus(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetMempoolWatchStatusResponse], error) {
+func (s *Server) GetMempoolWatchStatus(ctx context.Context, _ *emptypb.Empty) (*pb.GetMempoolWatchStatusResponse, error) {
 	status := s.mempoolWatcher.Status()
 	count, err := mempooltx.Count(ctx, s.db)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetMempoolWatchStatusResponse{
+	return &pb.GetMempoolWatchStatusResponse{
 		Enabled:      status.Enabled,
 		Running:      status.Running,
 		Error:        status.Error,
 		TipHeight:    status.Tip,
 		PendingCount: count,
-	}), nil
+	}, nil
 }
 
-func (s *Server) ListMempoolTransactions(ctx context.Context, req *connect.Request[pb.ListMempoolTransactionsRequest]) (*connect.Response[pb.ListMempoolTransactionsResponse], error) {
+func (s *Server) ListMempoolTransactions(ctx context.Context, req *pb.ListMempoolTransactionsRequest) (*pb.ListMempoolTransactionsResponse, error) {
 	filter := mempooltx.Filter{
-		TxidPrefix: strings.ToLower(strings.TrimSpace(req.Msg.Txid)),
-		Limit:      int(req.Msg.Limit),
-		Offset:     int(req.Msg.Offset),
+		TxidPrefix: strings.ToLower(strings.TrimSpace(req.Txid)),
+		Limit:      int(req.Limit),
+		Offset:     int(req.Offset),
 	}
 	if filter.Limit == 0 {
 		filter.Limit = 200
@@ -1307,11 +1308,11 @@ func (s *Server) ListMempoolTransactions(ctx context.Context, req *connect.Reque
 			FirstSeenHeight: tx.FirstSeenHeight,
 		}
 	}
-	return connect.NewResponse(&pb.ListMempoolTransactionsResponse{Transactions: out, Total: total}), nil
+	return &pb.ListMempoolTransactionsResponse{Transactions: out, Total: total}, nil
 }
 
-func (s *Server) ListBlockStats(ctx context.Context, req *connect.Request[pb.ListBlockStatsRequest]) (*connect.Response[pb.ListBlockStatsResponse], error) {
-	blocks, err := mempooltx.ListBlockStats(ctx, s.db, req.Msg.FromHeight, req.Msg.ToHeight)
+func (s *Server) ListBlockStats(ctx context.Context, req *pb.ListBlockStatsRequest) (*pb.ListBlockStatsResponse, error) {
+	blocks, err := mempooltx.ListBlockStats(ctx, s.db, req.FromHeight, req.ToHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -1319,7 +1320,7 @@ func (s *Server) ListBlockStats(ctx context.Context, req *connect.Request[pb.Lis
 	for i, b := range blocks {
 		out[i] = &pb.BlockStats{Height: b.Height, MinFeeRate: b.MinFeeRate, TotalFeeSats: b.TotalFeeSats}
 	}
-	return connect.NewResponse(&pb.ListBlockStatsResponse{Blocks: out}), nil
+	return &pb.ListBlockStatsResponse{Blocks: out}, nil
 }
 
 var miningPoolWindows = map[pb.MiningPoolWindow]time.Duration{
@@ -1328,8 +1329,8 @@ var miningPoolWindows = map[pb.MiningPoolWindow]time.Duration{
 	pb.MiningPoolWindow_MINING_POOL_WINDOW_1W:  7 * 24 * time.Hour,
 }
 
-func (s *Server) ListMiningPools(ctx context.Context, req *connect.Request[pb.ListMiningPoolsRequest]) (*connect.Response[pb.ListMiningPoolsResponse], error) {
-	window, ok := miningPoolWindows[req.Msg.Window]
+func (s *Server) ListMiningPools(ctx context.Context, req *pb.ListMiningPoolsRequest) (*pb.ListMiningPoolsResponse, error) {
+	window, ok := miningPoolWindows[req.Window]
 	if !ok {
 		window = miningPoolWindows[pb.MiningPoolWindow_MINING_POOL_WINDOW_24H]
 	}
@@ -1349,7 +1350,7 @@ func (s *Server) ListMiningPools(ctx context.Context, req *connect.Request[pb.Li
 			EstimatedHashrate: share.Hashrate,
 		}
 	}
-	return connect.NewResponse(&pb.ListMiningPoolsResponse{
+	return &pb.ListMiningPoolsResponse{
 		Pools:             shares,
 		BlockCount:        summary.Blocks,
 		FromHeight:        summary.FromHeight,
@@ -1357,7 +1358,7 @@ func (s *Server) ListMiningPools(ctx context.Context, req *connect.Request[pb.Li
 		NetworkHashrate:   summary.NetworkHashrate,
 		RegistryAvailable: registry.Available,
 		RegistrySource:    registry.Source,
-	}), nil
+	}, nil
 }
 
 // attributeBlocks fills the pool of every block whose coinbase was recorded.

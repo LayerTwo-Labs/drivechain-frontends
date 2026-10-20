@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
@@ -126,24 +126,24 @@ func newTestStratumHandler(t *testing.T, network fakeStratumNetwork, settings *f
 func TestStratumHandlerStart(t *testing.T) {
 	t.Run("only on eCash", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "signet"}, &fakeStratumSettings{})
-		_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{}))
+		_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{})
 		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 
 	t.Run("a node with no template fails the start", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, &fakeStratumSettings{})
-		_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{}))
+		_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{})
 		assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 		assert.ErrorContains(t, err, "the enforcer is not running")
 
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		assert.False(t, status.Msg.Running)
+		assert.False(t, status.Running)
 	})
 
 	t.Run("a port out of range", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, &fakeStratumSettings{})
-		_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{Port: 70000}))
+		_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{Port: 70000})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -159,7 +159,7 @@ func TestStratumHandlerStart(t *testing.T) {
 			return net.Listen("tcp", "127.0.0.1:0")
 		}
 
-		_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{}))
+		_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{})
 		require.NoError(t, err)
 		assert.Equal(t, []uint32{3401}, ports)
 	})
@@ -170,33 +170,33 @@ func TestStratumHandlerTargets(t *testing.T) {
 
 	t.Run("the catalog pool of the running network", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, &fakeStratumSettings{})
-		resp, err := h.ListTargets(context.Background(), connect.NewRequest(&pb.ListTargetsRequest{}))
+		resp, err := h.ListTargets(context.Background(), &pb.ListTargetsRequest{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Pools, 1)
-		assert.Equal(t, "bip300", resp.Msg.Pools[0].Id)
-		assert.Equal(t, "bip300 pool", resp.Msg.Pools[0].Name)
-		assert.Equal(t, "stratum+tcp://pool.beta.bip300.xyz:3334", resp.Msg.Pools[0].Url)
+		require.Len(t, resp.Pools, 1)
+		assert.Equal(t, "bip300", resp.Pools[0].Id)
+		assert.Equal(t, "bip300 pool", resp.Pools[0].Name)
+		assert.Equal(t, "stratum+tcp://pool.beta.bip300.xyz:3334", resp.Pools[0].Url)
 	})
 
 	t.Run("a catalog pool pays the wallet of this install", func(t *testing.T) {
 		settings := &fakeStratumSettings{}
 		h, _ := newTestStratumHandler(t, network, settings)
 		pool := &pb.Target{Kind: pb.TargetKind_TARGET_KIND_POOL, PoolId: "bip300"}
-		_, err := h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{Target: pool}))
+		_, err := h.SetTarget(context.Background(), &pb.SetTargetRequest{Target: pool})
 		require.NoError(t, err)
-		_, err = h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{
+		_, err = h.SetTarget(context.Background(), &pb.SetTargetRequest{
 			Target: &pb.Target{Kind: pb.TargetKind_TARGET_KIND_SOLO},
-		}))
+		})
 		require.NoError(t, err)
-		_, err = h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{Target: pool}))
+		_, err = h.SetTarget(context.Background(), &pb.SetTargetRequest{Target: pool})
 		require.NoError(t, err)
 
 		assert.Equal(t, orchestrator.StratumSettings{Target: "pool", PoolID: "bip300"}, settings.current)
 
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		assert.Equal(t, pb.TargetKind_TARGET_KIND_POOL, status.Msg.Target.Kind)
-		assert.Equal(t, "bc1qpayout", status.Msg.PayoutAddress)
+		assert.Equal(t, pb.TargetKind_TARGET_KIND_POOL, status.Target.Kind)
+		assert.Equal(t, "bc1qpayout", status.PayoutAddress)
 	})
 
 	t.Run("the same target again changes nothing", func(t *testing.T) {
@@ -204,7 +204,7 @@ func TestStratumHandlerTargets(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, settings)
 		pool := &pb.Target{Kind: pb.TargetKind_TARGET_KIND_POOL, PoolId: "bip300"}
 		for range 2 {
-			_, err := h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{Target: pool}))
+			_, err := h.SetTarget(context.Background(), &pb.SetTargetRequest{Target: pool})
 			require.NoError(t, err)
 		}
 		assert.Equal(t, 1, settings.saves)
@@ -212,9 +212,9 @@ func TestStratumHandlerTargets(t *testing.T) {
 
 	t.Run("an unknown pool", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, &fakeStratumSettings{})
-		_, err := h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{
+		_, err := h.SetTarget(context.Background(), &pb.SetTargetRequest{
 			Target: &pb.Target{Kind: pb.TargetKind_TARGET_KIND_POOL, PoolId: "nopool"},
-		}))
+		})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
@@ -222,7 +222,7 @@ func TestStratumHandlerTargets(t *testing.T) {
 		settings := &fakeStratumSettings{}
 		h, _ := newTestStratumHandler(t, network, settings)
 		custom := &pb.Target{Kind: pb.TargetKind_TARGET_KIND_CUSTOM, Url: "stratum+tcp://pool.example.com:3333", Worker: "bc1qme.rig", Password: "x"}
-		_, err := h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{Target: custom}))
+		_, err := h.SetTarget(context.Background(), &pb.SetTargetRequest{Target: custom})
 		require.NoError(t, err)
 		assert.Equal(t, "custom", settings.current.Target)
 		assert.Equal(t, "bc1qme.rig", settings.current.Worker)
@@ -232,7 +232,7 @@ func TestStratumHandlerTargets(t *testing.T) {
 			{Kind: pb.TargetKind_TARGET_KIND_CUSTOM, Url: "stratum+tcp://pool.example.com", Worker: "w"},
 			{Kind: pb.TargetKind_TARGET_KIND_CUSTOM, Url: "stratum+tcp://pool.example.com:3333"},
 		} {
-			_, err := h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{Target: bad}))
+			_, err := h.SetTarget(context.Background(), &pb.SetTargetRequest{Target: bad})
 			assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		}
 		assert.Equal(t, 1, settings.saves)
@@ -268,10 +268,10 @@ func TestListTargetsPoolHashrate(t *testing.T) {
 	h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash", entry: entry}, &fakeStratumSettings{})
 
 	for range 2 {
-		resp, err := h.ListTargets(context.Background(), connect.NewRequest(&pb.ListTargetsRequest{}))
+		resp, err := h.ListTargets(context.Background(), &pb.ListTargetsRequest{})
 		require.NoError(t, err)
-		require.NotNil(t, resp.Msg.Pools[0].Hashrate)
-		assert.InDelta(t, 16531755363981.977, *resp.Msg.Pools[0].Hashrate, 1e-3)
+		require.NotNil(t, resp.Pools[0].Hashrate)
+		assert.InDelta(t, 16531755363981.977, *resp.Pools[0].Hashrate, 1e-3)
 	}
 	assert.Equal(t, 1, requests)
 
@@ -282,16 +282,16 @@ func TestListTargetsPoolHashrate(t *testing.T) {
 		t.Cleanup(down.Close)
 		entry.Services.MiningPool.StatsURL = down.URL
 		h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash", entry: entry}, &fakeStratumSettings{})
-		resp, err := h.ListTargets(context.Background(), connect.NewRequest(&pb.ListTargetsRequest{}))
+		resp, err := h.ListTargets(context.Background(), &pb.ListTargetsRequest{})
 		require.NoError(t, err)
-		assert.Nil(t, resp.Msg.Pools[0].Hashrate)
+		assert.Nil(t, resp.Pools[0].Hashrate)
 	})
 
 	t.Run("a pool with no stats URL has no hashrate", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash", entry: betanetEntry()}, &fakeStratumSettings{})
-		resp, err := h.ListTargets(context.Background(), connect.NewRequest(&pb.ListTargetsRequest{}))
+		resp, err := h.ListTargets(context.Background(), &pb.ListTargetsRequest{})
 		require.NoError(t, err)
-		assert.Nil(t, resp.Msg.Pools[0].Hashrate)
+		assert.Nil(t, resp.Pools[0].Hashrate)
 	})
 }
 
@@ -315,12 +315,12 @@ func TestCatalogPoolIdentity(t *testing.T) {
 
 func TestStratumHandlerSetWorkMode(t *testing.T) {
 	h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, &fakeStratumSettings{})
-	_, err := h.SetWorkMode(context.Background(), connect.NewRequest(&pb.SetWorkModeRequest{
+	_, err := h.SetWorkMode(context.Background(), &pb.SetWorkModeRequest{
 		Address: "192.168.1.9", Mode: pb.WorkMode_WORK_MODE_LOW,
-	}))
+	})
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 
-	_, err = h.SetWorkMode(context.Background(), connect.NewRequest(&pb.SetWorkModeRequest{Address: "192.168.1.9"}))
+	_, err = h.SetWorkMode(context.Background(), &pb.SetWorkModeRequest{Address: "192.168.1.9"})
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
@@ -330,10 +330,10 @@ func TestStratumHandlerFoundBlocks(t *testing.T) {
 	t.Run("confirmations from the node", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, &fakeStratumSettings{})
 		h.blocks = []stratum.Block{block}
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		require.Len(t, status.Msg.BlocksFound, 1)
-		assert.Equal(t, int32(3), status.Msg.BlocksFound[0].GetConfirmations())
+		require.Len(t, status.BlocksFound, 1)
+		assert.Equal(t, int32(3), status.BlocksFound[0].GetConfirmations())
 	})
 
 	t.Run("a node that does not answer leaves them unset", func(t *testing.T) {
@@ -342,20 +342,20 @@ func TestStratumHandlerFoundBlocks(t *testing.T) {
 			return nil, errors.New("rpc error -5: Block not found")
 		}
 		h.blocks = []stratum.Block{block}
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		require.Len(t, status.Msg.BlocksFound, 1)
-		assert.Nil(t, status.Msg.BlocksFound[0].Confirmations)
+		require.Len(t, status.BlocksFound, 1)
+		assert.Nil(t, status.BlocksFound[0].Confirmations)
 	})
 
 	t.Run("a network reset forgets them", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, &fakeStratumSettings{})
 		h.blocks, h.lastErr = []stratum.Block{block}, "no block template"
 		h.Reset(t.TempDir())
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		assert.Empty(t, status.Msg.BlocksFound)
-		assert.Empty(t, status.Msg.Error)
+		assert.Empty(t, status.BlocksFound)
+		assert.Empty(t, status.Error)
 	})
 }
 
@@ -378,34 +378,34 @@ func TestStratumHandlerRun(t *testing.T) {
 	h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, &fakeStratumSettings{})
 	h.newNode = func() (stratum.Node, error) { return templateNode{}, nil }
 
-	_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{Port: 3333}))
+	_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{Port: 3333})
 	require.NoError(t, err)
 
 	t.Run("a second start on the same port changes nothing", func(t *testing.T) {
-		_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{Port: 3333}))
+		_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{Port: 3333})
 		require.NoError(t, err)
 	})
 
 	t.Run("a start on another port", func(t *testing.T) {
-		_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{Port: 4444}))
+		_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{Port: 4444})
 		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 
-	var status *connect.Response[pb.GetStratumStatusResponse]
+	var status *pb.GetStratumStatusResponse
 	require.Eventually(t, func() bool {
-		status, err = h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
-		return err == nil && status.Msg.NetworkDifficulty > 0
+		status, err = h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
+		return err == nil && status.NetworkDifficulty > 0
 	}, 5*time.Second, 10*time.Millisecond)
-	assert.True(t, status.Msg.Running)
-	assert.Equal(t, uint32(3333), status.Msg.Port)
-	assert.Equal(t, pb.TargetKind_TARGET_KIND_SOLO, status.Msg.Target.Kind)
+	assert.True(t, status.Running)
+	assert.Equal(t, uint32(3333), status.Port)
+	assert.Equal(t, pb.TargetKind_TARGET_KIND_SOLO, status.Target.Kind)
 
-	_, err = h.StopStratum(context.Background(), connect.NewRequest(&pb.StopStratumRequest{}))
+	_, err = h.StopStratum(context.Background(), &pb.StopStratumRequest{})
 	require.NoError(t, err)
-	status, err = h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+	status, err = h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 	require.NoError(t, err)
-	assert.False(t, status.Msg.Running)
-	assert.Empty(t, status.Msg.Error)
+	assert.False(t, status.Running)
+	assert.Empty(t, status.Error)
 }
 
 // The daemon pays a mined block to a bitwindow wallet address. The page shows
@@ -416,18 +416,18 @@ func TestStratumHandlerPayout(t *testing.T) {
 	t.Run("the status reads the address the daemon pays", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, &fakeStratumSettings{})
 
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		assert.Equal(t, "bc1qpayout", status.Msg.PayoutAddress)
+		assert.Equal(t, "bc1qpayout", status.PayoutAddress)
 	})
 
 	t.Run("a wallet that derives none leaves the address empty", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, &fakeStratumSettings{})
 		h.payout = func(context.Context) (string, error) { return "", errors.New("no wallet") }
 
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		assert.Empty(t, status.Msg.PayoutAddress)
+		assert.Empty(t, status.PayoutAddress)
 	})
 }
 
@@ -441,34 +441,34 @@ func TestStratumHandlerMiningSettings(t *testing.T) {
 		t.Cleanup(h.Stop)
 
 		on := true
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			CpuMining: &on,
-		}))
+		})
 		require.NoError(t, err)
 
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		assert.True(t, status.Msg.Running)
-		assert.True(t, status.Msg.Settings.CpuMining)
-		assert.Equal(t, uint32(3333), status.Msg.Settings.Port)
+		assert.True(t, status.Running)
+		assert.True(t, status.Settings.CpuMining)
+		assert.Equal(t, uint32(3333), status.Settings.Port)
 
 		t.Run("and the row leaves when the switch goes off", func(t *testing.T) {
 			require.Eventually(t, func() bool {
-				status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
-				return err == nil && len(status.Msg.Miners) == 1 &&
-					status.Msg.Miners[0].Worker == stratum.CPUWorker &&
-					status.Msg.Miners[0].Address == stratum.CPUAddress
+				status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
+				return err == nil && len(status.Miners) == 1 &&
+					status.Miners[0].Worker == stratum.CPUWorker &&
+					status.Miners[0].Address == stratum.CPUAddress
 			}, 30*time.Second, 50*time.Millisecond)
 
 			off := false
-			_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+			_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 				CpuMining: &off,
-			}))
+			})
 			require.NoError(t, err)
 
 			require.Eventually(t, func() bool {
-				status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
-				return err == nil && len(status.Msg.Miners) == 0 && !status.Msg.Settings.CpuMining
+				status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
+				return err == nil && len(status.Miners) == 0 && !status.Settings.CpuMining
 			}, 10*time.Second, 50*time.Millisecond)
 		})
 	})
@@ -478,27 +478,27 @@ func TestStratumHandlerMiningSettings(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, settings)
 
 		port, threads, keep := uint32(3401), uint32(2), true
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			Port:              &port,
 			CpuThreads:        &threads,
 			KeepMiningOnClose: &keep,
-		}))
+		})
 		require.NoError(t, err)
 
 		assert.Equal(t, uint32(3401), settings.current.Port)
 		assert.Equal(t, uint32(2), settings.current.CPUThreads)
 		assert.True(t, settings.current.KeepMiningOnClose)
 
-		status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
-		assert.False(t, status.Msg.Running)
-		assert.True(t, status.Msg.Settings.KeepMiningOnClose)
+		assert.False(t, status.Running)
+		assert.True(t, status.Settings.KeepMiningOnClose)
 	})
 
 	t.Run("a port out of range", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, &fakeStratumSettings{})
 		port := uint32(70000)
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{Port: &port}))
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{Port: &port})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }
@@ -539,18 +539,18 @@ func TestStratumHandlerPoolBlocks(t *testing.T) {
 
 	t.Run("a solo target lists none", func(t *testing.T) {
 		h, _ := newTestStratumHandler(t, network, &fakeStratumSettings{})
-		resp, err := h.ListPoolBlocks(context.Background(), connect.NewRequest(&pb.ListPoolBlocksRequest{}))
+		resp, err := h.ListPoolBlocks(context.Background(), &pb.ListPoolBlocksRequest{})
 		require.NoError(t, err)
-		assert.Empty(t, resp.Msg.Blocks)
-		assert.Contains(t, resp.Msg.Unavailable, "a pool from the catalog only")
+		assert.Empty(t, resp.Blocks)
+		assert.Contains(t, resp.Unavailable, "a pool from the catalog only")
 	})
 
 	t.Run("a pool with no stats URL", func(t *testing.T) {
 		settings := &fakeStratumSettings{current: orchestrator.StratumSettings{Target: "pool", PoolID: "bip300"}}
 		h, _ := newTestStratumHandler(t, network, settings)
-		resp, err := h.ListPoolBlocks(context.Background(), connect.NewRequest(&pb.ListPoolBlocksRequest{}))
+		resp, err := h.ListPoolBlocks(context.Background(), &pb.ListPoolBlocksRequest{})
 		require.NoError(t, err)
-		assert.Contains(t, resp.Msg.Unavailable, "publishes no block list")
+		assert.Contains(t, resp.Unavailable, "publishes no block list")
 	})
 }
 
@@ -558,13 +558,13 @@ func TestStratumHandlerHashrateHistory(t *testing.T) {
 	h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, &fakeStratumSettings{})
 	h.history.Record(4.2e6, time.Now())
 
-	resp, err := h.GetHashrateHistory(context.Background(), connect.NewRequest(&pb.GetHashrateHistoryRequest{
+	resp, err := h.GetHashrateHistory(context.Background(), &pb.GetHashrateHistoryRequest{
 		Range: pb.HashrateRange_HASHRATE_RANGE_HOUR,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Len(t, resp.Msg.Points, 60)
-	assert.Equal(t, 4.2e6, resp.Msg.Peak)
-	assert.Zero(t, resp.Msg.Current)
+	assert.Len(t, resp.Points, 60)
+	assert.Equal(t, 4.2e6, resp.Peak)
+	assert.Zero(t, resp.Current)
 }
 
 // A pool credits a block to the one worker name this installation uses
@@ -593,31 +593,31 @@ func TestStratumHandlerHoldsTheDaemon(t *testing.T) {
 		return func() { holds.Add(-1) }
 	}
 
-	_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{}))
+	_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{})
 	require.NoError(t, err)
 	assert.Zero(t, holds.Load(), "a server alone holds nothing")
 
 	keep := true
-	_, err = h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+	_, err = h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 		KeepMiningOnClose: &keep,
-	}))
+	})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), holds.Load())
 
 	t.Run("the setting off gives the daemon back", func(t *testing.T) {
 		keep := false
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			KeepMiningOnClose: &keep,
-		}))
+		})
 		require.NoError(t, err)
 		assert.Zero(t, holds.Load())
 	})
 
 	t.Run("a stop gives the daemon back", func(t *testing.T) {
 		keep := true
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			KeepMiningOnClose: &keep,
-		}))
+		})
 		require.NoError(t, err)
 		require.Equal(t, int64(1), holds.Load())
 
@@ -632,24 +632,24 @@ func TestStratumHandlerKeepsTheSwitchOffOnAFailedStart(t *testing.T) {
 	h, _ := newTestStratumHandler(t, fakeStratumNetwork{network: "ecash"}, settings)
 
 	on := true
-	_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+	_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 		CpuMining: &on,
-	}))
+	})
 	require.Error(t, err)
 	assert.False(t, settings.current.CPUMining)
 
-	status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+	status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 	require.NoError(t, err)
-	assert.False(t, status.Msg.Settings.CpuMining)
+	assert.False(t, status.Settings.CpuMining)
 
 	t.Run("and a second try still reaches the start", func(t *testing.T) {
 		h.newNode = func() (stratum.Node, error) { return servedNode{}, nil }
 		t.Cleanup(func() { h.Stop() })
 
 		on := true
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			CpuMining: &on,
-		}))
+		})
 		require.NoError(t, err)
 		assert.True(t, settings.current.CPUMining)
 	})
@@ -668,26 +668,26 @@ func TestStratumHandlerPortChangeRebinds(t *testing.T) {
 		return net.Listen("tcp", "127.0.0.1:0")
 	}
 
-	_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{Port: 3333}))
+	_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{Port: 3333})
 	require.NoError(t, err)
 
 	port := uint32(3401)
-	_, err = h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+	_, err = h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 		Port: &port,
-	}))
+	})
 	require.NoError(t, err)
 
 	assert.Equal(t, []uint32{3333, 3401}, ports)
-	status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+	status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 	require.NoError(t, err)
-	assert.True(t, status.Msg.Running)
-	assert.Equal(t, uint32(3401), status.Msg.Port)
+	assert.True(t, status.Running)
+	assert.Equal(t, uint32(3401), status.Port)
 
 	t.Run("a setting that is no port leaves the listener alone", func(t *testing.T) {
 		threads := uint32(3)
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			CpuThreads: &threads,
-		}))
+		})
 		require.NoError(t, err)
 		assert.Equal(t, []uint32{3333, 3401}, ports)
 	})
@@ -695,10 +695,10 @@ func TestStratumHandlerPortChangeRebinds(t *testing.T) {
 	t.Run("the port the server already listens on leaves it alone", func(t *testing.T) {
 		same := uint32(3401)
 		keep := true
-		_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			Port:              &same,
 			KeepMiningOnClose: &keep,
-		}))
+		})
 		require.NoError(t, err)
 		assert.Equal(t, []uint32{3333, 3401}, ports)
 	})
@@ -710,21 +710,21 @@ func TestStratumHandlerKeepsTheListenerOnAFailedRebind(t *testing.T) {
 	h.newNode = func() (stratum.Node, error) { return servedNode{}, nil }
 	t.Cleanup(h.Stop)
 
-	_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{Port: 3333}))
+	_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{Port: 3333})
 	require.NoError(t, err)
 	h.listen = func(uint32) (net.Listener, error) { return nil, errors.New("address already in use") }
 
 	port := uint32(3401)
-	_, err = h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+	_, err = h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 		Port: &port,
-	}))
+	})
 	require.Error(t, err)
 
-	status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+	status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 	require.NoError(t, err)
-	assert.True(t, status.Msg.Running)
-	assert.Equal(t, uint32(3333), status.Msg.Port)
-	assert.Equal(t, uint32(3333), status.Msg.Settings.Port)
+	assert.True(t, status.Running)
+	assert.Equal(t, uint32(3333), status.Port)
+	assert.Equal(t, uint32(3333), status.Settings.Port)
 }
 
 // A save that fails after a start must leave no hasher behind.
@@ -735,15 +735,15 @@ func TestStratumHandlerStopsTheHasherWhenTheSaveFails(t *testing.T) {
 	t.Cleanup(h.Stop)
 
 	on := true
-	_, err := h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+	_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 		CpuMining: &on,
-	}))
+	})
 	require.ErrorContains(t, err, "the disk is full")
 
-	status, err := h.GetStratumStatus(context.Background(), connect.NewRequest(&pb.GetStratumStatusRequest{}))
+	status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 	require.NoError(t, err)
-	assert.False(t, status.Msg.Running)
-	assert.False(t, status.Msg.Settings.CpuMining)
+	assert.False(t, status.Running)
+	assert.False(t, status.Settings.CpuMining)
 }
 
 // Every row of the pool block list costs a block read from the node, and the
@@ -763,14 +763,14 @@ func TestStratumHandlerCachesThePoolBlocks(t *testing.T) {
 	h, _ := newTestStratumHandler(t, network, settings)
 
 	for range 5 {
-		_, err := h.ListPoolBlocks(context.Background(), connect.NewRequest(&pb.ListPoolBlocksRequest{}))
+		_, err := h.ListPoolBlocks(context.Background(), &pb.ListPoolBlocksRequest{})
 		require.NoError(t, err)
 	}
 	assert.Equal(t, 1, reads)
 
 	t.Run("a target change asks the pool again", func(t *testing.T) {
 		h.forgetPoolBlocks()
-		_, err := h.ListPoolBlocks(context.Background(), connect.NewRequest(&pb.ListPoolBlocksRequest{}))
+		_, err := h.ListPoolBlocks(context.Background(), &pb.ListPoolBlocksRequest{})
 		require.NoError(t, err)
 		assert.Equal(t, 2, reads)
 	})
@@ -790,11 +790,11 @@ func TestStratumHandlerCachesThePoolBlocks(t *testing.T) {
 		entry.Services.MiningPool.StatsURL = pool.URL + "/api/overview"
 		h.network = fakeStratumNetwork{network: "ecash", entry: entry}
 
-		resp, err := h.ListPoolBlocks(context.Background(), connect.NewRequest(&pb.ListPoolBlocksRequest{}))
+		resp, err := h.ListPoolBlocks(context.Background(), &pb.ListPoolBlocksRequest{})
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Blocks, 1)
-		assert.Nil(t, resp.Msg.Blocks[0].MyPayoutSats)
-		assert.Nil(t, resp.Msg.Blocks[0].Confirmations)
+		require.Len(t, resp.Blocks, 1)
+		assert.Nil(t, resp.Blocks[0].MyPayoutSats)
+		assert.Nil(t, resp.Blocks[0].Confirmations)
 	})
 
 }
@@ -813,15 +813,15 @@ func TestStratumHandlerDefaultPortNeedsNoRebind(t *testing.T) {
 		return net.Listen("tcp", "127.0.0.1:0")
 	}
 
-	_, err := h.StartStratum(context.Background(), connect.NewRequest(&pb.StartStratumRequest{}))
+	_, err := h.StartStratum(context.Background(), &pb.StartStratumRequest{})
 	require.NoError(t, err)
 	require.Zero(t, settings.current.Port)
 
 	port, threads := uint32(defaultStratumPort), uint32(2)
-	_, err = h.SetMiningSettings(context.Background(), connect.NewRequest(&pb.SetMiningSettingsRequest{
+	_, err = h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 		Port:       &port,
 		CpuThreads: &threads,
-	}))
+	})
 	require.NoError(t, err)
 
 	assert.Equal(t, []uint32{defaultStratumPort}, ports)
