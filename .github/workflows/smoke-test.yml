@@ -82,6 +82,21 @@ jobs:
           echo "BitWindow launches successfully and shows expected UI."
           echo "Basic app functionality is working."
 
+      - name: Run without system libgles2
+        working-directory: bitwindow
+        run: |
+          flutter build linux --debug
+          sudo dpkg --remove --force-depends libgles2
+          ./build/linux/x64/debug/bundle/bitwindow > no-libgles2.log 2>&1 &
+          pid=$!
+          sleep 20
+          if ! kill -0 $pid; then
+            cat no-libgles2.log
+            echo "❌ BitWindow stopped without system libgles2"
+            exit 1
+          fi
+          kill $pid
+
       - name: Upload failure logs
         if: failure()
         uses: actions/upload-artifact@v5
