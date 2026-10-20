@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"buf.build/go/protovalidate"
 	"connectrpc.com/connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -82,13 +83,7 @@ type Server struct {
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	walletID := c.Msg.WalletId
 
-	if len(c.Msg.Destinations) == 0 {
-		err := errors.New("must provide a destination")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	if c.Msg.FeeSatPerVbyte > 0 && c.Msg.FixedFeeSats > 0 {
-		err := errors.New("cannot provide both fee rate and fee amount")
+	if err := protovalidate.Validate(c.Msg); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 

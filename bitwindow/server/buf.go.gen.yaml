@@ -15,14 +15,14 @@ managed:
 
 plugins:
   # Base types for Go. Generates message and enum types.
-  - remote: buf.build/protocolbuffers/go
+  - remote: buf.build/protocolbuffers/go:v1.36.12
     out: gen
     opt:
       - paths=source_relative
 
   # Generates client and server stubs for connectrpc.com/connect.
   # Compatible with the gRPC, gRPC-Web, and Connect RPC protocols.
-  - remote: buf.build/connectrpc/go
+  - remote: buf.build/connectrpc/go:v1.21.0
     out: gen
     opt:
       - paths=source_relative

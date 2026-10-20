@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"buf.build/go/protovalidate"
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/samber/lo"
@@ -928,15 +929,8 @@ func (h *WalletHandler) SetFrozenCoins(ctx context.Context, req *connect.Request
 }
 
 func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
-	// A transaction needs at least one output, but it doesn't have to be a
-	// payment: an OP_RETURN-only broadcast (e.g. coinnews) or a raw-script
-	// output (e.g. a sidechain deposit treasury) is a valid send on its own.
-	if len(req.Msg.Destinations) == 0 && req.Msg.OpReturnHex == "" && len(req.Msg.RawOutputs) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one output"))
-	}
-
-	if req.Msg.FeeRateSatPerVbyte > 0 && req.Msg.FixedFeeSats > 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot provide both fee rate and fixed fee"))
+	if err := protovalidate.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	if err := h.requireEngine(); err != nil {

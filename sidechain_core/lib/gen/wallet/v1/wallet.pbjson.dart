@@ -170,6 +170,7 @@ const SendTransactionRequest$json = {
     {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.wallet.v1.UnspentOutput', '10': 'requiredInputs'},
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
+  '7': {},
 };
 
 @$core.Deprecated('Use sendTransactionRequestDescriptor instead')
@@ -191,7 +192,11 @@ final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64De
     'cxIqChFvcF9yZXR1cm5fbWVzc2FnZRgFIAEoCVIPb3BSZXR1cm5NZXNzYWdlEhQKBWxhYmVsGA'
     'YgASgJUgVsYWJlbBJBCg9yZXF1aXJlZF9pbnB1dHMYByADKAsyGC53YWxsZXQudjEuVW5zcGVu'
     'dE91dHB1dFIOcmVxdWlyZWRJbnB1dHMaPwoRRGVzdGluYXRpb25zRW50cnkSEAoDa2V5GAEgAS'
-    'gJUgNrZXkSFAoFdmFsdWUYAiABKARSBXZhbHVlOgI4AQ==');
+    'gJUgNrZXkSFAoFdmFsdWUYAiABKARSBXZhbHVlOgI4ATrVAbpI0QEaUwoMc2VuZC5vdXRwdXRz'
+    'EiZ0aGUgcmVxdWVzdCBtdXN0IGluY2x1ZGUgYSBkZXN0aW5hdGlvbhobc2l6ZSh0aGlzLmRlc3'
+    'RpbmF0aW9ucykgPiAwGnoKCXNlbmQuZmVlcxIydGhlIHJlcXVlc3QgY2Fubm90IHNldCBib3Ro'
+    'IGZlZSByYXRlIGFuZCBmaXhlZCBmZWUaOXRoaXMuZmVlX3NhdF9wZXJfdmJ5dGUgPT0gMHUgfH'
+    'wgdGhpcy5maXhlZF9mZWVfc2F0cyA9PSAwdQ==');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {

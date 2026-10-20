@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -13,6 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
@@ -343,4 +346,99 @@ func TestBumpFeeKeepsTheBackendErrorCode(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err),
 		"the dialog shows a reason, not an internal error")
+}
+
+func TestSendTransactionRequestRules(t *testing.T) {
+	t.Parallel()
+
+	for _, mode := range []string{"direct", "connect"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+
+			for _, tc := range []struct {
+				name    string
+				request *pb.SendTransactionRequest
+				wantErr string
+			}{
+				{
+					name:    "no outputs",
+					request: &pb.SendTransactionRequest{},
+					wantErr: "the request must include at least one output",
+				},
+				{
+					name: "both positive fees",
+					request: &pb.SendTransactionRequest{
+						Destinations:       map[string]int64{"addr": 10_000},
+						FeeRateSatPerVbyte: 2,
+						FixedFeeSats:       500,
+					},
+					wantErr: "the request cannot set both fee rate and fixed fee",
+				},
+				{
+					name: "default fee",
+					request: &pb.SendTransactionRequest{
+						Destinations: map[string]int64{"addr": 10_000},
+					},
+				},
+				{
+					name: "fee rate",
+					request: &pb.SendTransactionRequest{
+						Destinations:       map[string]int64{"addr": 10_000},
+						FeeRateSatPerVbyte: 2,
+					},
+				},
+				{
+					name: "fixed fee",
+					request: &pb.SendTransactionRequest{
+						Destinations: map[string]int64{"addr": 10_000},
+						FixedFeeSats: 500,
+					},
+				},
+				{
+					name: "OP_RETURN output",
+					request: &pb.SendTransactionRequest{
+						OpReturnHex: "beef",
+					},
+				},
+				{
+					name: "raw output",
+					request: &pb.SendTransactionRequest{
+						RawOutputs: []*pb.RawOutput{{ValueSats: 10_000, ScriptHex: "51"}},
+					},
+				},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					h, electrum, core, walletID, _ := newRoutedHandler(t)
+					send := h.SendTransaction
+					if mode == "connect" {
+						mux := http.NewServeMux()
+						mux.Handle(rpc.NewWalletManagerServiceHandler(h))
+						server := httptest.NewServer(mux)
+						t.Cleanup(server.Close)
+						send = rpc.NewWalletManagerServiceClient(server.Client(), server.URL).SendTransaction
+					}
+
+					tc.request.WalletId = walletID
+					response, err := send(context.Background(), connect.NewRequest(tc.request))
+					assert.Empty(t, core.lastSendWallet)
+					if tc.wantErr != "" {
+						require.ErrorContains(t, err, tc.wantErr)
+						assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+						assert.Empty(t, electrum.lastSendWallet)
+						return
+					}
+
+					require.NoError(t, err)
+					assert.Equal(t, "fake-txid", response.Msg.Txid)
+					assert.Equal(t, walletID, electrum.lastSendWallet)
+					assert.Equal(t, tc.request.FeeRateSatPerVbyte, electrum.lastSend.FeeRateSatPerVB)
+					assert.Equal(t, tc.request.FixedFeeSats, electrum.lastSend.FixedFeeSats)
+					assert.Equal(t, tc.request.OpReturnHex, electrum.lastSend.OpReturnHex)
+					if len(tc.request.RawOutputs) > 0 {
+						assert.Equal(t, []wallet.TxOutSpec{{AmountSats: 10_000, RawScriptHex: "51"}}, electrum.lastSend.RawOutputs)
+					}
+				})
+			}
+		})
+	}
 }

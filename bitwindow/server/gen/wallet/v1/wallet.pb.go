@@ -7,6 +7,7 @@
 package walletv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -4390,7 +4391,7 @@ var File_wallet_v1_wallet_proto protoreflect.FileDescriptor
 
 const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\n" +
-	"\x16wallet/v1/wallet.proto\x12\twallet.v1\x1a\x1ebitwindowd/v1/bitwindowd.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"0\n" +
+	"\x16wallet/v1/wallet.proto\x12\twallet.v1\x1a\x1ebitwindowd/v1/bitwindowd.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"0\n" +
 	"\x11GetBalanceRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"n\n" +
 	"\x14GetNewAddressRequest\x12\x1b\n" +
@@ -4406,7 +4407,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x1bListReceiveAddressesRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\".\n" +
 	"\x0fGetStatsRequest\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xa5\x03\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xfd\x04\n" +
 	"\x16SendTransactionRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12W\n" +
 	"\fdestinations\x18\x02 \x03(\v23.wallet.v1.SendTransactionRequest.DestinationsEntryR\fdestinations\x12)\n" +
@@ -4417,7 +4418,9 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x0frequired_inputs\x18\a \x03(\v2\x18.wallet.v1.UnspentOutputR\x0erequiredInputs\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x04R\x05value:\x028\x01\"-\n" +
+	"\x05value\x18\x02 \x01(\x04R\x05value:\x028\x01:\xd5\x01\xbaH\xd1\x01\x1aS\n" +
+	"\fsend.outputs\x12&the request must include a destination\x1a\x1bsize(this.destinations) > 0\x1az\n" +
+	"\tsend.fees\x122the request cannot set both fee rate and fixed fee\x1a9this.fee_sat_per_vbyte == 0u || this.fixed_fee_sats == 0u\"-\n" +
 	"\x17SendTransactionResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x95\x01\n" +
 	"\x12GetBalanceResponse\x12+\n" +

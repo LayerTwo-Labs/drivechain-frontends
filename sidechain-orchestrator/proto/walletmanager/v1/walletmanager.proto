@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package walletmanager.v1;
 
+import "buf/validate/validate.proto";
 import "orchestrator/v1/orchestrator.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
@@ -692,6 +693,17 @@ message GetNewAddressResponse {
 }
 
 message SendTransactionRequest {
+  option (buf.validate.message).cel = {
+    id: "send.outputs"
+    message: "the request must include at least one output"
+    expression: "size(this.destinations) > 0 || this.op_return_hex != '' || size(this.raw_outputs) > 0"
+  };
+  option (buf.validate.message).cel = {
+    id: "send.fees"
+    message: "the request cannot set both fee rate and fixed fee"
+    expression: "this.fee_rate_sat_per_vbyte <= 0 || this.fixed_fee_sats <= 0"
+  };
+
   string wallet_id = 1;  // empty = active wallet
   map<string, int64> destinations = 2;  // address -> satoshis
   int64 fee_rate_sat_per_vbyte = 3;     // 0 = use default
