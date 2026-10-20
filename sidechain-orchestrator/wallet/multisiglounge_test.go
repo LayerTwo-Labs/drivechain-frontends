@@ -6,8 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -641,12 +644,18 @@ func newRegtest(t *testing.T, cli, daemon string) *regtest {
 
 func (rt *regtest) stop() {
 	_, _ = rt.call("stop")
-	// Give bitcoind a moment to release its datadir before t.TempDir cleanup.
-	time.Sleep(time.Second)
+	// bitcoind deletes its pid file last, after it releases the datadir.
+	pidFile := filepath.Join(rt.dataDir, "regtest", "bitcoind.pid")
+	for deadline := time.Now().Add(30 * time.Second); time.Now().Before(deadline); {
+		if _, err := os.Stat(pidFile); errors.Is(err, os.ErrNotExist) {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 func (rt *regtest) call(args ...string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	full := append([]string{"-regtest", "-datadir=" + rt.dataDir, "-rpcuser=u", "-rpcpassword=p"}, args...)
 	out, err := exec.CommandContext(ctx, rt.cli, full...).Output()

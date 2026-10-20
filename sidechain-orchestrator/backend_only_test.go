@@ -89,6 +89,7 @@ func TestBackendOnlyStopKeepsTheWindowCleanup(t *testing.T) {
 	require.True(t, o.process.IsRunning(guiName))
 
 	require.NoError(t, o.Stop(context.Background(), config.Name, true))
+	o.process.WaitForExit(config.Name, 5*time.Second)
 	o.process.WaitForExit(guiName, 5*time.Second)
 	require.False(t, o.process.IsRunning(guiName),
 		"a backend-only daemon must still close a window it adopted")
@@ -132,7 +133,7 @@ func TestBackendOnlyBareStartCarriesHeadless(t *testing.T) {
 
 	_, err := o.Start(context.Background(), config.Name, nil, nil)
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = o.process.Stop(context.Background(), config.Name, true) })
+	stopOnCleanup(t, o.process, config.Name)
 
 	proc := o.process.Get(config.Name)
 	require.NotNil(t, proc)
@@ -163,7 +164,7 @@ func TestBackendOnlyStartTakesTheDaemonSlot(t *testing.T) {
 	pid, err := o.Start(context.Background(), config.Name, nil, nil)
 	require.NoError(t, err)
 	require.NotZero(t, pid)
-	t.Cleanup(func() { _ = o.process.Stop(context.Background(), config.Name, true) })
+	stopOnCleanup(t, o.process, config.Name)
 
 	time.Sleep(250 * time.Millisecond)
 	require.True(t, o.process.IsRunning(config.Name), "the daemon slot must hold the process")
@@ -209,7 +210,7 @@ func TestBackendOnlyBareStartNamesTheStarter(t *testing.T) {
 
 	_, err = o.Start(context.Background(), config.Name, nil, nil)
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = o.process.Stop(context.Background(), config.Name, true) })
+	stopOnCleanup(t, o.process, config.Name)
 
 	proc := o.process.Get(config.Name)
 	require.NotNil(t, proc)

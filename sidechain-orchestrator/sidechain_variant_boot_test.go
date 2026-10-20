@@ -122,7 +122,7 @@ func TestSidechainVariant_DownloadAndBoot(t *testing.T) {
 	pid, err := pm.Start(context.Background(), cfg, nil, nil)
 	require.NoError(t, err)
 	require.NotZero(t, pid)
-	t.Cleanup(func() { _ = pm.Stop(context.Background(), cfg.Name, true) })
+	stopOnCleanup(t, pm, cfg.Name)
 
 	// Cmd.Path is the binPath we passed to exec.Command — the kernel
 	// successfully exec'd it, so this assertion catches a Start path that

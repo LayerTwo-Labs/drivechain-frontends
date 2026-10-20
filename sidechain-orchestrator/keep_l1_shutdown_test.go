@@ -32,7 +32,7 @@ func startManagedSleeper(t *testing.T, o *Orchestrator) BinaryConfig {
 	pid, err := o.process.Start(context.Background(), cfg, []string{"30"}, nil)
 	require.NoError(t, err)
 	require.Greater(t, pid, 0)
-	t.Cleanup(func() { _ = o.process.Stop(context.Background(), "sleep-test", true) })
+	stopOnCleanup(t, o.process, "sleep-test")
 	return cfg
 }
 
