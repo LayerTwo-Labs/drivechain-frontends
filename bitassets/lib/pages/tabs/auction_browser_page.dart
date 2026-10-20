@@ -527,7 +527,7 @@ class AuctionBrowserViewModel extends BaseViewModel {
   int currentBlock = 0;
 
   AuctionBrowserViewModel() {
-    bitAssetsProvider.addListener(notifyListeners);
+    bitAssetsProvider.addListener(_fetchCurrentBlock);
     analyticsProvider.addListener(notifyListeners);
     favoritesProvider.addListener(notifyListeners);
     priceAlertProvider.addListener(notifyListeners);
@@ -850,7 +850,7 @@ class AuctionBrowserViewModel extends BaseViewModel {
   void dispose() {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
-    bitAssetsProvider.removeListener(notifyListeners);
+    bitAssetsProvider.removeListener(_fetchCurrentBlock);
     analyticsProvider.removeListener(notifyListeners);
     favoritesProvider.removeListener(notifyListeners);
     priceAlertProvider.removeListener(notifyListeners);

@@ -329,9 +329,9 @@ class AssetAnalyticsProvider extends ChangeNotifier {
         case AuctionSort.startBlockAsc:
           return a.startBlock.compareTo(b.startBlock);
         case AuctionSort.priceDesc:
-          return b.initialPrice.compareTo(a.initialPrice);
+          return calculateCurrentPrice(b, currentBlock).compareTo(calculateCurrentPrice(a, currentBlock));
         case AuctionSort.priceAsc:
-          return a.initialPrice.compareTo(b.initialPrice);
+          return calculateCurrentPrice(a, currentBlock).compareTo(calculateCurrentPrice(b, currentBlock));
         case AuctionSort.amountDesc:
           return b.baseAmount.compareTo(a.baseAmount);
         case AuctionSort.amountAsc:
