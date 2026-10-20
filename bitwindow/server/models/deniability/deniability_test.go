@@ -299,6 +299,34 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, TargetSizes{500}, denial.TargetUTXOSizes)
 	})
 
+	t.Run("Update starts a paused cancelled denial", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		denial, err := Create(t.Context(), db, "test-wallet", "txid", 0, time.Hour, 3, nil)
+		require.NoError(t, err)
+		require.NoError(t, Pause(t.Context(), db, denial.ID))
+		require.NoError(t, Cancel(t.Context(), db, denial.ID, "stopped by the user"))
+
+		stopped, err := Get(t.Context(), db, denial.ID)
+		require.NoError(t, err)
+		require.NotNil(t, stopped.PausedAt)
+		require.NotNil(t, stopped.CancelledAt)
+		require.NotNil(t, stopped.CancelReason)
+		require.Nil(t, stopped.NextExecution)
+
+		require.NoError(t, Update(t.Context(), db, denial.ID, time.Minute, 1, nil, "txid", 0))
+
+		denials, err := List(t.Context(), db)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		assert.Equal(t, denial.ID, denials[0].ID)
+		assert.Nil(t, denials[0].PausedAt)
+		assert.Nil(t, denials[0].CancelledAt)
+		assert.Nil(t, denials[0].CancelReason)
+		assert.NotNil(t, denials[0].NextExecution)
+	})
+
 	t.Run("Get", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
