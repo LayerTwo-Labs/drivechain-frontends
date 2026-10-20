@@ -118,6 +118,113 @@ func TestUpdateFunding(t *testing.T) {
 	})
 }
 
+func TestUpdateFundingClearsSweep(t *testing.T) {
+	for _, recovery := range []bool{false, true} {
+		name := "a funding check clears the sweep"
+		if recovery {
+			name = "recovery clears the sweep"
+		}
+		t.Run(name, func(t *testing.T) {
+			db := database.Test(t)
+			ctx := t.Context()
+			id, err := cheques.Create(ctx, db, testWalletID, 0, 1000, "addr-0")
+			require.NoError(t, err)
+			require.NoError(t, cheques.UpdateFunding(ctx, db, testWalletID, id,
+				[]cheques.FundingOutput{{Txid: "first", ValueSats: 1000}}, 1000))
+			first, err := cheques.Get(ctx, db, testWalletID, id)
+			require.NoError(t, err)
+			require.NoError(t, cheques.UpdateSwept(ctx, db, testWalletID, id, "sweep"))
+
+			outputs := []cheques.FundingOutput{{Txid: "second", Vout: 2, ValueSats: 500}}
+			if recovery {
+				err = cheques.CreateOrUpdateFromRecovery(ctx, db, testWalletID, 0, "addr-0", outputs, 500)
+			} else {
+				err = cheques.UpdateFunding(ctx, db, testWalletID, id, outputs, 500)
+			}
+			require.NoError(t, err)
+
+			got, err := cheques.Get(ctx, db, testWalletID, id)
+			require.NoError(t, err)
+			assert.Nil(t, got.SweptTxid)
+			assert.Nil(t, got.SweptAt)
+			assert.Equal(t, first.FundedAt, got.FundedAt)
+			assert.Equal(t, uint64(1000), got.ExpectedAmountSats)
+			require.NotNil(t, got.ActualAmountSats)
+			assert.Equal(t, uint64(500), *got.ActualAmountSats)
+			assert.ElementsMatch(t, []string{"first", "second"}, got.FundedTxids)
+		})
+	}
+}
+
+func TestUpdateFundingKeepsDistinctOutputs(t *testing.T) {
+	db := database.Test(t)
+	ctx := t.Context()
+	id, err := cheques.Create(ctx, db, testWalletID, 0, 1000, "addr-0")
+	require.NoError(t, err)
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats, block_height)
+		VALUES (?, 'old', 0, 0, 5), (?, 'current', 0, 0, 7)
+	`, id, id)
+	require.NoError(t, err)
+
+	outputs := []cheques.FundingOutput{
+		{Txid: "current", ValueSats: 600, BlockHeight: 7},
+		{Txid: "current", Vout: 2, ValueSats: 400, BlockHeight: 7},
+	}
+	for range 2 {
+		require.NoError(t, cheques.UpdateFunding(ctx, db, testWalletID, id, outputs, 1000))
+	}
+	outputs[0].BlockHeight = 0
+	outputs[1].BlockHeight = 0
+	require.NoError(t, cheques.UpdateFunding(ctx, db, testWalletID, id, outputs, 1000))
+
+	type outputRow struct {
+		Txid        string `db:"txid"`
+		Vout        int32  `db:"vout"`
+		ValueSats   int64  `db:"value_sats"`
+		BlockHeight uint32 `db:"block_height"`
+	}
+	rows, err := database.Select[outputRow](ctx, db, `
+		SELECT txid, vout, value_sats, block_height
+		FROM cheque_funding_outputs WHERE cheque_id = ? ORDER BY txid, vout
+	`, id)
+	require.NoError(t, err)
+	assert.Equal(t, []outputRow{
+		{Txid: "current", ValueSats: 600, BlockHeight: 7},
+		{Txid: "current", Vout: 2, ValueSats: 400, BlockHeight: 7},
+		{Txid: "old", BlockHeight: 5},
+	}, rows)
+
+	got, err := cheques.Get(ctx, db, testWalletID, id)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"old", "current"}, got.FundedTxids)
+}
+
+func TestUpdateFundingKeepsSweepOnError(t *testing.T) {
+	db := database.Test(t)
+	ctx := t.Context()
+	id, err := cheques.Create(ctx, db, testWalletID, 0, 1000, "addr-0")
+	require.NoError(t, err)
+	require.NoError(t, cheques.UpdateFunding(ctx, db, testWalletID, id,
+		[]cheques.FundingOutput{{Txid: "first", ValueSats: 1000}}, 1000))
+	require.NoError(t, cheques.UpdateSwept(ctx, db, testWalletID, id, "sweep"))
+	first, err := cheques.Get(ctx, db, testWalletID, id)
+	require.NoError(t, err)
+	_, err = db.ExecContext(ctx, `
+		CREATE TRIGGER reject_output BEFORE INSERT ON cheque_funding_outputs
+		BEGIN SELECT RAISE(ABORT, 'output error'); END
+	`)
+	require.NoError(t, err)
+
+	err = cheques.UpdateFunding(ctx, db, testWalletID, id,
+		[]cheques.FundingOutput{{Txid: "second", ValueSats: 500}}, 500)
+	require.ErrorContains(t, err, "output error")
+
+	got, err := cheques.Get(ctx, db, testWalletID, id)
+	require.NoError(t, err)
+	assert.Equal(t, first, got)
+}
+
 func TestList_AttachesEachChequeItsOwnOutputs(t *testing.T) {
 	db := database.Test(t)
 	ctx := t.Context()

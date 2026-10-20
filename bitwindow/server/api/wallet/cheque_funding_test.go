@@ -246,6 +246,105 @@ func TestCheckChequeFunding_MultipleUTXOs(t *testing.T) {
 	require.EqualValues(t, 0, resp.Msg.MinConfirmations, "the least-confirmed output sets the floor")
 }
 
+func TestCheckChequeFunding_TwoOutputsFromOneTransaction(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+	ctx := t.Context()
+	address := "tb1qtestaddress000000000000000000000000000"
+	txid := "aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000"
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+			address: address,
+			utxos: []*orchpb.AddressUnspentOutput{
+				{Txid: txid, Vout: 1, ValueSats: 600, Confirmations: 3},
+				{Txid: txid, Vout: 2, ValueSats: 400, Confirmations: 3},
+			},
+		})),
+	)
+	id, err := cheques.Create(ctx, db, testWalletID, 0, 1000, address)
+	require.NoError(t, err)
+
+	for range 2 {
+		resp, err := cli.CheckChequeFunding(ctx, connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+			WalletId: testWalletID,
+			Id:       id,
+		}))
+		require.NoError(t, err)
+		require.True(t, resp.Msg.Funded)
+		require.Equal(t, uint64(1000), resp.Msg.ActualAmountSats)
+		require.Equal(t, []string{txid}, resp.Msg.FundedTxids)
+	}
+
+	type outputRow struct {
+		Txid        string `db:"txid"`
+		Vout        int32  `db:"vout"`
+		ValueSats   int64  `db:"value_sats"`
+		BlockHeight uint32 `db:"block_height"`
+	}
+	rows, err := database.Select[outputRow](ctx, db, `
+		SELECT txid, vout, value_sats, block_height
+		FROM cheque_funding_outputs WHERE cheque_id = ? ORDER BY vout
+	`, id)
+	require.NoError(t, err)
+	require.Equal(t, []outputRow{
+		{Txid: txid, Vout: 1, ValueSats: 600, BlockHeight: 98},
+		{Txid: txid, Vout: 2, ValueSats: 400, BlockHeight: 98},
+	}, rows)
+}
+
+func TestCheckChequeFunding_RefusesDeleteAfterAnotherPayment(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name   string
+		amount int64
+	}{
+		{name: "a partial payment", amount: 500},
+		{name: "a full payment", amount: 1000},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			db := database.Test(t)
+			ctx := t.Context()
+			address := "tb1qtestaddress000000000000000000000000000"
+			first := "aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000"
+			second := "bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000bbbb0000"
+			cli := walletv1connect.NewWalletServiceClient(
+				apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+					address: address,
+					perCall: func(n int32) []*orchpb.AddressUnspentOutput {
+						if n == 1 {
+							return []*orchpb.AddressUnspentOutput{{Txid: first, ValueSats: 1000}}
+						}
+						return []*orchpb.AddressUnspentOutput{{Txid: second, Vout: 2, ValueSats: tt.amount}}
+					},
+				})),
+			)
+			id, err := cheques.Create(ctx, db, testWalletID, 0, 1000, address)
+			require.NoError(t, err)
+			request := connect.NewRequest(&walletv1.CheckChequeFundingRequest{WalletId: testWalletID, Id: id})
+			_, err = cli.CheckChequeFunding(ctx, request)
+			require.NoError(t, err)
+			require.NoError(t, cheques.UpdateSwept(ctx, db, testWalletID, id, "sweep"))
+
+			resp, err := cli.CheckChequeFunding(ctx, request)
+			require.NoError(t, err)
+			require.Equal(t, uint64(tt.amount), resp.Msg.ActualAmountSats)
+			_, err = cli.DeleteCheque(ctx, connect.NewRequest(&walletv1.DeleteChequeRequest{
+				WalletId: testWalletID,
+				Id:       id,
+			}))
+			require.ErrorContains(t, err, "cannot delete funded cheque")
+			require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+			got, err := cheques.Get(ctx, db, testWalletID, id)
+			require.NoError(t, err)
+			require.Nil(t, got.SweptTxid)
+			require.Nil(t, got.SweptAt)
+			require.ElementsMatch(t, []string{first, second}, got.FundedTxids)
+		})
+	}
+}
+
 func TestCheckChequeFunding_PartialFunding(t *testing.T) {
 	t.Parallel()
 	db := database.Test(t)
