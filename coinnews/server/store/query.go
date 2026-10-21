@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
@@ -182,6 +183,7 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 	defer rows.Close() //nolint:errcheck
 
 	all := map[codec.ItemID][]CommentRow{}
+	scoreTime := time.Now()
 	for rows.Next() {
 		var (
 			c              CommentRow
@@ -197,7 +199,7 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 		copy(c.Parent[:], parent)
 		copy(c.AuthorXPK[:], xpk)
 		c.Points = up - dn
-		c.Score = hnScore(c.Points, c.BlockTime)
+		c.Score = hnScore(c.Points, c.BlockTime, scoreTime)
 		all[c.Parent] = append(all[c.Parent], c)
 	}
 	if err := rows.Err(); err != nil {
@@ -207,7 +209,11 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 	var out []CommentRow
 	var walk func(parent codec.ItemID)
 	walk = func(parent codec.ItemID) {
-		for _, c := range all[parent] {
+		children := all[parent]
+		sort.SliceStable(children, func(i, j int) bool {
+			return children[i].Score > children[j].Score
+		})
+		for _, c := range children {
 			out = append(out, c)
 			walk(c.ItemID)
 		}
@@ -289,6 +295,7 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]TopicRow, error) {
 func scanFeedRows(rows *sql.Rows) ([]FeedItem, error) {
 	defer rows.Close() //nolint:errcheck
 	var out []FeedItem
+	scoreTime := time.Now()
 	for rows.Next() {
 		var (
 			fi             FeedItem
@@ -308,14 +315,14 @@ func scanFeedRows(rows *sql.Rows) ([]FeedItem, error) {
 		fi.Upvotes = up
 		fi.Downvotes = dn
 		fi.CommentCount = ccount
-		fi.Score = hnScore(fi.Points, fi.BlockTime)
+		fi.Score = hnScore(fi.Points, fi.BlockTime, scoreTime)
 		out = append(out, fi)
 	}
 	return out, rows.Err()
 }
 
-func hnScore(points int, blockTime time.Time) float64 {
-	ageHours := max(time.Since(blockTime).Hours(), 0)
+func hnScore(points int, blockTime, scoreTime time.Time) float64 {
+	ageHours := max(scoreTime.Sub(blockTime).Hours(), 0)
 	return float64(points-1) / math.Pow(ageHours+2, 1.8)
 }
 

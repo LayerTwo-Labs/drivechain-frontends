@@ -139,3 +139,106 @@ func TestListThread_RecursiveWalk(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, cs, 2, "recursive walk picks up the nested reply")
 }
+
+func TestListThreadSortsSiblingsByScore(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	db, err := Open(ctx, t.TempDir()+"/coinnews.db")
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(500, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Headline: "root"},
+	}))
+	feed, err := ListFeed(ctx, db, FeedFilter{Sort: SortNewest})
+	require.NoError(t, err)
+	require.Len(t, feed, 1)
+	root := feed[0].ItemID
+	ids := map[string]codec.ItemID{"root": root}
+	comments := []struct {
+		body   string
+		parent string
+		votes  int
+	}{
+		{body: "first", parent: "root", votes: 1},
+		{body: "second", parent: "root", votes: 1},
+		{body: "third", parent: "root", votes: 2},
+		{body: "nested", parent: "first", votes: 3},
+	}
+	for i, comment := range comments {
+		require.NoError(t, Index(ctx, db, IndexEnv{
+			Pos: pos(501, uint32(i), 0), TypeTag: codec.TypeComment, Payload: testPayload,
+			Msg: &codec.Comment{
+				Parent: ids[comment.parent], AuthorXPK: codec.XOnlyPubKey{1},
+				TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte(comment.body)}},
+			},
+		}))
+		thread, err := ListThread(ctx, db, root)
+		require.NoError(t, err)
+		for _, row := range thread {
+			ids[row.Body] = row.ItemID
+		}
+	}
+	for i, comment := range comments {
+		for vote := range comment.votes {
+			require.NoError(t, Index(ctx, db, IndexEnv{
+				Pos: pos(502, uint32(i), uint32(vote)), TypeTag: codec.TypeUpvote, Payload: testPayload,
+				Msg: &codec.Vote{
+					Kind: codec.TypeUpvote, Target: ids[comment.body],
+					AuthorXPK: codec.XOnlyPubKey{byte(vote + 1)},
+				},
+			}))
+		}
+	}
+
+	thread, err := ListThread(ctx, db, root)
+	require.NoError(t, err)
+	require.Len(t, thread, 4)
+	var bodies []string
+	for _, row := range thread {
+		bodies = append(bodies, row.Body)
+	}
+	require.Equal(t, []string{"third", "first", "nested", "second"}, bodies)
+	assert.Equal(t, thread[1].Score, thread[3].Score)
+	assert.Equal(t, thread[1].ItemID, thread[2].Parent)
+	assert.Greater(t, thread[2].Score, thread[0].Score)
+}
+
+func TestListThreadKeepsZeroVoteOrder(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	db, err := Open(ctx, t.TempDir()+"/coinnews.db")
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(600, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Headline: "root"},
+	}))
+	feed, err := ListFeed(ctx, db, FeedFilter{Sort: SortNewest})
+	require.NoError(t, err)
+	require.Len(t, feed, 1)
+	root := feed[0].ItemID
+	bodies := []string{"first", "second", "third"}
+	for i, body := range bodies {
+		require.NoError(t, Index(ctx, db, IndexEnv{
+			Pos: pos(601, uint32(i), 0), TypeTag: codec.TypeComment, Payload: testPayload,
+			Msg: &codec.Comment{
+				Parent: root, AuthorXPK: codec.XOnlyPubKey{1},
+				TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte(body)}},
+			},
+		}))
+	}
+
+	thread, err := ListThread(ctx, db, root)
+	require.NoError(t, err)
+	require.Len(t, thread, len(bodies))
+	var got []string
+	for _, row := range thread {
+		got = append(got, row.Body)
+		assert.Zero(t, row.Points)
+		assert.Equal(t, thread[0].Score, row.Score)
+	}
+	assert.Equal(t, bodies, got)
+}
