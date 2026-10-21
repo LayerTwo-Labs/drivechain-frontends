@@ -145,10 +145,33 @@ class ThunderWidgetCatalog {
       ),
     ),
 
+    'thunder_table': HomepageWidgetInfo(
+      id: 'thunder_table',
+      name: 'Transaction History',
+      description: 'Shows transaction history',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.iconTransactions,
+      builder: (_) => SizedBox(
+        height: 400,
+        child: ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
+          viewModelBuilder: () => LatestWalletTransactionsViewModel(),
+          builder: (context, model, child) {
+            return TransactionTable(
+              model: model,
+              searchWidget: SailTextField(
+                controller: model.searchController,
+                hintText: 'Search with txid, address or amount',
+              ),
+            );
+          },
+        ),
+      ),
+    ),
+
     'utxo_table': HomepageWidgetInfo(
       id: 'utxo_table',
-      name: 'Transaction History',
-      description: 'Shows UTXO and transaction history',
+      name: 'Your UTXOs',
+      description: 'Shows your unspent outputs',
       size: WidgetSize.full,
       icon: SailSVGAsset.iconTransactions,
       builder: (_) => SizedBox(

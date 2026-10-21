@@ -39,6 +39,7 @@ class ThunderHomepageConfiguration {
         HomepageWidgetConfig(widgetId: 'balance_card'),
         HomepageWidgetConfig(widgetId: 'receive_card'),
         HomepageWidgetConfig(widgetId: 'send_card'),
+        HomepageWidgetConfig(widgetId: 'thunder_table'),
         HomepageWidgetConfig(widgetId: 'utxo_table'),
       ],
     );
