@@ -110,20 +110,122 @@ void main() {
   });
 
   group('MarketDetailPage with two decisions', () {
-    testWidgets('lists every outcome of the node reply with its combination label', (tester) async {
-      mockRpc.marketGetResponse =
-          jsonDecode(File('test/fixtures/market_two_dimensions.json').readAsStringSync()) as Map<String, dynamic>;
+    Map<String, dynamic> twoDimensions() =>
+        jsonDecode(File('test/fixtures/market_two_dimensions.json').readAsStringSync()) as Map<String, dynamic>;
+
+    testWidgets('shows the questions and one answer column per question', (tester) async {
+      mockRpc.marketGetResponse = twoDimensions();
       addTearDown(() => mockRpc.marketGetResponse = TestData.sampleMarketDetail);
 
       await tester.pumpSailPage(const MarketDetailPage(marketId: '5e5ed0d19c4f'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      for (final label in ['No · No', 'No · Yes', 'Yes · No', 'Yes · Yes']) {
-        expect(find.text(label), findsWidgets, reason: label);
-      }
-      expect(find.text('Trade'), findsNWidgets(3));
+      expect(find.text('Pick your outcome'), findsOneWidget);
+      expect(find.text('Any answer'), findsNWidgets(2));
+      expect(find.text('4 of 4 outcomes match'), findsOneWidget);
+      expect(find.text('Will eCash use a different DAA than Bitcoin by Jan 1, 2027?'), findsWidgets);
+      expect(find.text('Trade'), findsNWidgets(4));
+      expect(find.text('Not picked'), findsNWidgets(2));
+      expect(find.textContaining('Pick an answer for each question'), findsOneWidget);
+    });
+
+    testWidgets('Trade on a row picks its answers and hides the other rows', (tester) async {
+      mockRpc.marketGetResponse = twoDimensions();
+      addTearDown(() => mockRpc.marketGetResponse = TestData.sampleMarketDetail);
+
+      await tester.pumpSailPage(const MarketDetailPage(marketId: '5e5ed0d19c4f'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Trade').at(1));
+      await tester.tap(find.text('Trade').at(1));
+      await tester.pumpAndSettle();
+
       expect(find.text('Selected'), findsOneWidget);
+      expect(find.text('Trade'), findsNothing);
+      expect(find.text('1 of 4 outcomes match'), findsOneWidget);
+      expect(find.text('3 outcomes hidden by your picks.'), findsOneWidget);
+      expect(find.text('Not picked'), findsNothing);
+      expect(find.text('Buy No · Yes'), findsWidgets);
+    });
+
+    test('picks filter the outcomes and select the one full match', () async {
+      mockRpc.marketGetResponse = twoDimensions();
+      addTearDown(() => mockRpc.marketGetResponse = TestData.sampleMarketDetail);
+      final model = MarketDetailViewModel(marketId: '5e5ed0d19c4f');
+      addTearDown(model.dispose);
+      await model.load();
+
+      expect(model.hasQuestions, isTrue);
+      expect(model.picks, [null, null]);
+      expect(model.matchingOutcomes.length, 4);
+      expect(model.selectedOutcome, isNull);
+
+      model.setPick(0, 1);
+      expect([for (final o in model.matchingOutcomes) o.index], [2, 3]);
+      expect(model.selectedOutcome, isNull);
+
+      model.setPick(1, 0);
+      expect([for (final o in model.matchingOutcomes) o.index], [2]);
+      expect(model.selectedOutcome?.index, 2);
+
+      model.setPick(1, null);
+      expect(model.matchingOutcomes.length, 2);
+      expect(model.selectedOutcome, isNull);
+
+      model.setPick(1, 1);
+      model.clearPicks();
+      expect(model.picks, [null, null]);
+      expect(model.matchingOutcomes.length, 4);
+      expect(model.selectedOutcome, isNull);
+    });
+
+    test('Trade on a row sets every pick to the answers of the row', () async {
+      mockRpc.marketGetResponse = twoDimensions();
+      addTearDown(() => mockRpc.marketGetResponse = TestData.sampleMarketDetail);
+      final model = MarketDetailViewModel(marketId: '5e5ed0d19c4f');
+      addTearDown(model.dispose);
+      await model.load();
+
+      model.selectOutcome(model.orderedOutcomes[1]);
+
+      expect(model.picks, [0, 1]);
+      expect(model.selectedOutcome?.index, 1);
+      expect([for (final o in model.matchingOutcomes) o.index], [1]);
+    });
+
+    test('an outcome from the market grid sets the picks', () async {
+      mockRpc.marketGetResponse = twoDimensions();
+      addTearDown(() => mockRpc.marketGetResponse = TestData.sampleMarketDetail);
+      final model = MarketDetailViewModel(marketId: '5e5ed0d19c4f', initialOutcomeIndex: 2);
+      addTearDown(model.dispose);
+      await model.load();
+
+      expect(model.picks, [1, 0]);
+      expect(model.selectedOutcome?.index, 2);
+    });
+  });
+
+  group('MarketDetailPage with one decision', () {
+    testWidgets('shows no question picker', (tester) async {
+      mockRpc.marketGetResponse = {
+        ...TestData.sampleMarketDetail,
+        'dimensions': [
+          {
+            'dimension_index': 0,
+            'decision_id': '004008',
+            'name': r'Will BTC close above $150,000?',
+            'kind': {'type': 'binary', 'lower_label': 'No', 'upper_label': 'Yes'},
+          },
+        ],
+      };
+      addTearDown(() => mockRpc.marketGetResponse = TestData.sampleMarketDetail);
+
+      await tester.pumpSailPage(const MarketDetailPage(marketId: 'market_001'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pick your outcome'), findsNothing);
+      expect(find.text('Any answer'), findsNothing);
     });
   });
 

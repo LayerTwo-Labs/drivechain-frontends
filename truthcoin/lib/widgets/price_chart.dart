@@ -12,7 +12,7 @@ class PriceChart extends StatelessWidget {
     super.key,
     required this.points,
     required this.color,
-    this.height = 220,
+    this.height = 140,
   });
 
   @override
