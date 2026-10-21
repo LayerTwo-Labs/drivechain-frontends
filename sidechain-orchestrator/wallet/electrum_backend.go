@@ -1359,6 +1359,21 @@ func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, ps
 	}
 	inputs := make([]psbtInput, len(packet.Inputs))
 	for i := range packet.Inputs {
+		out, err := authenticatedPrevOut(packet, i)
+		if err != nil {
+			return "", fmt.Errorf("psbt input %d %w", i, err)
+		}
+		if out == nil {
+			return "", fmt.Errorf("psbt input %d missing prevout", i)
+		}
+		inputs[i] = psbtInput{
+			outpoint: packet.UnsignedTx.TxIn[i].PreviousOutPoint,
+			amount:   out.Value,
+			external: packet.Inputs[i].FinalScriptSig != nil || packet.Inputs[i].FinalScriptWitness != nil,
+		}
+		if inputs[i].external {
+			continue
+		}
 		change, index, ok := chainIndexFromInput(packet.Inputs[i])
 		if !ok {
 			return "", fmt.Errorf("psbt input %d has no derivation path to sign from", i)
@@ -1367,21 +1382,10 @@ func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, ps
 		if err != nil {
 			return "", err
 		}
-		out, err := authenticatedPrevOut(packet, i)
-		if err != nil {
-			return "", fmt.Errorf("psbt input %d %w", i, err)
-		}
-		if out == nil {
-			return "", fmt.Errorf("psbt input %d missing prevout", i)
-		}
 		if !bytes.Equal(sa.scriptPubKey, out.PkScript) {
 			return "", fmt.Errorf("psbt input %d does not pay an address of this multisig wallet", i)
 		}
-		inputs[i] = psbtInput{
-			outpoint: packet.UnsignedTx.TxIn[i].PreviousOutPoint,
-			amount:   out.Value,
-			addr:     sa,
-		}
+		inputs[i].addr = sa
 		// A hardware signer refuses a multisig path that is not BIP48 or BIP45,
 		// and it names neither the key nor the path in its answer.
 		paths := make([]string, 0, len(packet.Inputs[i].Bip32Derivation))
@@ -1517,6 +1521,14 @@ func (p *ElectrumBackend) psbtInputsFromPacket(packet *psbt.Packet, scan *electr
 		if out == nil {
 			return nil, fmt.Errorf("psbt input %d missing prevout", i)
 		}
+		inputs[i] = psbtInput{
+			outpoint: packet.UnsignedTx.TxIn[i].PreviousOutPoint,
+			amount:   out.Value,
+			external: packet.Inputs[i].FinalScriptSig != nil || packet.Inputs[i].FinalScriptWitness != nil,
+		}
+		if inputs[i].external {
+			continue
+		}
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, net)
 		if err != nil || len(addrs) == 0 {
 			return nil, fmt.Errorf("psbt input %d: cannot resolve address", i)
@@ -1525,11 +1537,7 @@ func (p *ElectrumBackend) psbtInputsFromPacket(packet *psbt.Packet, scan *electr
 		if !ok {
 			return nil, fmt.Errorf("psbt input %d address %s is not in this wallet", i, addrs[0].EncodeAddress())
 		}
-		inputs[i] = psbtInput{
-			outpoint: packet.UnsignedTx.TxIn[i].PreviousOutPoint,
-			amount:   out.Value,
-			addr:     sa,
-		}
+		inputs[i].addr = sa
 	}
 	return inputs, nil
 }

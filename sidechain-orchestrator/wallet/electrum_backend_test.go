@@ -1514,6 +1514,131 @@ func TestElectrumPSBTRoundTrip(t *testing.T) {
 	require.Len(t, tx.TxOut, 2) // recipient + change
 }
 
+func TestElectrumPSBTExternalCTIP(t *testing.T) {
+	for _, method := range []string{"wallet", "cosigner"} {
+		t.Run(method, func(t *testing.T) {
+			ctx := t.Context()
+			net := &chaincfg.SigNetParams
+			svc := newTestService(t)
+			cosigners := []MultisigCosigner{
+				multisigTestCosigner(t, net, 0, true),
+				multisigTestCosigner(t, net, 1, true),
+				multisigTestCosigner(t, net, 2, false),
+			}
+			w, err := svc.CreateElectrumMultisig("Deposit", nil, 2, 3, "wsh", cosigners)
+			require.NoError(t, err)
+			fake := newFakeEsplora()
+			p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+			desc, err := p.walletDescriptor(w)
+			require.NoError(t, err)
+			recv, err := p.deriveAddr(desc, false, 0)
+			require.NoError(t, err)
+			fake.stats[recv.address] = EsploraAddressStats{
+				Address: recv.address, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+			}
+			fake.utxos[recv.address] = []EsploraUTXO{{
+				TxID: strings.Repeat("44", 32), Vout: 0, Value: 200_000,
+				Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+			}}
+			ctipScript := []byte{txscript.OP_NOP8, txscript.OP_DATA_1, 1, txscript.OP_TRUE}
+			previous := wire.NewMsgTx(2)
+			previous.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0}, nil))
+			previous.AddTxOut(wire.NewTxOut(500_000, ctipScript))
+			var buf bytes.Buffer
+			require.NoError(t, previous.Serialize(&buf))
+			fake.hexByID[previous.TxHash().String()] = hex.EncodeToString(buf.Bytes())
+
+			unsigned, err := p.CreatePSBT(ctx, w.ID, SendRequest{
+				FixedFeeSats: 1_000,
+				RawOutputs: []TxOutSpec{{
+					RawScriptHex: hex.EncodeToString(ctipScript), AmountSats: 550_000,
+				}},
+				ExternalInputs: []ExternalInput{{TxID: previous.TxHash().String(), Vout: 0, AmountSats: 500_000}},
+			})
+			require.NoError(t, err)
+			packet, err := decodePSBTBase64(unsigned)
+			require.NoError(t, err)
+			require.Len(t, packet.Inputs, 2)
+			require.NotNil(t, packet.Inputs[0].FinalScriptSig)
+			require.Empty(t, packet.Inputs[0].FinalScriptSig)
+			require.Empty(t, packet.Inputs[0].Bip32Derivation)
+			sign := func(encoded string) (string, error) {
+				if method == "cosigner" {
+					return p.SignPSBTWithCosigner(ctx, w.ID, encoded, cosigners[0].Xpub)
+				}
+				return p.SignPSBT(ctx, w.ID, encoded)
+			}
+
+			t.Run("unsigned foreign input", func(t *testing.T) {
+				foreign, err := decodePSBTBase64(unsigned)
+				require.NoError(t, err)
+				address, err := btcutil.DecodeAddress("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", net)
+				require.NoError(t, err)
+				script, err := txscript.PayToAddrScript(address)
+				require.NoError(t, err)
+				foreign.Inputs[0].FinalScriptSig = nil
+				foreign.Inputs[0].NonWitnessUtxo.TxOut[0].PkScript = script
+				foreign.UnsignedTx.TxIn[0].PreviousOutPoint.Hash = foreign.Inputs[0].NonWitnessUtxo.TxHash()
+				encoded, err := foreign.B64Encode()
+				require.NoError(t, err)
+				_, err = sign(encoded)
+				if method == "cosigner" {
+					require.ErrorContains(t, err, "has no derivation path")
+				} else {
+					require.ErrorContains(t, err, "is not in this wallet")
+				}
+			})
+
+			t.Run("wrong previous transaction", func(t *testing.T) {
+				invalid, err := decodePSBTBase64(unsigned)
+				require.NoError(t, err)
+				invalid.Inputs[0].NonWitnessUtxo.TxOut[0].Value++
+				encoded, err := invalid.B64Encode()
+				require.NoError(t, err)
+				_, err = sign(encoded)
+				require.ErrorContains(t, err, "not the one it spends")
+			})
+
+			signed, err := sign(unsigned)
+			require.NoError(t, err)
+			if method == "cosigner" {
+				_, err = p.FinalizePSBT(signed)
+				require.Error(t, err)
+				signed, err = p.SignPSBTWithCosigner(ctx, w.ID, signed, cosigners[1].Xpub)
+				require.NoError(t, err)
+			}
+			signedPacket, err := decodePSBTBase64(signed)
+			require.NoError(t, err)
+			require.Empty(t, signedPacket.Inputs[0].PartialSigs)
+			require.NotNil(t, signedPacket.Inputs[0].FinalScriptSig)
+			require.Len(t, signedPacket.Inputs[1].PartialSigs, 2)
+			rawHex, err := p.FinalizePSBT(signed)
+			require.NoError(t, err)
+			raw, err := hex.DecodeString(rawHex)
+			require.NoError(t, err)
+			var tx wire.MsgTx
+			require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+			require.Len(t, tx.TxIn, 2)
+			assert.Empty(t, tx.TxIn[0].SignatureScript)
+			assert.Empty(t, tx.TxIn[0].Witness)
+			require.NotEmpty(t, tx.TxIn[1].Witness)
+			assert.Equal(t, packet.UnsignedTx.TxOut, tx.TxOut)
+			assert.Equal(t, int64(1_000), int64(700_000)-tx.TxOut[0].Value-tx.TxOut[1].Value)
+			prevOuts := txscript.NewMultiPrevOutFetcher(map[wire.OutPoint]*wire.TxOut{
+				tx.TxIn[0].PreviousOutPoint: previous.TxOut[0],
+				tx.TxIn[1].PreviousOutPoint: wire.NewTxOut(200_000, recv.scriptPubKey),
+			})
+			for i, flags := range []txscript.ScriptFlags{txscript.ScriptBip16, txscript.StandardVerifyFlags} {
+				out := prevOuts.FetchPrevOutput(tx.TxIn[i].PreviousOutPoint)
+				vm, err := txscript.NewEngine(out.PkScript, &tx, i, flags, nil,
+					txscript.NewTxSigHashes(&tx, prevOuts), out.Value, prevOuts)
+				require.NoError(t, err)
+				require.NoError(t, vm.Execute())
+			}
+		})
+	}
+}
+
 // TestCreateElectrumHotWalletScriptTypes creates a hot wallet of each address
 // type and proves it derives the right address AND can build→sign→finalize a
 // spend that passes txscript.Engine — i.e. hot wallets of every type can sign.
