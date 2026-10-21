@@ -254,69 +254,61 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 		}
 	}
 
+	ctx, cancel := signal.NotifyContext(cctx.Context, os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	var startErr error
 	if withDeps {
-		// Fire-and-forget on the server side — boot proceeds in a
-		// background goroutine. Poll GetSyncStatus / ListBinaries via
-		// `drivechain-cli status` for progress.
-		if _, err := client.StartWithL1(cctx.Context, &pb.StartWithL1Request{
+		_, startErr = client.StartWithL1(ctx, &pb.StartWithL1Request{
 			Target:     name,
 			TargetArgs: cctx.StringSlice("args"),
-		}); err != nil {
-			return err
+			Wait:       !daemon,
+		})
+		if startErr == nil {
+			if daemon {
+				fmt.Println("Startup started. Use status to check progress.")
+			} else {
+				fmt.Printf("started %s\n", name)
+			}
 		}
-		fmt.Println("L1 boot kicked off; poll status for progress")
 	} else {
-		resp, err := client.StartBinary(cctx.Context, &pb.StartBinaryRequest{
+		resp, err := client.StartBinary(ctx, &pb.StartBinaryRequest{
 			Name:      name,
 			ExtraArgs: cctx.StringSlice("args"),
 		})
-		if err != nil {
-			return err
+		startErr = err
+		if err == nil {
+			fmt.Printf("started %s (PID %d)\n", name, resp.Pid)
 		}
-		fmt.Printf("started %s (PID %d)\n", name, resp.Pid)
 	}
 
 	if daemon {
-		return nil
+		return startErr
 	}
 
-	// Stream logs until ctrl+c, then stop what this command started.
-	fmt.Printf("\nstreaming %s logs (ctrl+c to stop)...\n\n", name)
-
-	ctx, cancel := context.WithCancel(cctx.Context)
-	defer cancel()
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sigCh
-		cancel()
-	}()
-
-	logStream, err := client.StreamLogs(ctx, &pb.StreamLogsRequest{
-		Name: name,
-		Tail: 10,
-	})
-	if err != nil {
-		return err
-	}
-	var streamErr2 error
-	for {
-		msg2, err := logStream.Receive()
-		if err != nil {
-			streamErr2 = err
-			break
+	streamErr := startErr
+	if streamErr == nil {
+		fmt.Printf("\n%s logs (ctrl+c to stop):\n\n", name)
+		streamErr = func() error {
+			logStream, err := client.StreamLogs(ctx, &pb.StreamLogsRequest{Name: name, Tail: 10})
+			if err != nil {
+				return err
+			}
+			for {
+				msg, err := logStream.Receive()
+				if err != nil {
+					return err
+				}
+				ts := time.Unix(msg.TimestampUnix, 0).Format("15:04:05")
+				fmt.Printf("[%s] %s\n", ts, msg.Line)
+			}
+		}()
+		if streamErr != nil && !errors.Is(streamErr, io.EOF) {
+			streamErr = fmt.Errorf("stream %s logs: %w", name, streamErr)
 		}
-		msg := msg2
-		ts := time.Unix(msg.TimestampUnix, 0).Format("15:04:05")
-		fmt.Printf("[%s] %s\n", ts, msg.Line)
 	}
-	if errors.Is(streamErr2, io.EOF) {
-		streamErr2 = nil
-	}
-	var streamErr error
-	if err := streamErr2; err != nil && ctx.Err() == nil {
-		streamErr = fmt.Errorf("stream %s logs: %w", name, err)
+	if errors.Is(streamErr, io.EOF) || ctx.Err() != nil {
+		streamErr = nil
 	}
 
 	listCtx, listCancel := context.WithTimeout(context.Background(), 30*time.Second)

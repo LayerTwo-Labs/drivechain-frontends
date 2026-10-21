@@ -132,7 +132,7 @@ func (o *Orchestrator) startRemoteEnforcer(ctx context.Context, ch chan<- Startu
 	mon.SetInitializing(true)
 	defer mon.SetInitializing(false)
 	ch <- StartupProgress{Stage: "remote-enforcer", Message: "Check the remote enforcer"}
-	mon.StartConnectionTimer(ctx)
+	mon.StartConnectionTimer(context.WithoutCancel(ctx))
 	if !mon.Connected() {
 		if err := ctx.Err(); err != nil {
 			return err

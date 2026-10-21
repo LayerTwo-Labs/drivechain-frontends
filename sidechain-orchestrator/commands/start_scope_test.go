@@ -10,6 +10,7 @@ import (
 	"sort"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
@@ -62,6 +63,11 @@ type fakeOrchestrator struct {
 	// streamErr is the error the log stream ends with.
 	streamErr error
 
+	startTarget string
+	startReady  <-chan struct{}
+	startRead   chan struct{}
+	startErr    error
+
 	stopped      []string
 	shutdownAlls int
 }
@@ -106,11 +112,28 @@ func (f *fakeOrchestrator) GetBinaryStatus(_ context.Context, req *pb.GetBinaryS
 	}, nil
 }
 
-func (f *fakeOrchestrator) StartWithL1(_ context.Context, req *pb.StartWithL1Request) (*pb.StartWithL1Response, error) {
+func (f *fakeOrchestrator) StartWithL1(ctx context.Context, req *pb.StartWithL1Request) (*pb.StartWithL1Response, error) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.running["bitcoind"] = true
 	f.running["enforcer"] = true
+	if f.startReady != nil {
+		f.startTarget = req.Target
+		f.mu.Unlock()
+		if !req.Wait {
+			return &pb.StartWithL1Response{}, nil
+		}
+		close(f.startRead)
+		select {
+		case <-f.startReady:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		f.mu.Lock()
+	}
+	defer f.mu.Unlock()
+	if f.startErr != nil && req.Wait {
+		return nil, f.startErr
+	}
 	if f.opensWindow == req.Target {
 		f.windowOpen[req.Target] = true
 	} else {
@@ -119,17 +142,28 @@ func (f *fakeOrchestrator) StartWithL1(_ context.Context, req *pb.StartWithL1Req
 	return &pb.StartWithL1Response{}, nil
 }
 
-func (f *fakeOrchestrator) StartBinary(_ context.Context, req *pb.StartBinaryRequest) (*pb.StartBinaryResponse, error) {
+func (f *fakeOrchestrator) StartBinary(ctx context.Context, req *pb.StartBinaryRequest) (*pb.StartBinaryResponse, error) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.running[req.Name] = true
+	f.mu.Unlock()
+	if f.startReady != nil {
+		close(f.startRead)
+		select {
+		case <-f.startReady:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
 	return &pb.StartBinaryResponse{Pid: 1234}, nil
 }
 
 // StreamLogs ends at once, which is the ctrl+c path the user hits.
-func (f *fakeOrchestrator) StreamLogs(_ context.Context, _ *pb.StreamLogsRequest, _ rpc.OrchestratorServiceStreamLogsServerStream) error {
+func (f *fakeOrchestrator) StreamLogs(_ context.Context, req *pb.StreamLogsRequest, _ rpc.OrchestratorServiceStreamLogsServerStream) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.startTarget == req.Name && !f.running[req.Name] {
+		return connect.NewError(connect.CodeUnknown, req.Name+" is not running")
+	}
 	for _, name := range f.startsDuringStream {
 		f.running[name] = true
 	}
@@ -471,4 +505,80 @@ func TestStartReportsALogStreamFailure(t *testing.T) {
 	require.ErrorContains(t, runStart(startContext(t, "photon"), client), "no log for photon")
 
 	require.Equal(t, []string{"photon", "enforcer", "bitcoind"}, fake.stopped, "a failed stream still stops what start started")
+}
+
+func TestStartWaitsForTheTarget(t *testing.T) {
+	fake, client := newFakeOrchestrator(t)
+	ready := make(chan struct{})
+	startRead := make(chan struct{})
+	fake.startReady = ready
+	fake.startRead = startRead
+	release := sync.OnceFunc(func() { close(ready) })
+	defer release()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	cctx := startContext(t, "photon")
+	cctx.Context = ctx
+	result := make(chan error, 1)
+	go func() { result <- runStart(cctx, client) }()
+
+	select {
+	case <-startRead:
+	case err := <-result:
+		t.Fatalf("start returned before the target became ready: %v", err)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	require.True(t, fake.isRunning("bitcoind"))
+	require.False(t, fake.isRunning("photon"))
+	release()
+	require.NoError(t, <-result)
+	require.Equal(t, []string{"photon", "enforcer", "bitcoind"}, fake.stopped)
+}
+
+func TestStartStopsDependenciesAfterStartupFailure(t *testing.T) {
+	fake, client := newFakeOrchestrator(t)
+	fake.startErr = connect.NewError(connect.CodeInternal, "the target failed to start")
+
+	err := runStart(startContext(t, "photon"), client)
+
+	require.ErrorContains(t, err, "the target failed to start")
+	require.Equal(t, []string{"photon", "enforcer", "bitcoind"}, fake.stopped)
+}
+
+func TestStartStopsAfterStartupCancel(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{name: "with dependencies", args: []string{"photon"}, want: []string{"photon", "enforcer", "bitcoind"}},
+		{name: "without dependencies", args: []string{"--without-deps", "photon"}, want: []string{"photon"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake, client := newFakeOrchestrator(t)
+			startRead := make(chan struct{})
+			fake.startReady = make(chan struct{})
+			fake.startRead = startRead
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+			cctx := startContext(t, tc.args...)
+			cctx.Context = ctx
+			result := make(chan error, 1)
+			go func() { result <- runStart(cctx, client) }()
+
+			select {
+			case <-startRead:
+			case err := <-result:
+				t.Fatalf("start returned before cancellation: %v", err)
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			}
+			cancel()
+			require.NoError(t, <-result)
+			require.Equal(t, tc.want, fake.stopped)
+		})
+	}
 }

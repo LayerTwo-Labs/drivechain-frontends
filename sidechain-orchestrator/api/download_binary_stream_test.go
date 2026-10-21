@@ -8,7 +8,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 )
@@ -124,6 +129,277 @@ func TestDownloadBinary_RejectsUnknownBinary(t *testing.T) {
 		Name: "no-such-binary",
 	})
 	require.Error(t, err, "unknown binary must surface as an RPC error")
+}
+
+func TestStartWithL1WaitsForResult(t *testing.T) {
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+
+	for _, tc := range []struct {
+		name  string
+		layer int
+		err   string
+	}{
+		{name: "bitcoind", layer: 1},
+		{name: "bbc", layer: 2, err: "does not support a remote enforcer"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+				Name: tc.name, BinaryName: tc.name, ChainLayer: tc.layer, IsBitcoinCore: true,
+			})
+			require.NoError(t, orchestrator.WriteNodeMode(orch.BitwindowDir, orchestrator.NodeModeLight))
+			client, stop := startTestOrchService(t, orch)
+			defer stop()
+
+			response, err := client.StartWithL1(t.Context(), &pb.StartWithL1Request{Target: tc.name, Wait: true})
+
+			if tc.err != "" {
+				require.ErrorContains(t, err, tc.err)
+				require.Nil(t, response)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, response)
+		})
+	}
+}
+
+func TestStartWithL1KeepsRequestContext(t *testing.T) {
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+
+	for _, wait := range []bool{false, true} {
+		t.Run(fmt.Sprintf("wait=%t", wait), func(t *testing.T) {
+			started := make(chan struct{})
+			stopped := make(chan error, 1)
+			release := make(chan struct{})
+			var releaseOnce sync.Once
+			binaryServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodHead {
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+				close(started)
+				select {
+				case <-release:
+					stopped <- r.Context().Err()
+					http.Error(w, "download refused", http.StatusServiceUnavailable)
+				case <-r.Context().Done():
+					stopped <- r.Context().Err()
+				}
+			}))
+			defer binaryServer.Close()
+			defer releaseOnce.Do(func() { close(release) })
+
+			orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+				Name:           "boottest",
+				BinaryName:     "boottest",
+				DownloadSource: orchestrator.DownloadSourceDirect,
+				DownloadURLs:   map[string]string{"default": binaryServer.URL + "/"},
+				Files:          map[string]string{currentPlatform(): "boottest.zip"},
+			})
+			require.NoError(t, orchestrator.WriteNodeMode(orch.BitwindowDir, orchestrator.NodeModeFull))
+			t.Cleanup(func() {
+				waitForDownloadEnd(t, orch, "boottest")
+				orch.StopAllMonitors()
+			})
+			client, stop := startTestOrchService(t, orch)
+			defer stop()
+			ctx, cancel := context.WithTimeout(t.Context(), eventuallyTimeout)
+			defer cancel()
+			done := make(chan error, 1)
+			go func() {
+				_, err := client.StartWithL1(ctx, &pb.StartWithL1Request{Target: "boottest", Immediate: true, Wait: wait})
+				done <- err
+			}()
+
+			select {
+			case <-started:
+			case <-ctx.Done():
+				t.Fatal("the download did not start")
+			}
+			if wait {
+				select {
+				case err := <-done:
+					t.Fatalf("startup returned before the download: %v", err)
+				default:
+				}
+				cancel()
+				require.Equal(t, connect.CodeCanceled, connect.CodeOf(<-done))
+				select {
+				case err := <-stopped:
+					require.ErrorIs(t, err, context.Canceled)
+				case <-time.After(eventuallyTimeout):
+					t.Fatal("the request did not cancel the download")
+				}
+				return
+			}
+			require.NoError(t, <-done)
+			cancel()
+			releaseOnce.Do(func() { close(release) })
+			require.NoError(t, <-stopped)
+		})
+	}
+}
+
+func TestStartWithL1KeepsMonitorAfterSuccess(t *testing.T) {
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+
+	responseDone := make(chan struct{})
+	checked := make(chan struct{})
+	var checkOnce sync.Once
+	healthServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-responseDone:
+			checkOnce.Do(func() { close(checked) })
+		default:
+		}
+		if _, err := io.WriteString(w, `{"result":1,"error":null}`); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer healthServer.Close()
+	host, port := hostPort(t, healthServer)
+	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+		Name: "boottest", BinaryName: "boottest", Host: host, Port: port,
+		HealthCheckType: orchestrator.HealthCheckJSONRPC,
+	})
+	defer orch.StopAllMonitors()
+	require.NoError(t, orchestrator.WriteNodeMode(orch.BitwindowDir, orchestrator.NodeModeFull))
+	client, stop := startTestOrchService(t, orch)
+	defer stop()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	response, err := client.StartWithL1(ctx, &pb.StartWithL1Request{Target: "boottest", Immediate: true, Wait: true})
+
+	require.NoError(t, err)
+	require.NotNil(t, response)
+	cancel()
+	close(responseDone)
+	select {
+	case <-checked:
+	case <-time.After(eventuallyTimeout):
+		t.Fatal("the monitor stopped after the startup response")
+	}
+}
+
+func TestStartWithL1KeepsCoreMonitorAfterFailure(t *testing.T) {
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+
+	responseDone := make(chan struct{})
+	checked := make(chan struct{})
+	var checkOnce sync.Once
+	healthServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-responseDone:
+			checkOnce.Do(func() { close(checked) })
+		default:
+		}
+		if _, err := io.WriteString(w, `{"result":1,"error":null}`); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer healthServer.Close()
+	host, port := hostPort(t, healthServer)
+	coreConfig := orchestrator.BinaryConfig{
+		Name: "bitcoind", BinaryName: "boottest-core", ChainLayer: 1, Host: host, Port: port,
+		HealthCheckType: orchestrator.HealthCheckJSONRPC,
+	}
+	orch := newTestOrchHandlerWithBinary(t, coreConfig)
+	orch.BitcoinConf.Config.SetSetting("rpcuser", "test")
+	orch.BitcoinConf.Config.SetSetting("rpcpassword", "test")
+	orch.UpdateConfigs([]orchestrator.BinaryConfig{
+		coreConfig,
+		{Name: "boottest", BinaryName: "boottest", ChainLayer: 2},
+	})
+	defer orch.StopAllMonitors()
+	require.NoError(t, orchestrator.WriteNodeMode(orch.BitwindowDir, orchestrator.NodeModeFull))
+	client, stop := startTestOrchService(t, orch)
+	defer stop()
+	_, err := client.StartWithL1(t.Context(), &pb.StartWithL1Request{Target: "bitcoind", Immediate: true, Wait: true})
+	require.NoError(t, err)
+
+	_, err = client.StartWithL1(t.Context(), &pb.StartWithL1Request{Target: "boottest", Wait: true})
+
+	require.ErrorContains(t, err, "no download available for boottest")
+	close(responseDone)
+	select {
+	case <-checked:
+	case <-time.After(eventuallyTimeout):
+		t.Fatal("the Core monitor stopped after the target failed")
+	}
+}
+
+func TestStartWithL1DoesNotStartAfterCancellation(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the test executable uses a shell")
+	}
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var firstCheck, releaseOnce sync.Once
+	healthServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		firstCheck.Do(func() {
+			close(started)
+			<-release
+		})
+		http.Error(w, "not ready", http.StatusServiceUnavailable)
+	}))
+	defer healthServer.Close()
+	defer releaseOnce.Do(func() { close(release) })
+	host, port := hostPort(t, healthServer)
+	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+		Name: "boottest", BinaryName: "boottest", Host: host, Port: port,
+		HealthCheckType: orchestrator.HealthCheckJSONRPC,
+	})
+	t.Cleanup(func() {
+		orch.StopAllMonitors()
+		require.NoError(t, orch.Stop(context.Background(), "boottest", false))
+	})
+	require.NoError(t, orchestrator.WriteNodeMode(orch.BitwindowDir, orchestrator.NodeModeFull))
+	marker := filepath.Join(t.TempDir(), "started")
+	require.NoError(t, os.MkdirAll(orchestrator.BinDir(orch.DataDir), 0o700))
+	require.NoError(t, os.WriteFile(orchestrator.BinaryPath(orch.DataDir, "boottest"), []byte("#!/bin/sh\n: > \"$BOOT_MARKER\"\nexec sleep 30\n"), 0o700))
+	client, stop := startTestOrchService(t, orch)
+	defer stop()
+	ctx, cancel := context.WithTimeout(t.Context(), eventuallyTimeout)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := client.StartWithL1(ctx, &pb.StartWithL1Request{
+			Target: "boottest", Immediate: true, Wait: true, TargetEnv: map[string]string{"BOOT_MARKER": marker},
+		})
+		done <- err
+	}()
+
+	select {
+	case <-started:
+	case err := <-done:
+		t.Fatalf("startup returned before the health check: %v", err)
+	case <-ctx.Done():
+		t.Fatal("the health check did not start")
+	}
+	cancel()
+	require.Equal(t, connect.CodeCanceled, connect.CodeOf(<-done))
+	_, err := client.StopBinary(t.Context(), &pb.StopBinaryRequest{Name: "boottest"})
+	require.NoError(t, err)
+	releaseOnce.Do(func() { close(release) })
+
+	require.Eventually(t, func() bool {
+		return strings.Contains(orch.Status("boottest").ConnectionError, context.Canceled.Error())
+	}, eventuallyTimeout, eventuallyPoll)
+	require.False(t, orch.Status("boottest").Running)
+	require.NoFileExists(t, marker)
 }
 
 // newTestOrchHandlerWithBinary builds a minimal Orchestrator wired with a

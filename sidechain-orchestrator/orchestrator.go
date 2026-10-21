@@ -1587,7 +1587,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 	coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
 	coreMon.SetChecker(coreChecker)
 
-	coreMon.StartConnectionTimer(ctx)
+	coreMon.StartConnectionTimer(context.WithoutCancel(ctx))
 
 	if coreMon.Connected() {
 		o.log.Info().Str("binary", "bitcoind").Msg("already running, not booting")
@@ -1603,7 +1603,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 
 	coreMon.SetInitializing(true)
 
-	o.startCoreRestartTimer(ctx, coreMon, opts.CoreArgs)
+	o.startCoreRestartTimer(context.WithoutCancel(ctx), coreMon, opts.CoreArgs)
 
 	ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
 
@@ -1938,7 +1938,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	enforcerCfg := o.Configs()["enforcer"]
 	enforcerChecker := NewHealthChecker(enforcerCfg)
 	enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
-	enforcerMon.StartConnectionTimer(ctx)
+	enforcerMon.StartConnectionTimer(context.WithoutCancel(ctx))
 
 	if enforcerMon.Connected() {
 		o.log.Info().Msg("enforcer already running")
@@ -1996,7 +1996,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	}
 
 	enfOpts := opts
-	enforcerMon.StartRestartTimer(ctx,
+	enforcerMon.StartRestartTimer(context.WithoutCancel(ctx),
 		func(restartCtx context.Context) error {
 			_, err := o.process.Start(restartCtx, o.Configs()["enforcer"], enfOpts.EnforcerArgs, enforcerEnv())
 			return err
@@ -2110,7 +2110,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 
 	// Keep the target monitor alive even if the frontend asked us to start
 	// the chain before the target RPC is reachable.
-	targetMon.StartConnectionTimer(ctx)
+	targetMon.StartConnectionTimer(context.WithoutCancel(ctx))
 
 	// A call that opens the frontend must reach the launch below even when the
 	// backend already answers: a backend that outlived its window would
@@ -2188,7 +2188,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 	procOpts := ProcessStartOptions{ForceBackend: opts.ForceBackend}
 
-	targetMon.StartRestartTimer(ctx,
+	targetMon.StartRestartTimer(context.WithoutCancel(ctx),
 		func(restartCtx context.Context) error {
 			if _, err := o.process.StartWithOptions(restartCtx, config, targetArgs, targetEnv, procOpts); err != nil {
 				return err
