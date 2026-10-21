@@ -28,10 +28,13 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	bitwindowdv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
@@ -257,6 +260,67 @@ func TestListUnspentRoundsBTCToSats(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.Utxos, 1)
 	require.Equal(t, uint64(29_000_000), resp.Utxos[0].ValueSats)
+}
+
+func TestListUnspentUsesExactDenialTip(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	db := database.Test(t)
+	first, err := deniability.Create(ctx, db, testWalletID, "initial", 0, time.Hour, 3, nil)
+	require.NoError(t, err)
+	require.NoError(t, deniability.RecordExecution(ctx, db, first.ID, "initial", 0, "split", 0))
+	second, err := deniability.Create(ctx, db, testWalletID, "split", 1, 2*time.Hour, 5, nil)
+	require.NoError(t, err)
+	for i, id := range []int64{first.ID, second.ID} {
+		_, err := db.ExecContext(ctx, "UPDATE denials SET updated_at = ? WHERE id = ?", time.Unix(100+int64(i), 0), id)
+		require.NoError(t, err)
+	}
+	first, err = deniability.Get(ctx, db, first.ID)
+	require.NoError(t, err)
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	mockBitcoind.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).Return(
+		connectv1.NewResponse(&bitcoindv1alpha.ListUnspentResponse{
+			Unspent: []*bitcoindv1alpha.UnspentOutput{
+				{Txid: "split", Vout: 0, Amount: 0.01},
+				{Txid: "split", Vout: 1, Amount: 0.02},
+				{Txid: "split", Vout: 2, Amount: 0.03},
+				{Txid: "other", Vout: 0, Amount: 0.04},
+			},
+		}), nil)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+	client := apitests.RPC(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind))
+	cli := walletv1connect.NewWalletServiceClient(client)
+
+	resp, err := cli.ListUnspent(ctx, &walletv1.ListUnspentRequest{WalletId: testWalletID})
+	require.NoError(t, err)
+	require.Len(t, resp.Utxos, 4)
+	for i, plan := range []deniability.Denial{first, second} {
+		info := resp.Utxos[i].DenialInfo
+		require.NotNil(t, info)
+		assert.Equal(t, plan.ID, info.Id)
+		assert.Equal(t, plan.NumHops, info.NumHops)
+		assert.False(t, info.IsChange)
+		require.NotNil(t, info.NextExecutionTime)
+		require.NotNil(t, plan.NextExecution)
+		assert.WithinDuration(t, *plan.NextExecution, info.NextExecutionTime.AsTime(), time.Microsecond)
+	}
+	require.NotNil(t, resp.Utxos[2].DenialInfo)
+	assert.Equal(t, first.ID, resp.Utxos[2].DenialInfo.Id)
+	assert.True(t, resp.Utxos[2].DenialInfo.IsChange)
+	assert.Nil(t, resp.Utxos[2].DenialInfo.NextExecutionTime)
+	assert.Nil(t, resp.Utxos[3].DenialInfo)
+
+	denialClient := bitwindowdv1connect.NewBitwindowdServiceClient(client)
+	_, err = denialClient.CancelDenial(ctx, &bitwindowdv1.CancelDenialRequest{Id: resp.Utxos[1].DenialInfo.Id})
+	require.NoError(t, err)
+	first, err = deniability.Get(ctx, db, first.ID)
+	require.NoError(t, err)
+	second, err = deniability.Get(ctx, db, second.ID)
+	require.NoError(t, err)
+	assert.Nil(t, first.CancelledAt)
+	assert.NotNil(t, second.CancelledAt)
 }
 
 func TestService_GetNewAddress(t *testing.T) {

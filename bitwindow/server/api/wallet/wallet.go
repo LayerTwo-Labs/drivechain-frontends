@@ -779,14 +779,15 @@ func (s *Server) addDenialInfoForCore(txid string, vout int32, denials []deniabi
 	})
 
 	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
-		if d.TipTXID == txid && d.TipVout == vout {
-			return true
-		}
-
-		return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
-			return e.ToTxID == txid
-		})
+		return d.TipTXID == txid && d.TipVout == vout
 	})
+	if !found {
+		denialInfo, found = lo.Find(denials, func(d deniability.Denial) bool {
+			return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
+				return e.ToTxID == txid
+			})
+		})
+	}
 
 	if !found {
 		return nil
