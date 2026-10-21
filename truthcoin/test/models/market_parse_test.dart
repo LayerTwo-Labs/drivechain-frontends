@@ -93,6 +93,53 @@ void main() {
       expect(market.outcomes.first.name, 'No');
     });
 
+    test('reads the answers of a category and a scaled dimension in coordinate order', () {
+      final market = MarketData.fromJson({
+        ...nodeMarket(),
+        'dimensions': [
+          {
+            'dimension_index': 0,
+            'decision_id': '004008',
+            'name': 'Winner',
+            'kind': {
+              'type': 'category',
+              'options': ['Alice', 'Bob', 'Carol'],
+            },
+          },
+          {
+            'dimension_index': 1,
+            'decision_id': '004009',
+            'name': 'BTC price',
+            'kind': {
+              'type': 'scaled',
+              'min': 0.0,
+              'max': 150000.0,
+              'increment': 1000.0,
+              'unit': null,
+              'lower_label': 'Lower basis',
+              'upper_label': 'Upper basis',
+            },
+          },
+        ],
+        'outcomes': [
+          {
+            'outcome_index': 0,
+            'label': 'Winner: Bob, BTC price: 150000 (Max)',
+            'price': 0.5,
+            'volume_sats': 0,
+            'full_state_index': 4,
+            'coordinates': [1, 1],
+          },
+        ],
+      });
+
+      expect([for (final d in market.dimensions) d.kind], [MarketDimensionKind.category, MarketDimensionKind.scaled]);
+      expect(market.dimensions.first.options, ['Alice', 'Bob', 'Carol']);
+      expect(market.dimensions.last.options, ['Lower basis (0)', 'Upper basis (150000)']);
+      expect(market.outcomes.single.coordinates, [1, 1]);
+      expect(market.outcomes.single.label, 'Bob · Upper basis (150000)');
+    });
+
     test('a settled market reads as resolved', () {
       final market = MarketData.fromJson(nodeMarket());
 
