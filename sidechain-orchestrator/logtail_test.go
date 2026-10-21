@@ -258,3 +258,31 @@ func TestSharedLogTakesEachLineOnce(t *testing.T) {
 		assert.True(t, strings.HasSuffix(lines[i], want), "line %d held %q", i, lines[i])
 	}
 }
+
+func TestRemoveStopsTheTailsOfAnAdoptedProcess(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	for _, stream := range []string{"stdout", "stderr"} {
+		path := binaryLogPath(dir, "external", stream)
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("line\n"), 0o644))
+	}
+	pm.AdoptProcess(BinaryConfig{Name: "external", BinaryName: "external"}, os.Getpid())
+
+	stopped := make(chan struct{})
+	go func() {
+		pm.tails.Wait()
+		close(stopped)
+	}()
+	select {
+	case <-stopped:
+		t.Fatal("the tails stopped while the process was adopted")
+	case <-time.After(500 * time.Millisecond):
+	}
+
+	pm.Remove("external")
+	select {
+	case <-stopped:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the tails ran on after the process left the manager")
+	}
+}
