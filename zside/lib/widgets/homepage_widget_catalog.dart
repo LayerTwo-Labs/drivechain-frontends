@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -600,22 +599,6 @@ class TransactionTable extends StatefulWidget {
 class _TransactionTableState extends State<TransactionTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
-  List<CoreTransaction> entries = [];
-
-  @override
-  void initState() {
-    super.initState();
-    entries = widget.entries;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!listEquals(entries, widget.entries)) {
-      entries = List.from(widget.entries);
-      sortEntries();
-    }
-  }
 
   void onSort(String column) {
     setState(() {
@@ -625,11 +608,11 @@ class _TransactionTableState extends State<TransactionTable> {
         sortColumn = column;
         sortAscending = true;
       }
-      sortEntries();
     });
   }
 
-  void sortEntries() {
+  List<CoreTransaction> get sortedEntries {
+    final entries = List<CoreTransaction>.from(widget.entries);
     entries.sort((a, b) {
       dynamic aValue;
       dynamic bValue;
@@ -655,11 +638,13 @@ class _TransactionTableState extends State<TransactionTable> {
 
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
+    return entries;
   }
 
   @override
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
+    final entries = sortedEntries;
 
     return ListenableBuilder(
       listenable: formatter,
@@ -678,7 +663,7 @@ class _TransactionTableState extends State<TransactionTable> {
                 ),
                 Expanded(
                   child: SailTable(
-                    getRowId: (index) => widget.entries[index].txid,
+                    getRowId: (index) => entries[index].txid,
                     headerBuilder: (context) => [
                       SailTableHeaderCell(
                         name: 'Conf Height',
@@ -698,7 +683,7 @@ class _TransactionTableState extends State<TransactionTable> {
                       ),
                     ],
                     rowBuilder: (context, row, selected) {
-                      final entry = widget.entries[row];
+                      final entry = entries[row];
                       final amount = formatter.formatBTC(satoshiToBTC(entry.amount.toInt()));
 
                       return [
@@ -718,7 +703,7 @@ class _TransactionTableState extends State<TransactionTable> {
                         ),
                       ];
                     },
-                    rowCount: widget.entries.length,
+                    rowCount: entries.length,
                     emptyPlaceholder: 'No transactions yet',
                     drawGrid: true,
                     sortColumnIndex: [
@@ -732,7 +717,7 @@ class _TransactionTableState extends State<TransactionTable> {
                       onSort(['height', 'amount', 'txid', 'date'][columnIndex]);
                     },
                     onDoubleTap: (rowId) {
-                      final utxo = widget.entries.firstWhere(
+                      final utxo = entries.firstWhere(
                         (u) => u.txid == rowId,
                       );
                       _showUtxoDetails(context, utxo);
