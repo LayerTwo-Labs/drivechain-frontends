@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -10,11 +11,13 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"lukechampine.com/blake3"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
 )
@@ -759,11 +762,13 @@ func (b nodeHeaderJSON) transactions() []nodeBodyTx {
 // nodeBlockIndex is what get_block_index returns: the txids and sizes a body
 // does not carry.
 type nodeBlockIndex struct {
-	Txs []struct {
-		Txid string `json:"txid"`
-		Size uint64 `json:"size"`
-	} `json:"txs"`
+	Txs      []nodeIndexTx `json:"txs"`
 	Deposits []nodeDeposit `json:"deposits"`
+}
+
+type nodeIndexTx struct {
+	Txid string `json:"txid"`
+	Size uint64 `json:"size"`
 }
 
 // nodeDeposit is one deposit the mainchain paid into a block.
@@ -935,16 +940,14 @@ func readNodeBlock(
 		out.PrevHash = *prev
 	}
 
-	// get_block_index names the txids a body does not carry. A node without
-	// it still answers the header, and the block then lists no transactions.
-	rawIndex, err := src.node.CallRaw(ctx, "get_block_index", []string{hash})
+	// A node that names no txids still answers the header, and the block
+	// then lists no transactions.
+	index, named, err := nodeTxIndex(ctx, src, hash)
 	if err != nil {
-		return blockValueFromBody(out, block), nil, state, nil
+		return nil, nil, state, err
 	}
-	var index nodeBlockIndex
-	if err := json.Unmarshal(rawIndex, &index); err != nil {
-		return nil, nil, state, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the block index of %s: %w", hash, err).Error())
+	if !named {
+		return blockValueFromBody(out, block), nil, state, nil
 	}
 
 	// The block index names the txids in body order, so a transaction pairs
@@ -982,9 +985,64 @@ func readNodeBlock(
 	return out, activity, state, nil
 }
 
-// blockValueFromBody sums what a block paid out. Only get_block_index names
-// the txids, so a chain without it lists no transactions, and the value still
-// reads back.
+// nodeTxIndex reads the txids, sizes and deposits of one block body, and says
+// whether the node named them.
+func nodeTxIndex(ctx context.Context, src source, hash string) (nodeBlockIndex, bool, error) {
+	rawIndex, err := src.node.CallRaw(ctx, "get_block_index", []string{hash})
+	if err != nil {
+		if src.name != canonicalTxidChain || !rpc.LacksMethod(err) {
+			return nodeBlockIndex{}, false, nil
+		}
+		return verboseTxIndex(ctx, src, hash)
+	}
+	var index nodeBlockIndex
+	if err := json.Unmarshal(rawIndex, &index); err != nil {
+		return nodeBlockIndex{}, false, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read the block index of %s: %w", hash, err).Error())
+	}
+	return index, true, nil
+}
+
+// canonicalTxidChain hashes a txid as blake3 over the canonical bytes. A
+// zside txid hashes other bytes, so it never reads this way.
+const canonicalTxidChain = "thunder"
+
+// verboseTxIndex reads the txids out of a verbose get_block, for a thunder
+// release without get_block_index. It names no deposits.
+func verboseTxIndex(ctx context.Context, src source, hash string) (nodeBlockIndex, bool, error) {
+	raw, err := src.node.CallRaw(ctx, "get_block", []any{hash, true})
+	if err != nil {
+		return nodeBlockIndex{}, false, nil
+	}
+	var block struct {
+		Body struct {
+			Transactions []struct {
+				CanonicalBytes *string `json:"canonical_bytes"`
+			} `json:"transactions"`
+		} `json:"body"`
+	}
+	if err := json.Unmarshal(raw, &block); err != nil {
+		return nodeBlockIndex{}, false, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read the verbose block %s: %w", hash, err).Error())
+	}
+	var index nodeBlockIndex
+	for _, tx := range block.Body.Transactions {
+		if tx.CanonicalBytes == nil {
+			return nodeBlockIndex{}, false, nil
+		}
+		encoded, err := hex.DecodeString(strings.TrimPrefix(*tx.CanonicalBytes, "0x"))
+		if err != nil {
+			return nodeBlockIndex{}, false, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("read the canonical bytes in block %s: %w", hash, err).Error())
+		}
+		txid := blake3.Sum256(encoded)
+		index.Txs = append(index.Txs, nodeIndexTx{Txid: hex.EncodeToString(txid[:]), Size: uint64(len(encoded))})
+	}
+	return index, true, nil
+}
+
+// blockValueFromBody sums what a block paid out. A chain that names no txids
+// lists no transactions, and the value still reads back.
 func blockValueFromBody(out *pb.Block, block nodeHeaderJSON) *pb.Block {
 	for _, tx := range block.transactions() {
 		out.ValueSats += tx.paidOut()
