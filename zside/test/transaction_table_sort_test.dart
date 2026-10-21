@@ -56,13 +56,14 @@ void main() {
     await registerTestDependencies();
   });
 
-  testWidgets('the sort applies to a new list and leaves the given list as it is', (tester) async {
+  testWidgets('the table starts newest first, sorts a new list and keeps the given list', (tester) async {
     final first = [
       _tx('aaaaaaaaaaaa', amount: 300000000, time: 1000),
       _tx('bbbbbbbbbbbb', amount: 100000000, time: 3000),
     ];
     await tester.pumpWidget(_table(first));
     await tester.pumpAndSettle();
+    expect(_txidColumn(tester), ['bbbbbbbbbbbb:0', 'aaaaaaaaaaaa:0']);
 
     await tester.tap(find.text('Amount'));
     await tester.pumpAndSettle();
