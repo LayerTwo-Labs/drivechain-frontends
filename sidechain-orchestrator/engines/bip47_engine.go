@@ -28,13 +28,7 @@ const (
 	bip47ListTxBatchSize = 100
 	// bip47GapLimit is the forward window of per-payment addresses imported
 	// into Core for each known sender, per extension.
-	bip47GapLimit = 20
-	// bip47TrailingBuffer is how many unused trailing addresses we keep ahead
-	// of the most recently used per-payment address before extending the
-	// imported window further. BIP44-style gap-limit semantics: we only grow
-	// when usage approaches the tail. The probe is the address at index
-	// (ImportedThroughIndex - bip47TrailingBuffer); if Core says it has
-	// received coins, we extend, otherwise we wait.
+	bip47GapLimit       = 20
 	bip47TrailingBuffer = 3
 )
 
@@ -323,11 +317,6 @@ func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, walletID, txid s
 	return decoded.Base58(), raw.BlockTime, nil
 }
 
-// extendImports walks every known inbound sender for this wallet. For each
-// one, it imports the first gapLimit per-payment addresses on the very first
-// pass, and afterwards only extends the window further once the trailing
-// probe address (see bip47TrailingBuffer) has received coins. Core ignores
-// already-known descriptors.
 func (e *BIP47Engine) extendImports(ctx context.Context, walletID, seedHex string, net *chaincfg.Params) error {
 	inbound, err := e.inbound.ListByWallet(walletID)
 	if err != nil {
@@ -370,16 +359,19 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 		return err
 	}
 
-	// After the initial gapLimit bootstrap, only extend when the trailing
-	// probe address (ImportedThroughIndex - bip47TrailingBuffer) has received
-	// coins. Otherwise the window grows forever at every tick.
 	if n.ImportedThroughIndex >= bip47TrailingBuffer {
-		probeIdx := n.ImportedThroughIndex - bip47TrailingBuffer
-		probeAddr, _, err := bip47.DeriveReceivedPaymentAddress(seedHex, senderNotifPub, probeIdx, net, bip47.AddressP2PKH)
-		if err != nil {
-			return fmt.Errorf("derive probe address at index %d: %w", probeIdx, err)
+		hasReceipt := false
+		for probeIdx := n.ImportedThroughIndex - bip47TrailingBuffer; probeIdx < n.ImportedThroughIndex; probeIdx++ {
+			probeAddr, _, err := bip47.DeriveReceivedPaymentAddress(seedHex, senderNotifPub, probeIdx, net, bip47.AddressP2PKH)
+			if err != nil {
+				return fmt.Errorf("derive probe address at index %d: %w", probeIdx, err)
+			}
+			if usedAddrs[probeAddr.EncodeAddress()] {
+				hasReceipt = true
+				break
+			}
 		}
-		if !usedAddrs[probeAddr.EncodeAddress()] {
+		if !hasReceipt {
 			return nil
 		}
 	}
