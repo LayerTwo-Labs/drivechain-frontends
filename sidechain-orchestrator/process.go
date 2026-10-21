@@ -179,6 +179,7 @@ type ProcessManager struct {
 	processes  map[string]*ManagedProcess // keyed by config name
 	lastExited map[string]*ManagedProcess // last exited process, keyed by config name — keeps its logs readable
 	starting   map[string]bool            // names reserved by an in-flight StartWithOptions
+	tails      sync.WaitGroup
 
 	// OnExit is called when a process exits. The orchestrator uses this to
 	// pipe exit errors into ConnectionMonitor.connectionError for the UI.
