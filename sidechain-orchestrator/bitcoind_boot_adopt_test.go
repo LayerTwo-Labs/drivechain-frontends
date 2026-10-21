@@ -41,6 +41,7 @@ func fakeCoreFixture(t *testing.T, binary string) *Orchestrator {
 		_ = o.process.StopAll(context.Background(), true)
 		o.StopAllMonitors()
 	})
+	stopOnCleanup(t, o.process, "bitcoind")
 	return o
 }
 

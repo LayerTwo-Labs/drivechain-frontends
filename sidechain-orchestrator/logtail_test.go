@@ -188,17 +188,15 @@ func TestAdoptedChildKeepsItsLogs(t *testing.T) {
 
 	pid, err := o.process.Start(context.Background(), cfg, []string{"-c", "i=0; while [ $i -lt 200 ]; do echo tick-$i; i=$((i+1)); sleep 0.2; done"}, nil)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if proc, err := os.FindProcess(pid); err == nil {
-			_ = proc.Kill()
-		}
-	})
+	stopOnCleanup(t, o.process, "ticker")
 	waitForLogLine(t, o.process, "ticker", "tick-0")
 
 	// A fresh orchestrator over the same data dir, as a retire leaves behind.
 	next := NewProcessManager(o.DataDir, o.process.pidManager, zerolog.Nop())
 	next.SharedLogPath = o.process.SharedLogPath
 	next.AdoptProcess(cfg, pid)
+	t.Cleanup(next.tails.Wait)
+	stopOnCleanup(t, next, "ticker")
 
 	// A line the child writes after the handover, not a replay of an older one.
 	waitForLogLine(t, next, "ticker", "tick-"+strconv.Itoa(highestTick(t, next)+3))
