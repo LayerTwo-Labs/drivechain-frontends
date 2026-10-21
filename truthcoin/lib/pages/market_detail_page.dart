@@ -26,6 +26,9 @@ const double _twoColumnWidth = 900;
 /// Below this width the range buttons move under the price.
 const double _priceHeaderWidth = 520;
 
+/// Dropdown value of "Any answer". Answer indexes start at 0.
+const int _anyAnswer = -1;
+
 enum TradeMode { buy, sell }
 
 @RoutePage()
@@ -87,8 +90,9 @@ class MarketDetailPage extends StatelessWidget {
         final content = [
           _BackRow(model: model),
           _MarketHeaderCard(market: market),
-          _PriceCard(model: model, market: market),
+          if (model.hasQuestions) _PickOutcomeCard(model: model),
           _OutcomePricesCard(model: model, market: market),
+          _PriceCard(model: model, market: market),
           _MarketTabs(model: model, market: market),
         ];
         final panel = [
@@ -225,6 +229,8 @@ class _OutcomePricesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (model.hasQuestions) return _QuestionPricesCard(model: model);
+
     final theme = SailTheme.of(context);
     final formatter = GetIt.I.get<FormatterProvider>();
     final outcomes = model.orderedOutcomes;
@@ -276,6 +282,163 @@ class _OutcomePricesCard extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PickOutcomeCard extends StatelessWidget {
+  final MarketDetailViewModel model;
+
+  const _PickOutcomeCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final questions = model.questions;
+
+    return SailCard(
+      title: 'Pick your outcome',
+      subtitle: 'Answer each question to narrow the outcomes. Leave "Any answer" to see all.',
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        children: [
+          for (var i = 0; i < questions.length; i++)
+            SailColumn(
+              spacing: SailStyleValues.padding04,
+              children: [
+                SailText.primary13(questions[i].name, bold: true),
+                SizedBox(
+                  width: 300,
+                  child: SailDropdownButton<int>(
+                    value: model.picks[i] ?? _anyAnswer,
+                    items: [
+                      SailDropdownItem<int>(value: _anyAnswer, label: 'Any answer'),
+                      for (var answer = 0; answer < questions[i].options.length; answer++)
+                        SailDropdownItem<int>(value: answer, label: questions[i].options[answer]),
+                    ],
+                    onChanged: (answer) {
+                      if (answer == null) return;
+                      model.setPick(i, answer == _anyAnswer ? null : answer);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(
+                child: SailText.secondary12(
+                  '${model.matchingOutcomes.length} of ${model.orderedOutcomes.length} outcomes match',
+                ),
+              ),
+              SailButton(
+                plainLabel: true,
+                label: 'Clear',
+                variant: ButtonVariant.ghost,
+                small: true,
+                onPressed: () async => model.clearPicks(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The outcome table of a market with two or more questions. Each row shows
+/// its answer to every question, and the picks filter the rows.
+class _QuestionPricesCard extends StatelessWidget {
+  final MarketDetailViewModel model;
+
+  const _QuestionPricesCard({required this.model});
+
+  static const double _answerWidth = 160;
+  static const double _priceWidth = 90;
+  static const double _volumeWidth = 140;
+  static const double _buttonWidth = 120;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final formatter = GetIt.I.get<FormatterProvider>();
+    final questions = model.questions;
+    final outcomes = model.matchingOutcomes;
+    final hidden = model.orderedOutcomes.length - outcomes.length;
+    final minWidth =
+        questions.length * _answerWidth +
+        _priceWidth +
+        _volumeWidth +
+        _buttonWidth +
+        (questions.length + 2) * SailStyleValues.padding12;
+
+    return SailCard(
+      title: 'Outcome prices',
+      subtitle: 'The LMSR price of a share is also the chance of the outcome.',
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => SailColumn(
+          spacing: SailStyleValues.padding12,
+          children: [
+            _SideScroll(
+              minWidth: minWidth,
+              child: SailColumn(
+                spacing: SailStyleValues.padding10,
+                children: [
+                  SailRow(
+                    spacing: SailStyleValues.padding12,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      for (final question in questions)
+                        Expanded(
+                          child: SailText.secondary12(question.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      SizedBox(width: _priceWidth, child: SailText.secondary12('Price')),
+                      SizedBox(width: _volumeWidth, child: SailText.secondary12('Volume')),
+                      const SizedBox(width: _buttonWidth),
+                    ],
+                  ),
+                  for (final outcome in outcomes)
+                    SailRow(
+                      spacing: SailStyleValues.padding12,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        for (var i = 0; i < questions.length; i++)
+                          Expanded(child: SailText.primary13(questions[i].options[outcome.coordinates[i]])),
+                        SizedBox(
+                          width: _priceWidth,
+                          child: SailText.primary13(
+                            formatChance(outcome.currentPrice),
+                            bold: true,
+                            color: theme.colors.success,
+                          ),
+                        ),
+                        SizedBox(
+                          width: _volumeWidth,
+                          child: SailText.primary13(formatter.formatSats(outcome.volumeSats)),
+                        ),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: _buttonWidth),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: 1,
+                            child: OutcomeTradeButton(
+                              label: model.selectedOutcome?.index == outcome.index ? 'Selected' : 'Trade',
+                              tone: OutcomeTone.yes,
+                              onTap: () => model.selectOutcome(outcome),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+            if (hidden > 0) SailText.secondary12('$hidden outcome${hidden == 1 ? '' : 's'} hidden by your picks.'),
+          ],
         ),
       ),
     );
@@ -529,7 +692,7 @@ class _TradePanel extends StatelessWidget {
                 ),
               ],
             ),
-            _OutcomeSelector(model: model),
+            if (model.hasQuestions) _PickedOutcome(model: model) else _OutcomeSelector(model: model),
             if (model.tradeMode == TradeMode.buy)
               ..._buyFields(context, formatter)
             else
@@ -757,6 +920,51 @@ class _OutcomeSelector extends StatelessWidget {
         SailText.secondary12(
           'Chance ${model.selectedOutcome == null ? '—' : formatChance(model.selectedOutcome!.currentPrice)}',
         ),
+      ],
+    );
+  }
+}
+
+/// The answer the page holds for each question, and the price of the outcome
+/// when every question has an answer.
+class _PickedOutcome extends StatelessWidget {
+  final MarketDetailViewModel model;
+
+  const _PickedOutcome({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final questions = model.questions;
+    final selected = model.selectedOutcome;
+
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      children: [
+        SailText.secondary12('Outcome'),
+        for (var i = 0; i < questions.length; i++)
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(child: SailText.secondary13(questions[i].name)),
+              if (model.picks[i] == null)
+                SailText.secondary13('Not picked')
+              else
+                SailText.primary13(questions[i].options[model.picks[i]!], bold: true),
+            ],
+          ),
+        if (selected != null)
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(child: SailText.secondary13('Price')),
+              SailText.primary13(formatChance(selected.currentPrice), bold: true, color: theme.colors.success),
+            ],
+          )
+        else
+          SailText.secondary12('Pick an answer for each question in "Pick your outcome", or press Trade on a row.'),
       ],
     );
   }
@@ -1068,6 +1276,9 @@ class MarketDetailViewModel extends BaseViewModel {
   String? marketError;
 
   MarketOutcome? selectedOutcome;
+
+  /// The picked answer of each question. Null is "Any answer".
+  List<int?> picks = [];
   TradeMode tradeMode = TradeMode.buy;
   TradePreview? preview;
   String? previewError;
@@ -1154,6 +1365,45 @@ class MarketDetailViewModel extends BaseViewModel {
     return outcomes;
   }
 
+  /// The questions of a market with two or more dimensions. Empty for a
+  /// market of one dimension.
+  List<MarketDimension> get questions {
+    final dimensions = market?.dimensions ?? const [];
+    return dimensions.length >= 2 ? dimensions : const [];
+  }
+
+  bool get hasQuestions => questions.isNotEmpty;
+
+  /// The outcomes that agree with every pick.
+  List<MarketOutcome> get matchingOutcomes => [
+    for (final outcome in orderedOutcomes)
+      if (_matchesPicks(outcome)) outcome,
+  ];
+
+  bool _matchesPicks(MarketOutcome outcome) {
+    for (var i = 0; i < picks.length; i++) {
+      if (picks[i] != null && outcome.coordinates[i] != picks[i]) return false;
+    }
+    return true;
+  }
+
+  /// Sets the answer of one question. With an answer for every question, the
+  /// page selects the one outcome that matches. Else it selects no outcome.
+  void setPick(int question, int? answer) {
+    picks = [...picks]..[question] = answer;
+    _selectPicked();
+  }
+
+  void clearPicks() {
+    picks = List<int?>.filled(questions.length, null);
+    _selectPicked();
+  }
+
+  void _selectPicked() {
+    final outcome = picks.contains(null) ? null : matchingOutcomes.first;
+    _setSelection(outcome);
+  }
+
   MarketDetailViewModel({required this.marketId, this.initialOutcomeIndex});
 
   void init() {
@@ -1205,6 +1455,7 @@ class MarketDetailViewModel extends BaseViewModel {
     market = null;
     marketError = null;
     selectedOutcome = null;
+    picks = [];
     positions = [];
     _previewRequest++;
     _sellPreviewRequest++;
@@ -1250,7 +1501,11 @@ class MarketDetailViewModel extends BaseViewModel {
     marketError = loaded == null ? _marketProvider.error ?? 'Market not found' : null;
 
     final outcomes = orderedOutcomes;
-    if (outcomes.isNotEmpty) {
+    picks = List<int?>.filled(questions.length, null);
+    if (hasQuestions) {
+      final initial = outcomes.where((o) => o.index == initialOutcomeIndex);
+      if (initial.isNotEmpty) selectOutcome(initial.first);
+    } else if (outcomes.isNotEmpty) {
       selectedOutcome = outcomes.firstWhere(
         (o) => o.index == initialOutcomeIndex,
         orElse: () => _defaultOutcome(outcomes),
@@ -1334,7 +1589,14 @@ class MarketDetailViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// Selects [outcome] to trade. In a market with questions, the picks take
+  /// the answers of the outcome.
   void selectOutcome(MarketOutcome outcome) {
+    if (hasQuestions) picks = [...outcome.coordinates];
+    _setSelection(outcome);
+  }
+
+  void _setSelection(MarketOutcome? outcome) {
     _previewRequest++;
     _sellPreviewRequest++;
     selectedOutcome = outcome;
