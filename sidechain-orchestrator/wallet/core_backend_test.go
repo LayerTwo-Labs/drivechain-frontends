@@ -525,7 +525,27 @@ func TestCoreBackendSendSimple(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "txid-many", txid)
-	require.Len(t, fake.callsFor("sendmany"), 1)
+	sends = fake.callsFor("sendmany")
+	require.Len(t, sends, 1)
+	require.Len(t, sends[0].Params, 2)
+	var amounts map[string]float64
+	require.NoError(t, json.Unmarshal(sends[0].Params[1], &amounts))
+	assert.Equal(t, map[string]float64{"bcrt1qa": 0.00001, "bcrt1qb": 0.00002}, amounts)
+
+	txid, err = backend.Send(ctx, coreID, SendRequest{
+		DestinationsSats:      map[string]int64{"bcrt1qa": 1_000, "bcrt1qb": 2_000},
+		SubtractFeeFromAmount: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "txid-many", txid)
+	sends = fake.callsFor("sendmany")
+	require.Len(t, sends, 2)
+	require.Len(t, sends[1].Params, 5)
+	require.NoError(t, json.Unmarshal(sends[1].Params[1], &amounts))
+	assert.Equal(t, map[string]float64{"bcrt1qa": 0.00001, "bcrt1qb": 0.00002}, amounts)
+	var addresses []string
+	require.NoError(t, json.Unmarshal(sends[1].Params[4], &addresses))
+	assert.ElementsMatch(t, []string{"bcrt1qa", "bcrt1qb"}, addresses)
 }
 
 func TestCoreBackendSendFeeRatePath(t *testing.T) {
