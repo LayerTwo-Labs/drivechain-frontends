@@ -7,10 +7,12 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,9 +22,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testLogWriter drops lines after cleanup, because t.Log panics after a test
+// ends and a background boot can outlive the test.
+type testLogWriter struct {
+	mu     sync.Mutex
+	writer io.Writer
+}
+
+func (w *testLogWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.writer == nil {
+		return len(p), nil
+	}
+	return w.writer.Write(p)
+}
+
 func testLogger(t *testing.T) zerolog.Logger {
 	t.Helper()
-	return zerolog.New(zerolog.NewTestWriter(t))
+	w := &testLogWriter{writer: zerolog.NewTestWriter(t)}
+	t.Cleanup(func() {
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		w.writer = nil
+	})
+	return zerolog.New(w)
 }
 
 func newTestPidManager(t *testing.T) *PidFileManager {
@@ -46,6 +70,7 @@ func newTestOrchestrator(t *testing.T) *Orchestrator {
 	t.Cleanup(func() {
 		o.StopAllMonitors()
 		require.NoError(t, o.closeRemoteEnforcer())
+		waitForTails(o.process)
 	})
 	return o
 }
@@ -61,8 +86,27 @@ func newTestProcessManager(t *testing.T) (*ProcessManager, string) {
 		for _, name := range running {
 			pm.WaitForExit(name, 5*time.Second)
 		}
+		waitForTails(pm)
 	})
 	return pm, dir
+}
+
+// waitForTails stops the log tails from a write into a removed temp dir.
+func waitForTails(pm *ProcessManager) {
+	for _, name := range pm.ListRunning() {
+		if pm.IsAdopted(name) {
+			pm.Remove(name)
+		}
+	}
+	done := make(chan struct{})
+	go func() {
+		pm.tails.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+	}
 }
 
 // stopOnCleanup kills the process at cleanup and waits for its log tail to finish.
@@ -71,6 +115,7 @@ func stopOnCleanup(t *testing.T, pm *ProcessManager, name string) {
 	t.Cleanup(func() {
 		_ = pm.Stop(context.Background(), name, true)
 		pm.WaitForExit(name, 5*time.Second)
+		waitForTails(pm)
 	})
 }
 

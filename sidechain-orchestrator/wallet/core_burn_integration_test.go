@@ -99,6 +99,7 @@ func TestCoreWalletBurnIntegration(t *testing.T) {
 		require.Equal(t, wallet.WalletTypeBitcoinCore, w.WalletType)
 		svc.SetNetwork("ecash")
 		backend := wallet.NewCoreBackend(svc, node.CoreRPC, wallet.StaticParams(net), zerolog.Nop())
+		t.Cleanup(func() { wallet.WaitForBip47Imports(backend) })
 
 		receive, err := backend.NextReceiveAddress(ctx, w.ID, wallet.ScriptNativeSegwit)
 		require.NoError(t, err)
