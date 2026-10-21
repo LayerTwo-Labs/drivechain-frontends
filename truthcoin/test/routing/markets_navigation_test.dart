@@ -24,13 +24,19 @@ import '../test_utils.dart';
 const _otherTab = PageRouteInfo<void>('OtherTabRoute');
 
 /// The app router with a light home shell: the Markets tab and one more tab.
+/// As in the home page, the shell builds only the active tab.
 class _MarketsTestRouter extends AppRouter {
   @override
   List<AutoRoute> get routes => [
     AutoRoute(
       page: PageInfo(
         HomeRoute.name,
-        builder: (_) => SailTestPage(child: const AutoTabsRouter(routes: [MarketsTabRoute(), _otherTab])),
+        builder: (_) => SailTestPage(
+          child: AutoTabsRouter.builder(
+            routes: const [MarketsTabRoute(), _otherTab],
+            builder: (context, children, tabsRouter) => children[tabsRouter.activeIndex],
+          ),
+        ),
       ),
       initial: true,
       children: [
@@ -138,5 +144,38 @@ void main() {
     await tester.tap(find.text(twoDecisions['title'] as String));
     await tester.pumpAndSettle();
     expect(find.byType(MarketDetailPage), findsOneWidget);
+  });
+
+  testWidgets('back shows the grid after a switch to another tab and back', (tester) async {
+    await pumpApp(tester);
+    final tabs = router.innerRouterOf<TabsRouter>(HomeRoute.name)!;
+
+    await tester.tap(find.text(twoDecisions['title'] as String));
+    await tester.pumpAndSettle();
+    tabs.setActiveIndex(1);
+    await tester.pumpAndSettle();
+    tabs.setActiveIndex(0);
+    await tester.pumpAndSettle();
+    expect(find.byType(MarketDetailPage), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(SailButton, '←  Markets').first);
+    await tester.pumpAndSettle();
+
+    expect(tabs.activeIndex, 0);
+    expect(find.byType(MarketExplorerPage), findsOneWidget);
+  });
+
+  testWidgets('back keeps the search text', (tester) async {
+    await pumpApp(tester);
+    await tester.enterText(find.byType(EditableText), 'eCash');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(twoDecisions['title'] as String));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(SailButton, '←  Markets').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MarketExplorerPage), findsOneWidget);
+    expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, 'eCash');
   });
 }
