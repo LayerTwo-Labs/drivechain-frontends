@@ -71,6 +71,7 @@ func TestCoreWatchOnlyKeepsAPolicyTheParserRejects(t *testing.T) {
 	defer svc.Close()
 
 	backend := wallet.NewCoreBackend(svc, node.CoreRPC, wallet.StaticParams(net), zerolog.Nop())
+	t.Cleanup(func() { wallet.WaitForBip47Imports(backend) })
 	name, err := backend.Ensure(ctx, "WATCHMULTI")
 	require.NoError(t, err)
 	got, err := node.CoreRPC.GetNewAddress(ctx, name, "", "bech32")
