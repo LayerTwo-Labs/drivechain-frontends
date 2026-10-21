@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -449,6 +450,35 @@ func attachFakeCore(t *testing.T, o *Orchestrator, core *fakeCore) {
 	o.coreStatusClient = core.start(t)
 }
 
+// awaitL1Restart removes the downloads from the L1 boot that a switch starts in
+// the background, and returns a wait for that boot to end.
+func awaitL1Restart(t *testing.T, o *Orchestrator) func() {
+	t.Helper()
+	for _, configs := range []map[string]BinaryConfig{o.rawConfigs, o.configs} {
+		for _, name := range []string{"bitcoind", "enforcer"} {
+			cfg := configs[name]
+			cfg.DownloadURLs = nil
+			configs[name] = cfg
+		}
+	}
+	o.download.CoreVariant = nil
+	restarted := make(chan struct{})
+	var once sync.Once
+	o.log = zerolog.New(io.Discard).Hook(zerolog.HookFunc(func(_ *zerolog.Event, _ zerolog.Level, message string) {
+		if message == "L1 stack restart after network swap failed" {
+			once.Do(func() { close(restarted) })
+		}
+	}))
+	return func() {
+		t.Helper()
+		select {
+		case <-restarted:
+		case <-time.After(5 * time.Second):
+			t.Fatal("the fixture restart did not finish")
+		}
+	}
+}
+
 // A stop that fails after the rewind leaves Core parked under the fork with the
 // old network still selected. The next try would ask for a block that no longer
 // sits on the chain Core follows, so the drop has to come back.
@@ -464,9 +494,11 @@ func TestApplyECashSwitchTakesTheRewindBackWhenCoreWillNotStop(t *testing.T) {
 	o.stopBinary = func(_ context.Context, name string, _ bool, _ ...StopOptions) error {
 		return fmt.Errorf("stop %s refused", name)
 	}
+	waitRestart := awaitL1Restart(t, o)
 
 	err := o.ApplyECashSwitch(context.Background(), "alphanet")
 	require.Error(t, err)
+	waitRestart()
 
 	require.Equal(t, []string{"invalidateblock", "reconsiderblock"}, marks(core),
 		"the drop has to come back when the switch cannot go on")
@@ -522,8 +554,11 @@ func TestApplyECashSwitchKeepsEverythingWhenTheRewindFails(t *testing.T) {
 		o.process.Remove(name)
 		return nil
 	}
+	waitRestart := awaitL1Restart(t, o)
+
 	err := o.ApplyECashSwitch(context.Background(), "alphanet")
 	require.Error(t, err)
+	waitRestart()
 
 	// The restart itself needs a real StartWithL1 and has no seam, so this
 	// covers the abort, not the recovery: nothing may move on a failed rewind.
@@ -548,20 +583,10 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 		o.process.Remove(name)
 		return nil
 	}
-	for _, name := range []string{"bitcoind", "enforcer"} {
-		cfg := o.rawConfigs[name]
-		cfg.DownloadURLs = nil
-		o.rawConfigs[name] = cfg
-	}
-	o.download.CoreVariant = nil
-	restarted := make(chan struct{})
-	o.log = zerolog.New(io.Discard).Hook(zerolog.HookFunc(func(_ *zerolog.Event, _ zerolog.Level, message string) {
-		if message == "L1 stack restart after network swap failed" {
-			close(restarted)
-		}
-	}))
+	waitRestart := awaitL1Restart(t, o)
 
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	waitRestart()
 
 	require.Equal(t, []string{"invalidateblock"}, marks(core))
 	require.Equal(t, []string{"bitcoind"}, stopped, "core stops only after the rewind reads it")
@@ -569,11 +594,6 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 	require.Equal(t, "alphanet", o.RunningECashID(ecashCatalog()))
 	require.Equal(t, forkBlock, o.Settings.RewoundBlockHash())
 	require.Nil(t, o.pendingSwap, "a tail that lands leaves nothing pending")
-	select {
-	case <-restarted:
-	case <-time.After(5 * time.Second):
-		t.Fatal("the fixture restart did not finish")
-	}
 }
 
 // The conf goes before Core stops, so a failure there can still put the drop
@@ -595,9 +615,11 @@ func TestApplyECashSwitchTakesTheRewindBackWhenTheConfWillNotWrite(t *testing.T)
 	// A directory in place of the conf file makes every write fail.
 	require.NoError(t, os.Remove(o.BitcoinConf.ConfigPath))
 	require.NoError(t, os.MkdirAll(o.BitcoinConf.ConfigPath, 0o755))
+	waitRestart := awaitL1Restart(t, o)
 
 	err := o.ApplyECashSwitch(context.Background(), "alphanet")
 	require.Error(t, err)
+	waitRestart()
 
 	require.Equal(t, []string{"invalidateblock", "reconsiderblock"}, marks(core),
 		"a conf that will not write must leave the chain as it was")
@@ -722,8 +744,10 @@ func TestRestoreRewindPutsThePreviousMarkBack(t *testing.T) {
 	o.stopBinary = func(_ context.Context, name string, _ bool, _ ...StopOptions) error {
 		return fmt.Errorf("stop %s refused", name)
 	}
+	waitRestart := awaitL1Restart(t, o)
 
 	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	waitRestart()
 
 	require.Equal(t, []string{"reconsiderblock", "invalidateblock", "reconsiderblock", "invalidateblock"},
 		marks(core), "every bar the rewind moved goes back")
