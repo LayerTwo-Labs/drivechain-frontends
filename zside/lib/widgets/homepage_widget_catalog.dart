@@ -723,13 +723,13 @@ class _TransactionTableState extends State<TransactionTable> {
                     drawGrid: true,
                     sortColumnIndex: [
                       'height',
-                      'date',
-                      'txid',
                       'amount',
+                      'txid',
+                      'date',
                     ].indexOf(sortColumn),
                     sortAscending: sortAscending,
                     onSort: (columnIndex, ascending) {
-                      onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
+                      onSort(['height', 'amount', 'txid', 'date'][columnIndex]);
                     },
                     onDoubleTap: (rowId) {
                       final utxo = widget.entries.firstWhere(
