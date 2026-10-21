@@ -95,12 +95,11 @@ func (s *Server) SaveGroup(
 	// Build key PSBTs indexed by xpub (key ID resolved inside atomic op)
 	xpubToPSBTs := make(map[string][]multisig.KeyPSBT)
 	for _, k := range pg.Keys {
-		for txID, activePSBT := range k.ActivePsbts {
-			initialPSBT := k.InitialPsbts[txID]
+		for _, txID := range lo.UniqKeys(k.ActivePsbts, k.InitialPsbts) {
 			xpubToPSBTs[k.Xpub] = append(xpubToPSBTs[k.Xpub], multisig.KeyPSBT{
 				TransactionID: txID,
-				ActivePSBT:    activePSBT,
-				InitialPSBT:   initialPSBT,
+				ActivePSBT:    k.ActivePsbts[txID],
+				InitialPSBT:   k.InitialPsbts[txID],
 			})
 		}
 	}
