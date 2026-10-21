@@ -715,6 +715,55 @@ func TestService_AddressBook(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("one address keeps its label in both directions", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db))
+		const address = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+		walletID := "wallet-a"
+		require.NoError(t, addressbook.Create(ctx, db, &walletID, "", address, addressbook.DirectionReceive))
+
+		_, err := cli.CreateAddressBookEntry(ctx, &v1.CreateAddressBookEntryRequest{
+			Label:     "Reserve",
+			Address:   address,
+			Direction: v1.Direction_DIRECTION_SEND,
+		})
+		require.NoError(t, err)
+
+		other, err := cli.CreateAddressBookEntry(ctx, &v1.CreateAddressBookEntryRequest{
+			Label:     "Other",
+			Address:   "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
+			Direction: v1.Direction_DIRECTION_SEND,
+		})
+		require.NoError(t, err)
+		_, err = db.ExecContext(ctx, "UPDATE address_book SET created_at = ?", time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC))
+		require.NoError(t, err)
+		expected, err := addressbook.List(ctx, db)
+		require.NoError(t, err)
+		require.Len(t, expected, 3)
+		expected[0].Label = "Reserve"
+
+		for range 2 {
+			_, err = cli.UpdateAddressBookEntry(ctx, &v1.UpdateAddressBookEntryRequest{
+				Id: expected[0].ID, Label: "Reserve",
+			})
+			require.NoError(t, err)
+			entries, err := addressbook.List(ctx, db)
+			require.NoError(t, err)
+			require.Equal(t, expected, entries)
+		}
+
+		_, err = cli.UpdateAddressBookEntry(ctx, &v1.UpdateAddressBookEntryRequest{
+			Id: other.Entry.Id, Label: "Reserve",
+		})
+		require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+		entries, err := addressbook.List(ctx, db)
+		require.NoError(t, err)
+		require.Equal(t, expected, entries)
+	})
+
 	t.Run("list entries", func(t *testing.T) {
 		t.Parallel()
 

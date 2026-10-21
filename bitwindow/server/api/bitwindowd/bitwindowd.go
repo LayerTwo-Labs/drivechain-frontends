@@ -494,13 +494,24 @@ func (s *Server) ListAddressBook(ctx context.Context, req *emptypb.Empty) (*pb.L
 }
 
 func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *pb.UpdateAddressBookEntryRequest) (*emptypb.Empty, error) {
-	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Label), func(entry addressbook.Entry) bool {
+	entries, err := addressbook.List(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, "cannot read address book entries").WithCause(err)
+	}
+	target, ok := lo.Find(entries, func(entry addressbook.Entry) bool {
 		return entry.ID == req.Id
+	})
+	if !ok {
+		return nil, connect.NewError(connect.CodeNotFound, "address book entry not found")
+	}
+
+	if err := s.checkLabelFree(ctx, strings.TrimSpace(req.Label), func(entry addressbook.Entry) bool {
+		return entry.Address == target.Address
 	}); err != nil {
 		return nil, err
 	}
 
-	err := addressbook.UpdateLabel(ctx, s.db, req.Id, req.Label)
+	err = addressbook.UpdateLabel(ctx, s.db, req.Id, req.Label)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return nil, connect.NewError(connect.CodeNotFound, "address book entry not found")
