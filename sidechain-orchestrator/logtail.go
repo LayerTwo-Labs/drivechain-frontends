@@ -170,7 +170,7 @@ func (pm *ProcessManager) tailBinaryLog(
 	path := binaryLogPath(pm.dataDir, processName, stream)
 	shared, closeShared := pm.sharedLogWriter(processName)
 
-	go func() {
+	pm.tails.Go(func() {
 		defer close(done)
 		defer closeShared()
 
@@ -206,6 +206,6 @@ func (pm *ProcessManager) tailBinaryLog(
 				save()
 			}
 		})
-	}()
+	})
 	return done
 }

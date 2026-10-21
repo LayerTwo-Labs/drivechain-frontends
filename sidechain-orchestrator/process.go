@@ -35,12 +35,14 @@ type ManagedProcess struct {
 	Orphan       bool // true if a previous run of this install started it and left it behind
 	ForceBackend bool // true if this sidechain was launched with --force-backend (skips flutter_frontend variant)
 
-	mu       sync.Mutex
-	logs     []LogEntry // ring buffer
-	logSubs  []chan LogEntry
-	exitCh   chan struct{} // closed when process exits
-	exitCode int
-	exitErr  string
+	mu      sync.Mutex
+	logs    []LogEntry // ring buffer
+	logSubs []chan LogEntry
+	exitCh  chan struct{} // closed when process exits
+	// stopTails ends the log tails of an adopted process. It is nil for a spawned one.
+	stopTails func()
+	exitCode  int
+	exitErr   string
 	// exitDetails holds the rich crash message: stderr buffer or last
 	// error/fatal/panic lines from stdout, with `exitErr` (cmd.Wait
 	// status) as a fallback. Populated alongside the OnExit callback so
@@ -179,6 +181,7 @@ type ProcessManager struct {
 	processes  map[string]*ManagedProcess // keyed by config name
 	lastExited map[string]*ManagedProcess // last exited process, keyed by config name — keeps its logs readable
 	starting   map[string]bool            // names reserved by an in-flight StartWithOptions
+	tails      sync.WaitGroup
 
 	// OnExit is called when a process exits. The orchestrator uses this to
 	// pipe exit errors into ConnectionMonitor.connectionError for the UI.
@@ -703,7 +706,8 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 	orphan := pm.startedInAnEarlierRun(pidName, pid)
 
 	delete(pm.lastExited, config.Name)
-	pm.processes[config.Name] = &ManagedProcess{
+	tailStop := make(chan struct{})
+	adopted := &ManagedProcess{
 		Config:       config,
 		Pid:          pid,
 		BinPath:      binPath,
@@ -714,15 +718,16 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 		ForceBackend: forceBackend,
 		logs:         make([]LogEntry, 0),
 		exitCh:       make(chan struct{}),
+		stopTails:    sync.OnceFunc(func() { close(tailStop) }),
 	}
+	pm.processes[config.Name] = adopted
 
 	pm.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
 
 	// The adopted child still appends to the same files, so its log window
-	// fills again. The tails end when watchAdopted closes exitCh.
-	adopted := pm.processes[config.Name]
+	// fills again. The tails end when the process exits or leaves the manager.
 	for _, stream := range []string{"stdout", "stderr"} {
-		pm.tailBinaryLog(adopted, config.Name, stream, readLogOffset(pm.dataDir, config.Name, stream), adopted.exitCh, nil, nil)
+		pm.tailBinaryLog(adopted, config.Name, stream, readLogOffset(pm.dataDir, config.Name, stream), tailStop, nil, nil)
 	}
 
 	go pm.watchAdopted(config.Name, adopted)
@@ -758,6 +763,7 @@ func (pm *ProcessManager) watchAdopted(name string, proc *ManagedProcess) {
 
 		_ = pm.pidManager.DeletePidFile(proc.PidName)
 		pm.log.Info().Str("binary", name).Int("pid", proc.Pid).Msg("adopted process exited")
+		proc.stopTails()
 		close(proc.exitCh)
 		return
 	}
@@ -824,6 +830,9 @@ func (pm *ProcessManager) ForceBackendFor(name string) bool {
 func (pm *ProcessManager) Remove(name string) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
+	if proc, ok := pm.processes[name]; ok && proc.stopTails != nil {
+		proc.stopTails()
+	}
 	delete(pm.processes, name)
 }
 
