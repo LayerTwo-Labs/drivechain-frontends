@@ -598,7 +598,7 @@ class TransactionTable extends StatefulWidget {
 
 class _TransactionTableState extends State<TransactionTable> {
   String sortColumn = 'date';
-  bool sortAscending = true;
+  bool sortAscending = false;
 
   void onSort(String column) {
     setState(() {
