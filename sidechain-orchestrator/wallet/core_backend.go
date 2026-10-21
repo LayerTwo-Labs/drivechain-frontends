@@ -869,7 +869,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 				return p.rpc.SendToAddress(ctx, name, addr, amount, req.SubtractFeeFromAmount)
 			}
 		}
-		return p.rpc.SendMany(ctx, name, destinations)
+		return p.rpc.SendMany(ctx, name, destinations, req.SubtractFeeFromAmount)
 	}
 
 	// Replay protection stamps a magic locktime; Core lowers the inputs it is
