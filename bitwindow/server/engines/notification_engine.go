@@ -95,8 +95,7 @@ func (e *NotificationEngine) watchTimestamps(ctx context.Context) {
 func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
-	// Get all confirming timestamps
-	confirmingTimestamps, err := timestamps.List(ctx, e.db, timestamps.WithStatus(timestamps.StatusConfirming))
+	fileTimestamps, err := timestamps.List(ctx, e.db, timestamps.WithStatus(timestamps.StatusConfirming, timestamps.StatusConfirmed))
 	if err != nil {
 		return err
 	}
@@ -106,7 +105,7 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 		return err
 	}
 
-	for _, ts := range confirmingTimestamps {
+	for _, ts := range fileTimestamps {
 		// A discovered timestamp has no filename; this app did not create it.
 		if ts.TxID == nil || ts.Filename == "" {
 			continue
