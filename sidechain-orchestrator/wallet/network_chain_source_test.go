@@ -2,6 +2,8 @@ package wallet
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net"
@@ -95,6 +97,57 @@ func TestNetworkChainSource_FollowsNetworkSwap(t *testing.T) {
 	assert.EqualValues(t, 222, stats.ChainStats.FundedTxoSum, "read must follow the swap to mainnet")
 	assert.EqualValues(t, 1, ecash.hits.Load(), "eCash must not be queried after the swap")
 	assert.EqualValues(t, 1, mainnet.hits.Load())
+}
+
+func TestNetworkChainSourceReadsBlockTimeAfterNetworkSwap(t *testing.T) {
+	serve := func(txid string, timestamp uint32, headers *atomic.Int64) string {
+		return startFakeElectrum(t, func(method string, params []json.RawMessage) interface{} {
+			switch method {
+			case "blockchain.scripthash.listunspent":
+				return []map[string]interface{}{
+					{"tx_hash": txid, "tx_pos": 0, "height": 100, "value": 55_000},
+				}
+			case "blockchain.block.header":
+				headers.Add(1)
+				assert.Equal(t, []json.RawMessage{json.RawMessage("100")}, params)
+				header := make([]byte, 80)
+				binary.LittleEndian.PutUint32(header[68:72], timestamp)
+				return hex.EncodeToString(header)
+			}
+			return nil
+		})
+	}
+	var firstHeaders, secondHeaders atomic.Int64
+	nv := &networkVar{
+		network: "ecash",
+		urls: map[string][]string{
+			"ecash":   {serve("aa", 1700000000, &firstHeaders)},
+			"mainnet": {serve("bb", 1800000000, &secondHeaders)},
+		},
+		params: map[string]*chaincfg.Params{
+			"ecash":   &chaincfg.MainNetParams,
+			"mainnet": &chaincfg.MainNetParams,
+		},
+	}
+	src := NewNetworkChainSource(nv.resolve, zerolog.Nop())
+
+	coins, err := src.AddressUTXOs(t.Context(), mainnetAddress)
+	require.NoError(t, err)
+	require.Len(t, coins, 1)
+	assert.Equal(t, "aa", coins[0].TxID)
+	assert.EqualValues(t, 1700000000, coins[0].Status.BlockTime)
+	assert.EqualValues(t, 1, firstHeaders.Load())
+
+	nv.set("mainnet")
+	coins, err = src.AddressUTXOs(t.Context(), mainnetAddress)
+	require.NoError(t, err)
+	require.Len(t, coins, 1)
+	assert.Equal(t, "bb", coins[0].TxID)
+	assert.True(t, coins[0].Status.Confirmed)
+	assert.Equal(t, 100, coins[0].Status.BlockHeight)
+	assert.EqualValues(t, 1800000000, coins[0].Status.BlockTime)
+	assert.EqualValues(t, 1, secondHeaders.Load())
+	assert.EqualValues(t, 1, firstHeaders.Load())
 }
 
 // TestNetworkChainSource_SwitchesProtocolClass covers eCash (https Esplora) to

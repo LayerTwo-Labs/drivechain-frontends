@@ -782,6 +782,9 @@ func (c *ElectrumClient) SetBaseURLs(urls []string) {
 	c.serverURL = urls[0]
 	c.urlMu.Unlock()
 	c.resetConn()
+	c.cacheMu.Lock()
+	clear(c.headerTime)
+	c.cacheMu.Unlock()
 }
 
 func (c *ElectrumClient) ProxyConfig() (bool, string) {
