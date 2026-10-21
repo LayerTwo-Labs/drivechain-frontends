@@ -108,6 +108,24 @@ void main() {
     expect(market.isTrading, isTrue);
   });
 
+  test('market_get keeps the question and answers of each dimension, and the coordinates of each outcome', () {
+    final market = MarketData.fromJson(_decode(_marketGet));
+
+    expect([for (final d in market.dimensions) d.name], ['DAA', 'Block time']);
+    expect([for (final d in market.dimensions) d.decisionId], ['870000', '870001']);
+    expect([for (final d in market.dimensions) d.kind], [MarketDimensionKind.binary, MarketDimensionKind.binary]);
+    expect(market.dimensions.first.options, ['No', 'Yes']);
+    expect(
+      [for (final o in market.outcomes) o.coordinates],
+      [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ],
+    );
+  });
+
   test('market_positions reads an address with no position', () {
     final holdings = UserHoldings.fromJson(_decode(_marketPositions));
 

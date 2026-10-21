@@ -547,6 +547,9 @@ class MarketOutcome {
   final int index;
   final int displayIndex;
 
+  /// The answer index of each market dimension, in dimension order.
+  final List<int> coordinates;
+
   MarketOutcome({
     required this.name,
     String? label,
@@ -555,26 +558,79 @@ class MarketOutcome {
     required this.volumeSats,
     required this.index,
     required this.displayIndex,
+    this.coordinates = const [],
   }) : label = label ?? _lastAnswer(name);
 
   /// [dimensions] are the market dimensions the node sends. With them, the
   /// label names the answer of each decision.
-  factory MarketOutcome.fromJson(Map<String, dynamic> json, {List<dynamic>? dimensions}) {
+  factory MarketOutcome.fromJson(Map<String, dynamic> json, {List<MarketDimension> dimensions = const []}) {
     // The node names the fields label, price and outcome_index.
     final price = ((json['price'] ?? json['current_price'] ?? json['probability'] ?? 0) as num).toDouble();
+    final coordinates = [for (final coordinate in json['coordinates'] as List? ?? []) coordinate as int];
     return MarketOutcome(
       name: (json['label'] ?? json['name'])?.toString() ?? '',
-      label: _combinationLabel(json['coordinates'], dimensions),
+      label: _combinationLabel(coordinates, dimensions),
       currentPrice: price,
       probability: ((json['probability'] ?? price) as num).toDouble(),
       volumeSats: (json['volume_sats'] ?? 0) as int,
       index: (json['outcome_index'] ?? json['index'] ?? 0) as int,
       displayIndex: (json['full_state_index'] ?? json['display_index'] ?? json['outcome_index'] ?? 0) as int,
+      coordinates: coordinates,
     );
   }
 
   String get probabilityPercent => '${(probability * 100).toStringAsFixed(1)}%';
   String get pricePercent => '${(currentPrice * 100).toStringAsFixed(1)}%';
+}
+
+enum MarketDimensionKind { binary, scaled, category }
+
+/// One decision of a market, as market_get reports it.
+class MarketDimension {
+  final String decisionId;
+
+  /// The question of the decision.
+  final String name;
+  final MarketDimensionKind kind;
+
+  /// The answer labels, in coordinate order.
+  final List<String> options;
+
+  MarketDimension({
+    required this.decisionId,
+    required this.name,
+    required this.kind,
+    required this.options,
+  });
+
+  factory MarketDimension.fromJson(Map<String, dynamic> json) {
+    final kind = json['kind'] is Map<String, dynamic> ? json['kind'] as Map<String, dynamic> : const {};
+    final lower = kind['lower_label']?.toString() ?? 'No';
+    final upper = kind['upper_label']?.toString() ?? 'Yes';
+    final (type, options) = switch (kind['type']) {
+      'category' => (
+        MarketDimensionKind.category,
+        [for (final option in kind['options'] as List? ?? []) option.toString()],
+      ),
+      // Coordinate 0 is the share of the scale minimum, 1 the share of the maximum.
+      'scaled' => (
+        MarketDimensionKind.scaled,
+        ['$lower (${_scaleBound(kind['min'])})', '$upper (${_scaleBound(kind['max'])})'],
+      ),
+      _ => (MarketDimensionKind.binary, [lower, upper]),
+    };
+    return MarketDimension(
+      decisionId: json['decision_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      kind: type,
+      options: options,
+    );
+  }
+}
+
+String _scaleBound(Object? value) {
+  if (value is! num) return '?';
+  return value == value.roundToDouble() ? value.toInt().toString() : value.toString();
 }
 
 /// Full market data
@@ -594,6 +650,7 @@ class MarketData {
   final int totalVolumeSats;
   final double liquidity;
   final List<String> decisionSlots;
+  final List<MarketDimension> dimensions;
   final MarketResolution? resolution;
 
   MarketData({
@@ -612,14 +669,19 @@ class MarketData {
     required this.totalVolumeSats,
     required this.liquidity,
     required this.decisionSlots,
+    this.dimensions = const [],
     this.resolution,
   });
 
   factory MarketData.fromJson(Map<String, dynamic> json) {
+    final dimensions = [
+      for (final dimension in json['dimensions'] as List? ?? [])
+        if (dimension is Map<String, dynamic>) MarketDimension.fromJson(dimension),
+    ];
+
     List<MarketOutcome> parseOutcomes(dynamic outcomes) {
       if (outcomes == null) return [];
       if (outcomes is List) {
-        final dimensions = json['dimensions'] is List ? json['dimensions'] as List : null;
         return outcomes.map((o) => MarketOutcome.fromJson(o as Map<String, dynamic>, dimensions: dimensions)).toList();
       }
       return [];
@@ -656,6 +718,7 @@ class MarketData {
       totalVolumeSats: (json['total_volume_sats'] ?? 0) as int,
       liquidity: satoshiToBTC((json['liquidity_base_sats'] ?? 0) as int) + ((json['liquidity'] ?? 0) as num).toDouble(),
       decisionSlots: parseSlots(json['dimensions'] ?? json['decision_slots']),
+      dimensions: dimensions,
       resolution: json['resolution'] != null
           ? MarketResolution.fromJson(json['resolution'] as Map<String, dynamic>)
           : null,
@@ -894,20 +957,16 @@ String _lastAnswer(String name) {
 
 /// The answer of each dimension at [coordinates], joined. Null when the node
 /// sent no coordinate or no dimension for it.
-String? _combinationLabel(Object? coordinates, List<dynamic>? dimensions) {
-  if (coordinates is! List || dimensions == null || coordinates.length != dimensions.length) return null;
+String? _combinationLabel(List<int> coordinates, List<MarketDimension> dimensions) {
+  if (coordinates.isEmpty || coordinates.length != dimensions.length) return null;
   final answers = <String>[];
   for (var i = 0; i < coordinates.length; i++) {
+    final options = dimensions[i].options;
     final coordinate = coordinates[i];
-    final kind = (dimensions[i] as Map<String, dynamic>?)?['kind'];
-    if (coordinate is! int || kind is! Map<String, dynamic>) return null;
-    final options = kind['type'] == 'category'
-        ? [for (final option in kind['options'] as List? ?? []) option.toString()]
-        : [kind['lower_label']?.toString() ?? 'No', kind['upper_label']?.toString() ?? 'Yes'];
     if (coordinate < 0 || coordinate >= options.length) return null;
     answers.add(options[coordinate]);
   }
-  return answers.isEmpty ? null : answers.join(' · ');
+  return answers.join(' · ');
 }
 
 const _base58Alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
