@@ -438,6 +438,9 @@ func (p *ElectrumBackend) ListTransactionsRange(ctx context.Context, walletID st
 	// Newest first, matching Core's listtransactions default ordering after
 	// the frontend reverses it; sort by time descending here.
 	sort.SliceStable(rows, func(i, j int) bool {
+		if rows[i].Time == rows[j].Time {
+			return rows[i].TxID < rows[j].TxID
+		}
 		return rows[i].Time > rows[j].Time
 	})
 

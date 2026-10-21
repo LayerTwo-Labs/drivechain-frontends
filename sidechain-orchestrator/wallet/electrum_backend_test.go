@@ -1349,6 +1349,77 @@ func TestElectrumListTransactionsUnconfirmedTime(t *testing.T) {
 	assert.Equal(t, rows[0].Time, again[0].Time, "the first-seen time must not move")
 }
 
+func TestElectrumListTransactionsRangeKeepsPageOrder(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	const blockTime = int64(1700000000)
+	newerID, olderID := strings.Repeat("ff", 32), strings.Repeat("00", 32)
+	want := []string{newerID}
+	fake.txs[addr] = []EsploraTx{
+		{
+			TxID: newerID, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 1_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 101, BlockTime: blockTime + 600},
+		},
+		{
+			TxID: olderID, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 1_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 99, BlockTime: blockTime - 600},
+		},
+	}
+	for i := 1; i <= 201; i++ {
+		id := fmt.Sprintf("%064x", i)
+		want = append(want, id)
+		fake.txs[addr] = append(fake.txs[addr], EsploraTx{
+			TxID: id, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 1_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: blockTime},
+		})
+	}
+	want = append(want, olderID)
+	fake.stats[addr] = EsploraAddressStats{
+		Address: addr, ChainStats: EsploraTxoStats{FundedTxoCount: 203, FundedTxoSum: 203_000, TxCount: 203},
+	}
+
+	var first []WalletTransaction
+	for pass := range 2 {
+		var rows []WalletTransaction
+		for _, skip := range []int{0, 100, 200} {
+			page, err := p.ListTransactionsRange(t.Context(), w.ID, 100, skip)
+			require.NoError(t, err)
+			require.Len(t, page, min(100, len(want)-skip))
+			rows = append(rows, page...)
+		}
+		ids := lo.Map(rows, func(row WalletTransaction, _ int) string { return row.TxID })
+		require.Len(t, lo.Uniq(ids), len(want))
+		require.Equal(t, want, ids)
+		if pass == 0 {
+			first = rows
+		} else {
+			assert.Equal(t, first, rows)
+		}
+	}
+}
+
+func TestElectrumListTransactionsRangeKeepsOutputOrder(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	fake.stats[addr] = EsploraAddressStats{
+		Address: addr, ChainStats: EsploraTxoStats{FundedTxoCount: 3, FundedTxoSum: 6_000, TxCount: 1},
+	}
+	fake.txs[addr] = []EsploraTx{{
+		TxID: strings.Repeat("11", 32),
+		Vout: []EsploraVout{
+			{ScriptPubKeyAddress: addr, Value: 3_000},
+			{ScriptPubKeyAddress: addr, Value: 1_000},
+			{ScriptPubKeyAddress: addr, Value: 2_000},
+		},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+	}}
+
+	for skip := range 3 {
+		rows, err := p.ListTransactionsRange(t.Context(), w.ID, 1, skip)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		assert.Equal(t, skip, rows[0].Vout)
+	}
+}
+
 // TestElectrumWatchOnlyDescriptorWatchesCorrectAddress imports a real wpkh
 // descriptor (origin prefix + /0/* branch) and proves the wallet scans exactly
 // the address that descriptor derives — i.e. the balance lands on the same
