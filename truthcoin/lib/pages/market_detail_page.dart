@@ -11,6 +11,7 @@ import 'package:truthcoin/models/market.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/price_history_provider.dart';
+import 'package:truthcoin/routing/router.dart';
 import 'package:truthcoin/widgets/market_card.dart';
 import 'package:truthcoin/widgets/price_chart.dart';
 
@@ -150,9 +151,7 @@ class _BackRow extends StatelessWidget {
           label: '←  Markets',
           variant: ButtonVariant.link,
           small: true,
-          // The page sits in the Markets tab stack, so the nearest router
-          // owns it, not the root one.
-          onPressed: () async => AutoRouter.of(context).maybePop(),
+          onPressed: () async => AutoRouter.of(context).replaceAll([const MarketExplorerRoute()]),
         ),
         const Spacer(),
         SailButton(

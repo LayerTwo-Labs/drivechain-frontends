@@ -325,7 +325,9 @@ class MarketExplorerViewModel extends BaseViewModel {
 
   void init() {
     _marketProvider.addListener(_onProviderChange);
-    loadMarkets();
+    // The load notifies the market page too, and that page still listens
+    // while the back button builds this page.
+    WidgetsBinding.instance.addPostFrameCallback((_) => loadMarkets());
   }
 
   void _onProviderChange() {
