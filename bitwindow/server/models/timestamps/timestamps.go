@@ -98,7 +98,7 @@ func Update(ctx context.Context, db *sql.DB, id int64, txid *string, blockHeight
 }
 
 type ListOpts struct {
-	Status *Status
+	Statuses []Status
 }
 
 func List(ctx context.Context, db *sql.DB, opts ...func(*ListOpts)) ([]FileTimestamp, error) {
@@ -109,8 +109,8 @@ func List(ctx context.Context, db *sql.DB, opts ...func(*ListOpts)) ([]FileTimes
 
 	query := selectTimestamp.OrderBy("created_at DESC")
 
-	if conf.Status != nil {
-		query = query.Where(sq.Eq{"status": *conf.Status})
+	if len(conf.Statuses) > 0 {
+		query = query.Where(sq.Eq{"status": conf.Statuses})
 	}
 
 	sql, args := query.MustSql()
@@ -121,9 +121,9 @@ func List(ctx context.Context, db *sql.DB, opts ...func(*ListOpts)) ([]FileTimes
 	return timestamps, nil
 }
 
-func WithStatus(status Status) func(*ListOpts) {
+func WithStatus(statuses ...Status) func(*ListOpts) {
 	return func(opts *ListOpts) {
-		opts.Status = &status
+		opts.Statuses = statuses
 	}
 }
 

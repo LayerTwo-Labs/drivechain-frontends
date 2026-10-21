@@ -190,30 +190,34 @@ func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
 }
 
 func TestCheckTimestampConfirmations_SkipsDiscovered(t *testing.T) {
-	ctx := t.Context()
-	db := database.Test(t)
+	for _, status := range []timestamps.Status{timestamps.StatusConfirming, timestamps.StatusConfirmed} {
+		t.Run(string(status), func(t *testing.T) {
+			ctx := t.Context()
+			db := database.Test(t)
 
-	txid := "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-	_, err := timestamps.Create(ctx, db, timestamps.FileTimestamp{
-		FileHash:  "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-		TxID:      &txid,
-		Status:    timestamps.StatusConfirming,
-		CreatedAt: time.Now(),
-	})
-	require.NoError(t, err)
+			txid := "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+			_, err := timestamps.Create(ctx, db, timestamps.FileTimestamp{
+				FileHash:  "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+				TxID:      &txid,
+				Status:    status,
+				CreatedAt: time.Now(),
+			})
+			require.NoError(t, err)
 
-	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
-	engine := NewNotificationEngine(db, service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
-		return core, nil
-	}), nil)
-	events := engine.Subscribe(ctx)
+			core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+			engine := NewNotificationEngine(db, service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+				return core, nil
+			}), nil)
+			events := engine.Subscribe(ctx)
 
-	require.NoError(t, engine.checkTimestampConfirmations(ctx))
+			require.NoError(t, engine.checkTimestampConfirmations(ctx))
 
-	select {
-	case event := <-events:
-		t.Fatalf("announced a discovered timestamp: %v", event)
-	default:
+			select {
+			case event := <-events:
+				t.Fatalf("announced a discovered timestamp: %v", event)
+			default:
+			}
+		})
 	}
 }
 
@@ -386,6 +390,89 @@ func TestCheckTimestampConfirmations_NoSubscriberKeepsTheEvent(t *testing.T) {
 	notified, err = notifications.HasBeenNotified(ctx, db, notifications.EventTypeTimestamp, fmt.Sprintf("%d", id))
 	require.NoError(t, err)
 	require.True(t, notified)
+}
+
+func TestCheckTimestampConfirmations_PollOrderKeepsTheEvent(t *testing.T) {
+	for _, test := range []struct {
+		name                string
+		confirmFirst        bool
+		pollBeforeSubscribe bool
+	}{
+		{name: "timestamp engine first", confirmFirst: true},
+		{name: "timestamp engine first without a subscriber", confirmFirst: true, pollBeforeSubscribe: true},
+		{name: "notification engine first"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := t.Context()
+			db := database.Test(t)
+			txid := "3333333333333333333333333333333333333333333333333333333333333333"
+			id, err := timestamps.Create(ctx, db, timestamps.FileTimestamp{
+				Filename:  "a.txt",
+				FileHash:  "4444444444444444444444444444444444444444444444444444444444444444",
+				TxID:      &txid,
+				Status:    timestamps.StatusConfirming,
+				CreatedAt: time.Now(),
+			})
+			require.NoError(t, err)
+
+			core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+			bitcoind := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+				return core, nil
+			})
+			stamp := NewTimestampEngine(db, nil, bitcoind, nil)
+			engine := NewNotificationEngine(db, bitcoind, nil)
+			calls := 2
+			if test.pollBeforeSubscribe {
+				calls++
+			}
+			core.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&corepb.GetBlockchainInfoResponse{}), nil)
+			core.EXPECT().GetRawTransaction(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&corepb.GetRawTransactionResponse{
+					Confirmations: 1,
+					Blockhash:     "0000000000000000000000000000000000000000000000000000000000000abc",
+				}), nil).Times(calls)
+			core.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&corepb.GetBlockResponse{Height: 123}), nil).Times(calls)
+
+			if test.confirmFirst {
+				require.NoError(t, stamp.checkConfirmations(ctx))
+			}
+			eventID := fmt.Sprintf("%d", id)
+			if test.pollBeforeSubscribe {
+				require.NoError(t, engine.checkTimestampConfirmations(ctx))
+				notified, err := notifications.HasBeenNotified(ctx, db, notifications.EventTypeTimestamp, eventID)
+				require.NoError(t, err)
+				require.False(t, notified)
+			}
+
+			events := engine.Subscribe(ctx)
+			require.NoError(t, engine.checkTimestampConfirmations(ctx))
+			event := nextEvent(t, events).GetTimestampEvent()
+			require.Equal(t, notificationv1.TimestampEvent_TYPE_CONFIRMED, event.GetType())
+			require.Equal(t, id, event.GetId())
+			require.Equal(t, "a.txt", event.GetFilename())
+			require.Equal(t, txid, event.GetTxid())
+			require.Equal(t, int64(123), event.GetBlockHeight())
+
+			if !test.confirmFirst {
+				require.NoError(t, stamp.checkConfirmations(ctx))
+			}
+			stored, err := timestamps.Get(ctx, db, id)
+			require.NoError(t, err)
+			require.Equal(t, timestamps.StatusConfirmed, stored.Status)
+			notified, err := notifications.HasBeenNotified(ctx, db, notifications.EventTypeTimestamp, eventID)
+			require.NoError(t, err)
+			require.True(t, notified)
+
+			require.NoError(t, engine.checkTimestampConfirmations(ctx))
+			select {
+			case event := <-events:
+				t.Fatalf("received a duplicate notification: %v", event)
+			default:
+			}
+		})
+	}
 }
 
 func TestCheckTimestampConfirmations_BlockErrorSendsNothing(t *testing.T) {
