@@ -278,12 +278,6 @@ func (h *Handler) ConfirmPendingNetworkGeneration(ctx context.Context, req *pb.C
 	return &pb.ConfirmPendingNetworkGenerationResponse{}, nil
 }
 
-// StartWithL1 dispatches a boot goroutine and returns immediately. The
-// goroutine uses context.Background() so that a transport blip / client
-// disconnect on this RPC can't cancel an in-flight bitcoind download or
-// kill a partway-launched daemon. Callers poll GetSyncStatus for download
-// + sync state and ListBinaries for connection state — neither depends
-// on this RPC's lifetime.
 func (h *Handler) StartWithL1(ctx context.Context, req *pb.StartWithL1Request) (*pb.StartWithL1Response, error) {
 	opts := orchestrator.StartOpts{
 		TargetArgs:   req.TargetArgs,
@@ -294,10 +288,42 @@ func (h *Handler) StartWithL1(ctx context.Context, req *pb.StartWithL1Request) (
 		ForceBackend: req.ForceBackend,
 	}
 	target := req.Target
+	bootContext := context.Background()
+	if req.Wait {
+		bootContext = ctx
+	}
 
-	ch, err := h.orch.StartWithL1(context.Background(), target, opts)
+	ch, err := h.orch.StartWithL1(bootContext, target, opts)
 	if err != nil {
+		if req.Wait {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
+		}
 		return nil, err
+	}
+
+	if req.Wait {
+		for {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case progress, ok := <-ch:
+				if !ok {
+					if err := ctx.Err(); err != nil {
+						return nil, err
+					}
+					return &pb.StartWithL1Response{}, nil
+				}
+				if progress.Error != nil {
+					if err := ctx.Err(); err != nil {
+						return nil, err
+					}
+					return nil, connect.NewError(connect.CodeFailedPrecondition, progress.Error.Error()).WithCause(progress.Error)
+				}
+			}
+		}
 	}
 
 	// Drain in the background so the channel doesn't fill and block the

@@ -259,6 +259,9 @@ func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args [
 
 // StartWithOptions is Start with per-call overrides (see ProcessStartOptions).
 func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryConfig, args []string, env map[string]string, opts ProcessStartOptions) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
 	if pm.BeforeStart != nil {
 		if err := pm.BeforeStart(ctx, config); err != nil {
 			return 0, err
@@ -332,7 +335,10 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 	cmd.Stdout = stdoutFile
 	cmd.Stderr = stderrFile
 
-	startErr := cmd.Start()
+	startErr := ctx.Err()
+	if startErr == nil {
+		startErr = cmd.Start()
+	}
 	stdoutFile.Close() //nolint:errcheck // the child holds its own descriptor
 	stderrFile.Close() //nolint:errcheck // the child holds its own descriptor
 	if startErr != nil {

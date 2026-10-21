@@ -30,6 +30,49 @@ func TestProcessManager_StartAndStop(t *testing.T) {
 	assert.False(t, pm.IsRunning("sleep-test"))
 }
 
+func TestProcessManagerRejectsCancellationDuringStartCheck(t *testing.T) {
+	o := newTestOrchestrator(t)
+	pm := o.process
+	symlinkSystemBinary(t, o.DataDir, "sleep")
+	stopOnCleanup(t, pm, "enforcer")
+
+	o.migrationMu.Lock()
+	release := sync.OnceFunc(o.migrationMu.Unlock)
+	defer release()
+	entered := make(chan struct{})
+	beforeStart := pm.BeforeStart
+	pm.BeforeStart = func(ctx context.Context, cfg BinaryConfig) error {
+		close(entered)
+		return beforeStart(ctx, cfg)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	done := make(chan struct{})
+	var pid int
+	var err error
+	go func() {
+		defer close(done)
+		pid, err = pm.Start(ctx, BinaryConfig{Name: "enforcer", BinaryName: "sleep"}, []string{"30"}, nil)
+	}()
+
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the start check did not begin")
+	}
+	cancel()
+	release()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the start did not return after cancellation")
+	}
+
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.Zero(t, pid)
+	assert.False(t, pm.IsRunning("enforcer"))
+}
+
 func TestProcessManager_ConcurrentStartSpawnsOnce(t *testing.T) {
 	pm, dir := newTestProcessManager(t)
 	symlinkSystemBinary(t, dir, "sleep")

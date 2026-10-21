@@ -31,11 +31,7 @@ service OrchestratorService {
   // Stream stdout/stderr from a binary.
   rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
 
-  // Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
-  // target). Fire-and-forget on the server: returns as soon as the boot
-  // goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
-  // download progress and connection state — never tied to this RPC's
-  // lifetime, so a transport blip can't kill an in-flight download.
+  // Start a binary and its L1 dependencies. The call returns at once unless wait is true.
   rpc StartWithL1(StartWithL1Request) returns (StartWithL1Response);
 
   // Stop the named binary and start it again, single-daemon scope. Never
@@ -372,6 +368,8 @@ message StartWithL1Request {
   // Flutter apps set this when self-booting their backend so the toggle
   // doesn't re-spawn another Flutter bundle inside them.
   bool force_backend = 7;
+  // Wait for startup to complete. A canceled request stops startup.
+  bool wait = 8;
 }
 
 message StartWithL1Response {}

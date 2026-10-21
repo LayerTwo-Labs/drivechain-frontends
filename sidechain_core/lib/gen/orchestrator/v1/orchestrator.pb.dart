@@ -1675,6 +1675,7 @@ class StartWithL1Request extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? enforcerArgs,
     $core.bool? immediate,
     $core.bool? forceBackend,
+    $core.bool? wait,
   }) {
     final $result = create();
     if (target != null) {
@@ -1698,6 +1699,9 @@ class StartWithL1Request extends $pb.GeneratedMessage {
     if (forceBackend != null) {
       $result.forceBackend = forceBackend;
     }
+    if (wait != null) {
+      $result.wait = wait;
+    }
     return $result;
   }
   StartWithL1Request._() : super();
@@ -1712,6 +1716,7 @@ class StartWithL1Request extends $pb.GeneratedMessage {
     ..pPS(5, _omitFieldNames ? '' : 'enforcerArgs')
     ..aOB(6, _omitFieldNames ? '' : 'immediate')
     ..aOB(7, _omitFieldNames ? '' : 'forceBackend')
+    ..aOB(8, _omitFieldNames ? '' : 'wait')
     ..hasRequiredFields = false
   ;
 
@@ -1778,6 +1783,16 @@ class StartWithL1Request extends $pb.GeneratedMessage {
   $core.bool hasForceBackend() => $_has(6);
   @$pb.TagNumber(7)
   void clearForceBackend() => clearField(7);
+
+  /// Wait for startup to complete. A canceled request stops startup.
+  @$pb.TagNumber(8)
+  $core.bool get wait => $_getBF(7);
+  @$pb.TagNumber(8)
+  set wait($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasWait() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearWait() => clearField(8);
 }
 
 class StartWithL1Response extends $pb.GeneratedMessage {
