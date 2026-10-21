@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -211,12 +212,12 @@ func TestScanWalletFetchesANonNotificationOnce(t *testing.T) {
 	require.Equal(t, 3, chain.fetch, "the dust receive is fetched once, the failed fetch is tried again")
 }
 
-// restoreBackend records the keys the engine registers again. No probe
-// address has received, so the window never grows.
 type restoreBackend struct {
 	wallet.Bip47Backend
 	restored [][]wallet.WatchKey
 	watched  int
+	keys     []wallet.WatchKey
+	received []wallet.ReceivedByAddress
 }
 
 func (r *restoreBackend) RestoreWatchKeys(_ context.Context, _ string, keys []wallet.WatchKey) error {
@@ -224,13 +225,14 @@ func (r *restoreBackend) RestoreWatchKeys(_ context.Context, _ string, keys []wa
 	return nil
 }
 
-func (r *restoreBackend) WatchKeys(context.Context, string, []wallet.WatchKey) error {
+func (r *restoreBackend) WatchKeys(_ context.Context, _ string, keys []wallet.WatchKey) error {
 	r.watched++
+	r.keys = append(r.keys, keys...)
 	return nil
 }
 
 func (r *restoreBackend) ListReceivedByAddress(context.Context, string) ([]wallet.ReceivedByAddress, error) {
-	return nil, nil
+	return r.received, nil
 }
 
 // An electrum backend forgets its watch keys on a restart. The new process
@@ -255,6 +257,63 @@ func TestExtendImportsRestoresTheWindowAfterARestart(t *testing.T) {
 	require.Len(t, backend.restored[0], bip47GapLimit)
 	require.Equal(t, int64(1700000000), backend.restored[0][0].RescanFrom)
 	require.Zero(t, backend.watched, "an unused probe does not grow the window")
+}
+
+func TestExtendImportsChecksTheLastThreeAddresses(t *testing.T) {
+	net := &chaincfg.MainNetParams
+	const walletID = "W1"
+	alice, err := bip47.PaymentCodeFromSeed(aliceSeedHex, net)
+	require.NoError(t, err)
+	senderPub, err := alice.NotificationPubKey()
+	require.NoError(t, err)
+
+	for _, tc := range []struct {
+		name      string
+		paidIndex int
+		wantEnd   uint32
+	}{
+		{name: "no receipt", paidIndex: -1, wantEnd: 20},
+		{name: "index 17", paidIndex: 17, wantEnd: 40},
+		{name: "index 18", paidIndex: 18, wantEnd: 40},
+		{name: "index 19", paidIndex: 19, wantEnd: 40},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			store := bip47state.NewInboundStore(dir)
+			require.NoError(t, store.RecordInbound(walletID, alice.Base58(), "notification-txid", 100, 1700000000))
+			require.NoError(t, store.BumpImportedIndex(walletID, alice.Base58(), 20))
+
+			backend := &restoreBackend{}
+			if tc.paidIndex >= 0 {
+				address, _, err := bip47.DeriveReceivedPaymentAddress(bobSeedHex, senderPub, uint32(tc.paidIndex), net, bip47.AddressP2PKH)
+				require.NoError(t, err)
+				backend.received = []wallet.ReceivedByAddress{{Address: address.EncodeAddress(), Amount: 1000, TxIDs: []string{"payment-txid"}}}
+			}
+			e := NewBIP47Engine(zerolog.Nop(), nil, wallet.NewWalletEngine(nil, backend, func() *chaincfg.Params { return net }, zerolog.Nop()), store)
+
+			require.NoError(t, e.extendImports(t.Context(), walletID, bobSeedHex, net))
+
+			saved, err := bip47state.NewInboundStore(dir).Get(walletID, alice.Base58())
+			require.NoError(t, err)
+			require.NotNil(t, saved)
+			require.Equal(t, tc.wantEnd, saved.ImportedThroughIndex)
+			if tc.paidIndex < 0 {
+				require.Zero(t, backend.watched)
+				require.Empty(t, backend.keys)
+				return
+			}
+			require.Equal(t, 1, backend.watched)
+			require.Len(t, backend.keys, 20)
+			for i, key := range backend.keys {
+				_, privateKey, err := bip47.DeriveReceivedPaymentAddress(bobSeedHex, senderPub, uint32(20+i), net, bip47.AddressP2PKH)
+				require.NoError(t, err)
+				wif, err := btcutil.DecodeWIF(key.WIF)
+				require.NoError(t, err)
+				require.Equal(t, privateKey.Serialize(), wif.PrivKey.Serialize())
+				require.Equal(t, int64(1700000000), key.RescanFrom)
+			}
+		})
+	}
 }
 
 // A light chain source does not label the OP_RETURN output the way Core does.
