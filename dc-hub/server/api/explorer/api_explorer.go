@@ -388,6 +388,9 @@ func (s *Server) getSidechainTip(ctx context.Context, sidechain lo.Tuple2[string
 	if err := json.Unmarshal(rawHeight, &height); err != nil {
 		return nil, err
 	}
+	if height > 0 {
+		height--
+	}
 
 	return &pb.ChainTip{
 		Status:    pb.ChainTipStatus_CHAIN_TIP_STATUS_ACTIVE,
