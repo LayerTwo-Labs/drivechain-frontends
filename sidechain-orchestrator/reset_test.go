@@ -111,6 +111,54 @@ func TestGather_SoftwareComesFromTheDataDir(t *testing.T) {
 	assert.Contains(t, paths, installed)
 }
 
+func TestResetClearsTheSavedNodeMode(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		binary     ResetBinary
+		categories []ResetCategory
+		mode       NodeMode
+		want       NodeMode
+	}{
+		{"settings", ResetBinaryBitwindowd, []ResetCategory{catSettings}, NodeModeFull, NodeModeUnset},
+		{"full", ResetBinaryBitwindowd, allCategories(), NodeModeLight, NodeModeUnset},
+		{"other categories", ResetBinaryBitwindowd, []ResetCategory{catData, catSoftware, catLogs, catWallet}, NodeModeFull, NodeModeFull},
+		{"sidechain settings", ResetBinaryBitNames, []ResetCategory{catSettings}, NodeModeLight, NodeModeLight},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			setTestHome(t)
+			dataDir, bitwindowDir := t.TempDir(), t.TempDir()
+			o := New(dataDir, "signet", bitwindowDir, AllDefaults(), testLogger(t))
+			require.NoError(t, WriteNodeMode(bitwindowDir, test.mode))
+			require.NoError(t, WriteNodeMode(dataDir, NodeModeFull))
+			defaultDir := config.BitWindowDirs.RootDir()
+			require.NoError(t, WriteNodeMode(defaultDir, NodeModeLight))
+			require.Equal(t, test.mode, o.NodeMode())
+
+			specs := []GatherSpec{{Binary: test.binary, Categories: test.categories}}
+			files, err := o.GatherFilesToDelete(specs)
+			require.NoError(t, err)
+			paths := lo.Map(files, func(file ResetFileInfo, _ int) string { return file.Path })
+			if test.want == NodeModeUnset {
+				require.Contains(t, paths, nodeModePath(bitwindowDir))
+			} else {
+				require.NotContains(t, paths, nodeModePath(bitwindowDir))
+			}
+			require.NotContains(t, paths, nodeModePath(dataDir))
+			require.NotContains(t, paths, nodeModePath(defaultDir))
+
+			events, err := o.DeleteFiles(t.Context(), paths, specs)
+			require.NoError(t, err)
+			for event := range events {
+				require.Equal(t, "", event.Error, "path %s", event.Path)
+			}
+			assert.Equal(t, test.want, ReadNodeMode(bitwindowDir))
+			assert.Equal(t, test.want, o.NodeMode())
+			assert.Equal(t, NodeModeFull, ReadNodeMode(dataDir))
+			assert.Equal(t, NodeModeLight, ReadNodeMode(defaultDir))
+		})
+	}
+}
+
 func TestGather_OnlyRequestedCategories(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 

@@ -231,6 +231,9 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 				add(cat, spec.Binary, dc.GetLogPaths(networkDir, o.log))
 			case catSettings:
 				add(cat, spec.Binary, dc.GetSettingsPaths(networkDir, network, o.log))
+				if spec.Binary == ResetBinaryBitwindowd {
+					add(cat, spec.Binary, config.GetExistingFilesInDir(o.BitwindowDir, []string{nodeModeFileName}, o.log))
+				}
 			case catWallet:
 				add(cat, spec.Binary, dc.GetWalletPaths(networkDir, network, o.log))
 				// bitwindowd's master wallet lives at the flat <bitwindowDir>/
