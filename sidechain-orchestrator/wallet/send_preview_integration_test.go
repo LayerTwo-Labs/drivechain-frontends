@@ -214,3 +214,62 @@ func TestPreviewSendBip47OneCoinSendsBoth(t *testing.T) {
 		require.NoError(t, err, "transaction %s is in the mempool", txid)
 	}
 }
+
+func TestCoreBumpFeeAddsACoin(t *testing.T) {
+	h := testharness.New(t, 1)
+	defer h.Close()
+	node := h.Nodes[0]
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	client := node.WalletClient
+	walletID, address := smallCoinWallet(ctx, t, node, 2)
+	coins, err := client.ListUnspent(ctx, &pb.ListUnspentRequest{WalletId: walletID})
+	require.NoError(t, err)
+	require.Len(t, coins.Utxos, 2)
+	_, err = client.SetFrozenCoins(ctx, &pb.SetFrozenCoinsRequest{
+		Outpoints: []*pb.FrozenOutpoint{{Txid: coins.Utxos[1].Txid, Vout: coins.Utxos[1].Vout}},
+	})
+	require.NoError(t, err)
+
+	sent, err := client.SendTransaction(ctx, &pb.SendTransactionRequest{
+		WalletId:           walletID,
+		Destinations:       map[string]int64{address: 90_000},
+		FeeRateSatPerVbyte: 1,
+		Replaceable:        true,
+	})
+	require.NoError(t, err)
+	original, err := node.CoreRPC.GetRawTransaction(ctx, sent.Txid)
+	require.NoError(t, err)
+	require.Len(t, original.Vin, 1)
+	_, err = client.SetFrozenCoins(ctx, &pb.SetFrozenCoinsRequest{})
+	require.NoError(t, err)
+
+	preview, err := client.PreviewBumpFee(ctx, &pb.PreviewBumpFeeRequest{
+		WalletId: walletID, Txid: sent.Txid, NewFeeRate: 100,
+	})
+	require.NoError(t, err)
+	require.True(t, preview.CanReplace)
+	require.True(t, preview.AddsInputs)
+	require.Nil(t, preview.Plan)
+
+	result, err := client.BumpFee(ctx, &pb.BumpFeeRequest{
+		WalletId: walletID, Txid: sent.Txid, NewFeeRate: 100,
+	})
+	require.NoError(t, err)
+	replacement, err := node.CoreRPC.GetRawTransaction(ctx, result.NewTxid)
+	require.NoError(t, err)
+	require.Len(t, replacement.Vin, 2)
+	var payment int64
+	for _, output := range replacement.Vout {
+		if output.ScriptPubKey.Address == address {
+			payment += int64(math.Round(output.Value * 1e8))
+		}
+	}
+	require.Equal(t, int64(90_000), payment)
+	entry, err := node.CoreRPC.GetMempoolEntry(ctx, result.NewTxid)
+	require.NoError(t, err)
+	require.NotNil(t, result.Plan)
+	require.Equal(t, int64(math.Round(entry.Fees.Base*1e8)), result.Plan.NewFeeSats)
+	require.Equal(t, preview.OldFeeSats, result.Plan.OldFeeSats)
+	require.GreaterOrEqual(t, result.Plan.NewFeeRateSatVb, float64(100))
+}
