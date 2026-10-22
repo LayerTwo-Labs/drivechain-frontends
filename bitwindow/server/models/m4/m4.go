@@ -25,7 +25,7 @@ type BundleStatus string
 const (
 	BundleStatusPending  BundleStatus = "pending"
 	BundleStatusApproved BundleStatus = "approved" // more ACKs than the inclusion threshold
-	BundleStatusFailed   BundleStatus = "failed"   // expired at or below the inclusion threshold
+	BundleStatusFailed   BundleStatus = "failed"   // expired without payout
 	BundleStatusExpired  BundleStatus = "expired"
 )
 
@@ -37,6 +37,7 @@ type M4Message struct {
 	BlockTime   time.Time `db:"block_time"`
 	RawBytes    []byte    `db:"raw_bytes"`
 	Version     uint8     `db:"version"`
+	OutputIndex uint32
 	Votes       []M4Vote
 	CreatedAt   time.Time `db:"created_at"`
 }
@@ -67,6 +68,8 @@ type M3Message struct {
 	BlockTime     time.Time
 	SidechainSlot uint8
 	BundleHash    string // hex encoded
+	VoteHeight    uint32
+	OutputIndex   uint32
 	CreatedAt     time.Time
 }
 

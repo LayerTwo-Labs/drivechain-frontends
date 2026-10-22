@@ -212,7 +212,10 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 		// before first_seen_height + max_age, so one that aged out below the
 		// window stays. approved needs only a score, which any block can reach.
 		lowest, err := database.Get[sql.NullInt64](ctx, tx, `
-			SELECT MIN(first_seen_height) FROM withdrawal_bundles
+			SELECT MIN(COALESCE((
+				SELECT MIN(m.block_height) FROM m3_messages m
+				WHERE m.sidechain_slot = b.sidechain_slot AND m.bundle_hash = b.bundle_hash
+			), first_seen_height)) FROM withdrawal_bundles b
 			WHERE last_updated_height >= ?
 			   OR (status_stamped = 0 AND status = 'approved' AND first_seen_height < ?)
 			   OR (status_stamped = 0 AND status IN ('failed', 'expired')

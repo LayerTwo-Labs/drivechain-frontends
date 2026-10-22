@@ -21,6 +21,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -30,6 +31,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	commonpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 )
@@ -587,7 +589,81 @@ func (p *Parser) applyPendingM4(ctx context.Context) error {
 	}
 
 	height := min(processed.Height, tip.GetBlockHeaderInfo().GetHeight())
-	return p.m4Engine.ApplyPendingM4(ctx, height, sidechains.GetSidechains())
+	oldProposals, err := database.Select[uint32](ctx, p.db, `
+		SELECT DISTINCT m3.block_height FROM m3_messages m3
+		JOIN m4_messages m4 ON m4.block_height = m3.block_height
+		WHERE m3.vote_height IS NULL AND m3.block_height <= ?
+		ORDER BY m3.block_height
+	`, height)
+	if err != nil {
+		return fmt.Errorf("list old M3 blocks: %w", err)
+	}
+	for _, blockHeight := range oldProposals {
+		block, err := p.getBlock(ctx, blockHeight)
+		if err != nil {
+			return fmt.Errorf("read old M3 block: %w", err)
+		}
+		if err := p.m4Engine.ProcessBlock(ctx, blockHeight, block); err != nil {
+			return fmt.Errorf("read old M3 order: %w", err)
+		}
+	}
+	pending, err := p.m4Engine.pendingM4Messages(ctx, height)
+	if err != nil {
+		return fmt.Errorf("list pending M4: %w", err)
+	}
+	var payouts []m6Event
+	if len(pending) > 0 {
+		var startHash sql.NullString
+		if err := p.db.QueryRowContext(ctx, `
+			SELECT COALESCE(
+				(SELECT block_hash FROM m4_messages
+				 WHERE applied = 1 AND block_height <= ? ORDER BY block_height DESC LIMIT 1),
+				(SELECT block_hash FROM m3_messages
+				 WHERE block_height <= ? ORDER BY block_height LIMIT 1)
+			)
+		`, height, height).Scan(&startHash); err != nil {
+			return fmt.Errorf("get M4 replay start: %w", err)
+		}
+		if startHash.Valid {
+			end := pending[len(pending)-1]
+			for _, sidechain := range sidechains.GetSidechains() {
+				if sidechain.GetActivationHeight().GetValue() > end.BlockHeight {
+					continue
+				}
+				slot := sidechain.GetSidechainNumber().GetValue()
+				data, err := client.GetTwoWayPegData(ctx, &validatorpb.GetTwoWayPegDataRequest{
+					SidechainId:    wrapperspb.UInt32(slot),
+					StartBlockHash: &commonpb.ReverseHex{Hex: wrapperspb.String(startHash.String)},
+					EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(end.BlockHash)},
+				})
+				if err != nil {
+					return fmt.Errorf("get M4 payout events: %w", err)
+				}
+				for _, block := range data.GetBlocks() {
+					for _, event := range block.GetBlockInfo().GetEvents() {
+						bundle := event.GetWithdrawalBundle()
+						if bundle.GetEvent().GetSucceeded() == nil {
+							continue
+						}
+						raw, err := hex.DecodeString(bundle.GetM6Id().GetHex().GetValue())
+						if err != nil {
+							return fmt.Errorf("decode M6 payout hash: %w", err)
+						}
+						hash, err := chainhash.NewHash(raw)
+						if err != nil {
+							return fmt.Errorf("read M6 payout hash: %w", err)
+						}
+						payouts = append(payouts, m6Event{
+							height: block.GetBlockHeaderInfo().GetHeight(),
+							slot:   uint8(slot),
+							hash:   hash.String(),
+						})
+					}
+				}
+			}
+		}
+	}
+	return p.m4Engine.ApplyPendingM4(ctx, height, sidechains.GetSidechains(), payouts)
 }
 
 // HandleNewRawTransaction can be called on a brand new transaction

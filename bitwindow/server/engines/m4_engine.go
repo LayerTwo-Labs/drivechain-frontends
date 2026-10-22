@@ -1,6 +1,7 @@
 package engines
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -23,6 +24,12 @@ type M4Engine struct {
 	bundleMaxAge uint32
 	// inclusionThreshold is the number of ACKs a bundle must exceed for approval.
 	inclusionThreshold uint16
+}
+
+type m6Event struct {
+	height uint32
+	slot   uint8
+	hash   string
 }
 
 // NewM4Engine returns an engine with the thresholds of network. ecashID is the
@@ -48,6 +55,7 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 	}
 
 	coinbase := block.Transactions[0]
+	m4Msg, m4Err := e.extractM4FromCoinbase(coinbase)
 
 	m3Msgs, err := e.extractM3FromCoinbase(coinbase)
 	if err != nil {
@@ -57,6 +65,10 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 		m3Msg.BlockHeight = height
 		m3Msg.BlockHash = block.BlockHash().String()
 		m3Msg.BlockTime = block.Header.Timestamp
+		m3Msg.VoteHeight = height
+		if m4Msg != nil && m3Msg.OutputIndex > m4Msg.OutputIndex {
+			m3Msg.VoteHeight++
+		}
 
 		if err := e.persistM3Message(ctx, m3Msg); err != nil {
 			return fmt.Errorf("persist M3: %w", err)
@@ -67,11 +79,10 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 			Msg("processed M3 (bundle proposal)")
 	}
 
-	m4Msg, err := e.extractM4FromCoinbase(coinbase)
 	switch {
-	case err != nil:
+	case m4Err != nil:
 		// The enforcer takes no votes from an M4 it cannot parse either.
-		log.Warn().Err(err).Msg("skip malformed M4")
+		log.Warn().Err(m4Err).Msg("skip malformed M4")
 	case m4Msg != nil:
 		m4Msg.BlockHeight = height
 		m4Msg.BlockHash = block.BlockHash().String()
@@ -93,13 +104,40 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 // ages the bundles to height. sidechains is the enforcer's active set at height or above.
 func (e *M4Engine) ApplyPendingM4(
 	ctx context.Context, height uint32, sidechains []*validatorpb.GetSidechainsResponse_SidechainInfo,
+	payouts []m6Event,
 ) error {
 	pending, err := e.pendingM4Messages(ctx, height)
 	if err != nil {
 		return fmt.Errorf("list pending M4: %w", err)
 	}
+	slices.SortFunc(payouts, func(a, b m6Event) int { return cmp.Compare(a.height, b.height) })
+	payoutIndex := 0
+	applyPayouts := func(until uint32) error {
+		for payoutIndex < len(payouts) && payouts[payoutIndex].height <= until {
+			payout := payouts[payoutIndex]
+			_, err := e.db.ExecContext(ctx, `
+				UPDATE withdrawal_bundles
+				SET status = 'succeeded', last_updated_height = ?, status_stamped = 1
+				WHERE sidechain_slot = ? AND bundle_hash = ?
+				  AND first_seen_height <= ?
+			`, payout.height, payout.slot, payout.hash, payout.height)
+			if err != nil {
+				return fmt.Errorf("apply M6 payout: %w", err)
+			}
+			payoutIndex++
+		}
+		return nil
+	}
 
 	for _, msg := range pending {
+		if msg.BlockHeight > 0 {
+			if err := applyPayouts(msg.BlockHeight - 1); err != nil {
+				return err
+			}
+		}
+		if err := e.applyM3Proposals(ctx, msg.BlockHeight); err != nil {
+			return fmt.Errorf("apply M3 proposals: %w", err)
+		}
 		if msg.BlockHeight > 0 {
 			if err := e.updateBundleStates(ctx, msg.BlockHeight-1); err != nil {
 				return fmt.Errorf("update bundle states: %w", err)
@@ -123,20 +161,67 @@ func (e *M4Engine) ApplyPendingM4(
 		if err := e.updateBundleStates(ctx, msg.BlockHeight); err != nil {
 			return fmt.Errorf("update bundle states: %w", err)
 		}
+		if err := applyPayouts(msg.BlockHeight); err != nil {
+			return err
+		}
 		if _, err := e.db.ExecContext(ctx, `UPDATE m4_messages SET applied = 1 WHERE id = ?`, msg.ID); err != nil {
 			return fmt.Errorf("mark M4 applied: %w", err)
 		}
 	}
 
+	if err := e.applyM3Proposals(ctx, height); err != nil {
+		return fmt.Errorf("apply M3 proposals: %w", err)
+	}
 	if err := e.updateBundleStates(ctx, height); err != nil {
 		return fmt.Errorf("update bundle states: %w", err)
 	}
 	return nil
 }
 
+func (e *M4Engine) applyM3Proposals(ctx context.Context, height uint32) error {
+	type proposal struct {
+		BlockHeight   uint32 `db:"block_height"`
+		VoteHeight    uint32 `db:"vote_height"`
+		SidechainSlot uint8  `db:"sidechain_slot"`
+		BundleHash    string `db:"bundle_hash"`
+	}
+	proposals, err := database.Select[proposal](ctx, e.db, `
+		SELECT m.block_height, m.vote_height, m.sidechain_slot, m.bundle_hash
+		FROM m3_messages m
+		JOIN withdrawal_bundles b USING (sidechain_slot, bundle_hash)
+		WHERE (m.block_height > b.first_seen_height
+		       OR (m.block_height = b.first_seen_height AND b.last_updated_height < m.vote_height - 1))
+		  AND m.block_height <= ?
+		ORDER BY m.block_height, m.id
+	`, height)
+	if err != nil {
+		return fmt.Errorf("list M3 proposals: %w", err)
+	}
+	for _, msg := range proposals {
+		_, err := e.db.ExecContext(ctx, `
+			UPDATE withdrawal_bundles
+			SET work_score = 1,
+			    blocks_left = ?,
+			    max_age = ?,
+			    first_seen_height = ?,
+			    last_updated_height = ?,
+			    status = 'pending',
+			    status_stamped = 0,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE sidechain_slot = ? AND bundle_hash = ?
+		  AND (first_seen_height < ? OR last_updated_height < ?)
+		`, e.bundleMaxAge, e.bundleMaxAge, msg.BlockHeight, int64(msg.VoteHeight)-1,
+			msg.SidechainSlot, msg.BundleHash, msg.BlockHeight, int64(msg.VoteHeight)-1)
+		if err != nil {
+			return fmt.Errorf("apply M3 proposal: %w", err)
+		}
+	}
+	return nil
+}
+
 func (e *M4Engine) pendingM4Messages(ctx context.Context, height uint32) ([]m4.M4Message, error) {
 	return database.Select[m4.M4Message](ctx, e.db, `
-		SELECT id, block_height, raw_bytes, version
+		SELECT id, block_height, block_hash, raw_bytes, version
 		FROM m4_messages
 		WHERE applied = 0 AND block_height <= ?
 		ORDER BY block_height
@@ -182,11 +267,17 @@ func (e *M4Engine) m4Votes(ctx context.Context, msg m4.M4Message, activeSlots []
 		hash, err := database.Get[string](ctx, e.db, `
 			SELECT bundle_hash FROM withdrawal_bundles
 			WHERE sidechain_slot = ?
-			  AND status = 'pending'
+			  AND status IN ('pending', 'approved')
 			  AND first_seen_height <= ?
-			ORDER BY first_seen_height ASC
+			  AND last_updated_height < ?
+			ORDER BY first_seen_height ASC, (
+				SELECT m.id FROM m3_messages m
+				WHERE m.sidechain_slot = withdrawal_bundles.sidechain_slot
+				  AND m.bundle_hash = withdrawal_bundles.bundle_hash
+				  AND m.block_height = withdrawal_bundles.first_seen_height
+			)
 			LIMIT 1 OFFSET ?
-		`, vote.SidechainSlot, msg.BlockHeight, *vote.BundleIndex)
+		`, vote.SidechainSlot, msg.BlockHeight, msg.BlockHeight, *vote.BundleIndex)
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			zerolog.Ctx(ctx).Warn().
@@ -232,11 +323,12 @@ func (e *M4Engine) leadingBy50Votes(ctx context.Context, height uint32, activeSl
 			SELECT bundle_hash, work_score
 			FROM withdrawal_bundles
 			WHERE sidechain_slot = ?
-			  AND status = 'pending'
+			  AND status IN ('pending', 'approved')
 			  AND first_seen_height <= ?
+			  AND last_updated_height < ?
 			ORDER BY work_score DESC
 			LIMIT 2
-		`, slot, height)
+		`, slot, height, height)
 		if err != nil {
 			return nil, fmt.Errorf("list pending bundles of sidechain %d: %w", slot, err)
 		}
@@ -275,7 +367,7 @@ func activeSlotsAt(sidechains []*validatorpb.GetSidechainsResponse_SidechainInfo
 // extractM4FromCoinbase finds and parses M4 from coinbase OP_RETURNs
 func (e *M4Engine) extractM4FromCoinbase(coinbase *wire.MsgTx) (*m4.M4Message, error) {
 	// Check all outputs for M4 commitment
-	for _, txout := range coinbase.TxOut {
+	for vout, txout := range coinbase.TxOut {
 		script := txout.PkScript
 		if !m4.IsM4Commitment(script) {
 			continue
@@ -287,6 +379,7 @@ func (e *M4Engine) extractM4FromCoinbase(coinbase *wire.MsgTx) (*m4.M4Message, e
 			return nil, fmt.Errorf("parse M4: %w", err)
 		}
 
+		msg.OutputIndex = uint32(vout)
 		return msg, nil
 	}
 
@@ -387,6 +480,7 @@ func (e *M4Engine) extractM3FromCoinbase(coinbase *wire.MsgTx) ([]*m4.M3Message,
 			continue
 		}
 
+		msg.OutputIndex = uint32(vout)
 		messages = append(messages, msg)
 	}
 
@@ -398,10 +492,11 @@ func (e *M4Engine) persistM3Message(ctx context.Context, msg *m4.M3Message) erro
 	return inTx(ctx, e.db, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO m3_messages (
-				block_height, block_hash, block_time, sidechain_slot, bundle_hash
-			) VALUES (?, ?, ?, ?, ?)
-			ON CONFLICT(block_height, sidechain_slot, bundle_hash) DO NOTHING
-		`, msg.BlockHeight, msg.BlockHash, msg.BlockTime, msg.SidechainSlot, msg.BundleHash)
+				block_height, block_hash, block_time, sidechain_slot, bundle_hash, vote_height
+			) VALUES (?, ?, ?, ?, ?, ?)
+			ON CONFLICT(block_height, sidechain_slot, bundle_hash) DO UPDATE
+			SET vote_height = excluded.vote_height
+		`, msg.BlockHeight, msg.BlockHash, msg.BlockTime, msg.SidechainSlot, msg.BundleHash, msg.VoteHeight)
 		if err != nil {
 			return fmt.Errorf("insert M3 message: %w", err)
 		}
@@ -413,7 +508,7 @@ func (e *M4Engine) persistM3Message(ctx context.Context, msg *m4.M3Message) erro
 				first_seen_height, last_updated_height, status
 			) VALUES (?, ?, 1, ?, ?, ?, ?, 'pending')
 			ON CONFLICT(sidechain_slot, bundle_hash) DO NOTHING
-		`, msg.SidechainSlot, msg.BundleHash, e.bundleMaxAge, e.bundleMaxAge, msg.BlockHeight, msg.BlockHeight)
+		`, msg.SidechainSlot, msg.BundleHash, e.bundleMaxAge, e.bundleMaxAge, msg.BlockHeight, int64(msg.VoteHeight)-1)
 		if err != nil {
 			return fmt.Errorf("insert withdrawal bundle: %w", err)
 		}
@@ -443,7 +538,7 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 				    last_updated_height = ?,
 				    updated_at = CURRENT_TIMESTAMP
 				WHERE sidechain_slot = ?
-				  AND status = 'pending'
+				  AND status IN ('pending', 'approved')
 				  AND first_seen_height <= ?
 				  AND last_updated_height < ?
 			`, height, vote.SidechainSlot, height, height)
@@ -457,7 +552,7 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 				UPDATE withdrawal_bundles
 				SET last_updated_height = ?
 				WHERE sidechain_slot = ?
-				  AND status = 'pending'
+				  AND status IN ('pending', 'approved')
 				  AND first_seen_height <= ?
 				  AND last_updated_height < ?
 			`, height, vote.SidechainSlot, height, height)
@@ -481,7 +576,7 @@ func (e *M4Engine) upvoteBundle(ctx context.Context, height uint32, slot uint8, 
 			    updated_at = CURRENT_TIMESTAMP
 			WHERE sidechain_slot = ?
 			  AND bundle_hash = ?
-			  AND status = 'pending'
+			  AND status IN ('pending', 'approved')
 			  AND first_seen_height <= ?
 			  AND last_updated_height < ?
 		`, height, slot, bundleHash, height, height)
@@ -503,7 +598,7 @@ func (e *M4Engine) upvoteBundle(ctx context.Context, height uint32, slot uint8, 
 			    updated_at = CURRENT_TIMESTAMP
 			WHERE sidechain_slot = ?
 			  AND bundle_hash != ?
-			  AND status = 'pending'
+			  AND status IN ('pending', 'approved')
 			  AND first_seen_height <= ?
 			  AND last_updated_height < ?
 		`, height, slot, bundleHash, height, height)
@@ -524,41 +619,35 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 		SET max_age = ?,
 		    blocks_left = MAX(0, ? - (? - first_seen_height)),
 		    updated_at = CURRENT_TIMESTAMP
-		WHERE status = 'pending'
+		WHERE status IN ('pending', 'approved')
 		  AND first_seen_height <= ?
 	`, e.bundleMaxAge, e.bundleMaxAge, height, height)
 	if err != nil {
 		return fmt.Errorf("recompute blocks_left: %w", err)
 	}
 
-	// Each transition stamps the height it happened at. A terminal bundle takes
-	// no more votes, so this changes nothing for scoring — but a fork purge
-	// keys on last_updated_height, and without it a bundle that went terminal
-	// on the branch that went away keeps that state for good.
-	//
-	// Mark bundles as approved if work_score is above the inclusion threshold
+	// Fork replay uses the height of each status change.
 	_, err = e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
-		SET status = 'approved',
+		SET status = CASE WHEN work_score > ? THEN 'approved' ELSE 'pending' END,
 		    last_updated_height = ?,
 		    status_stamped = 1
-		WHERE status = 'pending'
-		  AND work_score > ?
-	`, height, e.inclusionThreshold)
+		WHERE status IN ('pending', 'approved')
+		  AND status != CASE WHEN work_score > ? THEN 'approved' ELSE 'pending' END
+	`, e.inclusionThreshold, height, e.inclusionThreshold)
 	if err != nil {
 		return fmt.Errorf("mark approved bundles: %w", err)
 	}
 
-	// Mark bundles as failed if blocks_left = 0 and work_score is at or below the threshold
+	// The node removes expired bundles after the votes, when age exceeds max_age.
 	_, err = e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
 		SET status = 'failed',
 		    last_updated_height = ?,
 		    status_stamped = 1
-		WHERE status = 'pending'
-		  AND blocks_left = 0
-		  AND work_score <= ?
-	`, height, e.inclusionThreshold)
+		WHERE status IN ('pending', 'approved')
+		  AND first_seen_height + max_age < ?
+	`, height, height)
 	if err != nil {
 		return fmt.Errorf("mark failed bundles: %w", err)
 	}
