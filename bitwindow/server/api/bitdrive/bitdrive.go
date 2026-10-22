@@ -68,7 +68,7 @@ func (s *Server) RetrieveContent(ctx context.Context, req *bitdrivev1.RetrieveCo
 	}
 
 	// Decode content
-	opReturnMessage := opreturns.OPReturnToReadable(opReturn.Data)
+	opReturnMessage := string(opReturn.Data)
 	content, metadata, err := s.bitdriveEngine.DecodeOPReturnData(ctx, opReturnMessage)
 	if err != nil {
 		return nil, fmt.Errorf("decode OP_RETURN data: %w", err)
