@@ -1995,19 +1995,78 @@ func TestCoreBackendPreviewBumpFeeRefusesAFinalTransaction(t *testing.T) {
 // Core adds a coin when the change cannot pay the higher fee, so the change
 // path holds even when the planner finds no room in that output.
 func TestCoreBackendPreviewBumpFeeAddsInputsForTheChangePath(t *testing.T) {
-	backend, _, coreID, _, _ := coreBumpFeeFixture(t)
+	for _, tc := range []struct {
+		name       string
+		vout       *int
+		noChange   bool
+		addsInputs bool
+	}{
+		{name: "change", addsInputs: true},
+		{name: "selected change", vout: intPtr(1), addsInputs: true},
+		{name: "no change", noChange: true, addsInputs: true},
+		{name: "payment", vout: intPtr(0)},
+		{name: "absent output", vout: intPtr(2)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			backend, fake, coreID, paymentAddr, changeAddr := coreBumpFeeFixture(t)
+			if tc.noChange {
+				previous := fake.handlers["getrawtransaction"]
+				fake.handle("getrawtransaction", func(c bitcoindCall) (any, string) {
+					result, err := previous(c)
+					if mustString(t, c.Params[0]) == coreBumpTxid {
+						tx := result.(map[string]any)
+						outputs := tx["vout"].([]map[string]any)
+						outputs[0]["value"] = 0.0019985
+						tx["vout"] = outputs[:1]
+					}
+					return result, err
+				})
+			}
+			fake.handle("bumpfee", func(bitcoindCall) (any, string) {
+				return map[string]any{"txid": "replacement-txid"}, ""
+			})
+			previous := fake.handlers["getmempoolentry"]
+			fake.handle("getmempoolentry", func(c bitcoindCall) (any, string) {
+				if mustString(t, c.Params[0]) == "replacement-txid" {
+					return map[string]any{"vsize": 230, "fees": map[string]any{"base": 0.0023}}, ""
+				}
+				return previous(c)
+			})
+			fake.serveReplacement(t, "replacement-txid", paymentAddr, 0.001, changeAddr, 0.0007)
+			req := BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 1000, FeeFromVout: tc.vout}
 
-	preview, err := backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10})
-	require.NoError(t, err)
-	assert.True(t, preview.AddsInputs, "Core funds the change path itself")
+			preview, err := backend.PreviewBumpFee(context.Background(), coreID, req)
+			require.NoError(t, err)
+			assert.Equal(t, tc.addsInputs, preview.AddsInputs)
+			assert.Nil(t, preview.Plan)
 
-	// A rebuild spends exactly what it replaces, so it cannot add a coin.
-	vout := 0
-	preview, err = backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{
-		TxID: coreBumpTxid, NewFeeRate: 10, FeeFromVout: &vout,
-	})
-	require.NoError(t, err)
-	assert.False(t, preview.AddsInputs)
+			result, err := backend.BumpFee(context.Background(), coreID, req)
+			if !tc.addsInputs {
+				require.Error(t, err)
+				assert.Empty(t, fake.callsFor("bumpfee"))
+				assert.Empty(t, fake.callsFor("sendrawtransaction"))
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, "replacement-txid", result.NewTxID)
+			assert.False(t, result.Plan.ReducesPayment)
+			assert.Equal(t, int64(150), result.Plan.OldFeeSats)
+			assert.Equal(t, int64(230_000), result.Plan.NewFeeSats)
+			assert.Equal(t, int64(229_850), result.Plan.ExtraFeeSats)
+			assert.InDelta(t, 1000.0, result.Plan.NewFeeRate, 0.001)
+			if !tc.noChange {
+				assert.Equal(t, 1, result.Plan.FeeFromVout)
+				assert.Equal(t, int64(99_850), result.Plan.AmountBefore)
+				assert.Equal(t, int64(70_000), result.Plan.AmountAfter)
+			}
+			calls := fake.callsFor("bumpfee")
+			require.Len(t, calls, 1)
+			var options map[string]any
+			require.NoError(t, json.Unmarshal(calls[0].Params[1], &options))
+			assert.Equal(t, float64(1000), options["fee_rate"])
+			assert.Empty(t, fake.callsFor("sendrawtransaction"))
+		})
+	}
 }
 
 // A marker that reaches no disk still stops the next import, and the import

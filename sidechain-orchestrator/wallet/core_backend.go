@@ -1331,7 +1331,7 @@ func (p *CoreBackend) previewBumpFee(ctx context.Context, name string, req BumpF
 	preview.CanReplace = true
 	// Core's own bumpfee adds a coin when the change cannot pay the higher fee,
 	// so the change path holds even when the planner finds no room.
-	preview.AddsInputs = true
+	preview.AddsInputs = req.FeeFromVout == nil
 
 	rate := req.NewFeeRate
 	if rate <= 0 {
@@ -1378,10 +1378,16 @@ func (p *CoreBackend) BumpFee(ctx context.Context, walletID string, req BumpFeeR
 	if err != nil {
 		return nil, err
 	}
-	if preview.Plan == nil {
+	if !preview.CanReplace || (preview.Plan == nil && !preview.AddsInputs) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, preview.Reason)
 	}
-	plan := *preview.Plan
+	plan := BumpFeePlan{OldFeeSats: preview.OldFeeSats, FeeFromVout: -1}
+	if preview.Plan != nil {
+		plan = *preview.Plan
+	} else if change, ok := changeOutput(preview.Outputs); ok {
+		plan.FeeFromVout = change.Vout
+		plan.AmountBefore = change.AmountSats
+	}
 	rate := req.NewFeeRate
 	if rate <= 0 {
 		rate = preview.SuggestedRate
