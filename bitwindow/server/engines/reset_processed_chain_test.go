@@ -5,11 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 )
 
 // The chain reset replaces a delete of bitwindow.db, so it has to clear every
@@ -139,6 +143,56 @@ func TestForkPurgeStaysAtTheForkWithNoTouchedBundle(t *testing.T) {
 	require.Equal(t, uint32(42), score, "a bundle the fork never reached keeps its score")
 }
 
+func TestForkPurgeRestoresTheFirstProposal(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkRegtest, "")}
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposal := m3ProposalScript(t, 0, [32]byte{0xab})
+	message, err := m4.ParseM3Bytes(proposal)
+	require.NoError(t, err)
+
+	apply := func(from, to uint32) {
+		t.Helper()
+		for height := from; height <= to; height++ {
+			var script []byte
+			switch height {
+			case 100, 112:
+				script = proposal
+			case 101, 113:
+				script = m4Script(t, 0x00)
+			}
+			block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+			require.NoError(t, p.m4Engine.ProcessBlock(ctx, height, block))
+			require.NoError(t, p.m4Engine.ApplyPendingM4(ctx, height, sidechains, nil))
+		}
+	}
+	apply(100, 113)
+	for range 2 {
+		replayFrom, err := p.purgeAtOrAbove(ctx, 110)
+		require.NoError(t, err)
+		require.Equal(t, uint32(100), replayFrom)
+		apply(replayFrom, 113)
+		score, left, status := bundleState(t, ctx, p.m4Engine, message.BundleHash)
+		require.Equal(t, 2, score)
+		require.Equal(t, 9, left)
+		require.Equal(t, "pending", status)
+	}
+
+	replayFrom, err := p.purgeAtOrAbove(ctx, 110)
+	require.NoError(t, err)
+	require.Equal(t, uint32(100), replayFrom)
+	apply(replayFrom, 109)
+	score, left, status := bundleState(t, ctx, p.m4Engine, message.BundleHash)
+	require.Equal(t, 2, score)
+	require.Equal(t, 1, left)
+	require.Equal(t, "pending", status)
+}
+
 // The default topics are seeded by a migration at height 0 with an empty txid.
 // No block replays them, so a purge that takes them loses them for good — the
 // migration is already recorded and never runs again.
@@ -175,14 +229,14 @@ func TestBundleAgeingStampsTheHeightSoAForkPurgeSeesIt(t *testing.T) {
 	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkECash, "alphanet")}
 
 	// Last voted at 900, so no vote moves it. The alphanet age of 144 ends it
-	// at 1024, above the fork at 950.
+	// at 1025, above the fork at 950.
 	seedBundleRow(t, ctx, db, "aged-out-above-the-fork", 880, 900, 0)
 
-	require.NoError(t, p.m4Engine.updateBundleStates(ctx, 1024))
+	require.NoError(t, p.m4Engine.updateBundleStates(ctx, 1025))
 
 	_, lastUpdated, found := bundleAggregate(t, ctx, db, "aged-out-above-the-fork")
 	require.True(t, found)
-	require.Equal(t, uint32(1024), lastUpdated)
+	require.Equal(t, uint32(1025), lastUpdated)
 
 	replayFrom, err := p.purgeAtOrAbove(ctx, 950)
 	require.NoError(t, err)
@@ -255,4 +309,62 @@ func TestForkPurgeLeavesStampedTerminalBundlesAlone(t *testing.T) {
 	score, _, found := bundleAggregate(t, ctx, db, "approved-long-ago")
 	require.True(t, found)
 	require.Equal(t, uint32(20000), score, "nothing replays it, so nothing may touch it")
+}
+
+func TestForkPurgeReplaysAPayout(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkRegtest, "")}
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposalA := m3ProposalScript(t, 0, [32]byte{0xab, 0xcd})
+	proposalB := m3ProposalScript(t, 0, [32]byte{0xef, 0x01})
+	messageA, err := m4.ParseM3Bytes(proposalA)
+	require.NoError(t, err)
+	messageB, err := m4.ParseM3Bytes(proposalB)
+	require.NoError(t, err)
+	apply := func(paid bool) {
+		t.Helper()
+		for height := uint32(100); height <= 108; height++ {
+			var script []byte
+			switch height {
+			case 100:
+				script = proposalA
+			case 101:
+				script = proposalB
+			case 107:
+			default:
+				script = m4Script(t, 0x00)
+			}
+			block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+			require.NoError(t, p.m4Engine.ProcessBlock(ctx, height, block))
+			var payouts []m6Event
+			if paid && height == 108 {
+				payouts = []m6Event{{height: 107, slot: 0, hash: messageA.BundleHash}}
+			}
+			require.NoError(t, p.m4Engine.ApplyPendingM4(ctx, height, sidechains, payouts))
+		}
+	}
+	apply(true)
+	_, _, status := bundleState(t, ctx, p.m4Engine, messageA.BundleHash)
+	require.Equal(t, "succeeded", status)
+	history, err := p.m4Engine.GetM4History(ctx, 1)
+	require.NoError(t, err)
+	require.Equal(t, &messageB.BundleHash, history[0].Votes[0].BundleHash)
+
+	for range 2 {
+		from, err := p.purgeAtOrAbove(ctx, 107)
+		require.NoError(t, err)
+		require.Equal(t, uint32(100), from)
+		apply(false)
+		score, _, status := bundleState(t, ctx, p.m4Engine, messageA.BundleHash)
+		require.Equal(t, 7, score)
+		require.Equal(t, "approved", status)
+		history, err := p.m4Engine.GetM4History(ctx, 1)
+		require.NoError(t, err)
+		require.Equal(t, &messageA.BundleHash, history[0].Votes[0].BundleHash)
+	}
 }

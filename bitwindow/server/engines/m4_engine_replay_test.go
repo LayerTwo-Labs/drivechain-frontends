@@ -144,6 +144,9 @@ func enforcerAt(t *testing.T, tip uint32, activations map[uint32]uint32) *servic
 	validator.EXPECT().GetSidechains(gomock.Any(), gomock.Any()).
 		Return(&validatorpb.GetSidechainsResponse{Sidechains: sidechains}, nil).
 		AnyTimes()
+	validator.EXPECT().GetTwoWayPegData(gomock.Any(), gomock.Any()).
+		Return(&validatorpb.GetTwoWayPegDataResponse{}, nil).
+		AnyTimes()
 	return service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
 		return validator, nil
 	})
@@ -371,7 +374,7 @@ func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
 		assert.Equal(t, "pending", status)
 	})
 
-	t.Run("an expired bundle at the threshold fails", func(t *testing.T) {
+	t.Run("a bundle fails after the maximum age", func(t *testing.T) {
 		ctx := t.Context()
 		db := database.Test(t)
 		e := NewM4Engine(db, config.NetworkRegtest, "")
@@ -380,6 +383,10 @@ func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
 		require.NoError(t, e.updateBundleStates(ctx, 110))
 
 		_, _, status := bundleState(t, ctx, e, "bundle-a")
+		assert.Equal(t, "pending", status)
+
+		require.NoError(t, e.updateBundleStates(ctx, 111))
+		_, _, status = bundleState(t, ctx, e, "bundle-a")
 		assert.Equal(t, "failed", status)
 	})
 }
@@ -418,7 +425,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 		t.Helper()
 		block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
 		require.NoError(t, e.ProcessBlock(t.Context(), height, block))
-		require.NoError(t, e.ApplyPendingM4(t.Context(), height, sidechains))
+		require.NoError(t, e.ApplyPendingM4(t.Context(), height, sidechains, nil))
 	}
 	setWorkScore := func(t *testing.T, e *M4Engine, hash string, workScore int) {
 		t.Helper()
@@ -527,4 +534,381 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 
 		assert.Equal(t, []int{10, 59}, workScores(t, e, "bundle-a", "bundle-b"))
 	})
+}
+
+func TestApplyPendingM4KeepsTheLastBundleVote(t *testing.T) {
+	ctx := t.Context()
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposal := m3ProposalScript(t, 0, [32]byte{0xab})
+	message, err := m4.ParseM3Bytes(proposal)
+	require.NoError(t, err)
+
+	for height := uint32(100); height <= 111; height++ {
+		var script []byte
+		switch height {
+		case 100:
+			script = proposal
+		case 111:
+			script = m4Script(t, 0x00)
+		}
+		block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+		require.NoError(t, e.ProcessBlock(ctx, height, block))
+		require.NoError(t, e.ApplyPendingM4(ctx, height, sidechains, nil))
+	}
+
+	history, err := e.GetM4History(ctx, 1)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	require.Len(t, history[0].Votes, 1)
+	require.Equal(t, &message.BundleHash, history[0].Votes[0].BundleHash)
+	score, _, status := bundleState(t, ctx, e, message.BundleHash)
+	require.Equal(t, 2, score)
+	require.Equal(t, "failed", status)
+}
+
+func TestApplyPendingM4ReadsANewProposalForTheSameBundle(t *testing.T) {
+	for _, replay := range []bool{false, true} {
+		name := "one block per poll"
+		if replay {
+			name = "one poll after all blocks"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := t.Context()
+			e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+			sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+				SidechainNumber:  wrapperspb.UInt32(0),
+				ActivationHeight: wrapperspb.UInt32(10),
+			}}
+			blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+			proposal := m3ProposalScript(t, 0, [32]byte{0xab})
+			message, err := m4.ParseM3Bytes(proposal)
+			require.NoError(t, err)
+
+			for height := uint32(100); height <= 113; height++ {
+				var script []byte
+				switch height {
+				case 100, 112:
+					script = proposal
+				case 101, 113:
+					script = m4Script(t, 0x00)
+				}
+				block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+				require.NoError(t, e.ProcessBlock(ctx, height, block))
+				if !replay {
+					require.NoError(t, e.ApplyPendingM4(ctx, height, sidechains, nil))
+				}
+			}
+			require.NoError(t, e.ApplyPendingM4(ctx, 113, sidechains, nil))
+
+			history, err := e.GetM4History(ctx, 2)
+			require.NoError(t, err)
+			require.Len(t, history, 2)
+			for _, entry := range history {
+				require.Len(t, entry.Votes, 1)
+				require.Equal(t, &message.BundleHash, entry.Votes[0].BundleHash)
+			}
+			score, left, status := bundleState(t, ctx, e, message.BundleHash)
+			require.Equal(t, 2, score)
+			require.Equal(t, 9, left)
+			require.Equal(t, "pending", status)
+		})
+	}
+}
+
+func TestApplyPendingM4RepeatsTheStoredProposal(t *testing.T) {
+	ctx := t.Context()
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposal := m3ProposalScript(t, 0, [32]byte{0xab})
+	message, err := m4.ParseM3Bytes(proposal)
+	require.NoError(t, err)
+
+	for height := uint32(100); height <= 101; height++ {
+		script := proposal
+		if height == 101 {
+			script = m4Script(t, 0x00)
+		}
+		block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+		require.NoError(t, e.ProcessBlock(ctx, height, block))
+		require.NoError(t, e.ApplyPendingM4(ctx, height, sidechains, nil))
+	}
+	require.NoError(t, e.ProcessBlock(ctx, 100, coinbaseBlockOf(proposal, blockTime.Add(100*time.Minute))))
+	require.NoError(t, e.ApplyPendingM4(ctx, 101, sidechains, nil))
+
+	score, left, status := bundleState(t, ctx, e, message.BundleHash)
+	require.Equal(t, 2, score)
+	require.Equal(t, 9, left)
+	require.Equal(t, "pending", status)
+}
+
+func TestM4UpgradeRestoresTheLastBundleVote(t *testing.T) {
+	ctx := t.Context()
+	conf := config.Config{Datadir: t.TempDir(), BitcoinCoreNetwork: config.NetworkRegtest}
+	db, err := database.New(ctx, conf)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	e := NewM4Engine(db, conf.BitcoinCoreNetwork, "")
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposal := m3ProposalScript(t, 0, [32]byte{0xab})
+	message, err := m4.ParseM3Bytes(proposal)
+	require.NoError(t, err)
+	require.NoError(t, e.ProcessBlock(ctx, 100, coinbaseBlockOf(proposal, blockTime)))
+	require.NoError(t, e.ProcessBlock(ctx, 111, coinbaseBlockOf(m4Script(t, 0x00), blockTime.Add(time.Minute))))
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE m3_messages DROP COLUMN vote_height;
+		UPDATE withdrawal_bundles
+		SET work_score = 1, blocks_left = 0, last_updated_height = 110,
+		    status = 'failed', status_stamped = 1;
+		UPDATE m4_messages SET applied = 1;
+		INSERT INTO m4_votes (m4_message_id, sidechain_slot, vote_type, bundle_index)
+		SELECT id, 0, 'upvote', 0 FROM m4_messages;
+		UPDATE migrations SET latest_version = '052_drop_m4_vote_preferences.sql'`)
+	require.NoError(t, err)
+	history, err := e.GetM4History(ctx, 1)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	require.Len(t, history[0].Votes, 1)
+	require.Nil(t, history[0].Votes[0].BundleHash)
+	require.NoError(t, db.Close())
+
+	db, err = database.New(ctx, conf)
+	require.NoError(t, err)
+	e = NewM4Engine(db, conf.BitcoinCoreNetwork, "")
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	require.NoError(t, e.ApplyPendingM4(ctx, 111, sidechains, nil))
+	history, err = e.GetM4History(ctx, 1)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	require.Len(t, history[0].Votes, 1)
+	require.Equal(t, &message.BundleHash, history[0].Votes[0].BundleHash)
+	score, _, status := bundleState(t, ctx, e, message.BundleHash)
+	require.Equal(t, 2, score)
+	require.Equal(t, "failed", status)
+}
+
+func TestApplyPendingM4KeepsTheApprovedBundleIndex(t *testing.T) {
+	ctx := t.Context()
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposal := m3ProposalScript(t, 0, [32]byte{0xab})
+	message, err := m4.ParseM3Bytes(proposal)
+	require.NoError(t, err)
+	for height := uint32(100); height <= 107; height++ {
+		script := m4Script(t, 0x00)
+		switch height {
+		case 100:
+			script = proposal
+		case 101:
+			script = m3ProposalScript(t, 0, [32]byte{0xcd})
+		}
+		block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+		require.NoError(t, e.ProcessBlock(ctx, height, block))
+		require.NoError(t, e.ApplyPendingM4(ctx, height, sidechains, nil))
+	}
+
+	history, err := e.GetM4History(ctx, 1)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	require.Len(t, history[0].Votes, 1)
+	require.Equal(t, &message.BundleHash, history[0].Votes[0].BundleHash)
+}
+
+func TestApplyPendingM4UpdatesAnUnpaidApprovedBundle(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		height uint32
+		vote   byte
+		score  int
+		status string
+	}{
+		{"alarm", 106, 0xfe, 5, "pending"},
+		{"expiry", 111, 0xff, 6, "failed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+			sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+				SidechainNumber:  wrapperspb.UInt32(0),
+				ActivationHeight: wrapperspb.UInt32(10),
+			}}
+			blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+			proposal := m3ProposalScript(t, 0, [32]byte{0xab, 0xcd})
+			message, err := m4.ParseM3Bytes(proposal)
+			require.NoError(t, err)
+			for height := uint32(100); height <= tc.height; height++ {
+				var script []byte
+				switch {
+				case height == 100:
+					script = proposal
+				case height <= 105:
+					script = m4Script(t, 0x00)
+				case height == tc.height:
+					script = m4Script(t, tc.vote)
+				}
+				block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+				require.NoError(t, e.ProcessBlock(ctx, height, block))
+				require.NoError(t, e.ApplyPendingM4(ctx, height, sidechains, nil))
+			}
+			score, _, status := bundleState(t, ctx, e, message.BundleHash)
+			require.Equal(t, tc.score, score)
+			require.Equal(t, tc.status, status)
+		})
+	}
+}
+
+func TestApplyPendingM4ReadsAPayoutAfterAnIdlePoll(t *testing.T) {
+	ctx := t.Context()
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposal := m3ProposalScript(t, 0, [32]byte{0xab, 0xcd})
+	message, err := m4.ParseM3Bytes(proposal)
+	require.NoError(t, err)
+	for height := uint32(100); height <= 112; height++ {
+		var script []byte
+		switch {
+		case height == 100:
+			script = proposal
+		case height <= 105:
+			script = m4Script(t, 0x00)
+		case height == 112:
+			script = m4Script(t, 0xff)
+		}
+		block := coinbaseBlockOf(script, blockTime.Add(time.Duration(height)*time.Minute))
+		require.NoError(t, e.ProcessBlock(ctx, height, block))
+		var payouts []m6Event
+		if height == 112 {
+			payouts = []m6Event{{height: 106, slot: 0, hash: message.BundleHash}}
+		}
+		require.NoError(t, e.ApplyPendingM4(ctx, height, sidechains, payouts))
+	}
+	_, _, status := bundleState(t, ctx, e, message.BundleHash)
+	require.Equal(t, "succeeded", status)
+}
+
+func TestApplyPendingM4KeepsProposalOutputOrder(t *testing.T) {
+	ctx := t.Context()
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposalA := m3ProposalScript(t, 0, [32]byte{0x02})
+	proposalB := m3ProposalScript(t, 0, [32]byte{0x01})
+	messageA, err := m4.ParseM3Bytes(proposalA)
+	require.NoError(t, err)
+	messageB, err := m4.ParseM3Bytes(proposalB)
+	require.NoError(t, err)
+	block := coinbaseBlockOf(proposalA, blockTime)
+	block.Transactions[0].TxOut = append(block.Transactions[0].TxOut, &wire.TxOut{PkScript: proposalB})
+	require.NoError(t, e.ProcessBlock(ctx, 100, block))
+	require.NoError(t, e.ApplyPendingM4(ctx, 100, sidechains, nil))
+	block = coinbaseBlockOf(m4Script(t, 0x00), blockTime.Add(time.Minute))
+	require.NoError(t, e.ProcessBlock(ctx, 101, block))
+	require.NoError(t, e.ApplyPendingM4(ctx, 101, sidechains, nil))
+	history, err := e.GetM4History(ctx, 1)
+	require.NoError(t, err)
+	require.Equal(t, &messageA.BundleHash, history[0].Votes[0].BundleHash)
+	score, _, _ := bundleState(t, ctx, e, messageA.BundleHash)
+	require.Equal(t, 2, score)
+	score, _, _ = bundleState(t, ctx, e, messageB.BundleHash)
+	require.Zero(t, score)
+}
+
+func TestApplyPendingM4UsesTheProposalPosition(t *testing.T) {
+	for _, proposalFirst := range []bool{true, false} {
+		name := "M4 before M3"
+		if proposalFirst {
+			name = "M3 before M4"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := t.Context()
+			e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+			sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+				SidechainNumber:  wrapperspb.UInt32(0),
+				ActivationHeight: wrapperspb.UInt32(10),
+			}}
+			blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+			proposalA := m3ProposalScript(t, 0, [32]byte{0x02})
+			proposalB := m3ProposalScript(t, 0, [32]byte{0x01})
+			messageA, err := m4.ParseM3Bytes(proposalA)
+			require.NoError(t, err)
+			messageB, err := m4.ParseM3Bytes(proposalB)
+			require.NoError(t, err)
+			var scripts [][]byte
+			if proposalFirst {
+				scripts = [][]byte{proposalA, m4Script(t, 0x00)}
+			} else {
+				block := coinbaseBlockOf(proposalA, blockTime.Add(-time.Minute))
+				require.NoError(t, e.ProcessBlock(ctx, 99, block))
+				require.NoError(t, e.ApplyPendingM4(ctx, 99, sidechains, nil))
+				scripts = [][]byte{m4Script(t, 0x00), proposalB}
+			}
+			block := coinbaseBlockOf(scripts[0], blockTime)
+			block.Transactions[0].TxOut = append(block.Transactions[0].TxOut, &wire.TxOut{PkScript: scripts[1]})
+			require.NoError(t, e.ProcessBlock(ctx, 100, block))
+			for range 2 {
+				require.NoError(t, e.ApplyPendingM4(ctx, 100, sidechains, nil))
+				score, _, _ := bundleState(t, ctx, e, messageA.BundleHash)
+				require.Equal(t, 2, score)
+				if !proposalFirst {
+					score, _, _ = bundleState(t, ctx, e, messageB.BundleHash)
+					require.Equal(t, 1, score)
+				}
+			}
+		})
+	}
+}
+
+func TestApplyPendingM4KeepsTheNewProposalOrder(t *testing.T) {
+	ctx := t.Context()
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
+		SidechainNumber:  wrapperspb.UInt32(0),
+		ActivationHeight: wrapperspb.UInt32(10),
+	}}
+	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	proposalA := m3ProposalScript(t, 0, [32]byte{0x01})
+	proposalB := m3ProposalScript(t, 0, [32]byte{0x02})
+	messageA, err := m4.ParseM3Bytes(proposalA)
+	require.NoError(t, err)
+	messageB, err := m4.ParseM3Bytes(proposalB)
+	require.NoError(t, err)
+	require.NoError(t, e.ProcessBlock(ctx, 90, coinbaseBlockOf(proposalA, blockTime)))
+	require.NoError(t, e.ApplyPendingM4(ctx, 101, sidechains, nil))
+	block := coinbaseBlockOf(proposalB, blockTime.Add(12*time.Minute))
+	block.Transactions[0].TxOut = append(block.Transactions[0].TxOut, &wire.TxOut{PkScript: proposalA})
+	require.NoError(t, e.ProcessBlock(ctx, 102, block))
+	block = coinbaseBlockOf(m4Script(t, 0x00), blockTime.Add(13*time.Minute))
+	require.NoError(t, e.ProcessBlock(ctx, 103, block))
+	for range 2 {
+		require.NoError(t, e.ApplyPendingM4(ctx, 103, sidechains, nil))
+		history, err := e.GetM4History(ctx, 1)
+		require.NoError(t, err)
+		require.Equal(t, &messageB.BundleHash, history[0].Votes[0].BundleHash)
+		score, _, _ := bundleState(t, ctx, e, messageB.BundleHash)
+		require.Equal(t, 2, score)
+		score, _, _ = bundleState(t, ctx, e, messageA.BundleHash)
+		require.Zero(t, score)
+	}
 }
