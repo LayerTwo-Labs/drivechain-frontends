@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"connectrpc.com/connect/v2"
+
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1"
 	svc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
@@ -246,27 +248,52 @@ func (h *Handler) SetSeedFromMnemonic(ctx context.Context, req *pb.SetSeedFromMn
 }
 
 func (h *Handler) GetBitAssetData(ctx context.Context, req *pb.GetBitAssetDataRequest) (*pb.GetBitAssetDataResponse, error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "bitasset_data", []any{req.AssetId})
-	if err != nil {
+	var data nodeAssetData
+	if err := h.proxy.Client.Call(ctx, "bitasset_data", []any{req.AssetId}, &data); err != nil {
 		return nil, err
+	}
+	raw, err := json.Marshal(data.toClient())
+	if err != nil {
+		return nil, fmt.Errorf("marshal bitasset data: %w", err)
 	}
 	return &pb.GetBitAssetDataResponse{DataJson: string(raw)}, nil
 }
 
 func (h *Handler) ListBitAssets(ctx context.Context, req *pb.ListBitAssetsRequest) (*pb.ListBitAssetsResponse, error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "bitassets", nil)
-	if err != nil {
+	var entries [][3]json.RawMessage
+	if err := h.proxy.Client.Call(ctx, "bitassets", nil, &entries); err != nil {
 		return nil, err
+	}
+	for i := range entries {
+		var data nodeAssetData
+		if err := json.Unmarshal(entries[i][2], &data); err != nil {
+			return nil, fmt.Errorf("decode bitasset data: %w", err)
+		}
+		raw, err := json.Marshal(data.toClient())
+		if err != nil {
+			return nil, fmt.Errorf("marshal bitasset data: %w", err)
+		}
+		entries[i][2] = raw
+	}
+	raw, err := json.Marshal(entries)
+	if err != nil {
+		return nil, fmt.Errorf("marshal bitassets: %w", err)
 	}
 	return &pb.ListBitAssetsResponse{BitassetsJson: string(raw)}, nil
 }
 
 func (h *Handler) RegisterBitAsset(ctx context.Context, req *pb.RegisterBitAssetRequest) (*pb.RegisterBitAssetResponse, error) {
-	var data any
+	var data *nodeAssetData
 	if req.DataJson != "" {
-		if err := json.Unmarshal([]byte(req.DataJson), &data); err != nil {
+		var client assetData
+		if err := json.Unmarshal([]byte(req.DataJson), &client); err != nil {
 			return nil, fmt.Errorf("unmarshal data: %w", err)
 		}
+		node, err := client.toNode()
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+		}
+		data = &node
 	}
 	var txid string
 	params := []any{req.PlaintextName, req.InitialSupply, data}
