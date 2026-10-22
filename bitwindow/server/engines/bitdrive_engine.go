@@ -524,7 +524,7 @@ func (e *BitDriveEngine) ScanForFiles(ctx context.Context) ([]PendingBitDriveFil
 	var pending []PendingBitDriveFile
 	scanned := 0
 	for _, opReturn := range allOpReturns {
-		metadataB64, _, err := ParseOPReturnParts(opreturns.OPReturnToReadable(opReturn.Data))
+		metadataB64, _, err := ParseOPReturnParts(string(opReturn.Data))
 		if err != nil {
 			continue
 		}
@@ -570,7 +570,7 @@ func (e *BitDriveEngine) DownloadPendingFiles(ctx context.Context) (uint32, uint
 	var downloaded, failed uint32
 	for _, p := range pending {
 		txid := p.OPReturn.TxID
-		content, metadata, err := e.DecodeOPReturnData(ctx, opreturns.OPReturnToReadable(p.OPReturn.Data))
+		content, metadata, err := e.DecodeOPReturnData(ctx, string(p.OPReturn.Data))
 		if err != nil {
 			log.Warn().Err(err).Str("txid", txid).Msg("decode content")
 			failed++

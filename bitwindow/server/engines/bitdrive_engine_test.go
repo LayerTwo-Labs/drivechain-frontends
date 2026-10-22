@@ -339,46 +339,58 @@ func TestEncodeOPReturnData_NonASCIIRoundTrip(t *testing.T) {
 }
 
 func TestScanAndDownloadPendingFiles(t *testing.T) {
-	db := database.Test(t)
-	engine := &BitDriveEngine{db: db, bitdriveDir: t.TempDir()}
+	for _, test := range []struct {
+		name    string
+		content []byte
+	}{
+		{name: "plain text", content: []byte("hello")},
+		{name: "line break", content: []byte("first line\nsecond line")},
+		{name: "tab", content: []byte("first\tsecond")},
+		{name: "carriage return", content: []byte("first line\r\nsecond line")},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db := database.Test(t)
+			engine := &BitDriveEngine{db: db, bitdriveDir: t.TempDir()}
 
-	metadataB64, contentStr, _, err := engine.EncodeOPReturnData(t.Context(), []byte("hello"), false)
-	require.NoError(t, err)
-	now := time.Now()
-	require.NoError(t, opreturns.Persist(t.Context(), db, []opreturns.OPReturn{
-		{TxID: "tx-file", Vout: 0, Data: []byte(FormatOPReturnData(metadataB64, contentStr)), CreatedAt: &now},
-		{TxID: "tx-other", Vout: 0, Data: []byte("not bitdrive"), CreatedAt: &now},
-		{TxID: "tx-bad-base64", Vout: 0, Data: []byte("!!!|hello"), CreatedAt: &now},
-		{TxID: "tx-short-metadata", Vout: 0, Data: []byte(base64.StdEncoding.EncodeToString([]byte{1, 2}) + "|hello"), CreatedAt: &now},
-	}))
+			metadataB64, contentStr, _, err := engine.EncodeOPReturnData(t.Context(), test.content, false)
+			require.NoError(t, err)
+			now := time.Now()
+			require.NoError(t, opreturns.Persist(t.Context(), db, []opreturns.OPReturn{
+				{TxID: "tx-file", Vout: 0, Data: []byte(FormatOPReturnData(metadataB64, contentStr)), CreatedAt: &now},
+				{TxID: "tx-other", Vout: 0, Data: []byte("not bitdrive"), CreatedAt: &now},
+				{TxID: "tx-bad-base64", Vout: 0, Data: []byte("!!!|hello"), CreatedAt: &now},
+				{TxID: "tx-short-metadata", Vout: 0, Data: []byte(base64.StdEncoding.EncodeToString([]byte{1, 2}) + "|hello"), CreatedAt: &now},
+			}))
 
-	pending, scanned, err := engine.ScanForFiles(t.Context())
-	require.NoError(t, err)
-	require.Equal(t, 1, scanned)
-	require.Len(t, pending, 1)
-	require.Equal(t, "tx-file", pending[0].OPReturn.TxID)
-	require.Equal(t, "txt", pending[0].Metadata.FileType)
+			pending, scanned, err := engine.ScanForFiles(t.Context())
+			require.NoError(t, err)
+			require.Equal(t, 1, scanned)
+			require.Len(t, pending, 1)
+			require.Equal(t, "tx-file", pending[0].OPReturn.TxID)
+			require.Equal(t, "txt", pending[0].Metadata.FileType)
 
-	downloaded, failed, err := engine.DownloadPendingFiles(t.Context())
-	require.NoError(t, err)
-	require.Equal(t, uint32(1), downloaded)
-	require.Equal(t, uint32(0), failed)
+			downloaded, failed, err := engine.DownloadPendingFiles(t.Context())
+			require.NoError(t, err)
+			require.Equal(t, uint32(1), downloaded)
+			require.Equal(t, uint32(0), failed)
 
-	file, err := bitdrive.GetByTxID(t.Context(), db, "tx-file")
-	require.NoError(t, err)
-	require.NotNil(t, file)
-	content, err := engine.GetFileContent(t.Context(), file.Filename)
-	require.NoError(t, err)
-	require.Equal(t, []byte("hello"), content)
+			file, err := bitdrive.GetByTxID(t.Context(), db, "tx-file")
+			require.NoError(t, err)
+			require.NotNil(t, file)
+			content, err := engine.GetFileContent(t.Context(), file.Filename)
+			require.NoError(t, err)
+			require.Equal(t, test.content, content)
 
-	pending, _, err = engine.ScanForFiles(t.Context())
-	require.NoError(t, err)
-	require.Empty(t, pending)
+			pending, _, err = engine.ScanForFiles(t.Context())
+			require.NoError(t, err)
+			require.Empty(t, pending)
 
-	_, err = db.ExecContext(t.Context(), "DROP TABLE bitdrive_files")
-	require.NoError(t, err)
-	_, _, err = engine.ScanForFiles(t.Context())
-	require.ErrorContains(t, err, "check file tx-file")
+			_, err = db.ExecContext(t.Context(), "DROP TABLE bitdrive_files")
+			require.NoError(t, err)
+			_, _, err = engine.ScanForFiles(t.Context())
+			require.ErrorContains(t, err, "check file tx-file")
+		})
+	}
 }
 
 // The fixtures are encrypted messages from an earlier build. A change to the
