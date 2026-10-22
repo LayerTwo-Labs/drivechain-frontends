@@ -26,7 +26,7 @@ func New(
 ) *Server {
 	s := &Server{
 		bitcoind:       bitcoind,
-		dispensed:      make(map[string]float64),
+		dispensed:      make(map[string]btcutil.Amount),
 		totalDispensed: 0,
 	}
 	return s
@@ -35,8 +35,8 @@ func New(
 type Server struct {
 	bitcoind       bitcoindv1alphaconnect.BitcoinServiceClient
 	mu             sync.Mutex
-	dispensed      map[string]float64
-	totalDispensed float64
+	dispensed      map[string]btcutil.Amount
+	totalDispensed btcutil.Amount
 	windowEnds     time.Time // when the current dispensation window resets
 }
 
@@ -52,7 +52,7 @@ func (s *Server) resetIfWindowElapsed(now time.Time) {
 	if now.Before(s.windowEnds) {
 		return
 	}
-	s.dispensed = make(map[string]float64)
+	s.dispensed = make(map[string]btcutil.Amount)
 	s.totalDispensed = 0
 	s.windowEnds = now.Add(ResetInterval)
 }
@@ -69,14 +69,14 @@ func (s *Server) DispenseCoins(ctx context.Context, c *pb.DispenseCoinsRequest) 
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	if s.totalDispensed+amount.ToBTC() > MaxCoinsPer5Min {
+	if s.totalDispensed+amount > MaxCoinsPer5Min*btcutil.SatoshiPerBitcoin {
 		return nil, connect.Errorf(connect.CodeResourceExhausted,
 			"the faucet has hit its dispensation limit, try again in %s",
 			formatDuration(time.Until(s.windowEnds)),
 		)
 	}
 
-	s.recordDispensation(c.Destination, amount.ToBTC())
+	s.recordDispensation(c.Destination, amount)
 
 	txid, err := s.bitcoind.SendToAddress(ctx, &connectv1.Request[btcpb.SendToAddressRequest]{
 		Msg: &btcpb.SendToAddressRequest{
@@ -86,7 +86,7 @@ func (s *Server) DispenseCoins(ctx context.Context, c *pb.DispenseCoinsRequest) 
 		},
 	})
 	if err != nil {
-		s.undoDispensation(c.Destination, amount.ToBTC())
+		s.undoDispensation(c.Destination, amount)
 	}
 
 	switch {
@@ -134,12 +134,12 @@ func formatDuration(d time.Duration) string {
 	}
 }
 
-func (s *Server) recordDispensation(destination string, amount float64) {
+func (s *Server) recordDispensation(destination string, amount btcutil.Amount) {
 	s.dispensed[destination] += amount
 	s.totalDispensed += amount
 }
 
-func (s *Server) undoDispensation(destination string, amount float64) {
+func (s *Server) undoDispensation(destination string, amount btcutil.Amount) {
 	s.dispensed[destination] -= amount
 	s.totalDispensed -= amount
 }
