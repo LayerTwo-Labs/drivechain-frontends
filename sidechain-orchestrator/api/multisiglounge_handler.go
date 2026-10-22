@@ -532,51 +532,6 @@ func watchRangeEnd(next int) int {
 	return ((next+multisigWatchRangeLookahead)/multisigWatchRangeChunk+1)*multisigWatchRangeChunk - 1
 }
 
-// watchDescriptorRange reports the imported range end covering both of the
-// wallet's active descriptors (-1 when either is missing) and the highest next
-// index Core will hand out from them.
-func (h *MultisigLoungeHandler) watchDescriptorRange(ctx context.Context, name string) (int, int, error) {
-	var res struct {
-		Descriptors []struct {
-			Active   bool  `json:"active"`
-			Internal bool  `json:"internal"`
-			Range    []int `json:"range"`
-			Next     int   `json:"next"`
-		} `json:"descriptors"`
-	}
-	if err := h.coreCallWallet(ctx, name, "listdescriptors", nil, &res); err != nil {
-		return 0, 0, fmt.Errorf("listdescriptors: %w", err)
-	}
-
-	end, next := -1, 0
-	var haveReceive, haveChange bool
-	for _, d := range res.Descriptors {
-		if !d.Active || len(d.Range) != 2 {
-			continue
-		}
-		if d.Internal {
-			haveChange = true
-		} else {
-			haveReceive = true
-		}
-		if end < 0 || d.Range[1] < end {
-			end = d.Range[1]
-		}
-		if d.Next > next {
-			next = d.Next
-		}
-	}
-	if !haveReceive || !haveChange {
-		return -1, next, nil
-	}
-	return end, next, nil
-}
-
-// ensureWatchWallet makes sure the group's watch-only descriptor wallet exists,
-// has the Phase-1 receive/change descriptors imported, and that their range
-// still covers the addresses the wallet is about to hand out. Idempotent: an
-// already-existing wallet is loaded, not recreated, and the descriptors are only
-// re-imported when the imported range falls short.
 func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.GroupData) (string, error) {
 	name := watchWalletName(g)
 
@@ -610,14 +565,40 @@ func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.Gro
 		}
 	}
 
-	// The imported range is a hard cap: an address past its end is derivable but
-	// invisible to the wallet, so keep it ahead of the next index Core hands out.
-	haveEnd, next, err := h.watchDescriptorRange(ctx, name)
-	if err != nil {
-		return "", err
+	var res struct {
+		Descriptors []struct {
+			Active    bool  `json:"active"`
+			Internal  bool  `json:"internal"`
+			Range     []int `json:"range"`
+			Next      int   `json:"next"`
+			Timestamp int64 `json:"timestamp"`
+		} `json:"descriptors"`
 	}
+	if err := h.coreCallWallet(ctx, name, "listdescriptors", nil, &res); err != nil {
+		return "", fmt.Errorf("listdescriptors: %w", err)
+	}
+
+	haveEnd, next := -1, 0
+	var haveStart int64
+	var haveReceive, haveChange bool
+	for _, d := range res.Descriptors {
+		if !d.Active || len(d.Range) != 2 {
+			continue
+		}
+		if d.Internal {
+			haveChange = true
+		} else {
+			haveReceive = true
+		}
+		if haveEnd < 0 || d.Range[1] < haveEnd {
+			haveEnd = d.Range[1]
+		}
+		next = max(next, d.Next)
+		haveStart = max(haveStart, d.Timestamp)
+	}
+	timestamp := max(g.GetCreated()/1000, 1)
 	wantEnd := watchRangeEnd(next)
-	if haveEnd >= wantEnd {
+	if haveReceive && haveChange && haveEnd >= wantEnd && haveStart <= timestamp {
 		return name, nil
 	}
 
@@ -626,13 +607,21 @@ func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.Gro
 		return "", fmt.Errorf("build descriptors: %w", err)
 	}
 
-	// The widened indices were never handed out, so they carry no history and
-	// need no rescan. Keep "now", as the first import always used.
-	var timestamp interface{} = "now"
-
 	descs := []map[string]interface{}{
 		{"desc": receive, "active": true, "internal": false, "timestamp": timestamp, "range": []int{0, wantEnd}},
 		{"desc": change, "active": true, "internal": true, "timestamp": timestamp, "range": []int{0, wantEnd}},
+	}
+	for _, d := range res.Descriptors {
+		if !d.Active || len(d.Range) != 2 {
+			continue
+		}
+		i := 0
+		if d.Internal {
+			i = 1
+		}
+		descs[i]["range"] = []int{0, max(wantEnd, d.Range[1])}
+		descs[i]["next_index"] = d.Next
+		descs[i]["timestamp"] = min(timestamp, d.Timestamp)
 	}
 	var importRes []struct {
 		Success bool `json:"success"`

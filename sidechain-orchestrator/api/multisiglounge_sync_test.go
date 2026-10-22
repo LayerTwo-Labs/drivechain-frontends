@@ -213,6 +213,9 @@ func TestSyncGroupBalanceE2E(t *testing.T) {
 	rt := newLoungeRegtest(t)
 	h := newSyncHandler(rt)
 	group := loungeSyncTestGroup(t)
+	created := time.Now().Add(-24 * time.Hour)
+	group.Created = created.UnixMilli()
+	rt.rpcInto(t, "", "setmocktime", fmt.Sprintf(`[%d]`, created.Unix()), nil)
 
 	// First SyncGroup creates the watch-only wallet from the Phase-1 descriptors.
 	resp, err := h.SyncGroup(context.Background(), &pb.SyncGroupRequest{Group: group})
@@ -238,6 +241,74 @@ func TestSyncGroupBalanceE2E(t *testing.T) {
 	require.Len(t, resp.Utxos, 1)
 	require.Equal(t, int64(100_000_000), resp.Utxos[0].AmountSats)
 	require.Equal(t, msAddr, resp.Utxos[0].Address)
+
+	rt.rpcInto(t, "", "setmocktime", fmt.Sprintf(`[%d]`, time.Now().Unix()), nil)
+	rt.rpcInto(t, "", "generatetoaddress", fmt.Sprintf(`[11,%q]`, fundAddr), nil)
+	for _, tc := range []struct {
+		name     string
+		imported bool
+	}{
+		{name: "ms_restore"},
+		{name: "ms_old", imported: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			group.WatchWalletName = tc.name
+			if tc.imported {
+				rt.rpcInto(t, "", "createwallet", fmt.Sprintf(`[%q,true,true,"",false,true,false]`, tc.name), nil)
+				receive, change, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(group))
+				require.NoError(t, err)
+				descs, err := json.Marshal([]map[string]interface{}{
+					{"desc": receive, "active": true, "internal": false, "timestamp": "now", "range": []int{0, 1999}, "next_index": 5},
+					{"desc": change, "active": true, "internal": true, "timestamp": "now", "range": []int{0, 2999}, "next_index": 7},
+				})
+				require.NoError(t, err)
+				rt.rpcInto(t, tc.name, "importdescriptors", fmt.Sprintf(`[%s]`, descs), nil)
+			}
+
+			imports := 0
+			caller := rt.coreCaller()
+			h.SetCoreCaller(func(ctx context.Context, method, params, name string) (json.RawMessage, error) {
+				if method == "importdescriptors" {
+					imports++
+				}
+				return caller(ctx, method, params, name)
+			})
+			defer h.SetCoreCaller(caller)
+
+			for range 2 {
+				resp, err := h.SyncGroup(t.Context(), &pb.SyncGroupRequest{Group: group})
+				require.NoError(t, err)
+				require.Equal(t, int64(100_000_000), resp.ConfirmedSats)
+				require.Len(t, resp.Utxos, 1)
+			}
+			require.Equal(t, 1, imports)
+			history, err := h.RestoreHistory(t.Context(), &pb.RestoreHistoryRequest{Group: group})
+			require.NoError(t, err)
+			require.Len(t, history.Transactions, 1)
+			require.Equal(t, int64(100_000_000), history.Transactions[0].AmountSats)
+			require.True(t, history.Transactions[0].IsDeposit)
+			if tc.imported {
+				var state struct {
+					Descriptors []struct {
+						Internal bool  `json:"internal"`
+						Range    []int `json:"range"`
+						Next     int   `json:"next"`
+					} `json:"descriptors"`
+				}
+				rt.rpcInto(t, tc.name, "listdescriptors", "", &state)
+				require.Len(t, state.Descriptors, 2)
+				for _, d := range state.Descriptors {
+					if d.Internal {
+						require.Equal(t, []int{0, 2999}, d.Range)
+						require.Equal(t, 7, d.Next)
+					} else {
+						require.Equal(t, []int{0, 1999}, d.Range)
+						require.Equal(t, 5, d.Next)
+					}
+				}
+			}
+		})
+	}
 }
 
 func TestRestoreHistoryE2E(t *testing.T) {
