@@ -18,7 +18,8 @@ import (
 
 type resetTestServer struct {
 	rpc.UnimplementedOrchestratorServiceHandler
-	results []*pb.DeleteFilesResponse
+	results     []*pb.DeleteFilesResponse
+	deleteCalls int
 }
 
 func (s *resetTestServer) GatherFilesToDelete(context.Context, *pb.GatherFilesToDeleteRequest) (*pb.GatherFilesToDeleteResponse, error) {
@@ -26,6 +27,7 @@ func (s *resetTestServer) GatherFilesToDelete(context.Context, *pb.GatherFilesTo
 }
 
 func (s *resetTestServer) DeleteFiles(_ context.Context, _ *pb.DeleteFilesRequest, stream rpc.OrchestratorServiceDeleteFilesServerStream) error {
+	s.deleteCalls++
 	for _, result := range s.results {
 		if err := stream.Send(result); err != nil {
 			return err

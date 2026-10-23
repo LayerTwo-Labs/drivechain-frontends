@@ -232,7 +232,11 @@ func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
 			fmt.Printf("%s is not downloaded. Downloading now...\n", displayName)
 		} else {
 			fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
-			if !confirmYes() {
+			approved, err := readApproval(cctx.App.Reader, true)
+			if err != nil {
+				return err
+			}
+			if !approved {
 				return fmt.Errorf("cannot start %s without %s", name, bin)
 			}
 		}
@@ -969,14 +973,13 @@ func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name
 	}
 }
 
-// confirmYes reads a line from stdin and returns true for "y", "Y", or empty (default yes).
-func confirmYes() bool {
-	scanner := bufio.NewScanner(os.Stdin)
-	if !scanner.Scan() {
-		return false
+func readApproval(reader io.Reader, defaultYes bool) (bool, error) {
+	answer, err := bufio.NewReader(reader).ReadString('\n')
+	if err != nil {
+		return false, fmt.Errorf("read the approval: %w", err)
 	}
-	answer := strings.TrimSpace(scanner.Text())
-	return answer == "" || strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes")
+	answer = strings.TrimSpace(answer)
+	return (answer == "" && defaultYes) || strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes"), nil
 }
 
 // printUsageWithBinaries prints a usage line and lists available binaries.
@@ -1316,7 +1319,11 @@ func ensureSidechainDownloaded(cctx *cli.Context, client rpc.OrchestratorService
 			fmt.Printf("%s is not downloaded. Downloading now...\n", displayName)
 		} else {
 			fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
-			if !confirmYes() {
+			approved, err := readApproval(cctx.App.Reader, true)
+			if err != nil {
+				return err
+			}
+			if !approved {
 				return fmt.Errorf("cannot run %s command without %s binary", commandName, sidechainName)
 			}
 		}
