@@ -46,3 +46,35 @@ func TestALostRoundReportsNoProfit(t *testing.T) {
 	require.False(t, out.HasProfit)
 	require.Zero(t, out.ProfitSats)
 }
+
+func TestProfitIsAbsentWhenAnOldBlockHasUnknownWorth(t *testing.T) {
+	round := wonRound(engines.BidConnected)
+	round.BlockWorthSats = 0
+	round.BlockWorthUnknown = true
+
+	out := roundToProto(round)
+
+	require.False(t, out.HasProfit)
+	require.Zero(t, out.ProfitSats)
+}
+
+func TestProfitCountsThePaidFeeWhenBlockWorthIsUnknown(t *testing.T) {
+	round := wonRound(engines.BidMissed)
+	round.BlockWorthSats = 0
+	round.BlockWorthUnknown = true
+
+	out := roundToProto(round)
+
+	require.True(t, out.HasProfit)
+	require.EqualValues(t, -1200, out.ProfitSats)
+}
+
+func TestProfitCountsAConnectedBlockWithZeroWorth(t *testing.T) {
+	round := wonRound(engines.BidConnected)
+	round.BlockWorthSats = 0
+
+	out := roundToProto(round)
+
+	require.True(t, out.HasProfit)
+	require.EqualValues(t, -1200, out.ProfitSats)
+}

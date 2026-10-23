@@ -347,6 +347,9 @@ func roundToProto(r bmmstate.Round) *bmmpb.Round {
 	// A bid no miner took is never paid, so it neither costs nor earns. A won
 	// bid is paid, and the block pays its fees back only once it connects.
 	if r.Result == engines.ResultWon {
+		if wonBlockConnected(r) && r.BlockWorthUnknown {
+			return out
+		}
 		out.HasProfit = true
 		out.ProfitSats = -r.WinnerBidSats
 		if wonBlockConnected(r) {

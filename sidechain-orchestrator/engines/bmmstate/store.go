@@ -17,15 +17,17 @@ const targetsFileName = "bmm_targets.json"
 
 // Bid is one M8 broadcast for a round.
 type Bid struct {
-	Txid           string `json:"txid"`
-	CriticalHash   string `json:"critical_hash"`
-	BidSats        int64  `json:"bid_sats"`
-	IsOurs         bool   `json:"is_ours"`
-	ReplacedByTxid string `json:"replaced_by_txid,omitempty"`
-	State          string `json:"state,omitempty"`
-	PrevMainHash   string `json:"prev_main_hash,omitempty"`
-	Error          string `json:"error,omitempty"`
-	BlockJSON      string `json:"block_json,omitempty"`
+	Txid            string `json:"txid"`
+	CriticalHash    string `json:"critical_hash"`
+	BidSats         int64  `json:"bid_sats"`
+	IsOurs          bool   `json:"is_ours"`
+	ReplacedByTxid  string `json:"replaced_by_txid,omitempty"`
+	State           string `json:"state,omitempty"`
+	PrevMainHash    string `json:"prev_main_hash,omitempty"`
+	Error           string `json:"error,omitempty"`
+	BlockJSON       string `json:"block_json,omitempty"`
+	BlockWorthSats  int64  `json:"block_worth_sats,omitempty"`
+	BlockWorthKnown bool   `json:"block_worth_known,omitempty"`
 	// WalletID funded the bid. A raise replaces its inputs, so it can only be
 	// funded by the same wallet.
 	WalletID string `json:"wallet_id,omitempty"`
@@ -38,6 +40,7 @@ type Round struct {
 	PrevMainHeight     int32  `json:"prev_main_height"`
 	Result             string `json:"result"`
 	BlockWorthSats     int64  `json:"block_worth_sats"`
+	BlockWorthUnknown  bool   `json:"block_worth_unknown,omitempty"`
 	OurBids            []Bid  `json:"our_bids,omitempty"`
 	OtherBids          []Bid  `json:"other_bids,omitempty"`
 	WinnerCriticalHash string `json:"winner_critical_hash,omitempty"`

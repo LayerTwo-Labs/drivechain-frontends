@@ -39,7 +39,7 @@ type BidSource interface {
 	// PendingTxids names our own transactions no block carries yet, over every
 	// wallet in walletIDs. The first id names the current funding wallet.
 	PendingTxids(ctx context.Context, walletIDs []string) (map[string]bool, error)
-	// Mined reports whether a block carries txid, one that PendingTxids named.
+	// Mined reports whether the mainchain includes txid.
 	Mined(ctx context.Context, txid string) (bool, error)
 	// PaidSats reports what one of our own bids paid. It reports false when
 	// no source names the transaction.
@@ -77,7 +77,7 @@ type ownBids interface {
 	// PendingTxids names our own transactions no block carries yet, over every
 	// wallet in walletIDs.
 	PendingTxids(ctx context.Context, walletIDs []string) (map[string]bool, error)
-	// mined reports whether a block carries txid, one that PendingTxids named.
+	// mined reports whether the mainchain includes txid.
 	mined(ctx context.Context, txid string) (bool, error)
 	// frozenCoins names the candidates a live bid of ours holds.
 	frozenCoins(ctx context.Context, walletID string, candidates []wallet.Outpoint) (map[string]bool, error)
