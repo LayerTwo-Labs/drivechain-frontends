@@ -246,7 +246,6 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 	return nil
 }
 
-// walletTx is one transaction's wallet-relevant outputs in a single direction, summed.
 type walletTx struct {
 	txid          string
 	amount        btcutil.Amount
@@ -254,16 +253,9 @@ type walletTx struct {
 	txTime        time.Time
 }
 
-// aggregateByTxid folds Core's per-output rows into one entry per txid and
-// direction; sends and receives stay apart so a self-send can't net to zero.
 func aggregateByTxid(transactions []*corepb.GetTransactionResponse) ([]walletTx, error) {
-	type bucket struct {
-		txid     string
-		received bool
-	}
-
 	aggregated := make([]walletTx, 0, len(transactions))
-	seen := make(map[bucket]int, len(transactions))
+	seen := make(map[string]int, len(transactions))
 	for _, tx := range transactions {
 		// Core gives a conflicted transaction, such as one an RBF replaced, negative confirmations.
 		if tx.Confirmations < 0 {
@@ -273,9 +265,13 @@ func aggregateByTxid(transactions []*corepb.GetTransactionResponse) ([]walletTx,
 		if err != nil {
 			return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
 		}
-		key := bucket{txid: tx.Txid, received: amount >= 0}
-		if idx, ok := seen[key]; ok {
-			aggregated[idx].amount += amount
+		if idx, ok := seen[tx.Txid]; ok {
+			switch {
+			case (aggregated[idx].amount < 0) == (amount < 0):
+				aggregated[idx].amount += amount
+			case amount < 0:
+				aggregated[idx].amount = amount
+			}
 			continue
 		}
 
@@ -284,7 +280,7 @@ func aggregateByTxid(transactions []*corepb.GetTransactionResponse) ([]walletTx,
 			txTime = t.AsTime()
 		}
 
-		seen[key] = len(aggregated)
+		seen[tx.Txid] = len(aggregated)
 		aggregated = append(aggregated, walletTx{
 			txid:          tx.Txid,
 			amount:        amount,
