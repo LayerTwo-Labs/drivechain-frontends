@@ -53,14 +53,18 @@ func resolveWalletID(cctx *cli.Context, client rpc.WalletManagerServiceClient) (
 	return resp.ActiveWalletId, nil
 }
 
-// confirmOrAbort prompts on stdin unless `--yes` was passed. Returns an error
-// if the user declines.
 func confirmOrAbort(cctx *cli.Context, prompt string) error {
 	if cctx.Bool("yes") {
 		return nil
 	}
-	fmt.Print(prompt + " [y/N] ")
-	if !confirmYes() {
+	if _, err := fmt.Fprint(cctx.App.Writer, prompt+" [y/N] "); err != nil {
+		return fmt.Errorf("write the approval prompt: %w", err)
+	}
+	approved, err := readApproval(cctx.App.Reader, false)
+	if err != nil {
+		return err
+	}
+	if !approved {
 		return fmt.Errorf("aborted")
 	}
 	return nil
@@ -248,7 +252,11 @@ var walletStatusCommand = &cli.Command{
 		s := resp
 		if s.State == pb.WalletState_WALLET_STATE_NO_WALLET {
 			fmt.Println("no wallet is created yet. would you like to create a wallet now? [Y/n]")
-			if confirmYes() {
+			approved, err := readApproval(cctx.App.Reader, true)
+			if err != nil {
+				return err
+			}
+			if approved {
 				return walletCreateCommand.Run(cli.NewContext(cctx.App, nil, cctx), walletCreateCommand.Name)
 			}
 			return nil
@@ -457,9 +465,8 @@ var walletDeleteCommand = &cli.Command{
 		client := newWalletClient(cctx)
 
 		if cctx.Bool("all") {
-			fmt.Print("delete ALL wallets? this cannot be undone. [y/N] ")
-			if !confirmYes() {
-				return fmt.Errorf("aborted")
+			if err := confirmOrAbort(cctx, "Delete ALL wallets? You cannot undo this action."); err != nil {
+				return err
 			}
 			_, err := client.DeleteAllWallets(cctx.Context, &pb.DeleteAllWalletsRequest{})
 			if err != nil {

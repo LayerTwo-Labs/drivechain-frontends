@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
@@ -41,20 +40,10 @@ func TestWalletStatusCreatesCoreWalletWhenNoneExists(t *testing.T) {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
-	stdin, err := os.CreateTemp(t.TempDir(), "stdin")
-	require.NoError(t, err)
-	_, err = stdin.WriteString("y\n")
-	require.NoError(t, err)
-	_, err = stdin.Seek(0, io.SeekStart)
-	require.NoError(t, err)
-	oldStdin := os.Stdin
-	os.Stdin = stdin
-	t.Cleanup(func() { os.Stdin = oldStdin })
-
 	set := flag.NewFlagSet("status", flag.ContinueOnError)
 	set.String("rpcserver", strings.TrimPrefix(server.URL, "http://"), "")
 	set.String("bitwindow-dir", t.TempDir(), "")
-	cctx := cli.NewContext(&cli.App{Writer: io.Discard, ErrWriter: io.Discard}, set, nil)
+	cctx := cli.NewContext(&cli.App{Reader: strings.NewReader("\n"), Writer: io.Discard, ErrWriter: io.Discard}, set, nil)
 	cctx.Context = context.Background()
 
 	require.NoError(t, walletStatusCommand.Action(cctx))
