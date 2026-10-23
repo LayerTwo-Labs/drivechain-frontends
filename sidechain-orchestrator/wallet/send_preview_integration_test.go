@@ -4,15 +4,24 @@ package wallet_test
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"math"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect/v2"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -213,6 +222,114 @@ func TestPreviewSendBip47OneCoinSendsBoth(t *testing.T) {
 		_, err := node.CoreRPC.GetMempoolEntry(ctx, txid)
 		require.NoError(t, err, "transaction %s is in the mempool", txid)
 	}
+}
+
+func TestCoreBip47RefusesTaprootNotificationInput(t *testing.T) {
+	h := testharness.New(t, 1)
+	defer h.Close()
+	node := h.Nodes[0]
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	client := node.WalletClient
+	fundedID, fundedAddress := smallCoinWallet(ctx, t, node, 2)
+	sender, err := client.GenerateWallet(ctx, &pb.GenerateWalletRequest{Name: "Taproot sender", ScriptType: "taproot"})
+	require.NoError(t, err)
+	_, err = client.EnsureCoreWallets(ctx, &pb.EnsureCoreWalletsRequest{})
+	require.NoError(t, err)
+	fund := func(kind pb.AddressType, sats int64) string {
+		address, err := client.GetNewAddress(ctx, &pb.GetNewAddressRequest{WalletId: sender.WalletId, AddressType: kind})
+		require.NoError(t, err)
+		_, err = client.SendTransaction(ctx, &pb.SendTransactionRequest{
+			WalletId:           fundedID,
+			Destinations:       map[string]int64{address.Address: sats},
+			FeeRateSatPerVbyte: 1,
+		})
+		require.NoError(t, err)
+		require.NoError(t, node.MineToAddress(ctx, 1, fundedAddress))
+		return address.Address
+	}
+	mempool := func() []string {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+			fmt.Sprintf("http://127.0.0.1:%d", node.BitcoindRPCPort),
+			strings.NewReader(`{"jsonrpc":"2.0","id":"test","method":"getrawmempool","params":[]}`))
+		require.NoError(t, err)
+		req.SetBasicAuth("test", "test")
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer func() { require.NoError(t, resp.Body.Close()) }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		var result struct {
+			Result []string        `json:"result"`
+			Error  json.RawMessage `json:"error"`
+		}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+		require.True(t, len(result.Error) == 0 || string(result.Error) == "null")
+		return result.Result
+	}
+
+	fund(pb.AddressType_ADDRESS_TYPE_TAPROOT, 50_000)
+	require.Empty(t, mempool())
+	net := &chaincfg.RegressionNetParams
+	recipient, err := bip47.PaymentCodeFromSeed(strings.Repeat("ab", 32), net)
+	require.NoError(t, err)
+	send := &pb.SendTransactionRequest{
+		WalletId:           sender.WalletId,
+		Destinations:       map[string]int64{recipient.Base58(): 10_000},
+		FeeRateSatPerVbyte: 2,
+	}
+	_, err = client.SendTransaction(ctx, send)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	assert.Empty(t, mempool())
+
+	nativeAddress := fund(pb.AddressType_ADDRESS_TYPE_SEGWIT, 100_000)
+	preview, err := client.PreviewSend(ctx, &pb.PreviewSendRequest{
+		WalletId:           send.WalletId,
+		Destinations:       send.Destinations,
+		FeeRateSatPerVbyte: send.FeeRateSatPerVbyte,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, preview.NotificationInput)
+	assert.Equal(t, int64(100_000), preview.NotificationInput.AmountSats)
+	sent, err := client.SendTransaction(ctx, send)
+	require.NoError(t, err)
+	notificationID, err := node.CoreRPC.TxSpendingPrevout(ctx, preview.NotificationInput.Txid, int(preview.NotificationInput.Vout))
+	require.NoError(t, err)
+	require.NotEmpty(t, notificationID)
+	require.ElementsMatch(t, []string{notificationID, sent.Txid}, mempool())
+	notification, err := node.CoreRPC.GetRawTransaction(ctx, notificationID)
+	require.NoError(t, err)
+	require.Len(t, notification.Vin, 1)
+	input := notification.Vin[0]
+	assert.Equal(t, preview.NotificationInput.Txid, input.TxID)
+	previous, err := node.CoreRPC.GetRawTransaction(ctx, input.TxID)
+	require.NoError(t, err)
+	assert.Equal(t, nativeAddress, previous.Vout[input.Vout].ScriptPubKey.Address)
+	require.Len(t, input.Witness, 2)
+	publicKey, err := hex.DecodeString(input.Witness[1])
+	require.NoError(t, err)
+	senderKey, err := btcec.ParsePubKey(publicKey)
+	require.NoError(t, err)
+	script, err := hex.DecodeString(notification.Vout[1].ScriptPubKey.Hex)
+	require.NoError(t, err)
+	pushes, err := txscript.PushedData(script)
+	require.NoError(t, err)
+	require.Len(t, pushes, 1)
+	require.Len(t, pushes[0], bip47.PaymentCodeLength)
+	var payload [bip47.PaymentCodeLength]byte
+	copy(payload[:], pushes[0])
+	recipientKey, _, err := bip47.DeriveOwnNotificationKey(strings.Repeat("ab", 32), net)
+	require.NoError(t, err)
+	previousHash, err := chainhash.NewHashFromStr(input.TxID)
+	require.NoError(t, err)
+	code, err := bip47.DecodeBlindedPayload(recipientKey, senderKey, wire.OutPoint{Hash: *previousHash, Index: uint32(input.Vout)}, payload)
+	require.NoError(t, err)
+	seed, err := client.GetWalletSeed(ctx, &pb.GetWalletSeedRequest{WalletId: sender.WalletId})
+	require.NoError(t, err)
+	want, err := bip47.PaymentCodeFromSeed(seed.SeedHex, net)
+	require.NoError(t, err)
+	assert.Equal(t, want.Base58(), code.Base58())
 }
 
 func TestCoreBumpFeeAddsACoin(t *testing.T) {

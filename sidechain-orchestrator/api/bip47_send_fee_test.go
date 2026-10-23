@@ -78,7 +78,12 @@ func (c *bip47TestChain) record(tx *wire.MsgTx, confirmed bool) string {
 // addCoin funds the address with one more confirmed coin.
 func (c *bip47TestChain) addCoin(t *testing.T, amount int64) {
 	t.Helper()
-	decoded, err := btcutil.DecodeAddress(c.addr, &chaincfg.SigNetParams)
+	c.addCoinTo(t, c.addr, amount)
+}
+
+func (c *bip47TestChain) addCoinTo(t *testing.T, address string, amount int64) {
+	t.Helper()
+	decoded, err := btcutil.DecodeAddress(address, &chaincfg.SigNetParams)
 	require.NoError(t, err)
 	script, err := txscript.PayToAddrScript(decoded)
 	require.NoError(t, err)
