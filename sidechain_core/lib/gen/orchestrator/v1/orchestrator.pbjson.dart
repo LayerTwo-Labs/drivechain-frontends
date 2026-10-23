@@ -448,13 +448,16 @@ const StreamLogsRequest$json = {
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
     {'1': 'tail', '3': 2, '4': 1, '5': 5, '10': 'tail'},
+    {'1': 'run_id', '3': 3, '4': 1, '5': 9, '10': 'runId'},
+    {'1': 'after_sequence', '3': 4, '4': 1, '5': 4, '10': 'afterSequence'},
   ],
 };
 
 /// Descriptor for `StreamLogsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List streamLogsRequestDescriptor = $convert.base64Decode(
     'ChFTdHJlYW1Mb2dzUmVxdWVzdBISCgRuYW1lGAEgASgJUgRuYW1lEhIKBHRhaWwYAiABKAVSBH'
-    'RhaWw=');
+    'RhaWwSFQoGcnVuX2lkGAMgASgJUgVydW5JZBIlCg5hZnRlcl9zZXF1ZW5jZRgEIAEoBFINYWZ0'
+    'ZXJTZXF1ZW5jZQ==');
 
 @$core.Deprecated('Use streamLogsResponseDescriptor instead')
 const StreamLogsResponse$json = {
@@ -463,13 +466,16 @@ const StreamLogsResponse$json = {
     {'1': 'stream', '3': 1, '4': 1, '5': 9, '10': 'stream'},
     {'1': 'line', '3': 2, '4': 1, '5': 9, '10': 'line'},
     {'1': 'timestamp_unix', '3': 3, '4': 1, '5': 3, '10': 'timestampUnix'},
+    {'1': 'run_id', '3': 4, '4': 1, '5': 9, '10': 'runId'},
+    {'1': 'sequence', '3': 5, '4': 1, '5': 4, '10': 'sequence'},
   ],
 };
 
 /// Descriptor for `StreamLogsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List streamLogsResponseDescriptor = $convert.base64Decode(
     'ChJTdHJlYW1Mb2dzUmVzcG9uc2USFgoGc3RyZWFtGAEgASgJUgZzdHJlYW0SEgoEbGluZRgCIA'
-    'EoCVIEbGluZRIlCg50aW1lc3RhbXBfdW5peBgDIAEoA1INdGltZXN0YW1wVW5peA==');
+    'EoCVIEbGluZRIlCg50aW1lc3RhbXBfdW5peBgDIAEoA1INdGltZXN0YW1wVW5peBIVCgZydW5f'
+    'aWQYBCABKAlSBXJ1bklkEhoKCHNlcXVlbmNlGAUgASgEUghzZXF1ZW5jZQ==');
 
 @$core.Deprecated('Use startWithL1RequestDescriptor instead')
 const StartWithL1Request$json = {

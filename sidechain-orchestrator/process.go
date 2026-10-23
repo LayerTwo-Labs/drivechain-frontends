@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -21,6 +22,8 @@ type LogEntry struct {
 	Timestamp time.Time
 	Stream    string // "stdout" or "stderr"
 	Line      string
+	RunID     string
+	Sequence  uint64
 }
 
 // ManagedProcess represents a running process managed by the orchestrator.
@@ -35,10 +38,12 @@ type ManagedProcess struct {
 	Orphan       bool // true if a previous run of this install started it and left it behind
 	ForceBackend bool // true if this sidechain was launched with --force-backend (skips flutter_frontend variant)
 
-	mu      sync.Mutex
-	logs    []LogEntry // ring buffer
-	logSubs []chan LogEntry
-	exitCh  chan struct{} // closed when process exits
+	mu       sync.Mutex
+	runID    string
+	sequence uint64
+	logs     []LogEntry // ring buffer
+	logSubs  []*LogSubscription
+	exitCh   chan struct{} // closed when process exits
 	// stopTails ends the log tails of an adopted process. It is nil for a spawned one.
 	stopTails func()
 	exitCode  int
@@ -84,44 +89,103 @@ func (p *ManagedProcess) ExitDetails() string {
 
 const maxLogEntries = 5000
 
+// ErrLogBufferFull reports a subscriber that cannot accept another log entry.
+var ErrLogBufferFull = errors.New("log subscriber buffer is full")
+
+// LogSubscription holds a process log channel and its terminal error.
+type LogSubscription struct {
+	process *ManagedProcess
+	entries chan LogEntry
+	err     error
+}
+
+// Entries returns the log channel.
+func (s *LogSubscription) Entries() <-chan LogEntry {
+	return s.entries
+}
+
+// Err returns the terminal error, or nil for a clean close.
+func (s *LogSubscription) Err() error {
+	s.process.mu.Lock()
+	defer s.process.mu.Unlock()
+	return s.err
+}
+
+// Cancel closes the subscription.
+func (s *LogSubscription) Cancel() {
+	s.process.mu.Lock()
+	defer s.process.mu.Unlock()
+	for i, sub := range s.process.logSubs {
+		if sub == s {
+			s.process.logSubs = append(s.process.logSubs[:i], s.process.logSubs[i+1:]...)
+			close(s.entries)
+			return
+		}
+	}
+}
+
 func (p *ManagedProcess) addLog(entry LogEntry) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	p.sequence++
+	entry.RunID = p.runID
+	entry.Sequence = p.sequence
 	p.logs = append(p.logs, entry)
 	if len(p.logs) > maxLogEntries {
 		p.logs = p.logs[len(p.logs)-maxLogEntries:]
 	}
 
+	active := p.logSubs[:0]
 	for _, sub := range p.logSubs {
 		select {
-		case sub <- entry:
-		default: // don't block if subscriber is slow
+		case sub.entries <- entry:
+			active = append(active, sub)
+		default:
+			sub.err = ErrLogBufferFull
+			close(sub.entries)
 		}
 	}
+	clear(p.logSubs[len(active):])
+	p.logSubs = active
 }
 
 // Subscribe returns a channel that receives new log entries and a cancel function.
 func (p *ManagedProcess) Subscribe() (<-chan LogEntry, func()) {
+	_, sub := p.subscribe(0, "", 0)
+	return sub.Entries(), sub.Cancel
+}
+
+func (p *ManagedProcess) subscribe(tail int, runID string, afterSequence uint64) ([]LogEntry, *LogSubscription) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	ch := make(chan LogEntry, 100)
-	p.logSubs = append(p.logSubs, ch)
-
-	cancel := func() {
-		p.mu.Lock()
-		defer p.mu.Unlock()
-		for i, sub := range p.logSubs {
-			if sub == ch {
-				p.logSubs = append(p.logSubs[:i], p.logSubs[i+1:]...)
-				close(ch)
-				return
-			}
+	if runID != "" && runID == p.runID {
+		tail = 0
+		if afterSequence < p.sequence {
+			tail = int(min(p.sequence-afterSequence, uint64(len(p.logs))))
 		}
 	}
+	recent := p.recentLogs(tail)
+	sub := &LogSubscription{process: p, entries: make(chan LogEntry, 100)}
+	select {
+	case <-p.exitCh:
+		close(sub.entries)
+		return recent, sub
+	default:
+	}
+	p.logSubs = append(p.logSubs, sub)
+	return recent, sub
+}
 
-	return ch, cancel
+func (p *ManagedProcess) closeExit() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, sub := range p.logSubs {
+		close(sub.entries)
+	}
+	p.logSubs = nil
+	close(p.exitCh)
 }
 
 // RecentLogs returns the most recent log entries.
@@ -129,11 +193,11 @@ func (p *ManagedProcess) RecentLogs(n int) []LogEntry {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if n >= len(p.logs) {
-		result := make([]LogEntry, len(p.logs))
-		copy(result, p.logs)
-		return result
-	}
+	return p.recentLogs(n)
+}
+
+func (p *ManagedProcess) recentLogs(n int) []LogEntry {
+	n = max(0, min(n, len(p.logs)))
 	result := make([]LogEntry, n)
 	copy(result, p.logs[len(p.logs)-n:])
 	return result
@@ -355,6 +419,7 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 		PidName:      pidName,
 		Started:      time.Now(),
 		ForceBackend: opts.ForceBackend,
+		runID:        rand.Text(),
 		logs:         make([]LogEntry, 0, 256),
 		exitCh:       make(chan struct{}),
 	}
@@ -506,7 +571,7 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 			Msg("process exited")
 
 		// Closed last so a waiter sees the drained logs and the recorded exit.
-		close(proc.exitCh)
+		proc.closeExit()
 
 		// Notify the orchestrator so it can update ConnectionMonitor
 		if pm.OnExit != nil {
@@ -722,9 +787,9 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 		Adopted:      true,
 		Orphan:       orphan,
 		ForceBackend: forceBackend,
+		runID:        rand.Text(),
 		logs:         make([]LogEntry, 0),
 		exitCh:       make(chan struct{}),
-		stopTails:    sync.OnceFunc(func() { close(tailStop) }),
 	}
 	pm.processes[config.Name] = adopted
 
@@ -732,9 +797,13 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 
 	// The adopted child still appends to the same files, so its log window
 	// fills again. The tails end when the process exits or leaves the manager.
-	for _, stream := range []string{"stdout", "stderr"} {
-		pm.tailBinaryLog(adopted, config.Name, stream, readLogOffset(pm.dataDir, config.Name, stream), tailStop, nil, nil)
-	}
+	stdoutDone := pm.tailBinaryLog(adopted, config.Name, "stdout", readLogOffset(pm.dataDir, config.Name, "stdout"), tailStop, nil, nil)
+	stderrDone := pm.tailBinaryLog(adopted, config.Name, "stderr", readLogOffset(pm.dataDir, config.Name, "stderr"), tailStop, nil, nil)
+	adopted.stopTails = sync.OnceFunc(func() {
+		close(tailStop)
+		<-stdoutDone
+		<-stderrDone
+	})
 
 	go pm.watchAdopted(config.Name, adopted)
 }
@@ -770,7 +839,7 @@ func (pm *ProcessManager) watchAdopted(name string, proc *ManagedProcess) {
 		_ = pm.pidManager.DeletePidFile(proc.PidName)
 		pm.log.Info().Str("binary", name).Int("pid", proc.Pid).Msg("adopted process exited")
 		proc.stopTails()
-		close(proc.exitCh)
+		proc.closeExit()
 		return
 	}
 }

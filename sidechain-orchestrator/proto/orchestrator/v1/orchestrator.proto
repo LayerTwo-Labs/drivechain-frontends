@@ -346,12 +346,16 @@ message StopBinaryResponse {}
 message StreamLogsRequest {
   string name = 1;
   int32 tail = 2; // number of recent lines to include
+  string run_id = 3;
+  uint64 after_sequence = 4;
 }
 
 message StreamLogsResponse {
   string stream = 1; // "stdout" or "stderr"
   string line = 2;
   int64 timestamp_unix = 3;
+  string run_id = 4;
+  uint64 sequence = 5;
 }
 
 // StartWithL1

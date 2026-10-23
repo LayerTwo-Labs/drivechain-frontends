@@ -909,13 +909,20 @@ void forgetBinaryLogStreams() {
   _reopenPending.clear();
 }
 
-void _watchBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {
+void _watchBinaryLogs(
+  OrchestratorRPC orchestrator,
+  String binaryName,
+  BinaryType binaryType,
+  Logger log, {
+  StreamLogsResponse? cursor,
+}) {
   final logProvider = GetIt.I.get<LogProvider>();
 
   orchestrator
-      .streamLogs(binaryName, tail: 100)
+      .streamLogs(binaryName, tail: 100, runId: cursor?.runId ?? '', afterSequence: cursor?.sequence)
       .listen(
         (response) {
+          cursor = response;
           logProvider.addLog(
             FullProcessLogEntry(
               timestamp: DateTime.fromMillisecondsSinceEpoch(response.timestampUnix.toInt() * 1000),
@@ -925,20 +932,27 @@ void _watchBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryTyp
             ),
           );
         },
-        onError: (e) => _reopenBinaryLogs(orchestrator, binaryName, binaryType, log),
-        onDone: () => _reopenBinaryLogs(orchestrator, binaryName, binaryType, log),
+        onError: (e) => _reopenBinaryLogs(orchestrator, binaryName, binaryType, log, cursor),
+        onDone: () => _reopenBinaryLogs(orchestrator, binaryName, binaryType, log, cursor),
+        cancelOnError: true,
       );
 }
 
 /// The backend ends the stream on a reboot, by an error or by a plain close.
 /// The log page goes silent until this opens the one stream again.
-void _reopenBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {
+void _reopenBinaryLogs(
+  OrchestratorRPC orchestrator,
+  String binaryName,
+  BinaryType binaryType,
+  Logger log,
+  StreamLogsResponse? cursor,
+) {
   if (!_reopenPending.add(binaryName)) {
     return;
   }
   Future.delayed(const Duration(seconds: 5), () {
     _reopenPending.remove(binaryName);
-    _watchBinaryLogs(orchestrator, binaryName, binaryType, log);
+    _watchBinaryLogs(orchestrator, binaryName, binaryType, log, cursor: cursor);
   });
 }
 

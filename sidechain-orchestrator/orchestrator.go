@@ -883,17 +883,31 @@ func (o *Orchestrator) Logs(name string) (<-chan LogEntry, func(), error) {
 
 // RecentLogs returns the most recent log entries for a binary.
 func (o *Orchestrator) RecentLogs(name string, n int) ([]LogEntry, error) {
-	proc := o.logProcess(name)
-	if proc == nil {
-		proc = o.process.LatestRun(name)
-	}
-	if proc == nil {
-		proc = o.process.LatestRun(sidechainGUIProcessName(name))
-	}
+	proc := o.logProcessWithExit(name)
 	if proc == nil {
 		return nil, fmt.Errorf("%s is not running", name)
 	}
 	return proc.RecentLogs(n), nil
+}
+
+// SubscribeLogs returns saved and live entries; a matching run cursor replaces the tail limit.
+func (o *Orchestrator) SubscribeLogs(name string, tail int, runID string, afterSequence uint64) ([]LogEntry, *LogSubscription, error) {
+	proc := o.logProcessWithExit(name)
+	if proc == nil {
+		return nil, nil, fmt.Errorf("%s is not running", name)
+	}
+	recent, sub := proc.subscribe(tail, runID, afterSequence)
+	return recent, sub, nil
+}
+
+func (o *Orchestrator) logProcessWithExit(name string) *ManagedProcess {
+	if proc := o.logProcess(name); proc != nil {
+		return proc
+	}
+	if proc := o.process.LatestRun(name); proc != nil {
+		return proc
+	}
+	return o.process.LatestRun(sidechainGUIProcessName(name))
 }
 
 // logProcess resolves a logical binary name to the process that holds its logs.

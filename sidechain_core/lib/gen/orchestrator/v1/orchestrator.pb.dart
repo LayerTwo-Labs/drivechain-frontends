@@ -1528,6 +1528,8 @@ class StreamLogsRequest extends $pb.GeneratedMessage {
   factory StreamLogsRequest({
     $core.String? name,
     $core.int? tail,
+    $core.String? runId,
+    $fixnum.Int64? afterSequence,
   }) {
     final $result = create();
     if (name != null) {
@@ -1535,6 +1537,12 @@ class StreamLogsRequest extends $pb.GeneratedMessage {
     }
     if (tail != null) {
       $result.tail = tail;
+    }
+    if (runId != null) {
+      $result.runId = runId;
+    }
+    if (afterSequence != null) {
+      $result.afterSequence = afterSequence;
     }
     return $result;
   }
@@ -1545,6 +1553,8 @@ class StreamLogsRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StreamLogsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'tail', $pb.PbFieldType.O3)
+    ..aOS(3, _omitFieldNames ? '' : 'runId')
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'afterSequence', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -1586,6 +1596,24 @@ class StreamLogsRequest extends $pb.GeneratedMessage {
   $core.bool hasTail() => $_has(1);
   @$pb.TagNumber(2)
   void clearTail() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get runId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set runId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasRunId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRunId() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get afterSequence => $_getI64(3);
+  @$pb.TagNumber(4)
+  set afterSequence($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAfterSequence() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAfterSequence() => clearField(4);
 }
 
 class StreamLogsResponse extends $pb.GeneratedMessage {
@@ -1593,6 +1621,8 @@ class StreamLogsResponse extends $pb.GeneratedMessage {
     $core.String? stream,
     $core.String? line,
     $fixnum.Int64? timestampUnix,
+    $core.String? runId,
+    $fixnum.Int64? sequence,
   }) {
     final $result = create();
     if (stream != null) {
@@ -1604,6 +1634,12 @@ class StreamLogsResponse extends $pb.GeneratedMessage {
     if (timestampUnix != null) {
       $result.timestampUnix = timestampUnix;
     }
+    if (runId != null) {
+      $result.runId = runId;
+    }
+    if (sequence != null) {
+      $result.sequence = sequence;
+    }
     return $result;
   }
   StreamLogsResponse._() : super();
@@ -1614,6 +1650,8 @@ class StreamLogsResponse extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'stream')
     ..aOS(2, _omitFieldNames ? '' : 'line')
     ..aInt64(3, _omitFieldNames ? '' : 'timestampUnix')
+    ..aOS(4, _omitFieldNames ? '' : 'runId')
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'sequence', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -1664,6 +1702,24 @@ class StreamLogsResponse extends $pb.GeneratedMessage {
   $core.bool hasTimestampUnix() => $_has(2);
   @$pb.TagNumber(3)
   void clearTimestampUnix() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get runId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set runId($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasRunId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRunId() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get sequence => $_getI64(4);
+  @$pb.TagNumber(5)
+  set sequence($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSequence() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSequence() => clearField(5);
 }
 
 class StartWithL1Request extends $pb.GeneratedMessage {

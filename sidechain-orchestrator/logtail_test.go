@@ -8,6 +8,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/rs/zerolog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -282,5 +283,50 @@ func TestRemoveStopsTheTailsOfAnAdoptedProcess(t *testing.T) {
 	case <-stopped:
 	case <-time.After(5 * time.Second):
 		t.Fatal("the tails ran on after the process left the manager")
+	}
+}
+
+func TestAdoptedProcessDrainsLogsBeforeExit(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "sh")
+	stdout, err := openBinaryLog(dir, "external", "stdout")
+	require.NoError(t, err)
+	defer func() { require.NoError(t, stdout.Close()) }()
+	stderr, err := openBinaryLog(dir, "external", "stderr")
+	require.NoError(t, err)
+	defer func() { require.NoError(t, stderr.Close()) }()
+
+	cmd := exec.Command(BinaryPath(dir, "sh"), "-c", "printf 'stdout tail'; printf 'stderr tail' >&2")
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	require.NoError(t, cmd.Run())
+	for _, stream := range []string{"stdout", "stderr"} {
+		require.NoError(t, writeLogOffset(dir, "external", stream, 0))
+	}
+
+	pm.AdoptProcess(BinaryConfig{Name: "external", BinaryName: "sh"}, cmd.Process.Pid)
+	t.Cleanup(func() { pm.Remove("external") })
+	proc := pm.Get("external")
+	require.NotNil(t, proc)
+	entries, cancel := proc.Subscribe()
+	defer cancel()
+	select {
+	case <-proc.ExitCh():
+	case <-time.After(5 * time.Second):
+		t.Fatal("the adopted process did not close its exit channel")
+	}
+
+	var lines []string
+	for {
+		select {
+		case entry, open := <-entries:
+			if !open {
+				assert.ElementsMatch(t, []string{"stdout: stdout tail", "stderr: stderr tail"}, lines)
+				return
+			}
+			lines = append(lines, entry.Stream+": "+entry.Line)
+		default:
+			t.Fatal("the adopted process kept its log channel open")
+		}
 	}
 }

@@ -121,43 +121,42 @@ func (h *Handler) StopBinary(ctx context.Context, req *pb.StopBinaryRequest) (*p
 }
 
 func (h *Handler) StreamLogs(ctx context.Context, req *pb.StreamLogsRequest, stream rpc.OrchestratorServiceStreamLogsServerStream) error {
-	// Send recent logs first
-	if req.Tail > 0 {
-		recent, err := h.orch.RecentLogs(req.Name, int(req.Tail))
-		if err != nil {
-			return err
-		}
-		for _, entry := range recent {
-			if err := stream.Send(&pb.StreamLogsResponse{
-				Stream:        entry.Stream,
-				Line:          entry.Line,
-				TimestampUnix: entry.Timestamp.Unix(),
-			}); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Stream live logs
-	ch, cancel, err := h.orch.Logs(req.Name)
+	recent, sub, err := h.orch.SubscribeLogs(req.Name, int(req.Tail), req.RunId, req.AfterSequence)
 	if err != nil {
 		return err
 	}
-	defer cancel()
+	defer sub.Cancel()
+
+	send := func(entry orchestrator.LogEntry) error {
+		if entry.RunID == req.RunId && entry.Sequence <= req.AfterSequence {
+			return nil
+		}
+		return stream.Send(&pb.StreamLogsResponse{
+			Stream:        entry.Stream,
+			Line:          entry.Line,
+			TimestampUnix: entry.Timestamp.Unix(),
+			RunId:         entry.RunID,
+			Sequence:      entry.Sequence,
+		})
+	}
+	for _, entry := range recent {
+		if err := send(entry); err != nil {
+			return err
+		}
+	}
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case entry, ok := <-ch:
+		case entry, ok := <-sub.Entries():
 			if !ok {
+				if err := sub.Err(); err != nil {
+					return connect.NewError(connect.CodeResourceExhausted, err.Error())
+				}
 				return nil
 			}
-			if err := stream.Send(&pb.StreamLogsResponse{
-				Stream:        entry.Stream,
-				Line:          entry.Line,
-				TimestampUnix: entry.Timestamp.Unix(),
-			}); err != nil {
+			if err := send(entry); err != nil {
 				return err
 			}
 		}
