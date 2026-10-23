@@ -189,6 +189,57 @@ func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
 	}
 }
 
+func TestProcessWalletTransactions_SelfSendKeepsSentAmount(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		confirmations int32
+		receiveFirst  bool
+	}{
+		{name: "unconfirmed send first"},
+		{name: "unconfirmed receive first", receiveFirst: true},
+		{name: "confirmed send first", confirmations: 1},
+		{name: "confirmed receive first", confirmations: 1, receiveFirst: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := t.Context()
+			engine := NewNotificationEngine(database.Test(t), nil, nil)
+			events := engine.Subscribe(ctx)
+			const txid = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+			rows := []*corepb.GetTransactionResponse{
+				{Txid: txid, Amount: -1.25, Confirmations: test.confirmations},
+				{Txid: txid, Amount: -0.75, Confirmations: test.confirmations},
+				{Txid: txid, Amount: 1, Confirmations: test.confirmations},
+			}
+			if test.receiveFirst {
+				rows[0], rows[2] = rows[2], rows[0]
+			}
+
+			require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", rows))
+			event := nextEvent(t, events).GetTransaction()
+			require.Equal(t, notificationv1.TransactionEvent_TYPE_SENT, event.GetType())
+			require.Equal(t, txid, event.GetTxid())
+			require.Equal(t, uint64(200_000_000), event.GetAmountSats())
+
+			for _, row := range rows {
+				row.Confirmations = 1
+			}
+			require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", rows))
+			event = nextEvent(t, events).GetTransaction()
+			require.Equal(t, notificationv1.TransactionEvent_TYPE_CONFIRMED, event.GetType())
+			require.Equal(t, txid, event.GetTxid())
+			require.Equal(t, uint64(200_000_000), event.GetAmountSats())
+			require.Equal(t, uint32(1), event.GetConfirmations())
+
+			require.NoError(t, engine.processWalletTransactions(ctx, "wallet-a", rows))
+			select {
+			case event := <-events:
+				t.Fatalf("received a duplicate notification: %v", event)
+			default:
+			}
+		})
+	}
+}
+
 func TestCheckTimestampConfirmations_SkipsDiscovered(t *testing.T) {
 	for _, status := range []timestamps.Status{timestamps.StatusConfirming, timestamps.StatusConfirmed} {
 		t.Run(string(status), func(t *testing.T) {
