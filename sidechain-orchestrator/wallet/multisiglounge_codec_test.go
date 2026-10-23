@@ -144,6 +144,34 @@ func TestDeriveAccountXpubMatchesGroupKey(t *testing.T) {
 	assert.NotContains(t, cases, other)
 }
 
+func TestDeriveAccountRejectsBadPaths(t *testing.T) {
+	seed := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	for _, path := range []string{"m/48'//0'", "m/48'/0'/", "m//", "", "m", "m/2147483648", "m/2147483648'", "m/-1", "m/48''", "m/48hH"} {
+		t.Run(path, func(t *testing.T) {
+			pub, err := DeriveAccountXpub(seed, path, &chaincfg.SigNetParams)
+			require.Error(t, err)
+			require.Empty(t, pub)
+			priv, pub, err := DeriveAccountXprv(seed, path, &chaincfg.SigNetParams)
+			require.Error(t, err)
+			require.Empty(t, priv)
+			require.Empty(t, pub)
+		})
+	}
+}
+
+func TestDeriveAccountKeepsValidPathForms(t *testing.T) {
+	seed := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	want, err := DeriveAccountXpub(seed, "m/48'/1'/0'/2'", &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	for _, path := range []string{"48h/1h/0h/2h", "M/48H/1H/0H/2H", " m/48'/1'/0'/2' "} {
+		pub, err := DeriveAccountXpub(seed, path, &chaincfg.SigNetParams)
+		require.NoError(t, err)
+		require.Equal(t, want, pub)
+	}
+	_, err = DeriveAccountXpub(seed, "m/2147483647/2147483647'", &chaincfg.SigNetParams)
+	require.NoError(t, err)
+}
+
 // TestExtractOpReturnMessage builds an OP_RETURN script the way the wallet send
 // path does (push the UTF-8 message bytes) and recovers the message string.
 func TestExtractOpReturnMessage(t *testing.T) {

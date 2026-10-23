@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
@@ -179,31 +178,15 @@ func DeriveAccountXprv(seedHex, path string, net *chaincfg.Params) (xprv, xpub s
 
 // parseHDPath parses "m/48'/1'/0'/2'" into hardened-aware child indices.
 func parseHDPath(path string) ([]uint32, error) {
-	s := strings.TrimSpace(path)
-	s = strings.TrimPrefix(s, "m/")
-	s = strings.TrimPrefix(s, "M/")
-	if s == "" {
-		return nil, fmt.Errorf("empty derivation path %q", path)
+	canonical, err := ParseKeystorePath(path)
+	if err != nil {
+		return nil, err
 	}
-	parts := strings.Split(s, "/")
-	out := make([]uint32, 0, len(parts))
-	for _, seg := range parts {
-		hardened := false
-		if c := seg[len(seg)-1]; c == '\'' || c == 'h' || c == 'H' {
-			hardened = true
-			seg = seg[:len(seg)-1]
-		}
-		n, err := strconv.ParseUint(seg, 10, 32)
-		if err != nil {
-			return nil, fmt.Errorf("parse path segment %q: %w", seg, err)
-		}
-		v := uint32(n)
-		if hardened {
-			v += hdkeychain.HardenedKeyStart
-		}
-		out = append(out, v)
+	levels, ok := parseOriginPath(canonical)
+	if !ok {
+		return nil, fmt.Errorf("invalid derivation path %q", path)
 	}
-	return out, nil
+	return levels, nil
 }
 
 // ExtractOpReturnMessage finds the single OP_RETURN output in a decoded

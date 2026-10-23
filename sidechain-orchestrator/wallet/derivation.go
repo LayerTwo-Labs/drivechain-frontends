@@ -132,7 +132,11 @@ func ParseKeystorePath(path string) (string, error) {
 			return "", fmt.Errorf("derivation path %q has an empty level", path)
 		}
 		hardened := strings.HasSuffix(p, "'") || strings.HasSuffix(p, "h") || strings.HasSuffix(p, "H")
-		v, err := strconv.ParseUint(strings.TrimRight(p, "'hH"), 10, 32)
+		index := p
+		if hardened {
+			index = p[:len(p)-1]
+		}
+		v, err := strconv.ParseUint(index, 10, 32)
 		if err != nil {
 			return "", fmt.Errorf("derivation path level %q is not a number", p)
 		}
