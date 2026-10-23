@@ -285,7 +285,10 @@ func (h *MultisigLoungeHandler) ImportGroupFromTxid(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	indices := h.detectWalletKeys(walletID, groupData)
+	indices, err := h.detectWalletKeys(walletID, groupData)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "Cannot derive a group key. Check the derivation path.").WithCause(err)
+	}
 
 	return &pb.ImportGroupFromTxidResponse{
 		Group:            groupDataToProto(groupData),
@@ -293,26 +296,23 @@ func (h *MultisigLoungeHandler) ImportGroupFromTxid(
 	}, nil
 }
 
-// detectWalletKeys returns the indices of group keys whose xpub the wallet can
-// re-derive from its seed at the key's derivation path. Without a seed (watch-
-// only wallet) no key is wallet-owned.
-func (h *MultisigLoungeHandler) detectWalletKeys(walletID string, g wallet.MultisigGroupData) []uint32 {
+func (h *MultisigLoungeHandler) detectWalletKeys(walletID string, g wallet.MultisigGroupData) ([]uint32, error) {
 	seedHex := h.walletSeedHex(walletID)
 	if seedHex == "" || h.engine == nil {
-		return nil
+		return nil, nil
 	}
 	net := h.engine.Network()
 	var indices []uint32
 	for i, k := range g.Keys {
 		derived, err := wallet.DeriveAccountXpub(seedHex, k.DerivationPath, net)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("derive group key %d: %w", i, err)
 		}
 		if derived == k.Xpub {
 			indices = append(indices, uint32(i))
 		}
 	}
-	return indices
+	return indices, nil
 }
 
 // groupDataToLoungeGroup maps the full wire GroupData onto the descriptor-builder
