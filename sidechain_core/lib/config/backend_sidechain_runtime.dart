@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/config/backend_boot.dart';
 import 'package:sidechain_core/config/binaries.dart';
+import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sidechain_core/providers/backend_state_provider.dart';
 import 'package:sidechain_core/providers/binaries/binary_provider.dart';
 import 'package:sidechain_core/providers/log_provider.dart';
@@ -153,13 +154,30 @@ Future<bool> _waitForBackendReady(OrchestratorRPC orchestrator) async {
   return false;
 }
 
-void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType) {
+void _streamBinaryLogs(
+  OrchestratorRPC orchestrator,
+  String binaryName,
+  BinaryType binaryType, {
+  StreamLogsResponse? cursor,
+}) {
   final logProvider = GetIt.I.get<LogProvider>();
+  var retrySet = false;
+
+  void retry() {
+    if (retrySet) {
+      return;
+    }
+    retrySet = true;
+    Future.delayed(const Duration(seconds: 5), () {
+      _streamBinaryLogs(orchestrator, binaryName, binaryType, cursor: cursor);
+    });
+  }
 
   orchestrator
-      .streamLogs(binaryName, tail: 100)
+      .streamLogs(binaryName, tail: 100, runId: cursor?.runId ?? '', afterSequence: cursor?.sequence)
       .listen(
         (response) {
+          cursor = response;
           logProvider.addLog(
             FullProcessLogEntry(
               timestamp: DateTime.fromMillisecondsSinceEpoch(response.timestampUnix.toInt() * 1000),
@@ -169,10 +187,8 @@ void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryTy
             ),
           );
         },
-        onError: (e) {
-          Future.delayed(const Duration(seconds: 5), () {
-            _streamBinaryLogs(orchestrator, binaryName, binaryType);
-          });
-        },
+        onError: (e) => retry(),
+        onDone: retry,
+        cancelOnError: true,
       );
 }

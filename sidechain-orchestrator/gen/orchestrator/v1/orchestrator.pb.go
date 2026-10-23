@@ -1577,6 +1577,8 @@ type StreamLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Tail          int32                  `protobuf:"varint,2,opt,name=tail,proto3" json:"tail,omitempty"` // number of recent lines to include
+	RunId         string                 `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	AfterSequence uint64                 `protobuf:"varint,4,opt,name=after_sequence,json=afterSequence,proto3" json:"after_sequence,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1625,11 +1627,27 @@ func (x *StreamLogsRequest) GetTail() int32 {
 	return 0
 }
 
+func (x *StreamLogsRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *StreamLogsRequest) GetAfterSequence() uint64 {
+	if x != nil {
+		return x.AfterSequence
+	}
+	return 0
+}
+
 type StreamLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Stream        string                 `protobuf:"bytes,1,opt,name=stream,proto3" json:"stream,omitempty"` // "stdout" or "stderr"
 	Line          string                 `protobuf:"bytes,2,opt,name=line,proto3" json:"line,omitempty"`
 	TimestampUnix int64                  `protobuf:"varint,3,opt,name=timestamp_unix,json=timestampUnix,proto3" json:"timestamp_unix,omitempty"`
+	RunId         string                 `protobuf:"bytes,4,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Sequence      uint64                 `protobuf:"varint,5,opt,name=sequence,proto3" json:"sequence,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1681,6 +1699,20 @@ func (x *StreamLogsResponse) GetLine() string {
 func (x *StreamLogsResponse) GetTimestampUnix() int64 {
 	if x != nil {
 		return x.TimestampUnix
+	}
+	return 0
+}
+
+func (x *StreamLogsResponse) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *StreamLogsResponse) GetSequence() uint64 {
+	if x != nil {
+		return x.Sequence
 	}
 	return 0
 }
@@ -5920,14 +5952,18 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05force\x18\x02 \x01(\bR\x05force\x12#\n" +
 	"\rforce_backend\x18\x03 \x01(\bR\fforceBackend\"\x14\n" +
-	"\x12StopBinaryResponse\";\n" +
+	"\x12StopBinaryResponse\"y\n" +
 	"\x11StreamLogsRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
-	"\x04tail\x18\x02 \x01(\x05R\x04tail\"g\n" +
+	"\x04tail\x18\x02 \x01(\x05R\x04tail\x12\x15\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12%\n" +
+	"\x0eafter_sequence\x18\x04 \x01(\x04R\rafterSequence\"\x9a\x01\n" +
 	"\x12StreamLogsResponse\x12\x16\n" +
 	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\tR\x04line\x12%\n" +
-	"\x0etimestamp_unix\x18\x03 \x01(\x03R\rtimestampUnix\"\xf7\x02\n" +
+	"\x0etimestamp_unix\x18\x03 \x01(\x03R\rtimestampUnix\x12\x15\n" +
+	"\x06run_id\x18\x04 \x01(\tR\x05runId\x12\x1a\n" +
+	"\bsequence\x18\x05 \x01(\x04R\bsequence\"\xf7\x02\n" +
 	"\x12StartWithL1Request\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12\x1f\n" +
 	"\vtarget_args\x18\x02 \x03(\tR\n" +

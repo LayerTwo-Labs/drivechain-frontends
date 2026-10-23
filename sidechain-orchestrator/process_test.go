@@ -229,6 +229,194 @@ func TestManagedProcess_Subscribe(t *testing.T) {
 	}
 }
 
+func TestManagedProcessSubscribeIncludesEachEntryOnce(t *testing.T) {
+	for range 100 {
+		proc := &ManagedProcess{runID: "test-run", exitCh: make(chan struct{})}
+		var wg sync.WaitGroup
+		wg.Go(func() {
+			for i := range 64 {
+				proc.addLog(LogEntry{
+					Timestamp: time.Unix(int64(64-i), 0),
+					Stream:    "stdout",
+					Line:      "same line",
+				})
+			}
+			proc.closeExit()
+		})
+		recent, sub := proc.subscribe(100, "", 0)
+		entries, cancel := sub.Entries(), sub.Cancel
+		wg.Wait()
+		for entry := range entries {
+			recent = append(recent, entry)
+		}
+		cancel()
+		require.Len(t, recent, 64)
+		for i, entry := range recent {
+			require.Equal(t, "test-run", entry.RunID)
+			require.Equal(t, uint64(i+1), entry.Sequence)
+			require.Equal(t, "same line", entry.Line)
+		}
+	}
+}
+
+func TestManagedProcessResumeReturnsRetainedEntries(t *testing.T) {
+	proc := &ManagedProcess{runID: "test-run", exitCh: make(chan struct{})}
+	const entryCount = maxLogEntries + 5
+	for range entryCount {
+		proc.addLog(LogEntry{Stream: "stdout", Line: "same line"})
+	}
+	proc.closeExit()
+
+	for _, tc := range []struct {
+		name  string
+		after uint64
+		count int
+		first uint64
+	}{
+		{name: "old cursor", after: 2, count: maxLogEntries, first: 6},
+		{name: "recent cursor", after: entryCount - 150, count: 150, first: entryCount - 149},
+		{name: "last cursor", after: entryCount},
+		{name: "future cursor", after: entryCount + 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			recent, sub := proc.subscribe(100, "test-run", tc.after)
+			entries, cancel := sub.Entries(), sub.Cancel
+			defer cancel()
+			require.Len(t, recent, tc.count)
+			for i, entry := range recent {
+				require.Equal(t, tc.first+uint64(i), entry.Sequence)
+			}
+			_, open := <-entries
+			require.False(t, open)
+		})
+	}
+}
+
+func TestManagedProcessClosesFullSubscriber(t *testing.T) {
+	proc := &ManagedProcess{runID: "test-run", exitCh: make(chan struct{})}
+	for range maxLogEntries {
+		proc.addLog(LogEntry{Stream: "stdout", Line: "saved line"})
+	}
+	recent, sub := proc.subscribe(100, "test-run", 1)
+	entries, cancel := sub.Entries(), sub.Cancel
+	defer cancel()
+	require.Len(t, recent, maxLogEntries-1)
+	fast, cancelFast := proc.Subscribe()
+	defer cancelFast()
+
+	for i := range 101 {
+		proc.addLog(LogEntry{Stream: "stdout", Line: "live line"})
+		entry := <-fast
+		require.Equal(t, uint64(maxLogEntries+i+1), entry.Sequence)
+	}
+	var last uint64
+	for range 100 {
+		entry, open := <-entries
+		require.True(t, open)
+		last = entry.Sequence
+	}
+	proc.addLog(LogEntry{Stream: "stdout", Line: "next line"})
+	entry, open := <-entries
+	require.False(t, open, "the subscriber skipped sequence %d and sent %d", last+1, entry.Sequence)
+	require.ErrorIs(t, sub.Err(), ErrLogBufferFull)
+	cancel()
+	cancel()
+
+	resumed, resumeSub := proc.subscribe(100, "test-run", last)
+	defer resumeSub.Cancel()
+	require.Len(t, resumed, 2)
+	require.Equal(t, last+1, resumed[0].Sequence)
+	require.Equal(t, last+2, resumed[1].Sequence)
+}
+
+func TestManagedProcessCancelAtOverflowAndExit(t *testing.T) {
+	for range 100 {
+		proc := &ManagedProcess{runID: "test-run", exitCh: make(chan struct{})}
+		_, sub := proc.subscribe(0, "", 0)
+		for range 100 {
+			proc.addLog(LogEntry{Line: "live line"})
+		}
+		var wg sync.WaitGroup
+		wg.Go(func() { proc.addLog(LogEntry{Line: "next line"}) })
+		wg.Go(sub.Cancel)
+		wg.Go(proc.closeExit)
+		var readErr error
+		wg.Go(func() { readErr = sub.Err() })
+		wg.Wait()
+		if readErr != nil {
+			require.ErrorIs(t, readErr, ErrLogBufferFull)
+		}
+		sub.Cancel()
+		sub.Cancel()
+		var count int
+		for range sub.Entries() {
+			count++
+		}
+		require.Equal(t, 100, count)
+		if err := sub.Err(); err != nil {
+			require.ErrorIs(t, err, ErrLogBufferFull)
+		}
+	}
+}
+
+func TestManagedProcess_SubscribeClosesAfterExit(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "sleep")
+	_, err := pm.Start(t.Context(), BinaryConfig{
+		Name: "sleep-test", BinaryName: "sleep",
+	}, []string{"30"}, nil)
+	require.NoError(t, err)
+	proc := pm.Get("sleep-test")
+	require.NotNil(t, proc)
+	entries, cancel := proc.Subscribe()
+	defer cancel()
+
+	require.NoError(t, pm.Stop(t.Context(), "sleep-test", false))
+	select {
+	case <-proc.ExitCh():
+	default:
+		t.Fatal("the process exit channel stays open after Stop")
+	}
+
+	for {
+		select {
+		case _, open := <-entries:
+			if !open {
+				return
+			}
+		default:
+			t.Fatal("the log channel stays open after process exit")
+		}
+	}
+}
+
+func TestManagedProcess_SubscribeAfterExit(t *testing.T) {
+	proc := &ManagedProcess{exitCh: make(chan struct{})}
+	proc.closeExit()
+	entries, cancel := proc.Subscribe()
+	defer cancel()
+
+	select {
+	case _, open := <-entries:
+		assert.False(t, open)
+	default:
+		t.Fatal("the log channel stays open after process exit")
+	}
+}
+
+func TestManagedProcess_CancelSubscriptionAtExit(t *testing.T) {
+	proc := &ManagedProcess{exitCh: make(chan struct{})}
+	entries, cancel := proc.Subscribe()
+	var wg sync.WaitGroup
+	wg.Go(cancel)
+	wg.Go(proc.closeExit)
+	wg.Wait()
+	cancel()
+
+	_, open := <-entries
+	assert.False(t, open)
+}
+
 func TestPidFile_WriteReadDelete(t *testing.T) {
 	m := newTestPidManager(t)
 

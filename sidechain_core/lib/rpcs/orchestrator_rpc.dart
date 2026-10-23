@@ -1,5 +1,6 @@
 import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/protobuf.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:sidechain_core/auth/local_auth.dart';
 import 'package:sidechain_core/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
@@ -259,8 +260,10 @@ class OrchestratorRPC {
 
   // ─── server-streaming ─────────────────────────────────────────────────────
 
-  Stream<StreamLogsResponse> streamLogs(String name, {int tail = 0}) {
-    return _streamClient.streamLogs(StreamLogsRequest(name: name, tail: tail));
+  Stream<StreamLogsResponse> streamLogs(String name, {int tail = 0, String runId = '', Int64? afterSequence}) {
+    return _streamClient.streamLogs(
+      StreamLogsRequest(name: name, tail: tail, runId: runId, afterSequence: afterSequence),
+    );
   }
 
   /// Fire-and-forget: server kicks off the boot goroutine and returns

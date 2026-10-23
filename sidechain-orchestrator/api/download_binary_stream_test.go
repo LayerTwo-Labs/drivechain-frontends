@@ -350,37 +350,170 @@ func TestStreamLogsAfterExit(t *testing.T) {
 	})
 	require.NoError(t, os.MkdirAll(orchestrator.BinDir(orch.DataDir), 0o700))
 	require.NoError(t, os.WriteFile(orchestrator.BinaryPath(orch.DataDir, "logtest"),
-		[]byte("#!/bin/sh\nprintf 'Error: wallet error\\nCaused by: test database error\\n' >&2\nexit 1\n"), 0o700))
-	_, err := orch.Start(t.Context(), "logtest", nil, nil)
-	if err != nil {
-		require.ErrorContains(t, err, "exited immediately (code 1)")
+		[]byte("#!/bin/sh\nprintf 'Error: wallet error\\nError: wallet error\\nCaused by: test database error\\n' >&2\nexit 1\n"), 0o700))
+	start := func() {
+		_, err := orch.Start(t.Context(), "logtest", nil, nil)
+		if err != nil {
+			require.ErrorContains(t, err, "exited immediately (code 1)")
+		}
+		require.Eventually(t, func() bool {
+			return !orch.Status("logtest").Running
+		}, 5*time.Second, 10*time.Millisecond)
 	}
-	require.Eventually(t, func() bool {
-		return !orch.Status("logtest").Running
-	}, 5*time.Second, 10*time.Millisecond)
+	start()
 
 	client, stop := startTestOrchService(t, orch)
 	defer stop()
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
-	stream, err := client.StreamLogs(ctx, &pb.StreamLogsRequest{Name: "logtest", Tail: 100})
-	require.NoError(t, err)
-	defer func() { require.NoError(t, stream.Close()) }()
-
-	var stderr []string
-	for {
-		entry, err := stream.Receive()
-		if err != nil {
-			var streamErr *connect.Error
-			require.ErrorAs(t, err, &streamErr)
-			require.Equal(t, connect.CodeUnknown, streamErr.Code())
-			break
-		}
-		if entry.Stream == "stderr" {
-			stderr = append(stderr, entry.Line)
+	read := func(req *pb.StreamLogsRequest) []*pb.StreamLogsResponse {
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+		stream, err := client.StreamLogs(ctx, req)
+		require.NoError(t, err)
+		defer func() { require.NoError(t, stream.Close()) }()
+		var entries []*pb.StreamLogsResponse
+		for {
+			entry, err := stream.Receive()
+			if err != nil {
+				require.ErrorIs(t, err, io.EOF)
+				return entries
+			}
+			entries = append(entries, entry)
 		}
 	}
-	require.Equal(t, []string{"Error: wallet error", "Caused by: test database error"}, stderr)
+	var previous *pb.StreamLogsResponse
+	for range 2 {
+		req := &pb.StreamLogsRequest{Name: "logtest", Tail: 100}
+		if previous != nil {
+			req.RunId = previous.RunId
+			req.AfterSequence = previous.Sequence
+			start()
+		}
+		entries := read(req)
+		require.NotEmpty(t, entries)
+		runID := entries[0].RunId
+		require.NotEmpty(t, runID)
+		if previous != nil {
+			require.NotEqual(t, previous.RunId, runID)
+		}
+		var stderr []string
+		for i, entry := range entries {
+			require.Equal(t, runID, entry.RunId)
+			require.Equal(t, uint64(i+1), entry.Sequence)
+			if entry.Stream == "stderr" {
+				stderr = append(stderr, entry.Line)
+			}
+		}
+		require.Equal(t, []string{"Error: wallet error", "Error: wallet error", "Caused by: test database error"}, stderr)
+		resume := read(&pb.StreamLogsRequest{Name: "logtest", Tail: 100, RunId: runID, AfterSequence: entries[1].Sequence})
+		require.Equal(t, entries[2:], resume)
+		previous = entries[len(entries)-1]
+		require.Empty(t, read(&pb.StreamLogsRequest{Name: "logtest", Tail: 100, RunId: runID, AfterSequence: previous.Sequence}))
+	}
+}
+
+func TestStreamLogsEndsAfterExit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the test executable uses a shell")
+	}
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+		Name: "logtest", BinaryName: "logtest",
+	})
+	t.Cleanup(func() {
+		if orch.Status("logtest").Running {
+			require.NoError(t, orch.Stop(context.Background(), "logtest", false))
+		}
+	})
+	require.NoError(t, os.MkdirAll(orchestrator.BinDir(orch.DataDir), 0o700))
+	require.NoError(t, os.WriteFile(orchestrator.BinaryPath(orch.DataDir, "logtest"),
+		[]byte("#!/bin/sh\nwhile :; do printf '%s\\n' \"$TEST_LOG_LINE\"; sleep 0.05; done\n"), 0o700))
+	client, stop := startTestOrchService(t, orch)
+	defer stop()
+
+	for _, line := range []string{"first run", "second run"} {
+		_, err := orch.Start(t.Context(), "logtest", nil, map[string]string{"TEST_LOG_LINE": line})
+		require.NoError(t, err)
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+		stream, err := client.StreamLogs(ctx, &pb.StreamLogsRequest{Name: "logtest"})
+		require.NoError(t, err)
+		defer func() { require.NoError(t, stream.Close()) }()
+		entry, err := stream.Receive()
+		require.NoError(t, err)
+		require.Equal(t, line, entry.Line)
+		require.NoError(t, orch.Stop(t.Context(), "logtest", false))
+
+		for {
+			_, err := stream.Receive()
+			if err != nil {
+				require.ErrorIs(t, err, io.EOF)
+				break
+			}
+		}
+	}
+}
+
+func TestStreamLogsResumeBeyondTail(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the test executable uses a shell")
+	}
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+		Name: "logtest", BinaryName: "logtest",
+	})
+	require.NoError(t, os.MkdirAll(orchestrator.BinDir(orch.DataDir), 0o700))
+	require.NoError(t, os.WriteFile(orchestrator.BinaryPath(orch.DataDir, "logtest"),
+		[]byte("#!/bin/sh\ni=1\nwhile [ \"$i\" -le 160 ]; do printf 'line %s\\n' \"$i\"; i=$((i + 1)); done\n"), 0o700))
+	start := func() {
+		_, err := orch.Start(t.Context(), "logtest", nil, nil)
+		if err != nil {
+			require.ErrorContains(t, err, "exited immediately (code 0)")
+		}
+		require.Eventually(t, func() bool {
+			return !orch.Status("logtest").Running
+		}, 5*time.Second, 10*time.Millisecond)
+	}
+	client, stop := startTestOrchService(t, orch)
+	defer stop()
+	read := func(req *pb.StreamLogsRequest) []*pb.StreamLogsResponse {
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+		stream, err := client.StreamLogs(ctx, req)
+		require.NoError(t, err)
+		defer func() { require.NoError(t, stream.Close()) }()
+		var entries []*pb.StreamLogsResponse
+		for {
+			entry, err := stream.Receive()
+			if err != nil {
+				require.ErrorIs(t, err, io.EOF)
+				return entries
+			}
+			entries = append(entries, entry)
+		}
+	}
+
+	start()
+	entries := read(&pb.StreamLogsRequest{Name: "logtest", Tail: 200})
+	require.Len(t, entries, 162)
+	runID := entries[0].RunId
+	initial := read(&pb.StreamLogsRequest{Name: "logtest", Tail: 100})
+	require.Equal(t, entries[len(entries)-100:], initial)
+	for _, tail := range []int32{100, 0} {
+		resumed := read(&pb.StreamLogsRequest{Name: "logtest", Tail: tail, RunId: runID, AfterSequence: 10})
+		require.Len(t, resumed, 152)
+		require.Equal(t, entries[10:], resumed)
+	}
+
+	start()
+	next := read(&pb.StreamLogsRequest{Name: "logtest", Tail: 100, RunId: runID, AfterSequence: 10})
+	require.Len(t, next, 100)
+	require.NotEqual(t, runID, next[0].RunId)
+	require.Equal(t, uint64(63), next[0].Sequence)
+	require.Equal(t, uint64(162), next[len(next)-1].Sequence)
 }
 
 func TestStartWithL1DoesNotStartAfterCancellation(t *testing.T) {
