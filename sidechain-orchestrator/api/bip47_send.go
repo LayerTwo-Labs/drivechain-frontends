@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/proto"
 
@@ -251,6 +252,13 @@ func (h *WalletHandler) bip47NotificationCoin(
 		if int64(math.Round(u.Amount*1e8)) < minRequired {
 			continue
 		}
+		supported, err := h.bip47NotificationInputSupported(ctx, walletID, u)
+		if err != nil {
+			return wallet.UTXO{}, 0, connect.NewError(connect.CodeInternal, "cannot check the BIP47 notification input").WithCause(err)
+		}
+		if !supported {
+			continue
+		}
 		if picked == nil || u.Amount < picked.Amount {
 			picked = &utxos[i]
 		}
@@ -260,10 +268,49 @@ func (h *WalletHandler) bip47NotificationCoin(
 	}
 	if pinned != nil {
 		return wallet.UTXO{}, 0, connect.Errorf(connect.CodeFailedPrecondition,
-			"notification coin %s:%d is not a spendable UTXO of at least %d sats", pinned.TxID, pinned.Vout, minRequired)
+			"notification coin %s:%d cannot fund BIP47. Use P2PKH, P2WPKH, or P2SH-P2WPKH with at least %d sats.", pinned.TxID, pinned.Vout, minRequired)
 	}
 	return wallet.UTXO{}, 0, connect.Errorf(connect.CodeFailedPrecondition,
-		"no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired)
+		"no spendable UTXO supports BIP47. Use P2PKH, P2WPKH, or P2SH-P2WPKH with at least %d sats.", minRequired)
+}
+
+func (h *WalletHandler) bip47NotificationInputSupported(ctx context.Context, walletID string, coin wallet.UTXO) (bool, error) {
+	net := h.engine.Network()
+	address, err := btcutil.DecodeAddress(coin.Address, net)
+	if err != nil {
+		return false, fmt.Errorf("decode notification input address: %w", err)
+	}
+	switch address.(type) {
+	case *btcutil.AddressPubKeyHash, *btcutil.AddressWitnessPubKeyHash:
+		return true, nil
+	case *btcutil.AddressScriptHash:
+		hdPath, err := h.engine.Backend().AddressHDPath(ctx, walletID, coin.Address)
+		if err != nil {
+			return false, fmt.Errorf("get notification input path: %w", err)
+		}
+		if hdPath == "" {
+			return false, nil
+		}
+		key, err := bip47send.DerivePrivKeyFromHDPath(h.walletSeedHex(walletID), hdPath)
+		if err != nil {
+			return false, fmt.Errorf("derive notification input key: %w", err)
+		}
+		witness, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(key.PubKey().SerializeCompressed()), net)
+		if err != nil {
+			return false, fmt.Errorf("derive notification witness address: %w", err)
+		}
+		script, err := txscript.PayToAddrScript(witness)
+		if err != nil {
+			return false, fmt.Errorf("derive notification witness script: %w", err)
+		}
+		nested, err := btcutil.NewAddressScriptHash(script, net)
+		if err != nil {
+			return false, fmt.Errorf("derive notification script address: %w", err)
+		}
+		return nested.EncodeAddress() == coin.Address, nil
+	default:
+		return false, nil
+	}
 }
 
 // unfrozenSpendableCoins lists the wallet coins a send can spend. The
