@@ -337,6 +337,52 @@ func TestStartWithL1KeepsCoreMonitorAfterFailure(t *testing.T) {
 	}
 }
 
+func TestStreamLogsAfterExit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the test executable uses a shell")
+	}
+	home := config.HomeDir()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir(home) })
+
+	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+		Name: "logtest", BinaryName: "logtest",
+	})
+	require.NoError(t, os.MkdirAll(orchestrator.BinDir(orch.DataDir), 0o700))
+	require.NoError(t, os.WriteFile(orchestrator.BinaryPath(orch.DataDir, "logtest"),
+		[]byte("#!/bin/sh\nprintf 'Error: wallet error\\nCaused by: test database error\\n' >&2\nexit 1\n"), 0o700))
+	_, err := orch.Start(t.Context(), "logtest", nil, nil)
+	if err != nil {
+		require.ErrorContains(t, err, "exited immediately (code 1)")
+	}
+	require.Eventually(t, func() bool {
+		return !orch.Status("logtest").Running
+	}, 5*time.Second, 10*time.Millisecond)
+
+	client, stop := startTestOrchService(t, orch)
+	defer stop()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	stream, err := client.StreamLogs(ctx, &pb.StreamLogsRequest{Name: "logtest", Tail: 100})
+	require.NoError(t, err)
+	defer func() { require.NoError(t, stream.Close()) }()
+
+	var stderr []string
+	for {
+		entry, err := stream.Receive()
+		if err != nil {
+			var streamErr *connect.Error
+			require.ErrorAs(t, err, &streamErr)
+			require.Equal(t, connect.CodeUnknown, streamErr.Code())
+			break
+		}
+		if entry.Stream == "stderr" {
+			stderr = append(stderr, entry.Line)
+		}
+	}
+	require.Equal(t, []string{"Error: wallet error", "Caused by: test database error"}, stderr)
+}
+
 func TestStartWithL1DoesNotStartAfterCancellation(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the test executable uses a shell")

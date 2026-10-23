@@ -885,6 +885,12 @@ func (o *Orchestrator) Logs(name string) (<-chan LogEntry, func(), error) {
 func (o *Orchestrator) RecentLogs(name string, n int) ([]LogEntry, error) {
 	proc := o.logProcess(name)
 	if proc == nil {
+		proc = o.process.LatestRun(name)
+	}
+	if proc == nil {
+		proc = o.process.LatestRun(sidechainGUIProcessName(name))
+	}
+	if proc == nil {
 		return nil, fmt.Errorf("%s is not running", name)
 	}
 	return proc.RecentLogs(n), nil
