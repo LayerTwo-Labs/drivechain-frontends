@@ -167,10 +167,18 @@ func (c coreBids) PendingTxids(ctx context.Context, _ []string) (map[string]bool
 	return held, nil
 }
 
-// mined reports false: Core drops a transaction from its mempool in the same
-// step as the block that carries it, so a txid PendingTxids named is unmined.
-func (coreBids) mined(context.Context, string) (bool, error) {
-	return false, nil
+func (c coreBids) mined(ctx context.Context, txid string) (bool, error) {
+	raw, err := c.h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
+	if err != nil {
+		return false, fmt.Errorf("read bid %s: %w", txid, err)
+	}
+	var tx struct {
+		Confirmations int64 `json:"confirmations"`
+	}
+	if err := json.Unmarshal(raw, &tx); err != nil {
+		return false, fmt.Errorf("decode bid %s: %w", txid, err)
+	}
+	return tx.Confirmations > 0, nil
 }
 
 func (c coreBids) live(ctx context.Context, _, txid string) bool {

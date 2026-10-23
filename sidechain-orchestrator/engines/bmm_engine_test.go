@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -34,6 +35,8 @@ type fakeBackend struct {
 	connectErr        error
 	noInclusion       bool
 	lastMainBlockHash string
+	lastConnect       *bmmpb.ConnectBidRequest
+	templateID        string
 	bidErr            error
 	prepares          int
 	lastPrepare       *bmmpb.PrepareBMMRequest
@@ -55,9 +58,10 @@ type fakeBackend struct {
 	// lastMempoolWallets names the wallets the last mempool read asked about.
 	lastMempoolWallets []string
 	// mined answers the live read, and minedReads records every txid it took.
-	mined      map[string]bool
-	minedErr   error
-	minedReads []string
+	mined       map[string]bool
+	minedErr    error
+	minedErrors map[string]error
+	minedReads  []string
 	// sideTip is the sidechain tip every new template builds on.
 	sideTip    string
 	sideTipErr error
@@ -90,11 +94,17 @@ func (f *fakeBackend) CreateBid(
 	f.lastExpectTip = req.ExpectPrevMainHash
 	f.lastWalletID = req.WalletId
 	f.lastFeeRate = req.FeeRateSatVb
+	criticalHash := "critical"
+	blockJSON := "side:" + f.sideTip
+	if f.templateID != "" {
+		criticalHash += "-" + f.templateID
+		blockJSON += ";" + f.templateID
+	}
 	return &bmmpb.CreateBidResponse{
-		CriticalHash: "critical",
+		CriticalHash: criticalHash,
 		BmmTxid:      "txid-" + string(rune('0'+f.bids)),
 		FeesSats:     f.feesSats,
-		BlockJson:    "side:" + f.sideTip,
+		BlockJson:    blockJSON,
 		PrevMainHash: req.ExpectPrevMainHash,
 		BidSats:      bid,
 	}, nil
@@ -107,6 +117,7 @@ func (f *fakeBackend) ConnectBid(
 	defer f.mu.Unlock()
 	f.connects++
 	f.lastMainBlockHash = req.MainBlockHash
+	f.lastConnect = req
 	if f.connectErr != nil {
 		return nil, f.connectErr
 	}
@@ -163,6 +174,9 @@ func (f *fakeBackend) Mined(_ context.Context, txid string) (bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.minedReads = append(f.minedReads, txid)
+	if err := f.minedErrors[txid]; err != nil {
+		return false, err
+	}
 	return f.mined[txid], f.minedErr
 }
 
@@ -212,7 +226,8 @@ func (f *fakeBackend) TemplateOnTip(_ context.Context, _ pb.BinaryType, blockJSO
 	if f.sideTipErr != nil {
 		return false, f.sideTipErr
 	}
-	return blockJSON == "side:"+f.sideTip, nil
+	tip, _, _ := strings.Cut(blockJSON, ";")
+	return tip == "side:"+f.sideTip, nil
 }
 
 func (f *fakeBackend) TemplateWorth(_ context.Context, _ pb.BinaryType) (int64, error) {
@@ -571,6 +586,237 @@ func TestBmmEngineRaisesWhenOutbid(t *testing.T) {
 	assert.Equal(t, BidReplaced, round.OurBids[0].State)
 	assert.Equal(t, "txid-2", round.OurBids[0].ReplacedByTxid)
 	assert.Equal(t, BidLive, round.OurBids[1].State)
+}
+
+func TestBmmEngineConnectsAnEarlierBid(t *testing.T) {
+	for _, mode := range []string{
+		"next block", "later tip", "open restart", "commitment retry", "won restart", "refused block", "zero worth",
+	} {
+		t.Run(mode, func(t *testing.T) {
+			engine, backend, tip, _ := newEngine(t)
+			dir := t.TempDir()
+			engine.store = bmmstate.NewStore(dir, 0)
+			backend.templateID = "first"
+			worth := int64(50_000)
+			if mode == "zero worth" {
+				worth = 0
+			}
+			backend.feesSats = worth
+			ctx := context.Background()
+			require.NoError(t, engine.Start(ctx, testSidechain, "wallet-a", 30_000, false))
+			engine.tick(ctx)
+
+			backend.templateID = "second"
+			backend.feesSats = max(worth-10_000, 0)
+			backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 12_000}}
+			engine.tick(ctx)
+			round := engine.Current(testSidechain)
+			require.NotNil(t, round)
+			require.Len(t, round.OurBids, 2)
+			first, second := round.OurBids[0], round.OurBids[1]
+			require.NotEqual(t, first.CriticalHash, second.CriticalHash)
+			require.NotEqual(t, first.BlockJSON, second.BlockJSON)
+			require.NotEqual(t, first.BidSats, second.BidSats)
+			require.Equal(t, BidReplaced, first.State)
+			require.NoError(t, engine.Stop(testSidechain))
+
+			restart := func() {
+				engine = NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip,
+					newFakeFee(), bmmstate.NewStore(dir, 0))
+				engine.resumeUnconnected()
+			}
+			if mode == "open restart" || mode == "zero worth" {
+				restart()
+			}
+			backend.connected = true
+			backend.blockAfter = "block-2"
+			backend.commitmentByBlock = map[string]string{"block-2": first.CriticalHash}
+			switch mode {
+			case "later tip":
+				tip.jump("block-5", 4)
+			case "commitment retry":
+				backend.commitmentByBlock = nil
+				backend.commitmentErr = errors.New("the commitment is unavailable")
+				tip.set("block-2")
+			case "won restart":
+				backend.noInclusion = true
+				tip.set("block-2")
+			case "refused block":
+				backend.connected = false
+				tip.set("block-2")
+			default:
+				tip.set("block-2")
+			}
+			engine.tick(ctx)
+			if mode == "commitment retry" {
+				require.Equal(t, 1, pendingCount(engine))
+				restart()
+				backend.commitmentErr = nil
+				backend.commitmentByBlock = map[string]string{"block-2": first.CriticalHash}
+				engine.tick(ctx)
+			}
+			if mode == "won restart" {
+				require.Equal(t, 1, pendingCount(engine))
+				restart()
+				backend.noInclusion = false
+				engine.tick(ctx)
+			}
+
+			won := roundOn(t, engine, "block-1")
+			require.Equal(t, ResultWon, won.Result)
+			assert.Equal(t, first.Txid, won.WinnerTxid)
+			assert.Equal(t, first.CriticalHash, won.WinnerCriticalHash)
+			assert.Equal(t, first.BidSats, won.WinnerBidSats)
+			assert.Equal(t, worth, won.BlockWorthSats)
+			assert.False(t, won.BlockWorthUnknown)
+			assert.Equal(t, "block-2", won.IncludedInBlock)
+			assert.EqualValues(t, 101, won.IncludedInHeight)
+			if mode == "refused block" {
+				assert.Equal(t, BidFailed, won.OurBids[0].State)
+			} else {
+				assert.Equal(t, BidConnected, won.OurBids[0].State)
+			}
+			assert.Equal(t, BidMissed, won.OurBids[1].State)
+			require.NotNil(t, backend.lastConnect)
+			assert.Equal(t, first.CriticalHash, backend.lastConnect.CriticalHash)
+			assert.Equal(t, first.BlockJSON, backend.lastConnect.BlockJson)
+			assert.Equal(t, "block-2", backend.lastConnect.MainBlockHash)
+
+			before := backend.connects
+			restart()
+			engine.tick(ctx)
+			assert.Zero(t, pendingCount(engine))
+			assert.Equal(t, before, backend.connects)
+		})
+	}
+}
+
+func TestBmmEngineReadsBidWorthFromAnOldRecord(t *testing.T) {
+	for _, winner := range []string{"first", "second"} {
+		t.Run(winner, func(t *testing.T) {
+			engine, backend, tip, _ := newEngine(t)
+			dir := t.TempDir()
+			require.NoError(t, bmmstate.NewStore(dir, 0).Save(bmmstate.Round{
+				Sidechain: int32(testSidechain), PrevMainHash: "block-1", PrevMainHeight: 100,
+				Result: ResultOpen, BlockWorthSats: 40_000,
+				OurBids: []bmmstate.Bid{
+					{Txid: "first", CriticalHash: "critical-first", BidSats: 10_000,
+						State: BidReplaced, ReplacedByTxid: "second", BlockJSON: "first block"},
+					{Txid: "second", CriticalHash: "critical-second", BidSats: 13_000,
+						State: BidLive, BlockJSON: "second block"},
+				},
+			}))
+			data, err := os.ReadFile(filepath.Join(dir, "bmm_rounds.json"))
+			require.NoError(t, err)
+			require.NotContains(t, string(data), "block_worth_known")
+			require.NotContains(t, string(data), "block_worth_unknown")
+			engine.store = bmmstate.NewStore(dir, 0)
+			engine.resumeUnconnected()
+			backend.commitment = "critical-" + winner
+			backend.noInclusion = true
+			tip.set("block-2")
+			engine.tick(context.Background())
+			require.Equal(t, 1, pendingCount(engine))
+
+			engine = NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip,
+				newFakeFee(), bmmstate.NewStore(dir, 0))
+			engine.resumeUnconnected()
+			backend.noInclusion = false
+			backend.connected = true
+			engine.tick(context.Background())
+
+			won := roundOn(t, engine, "block-1")
+			require.Equal(t, ResultWon, won.Result)
+			assert.Equal(t, winner, won.WinnerTxid)
+			assert.Equal(t, "critical-"+winner, backend.lastConnect.CriticalHash)
+			assert.Equal(t, winner+" block", backend.lastConnect.BlockJson)
+			assert.Equal(t, winner == "first", won.BlockWorthUnknown)
+			if winner == "first" {
+				assert.Zero(t, won.BlockWorthSats)
+			} else {
+				assert.EqualValues(t, 40_000, won.BlockWorthSats)
+			}
+		})
+	}
+}
+
+func TestBmmEngineFindsTheMinedBidWithTheSameTemplate(t *testing.T) {
+	for _, mode := range []string{
+		"first bid", "second bid", "later tip", "read error", "index delay", "later tip read error", "discarded bid error",
+	} {
+		t.Run(mode, func(t *testing.T) {
+			engine, backend, tip, _ := newEngine(t)
+			dir := t.TempDir()
+			engine.store = bmmstate.NewStore(dir, 0)
+			ctx := context.Background()
+			require.NoError(t, engine.Start(ctx, testSidechain, "wallet-a", 30_000, false))
+			engine.tick(ctx)
+			backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 12_000}}
+			engine.tick(ctx)
+			round := engine.Current(testSidechain)
+			require.Len(t, round.OurBids, 2)
+			first, second := round.OurBids[0], round.OurBids[1]
+			require.Equal(t, first.CriticalHash, second.CriticalHash)
+			require.Equal(t, first.BlockJSON, second.BlockJSON)
+			require.NotEqual(t, first.BidSats, second.BidSats)
+			require.NoError(t, engine.Stop(testSidechain))
+
+			winner := first
+			if mode == "second bid" {
+				winner = second
+			}
+			backend.mined = map[string]bool{winner.Txid: true}
+			backend.commitmentByBlock = map[string]string{"block-2": winner.CriticalHash}
+			backend.blockAfter = "block-2"
+			backend.connected = true
+			if strings.Contains(mode, "later tip") {
+				tip.jump("block-5", 4)
+			} else {
+				tip.set("block-2")
+			}
+			if strings.Contains(mode, "read error") {
+				backend.minedErr = errors.New("mined status is unavailable")
+			}
+			if mode == "index delay" {
+				backend.mined = nil
+			}
+			if mode == "discarded bid error" {
+				backend.minedErrors = map[string]error{second.Txid: errors.New("the node has no transaction")}
+			}
+			engine.tick(ctx)
+
+			if backend.minedErr != nil || mode == "index delay" {
+				require.Equal(t, 1, pendingCount(engine))
+				require.Zero(t, backend.connects)
+				open := roundOn(t, engine, "block-1")
+				require.Equal(t, ResultOpen, open.Result)
+				require.Empty(t, open.WinnerTxid)
+				require.Equal(t, BidReplaced, open.OurBids[0].State)
+				require.Equal(t, BidLive, open.OurBids[1].State)
+				if backend.minedErr != nil {
+					_, err := engine.recordWinner(ctx, &open, winner.CriticalHash)
+					require.ErrorIs(t, err, backend.minedErr)
+				}
+				backend.minedErr = nil
+				backend.mined = map[string]bool{winner.Txid: true}
+				engine = NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip,
+					newFakeFee(), bmmstate.NewStore(dir, 0))
+				engine.resumeUnconnected()
+				engine.tick(ctx)
+			}
+
+			won := roundOn(t, engine, "block-1")
+			require.Equal(t, ResultWon, won.Result)
+			assert.Equal(t, winner.Txid, won.WinnerTxid)
+			assert.Equal(t, winner.BidSats, won.WinnerBidSats)
+			assert.Equal(t, winner.BlockWorthSats, won.BlockWorthSats)
+			assert.Contains(t, backend.minedReads, winner.Txid)
+			require.NotNil(t, backend.lastConnect)
+			assert.Equal(t, winner.BlockJSON, backend.lastConnect.BlockJson)
+			assert.Equal(t, "block-2", backend.lastConnect.MainBlockHash)
+			assert.Zero(t, pendingCount(engine))
+		})
+	}
 }
 
 // The wallet Start names funds the opening bid and every raise after it.

@@ -78,8 +78,7 @@ type BmmBackend interface {
 	// install that reads no mempool names the pending transactions of the
 	// named wallets instead.
 	MempoolTxids(ctx context.Context, walletIDs []string) (map[string]bool, error)
-	// Mined reports whether a block carries txid, one that MempoolTxids named.
-	// It reads a live source.
+	// Mined reports whether the mainchain includes txid.
 	Mined(ctx context.Context, txid string) (bool, error)
 	CreateBid(context.Context, *bmmpb.CreateBidRequest) (*bmmpb.CreateBidResponse, error)
 	ConnectBid(context.Context, *bmmpb.ConnectBidRequest) (*bmmpb.ConnectBidResponse, error)
@@ -987,14 +986,16 @@ func (e *BmmEngine) placeBid(
 		bidSats = resp.BidSats
 	}
 	round.OurBids = append(round.OurBids, bmmstate.Bid{
-		Txid:         resp.BmmTxid,
-		CriticalHash: resp.CriticalHash,
-		PrevMainHash: resp.PrevMainHash,
-		BidSats:      bidSats,
-		IsOurs:       true,
-		State:        BidLive,
-		BlockJSON:    resp.BlockJson,
-		WalletID:     walletID,
+		Txid:            resp.BmmTxid,
+		CriticalHash:    resp.CriticalHash,
+		PrevMainHash:    resp.PrevMainHash,
+		BidSats:         bidSats,
+		IsOurs:          true,
+		State:           BidLive,
+		BlockJSON:       resp.BlockJson,
+		BlockWorthSats:  resp.FeesSats,
+		BlockWorthKnown: true,
+		WalletID:        walletID,
 	})
 
 	e.log.Info().Stringer("sidechain", sidechain).Str("txid", resp.BmmTxid).
@@ -1173,6 +1174,63 @@ func liveBid(round *bmmstate.Round) *bmmstate.Bid {
 	return nil
 }
 
+func (e *BmmEngine) recordWinner(
+	ctx context.Context, round *bmmstate.Round, commitment string,
+) (*bmmstate.Bid, error) {
+	if commitment == "" {
+		return nil, nil
+	}
+	var matches []*bmmstate.Bid
+	for i := len(round.OurBids) - 1; i >= 0; i-- {
+		bid := &round.OurBids[i]
+		if bid.CriticalHash == commitment {
+			matches = append(matches, bid)
+		}
+	}
+	if len(matches) == 0 {
+		return nil, nil
+	}
+	bid := matches[0]
+	if len(matches) > 1 {
+		bid = nil
+		var readErrors []error
+		for _, candidate := range matches {
+			mined, err := e.backend.Mined(ctx, candidate.Txid)
+			if err != nil {
+				readErrors = append(readErrors, fmt.Errorf("read mined BMM bid %s: %w", candidate.Txid, err))
+				continue
+			}
+			if mined {
+				bid = candidate
+				break
+			}
+		}
+		if bid == nil {
+			if err := errors.Join(readErrors...); err != nil {
+				return nil, err
+			}
+			return nil, fmt.Errorf("no mined BMM bid matches commitment %s", commitment)
+		}
+	}
+	live := liveBid(round)
+	if bid.BlockWorthKnown {
+		round.BlockWorthSats = bid.BlockWorthSats
+		round.BlockWorthUnknown = false
+	} else if bid != live {
+		round.BlockWorthSats = 0
+		round.BlockWorthUnknown = true
+	}
+	if live != nil && live != bid {
+		live.State = BidMissed
+	}
+	bid.State = BidLive
+	round.Result = ResultWon
+	round.WinnerCriticalHash = bid.CriticalHash
+	round.WinnerTxid = bid.Txid
+	round.WinnerBidSats = bid.BidSats
+	return bid, nil
+}
+
 // settleRound decides the round the new tip just closed: the mined block
 // carried one of our bids, someone else's, or no commitment at all.
 func (e *BmmEngine) settleRound(ctx context.Context, sidechain pb.BinaryType, newTip string, newHeight int32) {
@@ -1207,13 +1265,16 @@ func (e *BmmEngine) settleRound(ctx context.Context, sidechain pb.BinaryType, ne
 	round.IncludedInHeight = newHeight
 	round.WinnerCriticalHash = commitment
 
-	if commitment != "" && live != nil && commitment == live.CriticalHash {
-		round.Result = ResultWon
-		round.WinnerTxid = live.Txid
-		round.WinnerBidSats = live.BidSats
+	winner, err := e.recordWinner(ctx, round, commitment)
+	if err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("read the mined BMM bid")
+		e.park(sidechain, round)
+		return
+	}
+	if winner != nil {
 		// The fee is already paid, so a block the sidechain has not judged yet is
 		// worth retrying rather than forfeiting.
-		switch e.connectWon(ctx, sidechain, round) {
+		switch e.connectWon(ctx, sidechain, round, winner) {
 		case stepRetry:
 			e.park(sidechain, round)
 		case stepRetire:
@@ -1283,17 +1344,19 @@ func (e *BmmEngine) settleOutrunRound(
 	round.IncludedInHeight = round.PrevMainHeight + 1
 	round.WinnerCriticalHash = commitment
 
-	if commitment != live.CriticalHash {
+	winner, err := e.recordWinner(ctx, round, commitment)
+	if err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("read the mined BMM bid")
+		return stepRetry
+	}
+	if winner == nil {
 		e.markLost(round, live, commitment)
 		return stepDone
 	}
 
-	round.Result = ResultWon
-	round.WinnerTxid = live.Txid
-	round.WinnerBidSats = live.BidSats
 	// Deciding the round spent its own attempts. The connect gets the full bound.
 	round.BlocksWaited = 0
-	step := e.connectWon(ctx, sidechain, round)
+	step := e.connectWon(ctx, sidechain, round, winner)
 	e.save(round)
 	return step
 }
@@ -1395,7 +1458,7 @@ func (e *BmmEngine) retryRound(
 		}
 		return e.settleOutrunRound(ctx, sidechain, round, live, tip, tipHeight)
 	}
-	step := e.connectWon(ctx, sidechain, round)
+	step := e.connectWon(ctx, sidechain, round, liveBid(round))
 	if step == stepDone {
 		e.save(round)
 	}
@@ -1423,9 +1486,8 @@ func (e *BmmEngine) retire(sidechain pb.BinaryType, round *bmmstate.Round, reaso
 // that names the block means the sidechain did not take ours, which a node that
 // already holds the block from a peer answers as well.
 func (e *BmmEngine) connectWon(
-	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round,
+	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round, live *bmmstate.Bid,
 ) roundStep {
-	live := liveBid(round)
 	if live == nil {
 		return stepRetry
 	}
