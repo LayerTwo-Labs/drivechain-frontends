@@ -641,18 +641,20 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 			})
 		}
 	}
-	walletID, err := o.alignSidechainState(config)
-	if err != nil {
-		return 0, err
-	}
 	if !o.BackendOnly() {
+		if _, err := o.alignSidechainState(config); err != nil {
+			return 0, err
+		}
 		return o.process.Start(ctx, config, args, env)
 	}
 	// The chain states its own command line, and the starter path, --network and
 	// --headless are part of it. This call takes no L1 boot, so nothing else
 	// adds them, and the node would then derive another wallet.
 	opts := StartOpts{TargetArgs: args, ForceBackend: true}
-	o.injectSidechainStarter(config, &opts, walletID)
+	walletID, err := o.prepareSidechainWallet(ctx, config, &opts)
+	if err != nil {
+		return 0, err
+	}
 	if err := o.prepareSidechainArgs(config, &opts); err != nil {
 		return 0, err
 	}
@@ -1011,13 +1013,12 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			}
 			o.prepareEnforcerArgs(&opts)
 		}
-		walletID, err := o.alignSidechainState(config)
+		walletID, err := o.prepareSidechainWallet(ctx, config, &opts)
 		if err != nil {
 			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 			failBoot(mon, ch, "start "+config.Name, err)
 			return
 		}
-		o.injectSidechainStarter(config, &opts, walletID)
 		if err := o.prepareSidechainArgs(config, &opts); err != nil {
 			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 			failBoot(mon, ch, "start "+config.Name, err)
@@ -1167,33 +1168,28 @@ func isSecretFlag(name string) bool {
 	return false
 }
 
-// injectSidechainStarter writes the sidechain seed to a temp file and appends
-// --mnemonic-seed-phrase-path=... to opts.TargetArgs for chainLayer==2 binaries.
-// walletID names the wallet whose wallet.mdb the sidechain holds; empty takes
-// the wallet the sidechains load.
-// Dart binary_provider.dart L314-326.
-func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOpts, walletID string) {
+func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOpts, walletID string) error {
 	if config.ChainLayer != 2 || config.Slot <= 0 || o.WalletSvc == nil {
-		return
+		return nil
 	}
 	// Core exits on an unknown option, so a Core derived sidechain takes the
 	// same starter over RPC instead — see ensureCoreSidechainWallet.
 	if config.IsBitcoinCore {
-		return
+		return nil
 	}
 	if walletID == "" {
 		walletID = o.WalletSvc.SidechainWalletID()
 	}
 	if _, err := o.WalletSvc.GetOrDeriveSidechainStarterFor(walletID, config.Slot, config.DisplayName); err != nil {
-		o.log.Warn().Err(err).Int("slot", config.Slot).Msg("could not ensure sidechain starter")
+		return fmt.Errorf("derive sidechain starter: %w", err)
 	}
 	scPath, err := o.WalletSvc.WriteSidechainStarterFor(walletID, config.Slot)
 	if err != nil {
-		o.log.Warn().Err(err).Int("slot", config.Slot).Msg("failed to write sidechain starter")
-		return
+		return fmt.Errorf("write sidechain starter: %w", err)
 	}
 	opts.TargetArgs = append(opts.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
 	o.log.Info().Str("path", scPath).Int("slot", config.Slot).Msg("injected sidechain starter")
+	return nil
 }
 
 // ensureCoreSidechainWallet gives a Core derived sidechain the wallet its slot
@@ -1848,13 +1844,12 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 
 		default:
-			walletID, err := o.alignSidechainState(config)
+			walletID, err := o.prepareSidechainWallet(ctx, config, &opts)
 			if err != nil {
 				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 				failBoot(mon, ch, "start "+config.Name, err)
 				return
 			}
-			o.injectSidechainStarter(config, &opts, walletID)
 			if err := o.prepareSidechainArgs(config, &opts); err != nil {
 				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 				failBoot(mon, ch, "start "+config.Name, err)
@@ -1895,21 +1890,8 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		return err
 	}
 
-	// 1. Wait for an unlocked wallet — enforcer needs the L1 seed.
-	walletReady := func() bool { return o.WalletSvc.State() == wallet.StateUnlocked }
-	if o.WalletSvc != nil && !walletReady() {
-		o.log.Info().Msg("waiting for an unlocked wallet before starting enforcer")
-		subCtx, cancelSub := context.WithCancel(ctx)
-		defer cancelSub()
-		sub := o.WalletSvc.Subscribe(subCtx)
-		for !walletReady() {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-sub:
-			}
-		}
-		o.log.Info().Msg("wallet ready")
+	if err := o.waitForWallet(ctx); err != nil {
+		return err
 	}
 
 	// 2. Wait for HEADER sync to complete — enforcer starts once Core has
