@@ -216,6 +216,71 @@ func TestOrchestrator_LogsNotRunning(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestOrchestrator_RecentLogsAfterExit(t *testing.T) {
+	for _, name := range []string{"thunder", sidechainGUIProcessName("thunder")} {
+		t.Run(name, func(t *testing.T) {
+			pm, dir := newTestProcessManager(t)
+			symlinkSystemBinary(t, dir, "sh")
+			o := &Orchestrator{process: pm}
+
+			_, err := pm.Start(t.Context(), BinaryConfig{
+				Name: name, BinaryName: "sh",
+			}, []string{"-c", "echo 'wallet test error' >&2; exit 1"}, nil)
+			if err != nil {
+				require.ErrorContains(t, err, "exited immediately (code 1)")
+			}
+			require.Eventually(t, func() bool {
+				return pm.Get(name) == nil
+			}, 5*time.Second, 10*time.Millisecond)
+
+			entries, err := o.RecentLogs("thunder", 100)
+			require.NoError(t, err)
+			var stderr []string
+			for _, entry := range entries {
+				if entry.Stream == "stderr" {
+					stderr = append(stderr, entry.Line)
+				}
+			}
+			assert.Equal(t, []string{"wallet test error"}, stderr)
+
+			_, _, err = o.Logs("thunder")
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestOrchestrator_RecentLogsPreferActiveProcess(t *testing.T) {
+	guiName := sidechainGUIProcessName("thunder")
+	for _, tc := range []struct {
+		name   string
+		active []string
+		exited []string
+		want   string
+	}{
+		{name: "active GUI", active: []string{guiName}, exited: []string{"thunder"}, want: guiName},
+		{name: "active backend", active: []string{"thunder"}, exited: []string{guiName}, want: "thunder"},
+		{name: "both active", active: []string{"thunder", guiName}, want: "thunder"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pm := &ProcessManager{
+				processes:  make(map[string]*ManagedProcess),
+				lastExited: make(map[string]*ManagedProcess),
+			}
+			for _, name := range tc.active {
+				pm.processes[name] = &ManagedProcess{logs: []LogEntry{{Line: name}}}
+			}
+			for _, name := range tc.exited {
+				pm.lastExited[name] = &ManagedProcess{logs: []LogEntry{{Line: name}}}
+			}
+			o := &Orchestrator{process: pm}
+
+			entries, err := o.RecentLogs("thunder", 100)
+			require.NoError(t, err)
+			assert.Equal(t, []LogEntry{{Line: tc.want}}, entries)
+		})
+	}
+}
+
 func TestOrchestrator_AdoptOrphans(t *testing.T) {
 	o := newTestOrchestrator(t)
 
