@@ -40,6 +40,42 @@ func walletParkKey(walletID, ecashID string) string {
 	return "wallet-" + walletID + "-ecash-" + ecashID
 }
 
+func (o *Orchestrator) waitForWallet(ctx context.Context) error {
+	if o.WalletSvc == nil || o.WalletSvc.State() == wallet.StateUnlocked {
+		return nil
+	}
+	subCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	sub := o.WalletSvc.Subscribe(subCtx)
+	for o.WalletSvc.State() != wallet.StateUnlocked {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-sub:
+		}
+	}
+	return nil
+}
+
+func (o *Orchestrator) prepareSidechainWallet(ctx context.Context, cfg BinaryConfig, opts *StartOpts) (string, error) {
+	if o.opensSidechainWindow(cfg, *opts) {
+		return "", nil
+	}
+	if cfg.ChainLayer == 2 && cfg.Slot > 0 {
+		if err := o.waitForWallet(ctx); err != nil {
+			return "", err
+		}
+	}
+	walletID, err := o.alignSidechainState(cfg)
+	if err != nil {
+		return "", err
+	}
+	if err := o.injectSidechainStarter(cfg, opts, walletID); err != nil {
+		return "", err
+	}
+	return walletID, nil
+}
+
 // alignSidechainState gives a sidechain the chain and the wallet it starts
 // with, and names that wallet. The start must write the starter of that same
 // wallet, or the node refuses the wallet.mdb. Empty for a sidechain that keeps
@@ -368,8 +404,7 @@ func (o *Orchestrator) realignSidechainWallet(cfg BinaryConfig, opts *StartOpts)
 		return err
 	}
 	opts.TargetArgs = replaceCLIFlag(opts.TargetArgs, "--mnemonic-seed-phrase-path", "")
-	o.injectSidechainStarter(cfg, opts, walletID)
-	return nil
+	return o.injectSidechainStarter(cfg, opts, walletID)
 }
 
 // reloadIfWalletChanged restarts a sidechain that booted with walletID after

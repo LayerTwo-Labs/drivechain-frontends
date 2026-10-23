@@ -270,7 +270,7 @@ func TestStarterFollowsTheAlignedWallet(t *testing.T) {
 	require.NotEqual(t, first, svc.SidechainWalletID())
 
 	var opts StartOpts
-	o.injectSidechainStarter(cfg, &opts, walletID)
+	require.NoError(t, o.injectSidechainStarter(cfg, &opts, walletID))
 	starter := ""
 	for _, arg := range opts.TargetArgs {
 		if path, ok := strings.CutPrefix(arg, "--mnemonic-seed-phrase-path="); ok {
