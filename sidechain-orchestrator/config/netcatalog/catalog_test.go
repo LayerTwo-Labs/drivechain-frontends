@@ -12,7 +12,7 @@ import (
 
 // embeddedGeneration is the eCash network networks.json ships with. Change it
 // whenever the embedded catalog is refreshed from the published document.
-const embeddedGeneration = "betanet"
+const embeddedGeneration = "ecash"
 
 func TestEmbeddedCatalogParses(t *testing.T) {
 	c := Embedded()
@@ -32,16 +32,18 @@ func TestEmbeddedCatalogPublishesPeers(t *testing.T) {
 	}
 }
 
-// The live eCash network comes first and the retired ones after it, and the id
-// carries no ordering, so document order decides.
-func TestECashIDTakesTheFirstECashEntry(t *testing.T) {
+// The document lists the eCash networks from oldest to newest, and the id
+// carries no ordering, so the last eCash entry is the live one.
+func TestECashIDTakesTheLastECashEntry(t *testing.T) {
 	c := Catalog{Networks: []Network{
 		{ID: "bitcoin", Family: "bitcoin"},
 		{ID: "alphanet", Family: FamilyECash},
-		{ID: "drynet4", Family: FamilyECash},
+		{ID: "betanet", Family: FamilyECash},
+		{ID: "ecash", Family: FamilyECash},
+		{ID: "signet", Family: "bitcoin"},
 	}}
-	if got := c.ECashID(); got != "alphanet" {
-		t.Errorf("ECashID() = %q, want alphanet", got)
+	if got := c.ECashID(); got != "ecash" {
+		t.Errorf("ECashID() = %q, want ecash", got)
 	}
 }
 
@@ -155,7 +157,7 @@ func TestFillForkParentHashTakesTheEmbeddedValue(t *testing.T) {
 		{ID: "gammanet", Family: FamilyECash},
 	}}
 
-	filled := fillForkParentHash(fetched, embedded)
+	filled := fillFromEmbedded(fetched, embedded)
 	for id, want := range map[string]string{"alphanet": "aa", "betanet": "", "gammanet": ""} {
 		entry, ok := filled.ByID(id)
 		if !ok {
@@ -167,29 +169,32 @@ func TestFillForkParentHashTakesTheEmbeddedValue(t *testing.T) {
 	}
 }
 
-func TestFillForkParentHashKeepsThePublishedValue(t *testing.T) {
+func TestFillFromEmbeddedKeepsThePublishedForkParentHash(t *testing.T) {
 	embedded := Catalog{Networks: []Network{{ID: "alphanet", Family: FamilyECash, ForkParentHash: "aa"}}}
 	fetched := Catalog{Networks: []Network{{ID: "alphanet", Family: FamilyECash, ForkParentHash: "bb"}}}
 
-	filled := fillForkParentHash(fetched, embedded)
+	filled := fillFromEmbedded(fetched, embedded)
 	entry, _ := filled.ByID("alphanet")
 	if entry.ForkParentHash != "bb" {
 		t.Errorf("fork parent hash = %q, want the published bb", entry.ForkParentHash)
 	}
 	if embedded.Networks[0].ForkParentHash != "aa" {
-		t.Error("fillForkParentHash wrote through to the source catalog")
+		t.Error("fillFromEmbedded wrote through to the source catalog")
 	}
 }
 
-// The alphanet hash is the one a migration off alphanet rewinds to, so the
-// embedded document has to carry it even when the published one does not.
+// A migration off a retired eCash network rewinds to its fork parent, so the
+// embedded document has to carry that hash even when the published one does
+// not. The live network can lack it until its fork block exists.
 func TestEmbeddedCatalogPublishesTheForkParentHash(t *testing.T) {
-	entry, ok := Embedded().ByID(embeddedGeneration)
-	if !ok {
-		t.Fatalf("embedded catalog carries no %s", embeddedGeneration)
-	}
-	if len(entry.ForkParentHash) != 64 {
-		t.Errorf("%s fork parent hash = %q, want 64 hex characters", embeddedGeneration, entry.ForkParentHash)
+	live := EmbeddedECashID()
+	for _, entry := range Embedded().Networks {
+		if entry.Family != FamilyECash || entry.ID == live {
+			continue
+		}
+		if len(entry.ForkParentHash) != 64 {
+			t.Errorf("%s fork parent hash = %q, want 64 hex characters", entry.ID, entry.ForkParentHash)
+		}
 	}
 }
 
@@ -278,6 +283,40 @@ func TestEmbeddedECashNetworksPublishTheReplayLockTime(t *testing.T) {
 		require.True(t, ok, id)
 		require.EqualValues(t, 499999999, n.ReplayLockTime, id)
 	}
+	n, ok := Embedded().ByID("ecash")
+	require.True(t, ok)
+	require.EqualValues(t, 499999998, n.ReplayLockTime, "the eCash v1 node takes 499999998")
+	require.Equal(t, "mainnet", n.ReleaseChannel)
+}
+
+// The document drivechain.dev/config served on 2026-10-26 lists the eCash
+// networks oldest first and omits the replay locktime and release channel of
+// ecash. Without the compiled-in values a send would take 499999999, which the
+// eCash v1 node holds non-final, and the L1 download would ask for ecash/.
+func TestPublishedCatalogOf20261026TakesEcashWithItsCompiledInValues(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("testdata", "published-2026-10-26.json"))
+	require.NoError(t, err)
+	c, err := parse(raw)
+	require.NoError(t, err)
+	require.Equal(t, "ecash", c.ECashID())
+	published, _ := c.ByID("ecash")
+	require.Zero(t, published.ReplayLockTime)
+	require.Empty(t, published.ReleaseChannel)
+
+	live, ok := fillFromEmbedded(c, Embedded()).CurrentECash()
+	require.True(t, ok)
+	require.Equal(t, "ecash", live.ID)
+	require.EqualValues(t, 499999998, live.ReplayLockTimeOrDefault())
+	require.Equal(t, "mainnet", live.ReleaseChannelOrID())
+}
+
+func TestFillFromEmbeddedKeepsThePublishedLockTimeAndChannel(t *testing.T) {
+	embedded := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999998, ReleaseChannel: "mainnet"}}}
+	fetched := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999997, ReleaseChannel: "v2"}}}
+
+	entry, _ := fillFromEmbedded(fetched, embedded).ByID("ecash")
+	require.EqualValues(t, 499999997, entry.ReplayLockTime)
+	require.Equal(t, "v2", entry.ReleaseChannel)
 }
 
 // The document drivechain.dev/config served on 2026-10-19 carries no
@@ -333,7 +372,7 @@ func TestParseReadsACatalogWithEveryNetwork(t *testing.T) {
 	for _, n := range c.Networks {
 		ids = append(ids, n.ID)
 	}
-	require.Equal(t, []string{"bitcoin", "signet", "ecash-mainnet", "betanet", "alphanet"}, ids)
+	require.Equal(t, []string{"bitcoin", "signet", "alphanet", "betanet", "ecash-mainnet"}, ids)
 	require.Equal(t, "ecash-mainnet", c.ECashID())
 
 	got, ok := c.ByMagic("eca5dcb7")

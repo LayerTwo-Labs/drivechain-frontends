@@ -88,7 +88,7 @@ func awaitRefresh(t *testing.T, o *Orchestrator, id string) {
 }
 
 // ecashOnPendingNetwork puts a eCash install on drynet2, with a published
-// document that leads with drynet3 and keeps the drynet2 row.
+// document that lists drynet3 last as the live network and keeps the drynet2 row.
 func ecashOnPendingNetwork(t *testing.T) *Orchestrator {
 	t.Helper()
 	o := newTestOrchestrator(t)
@@ -102,9 +102,9 @@ func ecashOnPendingNetwork(t *testing.T) *Orchestrator {
 	o.coreReachable = func() bool { return false }
 	o.adoptCatalog(catalogWithECash(t, "drynet2"), "drynet2")
 	require.Equal(t, "drynet2", o.installedECashNetwork())
-	// What a refresh takes: the live network first, the row this install runs
-	// kept, and the chain left where it is.
-	o.adoptCatalogRows(catalogWithECashRows(t, "drynet3", "drynet2"), "drynet2")
+	// What a refresh takes: the row this install runs kept, the live network
+	// last, and the chain left where it is.
+	o.adoptCatalogRows(catalogWithECashRows(t, "drynet2", "drynet3"), "drynet2")
 	return o
 }
 
@@ -116,7 +116,7 @@ func TestARefreshReachesThePickerWithoutMovingTheChain(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.coreReachable = func() bool { return false }
 	o.adoptCatalog(catalogWithECash(t, "drynet2"), "drynet2")
-	publish(t, o, catalogWithECashRows(t, "drynet3", "drynet2"))
+	publish(t, o, catalogWithECashRows(t, "drynet2", "drynet3"))
 
 	o.ResolveNetworkCatalog(context.Background())
 	awaitRefresh(t, o, "drynet3")
@@ -148,7 +148,7 @@ func TestRefreshKeepsTheRowThisInstallRuns(t *testing.T) {
 
 	next := retainRunningECash(fetched, current, "drynet3")
 
-	require.Equal(t, "drynet4", next.ECashID(), "the published network still leads")
+	require.Equal(t, "drynet4", next.ECashID(), "the published network stays live")
 	kept, ok := next.ByID("drynet3")
 	require.True(t, ok, "the row this install runs must survive the refresh")
 	require.Equal(t, "https://esplora.drynet3.example", kept.BackendURL("esplora"))
@@ -160,7 +160,7 @@ func TestStartOffECashKeepsTheRecordedChain(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Empty(t, o.installedECashNetwork(), "the swap strips the eCash sentinel")
-	publish(t, o, catalogWithECashRows(t, "drynet4", "drynet2"))
+	publish(t, o, catalogWithECashRows(t, "drynet2", "drynet4"))
 	refreshed := make(chan struct{})
 	o.log = zerolog.New(io.Discard).Hook(zerolog.HookFunc(func(_ *zerolog.Event, _ zerolog.Level, message string) {
 		if message == "took the published network catalog" {
@@ -224,7 +224,7 @@ func TestConfirmMovesTheChainOnTheSpot(t *testing.T) {
 func TestConfirmedGenerationLandsOnTheNextStart(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
-	publish(t, o, catalogWithECashRows(t, "drynet3", "drynet2"))
+	publish(t, o, catalogWithECashRows(t, "drynet2", "drynet3"))
 
 	o.ResolveNetworkCatalog(context.Background())
 	awaitRefresh(t, o, "drynet3")
@@ -328,7 +328,7 @@ func writeResolvedCoreBinary(t *testing.T, o *Orchestrator, body string) string 
 func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet2\nenable-block-template-server=true"))
-	published := catalogWithECashRows(t, "drynet9", "drynet2")
+	published := catalogWithECashRows(t, "drynet2", "drynet9")
 	for i := range published.Networks {
 		if published.Networks[i].ID == "drynet9" {
 			published.Networks[i].P2P.Address = "drynet9.drivechain.dev:8533"
@@ -344,7 +344,7 @@ func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 	require.Equal(t, "true", o.EnforcerConf.Config.GetSetting("enable-block-template-server"))
 }
 
-// A document that lists a retired row first must not move the install onto it.
+// A document that lists a retired row last must not move the install onto it.
 // A retired row publishes no endpoints, and the wallet then has no chain source.
 func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
 	o := newTestOrchestrator(t)
@@ -355,13 +355,13 @@ func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
 	o.adoptCatalog(catalogWithECash(t, "drynet4"), "drynet4")
 	require.Equal(t, "drynet4", o.installedECashNetwork())
 
-	retiredFirst := catalogWithECashRows(t, "drynet2", "drynet4")
-	for i := range retiredFirst.Networks {
-		if retiredFirst.Networks[i].ID == "drynet2" {
-			retiredFirst.Networks[i].Backends = nil
+	retiredLast := catalogWithECashRows(t, "drynet4", "drynet2")
+	for i := range retiredLast.Networks {
+		if retiredLast.Networks[i].ID == "drynet2" {
+			retiredLast.Networks[i].Backends = nil
 		}
 	}
-	publish(t, o, retiredFirst)
+	publish(t, o, retiredLast)
 
 	o.ResolveNetworkCatalog(context.Background())
 	awaitRefresh(t, o, "drynet2")
@@ -376,7 +376,7 @@ func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
 }
 
 // ecashOnNetworkWithLead puts an eCash install on betanet, with a published
-// document that leads with alphanet at the fork height given.
+// document that lists alphanet last, at the fork height given.
 func ecashOnNetworkWithLead(t *testing.T, leadForkHeight int) *Orchestrator {
 	t.Helper()
 	o := newTestOrchestrator(t)
@@ -386,7 +386,7 @@ func ecashOnNetworkWithLead(t *testing.T, leadForkHeight int) *Orchestrator {
 	o.coreReachable = func() bool { return false }
 	o.adoptCatalog(catalogWithECash(t, "betanet"), "betanet")
 
-	published := catalogWithECashRows(t, "alphanet", "betanet")
+	published := catalogWithECashRows(t, "betanet", "alphanet")
 	for i, n := range published.Networks {
 		switch n.ID {
 		case "alphanet":

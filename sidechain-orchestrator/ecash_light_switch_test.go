@@ -25,7 +25,7 @@ func TestECashLightSwitchKeepsLocalFiles(t *testing.T) {
 			require.Equal(t, "alphanet", o.installedECashNetwork())
 
 			if path == "pending" {
-				o.Catalog.Networks[0], o.Catalog.Networks[1] = o.Catalog.Networks[1], o.Catalog.Networks[0]
+				require.Equal(t, "betanet", o.PendingECashUpgrade().ID)
 				require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 			} else {
 				require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))

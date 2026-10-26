@@ -21,7 +21,7 @@ func RemoteEnforcerURLForNetwork(network Network) string {
 // embeddedEntryFor finds the compiled-in entry that stands for a network. An id
 // from the published document matches by id, so each eCash network reads its
 // own row; the family lookup serves only a caller that has no id yet, because
-// it takes whichever eCash row comes first.
+// it takes the live eCash row, which comes last.
 func embeddedEntryFor(id string, network Network) (netcatalog.Network, bool) {
 	if id != "" {
 		return netcatalog.Embedded().ByID(id)

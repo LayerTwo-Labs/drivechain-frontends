@@ -29,7 +29,7 @@ const (
 )
 
 // ecashMainnetFixture is the published document once the real eCash network
-// lands: bitcoin, signet, ecash-mainnet, betanet, alphanet.
+// lands: bitcoin, signet, alphanet, betanet, ecash-mainnet.
 func ecashMainnetFixture(t *testing.T) netcatalog.Catalog {
 	t.Helper()
 	raw, err := os.ReadFile(filepath.Join("config", "netcatalog", "testdata", "ecash-mainnet.json"))
@@ -64,7 +64,7 @@ func keepNetworkGlobals(t *testing.T) {
 }
 
 // ecashInstallOn puts an eCash install on id, with the document that has no
-// ecash-mainnet row yet, then takes the document that leads with it.
+// ecash-mainnet row yet, then takes the document that lists it last.
 func ecashInstallOn(t *testing.T, id string) *Orchestrator {
 	t.Helper()
 	keepNetworkGlobals(t)
@@ -335,11 +335,11 @@ func TestECashMainnetOffersNoMoveBack(t *testing.T) {
 			require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 			o.coreReachable = func() bool { return false }
 			o.adoptCatalog(ecashMainnetFixture(t), tc.from)
-			backFirst := ecashMainnetFixture(t)
-			back, _ := backFirst.ByID(tc.back)
-			backFirst = withoutRow(backFirst, tc.back)
-			backFirst.Networks = append([]netcatalog.Network{back}, backFirst.Networks...)
-			o.adoptCatalogRows(backFirst, tc.from)
+			backLast := ecashMainnetFixture(t)
+			back, _ := backLast.ByID(tc.back)
+			backLast = withoutRow(backLast, tc.back)
+			backLast.Networks = append(backLast.Networks, back)
+			o.adoptCatalogRows(backLast, tc.from)
 			require.Equal(t, tc.back, o.Catalog.ECashID())
 
 			require.Empty(t, o.PendingECashUpgrade().ID, "a lower fork height is no upgrade")

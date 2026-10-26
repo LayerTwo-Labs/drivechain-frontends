@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
@@ -128,11 +129,15 @@ func newTestSplitEngine(st *fork.ForkState, coins *fakeCoins, btc *fakeOutspend,
 	return NewSplitEngine(zerolog.Nop(), &fakeForkState{st: st}, coins, btc, nil, store, func() string { return network })
 }
 
+func liveReplayLockTime() int32 {
+	return int32(netcatalog.EmbeddedECash().ReplayLockTimeOrDefault())
+}
+
 func TestSplitEngineTrustsTheMagicLocktime(t *testing.T) {
 	btc := newFakeOutspend()
 	store := &fakeSplitStore{statuses: map[string]bool{}}
 	e := newTestSplitEngine(forkStateWith(), postFork("aa:0"), btc, store, "ecash")
-	e.local = &fakeLocalChain{locktime: map[string]int32{"aa": 499999999}}
+	e.local = &fakeLocalChain{locktime: map[string]int32{"aa": liveReplayLockTime()}}
 
 	e.tick(context.Background())
 
@@ -181,7 +186,7 @@ func TestSplitEngineIgnoresAVoidMagicLocktime(t *testing.T) {
 	store := &fakeSplitStore{statuses: map[string]bool{}}
 	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
 	// Every input is final, so Bitcoin ignores the locktime and a replay can land.
-	e.local = &fakeLocalChain{locktime: map[string]int32{"aa": 499999999}, finalSeqs: map[string]bool{"aa": true}}
+	e.local = &fakeLocalChain{locktime: map[string]int32{"aa": liveReplayLockTime()}, finalSeqs: map[string]bool{"aa": true}}
 
 	e.tick(context.Background())
 
