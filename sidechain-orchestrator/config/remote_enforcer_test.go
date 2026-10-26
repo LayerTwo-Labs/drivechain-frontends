@@ -18,10 +18,12 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 		ecashMu.Unlock()
 	})
 
-	const betanetURL = "https://seed.beta.ecash.eu.com/enforcer"
+	const betanetURL = "https://enforcer.beta.ecash.ninja"
 	const alphanetURL = "https://seed.alpha.ecash.eu.com/enforcer"
-	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != betanetURL {
-		t.Fatalf("initial URL = %q, want %q", got, betanetURL)
+	const signetURL = "https://enforcer.signet.drivechain.info"
+	liveURL := netcatalog.EmbeddedECash().Services.Enforcer.URL
+	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != liveURL {
+		t.Fatalf("initial URL = %q, want %q", got, liveURL)
 	}
 	SetECashEndpoints(netcatalog.Network{ID: "alphanet"})
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != alphanetURL {
@@ -43,10 +45,13 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 		t.Fatalf("a generation no catalog knows used URL %q", got)
 	}
 
-	for _, network := range []Network{NetworkMainnet, NetworkSignet, NetworkRegtest, NetworkTestnet} {
+	for _, network := range []Network{NetworkMainnet, NetworkRegtest, NetworkTestnet} {
 		if got := RemoteEnforcerURLForNetwork(network); got != "" {
 			t.Fatalf("%s used unpublished URL %q", network, got)
 		}
+	}
+	if got := RemoteEnforcerURLForNetwork(NetworkSignet); got != signetURL {
+		t.Fatalf("compiled-in signet URL = %q, want %q", got, signetURL)
 	}
 	entry.ID = "signet"
 	entry.Services.Enforcer.URL = "https://signet.example/enforcer"

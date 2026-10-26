@@ -35,7 +35,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   String? defaultDatadir;
   String? ecashDatadir;
 
-  /// Live eCash network id ("betanet"), from the orchestrator.
+  /// Live eCash network id ("ecash"), from the orchestrator.
   String ecashNetworkId = '';
 
   /// The networks the user can pick, from the published catalog plus regtest.
@@ -445,6 +445,6 @@ String _resolved(String Function(BitcoinConfProvider) read, String fallback) {
   return value.isEmpty ? fallback : value;
 }
 
-const String _fallbackECashNetworkId = 'betanet';
-const String _fallbackECashEsploraUrl = 'https://esplora.beta.ecash.ninja';
-const String _fallbackECashExplorerHost = 'explorer.beta.ecash.ninja';
+const String _fallbackECashNetworkId = 'ecash';
+const String _fallbackECashEsploraUrl = 'https://esplora.ecash.ninja';
+const String _fallbackECashExplorerHost = 'explorer.ecash.ninja';

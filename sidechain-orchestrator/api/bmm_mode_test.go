@@ -124,6 +124,12 @@ func TestBMMLightModeSplitsPastAnUnconfirmedCoin(t *testing.T) {
 // costs no Core call in either mode. Light mode reads a remote enforcer, and
 // full mode reads the local one.
 func TestBMMListBidsReadsNoCore(t *testing.T) {
+	original := config.PublishedEndpoints(config.NetworkSignet)
+	t.Cleanup(func() { config.SetNetworkEndpoints(config.NetworkSignet, original) })
+	silent := original
+	silent.Services.Enforcer.URL = "http://127.0.0.1:1"
+	config.SetNetworkEndpoints(config.NetworkSignet, silent)
+
 	for _, mode := range []orchestrator.NodeMode{orchestrator.NodeModeFull, orchestrator.NodeModeLight} {
 		t.Run(string(mode), func(t *testing.T) {
 			h, _ := newBMMModeHandler(t)

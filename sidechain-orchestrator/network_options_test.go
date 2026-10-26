@@ -179,22 +179,22 @@ func TestECashPickSurvivesAnotherSettingChange(t *testing.T) {
 }
 
 // The conf names the fork whose blocks are on disk, so it outranks document
-// order. A cache that lists a retired row first must not move the install.
+// order. A cache that lists a retired row last must not move the install.
 func TestRunningECashIDKeepsTheNetworkTheConfNames(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 
-	retiredFirst := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "drynet2", Family: netcatalog.FamilyECash},
-		{ID: "drynet3", Family: netcatalog.FamilyECash},
+	retiredLast := netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "drynet4", Family: netcatalog.FamilyECash},
+		{ID: "drynet3", Family: netcatalog.FamilyECash},
+		{ID: "drynet2", Family: netcatalog.FamilyECash},
 	}}
-	o.adoptCatalog(retiredFirst, "drynet4")
+	o.adoptCatalog(retiredLast, "drynet4")
 	require.Equal(t, "drynet4", o.installedECashNetwork())
 
-	require.Equal(t, "drynet4", o.RunningECashID(retiredFirst))
-	require.Equal(t, "drynet2", retiredFirst.ECashID(), "the document still resolves to its first row")
+	require.Equal(t, "drynet4", o.RunningECashID(retiredLast))
+	require.Equal(t, "drynet2", retiredLast.ECashID(), "the document still resolves to its last row")
 }
 
 // The user's pick is the last word, so it outranks the conf the previous

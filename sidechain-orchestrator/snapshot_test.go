@@ -10,14 +10,14 @@ import (
 // The active network maps to its catalog entry, whose assumeutxo drives the
 // automatic load. ECash matches by family; the rest by id.
 func TestCatalogEntryForNetwork(t *testing.T) {
-	// The newest ecash generation wins, whatever it is called and whatever order
-	// the catalog lists it in. The higher-numbered entry carries Height 99.
+	// The newest ecash generation wins, whatever it is called. The catalog lists
+	// it last. The newest entry carries Height 99.
 	const newestHeight = 99
 	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "bitcoin", Family: "bitcoin"},
 		{ID: "signet", Family: "bitcoin"},
-		{ID: "drynet9", Family: netcatalog.FamilyECash, AssumeUTXO: &netcatalog.AssumeUTXO{Height: newestHeight}},
 		{ID: "drynet7", Family: netcatalog.FamilyECash, AssumeUTXO: &netcatalog.AssumeUTXO{Height: 7}},
+		{ID: "drynet9", Family: netcatalog.FamilyECash, AssumeUTXO: &netcatalog.AssumeUTXO{Height: newestHeight}},
 	}}
 
 	if got, ok := catalogEntryForNetwork(cat, config.NetworkMainnet); !ok || got.ID != "bitcoin" {

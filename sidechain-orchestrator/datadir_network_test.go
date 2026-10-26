@@ -23,6 +23,14 @@ func fullModeInstall(t *testing.T) *Orchestrator {
 	return o
 }
 
+// runBetanet makes betanet the network the install runs and the user picked.
+func runBetanet(t *testing.T, o *Orchestrator) {
+	t.Helper()
+	o.ecashID = "betanet"
+	_, err := o.Settings.SetECashNetworkID("betanet")
+	require.NoError(t, err)
+}
+
 // writeBlockFile puts one record of a network magic into a blocks directory.
 func writeBlockFile(t *testing.T, root, magic string) {
 	t.Helper()
@@ -50,7 +58,7 @@ func TestReadDatadirNetworkNamesTheBlocks(t *testing.T) {
 	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "betanet"
+	runBetanet(t, o)
 	o.Catalog = cat
 	writeBlockFile(t, o.BitcoinConf.DataDir(), alphanet.NetworkMagic)
 
@@ -71,7 +79,7 @@ func TestReadDatadirNetworkAgreesWithThePick(t *testing.T) {
 	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "betanet"
+	runBetanet(t, o)
 	o.Catalog = cat
 	writeBlockFile(t, o.BitcoinConf.DataDir(), betanet.NetworkMagic)
 
@@ -327,7 +335,7 @@ func TestReadDatadirNetworkNamesAHalfConvertedStore(t *testing.T) {
 	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "betanet"
+	runBetanet(t, o)
 	o.Catalog = cat
 	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", alphanet.NetworkMagic)
 	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", betanet.NetworkMagic)
@@ -354,7 +362,7 @@ func TestReadDatadirNetworkNamesTheHalfThatHasToMove(t *testing.T) {
 	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "betanet"
+	runBetanet(t, o)
 	o.Catalog = cat
 	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", betanet.NetworkMagic)
 	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", alphanet.NetworkMagic)
@@ -466,7 +474,7 @@ func TestReadDatadirNetworkKeepsQuietOnAnUnknownEnd(t *testing.T) {
 	o := fullModeInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "betanet"
+	runBetanet(t, o)
 	o.Catalog = cat
 	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00000.dat", "eca5ff04")
 	writeBlockFileAs(t, o.BitcoinConf.DataDir(), "blk00001.dat", betanet.NetworkMagic)
@@ -599,7 +607,7 @@ func TestReadDatadirNetworkKeepsQuietInLightMode(t *testing.T) {
 	o := parkInstall(t)
 	o.setNetwork(string(config.NetworkECash))
 	o.BitcoinConf.Network = config.NetworkECash
-	o.ecashID = "betanet"
+	runBetanet(t, o)
 	o.Catalog = cat
 	writeBlockFile(t, o.BitcoinConf.DataDir(), alphanet.NetworkMagic)
 
