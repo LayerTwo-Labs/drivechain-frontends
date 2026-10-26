@@ -30,7 +30,12 @@ const (
 // BinaryConfig is the 1:1 Go port of Dart's Binary abstract class + subclasses.
 // Every field maps to a Dart property from binaries.dart / sidechains.dart.
 type BinaryConfig struct {
-	ArtifactPins map[string]ArtifactPin
+	BundleChecksums   map[string]string
+	CustomHealthCheck HealthChecker
+	NativeWallet      *NativeWalletSpec
+	InstallSubdir     string
+	PreserveTree      bool
+	ArtifactPins      map[string]ArtifactPin
 	// Core identity — Dart: Binary constructor params (L61-72)
 	Name        string // Dart: Binary.name (internal identifier, e.g. "bitcoind", "thunder")
 	DisplayName string // Dart: Binary.name in subclass (e.g. "Bitcoin Core (Patched)")

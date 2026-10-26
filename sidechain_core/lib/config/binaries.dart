@@ -1394,6 +1394,7 @@ class DownloadConfig {
 class MetadataConfig {
   final DownloadConfig _downloadConfig;
   final DownloadConfig? _alternativeDownloadConfig;
+  final bool hasNativeWalletForThisOS;
 
   // The alternative config is the Flutter frontend build. A sidechain app runs
   // its own daemon, so it takes the production one.
@@ -1412,6 +1413,7 @@ class MetadataConfig {
   MetadataConfig({
     required this._downloadConfig,
     this._alternativeDownloadConfig,
+    this.hasNativeWalletForThisOS = false,
     required this.updateable,
     required this.remoteTimestamp,
     required this.downloadedTimestamp,
@@ -1429,6 +1431,7 @@ class MetadataConfig {
     return MetadataConfig(
       downloadConfig: downloadConfig ?? _downloadConfig,
       alternativeDownloadConfig: alternativeDownloadConfig ?? _alternativeDownloadConfig,
+      hasNativeWalletForThisOS: hasNativeWalletForThisOS,
       remoteTimestamp: remoteTimestamp,
       downloadedTimestamp: downloadedTimestamp,
       binaryPath: binaryPath,
@@ -1459,7 +1462,8 @@ class MetadataConfig {
       alternativeConfigsEqual = false;
     }
 
-    return _downloadConfig == other._downloadConfig &&
+    return hasNativeWalletForThisOS == other.hasNativeWalletForThisOS &&
+        _downloadConfig == other._downloadConfig &&
         updateable == other.updateable &&
         remoteTimestamp == other.remoteTimestamp &&
         downloadedTimestamp == other.downloadedTimestamp &&
@@ -1472,6 +1476,7 @@ class MetadataConfig {
   int get hashCode => Object.hash(
     _downloadConfig,
     _alternativeDownloadConfig,
+    hasNativeWalletForThisOS,
     updateable,
     remoteTimestamp,
     downloadedTimestamp,
@@ -1868,7 +1873,15 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
     );
   }
 
+  final native = json['native_wallet'] as Map<String, dynamic>?;
+  final nativeBinary = (native?['binary'] as Map<String, dynamic>?)?[OS.current.name] as String?;
+  final nativeFiles = native?['files'] as Map<String, dynamic>?;
+  final nativeAvailable =
+      native?['ready'] == true &&
+      (nativeBinary?.isNotEmpty ?? false) &&
+      (nativeFiles != null && fileForPlatform(nativeFiles, OS.current, currentArch()) != null);
   final metadata = MetadataConfig(
+    hasNativeWalletForThisOS: nativeAvailable,
     downloadConfig: downloadConfig,
     alternativeDownloadConfig: altDownloadConfig,
     remoteTimestamp: null,

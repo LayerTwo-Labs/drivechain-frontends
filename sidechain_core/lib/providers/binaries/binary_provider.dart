@@ -591,7 +591,9 @@ class BinaryProvider extends ChangeNotifier {
 
   /// True when a start of [binary] from this app can open a sidechain app window.
   bool hasWindow(Binary binary) =>
-      !isSidechainApp && binary.chainLayer == 2 && binary.metadata.hasAlternativeDownloadForThisOS;
+      !isSidechainApp &&
+      binary.chainLayer == 2 &&
+      (binary.metadata.hasAlternativeDownloadForThisOS || binary.metadata.hasNativeWalletForThisOS);
 
   /// True when [binary] runs from a previous session of the app.
   bool isAdopted(Binary binary) => _processManager.runningProcesses[binary.name]?.adopted ?? false;

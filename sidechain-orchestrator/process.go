@@ -276,8 +276,11 @@ func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.L
 // true, the SidechainVariant resolver is skipped — the caller wants the
 // prod-download binary instead of the frontend build.
 func (pm *ProcessManager) resolvePaths(config BinaryConfig, forceBackend bool) (binPath, pidName string) {
-	binPath = BinaryPath(pm.dataDir, config.BinaryName)
+	binPath = installedBinaryPath(pm.dataDir, config)
 	pidName = config.BinaryName
+	if config.InstallSubdir != "" {
+		pidName = config.Name
+	}
 
 	if pm.CoreVariant != nil {
 		if v, ok := pm.CoreVariant(config); ok {

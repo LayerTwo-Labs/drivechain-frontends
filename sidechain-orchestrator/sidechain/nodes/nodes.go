@@ -45,6 +45,9 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 
 	switch name {
 	case "liquid-signet":
+		if network == config.NetworkECash && config.ECashNetworkID() != "alphanet" {
+			return nil, fmt.Errorf("open Elements Blue Current for the BTC to ECX sidechain wallet; the legacy Alpha wallet interface is unavailable on this network")
+		}
 		return elements.NewNode(host, port, datadir, network), nil
 	case "freebank":
 		return freebank.NewClient(host, port, cookie), nil
