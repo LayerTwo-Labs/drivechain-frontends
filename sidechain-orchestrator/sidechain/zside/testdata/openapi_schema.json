@@ -290,6 +290,52 @@
         }
       }
     },
+    "create_transparent_transfer_many": {
+      "post": {
+        "description": "Create a tx that transfers funds to each transparent address in\n`dests`, which maps a transparent address to a value in sats.",
+        "operationId": "create_transparent_transfer_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dests": {
+                    "type": "object",
+                    "description": "Destinations of a transparent transfer. Each address takes a value in sats.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    }
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "create_unshield": {
       "post": {
         "description": "Create a tx that unshields shielded funds",
@@ -869,6 +915,86 @@
                       },
                       "output": {
                         "$ref": "#/components/schemas/Output"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_wallet_orchard_notes": {
+      "post": {
+        "description": "Get confirmed wallet Orchard notes, sorted by nullifier.",
+        "operationId": "get_wallet_orchard_notes",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "Orchard note that the wallet holds",
+                    "required": [
+                      "nullifier",
+                      "recipient",
+                      "value_sats"
+                    ],
+                    "properties": {
+                      "nullifier": {
+                        "$ref": "#/components/schemas/Nullifier"
+                      },
+                      "recipient": {
+                        "$ref": "#/components/schemas/ShieldedAddress"
+                      },
+                      "value_sats": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_wallet_orchard_notes_unconfirmed": {
+      "post": {
+        "description": "Get wallet Orchard notes from unconfirmed transactions, sorted by\nnullifier.",
+        "operationId": "get_wallet_orchard_notes_unconfirmed",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "Orchard note that the wallet holds",
+                    "required": [
+                      "nullifier",
+                      "recipient",
+                      "value_sats"
+                    ],
+                    "properties": {
+                      "nullifier": {
+                        "$ref": "#/components/schemas/Nullifier"
+                      },
+                      "recipient": {
+                        "$ref": "#/components/schemas/ShieldedAddress"
+                      },
+                      "value_sats": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "minimum": 0
                       }
                     }
                   }
@@ -1874,6 +2000,9 @@
       "MerkleRoot": {
         "type": "string"
       },
+      "Nullifier": {
+        "type": "string"
+      },
       "OutPoint": {
         "oneOf": [
           {
@@ -2030,6 +2159,9 @@
             "$ref": "#/components/schemas/Output"
           }
         }
+      },
+      "ShieldedAddress": {
+        "type": "string"
       },
       "SpentOutput": {
         "type": "object",
