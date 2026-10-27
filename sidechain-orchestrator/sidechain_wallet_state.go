@@ -81,6 +81,9 @@ func (o *Orchestrator) prepareSidechainWallet(ctx context.Context, cfg BinaryCon
 // wallet, or the node refuses the wallet.mdb. Empty for a sidechain that keeps
 // no wallet file.
 func (o *Orchestrator) alignSidechainState(cfg BinaryConfig) (string, error) {
+	if nativeWalletSelected(cfg, o.CurrentNetwork()) {
+		return "", nil
+	}
 	// The refused wallet.mdb is the live one only until a swap moves it.
 	if err := o.parkRefusedWallet(cfg); err != nil {
 		return "", err
@@ -285,6 +288,9 @@ func refusedSeed(run *ManagedProcess) bool {
 // LoadedSidechainWallet names the wallet whose wallet.mdb a sidechain holds.
 // Empty for a sidechain that never started with a wallet.
 func (o *Orchestrator) LoadedSidechainWallet(cfg BinaryConfig) (string, error) {
+	if nativeWalletSelected(cfg, o.CurrentNetwork()) {
+		return "", nil
+	}
 	// A Core derived sidechain keeps its wallet in Core, made from the starter
 	// wallet, unless the node keeps a wallet of its own.
 	if cfg.ChainLayer == 2 && cfg.IsBitcoinCore && o.WalletSvc != nil {

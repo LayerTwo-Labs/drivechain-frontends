@@ -148,6 +148,9 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 // DownloadWithOptions is Download with per-call overrides (see DownloadOptions).
 // It downloads every target of the config, so a test sidechain gets its backend too.
 func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config BinaryConfig, network string, force bool, opts DownloadOptions) (<-chan DownloadProgress, error) {
+	if nativeWalletSelected(config, network) {
+		return d.downloadNativeBundle(ctx, config, network, force)
+	}
 	if err := checkArtifactPins(config, currentPlatform()); err != nil {
 		return nil, err
 	}
@@ -620,6 +623,9 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, target DownloadTarget, dataDir, network string) (bool, error) {
 	extractName, stripPrefix := target.ExtractName, target.ExtractSubfolder
 	hasSCVariant := target.IsTestBuild
+	if config.PreserveTree {
+		return d.extractNativeBundle(archivePath, config, target)
+	}
 	destDir := BinDir(dataDir)
 
 	switch {
@@ -648,11 +654,14 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 	case strings.HasSuffix(lower, ".zip"):
 		// Test sidechain archives ship as Flutter app bundles — flatten-by-
 		// basename would destroy the bundle, so preserve the tree.
-		if hasSCVariant {
+		if hasSCVariant || config.PreserveTree {
 			return d.extractZipPreservingTree(archivePath, destDir, stripPrefix)
 		}
 		return d.extractZip(archivePath, destDir, extractName)
 	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
+		if config.PreserveTree {
+			return d.extractTarPreservingTree(archivePath, destDir, stripPrefix)
+		}
 		return d.extractTarGz(archivePath, destDir, extractName)
 	default:
 		return d.processRawBinary(archivePath, destDir, rawBinaryName(extractName, runtime.GOOS))
@@ -1177,6 +1186,9 @@ type DownloadTarget struct {
 // config. The downloader and the release check share it, so they can never
 // disagree about which file they act on.
 func (d *DownloadManager) ResolveTarget(config BinaryConfig, network string, opts DownloadOptions) DownloadTarget {
+	if nativeWalletSelected(config, network) {
+		return d.ResolveTarget(config.NativeWallet.component(config.Name), network, DownloadOptions{ForceBackend: true})
+	}
 	variant, hasVariant := d.activeVariant(config)
 	scVariant, hasSCVariant := d.activeSidechainVariant(config)
 	if opts.ForceBackend {
@@ -1190,11 +1202,13 @@ func (d *DownloadManager) ResolveTarget(config BinaryConfig, network string, opt
 	}
 
 	target := DownloadTarget{
-		BinPath:     BinaryPath(d.dataDir, binaryName),
-		Source:      config.DownloadSource,
-		InFlightKey: config.Name,
-		ExtractName: config.BinaryName,
-		IsTestBuild: hasSCVariant,
+		BinPath:          installedBinaryPath(d.dataDir, config),
+		BinSubfolder:     config.InstallSubdir,
+		ExtractSubfolder: config.ExtractSubfolder[currentOS()],
+		Source:           config.DownloadSource,
+		InFlightKey:      config.Name,
+		ExtractName:      config.BinaryName,
+		IsTestBuild:      hasSCVariant,
 	}
 	switch {
 	case hasVariant:

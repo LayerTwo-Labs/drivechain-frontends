@@ -550,6 +550,28 @@ func (o *Orchestrator) StopAllMonitors() {
 //  2. Check the native bitcoind.pid in Bitcoin Core's datadir
 //  3. Fall back to pgrep by binary name
 func (o *Orchestrator) discoverPid(cfg BinaryConfig) int {
+	if nativeWalletSelected(cfg, o.CurrentNetwork()) {
+		if o.verifyNativeIdentity(context.Background(), cfg) != nil {
+			return 0
+		}
+		pid, err := o.pidManager.ReadPidFile(cfg.Name)
+		if err != nil {
+			folder, folderErr := nativeDataDir(cfg, o.CurrentNetwork())
+			if folderErr != nil {
+				return 0
+			}
+			raw, readErr := os.ReadFile(filepath.Join(folder, "blue-current-node.pid"))
+			if readErr != nil {
+				return 0
+			}
+			pid, err = strconv.Atoi(strings.TrimSpace(string(raw)))
+		}
+		if err == nil && o.pidManager.ValidatePid(pid, filepath.Base(cfg.BinaryName)) {
+			return pid
+		}
+		return 0
+	}
+
 	// 1. Check bitwindow's PID directory
 	// Dart: PidFileManager stores at {appDir}/pids/{binaryName}.pid
 	if o.BitwindowDir != "" {
@@ -613,6 +635,9 @@ func (o *Orchestrator) Download(ctx context.Context, name string, force bool, op
 	if err != nil {
 		return nil, err
 	}
+	if err := validateNativeWallet(config, o.CurrentNetwork()); err != nil {
+		return nil, err
+	}
 	if err := config.refuseExternal(); err != nil {
 		return nil, err
 	}
@@ -625,8 +650,18 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	if err != nil {
 		return 0, err
 	}
+	if err := validateNativeWallet(config, o.CurrentNetwork()); err != nil {
+		return 0, err
+	}
 	if err := config.refuseExternal(); err != nil {
 		return 0, err
+	}
+	if nativeWalletSelected(config, o.CurrentNetwork()) {
+		opts := StartOpts{TargetArgs: args, ForceBackend: true}
+		if err := o.prepareNativeNode(config, &opts); err != nil {
+			return 0, err
+		}
+		return o.process.StartWithOptions(ctx, config, opts.TargetArgs, env, ProcessStartOptions{ForceBackend: true})
 	}
 	// A layer-2 binary starts its frontend, which then asks for the backend slot
 	// under this same name, so the frontend takes the GUI slot instead.
@@ -763,7 +798,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	// requestedPath is the download this caller's own options select. A running
 	// process can come from the other one — a sidechain app boots its prod
 	// backend under the same name — so the release check must not read its path.
-	requestedPath := BinaryPath(o.DataDir, config.BinaryName)
+	requestedPath := installedBinaryPath(o.DataDir, config)
 	if config.IsMainchainCore() && o.process.CoreVariant != nil {
 		if v, ok := o.process.CoreVariant(config); ok {
 			requestedPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
@@ -954,6 +989,9 @@ func (o *Orchestrator) prefetchBinary(ctx context.Context, cfg BinaryConfig, for
 func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts StartOpts) (<-chan StartupProgress, error) {
 	config, err := o.getConfig(target)
 	if err != nil {
+		return nil, err
+	}
+	if err := validateNativeWallet(config, o.CurrentNetwork()); err != nil {
 		return nil, err
 	}
 	if err := config.refuseExternal(); err != nil {
@@ -1197,6 +1235,9 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 // node must be accepting RPC; Core creates no wallet on its own, so without
 // this every wallet call answers "no wallet is loaded".
 func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg BinaryConfig) error {
+	if nativeWalletSelected(cfg, o.CurrentNetwork()) {
+		return o.ensureNativeWallet(ctx, cfg)
+	}
 	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
@@ -1321,6 +1362,9 @@ var errSidechainNetworkUnknown = errors.New("this sidechain has no network of it
 // its own default network and syncs a different chain than the mainchain, and
 // no later step can detect that.
 func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) error {
+	if nativeWalletSelected(cfg, o.CurrentNetwork()) {
+		return o.prepareNativeNode(cfg, opts)
+	}
 	if cfg.ChainLayer == 2 && o.NodeMode() == NodeModeLight {
 		return o.prepareRemoteSidechainArgs(cfg, opts)
 	}
@@ -1380,6 +1424,9 @@ func hasCLIFlag(args []string, arg string) bool {
 // appendSidechainArgs asks a chain for the arguments its node boots with, and
 // adds the ones the command line does not already carry.
 func (o *Orchestrator) appendSidechainArgs(ctx context.Context, cfg BinaryConfig, opts *StartOpts) error {
+	if nativeWalletSelected(cfg, o.CurrentNetwork()) {
+		return nil
+	}
 	if cfg.ChainLayer != 2 {
 		return nil
 	}
@@ -2088,6 +2135,10 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 	targetChecker := NewHealthChecker(config, healthOpts)
 	targetMon := o.getOrCreateMonitor(config.Name, targetChecker, startupPatterns)
+	if nativeWalletSelected(config, o.CurrentNetwork()) {
+		targetMon.SetChecker(targetChecker)
+		targetMon.MarkDisconnected()
+	}
 	if config.ChainLayer == 2 && o.NodeMode() == NodeModeLight && !o.opensSidechainWindow(config, opts) {
 		if err := o.startRemoteEnforcer(ctx, ch); err != nil {
 			failBoot(targetMon, ch, "remote enforcer", err)
@@ -2135,7 +2186,9 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 			}
 			o.log.Info().Str("binary", config.Name).Msg("target already running, not booting")
 			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("%s already running", config.DisplayName)}
-			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+			if err := o.finishNativeTarget(ctx, config, opts, ch); err != nil {
+				failBoot(targetMon, ch, "open wallet", err)
+			}
 			return
 		}
 	}
@@ -2166,7 +2219,9 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 				failBoot(targetMon, ch, "wallet for "+config.Name, err)
 				return
 			}
-			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+			if err := o.finishNativeTarget(ctx, config, opts, ch); err != nil {
+				failBoot(targetMon, ch, "open wallet", err)
+			}
 			return
 		case !refusesOldDB(config, err):
 			failBoot(targetMon, ch, "wait for "+config.Name, err)
@@ -2237,7 +2292,9 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		return
 	}
 
-	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+	if err := o.finishNativeTarget(ctx, config, opts, ch); err != nil {
+		failBoot(targetMon, ch, "open wallet", err)
+	}
 }
 
 // downloadOptsFor applies the answers this daemon holds to a caller's options.
@@ -2591,6 +2648,13 @@ func (o *Orchestrator) callBitcoindStopRPC() error {
 }
 
 func (o *Orchestrator) callSidechainStopRPC(cfg BinaryConfig) error {
+	if nativeWalletSelected(cfg, o.CurrentNetwork()) {
+		if err := o.verifyNativeIdentity(context.Background(), cfg); err != nil {
+			return err
+		}
+		_, err := o.nativeCLI(context.Background(), cfg, "", "stop")
+		return err
+	}
 	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.CurrentNetwork()))
 	if err != nil {
 		return fmt.Errorf("%s RPC stop: %w: %w", cfg.Name, errNoStopClient, err)
@@ -2655,6 +2719,28 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 			realBinaryName = strings.TrimSuffix(pidName, "-test")
 		}
 
+		if native, found := o.findConfigByBinaryName(realBinaryName); found && nativeWalletSelected(native, o.CurrentNetwork()) {
+			native = o.resolvedNativeConfig(native)
+			if validateNativeWallet(native, o.CurrentNetwork()) != nil {
+				continue
+			}
+			part := native
+			if isGUIPid {
+				part = native.NativeWallet.component(native.Name)
+				part.Name = sidechainGUIProcessName(native.Name)
+			}
+			if !o.pidManager.ValidatePid(pid, filepath.Base(part.BinaryName)) {
+				continue
+			}
+			if err := verifyNativeBundle(o.DataDir, native); err != nil {
+				continue
+			}
+			if !isGUIPid && o.verifyNativeIdentity(ctx, native) != nil {
+				continue
+			}
+			o.process.AdoptProcessResolved(part, pid, installedBinaryPath(o.DataDir, part), pidName, true)
+			continue
+		}
 		if !o.pidManager.ValidatePid(pid, realBinaryName) {
 			o.log.Debug().Str("binary", pidName).Int("pid", pid).Msg("stale PID file, cleaning up")
 			_ = o.pidManager.DeletePidFile(pidName)
@@ -4264,14 +4350,14 @@ func (o *Orchestrator) getConfig(name string) (BinaryConfig, error) {
 
 	// Exact match first.
 	if config, ok := o.configs[name]; ok {
-		return config, nil
+		return o.resolvedNativeConfig(config), nil
 	}
 
 	// Case-insensitive fallback: match against Name or DisplayName.
 	lower := strings.ToLower(name)
 	for _, config := range o.configs {
 		if strings.ToLower(config.Name) == lower || strings.ToLower(config.DisplayName) == lower {
-			return config, nil
+			return o.resolvedNativeConfig(config), nil
 		}
 	}
 

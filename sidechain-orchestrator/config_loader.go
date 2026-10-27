@@ -24,15 +24,16 @@ type jsonConfig struct {
 }
 
 type jsonBinaryConf struct {
-	Type        string `json:"type"`
-	Name        string `json:"name"`
-	Version     string `json:"version"`
-	Description string `json:"description"`
-	RepoURL     string `json:"repo_url"`
-	Port        int    `json:"port"`
-	ChainLayer  int    `json:"chain_layer"`
-	Slot        int    `json:"slot"`
-	Color       string `json:"color"`
+	NativeWallet *NativeWalletSpec `json:"native_wallet"`
+	Type         string            `json:"type"`
+	Name         string            `json:"name"`
+	Version      string            `json:"version"`
+	Description  string            `json:"description"`
+	RepoURL      string            `json:"repo_url"`
+	Port         int               `json:"port"`
+	ChainLayer   int               `json:"chain_layer"`
+	Slot         int               `json:"slot"`
+	Color        string            `json:"color"`
 
 	IsBitcoinCore bool `json:"is_bitcoin_core"`
 	External      bool `json:"external"`
@@ -262,6 +263,7 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 	}
 
 	bc := BinaryConfig{
+		NativeWallet:       jb.NativeWallet,
 		ArtifactPins:       jb.ArtifactPins,
 		Name:               name,
 		DisplayName:        jb.Name,
