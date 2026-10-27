@@ -60,7 +60,6 @@ var (
 	ecashMu        sync.RWMutex
 	ecashNetworkID string
 	ecashPeers     = map[string]string{}
-	ecashChannels  = map[string]string{}
 	forkHeights    = map[Network]int{}
 	displayNames   = map[Network]string{}
 	ecashEndpoints netcatalog.Network
@@ -85,27 +84,9 @@ func PublishedECashPeer(id string) string {
 	return ecashPeers[id]
 }
 
-// SetECashReleaseChannel records the release channel published for an eCash
-// network. An empty channel clears it.
-func SetECashReleaseChannel(id, channel string) {
-	ecashMu.Lock()
-	defer ecashMu.Unlock()
-	if channel == "" {
-		delete(ecashChannels, id)
-		return
-	}
-	ecashChannels[id] = channel
-}
-
-// ECashReleaseChannelFor returns the release channel an eCash network takes its
-// L1 build from: the published one, then the compiled-in one, then the id.
+// ECashReleaseChannelFor returns the release folder an eCash network takes its
+// L1 build from: the compiled-in one, else the id.
 func ECashReleaseChannelFor(id string) string {
-	ecashMu.RLock()
-	channel := ecashChannels[id]
-	ecashMu.RUnlock()
-	if channel != "" {
-		return channel
-	}
 	if n, ok := netcatalog.Embedded().ByID(id); ok {
 		return n.ReleaseChannelOrID()
 	}

@@ -351,12 +351,6 @@ func (o *Orchestrator) recordECashChain(id string) error {
 // adoptCatalogRows takes a document in memory: the picker rows, their endpoints
 // and their fork heights. It writes no conf, so a refresh can call it live.
 func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
-	// Before the expansion below, which reads them.
-	for _, n := range c.Networks {
-		if n.Family == netcatalog.FamilyECash {
-			config.SetECashReleaseChannel(n.ID, n.ReleaseChannel)
-		}
-	}
 	o.mu.Lock()
 	o.Catalog = c
 	o.ecashID = id

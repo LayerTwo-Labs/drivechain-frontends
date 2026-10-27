@@ -23,6 +23,7 @@ const (
 	ecashMainnetForkHeight   = 973728
 	ecashMainnetLockTime     = 499999998
 	ecashMainnetReleaseURL   = "https://releases.ecash.com/L1-ecash-bitcoin/mainnet/latest/"
+	fixtureReleaseURL        = "https://releases.ecash.com/L1-ecash-bitcoin/ecash-mainnet/latest/"
 	betanetReleaseURL        = "https://releases.ecash.com/L1-ecash-bitcoin/betanet/latest/"
 	betanetAndMainnetShared  = 967679
 	alphanetAndMainnetShared = 963647
@@ -59,7 +60,6 @@ func keepNetworkGlobals(t *testing.T) {
 		config.SetForkHeight(config.NetworkECash, height)
 		config.SetNetworkDisplayName(config.NetworkECash, name)
 		config.SetNetworkEndpoints(config.NetworkMainnet, bitcoin)
-		config.SetECashReleaseChannel(ecashMainnetID, "")
 	})
 }
 
@@ -167,9 +167,14 @@ func TestTheReleaseChannelPicksTheL1Download(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.adoptCatalogRows(ecashMainnetFixture(t), ecashMainnetID)
 
-	v := o.configs["bitcoind"].Variants["ecash"]
+	published := o.configs["bitcoind"].Variants["ecash"]
+	require.Equal(t, fixtureReleaseURL, published.BaseURL,
+		"a published release channel never picks the download")
+	require.Equal(t, ecashMainnetID, published.Subfolder, "the install folder keeps the id")
+
+	v := expandECashPlaceholder(o.rawConfigs["bitcoind"], "ecash").Variants["ecash"]
 	require.Equal(t, ecashMainnetReleaseURL, v.BaseURL)
-	require.Equal(t, ecashMainnetID, v.Subfolder, "the install folder keeps the id")
+	require.Equal(t, "ecash", v.Subfolder)
 	require.Equal(t, "L1-ecash-bitcoin-aarch64-apple-darwin.zip", v.Files["macos-arm64"])
 	require.Equal(t, "L1-ecash-bitcoin-x86_64-apple-darwin.zip", v.Files["macos-x86_64"])
 	require.Equal(t, "L1-ecash-bitcoin-x86_64-unknown-linux-gnu.zip", v.Files["linux-x86_64"])
@@ -212,7 +217,7 @@ func requireOnECashMainnet(t *testing.T, o *Orchestrator) {
 	require.Equal(t, "ecash-ecash-mainnet", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
 	require.Equal(t, "seed.mainnet.ecash.example:8533", o.BitcoinConf.Config.GetEffectiveSetting("addnode", "main"))
 	require.Equal(t, ecashMainnetForkHeight, config.PublishedForkHeight(config.NetworkECash))
-	require.Equal(t, ecashMainnetReleaseURL, o.configs["bitcoind"].Variants["ecash"].BaseURL)
+	require.Equal(t, fixtureReleaseURL, o.configs["bitcoind"].Variants["ecash"].BaseURL)
 
 	lockTime := liveReplayLockTime(t)
 	require.EqualValues(t, ecashMainnetLockTime, lockTime)
@@ -380,7 +385,7 @@ func TestECashMigrationMovesBetanetOntoECashMainnet(t *testing.T) {
 	require.Equal(t, "eca5b104", state.Status.SourceMagic)
 	require.Equal(t, "eca5dcb7", state.Status.TargetMagic)
 	require.Equal(t, betanetReleaseURL, state.FromConfig.Variants["ecash"].BaseURL)
-	require.Equal(t, ecashMainnetReleaseURL, state.ToConfig.Variants["ecash"].BaseURL)
+	require.Equal(t, fixtureReleaseURL, state.ToConfig.Variants["ecash"].BaseURL)
 	require.Equal(t, ecashMainnetID, state.ToConfig.Variants["ecash"].Subfolder)
 
 	paths := slices.Sorted(func(yield func(string) bool) {
