@@ -196,7 +196,7 @@ void main() {
       provider.add(
         id: 'net-1',
         title: 'The blocks on disk are from Betanet',
-        content: 'You selected Alphanet. Switch to Betanet?',
+        content: 'You selected eCash. Switch to Betanet?',
         dialogType: DialogType.error,
         style: NotificationStyle.modalThenBanner,
       );
@@ -298,13 +298,13 @@ void main() {
       dialogType: DialogType.error,
       timestamp: DateTime.utc(2026, 9, 25),
       style: NotificationStyle.modalThenBanner,
-      data: const {'detected': 'betanet', 'selected': 'alphanet'},
+      data: const {'detected': 'betanet', 'selected': 'ecash'},
     );
 
     final restored = NotificationItem.fromMap(original.toMap());
 
     expect(restored.data['detected'], 'betanet');
-    expect(restored.data['selected'], 'alphanet');
+    expect(restored.data['selected'], 'ecash');
     expect(restored.style, NotificationStyle.modalThenBanner);
   });
 

@@ -29,7 +29,7 @@ func catalogWithECash(t *testing.T, id string) netcatalog.Catalog {
 			networks = append(networks, n)
 			continue
 		}
-		if ecash {
+		if ecash || n.MigrationOnly {
 			continue
 		}
 		ecash = true
@@ -376,7 +376,7 @@ func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
 }
 
 // ecashOnNetworkWithLead puts an eCash install on betanet, with a published
-// document that lists alphanet last, at the fork height given.
+// document that lists gammanet last, at the fork height given.
 func ecashOnNetworkWithLead(t *testing.T, leadForkHeight int) *Orchestrator {
 	t.Helper()
 	o := newTestOrchestrator(t)
@@ -386,10 +386,10 @@ func ecashOnNetworkWithLead(t *testing.T, leadForkHeight int) *Orchestrator {
 	o.coreReachable = func() bool { return false }
 	o.adoptCatalog(catalogWithECash(t, "betanet"), "betanet")
 
-	published := catalogWithECashRows(t, "betanet", "alphanet")
+	published := catalogWithECashRows(t, "betanet", "gammanet")
 	for i, n := range published.Networks {
 		switch n.ID {
-		case "alphanet":
+		case "gammanet":
 			published.Networks[i].ForkHeight = leadForkHeight
 		case "betanet":
 			published.Networks[i].ForkHeight = 967680
@@ -402,7 +402,7 @@ func ecashOnNetworkWithLead(t *testing.T, leadForkHeight int) *Orchestrator {
 func TestAnOlderLeadIsNotOffered(t *testing.T) {
 	o := ecashOnNetworkWithLead(t, 963648)
 
-	require.Empty(t, o.PendingECashUpgrade().ID, "alphanet forks before betanet, so it is no upgrade")
+	require.Empty(t, o.PendingECashUpgrade().ID, "gammanet forks before betanet, so it is no upgrade")
 	require.Error(t, o.ConfirmPendingECashNetwork(context.Background()))
 	require.Equal(t, "betanet", config.ECashNetworkID())
 }
@@ -410,5 +410,5 @@ func TestAnOlderLeadIsNotOffered(t *testing.T) {
 func TestANewerLeadIsOffered(t *testing.T) {
 	o := ecashOnNetworkWithLead(t, 970000)
 
-	require.Equal(t, "alphanet", o.PendingECashUpgrade().ID)
+	require.Equal(t, "gammanet", o.PendingECashUpgrade().ID)
 }

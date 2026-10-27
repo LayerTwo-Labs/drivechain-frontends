@@ -14,7 +14,7 @@ void main() {
     }
   });
 
-  test('alphanet wears red and regtest wears grey, never the other way round', () {
+  test('eCash wears red and regtest wears grey, never the other way round', () {
     expect(getNetworkAccentColor(BitcoinNetwork.BITCOIN_NETWORK_ECASH), SailColorScheme.red);
     expect(getNetworkAccentColor(BitcoinNetwork.BITCOIN_NETWORK_REGTEST), SailColorScheme.greyMiddle);
   });

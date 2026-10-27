@@ -585,10 +585,12 @@ enum BinaryType {
   BINARY_TYPE_GRPCURL = 11;
   BINARY_TYPE_DRIVECHAIND = 12;
   BINARY_TYPE_ZSIDED = 13;
-  BINARY_TYPE_LIQUID_SIGNET = 14;
   BINARY_TYPE_BBC = 15;
   BINARY_TYPE_FREEBANK = 16;
   BINARY_TYPE_SOLANA = 17;
+
+  reserved 14;
+  reserved "BINARY_TYPE_LIQUID_SIGNET";
 }
 
 message SidechainStatus {
@@ -941,7 +943,7 @@ message GetForkStatusResponse {
   bool show_countdown = 8;
   // Per-wallet claimable coins, with the exact UTXOs the sweep spends.
   repeated ForkWalletClaim claims = 9;
-  // Name of the fork being counted down to ("Alphanet"), from the published
+  // Name of the fork being counted down to ("Betanet"), from the published
   // catalog. A rehearsal must never read as the real eCash fork.
   string network_name = 10;
   // nLockTime the live eCash network's node treats as final. A transaction

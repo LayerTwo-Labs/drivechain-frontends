@@ -11,7 +11,7 @@ import (
 
 // Two thunder builds both report 0.17.6 and write a deposit differently. These
 // are the two get_block_index replies, one from a node on a laptop and one from
-// the alphanet server, for the same block.
+// a public server, for the same block.
 func TestBlockIndexReadsBothDepositShapes(t *testing.T) {
 	const (
 		named  = `{"txs":[],"deposits":[{"outpoint":{"Deposit":"cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc:0"},"output":{"address":"rQyAxKGtdbyiEM852yMtoRWfgVD","content":{"Value":54300}}}],"bundle_spends":[]}`

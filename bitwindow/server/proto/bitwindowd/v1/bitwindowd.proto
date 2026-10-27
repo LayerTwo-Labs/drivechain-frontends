@@ -451,7 +451,7 @@ message UpdateNetworkRequest {
   string network = 1;
   // The user's answer to must_select_datadir, when they were asked.
   string data_dir = 2;
-  // Catalog id of the picked row ("alphanet"). The eCash rows share one
+  // Catalog id of the picked row ("betanet"). The eCash rows share one
   // network, so only the id names the fork. Empty falls back to network.
   string network_id = 3;
 }

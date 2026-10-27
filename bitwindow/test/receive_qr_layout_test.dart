@@ -154,15 +154,15 @@ void main() {
     await GetIt.I.reset();
   });
 
-  testWidgets('the Receive tab shows the production burn below the claim on Alphanet', (tester) async {
-    final conf = _FakeConf()..changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'alphanet');
+  testWidgets('the Receive tab shows the production burn below the claim on Betanet', (tester) async {
+    final conf = _FakeConf()..changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'betanet');
     await _pumpReceiveTab(tester, conf: conf);
 
     final card = tester.widget<BurnEcxCard>(find.byType(BurnEcxCard));
     expect(card.burnAddress, '1BitcoinEaterAddressDontSendf59kuE');
     expect(card.minimumSats, 100000000000);
     final title = find
-        .text('Burn Alphanet Coins')
+        .text('Burn Betanet Coins')
         .evaluate()
         .where((element) => element.findAncestorWidgetOfExactType<SailButton>() == null);
     expect(title, hasLength(1));
@@ -190,30 +190,26 @@ void main() {
 
     expectNoBurnGap();
 
-    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'alphanet');
-    await tester.pump();
-    expect(find.byType(BurnEcxCard), findsOneWidget);
-
     conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'betanet');
     await tester.pump();
     expect(find.byType(BurnEcxCard), findsOneWidget);
     expect(find.text('Burn Betanet Coins'), findsOneWidget);
 
-    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'drynet4');
+    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'ecash');
     await tester.pump();
     expectNoBurnGap();
 
-    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_MAINNET, 'alphanet');
+    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_MAINNET, 'betanet');
     await tester.pump();
     expectNoBurnGap();
     expect(find.byType(ClaimEcxCard), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the Receive tab uses the catalog Alphanet ID when the explicit ID is empty', (tester) async {
+  testWidgets('the Receive tab uses the catalog Betanet ID when the explicit ID is empty', (tester) async {
     final conf = _FakeConf()
       ..network = BitcoinNetwork.BITCOIN_NETWORK_ECASH
-      ..currentNetworkOptionId = 'alphanet';
+      ..currentNetworkOptionId = 'betanet';
     await _pumpReceiveTab(tester, conf: conf);
 
     expect(find.byType(BurnEcxCard), findsOneWidget);

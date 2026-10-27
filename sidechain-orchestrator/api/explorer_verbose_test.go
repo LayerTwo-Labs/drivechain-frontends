@@ -12,7 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
-// verboseThunderTx is thunder block f660127553ada094 on alphanet: one transfer
+// verboseThunderTx is thunder block f660127553ada094 of a live node: one transfer
 // that get_block_index names as 5f2931894c234a14, 135 bytes.
 const (
 	verboseThunderTxid  = "5f2931894c234a14b620c58599a67dfc2701d6fdc3cb56c179066faf708716ac"

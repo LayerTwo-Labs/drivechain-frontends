@@ -14,7 +14,6 @@ void main() {
     test('files every chain under the key the orchestrator uses', () {
       // A display name is not a key: Big Block Covenant files under bbc.
       expect(Bbc().registryKey, 'bbc');
-      expect(LiquidSignet().registryKey, 'liquid-signet');
       expect(Thunder().registryKey, 'thunder');
       expect(ZSide().registryKey, 'zside');
       expect(CoinShift().registryKey, 'coinshift');

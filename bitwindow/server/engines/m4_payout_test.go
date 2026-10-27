@@ -47,7 +47,7 @@ func newM4PayoutParser(t *testing.T) (*Parser, *mocks.MockValidatorServiceClient
 	return &Parser{
 		db:          db,
 		chainParams: &chaincfg.RegressionNetParams,
-		m4Engine:    NewM4Engine(db, config.NetworkRegtest, ""),
+		m4Engine:    NewM4Engine(db, config.NetworkRegtest),
 		enforcer: service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
 			return validator, nil
 		}),
@@ -249,7 +249,7 @@ func TestParserM4PayoutRPCErrorKeepsVotes(t *testing.T) {
 
 func TestParserM4PayoutUsesRetainedProposalHash(t *testing.T) {
 	p, validator, tip := newM4PayoutParser(t)
-	p.m4Engine = NewM4Engine(p.db, config.NetworkMainnet, "")
+	p.m4Engine = NewM4Engine(p.db, config.NetworkMainnet)
 	blocks, _, hashA, _ := m4PayoutBlocks(t, false)
 	storeM4PayoutBlocks(t, p, blocks, 100, 100)
 	_, err := p.db.ExecContext(t.Context(), `DELETE FROM processed_blocks`)

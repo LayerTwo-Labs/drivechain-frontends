@@ -274,7 +274,7 @@ func TestWipeStaleChainDataResolvesActiveGroupFromConfig(t *testing.T) {
 	m.Network = NetworkSignet
 	m.Config.SetSetting("chain", "main")
 	m.Config.SetSetting("drivechain", "1", "main")
-	m.Config.SetSetting("uacomment", ECashUAComment("alphanet"), "main")
+	m.Config.SetSetting("uacomment", ECashUAComment("betanet"), "main")
 	m.Config.SetSetting("datadir", ecashDir)
 	m.Config.SetGroupDatadir(DatadirGroupECash, ecashDir)
 	m.Config.SetGroupDatadir(DatadirGroupDefault, signetDir)
@@ -487,11 +487,11 @@ func TestGetDefaultConfigFallbackfeeNotOnMainnet(t *testing.T) {
 }
 
 func TestGetDefaultConfigECashHasPeerAndFallbackfee(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkECash, ECashID: "alphanet"}
+	m := &BitcoinConfManager{Network: NetworkECash, ECashID: "betanet"}
 	conf := m.GetDefaultConfig()
 	for _, want := range []string{
 		"drivechain=1", "fallbackfee=0.00021",
-		"addnode=seed.alpha.ecash.ninja:8533", "uacomment=ecash-alphanet", "rpcport=18302",
+		"addnode=seed.beta.ecash.ninja:8533", "uacomment=ecash-betanet", "rpcport=18302",
 	} {
 		if !strings.Contains(conf, want) {
 			t.Errorf("eCash default config must include %q, got:\n%s", want, conf)
@@ -517,25 +517,25 @@ func TestUpdateNetworkWritesChainMainForForks(t *testing.T) {
 // The catalog id drives the peer and the sentinel, so a new eCash network needs
 // an endpoint change rather than a code change.
 func TestECashGenerationDrivesPeerAndSentinel(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkECash, ECashID: "alphanet"}
+	m := &BitcoinConfManager{Network: NetworkECash, ECashID: "betanet"}
 	conf := m.GetDefaultConfig()
-	for _, want := range []string{"addnode=seed.alpha.ecash.ninja:8533", "uacomment=ecash-alphanet"} {
+	for _, want := range []string{"addnode=seed.beta.ecash.ninja:8533", "uacomment=ecash-betanet"} {
 		if !strings.Contains(conf, want) {
-			t.Errorf("alphanet config must include %q, got:\n%s", want, conf)
+			t.Errorf("betanet config must include %q, got:\n%s", want, conf)
 		}
 	}
 	if strings.Contains(conf, "drivechain.dev") {
-		t.Errorf("alphanet config must not name a retired eCash host, got:\n%s", conf)
+		t.Errorf("betanet config must not name a retired eCash host, got:\n%s", conf)
 	}
 
 	// applyMainSectionDefaults writes the same values on a network swap.
-	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "alphanet", log: zerolog.Nop()}
+	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "betanet", log: zerolog.Nop()}
 	m2.applyMainSectionDefaults(NetworkECash)
-	if got := m2.Config.GetSetting("addnode", "main"); got != "seed.alpha.ecash.ninja:8533" {
-		t.Errorf("addnode = %q, want the alphanet peer", got)
+	if got := m2.Config.GetSetting("addnode", "main"); got != "seed.beta.ecash.ninja:8533" {
+		t.Errorf("addnode = %q, want the betanet peer", got)
 	}
-	if got := m2.Config.GetSetting("uacomment", "main"); got != "ecash-alphanet" {
-		t.Errorf("uacomment = %q, want ecash-alphanet", got)
+	if got := m2.Config.GetSetting("uacomment", "main"); got != "ecash-betanet" {
+		t.Errorf("uacomment = %q, want ecash-betanet", got)
 	}
 }
 
@@ -762,7 +762,7 @@ func TestLoadAdoptsTopLevelDatadirIntoActiveSlot(t *testing.T) {
 		conf  string
 		group DatadirGroup
 	}{
-		{"ecash", "chain=main\ndatadir=/vol/ecash\n[main]\ndrivechain=1\nuacomment=ecash-alphanet\n", DatadirGroupECash},
+		{"ecash", "chain=main\ndatadir=/vol/ecash\n[main]\ndrivechain=1\nuacomment=ecash-betanet\n", DatadirGroupECash},
 		{"mainnet", "chain=main\ndatadir=/vol/mainnet\n", DatadirGroupDefault},
 		{"signet", "chain=signet\ndatadir=/vol/shared\n", DatadirGroupDefault},
 	} {
@@ -865,7 +865,7 @@ func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
 	m.Network = NetworkECash
 	m.Config.SetSetting("chain", "main")
 	m.Config.SetSetting("drivechain", "1", "main")
-	m.Config.SetSetting("uacomment", ECashUAComment("alphanet"), "main")
+	m.Config.SetSetting("uacomment", ECashUAComment("betanet"), "main")
 	m.Config.SetSetting("datadir", "/ecash/live")
 	m.Config.SetGroupDatadir(DatadirGroupECash, "/ecash/live")
 
@@ -946,7 +946,7 @@ func TestUpdateNetworkWithinDefaultGroupKeepsDatadir(t *testing.T) {
 // applyMainSectionDefaults: signet → eCash adds drivechain=1 + alt ports
 // under [main]; eCash → mainnet strips them.
 func TestApplyMainSectionDefaultsECashThenMainnet(t *testing.T) {
-	m := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "alphanet", log: zerolog.Nop()}
+	m := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "betanet", log: zerolog.Nop()}
 	m.Config.SetSetting("chain", "signet")
 
 	m.applyMainSectionDefaults(NetworkECash)
@@ -954,8 +954,8 @@ func TestApplyMainSectionDefaultsECashThenMainnet(t *testing.T) {
 	require.Equal(t, "8301", m.Config.GetSetting("port", "main"))
 	require.Equal(t, "18302", m.Config.GetSetting("rpcport", "main"))
 	require.Equal(t, "0.00021", m.Config.GetSetting("fallbackfee", "main"))
-	require.Equal(t, "seed.alpha.ecash.ninja:8533", m.Config.GetSetting("addnode", "main"))
-	require.Equal(t, "ecash-alphanet", m.Config.GetSetting("uacomment", "main"))
+	require.Equal(t, "seed.beta.ecash.ninja:8533", m.Config.GetSetting("addnode", "main"))
+	require.Equal(t, "ecash-betanet", m.Config.GetSetting("uacomment", "main"))
 
 	m.applyMainSectionDefaults(NetworkMainnet)
 	require.Equal(t, "", m.Config.GetSetting("drivechain", "main"))

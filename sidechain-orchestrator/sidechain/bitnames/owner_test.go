@@ -22,7 +22,7 @@ func (u utxoNode) Call(_ context.Context, method string, _ any, result any) erro
 	return json.Unmarshal([]byte(u.utxos), result)
 }
 
-// This is the shape the live alphanet node returned for list_utxos.
+// This is the shape a live node returned for list_utxos.
 const liveUTXOs = `[
  {"outpoint":{"Regular":{"txid":"aa","vout":0}},
   "output":{"address":"3Cdqkd4J2uqAN4HLKuAY8en68tzZ",

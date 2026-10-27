@@ -5765,7 +5765,7 @@ class GetForkStatusResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.List<ForkWalletClaim> get claims => $_getList(7);
 
-  /// Name of the fork being counted down to ("Alphanet"), from the published
+  /// Name of the fork being counted down to ("Betanet"), from the published
   /// catalog. A rehearsal must never read as the real eCash fork.
   @$pb.TagNumber(10)
   $core.String get networkName => $_getSZ(8);

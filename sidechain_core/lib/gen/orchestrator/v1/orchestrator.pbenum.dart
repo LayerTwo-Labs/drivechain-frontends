@@ -66,7 +66,6 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_GRPCURL = BinaryType._(11, _omitEnumNames ? '' : 'BINARY_TYPE_GRPCURL');
   static const BinaryType BINARY_TYPE_DRIVECHAIND = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_DRIVECHAIND');
   static const BinaryType BINARY_TYPE_ZSIDED = BinaryType._(13, _omitEnumNames ? '' : 'BINARY_TYPE_ZSIDED');
-  static const BinaryType BINARY_TYPE_LIQUID_SIGNET = BinaryType._(14, _omitEnumNames ? '' : 'BINARY_TYPE_LIQUID_SIGNET');
   static const BinaryType BINARY_TYPE_BBC = BinaryType._(15, _omitEnumNames ? '' : 'BINARY_TYPE_BBC');
   static const BinaryType BINARY_TYPE_FREEBANK = BinaryType._(16, _omitEnumNames ? '' : 'BINARY_TYPE_FREEBANK');
   static const BinaryType BINARY_TYPE_SOLANA = BinaryType._(17, _omitEnumNames ? '' : 'BINARY_TYPE_SOLANA');
@@ -86,7 +85,6 @@ class BinaryType extends $pb.ProtobufEnum {
     BINARY_TYPE_GRPCURL,
     BINARY_TYPE_DRIVECHAIND,
     BINARY_TYPE_ZSIDED,
-    BINARY_TYPE_LIQUID_SIGNET,
     BINARY_TYPE_BBC,
     BINARY_TYPE_FREEBANK,
     BINARY_TYPE_SOLANA,

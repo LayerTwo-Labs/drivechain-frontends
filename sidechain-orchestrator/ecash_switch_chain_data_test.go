@@ -44,7 +44,7 @@ func TestPlanECashSwitchReportsChainData(t *testing.T) {
 				require.NoError(t, os.WriteFile(path, []byte("chain data"), 0o600))
 			}
 
-			plan, err := o.PlanECashSwitch("alphanet")
+			plan, err := o.PlanECashSwitch("betanet")
 
 			require.NoError(t, err)
 			require.Equal(t, test.file != "", plan.HasChainData)
@@ -54,7 +54,7 @@ func TestPlanECashSwitchReportsChainData(t *testing.T) {
 				require.Equal(t, "drynet4", plan.ChainID)
 			}
 			require.Equal(t, "drynet4", plan.FromID)
-			require.Equal(t, "alphanet", plan.ToID)
+			require.Equal(t, "betanet", plan.ToID)
 			require.True(t, plan.NeedsRollback)
 			require.EqualValues(t, 961631, plan.RewindHeight)
 		})
@@ -64,18 +64,18 @@ func TestPlanECashSwitchReportsChainData(t *testing.T) {
 func TestPlanECashSwitchReportsChainDataForTheCurrentNetwork(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.Catalog = ecashCatalog()
-	o.ecashID = "alphanet"
-	require.NoError(t, o.Settings.SetECashChainID("alphanet"))
+	o.ecashID = "betanet"
+	require.NoError(t, o.Settings.SetECashChainID("betanet"))
 	root := t.TempDir()
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, root)
 	require.NoError(t, os.Mkdir(filepath.Join(root, "chainstate"), 0o700))
 	require.NoError(t, os.WriteFile(filepath.Join(root, "chainstate", "CURRENT"), []byte("MANIFEST-000001\n"), 0o600))
 
-	plan, err := o.PlanECashSwitch("alphanet")
+	plan, err := o.PlanECashSwitch("betanet")
 
 	require.NoError(t, err)
 	require.True(t, plan.HasChainData)
-	require.Equal(t, "alphanet", plan.ChainID)
+	require.Equal(t, "betanet", plan.ChainID)
 	require.False(t, plan.NeedsRollback)
 }
 
@@ -85,8 +85,8 @@ func TestPlanECashSwitchUsesOnlyTheECashDataPath(t *testing.T) {
 			o := newTestOrchestrator(t)
 			o.Network = string(network)
 			o.Catalog = ecashCatalog()
-			o.ecashID = "alphanet"
-			require.NoError(t, o.Settings.SetECashChainID("alphanet"))
+			o.ecashID = "betanet"
+			require.NoError(t, o.Settings.SetECashChainID("betanet"))
 			root := t.TempDir()
 			o.BitcoinConf.Network = network
 			o.BitcoinConf.DetectedDataDir = root
@@ -99,12 +99,12 @@ func TestPlanECashSwitchUsesOnlyTheECashDataPath(t *testing.T) {
 			require.NoError(t, os.WriteFile(blockPath, []byte("chain data"), 0o600))
 			require.Empty(t, o.ecashDatadir())
 
-			plan, err := o.PlanECashSwitch("alphanet")
+			plan, err := o.PlanECashSwitch("betanet")
 
 			require.NoError(t, err)
 			require.Equal(t, network == config.NetworkECash, plan.HasChainData)
 			if network == config.NetworkECash {
-				require.Equal(t, "alphanet", plan.ChainID)
+				require.Equal(t, "betanet", plan.ChainID)
 			} else {
 				require.Empty(t, plan.ChainID)
 			}
@@ -121,24 +121,23 @@ func TestPlanECashSwitchKeepsTheRetainedChainID(t *testing.T) {
 			o := newTestOrchestrator(t)
 			o.Network = string(network)
 			o.Catalog = ecashCatalog()
-			o.Catalog.Networks[2].ID = "betanet"
-			o.ecashID = "betanet"
-			require.NoError(t, o.Settings.SetECashChainID("alphanet"))
+			o.ecashID = "betanet2"
+			require.NoError(t, o.Settings.SetECashChainID("betanet"))
 			root := t.TempDir()
 			o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, root)
 			require.NoError(t, os.Mkdir(filepath.Join(root, "blocks"), 0o700))
-			require.NoError(t, os.WriteFile(filepath.Join(root, "blocks", "blk00000.dat"), []byte("alpha data"), 0o600))
+			require.NoError(t, os.WriteFile(filepath.Join(root, "blocks", "blk00000.dat"), []byte("beta data"), 0o600))
 
-			plan, err := o.PlanECashSwitch("betanet")
+			plan, err := o.PlanECashSwitch("betanet2")
 
 			require.NoError(t, err)
 			require.True(t, plan.HasChainData)
-			require.Equal(t, "alphanet", plan.ChainID)
-			require.Equal(t, "betanet", plan.FromID)
-			require.Equal(t, "betanet", plan.ToID)
+			require.Equal(t, "betanet", plan.ChainID)
+			require.Equal(t, "betanet2", plan.FromID)
+			require.Equal(t, "betanet2", plan.ToID)
 			require.Zero(t, plan.RewindHeight)
 			require.False(t, plan.NeedsRollback)
-			require.Equal(t, "alphanet", o.Settings.ECashChainID())
+			require.Equal(t, "betanet", o.Settings.ECashChainID())
 		})
 	}
 }
@@ -146,7 +145,7 @@ func TestPlanECashSwitchKeepsTheRetainedChainID(t *testing.T) {
 func TestPlanECashSwitchReturnsChainIdentityErrors(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.Catalog = ecashCatalog()
-	o.ecashID = "alphanet"
+	o.ecashID = "betanet"
 	require.NoError(t, o.Settings.SetECashChainID(""))
 	o.BitcoinConf.Config.SetSetting("uacomment", "", "main")
 	root := t.TempDir()
@@ -154,7 +153,7 @@ func TestPlanECashSwitchReturnsChainIdentityErrors(t *testing.T) {
 	require.NoError(t, os.Mkdir(filepath.Join(root, "blocks"), 0o700))
 	require.NoError(t, os.WriteFile(filepath.Join(root, "blocks", "blk00000.dat"), []byte("chain data"), 0o600))
 
-	plan, err := o.PlanECashSwitch("alphanet")
+	plan, err := o.PlanECashSwitch("betanet")
 
 	require.ErrorContains(t, err, "read ECX chain identity")
 	require.ErrorContains(t, err, "no saved network identity")
@@ -169,7 +168,7 @@ func TestPlanECashSwitchReturnsChainDataReadErrors(t *testing.T) {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, root)
 	o.BitcoinConf.Config.SetSetting("blocksdir", "[", "main")
 
-	plan, err := o.PlanECashSwitch("alphanet")
+	plan, err := o.PlanECashSwitch("betanet")
 
 	require.ErrorContains(t, err, "read ECX chain files")
 	require.ErrorIs(t, err, filepath.ErrBadPattern)

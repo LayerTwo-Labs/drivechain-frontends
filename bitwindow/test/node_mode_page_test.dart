@@ -168,7 +168,7 @@ void main() {
     await pumpPage(tester);
     wallet.up = true;
     wallet.setError = Exception(
-      'ECX files belong to alphanet; open Settings, Network, ECX migration to move them to betanet',
+      'ECX files belong to betanet; open Settings, Network, ECX migration to move them to ecash',
     );
     await tester.pump(const Duration(seconds: 2));
     await tester.pump();
@@ -178,7 +178,7 @@ void main() {
     await tester.tap(find.byType(SailButton));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('ECX files belong to alphanet'), findsOneWidget);
+    expect(find.textContaining('ECX files belong to betanet'), findsOneWidget);
     expect(find.text('BitWindow cannot reach the local backend.'), findsNothing);
   });
 

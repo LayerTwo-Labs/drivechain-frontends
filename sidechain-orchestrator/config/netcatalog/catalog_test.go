@@ -37,7 +37,7 @@ func TestEmbeddedCatalogPublishesPeers(t *testing.T) {
 func TestECashIDTakesTheLastECashEntry(t *testing.T) {
 	c := Catalog{Networks: []Network{
 		{ID: "bitcoin", Family: "bitcoin"},
-		{ID: "alphanet", Family: FamilyECash},
+		{ID: "drynet4", Family: FamilyECash},
 		{ID: "betanet", Family: FamilyECash},
 		{ID: "ecash", Family: FamilyECash},
 		{ID: "signet", Family: "bitcoin"},
@@ -92,14 +92,14 @@ func TestRemoveLegacyFilesClearsBothCopies(t *testing.T) {
 // refresh that adds a network or moves a host must not read as unchanged.
 func TestSameAsSeesEveryEntry(t *testing.T) {
 	base := Catalog{SchemaVersion: 1, Networks: []Network{
-		{ID: "alphanet", Family: FamilyECash},
+		{ID: "betanet", Family: FamilyECash},
 	}}
 	if !base.SameAs(base) {
 		t.Error("a catalog must match itself")
 	}
 
 	added := Catalog{SchemaVersion: 1, Networks: []Network{
-		{ID: "alphanet", Family: FamilyECash},
+		{ID: "betanet", Family: FamilyECash},
 		{ID: "drynet4", Family: FamilyECash},
 	}}
 	if base.SameAs(added) {
@@ -107,7 +107,7 @@ func TestSameAsSeesEveryEntry(t *testing.T) {
 	}
 
 	moved := Catalog{SchemaVersion: 1, Networks: []Network{
-		{ID: "alphanet", Family: FamilyECash, Backends: []Backend{{Kind: "esplora", URL: "https://new.example"}}},
+		{ID: "betanet", Family: FamilyECash, Backends: []Backend{{Kind: "esplora", URL: "https://new.example"}}},
 	}}
 	if base.SameAs(moved) {
 		t.Error("a moved endpoint must not read as unchanged")
@@ -144,21 +144,21 @@ func TestBackendURLPicksLowestPriority(t *testing.T) {
 	}
 }
 
-// The published document dropped fork_parent_hash from the alphanet entry once,
-// and the migration that reads it stopped for every user at the same time.
+// A published document can drop fork_parent_hash from an entry. The migration
+// reads that hash, so the compiled-in value fills the gap.
 func TestFillForkParentHashTakesTheEmbeddedValue(t *testing.T) {
 	embedded := Catalog{Networks: []Network{
-		{ID: "alphanet", Family: FamilyECash, ForkParentHash: "aa"},
-		{ID: "betanet", Family: FamilyECash},
+		{ID: "betanet", Family: FamilyECash, ForkParentHash: "aa"},
+		{ID: "ecash", Family: FamilyECash},
 	}}
 	fetched := Catalog{Networks: []Network{
-		{ID: "alphanet", Family: FamilyECash},
 		{ID: "betanet", Family: FamilyECash},
+		{ID: "ecash", Family: FamilyECash},
 		{ID: "gammanet", Family: FamilyECash},
 	}}
 
 	filled := fillFromEmbedded(fetched, embedded)
-	for id, want := range map[string]string{"alphanet": "aa", "betanet": "", "gammanet": ""} {
+	for id, want := range map[string]string{"betanet": "aa", "ecash": "", "gammanet": ""} {
 		entry, ok := filled.ByID(id)
 		if !ok {
 			t.Fatalf("%s left the catalog", id)
@@ -170,11 +170,11 @@ func TestFillForkParentHashTakesTheEmbeddedValue(t *testing.T) {
 }
 
 func TestFillFromEmbeddedKeepsThePublishedForkParentHash(t *testing.T) {
-	embedded := Catalog{Networks: []Network{{ID: "alphanet", Family: FamilyECash, ForkParentHash: "aa"}}}
-	fetched := Catalog{Networks: []Network{{ID: "alphanet", Family: FamilyECash, ForkParentHash: "bb"}}}
+	embedded := Catalog{Networks: []Network{{ID: "betanet", Family: FamilyECash, ForkParentHash: "aa"}}}
+	fetched := Catalog{Networks: []Network{{ID: "betanet", Family: FamilyECash, ForkParentHash: "bb"}}}
 
 	filled := fillFromEmbedded(fetched, embedded)
-	entry, _ := filled.ByID("alphanet")
+	entry, _ := filled.ByID("betanet")
 	if entry.ForkParentHash != "bb" {
 		t.Errorf("fork parent hash = %q, want the published bb", entry.ForkParentHash)
 	}
@@ -196,6 +196,23 @@ func TestEmbeddedCatalogPublishesTheForkParentHash(t *testing.T) {
 			t.Errorf("%s fork parent hash = %q, want 64 hex characters", entry.ID, entry.ForkParentHash)
 		}
 	}
+}
+
+// An install on alphanet can still migrate, so the embedded row keeps what the
+// migration reads. The picker does not list it.
+func TestEmbeddedAlphanetIsAMigrationSource(t *testing.T) {
+	n, ok := Embedded().ByID("alphanet")
+	require.True(t, ok)
+	require.True(t, n.MigrationOnly)
+	require.Equal(t, FamilyECash, n.Family)
+	require.Equal(t, "eca5a104", n.NetworkMagic)
+	require.Equal(t, 963648, n.ForkHeight)
+	require.Len(t, n.ForkParentHash, 64)
+	require.Equal(t, "alphanet", n.ReleaseChannelOrID())
+	require.NotEmpty(t, n.P2P.Address)
+	require.Empty(t, n.Backends)
+	require.Nil(t, n.AssumeUTXO)
+	require.NotEqual(t, "alphanet", EmbeddedECashID())
 }
 
 // The blocks on disk name the chain, so a magic reads back its network.
@@ -256,12 +273,12 @@ func TestParseValidatesEntries(t *testing.T) {
 		"equals address":  "a=b",
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := parse(catalogWith(t, "alphanet", address))
+			_, err := parse(catalogWith(t, "betanet", address))
 			require.ErrorContains(t, err, "p2p address")
 		})
 	}
 	t.Run("published shape", func(t *testing.T) {
-		c, err := parse(catalogWith(t, "alphanet", "seed.example.com:8301"))
+		c, err := parse(catalogWith(t, "betanet", "seed.example.com:8301"))
 		require.NoError(t, err)
 		require.Equal(t, "seed.example.com:8301", c.Networks[0].P2P.Address)
 	})
@@ -307,6 +324,21 @@ func TestPublishedCatalogOf20261026TakesEcashWithItsCompiledInValues(t *testing.
 	require.True(t, ok)
 	require.Equal(t, "ecash", live.ID)
 	require.EqualValues(t, 499999998, live.ReplayLockTimeOrDefault())
+}
+
+func TestFillFromEmbeddedKeepsAlphanetMigrationOnly(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("testdata", "published-2026-10-19.json"))
+	require.NoError(t, err)
+	c, err := parse(raw)
+	require.NoError(t, err)
+	published, ok := c.ByID("alphanet")
+	require.True(t, ok)
+	require.False(t, published.MigrationOnly)
+
+	filled, _ := fillFromEmbedded(c, Embedded()).ByID("alphanet")
+	require.True(t, filled.MigrationOnly)
+	betanet, _ := fillFromEmbedded(c, Embedded()).ByID("betanet")
+	require.False(t, betanet.MigrationOnly)
 }
 
 func TestFillFromEmbeddedKeepsThePublishedLockTime(t *testing.T) {
@@ -396,7 +428,7 @@ func TestTheECashMainnetRowLeavesBitcoinAlone(t *testing.T) {
 
 func TestReleaseChannelOrIDFallsBackToTheID(t *testing.T) {
 	c := ecashMainnetCatalog(t)
-	for id, want := range map[string]string{"ecash-mainnet": "mainnet", "betanet": "betanet", "alphanet": "alphanet"} {
+	for id, want := range map[string]string{"ecash-mainnet": "mainnet", "betanet": "betanet"} {
 		n, ok := c.ByID(id)
 		require.True(t, ok, id)
 		require.Equal(t, want, n.ReleaseChannelOrID(), id)

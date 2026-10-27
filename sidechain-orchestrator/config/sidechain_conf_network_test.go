@@ -23,17 +23,17 @@ func sidechainConfFor(t *testing.T, name string, network Network, settings map[s
 	}
 }
 
-// Thunder knows alphanet, betanet, signet and regtest. It knows no mainnet, so
+// Thunder knows betanet, signet and regtest. It knows no mainnet, so
 // a mainnet box gets no flag rather than a name that makes clap exit.
 func TestCusfNetworkName(t *testing.T) {
 	for network, want := range map[Network]string{
 		NetworkRegtest: "regtest",
-		NetworkECash:   "alphanet",
+		NetworkECash:   "betanet",
 		NetworkSignet:  "signet",
 		NetworkMainnet: "",
 		NetworkTestnet: "",
 	} {
-		if got := CusfNetworkName(network, "alphanet"); got != want {
+		if got := CusfNetworkName(network, "betanet"); got != want {
 			t.Errorf("CusfNetworkName(%q) = %q, want %q", network, got, want)
 		}
 	}
@@ -47,10 +47,8 @@ func TestCusfNetworkNameWithholdsAnUnknownECashGeneration(t *testing.T) {
 			t.Errorf("CusfNetworkName(ecash, %q) = %q, want no name", id, got)
 		}
 	}
-	for _, id := range []string{"alphanet", "betanet"} {
-		if got := CusfNetworkName(NetworkECash, id); got != id {
-			t.Errorf("CusfNetworkName(ecash, %q) = %q, want %q", id, got, id)
-		}
+	if got := CusfNetworkName(NetworkECash, "betanet"); got != "betanet" {
+		t.Errorf("CusfNetworkName(ecash, betanet) = %q, want betanet", got)
 	}
 }
 
@@ -93,14 +91,8 @@ func TestGetCliArgsPassesNetworkOnce(t *testing.T) {
 	}
 }
 
-// A chain names CLI keys only when someone read its binary. The other chains
-// ship no binary on any machine here, so their flags stay unproven.
-func TestOnlyProvedChainsNameCliArgKeys(t *testing.T) {
-	for _, name := range unprovedChains {
-		if len(KnownSidechainSpecs[name].CliArgKeys) > 0 {
-			t.Errorf("%s names CLI keys, but its flags are not checked", name)
-		}
-	}
+// A chain names CLI keys only when someone read its binary.
+func TestProvedChainsNameCliArgKeys(t *testing.T) {
 	for name := range provedChainFlags {
 		if len(KnownSidechainSpecs[name].CliArgKeys) == 0 {
 			t.Errorf("%s must name its CLI keys", name)
@@ -125,21 +117,6 @@ func TestNoChainPassesTheRpcPort(t *testing.T) {
 	for _, arg := range m.GetCliArgs() {
 		if strings.HasPrefix(arg, "--rpc-addr") {
 			t.Errorf("args carry %q, want no rpc flag", arg)
-		}
-	}
-}
-
-// A chain with no proof takes no network flag, because a daemon stops on an
-// option it does not know.
-func TestGetCliArgsWithholdsNetworkFromUnprovedChains(t *testing.T) {
-	for _, name := range unprovedChains {
-		m := sidechainConfFor(t, name, NetworkECash, map[string]string{
-			"net-addr": "0.0.0.0:24009",
-		})
-		for _, arg := range m.GetCliArgs() {
-			if len(arg) >= 10 && arg[:10] == "--network=" {
-				t.Errorf("%s got %q, want no network flag", name, arg)
-			}
 		}
 	}
 }
@@ -213,15 +190,15 @@ func TestSyncMovesTheLiveChainOffTheRetiredPort(t *testing.T) {
 
 func TestSidechainConfByName(t *testing.T) {
 	confs := map[string]*SidechainConfManager{
-		"thunder":       {Spec: KnownSidechainSpecs["thunder"]},
-		"liquid-signet": {Spec: KnownSidechainSpecs["liquid-signet"]},
+		"thunder": {Spec: KnownSidechainSpecs["thunder"]},
+		"custom":  {Spec: SidechainConfSpec{Name: "Two Words"}},
 	}
 	for _, name := range []string{"Thunder", "thunder", "THUNDER"} {
 		if SidechainConfByName(confs, name) == nil {
 			t.Errorf("SidechainConfByName(%q) = nil, want the thunder conf", name)
 		}
 	}
-	if SidechainConfByName(confs, "Elements Alpha") == nil {
+	if SidechainConfByName(confs, "Two Words") == nil {
 		t.Error("a display name with a space found no conf")
 	}
 	if SidechainConfByName(confs, "bitnames") != nil {

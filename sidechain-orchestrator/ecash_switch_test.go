@@ -18,9 +18,9 @@ import (
 
 func ecashCatalog() netcatalog.Catalog {
 	return netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash, DisplayName: "Alphanet", ForkHeight: 963648},
+		{ID: "betanet", Family: netcatalog.FamilyECash, DisplayName: "Betanet", ForkHeight: 963648},
 		{ID: "drynet4", Family: netcatalog.FamilyECash, DisplayName: "Drynet 4", ForkHeight: 961632},
-		{ID: "alphanet2", Family: netcatalog.FamilyECash, DisplayName: "Alphanet 2", ForkHeight: 970000},
+		{ID: "betanet2", Family: netcatalog.FamilyECash, DisplayName: "Betanet 2", ForkHeight: 970000},
 	}}
 }
 
@@ -33,13 +33,13 @@ func TestPlanECashSwitchTargetsTheSharedBlock(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 
-	plan, err := o.PlanECashSwitch("alphanet")
+	plan, err := o.PlanECashSwitch("betanet")
 	require.NoError(t, err)
 	require.True(t, plan.NeedsRollback)
 	require.Equal(t, "drynet4", plan.FromID)
-	require.Equal(t, "alphanet", plan.ToID)
+	require.Equal(t, "betanet", plan.ToID)
 	// One below the lower of the two, not the target's own fork: drynet4 forks
-	// at 961632, so 961632 up belongs to no chain alphanet follows, and the
+	// at 961632, so 961632 up belongs to no chain betanet follows, and the
 	// block of margin rules out an off-by-one keeping a divergent block.
 	require.EqualValues(t, 961631, plan.RewindHeight)
 }
@@ -52,7 +52,7 @@ func TestPlanECashSwitchPricesTheColdChainRewind(t *testing.T) {
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 	require.NotEqual(t, string(config.NetworkECash), o.Network)
 
-	plan, err := o.PlanECashSwitch("alphanet")
+	plan, err := o.PlanECashSwitch("betanet")
 	require.NoError(t, err)
 	require.True(t, plan.NeedsRollback)
 	require.False(t, plan.Blocked)
@@ -64,18 +64,18 @@ func TestPlanECashSwitchToTheRunningNetworkIsANoOp(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
-	o.adoptCatalog(ecashCatalog(), "alphanet")
+	o.adoptCatalog(ecashCatalog(), "betanet")
 
-	plan, err := o.PlanECashSwitch("alphanet")
+	plan, err := o.PlanECashSwitch("betanet")
 	require.NoError(t, err)
 	require.False(t, plan.NeedsRollback)
 }
 
 func TestPlanECashSwitchRejectsANetworkTheCatalogOmits(t *testing.T) {
 	o := newTestOrchestrator(t)
-	o.adoptCatalog(ecashCatalog(), "alphanet")
+	o.adoptCatalog(ecashCatalog(), "betanet")
 
-	_, err := o.PlanECashSwitch("betanet")
+	_, err := o.PlanECashSwitch("deltanet")
 	require.Error(t, err)
 }
 
@@ -88,11 +88,11 @@ func TestApplyECashSwitchRewritesTheConfSentinel(t *testing.T) {
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 	require.Equal(t, "drynet4", o.installedECashNetwork())
 
-	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 
-	require.Equal(t, "alphanet", o.installedECashNetwork())
-	require.Equal(t, "alphanet", o.RunningECashID(ecashCatalog()))
-	require.Equal(t, "alphanet", config.ECashNetworkID())
+	require.Equal(t, "betanet", o.installedECashNetwork())
+	require.Equal(t, "betanet", o.RunningECashID(ecashCatalog()))
+	require.Equal(t, "betanet", config.ECashNetworkID())
 }
 
 // A swap to another network strips the conf sentinel, so the record is what
@@ -106,12 +106,12 @@ func TestApplyECashSwitchRecordsTheChainItMovedTo(t *testing.T) {
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 	require.Equal(t, "drynet4", o.Settings.ECashChainID())
 
-	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 
-	require.Equal(t, "alphanet", o.Settings.ECashChainID())
+	require.Equal(t, "betanet", o.Settings.ECashChainID())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Empty(t, o.installedECashNetwork(), "the swap strips the eCash sentinel")
-	require.Equal(t, "alphanet", o.RunningECashID(netcatalog.Catalog{}),
+	require.Equal(t, "betanet", o.RunningECashID(netcatalog.Catalog{}),
 		"a document that lists neither network must not send the boot back")
 }
 
@@ -127,20 +127,20 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 	require.NoError(t, o.EnforcerConf.WriteConfig("fork=drynet4"))
 	// The enforcer cleanup this switch journals is already recorded, so it
 	// writes nothing and the chain record is the first write to refuse.
-	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("betanet"))
 	// A file where the settings directory belongs, so every write refuses.
 	blocked := filepath.Join(t.TempDir(), "not-a-directory")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
 	o.Settings.bitwindowDir = blocked
 
-	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 	require.NotNil(t, o.pendingSwap, "the retry must find a tail to resume")
 
 	// The same target is the retry: it writes the record and finishes the swap.
 	o.Settings.bitwindowDir = t.TempDir()
-	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
-	require.Equal(t, "alphanet", o.Settings.ECashChainID())
-	require.Equal(t, "ecash-alphanet", o.EnforcerConf.Config.GetSetting("fork"),
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
+	require.Equal(t, "betanet", o.Settings.ECashChainID())
+	require.Equal(t, "ecash-betanet", o.EnforcerConf.Config.GetSetting("fork"),
 		"the retry owes the whole tail, not the records alone")
 	require.Nil(t, o.pendingSwap, "the resumed switch leaves nothing behind")
 }
@@ -154,18 +154,18 @@ func TestSwapNetworkFinishesAnECashTail(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 	require.NoError(t, o.EnforcerConf.WriteConfig("fork=drynet4"))
-	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("betanet"))
 	blocked := filepath.Join(t.TempDir(), "not-a-directory")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
 	o.Settings.bitwindowDir = blocked
-	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 	require.NotNil(t, o.pendingSwap)
 
 	o.Settings.bitwindowDir = t.TempDir()
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 
-	require.Equal(t, "alphanet", o.Settings.ECashChainID())
-	require.Equal(t, "ecash-alphanet", o.EnforcerConf.Config.GetSetting("fork"))
+	require.Equal(t, "betanet", o.Settings.ECashChainID())
+	require.Equal(t, "ecash-betanet", o.EnforcerConf.Config.GetSetting("fork"))
 	require.Nil(t, o.pendingSwap, "the resumed tail leaves nothing behind")
 }
 
@@ -179,18 +179,18 @@ func TestSwapToAnotherNetworkDrainsTheECashTail(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 	require.NoError(t, o.EnforcerConf.WriteConfig("fork=drynet4"))
-	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("betanet"))
 	blocked := filepath.Join(t.TempDir(), "not-a-directory")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
 	o.Settings.bitwindowDir = blocked
-	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 	o.Settings.bitwindowDir = t.TempDir()
 
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 
-	require.Equal(t, "alphanet", o.Settings.ECashChainID(),
+	require.Equal(t, "betanet", o.Settings.ECashChainID(),
 		"the record must name the fork the blocks are on")
-	require.Equal(t, "ecash-alphanet", o.EnforcerConf.Config.GetSetting("fork"))
+	require.Equal(t, "ecash-betanet", o.EnforcerConf.Config.GetSetting("fork"))
 }
 
 // The tail that a swap drains stopped the stack it owed a restart, so both
@@ -201,7 +201,7 @@ func TestSwapCarriesTheRestartTheDrainedTailOwed(t *testing.T) {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
-	o.adoptCatalog(ecashCatalog(), "alphanet")
+	o.adoptCatalog(ecashCatalog(), "betanet")
 	// What a switch leaves when it stops a running stack and then fails.
 	o.pendingSwap = &pendingNetworkSwap{
 		network:     config.NetworkECash,
@@ -228,7 +228,7 @@ func TestARefusedSwapKeepsTheECashTail(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
-	o.adoptCatalog(ecashCatalog(), "alphanet")
+	o.adoptCatalog(ecashCatalog(), "betanet")
 	o.pendingSwap = &pendingNetworkSwap{
 		network:     config.NetworkECash,
 		restartL1:   true,
@@ -264,7 +264,7 @@ func TestASecondSwitchTakesOverTheRestart(t *testing.T) {
 	delete(o.rawConfigs, "bitcoind")
 	o.mu.Unlock()
 
-	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 
 	require.NotNil(t, o.pendingSwap, "a restart that cannot run stays retryable")
 	require.True(t, o.pendingSwap.restartL1, "the first tail's restart must ride on")
@@ -278,8 +278,8 @@ func TestASecondSwitchLandsTheFirstRecords(t *testing.T) {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.coreReachable = func() bool { return false }
-	o.adoptCatalog(ecashCatalog(), "alphanet")
-	// What a switch to alphanet leaves when its records refuse to write.
+	o.adoptCatalog(ecashCatalog(), "betanet")
+	// What a switch to betanet leaves when its records refuse to write.
 	require.NoError(t, o.Settings.SetECashChainID("drynet4"))
 	o.pendingSwap = &pendingNetworkSwap{
 		network:     config.NetworkECash,
@@ -287,10 +287,10 @@ func TestASecondSwitchLandsTheFirstRecords(t *testing.T) {
 		fromECashID: "drynet4",
 	}
 
-	// The catalog lists no betanet, so this switch fails before it commits.
-	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
+	// The catalog lists no deltanet, so this switch fails before it commits.
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "deltanet"))
 
-	require.Equal(t, "alphanet", o.Settings.ECashChainID(),
+	require.Equal(t, "betanet", o.Settings.ECashChainID(),
 		"the first switch's record must land before the second one runs")
 }
 
@@ -307,10 +307,10 @@ func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
 	blocks := filepath.Join(datadir, "blocks")
 	require.NoError(t, os.MkdirAll(blocks, 0o755))
 
-	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 
 	require.DirExists(t, blocks, "the blocks below the fork must survive the switch")
-	require.Equal(t, "alphanet", o.installedECashNetwork())
+	require.Equal(t, "betanet", o.installedECashNetwork())
 }
 
 // No published fork height leaves nothing to rewind to, so the switch refuses
@@ -322,14 +322,14 @@ func TestApplyECashSwitchKeepsTheChainWithNoPublishedForkHeight(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.coreReachable = func() bool { return false }
 	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
+		{ID: "betanet", Family: netcatalog.FamilyECash},
 		{ID: "drynet4", Family: netcatalog.FamilyECash},
 	}}, "drynet4")
 
 	blocks := filepath.Join(datadir, "blocks")
 	require.NoError(t, os.MkdirAll(blocks, 0o755))
 
-	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 
 	require.DirExists(t, blocks, "chain data is never deleted")
 }
@@ -407,11 +407,11 @@ func TestPlanECashSwitchIsBlockedWithoutAForkHeight(t *testing.T) {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
 		{ID: "drynet4", Family: netcatalog.FamilyECash},
 	}}, "drynet4")
 
-	plan, err := o.PlanECashSwitch("alphanet")
+	plan, err := o.PlanECashSwitch("betanet")
 	require.NoError(t, err)
 	require.False(t, plan.NeedsRollback)
 	require.True(t, plan.Blocked, "no fork height means no shared block to roll back to")
@@ -424,11 +424,11 @@ func TestAdoptECashIDMovesTheInMemoryState(t *testing.T) {
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 	require.Equal(t, "drynet4", config.ECashNetworkID())
 
-	require.NoError(t, o.AdoptECashID("alphanet"))
+	require.NoError(t, o.AdoptECashID("betanet"))
 
-	require.Equal(t, "alphanet", o.ecashID)
-	require.Equal(t, "alphanet", config.ECashNetworkID())
-	require.Equal(t, "alphanet", o.BitcoinConf.ECashID)
+	require.Equal(t, "betanet", o.ecashID)
+	require.Equal(t, "betanet", config.ECashNetworkID())
+	require.Equal(t, "betanet", o.BitcoinConf.ECashID)
 	require.EqualValues(t, 963648, config.PublishedForkHeight(config.NetworkECash))
 }
 
@@ -496,7 +496,7 @@ func TestApplyECashSwitchTakesTheRewindBackWhenCoreWillNotStop(t *testing.T) {
 	}
 	waitRestart := awaitL1Restart(t, o)
 
-	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	err := o.ApplyECashSwitch(context.Background(), "betanet")
 	require.Error(t, err)
 	waitRestart()
 
@@ -523,7 +523,7 @@ func TestApplyECashSwitchStopsTheEnforcerBeforeTheRewind(t *testing.T) {
 		return fmt.Errorf("stop %s refused", name)
 	}
 
-	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	err := o.ApplyECashSwitch(context.Background(), "betanet")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "enforcer")
 	require.Empty(t, core.methods, "no block may go until every fallible stop is done")
@@ -556,7 +556,7 @@ func TestApplyECashSwitchKeepsEverythingWhenTheRewindFails(t *testing.T) {
 	}
 	waitRestart := awaitL1Restart(t, o)
 
-	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	err := o.ApplyECashSwitch(context.Background(), "betanet")
 	require.Error(t, err)
 	waitRestart()
 
@@ -585,13 +585,13 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 	}
 	waitRestart := awaitL1Restart(t, o)
 
-	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 	waitRestart()
 
 	require.Equal(t, []string{"invalidateblock"}, marks(core))
 	require.Equal(t, []string{"bitcoind"}, stopped, "core stops only after the rewind reads it")
-	require.Equal(t, "alphanet", o.installedECashNetwork())
-	require.Equal(t, "alphanet", o.RunningECashID(ecashCatalog()))
+	require.Equal(t, "betanet", o.installedECashNetwork())
+	require.Equal(t, "betanet", o.RunningECashID(ecashCatalog()))
 	require.Equal(t, forkBlock, o.Settings.RewoundBlockHash())
 	require.Nil(t, o.pendingSwap, "a tail that lands leaves nothing pending")
 }
@@ -617,7 +617,7 @@ func TestApplyECashSwitchTakesTheRewindBackWhenTheConfWillNotWrite(t *testing.T)
 	require.NoError(t, os.MkdirAll(o.BitcoinConf.ConfigPath, 0o755))
 	waitRestart := awaitL1Restart(t, o)
 
-	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	err := o.ApplyECashSwitch(context.Background(), "betanet")
 	require.Error(t, err)
 	waitRestart()
 
@@ -746,7 +746,7 @@ func TestRestoreRewindPutsThePreviousMarkBack(t *testing.T) {
 	}
 	waitRestart := awaitL1Restart(t, o)
 
-	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 	waitRestart()
 
 	require.Equal(t, []string{"reconsiderblock", "invalidateblock", "reconsiderblock", "invalidateblock"},
@@ -761,7 +761,7 @@ func TestRestoreRewindPutsThePreviousMarkBack(t *testing.T) {
 // deleted blocks both networks still agree on.
 func TestPlanECashSwitchRewindsBothWays(t *testing.T) {
 	o := newTestOrchestrator(t)
-	o.adoptCatalog(ecashCatalog(), "alphanet")
+	o.adoptCatalog(ecashCatalog(), "betanet")
 
 	plan, err := o.PlanECashSwitch("drynet4")
 
@@ -774,7 +774,7 @@ func TestPlanECashSwitchRewindsBothWays(t *testing.T) {
 
 // The rule the whole eCash switch obeys: it rewinds, and it never deletes.
 func TestEveryECashSwitchInTheCatalogRewinds(t *testing.T) {
-	ids := []string{"alphanet", "drynet4", "alphanet2"}
+	ids := []string{"betanet", "drynet4", "betanet2"}
 	for _, from := range ids {
 		for _, to := range ids {
 			if from == to {

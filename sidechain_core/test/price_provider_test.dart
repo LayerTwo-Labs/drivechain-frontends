@@ -20,7 +20,6 @@ void main() {
     expect(priceSourceFor(Ticker.bitcoin), PriceSource.blockchainInfo);
     expect(priceSourceFor(Ticker.betanet), PriceSource.wbECX);
     expect(priceSourceFor(Ticker.ecash), PriceSource.wECX);
-    expect(priceSourceFor(Ticker.alphanet), isNull);
   });
 
   test('blockchain.info gives the BTC price', () {

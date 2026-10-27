@@ -124,7 +124,7 @@ void main() {
     expect(nodeMode.isLight, isTrue);
   });
 
-  testWidgets('alphanet light mode shows the remote enforcer state with no start control', (tester) async {
+  testWidgets('eCash light mode shows the remote enforcer state with no start control', (tester) async {
     conf.network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
     nodeMode.remoteEnforcerAvailable = true;
 

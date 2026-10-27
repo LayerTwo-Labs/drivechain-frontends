@@ -785,7 +785,7 @@ func TestNodeTransactionNamesACoinbaseInputByTxid(t *testing.T) {
 }
 
 // A node names a deposit input as a "txid:vout" string. The body is a real
-// truthcoin 0.19 transaction from alphanet block 207.
+// truthcoin 0.19 transaction from block 207 of a live node.
 func TestNodeTransactionReadsADepositInput(t *testing.T) {
 	node := &recordingNode{answers: map[string]string{
 		"get_transaction": `{"inputs":[{"Deposit":"ba4ce57f4c5fff32deac1b7e8ad2a4325e8f012061d741793d41016a178ccb2e:0"}],` +

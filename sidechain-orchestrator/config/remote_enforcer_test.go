@@ -19,7 +19,6 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 	})
 
 	const betanetURL = "https://enforcer.beta.ecash.ninja"
-	const alphanetURL = "https://seed.alpha.ecash.eu.com/enforcer"
 	const signetURL = "https://enforcer.signet.drivechain.info"
 	const ecashURL = "https://seed.ecash.eu.com/enforcer"
 	liveURL := netcatalog.EmbeddedECash().Services.Enforcer.URL
@@ -30,20 +29,16 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != ecashURL {
 		t.Fatalf("ecash URL = %q, want %q", got, ecashURL)
 	}
-	SetECashEndpoints(netcatalog.Network{ID: "alphanet"})
-	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != alphanetURL {
-		t.Fatalf("old catalog URL = %q, want %q", got, alphanetURL)
+	SetECashEndpoints(netcatalog.Network{ID: "betanet"})
+	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != betanetURL {
+		t.Fatalf("old catalog URL = %q, want %q", got, betanetURL)
 	}
 
-	entry := netcatalog.Network{ID: "alphanet"}
+	entry := netcatalog.Network{ID: "betanet"}
 	entry.Services.Enforcer.URL = "https://validator.example/enforcer"
 	SetECashEndpoints(entry)
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != entry.Services.Enforcer.URL {
 		t.Fatalf("published URL = %q, want %q", got, entry.Services.Enforcer.URL)
-	}
-	SetECashEndpoints(netcatalog.Network{ID: "betanet"})
-	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != betanetURL {
-		t.Fatalf("betanet URL = %q, want %q", got, betanetURL)
 	}
 	SetECashEndpoints(netcatalog.Network{ID: "gammanet"})
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != "" {

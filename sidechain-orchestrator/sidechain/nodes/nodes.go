@@ -11,7 +11,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/elements"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/solana"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -44,8 +43,6 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 	cookie := filepath.Join(datadir, ".cookie")
 
 	switch name {
-	case "liquid-signet":
-		return elements.NewNode(host, port, datadir, network), nil
 	case "freebank":
 		return freebank.NewClient(host, port, cookie), nil
 	default:

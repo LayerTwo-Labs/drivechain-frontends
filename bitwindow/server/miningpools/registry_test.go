@@ -109,7 +109,7 @@ func TestRegistry(t *testing.T) {
 			}
 			return []byte(onePool), nil
 		}
-		r := New(ctx, config.NetworkECash, "alphanet", "", fetch)
+		r := New(ctx, config.NetworkECash, "betanet", "", fetch)
 		settle(t, r)
 
 		fail.Store(true)
@@ -137,7 +137,7 @@ func TestRegistry(t *testing.T) {
 	t.Run("the list refreshes once per TTL", func(t *testing.T) {
 		t.Parallel()
 		var fetches atomic.Int32
-		r := New(ctx, config.NetworkECash, "alphanet", "", func(context.Context, string) ([]byte, error) {
+		r := New(ctx, config.NetworkECash, "betanet", "", func(context.Context, string) ([]byte, error) {
 			fetches.Add(1)
 			return []byte(onePool), nil
 		})
@@ -156,7 +156,7 @@ func TestRegistry(t *testing.T) {
 		parent, cancel := context.WithCancel(zerolog.New(&logs).WithContext(ctx))
 		release := make(chan struct{})
 		var fetchErr error
-		r := New(parent, config.NetworkECash, "alphanet", "", func(ctx context.Context, _ string) ([]byte, error) {
+		r := New(parent, config.NetworkECash, "betanet", "", func(ctx context.Context, _ string) ([]byte, error) {
 			<-release
 			fetchErr = ctx.Err()
 			zerolog.Ctx(ctx).Info().Msg("fetch")
@@ -167,7 +167,7 @@ func TestRegistry(t *testing.T) {
 		settle(t, r)
 
 		require.NoError(t, fetchErr)
-		assert.Contains(t, logs.String(), `"registry":"https://pool.drivechain.info/networks/alphanet/pools.json"`)
+		assert.Contains(t, logs.String(), `"registry":"https://pool.drivechain.info/networks/betanet/pools.json"`)
 	})
 
 	t.Run("a network with no registry is not available", func(t *testing.T) {

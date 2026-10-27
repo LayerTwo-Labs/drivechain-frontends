@@ -87,7 +87,7 @@ func TestResolveNetworkReadsTheECashSentinel(t *testing.T) {
 	}{
 		{
 			name: "ecash",
-			conf: "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-alphanet\n",
+			conf: "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-betanet\n",
 			want: NetworkECash,
 		},
 		{
@@ -120,7 +120,6 @@ func TestResolveNetworkReadsTheECashID(t *testing.T) {
 		conf string
 		want string
 	}{
-		{"alphanet", "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-alphanet\n", "alphanet"},
 		{"betanet", "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-betanet\n", "betanet"},
 		{"mainnet carries none", "chain=main\n[main]\ndrivechain=1\nuacomment=BitWindow-0.2\n", ""},
 		{"signet carries none", "signet=1\n", ""},

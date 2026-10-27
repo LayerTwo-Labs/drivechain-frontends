@@ -345,7 +345,7 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 		}
 	}
 
-	// Alphanet and betanet nodes report the Bitcoin Core user agent, so the
+	// Betanet nodes report the Bitcoin Core user agent, so the
 	// enforcer cannot detect their fork and would run without replay protection.
 	if m.bitcoinConf.Network == NetworkECash && !seen[enforcerForkSetting] {
 		if id := m.bitcoinConf.ResolvedECashID(); id != "" {
@@ -372,9 +372,8 @@ const (
 
 // enforcerForks maps an eCash network id to the enforcer's --fork value.
 var enforcerForks = map[string]string{
-	"alphanet": "ecash-alphanet",
-	"betanet":  "ecash-betanet",
-	"ecash":    "ecash",
+	"betanet": "ecash-betanet",
+	"ecash":   "ecash",
 }
 
 // EnforcerFork returns the enforcer --fork value for an eCash network id, and

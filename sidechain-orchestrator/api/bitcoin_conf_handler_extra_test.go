@@ -126,7 +126,7 @@ func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
 	// Two eCash rows, so the request names a network the pick is not already on.
 	orch.Catalog = netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
-		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
 		// The resolve above pins the embedded generation, and a switch away
 		// from it reads its fork height.
 		{ID: netcatalog.EmbeddedECashID(), Family: netcatalog.FamilyECash, ForkHeight: 967680},
@@ -136,7 +136,7 @@ func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
 
 	h := NewBitcoinConfHandler(orch)
 	_, err := h.SetBitcoinConfigNetwork(context.Background(), &pb.SetBitcoinConfigNetworkRequest{
-		Network: "alphanet",
+		Network: "betanet",
 		DataDir: filepath.Join(confPath, "not-a-directory"),
 	})
 	require.Error(t, err, "an unwritable datadir must be refused")

@@ -8,10 +8,12 @@ Start `drivechaind` on the node host.
 Use these commands from a terminal:
 
 ```sh
-drivechain-cli ecash migrate --from alphanet --to betanet --preview
-drivechain-cli ecash migrate --from alphanet --to betanet --yes
+drivechain-cli ecash migrate --from betanet --to ecash --preview
+drivechain-cli ecash migrate --from betanet --to ecash --yes
 drivechain-cli ecash migration-status --json
 ```
+
+An alphanet install can also migrate with `--from alphanet`.
 
 Use `--yes --json` for scripts.
 The CLI writes one JSON object per status update.
@@ -34,7 +36,7 @@ The dialog shows each phase and the record count during conversion.
 Close the dialog at any time after the job starts. The daemon continues the job.
 Wait until the job stops before you edit the Core configuration or data directory.
 Select **Resume migration** after you resolve a reported error.
-Select **Open betanet** after the local checks pass.
+Select **Open ecash** after the local checks pass.
 The target chain sync continues after this step.
 Light mode and empty data directories use the normal network switch.
 
@@ -47,10 +49,10 @@ The source entry must also include `fork_parent_hash`, the BTC hash at `fork_hei
 The target must fork BTC at a higher height than the source.
 The existing binary configuration must resolve both ECX release binaries.
 
-For alphanet, the first different block has height 963648.
-The common block has height 963647.
+For betanet, the first different block has height 967680.
+The common block has height 967679.
 Publish its exact BTC hash before a release migration.
-Do not substitute the betanet fork height for this rollback boundary.
+Do not substitute the target fork height for this rollback boundary.
 
 ## Sequence
 
@@ -84,13 +86,13 @@ A partially synced source below the common height skips the rollback.
 Its blocks are BTC blocks, so the converter changes their magic, and the target sync continues from the source tip.
 
 The daemon preserves old sidechain and enforcer state in adjacent archive directories.
-Start compatible betanet services after the migration.
+Start compatible target services after the migration.
 The target configuration keeps `walletbroadcast=0` across restarts.
 This prevents old unconfirmed wallet transactions from automatic broadcast.
 Core wallet RPCs such as `sendtoaddress` create transactions without broadcast under this setting.
 The app can still submit signed transactions through `sendrawtransaction`.
 Review old unconfirmed transactions before you enable automatic wallet broadcast.
-Old alphanet transactions and balances do not become betanet transactions and balances.
+Old source transactions and balances do not become target transactions and balances.
 
 ## Resume
 
@@ -116,7 +118,7 @@ Use the normal Core status to check later sync progress.
 Run the real Core test with two unchanged release binaries:
 
 ```sh
-BITCOIND_MIGRATION_SOURCE=/path/to/alphanet/bitcoind \
+BITCOIND_MIGRATION_SOURCE=/path/to/source/bitcoind \
 BITCOIND_MIGRATION_TARGET=/path/to/target/bitcoind \
 go test -tags integration ./blockfile -run TestCoreMagicMigration -v
 ```

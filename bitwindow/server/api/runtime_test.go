@@ -174,7 +174,7 @@ func TestRecycle(t *testing.T) {
 	})
 
 	t.Run("an eCash id change resets the chain rows and keeps the user rows", func(t *testing.T) {
-		srv := newRecycleServer(t, config.NetworkECash, "alphanet")
+		srv := newRecycleServer(t, config.NetworkECash, "betanet")
 		old := srv.current.Load()
 		ctx := t.Context()
 		for _, insert := range []string{
@@ -186,12 +186,12 @@ func TestRecycle(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		require.NoError(t, srv.Recycle(ctx, config.NetworkECash, "betanet", 8))
+		require.NoError(t, srv.Recycle(ctx, config.NetworkECash, "ecash", 8))
 
 		rt := srv.current.Load()
 		require.NotSame(t, old, rt)
 		assert.Equal(t, old.conf.Datadir, rt.conf.Datadir)
-		assert.Equal(t, "betanet", srv.networkID)
+		assert.Equal(t, "ecash", srv.networkID)
 		requireClosed(t, old)
 
 		var heights []int
@@ -212,12 +212,12 @@ func TestRecycle(t *testing.T) {
 	})
 
 	t.Run("an eCash switch from a request of the old runtime does not wait for that request", func(t *testing.T) {
-		srv := newRecycleServer(t, config.NetworkECash, "alphanet")
+		srv := newRecycleServer(t, config.NetworkECash, "betanet")
 		old := srv.current.Load()
 		recycled := make(chan error, 1)
 		old.mux = http.NewServeMux()
 		old.mux.HandleFunc(bitwindowdv1connect.BitwindowdServiceUpdateNetworkProcedure, func(w http.ResponseWriter, r *http.Request) {
-			recycled <- srv.Recycle(r.Context(), config.NetworkECash, "betanet", 0)
+			recycled <- srv.Recycle(r.Context(), config.NetworkECash, "ecash", 0)
 		})
 		server := httptest.NewServer(srv.Handler())
 		t.Cleanup(server.Close)
@@ -233,7 +233,7 @@ func TestRecycle(t *testing.T) {
 	})
 
 	t.Run("an eCash switch waits for the other requests of the old runtime", func(t *testing.T) {
-		srv := newRecycleServer(t, config.NetworkECash, "alphanet")
+		srv := newRecycleServer(t, config.NetworkECash, "betanet")
 		old := srv.current.Load()
 		slowStarted := make(chan struct{})
 		slowErr := make(chan error, 1)
@@ -245,7 +245,7 @@ func TestRecycle(t *testing.T) {
 			slowErr <- old.db.PingContext(r.Context())
 		})
 		old.mux.HandleFunc(bitwindowdv1connect.BitwindowdServiceUpdateNetworkProcedure, func(w http.ResponseWriter, r *http.Request) {
-			recycled <- srv.Recycle(r.Context(), config.NetworkECash, "betanet", 0)
+			recycled <- srv.Recycle(r.Context(), config.NetworkECash, "ecash", 0)
 		})
 		server := httptest.NewServer(srv.Handler())
 		t.Cleanup(server.Close)

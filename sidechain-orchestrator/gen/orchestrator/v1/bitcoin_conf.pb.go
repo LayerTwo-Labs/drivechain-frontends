@@ -127,7 +127,7 @@ type GetBitcoinConfigResponse struct {
 	// restored on the next swap into that group. Empty = no path stored.
 	DefaultDatadir string `protobuf:"bytes,11,opt,name=default_datadir,json=defaultDatadir,proto3" json:"default_datadir,omitempty"`
 	EcashDatadir   string `protobuf:"bytes,13,opt,name=ecash_datadir,json=ecashDatadir,proto3" json:"ecash_datadir,omitempty"`
-	// Live eCash network id ("alphanet").
+	// Live eCash network id ("betanet").
 	EcashNetworkId string `protobuf:"bytes,14,opt,name=ecash_network_id,json=ecashNetworkId,proto3" json:"ecash_network_id,omitempty"`
 	// True when the current network and wallet backend need a datadir the user
 	// has not chosen yet. Drives the boot-time prompt.
@@ -323,9 +323,9 @@ func (*ListNetworksRequest) Descriptor() ([]byte, []int) {
 // NetworkOption is one row of the network picker.
 type NetworkOption struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Catalog id ("alphanet", "bitcoin"), or "regtest" for the local-only row.
+	// Catalog id ("betanet", "bitcoin"), or "regtest" for the local-only row.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Name to show the user ("Alphanet").
+	// Name to show the user ("Betanet").
 	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Slot this row runs in: mainnet | signet | ecash | regtest.
 	Network string `protobuf:"bytes,3,opt,name=network,proto3" json:"network,omitempty"`

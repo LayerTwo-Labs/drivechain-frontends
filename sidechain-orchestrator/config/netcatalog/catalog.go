@@ -1,7 +1,7 @@
 // Package netcatalog resolves the network catalog published at
 // https://drivechain.dev/config: the per-network service endpoints, explorer
-// URL templates and — for the eCash family — the live network id ("alphanet",
-// "betanet", ...). Standing up a new eCash network is therefore a release
+// URL templates and — for the eCash family — the live network id ("betanet",
+// "ecash", ...). Standing up a new eCash network is therefore a release
 // artifact plus an entry in that document, with no code change here.
 package netcatalog
 
@@ -76,6 +76,10 @@ type Network struct {
 	// ReleaseChannel is the path segment of the L1 release this eCash network
 	// downloads. Only the compiled-in catalog sets it; see ReleaseChannelOrID.
 	ReleaseChannel string `json:"release_channel,omitempty"`
+
+	// MigrationOnly marks a network the app does not run. An install on it can
+	// only migrate its chain to a newer eCash network.
+	MigrationOnly bool `json:"migration_only,omitempty"`
 
 	// P2P is the seed node bitcoind connects through. Every eCash network
 	// publishes its own address and port.
@@ -246,7 +250,7 @@ func (c Catalog) NewIDs(prev Catalog) []string {
 	return fresh
 }
 
-// ECashID returns the live eCash network id (e.g. "alphanet"), or "" when the
+// ECashID returns the live eCash network id (e.g. "betanet"), or "" when the
 // catalog carries no eCash entry.
 func (c Catalog) ECashID() string {
 	n, ok := c.CurrentECash()
@@ -419,8 +423,7 @@ func Fetch(ctx context.Context, url string) (Catalog, error) {
 
 // fillFromEmbedded gives an entry the fork parent hash and replay locktime that
 // the compiled-in entry of the same id carries, where the document leaves them
-// blank. A published value always wins. These values never change for a
-// network, so a blank one is a gap in the document rather than a retired value.
+// blank, and marks it migration-only when the app no longer runs it.
 func fillFromEmbedded(c, from Catalog) Catalog {
 	filled := make([]Network, len(c.Networks))
 	copy(filled, c.Networks)
@@ -434,6 +437,9 @@ func fillFromEmbedded(c, from Catalog) Catalog {
 		}
 		if n.ReplayLockTime == 0 {
 			filled[i].ReplayLockTime = known.ReplayLockTime
+		}
+		if known.MigrationOnly {
+			filled[i].MigrationOnly = true
 		}
 	}
 	c.Networks = filled

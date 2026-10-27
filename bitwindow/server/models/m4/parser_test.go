@@ -251,19 +251,16 @@ func TestIsM3Commitment(t *testing.T) {
 func TestWithdrawalMaxAge(t *testing.T) {
 	for _, tc := range []struct {
 		network config.Network
-		ecashID string
 		want    uint32
 	}{
-		{config.NetworkMainnet, "", 26300},
-		{config.NetworkECash, "betanet", 26300},
-		{config.NetworkECash, "alphanet", 144},
-		{config.NetworkECash, "", 26300},
-		{config.NetworkSignet, "", 10},
-		{config.NetworkRegtest, "", 10},
-		{config.NetworkTestnet, "", 10},
+		{config.NetworkMainnet, 26300},
+		{config.NetworkECash, 26300},
+		{config.NetworkSignet, 10},
+		{config.NetworkRegtest, 10},
+		{config.NetworkTestnet, 10},
 	} {
-		t.Run(string(tc.network)+"/"+tc.ecashID, func(t *testing.T) {
-			assert.Equal(t, tc.want, WithdrawalMaxAge(tc.network, tc.ecashID))
+		t.Run(string(tc.network), func(t *testing.T) {
+			assert.Equal(t, tc.want, WithdrawalMaxAge(tc.network))
 		})
 	}
 }
@@ -272,19 +269,16 @@ func TestWithdrawalMaxAge(t *testing.T) {
 func TestWithdrawalInclusionThreshold(t *testing.T) {
 	for _, tc := range []struct {
 		network config.Network
-		ecashID string
 		want    uint16
 	}{
-		{config.NetworkMainnet, "", 13150},
-		{config.NetworkECash, "betanet", 13150},
-		{config.NetworkECash, "alphanet", 72},
-		{config.NetworkECash, "", 13150},
-		{config.NetworkSignet, "", 5},
-		{config.NetworkRegtest, "", 5},
-		{config.NetworkTestnet, "", 5},
+		{config.NetworkMainnet, 13150},
+		{config.NetworkECash, 13150},
+		{config.NetworkSignet, 5},
+		{config.NetworkRegtest, 5},
+		{config.NetworkTestnet, 5},
 	} {
-		t.Run(string(tc.network)+"/"+tc.ecashID, func(t *testing.T) {
-			assert.Equal(t, tc.want, WithdrawalInclusionThreshold(tc.network, tc.ecashID))
+		t.Run(string(tc.network), func(t *testing.T) {
+			assert.Equal(t, tc.want, WithdrawalInclusionThreshold(tc.network))
 		})
 	}
 }

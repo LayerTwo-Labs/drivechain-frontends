@@ -161,7 +161,7 @@ func TestNodeOffBetanetKeepsItsOwnSeeds(t *testing.T) {
 	}{
 		{generation: "betanet", network: config.NetworkSignet},
 		{generation: "betanet", network: config.NetworkRegtest},
-		{generation: "alphanet", network: config.NetworkECash},
+		{generation: "ecash", network: config.NetworkECash},
 	} {
 		t.Run(test.generation+"/"+string(test.network), func(t *testing.T) {
 			config.SetECashNetworkID(test.generation)

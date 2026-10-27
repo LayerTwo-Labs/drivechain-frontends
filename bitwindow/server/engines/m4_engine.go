@@ -32,13 +32,12 @@ type m6Event struct {
 	hash   string
 }
 
-// NewM4Engine returns an engine with the thresholds of network. ecashID is the
-// catalog id of an eCash network.
-func NewM4Engine(db *sql.DB, network config.Network, ecashID string) *M4Engine {
+// NewM4Engine returns an engine with the thresholds of network.
+func NewM4Engine(db *sql.DB, network config.Network) *M4Engine {
 	return &M4Engine{
 		db:                 db,
-		bundleMaxAge:       m4.WithdrawalMaxAge(network, ecashID),
-		inclusionThreshold: m4.WithdrawalInclusionThreshold(network, ecashID),
+		bundleMaxAge:       m4.WithdrawalMaxAge(network),
+		inclusionThreshold: m4.WithdrawalInclusionThreshold(network),
 	}
 }
 

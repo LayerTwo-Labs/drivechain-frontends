@@ -273,7 +273,7 @@ func TestBurnMultisigFinalizesExactImportedPacket(t *testing.T) {
 	require.Equal(t, packets.complete, f.daemon.decoded.Input)
 	require.Equal(t, packets.complete, f.daemon.finalized.PsbtBase64)
 	require.Equal(t, "final-transaction", f.daemon.broadcast.TxHex)
-	require.Contains(t, f.output.String(), "ECX credit pending: 0.01000001 ECX")
+	require.Contains(t, f.output.String(), "ECX credit pending: 0.02000001 ECX")
 }
 
 func TestBurnMultisigCombinesFinalizedCosignerFile(t *testing.T) {
@@ -458,7 +458,7 @@ func TestBurnMultisigStopsAfterContextChanges(t *testing.T) {
 					if change == "wallet" {
 						f.daemon.status.ActiveWalletId = "other-wallet"
 					} else {
-						f.daemon.network = "betanet"
+						f.daemon.network = "ecash"
 					}
 				}
 				require.Error(t, f.run())

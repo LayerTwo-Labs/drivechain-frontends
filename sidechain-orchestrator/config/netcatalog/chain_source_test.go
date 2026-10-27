@@ -66,7 +66,7 @@ func TestElectrumURLFallsBackToElectrum(t *testing.T) {
 	}
 }
 
-// The published alphanet document carries a Fulcrum server and an Esplora, and
+// The embedded eCash document carries a Fulcrum server and an Esplora, and
 // the wallet must read the Fulcrum one first.
 func TestEmbeddedECashReadsItsElectrumServerFirst(t *testing.T) {
 	urls := EmbeddedECash().ChainSourceURLs()

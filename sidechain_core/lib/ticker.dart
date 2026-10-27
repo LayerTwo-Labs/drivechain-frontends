@@ -23,7 +23,6 @@ class Ticker {
 
   static const bitcoin = Ticker._('Bitcoin', 'BTC', 'sats', 'sat', 'Satoshis');
   static const ecash = Ticker._('eCash', 'ECX', 'szats', 'szat', 'Szats');
-  static const alphanet = Ticker._('eCash', 'aECX', 'szats', 'szat', 'Szats');
   static const betanet = Ticker._('eCash', 'bECX', 'szats', 'szat', 'Szats');
 
   /// Fee rate unit, e.g. "szat/vB".
@@ -45,7 +44,6 @@ Ticker tickerForNetwork(BitcoinNetwork network, {String ecashNetworkId = ''}) {
     return Ticker.bitcoin;
   }
   return switch (ecashNetworkId) {
-    'alphanet' => Ticker.alphanet,
     'betanet' => Ticker.betanet,
     _ => Ticker.ecash,
   };

@@ -3689,7 +3689,7 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearDataDir() => clearField(2);
 
-  /// Catalog id of the picked row ("alphanet"). The eCash rows share one
+  /// Catalog id of the picked row ("betanet"). The eCash rows share one
   /// network, so only the id names the fork. Empty falls back to network.
   @$pb.TagNumber(3)
   $core.String get networkId => $_getSZ(2);

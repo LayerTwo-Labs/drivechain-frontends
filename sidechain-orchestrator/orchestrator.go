@@ -156,7 +156,7 @@ type Orchestrator struct {
 	// up. Guarded by mu.
 	pendingSnapshot *SnapshotSource
 
-	// ecashID is the live eCash network ("alphanet"). Guarded by mu; read
+	// ecashID is the live eCash network ("betanet"). Guarded by mu; read
 	// by UpdateConfigs to expand the placeholder in freshly loaded configs.
 	ecashID        string
 	migrationMu    sync.Mutex
@@ -1217,9 +1217,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	}
 	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.CurrentNetwork()), ""), ".cookie")
 	netParams := o.NetParams.Resolve()
-	if own, ok := node.(sidechain.WalletParamsNode); ok {
-		netParams = own.WalletParams()
-	}
 	user, password, err := config.ReadCookieFile(cookiePath)
 	if err != nil {
 		return err

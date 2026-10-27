@@ -200,7 +200,6 @@
       "id": "alphanet",
       "family": "ecash",
       "display_name": "Alphanet",
-      "description": "Fork of mainnet with PoW difficulty reset \u2014 the ECX alpha network",
       "chain": "main",
       "currency": {
         "name": "eCash",
@@ -211,54 +210,10 @@
       "replay_lock_time": 499999999,
       "release_channel": "alphanet",
       "fork_parent_hash": "00000000000000000000d29ee44c13e924c37abcaa80c537609ce70b1fea1f33",
-      "backends": [
-        {
-          "kind": "esplora",
-          "url": "https://esplora.alpha.ecash.ninja",
-          "tls": true,
-          "label": "L2L Esplora"
-        },
-        {
-          "kind": "electrum",
-          "url": "ssl://explorer.alpha.ecash.ninja:50002",
-          "tls": true,
-          "label": "Fulcrum"
-        }
-      ],
-      "explorer_tx_template": "https://explorer.alpha.ecash.ninja/tx/{txid}",
-      "explorer_address_template": "https://explorer.alpha.ecash.ninja/address/{address}",
-      "explorer_block_template": "https://explorer.alpha.ecash.ninja/block/{hash}",
-      "services": {
-        "faucet": {
-          "url": null,
-          "amount": null,
-          "cooldown_seconds": null
-        },
-        "coinnews": {
-          "url": "https://seed.alpha.ecash.eu.com"
-        },
-        "blockbook": {
-          "url": null
-        },
-        "mining_pool": {
-          "url": "https://pool.alpha.avonpool.xyz",
-          "stratum": "stratum+tcp://pool.alpha.avonpool.xyz:3334"
-        },
-        "fast_withdrawal": [],
-        "enforcer": {
-          "url": "https://seed.alpha.ecash.eu.com/enforcer"
-        }
-      },
       "p2p": {
         "address": "seed.alpha.ecash.ninja:8533"
       },
-      "sidechains": [],
-      "assumeutxo": {
-        "url": "https://data.drivechain.dev/alphanet/utxo-935000.dat",
-        "height": 935000,
-        "sha256": "922ccc7ae0ebf23fbff674e12e295265c9958ecfb0a5da729341b50319ae73cc",
-        "size_bytes": 9387990306
-      }
+      "migration_only": true
     },
     {
       "id": "betanet",

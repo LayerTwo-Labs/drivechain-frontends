@@ -23,7 +23,7 @@ service BitcoinConfService {
   // rather than a resync. Side-effect free.
   rpc PlanECashSwitch(PlanECashSwitchRequest) returns (PlanECashSwitchResponse);
 
-  // Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
+  // Set the Bitcoin Core network. Takes a catalog id ("betanet") or a slot
   // name (signet, mainnet, ecash, regtest).
   rpc SetBitcoinConfigNetwork(SetBitcoinConfigNetworkRequest) returns (SetBitcoinConfigNetworkResponse);
 
@@ -57,7 +57,7 @@ message GetBitcoinConfigResponse {
   // restored on the next swap into that group. Empty = no path stored.
   string default_datadir = 11;
   string ecash_datadir = 13;
-  // Live eCash network id ("alphanet").
+  // Live eCash network id ("betanet").
   string ecash_network_id = 14;
   // True when the current network and wallet backend need a datadir the user
   // has not chosen yet. Drives the boot-time prompt.
@@ -78,9 +78,9 @@ message ListNetworksRequest {}
 
 // NetworkOption is one row of the network picker.
 message NetworkOption {
-  // Catalog id ("alphanet", "bitcoin"), or "regtest" for the local-only row.
+  // Catalog id ("betanet", "bitcoin"), or "regtest" for the local-only row.
   string id = 1;
-  // Name to show the user ("Alphanet").
+  // Name to show the user ("Betanet").
   string display_name = 2;
   // Slot this row runs in: mainnet | signet | ecash | regtest.
   string network = 3;

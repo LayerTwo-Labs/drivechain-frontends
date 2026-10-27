@@ -55,7 +55,7 @@ abstract final class BitcoinConfService {
     orchestratorv1bitcoin_conf.PlanECashSwitchResponse.new,
   );
 
-  /// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
+  /// Set the Bitcoin Core network. Takes a catalog id ("betanet") or a slot
   /// name (signet, mainnet, ecash, regtest).
   static const setBitcoinConfigNetwork = connect.Spec(
     '/$name/SetBitcoinConfigNetwork',

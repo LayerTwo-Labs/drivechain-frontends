@@ -24,8 +24,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
-const warningTestMessage = "This transaction burns Alphanet coins for a claim of real ECX."
-const warningTestBetanetMessage = "This transaction burns Betanet coins for a claim of real ECX."
+const warningTestMessage = "This transaction burns Betanet coins for a claim of real ECX."
 const warningTestBurnAddress = wallet.ECXBurnAddress
 const warningTestClaimAddress = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
 const warningTestPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
@@ -66,7 +65,7 @@ func (f *warningBackend) GetWalletTransaction(_ context.Context, walletID, txid 
 func newWarningHandler(t *testing.T, backend *warningBackend) (*WalletHandler, string) {
 	t.Helper()
 	previousID := config.ECashNetworkID()
-	config.SetECashNetworkID("alphanet")
+	config.SetECashNetworkID("betanet")
 	t.Cleanup(func() { config.SetECashNetworkID(previousID) })
 	log := zerolog.New(zerolog.NewTestWriter(t))
 	svc := wallet.NewService(t.TempDir(), log)
@@ -168,7 +167,7 @@ func TestTransactionWarningChecksTheBurnOutputs(t *testing.T) {
 			h, _ := newWarningHandler(t, &warningBackend{})
 			// The id is a process-wide value that another test can move, so the
 			// case pins the network it asserts.
-			config.SetECashNetworkID("alphanet")
+			config.SetECashNetworkID("betanet")
 			message := h.transactionWarning(tc.change(warningOutputs(t)))
 			if tc.warn {
 				require.Equal(t, warningTestMessage, message)
@@ -187,13 +186,13 @@ func TestTransactionWarningChecksTheNetwork(t *testing.T) {
 		id      string
 		message string
 	}{
-		{config.NetworkECash, "alphanet", warningTestMessage},
-		{config.NetworkECash, "betanet", warningTestBetanetMessage},
+		{config.NetworkECash, "betanet", warningTestMessage},
+		{config.NetworkECash, "ecash", ""},
 		{config.NetworkECash, "drynet4", ""},
-		{config.NetworkMainnet, "alphanet", ""},
-		{config.NetworkSignet, "alphanet", ""},
-		{config.NetworkRegtest, "alphanet", ""},
-		{config.NetworkTestnet, "alphanet", ""},
+		{config.NetworkMainnet, "betanet", ""},
+		{config.NetworkSignet, "betanet", ""},
+		{config.NetworkRegtest, "betanet", ""},
+		{config.NetworkTestnet, "betanet", ""},
 	} {
 		t.Run(string(tc.network)+" "+tc.id, func(t *testing.T) {
 			require.NoError(t, h.svc.RebindNetwork(string(tc.network)))
@@ -295,19 +294,19 @@ func TestListTransactionsKeepsTheCacheAcrossNetworkChanges(t *testing.T) {
 		transactions: []wallet.WalletTransaction{
 			{TxID: tx.TxID, Address: warningTestBurnAddress, Category: "send"},
 		},
-		afterRead: func() { config.SetECashNetworkID("betanet") },
+		afterRead: func() { config.SetECashNetworkID("ecash") },
 	}
 	h, walletID := newWarningHandler(t, backend)
 	_, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 	require.NoError(t, err)
-	config.SetECashNetworkID("alphanet")
+	config.SetECashNetworkID("betanet")
 	response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 	require.NoError(t, err)
 	require.Equal(t, warningTestMessage, response.Transactions[0].WarningMessage)
 	require.Equal(t, []string{tx.TxID}, backend.readIDs)
 }
 
-func TestListTransactionsNamesTheNetworkOfEachRead(t *testing.T) {
+func TestListTransactionsWarnsOnlyOnTheBurnNetwork(t *testing.T) {
 	raw, _, tx := warningTransaction(t, warningOutputs(t))
 	backend := &warningBackend{
 		hexByID: map[string]string{tx.TxID: raw},
@@ -320,16 +319,16 @@ func TestListTransactionsNamesTheNetworkOfEachRead(t *testing.T) {
 		id      string
 		message string
 	}{
-		{"alphanet", warningTestMessage},
-		{"betanet", warningTestBetanetMessage},
-		{"alphanet", warningTestMessage},
+		{"betanet", warningTestMessage},
+		{"ecash", ""},
+		{"betanet", warningTestMessage},
 	} {
 		config.SetECashNetworkID(tc.id)
 		response, err := h.ListTransactions(context.Background(), &pb.ListTransactionsRequest{WalletId: walletID})
 		require.NoError(t, err)
 		require.Equal(t, tc.message, response.Transactions[0].WarningMessage)
 	}
-	require.Equal(t, []string{tx.TxID, tx.TxID}, backend.readIDs)
+	require.Equal(t, []string{tx.TxID}, backend.readIDs)
 }
 
 func TestListTransactionsReturnsWarningReadErrors(t *testing.T) {
@@ -361,10 +360,10 @@ func TestListTransactionsSkipsWarningsOutsideBurnNetworks(t *testing.T) {
 		id      string
 	}{
 		{config.NetworkECash, "drynet4"},
-		{config.NetworkMainnet, "alphanet"},
-		{config.NetworkSignet, "alphanet"},
-		{config.NetworkRegtest, "alphanet"},
-		{config.NetworkTestnet, "alphanet"},
+		{config.NetworkMainnet, "betanet"},
+		{config.NetworkSignet, "betanet"},
+		{config.NetworkRegtest, "betanet"},
+		{config.NetworkTestnet, "betanet"},
 	} {
 		t.Run(string(tc.network)+" "+tc.id, func(t *testing.T) {
 			backend := &warningBackend{

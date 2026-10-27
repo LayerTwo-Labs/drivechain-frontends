@@ -2944,7 +2944,7 @@ type UpdateNetworkRequest struct {
 	Network string `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
 	// The user's answer to must_select_datadir, when they were asked.
 	DataDir string `protobuf:"bytes,2,opt,name=data_dir,json=dataDir,proto3" json:"data_dir,omitempty"`
-	// Catalog id of the picked row ("alphanet"). The eCash rows share one
+	// Catalog id of the picked row ("betanet"). The eCash rows share one
 	// network, so only the id names the fork. Empty falls back to network.
 	NetworkId     string `protobuf:"bytes,3,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
 	unknownFields protoimpl.UnknownFields

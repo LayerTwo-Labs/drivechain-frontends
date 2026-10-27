@@ -67,15 +67,15 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
 
   @override
-  String ecashNetworkId = 'alphanet';
+  String ecashNetworkId = 'betanet';
 
   @override
-  String currentNetworkOptionId = 'alphanet';
+  String currentNetworkOptionId = 'betanet';
 
   @override
-  String ecashExplorerHost = 'explorer.alphanet.example';
+  String ecashExplorerHost = 'explorer.betanet.example';
 
-  void changeNetwork({BitcoinNetwork? value, String id = 'betanet'}) {
+  void changeNetwork({BitcoinNetwork? value, String id = 'ecash'}) {
     network = value ?? BitcoinNetwork.BITCOIN_NETWORK_ECASH;
     ecashNetworkId = id;
     currentNetworkOptionId = id;
@@ -278,7 +278,7 @@ void main() {
   testWidgets('starts with a disabled burn action', (tester) async {
     await pumpCard(tester);
     final title = find
-        .text('Burn Alphanet Coins')
+        .text('Burn Betanet Coins')
         .evaluate()
         .where((element) => element.findAncestorWidgetOfExactType<SailButton>() == null);
     expect(title, hasLength(1));
@@ -288,7 +288,7 @@ void main() {
   });
 
   testWidgets('shows the backend warning before and after the burn', (tester) async {
-    rpc.warningMessage = 'This transaction burns Alphanet coins for a claim of real ECX.';
+    rpc.warningMessage = 'This transaction burns Betanet coins for a claim of real ECX.';
     await pumpCard(tester, width: 360);
     await enterAmount(tester);
     expect(find.text(rpc.warningMessage), findsOneWidget);
@@ -337,7 +337,6 @@ void main() {
   });
 
   testWidgets('shows the card on Betanet with the Betanet name', (tester) async {
-    conf.ecashNetworkId = 'betanet';
     await pumpCard(tester);
     await enterAmount(tester);
     expect(find.text('Burn Betanet Coins'), findsOneWidget);
@@ -349,8 +348,6 @@ void main() {
     expect(find.text('25 ECX'), findsOneWidget);
     expect(find.text('0.00000452 bECX'), findsOneWidget);
     expect(find.text('1,250.00000452 bECX'), findsOneWidget);
-    expect(find.textContaining('aECX'), findsNothing);
-    expect(find.textContaining('Alphanet'), findsNothing);
     expect(rpc.amounts, [
       {_burnAddress: 125000000000},
     ]);
@@ -361,7 +358,6 @@ void main() {
     await burn(tester);
     expect(find.text('Burn sent'), findsWidgets);
     expect(rpc.calls.last, 'broadcast');
-    expect(find.textContaining('Alphanet'), findsNothing);
   });
 
   testWidgets('uses the catalog id when the explicit network id is empty', (tester) async {
@@ -464,13 +460,12 @@ void main() {
       expect(rpc.walletIds, everyElement('wallet-1'));
       expect(find.text(_burnAddress), findsOneWidget);
       expect(find.text(_walletAddress), findsOneWidget);
-      expect(find.text('0 aECX'), findsOneWidget);
-      expect(find.text('12.5 ECX'), findsOneWidget);
+      expect(find.text('0 bECX'), findsOneWidget);
+      expect(find.text('25 ECX'), findsOneWidget);
       expect(find.text('Real ECX'), findsOneWidget);
-      expect(find.textContaining('1/100 of the amount'), findsOneWidget);
-      expect(find.textContaining('Betanet'), findsNothing);
-      expect(find.text('0.00000452 aECX'), findsOneWidget);
-      expect(find.text('1,250.00000452 aECX'), findsOneWidget);
+      expect(find.textContaining('1/50 of the amount'), findsOneWidget);
+      expect(find.text('0.00000452 bECX'), findsOneWidget);
+      expect(find.text('1,250.00000452 bECX'), findsOneWidget);
       expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
       expect(tester.takeException(), isNull);
     });
@@ -480,7 +475,7 @@ void main() {
     await pumpCard(tester);
     await enterAmount(tester, '1000.00000001');
     expect(rpc.amounts.single, {_burnAddress: 100000000001});
-    expect(find.text('10.00000001 ECX'), findsOneWidget);
+    expect(find.text('20.00000001 ECX'), findsOneWidget);
     expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
   });
 
@@ -488,11 +483,11 @@ void main() {
     await pumpCard(tester);
     await enterAmount(tester, '1000');
     expect(rpc.amounts.single, {_burnAddress: _minimumSats});
-    expect(find.text('10 ECX'), findsOneWidget);
+    expect(find.text('20 ECX'), findsOneWidget);
     expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
   });
 
-  testWidgets('uses the production burn address and strict Alphanet minimum', (tester) async {
+  testWidgets('uses the production burn address and strict Betanet minimum', (tester) async {
     await pumpCard(tester, production: true);
     await enterAmount(tester, '999.99999999');
     expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
@@ -502,9 +497,9 @@ void main() {
     expect(rpc.amounts.single, {'1BitcoinEaterAddressDontSendf59kuE': 100000000001});
     expect(rpc.opReturnAddresses.single, _walletAddress);
     expect(find.text('1BitcoinEaterAddressDontSendf59kuE'), findsOneWidget);
-    expect(find.text('10.00000001 ECX'), findsOneWidget);
-    expect(find.text('0.00000452 aECX'), findsOneWidget);
-    expect(find.text('1,000.00000453 aECX'), findsOneWidget);
+    expect(find.text('20.00000001 ECX'), findsOneWidget);
+    expect(find.text('0.00000452 bECX'), findsOneWidget);
+    expect(find.text('1,000.00000453 bECX'), findsOneWidget);
     expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
   });
 
@@ -519,13 +514,13 @@ void main() {
     expect(find.text('Burn sent'), findsNWidgets(2));
     expect(find.text('Credit pending'), findsOneWidget);
     expect(find.text('Your real ECX credit remains pending.'), findsOneWidget);
-    expect(find.text('12.5 ECX'), findsOneWidget);
+    expect(find.text('25 ECX'), findsOneWidget);
     expect(find.text(_walletAddress), findsOneWidget);
     expect(find.text('a' * 64), findsOneWidget);
     expect(find.text(_burnAddress), findsOneWidget);
-    expect(find.text('0 aECX'), findsOneWidget);
-    expect(find.text('0.00000452 aECX'), findsOneWidget);
-    expect(find.text('1,250.00000452 aECX'), findsOneWidget);
+    expect(find.text('0 bECX'), findsOneWidget);
+    expect(find.text('0.00000452 bECX'), findsOneWidget);
+    expect(find.text('1,250.00000452 bECX'), findsOneWidget);
     expect(find.text('View on the explorer'), findsWidgets);
   });
 
@@ -582,7 +577,11 @@ void main() {
         expect(rpc.calls.length, count);
         expect(find.text('Burn sent'), findsNothing);
         expect(find.text(_walletAddress), findsNothing);
-        expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
+        if (change == 'network') {
+          expect(burnButton(), findsNothing);
+        } else {
+          expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
+        }
       });
     }
   }
@@ -598,7 +597,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(rpc.previews, ['preview-2']);
-    expect(find.text('15 ECX'), findsOneWidget);
+    expect(find.text('30 ECX'), findsOneWidget);
     await burn(tester);
     expect(rpc.signedPreviews, ['preview-2']);
   });
@@ -638,7 +637,7 @@ void main() {
       await tester.ensureVisible(link);
       await tester.tap(link);
       await tester.pump();
-      expect(url, 'https://explorer.alphanet.example/tx/${'a' * 64}');
+      expect(url, 'https://explorer.betanet.example/tx/${'a' * 64}');
       expect(find.text('Credit pending'), findsOneWidget);
       if (result == 'error') {
         expect(find.textContaining('The browser did not start.'), findsOneWidget);

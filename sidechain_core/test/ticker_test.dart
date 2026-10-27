@@ -25,13 +25,6 @@ void main() {
       expect(ticker.feeRate, 'szat/vB');
     });
 
-    test('alphanet names the coin aECX', () {
-      final ticker = tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'alphanet');
-
-      expect(ticker.symbol, 'aECX');
-      expect(ticker.subunit, 'szats');
-    });
-
     test('betanet names the coin bECX', () {
       final ticker = tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'betanet');
 
@@ -57,9 +50,9 @@ void main() {
     tearDown(() => GetIt.I.reset());
 
     test('names the coin of the live eCash network', () {
-      GetIt.I.registerSingleton<BitcoinConfProvider>(_Conf()..ecashNetworkId = 'alphanet');
+      GetIt.I.registerSingleton<BitcoinConfProvider>(_Conf()..ecashNetworkId = 'betanet');
 
-      expect(activeTicker.symbol, 'aECX');
+      expect(activeTicker.symbol, 'bECX');
     });
 
     test('an empty network id takes the eCash network the build shipped with', () {

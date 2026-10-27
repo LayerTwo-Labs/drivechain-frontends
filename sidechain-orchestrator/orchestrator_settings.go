@@ -18,7 +18,7 @@ const orchestratorSettingsFile = "orchestrator_settings.json"
 type OrchestratorSettings struct {
 	CoreVariant string `json:"core_variant"`
 	// ECashNetworkID pins the eCash network the user picked from the catalog
-	// ("alphanet"). Empty means no pick: the installed conf, then ECashChainID,
+	// ("betanet"). Empty means no pick: the installed conf, then ECashChainID,
 	// then the first catalog entry name the network.
 	ECashNetworkID string `json:"ecash_network_id"`
 	// ECashChainID is the eCash network whose blocks this install holds. The

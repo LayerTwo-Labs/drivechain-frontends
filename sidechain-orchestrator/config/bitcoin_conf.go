@@ -26,7 +26,7 @@ type BitcoinConfManager struct {
 	DetectedDataDir string
 	HasPrivateConf  bool
 
-	// ECashID is the live eCash network ("alphanet"). Set from the
+	// ECashID is the live eCash network ("betanet"). Set from the
 	// resolved network catalog; falls back to the embedded id until
 	// then, so a first boot still writes a usable peer.
 	ECashID string

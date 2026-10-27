@@ -63,8 +63,7 @@ func TestSidechainEsploraURLFollowsTheGeneration(t *testing.T) {
 	t.Cleanup(func() { SetECashNetworkID(original) })
 
 	for generation, want := range map[string]string{
-		"alphanet": "https://seed.alpha.ecash.eu.com/thunder",
-		"betanet":  "https://seed.beta.ecash.eu.com/thunder",
+		"betanet": "https://seed.beta.ecash.eu.com/thunder",
 		// Real ECX runs the bare host.
 		"ecash": "https://seed.ecash.eu.com/thunder",
 		// The retired series runs no box, and real ECX history under a test
@@ -88,17 +87,16 @@ func TestDrivechainIndexURLFollowsTheGeneration(t *testing.T) {
 	t.Cleanup(func() { SetECashNetworkID(original) })
 
 	for generation, want := range map[string]string{
-		"alphanet": "https://seed.alpha.ecash.eu.com/drivechain",
-		"betanet":  "https://seed.beta.ecash.eu.com/drivechain",
-		"ecash":    "https://seed.ecash.eu.com/drivechain",
-		"drynet4":  "",
+		"betanet": "https://seed.beta.ecash.eu.com/drivechain",
+		"ecash":   "https://seed.ecash.eu.com/drivechain",
+		"drynet4": "",
 	} {
 		SetECashNetworkID(generation)
 		if got := DrivechainIndexURLForNetwork(NetworkECash); got != want {
 			t.Errorf("%s escrow index = %q, want %q", generation, got, want)
 		}
 	}
-	SetECashNetworkID("alphanet")
+	SetECashNetworkID("betanet")
 	for _, n := range []Network{NetworkSignet, NetworkMainnet, NetworkRegtest} {
 		if got := DrivechainIndexURLForNetwork(n); got != "" {
 			t.Errorf("%s escrow index = %q, want none hosted", n, got)

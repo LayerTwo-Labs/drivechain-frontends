@@ -55,7 +55,6 @@ void main() {
     });
 
     test('rounds one fiftieth up to a whole ECX satoshi', () {
-      expect(burnEcxNetworks['alphanet'], (name: 'Alphanet', creditDivisor: 100));
       expect(burnEcxNetworks['betanet'], (name: 'Betanet', creditDivisor: 50));
       expect(formatEcxCredit(100000000000, 100), '10.00000000 ECX');
       expect(formatEcxCredit(100000000000, 50), '20.00000000 ECX');

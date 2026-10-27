@@ -279,7 +279,7 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   void clearEcashDatadir() => clearField(13);
 
-  /// Live eCash network id ("alphanet").
+  /// Live eCash network id ("betanet").
   @$pb.TagNumber(14)
   $core.String get ecashNetworkId => $_getSZ(12);
   @$pb.TagNumber(14)
@@ -411,7 +411,7 @@ class NetworkOption extends $pb.GeneratedMessage {
   static NetworkOption getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<NetworkOption>(create);
   static NetworkOption? _defaultInstance;
 
-  /// Catalog id ("alphanet", "bitcoin"), or "regtest" for the local-only row.
+  /// Catalog id ("betanet", "bitcoin"), or "regtest" for the local-only row.
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -421,7 +421,7 @@ class NetworkOption extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearId() => clearField(1);
 
-  /// Name to show the user ("Alphanet").
+  /// Name to show the user ("Betanet").
   @$pb.TagNumber(2)
   $core.String get displayName => $_getSZ(1);
   @$pb.TagNumber(2)

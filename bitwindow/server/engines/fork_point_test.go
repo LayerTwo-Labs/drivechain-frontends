@@ -269,7 +269,7 @@ func tickParser(t *testing.T, chain servedChain, tip uint32) *Parser {
 		db:          db,
 		conf:        config.Config{BitcoinCoreNetwork: config.NetworkMainnet},
 		chainParams: &chaincfg.MainNetParams,
-		m4Engine:    NewM4Engine(db, config.NetworkMainnet, ""),
+		m4Engine:    NewM4Engine(db, config.NetworkMainnet),
 		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return core, nil
 		}),
