@@ -40,7 +40,10 @@
           "url": null,
           "stratum": null
         },
-        "fast_withdrawal": []
+        "fast_withdrawal": [],
+        "enforcer": {
+          "url": null
+        }
       },
       "p2p": {
         "address": "node.mainnet.drivechain.info:8333"
@@ -97,7 +100,10 @@
           {
             "url": "https://fw1.signet.drivechain.info"
           }
-        ]
+        ],
+        "enforcer": {
+          "url": "https://enforcer.signet.drivechain.info"
+        }
       },
       "p2p": {
         "address": "node.signet.drivechain.info:38333"
@@ -131,8 +137,8 @@
           "slot": 9,
           "title": "Thunder",
           "description": "A sidechain with a large & growing blocksize, plus fraud proofs",
-          "image": "ghcr.io/layertwo-labs/thunder:sha-61cbd03",
-          "version": "v0.14.0",
+          "image": "ghcr.io/layertwo-labs/thunder:sha-2ea74b0",
+          "version": "sha-2ea74b0",
           "p2p": {
             "address": "node.signet.drivechain.info:4009",
             "transport": "quic"
@@ -191,65 +197,6 @@
       "assumeutxo": null
     },
     {
-      "id": "betanet",
-      "family": "ecash",
-      "display_name": "Betanet",
-      "description": "Fork of mainnet with PoW difficulty reset \u2014 the ECX beta network",
-      "chain": "main",
-      "currency": {
-        "name": "eCash",
-        "ticker": "ECX"
-      },
-      "network_magic": "eca5b104",
-      "fork_height": 967680,
-      "replay_lock_time": 499999999,
-      "backends": [
-        {
-          "kind": "esplora",
-          "url": "https://esplora.beta.ecash.ninja",
-          "tls": true,
-          "label": "L2L Esplora"
-        },
-        {
-          "kind": "electrum",
-          "url": "ssl://explorer.beta.ecash.ninja:50002",
-          "tls": true,
-          "label": "Fulcrum"
-        }
-      ],
-      "explorer_tx_template": "https://explorer.beta.ecash.ninja/tx/{txid}",
-      "explorer_address_template": "https://explorer.beta.ecash.ninja/address/{address}",
-      "explorer_block_template": "https://explorer.beta.ecash.ninja/block/{hash}",
-      "services": {
-        "faucet": {
-          "url": null,
-          "amount": null,
-          "cooldown_seconds": null
-        },
-        "coinnews": {
-          "url": "https://seed.beta.ecash.eu.com"
-        },
-        "blockbook": {
-          "url": null
-        },
-        "mining_pool": {
-          "url": "https://pool.beta.bip300.xyz",
-          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334",
-          "stats_url": "https://pool.beta.bip300.xyz/api/overview"
-        },
-        "fast_withdrawal": [],
-        "enforcer": {
-          "url": "https://seed.beta.ecash.eu.com/enforcer"
-        }
-      },
-      "p2p": {
-        "address": "seed.beta.ecash.ninja:8533"
-      },
-      "sidechains": [],
-      "assumeutxo": null,
-      "fork_parent_hash": "00000000000000000001b58cb69869f6067f0ecb3f2fe0f2263e62ba1ccb0c41"
-    },
-    {
       "id": "alphanet",
       "family": "ecash",
       "display_name": "Alphanet",
@@ -262,6 +209,7 @@
       "network_magic": "eca5a104",
       "fork_height": 963648,
       "replay_lock_time": 499999999,
+      "release_channel": "alphanet",
       "fork_parent_hash": "00000000000000000000d29ee44c13e924c37abcaa80c537609ce70b1fea1f33",
       "backends": [
         {
@@ -310,6 +258,146 @@
         "height": 935000,
         "sha256": "922ccc7ae0ebf23fbff674e12e295265c9958ecfb0a5da729341b50319ae73cc",
         "size_bytes": 9387990306
+      }
+    },
+    {
+      "id": "betanet",
+      "family": "ecash",
+      "display_name": "Betanet",
+      "description": "Fork of mainnet with PoW difficulty reset \u2014 the ECX beta network",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "eca5b104",
+      "fork_height": 967680,
+      "replay_lock_time": 499999999,
+      "release_channel": "betanet",
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.beta.ecash.ninja",
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://explorer.beta.ecash.ninja:50002",
+          "tls": true,
+          "label": "Fulcrum"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.beta.ecash.ninja/tx/{txid}",
+      "explorer_address_template": "https://explorer.beta.ecash.ninja/address/{address}",
+      "explorer_block_template": "https://explorer.beta.ecash.ninja/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": "https://seed.beta.ecash.eu.com"
+        },
+        "blockbook": {
+          "url": "https://blockbook.beta.ecash.ninja"
+        },
+        "mining_pool": {
+          "url": "https://pool.beta.bip300.xyz",
+          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334",
+          "stats_url": "https://pool.beta.bip300.xyz/api/overview"
+        },
+        "fast_withdrawal": [
+          {
+            "url": "https://fastwithdraw.betanet.ecash.ninja"
+          }
+        ],
+        "enforcer": {
+          "url": "https://enforcer.beta.ecash.ninja"
+        }
+      },
+      "p2p": {
+        "address": "seed.beta.ecash.ninja:8533"
+      },
+      "sidechains": [
+        {
+          "slot": 9,
+          "title": "Thunder",
+          "description": "A sidechain with a large & growing blocksize, plus fraud proofs",
+          "image": "ghcr.io/layertwo-labs/thunder:sha-2ea74b0",
+          "version": "sha-2ea74b0",
+          "p2p": {
+            "address": "seed.beta.ecash.ninja:4009",
+            "transport": "quic"
+          },
+          "network_magic": null
+        }
+      ],
+      "assumeutxo": null,
+      "fork_parent_hash": "00000000000000000001b58cb69869f6067f0ecb3f2fe0f2263e62ba1ccb0c41"
+    },
+    {
+      "id": "ecash",
+      "family": "ecash",
+      "display_name": "eCash",
+      "description": "Bitcoin, with Drivechains: a Bitcoin hard fork that activates BIP300/301, forking at Bitcoin's difficulty adjustment at block 973,728",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "eca5dcb7",
+      "fork_height": 973728,
+      "replay_lock_time": 499999998,
+      "release_channel": "mainnet",
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.ecash.ninja",
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://explorer.ecash.ninja:50002",
+          "tls": true,
+          "label": "Fulcrum"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.ecash.ninja/tx/{txid}",
+      "explorer_address_template": "https://explorer.ecash.ninja/address/{address}",
+      "explorer_block_template": "https://explorer.ecash.ninja/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": null
+        },
+        "enforcer": {
+          "url": "https://seed.ecash.eu.com/enforcer"
+        },
+        "blockbook": {
+          "url": "https://blockbook.ecash.ninja"
+        },
+        "mining_pool": {
+          "url": null,
+          "stratum": null
+        },
+        "fast_withdrawal": []
+      },
+      "p2p": {
+        "address": "seed.ecash.ninja:8533"
+      },
+      "sidechains": [],
+      "assumeutxo": {
+        "url": "https://releases.ecash.com/assumeutxo/mainnet/utxo-965000.dat",
+        "height": 965000,
+        "sha256": "89351f7106051c0685880f9c64026e993335308de63ae6980e94ba3fafdc7dda",
+        "size_bytes": 9468312119
       }
     }
   ]

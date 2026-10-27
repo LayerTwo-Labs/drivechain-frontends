@@ -20,12 +20,12 @@ func TestECashLightSwitchKeepsLocalFiles(t *testing.T) {
 		t.Run(path, func(t *testing.T) {
 			o := lightECashTestNode(t)
 			files := lightECashFiles(t, o)
-			require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=alphanet"))
+			require.NoError(t, o.EnforcerConf.WriteConfig("fork=ecash-alphanet"))
 			require.NoError(t, o.Settings.SetECashChainID(""))
 			require.Equal(t, "alphanet", o.installedECashNetwork())
 
 			if path == "pending" {
-				o.Catalog.Networks[0], o.Catalog.Networks[1] = o.Catalog.Networks[1], o.Catalog.Networks[0]
+				require.Equal(t, "betanet", o.PendingECashUpgrade().ID)
 				require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 			} else {
 				require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
@@ -34,7 +34,7 @@ func TestECashLightSwitchKeepsLocalFiles(t *testing.T) {
 			require.Equal(t, "betanet", o.ecashID)
 			require.Equal(t, "betanet", o.Settings.ECashNetworkID())
 			require.Equal(t, "betanet", o.installedECashNetwork())
-			require.Equal(t, "betanet", o.EnforcerConf.Config.GetSetting("network-preset"))
+			require.Equal(t, "ecash-betanet", o.EnforcerConf.Config.GetSetting("fork"))
 			require.Equal(t, "new.example:8301", config.ECashEndpoints().P2P.Address)
 			require.Equal(t, "alphanet", o.Settings.ECashChainID())
 			require.Equal(t, "betanet", o.Settings.PendingEnforcerWipe())
@@ -161,7 +161,7 @@ func lightECashFiles(t *testing.T, o *Orchestrator) map[string][]byte {
 	}
 	for _, dir := range config.AllDirConfigs() {
 		if dir.BinaryName == "bip300301-enforcer" {
-			files[filepath.Join(dir.RootDir(), "validator", config.EnforcerNetworkName(config.NetworkECash), "state")] = []byte("alphanet validator")
+			files[filepath.Join(dir.RootDir(), "validator", config.LegacyEnforcerNetworkName(config.NetworkECash), "state")] = []byte("alphanet validator")
 		}
 	}
 	for path, data := range files {

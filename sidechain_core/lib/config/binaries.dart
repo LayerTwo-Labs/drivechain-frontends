@@ -955,64 +955,9 @@ extension BinaryPaths on Binary {
   }
 
   String _findLatestEnforcerLog() {
-    final logsDir = Directory(filePath([datadirNetwork(), 'logs']));
-
-    if (!logsDir.existsSync()) {
-      return filePath([
-        datadirNetwork(),
-        'bip300301_enforcer.log',
-      ]); // Fallback to original
-    }
-
-    // Find all enforcer log files matching the pattern: bip300301_enforcer.log.YYYY-MM-DD.N
-    final logFiles = logsDir.listSync().whereType<File>().where((file) {
-      final fileName = file.path.split(Platform.pathSeparator).last;
-      return fileName.startsWith('bip300301_enforcer.log.') &&
-          RegExp(
-            r'bip300301_enforcer\.log\.\d{4}-\d{2}-\d{2}\.\d+$',
-          ).hasMatch(fileName);
-    }).toList();
-
-    if (logFiles.isEmpty) {
-      return filePath([
-        datadirNetwork(),
-        'bip300301_enforcer.log',
-      ]); // Fallback to original
-    }
-
-    // Sort by date and sequence number (latest first)
-    logFiles.sort((a, b) {
-      final aFileName = a.path.split(Platform.pathSeparator).last;
-      final bFileName = b.path.split(Platform.pathSeparator).last;
-
-      // Extract date and sequence number from filename
-      final aMatch = RegExp(
-        r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$',
-      ).firstMatch(aFileName);
-      final bMatch = RegExp(
-        r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$',
-      ).firstMatch(bFileName);
-
-      if (aMatch == null || bMatch == null) {
-        return 0;
-      }
-
-      final aDate = aMatch.group(1)!;
-      final bDate = bMatch.group(1)!;
-      final aSeq = int.parse(aMatch.group(2)!);
-      final bSeq = int.parse(bMatch.group(2)!);
-
-      // First compare by date (descending)
-      final dateComparison = bDate.compareTo(aDate);
-      if (dateComparison != 0) {
-        return dateComparison;
-      }
-
-      // If dates are equal, compare by sequence number (descending)
-      return bSeq.compareTo(aSeq);
-    });
-
-    return logFiles.first.path;
+    final root = datadirNetwork();
+    return latestEnforcerLog(root, GetIt.I<BitcoinConfProvider>().network) ??
+        filePath([root, 'bip300301_enforcer.log']);
   }
 
   String _findLatestDirVersionedLog() {
@@ -2062,4 +2007,62 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
     BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(binaryType),
     _ => _unsupportedBinaryType(binaryType),
   };
+}
+
+final _enforcerLogName = RegExp(r'^bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$');
+
+/// Returns the newest enforcer log file of [network] under the enforcer data
+/// folder [root], or null when there is none.
+///
+/// The enforcer writes its logs to `<root>/<fork>/<chain>/logs`, and older
+/// releases wrote them to `<root>/logs`.
+String? latestEnforcerLog(String root, BitcoinNetwork network) {
+  final dirs = <String>[path.join(root, 'logs')];
+  final rootDir = Directory(root);
+  if (rootDir.existsSync()) {
+    for (final forkDir in rootDir.listSync().whereType<Directory>()) {
+      final fork = path.basename(forkDir.path);
+      for (final chainDir in forkDir.listSync().whereType<Directory>()) {
+        if (_enforcerChainDirMatches(network, fork, path.basename(chainDir.path))) {
+          dirs.add(path.join(chainDir.path, 'logs'));
+        }
+      }
+    }
+  }
+
+  File? newest;
+  RegExpMatch? newestMatch;
+  for (final dir in dirs.map(Directory.new).where((d) => d.existsSync())) {
+    for (final file in dir.listSync().whereType<File>()) {
+      final match = _enforcerLogName.firstMatch(path.basename(file.path));
+      if (match == null) {
+        continue;
+      }
+      if (newestMatch == null || _compareEnforcerLogs(match, newestMatch) > 0) {
+        newest = file;
+        newestMatch = match;
+      }
+    }
+  }
+  return newest?.path;
+}
+
+bool _enforcerChainDirMatches(BitcoinNetwork network, String fork, String chain) {
+  final eCashFork = fork == 'ecash' || fork.startsWith('ecash-');
+  return switch (network) {
+    BitcoinNetwork.BITCOIN_NETWORK_ECASH => eCashFork && chain == 'mainnet',
+    BitcoinNetwork.BITCOIN_NETWORK_MAINNET => fork == 'bitcoin' && chain == 'mainnet',
+    BitcoinNetwork.BITCOIN_NETWORK_SIGNET => fork == 'bitcoin' && (chain == 'signet' || chain.startsWith('signet_')),
+    BitcoinNetwork.BITCOIN_NETWORK_REGTEST => fork == 'bitcoin' && chain == 'regtest',
+    BitcoinNetwork.BITCOIN_NETWORK_TESTNET => fork == 'bitcoin' && chain.startsWith('testnet'),
+    _ => false,
+  };
+}
+
+int _compareEnforcerLogs(RegExpMatch a, RegExpMatch b) {
+  final byDate = a.group(1)!.compareTo(b.group(1)!);
+  if (byDate != 0) {
+    return byDate;
+  }
+  return int.parse(a.group(2)!).compareTo(int.parse(b.group(2)!));
 }

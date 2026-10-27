@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
-/// The catalog the orchestrator compiles in. Its first eCash row is what the
+/// The catalog the orchestrator compiles in. Its last eCash row is what the
 /// backend answers before the published catalog loads.
 Map<String, dynamic> _embeddedECash() {
   final file = File('../sidechain-orchestrator/config/netcatalog/networks.json');
   final catalog = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
   final networks = (catalog['networks'] as List).cast<Map<String, dynamic>>();
-  return networks.firstWhere((n) => n['family'] == 'ecash');
+  return networks.lastWhere((n) => n['family'] == 'ecash');
 }
 
 String _backendURL(Map<String, dynamic> network, String kind) {

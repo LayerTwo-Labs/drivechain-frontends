@@ -23,13 +23,14 @@ const (
 	ecashMainnetForkHeight   = 973728
 	ecashMainnetLockTime     = 499999998
 	ecashMainnetReleaseURL   = "https://releases.ecash.com/L1-ecash-bitcoin/mainnet/latest/"
+	fixtureReleaseURL        = "https://releases.ecash.com/L1-ecash-bitcoin/ecash-mainnet/latest/"
 	betanetReleaseURL        = "https://releases.ecash.com/L1-ecash-bitcoin/betanet/latest/"
 	betanetAndMainnetShared  = 967679
 	alphanetAndMainnetShared = 963647
 )
 
 // ecashMainnetFixture is the published document once the real eCash network
-// lands: bitcoin, signet, ecash-mainnet, betanet, alphanet.
+// lands: bitcoin, signet, alphanet, betanet, ecash-mainnet.
 func ecashMainnetFixture(t *testing.T) netcatalog.Catalog {
 	t.Helper()
 	raw, err := os.ReadFile(filepath.Join("config", "netcatalog", "testdata", "ecash-mainnet.json"))
@@ -59,12 +60,11 @@ func keepNetworkGlobals(t *testing.T) {
 		config.SetForkHeight(config.NetworkECash, height)
 		config.SetNetworkDisplayName(config.NetworkECash, name)
 		config.SetNetworkEndpoints(config.NetworkMainnet, bitcoin)
-		config.SetECashReleaseChannel(ecashMainnetID, "")
 	})
 }
 
 // ecashInstallOn puts an eCash install on id, with the document that has no
-// ecash-mainnet row yet, then takes the document that leads with it.
+// ecash-mainnet row yet, then takes the document that lists it last.
 func ecashInstallOn(t *testing.T, id string) *Orchestrator {
 	t.Helper()
 	keepNetworkGlobals(t)
@@ -167,9 +167,14 @@ func TestTheReleaseChannelPicksTheL1Download(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.adoptCatalogRows(ecashMainnetFixture(t), ecashMainnetID)
 
-	v := o.configs["bitcoind"].Variants["ecash"]
+	published := o.configs["bitcoind"].Variants["ecash"]
+	require.Equal(t, fixtureReleaseURL, published.BaseURL,
+		"a published release channel never picks the download")
+	require.Equal(t, ecashMainnetID, published.Subfolder, "the install folder keeps the id")
+
+	v := expandECashPlaceholder(o.rawConfigs["bitcoind"], "ecash").Variants["ecash"]
 	require.Equal(t, ecashMainnetReleaseURL, v.BaseURL)
-	require.Equal(t, ecashMainnetID, v.Subfolder, "the install folder keeps the id")
+	require.Equal(t, "ecash", v.Subfolder)
 	require.Equal(t, "L1-ecash-bitcoin-aarch64-apple-darwin.zip", v.Files["macos-arm64"])
 	require.Equal(t, "L1-ecash-bitcoin-x86_64-apple-darwin.zip", v.Files["macos-x86_64"])
 	require.Equal(t, "L1-ecash-bitcoin-x86_64-unknown-linux-gnu.zip", v.Files["linux-x86_64"])
@@ -212,7 +217,7 @@ func requireOnECashMainnet(t *testing.T, o *Orchestrator) {
 	require.Equal(t, "ecash-ecash-mainnet", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
 	require.Equal(t, "seed.mainnet.ecash.example:8533", o.BitcoinConf.Config.GetEffectiveSetting("addnode", "main"))
 	require.Equal(t, ecashMainnetForkHeight, config.PublishedForkHeight(config.NetworkECash))
-	require.Equal(t, ecashMainnetReleaseURL, o.configs["bitcoind"].Variants["ecash"].BaseURL)
+	require.Equal(t, fixtureReleaseURL, o.configs["bitcoind"].Variants["ecash"].BaseURL)
 
 	lockTime := liveReplayLockTime(t)
 	require.EqualValues(t, ecashMainnetLockTime, lockTime)
@@ -335,11 +340,11 @@ func TestECashMainnetOffersNoMoveBack(t *testing.T) {
 			require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 			o.coreReachable = func() bool { return false }
 			o.adoptCatalog(ecashMainnetFixture(t), tc.from)
-			backFirst := ecashMainnetFixture(t)
-			back, _ := backFirst.ByID(tc.back)
-			backFirst = withoutRow(backFirst, tc.back)
-			backFirst.Networks = append([]netcatalog.Network{back}, backFirst.Networks...)
-			o.adoptCatalogRows(backFirst, tc.from)
+			backLast := ecashMainnetFixture(t)
+			back, _ := backLast.ByID(tc.back)
+			backLast = withoutRow(backLast, tc.back)
+			backLast.Networks = append(backLast.Networks, back)
+			o.adoptCatalogRows(backLast, tc.from)
 			require.Equal(t, tc.back, o.Catalog.ECashID())
 
 			require.Empty(t, o.PendingECashUpgrade().ID, "a lower fork height is no upgrade")
@@ -380,7 +385,7 @@ func TestECashMigrationMovesBetanetOntoECashMainnet(t *testing.T) {
 	require.Equal(t, "eca5b104", state.Status.SourceMagic)
 	require.Equal(t, "eca5dcb7", state.Status.TargetMagic)
 	require.Equal(t, betanetReleaseURL, state.FromConfig.Variants["ecash"].BaseURL)
-	require.Equal(t, ecashMainnetReleaseURL, state.ToConfig.Variants["ecash"].BaseURL)
+	require.Equal(t, fixtureReleaseURL, state.ToConfig.Variants["ecash"].BaseURL)
 	require.Equal(t, ecashMainnetID, state.ToConfig.Variants["ecash"].Subfolder)
 
 	paths := slices.Sorted(func(yield func(string) bool) {
@@ -424,29 +429,29 @@ func TestECashMainnetParksTheSidechainStateOfBetanet(t *testing.T) {
 	require.Equal(t, "betanet\n", readState(t, filepath.Join(dir, ecashStampFile)))
 }
 
-func TestStartEnforcerWhenReadyRefusesAnECashIDWithNoPreset(t *testing.T) {
+func TestStartEnforcerWhenReadyRefusesAnECashIDWithNoFork(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf = nil
 
-	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--network-preset=ecash-mainnet"}}, nil)
+	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--fork=ecash-mainnet"}}, nil)
 
 	require.ErrorContains(t, err, `"ecash-mainnet"`)
 	mon := o.getOrCreateMonitor("enforcer", &mockChecker{}, enforcerStartupPatterns)
 	require.Contains(t, mon.ConnectionError(), `"ecash-mainnet"`)
 }
 
-func TestStartEnforcerWhenReadyTakesTheBetanetPreset(t *testing.T) {
+func TestStartEnforcerWhenReadyTakesTheBetanetFork(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf = nil
 	prefetched := make(chan error, 1)
 	prefetched <- os.ErrNotExist
 
-	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--network-preset=betanet"}}, prefetched)
+	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--fork=ecash-betanet"}}, prefetched)
 
-	require.ErrorIs(t, err, os.ErrNotExist, "the start goes past the preset check")
+	require.ErrorIs(t, err, os.ErrNotExist, "the start goes past the fork check")
 }
 
-func TestPrepareEnforcerArgsOnECashMainnetNamesItsPreset(t *testing.T) {
+func TestPrepareEnforcerArgsOnECashMainnetNamesItsFork(t *testing.T) {
 	keepNetworkGlobals(t)
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
@@ -456,8 +461,8 @@ func TestPrepareEnforcerArgsOnECashMainnetNamesItsPreset(t *testing.T) {
 	var opts StartOpts
 	o.prepareEnforcerArgs(&opts)
 
-	require.Contains(t, opts.EnforcerArgs, "--network-preset=ecash-mainnet")
-	require.ErrorContains(t, config.CheckEnforcerNetworkPreset(opts.EnforcerArgs), `"ecash-mainnet"`)
+	require.Contains(t, opts.EnforcerArgs, "--fork=ecash-mainnet")
+	require.ErrorContains(t, config.CheckEnforcerFork(opts.EnforcerArgs), `"ecash-mainnet"`)
 }
 
 func TestSidechainsGetNoNetworkOnECashMainnet(t *testing.T) {

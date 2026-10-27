@@ -185,65 +185,157 @@ func TestWriteConfig(t *testing.T) {
 // GetCliArgs tests
 // ---------------------------------------------------------------------------
 
-// ECash forks mainnet, so the enforcer needs the generation's preset. Nothing
-// persists it — the conf carries no network-preset on a fresh install.
-func TestGetCliArgsDerivesECashNetworkPreset(t *testing.T) {
+// Alphanet and betanet nodes report the Bitcoin Core user agent, so the
+// enforcer needs the fork named. Nothing persists it on a fresh install.
+func TestGetCliArgsDerivesECashFork(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 	m.bitcoinConf.Network = NetworkECash
-	m.bitcoinConf.ECashID = "drynet4"
+	m.bitcoinConf.ECashID = "betanet"
 
-	require.Contains(t, m.GetCliArgs(), "--network-preset=drynet4")
+	require.Contains(t, m.GetCliArgs(), "--fork=ecash-betanet")
 
 	// A persisted value wins, same as every other derived setting.
-	m.Config.Settings["network-preset"] = "drynet3"
-	require.Contains(t, m.GetCliArgs(), "--network-preset=drynet3")
-	require.NotContains(t, m.GetCliArgs(), "--network-preset=drynet4")
+	m.Config.Settings["fork"] = "ecash-alphanet"
+	require.Contains(t, m.GetCliArgs(), "--fork=ecash-alphanet")
+	require.NotContains(t, m.GetCliArgs(), "--fork=ecash-betanet")
 }
 
-// bip300301_enforcer has an Alphanet and a Betanet preset only. An unknown
-// preset stops it with a clap error the user cannot read.
-func TestCheckEnforcerNetworkPresetRefusesAnECashIDWithNoPreset(t *testing.T) {
+func TestEnforcerForkMapsEveryECashID(t *testing.T) {
+	for id, want := range map[string]string{
+		"alphanet": "ecash-alphanet",
+		"betanet":  "ecash-betanet",
+		"ecash":    "ecash",
+	} {
+		fork, ok := EnforcerFork(id)
+		require.True(t, ok, id)
+		require.Equal(t, want, fork, id)
+	}
+	for _, id := range []string{"", "ecash-mainnet", "drynet4", "bitcoin", "signet"} {
+		_, ok := EnforcerFork(id)
+		require.False(t, ok, id)
+	}
+}
+
+func TestGetCliArgsNamesTheForkOfEachECashID(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkECash
+
+	for id, want := range map[string]string{
+		"alphanet": "--fork=ecash-alphanet",
+		"betanet":  "--fork=ecash-betanet",
+		"ecash":    "--fork=ecash",
+	} {
+		m.bitcoinConf.ECashID = id
+		args := m.GetCliArgs()
+		require.Contains(t, args, want, id)
+		rejectArgPrefix(t, args, "--network-preset")
+		require.NoError(t, CheckEnforcerFork(args), id)
+	}
+}
+
+// The enforcer release has no fork for an unknown eCash id. Without a refusal
+// it would run the network with Bitcoin's parameters.
+func TestCheckEnforcerForkRefusesAnECashIDWithNoFork(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 	m.bitcoinConf.Network = NetworkECash
 
 	m.bitcoinConf.ECashID = "ecash-mainnet"
 	args := m.GetCliArgs()
-	require.Contains(t, args, "--network-preset=ecash-mainnet")
-	err := CheckEnforcerNetworkPreset(args)
+	require.Contains(t, args, "--fork=ecash-mainnet")
+	err := CheckEnforcerFork(args)
 	require.ErrorContains(t, err, `"ecash-mainnet"`)
 	require.ErrorContains(t, err, "cannot start")
 
-	m.Config.Settings["network-preset"] = "mainnet"
-	require.ErrorContains(t, CheckEnforcerNetworkPreset(m.GetCliArgs()), `"mainnet"`)
-	delete(m.Config.Settings, "network-preset")
+	m.Config.Settings["fork"] = "mainnet"
+	require.ErrorContains(t, CheckEnforcerFork(m.GetCliArgs()), `"mainnet"`)
+	delete(m.Config.Settings, "fork")
 
-	for _, id := range []string{"betanet", "alphanet"} {
-		m.bitcoinConf.ECashID = id
-		args := m.GetCliArgs()
-		require.Contains(t, args, "--network-preset="+id)
-		require.NoError(t, CheckEnforcerNetworkPreset(args), id)
-	}
+	require.NoError(t, CheckEnforcerFork([]string{"--fork=bitcoin"}))
 }
 
-func TestCheckEnforcerNetworkPresetPassesArgsWithNoPreset(t *testing.T) {
+func TestCheckEnforcerForkPassesArgsWithNoFork(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 	for _, n := range []Network{NetworkSignet, NetworkRegtest, NetworkMainnet} {
 		m.bitcoinConf.Network = n
-		require.NoError(t, CheckEnforcerNetworkPreset(m.GetCliArgs()), n)
+		require.NoError(t, CheckEnforcerFork(m.GetCliArgs()), n)
 	}
 }
 
-// Only eCash builds of the enforcer accept the flag.
-func TestGetCliArgsOmitsNetworkPresetOffECash(t *testing.T) {
+// Off eCash the enforcer takes its fork from the node, which is Bitcoin.
+func TestGetCliArgsOmitsForkOffECash(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 
-	for _, arg := range m.GetCliArgs() {
-		require.NotContains(t, arg, "--network-preset")
+	for _, n := range []Network{NetworkMainnet, NetworkSignet, NetworkRegtest} {
+		m.bitcoinConf.Network = n
+		args := m.GetCliArgs()
+		rejectArgPrefix(t, args, "--fork")
+		rejectArgPrefix(t, args, "--network-preset")
 	}
+}
+
+// Older releases persisted network-preset=<id>. The enforcer no longer has
+// that flag, so the setting must turn into the fork and reach the disk as one.
+func TestNetworkPresetSettingBecomesTheFork(t *testing.T) {
+	m, dir := newTestEnforcerManager(t)
+	m.bitcoinConf.Network = NetworkECash
+	m.bitcoinConf.ECashID = "betanet"
+	require.NoError(t, m.WriteConfig("network-preset=alphanet\nenable-block-template-server=true\n"))
+
+	require.Equal(t, "ecash-alphanet", m.Config.GetSetting("fork"))
+	_, kept := m.Config.Settings["network-preset"]
+	require.False(t, kept)
+	args := m.GetCliArgs()
+	require.Contains(t, args, "--fork=ecash-alphanet")
+	rejectArgPrefix(t, args, "--network-preset")
+
+	require.NoError(t, m.SaveConfig())
+	onDisk, err := os.ReadFile(filepath.Join(dir, bitwindowEnforcerConfFilename))
+	require.NoError(t, err)
+	require.Contains(t, string(onDisk), "fork=ecash-alphanet")
+	require.NotContains(t, string(onDisk), "network-preset")
+	require.Contains(t, string(onDisk), "enable-block-template-server=true")
+}
+
+// A setting put in memory without a parse must convert the same way.
+func TestNetworkPresetSettingInMemoryBecomesTheFork(t *testing.T) {
+	m, dir := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkECash
+	m.bitcoinConf.ECashID = "alphanet"
+
+	m.Config.Settings["network-preset"] = "betanet"
+	args := m.GetCliArgs()
+	require.Contains(t, args, "--fork=ecash-betanet")
+	require.NotContains(t, args, "--fork=ecash-alphanet")
+	rejectArgPrefix(t, args, "--network-preset")
+
+	m.Config.Settings["fork"] = "ecash"
+	args = m.GetCliArgs()
+	require.Contains(t, args, "--fork=ecash")
+	require.NotContains(t, args, "--fork=ecash-betanet", "a fork setting wins")
+
+	require.NoError(t, m.SaveConfig())
+	onDisk, err := os.ReadFile(filepath.Join(dir, bitwindowEnforcerConfFilename))
+	require.NoError(t, err)
+	require.Contains(t, string(onDisk), "fork=ecash\n")
+	require.NotContains(t, string(onDisk), "network-preset")
+}
+
+// An id with no fork stays in the fork setting, so the start refuses and
+// names it.
+func TestNetworkPresetSettingWithNoForkIsRefused(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	m.bitcoinConf.Network = NetworkECash
+	m.bitcoinConf.ECashID = "betanet"
+	require.NoError(t, m.WriteConfig("network-preset=drynet4\n"))
+
+	require.Equal(t, "drynet4", m.Config.GetSetting("fork"))
+	require.ErrorContains(t, CheckEnforcerFork(m.GetCliArgs()), `"drynet4"`)
 }
 
 func TestGetCliArgs(t *testing.T) {
@@ -537,7 +629,7 @@ func rejectArgPrefix(t *testing.T, args []string, prefix string) {
 	}
 }
 
-// An eCash rollover must reach the enforcer conf: a persisted preset or esplora
+// An eCash rollover must reach the enforcer conf: a persisted fork or esplora
 // host still names the retired fork, and the enforcer would keep it.
 func TestRetargetECashGenerationRewritesPersistedValues(t *testing.T) {
 	m, dir := newTestEnforcerManager(t)
@@ -552,13 +644,13 @@ func TestRetargetECashGenerationRewritesPersistedValues(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, changed)
 
-	require.Equal(t, "alphanet", m.Config.GetSetting("network-preset"))
+	require.Equal(t, "ecash-alphanet", m.Config.GetSetting("fork"))
 	require.Equal(t, EsploraURLForNetwork(NetworkECash), m.Config.GetSetting("wallet-esplora-url"))
 	require.Equal(t, "true", m.Config.GetSetting("enable-block-template-server"))
 
 	onDisk, err := os.ReadFile(filepath.Join(dir, bitwindowEnforcerConfFilename))
 	require.NoError(t, err)
-	require.Contains(t, string(onDisk), "network-preset=alphanet")
+	require.Contains(t, string(onDisk), "fork=ecash-alphanet")
 	require.NotContains(t, string(onDisk), "drynet4")
 }
 
@@ -587,9 +679,9 @@ func TestRetargetECashGenerationKeepsACustomEndpoint(t *testing.T) {
 
 	changed, err := m.RetargetECashNetwork("drynet4", "alphanet")
 	require.NoError(t, err)
-	require.True(t, changed, "the preset still names the retired fork")
+	require.True(t, changed, "the fork setting still names the retired network")
 
-	require.Equal(t, "alphanet", m.Config.GetSetting("network-preset"))
+	require.Equal(t, "ecash-alphanet", m.Config.GetSetting("fork"))
 	require.Equal(t, "https://esplora.mine.example", m.Config.GetSetting("wallet-esplora-url"),
 		"an endpoint the user chose is theirs to keep")
 }
@@ -731,7 +823,7 @@ func TestRetargetECashNetworkForRunsBeforeTheSwapLands(t *testing.T) {
 	changed, err := m.RetargetECashNetworkFor(NetworkECash, "drynet4", "alphanet")
 	require.NoError(t, err)
 	require.True(t, changed, "the target network decides, not the live one")
-	require.Equal(t, "alphanet", m.Config.GetSetting("network-preset"))
+	require.Equal(t, "ecash-alphanet", m.Config.GetSetting("fork"))
 }
 
 // A swap into any other network leaves this file alone: its values belong to
@@ -743,5 +835,5 @@ func TestRetargetECashNetworkForIgnoresOtherNetworks(t *testing.T) {
 	changed, err := m.RetargetECashNetworkFor(NetworkSignet, "drynet4", "alphanet")
 	require.NoError(t, err)
 	require.False(t, changed)
-	require.Equal(t, "drynet4", m.Config.GetSetting("network-preset"))
+	require.Equal(t, "drynet4", m.Config.GetSetting("fork"))
 }

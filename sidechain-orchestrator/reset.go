@@ -228,7 +228,7 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 					add(cat, spec.Binary, o.coreVariantDirs(binDir))
 				}
 			case catLogs:
-				add(cat, spec.Binary, dc.GetLogPaths(networkDir, o.log))
+				add(cat, spec.Binary, dc.GetLogPaths(networkDir, network, o.log))
 			case catSettings:
 				add(cat, spec.Binary, dc.GetSettingsPaths(networkDir, network, o.log))
 				if spec.Binary == ResetBinaryBitwindowd {

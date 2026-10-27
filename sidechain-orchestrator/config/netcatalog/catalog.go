@@ -74,7 +74,7 @@ type Network struct {
 	ReplayLockTime uint32 `json:"replay_lock_time,omitempty"`
 
 	// ReleaseChannel is the path segment of the L1 release this eCash network
-	// downloads. Empty means the id; see ReleaseChannelOrID.
+	// downloads. Only the compiled-in catalog sets it; see ReleaseChannelOrID.
 	ReleaseChannel string `json:"release_channel,omitempty"`
 
 	// P2P is the seed node bitcoind connects through. Every eCash network
@@ -198,10 +198,18 @@ func (c Catalog) ForNetwork(network string) (Network, bool) {
 	}
 }
 
-// CurrentECash returns the live eCash network. The document lists it first and
-// any retired ones after it, so document order — not the id — decides.
+// CurrentECash returns the live eCash network. The document lists the eCash
+// networks from oldest to newest, so the last one is live. Document order — not
+// the id — decides.
 func (c Catalog) CurrentECash() (Network, bool) {
-	return c.ByFamily(FamilyECash)
+	var live Network
+	found := false
+	for _, n := range c.Networks {
+		if n.Family == FamilyECash {
+			live, found = n, true
+		}
+	}
+	return live, found
 }
 
 // SameAs reports whether two catalogs carry the same document. The picker and
@@ -406,22 +414,26 @@ func Fetch(ctx context.Context, url string) (Catalog, error) {
 	if err != nil {
 		return Catalog{}, err
 	}
-	return fillForkParentHash(c, Embedded()), nil
+	return fillFromEmbedded(c, Embedded()), nil
 }
 
-// fillForkParentHash gives an entry the fork parent hash the compiled-in entry
-// of the same id carries, where the document leaves it blank. A published value
-// always wins. The hash of the block a fork descends from never changes, so a
-// blank one is a gap in the document rather than a retired value.
-func fillForkParentHash(c, from Catalog) Catalog {
+// fillFromEmbedded gives an entry the fork parent hash and replay locktime that
+// the compiled-in entry of the same id carries, where the document leaves them
+// blank. A published value always wins. These values never change for a
+// network, so a blank one is a gap in the document rather than a retired value.
+func fillFromEmbedded(c, from Catalog) Catalog {
 	filled := make([]Network, len(c.Networks))
 	copy(filled, c.Networks)
 	for i, n := range filled {
-		if n.ForkParentHash != "" {
+		known, ok := from.ByID(n.ID)
+		if !ok {
 			continue
 		}
-		if known, ok := from.ByID(n.ID); ok {
+		if n.ForkParentHash == "" {
 			filled[i].ForkParentHash = known.ForkParentHash
+		}
+		if n.ReplayLockTime == 0 {
+			filled[i].ReplayLockTime = known.ReplayLockTime
 		}
 	}
 	c.Networks = filled

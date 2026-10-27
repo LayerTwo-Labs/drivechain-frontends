@@ -66,7 +66,7 @@ void main() {
       GetIt.I.registerSingleton<BitcoinConfProvider>(_Conf());
 
       expect(activeTicker, tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: ecashNetworkId()));
-      expect(activeTicker, isNot(Ticker.ecash));
+      expect(activeTicker, Ticker.ecash);
     });
   });
 

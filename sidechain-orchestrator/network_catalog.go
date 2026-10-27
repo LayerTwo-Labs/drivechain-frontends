@@ -74,8 +74,8 @@ func (o *Orchestrator) PendingECashUpgrade() PendingECashUpgrade {
 	}
 }
 
-// newerECashID returns the document's first eCash row when it is newer than the
-// network this install runs, or "". A network that forks at a lower height is
+// newerECashID returns the document's live (last) eCash row when it is newer
+// than the network this install runs, or "". A network that forks at a lower height is
 // older, whatever the document order says.
 func (o *Orchestrator) newerECashID(published netcatalog.Catalog) string {
 	id := published.ECashID()
@@ -225,7 +225,8 @@ func (o *Orchestrator) publishedCatalogURL() string {
 }
 
 // retainRunningECash keeps the entry for the network this install runs when the
-// published document drops it. It goes last, so the live network still leads.
+// published document drops it. It goes first, with the oldest rows, so the
+// published live network stays last.
 func retainRunningECash(fetched, current netcatalog.Catalog, id string) netcatalog.Catalog {
 	if id == "" {
 		return fetched
@@ -238,7 +239,7 @@ func retainRunningECash(fetched, current netcatalog.Catalog, id string) netcatal
 		return fetched
 	}
 	rows := make([]netcatalog.Network, 0, len(fetched.Networks)+1)
-	fetched.Networks = append(append(rows, fetched.Networks...), running)
+	fetched.Networks = append(append(rows, running), fetched.Networks...)
 	return fetched
 }
 
@@ -350,12 +351,6 @@ func (o *Orchestrator) recordECashChain(id string) error {
 // adoptCatalogRows takes a document in memory: the picker rows, their endpoints
 // and their fork heights. It writes no conf, so a refresh can call it live.
 func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
-	// Before the expansion below, which reads them.
-	for _, n := range c.Networks {
-		if n.Family == netcatalog.FamilyECash {
-			config.SetECashReleaseChannel(n.ID, n.ReleaseChannel)
-		}
-	}
 	o.mu.Lock()
 	o.Catalog = c
 	o.ecashID = id
@@ -388,8 +383,8 @@ func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
 			config.SetECashPeer(n.ID, n.P2P.Address)
 		}
 	}
-	// The eCash slot takes the resolved entry's values, not the last listed
-	// one: the catalog keeps the retired networks after the live one.
+	// The eCash slot takes the resolved entry's values, not those of every
+	// listed one: the catalog keeps the retired networks before the live one.
 	if ecash, ok := c.ByID(id); ok {
 		config.SetForkHeight(config.NetworkECash, ecash.ForkHeight)
 		config.SetNetworkDisplayName(config.NetworkECash, ecash.DisplayName)

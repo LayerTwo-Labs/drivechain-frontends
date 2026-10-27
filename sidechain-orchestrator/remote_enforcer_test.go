@@ -180,7 +180,8 @@ func TestRemoteEnforcerReturnsAfterNetworkSwap(t *testing.T) {
 	server := remoteValidatorServer(t, 42, nil)
 	o := remoteTestOrchestrator(t, server.URL)
 	previous := config.ECashEndpoints()
-	entry := netcatalog.EmbeddedECash()
+	entry, ok := netcatalog.Embedded().ByID("betanet")
+	require.True(t, ok)
 	entry.Services.Enforcer.URL = server.URL
 	config.SetECashEndpoints(entry)
 	t.Cleanup(func() { config.SetECashEndpoints(previous) })
@@ -258,6 +259,9 @@ func TestRemoteSidechainArgsPassTheBoundPorts(t *testing.T) {
 
 func TestRemoteSidechainRejectsMissingEndpoint(t *testing.T) {
 	o := remoteTestOrchestrator(t, "")
+	unlisted := config.PublishedEndpoints(config.NetworkSignet)
+	unlisted.ID = "unlisted-signet"
+	config.SetNetworkEndpoints(config.NetworkSignet, unlisted)
 	_, err := o.EnforcerURL()
 	require.ErrorContains(t, err, "signet has no remote enforcer endpoint")
 	var opts StartOpts
@@ -271,7 +275,8 @@ func TestRemoteSidechainECashArgs(t *testing.T) {
 	o := remoteTestOrchestrator(t, server.URL)
 	previous := config.ECashEndpoints()
 	previousID := config.ECashNetworkID()
-	entry := netcatalog.EmbeddedECash()
+	entry, ok := netcatalog.Embedded().ByID("betanet")
+	require.True(t, ok)
 	entry.Services.Enforcer.URL = server.URL
 	config.SetECashEndpoints(entry)
 	config.SetECashNetworkID(entry.ID)
