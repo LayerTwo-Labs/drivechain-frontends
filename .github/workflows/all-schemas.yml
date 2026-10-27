@@ -91,3 +91,9 @@ jobs:
             
             echo "✅ $sidechain validation passed"
           done
+      - name: Upload the generated schemas
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: sidechain-schemas
+          path: /tmp/*_schema.json
