@@ -156,7 +156,7 @@ func TestCatalogKeepsConfigBeforeMigrationCompletion(t *testing.T) {
 			require.NoError(t, os.WriteFile(filepath.Join(blocks, "blk00000.dat"), []byte{1}, 0600))
 			o.BitcoinConf.Config.SetSetting("rpcport", "18444", "main")
 			require.NoError(t, o.BitcoinConf.SaveConfig())
-			o.EnforcerConf.Config.Settings["network-preset"] = "alphanet"
+			o.EnforcerConf.Config.Settings["fork"] = "ecash-alphanet"
 			require.NoError(t, o.EnforcerConf.SaveConfig())
 			coreConfig := o.BitcoinConf.Config.Serialize()
 			enforcerSettings := maps.Clone(o.EnforcerConf.Config.Settings)

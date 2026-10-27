@@ -166,15 +166,27 @@ func bootedLayout(t *testing.T, home, network string) []string {
 	// that is where we seed the logs we expect the preview to find.
 	writeStub(t, filepath.Join(enfRoot, "bip300301_enforcer.log"))
 	writeDir(t, filepath.Join(enfRoot, "logs"))
+	chainDir, err := config.EnforcerChainDir(config.NetworkFromString(network), config.ECashNetworkID())
+	require.NoError(t, err)
+	for _, name := range []string{"validator", "wallet", "logs"} {
+		writeDir(t, filepath.Join(enfRoot, chainDir, name))
+	}
 
 	add(
 		filepath.Join(enfRoot, "validator", networkName),
 		filepath.Join(enfRoot, "bitwindow-enforcer.conf"),
-		filepath.Join(enfRoot, networkName),
 		filepath.Join(enfRoot, "wallet", networkName),
 		filepath.Join(enfRoot, "bip300301_enforcer.log"),
 		filepath.Join(enfRoot, "logs"),
+		filepath.Join(enfRoot, chainDir, "validator"),
+		filepath.Join(enfRoot, chainDir, "wallet"),
+		filepath.Join(enfRoot, chainDir, "logs"),
 	)
+	// <root>/bitcoin is the bitcoin fork directory too, so a reset never
+	// takes it whole.
+	if networkName != "bitcoin" {
+		add(filepath.Join(enfRoot, networkName))
+	}
 
 	// --- bitwindowd: flutter app data + signet/ subdir. ----------------------
 	writeStub(t, filepath.Join(bwNet, "bitwindow.db"))
@@ -359,7 +371,7 @@ func TestGetLogPathsFindsEveryBitwindowLog(t *testing.T) {
 	}
 
 	got := map[string]struct{}{}
-	for _, p := range config.BitWindowDirs.GetLogPaths(networkDir, testLogger(t)) {
+	for _, p := range config.BitWindowDirs.GetLogPaths(networkDir, config.NetworkSignet, testLogger(t)) {
 		got[filepath.Clean(p)] = struct{}{}
 	}
 

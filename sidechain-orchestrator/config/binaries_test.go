@@ -1,9 +1,16 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 func home() string {
@@ -259,4 +266,122 @@ func TestFreebankPath(t *testing.T) {
 	if p != want {
 		t.Errorf("FreeBank eCash datadir = %q, want %q", p, want)
 	}
+}
+
+func TestEnforcerChainDirObeysTheEnforcerDataDir(t *testing.T) {
+	for _, tc := range []struct {
+		network Network
+		ecashID string
+		want    string
+	}{
+		{NetworkMainnet, "", filepath.Join("bitcoin", "mainnet")},
+		{NetworkECash, "alphanet", filepath.Join("ecash-alphanet", "mainnet")},
+		{NetworkECash, "betanet", filepath.Join("ecash-betanet", "mainnet")},
+		{NetworkECash, "ecash", filepath.Join("ecash", "mainnet")},
+		{NetworkSignet, "", filepath.Join("bitcoin", "signet_13182df0")},
+		{NetworkRegtest, "", filepath.Join("bitcoin", "regtest")},
+		{NetworkTestnet, "", filepath.Join("bitcoin", "testnet3")},
+	} {
+		got, err := EnforcerChainDir(tc.network, tc.ecashID)
+		require.NoError(t, err, tc.network)
+		require.Equal(t, tc.want, got, "%s %s", tc.network, tc.ecashID)
+	}
+
+	_, err := EnforcerChainDir(NetworkECash, "drynet4")
+	require.ErrorContains(t, err, `"drynet4"`)
+}
+
+// The enforcer names a custom signet directory for the BIP325 magic of its
+// challenge. The catalog magic must be the magic of the challenge BitWindow writes.
+func TestEnforcerSignetDirIsTheMagicOfTheL2LChallenge(t *testing.T) {
+	challenge, err := hex.DecodeString("00148835832e28c816b7acd8fdb19772ab2199603a56")
+	require.NoError(t, err)
+	require.Contains(t, (&BitcoinConfManager{Network: NetworkSignet}).GetDefaultConfig(), "signetchallenge="+hex.EncodeToString(challenge))
+
+	first := sha256.Sum256(append([]byte{byte(len(challenge))}, challenge...))
+	second := sha256.Sum256(first[:])
+	require.Equal(t, "signet_"+hex.EncodeToString(second[:4]), enforcerChainName(NetworkSignet))
+}
+
+func useECashNetworkID(t *testing.T, id string) {
+	t.Helper()
+	previous := ECashNetworkID()
+	SetECashNetworkID(id)
+	t.Cleanup(func() { SetECashNetworkID(previous) })
+}
+
+func seedEnforcerDirs(t *testing.T, root string, names ...string) {
+	t.Helper()
+	for _, name := range names {
+		require.NoError(t, os.MkdirAll(filepath.Join(root, name), 0o755))
+	}
+}
+
+func TestEnforcerPathListsHoldTheForkAndTheLegacyLayout(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	useECashNetworkID(t, "betanet")
+	root := EnforcerDirs.RootDir()
+	require.True(t, strings.HasPrefix(root, home))
+
+	chain := filepath.Join("ecash-betanet", "mainnet")
+	signet := filepath.Join("bitcoin", "signet_13182df0")
+	seedEnforcerDirs(t, root,
+		filepath.Join(chain, "validator"), filepath.Join(chain, "wallet"), filepath.Join(chain, "logs"),
+		filepath.Join(signet, "validator"),
+		filepath.Join("validator", "bitcoin"), filepath.Join("wallet", "bitcoin"),
+		filepath.Join("validator", "signet"), "signet", "logs",
+	)
+	require.NoError(t, os.WriteFile(filepath.Join(root, "bip300301_enforcer.log"), nil, 0o644))
+
+	data := EnforcerDirs.GetBlockchainDataPaths(root, NetworkECash, zerolog.Nop())
+	require.ElementsMatch(t, []string{
+		filepath.Join(root, chain, "validator"),
+		filepath.Join(root, "validator", "bitcoin"),
+	}, data, "<root>/bitcoin holds every Bitcoin chain, so it is never eCash data")
+
+	require.ElementsMatch(t, []string{
+		filepath.Join(root, signet, "validator"),
+		filepath.Join(root, "validator", "signet"),
+		filepath.Join(root, "signet"),
+	}, EnforcerDirs.GetBlockchainDataPaths(root, NetworkSignet, zerolog.Nop()))
+
+	require.ElementsMatch(t, []string{
+		filepath.Join(root, chain, "wallet"),
+		filepath.Join(root, "wallet", "bitcoin"),
+	}, EnforcerDirs.GetWalletPaths(root, NetworkECash, zerolog.Nop()))
+
+	logs := EnforcerDirs.GetLogPaths(root, NetworkECash, zerolog.Nop())
+	for _, want := range []string{
+		filepath.Join(root, chain, "logs"),
+		filepath.Join(root, "logs"),
+		filepath.Join(root, "bip300301_enforcer.log"),
+	} {
+		require.Contains(t, logs, want)
+	}
+}
+
+// A wipe takes the validator chain of both layouts and keeps the wallets.
+func TestWipeEnforcerChainDataTakesBothLayouts(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	useECashNetworkID(t, "alphanet")
+	root := EnforcerDirs.RootDir()
+
+	chain := filepath.Join("ecash-alphanet", "mainnet")
+	seedEnforcerDirs(t, root,
+		filepath.Join(chain, "validator"), filepath.Join(chain, "wallet"),
+		filepath.Join("validator", "bitcoin"), filepath.Join("wallet", "bitcoin"),
+		filepath.Join("bitcoin", "signet_13182df0", "validator"),
+	)
+
+	require.NoError(t, WipeEnforcerChainDataSync(NetworkECash, zerolog.Nop()))
+
+	require.NoDirExists(t, filepath.Join(root, chain, "validator"))
+	require.NoDirExists(t, filepath.Join(root, "validator", "bitcoin"))
+	require.DirExists(t, filepath.Join(root, chain, "wallet"))
+	require.DirExists(t, filepath.Join(root, "wallet", "bitcoin"))
+	require.DirExists(t, filepath.Join(root, "bitcoin", "signet_13182df0", "validator"))
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -32,7 +33,7 @@ var derivedEnforcerSettings = []string{
 	"node-rpc-addr",
 	"node-zmq-addr-sequence",
 	"wallet-esplora-url",
-	"network-preset",
+	enforcerForkSetting,
 }
 
 // ---------------------------------------------------------------------------
@@ -170,6 +171,7 @@ func (m *EnforcerConfManager) SaveConfig() error {
 	if m.Config == nil {
 		return nil
 	}
+	m.Config.convertNetworkPreset()
 	confPath := m.getConfigPath()
 	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
 		return err
@@ -295,6 +297,12 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 
 	if m.Config != nil {
 		for key, value := range m.Config.Settings {
+			if key == legacyNetworkPresetSetting {
+				if _, set := m.Config.Settings[enforcerForkSetting]; set || value == "" {
+					continue
+				}
+				key, value = enforcerForkSetting, enforcerForkSettingFor(value)
+			}
 			switch value {
 			case "true":
 				args = append(args, fmt.Sprintf("--%s", key))
@@ -337,11 +345,11 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 		}
 	}
 
-	// ECash forks mainnet, so the enforcer needs the network's preset to
-	// validate against the right chain. Only eCash builds accept the flag.
-	if m.bitcoinConf.Network == NetworkECash && !seen["network-preset"] {
+	// Alphanet and betanet nodes report the Bitcoin Core user agent, so the
+	// enforcer cannot detect their fork and would run without replay protection.
+	if m.bitcoinConf.Network == NetworkECash && !seen[enforcerForkSetting] {
 		if id := m.bitcoinConf.ResolvedECashID(); id != "" {
-			args = append(args, fmt.Sprintf("--network-preset=%s", id))
+			args = append(args, fmt.Sprintf("--%s=%s", enforcerForkSetting, enforcerForkSettingFor(id)))
 		}
 	}
 
@@ -356,16 +364,42 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 	return args
 }
 
-// enforcerNetworkPresets names the eCash networks the enforcer release has a
-// --network-preset for.
-var enforcerNetworkPresets = []string{"alphanet", "betanet"}
+const (
+	enforcerForkSetting        = "fork"
+	legacyNetworkPresetSetting = "network-preset"
+	enforcerBitcoinFork        = "bitcoin"
+)
 
-// CheckEnforcerNetworkPreset returns an error when args name a network preset
-// the enforcer release does not have.
-func CheckEnforcerNetworkPreset(args []string) error {
+// enforcerForks maps an eCash network id to the enforcer's --fork value.
+var enforcerForks = map[string]string{
+	"alphanet": "ecash-alphanet",
+	"betanet":  "ecash-betanet",
+	"ecash":    "ecash",
+}
+
+// EnforcerFork returns the enforcer --fork value for an eCash network id, and
+// reports whether the enforcer has a fork for it.
+func EnforcerFork(ecashID string) (string, bool) {
+	fork, ok := enforcerForks[ecashID]
+	return fork, ok
+}
+
+// enforcerForkSettingFor keeps an id with no fork as it is, so that
+// CheckEnforcerFork refuses the start and names the id.
+func enforcerForkSettingFor(ecashID string) string {
+	if fork, ok := EnforcerFork(ecashID); ok {
+		return fork
+	}
+	return ecashID
+}
+
+// CheckEnforcerFork returns an error when args name a fork the enforcer
+// release does not have.
+func CheckEnforcerFork(args []string) error {
 	for _, arg := range args {
-		if preset, ok := strings.CutPrefix(arg, "--network-preset="); ok && !slices.Contains(enforcerNetworkPresets, preset) {
-			return fmt.Errorf("the enforcer has no network preset for the eCash network %q, so it cannot start: an enforcer release with that preset is necessary", preset)
+		fork, ok := strings.CutPrefix(arg, "--"+enforcerForkSetting+"=")
+		if ok && fork != enforcerBitcoinFork && !slices.Contains(slices.Collect(maps.Values(enforcerForks)), fork) {
+			return fmt.Errorf("the enforcer has no fork for the eCash network %q, so it cannot start: an enforcer release with that fork is necessary", fork)
 		}
 	}
 	return nil
@@ -586,7 +620,7 @@ func (m *EnforcerConfManager) getConfigPath() string {
 //
 // GetCliArgs treats a persisted value as an explicit override, and every start
 // calls this. So the endpoint moves only when it still names previousID, while
-// the preset always moves — no preset but the running fork's is correct.
+// the fork always moves — no fork but the running network's is correct.
 func (m *EnforcerConfManager) RetargetECashNetwork(previousID, id string) (bool, error) {
 	if m.bitcoinConf == nil {
 		return false, nil
@@ -603,12 +637,12 @@ func (m *EnforcerConfManager) RetargetECashNetworkFor(target Network, previousID
 		return false, nil
 	}
 
-	changed := false
-	// The preset names the fork the enforcer validates against, so it has to
-	// match the network that boots. No other value is correct.
-	if preset, persisted := m.Config.Settings["network-preset"]; persisted && preset != id {
-		m.Config.Settings["network-preset"] = id
-		changed = true
+	changed := m.Config.convertNetworkPreset()
+	if fork, persisted := m.Config.Settings[enforcerForkSetting]; persisted {
+		if want := enforcerForkSettingFor(id); fork != want {
+			m.Config.Settings[enforcerForkSetting] = want
+			changed = true
+		}
 	}
 	// The endpoint may be the user's own. Only one that still names the retired
 	// network is this function's to change.
