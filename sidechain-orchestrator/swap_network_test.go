@@ -208,8 +208,23 @@ func TestEnforcerNetworkSwapStatePathsClearCollidingNetworks(t *testing.T) {
 	paths := enforcerNetworkSwapStatePaths(config.NetworkMainnet, config.NetworkECash)
 
 	require.NotEmpty(t, paths)
-	assert.Contains(t, paths, config.EnforcerValidatorDir(config.NetworkMainnet))
-	assert.Contains(t, paths, config.EnforcerWalletDir(config.NetworkMainnet))
+	assert.Contains(t, paths, config.LegacyEnforcerValidatorDir(config.NetworkMainnet))
+	assert.Contains(t, paths, config.LegacyEnforcerWalletDir(config.NetworkMainnet))
+}
+
+// <root>/bitcoin holds the <fork>/<chain> directories of every Bitcoin network.
+// A swap that parks it hides signet and regtest state from their next start.
+func TestEnforcerNetworkSwapStatePathsKeepTheForkDirectories(t *testing.T) {
+	root := config.EnforcerDirs.RootDir()
+	for _, tc := range []struct{ from, to config.Network }{
+		{config.NetworkMainnet, config.NetworkECash},
+		{config.NetworkECash, config.NetworkMainnet},
+	} {
+		for _, path := range enforcerNetworkSwapStatePaths(tc.from, tc.to) {
+			assert.NotEqual(t, filepath.Join(root, "bitcoin"), path, "%s -> %s", tc.from, tc.to)
+			assert.NotContains(t, path, filepath.Join(root, "bitcoin")+string(filepath.Separator), "%s -> %s", tc.from, tc.to)
+		}
+	}
 }
 
 func TestSwapNetwork_BootPollsTheNewCorePort(t *testing.T) {

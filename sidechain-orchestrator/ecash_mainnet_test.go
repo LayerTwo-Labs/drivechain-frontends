@@ -424,29 +424,29 @@ func TestECashMainnetParksTheSidechainStateOfBetanet(t *testing.T) {
 	require.Equal(t, "betanet\n", readState(t, filepath.Join(dir, ecashStampFile)))
 }
 
-func TestStartEnforcerWhenReadyRefusesAnECashIDWithNoPreset(t *testing.T) {
+func TestStartEnforcerWhenReadyRefusesAnECashIDWithNoFork(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf = nil
 
-	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--network-preset=ecash-mainnet"}}, nil)
+	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--fork=ecash-mainnet"}}, nil)
 
 	require.ErrorContains(t, err, `"ecash-mainnet"`)
 	mon := o.getOrCreateMonitor("enforcer", &mockChecker{}, enforcerStartupPatterns)
 	require.Contains(t, mon.ConnectionError(), `"ecash-mainnet"`)
 }
 
-func TestStartEnforcerWhenReadyTakesTheBetanetPreset(t *testing.T) {
+func TestStartEnforcerWhenReadyTakesTheBetanetFork(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf = nil
 	prefetched := make(chan error, 1)
 	prefetched <- os.ErrNotExist
 
-	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--network-preset=betanet"}}, prefetched)
+	err := o.startEnforcerWhenReady(context.Background(), StartOpts{EnforcerArgs: []string{"--fork=ecash-betanet"}}, prefetched)
 
-	require.ErrorIs(t, err, os.ErrNotExist, "the start goes past the preset check")
+	require.ErrorIs(t, err, os.ErrNotExist, "the start goes past the fork check")
 }
 
-func TestPrepareEnforcerArgsOnECashMainnetNamesItsPreset(t *testing.T) {
+func TestPrepareEnforcerArgsOnECashMainnetNamesItsFork(t *testing.T) {
 	keepNetworkGlobals(t)
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
@@ -456,8 +456,8 @@ func TestPrepareEnforcerArgsOnECashMainnetNamesItsPreset(t *testing.T) {
 	var opts StartOpts
 	o.prepareEnforcerArgs(&opts)
 
-	require.Contains(t, opts.EnforcerArgs, "--network-preset=ecash-mainnet")
-	require.ErrorContains(t, config.CheckEnforcerNetworkPreset(opts.EnforcerArgs), `"ecash-mainnet"`)
+	require.Contains(t, opts.EnforcerArgs, "--fork=ecash-mainnet")
+	require.ErrorContains(t, config.CheckEnforcerFork(opts.EnforcerArgs), `"ecash-mainnet"`)
 }
 
 func TestSidechainsGetNoNetworkOnECashMainnet(t *testing.T) {

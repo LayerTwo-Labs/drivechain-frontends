@@ -55,6 +55,7 @@ func ParseEnforcerConfig(content string) *EnforcerConfig {
 			config.Settings[key] = value
 		}
 	}
+	config.convertNetworkPreset()
 
 	return config
 }
@@ -92,4 +93,19 @@ func (c *EnforcerConfig) RemoveSetting(key string) {
 func (c *EnforcerConfig) HasSetting(key string) bool {
 	_, ok := c.Settings[key]
 	return ok
+}
+
+// convertNetworkPreset turns the network-preset setting of older releases into
+// the fork setting, and reports whether it changed the config. A fork setting
+// that is already there wins.
+func (c *EnforcerConfig) convertNetworkPreset() bool {
+	id, ok := c.Settings[legacyNetworkPresetSetting]
+	if !ok {
+		return false
+	}
+	delete(c.Settings, legacyNetworkPresetSetting)
+	if _, set := c.Settings[enforcerForkSetting]; !set && id != "" {
+		c.Settings[enforcerForkSetting] = enforcerForkSettingFor(id)
+	}
+	return true
 }

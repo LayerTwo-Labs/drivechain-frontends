@@ -124,7 +124,7 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 
-	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet4"))
+	require.NoError(t, o.EnforcerConf.WriteConfig("fork=drynet4"))
 	// The enforcer cleanup this switch journals is already recorded, so it
 	// writes nothing and the chain record is the first write to refuse.
 	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
@@ -140,7 +140,7 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 	o.Settings.bitwindowDir = t.TempDir()
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 	require.Equal(t, "alphanet", o.Settings.ECashChainID())
-	require.Equal(t, "alphanet", o.EnforcerConf.Config.GetSetting("network-preset"),
+	require.Equal(t, "ecash-alphanet", o.EnforcerConf.Config.GetSetting("fork"),
 		"the retry owes the whole tail, not the records alone")
 	require.Nil(t, o.pendingSwap, "the resumed switch leaves nothing behind")
 }
@@ -153,7 +153,7 @@ func TestSwapNetworkFinishesAnECashTail(t *testing.T) {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
-	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet4"))
+	require.NoError(t, o.EnforcerConf.WriteConfig("fork=drynet4"))
 	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
 	blocked := filepath.Join(t.TempDir(), "not-a-directory")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
@@ -165,7 +165,7 @@ func TestSwapNetworkFinishesAnECashTail(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 
 	require.Equal(t, "alphanet", o.Settings.ECashChainID())
-	require.Equal(t, "alphanet", o.EnforcerConf.Config.GetSetting("network-preset"))
+	require.Equal(t, "ecash-alphanet", o.EnforcerConf.Config.GetSetting("fork"))
 	require.Nil(t, o.pendingSwap, "the resumed tail leaves nothing behind")
 }
 
@@ -178,7 +178,7 @@ func TestSwapToAnotherNetworkDrainsTheECashTail(t *testing.T) {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
-	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet4"))
+	require.NoError(t, o.EnforcerConf.WriteConfig("fork=drynet4"))
 	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
 	blocked := filepath.Join(t.TempDir(), "not-a-directory")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
@@ -190,7 +190,7 @@ func TestSwapToAnotherNetworkDrainsTheECashTail(t *testing.T) {
 
 	require.Equal(t, "alphanet", o.Settings.ECashChainID(),
 		"the record must name the fork the blocks are on")
-	require.Equal(t, "alphanet", o.EnforcerConf.Config.GetSetting("network-preset"))
+	require.Equal(t, "ecash-alphanet", o.EnforcerConf.Config.GetSetting("fork"))
 }
 
 // The tail that a swap drains stopped the stack it owed a restart, so both

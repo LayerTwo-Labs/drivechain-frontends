@@ -327,7 +327,7 @@ func writeResolvedCoreBinary(t *testing.T, o *Orchestrator, body string) string 
 // built name sends bitcoind somewhere nothing listens.
 func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet2\nenable-block-template-server=true"))
+	require.NoError(t, o.EnforcerConf.WriteConfig("fork=drynet2\nenable-block-template-server=true"))
 	published := catalogWithECashRows(t, "drynet2", "drynet9")
 	for i := range published.Networks {
 		if published.Networks[i].ID == "drynet9" {
@@ -340,7 +340,7 @@ func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 
 	require.Equal(t, "drynet9", config.ECashNetworkID())
 	require.Equal(t, "drynet9.drivechain.dev:8533", o.BitcoinConf.Config.GetEffectiveSetting("addnode", "main"))
-	require.Equal(t, "drynet9", o.EnforcerConf.Config.GetSetting("network-preset"))
+	require.Equal(t, "drynet9", o.EnforcerConf.Config.GetSetting("fork"))
 	require.Equal(t, "true", o.EnforcerConf.Config.GetSetting("enable-block-template-server"))
 }
 

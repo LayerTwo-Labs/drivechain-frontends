@@ -1874,7 +1874,7 @@ func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
 // If prefetched is non-nil, the enforcer binary is already being downloaded
 // in parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) error {
-	if err := config.CheckEnforcerNetworkPreset(opts.EnforcerArgs); err != nil {
+	if err := config.CheckEnforcerFork(opts.EnforcerArgs); err != nil {
 		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.Configs()["enforcer"]), enforcerStartupPatterns)
 		mon.SetConnectionError(err.Error())
 		mon.SetInitializing(false)
@@ -3162,16 +3162,15 @@ func freeParkedPath(path string, key string) (string, error) {
 // enforcerNetworkSwapStatePaths returns the enforcer state a swap from -> to
 // must move. The enforcer files its validator chain and wallet per network, so
 // both survive a swap untouched; state only has to move when the two networks
-// share those directories, leaving the outgoing chain where the incoming one
-// will look for its own.
+// share the directories of the legacy layout. The <fork>/<chain> layout gives
+// each network its own directory, so it never moves.
 func enforcerNetworkSwapStatePaths(from, to config.Network) []string {
-	if !config.EnforcerNetworksCollide(from, to) {
+	if !config.LegacyEnforcerNetworksCollide(from, to) {
 		return nil
 	}
 	return []string{
-		config.EnforcerValidatorDir(from),
-		config.EnforcerWalletDir(from),
-		filepath.Join(config.EnforcerDirs.RootDir(), config.EnforcerNetworkName(from)),
+		config.LegacyEnforcerValidatorDir(from),
+		config.LegacyEnforcerWalletDir(from),
 	}
 }
 

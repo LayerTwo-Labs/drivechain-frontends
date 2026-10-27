@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/rs/zerolog"
 )
@@ -375,8 +376,7 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 		return append(paths, GetMatchingFilesInDir(networkDir, utxoSnapshotPattern, log)...)
 
 	case "bip300301-enforcer":
-		networkName := EnforcerNetworkName(network)
-		return GetExistingFilesInDir(b.RootDir(), []string{filepath.Join("validator", networkName), networkName}, log)
+		return GetExistingFilesInDir(b.RootDir(), enforcerChainDataNames(network), log)
 
 	case "bitwindowd":
 		return GetExistingFilesInDir(networkDir, []string{"bitdrive", "bitwindow.db"}, log)
@@ -439,8 +439,7 @@ func WipeEnforcerChainDataSync(network Network, log zerolog.Logger) error {
 		if dc.BinaryName != "bip300301-enforcer" {
 			continue
 		}
-		networkName := EnforcerNetworkName(network)
-		for _, name := range []string{filepath.Join("validator", networkName), networkName} {
+		for _, name := range enforcerChainDataNames(network) {
 			p := filepath.Join(dc.RootDir(), name)
 			if _, err := os.Stat(p); err != nil {
 				if !os.IsNotExist(err) {
@@ -528,10 +527,11 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 
 	switch b.layoutKey() {
 	case "bip300301-enforcer":
-		walletDir := EnforcerWalletDir(network)
-		if _, err := os.Stat(walletDir); err == nil {
-			paths = append(paths, walletDir)
+		names := []string{filepath.Join("wallet", LegacyEnforcerNetworkName(network))}
+		if chainDir, err := EnforcerChainDir(network, ECashNetworkID()); err == nil {
+			names = append([]string{filepath.Join(chainDir, "wallet")}, names...)
 		}
+		paths = append(paths, GetExistingFilesInDir(b.RootDir(), names, log)...)
 
 	case "bitcoind":
 		// Wallets directory
@@ -634,7 +634,7 @@ func (b BinaryDirConfig) GetAllDatadirPaths(networkDir string) []string {
 
 // GetLogPaths returns log file paths for a binary (for deletion).
 // Dart: getLogPaths (L579-627)
-func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []string {
+func (b BinaryDirConfig) GetLogPaths(networkDir string, network Network, log zerolog.Logger) []string {
 	var paths []string
 
 	switch b.layoutKey() {
@@ -642,7 +642,11 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"debug.log"}, log)...)
 
 	case "bip300301-enforcer":
-		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"bip300301_enforcer.log", "logs"}, log)...)
+		names := []string{"bip300301_enforcer.log", "logs"}
+		if chainDir, err := EnforcerChainDir(network, ECashNetworkID()); err == nil {
+			names = append(names, filepath.Join(chainDir, "logs"))
+		}
+		paths = append(paths, GetExistingFilesInDir(networkDir, names, log)...)
 
 	case "bitwindowd":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"miner.log", "server.log"}, log)...)
@@ -700,11 +704,61 @@ func (n Network) ReadableName() string {
 	}
 }
 
-// EnforcerNetworkName is the directory name the enforcer files a network's
-// state under, in <root>/validator/<name> and <root>/wallet/<name>. It follows
-// the chain name Bitcoin Core reports, so mainnet and the networks that fork it
-// share one name.
-func EnforcerNetworkName(n Network) string {
+// EnforcerChainDir is the enforcer's <fork>/<chain> directory for network,
+// relative to its data directory. The enforcer keeps the validator, wallet and
+// logs directories in it. ecashID names the eCash network for NetworkECash.
+func EnforcerChainDir(n Network, ecashID string) (string, error) {
+	fork := enforcerBitcoinFork
+	if n == NetworkECash {
+		f, ok := EnforcerFork(ecashID)
+		if !ok {
+			return "", fmt.Errorf("the enforcer has no fork for the eCash network %q", ecashID)
+		}
+		fork = f
+	}
+	return filepath.Join(fork, enforcerChainName(n)), nil
+}
+
+// enforcerChainName obeys NetworkParams::data_dir in bip300301_enforcer. Every
+// eCash network runs chain main. The L2L signet challenge is not the default
+// one, so its directory has the signet magic as a suffix.
+func enforcerChainName(n Network) string {
+	switch n {
+	case NetworkMainnet, NetworkECash:
+		return "mainnet"
+	case NetworkTestnet:
+		return "testnet3"
+	case NetworkSignet:
+		if signet, ok := netcatalog.Embedded().ByID("signet"); ok && signet.NetworkMagic != "" {
+			return "signet_" + strings.ToLower(signet.NetworkMagic)
+		}
+		return "signet"
+	default:
+		return "regtest"
+	}
+}
+
+// enforcerChainDataNames lists the validator directories of network, relative
+// to the enforcer data directory: the <fork>/<chain> one and the legacy ones.
+func enforcerChainDataNames(n Network) []string {
+	var names []string
+	if chainDir, err := EnforcerChainDir(n, ECashNetworkID()); err == nil {
+		names = append(names, filepath.Join(chainDir, "validator"))
+	}
+	legacy := LegacyEnforcerNetworkName(n)
+	names = append(names, filepath.Join("validator", legacy))
+	// <root>/bitcoin is also the bitcoin fork directory, which holds the
+	// chains and wallets of every Bitcoin network.
+	if legacy != enforcerBitcoinFork {
+		names = append(names, legacy)
+	}
+	return names
+}
+
+// LegacyEnforcerNetworkName is the directory name that enforcer releases
+// before the --fork flag used for a network, in <root>/validator/<name> and
+// <root>/wallet/<name>. Mainnet and the networks that fork it share one name.
+func LegacyEnforcerNetworkName(n Network) string {
 	switch n {
 	case NetworkMainnet, NetworkECash:
 		return "bitcoin"
@@ -713,22 +767,22 @@ func EnforcerNetworkName(n Network) string {
 	}
 }
 
-// EnforcerValidatorDir is the enforcer's validator database directory for
-// network.
-func EnforcerValidatorDir(n Network) string {
-	return filepath.Join(EnforcerDirs.RootDir(), "validator", EnforcerNetworkName(n))
+// LegacyEnforcerValidatorDir is the validator database directory for network
+// in the legacy layout.
+func LegacyEnforcerValidatorDir(n Network) string {
+	return filepath.Join(EnforcerDirs.RootDir(), "validator", LegacyEnforcerNetworkName(n))
 }
 
-// EnforcerWalletDir is the enforcer's BDK wallet directory for network.
-func EnforcerWalletDir(n Network) string {
-	return filepath.Join(EnforcerDirs.RootDir(), "wallet", EnforcerNetworkName(n))
+// LegacyEnforcerWalletDir is the BDK wallet directory for network in the
+// legacy layout.
+func LegacyEnforcerWalletDir(n Network) string {
+	return filepath.Join(EnforcerDirs.RootDir(), "wallet", LegacyEnforcerNetworkName(n))
 }
 
-// EnforcerNetworksCollide reports whether two networks share the enforcer's
-// on-disk directories, which is the only case where swapping between them
-// leaves one network's chain sitting where the other will look for its own.
-func EnforcerNetworksCollide(a, b Network) bool {
-	return a != b && EnforcerNetworkName(a) == EnforcerNetworkName(b)
+// LegacyEnforcerNetworksCollide reports whether two networks share the
+// directories of the legacy layout.
+func LegacyEnforcerNetworksCollide(a, b Network) bool {
+	return a != b && LegacyEnforcerNetworkName(a) == LegacyEnforcerNetworkName(b)
 }
 
 // ---------------------------------------------------------------------------
