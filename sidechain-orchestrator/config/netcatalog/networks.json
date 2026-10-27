@@ -376,7 +376,7 @@
           "url": null
         },
         "enforcer": {
-          "url": null
+          "url": "https://seed.ecash.eu.com/enforcer"
         },
         "blockbook": {
           "url": "https://blockbook.ecash.ninja"
