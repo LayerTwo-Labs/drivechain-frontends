@@ -21,9 +21,14 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 	const betanetURL = "https://enforcer.beta.ecash.ninja"
 	const alphanetURL = "https://seed.alpha.ecash.eu.com/enforcer"
 	const signetURL = "https://enforcer.signet.drivechain.info"
+	const ecashURL = "https://seed.ecash.eu.com/enforcer"
 	liveURL := netcatalog.EmbeddedECash().Services.Enforcer.URL
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != liveURL {
 		t.Fatalf("initial URL = %q, want %q", got, liveURL)
+	}
+	SetECashEndpoints(netcatalog.Network{ID: "ecash"})
+	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != ecashURL {
+		t.Fatalf("ecash URL = %q, want %q", got, ecashURL)
 	}
 	SetECashEndpoints(netcatalog.Network{ID: "alphanet"})
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != alphanetURL {
