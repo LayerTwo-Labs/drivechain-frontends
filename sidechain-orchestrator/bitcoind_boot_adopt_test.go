@@ -117,7 +117,7 @@ func (s bootSink) failures(t *testing.T) []string {
 
 const lockConflictError = "bitcoind exited immediately (code 1): exit status 1\n" +
 	"stderr: Error: Cannot obtain a lock on directory /mnt/ecash. " +
-	"Bitcoin Core (eCash alphanet) is probably already running."
+	"Bitcoin Core (eCash betanet) is probably already running."
 
 // TestStartBitcoindOnly_AdoptsExternalCoreWhenThePingLoses is the guard for
 // the chain that lost its L1 on every restart. The boot asked the RPC alone

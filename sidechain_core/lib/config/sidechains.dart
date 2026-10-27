@@ -27,8 +27,6 @@ abstract class Sidechain extends Binary {
     switch (name) {
       case 'Big Block Covenant':
         return 'bbc';
-      case 'Elements Alpha':
-        return 'liquid-signet';
       default:
         return name.toLowerCase();
     }
@@ -56,9 +54,6 @@ abstract class Sidechain extends Binary {
 
       case 'coinshift':
         return CoinShift();
-
-      case 'liquid-signet':
-        return LiquidSignet();
 
       case 'bbc':
         return Bbc();
@@ -166,18 +161,6 @@ abstract class Sidechain extends Binary {
           chainLayer: binary.chainLayer,
         );
 
-      case 'Liquid Signet':
-        return LiquidSignet(
-          name: binary.name,
-          version: binary.version,
-          description: binary.description,
-          repoUrl: binary.repoUrl,
-          directories: binary.directories,
-          metadata: binary.metadata,
-          port: binary.port,
-          chainLayer: binary.chainLayer,
-        );
-
       case 'Big Block Covenant':
         return Bbc(
           name: binary.name,
@@ -207,73 +190,9 @@ abstract class Sidechain extends Binary {
   }
 }
 
-class LiquidSignet extends Sidechain {
-  LiquidSignet({
-    super.name = 'Elements Alpha',
-    super.version = 'cad1fc1fb5695c14234c4e287cf9e47d958609e7',
-    super.description = 'Elements sidechain',
-    super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
-    DirectoryConfig? directories,
-    MetadataConfig? metadata,
-    super.port = 29443,
-    super.chainLayer = 2,
-    super.downloadInfo = const DownloadInfo(),
-    super.extraBootArgs = const [],
-  }) : super(
-         directories: directories ?? DirectoryConfig(binary: allPlatforms('liquid-signet'), flutterFrontend: const {}),
-         metadata:
-             metadata ??
-             MetadataConfig(
-               downloadConfig: DownloadConfig(
-                 binary: 'elementsd',
-                 files: allPlatforms(''),
-               ),
-               remoteTimestamp: null,
-               downloadedTimestamp: null,
-               binaryPath: null,
-               updateable: false,
-             ),
-       );
-
-  @override
-  int get slot => 24;
-
-  @override
-  BinaryType get type => BinaryType.BINARY_TYPE_LIQUID_SIGNET;
-
-  @override
-  Color get color => Colors.blue;
-
-  @override
-  bool get developedByLayerTwoLabs => false;
-
-  @override
-  LiquidSignet copyWith({
-    String? version,
-    String? description,
-    String? repoUrl,
-    DirectoryConfig? directories,
-    MetadataConfig? metadata,
-    int? port,
-    int? chainLayer,
-    DownloadInfo? downloadInfo,
-  }) => LiquidSignet(
-    name: name,
-    version: version ?? this.version,
-    description: description ?? this.description,
-    repoUrl: repoUrl ?? this.repoUrl,
-    directories: directories ?? this.directories,
-    metadata: metadata ?? this.metadata,
-    port: port ?? this.port,
-    chainLayer: chainLayer ?? this.chainLayer,
-    downloadInfo: downloadInfo ?? this.downloadInfo,
-    extraBootArgs: extraBootArgs,
-  );
-}
-
 /// Bitcoin Core fork carrying the covenant opcodes, run as a drivechain
-/// sidechain. Core-derived like Liquid Signet, so it speaks Core-style JSON-RPC
-/// rather than the CUSF interface the Rust sidechains use.
+/// sidechain. It speaks Core-style JSON-RPC rather than the CUSF interface the
+/// Rust sidechains use.
 class Bbc extends Sidechain {
   Bbc({
     super.name = 'Big Block Covenant',
@@ -1134,7 +1053,6 @@ List<Binary> get sidechainBinaries => [
   resolveFromConfig(BinaryType.BINARY_TYPE_BITASSETS, () => BitAssets()),
   resolveFromConfig(BinaryType.BINARY_TYPE_COINSHIFT, () => CoinShift()),
   resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDE, () => ZSide()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_LIQUID_SIGNET, () => LiquidSignet()),
   resolveFromConfig(BinaryType.BINARY_TYPE_BBC, () => Bbc()),
   resolveFromConfig(BinaryType.BINARY_TYPE_FREEBANK, () => FreeBank()),
 ];

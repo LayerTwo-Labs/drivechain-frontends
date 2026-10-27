@@ -53,7 +53,7 @@ func bundleState(t *testing.T, ctx context.Context, e *M4Engine, hash string) (w
 func TestUpdateBundleStates_ReplayIsIdempotent(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db, config.NetworkMainnet, "")
+	e := NewM4Engine(db, config.NetworkMainnet)
 
 	seedBundle(t, ctx, e, "bundle-a", 100)
 
@@ -71,7 +71,7 @@ func TestUpdateBundleStates_ReplayIsIdempotent(t *testing.T) {
 func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db, config.NetworkMainnet, "")
+	e := NewM4Engine(db, config.NetworkMainnet)
 
 	seedBundle(t, ctx, e, "bundle-a", 100)
 
@@ -164,7 +164,7 @@ func workScoreOn(t *testing.T, ctx context.Context, p *Parser, slot uint8) int {
 func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, ""), enforcer: enforcerAt(t, 101, map[uint32]uint32{0: 10})}
+	p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet), enforcer: enforcerAt(t, 101, map[uint32]uint32{0: 10})}
 
 	blockTime := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
 	proposal := coinbaseBlockOf(m3ProposalScript(t, 0, [32]byte{0xab, 0xcd}), blockTime)
@@ -190,7 +190,7 @@ func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
 func TestApplyPendingM4_WaitsForEnforcerThenUsesActiveSlots(t *testing.T) {
 	ctx := t.Context()
 	p := newCoinNewsParser(t)
-	p.m4Engine = NewM4Engine(p.db, config.NetworkMainnet, "")
+	p.m4Engine = NewM4Engine(p.db, config.NetworkMainnet)
 	activations := map[uint32]uint32{0: 10, 9: 20, 5: 500}
 	p.enforcer = enforcerAt(t, 100, activations)
 
@@ -228,7 +228,7 @@ func TestApplyPendingM4_NoEnforcerKeepsParsing(t *testing.T) {
 	db := database.Test(t)
 	p := &Parser{
 		db:       db,
-		m4Engine: NewM4Engine(db, config.NetworkMainnet, ""),
+		m4Engine: NewM4Engine(db, config.NetworkMainnet),
 		enforcer: service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
 			return nil, errors.New("no enforcer")
 		}),
@@ -251,7 +251,7 @@ func TestApplyPendingM4_NoEnforcerKeepsParsing(t *testing.T) {
 func TestPurgeM4AtOrAbove(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db, config.NetworkMainnet, "")
+	e := NewM4Engine(db, config.NetworkMainnet)
 
 	seedBundle(t, ctx, e, "bundle-below", 100)
 	seedBundle(t, ctx, e, "bundle-orphaned", 200)
@@ -286,7 +286,7 @@ func TestProcessBlocks_PersistFailureKeepsHeightUnprocessed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
 			db := database.Test(t)
-			p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet, "")}
+			p := &Parser{db: db, m4Engine: NewM4Engine(db, config.NetworkMainnet)}
 			batch := []lo.Tuple2[uint32, *wire.MsgBlock]{lo.T2(uint32(100), tc.block(t))}
 
 			_, err := db.ExecContext(ctx, `CREATE TRIGGER fail_insert BEFORE INSERT ON `+tc.table+`
@@ -316,7 +316,7 @@ func TestProcessBlocks_PersistFailureKeepsHeightUnprocessed(t *testing.T) {
 func TestProcessBlock_SkipsMalformedM4(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db, config.NetworkMainnet, "")
+	e := NewM4Engine(db, config.NetworkMainnet)
 
 	payload := binary.BigEndian.AppendUint32(nil, m4.M4CommitmentHeader)
 	block := coinbaseBlockOf(opReturnScript(t, append(payload, 0x04)), time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC))
@@ -332,21 +332,20 @@ func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
 		network    config.Network
-		ecashID    string
 		score      uint32
 		wantStatus string
 	}{
-		{"regtest at the threshold", config.NetworkRegtest, "", 5, "pending"},
-		{"regtest above the threshold", config.NetworkRegtest, "", 6, "approved"},
-		{"alphanet at the threshold", config.NetworkECash, "alphanet", 72, "pending"},
-		{"alphanet above the threshold", config.NetworkECash, "alphanet", 73, "approved"},
-		{"mainnet below the threshold", config.NetworkMainnet, "", 73, "pending"},
-		{"mainnet above the threshold", config.NetworkMainnet, "", 13151, "approved"},
+		{"regtest at the threshold", config.NetworkRegtest, 5, "pending"},
+		{"regtest above the threshold", config.NetworkRegtest, 6, "approved"},
+		{"ecash at the threshold", config.NetworkECash, 13150, "pending"},
+		{"ecash above the threshold", config.NetworkECash, 13151, "approved"},
+		{"mainnet below the threshold", config.NetworkMainnet, 73, "pending"},
+		{"mainnet above the threshold", config.NetworkMainnet, 13151, "approved"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
 			db := database.Test(t)
-			e := NewM4Engine(db, tc.network, tc.ecashID)
+			e := NewM4Engine(db, tc.network)
 			seedBundleRow(t, ctx, db, "bundle-a", 100, 100, tc.score)
 
 			require.NoError(t, e.updateBundleStates(ctx, 101))
@@ -359,7 +358,7 @@ func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
 	t.Run("a row with the old mainnet age takes the network age", func(t *testing.T) {
 		ctx := t.Context()
 		db := database.Test(t)
-		e := NewM4Engine(db, config.NetworkRegtest, "")
+		e := NewM4Engine(db, config.NetworkRegtest)
 		seedBundleRow(t, ctx, db, "bundle-a", 100, 100, 5)
 		_, err := db.ExecContext(ctx, `UPDATE withdrawal_bundles SET max_age = 26300`)
 		require.NoError(t, err)
@@ -377,7 +376,7 @@ func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
 	t.Run("a bundle fails after the maximum age", func(t *testing.T) {
 		ctx := t.Context()
 		db := database.Test(t)
-		e := NewM4Engine(db, config.NetworkRegtest, "")
+		e := NewM4Engine(db, config.NetworkRegtest)
 		seedBundleRow(t, ctx, db, "bundle-a", 100, 100, 5)
 
 		require.NoError(t, e.updateBundleStates(ctx, 110))
@@ -394,7 +393,7 @@ func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
 func TestProcessBlock_StoresTheBundleMaxAge(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
-	e := NewM4Engine(db, config.NetworkECash, "alphanet")
+	e := NewM4Engine(db, config.NetworkRegtest)
 
 	block := coinbaseBlockOf(m3ProposalScript(t, 0, [32]byte{0xab}), time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC))
 	require.NoError(t, e.ProcessBlock(ctx, 100, block))
@@ -403,8 +402,8 @@ func TestProcessBlock_StoresTheBundleMaxAge(t *testing.T) {
 	require.NoError(t, db.QueryRowContext(ctx,
 		`SELECT max_age, blocks_left FROM withdrawal_bundles WHERE sidechain_slot = 0`,
 	).Scan(&maxAge, &blocksLeft))
-	assert.Equal(t, 144, maxAge)
-	assert.Equal(t, 144, blocksLeft)
+	assert.Equal(t, 10, maxAge)
+	assert.Equal(t, 10, blocksLeft)
 }
 
 // The rules come from bip300301_enforcer lib/validator/task/mod.rs:
@@ -444,7 +443,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("an upvote downvotes the other pending bundles", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet)
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		seedBundle(t, t.Context(), e, "bundle-c", 102)
@@ -459,7 +458,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x00 repeats the upvote of the previous block", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet)
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		setWorkScore(t, e, "bundle-a", 5)
@@ -473,7 +472,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x00 repeats an alarm", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet)
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		setWorkScore(t, e, "bundle-a", 5)
 
@@ -486,7 +485,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x00 with no M4 in the previous block changes nothing", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet)
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 
 		apply(t, e, 150, m4Version(t, 0x01, 0x00))
@@ -498,7 +497,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x03 upvotes a bundle that leads by 50", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet)
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		setWorkScore(t, e, "bundle-a", 10)
@@ -512,7 +511,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x03 upvotes a single bundle with 50", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet)
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		setWorkScore(t, e, "bundle-a", 50)
 
@@ -524,7 +523,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 	t.Run("version 0x03 skips a lead below 50", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewM4Engine(database.Test(t), config.NetworkMainnet, "")
+		e := NewM4Engine(database.Test(t), config.NetworkMainnet)
 		seedBundle(t, t.Context(), e, "bundle-a", 100)
 		seedBundle(t, t.Context(), e, "bundle-b", 101)
 		setWorkScore(t, e, "bundle-a", 10)
@@ -538,7 +537,7 @@ func TestApplyPendingM4_EnforcerVoteRules(t *testing.T) {
 
 func TestApplyPendingM4KeepsTheLastBundleVote(t *testing.T) {
 	ctx := t.Context()
-	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 		SidechainNumber:  wrapperspb.UInt32(0),
 		ActivationHeight: wrapperspb.UInt32(10),
@@ -579,7 +578,7 @@ func TestApplyPendingM4ReadsANewProposalForTheSameBundle(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			ctx := t.Context()
-			e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+			e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 			sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 				SidechainNumber:  wrapperspb.UInt32(0),
 				ActivationHeight: wrapperspb.UInt32(10),
@@ -622,7 +621,7 @@ func TestApplyPendingM4ReadsANewProposalForTheSameBundle(t *testing.T) {
 
 func TestApplyPendingM4RepeatsTheStoredProposal(t *testing.T) {
 	ctx := t.Context()
-	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 		SidechainNumber:  wrapperspb.UInt32(0),
 		ActivationHeight: wrapperspb.UInt32(10),
@@ -656,7 +655,7 @@ func TestM4UpgradeRestoresTheLastBundleVote(t *testing.T) {
 	db, err := database.New(ctx, conf)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
-	e := NewM4Engine(db, conf.BitcoinCoreNetwork, "")
+	e := NewM4Engine(db, conf.BitcoinCoreNetwork)
 	blockTime := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
 	proposal := m3ProposalScript(t, 0, [32]byte{0xab})
 	message, err := m4.ParseM3Bytes(proposal)
@@ -682,7 +681,7 @@ func TestM4UpgradeRestoresTheLastBundleVote(t *testing.T) {
 
 	db, err = database.New(ctx, conf)
 	require.NoError(t, err)
-	e = NewM4Engine(db, conf.BitcoinCoreNetwork, "")
+	e = NewM4Engine(db, conf.BitcoinCoreNetwork)
 	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 		SidechainNumber:  wrapperspb.UInt32(0),
 		ActivationHeight: wrapperspb.UInt32(10),
@@ -700,7 +699,7 @@ func TestM4UpgradeRestoresTheLastBundleVote(t *testing.T) {
 
 func TestApplyPendingM4KeepsTheApprovedBundleIndex(t *testing.T) {
 	ctx := t.Context()
-	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 		SidechainNumber:  wrapperspb.UInt32(0),
 		ActivationHeight: wrapperspb.UInt32(10),
@@ -742,7 +741,7 @@ func TestApplyPendingM4UpdatesAnUnpaidApprovedBundle(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
-			e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+			e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 			sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 				SidechainNumber:  wrapperspb.UInt32(0),
 				ActivationHeight: wrapperspb.UInt32(10),
@@ -774,7 +773,7 @@ func TestApplyPendingM4UpdatesAnUnpaidApprovedBundle(t *testing.T) {
 
 func TestApplyPendingM4ReadsAPayoutAfterAnIdlePoll(t *testing.T) {
 	ctx := t.Context()
-	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 		SidechainNumber:  wrapperspb.UInt32(0),
 		ActivationHeight: wrapperspb.UInt32(10),
@@ -807,7 +806,7 @@ func TestApplyPendingM4ReadsAPayoutAfterAnIdlePoll(t *testing.T) {
 
 func TestApplyPendingM4KeepsProposalOutputOrder(t *testing.T) {
 	ctx := t.Context()
-	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 		SidechainNumber:  wrapperspb.UInt32(0),
 		ActivationHeight: wrapperspb.UInt32(10),
@@ -843,7 +842,7 @@ func TestApplyPendingM4UsesTheProposalPosition(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			ctx := t.Context()
-			e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+			e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 			sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 				SidechainNumber:  wrapperspb.UInt32(0),
 				ActivationHeight: wrapperspb.UInt32(10),
@@ -882,7 +881,7 @@ func TestApplyPendingM4UsesTheProposalPosition(t *testing.T) {
 
 func TestApplyPendingM4KeepsTheNewProposalOrder(t *testing.T) {
 	ctx := t.Context()
-	e := NewM4Engine(database.Test(t), config.NetworkRegtest, "")
+	e := NewM4Engine(database.Test(t), config.NetworkRegtest)
 	sidechains := []*validatorpb.GetSidechainsResponse_SidechainInfo{{
 		SidechainNumber:  wrapperspb.UInt32(0),
 		ActivationHeight: wrapperspb.UInt32(10),

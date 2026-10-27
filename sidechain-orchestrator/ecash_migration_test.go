@@ -18,6 +18,12 @@ import (
 
 func migrationTestNode(t *testing.T) *Orchestrator {
 	t.Helper()
+	return migrationTestNodeFor(t, "alphanet", "betanet")
+}
+
+// migrationTestNodeFor runs an eCash install on fromID, with toID listed after it.
+func migrationTestNodeFor(t *testing.T, fromID, toID string) *Orchestrator {
+	t.Helper()
 	endpoints, id := config.ECashEndpoints(), config.ECashNetworkID()
 	height := config.PublishedForkHeight(config.NetworkECash)
 	name := config.PublishedDisplayName(config.NetworkECash)
@@ -31,13 +37,13 @@ func migrationTestNode(t *testing.T) *Orchestrator {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 101, NetworkMagic: "eca5a104", ForkParentHash: strings.Repeat("a", 64)},
-		{ID: "betanet", Family: netcatalog.FamilyECash, ForkHeight: 121, NetworkMagic: "eca5a105"},
+		{ID: fromID, Family: netcatalog.FamilyECash, ForkHeight: 101, NetworkMagic: "eca5a104", ForkParentHash: strings.Repeat("a", 64)},
+		{ID: toID, Family: netcatalog.FamilyECash, ForkHeight: 121, NetworkMagic: "eca5a105"},
 	}}
 	cat.Networks[0].P2P.Address = "old.example:8301"
 	cat.Networks[1].P2P.Address = "new.example:8301"
-	o.adoptCatalog(cat, "alphanet")
-	require.NoError(t, o.recordECashChain("alphanet"))
+	o.adoptCatalog(cat, fromID)
+	require.NoError(t, o.recordECashChain(fromID))
 	return o
 }
 

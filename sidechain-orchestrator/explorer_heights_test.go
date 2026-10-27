@@ -15,7 +15,7 @@ func TestExplorerHeightsSkipsNetworksWithoutHostedInfra(t *testing.T) {
 	// one it means rather than reading whichever generation ran before it.
 	original := config.ECashNetworkID()
 	t.Cleanup(func() { config.SetECashNetworkID(original) })
-	config.SetECashNetworkID("alphanet")
+	config.SetECashNetworkID("betanet")
 
 	// No public explorer and no chain configured, so nothing reports a tip.
 	for _, network := range []string{"ecash", "mainnet", "regtest", "testnet"} {

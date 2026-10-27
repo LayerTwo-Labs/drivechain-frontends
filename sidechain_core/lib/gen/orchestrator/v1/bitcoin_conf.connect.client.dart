@@ -103,7 +103,7 @@ extension type BitcoinConfServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
+  /// Set the Bitcoin Core network. Takes a catalog id ("betanet") or a slot
   /// name (signet, mainnet, ecash, regtest).
   Future<orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
     orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkRequest input, {

@@ -30,6 +30,6 @@ func TestSidechainEnforcerHostRejectsURLsItCannotRepresent(t *testing.T) {
 		_, err := KnownSidechainSpecs["bitnames"].EnforcerArgs(endpoint)
 		require.Error(t, err)
 	}
-	_, err := KnownSidechainSpecs["liquid-signet"].EnforcerArgs("http://127.0.0.1:50051")
+	_, err := SidechainConfSpec{Name: "custom"}.EnforcerArgs("http://127.0.0.1:50051")
 	require.ErrorContains(t, err, "does not support a remote enforcer")
 }

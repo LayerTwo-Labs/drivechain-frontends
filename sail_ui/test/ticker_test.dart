@@ -8,7 +8,6 @@ void main() {
     });
 
     test('each eCash test network names its own coin', () {
-      expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'alphanet'), Ticker.alphanet);
       expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'betanet'), Ticker.betanet);
       expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, ecashNetworkId: 'gammanet'), Ticker.ecash);
     });
@@ -36,7 +35,6 @@ void main() {
       expect(Ticker.ecash.subunitLabel, 'Szats');
       expect(Ticker.ecash.feeRate, 'szat/vB');
 
-      expect(Ticker.alphanet.symbol, 'aECX');
       expect(Ticker.betanet.symbol, 'bECX');
       expect(Ticker.betanet.subunit, 'szats');
 
@@ -46,7 +44,6 @@ void main() {
 
       expect(Ticker.bitcoin.name, 'Bitcoin');
       expect(Ticker.ecash.name, 'eCash');
-      expect(Ticker.alphanet.name, 'eCash');
       expect(Ticker.betanet.name, 'eCash');
     });
   });

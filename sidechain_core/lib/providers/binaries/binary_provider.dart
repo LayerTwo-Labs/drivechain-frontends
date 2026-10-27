@@ -684,7 +684,6 @@ class BinaryProvider extends ChangeNotifier {
       Truthcoin() => 'truthcoin',
       Photon() => 'photon',
       CoinShift() => 'coinshift',
-      LiquidSignet() => 'liquid-signet',
       FreeBank() => 'freebank',
       _ => null,
     };

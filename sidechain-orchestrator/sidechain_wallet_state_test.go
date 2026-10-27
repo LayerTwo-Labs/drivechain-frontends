@@ -95,32 +95,32 @@ func TestUnstampedWalletIsParkedUnderTheStarterWallet(t *testing.T) {
 // must not open on another.
 func TestParkedWalletStaysOnItsECashNetwork(t *testing.T) {
 	dir := t.TempDir()
-	require.NoError(t, alignWalletState(dir, "alphanet", "A", "A"))
-	writeWallet(t, dir, "alphanet wallet A")
-	require.NoError(t, alignWalletState(dir, "alphanet", "B", "A"))
-
-	require.NoError(t, alignECashState(dir, "alphanet"))
-	require.NoError(t, alignECashState(dir, "betanet"))
 	require.NoError(t, alignWalletState(dir, "betanet", "A", "A"))
+	writeWallet(t, dir, "betanet wallet A")
+	require.NoError(t, alignWalletState(dir, "betanet", "B", "A"))
+
+	require.NoError(t, alignECashState(dir, "betanet"))
+	require.NoError(t, alignECashState(dir, "ecash"))
+	require.NoError(t, alignWalletState(dir, "ecash", "A", "A"))
 
 	require.NoFileExists(t, filepath.Join(dir, sidechainWalletFile))
-	require.Equal(t, "alphanet wallet A", readState(t, filepath.Join(dir, "wallet.mdb.network-wallet-A-ecash-alphanet")))
+	require.Equal(t, "betanet wallet A", readState(t, filepath.Join(dir, "wallet.mdb.network-wallet-A-ecash-betanet")))
 }
 
 // A network switch carries the stamp with the wallet.mdb it names.
 func TestECashSwitchCarriesTheWalletStamp(t *testing.T) {
 	dir := t.TempDir()
-	require.NoError(t, alignECashState(dir, "alphanet"))
-	require.NoError(t, alignWalletState(dir, "alphanet", "A", "A"))
-	writeWallet(t, dir, "alphanet wallet A")
 	require.NoError(t, alignECashState(dir, "betanet"))
-	require.NoError(t, alignWalletState(dir, "betanet", "B", "A"))
-	writeWallet(t, dir, "betanet wallet B")
+	require.NoError(t, alignWalletState(dir, "betanet", "A", "A"))
+	writeWallet(t, dir, "betanet wallet A")
+	require.NoError(t, alignECashState(dir, "ecash"))
+	require.NoError(t, alignWalletState(dir, "ecash", "B", "A"))
+	writeWallet(t, dir, "ecash wallet B")
 
-	require.NoError(t, alignECashState(dir, "alphanet"))
-	require.NoError(t, alignWalletState(dir, "alphanet", "A", "A"))
+	require.NoError(t, alignECashState(dir, "betanet"))
+	require.NoError(t, alignWalletState(dir, "betanet", "A", "A"))
 
-	require.Equal(t, "alphanet wallet A", readState(t, filepath.Join(dir, sidechainWalletFile)))
+	require.Equal(t, "betanet wallet A", readState(t, filepath.Join(dir, sidechainWalletFile)))
 	require.Equal(t, "A\n", readState(t, filepath.Join(dir, walletStampFile)))
 }
 
@@ -363,25 +363,25 @@ func TestRefusalOnOneECashNetworkStaysWithThatNetwork(t *testing.T) {
 		o.ecashID = id
 		o.mu.Unlock()
 	}
-	setECashID("alphanet")
+	setECashID("betanet")
 	cfg := thunderConfig(t, o)
 	dir, _, ok := o.sidechainWalletDir(cfg)
 	require.True(t, ok)
 
 	_, err := o.alignSidechainState(cfg)
 	require.NoError(t, err)
-	writeWallet(t, dir, "refused on alphanet")
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.mdb.network-ecash-betanet"), []byte("saved on betanet"), 0o644))
+	writeWallet(t, dir, "refused on betanet")
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.mdb.network-ecash-ecash"), []byte("saved on ecash"), 0o644))
 	o.process.mu.Lock()
 	o.process.lastExited[cfg.Name] = refusedRun("Error: " + seedRefusal)
 	o.process.mu.Unlock()
 
-	setECashID("betanet")
+	setECashID("ecash")
 	_, err = o.alignSidechainState(cfg)
 	require.NoError(t, err)
 
-	require.Equal(t, "saved on betanet", readState(t, filepath.Join(dir, sidechainWalletFile)))
-	require.Equal(t, "refused on alphanet", readState(t, filepath.Join(dir, "wallet.mdb.network-"+walletParkKey(externalWalletID, "alphanet"))))
+	require.Equal(t, "saved on ecash", readState(t, filepath.Join(dir, sidechainWalletFile)))
+	require.Equal(t, "refused on betanet", readState(t, filepath.Join(dir, "wallet.mdb.network-"+walletParkKey(externalWalletID, "betanet"))))
 }
 
 func TestCoreSidechainHoldsTheStarterWallet(t *testing.T) {

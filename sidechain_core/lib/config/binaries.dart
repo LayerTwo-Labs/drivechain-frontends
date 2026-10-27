@@ -35,7 +35,6 @@ Binary defaultBinaryFor(BinaryType type) => switch (type) {
   BinaryType.BINARY_TYPE_GRPCURL => GRPCurl(),
   BinaryType.BINARY_TYPE_DRIVECHAIND => Drivechaind(),
   BinaryType.BINARY_TYPE_ZSIDED => ZSided(),
-  BinaryType.BINARY_TYPE_LIQUID_SIGNET => LiquidSignet(),
   BinaryType.BINARY_TYPE_BBC => Bbc(),
   BinaryType.BINARY_TYPE_FREEBANK => FreeBank(),
   _ => _unsupportedBinaryType(type),
@@ -1092,7 +1091,6 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_TRUTHCOIN:
       case BinaryType.BINARY_TYPE_PHOTON:
       case BinaryType.BINARY_TYPE_COINSHIFT:
-      case BinaryType.BINARY_TYPE_LIQUID_SIGNET:
       case BinaryType.BINARY_TYPE_BBC:
       case BinaryType.BINARY_TYPE_FREEBANK:
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
@@ -1145,7 +1143,6 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_TRUTHCOIN:
       case BinaryType.BINARY_TYPE_PHOTON:
       case BinaryType.BINARY_TYPE_COINSHIFT:
-      case BinaryType.BINARY_TYPE_LIQUID_SIGNET:
       case BinaryType.BINARY_TYPE_GRPCURL:
       case BinaryType.BINARY_TYPE_DRIVECHAIND:
       case BinaryType.BINARY_TYPE_ZSIDED:
@@ -1764,7 +1761,6 @@ BinaryType _binaryTypeFromJsonKey(String key) {
     'truthcoin' => BinaryType.BINARY_TYPE_TRUTHCOIN,
     'photon' => BinaryType.BINARY_TYPE_PHOTON,
     'coinshift' => BinaryType.BINARY_TYPE_COINSHIFT,
-    'liquid-signet' => BinaryType.BINARY_TYPE_LIQUID_SIGNET,
     'bbc' => BinaryType.BINARY_TYPE_BBC,
     'freebank' => BinaryType.BINARY_TYPE_FREEBANK,
     'zside' => BinaryType.BINARY_TYPE_ZSIDE,
@@ -1786,7 +1782,6 @@ String binaryTypeToJsonKey(BinaryType type) {
     BinaryType.BINARY_TYPE_TRUTHCOIN => 'truthcoin',
     BinaryType.BINARY_TYPE_PHOTON => 'photon',
     BinaryType.BINARY_TYPE_COINSHIFT => 'coinshift',
-    BinaryType.BINARY_TYPE_LIQUID_SIGNET => 'liquid-signet',
     BinaryType.BINARY_TYPE_BBC => 'bbc',
     BinaryType.BINARY_TYPE_FREEBANK => 'freebank',
     BinaryType.BINARY_TYPE_ZSIDE => 'zside',
@@ -1942,16 +1937,6 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       chainLayer: chainLayer,
     ),
     BinaryType.BINARY_TYPE_COINSHIFT => CoinShift(
-      name: name,
-      version: version,
-      description: description,
-      repoUrl: repoUrl,
-      directories: directories,
-      metadata: metadata,
-      port: port,
-      chainLayer: chainLayer,
-    ),
-    BinaryType.BINARY_TYPE_LIQUID_SIGNET => LiquidSignet(
       name: name,
       version: version,
       description: description,

@@ -130,7 +130,7 @@ void main() {
   });
 
   testWidgets('unsupported chains show no broadcast controls', (tester) async {
-    for (final chain in ['thunder', 'zside', 'coinshift', 'bbc', 'liquid-signet']) {
+    for (final chain in ['thunder', 'zside', 'coinshift', 'bbc']) {
       final model = _ExplorerModel(chain: chain);
       await _showActions(tester, model);
       expect(find.byType(SailButton), findsNothing);

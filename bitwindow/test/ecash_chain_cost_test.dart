@@ -9,9 +9,9 @@ void main() {
   // Chain data is never deleted, so no line may promise a resync.
   test('a switch names the block it rewinds to', () {
     final line = ecashChainCostLine(
-      PlanECashSwitchResponse(fromId: 'drynet4', toId: 'alphanet', rewindHeight: 961631, needsRollback: true),
+      PlanECashSwitchResponse(fromId: 'drynet4', toId: 'betanet', rewindHeight: 961631, needsRollback: true),
       'drynet4',
-      'alphanet',
+      'betanet',
     );
 
     expect(line, contains('961631'));
@@ -23,9 +23,9 @@ void main() {
   // switch cannot run. It must say that, not offer to delete the chain.
   test('a blocked switch says it cannot run', () {
     final line = ecashChainCostLine(
-      PlanECashSwitchResponse(fromId: 'drynet4', toId: 'alphanet', blocked: true),
+      PlanECashSwitchResponse(fromId: 'drynet4', toId: 'betanet', blocked: true),
       'drynet4',
-      'alphanet',
+      'betanet',
     );
 
     expect(line, contains('cannot run'));
@@ -34,7 +34,7 @@ void main() {
 
   // A manual conf gets no backend rewind, and still must not promise a delete.
   test('a manual switch never names a delete', () {
-    final line = ecashChainCostLine(null, 'drynet4', 'alphanet', manualConf: true);
+    final line = ecashChainCostLine(null, 'drynet4', 'betanet', manualConf: true);
 
     expect(line.toLowerCase(), isNot(contains('delete')));
   });

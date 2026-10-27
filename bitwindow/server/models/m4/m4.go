@@ -84,31 +84,19 @@ const (
 )
 
 // WithdrawalMaxAge returns the number of blocks a withdrawal bundle has for its
-// votes, with the values of the enforcer. ecashID is the catalog id of an eCash network.
-func WithdrawalMaxAge(network config.Network, ecashID string) uint32 {
-	switch {
-	case network == config.NetworkMainnet:
+// votes, with the values of the enforcer.
+func WithdrawalMaxAge(network config.Network) uint32 {
+	if network == config.NetworkMainnet || network == config.NetworkECash {
 		return 26300
-	case network == config.NetworkECash && ecashID == "alphanet":
-		return 144
-	case network == config.NetworkECash:
-		return 26300
-	default:
-		return 10
 	}
+	return 10
 }
 
 // WithdrawalInclusionThreshold returns the number of ACKs a withdrawal bundle
 // must exceed for approval on network, with the values of the enforcer.
-func WithdrawalInclusionThreshold(network config.Network, ecashID string) uint16 {
-	switch {
-	case network == config.NetworkMainnet:
+func WithdrawalInclusionThreshold(network config.Network) uint16 {
+	if network == config.NetworkMainnet || network == config.NetworkECash {
 		return 13150
-	case network == config.NetworkECash && ecashID == "alphanet":
-		return 72
-	case network == config.NetworkECash:
-		return 13150
-	default:
-		return 5
 	}
+	return 5
 }

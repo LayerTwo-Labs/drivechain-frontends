@@ -1,7 +1,6 @@
 const burnEcxAddress = '1BitcoinEaterAddressDontSendf59kuE';
 const burnEcxMinimumSats = 100000000000;
 const burnEcxNetworks = {
-  'alphanet': (name: 'Alphanet', creditDivisor: 100),
   'betanet': (name: 'Betanet', creditDivisor: 50),
 };
 

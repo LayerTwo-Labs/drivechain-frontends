@@ -30,7 +30,7 @@ import (
 func newWalletBurnECXCommand(burnAddress string, minimumSats int64) *cli.Command {
 	return &cli.Command{
 		Name:      "burn-ecx",
-		Usage:     "Burn Alphanet or Betanet coins for real ECX",
+		Usage:     "Burn Betanet coins for real ECX",
 		ArgsUsage: "[wallet-id]",
 		Flags: []cli.Flag{
 			&cli.Int64Flag{Name: "sats", Usage: "amount to burn in satoshis", Required: true},
@@ -81,7 +81,7 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 		}
 	}
 	if current.Name == "" {
-		return fmt.Errorf("the burn is available only on Alphanet and Betanet")
+		return fmt.Errorf("the burn is available only on Betanet")
 	}
 	if s.network.Name == "" {
 		s.network = current

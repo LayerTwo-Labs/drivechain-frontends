@@ -130,7 +130,7 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
 
   @override
-  String ecashNetworkId = 'alphanet';
+  String ecashNetworkId = 'betanet';
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

@@ -46,7 +46,7 @@ func TestECashWithoutElectrumBackendYieldsNoHost(t *testing.T) {
 	}
 }
 
-// The eCash networks do not share one port: alphanet seeds on 8533. A built
+// The eCash networks do not share one port: betanet seeds on 8533. A built
 // name would send bitcoind to a port nothing listens on, and it would find no
 // peers.
 func TestECashPeerUsesThePublishedAddress(t *testing.T) {

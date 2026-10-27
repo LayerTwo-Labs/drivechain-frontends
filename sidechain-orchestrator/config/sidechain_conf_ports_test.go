@@ -30,9 +30,6 @@ func TestSeededChainsTakeAddPeer(t *testing.T) {
 	}
 }
 
-// unprovedChains ship no binary here, so nobody read their flags.
-var unprovedChains = []string{"liquid-signet"}
-
 // A flag the daemon does not know stops it on the first boot.
 func TestCliArgKeysNameOnlyFlagsTheBinaryAccepts(t *testing.T) {
 	for name, flags := range provedChainFlags {

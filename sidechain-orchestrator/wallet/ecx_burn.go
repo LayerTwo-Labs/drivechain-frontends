@@ -1,6 +1,6 @@
 package wallet
 
-// ECXBurnAddress receives Alphanet or Betanet coins for an ECX claim.
+// ECXBurnAddress receives Betanet coins for an ECX claim.
 const ECXBurnAddress = "1BitcoinEaterAddressDontSendf59kuE"
 
 // ECXBurnScriptHex is the output script for ECXBurnAddress.
@@ -18,10 +18,7 @@ type ECXBurnNetwork struct {
 
 // ECXBurnNetworkByID returns the burn network for an eCash network id. Name is "" for each other id.
 func ECXBurnNetworkByID(id string) ECXBurnNetwork {
-	switch id {
-	case "alphanet":
-		return ECXBurnNetwork{Name: "Alphanet", CreditDivisor: 100}
-	case "betanet":
+	if id == "betanet" {
 		return ECXBurnNetwork{Name: "Betanet", CreditDivisor: 50}
 	}
 	return ECXBurnNetwork{}

@@ -32,7 +32,7 @@ Sources: [BitNames block submission](https://github.com/octobocto/plain-bitnames
 Both modes start local sidechain daemons and use their wallet RPCs.
 Full mode also starts local Core and enforcer.
 Light mode uses `services.enforcer.url` from the network catalog.
-The alphanet endpoint is `https://seed.alpha.ecash.eu.com/enforcer`.
+The betanet endpoint is `https://enforcer.beta.ecash.ninja`.
 The orchestrator supplies each daemon with a loopback HTTP/2 bridge to that HTTPS endpoint.
 It checks validator health before daemon startup.
 
@@ -43,7 +43,7 @@ After an orchestrator restart, light mode restarts adopted backends from the sam
 Sidechain startup returns an error when the network has no remote validator or the daemon lacks compatible flags.
 The BitWindow L1 wallet can still use Electrum on networks without a remote validator.
 Core-derived sidechains and ZSide remain outside remote-enforcer support.
-Truthcoin accepts the split host/port flags on signet, but its current binary has no alphanet network.
+Truthcoin accepts the split host/port flags on signet.
 Sources: [startup](../sidechain-orchestrator/remote_enforcer.go), [daemon flags](../sidechain-orchestrator/config/sidechain_conf.go), [frontend mode](../sidechain_core/lib/config/backend_boot.dart).
 
 The raw enforcer listener has no TLS or caller authentication.
@@ -63,9 +63,6 @@ The public endpoint passed 13 checks on 2026-09-09.
 These covered JSON and native gRPC reads, health, subscriptions, and seven blocked method paths.
 The header sync subscription returned the same status as the local backend after header sync completed.
 
-A fresh Thunder 0.17.10 node synced all 216 alphanet sidechain blocks through the public validator on 2026-09-09.
-Both chain tips matched the seed after approximately five minutes.
-This probe used an explicit IPv4 peer and no enforcer wallet.
 Thunder's default DNS path rejects an IPv6 seed address on its IPv4 socket before it tries IPv4.
 The [Thunder fork fix](https://github.com/octobocto/thunder-rust/pull/12) tries the next compatible seed address.
 The other four forks use a literal IPv4 seed and do not share this DNS fault.

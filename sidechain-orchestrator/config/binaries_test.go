@@ -275,7 +275,6 @@ func TestEnforcerChainDirObeysTheEnforcerDataDir(t *testing.T) {
 		want    string
 	}{
 		{NetworkMainnet, "", filepath.Join("bitcoin", "mainnet")},
-		{NetworkECash, "alphanet", filepath.Join("ecash-alphanet", "mainnet")},
 		{NetworkECash, "betanet", filepath.Join("ecash-betanet", "mainnet")},
 		{NetworkECash, "ecash", filepath.Join("ecash", "mainnet")},
 		{NetworkSignet, "", filepath.Join("bitcoin", "signet_13182df0")},
@@ -367,10 +366,10 @@ func TestWipeEnforcerChainDataTakesBothLayouts(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
-	useECashNetworkID(t, "alphanet")
+	useECashNetworkID(t, "betanet")
 	root := EnforcerDirs.RootDir()
 
-	chain := filepath.Join("ecash-alphanet", "mainnet")
+	chain := filepath.Join("ecash-betanet", "mainnet")
 	seedEnforcerDirs(t, root,
 		filepath.Join(chain, "validator"), filepath.Join(chain, "wallet"),
 		filepath.Join("validator", "bitcoin"), filepath.Join("wallet", "bitcoin"),

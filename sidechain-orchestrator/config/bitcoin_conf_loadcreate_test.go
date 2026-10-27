@@ -105,7 +105,7 @@ func TestLoadOrCreate_SignetChallengeWipeKeepsSharedSidechainData(t *testing.T) 
 		keepsSidechain bool
 	}{
 		{"regtest", "chain=regtest\n" + oldChallenge, true},
-		{"ecash", "chain=main\n" + oldChallenge + "[main]\ndrivechain=1\nuacomment=" + ECashUAComment("alphanet") + "\n", true},
+		{"ecash", "chain=main\n" + oldChallenge + "[main]\ndrivechain=1\nuacomment=" + ECashUAComment("betanet") + "\n", true},
 		{"signet", "chain=signet\n" + oldChallenge, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

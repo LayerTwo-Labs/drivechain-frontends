@@ -14,7 +14,7 @@ import (
 func TestWalletPathsIncludeTheParkedWalletOfEachWallet(t *testing.T) {
 	// A glob character in the path must not change what the sweep finds.
 	dir := filepath.Join(t.TempDir(), "data[1]")
-	for _, name := range []string{"wallet.mdb", "wallet.mdb.network-wallet-A", "wallet.mdb.network-wallet-external", "wallet.mdb.network-ecash-alphanet", "data.mdb", "data.mdb.network-ecash-alphanet"} {
+	for _, name := range []string{"wallet.mdb", "wallet.mdb.network-wallet-A", "wallet.mdb.network-wallet-external", "wallet.mdb.network-ecash-betanet", "data.mdb", "data.mdb.network-ecash-betanet"} {
 		require.NoError(t, os.MkdirAll(filepath.Join(dir, name), 0o755))
 	}
 
@@ -26,6 +26,6 @@ func TestWalletPathsIncludeTheParkedWalletOfEachWallet(t *testing.T) {
 		filepath.Join(dir, "wallet.mdb"),
 		filepath.Join(dir, "wallet.mdb.network-wallet-A"),
 		filepath.Join(dir, "wallet.mdb.network-wallet-external"),
-		filepath.Join(dir, "wallet.mdb.network-ecash-alphanet"),
+		filepath.Join(dir, "wallet.mdb.network-ecash-betanet"),
 	}, got)
 }

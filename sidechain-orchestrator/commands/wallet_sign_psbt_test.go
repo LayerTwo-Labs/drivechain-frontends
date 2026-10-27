@@ -22,7 +22,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const signTestWarning = "This transaction burns Alphanet coins for a claim of real ECX."
+const signTestWarning = "This transaction burns Betanet coins for a claim of real ECX."
 
 func newSignTestContext(t *testing.T, f *burnTestFlow, args ...string) *cli.Context {
 	t.Helper()

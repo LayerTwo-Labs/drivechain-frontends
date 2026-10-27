@@ -2,7 +2,7 @@
 
 This is the practical checklist for wiring a new sidechain into BitWindow + the
 orchestrator, plus the conventions that keep it from going sideways. It's
-distilled from real review feedback (PR #1830, the Liquid/Elements slot-24 work).
+distilled from real review feedback.
 
 > **Ground-truth trick:** a sidechain touches ~20 files. Instead of trusting any
 > list (including this one) to stay current, pick the most recently added
@@ -142,8 +142,8 @@ Download button shows a risk warning before downloading untrusted chains.
   the bug is in its health check (the source), not in a frontend type check.
 - **Fix at the source, not the call site.** Same principle: a wrong value gets
   fixed where it's produced.
-- **Frontend dials only the local orchestrator.** Never `Process.run` a CLI
-  (e.g. `elements-cli`) from Flutter, and never open a direct socket to a
+- **Frontend dials only the local orchestrator.** Never `Process.run` a
+  sidechain CLI from Flutter, and never open a direct socket to a
   sidechain daemon. Route through an orchestrator RPC.
 - **Surgical changes.** Adding a sidechain should not refactor shared
   infrastructure (the migration engine, generic providers). If you're rewriting
@@ -153,14 +153,13 @@ Download button shows a risk warning before downloading untrusted chains.
 
 ---
 
-## Non-CUSF sidechains (e.g. Elements / Liquid)
+## Non-CUSF sidechains (e.g. Big Block Covenant)
 
 The steps above assume a CUSF-style sidechain (unauthenticated JSON-RPC, BMM
-deposits/withdrawals). A Bitcoin Core derivative like Elements is different:
-authenticated RPC (rpcuser/rpcpassword or `.cookie`), multi-asset
-`getbalance`, and a peg model that doesn't match `SidechainRPC`'s
-withdrawal-bundle/mine surface. See `liquid-signet-integration.md` for a worked
-example of the deltas and the open design decisions.
+deposits/withdrawals). A Bitcoin Core derivative like Big Block Covenant is
+different: authenticated RPC (`.cookie`) and a peg model that doesn't match
+`SidechainRPC`'s withdrawal-bundle/mine surface. See `sidechain/bbc/` in the
+orchestrator for a worked example.
 
 ---
 

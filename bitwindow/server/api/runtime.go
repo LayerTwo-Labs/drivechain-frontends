@@ -189,7 +189,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
 	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain)
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, rt.walletEngine, s.Bitcoind, rt.walletEngine.NodeMode())
-	rt.m4Engine = engines.NewM4Engine(rt.db, conf.BitcoinCoreNetwork, networkID)
+	rt.m4Engine = engines.NewM4Engine(rt.db, conf.BitcoinCoreNetwork)
 	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind, rt.walletEngine.NodeMode())
 	bitdriveEngine, err := engines.NewBitDriveEngine(rt.db, rt.walletEngine, conf.Datadir, rt.chainParams)
 	if err != nil {
@@ -244,7 +244,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		bitwindowdv1connect.RegisterBitwindowdServiceHandler(rpcServer, bwSvc)
 	}
 	{
-		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.walletEngine, m4.WithdrawalMaxAge(conf.BitcoinCoreNetwork, networkID))
+		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.walletEngine, m4.WithdrawalMaxAge(conf.BitcoinCoreNetwork))
 		drivechainv1connect.RegisterDrivechainServiceHandler(rpcServer, drivechainSvc)
 	}
 	{

@@ -13,13 +13,13 @@ func TestFeeExplorerURLForNetwork(t *testing.T) {
 	previous := ECashEndpoints()
 	t.Cleanup(func() { SetECashEndpoints(previous) })
 
-	for _, id := range []string{"betanet", "alphanet"} {
+	for _, id := range []string{"betanet", "ecash"} {
 		entry, ok := netcatalog.Embedded().ByID(id)
 		if !ok {
 			t.Fatalf("the embedded catalog lists no %s", id)
 		}
 		SetECashEndpoints(entry)
-		want := "https://explorer." + map[string]string{"betanet": "beta", "alphanet": "alpha"}[id] + ".ecash.ninja"
+		want := map[string]string{"betanet": "https://explorer.beta.ecash.ninja", "ecash": "https://explorer.ecash.ninja"}[id]
 		if got := FeeExplorerURLForNetwork(NetworkECash); got != want {
 			t.Errorf("%s explorer = %q, want %q", id, got, want)
 		}
@@ -106,7 +106,7 @@ func TestECashReleaseChannelForTakesTheCompiledInFolder(t *testing.T) {
 }
 
 func TestLookupNetworkNamesNoECashID(t *testing.T) {
-	for _, id := range []string{"ecash-mainnet", "betanet", "alphanet"} {
+	for _, id := range []string{"ecash-mainnet", "betanet"} {
 		if n, ok := LookupNetwork(id); ok {
 			t.Errorf("LookupNetwork(%q) = %q, want no network", id, n)
 		}

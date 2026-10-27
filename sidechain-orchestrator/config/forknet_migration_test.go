@@ -35,7 +35,7 @@ drivechain=1
 func TestMigrationLeavesEveryOtherChainMainConfigAlone(t *testing.T) {
 	for name, conf := range map[string]string{
 		"mainnet": "chain=main\ndatadir=/vol/bitcoin\n",
-		"ecash":   "chain=main\ndatadir=/vol/ecash\n\n[main]\nport=8301\nrpcport=18302\ndrivechain=1\nuacomment=ecash-alphanet\n",
+		"ecash":   "chain=main\ndatadir=/vol/ecash\n\n[main]\nport=8301\nrpcport=18302\ndrivechain=1\nuacomment=ecash-betanet\n",
 	} {
 		t.Run(name, func(t *testing.T) {
 			config := ParseBitcoinConfig(conf)
@@ -115,7 +115,7 @@ func TestPrivateECashConfIsAdopted(t *testing.T) {
 	confDir := BitcoinCoreDirs.RootDirNetwork(m.Network)
 	require.NoError(t, os.MkdirAll(confDir, 0o755))
 	private := filepath.Join(confDir, "bitcoin.conf")
-	conf := "chain=main\ndatadir=/vol/ecash\n\n[main]\ndrivechain=1\nuacomment=" + ECashUAComment("alphanet") + "\n"
+	conf := "chain=main\ndatadir=/vol/ecash\n\n[main]\ndrivechain=1\nuacomment=" + ECashUAComment("betanet") + "\n"
 	require.NoError(t, os.WriteFile(private, []byte(conf), 0o644))
 
 	require.True(t, m.tryLoadPrivateConfig())

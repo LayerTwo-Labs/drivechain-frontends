@@ -2171,7 +2171,7 @@ func TestBalanceReloadsRatherThanReadAStaleWallet(t *testing.T) {
 
 // A rescanning wallet is loaded and it keeps serving. Core refuses a new import
 // while it rescans, and that can run for hours, so refusing the wallet over it
-// would take balances away for the whole rescan. The alphanet server answers
+// would take balances away for the whole rescan. A live server answers
 // exactly this during a Core start.
 func TestARescanningWalletKeepsServing(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)

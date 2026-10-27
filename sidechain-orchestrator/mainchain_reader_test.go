@@ -111,7 +111,5 @@ func TestOnlyASidechainWithoutTheEnforcerSkipsIt(t *testing.T) {
 		require.True(t, ok, name)
 		require.True(t, startsEnforcer(cfg), name)
 	}
-	elements, ok := BinaryConfigByName("liquid-signet")
-	require.True(t, ok)
-	require.False(t, startsEnforcer(elements))
+	require.False(t, startsEnforcer(BinaryConfig{Name: "standalone", ChainLayer: 2, Dependencies: []string{"bitcoind"}}))
 }

@@ -100,24 +100,23 @@ func (SidechainType) EnumDescriptor() ([]byte, []int) {
 type BinaryType int32
 
 const (
-	BinaryType_BINARY_TYPE_UNSPECIFIED   BinaryType = 0
-	BinaryType_BINARY_TYPE_BITCOIND      BinaryType = 1
-	BinaryType_BINARY_TYPE_ENFORCER      BinaryType = 2
-	BinaryType_BINARY_TYPE_BITWINDOWD    BinaryType = 3
-	BinaryType_BINARY_TYPE_THUNDER       BinaryType = 4
-	BinaryType_BINARY_TYPE_ZSIDE         BinaryType = 5
-	BinaryType_BINARY_TYPE_BITNAMES      BinaryType = 6
-	BinaryType_BINARY_TYPE_BITASSETS     BinaryType = 7
-	BinaryType_BINARY_TYPE_TRUTHCOIN     BinaryType = 8
-	BinaryType_BINARY_TYPE_PHOTON        BinaryType = 9
-	BinaryType_BINARY_TYPE_COINSHIFT     BinaryType = 10
-	BinaryType_BINARY_TYPE_GRPCURL       BinaryType = 11
-	BinaryType_BINARY_TYPE_DRIVECHAIND   BinaryType = 12
-	BinaryType_BINARY_TYPE_ZSIDED        BinaryType = 13
-	BinaryType_BINARY_TYPE_LIQUID_SIGNET BinaryType = 14
-	BinaryType_BINARY_TYPE_BBC           BinaryType = 15
-	BinaryType_BINARY_TYPE_FREEBANK      BinaryType = 16
-	BinaryType_BINARY_TYPE_SOLANA        BinaryType = 17
+	BinaryType_BINARY_TYPE_UNSPECIFIED BinaryType = 0
+	BinaryType_BINARY_TYPE_BITCOIND    BinaryType = 1
+	BinaryType_BINARY_TYPE_ENFORCER    BinaryType = 2
+	BinaryType_BINARY_TYPE_BITWINDOWD  BinaryType = 3
+	BinaryType_BINARY_TYPE_THUNDER     BinaryType = 4
+	BinaryType_BINARY_TYPE_ZSIDE       BinaryType = 5
+	BinaryType_BINARY_TYPE_BITNAMES    BinaryType = 6
+	BinaryType_BINARY_TYPE_BITASSETS   BinaryType = 7
+	BinaryType_BINARY_TYPE_TRUTHCOIN   BinaryType = 8
+	BinaryType_BINARY_TYPE_PHOTON      BinaryType = 9
+	BinaryType_BINARY_TYPE_COINSHIFT   BinaryType = 10
+	BinaryType_BINARY_TYPE_GRPCURL     BinaryType = 11
+	BinaryType_BINARY_TYPE_DRIVECHAIND BinaryType = 12
+	BinaryType_BINARY_TYPE_ZSIDED      BinaryType = 13
+	BinaryType_BINARY_TYPE_BBC         BinaryType = 15
+	BinaryType_BINARY_TYPE_FREEBANK    BinaryType = 16
+	BinaryType_BINARY_TYPE_SOLANA      BinaryType = 17
 )
 
 // Enum value maps for BinaryType.
@@ -137,30 +136,28 @@ var (
 		11: "BINARY_TYPE_GRPCURL",
 		12: "BINARY_TYPE_DRIVECHAIND",
 		13: "BINARY_TYPE_ZSIDED",
-		14: "BINARY_TYPE_LIQUID_SIGNET",
 		15: "BINARY_TYPE_BBC",
 		16: "BINARY_TYPE_FREEBANK",
 		17: "BINARY_TYPE_SOLANA",
 	}
 	BinaryType_value = map[string]int32{
-		"BINARY_TYPE_UNSPECIFIED":   0,
-		"BINARY_TYPE_BITCOIND":      1,
-		"BINARY_TYPE_ENFORCER":      2,
-		"BINARY_TYPE_BITWINDOWD":    3,
-		"BINARY_TYPE_THUNDER":       4,
-		"BINARY_TYPE_ZSIDE":         5,
-		"BINARY_TYPE_BITNAMES":      6,
-		"BINARY_TYPE_BITASSETS":     7,
-		"BINARY_TYPE_TRUTHCOIN":     8,
-		"BINARY_TYPE_PHOTON":        9,
-		"BINARY_TYPE_COINSHIFT":     10,
-		"BINARY_TYPE_GRPCURL":       11,
-		"BINARY_TYPE_DRIVECHAIND":   12,
-		"BINARY_TYPE_ZSIDED":        13,
-		"BINARY_TYPE_LIQUID_SIGNET": 14,
-		"BINARY_TYPE_BBC":           15,
-		"BINARY_TYPE_FREEBANK":      16,
-		"BINARY_TYPE_SOLANA":        17,
+		"BINARY_TYPE_UNSPECIFIED": 0,
+		"BINARY_TYPE_BITCOIND":    1,
+		"BINARY_TYPE_ENFORCER":    2,
+		"BINARY_TYPE_BITWINDOWD":  3,
+		"BINARY_TYPE_THUNDER":     4,
+		"BINARY_TYPE_ZSIDE":       5,
+		"BINARY_TYPE_BITNAMES":    6,
+		"BINARY_TYPE_BITASSETS":   7,
+		"BINARY_TYPE_TRUTHCOIN":   8,
+		"BINARY_TYPE_PHOTON":      9,
+		"BINARY_TYPE_COINSHIFT":   10,
+		"BINARY_TYPE_GRPCURL":     11,
+		"BINARY_TYPE_DRIVECHAIND": 12,
+		"BINARY_TYPE_ZSIDED":      13,
+		"BINARY_TYPE_BBC":         15,
+		"BINARY_TYPE_FREEBANK":    16,
+		"BINARY_TYPE_SOLANA":      17,
 	}
 )
 
@@ -4887,7 +4884,7 @@ type GetForkStatusResponse struct {
 	ShowCountdown bool `protobuf:"varint,8,opt,name=show_countdown,json=showCountdown,proto3" json:"show_countdown,omitempty"`
 	// Per-wallet claimable coins, with the exact UTXOs the sweep spends.
 	Claims []*ForkWalletClaim `protobuf:"bytes,9,rep,name=claims,proto3" json:"claims,omitempty"`
-	// Name of the fork being counted down to ("Alphanet"), from the published
+	// Name of the fork being counted down to ("Betanet"), from the published
 	// catalog. A rehearsal must never read as the real eCash fork.
 	NetworkName string `protobuf:"bytes,10,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`
 	// nLockTime the live eCash network's node treats as final. A transaction
@@ -6281,7 +6278,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x18SIDECHAIN_TYPE_TRUTHCOIN\x10\x05\x12\x19\n" +
 	"\x15SIDECHAIN_TYPE_PHOTON\x10\x06\x12\x1c\n" +
 	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a\x12\x1b\n" +
-	"\x17SIDECHAIN_TYPE_FREEBANK\x10\b*\xe0\x03\n" +
+	"\x17SIDECHAIN_TYPE_FREEBANK\x10\b*\xe2\x03\n" +
 	"\n" +
 	"BinaryType\x12\x1b\n" +
 	"\x17BINARY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
@@ -6298,11 +6295,10 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x12\x17\n" +
 	"\x13BINARY_TYPE_GRPCURL\x10\v\x12\x1b\n" +
 	"\x17BINARY_TYPE_DRIVECHAIND\x10\f\x12\x16\n" +
-	"\x12BINARY_TYPE_ZSIDED\x10\r\x12\x1d\n" +
-	"\x19BINARY_TYPE_LIQUID_SIGNET\x10\x0e\x12\x13\n" +
+	"\x12BINARY_TYPE_ZSIDED\x10\r\x12\x13\n" +
 	"\x0fBINARY_TYPE_BBC\x10\x0f\x12\x18\n" +
 	"\x14BINARY_TYPE_FREEBANK\x10\x10\x12\x16\n" +
-	"\x12BINARY_TYPE_SOLANA\x10\x11*\xbe\x01\n" +
+	"\x12BINARY_TYPE_SOLANA\x10\x11\"\x04\b\x0e\x10\x0e*\x19BINARY_TYPE_LIQUID_SIGNET*\xbe\x01\n" +
 	"\x12MainchainSyncPhase\x12$\n" +
 	" MAINCHAIN_SYNC_PHASE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cMAINCHAIN_SYNC_PHASE_HEADERS\x10\x01\x12\x1e\n" +

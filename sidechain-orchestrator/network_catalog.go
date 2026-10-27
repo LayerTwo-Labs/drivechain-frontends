@@ -602,7 +602,7 @@ var regtestOption = NetworkOption{ID: "regtest", DisplayName: "Regtest", Network
 const regtestMagic = "fabfb5da"
 
 // ListNetworks returns the networks the user can pick: every catalog entry the
-// app knows how to run, in document order, plus regtest.
+// app runs, in document order, plus regtest.
 func (o *Orchestrator) ListNetworks() []NetworkOption {
 	o.mu.RLock()
 	cat := o.Catalog
@@ -612,6 +612,9 @@ func (o *Orchestrator) ListNetworks() []NetworkOption {
 	active := config.NetworkFromString(o.Network)
 	options := make([]NetworkOption, 0, len(cat.Networks)+1)
 	for _, n := range cat.Networks {
+		if n.MigrationOnly {
+			continue
+		}
 		slot, ok := config.NetworkForCatalogEntry(n.ID, n.Family)
 		if !ok {
 			continue
@@ -631,7 +634,7 @@ func (o *Orchestrator) ListNetworks() []NetworkOption {
 }
 
 // NetworkForOption resolves a picker id to the slot it runs in. It accepts a
-// catalog id ("alphanet") and a bare slot name ("signet"), so a caller that
+// catalog id ("betanet") and a bare slot name ("signet"), so a caller that
 // only knows the slot still works.
 func (o *Orchestrator) NetworkForOption(id string) (config.Network, bool) {
 	o.mu.RLock()

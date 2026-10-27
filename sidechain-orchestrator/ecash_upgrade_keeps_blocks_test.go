@@ -33,7 +33,7 @@ func seedCoreChainData(t *testing.T, datadir string) {
 	}
 }
 
-// An app update must never resync the chain. drynet4 -> alphanet is an offer,
+// An app update must never resync the chain. drynet4 -> betanet is an offer,
 // so startup serves the network the blocks belong to and leaves the move to
 // the user.
 func TestStartupKeepsTheChainWhenTheCatalogMovesOn(t *testing.T) {
@@ -42,20 +42,20 @@ func TestStartupKeepsTheChainWhenTheCatalogMovesOn(t *testing.T) {
 	require.NotEmpty(t, datadir)
 	seedCoreChainData(t, datadir)
 
-	// The install the user updated: blocks from drynet4, catalog on alphanet.
+	// The install the user updated: blocks from drynet4, catalog on betanet.
 	o.BitcoinConf.Config.SetSetting("uacomment", config.ECashUAComment("drynet4"), "main")
 	require.Equal(t, "drynet4", o.installedECashNetwork())
-	publish(t, o, catalogWithECash(t, "alphanet"))
+	publish(t, o, catalogWithECash(t, "betanet"))
 
 	o.ResolveNetworkCatalog(context.Background())
-	awaitRefresh(t, o, "alphanet")
+	awaitRefresh(t, o, "betanet")
 
 	require.Equal(t, "drynet4", config.ECashNetworkID(), "startup must serve the network the blocks belong to")
 	for _, d := range []string{"blocks", "chainstate"} {
 		_, err := os.Stat(filepath.Join(datadir, d, "data"))
 		require.NoErrorf(t, err, "%s must survive a start that sees a newer eCash network", d)
 	}
-	require.Equal(t, "alphanet", o.Catalog.ECashID(), "the offer still reaches the user")
+	require.Equal(t, "betanet", o.Catalog.ECashID(), "the offer still reaches the user")
 }
 
 // A network the user picked is not an offer. Startup applies it.
@@ -63,14 +63,14 @@ func TestStartupAppliesTheNetworkTheUserPicked(t *testing.T) {
 	o := ecashInstall(t)
 	seedCoreChainData(t, o.ecashDatadir())
 	o.BitcoinConf.Config.SetSetting("uacomment", config.ECashUAComment("drynet4"), "main")
-	publish(t, o, catalogWithECash(t, "alphanet"))
-	_, err := o.Settings.SetECashNetworkID("alphanet")
+	publish(t, o, catalogWithECash(t, "betanet"))
+	_, err := o.Settings.SetECashNetworkID("betanet")
 	require.NoError(t, err)
 
 	o.ResolveNetworkCatalog(context.Background())
-	awaitRefresh(t, o, "alphanet")
+	awaitRefresh(t, o, "betanet")
 
-	require.Equal(t, "alphanet", config.ECashNetworkID())
+	require.Equal(t, "betanet", config.ECashNetworkID())
 }
 
 // A confirmed upgrade must leave the chain matching the network the conf names.
@@ -109,11 +109,11 @@ func TestASwitchWithNoForkHeightKeepsTheBlocks(t *testing.T) {
 	require.NotEmpty(t, datadir)
 	seedCoreChainData(t, datadir)
 	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
+		{ID: "betanet", Family: netcatalog.FamilyECash},
 		{ID: "drynet4", Family: netcatalog.FamilyECash},
 	}}, "drynet4")
 
-	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	err := o.ApplyECashSwitch(context.Background(), "betanet")
 
 	require.Error(t, err)
 	require.DirExists(t, filepath.Join(datadir, "blocks"), "the chain must survive a refused switch")
@@ -126,7 +126,7 @@ func TestASwitchWithNoForkHeightKeepsTheBlocks(t *testing.T) {
 func TestASwitchJournalsItsEnforcerCleanup(t *testing.T) {
 	o := ecashInstall(t)
 	o.adoptCatalog(ecashCatalog(), "drynet4")
-	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("betanet"))
 
 	require.NoError(t, o.ApplyPendingEnforcerWipe())
 
@@ -140,7 +140,7 @@ func TestAFailedEnforcerCleanupKeepsItsJournal(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	o := ecashInstall(t)
-	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("betanet"))
 
 	validator := filepath.Join(config.EnforcerDirs.RootDir(), "validator")
 	require.NoError(t, os.MkdirAll(filepath.Join(validator, "bitcoin"), 0o755))
@@ -151,7 +151,7 @@ func TestAFailedEnforcerCleanupKeepsItsJournal(t *testing.T) {
 		t.Skip("this filesystem reads the path anyway, so the failure cannot be staged")
 	}
 
-	require.Equal(t, "alphanet", o.Settings.PendingEnforcerWipe(),
+	require.Equal(t, "betanet", o.Settings.PendingEnforcerWipe(),
 		"cleanup that never ran must leave its journal")
 }
 
@@ -163,9 +163,9 @@ func TestAnEnforcerCleanupForAnAbortedSwitchIsDropped(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	o := ecashInstall(t)
-	// The install still runs drynet4: the switch to alphanet never committed.
+	// The install still runs drynet4: the switch to betanet never committed.
 	o.adoptCatalog(ecashCatalog(), "drynet4")
-	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("betanet"))
 
 	chain := filepath.Join(config.EnforcerDirs.RootDir(), "validator", "bitcoin")
 	require.NoError(t, os.MkdirAll(chain, 0o755))
@@ -184,9 +184,9 @@ func TestAColdPickRecordsTheEnforcerCleanup(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkSignet))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 
-	require.NoError(t, o.SelectECashNetwork("alphanet"))
+	require.NoError(t, o.SelectECashNetwork("betanet"))
 
-	require.Equal(t, "alphanet", o.Settings.PendingEnforcerWipe(),
+	require.Equal(t, "betanet", o.Settings.PendingEnforcerWipe(),
 		"the enforcer chain must be cleared before the new generation runs")
 }
 
@@ -198,8 +198,8 @@ func TestTheEnforcerCleanupWaitsUntilECashIsActive(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	o := ecashInstall(t)
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
-	o.adoptCatalog(ecashCatalog(), "alphanet")
-	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	o.adoptCatalog(ecashCatalog(), "betanet")
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("betanet"))
 
 	chain := filepath.Join(config.EnforcerDirs.RootDir(), "validator", "bitcoin")
 	require.NoError(t, os.MkdirAll(chain, 0o755))
@@ -207,7 +207,7 @@ func TestTheEnforcerCleanupWaitsUntilECashIsActive(t *testing.T) {
 	require.NoError(t, o.ApplyPendingEnforcerWipe())
 
 	require.DirExists(t, chain, "mainnet shares this chain, so it must survive")
-	require.Equal(t, "alphanet", o.Settings.PendingEnforcerWipe(),
+	require.Equal(t, "betanet", o.Settings.PendingEnforcerWipe(),
 		"the cleanup waits for the swap that brings eCash back")
 }
 
@@ -217,11 +217,11 @@ func TestAChangeWithNoForkHeightHoldsTheCatalogBack(t *testing.T) {
 	o := ecashInstall(t)
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkSignet))
 	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
+		{ID: "betanet", Family: netcatalog.FamilyECash},
 		{ID: "drynet4", Family: netcatalog.FamilyECash},
 	}}, "drynet4")
 
-	require.False(t, o.ecashChangeHasASharedBlock("drynet4", "alphanet"))
+	require.False(t, o.ecashChangeHasASharedBlock("drynet4", "betanet"))
 
 	require.Empty(t, o.Settings.PendingEnforcerWipe(), "a change that cannot run journals nothing")
 }

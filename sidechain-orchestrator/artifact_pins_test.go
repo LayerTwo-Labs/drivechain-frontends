@@ -143,14 +143,3 @@ func TestProcessStartRefusesAChangedExecutable(t *testing.T) {
 	require.ErrorContains(t, err, "checksum mismatch")
 	require.Zero(t, pid)
 }
-
-func TestElementsHasAPinnedReleasePerPlatform(t *testing.T) {
-	cfg, ok := BinaryConfigByName("liquid-signet")
-	require.True(t, ok)
-	for _, platform := range []string{"macos-arm64", "linux-x86_64", "windows-x86_64"} {
-		require.NoError(t, checkArtifactPins(cfg, platform), platform)
-	}
-	for _, platform := range []string{"macos-x86_64", "linux-arm64", "windows-arm64"} {
-		require.Error(t, checkArtifactPins(cfg, platform), platform)
-	}
-}

@@ -169,12 +169,12 @@ void main() {
   group('lightSidechainNetworksLine', () {
     test('names the networks that host an enforcer', () {
       expect(
-        lightSidechainNetworksLine(['Alphanet']),
-        'Light mode serves sidechains on Alphanet.',
+        lightSidechainNetworksLine(['Betanet']),
+        'Light mode serves sidechains on Betanet.',
       );
       expect(
-        lightSidechainNetworksLine(['Alphanet', 'signet']),
-        'Light mode serves sidechains on Alphanet, signet.',
+        lightSidechainNetworksLine(['Betanet', 'signet']),
+        'Light mode serves sidechains on Betanet, signet.',
       );
     });
 

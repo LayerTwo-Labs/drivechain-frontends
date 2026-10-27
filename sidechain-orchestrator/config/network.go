@@ -52,7 +52,7 @@ const (
 	DatadirGroupECash   DatadirGroup = "ecash"
 )
 
-// ecashNetworkID is the live eCash network id ("alphanet"), resolved from the
+// ecashNetworkID is the live eCash network id ("betanet"), resolved from the
 // network catalog at startup. Package-level because the URL helpers below are
 // package functions called from everywhere; guarded because the catalog is
 // refreshed on a background goroutine.
@@ -306,8 +306,6 @@ func ecashIndexHost(n Network, generation string) string {
 		return ""
 	}
 	switch {
-	case generation == "alphanet":
-		return "https://seed.alpha.ecash.eu.com"
 	case generation == "betanet":
 		return "https://seed.beta.ecash.eu.com"
 	case strings.HasPrefix(generation, legacyECashUAComment):
@@ -574,7 +572,7 @@ func NetworkFromString(s string) Network {
 }
 
 // LookupNetwork converts a string to a Network value and reports whether it
-// named one. A catalog id such as "alphanet" is not a network name.
+// named one. A catalog id such as "betanet" is not a network name.
 func LookupNetwork(s string) (Network, bool) {
 	switch strings.ToLower(s) {
 	case "mainnet", "main", "bitcoin":

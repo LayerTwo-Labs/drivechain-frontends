@@ -26,14 +26,14 @@ class _Store implements KeyValueStore {
 }
 
 void main() {
-  test('the live client reads the alphanet list response', () async {
+  test('the live client reads the list response of a live node', () async {
     final log = Logger();
     GetIt.I.registerSingleton<Logger>(log);
     GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: _Store(), log: log));
     GetIt.I.registerSingleton<BitwindowClientSettings>(BitwindowClientSettings(store: _Store(), log: log));
     addTearDown(GetIt.I.reset);
 
-    final fixture = jsonDecode(await File('test/fixtures/alphanet_bitnames.json').readAsString());
+    final fixture = jsonDecode(await File('test/fixtures/live_bitnames.json').readAsString());
     final response = ListBitNamesResponse(bitnamesJson: fixture['bitnamesJson'] as String);
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     addTearDown(() => server.close(force: true));

@@ -61,7 +61,7 @@ type Explorer struct {
 }
 
 // NewExplorer points a reader at a server, such as
-// https://explorer.alpha.ecash.ninja.
+// https://explorer.beta.ecash.ninja.
 func NewExplorer(baseURL string) *Explorer {
 	return &Explorer{
 		baseURL: strings.TrimRight(baseURL, "/"),
