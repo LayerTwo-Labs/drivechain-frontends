@@ -1822,6 +1822,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
   final nativeBinary = (native?['binary'] as Map<String, dynamic>?)?[OS.current.name] as String?;
   final nativeFiles = native?['files'] as Map<String, dynamic>?;
   final nativeAvailable =
+      native?['ui'] == 'blue-current' &&
       native?['ready'] == true &&
       (nativeBinary?.isNotEmpty ?? false) &&
       (nativeFiles != null && fileForPlatform(nativeFiles, OS.current, currentArch()) != null);

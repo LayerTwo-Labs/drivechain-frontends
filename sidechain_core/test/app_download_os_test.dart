@@ -22,6 +22,9 @@ void main() {
     native['binary'] = {OS.current.name: 'wallet/bin/wallet'};
     native['files'] = {'${OS.current.name}-${currentArch()}': 'bundle.zip'};
     expect(binaryFromJson('liquid-signet', entry).metadata.hasNativeWalletForThisOS, isTrue);
+    native['ui'] = 'elements-qt';
+    expect(binaryFromJson('liquid-signet', entry).metadata.hasNativeWalletForThisOS, isFalse);
+    native['ui'] = 'blue-current';
     native['files'] = {'unsupported-platform': 'bundle.zip'};
     expect(binaryFromJson('liquid-signet', entry).metadata.hasNativeWalletForThisOS, isFalse);
     native['files'] = {'${OS.current.name}-${currentArch()}': 'bundle.zip'};

@@ -23,6 +23,7 @@ const bitcoinGenesis = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b6
 // The bundle contains the GUI, daemon, CLI, and their libraries/assets.
 // A release becomes installable only after its production identity and hashes are frozen.
 type NativeWalletSpec struct {
+	UI               string                 `json:"ui"`
 	Ready            bool                   `json:"ready"`
 	Version          string                 `json:"version"`
 	Binary           map[string]string      `json:"binary"`
@@ -58,6 +59,9 @@ func validateNativeWallet(cfg BinaryConfig, network string) error {
 		return nil
 	}
 	w := cfg.NativeWallet
+	if w.UI != "blue-current" {
+		return fmt.Errorf("Elements bundles must use the Blue Current wallet")
+	}
 	if !w.Ready || !w.Identity.Ready {
 		return fmt.Errorf("Elements wallet and node for the BTC to ECX fork at block 973,728 await a production release with finalized sidechain identity")
 	}

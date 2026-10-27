@@ -4,6 +4,12 @@ Bitwindow installs one versioned bundle containing the Haskell wallet, Elements
 node, CLI, graphics dependencies, fonts, and the node's Haskell runtime. Windows
 uses native executables; WSL is not an end-user dependency.
 
+The wallet source lives in the Elements node repository under
+[`ui/blue-current`](https://github.com/freewillydev/liquid-drivechain-signet-adaptation/tree/670b7b8a50d8129c37fbbd556ae022967131abd7/ui/blue-current).
+It is the selected Blue Current interface, including the Elements logo and
+native accessibility. There is no second Qt, terminal or web frontend in this
+bundle; `native_wallet.ui` must be `blue-current`.
+
 Download and Start reject an unfinished production manifest before downloading
 or starting any node. The catalog deliberately sets `native_wallet.ready` false.
 The requested BTC to ECX fork is at Bitcoin block 973,728; the current custom
@@ -46,7 +52,7 @@ must likewise be qualified portable builds.
 reviewed identity file into an archive plus `native-wallet.json`. Merge platform
 entries into the three catalog copies and a corresponding patch migration.
 
-The metadata has OS-keyed `binary`, `daemon`, `cli`, `extract_subfolder` fields;
+The metadata has `ui: blue-current` and OS-keyed `binary`, `daemon`, `cli`, `extract_subfolder` fields;
 Windows executable entries omit `.exe`. `files`, `artifact_pins`,
 `daemon_sha256`, and `cli_sha256` use platform keys such as `macos-arm64`.
 `download_urls` supplies an HTTPS base URL. `version` identifies an immutable
@@ -58,3 +64,13 @@ Set `ready` only when production node, wallet, artifact hashes, and the parent
 catalog targeting fork 973728 have been qualified together. A directly launched
 bundle displays setup status; Bitwindow supplies its completed connection
 profile. Pending packages never silently select Demo, Alpha, or Betanet.
+
+## Qualification
+
+The current integration passes the full Go module suite, focused Flutter
+configuration/migration tests and analysis. The current node's isolated
+functional chain passes wallet address generation, exact-fee signing/broadcast,
+same-transaction retry, confirmation, backup and recovery. The macOS package
+also passes owned/attached node lifecycle and wrong-chain rejection checks.
+This is not a production deployment test. Final Windows/Linux bundles and the
+production identity/artifact pins remain release prerequisites.

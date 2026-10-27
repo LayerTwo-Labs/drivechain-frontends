@@ -4,6 +4,7 @@
   "binaries": {
     "liquid-signet": {
       "native_wallet": {
+        "ui": "blue-current",
         "ready": false,
         "version": "",
         "identity": {

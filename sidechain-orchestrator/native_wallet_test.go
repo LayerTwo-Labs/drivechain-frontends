@@ -30,12 +30,15 @@ func productionCatalog(t *testing.T) {
 }
 func testNativeSpec() *NativeWalletSpec {
 	h := strings.Repeat("1", 64)
-	return &NativeWalletSpec{Ready: true, Version: "test-release", Binary: map[string]string{currentOS(): "wallet/bin/wallet"}, Daemon: map[string]string{currentOS(): "node/bin/elementsd"}, CLI: map[string]string{currentOS(): "node/bin/elements-cli"}, Files: map[string]string{currentPlatform(): "bundle.zip"}, DownloadURLs: map[string]string{"default": "https://example.invalid/"}, ArtifactPins: map[string]ArtifactPin{currentPlatform(): {ArchiveSHA256: h, ExecutableSHA256: h}}, DaemonSHA256: map[string]string{currentPlatform(): h}, CLISHA256: map[string]string{currentPlatform(): h}, Identity: ElementsWalletIdentity{Name: "Elements", Target: "btc-ecx-mainnet", Ready: true, Genesis: strings.Repeat("2", 64), Asset: strings.Repeat("3", 64), ParentGenesis: bitcoinGenesis, ParentForkHeight: 973728, ChainDirectory: "elements"}}
+	return &NativeWalletSpec{UI: "blue-current", Ready: true, Version: "test-release", Binary: map[string]string{currentOS(): "wallet/bin/wallet"}, Daemon: map[string]string{currentOS(): "node/bin/elementsd"}, CLI: map[string]string{currentOS(): "node/bin/elements-cli"}, Files: map[string]string{currentPlatform(): "bundle.zip"}, DownloadURLs: map[string]string{"default": "https://example.invalid/"}, ArtifactPins: map[string]ArtifactPin{currentPlatform(): {ArchiveSHA256: h, ExecutableSHA256: h}}, DaemonSHA256: map[string]string{currentPlatform(): h}, CLISHA256: map[string]string{currentPlatform(): h}, Identity: ElementsWalletIdentity{Name: "Elements", Target: "btc-ecx-mainnet", Ready: true, Genesis: strings.Repeat("2", 64), Asset: strings.Repeat("3", 64), ParentGenesis: bitcoinGenesis, ParentForkHeight: 973728, ChainDirectory: "elements"}}
 }
 func TestNativeWalletReleaseGate(t *testing.T) {
 	productionCatalog(t)
 	cfg := BinaryConfig{Name: "liquid-signet", NativeWallet: testNativeSpec()}
 	require.NoError(t, validateNativeWallet(cfg, "ecash"))
+	cfg.NativeWallet.UI = "elements-qt"
+	require.ErrorContains(t, validateNativeWallet(cfg, "ecash"), "Blue Current")
+	cfg.NativeWallet.UI = "blue-current"
 	manager, _ := newTestDownloadManager(t)
 	target := manager.ResolveTarget(cfg, "ecash", DownloadOptions{})
 	require.Equal(t, "bundle.zip", target.FileName)
@@ -67,6 +70,7 @@ func TestNativeWalletCatalogSurvivesExistingConfig(t *testing.T) {
 			require.Equal(t, "My Elements", cfg.DisplayName)
 			require.Equal(t, 29555, cfg.Port)
 			require.NotNil(t, cfg.NativeWallet)
+			require.Equal(t, "blue-current", cfg.NativeWallet.UI)
 			require.False(t, cfg.NativeWallet.Ready)
 			require.Equal(t, 973728, cfg.NativeWallet.Identity.ParentForkHeight)
 			return
