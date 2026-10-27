@@ -74,7 +74,7 @@ type Network struct {
 	ReplayLockTime uint32 `json:"replay_lock_time,omitempty"`
 
 	// ReleaseChannel is the path segment of the L1 release this eCash network
-	// downloads. Empty means the id; see ReleaseChannelOrID.
+	// downloads. Only the compiled-in catalog sets it; see ReleaseChannelOrID.
 	ReleaseChannel string `json:"release_channel,omitempty"`
 
 	// P2P is the seed node bitcoind connects through. Every eCash network
@@ -417,11 +417,10 @@ func Fetch(ctx context.Context, url string) (Catalog, error) {
 	return fillFromEmbedded(c, Embedded()), nil
 }
 
-// fillFromEmbedded gives an entry the fork parent hash, replay locktime and
-// release channel that the compiled-in entry of the same id carries, where the
-// document leaves them blank. A published value always wins. These values never
-// change for a network, so a blank one is a gap in the document rather than a
-// retired value.
+// fillFromEmbedded gives an entry the fork parent hash and replay locktime that
+// the compiled-in entry of the same id carries, where the document leaves them
+// blank. A published value always wins. These values never change for a
+// network, so a blank one is a gap in the document rather than a retired value.
 func fillFromEmbedded(c, from Catalog) Catalog {
 	filled := make([]Network, len(c.Networks))
 	copy(filled, c.Networks)
@@ -435,9 +434,6 @@ func fillFromEmbedded(c, from Catalog) Catalog {
 		}
 		if n.ReplayLockTime == 0 {
 			filled[i].ReplayLockTime = known.ReplayLockTime
-		}
-		if n.ReleaseChannel == "" {
-			filled[i].ReleaseChannel = known.ReleaseChannel
 		}
 	}
 	c.Networks = filled

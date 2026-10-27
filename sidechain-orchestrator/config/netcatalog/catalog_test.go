@@ -282,6 +282,7 @@ func TestEmbeddedECashNetworksPublishTheReplayLockTime(t *testing.T) {
 		n, ok := Embedded().ByID(id)
 		require.True(t, ok, id)
 		require.EqualValues(t, 499999999, n.ReplayLockTime, id)
+		require.Equal(t, id, n.ReleaseChannel, id)
 	}
 	n, ok := Embedded().ByID("ecash")
 	require.True(t, ok)
@@ -290,9 +291,9 @@ func TestEmbeddedECashNetworksPublishTheReplayLockTime(t *testing.T) {
 }
 
 // The document drivechain.dev/config served on 2026-10-26 lists the eCash
-// networks oldest first and omits the replay locktime and release channel of
-// ecash. Without the compiled-in values a send would take 499999999, which the
-// eCash v1 node holds non-final, and the L1 download would ask for ecash/.
+// networks oldest first and omits the replay locktime of ecash. Without the
+// compiled-in value a send would take 499999999, which the eCash v1 node holds
+// non-final.
 func TestPublishedCatalogOf20261026TakesEcashWithItsCompiledInValues(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("testdata", "published-2026-10-26.json"))
 	require.NoError(t, err)
@@ -301,22 +302,19 @@ func TestPublishedCatalogOf20261026TakesEcashWithItsCompiledInValues(t *testing.
 	require.Equal(t, "ecash", c.ECashID())
 	published, _ := c.ByID("ecash")
 	require.Zero(t, published.ReplayLockTime)
-	require.Empty(t, published.ReleaseChannel)
 
 	live, ok := fillFromEmbedded(c, Embedded()).CurrentECash()
 	require.True(t, ok)
 	require.Equal(t, "ecash", live.ID)
 	require.EqualValues(t, 499999998, live.ReplayLockTimeOrDefault())
-	require.Equal(t, "mainnet", live.ReleaseChannelOrID())
 }
 
-func TestFillFromEmbeddedKeepsThePublishedLockTimeAndChannel(t *testing.T) {
-	embedded := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999998, ReleaseChannel: "mainnet"}}}
-	fetched := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999997, ReleaseChannel: "v2"}}}
+func TestFillFromEmbeddedKeepsThePublishedLockTime(t *testing.T) {
+	embedded := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999998}}}
+	fetched := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999997}}}
 
 	entry, _ := fillFromEmbedded(fetched, embedded).ByID("ecash")
 	require.EqualValues(t, 499999997, entry.ReplayLockTime)
-	require.Equal(t, "v2", entry.ReleaseChannel)
 }
 
 // The document drivechain.dev/config served on 2026-10-19 carries no

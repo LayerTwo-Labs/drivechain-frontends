@@ -209,6 +209,7 @@
       "network_magic": "eca5a104",
       "fork_height": 963648,
       "replay_lock_time": 499999999,
+      "release_channel": "alphanet",
       "fork_parent_hash": "00000000000000000000d29ee44c13e924c37abcaa80c537609ce70b1fea1f33",
       "backends": [
         {
@@ -272,6 +273,7 @@
       "network_magic": "eca5b104",
       "fork_height": 967680,
       "replay_lock_time": 499999999,
+      "release_channel": "betanet",
       "backends": [
         {
           "kind": "esplora",

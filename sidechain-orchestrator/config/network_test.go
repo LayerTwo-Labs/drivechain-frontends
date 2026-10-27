@@ -92,22 +92,16 @@ func TestECashReplayLockTimeRefusesAnUnloadedNetwork(t *testing.T) {
 	}
 }
 
-func TestECashReleaseChannelForTakesThePublishedChannel(t *testing.T) {
-	t.Cleanup(func() { SetECashReleaseChannel("ecash-mainnet", "") })
-
-	if got := ECashReleaseChannelFor("ecash-mainnet"); got != "ecash-mainnet" {
-		t.Errorf("unpublished channel = %q, want the id", got)
-	}
-	SetECashReleaseChannel("ecash-mainnet", "mainnet")
-	if got := ECashReleaseChannelFor("ecash-mainnet"); got != "mainnet" {
-		t.Errorf("published channel = %q, want mainnet", got)
-	}
-	if got := ECashReleaseChannelFor("betanet"); got != "betanet" {
-		t.Errorf("betanet channel = %q, want betanet", got)
-	}
-	SetECashReleaseChannel("ecash-mainnet", "")
-	if got := ECashReleaseChannelFor("ecash-mainnet"); got != "ecash-mainnet" {
-		t.Errorf("cleared channel = %q, want the id", got)
+func TestECashReleaseChannelForTakesTheCompiledInFolder(t *testing.T) {
+	for id, want := range map[string]string{
+		"ecash":    "mainnet",
+		"betanet":  "betanet",
+		"alphanet": "alphanet",
+		"drynet9":  "drynet9",
+	} {
+		if got := ECashReleaseChannelFor(id); got != want {
+			t.Errorf("ECashReleaseChannelFor(%q) = %q, want %q", id, got, want)
+		}
 	}
 }
 
