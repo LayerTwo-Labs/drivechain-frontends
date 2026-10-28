@@ -12,8 +12,6 @@ const (
 	TypeTopicCreation TypeTag = 0x01
 	TypeStory         TypeTag = 0x02
 	TypeComment       TypeTag = 0x03
-	TypeUpvote        TypeTag = 0x04
-	TypeDownvote      TypeTag = 0x05
 	TypeContinuation  TypeTag = 0x06
 )
 
@@ -30,8 +28,7 @@ const (
 	OutpointLen        = 36 // 32-byte txid + 4-byte vout LE
 	MaxReassembledLen  = 8 * 1024
 	ContinuationChunk  = 63
-	VoteEnvelopeLen    = MagicLen + TypeTagLen + ItemIDLen + XOnlyPubKeyLen + SchnorrSigLen
-	CommentEnvelopeLen = VoteEnvelopeLen
+	CommentEnvelopeLen = MagicLen + TypeTagLen + ItemIDLen + XOnlyPubKeyLen + SchnorrSigLen
 	// HeadlineMaxLen caps Story headlines at 252 bytes — the boundary
 	// where compact-size varints jump from one to three bytes. Keeps
 	// short headlines in their natural 1-byte length cost without

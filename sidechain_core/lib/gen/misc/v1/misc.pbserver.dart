@@ -16,41 +16,37 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
-import 'misc.pb.dart' as $8;
+import 'misc.pb.dart' as $2;
 import 'misc.pbjson.dart';
 
 export 'misc.pb.dart';
 
 abstract class MiscServiceBase extends $pb.GeneratedService {
-  $async.Future<$8.ListOPReturnResponse> listOPReturn($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$8.BroadcastNewsResponse> broadcastNews($pb.ServerContext ctx, $8.BroadcastNewsRequest request);
-  $async.Future<$8.UpvoteNewsResponse> upvoteNews($pb.ServerContext ctx, $8.UpvoteNewsRequest request);
-  $async.Future<$8.UpvoteNewsResponse> downvoteNews($pb.ServerContext ctx, $8.UpvoteNewsRequest request);
-  $async.Future<$8.CreateTopicResponse> createTopic($pb.ServerContext ctx, $8.CreateTopicRequest request);
-  $async.Future<$8.ListTopicsResponse> listTopics($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$8.ListCoinNewsResponse> listCoinNews($pb.ServerContext ctx, $8.ListCoinNewsRequest request);
-  $async.Future<$8.CommentNewsResponse> commentNews($pb.ServerContext ctx, $8.CommentNewsRequest request);
-  $async.Future<$8.ListCommentsResponse> listComments($pb.ServerContext ctx, $8.ListCommentsRequest request);
-  $async.Future<$8.EstimateNewsFeeResponse> estimateNewsFee($pb.ServerContext ctx, $8.EstimateNewsFeeRequest request);
-  $async.Future<$8.TimestampFileResponse> timestampFile($pb.ServerContext ctx, $8.TimestampFileRequest request);
-  $async.Future<$8.ListTimestampsResponse> listTimestamps($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$8.VerifyTimestampResponse> verifyTimestamp($pb.ServerContext ctx, $8.VerifyTimestampRequest request);
+  $async.Future<$2.ListOPReturnResponse> listOPReturn($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$2.BroadcastNewsResponse> broadcastNews($pb.ServerContext ctx, $2.BroadcastNewsRequest request);
+  $async.Future<$2.CreateTopicResponse> createTopic($pb.ServerContext ctx, $2.CreateTopicRequest request);
+  $async.Future<$2.ListTopicsResponse> listTopics($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$2.ListCoinNewsResponse> listCoinNews($pb.ServerContext ctx, $2.ListCoinNewsRequest request);
+  $async.Future<$2.CommentNewsResponse> commentNews($pb.ServerContext ctx, $2.CommentNewsRequest request);
+  $async.Future<$2.ListCommentsResponse> listComments($pb.ServerContext ctx, $2.ListCommentsRequest request);
+  $async.Future<$2.EstimateNewsFeeResponse> estimateNewsFee($pb.ServerContext ctx, $2.EstimateNewsFeeRequest request);
+  $async.Future<$2.TimestampFileResponse> timestampFile($pb.ServerContext ctx, $2.TimestampFileRequest request);
+  $async.Future<$2.ListTimestampsResponse> listTimestamps($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$2.VerifyTimestampResponse> verifyTimestamp($pb.ServerContext ctx, $2.VerifyTimestampRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'ListOPReturn': return $1.Empty();
-      case 'BroadcastNews': return $8.BroadcastNewsRequest();
-      case 'UpvoteNews': return $8.UpvoteNewsRequest();
-      case 'DownvoteNews': return $8.UpvoteNewsRequest();
-      case 'CreateTopic': return $8.CreateTopicRequest();
+      case 'BroadcastNews': return $2.BroadcastNewsRequest();
+      case 'CreateTopic': return $2.CreateTopicRequest();
       case 'ListTopics': return $1.Empty();
-      case 'ListCoinNews': return $8.ListCoinNewsRequest();
-      case 'CommentNews': return $8.CommentNewsRequest();
-      case 'ListComments': return $8.ListCommentsRequest();
-      case 'EstimateNewsFee': return $8.EstimateNewsFeeRequest();
-      case 'TimestampFile': return $8.TimestampFileRequest();
+      case 'ListCoinNews': return $2.ListCoinNewsRequest();
+      case 'CommentNews': return $2.CommentNewsRequest();
+      case 'ListComments': return $2.ListCommentsRequest();
+      case 'EstimateNewsFee': return $2.EstimateNewsFeeRequest();
+      case 'TimestampFile': return $2.TimestampFileRequest();
       case 'ListTimestamps': return $1.Empty();
-      case 'VerifyTimestamp': return $8.VerifyTimestampRequest();
+      case 'VerifyTimestamp': return $2.VerifyTimestampRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -58,18 +54,16 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'ListOPReturn': return this.listOPReturn(ctx, request as $1.Empty);
-      case 'BroadcastNews': return this.broadcastNews(ctx, request as $8.BroadcastNewsRequest);
-      case 'UpvoteNews': return this.upvoteNews(ctx, request as $8.UpvoteNewsRequest);
-      case 'DownvoteNews': return this.downvoteNews(ctx, request as $8.UpvoteNewsRequest);
-      case 'CreateTopic': return this.createTopic(ctx, request as $8.CreateTopicRequest);
+      case 'BroadcastNews': return this.broadcastNews(ctx, request as $2.BroadcastNewsRequest);
+      case 'CreateTopic': return this.createTopic(ctx, request as $2.CreateTopicRequest);
       case 'ListTopics': return this.listTopics(ctx, request as $1.Empty);
-      case 'ListCoinNews': return this.listCoinNews(ctx, request as $8.ListCoinNewsRequest);
-      case 'CommentNews': return this.commentNews(ctx, request as $8.CommentNewsRequest);
-      case 'ListComments': return this.listComments(ctx, request as $8.ListCommentsRequest);
-      case 'EstimateNewsFee': return this.estimateNewsFee(ctx, request as $8.EstimateNewsFeeRequest);
-      case 'TimestampFile': return this.timestampFile(ctx, request as $8.TimestampFileRequest);
+      case 'ListCoinNews': return this.listCoinNews(ctx, request as $2.ListCoinNewsRequest);
+      case 'CommentNews': return this.commentNews(ctx, request as $2.CommentNewsRequest);
+      case 'ListComments': return this.listComments(ctx, request as $2.ListCommentsRequest);
+      case 'EstimateNewsFee': return this.estimateNewsFee(ctx, request as $2.EstimateNewsFeeRequest);
+      case 'TimestampFile': return this.timestampFile(ctx, request as $2.TimestampFileRequest);
       case 'ListTimestamps': return this.listTimestamps(ctx, request as $1.Empty);
-      case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $8.VerifyTimestampRequest);
+      case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $2.VerifyTimestampRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

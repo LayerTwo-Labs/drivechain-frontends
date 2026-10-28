@@ -4,7 +4,7 @@ import { ConnectError, Code } from "@connectrpc/connect";
 import { Thread } from "@/components/thread";
 import { getServerClient } from "@/lib/server-api";
 import { timestampToDate, timeAgo } from "@/lib/api";
-import { shortHex, topicLabel } from "@/lib/utils";
+import { formatSats, shortHex, topicLabel } from "@/lib/utils";
 
 type Params = Promise<{ id: string }>;
 
@@ -34,9 +34,7 @@ export default async function ItemPage({ params }: { params: Params }) {
         {host && <span className="story__host">› {host}</span>}
       </h1>
       <div className="story__meta">
-        <span>
-          {it.points} {it.points === 1 ? "PT" : "PTS"}
-        </span>
+        <span>{formatSats(it.feeSats)}</span>
         <span className="sep">·</span>
         <Link href={`/u/${it.authorXpkHex}`}>{shortHex(it.authorXpkHex)}</Link>
         <span className="sep">·</span>

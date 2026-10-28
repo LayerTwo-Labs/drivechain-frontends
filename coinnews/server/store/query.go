@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"math"
 	"sort"
 	"time"
 
@@ -24,11 +23,8 @@ type FeedItem struct {
 	AuthorXPK    [32]byte // zero if Story (Stories are unsigned)
 	BlockHeight  uint32
 	BlockTime    time.Time
-	Points       int
-	Upvotes      int
-	Downvotes    int
 	CommentCount int
-	Score        float64
+	FeeSats      int64
 	TxID         string
 	Vout         uint32
 }
@@ -38,7 +34,7 @@ type FeedSort int
 
 const (
 	SortNewest FeedSort = iota
-	SortScoreDesc
+	SortFeeDesc
 )
 
 // FeedFilter scopes a feed query.
@@ -51,46 +47,31 @@ type FeedFilter struct {
 	Offset      uint32
 }
 
-// ListFeed runs the canonical feed query. Score formula = HN rank
-// (spec §13). Two indexers from the same chain tip return the same
-// rows in the same order.
+// ListFeed runs the canonical feed query (spec §13). Two indexers from
+// the same chain tip return the same rows in the same order.
 func ListFeed(ctx context.Context, db *sql.DB, f FeedFilter) ([]FeedItem, error) {
 	const query = `
-		WITH tally AS (
-			SELECT target_id,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS up,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS dn
-			FROM cn_votes GROUP BY target_id
-		)
 		SELECT s.item_id, s.topic, s.headline,
 		       COALESCE(s.url, ''), COALESCE(s.body, ''), COALESCE(s.lang, ''),
 		       s.nsfw, s.subtype,
-		       i.block_height, i.block_time, i.txid, i.vout,
-		       COALESCE(t.up, 0) AS up,
-		       COALESCE(t.dn, 0) AS dn,
+		       i.block_height, i.block_time, i.txid, i.vout, i.fee_sats,
 		       COALESCE((SELECT COUNT(*) FROM cn_comments WHERE parent_id = s.item_id), 0) AS comments
 		FROM cn_stories s
 		JOIN cn_items   i ON i.item_id = s.item_id
-		LEFT JOIN tally t ON t.target_id = s.item_id
 		WHERE 1 = 1
 		  AND (? IS NULL OR s.topic = ?)
 		  AND (? IS NULL OR s.subtype = ?)
 		  AND (? OR s.nsfw = 0)
 	`
 	args := []any{
-		byte(codec.TypeUpvote), byte(codec.TypeDownvote),
 		nullableTopic(f.Topic), nullableTopic(f.Topic),
 		nullableSubtype(f.Subtype), nullableSubtype(f.Subtype),
 		f.IncludeNSFW,
 	}
 	var orderClause string
 	switch f.Sort {
-	case SortScoreDesc:
-		orderClause = `
-			ORDER BY (CAST(COALESCE(t.up, 0) - COALESCE(t.dn, 0) - 1 AS REAL))
-			       / POW((CAST(strftime('%s','now') AS REAL) - CAST(strftime('%s', i.block_time) AS REAL))/3600.0 + 2.0, 1.8)
-			DESC, i.block_height DESC
-		`
+	case SortFeeDesc:
+		orderClause = ` ORDER BY i.fee_sats DESC, i.block_height DESC, i.tx_index DESC, i.vout_index DESC `
 	default:
 		orderClause = ` ORDER BY i.block_height DESC, i.tx_index DESC, i.vout_index DESC `
 	}
@@ -111,24 +92,15 @@ func ListFeed(ctx context.Context, db *sql.DB, f FeedFilter) ([]FeedItem, error)
 // the ItemID isn't a Story (could be a Comment or a TopicCreation).
 func GetItem(ctx context.Context, db *sql.DB, id codec.ItemID) (FeedItem, error) {
 	rows, err := db.QueryContext(ctx, `
-		WITH tally AS (
-			SELECT target_id,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS up,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS dn
-			FROM cn_votes WHERE target_id = ?
-			GROUP BY target_id
-		)
 		SELECT s.item_id, s.topic, s.headline,
 		       COALESCE(s.url, ''), COALESCE(s.body, ''), COALESCE(s.lang, ''),
 		       s.nsfw, s.subtype,
-		       i.block_height, i.block_time, i.txid, i.vout,
-		       COALESCE(t.up, 0), COALESCE(t.dn, 0),
+		       i.block_height, i.block_time, i.txid, i.vout, i.fee_sats,
 		       COALESCE((SELECT COUNT(*) FROM cn_comments WHERE parent_id = s.item_id), 0)
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
-		LEFT JOIN tally t ON t.target_id = s.item_id
 		WHERE s.item_id = ?
-	`, byte(codec.TypeUpvote), byte(codec.TypeDownvote), id[:], id[:])
+	`, id[:])
 	if err != nil {
 		return FeedItem{}, err
 	}
@@ -142,7 +114,7 @@ func GetItem(ctx context.Context, db *sql.DB, id codec.ItemID) (FeedItem, error)
 	return items[0], nil
 }
 
-// CommentRow is the materialised view of a comment plus its tally.
+// CommentRow is the materialised view of a comment.
 type CommentRow struct {
 	ItemID      codec.ItemID
 	Parent      codec.ItemID
@@ -153,53 +125,41 @@ type CommentRow struct {
 	ReplyQuote  string
 	BlockHeight uint32
 	BlockTime   time.Time
-	Points      int
-	Score       float64
+	FeeSats     int64
 	TxID        string
 	Vout        uint32
 }
 
-// ListThread returns every comment descendant of `root`, walking
-// parent_id pointers. Caller renders the tree.
+// ListThread returns every comment descendant of `root`, depth-first.
+// Siblings come highest fee first, then in canonical scan order.
 func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRow, error) {
 	rows, err := db.QueryContext(ctx, `
-		WITH tally AS (
-			SELECT target_id,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS up,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS dn
-			FROM cn_votes GROUP BY target_id
-		)
 		SELECT c.item_id, c.parent_id, c.author_xpk,
 		       COALESCE(c.body, ''), COALESCE(c.url, ''), COALESCE(c.lang, ''), COALESCE(c.reply_quote, ''),
-		       i.block_height, i.block_time, i.txid, i.vout,
-		       COALESCE(t.up, 0), COALESCE(t.dn, 0)
+		       i.block_height, i.block_time, i.txid, i.vout, i.fee_sats
 		FROM cn_comments c
 		JOIN cn_items i ON i.item_id = c.item_id
-		LEFT JOIN tally t ON t.target_id = c.item_id
-	`, byte(codec.TypeUpvote), byte(codec.TypeDownvote))
+		ORDER BY i.block_height ASC, i.tx_index ASC, i.vout_index ASC
+	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close() //nolint:errcheck
 
 	all := map[codec.ItemID][]CommentRow{}
-	scoreTime := time.Now()
 	for rows.Next() {
 		var (
 			c              CommentRow
 			itemID, parent []byte
 			xpk            []byte
-			up, dn         int
 		)
 		if err := rows.Scan(&itemID, &parent, &xpk, &c.Body, &c.URL, &c.Lang, &c.ReplyQuote,
-			&c.BlockHeight, &c.BlockTime, &c.TxID, &c.Vout, &up, &dn); err != nil {
+			&c.BlockHeight, &c.BlockTime, &c.TxID, &c.Vout, &c.FeeSats); err != nil {
 			return nil, err
 		}
 		copy(c.ItemID[:], itemID)
 		copy(c.Parent[:], parent)
 		copy(c.AuthorXPK[:], xpk)
-		c.Points = up - dn
-		c.Score = hnScore(c.Points, c.BlockTime, scoreTime)
 		all[c.Parent] = append(all[c.Parent], c)
 	}
 	if err := rows.Err(); err != nil {
@@ -211,7 +171,7 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 	walk = func(parent codec.ItemID) {
 		children := all[parent]
 		sort.SliceStable(children, func(i, j int) bool {
-			return children[i].Score > children[j].Score
+			return children[i].FeeSats > children[j].FeeSats
 		})
 		for _, c := range children {
 			out = append(out, c)
@@ -233,25 +193,18 @@ func ListByAuthor(ctx context.Context, db *sql.DB, xpk [32]byte, limit, offset u
 			SELECT DISTINCT s.item_id
 			FROM cn_stories s
 			JOIN cn_comments c ON c.parent_id = s.item_id AND c.author_xpk = ?
-		), tally AS (
-			SELECT target_id,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS up,
-			       SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END) AS dn
-			FROM cn_votes GROUP BY target_id
 		)
 		SELECT s.item_id, s.topic, s.headline,
 		       COALESCE(s.url, ''), COALESCE(s.body, ''), COALESCE(s.lang, ''),
 		       s.nsfw, s.subtype,
-		       i.block_height, i.block_time, i.txid, i.vout,
-		       COALESCE(t.up, 0), COALESCE(t.dn, 0),
+		       i.block_height, i.block_time, i.txid, i.vout, i.fee_sats,
 		       COALESCE((SELECT COUNT(*) FROM cn_comments WHERE parent_id = s.item_id), 0)
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
-		LEFT JOIN tally t ON t.target_id = s.item_id
 		WHERE s.item_id IN (SELECT item_id FROM author_items)
 		ORDER BY i.block_height DESC, i.tx_index DESC, i.vout_index DESC
 		LIMIT ? OFFSET ?
-	`, xpk[:], byte(codec.TypeUpvote), byte(codec.TypeDownvote), limit, offset)
+	`, xpk[:], limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -295,35 +248,23 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]TopicRow, error) {
 func scanFeedRows(rows *sql.Rows) ([]FeedItem, error) {
 	defer rows.Close() //nolint:errcheck
 	var out []FeedItem
-	scoreTime := time.Now()
 	for rows.Next() {
 		var (
-			fi             FeedItem
-			itemID, topic  []byte
-			subtype        byte
-			up, dn, ccount int
+			fi            FeedItem
+			itemID, topic []byte
+			subtype       byte
 		)
 		if err := rows.Scan(&itemID, &topic, &fi.Headline, &fi.URL, &fi.Body, &fi.Lang,
 			&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &fi.TxID, &fi.Vout,
-			&up, &dn, &ccount); err != nil {
+			&fi.FeeSats, &fi.CommentCount); err != nil {
 			return nil, err
 		}
 		copy(fi.ItemID[:], itemID)
 		copy(fi.Topic[:], topic)
 		fi.Subtype = codec.Subtype(subtype)
-		fi.Points = up - dn
-		fi.Upvotes = up
-		fi.Downvotes = dn
-		fi.CommentCount = ccount
-		fi.Score = hnScore(fi.Points, fi.BlockTime, scoreTime)
 		out = append(out, fi)
 	}
 	return out, rows.Err()
-}
-
-func hnScore(points int, blockTime, scoreTime time.Time) float64 {
-	ageHours := max(scoreTime.Sub(blockTime).Hours(), 0)
-	return float64(points-1) / math.Pow(ageHours+2, 1.8)
 }
 
 func nullableTopic(t *codec.Topic) any {

@@ -35,9 +35,7 @@ class MockAPI extends BitwindowRPC {
   @override
   final NotificationAPI notifications = MockNotificationAPI();
 
-  MockAPI({
-    required super.binaryType,
-  });
+  MockAPI({required super.binaryType});
 
   @override
   Future<List<String>> binaryArgs() async {
@@ -464,24 +462,6 @@ class MockMiscAPI implements MiscAPI {
     int? feeSats,
   }) async {
     return BroadcastNewsResponse();
-  }
-
-  @override
-  Future<UpvoteNewsResponse> upvoteNews(
-    String itemId, {
-    int? feeSatPerVbyte,
-    int? feeSats,
-  }) async {
-    return UpvoteNewsResponse();
-  }
-
-  @override
-  Future<UpvoteNewsResponse> downvoteNews(
-    String itemId, {
-    int? feeSatPerVbyte,
-    int? feeSats,
-  }) async {
-    return UpvoteNewsResponse();
   }
 
   @override

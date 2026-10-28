@@ -12,7 +12,7 @@ import (
 )
 
 // TestLoadOrCreateIdentity_StableAndSignable proves the identity key is
-// created once and reused, and that a Vote signed with it verifies under
+// created once and reused, and that a Comment signed with it verifies under
 // the published x-only pubkey.
 func TestLoadOrCreateIdentity_StableAndSignable(t *testing.T) {
 	t.Parallel()
@@ -27,13 +27,13 @@ func TestLoadOrCreateIdentity_StableAndSignable(t *testing.T) {
 	assert.Equal(t, xpk1, xpk2)
 	assert.Equal(t, priv1.Serialize(), priv2.Serialize())
 
-	var target codec.ItemID
-	target[0] = 0x12
-	digest := codec.VoteSigHash(codec.TypeUpvote, target)
+	var parent codec.ItemID
+	parent[0] = 0x12
+	digest := codec.CommentSigHash(parent, nil)
 	sig, err := schnorr.Sign(priv1, digest[:])
 	require.NoError(t, err)
 
 	var sigArr [codec.SchnorrSigLen]byte
 	copy(sigArr[:], sig.Serialize())
-	assert.True(t, codec.VerifyVoteSig(xpk1, codec.TypeUpvote, target, sigArr))
+	assert.True(t, codec.VerifyCommentSig(xpk1, parent, nil, sigArr))
 }

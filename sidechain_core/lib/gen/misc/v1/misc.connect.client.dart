@@ -43,42 +43,6 @@ extension type MiscServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
-  Future<miscv1misc.UpvoteNewsResponse> upvoteNews(
-    miscv1misc.UpvoteNewsRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.MiscService.upvoteNews,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
-  Future<miscv1misc.UpvoteNewsResponse> downvoteNews(
-    miscv1misc.UpvoteNewsRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.MiscService.downvoteNews,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   Future<miscv1misc.CreateTopicResponse> createTopic(
     miscv1misc.CreateTopicRequest input, {
     connect.Headers? headers,
@@ -148,7 +112,7 @@ extension type MiscServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Returns the full reply thread rooted at an Item, ranked per §13.
+  /// Returns the full reply thread rooted at an Item, highest fee first.
   Future<miscv1misc.ListCommentsResponse> listComments(
     miscv1misc.ListCommentsRequest input, {
     connect.Headers? headers,
@@ -166,7 +130,7 @@ extension type MiscServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// What a vote or comment would cost to broadcast. Builds nothing.
+  /// What a story or comment would cost to broadcast. Builds nothing.
   Future<miscv1misc.EstimateNewsFeeResponse> estimateNewsFee(
     miscv1misc.EstimateNewsFeeRequest input, {
     connect.Headers? headers,

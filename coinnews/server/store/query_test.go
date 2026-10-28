@@ -73,27 +73,45 @@ func TestListFeed_SubtypeFilter(t *testing.T) {
 	assert.Equal(t, "ask one", got[0].Headline)
 }
 
-func TestListFeed_FrontPageOrdering(t *testing.T) {
+func TestListFeed_FrontPageOrdersByFee(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db, err := Open(ctx, t.TempDir()+"/coinnews.db")
 	require.NoError(t, err)
-	defer db.Close() //nolint:errcheck
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
-	topic := codec.Topic{1, 2, 3, 4}
-	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(300, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
-		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "t"},
-	}))
-	for i := uint32(0); i < 3; i++ {
+	stories := []struct {
+		headline string
+		pos      BlockPos
+	}{
+		{headline: "old cheap", pos: withFee(pos(301, 0, 0), 500)},
+		{headline: "rich", pos: withFee(pos(302, 0, 0), 1000)},
+		{headline: "new cheap", pos: withFee(pos(303, 0, 0), 500)},
+		{headline: "newest cheap", pos: withFee(pos(303, 1, 0), 500)},
+		{headline: "free", pos: pos(304, 0, 0)},
+	}
+	for _, story := range stories {
 		require.NoError(t, Index(ctx, db, IndexEnv{
-			Pos: pos(301+i, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
-			Msg: &codec.Story{Topic: topic, Headline: "story"},
+			Pos: story.pos, TypeTag: codec.TypeStory, Payload: testPayload,
+			Msg: &codec.Story{Headline: story.headline},
 		}))
 	}
-	feed, err := ListFeed(ctx, db, FeedFilter{Sort: SortScoreDesc})
+
+	feed, err := ListFeed(ctx, db, FeedFilter{Sort: SortFeeDesc})
 	require.NoError(t, err)
-	assert.Len(t, feed, 3)
+	var got []string
+	var fees []int64
+	for _, item := range feed {
+		got = append(got, item.Headline)
+		fees = append(fees, item.FeeSats)
+	}
+	assert.Equal(t, []string{"rich", "newest cheap", "new cheap", "old cheap", "free"}, got)
+	assert.Equal(t, []int64{1000, 500, 500, 500, 0}, fees)
+}
+
+func withFee(p BlockPos, feeSats int64) BlockPos {
+	p.FeeSats = feeSats
+	return p
 }
 
 func TestListThread_RecursiveWalk(t *testing.T) {
@@ -140,7 +158,7 @@ func TestListThread_RecursiveWalk(t *testing.T) {
 	assert.Len(t, cs, 2, "recursive walk picks up the nested reply")
 }
 
-func TestListThreadSortsSiblingsByScore(t *testing.T) {
+func TestListThreadSortsSiblingsByFee(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	db, err := Open(ctx, t.TempDir()+"/coinnews.db")
@@ -159,16 +177,17 @@ func TestListThreadSortsSiblingsByScore(t *testing.T) {
 	comments := []struct {
 		body   string
 		parent string
-		votes  int
+		fee    int64
 	}{
-		{body: "first", parent: "root", votes: 1},
-		{body: "second", parent: "root", votes: 1},
-		{body: "third", parent: "root", votes: 2},
-		{body: "nested", parent: "first", votes: 3},
+		{body: "first", parent: "root", fee: 100},
+		{body: "second", parent: "root", fee: 100},
+		{body: "third", parent: "root", fee: 300},
+		{body: "cheap reply", parent: "first", fee: 50},
+		{body: "rich reply", parent: "first", fee: 900},
 	}
 	for i, comment := range comments {
 		require.NoError(t, Index(ctx, db, IndexEnv{
-			Pos: pos(501, uint32(i), 0), TypeTag: codec.TypeComment, Payload: testPayload,
+			Pos: withFee(pos(501, uint32(i), 0), comment.fee), TypeTag: codec.TypeComment, Payload: testPayload,
 			Msg: &codec.Comment{
 				Parent: ids[comment.parent], AuthorXPK: codec.XOnlyPubKey{1},
 				TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte(comment.body)}},
@@ -180,32 +199,20 @@ func TestListThreadSortsSiblingsByScore(t *testing.T) {
 			ids[row.Body] = row.ItemID
 		}
 	}
-	for i, comment := range comments {
-		for vote := range comment.votes {
-			require.NoError(t, Index(ctx, db, IndexEnv{
-				Pos: pos(502, uint32(i), uint32(vote)), TypeTag: codec.TypeUpvote, Payload: testPayload,
-				Msg: &codec.Vote{
-					Kind: codec.TypeUpvote, Target: ids[comment.body],
-					AuthorXPK: codec.XOnlyPubKey{byte(vote + 1)},
-				},
-			}))
-		}
-	}
 
 	thread, err := ListThread(ctx, db, root)
 	require.NoError(t, err)
-	require.Len(t, thread, 4)
 	var bodies []string
+	var fees []int64
 	for _, row := range thread {
 		bodies = append(bodies, row.Body)
+		fees = append(fees, row.FeeSats)
 	}
-	require.Equal(t, []string{"third", "first", "nested", "second"}, bodies)
-	assert.Equal(t, thread[1].Score, thread[3].Score)
-	assert.Equal(t, thread[1].ItemID, thread[2].Parent)
-	assert.Greater(t, thread[2].Score, thread[0].Score)
+	assert.Equal(t, []string{"third", "first", "rich reply", "cheap reply", "second"}, bodies)
+	assert.Equal(t, []int64{300, 100, 900, 50, 100}, fees)
 }
 
-func TestListThreadKeepsZeroVoteOrder(t *testing.T) {
+func TestListThreadKeepsScanOrderOnEqualFee(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	db, err := Open(ctx, t.TempDir()+"/coinnews.db")
@@ -237,8 +244,6 @@ func TestListThreadKeepsZeroVoteOrder(t *testing.T) {
 	var got []string
 	for _, row := range thread {
 		got = append(got, row.Body)
-		assert.Zero(t, row.Points)
-		assert.Equal(t, thread[0].Score, row.Score)
 	}
 	assert.Equal(t, bodies, got)
 }

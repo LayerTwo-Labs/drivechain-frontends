@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -111,4 +112,24 @@ func TestReadCookieTrimsWhitespace(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "__cookie__", user)
 	assert.Equal(t, "pass", pass)
+}
+
+func TestBTCToSats(t *testing.T) {
+	t.Parallel()
+	for in, want := range map[string]int64{
+		"0":            0,
+		"0.00000001":   1,
+		"0.29000000":   29_000_000,
+		"0.1":          10_000_000,
+		"1.00001410":   100_001_410,
+		"21000000.000": 2_100_000_000_000_000,
+	} {
+		got, err := btcToSats(json.Number(in))
+		require.NoError(t, err, in)
+		assert.Equal(t, want, got, in)
+	}
+	for _, in := range []string{"", ".5", "-0.1", "1e-5", "0.000000001", "1.-1", "abc", "92233720369.0"} {
+		_, err := btcToSats(json.Number(in))
+		assert.Error(t, err, in)
+	}
 }

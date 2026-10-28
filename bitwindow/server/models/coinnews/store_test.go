@@ -65,9 +65,9 @@ func TestStore_ListThread(t *testing.T) {
 	assert.True(t, lo.ContainsBy(thread, func(c Comment) bool { return c.Body == "reply" }))
 }
 
-// TestStore_ListThread_CountsCommentVotes proves a comment's on-chain
-// votes (spec §8) are tallied and ranked in ListThread (spec §13).
-func TestStore_ListThread_CountsCommentVotes(t *testing.T) {
+// TestStore_ListThread_RanksByFee proves the thread lists the highest fee first,
+// and a comment without a known fee last.
+func TestStore_ListThread_RanksByFee(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	db := database.Test(t)
@@ -80,28 +80,24 @@ func TestStore_ListThread_CountsCommentVotes(t *testing.T) {
 
 	var author codec.XOnlyPubKey
 	_, _ = rand.Read(author[:])
-	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(100, 0, 1), TypeTag: codec.TypeComment,
-		Msg: &codec.Comment{Parent: story, AuthorXPK: author, TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte("hi")}}},
-	}))
-	comment := itemIDOf(t, ctx, db, "cn_comments")
-
-	// Two distinct upvoters + one downvoter target the comment.
-	for i, kind := range []codec.TypeTag{codec.TypeUpvote, codec.TypeUpvote, codec.TypeDownvote} {
-		var voter codec.XOnlyPubKey
-		voter[0] = byte(0xc0 + i)
+	for i, body := range []string{"cheap", "dear", "unknown"} {
 		require.NoError(t, Index(ctx, db, IndexEnv{
-			Pos:     pos(101, 0, uint32(i)),
-			TypeTag: kind,
-			Msg:     &codec.Vote{Kind: kind, Target: comment, AuthorXPK: voter},
+			Pos: pos(100, 0, uint32(i+1)), TypeTag: codec.TypeComment,
+			Msg: &codec.Comment{Parent: story, AuthorXPK: author, TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte(body)}}},
 		}))
+	}
+	for vout, fee := range map[int]int64{1: 500, 2: 2000} {
+		_, err := db.ExecContext(ctx,
+			`INSERT INTO op_returns (txid, vout, op_return_data, fee_sats) VALUES (?, ?, '', ?)`,
+			pos(0, 0, 0).TxID, vout, fee)
+		require.NoError(t, err)
 	}
 
 	thread, err := ListThread(ctx, db, story)
 	require.NoError(t, err)
-	require.Len(t, thread, 1)
-	assert.Equal(t, int64(2), thread[0].Upvotes)
-	assert.Equal(t, int64(1), thread[0].Downvotes)
+	require.Len(t, thread, 3)
+	assert.Equal(t, []string{"dear", "cheap", "unknown"}, lo.Map(thread, func(c Comment, _ int) string { return c.Body }))
+	assert.Equal(t, []int64{2000, 500, 0}, lo.Map(thread, func(c Comment, _ int) int64 { return c.FeeSats }))
 }
 
 // itemIDOf returns the most recently inserted item_id in the given cn_*
@@ -217,41 +213,6 @@ func TestStore_Story_HoistsCommonTLVs(t *testing.T) {
 	expectedRaw, err := codec.SerialiseTLVs(story.TLVs)
 	require.NoError(t, err)
 	assert.Equal(t, expectedRaw, rawTLV)
-}
-
-// TestStore_Vote_DedupByAuthorAndTarget pins the §8 invariant:
-// (author_xpk, target_id) is unique. Re-indexing the same Vote at a
-// later block, or a flipped (up→down) Vote from the same author,
-// MUST leave the original row untouched.
-func TestStore_Vote_DedupByAuthorAndTarget(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	db := database.Test(t)
-
-	var target codec.ItemID
-	_, _ = rand.Read(target[:])
-	var xpk codec.XOnlyPubKey
-	_, _ = rand.Read(xpk[:])
-
-	upvote := &codec.Vote{Kind: codec.TypeUpvote, Target: target, AuthorXPK: xpk}
-	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(100, 0, 0), TypeTag: codec.TypeUpvote, Msg: upvote,
-	}))
-
-	// Same author, same target, but downvote in a later block —
-	// MUST be ignored.
-	downvote := &codec.Vote{Kind: codec.TypeDownvote, Target: target, AuthorXPK: xpk}
-	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(101, 0, 0), TypeTag: codec.TypeDownvote, Msg: downvote,
-	}))
-
-	var rowCount int
-	require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_votes WHERE target_id = ?`, target[:]).Scan(&rowCount))
-	assert.Equal(t, 1, rowCount)
-
-	var kind int
-	require.NoError(t, db.QueryRowContext(ctx, `SELECT kind FROM cn_votes WHERE target_id = ?`, target[:]).Scan(&kind))
-	assert.Equal(t, int(codec.TypeUpvote), kind)
 }
 
 // TestStore_Comment_PersistsAllExtractedFields hoists each TLV onto

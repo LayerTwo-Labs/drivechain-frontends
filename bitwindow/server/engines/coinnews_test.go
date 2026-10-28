@@ -49,16 +49,13 @@ func newCoinNewsParser(t *testing.T) *Parser {
 	}
 }
 
-// TestCoinNewsIndexer_StoryAndVoteAcrossBlocks: a Story in block N,
-// a signed Vote in block N+1, both land in cn_*. Replaying the Vote
-// (same author, same target) leaves cn_votes at exactly one row —
-// the spec §8 dedup invariant.
-func TestCoinNewsIndexer_StoryAndVoteAcrossBlocks(t *testing.T) {
+// TestCoinNewsIndexer_StoryThenRetiredVote: a Story in block N lands in cn_*,
+// and a payload with the retired vote tag in block N+1 indexes nothing.
+func TestCoinNewsIndexer_StoryThenRetiredVote(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
-	// Story (block N).
 	storyBytes, err := codec.EncodeStory(codec.Story{
 		Topic:    codec.Topic{0x48, 0x4e, 0x53, 0x21},
 		Headline: "Hello CoinNews",
@@ -74,20 +71,8 @@ func TestCoinNewsIndexer_StoryAndVoteAcrossBlocks(t *testing.T) {
 	copy(storyTxidNatural[:], storyTxHash[:])
 	storyItem := codec.ComputeItemID(storyTxidNatural, 0)
 
-	// Vote (block N+1).
-	priv, err := btcec.NewPrivateKey()
-	require.NoError(t, err)
-	digest := codec.VoteSigHash(codec.TypeUpvote, storyItem)
-	sig, err := schnorr.Sign(priv, digest[:])
-	require.NoError(t, err)
-
-	var v codec.Vote
-	v.Kind = codec.TypeUpvote
-	v.Target = storyItem
-	copy(v.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
-	copy(v.Sig[:], sig.Serialize())
-	voteBytes, err := codec.EncodeVote(v)
-	require.NoError(t, err)
+	voteBytes := append([]byte{'C', 'N', 0x04}, storyItem[:]...)
+	voteBytes = append(voteBytes, make([]byte, codec.XOnlyPubKeyLen+codec.SchnorrSigLen)...)
 	voteBlock := blockOfWithPrevHash(t, [][]byte{voteBytes},
 		time.Date(2026, 4, 27, 12, 10, 0, 0, time.UTC),
 		chainhash.Hash{99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99},
@@ -100,7 +85,7 @@ func TestCoinNewsIndexer_StoryAndVoteAcrossBlocks(t *testing.T) {
 
 	var rowCount int
 	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&rowCount))
-	assert.Equal(t, 2, rowCount, "Story + Vote both in cn_items")
+	assert.Equal(t, 1, rowCount, "only the Story is in cn_items")
 
 	var headline, url string
 	var subtype int
@@ -110,16 +95,6 @@ func TestCoinNewsIndexer_StoryAndVoteAcrossBlocks(t *testing.T) {
 	assert.Equal(t, "Hello CoinNews", headline)
 	assert.Equal(t, int(codec.SubtypeLink), subtype)
 	assert.Equal(t, "https://example.com/story", url)
-
-	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_votes WHERE target_id = ?`, storyItem[:]).Scan(&rowCount))
-	assert.Equal(t, 1, rowCount, "Vote with valid sig persists exactly once")
-
-	// Replay the Vote — dedup MUST hold.
-	require.NoError(t, p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
-		lo.T2(uint32(800_001), voteBlock),
-	}))
-	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_votes WHERE target_id = ?`, storyItem[:]).Scan(&rowCount))
-	assert.Equal(t, 1, rowCount, "(author, target) dedup MUST hold across replays")
 }
 
 // TestCoinNewsIndexer_SortsBatchByHeight proves that even when blocks
@@ -152,72 +127,42 @@ func TestCoinNewsIndexer_SortsBatchByHeight(t *testing.T) {
 	assert.Equal(t, "early", name, "earliest-by-height TopicCreation MUST win even when batch input is unordered")
 }
 
-// TestCoinNewsIndexer_DropsBadSignature: a forged-sig Vote MUST NOT
-// land in cn_votes, and there must be NO cn_items row for it either —
-// signature verification gates persistence end to end.
+// TestCoinNewsIndexer_DropsBadSignature: a Comment with a forged signature on
+// an indexed Story MUST NOT get a cn_comments or a cn_items row.
 func TestCoinNewsIndexer_DropsBadSignature(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	p := newCoinNewsParser(t)
 
-	var target codec.ItemID
-	_, _ = rand.Read(target[:])
-
-	var v codec.Vote
-	v.Kind = codec.TypeUpvote
-	v.Target = target
-	_, _ = rand.Read(v.AuthorXPK[:])
-	_, _ = rand.Read(v.Sig[:])
-	voteBytes, err := codec.EncodeVote(v)
+	storyBytes, err := codec.EncodeStory(codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "Story"})
 	require.NoError(t, err)
+	storyBlock := blockOf(t, [][]byte{storyBytes}, time.Now().UTC())
+	storyTxHash := storyBlock.Transactions[0].TxHash()
+	var storyTxidNatural [32]byte
+	copy(storyTxidNatural[:], storyTxHash[:])
 
-	block := blockOf(t, [][]byte{voteBytes}, time.Now().UTC())
+	c := codec.Comment{
+		Parent: codec.ComputeItemID(storyTxidNatural, 0),
+		TLVs:   []codec.TLV{{Tag: codec.TLVBody, Value: []byte("forged")}},
+	}
+	_, _ = rand.Read(c.AuthorXPK[:])
+	_, _ = rand.Read(c.Sig[:])
+	commentBytes, err := codec.EncodeComment(c)
+	require.NoError(t, err)
+	commentBlock := blockOfWithPrevHash(t, [][]byte{commentBytes}, time.Now().UTC().Add(time.Minute),
+		chainhash.Hash{0xbd, 0x51, 0x60},
+	)
+
 	require.NoError(t, p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
-		lo.T2(uint32(900_002), block),
+		lo.T2(uint32(900_002), storyBlock),
+		lo.T2(uint32(900_003), commentBlock),
 	}))
 
 	var rowCount int
-	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_votes`).Scan(&rowCount))
-	assert.Zero(t, rowCount, "forged-sig Vote MUST NOT persist")
+	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_comments`).Scan(&rowCount))
+	assert.Zero(t, rowCount, "forged-sig Comment MUST NOT persist")
 	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&rowCount))
-	assert.Zero(t, rowCount, "no cn_items row for a dropped Vote")
-}
-
-// TestCoinNewsIndexer_DropsUnresolvableVote: a validly-signed Vote
-// against a target that was never indexed MUST be dropped (spec §4.1,
-// §8) — no cn_votes row, no cn_items row.
-func TestCoinNewsIndexer_DropsUnresolvableVote(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	p := newCoinNewsParser(t)
-
-	var target codec.ItemID
-	_, _ = rand.Read(target[:]) // never indexed
-
-	priv, err := btcec.NewPrivateKey()
-	require.NoError(t, err)
-	digest := codec.VoteSigHash(codec.TypeUpvote, target)
-	sig, err := schnorr.Sign(priv, digest[:])
-	require.NoError(t, err)
-
-	var v codec.Vote
-	v.Kind = codec.TypeUpvote
-	v.Target = target
-	copy(v.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
-	copy(v.Sig[:], sig.Serialize())
-	voteBytes, err := codec.EncodeVote(v)
-	require.NoError(t, err)
-
-	block := blockOf(t, [][]byte{voteBytes}, time.Now().UTC())
-	require.NoError(t, p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
-		lo.T2(uint32(910_000), block),
-	}))
-
-	var rowCount int
-	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_votes`).Scan(&rowCount))
-	assert.Zero(t, rowCount, "vote against unresolvable target MUST NOT persist")
-	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&rowCount))
-	assert.Zero(t, rowCount, "no cn_items row for a dropped vote")
+	assert.Equal(t, 1, rowCount, "only the Story is in cn_items")
 }
 
 // TestCoinNewsIndexer_DropsUnresolvableComment: a validly-signed Comment
@@ -460,7 +405,7 @@ func TestPurgeAtOrAbove_NamesTheFailedStatement(t *testing.T) {
 		purge   func(context.Context, *sql.Tx) error
 		wantErr string
 	}{
-		{"coinnews", "cn_votes", func(ctx context.Context, tx *sql.Tx) error {
+		{"coinnews", "cn_continuations", func(ctx context.Context, tx *sql.Tx) error {
 			return purgeCoinNewsAtOrAboveTx(ctx, tx, 100)
 		}, "purge coinnews statement 2"},
 		{"m4", "m4_votes", func(ctx context.Context, tx *sql.Tx) error {

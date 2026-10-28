@@ -8,18 +8,14 @@ import "google/protobuf/timestamp.proto";
 service MiscService {
   rpc ListOPReturn(google.protobuf.Empty) returns (ListOPReturnResponse);
   rpc BroadcastNews(BroadcastNewsRequest) returns (BroadcastNewsResponse);
-  // Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
-  rpc UpvoteNews(UpvoteNewsRequest) returns (UpvoteNewsResponse);
-  // Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
-  rpc DownvoteNews(UpvoteNewsRequest) returns (UpvoteNewsResponse);
   rpc CreateTopic(CreateTopicRequest) returns (CreateTopicResponse);
   rpc ListTopics(google.protobuf.Empty) returns (ListTopicsResponse);
   rpc ListCoinNews(ListCoinNewsRequest) returns (ListCoinNewsResponse);
   // Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
   rpc CommentNews(CommentNewsRequest) returns (CommentNewsResponse);
-  // Returns the full reply thread rooted at an Item, ranked per §13.
+  // Returns the full reply thread rooted at an Item, highest fee first.
   rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
-  // What a vote or comment would cost to broadcast. Builds nothing.
+  // What a story or comment would cost to broadcast. Builds nothing.
   rpc EstimateNewsFee(EstimateNewsFeeRequest) returns (EstimateNewsFeeResponse);
 
   // File timestamping
@@ -61,18 +57,6 @@ message BroadcastNewsResponse {
   string txid = 1;
 }
 
-message UpvoteNewsRequest {
-  // Hex-encoded 12-byte ItemID of the story to upvote.
-  string item_id = 1;
-  // Fee options - exactly one should be set (0 = use Core's estimate)
-  uint64 fee_sat_per_vbyte = 2; // Fee rate in sat/vB
-  uint64 fee_sats = 3; // Total fee in satoshis
-}
-
-message UpvoteNewsResponse {
-  string txid = 1;
-}
-
 message CreateTopicRequest {
   string topic = 1;
   string name = 2;
@@ -104,15 +88,16 @@ message ListTopicsResponse {
 
 // What the user is about to put on chain.
 enum NewsAction {
+  reserved 1;
+  reserved "NEWS_ACTION_VOTE";
   NEWS_ACTION_UNSPECIFIED = 0;
-  NEWS_ACTION_VOTE = 1;
   NEWS_ACTION_COMMENT = 2;
   NEWS_ACTION_STORY = 3;
 }
 
 message EstimateNewsFeeRequest {
   NewsAction action = 1;
-  // Text the action carries. A vote ignores this — its payload is fixed size.
+  // Text the action carries.
   string body = 2;
   string headline = 3;
   string url = 4;
@@ -138,14 +123,11 @@ message CoinNews {
 
   google.protobuf.Timestamp create_time = 6;
 
-  // Hex-encoded 12-byte ItemID; the target for votes.
+  reserved 8, 9, 10;
+  reserved "upvotes", "downvotes", "score";
+
+  // Hex-encoded 12-byte ItemID; the parent for comments.
   string item_id = 7;
-  // Count of confirmed on-chain upvotes (CoinNews Vote, kind=0x04).
-  int64 upvotes = 8;
-  // Count of confirmed on-chain downvotes (CoinNews Vote, kind=0x05).
-  int64 downvotes = 9;
-  // Hacker-News rank score (spec §13), the canonical feed ordering.
-  double score = 10;
   // Optional Story TLVs (spec §10).
   string url = 11;
   // 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
@@ -195,9 +177,10 @@ message Comment {
   string lang = 6;
   string reply_quote = 7;
   google.protobuf.Timestamp create_time = 8;
-  int64 upvotes = 9;
-  int64 downvotes = 10;
-  double score = 11;
+  reserved 9, 10, 11;
+  reserved "upvotes", "downvotes", "score";
+  // Fee of the comment's transaction. 0 when unknown.
+  int64 fee_sats = 12;
 }
 
 message ListCommentsResponse {

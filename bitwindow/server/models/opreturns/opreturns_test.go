@@ -90,28 +90,6 @@ func seedCurrentNews(
 	}))
 }
 
-func seedVote(
-	t *testing.T, ctx context.Context, db *sql.DB,
-	target codec.ItemID, kind codec.TypeTag, authorSeed byte, height uint32,
-) {
-	t.Helper()
-	var xpk codec.XOnlyPubKey
-	for i := range xpk {
-		xpk[i] = authorSeed
-	}
-	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
-		Pos: cnstore.BlockPos{
-			BlockHeight: height,
-			TxIndex:     0,
-			VoutIndex:   0,
-			BlockTime:   time.Now(),
-			TxID:        fmt.Sprintf("%064x", height),
-		},
-		TypeTag: kind,
-		Msg:     &codec.Vote{Kind: kind, Target: target, AuthorXPK: xpk},
-	}))
-}
-
 // TestListTopics_SurfacesChainIndexedTopics proves a chain-indexed topic
 // (cn_topics) — including ones created by other wallets — appears in
 // ListTopics and satisfies TopicExists.
@@ -306,72 +284,39 @@ func TestListCoinNews_ReassemblesOnlyContinuationHeads(t *testing.T) {
 	assert.Equal(t, map[string]string{"Head": "long body", "Plain": "plain body"}, got)
 }
 
-// TestListCoinNews_RanksByScoreAndCountsDownvotes proves spec §13: the
-// feed is ordered by HN score, and downvotes (kind=5) are tallied.
-func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {
+// TestListCoinNews_RanksByFee proves the feed lists the highest fee first,
+// newest first on a tie, and that each story's ItemID round-trips as hex.
+func TestListCoinNews_RanksByFee(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	topic := mustTopicID(t, "a1a1a1a1")
 	db := database.Test(t)
 	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
 	now := time.Now()
-	seedCurrentNews(t, ctx, db, topic, "Upvoted", "", "storyA", 0, 100, now)
-	seedCurrentNews(t, ctx, db, topic, "Downvoted", "", "storyB", 0, 100, now)
-
-	itemIDs := map[string]codec.ItemID{}
-	rows, err := db.QueryContext(ctx, `SELECT headline, item_id FROM cn_stories`)
-	require.NoError(t, err)
-	for rows.Next() {
-		var headline string
-		var id []byte
-		require.NoError(t, rows.Scan(&headline, &id))
-		var item codec.ItemID
-		copy(item[:], id)
-		itemIDs[headline] = item
+	stories := []struct {
+		headline string
+		fee      int64
+		age      time.Duration
+	}{
+		{"Older tie", 100, 2 * time.Hour},
+		{"Dear", 5000, 3 * time.Hour},
+		{"Newer tie", 100, time.Hour},
 	}
-	require.NoError(t, rows.Err())
-	require.NoError(t, rows.Close())
-
-	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x10, 200)
-	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x11, 201)
-	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x12, 202)
-	seedVote(t, ctx, db, itemIDs["Downvoted"], codec.TypeDownvote, 0x20, 203)
-	seedVote(t, ctx, db, itemIDs["Downvoted"], codec.TypeDownvote, 0x21, 204)
+	for i, st := range stories {
+		txid := canonicalTxID(st.headline)
+		seedCurrentNews(t, ctx, db, topic, st.headline, "", txid, 0, uint32(100+i), now.Add(-st.age))
+		_, err := db.ExecContext(ctx,
+			`INSERT INTO op_returns (txid, vout, op_return_data, fee_sats) VALUES (?, 0, '', ?)`, txid, st.fee)
+		require.NoError(t, err)
+	}
 
 	news, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, news, 2)
-	assert.Equal(t, "Upvoted", news[0].Headline)
-	assert.Equal(t, int64(3), news[0].Upvotes)
-	assert.Equal(t, "Downvoted", news[1].Headline)
-	assert.Equal(t, int64(2), news[1].Downvotes)
-	assert.Greater(t, news[0].Score, news[1].Score)
-}
-
-// TestListCoinNews_CountsUpvotes proves upvotes (kind=4) are tallied per
-// story while downvotes are excluded, and the story's ItemID round-trips
-// to the hex column the UI votes against.
-func TestListCoinNews_CountsUpvotes(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	topic := mustTopicID(t, "a1a1a1a1")
-	db := database.Test(t)
-	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
-	seedCurrentNews(t, ctx, db, topic, "Headline", "body", "story1", 0, 100, time.Now())
+	assert.Equal(t, []string{"Dear", "Newer tie", "Older tie"}, lo.Map(news, func(n CoinNews, _ int) string { return n.Headline }))
+	assert.EqualValues(t, 5000, news[0].Fee)
 
 	var itemID []byte
-	require.NoError(t, db.QueryRowContext(ctx, `SELECT item_id FROM cn_stories`).Scan(&itemID))
-	var target codec.ItemID
-	copy(target[:], itemID)
-
-	seedVote(t, ctx, db, target, codec.TypeUpvote, 0xaa, 200)
-	seedVote(t, ctx, db, target, codec.TypeUpvote, 0xbb, 201)
-	seedVote(t, ctx, db, target, codec.TypeDownvote, 0xcc, 202) // must not count
-
-	news, err := ListCoinNews(ctx, db)
-	require.NoError(t, err)
-	require.Len(t, news, 1)
-	assert.Equal(t, int64(2), news[0].Upvotes)
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT item_id FROM cn_stories WHERE headline = 'Dear'`).Scan(&itemID))
 	assert.Equal(t, hex.EncodeToString(itemID), news[0].ItemID)
 }
 

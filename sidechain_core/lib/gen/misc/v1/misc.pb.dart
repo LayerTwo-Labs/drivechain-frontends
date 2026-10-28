@@ -402,136 +402,6 @@ class BroadcastNewsResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
 }
 
-class UpvoteNewsRequest extends $pb.GeneratedMessage {
-  factory UpvoteNewsRequest({
-    $core.String? itemId,
-    $fixnum.Int64? feeSatPerVbyte,
-    $fixnum.Int64? feeSats,
-  }) {
-    final $result = create();
-    if (itemId != null) {
-      $result.itemId = itemId;
-    }
-    if (feeSatPerVbyte != null) {
-      $result.feeSatPerVbyte = feeSatPerVbyte;
-    }
-    if (feeSats != null) {
-      $result.feeSats = feeSats;
-    }
-    return $result;
-  }
-  UpvoteNewsRequest._() : super();
-  factory UpvoteNewsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UpvoteNewsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpvoteNewsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'itemId')
-    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  UpvoteNewsRequest clone() => UpvoteNewsRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  UpvoteNewsRequest copyWith(void Function(UpvoteNewsRequest) updates) => super.copyWith((message) => updates(message as UpvoteNewsRequest)) as UpvoteNewsRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static UpvoteNewsRequest create() => UpvoteNewsRequest._();
-  UpvoteNewsRequest createEmptyInstance() => create();
-  static $pb.PbList<UpvoteNewsRequest> createRepeated() => $pb.PbList<UpvoteNewsRequest>();
-  @$core.pragma('dart2js:noInline')
-  static UpvoteNewsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpvoteNewsRequest>(create);
-  static UpvoteNewsRequest? _defaultInstance;
-
-  /// Hex-encoded 12-byte ItemID of the story to upvote.
-  @$pb.TagNumber(1)
-  $core.String get itemId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set itemId($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasItemId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearItemId() => clearField(1);
-
-  /// Fee options - exactly one should be set (0 = use Core's estimate)
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get feeSatPerVbyte => $_getI64(1);
-  @$pb.TagNumber(2)
-  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasFeeSatPerVbyte() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearFeeSatPerVbyte() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get feeSats => $_getI64(2);
-  @$pb.TagNumber(3)
-  set feeSats($fixnum.Int64 v) { $_setInt64(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasFeeSats() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearFeeSats() => clearField(3);
-}
-
-class UpvoteNewsResponse extends $pb.GeneratedMessage {
-  factory UpvoteNewsResponse({
-    $core.String? txid,
-  }) {
-    final $result = create();
-    if (txid != null) {
-      $result.txid = txid;
-    }
-    return $result;
-  }
-  UpvoteNewsResponse._() : super();
-  factory UpvoteNewsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UpvoteNewsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpvoteNewsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  UpvoteNewsResponse clone() => UpvoteNewsResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  UpvoteNewsResponse copyWith(void Function(UpvoteNewsResponse) updates) => super.copyWith((message) => updates(message as UpvoteNewsResponse)) as UpvoteNewsResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static UpvoteNewsResponse create() => UpvoteNewsResponse._();
-  UpvoteNewsResponse createEmptyInstance() => create();
-  static $pb.PbList<UpvoteNewsResponse> createRepeated() => $pb.PbList<UpvoteNewsResponse>();
-  @$core.pragma('dart2js:noInline')
-  static UpvoteNewsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpvoteNewsResponse>(create);
-  static UpvoteNewsResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get txid => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasTxid() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
-}
-
 class CreateTopicRequest extends $pb.GeneratedMessage {
   factory CreateTopicRequest({
     $core.String? topic,
@@ -907,7 +777,7 @@ class EstimateNewsFeeRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearAction() => clearField(1);
 
-  /// Text the action carries. A vote ignores this — its payload is fixed size.
+  /// Text the action carries.
   @$pb.TagNumber(2)
   $core.String get body => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -1074,9 +944,6 @@ class CoinNews extends $pb.GeneratedMessage {
     $fixnum.Int64? feeSats,
     $0.Timestamp? createTime,
     $core.String? itemId,
-    $fixnum.Int64? upvotes,
-    $fixnum.Int64? downvotes,
-    $core.double? score,
     $core.String? url,
     $core.int? subtype,
     $core.bool? nsfw,
@@ -1104,15 +971,6 @@ class CoinNews extends $pb.GeneratedMessage {
     }
     if (itemId != null) {
       $result.itemId = itemId;
-    }
-    if (upvotes != null) {
-      $result.upvotes = upvotes;
-    }
-    if (downvotes != null) {
-      $result.downvotes = downvotes;
-    }
-    if (score != null) {
-      $result.score = score;
     }
     if (url != null) {
       $result.url = url;
@@ -1143,9 +1001,6 @@ class CoinNews extends $pb.GeneratedMessage {
     ..aInt64(5, _omitFieldNames ? '' : 'feeSats')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..aOS(7, _omitFieldNames ? '' : 'itemId')
-    ..aInt64(8, _omitFieldNames ? '' : 'upvotes')
-    ..aInt64(9, _omitFieldNames ? '' : 'downvotes')
-    ..a<$core.double>(10, _omitFieldNames ? '' : 'score', $pb.PbFieldType.OD)
     ..aOS(11, _omitFieldNames ? '' : 'url')
     ..a<$core.int>(12, _omitFieldNames ? '' : 'subtype', $pb.PbFieldType.O3)
     ..aOB(13, _omitFieldNames ? '' : 'nsfw')
@@ -1231,7 +1086,7 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $0.Timestamp ensureCreateTime() => $_ensure(5);
 
-  /// Hex-encoded 12-byte ItemID; the target for votes.
+  /// Hex-encoded 12-byte ItemID; the parent for comments.
   @$pb.TagNumber(7)
   $core.String get itemId => $_getSZ(6);
   @$pb.TagNumber(7)
@@ -1241,82 +1096,52 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   void clearItemId() => clearField(7);
 
-  /// Count of confirmed on-chain upvotes (CoinNews Vote, kind=0x04).
-  @$pb.TagNumber(8)
-  $fixnum.Int64 get upvotes => $_getI64(7);
-  @$pb.TagNumber(8)
-  set upvotes($fixnum.Int64 v) { $_setInt64(7, v); }
-  @$pb.TagNumber(8)
-  $core.bool hasUpvotes() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearUpvotes() => clearField(8);
-
-  /// Count of confirmed on-chain downvotes (CoinNews Vote, kind=0x05).
-  @$pb.TagNumber(9)
-  $fixnum.Int64 get downvotes => $_getI64(8);
-  @$pb.TagNumber(9)
-  set downvotes($fixnum.Int64 v) { $_setInt64(8, v); }
-  @$pb.TagNumber(9)
-  $core.bool hasDownvotes() => $_has(8);
-  @$pb.TagNumber(9)
-  void clearDownvotes() => clearField(9);
-
-  /// Hacker-News rank score (spec §13), the canonical feed ordering.
-  @$pb.TagNumber(10)
-  $core.double get score => $_getN(9);
-  @$pb.TagNumber(10)
-  set score($core.double v) { $_setDouble(9, v); }
-  @$pb.TagNumber(10)
-  $core.bool hasScore() => $_has(9);
-  @$pb.TagNumber(10)
-  void clearScore() => clearField(10);
-
   /// Optional Story TLVs (spec §10).
   @$pb.TagNumber(11)
-  $core.String get url => $_getSZ(10);
+  $core.String get url => $_getSZ(7);
   @$pb.TagNumber(11)
-  set url($core.String v) { $_setString(10, v); }
+  set url($core.String v) { $_setString(7, v); }
   @$pb.TagNumber(11)
-  $core.bool hasUrl() => $_has(10);
+  $core.bool hasUrl() => $_has(7);
   @$pb.TagNumber(11)
   void clearUrl() => clearField(11);
 
   /// 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
   @$pb.TagNumber(12)
-  $core.int get subtype => $_getIZ(11);
+  $core.int get subtype => $_getIZ(8);
   @$pb.TagNumber(12)
-  set subtype($core.int v) { $_setSignedInt32(11, v); }
+  set subtype($core.int v) { $_setSignedInt32(8, v); }
   @$pb.TagNumber(12)
-  $core.bool hasSubtype() => $_has(11);
+  $core.bool hasSubtype() => $_has(8);
   @$pb.TagNumber(12)
   void clearSubtype() => clearField(12);
 
   @$pb.TagNumber(13)
-  $core.bool get nsfw => $_getBF(12);
+  $core.bool get nsfw => $_getBF(9);
   @$pb.TagNumber(13)
-  set nsfw($core.bool v) { $_setBool(12, v); }
+  set nsfw($core.bool v) { $_setBool(9, v); }
   @$pb.TagNumber(13)
-  $core.bool hasNsfw() => $_has(12);
+  $core.bool hasNsfw() => $_has(9);
   @$pb.TagNumber(13)
   void clearNsfw() => clearField(13);
 
   /// Where the item sits on chain. Empty when the source cannot say, in
   /// which case the client hides its explorer link.
   @$pb.TagNumber(14)
-  $core.String get txid => $_getSZ(13);
+  $core.String get txid => $_getSZ(10);
   @$pb.TagNumber(14)
-  set txid($core.String v) { $_setString(13, v); }
+  set txid($core.String v) { $_setString(10, v); }
   @$pb.TagNumber(14)
-  $core.bool hasTxid() => $_has(13);
+  $core.bool hasTxid() => $_has(10);
   @$pb.TagNumber(14)
   void clearTxid() => clearField(14);
 
   @$pb.TagNumber(15)
-  $core.int get vout => $_getIZ(14);
+  $core.int get vout => $_getIZ(11);
   @$pb.TagNumber(15)
-  set vout($core.int v) { $_setUnsignedInt32(14, v); }
+  set vout($core.int v) { $_setUnsignedInt32(11, v); }
   @$pb.TagNumber(15)
-  $core.bool hasVout() => $_has(14);
+  $core.bool hasVout() => $_has(11);
   @$pb.TagNumber(15)
   void clearVout() => clearField(15);
 }
@@ -1613,9 +1438,7 @@ class Comment extends $pb.GeneratedMessage {
     $core.String? lang,
     $core.String? replyQuote,
     $0.Timestamp? createTime,
-    $fixnum.Int64? upvotes,
-    $fixnum.Int64? downvotes,
-    $core.double? score,
+    $fixnum.Int64? feeSats,
   }) {
     final $result = create();
     if (itemId != null) {
@@ -1642,14 +1465,8 @@ class Comment extends $pb.GeneratedMessage {
     if (createTime != null) {
       $result.createTime = createTime;
     }
-    if (upvotes != null) {
-      $result.upvotes = upvotes;
-    }
-    if (downvotes != null) {
-      $result.downvotes = downvotes;
-    }
-    if (score != null) {
-      $result.score = score;
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
     }
     return $result;
   }
@@ -1666,9 +1483,7 @@ class Comment extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'lang')
     ..aOS(7, _omitFieldNames ? '' : 'replyQuote')
     ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
-    ..aInt64(9, _omitFieldNames ? '' : 'upvotes')
-    ..aInt64(10, _omitFieldNames ? '' : 'downvotes')
-    ..a<$core.double>(11, _omitFieldNames ? '' : 'score', $pb.PbFieldType.OD)
+    ..aInt64(12, _omitFieldNames ? '' : 'feeSats')
     ..hasRequiredFields = false
   ;
 
@@ -1770,32 +1585,15 @@ class Comment extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $0.Timestamp ensureCreateTime() => $_ensure(7);
 
-  @$pb.TagNumber(9)
-  $fixnum.Int64 get upvotes => $_getI64(8);
-  @$pb.TagNumber(9)
-  set upvotes($fixnum.Int64 v) { $_setInt64(8, v); }
-  @$pb.TagNumber(9)
-  $core.bool hasUpvotes() => $_has(8);
-  @$pb.TagNumber(9)
-  void clearUpvotes() => clearField(9);
-
-  @$pb.TagNumber(10)
-  $fixnum.Int64 get downvotes => $_getI64(9);
-  @$pb.TagNumber(10)
-  set downvotes($fixnum.Int64 v) { $_setInt64(9, v); }
-  @$pb.TagNumber(10)
-  $core.bool hasDownvotes() => $_has(9);
-  @$pb.TagNumber(10)
-  void clearDownvotes() => clearField(10);
-
-  @$pb.TagNumber(11)
-  $core.double get score => $_getN(10);
-  @$pb.TagNumber(11)
-  set score($core.double v) { $_setDouble(10, v); }
-  @$pb.TagNumber(11)
-  $core.bool hasScore() => $_has(10);
-  @$pb.TagNumber(11)
-  void clearScore() => clearField(11);
+  /// Fee of the comment's transaction. 0 when unknown.
+  @$pb.TagNumber(12)
+  $fixnum.Int64 get feeSats => $_getI64(8);
+  @$pb.TagNumber(12)
+  set feeSats($fixnum.Int64 v) { $_setInt64(8, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasFeeSats() => $_has(8);
+  @$pb.TagNumber(12)
+  void clearFeeSats() => clearField(12);
 }
 
 class ListCommentsResponse extends $pb.GeneratedMessage {
@@ -2334,12 +2132,6 @@ class MiscServiceApi {
   ;
   $async.Future<BroadcastNewsResponse> broadcastNews($pb.ClientContext? ctx, BroadcastNewsRequest request) =>
     _client.invoke<BroadcastNewsResponse>(ctx, 'MiscService', 'BroadcastNews', request, BroadcastNewsResponse())
-  ;
-  $async.Future<UpvoteNewsResponse> upvoteNews($pb.ClientContext? ctx, UpvoteNewsRequest request) =>
-    _client.invoke<UpvoteNewsResponse>(ctx, 'MiscService', 'UpvoteNews', request, UpvoteNewsResponse())
-  ;
-  $async.Future<UpvoteNewsResponse> downvoteNews($pb.ClientContext? ctx, UpvoteNewsRequest request) =>
-    _client.invoke<UpvoteNewsResponse>(ctx, 'MiscService', 'DownvoteNews', request, UpvoteNewsResponse())
   ;
   $async.Future<CreateTopicResponse> createTopic($pb.ClientContext? ctx, CreateTopicRequest request) =>
     _client.invoke<CreateTopicResponse>(ctx, 'MiscService', 'CreateTopic', request, CreateTopicResponse())

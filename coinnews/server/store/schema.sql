@@ -1,7 +1,4 @@
--- CoinNews indexer schema. Mirrors bitwindow's migration 035 — both
--- views of the chain MUST agree byte-for-byte on the indexed tuple
--- (spec §4.2 determinism budget). Standalone here because the
--- coinnews/server is its own deployment with its own SQLite file.
+-- CoinNews indexer schema for the standalone coinnews/server SQLite file.
 
 CREATE TABLE IF NOT EXISTS cn_items (
     item_id      BLOB(12) PRIMARY KEY,
@@ -13,6 +10,7 @@ CREATE TABLE IF NOT EXISTS cn_items (
     type_tag     INTEGER  NOT NULL,
     block_time   TIMESTAMP NOT NULL,
     raw_payload  BLOB     NOT NULL,
+    fee_sats     INTEGER  NOT NULL DEFAULT 0,
     UNIQUE (txid, vout)
 );
 CREATE INDEX IF NOT EXISTS idx_cn_items_order ON cn_items (block_height, tx_index, vout_index);
@@ -53,18 +51,6 @@ CREATE TABLE IF NOT EXISTS cn_comments (
 );
 CREATE INDEX IF NOT EXISTS idx_cn_comments_parent ON cn_comments (parent_id);
 CREATE INDEX IF NOT EXISTS idx_cn_comments_author ON cn_comments (author_xpk);
-
-CREATE TABLE IF NOT EXISTS cn_votes (
-    target_id    BLOB(12) NOT NULL,
-    author_xpk   BLOB(32) NOT NULL,
-    kind         INTEGER  NOT NULL,
-    block_height INTEGER  NOT NULL,
-    tx_index     INTEGER  NOT NULL,
-    vout_index   INTEGER  NOT NULL,
-    block_time   TIMESTAMP NOT NULL,
-    PRIMARY KEY (target_id, author_xpk)
-);
-CREATE INDEX IF NOT EXISTS idx_cn_votes_target ON cn_votes (target_id);
 
 CREATE TABLE IF NOT EXISTS cn_continuations (
     head_id      BLOB(12) NOT NULL,

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Comment } from "@/gen/coinnews/v1/coinnews_pb";
 import { timestampToDate, timeAgo } from "@/lib/api";
-import { shortHex } from "@/lib/utils";
+import { formatSats, shortHex } from "@/lib/utils";
 
 export function Thread({ rootIdHex, comments }: { rootIdHex: string; comments: Comment[] }) {
   const tree = buildTree(rootIdHex, comments);
@@ -44,9 +44,7 @@ function ThreadNode({ node, depth }: { node: Node; depth: number }) {
       <div className="thread__meta">
         <Link href={`/u/${c.authorXpkHex}`}>{shortHex(c.authorXpkHex)}</Link>
         <span className="sep">·</span>
-        <span>
-          {c.points} {c.points === 1 ? "PT" : "PTS"}
-        </span>
+        <span>{formatSats(c.feeSats)}</span>
         <span className="sep">·</span>
         <span>{when}</span>
         <span className="sep">·</span>

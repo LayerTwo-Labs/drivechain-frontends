@@ -34,14 +34,6 @@ type Comment struct {
 	TLVs      []TLV
 }
 
-// Vote is a signed +1 (Up) or −1 (Down) directed at one Item (spec §8).
-type Vote struct {
-	Kind      TypeTag // TypeUpvote or TypeDownvote
-	Target    ItemID
-	AuthorXPK XOnlyPubKey
-	Sig       SchnorrSig
-}
-
 // Continuation extends a head Message that didn't fit in 80 B (spec §9).
 type Continuation struct {
 	Head  ItemID

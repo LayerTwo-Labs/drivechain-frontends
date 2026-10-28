@@ -25,22 +25,6 @@ abstract final class MiscService {
     miscv1misc.BroadcastNewsResponse.new,
   );
 
-  /// Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
-  static const upvoteNews = connect.Spec(
-    '/$name/UpvoteNews',
-    connect.StreamType.unary,
-    miscv1misc.UpvoteNewsRequest.new,
-    miscv1misc.UpvoteNewsResponse.new,
-  );
-
-  /// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
-  static const downvoteNews = connect.Spec(
-    '/$name/DownvoteNews',
-    connect.StreamType.unary,
-    miscv1misc.UpvoteNewsRequest.new,
-    miscv1misc.UpvoteNewsResponse.new,
-  );
-
   static const createTopic = connect.Spec(
     '/$name/CreateTopic',
     connect.StreamType.unary,
@@ -70,7 +54,7 @@ abstract final class MiscService {
     miscv1misc.CommentNewsResponse.new,
   );
 
-  /// Returns the full reply thread rooted at an Item, ranked per §13.
+  /// Returns the full reply thread rooted at an Item, highest fee first.
   static const listComments = connect.Spec(
     '/$name/ListComments',
     connect.StreamType.unary,
@@ -78,7 +62,7 @@ abstract final class MiscService {
     miscv1misc.ListCommentsResponse.new,
   );
 
-  /// What a vote or comment would cost to broadcast. Builds nothing.
+  /// What a story or comment would cost to broadcast. Builds nothing.
   static const estimateNewsFee = connect.Spec(
     '/$name/EstimateNewsFee',
     connect.StreamType.unary,

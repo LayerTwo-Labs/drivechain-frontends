@@ -174,10 +174,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
-      final response = await LocalAuth.postJsonWithAuth(
-        Uri.parse('http://$_host:$_port/$url'),
-        body: body,
-      );
+      final response = await LocalAuth.postJsonWithAuth(Uri.parse('http://$_host:$_port/$url'), body: body);
 
       if (response.statusCode != 200) {
         throw Exception('Request failed: ${response.body}');
@@ -213,8 +210,6 @@ class BitwindowRPCLive extends BitwindowRPC {
       'drivechain.v1.DrivechainService/ListWithdrawals',
       'drivechain.v1.DrivechainService/ProposeSidechain',
       'misc.v1.MiscService/BroadcastNews',
-      'misc.v1.MiscService/UpvoteNews',
-      'misc.v1.MiscService/DownvoteNews',
       'misc.v1.MiscService/CommentNews',
       'misc.v1.MiscService/ListComments',
       'misc.v1.MiscService/CreateTopic',
@@ -311,9 +306,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 
               // If we're still connected and not stopping, try to restart the stream after a delay
               if (connected && !stoppingBinary) {
-                log.i(
-                  'Notification stream dropped, but still connected, restarting in 5 seconds...',
-                );
+                log.i('Notification stream dropped, but still connected, restarting in 5 seconds...');
                 Future.delayed(const Duration(seconds: 5), () {
                   if (connected && !stoppingBinary) {
                     startNotificationStream();
@@ -326,9 +319,7 @@ class BitwindowRPCLive extends BitwindowRPC {
             log.i('Notification stream completed');
             // If we're still connected and not stopping, restart the stream
             if (connected && !stoppingBinary) {
-              log.i(
-                'Stream completed but still connected, restarting notification stream in 5 seconds...',
-              );
+              log.i('Stream completed but still connected, restarting notification stream in 5 seconds...');
               Future.delayed(const Duration(seconds: 5), () {
                 if (connected && !stoppingBinary) {
                   startNotificationStream();
@@ -394,11 +385,7 @@ abstract class BitwindowAPI {
 
   // Address book methods here
   Future<List<AddressBookEntry>> listAddressBook();
-  Future<void> createAddressBookEntry(
-    String label,
-    String address,
-    Direction direction,
-  );
+  Future<void> createAddressBookEntry(String label, String address, Direction direction);
   Future<void> updateAddressBookEntry(Int64 id, String label);
   Future<void> deleteAddressBookEntry(Int64 id);
 
@@ -412,10 +399,7 @@ abstract class BitwindowAPI {
   Future<GetFireplaceStatsResponse> getFireplaceStats();
 
   Future<List<RecentTransaction>> listRecentTransactions();
-  Future<(List<Block>, bool)> listBlocks({
-    int startHeight = 0,
-    int pageSize = 50,
-  });
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
 
   Future<GetNetworkStatsResponse> getNetworkStats();
 
@@ -440,9 +424,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<void> stop({bool skipDownstream = false}) async {
-    await _client.stop(
-      BitwindowdServiceStopRequest(skipDownstream: skipDownstream),
-    );
+    await _client.stop(BitwindowdServiceStopRequest(skipDownstream: skipDownstream));
   }
 
   @override
@@ -453,12 +435,7 @@ class _BitwindowAPILive implements BitwindowAPI {
     required int delaySeconds,
     List<int>? targetUtxoSizes,
   }) async {
-    final request = CreateDenialRequest(
-      txid: txid,
-      vout: vout,
-      numHops: numHops,
-      delaySeconds: delaySeconds,
-    );
+    final request = CreateDenialRequest(txid: txid, vout: vout, numHops: numHops, delaySeconds: delaySeconds);
     if (targetUtxoSizes != null && targetUtxoSizes.isNotEmpty) {
       request.targetUtxoSizes.addAll(targetUtxoSizes.map((s) => Int64(s)));
     }
@@ -493,11 +470,7 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Future<void> createAddressBookEntry(
-    String label,
-    String address,
-    Direction direction,
-  ) async {
+  Future<void> createAddressBookEntry(String label, String address, Direction direction) async {
     await _client.createAddressBookEntry(
       CreateAddressBookEntryRequest()
         ..label = label
@@ -517,9 +490,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<void> deleteAddressBookEntry(Int64 id) async {
-    await _client.deleteAddressBookEntry(
-      DeleteAddressBookEntryRequest()..id = id,
-    );
+    await _client.deleteAddressBookEntry(DeleteAddressBookEntryRequest()..id = id);
   }
 
   @override
@@ -540,9 +511,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<ImportLabelsResponse> importLabels(String jsonl) async {
-    return _client.importLabels(
-      ImportLabelsRequest()..jsonl = jsonl,
-    );
+    return _client.importLabels(ImportLabelsRequest()..jsonl = jsonl);
   }
 
   @override
@@ -554,9 +523,7 @@ class _BitwindowAPILive implements BitwindowAPI {
   @override
   Future<List<RecentTransaction>> listRecentTransactions() async {
     try {
-      final response = await _client.listRecentTransactions(
-        ListRecentTransactionsRequest()..count = Int64(20),
-      );
+      final response = await _client.listRecentTransactions(ListRecentTransactionsRequest()..count = Int64(20));
       return response.transactions;
     } catch (e) {
       final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';
@@ -565,10 +532,7 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Future<(List<Block>, bool)> listBlocks({
-    int startHeight = 0,
-    int pageSize = 50,
-  }) async {
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) async {
     try {
       final response = await _client.listBlocks(
         ListBlocksRequest()
@@ -651,9 +615,7 @@ class _BitwindowAPILive implements BitwindowAPI {
   @override
   Future<void> updateNetwork(String network, {String dataDir = '', String networkId = ''}) async {
     try {
-      await _client.updateNetwork(
-        UpdateNetworkRequest(network: network, dataDir: dataDir, networkId: networkId),
-      );
+      await _client.updateNetwork(UpdateNetworkRequest(network: network, dataDir: dataDir, networkId: networkId));
     } catch (e) {
       throw BitwindowException('could not update network: ${extractConnectException(e)}');
     }
@@ -679,20 +641,9 @@ abstract class WalletAPI {
 
   // drivechain wallet stuff here
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(String walletId, int slot);
-  Future<String> createSidechainDeposit(
-    String walletId,
-    int slot,
-    String destination,
-    double amount,
-    double fee,
-  );
+  Future<String> createSidechainDeposit(String walletId, int slot, String destination, double amount, double fee);
   Future<String> signMessage(String walletId, String message, String address);
-  Future<bool> verifyMessage(
-    String walletId,
-    String message,
-    String signature,
-    String address,
-  );
+  Future<bool> verifyMessage(String walletId, String message, String signature, String address);
   Future<GetStatsResponse> getStats(String walletId);
 
   // wallet unlock/lock for cheques
@@ -701,16 +652,10 @@ abstract class WalletAPI {
   Future<void> isWalletUnlocked();
 
   // cheque operations
-  Future<CreateChequeResponse> createCheque(
-    String walletId,
-    int expectedAmountSats,
-  );
+  Future<CreateChequeResponse> createCheque(String walletId, int expectedAmountSats);
   Future<Cheque> getCheque(String walletId, int id);
   Future<List<Cheque>> listCheques(String walletId);
-  Future<CheckChequeFundingResponse> checkChequeFunding(
-    String walletId,
-    int id,
-  );
+  Future<CheckChequeFundingResponse> checkChequeFunding(String walletId, int id);
   Future<SweepPreview> previewSweep(String privateKeyWif, {int feeSatPerVbyte = 0});
   Future<SweepChequeResult> sweepCheque(
     String walletId,
@@ -721,11 +666,7 @@ abstract class WalletAPI {
   Future<void> deleteCheque(String walletId, int id);
 
   // UTXO coin control
-  Future<void> setUTXOMetadata(
-    String outpoint, {
-    bool? isFrozen,
-    String? label,
-  });
+  Future<void> setUTXOMetadata(String outpoint, {bool? isFrozen, String? label});
   Future<Map<String, UTXOMetadata>> getUTXOMetadata(List<String> outpoints);
 
   // Coin selection preferences
@@ -736,10 +677,7 @@ abstract class WalletAPI {
   Future<GetTransactionDetailsResponse> getTransactionDetails(String txid);
 
   // UTXO distribution for chart visualization
-  Future<GetUTXODistributionResponse> getUTXODistribution(
-    String walletId, {
-    int maxBuckets = 10,
-  });
+  Future<GetUTXODistributionResponse> getUTXODistribution(String walletId, {int maxBuckets = 10});
 
   // RBF - Replace-By-Fee for unconfirmed transactions (uses Core's automatic fee estimation)
   Future<BumpFeeResponse> bumpFee(String txid);
@@ -843,9 +781,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<String> getNewAddress(String walletId) async {
     try {
-      final response = await _client.getNewAddress(
-        GetNewAddressRequest()..walletId = walletId,
-      );
+      final response = await _client.getNewAddress(GetNewAddressRequest()..walletId = walletId);
       return response.address;
     } catch (e) {
       final error = 'could not get new address: ${extractConnectException(e)}';
@@ -856,9 +792,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<List<WalletTransaction>> listTransactions(String walletId) async {
     try {
-      final response = await _client.listTransactions(
-        ListTransactionsRequest()..walletId = walletId,
-      );
+      final response = await _client.listTransactions(ListTransactionsRequest()..walletId = walletId);
       return response.transactions;
     } catch (e) {
       final error = 'could not list transactions: ${extractConnectException(e)}';
@@ -869,9 +803,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<List<UnspentOutput>> listUnspent(String walletId) async {
     try {
-      final response = await _client.listUnspent(
-        ListUnspentRequest()..walletId = walletId,
-      );
+      final response = await _client.listUnspent(ListUnspentRequest()..walletId = walletId);
       return response.utxos;
     } catch (e) {
       final error = 'could not list utxos: ${extractConnectException(e)}';
@@ -882,9 +814,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<List<ReceiveAddress>> listReceiveAddresses(String walletId) async {
     try {
-      final response = await _client.listReceiveAddresses(
-        ListReceiveAddressesRequest()..walletId = walletId,
-      );
+      final response = await _client.listReceiveAddresses(ListReceiveAddressesRequest()..walletId = walletId);
       return response.addresses;
     } catch (e) {
       final error = 'could not list receive addresses: ${extractConnectException(e)}';
@@ -948,12 +878,7 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<bool> verifyMessage(
-    String walletId,
-    String message,
-    String signature,
-    String address,
-  ) async {
+  Future<bool> verifyMessage(String walletId, String message, String signature, String address) async {
     try {
       final response = await _client.verifyMessage(
         VerifyMessageRequest()
@@ -972,9 +897,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<GetStatsResponse> getStats(String walletId) async {
     try {
-      final response = await _client.getStats(
-        GetStatsRequest()..walletId = walletId,
-      );
+      final response = await _client.getStats(GetStatsRequest()..walletId = walletId);
       return response;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1013,16 +936,10 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<CreateChequeResponse> createCheque(
-    String walletId,
-    int expectedAmountSats,
-  ) async {
+  Future<CreateChequeResponse> createCheque(String walletId, int expectedAmountSats) async {
     try {
       final response = await _client.createCheque(
-        CreateChequeRequest(
-          walletId: walletId,
-          expectedAmountSats: Int64(expectedAmountSats),
-        ),
+        CreateChequeRequest(walletId: walletId, expectedAmountSats: Int64(expectedAmountSats)),
       );
       return response;
     } catch (e) {
@@ -1034,9 +951,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<Cheque> getCheque(String walletId, int id) async {
     try {
-      final response = await _client.getCheque(
-        GetChequeRequest(walletId: walletId, id: Int64(id)),
-      );
+      final response = await _client.getCheque(GetChequeRequest(walletId: walletId, id: Int64(id)));
       return response.cheque;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1047,9 +962,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<List<Cheque>> listCheques(String walletId) async {
     try {
-      final response = await _client.listCheques(
-        ListChequesRequest()..walletId = walletId,
-      );
+      final response = await _client.listCheques(ListChequesRequest()..walletId = walletId);
       return response.cheques;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1058,14 +971,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<CheckChequeFundingResponse> checkChequeFunding(
-    String walletId,
-    int id,
-  ) async {
+  Future<CheckChequeFundingResponse> checkChequeFunding(String walletId, int id) async {
     try {
-      final response = await _client.checkChequeFunding(
-        CheckChequeFundingRequest(walletId: walletId, id: Int64(id)),
-      );
+      final response = await _client.checkChequeFunding(CheckChequeFundingRequest(walletId: walletId, id: Int64(id)));
       return response;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1077,10 +985,7 @@ class _WalletAPILive implements WalletAPI {
   Future<SweepPreview> previewSweep(String privateKeyWif, {int feeSatPerVbyte = 0}) async {
     try {
       final response = await _client.previewSweep(
-        PreviewSweepRequest(
-          privateKeyWif: privateKeyWif,
-          feeSatPerVbyte: Int64(feeSatPerVbyte),
-        ),
+        PreviewSweepRequest(privateKeyWif: privateKeyWif, feeSatPerVbyte: Int64(feeSatPerVbyte)),
       );
       return SweepPreview(
         address: response.address,
@@ -1113,10 +1018,7 @@ class _WalletAPILive implements WalletAPI {
           feeSatPerVbyte: Int64(feeSatPerVbyte),
         ),
       );
-      return SweepChequeResult(
-        txid: response.txid,
-        amountSats: response.amountSats.toInt(),
-      );
+      return SweepChequeResult(txid: response.txid, amountSats: response.amountSats.toInt());
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -1126,9 +1028,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<void> deleteCheque(String walletId, int id) async {
     try {
-      await _client.deleteCheque(
-        DeleteChequeRequest(walletId: walletId, id: Int64(id)),
-      );
+      await _client.deleteCheque(DeleteChequeRequest(walletId: walletId, id: Int64(id)));
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -1136,19 +1036,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<void> setUTXOMetadata(
-    String outpoint, {
-    bool? isFrozen,
-    String? label,
-  }) async {
+  Future<void> setUTXOMetadata(String outpoint, {bool? isFrozen, String? label}) async {
     try {
-      await _client.setUTXOMetadata(
-        SetUTXOMetadataRequest(
-          outpoint: outpoint,
-          isFrozen_2: isFrozen,
-          label: label,
-        ),
-      );
+      await _client.setUTXOMetadata(SetUTXOMetadataRequest(outpoint: outpoint, isFrozen_2: isFrozen, label: label));
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -1156,13 +1046,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<Map<String, UTXOMetadata>> getUTXOMetadata(
-    List<String> outpoints,
-  ) async {
+  Future<Map<String, UTXOMetadata>> getUTXOMetadata(List<String> outpoints) async {
     try {
-      final response = await _client.getUTXOMetadata(
-        GetUTXOMetadataRequest(outpoints: outpoints),
-      );
+      final response = await _client.getUTXOMetadata(GetUTXOMetadataRequest(outpoints: outpoints));
       return response.metadata;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1173,9 +1059,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy) async {
     try {
-      await _client.setCoinSelectionStrategy(
-        SetCoinSelectionStrategyRequest(strategy: strategy),
-      );
+      await _client.setCoinSelectionStrategy(SetCoinSelectionStrategyRequest(strategy: strategy));
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -1194,13 +1078,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<GetTransactionDetailsResponse> getTransactionDetails(
-    String txid,
-  ) async {
+  Future<GetTransactionDetailsResponse> getTransactionDetails(String txid) async {
     try {
-      final response = await _client.getTransactionDetails(
-        GetTransactionDetailsRequest(txid: txid),
-      );
+      final response = await _client.getTransactionDetails(GetTransactionDetailsRequest(txid: txid));
       return response;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1209,10 +1089,7 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<GetUTXODistributionResponse> getUTXODistribution(
-    String walletId, {
-    int maxBuckets = 10,
-  }) async {
+  Future<GetUTXODistributionResponse> getUTXODistribution(String walletId, {int maxBuckets = 10}) async {
     try {
       final response = await _client.getUTXODistribution(
         GetUTXODistributionRequest(walletId: walletId, maxBuckets: maxBuckets),
@@ -1278,12 +1155,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<void> restoreBackup(List<int> backupData, String filename) async {
     try {
-      await _client.restoreBackup(
-        RestoreBackupRequest(
-          backupData: backupData,
-          filename: filename,
-        ),
-      );
+      await _client.restoreBackup(RestoreBackupRequest(backupData: backupData, filename: filename));
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -1293,12 +1165,7 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename) async {
     try {
-      final response = await _client.validateBackup(
-        ValidateBackupRequest(
-          backupData: backupData,
-          filename: filename,
-        ),
-      );
+      final response = await _client.validateBackup(ValidateBackupRequest(backupData: backupData, filename: filename));
       return response;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1346,9 +1213,7 @@ class _DrivechainAPILive implements DrivechainAPI {
   @override
   Future<List<SidechainProposal>> listSidechainProposals() async {
     try {
-      final response = await _client.listSidechainProposals(
-        ListSidechainProposalsRequest(),
-      );
+      final response = await _client.listSidechainProposals(ListSidechainProposalsRequest());
       return response.proposals;
     } catch (e) {
       final error = 'could not list sidechain proposals: ${extractConnectException(e)}';
@@ -1416,7 +1281,7 @@ class _DrivechainAPILive implements DrivechainAPI {
   }
 }
 
-/// What a vote, comment or story would cost to put on chain.
+/// What a comment or story would cost to put on chain.
 class NewsFeeEstimate {
   final int vsize;
   final double feeSatPerVbyte;
@@ -1429,11 +1294,7 @@ abstract class MiscAPI {
   Future<List<OPReturn>> listOPReturns();
   Future<List<CoinNews>> listCoinNews();
   Future<List<Topic>> listTopics();
-  Future<CreateTopicResponse> createTopic(
-    String topic,
-    String name, {
-    int retentionDays = 7,
-  });
+  Future<CreateTopicResponse> createTopic(String topic, String name, {int retentionDays = 7});
   Future<BroadcastNewsResponse> broadcastNews(
     String topic,
     String headline,
@@ -1445,22 +1306,7 @@ abstract class MiscAPI {
     int? feeSatPerVbyte,
     int? feeSats,
   });
-  Future<NewsFeeEstimate> estimateNewsFee(
-    NewsAction action, {
-    String body = '',
-    String headline = '',
-    String url = '',
-  });
-  Future<UpvoteNewsResponse> upvoteNews(
-    String itemId, {
-    int? feeSatPerVbyte,
-    int? feeSats,
-  });
-  Future<UpvoteNewsResponse> downvoteNews(
-    String itemId, {
-    int? feeSatPerVbyte,
-    int? feeSats,
-  });
+  Future<NewsFeeEstimate> estimateNewsFee(NewsAction action, {String body = '', String headline = '', String url = ''});
   Future<CommentNewsResponse> commentNews(
     String parentId,
     String body, {
@@ -1471,15 +1317,9 @@ abstract class MiscAPI {
     int? feeSats,
   });
   Future<List<Comment>> listComments(String itemId);
-  Future<TimestampFileResponse> timestampFile(
-    String filename,
-    List<int> fileData,
-  );
+  Future<TimestampFileResponse> timestampFile(String filename, List<int> fileData);
   Future<List<FileTimestamp>> listTimestamps();
-  Future<VerifyTimestampResponse> verifyTimestamp(
-    List<int> fileData,
-    String filename,
-  );
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename);
 }
 
 class _MiscAPILive implements MiscAPI {
@@ -1570,52 +1410,6 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<UpvoteNewsResponse> upvoteNews(
-    String itemId, {
-    int? feeSatPerVbyte,
-    int? feeSats,
-  }) async {
-    try {
-      final request = UpvoteNewsRequest()..itemId = itemId;
-
-      if (feeSatPerVbyte != null) {
-        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
-      } else if (feeSats != null) {
-        request.feeSats = Int64(feeSats);
-      }
-
-      final response = await _client.upvoteNews(request);
-      return response;
-    } catch (e) {
-      final error = 'could not upvote news: ${extractConnectException(e)}';
-      throw BitwindowException(error);
-    }
-  }
-
-  @override
-  Future<UpvoteNewsResponse> downvoteNews(
-    String itemId, {
-    int? feeSatPerVbyte,
-    int? feeSats,
-  }) async {
-    try {
-      final request = UpvoteNewsRequest()..itemId = itemId;
-
-      if (feeSatPerVbyte != null) {
-        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
-      } else if (feeSats != null) {
-        request.feeSats = Int64(feeSats);
-      }
-
-      final response = await _client.downvoteNews(request);
-      return response;
-    } catch (e) {
-      final error = 'could not downvote news: ${extractConnectException(e)}';
-      throw BitwindowException(error);
-    }
-  }
-
-  @override
   Future<CommentNewsResponse> commentNews(
     String parentId,
     String body, {
@@ -1665,11 +1459,7 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<CreateTopicResponse> createTopic(
-    String topic,
-    String name, {
-    int retentionDays = 7,
-  }) async {
+  Future<CreateTopicResponse> createTopic(String topic, String name, {int retentionDays = 7}) async {
     try {
       final response = await _client.createTopic(
         CreateTopicRequest()
@@ -1707,10 +1497,7 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<TimestampFileResponse> timestampFile(
-    String filename,
-    List<int> fileData,
-  ) async {
+  Future<TimestampFileResponse> timestampFile(String filename, List<int> fileData) async {
     try {
       final response = await _client.timestampFile(
         TimestampFileRequest()
@@ -1736,10 +1523,7 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<VerifyTimestampResponse> verifyTimestamp(
-    List<int> fileData,
-    String filename,
-  ) async {
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename) async {
     try {
       final response = await _client.verifyTimestamp(
         VerifyTimestampRequest()
@@ -1770,9 +1554,7 @@ class _M4APILive implements M4API {
   @override
   Future<List<m4pb.M4HistoryEntry>> getM4History({int limit = 6}) async {
     try {
-      final response = await _client.getM4History(
-        m4pb.GetM4HistoryRequest()..limit = limit,
-      );
+      final response = await _client.getM4History(m4pb.GetM4HistoryRequest()..limit = limit);
       return response.history;
     } catch (e) {
       final error = 'could not get M4 history: ${extractConnectException(e)}';
@@ -1902,9 +1684,7 @@ class _BitDriveAPILive implements BitDriveAPI {
   }
 
   @override
-  Future<bitdrivepb.RetrieveContentResponse> retrieveContent(
-    String txid,
-  ) async {
+  Future<bitdrivepb.RetrieveContentResponse> retrieveContent(String txid) async {
     try {
       final request = bitdrivepb.RetrieveContentRequest(txid: txid);
       final response = await _client.retrieveContent(request);
@@ -2082,9 +1862,7 @@ class _MultisigAPILive implements MultisigAPI {
   @override
   Future<List<multisigpb.MultisigTransaction>> listTransactions({String? groupId}) async {
     try {
-      final response = await _client.listTransactions(
-        multisigpb.ListTransactionsRequest(groupId: groupId ?? ''),
-      );
+      final response = await _client.listTransactions(multisigpb.ListTransactionsRequest(groupId: groupId ?? ''));
       return response.transactions;
     } catch (e) {
       throw MultisigException('could not list transactions: ${extractConnectException(e)}');
@@ -2094,9 +1872,7 @@ class _MultisigAPILive implements MultisigAPI {
   @override
   Future<multisigpb.MultisigTransaction> getTransaction(String transactionId) async {
     try {
-      return await _client.getTransaction(
-        multisigpb.GetTransactionRequest(transactionId: transactionId),
-      );
+      return await _client.getTransaction(multisigpb.GetTransactionRequest(transactionId: transactionId));
     } catch (e) {
       if (e is ConnectException && e.code == Code.notFound) {
         rethrow;
@@ -2108,9 +1884,7 @@ class _MultisigAPILive implements MultisigAPI {
   @override
   Future<multisigpb.MultisigTransaction> getTransactionByTxid(String txid) async {
     try {
-      return await _client.getTransactionByTxid(
-        multisigpb.GetTransactionByTxidRequest(txid: txid),
-      );
+      return await _client.getTransactionByTxid(multisigpb.GetTransactionByTxidRequest(txid: txid));
     } catch (e) {
       if (e is ConnectException && e.code == Code.notFound) {
         rethrow;
@@ -2122,9 +1896,7 @@ class _MultisigAPILive implements MultisigAPI {
   @override
   Future<multisigpb.MultisigTransaction> saveTransaction(multisigpb.MultisigTransaction transaction) async {
     try {
-      final response = await _client.saveTransaction(
-        multisigpb.SaveTransactionRequest(transaction: transaction),
-      );
+      final response = await _client.saveTransaction(multisigpb.SaveTransactionRequest(transaction: transaction));
       return response.transaction;
     } catch (e) {
       throw MultisigException('could not save transaction: ${extractConnectException(e)}');
@@ -2154,9 +1926,7 @@ class _MultisigAPILive implements MultisigAPI {
   Future<int> getNextAccountIndex({List<int>? additionalUsedIndices}) async {
     try {
       final response = await _client.getNextAccountIndex(
-        multisigpb.GetNextAccountIndexRequest(
-          additionalUsedIndices: additionalUsedIndices,
-        ),
+        multisigpb.GetNextAccountIndexRequest(additionalUsedIndices: additionalUsedIndices),
       );
       return response.nextIndex;
     } catch (e) {
@@ -2226,14 +1996,8 @@ abstract class UtilsAPI {
   Future<utilspb.ParseBitcoinURIResponse> parseBitcoinURI(String uri);
   Future<utilspb.ValidateBitcoinURIResponse> validateBitcoinURI(String uri);
   Future<utilspb.DecodeBase58CheckResponse> decodeBase58Check(String input);
-  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(
-    int versionByte,
-    List<int> data,
-  );
-  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(
-    List<String> txids, {
-    bool showRCB = true,
-  });
+  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(int versionByte, List<int> data);
+  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(List<String> txids, {bool showRCB = true});
   Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet();
   Future<utilspb.ValidateWIFResponse> validateWIF(String wif);
   Future<utilspb.WIFToAddressResponse> wifToAddress(String wif);
@@ -2257,9 +2021,7 @@ class _UtilsAPILive implements UtilsAPI {
   }
 
   @override
-  Future<utilspb.ValidateBitcoinURIResponse> validateBitcoinURI(
-    String uri,
-  ) async {
+  Future<utilspb.ValidateBitcoinURIResponse> validateBitcoinURI(String uri) async {
     try {
       final request = utilspb.ValidateBitcoinURIRequest(uri: uri);
       return await _client.validateBitcoinURI(request);
@@ -2270,9 +2032,7 @@ class _UtilsAPILive implements UtilsAPI {
   }
 
   @override
-  Future<utilspb.DecodeBase58CheckResponse> decodeBase58Check(
-    String input,
-  ) async {
+  Future<utilspb.DecodeBase58CheckResponse> decodeBase58Check(String input) async {
     try {
       final request = utilspb.DecodeBase58CheckRequest(input: input);
       return await _client.decodeBase58Check(request);
@@ -2283,15 +2043,9 @@ class _UtilsAPILive implements UtilsAPI {
   }
 
   @override
-  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(
-    int versionByte,
-    List<int> data,
-  ) async {
+  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(int versionByte, List<int> data) async {
     try {
-      final request = utilspb.EncodeBase58CheckRequest(
-        versionByte: versionByte,
-        data: data,
-      );
+      final request = utilspb.EncodeBase58CheckRequest(versionByte: versionByte, data: data);
       return await _client.encodeBase58Check(request);
     } catch (e) {
       final error = 'could not encode base58check: ${extractConnectException(e)}';
@@ -2300,10 +2054,7 @@ class _UtilsAPILive implements UtilsAPI {
   }
 
   @override
-  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(
-    List<String> txids, {
-    bool showRCB = true,
-  }) async {
+  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(List<String> txids, {bool showRCB = true}) async {
     try {
       final request = utilspb.CalculateMerkleTreeRequest(txids: txids, showRcb: showRCB);
       return await _client.calculateMerkleTree(request);

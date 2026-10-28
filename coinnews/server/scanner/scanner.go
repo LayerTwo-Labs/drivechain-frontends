@@ -138,6 +138,12 @@ func (s *Scanner) indexHeight(ctx context.Context, height uint32, prev [32]byte)
 	blockTime := time.Unix(block.Time, 0).UTC()
 
 	for txIdx, tx := range block.Tx {
+		var feeSats int64
+		if tx.Fee != nil {
+			if feeSats, err = btcToSats(*tx.Fee); err != nil {
+				return [32]byte{}, fmt.Errorf("fee of %s: %w", tx.Txid, err)
+			}
+		}
 		for vout, out := range tx.Vout {
 			data, ok := opReturnPayload(out.ScriptPubKey.Hex, out.ScriptPubKey.Type)
 			if !ok {
@@ -149,6 +155,7 @@ func (s *Scanner) indexHeight(ctx context.Context, height uint32, prev [32]byte)
 				VoutIndex:   uint32(vout),
 				BlockTime:   blockTime,
 				TxID:        tx.Txid,
+				FeeSats:     feeSats,
 			}
 			if err := s.indexPayload(ctx, data, pos); err != nil {
 				return [32]byte{}, err
@@ -181,11 +188,6 @@ func (s *Scanner) indexPayload(ctx context.Context, data []byte, pos store.Block
 	case *codec.Comment:
 		if err := codec.VerifyComment(m); err != nil {
 			s.Log.Debug().Err(err).Str("txid", pos.TxID).Msg("coinnews-scanner: comment sig invalid")
-			return nil
-		}
-	case *codec.Vote:
-		if err := codec.VerifyVote(m); err != nil {
-			s.Log.Debug().Err(err).Str("txid", pos.TxID).Msg("coinnews-scanner: vote sig invalid")
 			return nil
 		}
 	}

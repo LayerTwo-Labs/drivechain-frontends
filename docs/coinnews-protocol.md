@@ -2,10 +2,10 @@
 
 **Status:** Draft &nbsp;·&nbsp; **License:** BSD-2-Clause
 
-CoinNews encodes a topic-scoped bulletin board — stories, threaded
-comments, signed votes — inside Bitcoin `OP_RETURN` outputs.
+CoinNews encodes a topic-scoped bulletin board — stories and threaded
+signed comments — inside Bitcoin `OP_RETURN` outputs.
 Indexers reach the same view by scanning blocks; no trusted server.
-Wire format is engineered for byte-efficiency (Vote = 111 B,
+Wire format is engineered for byte-efficiency (Comment envelope = 111 B,
 headline-only Story = 8 B + headline) so on-chain footprint per
 message stays close to the irreducible signature + reference cost.
 
@@ -20,7 +20,7 @@ message stays close to the irreducible signature + reference cost.
 | TLV       | Tag-Length-Value tuple carrying optional metadata (URL, language, …).                  |
 
 `OP_RETURN` here means one `OP_RETURN` followed by one `OP_PUSHBYTES`
-of up to 80 bytes (the relay default). Vote requires
+of up to 80 bytes (the relay default). Comment requires
 `-datacarriersize ≥ 111`; longer logical Messages chunk via
 Continuation (§9).
 
@@ -39,15 +39,15 @@ Every CoinNews payload begins with a 2-byte magic `"CN"`
 2-byte prefix scan. Unknown TypeTags MUST cause the Message to be
 ignored — they're reserved for future versions.
 
-| TypeTag | Type             | §  |
-|---------|------------------|----|
-| `0x01`  | Topic Creation   | 5  |
-| `0x02`  | Story            | 6  |
-| `0x03`  | Comment          | 7  |
-| `0x04`  | Upvote           | 8  |
-| `0x05`  | Downvote         | 8  |
-| `0x06`  | Continuation     | 9  |
-| `0x80…` | Application use  | —  |
+| TypeTag | Type               | § |
+|---------|--------------------|---|
+| `0x01`  | Topic Creation     | 5 |
+| `0x02`  | Story              | 6 |
+| `0x03`  | Comment            | 7 |
+| `0x04`  | Retired (Upvote)   | 8 |
+| `0x05`  | Retired (Downvote) | 8 |
+| `0x06`  | Continuation       | 9 |
+| `0x80…` | Application use    | — |
 
 ### 2. Varint length
 
@@ -70,13 +70,13 @@ the first confirmed Topic Creation (§5) for a given ID wins the
 display name. Topic `0x00000000` is reserved for "no topic" / global
 items that don't slot into a category.
 
-Topic IDs only appear on Topic Creation and Story; Comment and Vote
-inherit topic from the target Item.
+Topic IDs only appear on Topic Creation and Story; Comment inherits
+topic from its parent Item.
 
 ### 4. Item identifiers
 
-References to other Items (a Comment's parent, a Vote's target, a
-Continuation's head) use **ItemID**:
+References to other Items (a Comment's parent, a Continuation's
+head) use **ItemID**:
 
 ```
 ItemID = sha256(txid_LE(32) ‖ vout_LE(4))[0:12]
@@ -84,7 +84,7 @@ ItemID = sha256(txid_LE(32) ‖ vout_LE(4))[0:12]
 
 12 bytes (96 bits). Collision space is 2⁹⁶ — at any plausible
 deployment volume the chance of any collision is < 10⁻¹³.
-ItemIDs are 24 B shorter than full outpoints; on a 100k-vote board
+ItemIDs are 24 B shorter than full outpoints; on a 100k-comment board
 that saves ≈ 2.4 MB of block space.
 
 #### 4.1 Resolving ItemIDs
@@ -93,8 +93,7 @@ ItemIDs are **publisher-computed**, **indexer-resolved** — neither
 party needs to invert SHA-256.
 
 * **Publishers** always know the target's full outpoint at write
-  time: they're casting a Vote against a Story they're looking at,
-  or replying to a Comment they're rendering. They hash the
+  time: they're replying to a Story or a Comment they're rendering. They hash the
   outpoint they already have; they never need to "look up" an
   ItemID they don't already own.
 * **Indexers** build the reverse map as they scan blocks. Every
@@ -106,7 +105,7 @@ party needs to invert SHA-256.
   items_by_id        : ItemID       → (txid, vout)
   ```
   When a later Message arrives whose `parent_id` /
-  `target_id` / `head_id` isn't in `items_by_id`, the reference is
+  `head_id` isn't in `items_by_id`, the reference is
   unresolvable and the Message MUST be dropped.
 
 Both maps are populated in a single forward pass: an Item must be
@@ -129,15 +128,14 @@ are normative; any deviation is a non-conformant implementation.
 * **Canonical scan order.** Items are processed in
   `(block_height ASC, tx_index ASC, vout_index ASC)`. This ordering
   is the only rule for "earlier" / "later" anywhere in this spec —
-  vote dedup ("later votes from the same author MUST be ignored"),
   Topic-Creation collision ("earliest confirmed creation wins"),
   Continuation `seq` ordering, and any future first-wins / last-wins
   semantics. Re-orgs replay the affected blocks; deterministic output
   follows from deterministic input.
 * **Same-block references are legal** if they obey scan order. A
   Comment may reference a Story posted earlier in the same block
-  (lower `tx_index`, or same tx with lower `vout_index`). A Vote
-  cast against a target in the *same transaction* MUST be at a
+  (lower `tx_index`, or same tx with lower `vout_index`). A Comment
+  that replies to a target in the *same transaction* MUST be at a
   higher `vout_index` than the target.
 * **All inputs are on-chain.** Every byte needed to verify a
   Message — Topic name, parent body, author pubkey, signature
@@ -152,7 +150,7 @@ are normative; any deviation is a non-conformant implementation.
   conforming index — it just renders unknown tags as
   `tag_<hex> = <bytes>` rather than friendly names. Two indexers
   with different registry snapshots produce identical Item lists,
-  identical scores, identical thread structure; only their UI
+  identical ranking, identical thread structure; only their UI
   labels for unknown tags differ.
 * **No genesis block / no activation height.** CoinNews is
   active for any block whose `OP_RETURN`s match the §1 envelope.
@@ -163,7 +161,7 @@ are normative; any deviation is a non-conformant implementation.
   every Item that exists in their shared range.
 * **Determinism budget.** Given a chain tip, the canonical output
   of an indexer is the tuple
-  `(items_by_id, votes_by_target_and_author, topics_by_id)`.
+  `(items_by_id, topics_by_id)`.
   Conforming indexers MUST agree byte-for-byte on this tuple
   modulo serialisation. Anything beyond it (rendered HTML, sort
   caches, search indexes) is implementation-defined.
@@ -212,19 +210,10 @@ non-empty body MUST be carried in TLV; long bodies chunk via §9.
 Indexers MUST drop Comments whose `parent_id` is unresolvable in the
 index, or whose signature fails to verify.
 
-### 8. Vote
+### 8. Vote (retired)
 
-```
-"CN" ‖ 0x04 ‖ target_id(12) ‖ author_xpk(32) ‖ sig(64)   (upvote)
-"CN" ‖ 0x05 ‖ target_id(12) ‖ author_xpk(32) ‖ sig(64)   (downvote)
-```
-
-Total: 111 B exactly. Sig is Schnorr over
-`tagged_hash("CoinNews/Vote", typetag ‖ target_id)`.
-
-A given `(author_xpk, target_id)` pair counts at most once. Later
-votes from the same author against the same target — including flips
-from upvote to downvote — MUST be ignored.
+TypeTags `0x04` and `0x05` carried up and down votes. They are
+retired. Indexers MUST drop them like any unknown TypeTag (§1).
 
 ### 9. Continuation
 
@@ -307,17 +296,18 @@ revise) stays frozen.
 
 ### 13. Ranking
 
-Front-page and thread ordering use the Hacker News rank, made part
-of the spec so independent indexers agree:
+An Item's `fee_sats` is the miner fee of its carrying transaction
+(inputs minus outputs, in sats). Every Item in one transaction gets
+the full fee of that transaction.
+
+The front page orders Stories by:
 
 ```
-score = (upvotes − downvotes − 1) / (age_hours + 2)^1.8
+fee_sats DESC, block_height DESC, tx_index DESC, vout_index DESC
 ```
 
-`age_hours = max(0, (now − block_time)/3600)`. Items with
-`upvotes − downvotes < 0` MAY be hidden from default views but MUST
-remain retrievable by ItemID. Comment threads use the same formula
-scoped to siblings.
+A comment thread orders siblings by `fee_sats DESC`, then canonical
+scan order (§4.2) ascending.
 
 ### 14. Retention & fees
 
@@ -331,11 +321,11 @@ surface the per-message fee in the publish flow.
 ## Rationale
 
 * **`"CN"` magic, not topic-as-magic.** Topic only appears where
-  it's load-bearing (creation + Story); Comment/Vote/Continuation
+  it's load-bearing (creation + Story); Comment/Continuation
   derive topic from their reference target. Saves 4 bytes on every
-  reply and vote.
-* **1-byte type tags.** Replaces `"new"` (3 B), `"re"` (2 B),
-  `"up"`/`"dn"` (2 B). Saves 1–2 B per Message.
+  reply.
+* **1-byte type tags.** Replaces `"new"` (3 B) and `"re"` (2 B).
+  Saves 1–2 B per Message.
 * **12-byte ItemID.** A truncated SHA-256 of `(txid, vout)` is 24 B
   shorter than the full outpoint; collision space at 2⁹⁶ is
   negligible at any plausible CoinNews scale.
@@ -349,13 +339,13 @@ surface the per-message fee in the publish flow.
 * **Out-of-band TLV registry.** The on-chain envelope is the
   expensive thing to evolve; the metadata schema isn't. Splitting
   them lets new fields ship at client cadence.
-* **Vote dedup per `(author, target)`.** Without it, capital buys
-  ranking; with it, only persuading other authors moves the front
-  page.
+* **Fee ranking, no votes.** A paid Item with few votes looks
+  rejected. The fee is the only rank signal, so every paid Item
+  stays visible.
 
 ## Reference Implementation
 
-The Go codec at `bitwindow/server/coinnews/` covers all six message
+The Go codec at `bitwindow/server/coinnews/` covers all four message
 types, the TLV layer, ItemID truncation, and BIP-340 Schnorr verify
 with per-type tagged hashes.
 
@@ -376,10 +366,4 @@ total: 18 B
        ‖ 05 01 00                 ; subtype=link
        ‖ 01 35 <url 53 B>         ; url
 total: 2 + 1 + 4 + 1 + 45 + 3 + 2 + 53 = 111 B
-```
-
-```
-# Vote: upvote of an Item with target_id 12 B
-"CN" ‖ 04 ‖ <12 B target_id> ‖ <32 B author_xpk> ‖ <64 B sig>
-total: 111 B exact
 ```

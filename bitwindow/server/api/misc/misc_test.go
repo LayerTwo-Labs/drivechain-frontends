@@ -269,7 +269,7 @@ func TestService_BroadcastNews(t *testing.T) {
 	})
 }
 
-func TestService_VotesAndComments(t *testing.T) {
+func TestService_Comments(t *testing.T) {
 	t.Parallel()
 
 	const validItemID = "0123456789abcdef01234567" // 12-byte hex
@@ -283,30 +283,6 @@ func TestService_VotesAndComments(t *testing.T) {
 			Return(&orchpb.SendTransactionResponse{Txid: "test-txid"}, nil).AnyTimes()
 		return mockOrch
 	}
-
-	t.Run("upvote success", func(t *testing.T) {
-		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.UpvoteNews(t.Context(), &miscv1.UpvoteNewsRequest{ItemId: validItemID})
-		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Txid)
-	})
-
-	t.Run("downvote success", func(t *testing.T) {
-		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
-		resp, err := cli.DownvoteNews(t.Context(), &miscv1.UpvoteNewsRequest{ItemId: validItemID})
-		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Txid)
-	})
-
-	t.Run("vote rejects malformed item_id", func(t *testing.T) {
-		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.RPC(t, database.Test(t)))
-		_, err := cli.UpvoteNews(t.Context(), &miscv1.UpvoteNewsRequest{ItemId: "nothex"})
-		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-		assert.Contains(t, err.Error(), "item_id must be")
-	})
 
 	t.Run("comment rejects a short parent_id", func(t *testing.T) {
 		t.Parallel()
@@ -560,14 +536,13 @@ func TestService_ListCoinNews(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, resp.CoinNews, 2)
 
-		// Ranked by §13 score: with no votes the older story scores
-		// higher (numerator −1 over a larger age denominator).
-		assert.Equal(t, topicID1.String(), resp.CoinNews[0].Topic)
-		assert.Equal(t, "News Headline 1", resp.CoinNews[0].Headline)
-		assert.Equal(t, "Content for news 1", resp.CoinNews[0].Content)
-		assert.Equal(t, topicID2.String(), resp.CoinNews[1].Topic)
-		assert.Equal(t, "News Headline 2", resp.CoinNews[1].Headline)
-		assert.Equal(t, "Content for news 2", resp.CoinNews[1].Content)
+		// Equal fees list the newest first.
+		assert.Equal(t, topicID2.String(), resp.CoinNews[0].Topic)
+		assert.Equal(t, "News Headline 2", resp.CoinNews[0].Headline)
+		assert.Equal(t, "Content for news 2", resp.CoinNews[0].Content)
+		assert.Equal(t, topicID1.String(), resp.CoinNews[1].Topic)
+		assert.Equal(t, "News Headline 1", resp.CoinNews[1].Headline)
+		assert.Equal(t, "Content for news 1", resp.CoinNews[1].Content)
 	})
 
 	t.Run("list coin news filtered by topic", func(t *testing.T) {
@@ -601,7 +576,7 @@ func TestService_ListCoinNews(t *testing.T) {
 		assert.Equal(t, "News Headline 1", resp.CoinNews[0].Headline)
 	})
 
-	t.Run("list coin news ranked by score", func(t *testing.T) {
+	t.Run("list coin news with equal fees newest first", func(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
@@ -626,10 +601,9 @@ func TestService_ListCoinNews(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, resp.CoinNews, 3)
 
-		// §13 ranking: with no votes, older stories score higher.
-		assert.Equal(t, "Old News", resp.CoinNews[0].Headline)
+		assert.Equal(t, "Latest News", resp.CoinNews[0].Headline)
 		assert.Equal(t, "Recent News", resp.CoinNews[1].Headline)
-		assert.Equal(t, "Latest News", resp.CoinNews[2].Headline)
+		assert.Equal(t, "Old News", resp.CoinNews[2].Headline)
 	})
 
 	t.Run("list coin news limited to 100 entries", func(t *testing.T) {

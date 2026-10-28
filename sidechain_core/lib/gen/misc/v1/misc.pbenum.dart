@@ -16,13 +16,11 @@ import 'package:protobuf/protobuf.dart' as $pb;
 /// What the user is about to put on chain.
 class NewsAction extends $pb.ProtobufEnum {
   static const NewsAction NEWS_ACTION_UNSPECIFIED = NewsAction._(0, _omitEnumNames ? '' : 'NEWS_ACTION_UNSPECIFIED');
-  static const NewsAction NEWS_ACTION_VOTE = NewsAction._(1, _omitEnumNames ? '' : 'NEWS_ACTION_VOTE');
   static const NewsAction NEWS_ACTION_COMMENT = NewsAction._(2, _omitEnumNames ? '' : 'NEWS_ACTION_COMMENT');
   static const NewsAction NEWS_ACTION_STORY = NewsAction._(3, _omitEnumNames ? '' : 'NEWS_ACTION_STORY');
 
   static const $core.List<NewsAction> values = <NewsAction> [
     NEWS_ACTION_UNSPECIFIED,
-    NEWS_ACTION_VOTE,
     NEWS_ACTION_COMMENT,
     NEWS_ACTION_STORY,
   ];
