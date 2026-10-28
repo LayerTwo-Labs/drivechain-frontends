@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bitwindow/models/burn_ecx_amount.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/widgets/ecx_burn_list.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -276,6 +277,11 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
         children: [
           SailText.primary15('Burn ${_network!.name} Coins', bold: true),
           SailText.secondary13('Burn your coins to receive 1/${_network!.creditDivisor} of the amount as real ECX'),
+          SailButton(
+            label: 'See all ${_network!.name} burns',
+            variant: ButtonVariant.link,
+            onPressed: () => showEcxBurnList(context, networkName: _network!.name, networkId: _context.networkId),
+          ),
         ],
       ),
       SailColumn(

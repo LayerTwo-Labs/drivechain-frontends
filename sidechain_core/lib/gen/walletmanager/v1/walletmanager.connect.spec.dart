@@ -362,6 +362,14 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.DeriveAddressesResponse.new,
   );
 
+  /// ListEcxBurns lists every burn of the current eCash network, newest first.
+  static const listEcxBurns = connect.Spec(
+    '/$name/ListEcxBurns',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListEcxBurnsRequest.new,
+    walletmanagerv1walletmanager.ListEcxBurnsResponse.new,
+  );
+
   /// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
   /// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
   /// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum

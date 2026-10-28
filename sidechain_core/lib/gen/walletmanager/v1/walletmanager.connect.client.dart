@@ -820,6 +820,24 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// ListEcxBurns lists every burn of the current eCash network, newest first.
+  Future<walletmanagerv1walletmanager.ListEcxBurnsResponse> listEcxBurns(
+    walletmanagerv1walletmanager.ListEcxBurnsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listEcxBurns,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
   /// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
   /// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum

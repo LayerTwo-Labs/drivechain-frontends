@@ -25,7 +25,9 @@ int calculateEcxCreditSats(int amountSats, int creditDivisor) =>
     amountSats ~/ creditDivisor + (amountSats % creditDivisor == 0 ? 0 : 1);
 
 String formatEcxCredit(int amountSats, int creditDivisor, {bool compact = false}) =>
-    _formatAmount(calculateEcxCreditSats(amountSats, creditDivisor), 8, 'ECX', compact: compact);
+    formatEcxAmount(calculateEcxCreditSats(amountSats, creditDivisor), compact: compact);
+
+String formatEcxAmount(int sats, {bool compact = false}) => _formatAmount(sats, 8, 'ECX', compact: compact);
 
 String _formatAmount(int amount, int decimals, String unit, {bool compact = false}) {
   final digits = amount.toString().padLeft(decimals + 1, '0');
