@@ -628,6 +628,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ListDerivationPaths(arg0, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDerivationPaths", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).ListDerivationPaths), arg0, arg1)
 }
 
+// ListEcxBurns mocks base method.
+func (m *MockWalletManagerServiceClient) ListEcxBurns(arg0 context.Context, arg1 *walletmanagerv1.ListEcxBurnsRequest) (*walletmanagerv1.ListEcxBurnsResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEcxBurns", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.ListEcxBurnsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEcxBurns indicates an expected call of ListEcxBurns.
+func (mr *MockWalletManagerServiceClientMockRecorder) ListEcxBurns(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEcxBurns", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).ListEcxBurns), arg0, arg1)
+}
+
 // ListReceiveAddresses mocks base method.
 func (m *MockWalletManagerServiceClient) ListReceiveAddresses(arg0 context.Context, arg1 *walletmanagerv1.ListReceiveAddressesRequest) (*walletmanagerv1.ListReceiveAddressesResponse, error) {
 	m.ctrl.T.Helper()
@@ -1730,6 +1745,21 @@ func (m *MockWalletManagerServiceHandler) ListDerivationPaths(arg0 context.Conte
 func (mr *MockWalletManagerServiceHandlerMockRecorder) ListDerivationPaths(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDerivationPaths", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).ListDerivationPaths), arg0, arg1)
+}
+
+// ListEcxBurns mocks base method.
+func (m *MockWalletManagerServiceHandler) ListEcxBurns(arg0 context.Context, arg1 *walletmanagerv1.ListEcxBurnsRequest) (*walletmanagerv1.ListEcxBurnsResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEcxBurns", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.ListEcxBurnsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEcxBurns indicates an expected call of ListEcxBurns.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) ListEcxBurns(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEcxBurns", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).ListEcxBurns), arg0, arg1)
 }
 
 // ListReceiveAddresses mocks base method.

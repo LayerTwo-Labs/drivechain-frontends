@@ -125,3 +125,38 @@ func TestEsploraOutspendEvictedTransaction(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, found)
 }
+
+func TestEsploraAddressTxsFromStopsBelowTheHeight(t *testing.T) {
+	page1 := []EsploraTx{{TxID: "m0"}}
+	for i := 0; i < 25; i++ {
+		page1 = append(page1, EsploraTx{
+			TxID:   fmt.Sprintf("c%d", i),
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 200 - i},
+		})
+	}
+	page2 := []EsploraTx{
+		{TxID: "c25", Status: EsploraStatus{Confirmed: true, BlockHeight: 175}},
+		{TxID: "c26", Status: EsploraStatus{Confirmed: true, BlockHeight: 174}},
+		{TxID: "c27", Status: EsploraStatus{Confirmed: true, BlockHeight: 173}},
+	}
+	for i := 28; i < 50; i++ {
+		page2 = append(page2, EsploraTx{TxID: fmt.Sprintf("c%d", i), Status: EsploraStatus{Confirmed: true, BlockHeight: 173}})
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/address/A/txs":
+			_ = json.NewEncoder(w).Encode(page1)
+		case "/address/A/txs/chain/c24":
+			_ = json.NewEncoder(w).Encode(page2)
+		default:
+			http.Error(w, "unexpected page: "+r.URL.Path, http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	txs, err := NewEsploraClient([]string{srv.URL}, zerolog.Nop()).AddressTxsFrom(context.Background(), "A", 174)
+	require.NoError(t, err)
+	require.Len(t, txs, 28)
+	require.Equal(t, "m0", txs[0].TxID)
+	require.Equal(t, "c26", txs[len(txs)-1].TxID)
+}
