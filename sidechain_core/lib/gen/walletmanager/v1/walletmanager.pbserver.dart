@@ -68,6 +68,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$6.CreateCpfpResponse> createCpfp($pb.ServerContext ctx, $6.CreateCpfpRequest request);
   $async.Future<$6.CancelTransactionResponse> cancelTransaction($pb.ServerContext ctx, $6.CancelTransactionRequest request);
   $async.Future<$6.DeriveAddressesResponse> deriveAddresses($pb.ServerContext ctx, $6.DeriveAddressesRequest request);
+  $async.Future<$6.ListEcxBurnsResponse> listEcxBurns($pb.ServerContext ctx, $6.ListEcxBurnsRequest request);
   $async.Future<$6.CreatePsbtResponse> createPsbt($pb.ServerContext ctx, $6.CreatePsbtRequest request);
   $async.Future<$6.SignPsbtResponse> signPsbt($pb.ServerContext ctx, $6.SignPsbtRequest request);
   $async.Future<$6.SignPsbtWithCosignerResponse> signPsbtWithCosigner($pb.ServerContext ctx, $6.SignPsbtWithCosignerRequest request);
@@ -143,6 +144,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'CreateCpfp': return $6.CreateCpfpRequest();
       case 'CancelTransaction': return $6.CancelTransactionRequest();
       case 'DeriveAddresses': return $6.DeriveAddressesRequest();
+      case 'ListEcxBurns': return $6.ListEcxBurnsRequest();
       case 'CreatePsbt': return $6.CreatePsbtRequest();
       case 'SignPsbt': return $6.SignPsbtRequest();
       case 'SignPsbtWithCosigner': return $6.SignPsbtWithCosignerRequest();
@@ -221,6 +223,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'CreateCpfp': return this.createCpfp(ctx, request as $6.CreateCpfpRequest);
       case 'CancelTransaction': return this.cancelTransaction(ctx, request as $6.CancelTransactionRequest);
       case 'DeriveAddresses': return this.deriveAddresses(ctx, request as $6.DeriveAddressesRequest);
+      case 'ListEcxBurns': return this.listEcxBurns(ctx, request as $6.ListEcxBurnsRequest);
       case 'CreatePsbt': return this.createPsbt(ctx, request as $6.CreatePsbtRequest);
       case 'SignPsbt': return this.signPsbt(ctx, request as $6.SignPsbtRequest);
       case 'SignPsbtWithCosigner': return this.signPsbtWithCosigner(ctx, request as $6.SignPsbtWithCosignerRequest);

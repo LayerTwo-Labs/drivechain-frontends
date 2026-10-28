@@ -336,6 +336,10 @@ class OrchestratorWalletRPC {
     );
   }
 
+  Future<wmpb.ListEcxBurnsResponse> listEcxBurns() {
+    return _unaryClient.listEcxBurns(wmpb.ListEcxBurnsRequest());
+  }
+
   Future<wmpb.SendTransactionResponse> sendTransaction({
     required String walletId,
     required Map<String, int> destinations,

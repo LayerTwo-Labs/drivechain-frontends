@@ -11554,6 +11554,246 @@ class DeriveAddressesResponse extends $pb.GeneratedMessage {
   $core.List<$core.String> get addresses => $_getList(0);
 }
 
+class ListEcxBurnsRequest extends $pb.GeneratedMessage {
+  factory ListEcxBurnsRequest() => create();
+  ListEcxBurnsRequest._() : super();
+  factory ListEcxBurnsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListEcxBurnsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListEcxBurnsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListEcxBurnsRequest clone() => ListEcxBurnsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListEcxBurnsRequest copyWith(void Function(ListEcxBurnsRequest) updates) => super.copyWith((message) => updates(message as ListEcxBurnsRequest)) as ListEcxBurnsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListEcxBurnsRequest create() => ListEcxBurnsRequest._();
+  ListEcxBurnsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListEcxBurnsRequest> createRepeated() => $pb.PbList<ListEcxBurnsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListEcxBurnsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListEcxBurnsRequest>(create);
+  static ListEcxBurnsRequest? _defaultInstance;
+}
+
+class EcxBurn extends $pb.GeneratedMessage {
+  factory EcxBurn({
+    $core.String? txid,
+    $fixnum.Int64? height,
+    $fixnum.Int64? burnSats,
+    $core.String? payoutAddress,
+    $fixnum.Int64? payoutSats,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (height != null) {
+      $result.height = height;
+    }
+    if (burnSats != null) {
+      $result.burnSats = burnSats;
+    }
+    if (payoutAddress != null) {
+      $result.payoutAddress = payoutAddress;
+    }
+    if (payoutSats != null) {
+      $result.payoutSats = payoutSats;
+    }
+    return $result;
+  }
+  EcxBurn._() : super();
+  factory EcxBurn.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EcxBurn.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EcxBurn', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..aInt64(2, _omitFieldNames ? '' : 'height')
+    ..aInt64(3, _omitFieldNames ? '' : 'burnSats')
+    ..aOS(4, _omitFieldNames ? '' : 'payoutAddress')
+    ..aInt64(5, _omitFieldNames ? '' : 'payoutSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EcxBurn clone() => EcxBurn()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EcxBurn copyWith(void Function(EcxBurn) updates) => super.copyWith((message) => updates(message as EcxBurn)) as EcxBurn;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EcxBurn create() => EcxBurn._();
+  EcxBurn createEmptyInstance() => create();
+  static $pb.PbList<EcxBurn> createRepeated() => $pb.PbList<EcxBurn>();
+  @$core.pragma('dart2js:noInline')
+  static EcxBurn getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EcxBurn>(create);
+  static EcxBurn? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  /// 0 while the burn is in the mempool.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get height => $_getI64(1);
+  @$pb.TagNumber(2)
+  set height($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeight() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get burnSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set burnSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBurnSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBurnSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get payoutAddress => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set payoutAddress($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPayoutAddress() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPayoutAddress() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get payoutSats => $_getI64(4);
+  @$pb.TagNumber(5)
+  set payoutSats($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasPayoutSats() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPayoutSats() => clearField(5);
+}
+
+class ListEcxBurnsResponse extends $pb.GeneratedMessage {
+  factory ListEcxBurnsResponse({
+    $core.Iterable<EcxBurn>? burns,
+    $fixnum.Int64? totalBurnSats,
+    $fixnum.Int64? totalPayoutSats,
+    $fixnum.Int64? payoutAddressCount,
+    $core.String? csv,
+  }) {
+    final $result = create();
+    if (burns != null) {
+      $result.burns.addAll(burns);
+    }
+    if (totalBurnSats != null) {
+      $result.totalBurnSats = totalBurnSats;
+    }
+    if (totalPayoutSats != null) {
+      $result.totalPayoutSats = totalPayoutSats;
+    }
+    if (payoutAddressCount != null) {
+      $result.payoutAddressCount = payoutAddressCount;
+    }
+    if (csv != null) {
+      $result.csv = csv;
+    }
+    return $result;
+  }
+  ListEcxBurnsResponse._() : super();
+  factory ListEcxBurnsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListEcxBurnsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListEcxBurnsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pc<EcxBurn>(1, _omitFieldNames ? '' : 'burns', $pb.PbFieldType.PM, subBuilder: EcxBurn.create)
+    ..aInt64(2, _omitFieldNames ? '' : 'totalBurnSats')
+    ..aInt64(3, _omitFieldNames ? '' : 'totalPayoutSats')
+    ..aInt64(4, _omitFieldNames ? '' : 'payoutAddressCount')
+    ..aOS(5, _omitFieldNames ? '' : 'csv')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListEcxBurnsResponse clone() => ListEcxBurnsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListEcxBurnsResponse copyWith(void Function(ListEcxBurnsResponse) updates) => super.copyWith((message) => updates(message as ListEcxBurnsResponse)) as ListEcxBurnsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListEcxBurnsResponse create() => ListEcxBurnsResponse._();
+  ListEcxBurnsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListEcxBurnsResponse> createRepeated() => $pb.PbList<ListEcxBurnsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListEcxBurnsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListEcxBurnsResponse>(create);
+  static ListEcxBurnsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<EcxBurn> get burns => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get totalBurnSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set totalBurnSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTotalBurnSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTotalBurnSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get totalPayoutSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set totalPayoutSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTotalPayoutSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTotalPayoutSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get payoutAddressCount => $_getI64(3);
+  @$pb.TagNumber(4)
+  set payoutAddressCount($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPayoutAddressCount() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPayoutAddressCount() => clearField(4);
+
+  /// burn_amount,payout_address,payout_amount in coins.
+  @$pb.TagNumber(5)
+  $core.String get csv => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set csv($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasCsv() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCsv() => clearField(5);
+}
+
 class PreviewWalletFromEntropyRequest extends $pb.GeneratedMessage {
   factory PreviewWalletFromEntropyRequest({
     $core.List<$core.int>? entropy,
@@ -13248,6 +13488,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<DeriveAddressesResponse> deriveAddresses($pb.ClientContext? ctx, DeriveAddressesRequest request) =>
     _client.invoke<DeriveAddressesResponse>(ctx, 'WalletManagerService', 'DeriveAddresses', request, DeriveAddressesResponse())
+  ;
+  $async.Future<ListEcxBurnsResponse> listEcxBurns($pb.ClientContext? ctx, ListEcxBurnsRequest request) =>
+    _client.invoke<ListEcxBurnsResponse>(ctx, 'WalletManagerService', 'ListEcxBurns', request, ListEcxBurnsResponse())
   ;
   $async.Future<CreatePsbtResponse> createPsbt($pb.ClientContext? ctx, CreatePsbtRequest request) =>
     _client.invoke<CreatePsbtResponse>(ctx, 'WalletManagerService', 'CreatePsbt', request, CreatePsbtResponse())

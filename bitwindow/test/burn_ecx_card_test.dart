@@ -287,6 +287,14 @@ void main() {
     expect(rpc.calls, isEmpty);
   });
 
+  testWidgets('links to the burn list of the network', (tester) async {
+    await pumpCard(tester);
+    expect(
+      find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'See all Betanet burns'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('shows the backend warning before and after the burn', (tester) async {
     rpc.warningMessage = 'This transaction burns Betanet coins for a claim of real ECX.';
     await pumpCard(tester, width: 360);
