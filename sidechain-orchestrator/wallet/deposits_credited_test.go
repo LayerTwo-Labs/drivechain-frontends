@@ -233,33 +233,3 @@ func TestSidechainDepositSlotsListsTheOpenOnes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []uint32{7}, slots)
 }
-
-// The bump path reads the slot before it replaces the transaction, so it can
-// hold that slot while the record still names a transaction the network drops.
-func TestSidechainDepositSlotOfFindsTheSlot(t *testing.T) {
-	ctx := context.Background()
-	svc := NewService(t.TempDir(), zerolog.Nop())
-	svc.SetNetwork("signet")
-	require.NoError(t, svc.Init())
-	defer svc.Close()
-
-	require.NoError(t, svc.RecordSidechainDeposit(ctx, SidechainDeposit{Txid: "dep", WalletID: "w", Slot: 13, AmountSats: 10}))
-
-	slot, isDeposit, err := svc.SidechainDepositSlotOf(ctx, "dep")
-	require.NoError(t, err)
-	require.True(t, isDeposit)
-	require.Equal(t, uint32(13), slot)
-}
-
-// An ordinary send is no deposit, so a bump of it holds no slot.
-func TestSidechainDepositSlotOfReportsANonDeposit(t *testing.T) {
-	ctx := context.Background()
-	svc := NewService(t.TempDir(), zerolog.Nop())
-	svc.SetNetwork("signet")
-	require.NoError(t, svc.Init())
-	defer svc.Close()
-
-	_, isDeposit, err := svc.SidechainDepositSlotOf(ctx, "an-ordinary-send")
-	require.NoError(t, err)
-	require.False(t, isDeposit)
-}

@@ -166,9 +166,8 @@ func TestBbcBMM(t *testing.T) {
 		blindMergeMine(i)
 	}
 
-	// A deposit through the same RPC BitWindow calls. The M5 pays an
-	// OP_DRIVECHAIN treasury output, which relays only because this build
-	// treats it as standard -- the mainchain node runs no -acceptnonstdtxn.
+	// A deposit request through the same RPC BitWindow calls. The block that
+	// mines it consolidates it into the treasury.
 	const depositSats = 50_000_000
 	require.NoError(t, sidechain.call(ctx, "createwallet", []any{"deposit"}, nil))
 	var sideAddress string
@@ -182,7 +181,6 @@ func TestBbcBMM(t *testing.T) {
 	})
 	require.NoError(t, err, "create deposit")
 	require.NotEmpty(t, deposit.Txid)
-	require.EqualValues(t, depositSats, deposit.TreasurySats, "first deposit starts the treasury")
 
 	// The deposit must confirm at or below the mainchain tip the next template
 	// builds on, or it falls outside the range that coinbase covers.

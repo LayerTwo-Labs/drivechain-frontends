@@ -6,25 +6,23 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/samber/lo"
 
 	"connectrpc.com/connect/v2"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
-// CreateDeposit builds a BIP300 M5: it spends the sidechain's current treasury
-// output and pays a larger one back, naming the depositor in an OP_RETURN.
+// CreateDeposit broadcasts a BIP300 deposit request: the amount to OP_DRIVECHAIN
+// <slot> OP_TRUE, then the address in an OP_RETURN. It spends no CTIP; the block
+// that mines it consolidates it into the slot's CTIP.
 func (h *WalletHandler) CreateDeposit(
 	ctx context.Context, req *wpb.CreateDepositRequest,
 ) (*wpb.CreateDepositResponse, error) {
@@ -46,7 +44,6 @@ func (h *WalletHandler) CreateDeposit(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-
 	if err := h.requireEngine(); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
@@ -54,78 +51,28 @@ func (h *WalletHandler) CreateDeposit(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-
-	// Held past the broadcast and the record below: two overlapping calls would
-	// otherwise both pass the pending check and spend the same treasury output.
-	unlock := h.lockDepositSlot(slot)
-	defer unlock()
-
-	treasury, err := h.enforcerTreasury(ctx, uint32(slot))
-	if err != nil {
+	if err := h.requireActiveSlot(ctx, uint32(slot)); err != nil {
 		return nil, err
 	}
-	walletHeight, err := h.engine.ChainForWallet(walletID).TipHeight(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the mainchain tip: %w", err).Error())
-	}
-	if err := depositTreasuryReady(treasury, walletHeight, slot); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
-	}
-	treasuryHex := hex.EncodeToString(orchestrator.M8TreasuryScript(slot))
-	var externalInputs []*wpb.ExternalInput
-	oldTreasurySats := int64(0)
-
-	start, startErr := h.depositStart(ctx, treasury, walletID, slot)
-	switch {
-	case errors.Is(startErr, errTreasuryAmbiguous):
-		return nil, connect.NewError(connect.CodeResourceExhausted, startErr.Error()).WithCause(startErr)
-	case startErr != nil:
-		return nil, connect.NewError(connect.CodeUnavailable, startErr.Error()).WithCause(startErr)
-	}
-	if start != nil {
-		tip, tipErr := treasuryTip(ctx, h.engine.ChainForWallet(walletID), slot, *start, h.recordedTipOf(slot))
-		switch {
-		case errors.Is(tipErr, errTreasuryChainFull), errors.Is(tipErr, errTreasurySpentElsewhere):
-			return nil, connect.NewError(connect.CodeResourceExhausted, tipErr.Error()).WithCause(tipErr)
-		case tipErr != nil:
-			return nil, connect.NewError(connect.CodeUnavailable, tipErr.Error()).WithCause(tipErr)
-		}
-		if tip.ancestors > 0 {
-			h.svc.Log().Info().Uint8("slot", slot).Int("ancestors", tip.ancestors).
-				Str("txid", tip.txid).Msg("the deposit builds on an unconfirmed treasury output")
-		}
-		oldTreasurySats = tip.valueSats
-		externalInputs = []*wpb.ExternalInput{{
-			Txid:            tip.txid,
-			Vout:            int32(tip.vout),
-			ValueSats:       oldTreasurySats,
-			ScriptPubkeyHex: treasuryHex,
-		}}
-	}
-
-	treasurySats := oldTreasurySats + req.AmountSats
 
 	h.svc.Log().Info().Uint8("slot", slot).Str("destination", destination).
 		Int64("amount_sats", req.AmountSats).Int64("fee_sats", req.FeeSats).
-		Int64("old_treasury_sats", oldTreasurySats).Int64("new_treasury_sats", treasurySats).
-		Int("external_inputs", len(externalInputs)).Msg("building the deposit")
+		Msg("building the deposit request")
 
 	send, err := h.SendTransaction(ctx, &wpb.SendTransactionRequest{
-		WalletId:       req.WalletId,
-		RawOutputs:     []*wpb.RawOutput{{ValueSats: treasurySats, ScriptHex: treasuryHex}},
-		OpReturnHex:    hex.EncodeToString([]byte(destination)),
-		ExternalInputs: externalInputs,
-		FixedFeeSats:   req.FeeSats,
+		WalletId:     req.WalletId,
+		RawOutputs:   []*wpb.RawOutput{{ValueSats: req.AmountSats, ScriptHex: hex.EncodeToString(orchestrator.M8TreasuryScript(slot))}},
+		OpReturnHex:  hex.EncodeToString([]byte(destination)),
+		FixedFeeSats: req.FeeSats,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	h.svc.Log().Info().Str("txid", send.Txid).Uint8("slot", slot).
-		Int64("amount_sats", req.AmountSats).Msg("broadcast the deposit")
+		Int64("amount_sats", req.AmountSats).Msg("broadcast the deposit request")
 
-	// An M5 is an ordinary transaction on the wire, so nothing later can tell
-	// it apart from a normal send. Record it while we still know.
+	// The broadcast already happened, so a failed record must not fail the call.
 	if err := h.recordDeposit(ctx, wallet.SidechainDeposit{
 		Txid:        send.Txid,
 		WalletID:    walletID,
@@ -134,19 +81,11 @@ func (h *WalletHandler) CreateDeposit(
 		AmountSats:  req.AmountSats,
 		FeeSats:     req.FeeSats,
 	}); err != nil {
-		// The broadcast already happened, so failing the call would report a
-		// deposit that did not land. This row is the only record of it, and
-		// the next deposit to the slot builds on it, so the slot is now in an
-		// unknown state until a block settles it.
-		h.depositSlotBlind.Store(h.blindKey(slot), treasury.ctip.GetTxid().GetHex().GetValue())
 		h.svc.Log().Error().Err(err).Str("txid", send.Txid).Uint8("slot", slot).
-			Msg("could not record the deposit, holding the slot until a block lands")
+			Msg("could not record the deposit request")
 	}
 
-	return &wpb.CreateDepositResponse{
-		Txid:         send.Txid,
-		TreasurySats: treasurySats,
-	}, nil
+	return &wpb.CreateDepositResponse{Txid: send.Txid}, nil
 }
 
 // depositDestination unwraps the s<slot>_<address>_<checksum> deposit form to
@@ -184,66 +123,47 @@ func depositDestination(slot uint8, destination string) (string, error) {
 	return address, nil
 }
 
-// sidechainTreasury is what the enforcer knows about one slot's treasury.
-type sidechainTreasury struct {
-	enforcerHeight int
-	ctip           *enforcerpb.GetCtipResponse_Ctip
-	slotActive     bool
-}
-
-// depositTreasuryReady returns an error when a deposit built from treasury
-// would not spend the current treasury output.
-func depositTreasuryReady(treasury sidechainTreasury, walletHeight int, slot uint8) error {
-	if treasury.enforcerHeight < walletHeight {
-		return fmt.Errorf("the enforcer is at block %d, the mainchain is at block %d; wait until it syncs, then deposit",
-			treasury.enforcerHeight, walletHeight)
+// requireActiveSlot refuses a slot that holds no active sidechain: no sweep
+// would ever consolidate a request to it.
+func (h *WalletHandler) requireActiveSlot(ctx context.Context, slot uint32) error {
+	if h.orch == nil {
+		return connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not wired")
 	}
-	if treasury.ctip == nil && !treasury.slotActive {
-		return fmt.Errorf("the enforcer shows no treasury output and no active sidechain in slot %d", slot)
+	validator, err := h.orch.EnforcerValidator()
+	if err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
+	}
+	sidechains, err := validator.GetSidechains(ctx, &enforcerpb.GetSidechainsRequest{})
+	if err != nil {
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("get sidechains: %w", err).Error())
+	}
+	active := lo.ContainsBy(sidechains.GetSidechains(), func(s *enforcerpb.GetSidechainsResponse_SidechainInfo) bool {
+		return s.GetSidechainNumber().GetValue() == slot
+	})
+	if !active {
+		return connect.Errorf(connect.CodeFailedPrecondition, "slot %d holds no active sidechain", slot)
 	}
 	return nil
 }
 
-// lockDepositSlot serializes every deposit to one slot and returns the unlock.
-func (h *WalletHandler) lockDepositSlot(slot uint8) func() {
-	lock, _ := h.depositSlotLocks.LoadOrStore(slot, &sync.Mutex{})
-	mu := lock.(*sync.Mutex)
-	mu.Lock()
-	return mu.Unlock
-}
+// depositRecordAttempts is how many times a broadcast deposit tries to reach
+// the store. The broadcast cannot be undone, so a busy database gets a retry.
+const depositRecordAttempts = 3
 
-// enforcerTreasury reads the enforcer tip, the slot's treasury outpoint, and
-// whether the slot holds an active sidechain.
-func (h *WalletHandler) enforcerTreasury(ctx context.Context, slot uint32) (sidechainTreasury, error) {
-	if h.orch == nil {
-		return sidechainTreasury{}, connect.Errorf(connect.CodeFailedPrecondition, "orchestrator not wired")
+// recordDeposit stores a deposit that is already on the wire.
+func (h *WalletHandler) recordDeposit(ctx context.Context, d wallet.SidechainDeposit) error {
+	var err error
+	for attempt := 0; attempt < depositRecordAttempts; attempt++ {
+		if err = h.svc.RecordSidechainDeposit(ctx, d); err == nil {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Duration(attempt+1) * 100 * time.Millisecond):
+		}
 	}
-
-	validator, err := h.orch.EnforcerValidator()
-	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
-	}
-	_, height, err := h.orch.ChainTip(ctx)
-	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the enforcer tip: %w", err).Error())
-	}
-	ctip, err := validator.GetCtip(ctx, &enforcerpb.GetCtipRequest{
-		SidechainNumber: wrapperspb.UInt32(slot),
-	})
-	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get ctip: %w", err).Error())
-	}
-	sidechains, err := validator.GetSidechains(ctx, &enforcerpb.GetSidechainsRequest{})
-	if err != nil {
-		return sidechainTreasury{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get sidechains: %w", err).Error())
-	}
-	return sidechainTreasury{
-		enforcerHeight: int(height),
-		ctip:           ctip.GetCtip(),
-		slotActive: lo.ContainsBy(sidechains.GetSidechains(), func(s *enforcerpb.GetSidechainsResponse_SidechainInfo) bool {
-			return s.GetSidechainNumber().GetValue() == slot
-		}),
-	}, nil
+	return err
 }
 
 // ListSidechainDeposits reports the deposits this install made to a slot. The

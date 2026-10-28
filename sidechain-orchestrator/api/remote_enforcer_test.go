@@ -1,11 +1,12 @@
 package api
 
 import (
-	"connectrpc.com/connect/v2/connecthttp"
 	"context"
 	"io"
 	"net/http"
 	"testing"
+
+	"connectrpc.com/connect/v2/connecthttp"
 
 	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
@@ -15,7 +16,6 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	commonpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 )
@@ -35,6 +35,9 @@ func (v ctipValidator) GetChainTip(context.Context, *enforcerpb.GetChainTipReque
 }
 
 func (v ctipValidator) GetSidechains(context.Context, *enforcerpb.GetSidechainsRequest) (*enforcerpb.GetSidechainsResponse, error) {
+	if v.err != nil {
+		return nil, v.err
+	}
 	return &enforcerpb.GetSidechainsResponse{
 		Sidechains: lo.Map(v.slots, func(slot uint32, _ int) *enforcerpb.GetSidechainsResponse_SidechainInfo {
 			return &enforcerpb.GetSidechainsResponse_SidechainInfo{SidechainNumber: wrapperspb.UInt32(slot)}
@@ -58,23 +61,17 @@ func TestDepositReadsTheEnforcerInBothModes(t *testing.T) {
 			for _, state := range []struct {
 				name   string
 				slots  []uint32
-				ctip   *enforcerpb.GetCtipResponse_Ctip
 				err    error
 				refuse bool
 			}{
-				{name: "first deposit", slots: []uint32{9}},
-				{name: "empty and inactive", refuse: true},
-				{name: "funded", slots: []uint32{9}, ctip: &enforcerpb.GetCtipResponse_Ctip{
-					Txid:  &commonpb.ReverseHex{Hex: wrapperspb.String("treasury")},
-					Vout:  2,
-					Value: 12000,
-				}},
+				{name: "active slot", slots: []uint32{9}},
+				{name: "inactive slot", refuse: true},
 				{name: "unavailable", err: connect.Errorf(connect.CodeUnavailable, "validator is unavailable")},
 			} {
 				t.Run(state.name, func(t *testing.T) {
 					mux := http.NewServeMux()
 					rpcServer := connect.NewServer()
-					enforcerrpc.RegisterValidatorServiceHandler(rpcServer, ctipValidator{height: 100, slots: state.slots, ctip: state.ctip, err: state.err})
+					enforcerrpc.RegisterValidatorServiceHandler(rpcServer, ctipValidator{height: 100, slots: state.slots, err: state.err})
 					connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 					server := h2cServer(mux)
 					t.Cleanup(server.Close)
@@ -90,23 +87,15 @@ func TestDepositReadsTheEnforcerInBothModes(t *testing.T) {
 					t.Cleanup(func() { require.NoError(t, orch.SetNodeMode(context.Background(), orchestrator.NodeModeFull)) })
 					require.Equal(t, mode, orch.NodeMode())
 
-					treasury, err := (&WalletHandler{orch: orch}).enforcerTreasury(context.Background(), 9)
-					if state.err != nil {
-						require.Error(t, err)
+					err := (&WalletHandler{orch: orch}).requireActiveSlot(context.Background(), 9)
+					switch {
+					case state.err != nil:
 						require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
-						return
+					case state.refuse:
+						require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+					default:
+						require.NoError(t, err)
 					}
-					require.NoError(t, err)
-					require.Equal(t, 100, treasury.enforcerHeight)
-					if state.refuse {
-						require.Error(t, depositTreasuryReady(treasury, 100, 9))
-						return
-					}
-					require.NoError(t, depositTreasuryReady(treasury, 100, 9))
-					ctip := treasury.ctip
-					require.Equal(t, state.ctip.GetTxid().GetHex().GetValue(), ctip.GetTxid().GetHex().GetValue())
-					require.Equal(t, state.ctip.GetVout(), ctip.GetVout())
-					require.Equal(t, state.ctip.GetValue(), ctip.GetValue())
 				})
 			}
 		})
