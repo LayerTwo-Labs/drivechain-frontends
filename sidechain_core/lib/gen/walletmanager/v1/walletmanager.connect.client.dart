@@ -626,7 +626,7 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+  /// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
   Future<walletmanagerv1walletmanager.CreateDepositResponse> createDeposit(
     walletmanagerv1walletmanager.CreateDepositRequest input, {
     connect.Headers? headers,

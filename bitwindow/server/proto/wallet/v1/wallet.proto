@@ -222,6 +222,15 @@ message WalletTransaction {
   string warning_message = 10;
   // True for a coinbase transaction whose outputs cannot be spent yet.
   bool immature = 11;
+  // Set when the transaction is a sidechain deposit request this install made.
+  DepositRequest deposit_request = 12;
+}
+
+// DepositRequest names the sidechain a deposit request pays into.
+message DepositRequest {
+  uint32 slot = 1;
+  // Sidechain address the deposit credits.
+  string destination = 2;
 }
 
 // BmmBid names the BMM request one wallet transaction carries.

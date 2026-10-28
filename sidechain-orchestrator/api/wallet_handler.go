@@ -74,13 +74,6 @@ type WalletHandler struct {
 	orch            *orchestrator.Orchestrator // nil until set; used for Core variant RPCs
 	bip47State      *bip47state.Store          // nil until SetBip47StateStore is called
 	ecxBurnWarnings sync.Map
-	// depositSlotLocks serializes CreateDeposit per slot. Every wallet of this
-	// install spends one shared treasury output per slot, so two overlapping
-	// calls would both pass the pending check and then conflict on the wire.
-	depositSlotLocks sync.Map
-	// depositSlotBlind marks a slot whose deposit never reached the store, so
-	// our own records no longer describe its treasury chain.
-	depositSlotBlind sync.Map
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {
@@ -1150,8 +1143,23 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *pb.ListTransa
 	})
 
 	bids := h.bidLabels(ctx, walletID, pbTxs)
+	deposits, err := h.svc.WalletSidechainDeposits(ctx, walletID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	depositOf := lo.KeyBy(deposits, func(d wallet.SidechainDeposit) string { return d.Txid })
 	for _, entry := range pbTxs {
 		entry.BmmBid = bids[entry.Txid]
+		if d, ok := depositOf[entry.Txid]; ok {
+			entry.SidechainDeposit = &pb.SidechainDeposit{
+				Txid:        d.Txid,
+				WalletId:    d.WalletID,
+				Slot:        d.Slot,
+				Destination: d.Destination,
+				AmountSats:  d.AmountSats,
+				FeeSats:     d.FeeSats,
+			}
+		}
 	}
 	if err := h.setTransactionWarnings(ctx, walletID, pbTxs); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
@@ -1666,17 +1674,6 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *pb.BumpFeeRequest) (*p
 	walletID, err := h.engine.ResolveWalletID(req.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	}
-
-	// A bump of a deposit replaces the transaction the slot's treasury chain
-	// builds on. Hold the slot across the broadcast and the record move, or a
-	// deposit that starts between the two sees no treasury at all and builds a
-	// rival one.
-	if slot, isDeposit, slotErr := h.svc.SidechainDepositSlotOf(ctx, req.Txid); slotErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, slotErr.Error()).WithCause(slotErr)
-	} else if isDeposit {
-		unlock := h.lockDepositSlot(uint8(slot)) //nolint:gosec // a slot is 0-255
-		defer unlock()
 	}
 
 	result, err := h.engine.Backend().BumpFee(ctx, walletID, wallet.BumpFeeRequest{

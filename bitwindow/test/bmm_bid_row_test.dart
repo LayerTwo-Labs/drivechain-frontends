@@ -2,11 +2,12 @@ import 'package:bitwindow/pages/wallet/wallet_overview.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 
-WalletTransaction _tx({int height = 0, BmmBid? bid}) {
+WalletTransaction _tx({int height = 0, BmmBid? bid, DepositRequest? deposit}) {
   return WalletTransaction(
     txid: 'abc',
     confirmationTime: Confirmation(height: height),
     bmmBid: bid,
+    depositRequest: deposit,
   );
 }
 
@@ -27,6 +28,12 @@ void main() {
 
     test('a stranded bid says it lost', () {
       expect(transactionStatus(_tx(bid: _bid(lost: true))), 'BMM bid · lost');
+    });
+
+    test('a deposit request names its slot and whether it confirmed', () {
+      final deposit = DepositRequest(slot: 9, destination: 'addr');
+      expect(transactionStatus(_tx(deposit: deposit)), 'Deposit · slot 9 · unconfirmed');
+      expect(transactionStatus(_tx(height: 2, deposit: deposit)), 'Deposit · slot 9 · confirmed');
     });
   });
 

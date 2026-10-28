@@ -157,6 +157,10 @@ String transactionStatus(WalletTransaction tx) {
   if (tx.hasBmmBid()) {
     return tx.bmmBid.lost ? 'BMM bid \u00b7 lost' : 'BMM bid \u00b7 slot ${tx.bmmBid.slot}';
   }
+  if (tx.hasDepositRequest()) {
+    final state = tx.confirmationTime.height == 0 ? 'unconfirmed' : 'confirmed';
+    return 'Deposit \u00b7 slot ${tx.depositRequest.slot} \u00b7 $state';
+  }
   if (tx.immature) {
     return 'Maturing (${tx.confirmationTime.height}/$coinbaseMaturity)';
   }

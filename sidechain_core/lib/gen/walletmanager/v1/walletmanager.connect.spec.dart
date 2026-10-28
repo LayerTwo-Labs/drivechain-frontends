@@ -278,7 +278,7 @@ abstract final class WalletManagerService {
     googleprotobufempty.Empty.new,
   );
 
-  /// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+  /// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
   static const createDeposit = connect.Spec(
     '/$name/CreateDeposit',
     connect.StreamType.unary,

@@ -15,9 +15,9 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/empty.pb.dart' as $18;
-import '../../google/protobuf/timestamp.pb.dart' as $14;
-import '../../orchestrator/v1/orchestrator.pbenum.dart' as $3;
+import '../../google/protobuf/empty.pb.dart' as $5;
+import '../../google/protobuf/timestamp.pb.dart' as $2;
+import '../../orchestrator/v1/orchestrator.pbenum.dart' as $4;
 import 'walletmanager.pbenum.dart';
 
 export 'walletmanager.pbenum.dart';
@@ -2403,11 +2403,11 @@ class DeleteAllWalletsResponse extends $pb.GeneratedMessage {
 
 class BalanceSnapshot extends $pb.GeneratedMessage {
   factory BalanceSnapshot({
-    $3.BinaryType? binary,
+    $4.BinaryType? binary,
     $core.String? displayName,
     $fixnum.Int64? confirmedSats,
     $fixnum.Int64? pendingSats,
-    $14.Timestamp? updatedAt,
+    $2.Timestamp? updatedAt,
   }) {
     final $result = create();
     if (binary != null) {
@@ -2432,11 +2432,11 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
   factory BalanceSnapshot.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BalanceSnapshot', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
-    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'binary', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
+    ..e<$4.BinaryType>(1, _omitFieldNames ? '' : 'binary', $pb.PbFieldType.OE, defaultOrMaker: $4.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $4.BinaryType.valueOf, enumValues: $4.BinaryType.values)
     ..aOS(2, _omitFieldNames ? '' : 'displayName')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'pendingSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOM<$14.Timestamp>(5, _omitFieldNames ? '' : 'updatedAt', subBuilder: $14.Timestamp.create)
+    ..aOM<$2.Timestamp>(5, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -2462,9 +2462,9 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
   static BalanceSnapshot? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $3.BinaryType get binary => $_getN(0);
+  $4.BinaryType get binary => $_getN(0);
   @$pb.TagNumber(1)
-  set binary($3.BinaryType v) { setField(1, v); }
+  set binary($4.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBinary() => $_has(0);
   @$pb.TagNumber(1)
@@ -2498,15 +2498,15 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
   void clearPendingSats() => clearField(4);
 
   @$pb.TagNumber(5)
-  $14.Timestamp get updatedAt => $_getN(4);
+  $2.Timestamp get updatedAt => $_getN(4);
   @$pb.TagNumber(5)
-  set updatedAt($14.Timestamp v) { setField(5, v); }
+  set updatedAt($2.Timestamp v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasUpdatedAt() => $_has(4);
   @$pb.TagNumber(5)
   void clearUpdatedAt() => clearField(5);
   @$pb.TagNumber(5)
-  $14.Timestamp ensureUpdatedAt() => $_ensure(4);
+  $2.Timestamp ensureUpdatedAt() => $_ensure(4);
 }
 
 class BackupWalletSummary extends $pb.GeneratedMessage {
@@ -2590,7 +2590,7 @@ class BackupWalletSummary extends $pb.GeneratedMessage {
 class WalletBackup extends $pb.GeneratedMessage {
   factory WalletBackup({
     $core.String? backupId,
-    $14.Timestamp? createdAt,
+    $2.Timestamp? createdAt,
     $core.String? sourceName,
     $core.bool? encrypted,
     $core.bool? hasMetadata,
@@ -2639,7 +2639,7 @@ class WalletBackup extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletBackup', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'backupId')
-    ..aOM<$14.Timestamp>(2, _omitFieldNames ? '' : 'createdAt', subBuilder: $14.Timestamp.create)
+    ..aOM<$2.Timestamp>(2, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
     ..aOS(3, _omitFieldNames ? '' : 'sourceName')
     ..aOB(4, _omitFieldNames ? '' : 'encrypted')
     ..aOB(5, _omitFieldNames ? '' : 'hasMetadata')
@@ -2682,15 +2682,15 @@ class WalletBackup extends $pb.GeneratedMessage {
   void clearBackupId() => clearField(1);
 
   @$pb.TagNumber(2)
-  $14.Timestamp get createdAt => $_getN(1);
+  $2.Timestamp get createdAt => $_getN(1);
   @$pb.TagNumber(2)
-  set createdAt($14.Timestamp v) { setField(2, v); }
+  set createdAt($2.Timestamp v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasCreatedAt() => $_has(1);
   @$pb.TagNumber(2)
   void clearCreatedAt() => clearField(2);
   @$pb.TagNumber(2)
-  $14.Timestamp ensureCreatedAt() => $_ensure(1);
+  $2.Timestamp ensureCreatedAt() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $core.String get sourceName => $_getSZ(2);
@@ -8307,6 +8307,7 @@ class TransactionEntry extends $pb.GeneratedMessage {
     $core.String? walletId,
     BmmBid? bmmBid,
     $core.String? warningMessage,
+    SidechainDeposit? sidechainDeposit,
   }) {
     final $result = create();
     if (txid != null) {
@@ -8354,6 +8355,9 @@ class TransactionEntry extends $pb.GeneratedMessage {
     if (warningMessage != null) {
       $result.warningMessage = warningMessage;
     }
+    if (sidechainDeposit != null) {
+      $result.sidechainDeposit = sidechainDeposit;
+    }
     return $result;
   }
   TransactionEntry._() : super();
@@ -8376,6 +8380,7 @@ class TransactionEntry extends $pb.GeneratedMessage {
     ..aOS(13, _omitFieldNames ? '' : 'walletId')
     ..aOM<BmmBid>(14, _omitFieldNames ? '' : 'bmmBid', subBuilder: BmmBid.create)
     ..aOS(15, _omitFieldNames ? '' : 'warningMessage')
+    ..aOM<SidechainDeposit>(16, _omitFieldNames ? '' : 'sidechainDeposit', subBuilder: SidechainDeposit.create)
     ..hasRequiredFields = false
   ;
 
@@ -8538,6 +8543,18 @@ class TransactionEntry extends $pb.GeneratedMessage {
   $core.bool hasWarningMessage() => $_has(14);
   @$pb.TagNumber(15)
   void clearWarningMessage() => clearField(15);
+
+  /// Set when this install broadcast the transaction as a sidechain deposit request.
+  @$pb.TagNumber(16)
+  SidechainDeposit get sidechainDeposit => $_getN(15);
+  @$pb.TagNumber(16)
+  set sidechainDeposit(SidechainDeposit v) { setField(16, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasSidechainDeposit() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearSidechainDeposit() => clearField(16);
+  @$pb.TagNumber(16)
+  SidechainDeposit ensureSidechainDeposit() => $_ensure(15);
 }
 
 /// BmmBid names the BMM request one wallet transaction carries.
@@ -8742,7 +8759,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.bool? spendable,
     $core.bool? solvable,
     $core.String? walletId,
-    $14.Timestamp? receivedAt,
+    $2.Timestamp? receivedAt,
     $core.String? derivationPath,
     $core.bool? splittable,
     $core.int? inputWeightUnits,
@@ -8807,7 +8824,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOB(8, _omitFieldNames ? '' : 'spendable')
     ..aOB(9, _omitFieldNames ? '' : 'solvable')
     ..aOS(10, _omitFieldNames ? '' : 'walletId')
-    ..aOM<$14.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $14.Timestamp.create)
+    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $2.Timestamp.create)
     ..aOS(12, _omitFieldNames ? '' : 'derivationPath')
     ..aOB(13, _omitFieldNames ? '' : 'splittable')
     ..a<$core.int>(14, _omitFieldNames ? '' : 'inputWeightUnits', $pb.PbFieldType.O3)
@@ -8928,15 +8945,15 @@ class UnspentOutput extends $pb.GeneratedMessage {
   /// Wallet's first-seen mempool timestamp when available, otherwise the
   /// confirming block's time. Unset if neither is known.
   @$pb.TagNumber(11)
-  $14.Timestamp get receivedAt => $_getN(10);
+  $2.Timestamp get receivedAt => $_getN(10);
   @$pb.TagNumber(11)
-  set receivedAt($14.Timestamp v) { setField(11, v); }
+  set receivedAt($2.Timestamp v) { setField(11, v); }
   @$pb.TagNumber(11)
   $core.bool hasReceivedAt() => $_has(10);
   @$pb.TagNumber(11)
   void clearReceivedAt() => clearField(11);
   @$pb.TagNumber(11)
-  $14.Timestamp ensureReceivedAt() => $_ensure(10);
+  $2.Timestamp ensureReceivedAt() => $_ensure(10);
 
   /// BIP32 path of the address that owns this output. Empty when the backend
   /// cannot report one (Bitcoin Core bulk lists, the enforcer).
@@ -9076,7 +9093,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     $core.int? txCount,
     $core.bool? isChange,
     $core.String? derivationPath,
-    $14.Timestamp? lastUsedAt,
+    $2.Timestamp? lastUsedAt,
   }) {
     final $result = create();
     if (address != null) {
@@ -9117,7 +9134,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     ..a<$core.int>(5, _omitFieldNames ? '' : 'txCount', $pb.PbFieldType.O3)
     ..aOB(6, _omitFieldNames ? '' : 'isChange')
     ..aOS(7, _omitFieldNames ? '' : 'derivationPath')
-    ..aOM<$14.Timestamp>(8, _omitFieldNames ? '' : 'lastUsedAt', subBuilder: $14.Timestamp.create)
+    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'lastUsedAt', subBuilder: $2.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -9210,15 +9227,15 @@ class ReceiveAddress extends $pb.GeneratedMessage {
   /// Time of the newest tx that pays to or spends from the address; unset when
   /// no tx touched it.
   @$pb.TagNumber(8)
-  $14.Timestamp get lastUsedAt => $_getN(7);
+  $2.Timestamp get lastUsedAt => $_getN(7);
   @$pb.TagNumber(8)
-  set lastUsedAt($14.Timestamp v) { setField(8, v); }
+  set lastUsedAt($2.Timestamp v) { setField(8, v); }
   @$pb.TagNumber(8)
   $core.bool hasLastUsedAt() => $_has(7);
   @$pb.TagNumber(8)
   void clearLastUsedAt() => clearField(8);
   @$pb.TagNumber(8)
-  $14.Timestamp ensureLastUsedAt() => $_ensure(7);
+  $2.Timestamp ensureLastUsedAt() => $_ensure(7);
 }
 
 class ListReceiveAddressesResponse extends $pb.GeneratedMessage {
@@ -13043,14 +13060,10 @@ class CreateDepositRequest extends $pb.GeneratedMessage {
 class CreateDepositResponse extends $pb.GeneratedMessage {
   factory CreateDepositResponse({
     $core.String? txid,
-    $fixnum.Int64? treasurySats,
   }) {
     final $result = create();
     if (txid != null) {
       $result.txid = txid;
-    }
-    if (treasurySats != null) {
-      $result.treasurySats = treasurySats;
     }
     return $result;
   }
@@ -13060,7 +13073,6 @@ class CreateDepositResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateDepositResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..aInt64(2, _omitFieldNames ? '' : 'treasurySats')
     ..hasRequiredFields = false
   ;
 
@@ -13093,16 +13105,6 @@ class CreateDepositResponse extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
-
-  /// Treasury value after the deposit: the old CTIP plus the amount.
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get treasurySats => $_getI64(1);
-  @$pb.TagNumber(2)
-  set treasurySats($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasTreasurySats() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearTreasurySats() => clearField(2);
 }
 
 class WalletManagerServiceApi {
@@ -13211,8 +13213,8 @@ class WalletManagerServiceApi {
   $async.Future<PreviewSendResponse> previewSend($pb.ClientContext? ctx, PreviewSendRequest request) =>
     _client.invoke<PreviewSendResponse>(ctx, 'WalletManagerService', 'PreviewSend', request, PreviewSendResponse())
   ;
-  $async.Future<$18.Empty> setFrozenCoins($pb.ClientContext? ctx, SetFrozenCoinsRequest request) =>
-    _client.invoke<$18.Empty>(ctx, 'WalletManagerService', 'SetFrozenCoins', request, $18.Empty())
+  $async.Future<$5.Empty> setFrozenCoins($pb.ClientContext? ctx, SetFrozenCoinsRequest request) =>
+    _client.invoke<$5.Empty>(ctx, 'WalletManagerService', 'SetFrozenCoins', request, $5.Empty())
   ;
   $async.Future<CreateDepositResponse> createDeposit($pb.ClientContext? ctx, CreateDepositRequest request) =>
     _client.invoke<CreateDepositResponse>(ctx, 'WalletManagerService', 'CreateDeposit', request, CreateDepositResponse())
@@ -13322,7 +13324,7 @@ class WalletManagerServiceApi {
   $async.Future<SetTorConfigResponse> setTorConfig($pb.ClientContext? ctx, SetTorConfigRequest request) =>
     _client.invoke<SetTorConfigResponse>(ctx, 'WalletManagerService', 'SetTorConfig', request, SetTorConfigResponse())
   ;
-  $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $18.Empty request) =>
+  $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $5.Empty request) =>
     _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())
   ;
 }
