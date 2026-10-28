@@ -142,19 +142,6 @@ func (s *Server) BroadcastNews(ctx context.Context, req *miscv1.BroadcastNewsReq
 	}, nil
 }
 
-// UpvoteNews implements miscv1connect.MiscServiceHandler. It signs a
-// CoinNews Vote (kind=0x04) over the target story with this node's
-// identity key and broadcasts it as an OP_RETURN.
-func (s *Server) UpvoteNews(ctx context.Context, req *miscv1.UpvoteNewsRequest) (*miscv1.UpvoteNewsResponse, error) {
-	return s.broadcastVote(ctx, req, codec.TypeUpvote)
-}
-
-// DownvoteNews implements miscv1connect.MiscServiceHandler. Same as
-// UpvoteNews but signs a downvote (kind=0x05).
-func (s *Server) DownvoteNews(ctx context.Context, req *miscv1.UpvoteNewsRequest) (*miscv1.UpvoteNewsResponse, error) {
-	return s.broadcastVote(ctx, req, codec.TypeDownvote)
-}
-
 func parseItemID(hexID, field string) (codec.ItemID, error) {
 	id, err := codec.ParseItemID(hexID)
 	if err != nil {
@@ -162,48 +149,6 @@ func parseItemID(hexID, field string) (codec.ItemID, error) {
 			fmt.Sprintf("%s must be %d-byte hex: %s", field, codec.ItemIDLen, err)).WithCause(err)
 	}
 	return id, nil
-}
-
-// broadcastVote signs a CoinNews Vote of the given kind over the target
-// story with this node's identity key and broadcasts it as an OP_RETURN.
-func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsRequest, kind codec.TypeTag) (*miscv1.UpvoteNewsResponse, error) {
-	target, err := parseItemID(req.ItemId, "item_id")
-	if err != nil {
-		return nil, err
-	}
-
-	priv, xpk, err := cnstore.LoadOrCreateIdentity(ctx, s.database)
-	if err != nil {
-		return nil, fmt.Errorf("vote news: load identity: %w", err)
-	}
-
-	digest := codec.VoteSigHash(kind, target)
-	sig, err := schnorr.Sign(priv, digest[:])
-	if err != nil {
-		return nil, fmt.Errorf("vote news: sign vote: %w", err)
-	}
-
-	vote := codec.Vote{Kind: kind, Target: target, AuthorXPK: xpk}
-	copy(vote.Sig[:], sig.Serialize())
-	voteBytes, err := codec.EncodeVote(vote)
-	if err != nil {
-		return nil, fmt.Errorf("vote news: encode vote: %w", err)
-	}
-
-	txid, err := s.walletEngine.BroadcastOpReturn(ctx, voteBytes, req.FeeSatPerVbyte, req.FeeSats)
-	if err != nil {
-		return nil, fmt.Errorf("vote news: %w", err)
-	}
-
-	zerolog.Ctx(ctx).Info().
-		Str("item_id", req.ItemId).
-		Uint8("kind", uint8(kind)).
-		Str("txid", txid).
-		Msg("broadcast vote transaction")
-
-	return &miscv1.UpvoteNewsResponse{
-		Txid: txid,
-	}, nil
 }
 
 // EstimateNewsFee implements miscv1connect.MiscServiceHandler. It encodes the
@@ -231,9 +176,6 @@ func (s *Server) EstimateNewsFee(ctx context.Context, req *miscv1.EstimateNewsFe
 // Signatures and ids are zero — only the length matters here.
 func newsPayloadFor(req *miscv1.EstimateNewsFeeRequest) ([]byte, error) {
 	switch req.Action {
-	case miscv1.NewsAction_NEWS_ACTION_VOTE:
-		return codec.EncodeVote(codec.Vote{Kind: codec.TypeUpvote})
-
 	case miscv1.NewsAction_NEWS_ACTION_COMMENT:
 		if strings.TrimSpace(req.Body) == "" && req.Url == "" {
 			return nil, errors.New("comment must have a body or url")
@@ -362,7 +304,7 @@ func (s *Server) ListCoinNews(ctx context.Context, req *miscv1.ListCoinNewsReque
 		})
 	}
 
-	// news is already ranked by the spec §13 score in ListCoinNews;
+	// news is already ranked by fee in ListCoinNews;
 	// preserve that order and take the top 100.
 	if len(news) > 100 {
 		news = news[:100]
@@ -395,9 +337,7 @@ func (s *Server) listRemoteCoinNews(ctx context.Context, topic *string) (*miscv1
 			Content:    strings.ToValidUTF8(item.Body, ""),
 			CreateTime: timestamppb.New(item.BlockTime),
 			ItemId:     item.ItemIDHex,
-			Upvotes:    int64(item.Upvotes),
-			Downvotes:  int64(item.Downvotes),
-			Score:      item.Score,
+			FeeSats:    item.FeeSats,
 			Url:        item.URL,
 			Subtype:    item.Subtype,
 			Nsfw:       item.NSFW,
@@ -421,9 +361,6 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		FeeSats:    int64(coinNews.Fee),
 		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
 		ItemId:     coinNews.ItemID,
-		Upvotes:    coinNews.Upvotes,
-		Downvotes:  coinNews.Downvotes,
-		Score:      coinNews.Score,
 		Url:        coinNews.URL,
 		Subtype:    coinNews.Subtype,
 		Nsfw:       coinNews.NSFW,
@@ -529,9 +466,7 @@ func commentToProto(c cnstore.Comment, _ int) *miscv1.Comment {
 		Lang:       c.Lang,
 		ReplyQuote: strings.ToValidUTF8(c.ReplyQuote, ""),
 		CreateTime: timestamppb.New(c.CreatedAt),
-		Upvotes:    c.Upvotes,
-		Downvotes:  c.Downvotes,
-		Score:      c.Score,
+		FeeSats:    c.FeeSats,
 	}
 }
 

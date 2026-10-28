@@ -99,12 +99,19 @@ var (
 
 // CoinNewsServiceClient is a client for the coinnews.v1.CoinNewsService service.
 type CoinNewsServiceClient interface {
+	// List the front-page items, ranked by fee (spec §13).
 	ListFrontPage(context.Context, *v1.ListFrontPageRequest) (*v1.ListFrontPageResponse, error)
+	// Newest items, ordered by canonical scan order DESC.
 	ListNewFeed(context.Context, *v1.ListNewFeedRequest) (*v1.ListNewFeedResponse, error)
+	// One item by its hex-encoded ItemID.
 	GetItem(context.Context, *v1.GetItemRequest) (*v1.GetItemResponse, error)
+	// Every comment under a root item, depth-first.
 	ListThread(context.Context, *v1.ListThreadRequest) (*v1.ListThreadResponse, error)
+	// Items authored by `author_xpk_hex` (32-byte x-only pubkey).
 	ListByAuthor(context.Context, *v1.ListByAuthorRequest) (*v1.ListByAuthorResponse, error)
+	// Items in `topic_hex` (4-byte topic).
 	ListByTopic(context.Context, *v1.ListByTopicRequest) (*v1.ListByTopicResponse, error)
+	// All known topics. Display-only metadata; topic IDs are canonical.
 	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
 }
 
@@ -116,12 +123,19 @@ func NewCoinNewsServiceClient(client *connect.Client) CoinNewsServiceClient {
 
 // CoinNewsServiceHandler is an implementation of the coinnews.v1.CoinNewsService service.
 type CoinNewsServiceHandler interface {
+	// List the front-page items, ranked by fee (spec §13).
 	ListFrontPage(context.Context, *v1.ListFrontPageRequest) (*v1.ListFrontPageResponse, error)
+	// Newest items, ordered by canonical scan order DESC.
 	ListNewFeed(context.Context, *v1.ListNewFeedRequest) (*v1.ListNewFeedResponse, error)
+	// One item by its hex-encoded ItemID.
 	GetItem(context.Context, *v1.GetItemRequest) (*v1.GetItemResponse, error)
+	// Every comment under a root item, depth-first.
 	ListThread(context.Context, *v1.ListThreadRequest) (*v1.ListThreadResponse, error)
+	// Items authored by `author_xpk_hex` (32-byte x-only pubkey).
 	ListByAuthor(context.Context, *v1.ListByAuthorRequest) (*v1.ListByAuthorResponse, error)
+	// Items in `topic_hex` (4-byte topic).
 	ListByTopic(context.Context, *v1.ListByTopicRequest) (*v1.ListByTopicResponse, error)
+	// All known topics. Display-only metadata; topic IDs are canonical.
 	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
 }
 

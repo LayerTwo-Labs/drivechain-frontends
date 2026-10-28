@@ -23,7 +23,7 @@ var ErrNoIndexer = errors.New("this network publishes no coin news indexer")
 
 // RemoteCoinNews reads a published CoinNews indexer.
 type RemoteCoinNews interface {
-	// ListFrontPage returns items ranked by score, newest-first on ties. It
+	// ListFrontPage returns items ranked by fee, newest-first on ties. It
 	// returns ErrNoIndexer when the network publishes none.
 	ListFrontPage(ctx context.Context, topicHex string, limit uint32) ([]RemoteItem, error)
 }
@@ -38,10 +38,7 @@ type RemoteItem struct {
 	Subtype   int32
 	NSFW      bool
 	BlockTime time.Time
-	Points    int32
-	Upvotes   int32
-	Downvotes int32
-	Score     float64
+	FeeSats   int64
 	TxID      string
 	Vout      uint32
 }
@@ -136,10 +133,7 @@ func (r *connectRemote) ListFrontPage(ctx context.Context, topicHex string, limi
 			Subtype:   int32(item.Subtype),
 			NSFW:      item.Nsfw,
 			BlockTime: item.BlockTime.AsTime(),
-			Points:    item.Points,
-			Upvotes:   item.Upvotes,
-			Downvotes: item.Downvotes,
-			Score:     item.Score,
+			FeeSats:   item.FeeSats,
 			TxID:      item.Txid,
 			Vout:      item.Vout,
 		}

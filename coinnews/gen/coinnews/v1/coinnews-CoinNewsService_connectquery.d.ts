@@ -5,7 +5,7 @@
 import { CoinNewsService } from "./coinnews_pb";
 
 /**
- * List the front-page items, ranked by HN score (spec §13).
+ * List the front-page items, ranked by fee (spec §13).
  *
  * @generated from rpc coinnews.v1.CoinNewsService.ListFrontPage
  */

@@ -28,7 +28,7 @@ type Handler struct {
 }
 
 func (h *Handler) ListFrontPage(ctx context.Context, req *pb.ListFrontPageRequest) (*pb.ListFrontPageResponse, error) {
-	filter, err := feedFilter(req.Limit, req.Offset, store.SortScoreDesc, req.Subtype, req.TopicHex)
+	filter, err := feedFilter(req.Limit, req.Offset, store.SortFeeDesc, req.Subtype, req.TopicHex)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
@@ -178,13 +178,10 @@ func marshalItem(fi store.FeedItem) *pb.Item {
 		AuthorXpkHex: hex.EncodeToString(fi.AuthorXPK[:]),
 		BlockHeight:  fi.BlockHeight,
 		BlockTime:    timestamppb.New(fi.BlockTime),
-		Points:       int32(fi.Points),
 		CommentCount: int32(fi.CommentCount),
-		Score:        fi.Score,
 		Txid:         fi.TxID,
 		Vout:         fi.Vout,
-		Upvotes:      int32(fi.Upvotes),
-		Downvotes:    int32(fi.Downvotes),
+		FeeSats:      fi.FeeSats,
 	}
 }
 
@@ -199,10 +196,9 @@ func marshalComment(c store.CommentRow) *pb.Comment {
 		ReplyQuote:   c.ReplyQuote,
 		BlockHeight:  c.BlockHeight,
 		BlockTime:    timestamppb.New(c.BlockTime),
-		Points:       int32(c.Points),
-		Score:        c.Score,
 		Txid:         c.TxID,
 		Vout:         c.Vout,
+		FeeSats:      c.FeeSats,
 	}
 }
 

@@ -29,10 +29,6 @@ const (
 	MiscServiceListOPReturnProcedure = "/misc.v1.MiscService/ListOPReturn"
 	// MiscServiceBroadcastNewsProcedure is the procedure name of the MiscService's BroadcastNews RPC.
 	MiscServiceBroadcastNewsProcedure = "/misc.v1.MiscService/BroadcastNews"
-	// MiscServiceUpvoteNewsProcedure is the procedure name of the MiscService's UpvoteNews RPC.
-	MiscServiceUpvoteNewsProcedure = "/misc.v1.MiscService/UpvoteNews"
-	// MiscServiceDownvoteNewsProcedure is the procedure name of the MiscService's DownvoteNews RPC.
-	MiscServiceDownvoteNewsProcedure = "/misc.v1.MiscService/DownvoteNews"
 	// MiscServiceCreateTopicProcedure is the procedure name of the MiscService's CreateTopic RPC.
 	MiscServiceCreateTopicProcedure = "/misc.v1.MiscService/CreateTopic"
 	// MiscServiceListTopicsProcedure is the procedure name of the MiscService's ListTopics RPC.
@@ -68,20 +64,6 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("BroadcastNews"),
 			Procedure:  MiscServiceBroadcastNewsProcedure,
-		}
-	})
-	miscServiceUpvoteNewsSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("UpvoteNews"),
-			Procedure:  MiscServiceUpvoteNewsProcedure,
-		}
-	})
-	miscServiceDownvoteNewsSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods().ByName("DownvoteNews"),
-			Procedure:  MiscServiceDownvoteNewsProcedure,
 		}
 	})
 	miscServiceCreateTopicSpec = sync.OnceValue(func() connect.Spec {
@@ -153,14 +135,16 @@ var (
 type MiscServiceClient interface {
 	ListOPReturn(context.Context, *emptypb.Empty) (*v1.ListOPReturnResponse, error)
 	BroadcastNews(context.Context, *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error)
-	UpvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
-	DownvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
 	CreateTopic(context.Context, *v1.CreateTopicRequest) (*v1.CreateTopicResponse, error)
 	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
 	ListCoinNews(context.Context, *v1.ListCoinNewsRequest) (*v1.ListCoinNewsResponse, error)
+	// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
 	CommentNews(context.Context, *v1.CommentNewsRequest) (*v1.CommentNewsResponse, error)
+	// Returns the full reply thread rooted at an Item, highest fee first.
 	ListComments(context.Context, *v1.ListCommentsRequest) (*v1.ListCommentsResponse, error)
+	// What a story or comment would cost to broadcast. Builds nothing.
 	EstimateNewsFee(context.Context, *v1.EstimateNewsFeeRequest) (*v1.EstimateNewsFeeResponse, error)
+	// File timestamping
 	TimestampFile(context.Context, *v1.TimestampFileRequest) (*v1.TimestampFileResponse, error)
 	ListTimestamps(context.Context, *emptypb.Empty) (*v1.ListTimestampsResponse, error)
 	VerifyTimestamp(context.Context, *v1.VerifyTimestampRequest) (*v1.VerifyTimestampResponse, error)
@@ -176,14 +160,16 @@ func NewMiscServiceClient(client *connect.Client) MiscServiceClient {
 type MiscServiceHandler interface {
 	ListOPReturn(context.Context, *emptypb.Empty) (*v1.ListOPReturnResponse, error)
 	BroadcastNews(context.Context, *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error)
-	UpvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
-	DownvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error)
 	CreateTopic(context.Context, *v1.CreateTopicRequest) (*v1.CreateTopicResponse, error)
 	ListTopics(context.Context, *emptypb.Empty) (*v1.ListTopicsResponse, error)
 	ListCoinNews(context.Context, *v1.ListCoinNewsRequest) (*v1.ListCoinNewsResponse, error)
+	// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
 	CommentNews(context.Context, *v1.CommentNewsRequest) (*v1.CommentNewsResponse, error)
+	// Returns the full reply thread rooted at an Item, highest fee first.
 	ListComments(context.Context, *v1.ListCommentsRequest) (*v1.ListCommentsResponse, error)
+	// What a story or comment would cost to broadcast. Builds nothing.
 	EstimateNewsFee(context.Context, *v1.EstimateNewsFeeRequest) (*v1.EstimateNewsFeeResponse, error)
+	// File timestamping
 	TimestampFile(context.Context, *v1.TimestampFileRequest) (*v1.TimestampFileResponse, error)
 	ListTimestamps(context.Context, *emptypb.Empty) (*v1.ListTimestampsResponse, error)
 	VerifyTimestamp(context.Context, *v1.VerifyTimestampRequest) (*v1.VerifyTimestampResponse, error)
@@ -195,8 +181,6 @@ func RegisterMiscServiceHandler(server *connect.Server, svc MiscServiceHandler) 
 	server.Register(
 		connect.Method{Spec: miscServiceListOPReturnSpec(), Handler: adapter.listOPReturn},
 		connect.Method{Spec: miscServiceBroadcastNewsSpec(), Handler: adapter.broadcastNews},
-		connect.Method{Spec: miscServiceUpvoteNewsSpec(), Handler: adapter.upvoteNews},
-		connect.Method{Spec: miscServiceDownvoteNewsSpec(), Handler: adapter.downvoteNews},
 		connect.Method{Spec: miscServiceCreateTopicSpec(), Handler: adapter.createTopic},
 		connect.Method{Spec: miscServiceListTopicsSpec(), Handler: adapter.listTopics},
 		connect.Method{Spec: miscServiceListCoinNewsSpec(), Handler: adapter.listCoinNews},
@@ -218,14 +202,6 @@ func (UnimplementedMiscServiceHandler) ListOPReturn(context.Context, *emptypb.Em
 
 func (UnimplementedMiscServiceHandler) BroadcastNews(context.Context, *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.BroadcastNews is not implemented")
-}
-
-func (UnimplementedMiscServiceHandler) UpvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.UpvoteNews is not implemented")
-}
-
-func (UnimplementedMiscServiceHandler) DownvoteNews(context.Context, *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "misc.v1.MiscService.DownvoteNews is not implemented")
 }
 
 func (UnimplementedMiscServiceHandler) CreateTopic(context.Context, *v1.CreateTopicRequest) (*v1.CreateTopicResponse, error) {
@@ -279,22 +255,6 @@ func (c *miscServiceClient) ListOPReturn(ctx context.Context, req *emptypb.Empty
 func (c *miscServiceClient) BroadcastNews(ctx context.Context, req *v1.BroadcastNewsRequest) (*v1.BroadcastNewsResponse, error) {
 	var res v1.BroadcastNewsResponse
 	if err := c.client.CallUnary(ctx, miscServiceBroadcastNewsSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *miscServiceClient) UpvoteNews(ctx context.Context, req *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
-	var res v1.UpvoteNewsResponse
-	if err := c.client.CallUnary(ctx, miscServiceUpvoteNewsSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *miscServiceClient) DownvoteNews(ctx context.Context, req *v1.UpvoteNewsRequest) (*v1.UpvoteNewsResponse, error) {
-	var res v1.UpvoteNewsResponse
-	if err := c.client.CallUnary(ctx, miscServiceDownvoteNewsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -392,30 +352,6 @@ func (h miscServiceHandler) broadcastNews(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.BroadcastNews(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h miscServiceHandler) upvoteNews(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.UpvoteNewsRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.UpvoteNews(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h miscServiceHandler) downvoteNews(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.UpvoteNewsRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.DownvoteNews(ctx, &req)
 	if err != nil {
 		return err
 	}

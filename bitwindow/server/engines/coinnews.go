@@ -105,22 +105,6 @@ func indexCoinNewsPayload(ctx context.Context, db *sql.DB, data []byte, pos cnst
 			dropMsg(ctx, pos, "comment parent unresolvable", nil)
 			return nil
 		}
-	case *codec.Vote:
-		if err := codec.VerifyVote(m); err != nil {
-			dropMsg(ctx, pos, "vote sig invalid", err)
-			return nil
-		}
-		// §8: drop Votes against an unresolvable target. §4.2: a vote
-		// against a same-tx target must sit at a higher vout_index —
-		// covered by requiring the target to be strictly earlier.
-		target, ok, err := cnstore.ResolveItem(ctx, db, m.Target)
-		if err != nil {
-			return err
-		}
-		if !ok || !target.Before(self) {
-			dropMsg(ctx, pos, "vote target unresolvable", nil)
-			return nil
-		}
 	case *codec.Continuation:
 		// §9: continuations live in the head's tx or a later tx in the
 		// same block, after the head in scan order.
@@ -283,7 +267,6 @@ func purgeCoinNewsAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32
 	stmts := []string{
 		`DELETE FROM cn_stories       WHERE item_id IN (SELECT item_id FROM cn_items WHERE block_height >= ?)`,
 		`DELETE FROM cn_comments      WHERE item_id IN (SELECT item_id FROM cn_items WHERE block_height >= ?)`,
-		`DELETE FROM cn_votes         WHERE block_height >= ?`,
 		`DELETE FROM cn_continuations WHERE block_height >= ?`,
 		// An empty txid marks a local bootstrap row, not a creation on chain.
 		// No block replays it, so a delete here loses it for good.

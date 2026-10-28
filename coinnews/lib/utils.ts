@@ -19,6 +19,10 @@ export function shortHex(hex: string, head = 6, tail = 4): string {
   return `${hex.slice(0, head)}…${hex.slice(-tail)}`;
 }
 
+export function formatSats(sats: bigint): string {
+  return `${sats.toLocaleString("en-US")} ${sats === BigInt(1) ? "SAT" : "SATS"}`;
+}
+
 export function topicLabel(topicHex: string, name?: string): string {
   if (name && name.length > 0) return name;
   // Topic IDs are 4-byte hex; render as ASCII when printable, else hex.

@@ -25,6 +25,10 @@ type forkBlock struct {
 	prev     string
 	height   int
 	headline string
+	// payload, when set, replaces the Story built from headline.
+	payload []byte
+	// fee is the JSON literal Core serves as the tx fee; empty omits it.
+	fee string
 }
 
 // forkCore serves a chain the test can replace, and keeps every block it
@@ -64,13 +68,30 @@ func (f *forkCore) setChain(chain ...string) {
 	f.chain = chain
 }
 
+// setTx gives the block at hash one tx that carries payload and pays fee.
+func (f *forkCore) setTx(hash string, payload []byte, fee string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	b := f.blocks[hash]
+	b.payload, b.fee = payload, fee
+	f.blocks[hash] = b
+}
+
 func (f *forkCore) blockJSON(hash string) string {
 	b := f.blocks[hash]
-	txs := "[]"
-	if b.headline != "" {
+	payload := b.payload
+	if payload == nil && b.headline != "" {
 		story, err := codec.EncodeStory(codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: b.headline})
 		require.NoError(f.t, err)
-		txs = fmt.Sprintf(`[{"txid":%q,"vout":[{"scriptPubKey":{"hex":%q,"type":"nulldata"}}]}]`, hash, opReturnScript(story))
+		payload = story
+	}
+	txs := "[]"
+	if payload != nil {
+		fee := ""
+		if b.fee != "" {
+			fee = `,"fee":` + b.fee
+		}
+		txs = fmt.Sprintf(`[{"txid":%q%s,"vout":[{"scriptPubKey":{"hex":%q,"type":"nulldata"}}]}]`, hash, fee, opReturnScript(payload))
 	}
 	return fmt.Sprintf(`{"hash":%q,"previousblockhash":%q,"height":%d,"time":1,"mediantime":1,"tx":%s}`,
 		hash, b.prev, b.height, txs)

@@ -9,7 +9,7 @@ import "google/protobuf/timestamp.proto";
 // determinism budget from docs/coinnews-protocol.md §4.2 — given the
 // same chain tip, every conforming server returns the same rows.
 service CoinNewsService {
-  // List the front-page items, ranked by HN score (spec §13).
+  // List the front-page items, ranked by fee (spec §13).
   rpc ListFrontPage(ListFrontPageRequest) returns (ListFrontPageResponse);
 
   // Newest items, ordered by canonical scan order DESC.
@@ -43,6 +43,9 @@ enum Subtype {
 }
 
 message Item {
+  reserved 12, 14, 17, 18;
+  reserved "points", "score", "upvotes", "downvotes";
+
   string item_id_hex = 1;
   string topic_hex   = 2;
   string headline    = 3;
@@ -54,18 +57,18 @@ message Item {
   string author_xpk_hex = 9;
   uint32 block_height = 10;
   google.protobuf.Timestamp block_time = 11;
-  int32  points       = 12;
   int32  comment_count = 13;
-  double score        = 14;
   // Where the item sits on chain, for an explorer link.
   string txid         = 15;
   uint32 vout         = 16;
-  // Confirmed tallies. points is their difference.
-  int32  upvotes      = 17;
-  int32  downvotes    = 18;
+  // Fee of the transaction that carries the item, in sats.
+  int64  fee_sats     = 19;
 }
 
 message Comment {
+  reserved 10, 11;
+  reserved "points", "score";
+
   string item_id_hex   = 1;
   string parent_id_hex = 2;
   string author_xpk_hex = 3;
@@ -75,11 +78,11 @@ message Comment {
   string reply_quote   = 7;
   uint32 block_height  = 8;
   google.protobuf.Timestamp block_time = 9;
-  int32  points        = 10;
-  double score         = 11;
   // Where the comment sits on chain, for an explorer link.
   string txid          = 12;
   uint32 vout          = 13;
+  // Fee of the transaction that carries the comment, in sats.
+  int64  fee_sats      = 14;
 }
 
 message Topic {

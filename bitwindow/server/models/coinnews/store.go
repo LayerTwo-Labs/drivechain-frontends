@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
 	"slices"
 	"time"
 
@@ -17,46 +16,22 @@ import (
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
-// HNScore is the spec §13 Hacker-News rank:
-//
-//	score = (upvotes − downvotes − 1) / (age_hours + 2)^1.8
-//
-// age_hours = max(0, (now − block_time)/3600). Making the formula part
-// of the spec is what lets independent indexers agree on ordering.
-func HNScore(upvotes, downvotes int64, blockTime time.Time) float64 {
-	ageHours := time.Since(blockTime).Hours()
-	if ageHours < 0 {
-		ageHours = 0
-	}
-	return float64(upvotes-downvotes-1) / math.Pow(ageHours+2, 1.8)
-}
-
-// Comment is one node in a reply thread (spec §7), with its on-chain
-// vote tally and §13 score.
+// Comment is one node in a reply thread (spec §7).
 type Comment struct {
-	ItemID     string `db:"item_id"`    // hex 12-byte ItemID
-	ParentID   string `db:"parent_id"`  // hex 12-byte parent ItemID
-	Author     string `db:"author_xpk"` // hex 32-byte x-only pubkey
-	Body       string `db:"body"`
-	URL        string `db:"url"`
-	Lang       string `db:"lang"`
-	ReplyQuote string `db:"reply_quote"`
-	Upvotes    int64  `db:"upvotes"`
-	Downvotes  int64  `db:"downvotes"`
-	Score      float64
+	ItemID     string    `db:"item_id"`    // hex 12-byte ItemID
+	ParentID   string    `db:"parent_id"`  // hex 12-byte parent ItemID
+	Author     string    `db:"author_xpk"` // hex 32-byte x-only pubkey
+	Body       string    `db:"body"`
+	URL        string    `db:"url"`
+	Lang       string    `db:"lang"`
+	ReplyQuote string    `db:"reply_quote"`
+	FeeSats    int64     `db:"fee_sats"` // 0 when unknown
 	CreatedAt  time.Time `db:"block_time"`
 }
 
-// VoteTally is a subquery that gives the upvotes and downvotes of each target_id.
-var VoteTally = fmt.Sprintf(`
-	SELECT target_id,
-		SUM(CASE WHEN kind = %d THEN 1 ELSE 0 END) AS upvotes,
-		SUM(CASE WHEN kind = %d THEN 1 ELSE 0 END) AS downvotes
-	FROM cn_votes GROUP BY target_id`, codec.TypeUpvote, codec.TypeDownvote)
-
 // ListThread returns every Comment transitively rooted at `root` (a
-// story or comment ItemID), ranked by descending §13 score. Callers
-// build the reply tree from each Comment's ParentID.
+// story or comment ItemID), highest fee first, then in scan order.
+// Callers build the reply tree from each Comment's ParentID.
 func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]Comment, error) {
 	out, err := database.Select[Comment](ctx, db, `
 		WITH RECURSIVE thread(item_id) AS (
@@ -73,29 +48,16 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]Comment, 
 			COALESCE(cm.lang, '') AS lang,
 			COALESCE(cm.reply_quote, '') AS reply_quote,
 			i.block_time,
-			COALESCE(v.upvotes, 0) AS upvotes,
-			COALESCE(v.downvotes, 0) AS downvotes
+			COALESCE(o.fee_sats, 0) AS fee_sats
 		FROM thread t
 		JOIN cn_comments cm ON cm.item_id = t.item_id
 		JOIN cn_items i ON i.item_id = cm.item_id
-		LEFT JOIN (`+VoteTally+`) v ON v.target_id = cm.item_id
+		LEFT JOIN op_returns o ON o.txid = i.txid AND o.vout = i.vout
+		ORDER BY fee_sats DESC, i.block_height, i.tx_index, i.vout_index
 	`, root[:])
 	if err != nil {
 		return nil, fmt.Errorf("coinnews: query thread: %w", err)
 	}
-	for i := range out {
-		out[i].Score = HNScore(out[i].Upvotes, out[i].Downvotes, out[i].CreatedAt)
-	}
-	slices.SortFunc(out, func(a, b Comment) int {
-		switch {
-		case a.Score > b.Score:
-			return -1
-		case a.Score < b.Score:
-			return 1
-		default:
-			return 0
-		}
-	})
 	return out, nil
 }
 
@@ -115,7 +77,7 @@ type BlockPos struct {
 type IndexEnv struct {
 	Pos     BlockPos
 	TypeTag codec.TypeTag
-	Msg     any // *codec.TopicCreation | *codec.Story | *codec.Comment | *codec.Vote | *codec.Continuation
+	Msg     any // *codec.TopicCreation | *codec.Story | *codec.Comment | *codec.Continuation
 }
 
 // ItemRef is an indexed Item's canonical scan position (spec §4.2):
@@ -182,10 +144,6 @@ func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 		}
 	case *codec.Comment:
 		if err := indexComment(ctx, tx, itemID, m); err != nil {
-			return err
-		}
-	case *codec.Vote:
-		if err := indexVote(ctx, tx, env.Pos, m); err != nil {
 			return err
 		}
 	case *codec.Continuation:
@@ -277,21 +235,6 @@ func indexComment(ctx context.Context, tx *sql.Tx, id codec.ItemID, c *codec.Com
 		nullableString(replyQuote), rawTLV)
 	if err != nil {
 		return fmt.Errorf("coinnews: insert cn_comments: %w", err)
-	}
-	return nil
-}
-
-func indexVote(ctx context.Context, tx *sql.Tx, pos BlockPos, v *codec.Vote) error {
-	// First-vote-wins: PRIMARY KEY (target_id, author_xpk) makes
-	// the conflict path an ignored insert.
-	_, err := tx.ExecContext(ctx, `
-		INSERT OR IGNORE INTO cn_votes
-			(target_id, author_xpk, kind, block_height, tx_index, vout_index, block_time)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, v.Target[:], v.AuthorXPK[:], byte(v.Kind),
-		pos.BlockHeight, pos.TxIndex, pos.VoutIndex, pos.BlockTime)
-	if err != nil {
-		return fmt.Errorf("coinnews: insert cn_votes: %w", err)
 	}
 	return nil
 }

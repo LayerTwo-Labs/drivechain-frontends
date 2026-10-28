@@ -9,10 +9,8 @@ import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/widgets/news_cost.dart';
 import 'package:bitwindow/widgets/pagination.dart';
 import 'package:collection/collection.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:protobuf/protobuf.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
@@ -20,9 +18,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
-  const CoinNewsView({
-    super.key,
-  });
+  const CoinNewsView({super.key});
 
   @override
   Widget build(BuildContext context, CoinNewsViewModel viewModel) {
@@ -61,10 +57,7 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   mainAxisSize: MainAxisSize.max,
                   children: [
                     Expanded(
-                      child: SailTextField(
-                        hintText: 'Search coin news...',
-                        controller: viewModel.searchController,
-                      ),
+                      child: SailTextField(hintText: 'Search coin news...', controller: viewModel.searchController),
                     ),
                     SailMultiSelectDropdown(
                       selectedCountText: '${viewModel.selectedTopicIds.length} topics',
@@ -95,8 +88,6 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   loading: viewModel.loading,
                   allTopics: viewModel.topics,
                   onArticleSelected: (news) => showCoinNewsArticle(context, news),
-                  onUpvote: viewModel.upvote,
-                  onDownvote: viewModel.downvote,
                 ),
                 const SizedBox(height: 16),
                 Pagination(
@@ -120,9 +111,7 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
 const double _largeWidgetHeight = 387;
 
 class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
-  const CoinNewsLargeView({
-    super.key,
-  });
+  const CoinNewsLargeView({super.key});
 
   @override
   Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
@@ -185,10 +174,8 @@ class _LargeColumn extends StatelessWidget {
               SailDropdownButton<String>(
                 items: viewModel.topics
                     .map(
-                      (t) => SailDropdownItem<String>(
-                        value: t.topic,
-                        label: t.confirmed ? t.name : '${t.name} (pending)',
-                      ),
+                      (t) =>
+                          SailDropdownItem<String>(value: t.topic, label: t.confirmed ? t.name : '${t.name} (pending)'),
                     )
                     .toList(),
                 onChanged: onTopicChanged,
@@ -234,32 +221,19 @@ class _LargeColumn extends StatelessWidget {
     return ListView.builder(
       padding: EdgeInsets.zero,
       itemCount: entries.length,
-      itemBuilder: (context, i) => _LargeStoryRow(
-        entry: entries[i],
-        allTopics: viewModel.topics,
-        outdated: viewModel.isOutdated(entries[i]),
-        onUpvote: () => viewModel.upvote(entries[i]),
-        onDownvote: () => viewModel.downvote(entries[i]),
-      ),
+      itemBuilder: (context, i) =>
+          _LargeStoryRow(entry: entries[i], allTopics: viewModel.topics, outdated: viewModel.isOutdated(entries[i])),
     );
   }
 }
 
-/// One ranked story: votes in a gutter, headline, then its origin.
+/// One ranked story: headline, then its origin.
 class _LargeStoryRow extends StatefulWidget {
   final CoinNews entry;
   final List<Topic> allTopics;
   final bool outdated;
-  final Future<void> Function() onUpvote;
-  final Future<void> Function() onDownvote;
 
-  const _LargeStoryRow({
-    required this.entry,
-    required this.allTopics,
-    required this.outdated,
-    required this.onUpvote,
-    required this.onDownvote,
-  });
+  const _LargeStoryRow({required this.entry, required this.allTopics, required this.outdated});
 
   @override
   State<_LargeStoryRow> createState() => _LargeStoryRowState();
@@ -295,26 +269,12 @@ class _LargeStoryRowState extends State<_LargeStoryRow> {
                 horizontal: SailStyleValues.padding08,
                 vertical: SailStyleValues.padding10,
               ),
-              child: SailRow(
+              child: SailColumn(
+                spacing: SailStyleValues.padding04,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: SailStyleValues.padding12,
                 children: [
-                  _VotesCell(
-                    upvotes: widget.entry.upvotes.toInt(),
-                    downvotes: widget.entry.downvotes.toInt(),
-                    onUpvote: widget.onUpvote,
-                    onDownvote: widget.onDownvote,
-                  ),
-                  Expanded(
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding04,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.primary13(widget.entry.headline, bold: true),
-                        SailText.secondary12('$_topicName · $date'),
-                      ],
-                    ),
-                  ),
+                  SailText.primary13(widget.entry.headline, bold: true),
+                  SailText.secondary12('$_topicName · $date'),
                 ],
               ),
             ),
@@ -340,9 +300,6 @@ class CoinNewsLargeViewModel extends BaseViewModel {
 
   bool get loading => !_newsProvider.initialized;
   List<Topic> get topics => _newsProvider.topics;
-
-  Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
-  Future<void> downvote(CoinNews news) => _newsProvider.downvote(news);
 
   void setLeftTopic(String? topic) {
     if (topic == null) {
@@ -382,7 +339,7 @@ class CoinNewsLargeViewModel extends BaseViewModel {
 
   List<CoinNews> entriesFor(String topic) {
     final entries = _allFor(topic).where((news) => showOutdated || !isOutdated(news)).toList();
-    entries.sort((a, b) => b.score.compareTo(a.score));
+    entries.sort((a, b) => b.feeSats.compareTo(a.feeSats));
     return entries;
   }
 
@@ -432,9 +389,6 @@ class CoinNewsViewModel extends BaseViewModel {
     selectedRowId = null;
     notifyListeners();
   }
-
-  Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
-  Future<void> downvote(CoinNews news) => _newsProvider.downvote(news);
 
   bool get loading {
     return !_newsProvider.initialized;
@@ -525,9 +479,9 @@ class CoinNewsViewModel extends BaseViewModel {
           aValue = expectedReadTime(a.content);
           bValue = expectedReadTime(b.content);
           break;
-        case 'upvotes':
-          aValue = a.upvotes.toInt();
-          bValue = b.upvotes.toInt();
+        case 'fee':
+          aValue = a.feeSats.toInt();
+          bValue = b.feeSats.toInt();
           break;
       }
 
@@ -685,18 +639,10 @@ class TopicsConfigData {
   final String? leftTopic;
   final String? rightTopic;
 
-  TopicsConfigData({
-    required this.selectedTopics,
-    this.leftTopic,
-    this.rightTopic,
-  });
+  TopicsConfigData({required this.selectedTopics, this.leftTopic, this.rightTopic});
 
   Map<String, dynamic> toMap() {
-    return {
-      'selectedTopics': selectedTopics,
-      'leftTopic': leftTopic,
-      'rightTopic': rightTopic,
-    };
+    return {'selectedTopics': selectedTopics, 'leftTopic': leftTopic, 'rightTopic': rightTopic};
   }
 
   factory TopicsConfigData.fromMap(Map<String, dynamic> map) {
@@ -707,11 +653,7 @@ class TopicsConfigData {
     );
   }
 
-  TopicsConfigData copyWith({
-    List<String>? selectedTopics,
-    String? leftTopic,
-    String? rightTopic,
-  }) {
+  TopicsConfigData copyWith({List<String>? selectedTopics, String? leftTopic, String? rightTopic}) {
     return TopicsConfigData(
       selectedTopics: selectedTopics ?? this.selectedTopics,
       leftTopic: leftTopic ?? this.leftTopic,
@@ -783,11 +725,7 @@ class CoinNewsEntry extends StatefulWidget {
   final CoinNews entry;
   final List<Topic> allTopics;
 
-  const CoinNewsEntry({
-    required this.entry,
-    required this.allTopics,
-    super.key,
-  });
+  const CoinNewsEntry({required this.entry, required this.allTopics, super.key});
 
   @override
   State<CoinNewsEntry> createState() => _CoinNewsEntryState();
@@ -836,11 +774,7 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
       onExit: (_) => setState(() => isHovered = false),
       child: GestureDetector(
         onTap: () {
-          final article = Article(
-            title: widget.entry.headline,
-            markdown: widget.entry.content,
-            filename: '',
-          );
+          final article = Article(title: widget.entry.headline, markdown: widget.entry.content, filename: '');
           showArticleDetails(context, article, 'Coin News');
         },
         child: Container(
@@ -883,10 +817,7 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: SailStyleValues.padding04,
                   children: [
-                    SailText.primary15(
-                      widget.entry.headline,
-                      bold: true,
-                    ),
+                    SailText.primary15(widget.entry.headline, bold: true),
                     SailText.secondary12(
                       widget.entry.content.replaceAll('\n', ' '),
                       color: context.sailTheme.colors.textSecondary,
@@ -904,106 +835,6 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
   }
 }
 
-// _VotesCell renders the up/down vote buttons with their on-chain
-// tallies (spec §8). Each tap broadcasts a signed Vote.
-class _VotesCell extends StatelessWidget {
-  final int upvotes;
-  final int downvotes;
-  final Future<void> Function()? onUpvote;
-  final Future<void> Function()? onDownvote;
-
-  const _VotesCell({
-    required this.upvotes,
-    required this.downvotes,
-    this.onUpvote,
-    this.onDownvote,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _VoteButton(asset: SailSVGAsset.thumbsUp, count: upvotes, onTap: onUpvote),
-          const SailSpacing(SailStyleValues.padding12),
-          _VoteButton(asset: SailSVGAsset.thumbsDown, count: downvotes, onTap: onDownvote),
-        ],
-      ),
-    );
-  }
-}
-
-class _VoteButton extends StatefulWidget {
-  final SailSVGAsset asset;
-  final int count;
-  final Future<void> Function()? onTap;
-  final double size;
-
-  const _VoteButton({required this.asset, required this.count, this.onTap, this.size = 16});
-
-  @override
-  State<_VoteButton> createState() => _VoteButtonState();
-}
-
-class _VoteButtonState extends State<_VoteButton> {
-  bool _hovered = false;
-  bool _inFlight = false;
-
-  Future<void> _handleTap() async {
-    if (_inFlight || widget.onTap == null) {
-      return;
-    }
-    if (!await NewsCost.confirmFirstTime(context, NewsAction.NEWS_ACTION_VOTE)) {
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-    setState(() => _inFlight = true);
-    try {
-      await widget.onTap!();
-    } finally {
-      if (mounted) {
-        setState(() => _inFlight = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.sailTheme.colors;
-    final enabled = widget.onTap != null && !_inFlight;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        NewsCostTooltip(
-          action: NewsAction.NEWS_ACTION_VOTE,
-          child: MouseRegion(
-            cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-            onEnter: (_) => setState(() => _hovered = true),
-            onExit: (_) => setState(() => _hovered = false),
-            child: GestureDetector(
-              onTap: enabled ? _handleTap : null,
-              child: SailSVG.fromAsset(
-                widget.asset,
-                width: widget.size,
-                height: widget.size,
-                color: _hovered && enabled ? colors.primary : colors.icon,
-              ),
-            ),
-          ),
-        ),
-        const SailSpacing(SailStyleValues.padding04),
-        SailText.primary12(widget.count.toString()),
-      ],
-    );
-  }
-}
-
 class CoinNewsTable extends StatelessWidget {
   final List<CoinNews> entries;
   final Function(String) onSort;
@@ -1012,8 +843,6 @@ class CoinNewsTable extends StatelessWidget {
   final bool shrinkWrap;
   final bool condensed;
   final void Function(CoinNews news)? onArticleSelected;
-  final Future<void> Function(CoinNews news)? onUpvote;
-  final Future<void> Function(CoinNews news)? onDownvote;
   final String? selectedRowId;
 
   const CoinNewsTable({
@@ -1025,8 +854,6 @@ class CoinNewsTable extends StatelessWidget {
     this.shrinkWrap = true,
     this.condensed = false,
     this.onArticleSelected,
-    this.onUpvote,
-    this.onDownvote,
     this.selectedRowId,
   });
 
@@ -1049,41 +876,27 @@ class CoinNewsTable extends StatelessWidget {
               const SailTableHeaderCell(name: 'Date'),
               const SailTableHeaderCell(name: 'Fee'),
               const SailTableHeaderCell(name: 'Title'),
-              const SailTableHeaderCell(name: 'Votes'),
             ] else ...[
               const SailTableHeaderCell(name: 'Date'),
               const SailTableHeaderCell(name: 'Topic'),
               const SailTableHeaderCell(name: 'Title'),
               const SailTableHeaderCell(name: 'Read time'),
-              const SailTableHeaderCell(name: 'Votes'),
             ],
           ],
           rowBuilder: (context, row, selected) {
             final entry = entries[row];
             final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
-            final votesCell = SailTableCell(
-              value: '${entry.upvotes} / ${entry.downvotes}',
-              width: 110,
-              child: _VotesCell(
-                upvotes: entry.upvotes.toInt(),
-                downvotes: entry.downvotes.toInt(),
-                onUpvote: onUpvote == null ? null : () => onUpvote!(entry),
-                onDownvote: onDownvote == null ? null : () => onDownvote!(entry),
-              ),
-            );
 
             return [
               if (condensed) ...[
                 SailTableCell(value: formatDate(entry.createTime.toDateTime())),
                 SailTableCell(value: formatter.formatSats(entry.feeSats.toInt())),
                 SailTableCell(value: entry.headline),
-                votesCell,
               ] else ...[
                 SailTableCell(value: formatDate(entry.createTime.toDateTime())),
                 SailTableCell(value: matchingTopic?.name ?? entry.topic),
                 SailTableCell(value: entry.headline),
                 SailTableCell(value: expectedReadTime(entry.content)),
-                votesCell,
               ],
             ];
           },
@@ -1091,9 +904,7 @@ class CoinNewsTable extends StatelessWidget {
           emptyPlaceholder: 'No news articles yet',
           drawGrid: true,
           onSort: (columnIndex, ascending) {
-            final columns = condensed
-                ? ['date', 'topic', 'title', 'upvotes']
-                : ['date', 'topic', 'title', 'readtime', 'upvotes'];
+            final columns = condensed ? ['date', 'fee', 'title'] : ['date', 'topic', 'title', 'readtime'];
             onSort(columns[columnIndex]);
           },
           onSelectedRow: (rowId) {
@@ -1141,10 +952,7 @@ void showCoinNewsArticle(BuildContext context, CoinNews news) {
       side: SailSheetSide.bottom,
       size: MediaQuery.of(context).size.height * 0.95,
       builder: (context) {
-        return CoinNewsArticlePanel(
-          news: news,
-          onClose: () => Navigator.of(context).pop(),
-        );
+        return CoinNewsArticlePanel(news: news, onClose: () => Navigator.of(context).pop());
       },
     ),
   );
@@ -1154,11 +962,7 @@ class CoinNewsArticlePanel extends StatefulWidget {
   final CoinNews news;
   final VoidCallback onClose;
 
-  const CoinNewsArticlePanel({
-    super.key,
-    required this.news,
-    required this.onClose,
-  });
+  const CoinNewsArticlePanel({super.key, required this.news, required this.onClose});
 
   @override
   State<CoinNewsArticlePanel> createState() => _CoinNewsArticlePanelState();
@@ -1172,7 +976,6 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
   bool _posting = false;
   String? _error;
   String? _replyTo; // item_id being replied to; null = top-level
-  final Set<String> _voted = {}; // items voted on this session (§8 dedup)
   final TextEditingController _controller = TextEditingController();
 
   String get _itemId => widget.news.itemId;
@@ -1221,7 +1024,7 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
     if (body.isEmpty || _posting) {
       return;
     }
-    if (!await NewsCost.confirmFirstTime(context, NewsAction.NEWS_ACTION_COMMENT)) {
+    if (!await NewsCost.confirmFirstComment(context)) {
       return;
     }
     if (!mounted) {
@@ -1244,45 +1047,6 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
     } finally {
       if (mounted) {
         setState(() => _posting = false);
-      }
-    }
-  }
-
-  /// Broadcasts a signed vote on a comment and optimistically bumps its
-  /// count. The confirmed tally updates once the vote is mined. A given
-  /// (author, target) counts at most once on-chain (§8), so we vote — and
-  /// bump — at most once per item per session.
-  Future<void> _vote(Comment comment, {required bool up}) async {
-    if (_voted.contains(comment.itemId)) {
-      return;
-    }
-    if (!await NewsCost.confirmFirstTime(context, NewsAction.NEWS_ACTION_VOTE)) {
-      return;
-    }
-    _voted.add(comment.itemId);
-    try {
-      if (up) {
-        await api.misc.upvoteNews(comment.itemId);
-      } else {
-        await api.misc.downvoteNews(comment.itemId);
-      }
-      if (!mounted) {
-        return;
-      }
-      final idx = _comments.indexWhere((c) => c.itemId == comment.itemId);
-      if (idx != -1) {
-        final updated = _comments[idx].deepCopy();
-        if (up) {
-          updated.upvotes += Int64(1);
-        } else {
-          updated.downvotes += Int64(1);
-        }
-        setState(() => _comments[idx] = updated);
-      }
-    } catch (e) {
-      _voted.remove(comment.itemId); // allow retry on failure
-      if (mounted) {
-        setState(() => _error = e.toString());
       }
     }
   }
@@ -1404,7 +1168,7 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
   }
 
   /// The comment thread (spec §7). Replies nest under their parent;
-  /// siblings are ordered by §13 score.
+  /// siblings are ordered by fee, highest first.
   Widget _commentsThread(BuildContext context) {
     final theme = SailTheme.of(context);
     final roots = _comments.where((c) => c.parentId == _itemId).toList();
@@ -1447,32 +1211,11 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
     final author = comment.author.length > 10 ? '${comment.author.substring(0, 10)}…' : comment.author;
     return Container(
       padding: const EdgeInsets.all(SailStyleValues.padding08),
-      decoration: BoxDecoration(
-        color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
-      ),
+      decoration: BoxDecoration(color: theme.colors.backgroundSecondary, borderRadius: SailStyleValues.borderRadius),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              SailText.secondary12(author, color: theme.colors.textTertiary),
-              const SailSpacing(SailStyleValues.padding12),
-              _VoteButton(
-                asset: SailSVGAsset.thumbsUp,
-                count: comment.upvotes.toInt(),
-                size: 12,
-                onTap: () => _vote(comment, up: true),
-              ),
-              const SailSpacing(SailStyleValues.padding08),
-              _VoteButton(
-                asset: SailSVGAsset.thumbsDown,
-                count: comment.downvotes.toInt(),
-                size: 12,
-                onTap: () => _vote(comment, up: false),
-              ),
-            ],
-          ),
+          SailText.secondary12(author, color: theme.colors.textTertiary),
           const SailSpacing(SailStyleValues.padding04),
           SailText.primary13(comment.body),
           if (comment.url.isNotEmpty) SailText.secondary12(comment.url, color: theme.colors.textSecondary),
@@ -1507,10 +1250,7 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: SailStyleValues.padding40,
-        vertical: SailStyleValues.padding12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding40, vertical: SailStyleValues.padding12),
       decoration: BoxDecoration(
         color: theme.colors.background,
         border: Border(top: BorderSide(color: theme.colors.divider, width: 1)),
@@ -1536,20 +1276,13 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: SailTextField(
-                  hintText: replying ? 'Write a reply…' : 'Add a comment…',
-                  controller: _controller,
-                ),
+                child: SailTextField(hintText: replying ? 'Write a reply…' : 'Add a comment…', controller: _controller),
               ),
               const SailSpacing(SailStyleValues.padding08),
               NewsCostTooltip(
                 action: NewsAction.NEWS_ACTION_COMMENT,
                 body: _controller.text,
-                child: SailButton(
-                  label: 'Comment',
-                  loading: _posting,
-                  onPressed: () async => _post(),
-                ),
+                child: SailButton(label: 'Comment', loading: _posting, onPressed: () async => _post()),
               ),
             ],
           ),

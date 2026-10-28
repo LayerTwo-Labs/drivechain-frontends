@@ -10,44 +10,23 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	"github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 //go:embed schema.sql
 var schemaSQL string
-
-const driverName = "sqlite3-coinnews"
-
-var registerOnce sync.Once
-
-// registerDriver registers a sqlite3 driver variant that exposes the
-// `pow` function the front-page ranker needs. SQLite's default build
-// omits math functions; registering a Go-side `pow` keeps the SQL
-// portable and keeps us off CGO build tags.
-func registerDriver() {
-	registerOnce.Do(func() {
-		sql.Register(driverName, &sqlite3.SQLiteDriver{
-			ConnectHook: func(c *sqlite3.SQLiteConn) error {
-				return c.RegisterFunc("pow", math.Pow, true)
-			},
-		})
-	})
-}
 
 // Open opens (or creates) the SQLite database at `path`, applies
 // the schema if missing, and returns a ready *sql.DB. Safe to call
 // repeatedly — `CREATE TABLE IF NOT EXISTS` makes the schema apply
 // idempotent.
 func Open(ctx context.Context, path string) (*sql.DB, error) {
-	registerDriver()
-	db, err := sql.Open(driverName, path+"?_journal=WAL&_busy_timeout=5000&_foreign_keys=on")
+	db, err := sql.Open("sqlite3", path+"?_journal=WAL&_busy_timeout=5000&_foreign_keys=on")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
@@ -55,7 +34,46 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("apply schema: %w", err)
 	}
+	if err := addFeeColumn(ctx, db); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	return db, nil
+}
+
+// addFeeColumn upgrades an index from before fee_sats. It clears the index
+// and the cursor, so the scanner reads every block again and fills in each fee.
+func addFeeColumn(ctx context.Context, db *sql.DB) error {
+	var found int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM pragma_table_info('cn_items') WHERE name = 'fee_sats'`).Scan(&found); err != nil {
+		return fmt.Errorf("read cn_items columns: %w", err)
+	}
+	if found > 0 {
+		return nil
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("add fee column: begin tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // committed on success path
+
+	for _, stmt := range []string{
+		`DROP TABLE IF EXISTS cn_votes`,
+		`DELETE FROM cn_stories`,
+		`DELETE FROM cn_comments`,
+		`DELETE FROM cn_continuations`,
+		`DELETE FROM cn_topics`,
+		`DELETE FROM cn_items`,
+		`DELETE FROM cn_scanner_cursor`,
+		`ALTER TABLE cn_items ADD COLUMN fee_sats INTEGER NOT NULL DEFAULT 0`,
+	} {
+		if _, err := tx.ExecContext(ctx, stmt); err != nil {
+			return fmt.Errorf("add fee column: %s: %w", stmt, err)
+		}
+	}
+	return tx.Commit()
 }
 
 // BlockPos locates an Item in canonical scan order (spec §4.2). Always
@@ -66,6 +84,7 @@ type BlockPos struct {
 	VoutIndex   uint32
 	BlockTime   time.Time
 	TxID        string // display-hex (Bitcoin Core RPC form)
+	FeeSats     int64  // fee of the transaction; 0 when Core omits it
 }
 
 // IndexEnv is everything the persistence layer needs about a single
@@ -73,12 +92,12 @@ type BlockPos struct {
 type IndexEnv struct {
 	Pos     BlockPos
 	TypeTag codec.TypeTag
-	Msg     any    // *codec.TopicCreation | *codec.Story | *codec.Comment | *codec.Vote | *codec.Continuation
+	Msg     any    // *codec.TopicCreation | *codec.Story | *codec.Comment | *codec.Continuation
 	Payload []byte // the raw OP_RETURN bytes Msg was decoded from
 }
 
 // Index dispatches one decoded CoinNews Message into the right table(s).
-// Caller MUST have already verified Comment and Vote signatures.
+// Caller MUST have already verified Comment signatures.
 func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -102,10 +121,6 @@ func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 		}
 	case *codec.Comment:
 		if err := indexComment(ctx, tx, itemID, m); err != nil {
-			return err
-		}
-	case *codec.Vote:
-		if err := indexVote(ctx, tx, env.Pos, m); err != nil {
 			return err
 		}
 	case *codec.Continuation:
@@ -139,9 +154,9 @@ func registerItem(ctx context.Context, tx *sql.Tx, env IndexEnv) (codec.ItemID, 
 
 	_, err = tx.ExecContext(ctx, `
 		INSERT OR IGNORE INTO cn_items
-			(item_id, txid, vout, block_height, tx_index, vout_index, type_tag, block_time, raw_payload)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, id[:], env.Pos.TxID, env.Pos.VoutIndex, env.Pos.BlockHeight, env.Pos.TxIndex, env.Pos.VoutIndex, byte(env.TypeTag), env.Pos.BlockTime, env.Payload)
+			(item_id, txid, vout, block_height, tx_index, vout_index, type_tag, block_time, raw_payload, fee_sats)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, id[:], env.Pos.TxID, env.Pos.VoutIndex, env.Pos.BlockHeight, env.Pos.TxIndex, env.Pos.VoutIndex, byte(env.TypeTag), env.Pos.BlockTime, env.Payload, env.Pos.FeeSats)
 	if err != nil {
 		return codec.ItemID{}, fmt.Errorf("coinnews: insert cn_items: %w", err)
 	}
@@ -198,19 +213,6 @@ func indexComment(ctx context.Context, tx *sql.Tx, id codec.ItemID, c *codec.Com
 	return nil
 }
 
-func indexVote(ctx context.Context, tx *sql.Tx, pos BlockPos, v *codec.Vote) error {
-	_, err := tx.ExecContext(ctx, `
-		INSERT OR IGNORE INTO cn_votes
-			(target_id, author_xpk, kind, block_height, tx_index, vout_index, block_time)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, v.Target[:], v.AuthorXPK[:], byte(v.Kind),
-		pos.BlockHeight, pos.TxIndex, pos.VoutIndex, pos.BlockTime)
-	if err != nil {
-		return fmt.Errorf("coinnews: insert cn_votes: %w", err)
-	}
-	return nil
-}
-
 func indexContinuation(ctx context.Context, tx *sql.Tx, pos BlockPos, c *codec.Continuation) error {
 	_, err := tx.ExecContext(ctx, `
 		INSERT OR IGNORE INTO cn_continuations
@@ -235,7 +237,6 @@ func PurgeAtOrAbove(ctx context.Context, db *sql.DB, fromHeight uint32) error {
 	for _, q := range []string{
 		`DELETE FROM cn_stories       WHERE item_id IN (SELECT item_id FROM cn_items WHERE block_height >= ?)`,
 		`DELETE FROM cn_comments      WHERE item_id IN (SELECT item_id FROM cn_items WHERE block_height >= ?)`,
-		`DELETE FROM cn_votes         WHERE block_height >= ?`,
 		`DELETE FROM cn_continuations WHERE block_height >= ?`,
 		`DELETE FROM cn_topics        WHERE created_height >= ?`,
 		`DELETE FROM cn_items         WHERE block_height >= ?`,

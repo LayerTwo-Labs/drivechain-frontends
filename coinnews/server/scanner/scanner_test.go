@@ -157,6 +157,42 @@ func TestIndexPayload_NotCoinNews_Drops(t *testing.T) {
 	assert.Empty(t, feed)
 }
 
+func TestScannerStoresTxFee(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s, core := newForkScanner(t)
+
+	chain := core.branch(0xa0, genesisHash, "paid", "coinbase")
+	core.setTx(chain[0], nil, "0.29000000")
+	core.setChain(chain...)
+	require.NoError(t, s.catchUp(ctx))
+
+	feed, err := store.ListFeed(ctx, s.DB, store.FeedFilter{Sort: store.SortFeeDesc})
+	require.NoError(t, err)
+	require.Len(t, feed, 2)
+	assert.Equal(t, "paid", feed[0].Headline)
+	assert.Equal(t, int64(29_000_000), feed[0].FeeSats)
+	assert.Equal(t, "coinbase", feed[1].Headline)
+	assert.Zero(t, feed[1].FeeSats, "Core omits the fee")
+}
+
+func TestScannerDropsRetiredVoteTag(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s, core := newForkScanner(t)
+
+	vote := append([]byte{codec.Magic[0], codec.Magic[1], 0x04}, make([]byte, 108)...)
+	chain := core.branch(0xa0, genesisHash, "vote")
+	core.setTx(chain[0], vote, "0.00001000")
+	core.setChain(chain...)
+	require.NoError(t, s.catchUp(ctx))
+
+	var items int
+	require.NoError(t, s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&items))
+	assert.Zero(t, items)
+	assertCursor(t, s, 1, chain[0])
+}
+
 func hexZero(n int) string {
 	out := make([]byte, n)
 	for i := range out {

@@ -71,19 +71,9 @@ export declare type Item = Message<"coinnews.v1.Item"> & {
   blockTime?: Timestamp | undefined;
 
   /**
-   * @generated from field: int32 points = 12;
-   */
-  points: number;
-
-  /**
    * @generated from field: int32 comment_count = 13;
    */
   commentCount: number;
-
-  /**
-   * @generated from field: double score = 14;
-   */
-  score: number;
 
   /**
    * Where the item sits on chain, for an explorer link.
@@ -98,16 +88,11 @@ export declare type Item = Message<"coinnews.v1.Item"> & {
   vout: number;
 
   /**
-   * Confirmed tallies. points is their difference.
+   * Fee of the transaction that carries the item, in sats.
    *
-   * @generated from field: int32 upvotes = 17;
+   * @generated from field: int64 fee_sats = 19;
    */
-  upvotes: number;
-
-  /**
-   * @generated from field: int32 downvotes = 18;
-   */
-  downvotes: number;
+  feeSats: bigint;
 };
 
 /**
@@ -170,19 +155,9 @@ export declare type ItemJson = {
   blockTime?: TimestampJson;
 
   /**
-   * @generated from field: int32 points = 12;
-   */
-  points?: number;
-
-  /**
    * @generated from field: int32 comment_count = 13;
    */
   commentCount?: number;
-
-  /**
-   * @generated from field: double score = 14;
-   */
-  score?: number | "NaN" | "Infinity" | "-Infinity";
 
   /**
    * Where the item sits on chain, for an explorer link.
@@ -197,16 +172,11 @@ export declare type ItemJson = {
   vout?: number;
 
   /**
-   * Confirmed tallies. points is their difference.
+   * Fee of the transaction that carries the item, in sats.
    *
-   * @generated from field: int32 upvotes = 17;
+   * @generated from field: int64 fee_sats = 19;
    */
-  upvotes?: number;
-
-  /**
-   * @generated from field: int32 downvotes = 18;
-   */
-  downvotes?: number;
+  feeSats?: string;
 };
 
 /**
@@ -265,16 +235,6 @@ export declare type Comment = Message<"coinnews.v1.Comment"> & {
   blockTime?: Timestamp | undefined;
 
   /**
-   * @generated from field: int32 points = 10;
-   */
-  points: number;
-
-  /**
-   * @generated from field: double score = 11;
-   */
-  score: number;
-
-  /**
    * Where the comment sits on chain, for an explorer link.
    *
    * @generated from field: string txid = 12;
@@ -285,6 +245,13 @@ export declare type Comment = Message<"coinnews.v1.Comment"> & {
    * @generated from field: uint32 vout = 13;
    */
   vout: number;
+
+  /**
+   * Fee of the transaction that carries the comment, in sats.
+   *
+   * @generated from field: int64 fee_sats = 14;
+   */
+  feeSats: bigint;
 };
 
 /**
@@ -337,16 +304,6 @@ export declare type CommentJson = {
   blockTime?: TimestampJson;
 
   /**
-   * @generated from field: int32 points = 10;
-   */
-  points?: number;
-
-  /**
-   * @generated from field: double score = 11;
-   */
-  score?: number | "NaN" | "Infinity" | "-Infinity";
-
-  /**
    * Where the comment sits on chain, for an explorer link.
    *
    * @generated from field: string txid = 12;
@@ -357,6 +314,13 @@ export declare type CommentJson = {
    * @generated from field: uint32 vout = 13;
    */
   vout?: number;
+
+  /**
+   * Fee of the transaction that carries the comment, in sats.
+   *
+   * @generated from field: int64 fee_sats = 14;
+   */
+  feeSats?: string;
 };
 
 /**
@@ -929,7 +893,7 @@ export declare const SubtypeSchema: GenEnum<Subtype, SubtypeJson>;
  */
 export declare const CoinNewsService: GenService<{
   /**
-   * List the front-page items, ranked by HN score (spec §13).
+   * List the front-page items, ranked by fee (spec §13).
    *
    * @generated from rpc coinnews.v1.CoinNewsService.ListFrontPage
    */

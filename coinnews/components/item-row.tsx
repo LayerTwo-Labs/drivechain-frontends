@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Item } from "@/gen/coinnews/v1/coinnews_pb";
 import { timestampToDate, timeAgo } from "@/lib/api";
-import { shortHex, topicLabel } from "@/lib/utils";
+import { formatSats, shortHex, topicLabel } from "@/lib/utils";
 
 export function ItemRow({ item, rank }: { item: Item; rank?: number }) {
   const url = item.url || `/item/${item.itemIdHex}`;
@@ -25,9 +25,7 @@ export function ItemRow({ item, rank }: { item: Item; rank?: number }) {
           {host && <span className="item-row__host">› {host}</span>}
         </div>
         <div className="item-row__meta">
-          <span>
-            {item.points} {item.points === 1 ? "PT" : "PTS"}
-          </span>
+          <span>{formatSats(item.feeSats)}</span>
           <span className="sep">·</span>
           <Link href={`/u/${item.authorXpkHex}`}>{shortHex(item.authorXpkHex)}</Link>
           <span className="sep">·</span>

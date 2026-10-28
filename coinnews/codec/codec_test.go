@@ -84,32 +84,6 @@ func TestVector_TopicCreation(t *testing.T) {
 	assert.Equal(t, tc, *roundTripped)
 }
 
-// TestVector_VoteEnvelopeIs111Bytes pins the spec §8 invariant: a Vote
-// envelope is exactly 111 bytes regardless of pubkey or sig contents.
-// A regression here means the on-chain footprint of every vote
-// changes — strictly observable to anyone scanning blocks.
-func TestVector_VoteEnvelopeIs111Bytes(t *testing.T) {
-	priv, err := btcec.NewPrivateKey()
-	require.NoError(t, err)
-
-	var target ItemID
-	_, _ = rand.Read(target[:])
-
-	digest := VoteSigHash(TypeUpvote, target)
-	sig, err := schnorr.Sign(priv, digest[:])
-	require.NoError(t, err)
-
-	var v Vote
-	v.Kind = TypeUpvote
-	v.Target = target
-	copy(v.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
-	copy(v.Sig[:], sig.Serialize())
-
-	encoded, err := EncodeVote(v)
-	require.NoError(t, err)
-	assert.Equal(t, 111, len(encoded), "Vote envelope must be exactly 111 B per spec §8")
-}
-
 // TestStoryRoundTripWithTLV proves the TLV section survives encode →
 // decode without losing tag order or value bytes — the multi-value
 // `url` semantics depend on it.
@@ -187,38 +161,6 @@ func TestCommentSignatureRoundTrip(t *testing.T) {
 	assert.ErrorIs(t, VerifyComment(got), ErrBadSignature)
 }
 
-// TestVoteSignatureRoundTrip mirrors the comment test and additionally
-// proves the typetag is part of the digest — flipping up→down without
-// re-signing must fail (spec §8 first-wins replay protection).
-func TestVoteSignatureRoundTrip(t *testing.T) {
-	priv, err := btcec.NewPrivateKey()
-	require.NoError(t, err)
-
-	var target ItemID
-	_, _ = rand.Read(target[:])
-
-	digest := VoteSigHash(TypeUpvote, target)
-	sig, err := schnorr.Sign(priv, digest[:])
-	require.NoError(t, err)
-
-	var v Vote
-	v.Kind = TypeUpvote
-	v.Target = target
-	copy(v.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
-	copy(v.Sig[:], sig.Serialize())
-
-	enc, err := EncodeVote(v)
-	require.NoError(t, err)
-	_, msg, err := DecodeMessage(enc)
-	require.NoError(t, err)
-	got := msg.(*Vote)
-	require.NoError(t, VerifyVote(got))
-
-	// Flip kind to downvote without re-signing — sig must fail.
-	got.Kind = TypeDownvote
-	assert.ErrorIs(t, VerifyVote(got), ErrBadSignature, "typetag flip must invalidate the sig")
-}
-
 // TestNotCoinNewsTraffic proves the dispatcher's classification: any
 // payload that doesn't start with "CN" reports ErrNotCoinNews so the
 // indexer's "skip" path fires instead of erroring out.
@@ -244,6 +186,14 @@ func TestUnknownTypeTagDistinct(t *testing.T) {
 	_, _, err := DecodeMessage([]byte{'C', 'N', 0xff, 0x00, 0x00})
 	assert.ErrorIs(t, err, ErrUnknownTypeTag, "unknown TypeTag must surface as ErrUnknownTypeTag")
 	assert.NotErrorIs(t, err, ErrNotCoinNews, "ErrUnknownTypeTag must be distinct from ErrNotCoinNews")
+}
+
+func TestRetiredVoteTagsAreUnknown(t *testing.T) {
+	for _, tag := range []byte{0x04, 0x05} {
+		payload := append([]byte{'C', 'N', tag}, make([]byte, ItemIDLen+XOnlyPubKeyLen+SchnorrSigLen)...)
+		_, _, err := DecodeMessage(payload)
+		assert.ErrorIs(t, err, ErrUnknownTypeTag, "tag 0x%02x", tag)
+	}
 }
 
 // TestContinuationChunkBound rejects oversize chunks: §9 caps a single

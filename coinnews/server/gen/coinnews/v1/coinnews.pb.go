@@ -96,15 +96,12 @@ type Item struct {
 	AuthorXpkHex string                 `protobuf:"bytes,9,opt,name=author_xpk_hex,json=authorXpkHex,proto3" json:"author_xpk_hex,omitempty"`
 	BlockHeight  uint32                 `protobuf:"varint,10,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
 	BlockTime    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
-	Points       int32                  `protobuf:"varint,12,opt,name=points,proto3" json:"points,omitempty"`
 	CommentCount int32                  `protobuf:"varint,13,opt,name=comment_count,json=commentCount,proto3" json:"comment_count,omitempty"`
-	Score        float64                `protobuf:"fixed64,14,opt,name=score,proto3" json:"score,omitempty"`
 	// Where the item sits on chain, for an explorer link.
 	Txid string `protobuf:"bytes,15,opt,name=txid,proto3" json:"txid,omitempty"`
 	Vout uint32 `protobuf:"varint,16,opt,name=vout,proto3" json:"vout,omitempty"`
-	// Confirmed tallies. points is their difference.
-	Upvotes       int32 `protobuf:"varint,17,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
-	Downvotes     int32 `protobuf:"varint,18,opt,name=downvotes,proto3" json:"downvotes,omitempty"`
+	// Fee of the transaction that carries the item, in sats.
+	FeeSats       int64 `protobuf:"varint,19,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -216,23 +213,9 @@ func (x *Item) GetBlockTime() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *Item) GetPoints() int32 {
-	if x != nil {
-		return x.Points
-	}
-	return 0
-}
-
 func (x *Item) GetCommentCount() int32 {
 	if x != nil {
 		return x.CommentCount
-	}
-	return 0
-}
-
-func (x *Item) GetScore() float64 {
-	if x != nil {
-		return x.Score
 	}
 	return 0
 }
@@ -251,16 +234,9 @@ func (x *Item) GetVout() uint32 {
 	return 0
 }
 
-func (x *Item) GetUpvotes() int32 {
+func (x *Item) GetFeeSats() int64 {
 	if x != nil {
-		return x.Upvotes
-	}
-	return 0
-}
-
-func (x *Item) GetDownvotes() int32 {
-	if x != nil {
-		return x.Downvotes
+		return x.FeeSats
 	}
 	return 0
 }
@@ -276,11 +252,11 @@ type Comment struct {
 	ReplyQuote   string                 `protobuf:"bytes,7,opt,name=reply_quote,json=replyQuote,proto3" json:"reply_quote,omitempty"`
 	BlockHeight  uint32                 `protobuf:"varint,8,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
 	BlockTime    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
-	Points       int32                  `protobuf:"varint,10,opt,name=points,proto3" json:"points,omitempty"`
-	Score        float64                `protobuf:"fixed64,11,opt,name=score,proto3" json:"score,omitempty"`
 	// Where the comment sits on chain, for an explorer link.
-	Txid          string `protobuf:"bytes,12,opt,name=txid,proto3" json:"txid,omitempty"`
-	Vout          uint32 `protobuf:"varint,13,opt,name=vout,proto3" json:"vout,omitempty"`
+	Txid string `protobuf:"bytes,12,opt,name=txid,proto3" json:"txid,omitempty"`
+	Vout uint32 `protobuf:"varint,13,opt,name=vout,proto3" json:"vout,omitempty"`
+	// Fee of the transaction that carries the comment, in sats.
+	FeeSats       int64 `protobuf:"varint,14,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -378,20 +354,6 @@ func (x *Comment) GetBlockTime() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *Comment) GetPoints() int32 {
-	if x != nil {
-		return x.Points
-	}
-	return 0
-}
-
-func (x *Comment) GetScore() float64 {
-	if x != nil {
-		return x.Score
-	}
-	return 0
-}
-
 func (x *Comment) GetTxid() string {
 	if x != nil {
 		return x.Txid
@@ -402,6 +364,13 @@ func (x *Comment) GetTxid() string {
 func (x *Comment) GetVout() uint32 {
 	if x != nil {
 		return x.Vout
+	}
+	return 0
+}
+
+func (x *Comment) GetFeeSats() int64 {
+	if x != nil {
+		return x.FeeSats
 	}
 	return 0
 }
@@ -1138,7 +1107,7 @@ var File_coinnews_v1_coinnews_proto protoreflect.FileDescriptor
 
 const file_coinnews_v1_coinnews_proto_rawDesc = "" +
 	"\n" +
-	"\x1acoinnews/v1/coinnews.proto\x12\vcoinnews.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x04\n" +
+	"\x1acoinnews/v1/coinnews.proto\x12\vcoinnews.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x84\x04\n" +
 	"\x04Item\x12\x1e\n" +
 	"\vitem_id_hex\x18\x01 \x01(\tR\titemIdHex\x12\x1b\n" +
 	"\ttopic_hex\x18\x02 \x01(\tR\btopicHex\x12\x1a\n" +
@@ -1152,14 +1121,11 @@ const file_coinnews_v1_coinnews_proto_rawDesc = "" +
 	"\fblock_height\x18\n" +
 	" \x01(\rR\vblockHeight\x129\n" +
 	"\n" +
-	"block_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tblockTime\x12\x16\n" +
-	"\x06points\x18\f \x01(\x05R\x06points\x12#\n" +
-	"\rcomment_count\x18\r \x01(\x05R\fcommentCount\x12\x14\n" +
-	"\x05score\x18\x0e \x01(\x01R\x05score\x12\x12\n" +
+	"block_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tblockTime\x12#\n" +
+	"\rcomment_count\x18\r \x01(\x05R\fcommentCount\x12\x12\n" +
 	"\x04txid\x18\x0f \x01(\tR\x04txid\x12\x12\n" +
-	"\x04vout\x18\x10 \x01(\rR\x04vout\x12\x18\n" +
-	"\aupvotes\x18\x11 \x01(\x05R\aupvotes\x12\x1c\n" +
-	"\tdownvotes\x18\x12 \x01(\x05R\tdownvotes\"\x82\x03\n" +
+	"\x04vout\x18\x10 \x01(\rR\x04vout\x12\x19\n" +
+	"\bfee_sats\x18\x13 \x01(\x03R\afeeSatsJ\x04\b\f\x10\rJ\x04\b\x0e\x10\x0fJ\x04\b\x11\x10\x12J\x04\b\x12\x10\x13R\x06pointsR\x05scoreR\aupvotesR\tdownvotes\"\x8a\x03\n" +
 	"\aComment\x12\x1e\n" +
 	"\vitem_id_hex\x18\x01 \x01(\tR\titemIdHex\x12\"\n" +
 	"\rparent_id_hex\x18\x02 \x01(\tR\vparentIdHex\x12$\n" +
@@ -1171,12 +1137,11 @@ const file_coinnews_v1_coinnews_proto_rawDesc = "" +
 	"replyQuote\x12!\n" +
 	"\fblock_height\x18\b \x01(\rR\vblockHeight\x129\n" +
 	"\n" +
-	"block_time\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tblockTime\x12\x16\n" +
-	"\x06points\x18\n" +
-	" \x01(\x05R\x06points\x12\x14\n" +
-	"\x05score\x18\v \x01(\x01R\x05score\x12\x12\n" +
+	"block_time\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tblockTime\x12\x12\n" +
 	"\x04txid\x18\f \x01(\tR\x04txid\x12\x12\n" +
-	"\x04vout\x18\r \x01(\rR\x04vout\"\x9a\x01\n" +
+	"\x04vout\x18\r \x01(\rR\x04vout\x12\x19\n" +
+	"\bfee_sats\x18\x0e \x01(\x03R\afeeSatsJ\x04\b\n" +
+	"\x10\vJ\x04\b\v\x10\fR\x06pointsR\x05score\"\x9a\x01\n" +
 	"\x05Topic\x12\x1b\n" +
 	"\ttopic_hex\x18\x01 \x01(\tR\btopicHex\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +

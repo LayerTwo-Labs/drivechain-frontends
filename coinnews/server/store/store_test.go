@@ -2,7 +2,7 @@ package store
 
 import (
 	"context"
-	"crypto/rand"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -76,8 +76,10 @@ func TestStore_FullCycle(t *testing.T) {
 	assert.Equal(t, "first", topics[0].Name, "earliest Topic Creation must win")
 
 	// Story.
+	storyPos := pos(102, 0, 0)
+	storyPos.FeeSats = 1234
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(102, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Pos: storyPos, TypeTag: codec.TypeStory, Payload: testPayload,
 		Msg: &codec.Story{
 			Topic: topic, Headline: "hello",
 			TLVs: []codec.TLV{
@@ -93,28 +95,14 @@ func TestStore_FullCycle(t *testing.T) {
 	assert.Equal(t, "https://example.com/x", feed[0].URL)
 	assert.Equal(t, codec.SubtypeShow, feed[0].Subtype)
 
-	// Vote dedup.
+	assert.Equal(t, int64(1234), feed[0].FeeSats)
 	storyID := feed[0].ItemID
-	var xpk [32]byte
-	_, _ = rand.Read(xpk[:])
-	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(103, 0, 0), TypeTag: codec.TypeUpvote, Payload: testPayload,
-		Msg: &codec.Vote{Kind: codec.TypeUpvote, Target: storyID, AuthorXPK: xpk},
-	}))
-	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(104, 0, 0), TypeTag: codec.TypeDownvote, Payload: testPayload,
-		Msg: &codec.Vote{Kind: codec.TypeDownvote, Target: storyID, AuthorXPK: xpk},
-	}))
-	feed, err = ListFeed(ctx, db, FeedFilter{Sort: SortNewest})
-	require.NoError(t, err)
-	require.Len(t, feed, 1)
-	assert.Equal(t, 1, feed[0].Points, "second vote from same author must be dropped")
 
 	// GetItem.
 	one, err := GetItem(ctx, db, storyID)
 	require.NoError(t, err)
 	assert.Equal(t, "hello", one.Headline)
-	assert.Equal(t, 1, one.Points)
+	assert.Equal(t, int64(1234), one.FeeSats)
 	assert.Equal(t, 0, one.CommentCount)
 
 	// PurgeAtOrAbove.
@@ -124,7 +112,7 @@ func TestStore_FullCycle(t *testing.T) {
 	assert.Len(t, topics, 1, "topic created at height 100 survives a purge at 102")
 	feed, err = ListFeed(ctx, db, FeedFilter{Sort: SortNewest})
 	require.NoError(t, err)
-	assert.Empty(t, feed, "story at 102 + vote at 103 wiped")
+	assert.Empty(t, feed, "story at 102 wiped")
 }
 
 func TestStore_Cursor(t *testing.T) {
@@ -165,4 +153,56 @@ func TestOpReturnPayload_RoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codec.TypeStory, tag)
 	require.IsType(t, &codec.Story{}, msg)
+}
+
+func TestOpen_AddsFeeColumnToOldIndex(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	path := t.TempDir() + "/coinnews.db"
+
+	db, err := Open(ctx, path)
+	require.NoError(t, err)
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(100, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "old"},
+	}))
+	require.NoError(t, SaveCursor(ctx, db, 100, [32]byte{1}))
+	require.NoError(t, db.Close())
+
+	raw, err := sql.Open("sqlite3", path)
+	require.NoError(t, err)
+	_, err = raw.ExecContext(ctx, `
+		ALTER TABLE cn_items DROP COLUMN fee_sats;
+		CREATE TABLE cn_votes (target_id BLOB NOT NULL, author_xpk BLOB NOT NULL)`)
+	require.NoError(t, err)
+	require.NoError(t, raw.Close())
+
+	db, err = Open(ctx, path)
+	require.NoError(t, err)
+	defer db.Close() //nolint:errcheck
+
+	var items, votes int
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&items))
+	assert.Zero(t, items, "the old index is cleared so the scanner fills in every fee")
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM sqlite_master WHERE name = 'cn_votes'`).Scan(&votes))
+	assert.Zero(t, votes)
+	height, _, err := LoadCursor(ctx, db)
+	require.NoError(t, err)
+	assert.Zero(t, height)
+
+	p := pos(101, 0, 0)
+	p.FeeSats = 700
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: p, TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "new"},
+	}))
+	require.NoError(t, db.Close())
+
+	db, err = Open(ctx, path)
+	require.NoError(t, err)
+	feed, err := ListFeed(ctx, db, FeedFilter{Sort: SortFeeDesc})
+	require.NoError(t, err)
+	require.Len(t, feed, 1, "a second open keeps the new index")
+	assert.Equal(t, int64(700), feed[0].FeeSats)
 }

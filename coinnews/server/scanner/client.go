@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync/atomic"
 )
@@ -131,6 +132,8 @@ type Block struct {
 	Mediantime        int64  `json:"mediantime"`
 	Tx                []struct {
 		Txid string `json:"txid"`
+		// Fee is in BTC. Core omits it for the coinbase and when undo data is absent.
+		Fee  *json.Number `json:"fee"`
 		Vout []struct {
 			ScriptPubKey struct {
 				Hex  string `json:"hex"`
@@ -138,6 +141,27 @@ type Block struct {
 			} `json:"scriptPubKey"`
 		} `json:"vout"`
 	} `json:"tx"`
+}
+
+const satsPerBTC = 100_000_000
+
+// btcToSats converts a BTC amount in Core's decimal form to sats with no float rounding.
+func btcToSats(n json.Number) (int64, error) {
+	whole, frac, _ := strings.Cut(string(n), ".")
+	if whole == "" || len(frac) > 8 || strings.ContainsAny(whole+frac, "+-eE") {
+		return 0, fmt.Errorf("invalid btc amount %q", n)
+	}
+	w, err := strconv.ParseInt(whole, 10, 64)
+	if err != nil || w > (1<<63-1)/satsPerBTC {
+		return 0, fmt.Errorf("invalid btc amount %q", n)
+	}
+	var f int64
+	if frac != "" {
+		if f, err = strconv.ParseInt(frac+strings.Repeat("0", 8-len(frac)), 10, 64); err != nil {
+			return 0, fmt.Errorf("invalid btc amount %q: %w", n, err)
+		}
+	}
+	return w*satsPerBTC + f, nil
 }
 
 // GetBlock fetches a block by hash with verbose=2 (full tx data).

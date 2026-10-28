@@ -19,7 +19,7 @@ var ErrUnknownTypeTag = errors.New("coinnews: unknown type tag")
 
 // DecodeMessage classifies the payload and returns one of:
 //
-//	*TopicCreation, *Story, *Comment, *Vote, *Continuation
+//	*TopicCreation, *Story, *Comment, *Continuation
 //
 // plus the TypeTag for switch-friendly dispatch. Returns ErrNotCoinNews
 // for non-CoinNews traffic; any other error means the bytes claimed to
@@ -44,9 +44,6 @@ func DecodeMessage(payload []byte) (TypeTag, any, error) {
 	case TypeComment:
 		c, err := decodeComment(body)
 		return tag, c, err
-	case TypeUpvote, TypeDownvote:
-		v, err := decodeVote(tag, body)
-		return tag, v, err
 	case TypeContinuation:
 		c, err := decodeContinuation(body)
 		return tag, c, err
@@ -138,25 +135,6 @@ func VerifyComment(c *Comment) error {
 		return err
 	}
 	if !VerifyCommentSig(c.AuthorXPK, c.Parent, blob, c.Sig) {
-		return ErrBadSignature
-	}
-	return nil
-}
-
-func decodeVote(tag TypeTag, b []byte) (*Vote, error) {
-	if len(b) != ItemIDLen+XOnlyPubKeyLen+SchnorrSigLen {
-		return nil, fmt.Errorf("coinnews: vote size %d, want %d", len(b), ItemIDLen+XOnlyPubKeyLen+SchnorrSigLen)
-	}
-	v := &Vote{Kind: tag}
-	copy(v.Target[:], b[:ItemIDLen])
-	copy(v.AuthorXPK[:], b[ItemIDLen:ItemIDLen+XOnlyPubKeyLen])
-	copy(v.Sig[:], b[ItemIDLen+XOnlyPubKeyLen:])
-	return v, nil
-}
-
-// VerifyVote is the indexer-side counterpart to VerifyComment.
-func VerifyVote(v *Vote) error {
-	if !VerifyVoteSig(v.AuthorXPK, v.Kind, v.Target, v.Sig) {
 		return ErrBadSignature
 	}
 	return nil

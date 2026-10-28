@@ -21,16 +21,20 @@ const NewsAction$json = {
   '1': 'NewsAction',
   '2': [
     {'1': 'NEWS_ACTION_UNSPECIFIED', '2': 0},
-    {'1': 'NEWS_ACTION_VOTE', '2': 1},
     {'1': 'NEWS_ACTION_COMMENT', '2': 2},
     {'1': 'NEWS_ACTION_STORY', '2': 3},
   ],
+  '4': [
+    {'1': 1, '2': 1},
+  ],
+  '5': ['NEWS_ACTION_VOTE'],
 };
 
 /// Descriptor for `NewsAction`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List newsActionDescriptor = $convert.base64Decode(
-    'CgpOZXdzQWN0aW9uEhsKF05FV1NfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFAoQTkVXU19BQ1RJT0'
-    '5fVk9URRABEhcKE05FV1NfQUNUSU9OX0NPTU1FTlQQAhIVChFORVdTX0FDVElPTl9TVE9SWRAD');
+    'CgpOZXdzQWN0aW9uEhsKF05FV1NfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFwoTTkVXU19BQ1RJT0'
+    '5fQ09NTUVOVBACEhUKEU5FV1NfQUNUSU9OX1NUT1JZEAMiBAgBEAEqEE5FV1NfQUNUSU9OX1ZP'
+    'VEU=');
 
 @$core.Deprecated('Use listOPReturnResponseDescriptor instead')
 const ListOPReturnResponse$json = {
@@ -103,34 +107,6 @@ const BroadcastNewsResponse$json = {
 /// Descriptor for `BroadcastNewsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List broadcastNewsResponseDescriptor = $convert.base64Decode(
     'ChVCcm9hZGNhc3ROZXdzUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
-
-@$core.Deprecated('Use upvoteNewsRequestDescriptor instead')
-const UpvoteNewsRequest$json = {
-  '1': 'UpvoteNewsRequest',
-  '2': [
-    {'1': 'item_id', '3': 1, '4': 1, '5': 9, '10': 'itemId'},
-    {'1': 'fee_sat_per_vbyte', '3': 2, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
-    {'1': 'fee_sats', '3': 3, '4': 1, '5': 4, '10': 'feeSats'},
-  ],
-};
-
-/// Descriptor for `UpvoteNewsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List upvoteNewsRequestDescriptor = $convert.base64Decode(
-    'ChFVcHZvdGVOZXdzUmVxdWVzdBIXCgdpdGVtX2lkGAEgASgJUgZpdGVtSWQSKQoRZmVlX3NhdF'
-    '9wZXJfdmJ5dGUYAiABKARSDmZlZVNhdFBlclZieXRlEhkKCGZlZV9zYXRzGAMgASgEUgdmZWVT'
-    'YXRz');
-
-@$core.Deprecated('Use upvoteNewsResponseDescriptor instead')
-const UpvoteNewsResponse$json = {
-  '1': 'UpvoteNewsResponse',
-  '2': [
-    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
-  ],
-};
-
-/// Descriptor for `UpvoteNewsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List upvoteNewsResponseDescriptor = $convert.base64Decode(
-    'ChJVcHZvdGVOZXdzUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
 
 @$core.Deprecated('Use createTopicRequestDescriptor instead')
 const CreateTopicRequest$json = {
@@ -253,15 +229,18 @@ const CoinNews$json = {
     {'1': 'fee_sats', '3': 5, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'create_time', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
     {'1': 'item_id', '3': 7, '4': 1, '5': 9, '10': 'itemId'},
-    {'1': 'upvotes', '3': 8, '4': 1, '5': 3, '10': 'upvotes'},
-    {'1': 'downvotes', '3': 9, '4': 1, '5': 3, '10': 'downvotes'},
-    {'1': 'score', '3': 10, '4': 1, '5': 1, '10': 'score'},
     {'1': 'url', '3': 11, '4': 1, '5': 9, '10': 'url'},
     {'1': 'subtype', '3': 12, '4': 1, '5': 5, '10': 'subtype'},
     {'1': 'nsfw', '3': 13, '4': 1, '5': 8, '10': 'nsfw'},
     {'1': 'txid', '3': 14, '4': 1, '5': 9, '10': 'txid'},
     {'1': 'vout', '3': 15, '4': 1, '5': 13, '10': 'vout'},
   ],
+  '9': [
+    {'1': 8, '2': 9},
+    {'1': 9, '2': 10},
+    {'1': 10, '2': 11},
+  ],
+  '10': ['upvotes', 'downvotes', 'score'],
 };
 
 /// Descriptor for `CoinNews`. Decode as a `google.protobuf.DescriptorProto`.
@@ -269,11 +248,10 @@ final $typed_data.Uint8List coinNewsDescriptor = $convert.base64Decode(
     'CghDb2luTmV3cxIOCgJpZBgBIAEoA1ICaWQSFAoFdG9waWMYAiABKAlSBXRvcGljEhoKCGhlYW'
     'RsaW5lGAMgASgJUghoZWFkbGluZRIYCgdjb250ZW50GAQgASgJUgdjb250ZW50EhkKCGZlZV9z'
     'YXRzGAUgASgDUgdmZWVTYXRzEjsKC2NyZWF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYn'
-    'VmLlRpbWVzdGFtcFIKY3JlYXRlVGltZRIXCgdpdGVtX2lkGAcgASgJUgZpdGVtSWQSGAoHdXB2'
-    'b3RlcxgIIAEoA1IHdXB2b3RlcxIcCglkb3dudm90ZXMYCSABKANSCWRvd252b3RlcxIUCgVzY2'
-    '9yZRgKIAEoAVIFc2NvcmUSEAoDdXJsGAsgASgJUgN1cmwSGAoHc3VidHlwZRgMIAEoBVIHc3Vi'
-    'dHlwZRISCgRuc2Z3GA0gASgIUgRuc2Z3EhIKBHR4aWQYDiABKAlSBHR4aWQSEgoEdm91dBgPIA'
-    'EoDVIEdm91dA==');
+    'VmLlRpbWVzdGFtcFIKY3JlYXRlVGltZRIXCgdpdGVtX2lkGAcgASgJUgZpdGVtSWQSEAoDdXJs'
+    'GAsgASgJUgN1cmwSGAoHc3VidHlwZRgMIAEoBVIHc3VidHlwZRISCgRuc2Z3GA0gASgIUgRuc2'
+    'Z3EhIKBHR4aWQYDiABKAlSBHR4aWQSEgoEdm91dBgPIAEoDVIEdm91dEoECAgQCUoECAkQCkoE'
+    'CAoQC1IHdXB2b3Rlc1IJZG93bnZvdGVzUgVzY29yZQ==');
 
 @$core.Deprecated('Use listCoinNewsResponseDescriptor instead')
 const ListCoinNewsResponse$json = {
@@ -345,10 +323,14 @@ const Comment$json = {
     {'1': 'lang', '3': 6, '4': 1, '5': 9, '10': 'lang'},
     {'1': 'reply_quote', '3': 7, '4': 1, '5': 9, '10': 'replyQuote'},
     {'1': 'create_time', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
-    {'1': 'upvotes', '3': 9, '4': 1, '5': 3, '10': 'upvotes'},
-    {'1': 'downvotes', '3': 10, '4': 1, '5': 3, '10': 'downvotes'},
-    {'1': 'score', '3': 11, '4': 1, '5': 1, '10': 'score'},
+    {'1': 'fee_sats', '3': 12, '4': 1, '5': 3, '10': 'feeSats'},
   ],
+  '9': [
+    {'1': 9, '2': 10},
+    {'1': 10, '2': 11},
+    {'1': 11, '2': 12},
+  ],
+  '10': ['upvotes', 'downvotes', 'score'],
 };
 
 /// Descriptor for `Comment`. Decode as a `google.protobuf.DescriptorProto`.
@@ -357,8 +339,8 @@ final $typed_data.Uint8List commentDescriptor = $convert.base64Decode(
     'BhcmVudElkEhYKBmF1dGhvchgDIAEoCVIGYXV0aG9yEhIKBGJvZHkYBCABKAlSBGJvZHkSEAoD'
     'dXJsGAUgASgJUgN1cmwSEgoEbGFuZxgGIAEoCVIEbGFuZxIfCgtyZXBseV9xdW90ZRgHIAEoCV'
     'IKcmVwbHlRdW90ZRI7CgtjcmVhdGVfdGltZRgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1l'
-    'c3RhbXBSCmNyZWF0ZVRpbWUSGAoHdXB2b3RlcxgJIAEoA1IHdXB2b3RlcxIcCglkb3dudm90ZX'
-    'MYCiABKANSCWRvd252b3RlcxIUCgVzY29yZRgLIAEoAVIFc2NvcmU=');
+    'c3RhbXBSCmNyZWF0ZVRpbWUSGQoIZmVlX3NhdHMYDCABKANSB2ZlZVNhdHNKBAgJEApKBAgKEA'
+    'tKBAgLEAxSB3Vwdm90ZXNSCWRvd252b3Rlc1IFc2NvcmU=');
 
 @$core.Deprecated('Use listCommentsResponseDescriptor instead')
 const ListCommentsResponse$json = {
@@ -482,8 +464,6 @@ const $core.Map<$core.String, $core.dynamic> MiscServiceBase$json = {
   '2': [
     {'1': 'ListOPReturn', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListOPReturnResponse'},
     {'1': 'BroadcastNews', '2': '.misc.v1.BroadcastNewsRequest', '3': '.misc.v1.BroadcastNewsResponse'},
-    {'1': 'UpvoteNews', '2': '.misc.v1.UpvoteNewsRequest', '3': '.misc.v1.UpvoteNewsResponse'},
-    {'1': 'DownvoteNews', '2': '.misc.v1.UpvoteNewsRequest', '3': '.misc.v1.UpvoteNewsResponse'},
     {'1': 'CreateTopic', '2': '.misc.v1.CreateTopicRequest', '3': '.misc.v1.CreateTopicResponse'},
     {'1': 'ListTopics', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListTopicsResponse'},
     {'1': 'ListCoinNews', '2': '.misc.v1.ListCoinNewsRequest', '3': '.misc.v1.ListCoinNewsResponse'},
@@ -504,8 +484,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MiscServic
   '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.misc.v1.BroadcastNewsRequest': BroadcastNewsRequest$json,
   '.misc.v1.BroadcastNewsResponse': BroadcastNewsResponse$json,
-  '.misc.v1.UpvoteNewsRequest': UpvoteNewsRequest$json,
-  '.misc.v1.UpvoteNewsResponse': UpvoteNewsResponse$json,
   '.misc.v1.CreateTopicRequest': CreateTopicRequest$json,
   '.misc.v1.CreateTopicResponse': CreateTopicResponse$json,
   '.misc.v1.ListTopicsResponse': ListTopicsResponse$json,
@@ -532,21 +510,18 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MiscServic
 final $typed_data.Uint8List miscServiceDescriptor = $convert.base64Decode(
     'CgtNaXNjU2VydmljZRJFCgxMaXN0T1BSZXR1cm4SFi5nb29nbGUucHJvdG9idWYuRW1wdHkaHS'
     '5taXNjLnYxLkxpc3RPUFJldHVyblJlc3BvbnNlEk4KDUJyb2FkY2FzdE5ld3MSHS5taXNjLnYx'
-    'LkJyb2FkY2FzdE5ld3NSZXF1ZXN0Gh4ubWlzYy52MS5Ccm9hZGNhc3ROZXdzUmVzcG9uc2USRQ'
-    'oKVXB2b3RlTmV3cxIaLm1pc2MudjEuVXB2b3RlTmV3c1JlcXVlc3QaGy5taXNjLnYxLlVwdm90'
-    'ZU5ld3NSZXNwb25zZRJHCgxEb3dudm90ZU5ld3MSGi5taXNjLnYxLlVwdm90ZU5ld3NSZXF1ZX'
-    'N0GhsubWlzYy52MS5VcHZvdGVOZXdzUmVzcG9uc2USSAoLQ3JlYXRlVG9waWMSGy5taXNjLnYx'
-    'LkNyZWF0ZVRvcGljUmVxdWVzdBocLm1pc2MudjEuQ3JlYXRlVG9waWNSZXNwb25zZRJBCgpMaX'
-    'N0VG9waWNzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GhsubWlzYy52MS5MaXN0VG9waWNzUmVz'
-    'cG9uc2USSwoMTGlzdENvaW5OZXdzEhwubWlzYy52MS5MaXN0Q29pbk5ld3NSZXF1ZXN0Gh0ubW'
-    'lzYy52MS5MaXN0Q29pbk5ld3NSZXNwb25zZRJICgtDb21tZW50TmV3cxIbLm1pc2MudjEuQ29t'
-    'bWVudE5ld3NSZXF1ZXN0GhwubWlzYy52MS5Db21tZW50TmV3c1Jlc3BvbnNlEksKDExpc3RDb2'
-    '1tZW50cxIcLm1pc2MudjEuTGlzdENvbW1lbnRzUmVxdWVzdBodLm1pc2MudjEuTGlzdENvbW1l'
-    'bnRzUmVzcG9uc2USVAoPRXN0aW1hdGVOZXdzRmVlEh8ubWlzYy52MS5Fc3RpbWF0ZU5ld3NGZW'
-    'VSZXF1ZXN0GiAubWlzYy52MS5Fc3RpbWF0ZU5ld3NGZWVSZXNwb25zZRJOCg1UaW1lc3RhbXBG'
-    'aWxlEh0ubWlzYy52MS5UaW1lc3RhbXBGaWxlUmVxdWVzdBoeLm1pc2MudjEuVGltZXN0YW1wRm'
-    'lsZVJlc3BvbnNlEkkKDkxpc3RUaW1lc3RhbXBzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh8u'
-    'bWlzYy52MS5MaXN0VGltZXN0YW1wc1Jlc3BvbnNlElQKD1ZlcmlmeVRpbWVzdGFtcBIfLm1pc2'
-    'MudjEuVmVyaWZ5VGltZXN0YW1wUmVxdWVzdBogLm1pc2MudjEuVmVyaWZ5VGltZXN0YW1wUmVz'
-    'cG9uc2U=');
+    'LkJyb2FkY2FzdE5ld3NSZXF1ZXN0Gh4ubWlzYy52MS5Ccm9hZGNhc3ROZXdzUmVzcG9uc2USSA'
+    'oLQ3JlYXRlVG9waWMSGy5taXNjLnYxLkNyZWF0ZVRvcGljUmVxdWVzdBocLm1pc2MudjEuQ3Jl'
+    'YXRlVG9waWNSZXNwb25zZRJBCgpMaXN0VG9waWNzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh'
+    'subWlzYy52MS5MaXN0VG9waWNzUmVzcG9uc2USSwoMTGlzdENvaW5OZXdzEhwubWlzYy52MS5M'
+    'aXN0Q29pbk5ld3NSZXF1ZXN0Gh0ubWlzYy52MS5MaXN0Q29pbk5ld3NSZXNwb25zZRJICgtDb2'
+    '1tZW50TmV3cxIbLm1pc2MudjEuQ29tbWVudE5ld3NSZXF1ZXN0GhwubWlzYy52MS5Db21tZW50'
+    'TmV3c1Jlc3BvbnNlEksKDExpc3RDb21tZW50cxIcLm1pc2MudjEuTGlzdENvbW1lbnRzUmVxdW'
+    'VzdBodLm1pc2MudjEuTGlzdENvbW1lbnRzUmVzcG9uc2USVAoPRXN0aW1hdGVOZXdzRmVlEh8u'
+    'bWlzYy52MS5Fc3RpbWF0ZU5ld3NGZWVSZXF1ZXN0GiAubWlzYy52MS5Fc3RpbWF0ZU5ld3NGZW'
+    'VSZXNwb25zZRJOCg1UaW1lc3RhbXBGaWxlEh0ubWlzYy52MS5UaW1lc3RhbXBGaWxlUmVxdWVz'
+    'dBoeLm1pc2MudjEuVGltZXN0YW1wRmlsZVJlc3BvbnNlEkkKDkxpc3RUaW1lc3RhbXBzEhYuZ2'
+    '9vZ2xlLnByb3RvYnVmLkVtcHR5Gh8ubWlzYy52MS5MaXN0VGltZXN0YW1wc1Jlc3BvbnNlElQK'
+    'D1ZlcmlmeVRpbWVzdGFtcBIfLm1pc2MudjEuVmVyaWZ5VGltZXN0YW1wUmVxdWVzdBogLm1pc2'
+    'MudjEuVmVyaWZ5VGltZXN0YW1wUmVzcG9uc2U=');
 

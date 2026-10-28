@@ -295,12 +295,9 @@ type CoinNews struct {
 	Headline  string
 	Content   string
 	Fee       btcutil.Amount
-	ItemID    string // hex-encoded 12-byte ItemID; vote target
-	Upvotes   int64
-	Downvotes int64
-	Score     float64 // Hacker-News rank (spec §13)
-	URL       string  // optional link (TLV §10)
-	Subtype   int32   // 0=link,1=text,2=ask,3=show,4=poll,5=job
+	ItemID    string // hex-encoded 12-byte ItemID; comment parent
+	URL       string // optional link (TLV §10)
+	Subtype   int32  // 0=link,1=text,2=ask,3=show,4=poll,5=job
 	NSFW      bool
 
 	CreatedAt *time.Time
@@ -465,8 +462,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		Fee       btcutil.Amount `db:"fee"`
 		BlockTime time.Time      `db:"block_time"`
 		ItemID    string         `db:"item_id"`
-		Upvotes   int64          `db:"upvotes"`
-		Downvotes int64          `db:"downvotes"`
 		RawTLV    []byte         `db:"raw_tlv"`
 		URL       string         `db:"url"`
 		Subtype   int32          `db:"subtype"`
@@ -482,8 +477,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			COALESCE(o.fee_sats, 0) AS fee,
 			i.block_time AS block_time,
 			lower(hex(s.item_id)) AS item_id,
-			COALESCE(v.upvotes, 0) AS upvotes,
-			COALESCE(v.downvotes, 0) AS downvotes,
 			COALESCE(s.raw_tlv, x'') AS raw_tlv,
 			COALESCE(s.url, '') AS url,
 			s.subtype AS subtype,
@@ -492,7 +485,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		JOIN cn_items i ON i.item_id = s.item_id
 		LEFT JOIN cn_topics ct ON ct.topic = s.topic
 		LEFT JOIN op_returns o ON o.txid = i.txid AND o.vout = i.vout
-		LEFT JOIN (`+cnstore.VoteTally+`) v ON v.target_id = s.item_id
 		WHERE
 			trim(s.headline) != ''
 			AND
@@ -527,9 +519,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			Content:   row.Content,
 			Fee:       row.Fee,
 			ItemID:    row.ItemID,
-			Upvotes:   row.Upvotes,
-			Downvotes: row.Downvotes,
-			Score:     cnstore.HNScore(row.Upvotes, row.Downvotes, row.BlockTime),
 			URL:       row.URL,
 			Subtype:   row.Subtype,
 			NSFW:      row.NSFW,
@@ -588,8 +577,8 @@ func reassembledBody(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV [
 // with the newer item first.
 func rankCoinNews(news []CoinNews) {
 	slices.SortFunc(news, func(a, b CoinNews) int {
-		if a.Score != b.Score {
-			if a.Score > b.Score {
+		if a.Fee != b.Fee {
+			if a.Fee > b.Fee {
 				return -1
 			}
 			return 1

@@ -65,24 +65,6 @@ func EncodeComment(c Comment) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// EncodeVote (spec §8). Always 111 B — the only CoinNews payload with
-// no variable-length section.
-func EncodeVote(v Vote) ([]byte, error) {
-	if v.Kind != TypeUpvote && v.Kind != TypeDownvote {
-		return nil, fmt.Errorf("coinnews: vote kind must be 0x04 or 0x05, got 0x%02x", v.Kind)
-	}
-	var buf bytes.Buffer
-	buf.Write(Magic[:])
-	buf.WriteByte(byte(v.Kind))
-	buf.Write(v.Target[:])
-	buf.Write(v.AuthorXPK[:])
-	buf.Write(v.Sig[:])
-	if buf.Len() != VoteEnvelopeLen {
-		return nil, fmt.Errorf("coinnews: vote encoding produced %d bytes, want %d", buf.Len(), VoteEnvelopeLen)
-	}
-	return buf.Bytes(), nil
-}
-
 // EncodeContinuation (spec §9). Empty chunks are rejected — they let
 // a publisher pad block space without contributing to the reassembled
 // payload, so we refuse to produce or accept them.

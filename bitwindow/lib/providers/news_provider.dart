@@ -4,7 +4,6 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:protobuf/protobuf.dart';
 import 'package:sidechain_core/gen/misc/v1/misc.pb.dart';
 import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
@@ -97,58 +96,6 @@ class NewsProvider extends ChangeNotifier {
   void addOptimistic(CoinNews entry) {
     news = [entry, ...news];
     notifyListeners();
-  }
-
-  // Items this node has voted on this session. A given (author, target)
-  // counts at most once on-chain (§8), so repeat/flip votes are no-ops —
-  // we suppress both the broadcast and the optimistic bump to avoid a
-  // count that snaps back on the next refresh.
-  final Set<String> _voted = {};
-
-  /// Broadcasts a signed upvote for [entry] and optimistically bumps its
-  /// count. The confirmed on-chain tally only updates once the vote is
-  /// mined and indexed.
-  Future<void> upvote(CoinNews entry) async {
-    if (entry.itemId.isEmpty || _voted.contains(entry.itemId)) {
-      return;
-    }
-    _voted.add(entry.itemId);
-    try {
-      await api.misc.upvoteNews(entry.itemId);
-    } catch (e) {
-      _voted.remove(entry.itemId);
-      rethrow;
-    }
-
-    final idx = news.indexWhere((n) => n.itemId == entry.itemId);
-    if (idx != -1) {
-      final updated = news[idx].deepCopy()..upvotes = news[idx].upvotes + Int64(1);
-      news = [...news]..[idx] = updated;
-      notifyListeners();
-    }
-  }
-
-  /// Broadcasts a signed downvote for [entry] and optimistically bumps
-  /// its count. The confirmed on-chain tally only updates once the vote
-  /// is mined and indexed.
-  Future<void> downvote(CoinNews entry) async {
-    if (entry.itemId.isEmpty || _voted.contains(entry.itemId)) {
-      return;
-    }
-    _voted.add(entry.itemId);
-    try {
-      await api.misc.downvoteNews(entry.itemId);
-    } catch (e) {
-      _voted.remove(entry.itemId);
-      rethrow;
-    }
-
-    final idx = news.indexWhere((n) => n.itemId == entry.itemId);
-    if (idx != -1) {
-      final updated = news[idx].deepCopy()..downvotes = news[idx].downvotes + Int64(1);
-      news = [...news]..[idx] = updated;
-      notifyListeners();
-    }
   }
 
   @override
