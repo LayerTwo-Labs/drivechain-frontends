@@ -458,6 +458,12 @@ func (c *EsploraClient) AddressUTXOs(ctx context.Context, address string) ([]Esp
 // address. Esplora pages confirmed history 25 at a time keyed by the last
 // seen txid; this walks every page so history is complete.
 func (c *EsploraClient) AddressTxs(ctx context.Context, address string) ([]EsploraTx, error) {
+	return c.AddressTxsFrom(ctx, address, 0)
+}
+
+// AddressTxsFrom returns the mempool history of an address and its confirmed
+// history at or above minHeight, newest first.
+func (c *EsploraClient) AddressTxsFrom(ctx context.Context, address string, minHeight int) ([]EsploraTx, error) {
 	var all []EsploraTx
 	var lastSeen string
 	for {
@@ -469,7 +475,17 @@ func (c *EsploraClient) AddressTxs(ctx context.Context, address string) ([]Esplo
 		if err := c.get(ctx, path, &page); err != nil {
 			return nil, err
 		}
-		all = append(all, page...)
+		below := false
+		for _, tx := range page {
+			if tx.Status.Confirmed && tx.Status.BlockHeight < minHeight {
+				below = true
+				continue
+			}
+			all = append(all, tx)
+		}
+		if below {
+			break
+		}
 		// Only confirmed history paginates. Advance the cursor by the oldest
 		// confirmed tx in this page — the chain endpoint rejects a mempool
 		// txid, so we can't blindly use the last element. A short confirmed

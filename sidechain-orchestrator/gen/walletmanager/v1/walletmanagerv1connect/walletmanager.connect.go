@@ -163,6 +163,9 @@ const (
 	// WalletManagerServiceDeriveAddressesProcedure is the procedure name of the WalletManagerService's
 	// DeriveAddresses RPC.
 	WalletManagerServiceDeriveAddressesProcedure = "/walletmanager.v1.WalletManagerService/DeriveAddresses"
+	// WalletManagerServiceListEcxBurnsProcedure is the procedure name of the WalletManagerService's
+	// ListEcxBurns RPC.
+	WalletManagerServiceListEcxBurnsProcedure = "/walletmanager.v1.WalletManagerService/ListEcxBurns"
 	// WalletManagerServiceCreatePsbtProcedure is the procedure name of the WalletManagerService's
 	// CreatePsbt RPC.
 	WalletManagerServiceCreatePsbtProcedure = "/walletmanager.v1.WalletManagerService/CreatePsbt"
@@ -566,6 +569,13 @@ var (
 			Procedure:  WalletManagerServiceDeriveAddressesProcedure,
 		}
 	})
+	walletManagerServiceListEcxBurnsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ListEcxBurns"),
+			Procedure:  WalletManagerServiceListEcxBurnsProcedure,
+		}
+	})
 	walletManagerServiceCreatePsbtSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -752,7 +762,12 @@ var (
 
 // WalletManagerServiceClient is a client for the walletmanager.v1.WalletManagerService service.
 type WalletManagerServiceClient interface {
+	// Wallet lifecycle
 	GetWalletStatus(context.Context, *v1.GetWalletStatusRequest) (*v1.GetWalletStatusResponse, error)
+	// How much of Bitcoin this install runs. The frontend asks the user before
+	// it boots anything, and blocks until GetNodeMode reports a mode.
+	// Deposits this install made to a sidechain treasury. An M5 is an ordinary
+	// transaction on the wire, so the record comes from when we broadcast it.
 	ListSidechainDeposits(context.Context, *v1.ListSidechainDepositsRequest) (*v1.ListSidechainDepositsResponse, error)
 	GetSidechainDepositTotals(context.Context, *v1.GetSidechainDepositTotalsRequest) (*v1.GetSidechainDepositTotalsResponse, error)
 	GetNodeMode(context.Context, *v1.GetNodeModeRequest) (*v1.GetNodeModeResponse, error)
@@ -772,21 +787,39 @@ type WalletManagerServiceClient interface {
 	RestoreWalletBackup(context.Context, *v1.RestoreWalletBackupRequest) (*v1.RestoreWalletBackupResponse, error)
 	RestoreWalletBackupStream(context.Context, *v1.RestoreWalletBackupRequest) (WalletManagerServiceRestoreWalletBackupStreamClientStream, error)
 	CreateWatchOnlyWallet(context.Context, *v1.CreateWatchOnlyWalletRequest) (*v1.CreateWatchOnlyWalletResponse, error)
+	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
+	// Core or enforcer runs. The wallet reads its chain from Esplora.
 	CreateElectrumWallet(context.Context, *v1.CreateElectrumWalletRequest) (*v1.CreateElectrumWalletResponse, error)
 	CreateMultisigWallet(context.Context, *v1.CreateMultisigWalletRequest) (*v1.CreateMultisigWalletResponse, error)
+	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
+	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
 	ParseMultisigConfig(context.Context, *v1.ParseMultisigConfigRequest) (*v1.ParseMultisigConfigResponse, error)
+	// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
+	// into the script policy it encodes.
 	ValidateDescriptor(context.Context, *v1.ValidateDescriptorRequest) (*v1.ValidateDescriptorResponse, error)
+	// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
+	// the reason it is unusable.
 	ValidateDerivationPath(context.Context, *v1.ValidateDerivationPathRequest) (*v1.ValidateDerivationPathResponse, error)
+	// ListDerivationPaths returns the standard account paths for a policy on the
+	// network this backend runs.
 	ListDerivationPaths(context.Context, *v1.ListDerivationPathsRequest) (*v1.ListDerivationPathsResponse, error)
+	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *v1.CreateBitcoinCoreWalletRequest) (*v1.CreateBitcoinCoreWalletResponse, error)
 	EnsureCoreWallets(context.Context, *v1.EnsureCoreWalletsRequest) (*v1.EnsureCoreWalletsResponse, error)
+	// Bitcoin operations (proxied through Core RPC)
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
 	RescanWallet(context.Context, *v1.RescanWalletRequest) (*v1.RescanWalletResponse, error)
 	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
 	SendTransaction(context.Context, *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error)
+	// PreviewSend builds a send at a fee rate, with the same coin selection as
+	// SendTransaction, and reports its fee and size. It broadcasts nothing.
 	PreviewSend(context.Context, *v1.PreviewSendRequest) (*v1.PreviewSendResponse, error)
+	// SetFrozenCoins records the coins the frontend froze. Every send after it
+	// leaves those coins alone, and Bitcoin Core holds them locked for the
+	// length of a send so its own coin selection skips them too.
 	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
+	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)
@@ -794,35 +827,67 @@ type WalletManagerServiceClient interface {
 	GetTransactionDetails(context.Context, *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error)
 	DecodeTransaction(context.Context, *v1.DecodeTransactionRequest) (*v1.DecodeTransactionResponse, error)
 	BumpFee(context.Context, *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error)
+	// PreviewBumpFee reports what a fee bump costs, and which output pays it,
+	// without broadcasting anything.
 	PreviewBumpFee(context.Context, *v1.PreviewBumpFeeRequest) (*v1.PreviewBumpFeeResponse, error)
+	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
+	// fee lifts the parent+child package to the target fee rate (CPFP).
 	CreateCpfp(context.Context, *v1.CreateCpfpRequest) (*v1.CreateCpfpResponse, error)
+	// CancelTransaction replaces an unconfirmed transaction with one that pays
+	// the wallet's own inputs of it back to the wallet.
 	CancelTransaction(context.Context, *v1.CancelTransactionRequest) (*v1.CancelTransactionResponse, error)
 	DeriveAddresses(context.Context, *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error)
+	// ListEcxBurns lists every burn of the current eCash network, newest first.
+	ListEcxBurns(context.Context, *v1.ListEcxBurnsRequest) (*v1.ListEcxBurnsResponse, error)
+	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
+	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
+	// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
+	// wallets only.
 	CreatePsbt(context.Context, *v1.CreatePsbtRequest) (*v1.CreatePsbtResponse, error)
 	SignPsbt(context.Context, *v1.SignPsbtRequest) (*v1.SignPsbtResponse, error)
+	// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
+	// (per-keystore signing), leaving the other legs for their own signers.
 	SignPsbtWithCosigner(context.Context, *v1.SignPsbtWithCosignerRequest) (*v1.SignPsbtWithCosignerResponse, error)
 	CombinePsbt(context.Context, *v1.CombinePsbtRequest) (*v1.CombinePsbtResponse, error)
 	FinalizePsbt(context.Context, *v1.FinalizePsbtRequest) (*v1.FinalizePsbtResponse, error)
+	// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
+	// signature count, whether it can be finalized, and which cosigners signed.
 	MultisigPsbtStatus(context.Context, *v1.MultisigPsbtStatusRequest) (*v1.MultisigPsbtStatusResponse, error)
+	// BroadcastTransaction broadcasts a finalized raw transaction over the
+	// wallet's chain source and returns its txid.
 	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	// Address reads that belong to no wallet — cheque addresses, whose funds are
+	// not the user's to spend. Always electrum-backed, whatever wallet is active.
 	GetAddressUnspent(context.Context, *v1.GetAddressUnspentRequest) (*v1.GetAddressUnspentResponse, error)
 	BroadcastElectrumTransaction(context.Context, *v1.BroadcastElectrumTransactionRequest) (*v1.BroadcastElectrumTransactionResponse, error)
+	// USB hardware wallets.
 	EnumerateHardwareDevices(context.Context, *v1.EnumerateHardwareDevicesRequest) (*v1.EnumerateHardwareDevicesResponse, error)
 	GetHardwareXpub(context.Context, *v1.GetHardwareXpubRequest) (*v1.GetHardwareXpubResponse, error)
 	SignPsbtWithDevice(context.Context, *v1.SignPsbtWithDeviceRequest) (*v1.SignPsbtWithDeviceResponse, error)
+	// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
 	PromptDevicePin(context.Context, *v1.PromptDevicePinRequest) (*v1.PromptDevicePinResponse, error)
 	SendDevicePin(context.Context, *v1.SendDevicePinRequest) (*v1.SendDevicePinResponse, error)
+	// CloseDevice releases the device so the next enumerate isn't blocked.
 	CloseDevice(context.Context, *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error)
+	// DeriveKeystore turns a keystore's intent into derived account key material.
 	DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error)
+	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
+	// show the words while the user is still choosing their entropy.
 	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
+	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *v1.GetWalletSeedRequest) (*v1.GetWalletSeedResponse, error)
+	// Bitcoin Core variant selection (untouched / touched / knots).
 	ListCoreVariants(context.Context, *v1.ListCoreVariantsRequest) (*v1.ListCoreVariantsResponse, error)
 	GetCoreVariant(context.Context, *v1.GetCoreVariantRequest) (*v1.GetCoreVariantResponse, error)
 	SetCoreVariant(context.Context, *v1.SetCoreVariantRequest) (*v1.SetCoreVariantResponse, error)
+	// Electrum server (Esplora endpoint) selection for electrum wallets.
 	GetElectrumServer(context.Context, *v1.GetElectrumServerRequest) (*v1.GetElectrumServerResponse, error)
 	SetElectrumServer(context.Context, *v1.SetElectrumServerRequest) (*v1.SetElectrumServerResponse, error)
+	// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
 	GetTorConfig(context.Context, *v1.GetTorConfigRequest) (*v1.GetTorConfigResponse, error)
 	SetTorConfig(context.Context, *v1.SetTorConfigRequest) (*v1.SetTorConfigResponse, error)
+	// Stream wallet state changes. Sends the full wallet state immediately,
+	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *emptypb.Empty) (WalletManagerServiceWatchWalletDataClientStream, error)
 }
 
@@ -877,7 +942,12 @@ func (s WalletManagerServiceWatchWalletDataClientStream) Close() error {
 // WalletManagerServiceHandler is an implementation of the walletmanager.v1.WalletManagerService
 // service.
 type WalletManagerServiceHandler interface {
+	// Wallet lifecycle
 	GetWalletStatus(context.Context, *v1.GetWalletStatusRequest) (*v1.GetWalletStatusResponse, error)
+	// How much of Bitcoin this install runs. The frontend asks the user before
+	// it boots anything, and blocks until GetNodeMode reports a mode.
+	// Deposits this install made to a sidechain treasury. An M5 is an ordinary
+	// transaction on the wire, so the record comes from when we broadcast it.
 	ListSidechainDeposits(context.Context, *v1.ListSidechainDepositsRequest) (*v1.ListSidechainDepositsResponse, error)
 	GetSidechainDepositTotals(context.Context, *v1.GetSidechainDepositTotalsRequest) (*v1.GetSidechainDepositTotalsResponse, error)
 	GetNodeMode(context.Context, *v1.GetNodeModeRequest) (*v1.GetNodeModeResponse, error)
@@ -897,21 +967,39 @@ type WalletManagerServiceHandler interface {
 	RestoreWalletBackup(context.Context, *v1.RestoreWalletBackupRequest) (*v1.RestoreWalletBackupResponse, error)
 	RestoreWalletBackupStream(context.Context, *v1.RestoreWalletBackupRequest, WalletManagerServiceRestoreWalletBackupStreamServerStream) error
 	CreateWatchOnlyWallet(context.Context, *v1.CreateWatchOnlyWalletRequest) (*v1.CreateWatchOnlyWalletResponse, error)
+	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
+	// Core or enforcer runs. The wallet reads its chain from Esplora.
 	CreateElectrumWallet(context.Context, *v1.CreateElectrumWalletRequest) (*v1.CreateElectrumWalletResponse, error)
 	CreateMultisigWallet(context.Context, *v1.CreateMultisigWalletRequest) (*v1.CreateMultisigWalletResponse, error)
+	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
+	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
 	ParseMultisigConfig(context.Context, *v1.ParseMultisigConfigRequest) (*v1.ParseMultisigConfigResponse, error)
+	// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
+	// into the script policy it encodes.
 	ValidateDescriptor(context.Context, *v1.ValidateDescriptorRequest) (*v1.ValidateDescriptorResponse, error)
+	// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
+	// the reason it is unusable.
 	ValidateDerivationPath(context.Context, *v1.ValidateDerivationPathRequest) (*v1.ValidateDerivationPathResponse, error)
+	// ListDerivationPaths returns the standard account paths for a policy on the
+	// network this backend runs.
 	ListDerivationPaths(context.Context, *v1.ListDerivationPathsRequest) (*v1.ListDerivationPathsResponse, error)
+	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *v1.CreateBitcoinCoreWalletRequest) (*v1.CreateBitcoinCoreWalletResponse, error)
 	EnsureCoreWallets(context.Context, *v1.EnsureCoreWalletsRequest) (*v1.EnsureCoreWalletsResponse, error)
+	// Bitcoin operations (proxied through Core RPC)
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
 	RescanWallet(context.Context, *v1.RescanWalletRequest) (*v1.RescanWalletResponse, error)
 	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
 	SendTransaction(context.Context, *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error)
+	// PreviewSend builds a send at a fee rate, with the same coin selection as
+	// SendTransaction, and reports its fee and size. It broadcasts nothing.
 	PreviewSend(context.Context, *v1.PreviewSendRequest) (*v1.PreviewSendResponse, error)
+	// SetFrozenCoins records the coins the frontend froze. Every send after it
+	// leaves those coins alone, and Bitcoin Core holds them locked for the
+	// length of a send so its own coin selection skips them too.
 	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
+	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)
@@ -919,35 +1007,67 @@ type WalletManagerServiceHandler interface {
 	GetTransactionDetails(context.Context, *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error)
 	DecodeTransaction(context.Context, *v1.DecodeTransactionRequest) (*v1.DecodeTransactionResponse, error)
 	BumpFee(context.Context, *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error)
+	// PreviewBumpFee reports what a fee bump costs, and which output pays it,
+	// without broadcasting anything.
 	PreviewBumpFee(context.Context, *v1.PreviewBumpFeeRequest) (*v1.PreviewBumpFeeResponse, error)
+	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
+	// fee lifts the parent+child package to the target fee rate (CPFP).
 	CreateCpfp(context.Context, *v1.CreateCpfpRequest) (*v1.CreateCpfpResponse, error)
+	// CancelTransaction replaces an unconfirmed transaction with one that pays
+	// the wallet's own inputs of it back to the wallet.
 	CancelTransaction(context.Context, *v1.CancelTransactionRequest) (*v1.CancelTransactionResponse, error)
 	DeriveAddresses(context.Context, *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error)
+	// ListEcxBurns lists every burn of the current eCash network, newest first.
+	ListEcxBurns(context.Context, *v1.ListEcxBurnsRequest) (*v1.ListEcxBurnsResponse, error)
+	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
+	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
+	// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
+	// wallets only.
 	CreatePsbt(context.Context, *v1.CreatePsbtRequest) (*v1.CreatePsbtResponse, error)
 	SignPsbt(context.Context, *v1.SignPsbtRequest) (*v1.SignPsbtResponse, error)
+	// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
+	// (per-keystore signing), leaving the other legs for their own signers.
 	SignPsbtWithCosigner(context.Context, *v1.SignPsbtWithCosignerRequest) (*v1.SignPsbtWithCosignerResponse, error)
 	CombinePsbt(context.Context, *v1.CombinePsbtRequest) (*v1.CombinePsbtResponse, error)
 	FinalizePsbt(context.Context, *v1.FinalizePsbtRequest) (*v1.FinalizePsbtResponse, error)
+	// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
+	// signature count, whether it can be finalized, and which cosigners signed.
 	MultisigPsbtStatus(context.Context, *v1.MultisigPsbtStatusRequest) (*v1.MultisigPsbtStatusResponse, error)
+	// BroadcastTransaction broadcasts a finalized raw transaction over the
+	// wallet's chain source and returns its txid.
 	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	// Address reads that belong to no wallet — cheque addresses, whose funds are
+	// not the user's to spend. Always electrum-backed, whatever wallet is active.
 	GetAddressUnspent(context.Context, *v1.GetAddressUnspentRequest) (*v1.GetAddressUnspentResponse, error)
 	BroadcastElectrumTransaction(context.Context, *v1.BroadcastElectrumTransactionRequest) (*v1.BroadcastElectrumTransactionResponse, error)
+	// USB hardware wallets.
 	EnumerateHardwareDevices(context.Context, *v1.EnumerateHardwareDevicesRequest) (*v1.EnumerateHardwareDevicesResponse, error)
 	GetHardwareXpub(context.Context, *v1.GetHardwareXpubRequest) (*v1.GetHardwareXpubResponse, error)
 	SignPsbtWithDevice(context.Context, *v1.SignPsbtWithDeviceRequest) (*v1.SignPsbtWithDeviceResponse, error)
+	// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
 	PromptDevicePin(context.Context, *v1.PromptDevicePinRequest) (*v1.PromptDevicePinResponse, error)
 	SendDevicePin(context.Context, *v1.SendDevicePinRequest) (*v1.SendDevicePinResponse, error)
+	// CloseDevice releases the device so the next enumerate isn't blocked.
 	CloseDevice(context.Context, *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error)
+	// DeriveKeystore turns a keystore's intent into derived account key material.
 	DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error)
+	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
+	// show the words while the user is still choosing their entropy.
 	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
+	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *v1.GetWalletSeedRequest) (*v1.GetWalletSeedResponse, error)
+	// Bitcoin Core variant selection (untouched / touched / knots).
 	ListCoreVariants(context.Context, *v1.ListCoreVariantsRequest) (*v1.ListCoreVariantsResponse, error)
 	GetCoreVariant(context.Context, *v1.GetCoreVariantRequest) (*v1.GetCoreVariantResponse, error)
 	SetCoreVariant(context.Context, *v1.SetCoreVariantRequest) (*v1.SetCoreVariantResponse, error)
+	// Electrum server (Esplora endpoint) selection for electrum wallets.
 	GetElectrumServer(context.Context, *v1.GetElectrumServerRequest) (*v1.GetElectrumServerResponse, error)
 	SetElectrumServer(context.Context, *v1.SetElectrumServerRequest) (*v1.SetElectrumServerResponse, error)
+	// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
 	GetTorConfig(context.Context, *v1.GetTorConfigRequest) (*v1.GetTorConfigResponse, error)
 	SetTorConfig(context.Context, *v1.SetTorConfigRequest) (*v1.SetTorConfigResponse, error)
+	// Stream wallet state changes. Sends the full wallet state immediately,
+	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *emptypb.Empty, WalletManagerServiceWatchWalletDataServerStream) error
 }
 
@@ -1002,6 +1122,7 @@ func RegisterWalletManagerServiceHandler(server *connect.Server, svc WalletManag
 		connect.Method{Spec: walletManagerServiceCreateCpfpSpec(), Handler: adapter.createCpfp},
 		connect.Method{Spec: walletManagerServiceCancelTransactionSpec(), Handler: adapter.cancelTransaction},
 		connect.Method{Spec: walletManagerServiceDeriveAddressesSpec(), Handler: adapter.deriveAddresses},
+		connect.Method{Spec: walletManagerServiceListEcxBurnsSpec(), Handler: adapter.listEcxBurns},
 		connect.Method{Spec: walletManagerServiceCreatePsbtSpec(), Handler: adapter.createPsbt},
 		connect.Method{Spec: walletManagerServiceSignPsbtSpec(), Handler: adapter.signPsbt},
 		connect.Method{Spec: walletManagerServiceSignPsbtWithCosignerSpec(), Handler: adapter.signPsbtWithCosigner},
@@ -1248,6 +1369,10 @@ func (UnimplementedWalletManagerServiceHandler) CancelTransaction(context.Contex
 
 func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context, *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.DeriveAddresses is not implemented")
+}
+
+func (UnimplementedWalletManagerServiceHandler) ListEcxBurns(context.Context, *v1.ListEcxBurnsRequest) (*v1.ListEcxBurnsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ListEcxBurns is not implemented")
 }
 
 func (UnimplementedWalletManagerServiceHandler) CreatePsbt(context.Context, *v1.CreatePsbtRequest) (*v1.CreatePsbtResponse, error) {
@@ -1721,6 +1846,14 @@ func (c *walletManagerServiceClient) CancelTransaction(ctx context.Context, req 
 func (c *walletManagerServiceClient) DeriveAddresses(ctx context.Context, req *v1.DeriveAddressesRequest) (*v1.DeriveAddressesResponse, error) {
 	var res v1.DeriveAddressesResponse
 	if err := c.client.CallUnary(ctx, walletManagerServiceDeriveAddressesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ListEcxBurns(ctx context.Context, req *v1.ListEcxBurnsRequest) (*v1.ListEcxBurnsResponse, error) {
+	var res v1.ListEcxBurnsResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceListEcxBurnsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -2478,6 +2611,18 @@ func (h walletManagerServiceHandler) deriveAddresses(ctx context.Context, _ conn
 		return err
 	}
 	res, err := h.svc.DeriveAddresses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) listEcxBurns(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListEcxBurnsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListEcxBurns(ctx, &req)
 	if err != nil {
 		return err
 	}

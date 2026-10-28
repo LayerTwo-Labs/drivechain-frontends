@@ -86,6 +86,8 @@ service WalletManagerService {
   // the wallet's own inputs of it back to the wallet.
   rpc CancelTransaction(CancelTransactionRequest) returns (CancelTransactionResponse);
   rpc DeriveAddresses(DeriveAddressesRequest) returns (DeriveAddressesResponse);
+  // ListEcxBurns lists every burn of the current eCash network, newest first.
+  rpc ListEcxBurns(ListEcxBurnsRequest) returns (ListEcxBurnsResponse);
 
   // PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
   // watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
@@ -1303,6 +1305,26 @@ message DeriveAddressesRequest {
 
 message DeriveAddressesResponse {
   repeated string addresses = 1;
+}
+
+message ListEcxBurnsRequest {}
+
+message EcxBurn {
+  string txid = 1;
+  // 0 while the burn is in the mempool.
+  int64 height = 2;
+  int64 burn_sats = 3;
+  string payout_address = 4;
+  int64 payout_sats = 5;
+}
+
+message ListEcxBurnsResponse {
+  repeated EcxBurn burns = 1;
+  int64 total_burn_sats = 2;
+  int64 total_payout_sats = 3;
+  int64 payout_address_count = 4;
+  // burn_amount,payout_address,payout_amount in coins.
+  string csv = 5;
 }
 
 // ============================================================================
