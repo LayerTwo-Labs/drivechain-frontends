@@ -13,8 +13,8 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $18;
-import '../../google/protobuf/timestamp.pbjson.dart' as $14;
+import '../../google/protobuf/empty.pbjson.dart' as $5;
+import '../../google/protobuf/timestamp.pbjson.dart' as $2;
 
 @$core.Deprecated('Use walletStateDescriptor instead')
 const WalletState$json = {
@@ -1952,6 +1952,7 @@ const TransactionEntry$json = {
     {'1': 'wallet_id', '3': 13, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'bmm_bid', '3': 14, '4': 1, '5': 11, '6': '.walletmanager.v1.BmmBid', '10': 'bmmBid'},
     {'1': 'warning_message', '3': 15, '4': 1, '5': 9, '10': 'warningMessage'},
+    {'1': 'sidechain_deposit', '3': 16, '4': 1, '5': 11, '6': '.walletmanager.v1.SidechainDeposit', '10': 'sidechainDeposit'},
   ],
 };
 
@@ -1965,7 +1966,8 @@ final $typed_data.Uint8List transactionEntryDescriptor = $convert.base64Decode(
     'JlbBIQCgNmZWUYCyABKAFSA2ZlZRIoChByZXBsYWNlZF9ieV90eGlkGAwgASgIUg5yZXBsYWNl'
     'ZEJ5VHhpZBIbCgl3YWxsZXRfaWQYDSABKAlSCHdhbGxldElkEjEKB2JtbV9iaWQYDiABKAsyGC'
     '53YWxsZXRtYW5hZ2VyLnYxLkJtbUJpZFIGYm1tQmlkEicKD3dhcm5pbmdfbWVzc2FnZRgPIAEo'
-    'CVIOd2FybmluZ01lc3NhZ2U=');
+    'CVIOd2FybmluZ01lc3NhZ2USTwoRc2lkZWNoYWluX2RlcG9zaXQYECABKAsyIi53YWxsZXRtYW'
+    '5hZ2VyLnYxLlNpZGVjaGFpbkRlcG9zaXRSEHNpZGVjaGFpbkRlcG9zaXQ=');
 
 @$core.Deprecated('Use bmmBidDescriptor instead')
 const BmmBid$json = {
@@ -2820,14 +2822,17 @@ const CreateDepositResponse$json = {
   '1': 'CreateDepositResponse',
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
-    {'1': 'treasury_sats', '3': 2, '4': 1, '5': 3, '10': 'treasurySats'},
   ],
+  '9': [
+    {'1': 2, '2': 3},
+  ],
+  '10': ['treasury_sats'],
 };
 
 /// Descriptor for `CreateDepositResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createDepositResponseDescriptor = $convert.base64Decode(
-    'ChVDcmVhdGVEZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZBIjCg10cmVhc3VyeV'
-    '9zYXRzGAIgASgDUgx0cmVhc3VyeVNhdHM=');
+    'ChVDcmVhdGVEZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZEoECAIQA1INdHJlYX'
+    'N1cnlfc2F0cw==');
 
 const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
   '1': 'WalletManagerService',
@@ -2949,7 +2954,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletBackupsRequest': ListWalletBackupsRequest$json,
   '.walletmanager.v1.ListWalletBackupsResponse': ListWalletBackupsResponse$json,
   '.walletmanager.v1.WalletBackup': WalletBackup$json,
-  '.google.protobuf.Timestamp': $14.Timestamp$json,
+  '.google.protobuf.Timestamp': $2.Timestamp$json,
   '.walletmanager.v1.BackupWalletSummary': BackupWalletSummary$json,
   '.walletmanager.v1.BalanceSnapshot': BalanceSnapshot$json,
   '.walletmanager.v1.RestoreWalletBackupRequest': RestoreWalletBackupRequest$json,
@@ -2997,7 +3002,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.PreviewSendResponse': PreviewSendResponse$json,
   '.walletmanager.v1.SetFrozenCoinsRequest': SetFrozenCoinsRequest$json,
   '.walletmanager.v1.FrozenOutpoint': FrozenOutpoint$json,
-  '.google.protobuf.Empty': $18.Empty$json,
+  '.google.protobuf.Empty': $5.Empty$json,
   '.walletmanager.v1.CreateDepositRequest': CreateDepositRequest$json,
   '.walletmanager.v1.CreateDepositResponse': CreateDepositResponse$json,
   '.walletmanager.v1.ListTransactionsRequest': ListTransactionsRequest$json,

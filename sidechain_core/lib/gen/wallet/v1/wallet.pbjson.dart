@@ -13,7 +13,7 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $3;
+import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $2;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
@@ -350,6 +350,7 @@ const WalletTransaction$json = {
     {'1': 'bmm_bid', '3': 9, '4': 1, '5': 11, '6': '.wallet.v1.BmmBid', '10': 'bmmBid'},
     {'1': 'warning_message', '3': 10, '4': 1, '5': 9, '10': 'warningMessage'},
     {'1': 'immature', '3': 11, '4': 1, '5': 8, '10': 'immature'},
+    {'1': 'deposit_request', '3': 12, '4': 1, '5': 11, '6': '.wallet.v1.DepositRequest', '10': 'depositRequest'},
   ],
 };
 
@@ -362,7 +363,22 @@ final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'BG5vdGUSRAoRY29uZmlybWF0aW9uX3RpbWUYCCABKAsyFy53YWxsZXQudjEuQ29uZmlybWF0aW'
     '9uUhBjb25maXJtYXRpb25UaW1lEioKB2JtbV9iaWQYCSABKAsyES53YWxsZXQudjEuQm1tQmlk'
     'UgZibW1CaWQSJwoPd2FybmluZ19tZXNzYWdlGAogASgJUg53YXJuaW5nTWVzc2FnZRIaCghpbW'
-    '1hdHVyZRgLIAEoCFIIaW1tYXR1cmU=');
+    '1hdHVyZRgLIAEoCFIIaW1tYXR1cmUSQgoPZGVwb3NpdF9yZXF1ZXN0GAwgASgLMhkud2FsbGV0'
+    'LnYxLkRlcG9zaXRSZXF1ZXN0Ug5kZXBvc2l0UmVxdWVzdA==');
+
+@$core.Deprecated('Use depositRequestDescriptor instead')
+const DepositRequest$json = {
+  '1': 'DepositRequest',
+  '2': [
+    {'1': 'slot', '3': 1, '4': 1, '5': 13, '10': 'slot'},
+    {'1': 'destination', '3': 2, '4': 1, '5': 9, '10': 'destination'},
+  ],
+};
+
+/// Descriptor for `DepositRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List depositRequestDescriptor = $convert.base64Decode(
+    'Cg5EZXBvc2l0UmVxdWVzdBISCgRzbG90GAEgASgNUgRzbG90EiAKC2Rlc3RpbmF0aW9uGAIgAS'
+    'gJUgtkZXN0aW5hdGlvbg==');
 
 @$core.Deprecated('Use bmmBidDescriptor instead')
 const BmmBid$json = {
@@ -1238,8 +1254,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.wallet.v1.UnspentOutput': UnspentOutput$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.bitwindowd.v1.DenialInfo': $3.DenialInfo$json,
-  '.bitwindowd.v1.ExecutedDenial': $3.ExecutedDenial$json,
+  '.bitwindowd.v1.DenialInfo': $2.DenialInfo$json,
+  '.bitwindowd.v1.ExecutedDenial': $2.ExecutedDenial$json,
   '.wallet.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.wallet.v1.GetBalanceRequest': GetBalanceRequest$json,
   '.wallet.v1.GetBalanceResponse': GetBalanceResponse$json,
@@ -1250,6 +1266,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.WalletTransaction': WalletTransaction$json,
   '.wallet.v1.Confirmation': Confirmation$json,
   '.wallet.v1.BmmBid': BmmBid$json,
+  '.wallet.v1.DepositRequest': DepositRequest$json,
   '.wallet.v1.ListUnspentRequest': ListUnspentRequest$json,
   '.wallet.v1.ListUnspentResponse': ListUnspentResponse$json,
   '.wallet.v1.ListReceiveAddressesRequest': ListReceiveAddressesRequest$json,

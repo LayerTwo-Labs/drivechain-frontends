@@ -2,8 +2,6 @@ package wallet
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 )
@@ -47,6 +45,15 @@ func (s *Service) RecordSidechainDeposit(ctx context.Context, d SidechainDeposit
 // SidechainDeposits lists the deposits made to a slot, newest first. An empty
 // walletID lists every wallet's.
 func (s *Service) SidechainDeposits(ctx context.Context, slot uint32, walletID string) ([]SidechainDeposit, error) {
+	return s.querySidechainDeposits(ctx, &slot, walletID)
+}
+
+// WalletSidechainDeposits lists the deposits one wallet made to any slot, newest first.
+func (s *Service) WalletSidechainDeposits(ctx context.Context, walletID string) ([]SidechainDeposit, error) {
+	return s.querySidechainDeposits(ctx, nil, walletID)
+}
+
+func (s *Service) querySidechainDeposits(ctx context.Context, slot *uint32, walletID string) ([]SidechainDeposit, error) {
 	db := s.db()
 	if db == nil {
 		return nil, fmt.Errorf("list sidechain deposits: database not open")
@@ -54,8 +61,8 @@ func (s *Service) SidechainDeposits(ctx context.Context, slot uint32, walletID s
 	rows, err := db.QueryContext(ctx, `
 		SELECT txid, wallet_id, slot, destination, amount_sats, fee_sats, created_at, credited_at, dropped_at
 		FROM sidechain_deposits
-		WHERE network = ? AND slot = ? AND (? = '' OR wallet_id = ?)
-		ORDER BY created_at DESC`, s.Network(), slot, walletID, walletID)
+		WHERE network = ? AND (? IS NULL OR slot = ?) AND (? = '' OR wallet_id = ?)
+		ORDER BY created_at DESC`, s.Network(), slot, slot, walletID, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("query sidechain deposits: %w", err)
 	}
@@ -205,25 +212,4 @@ func (s *Service) SidechainDepositSlots(ctx context.Context) ([]uint32, error) {
 		return nil, fmt.Errorf("read sidechain deposit slots: %w", err)
 	}
 	return slots, nil
-}
-
-// SidechainDepositSlotOf reports the slot a recorded deposit belongs to. The
-// bump path reads it before it replaces the transaction, so it can hold that
-// slot while the record still names a transaction the network dropped.
-func (s *Service) SidechainDepositSlotOf(ctx context.Context, txid string) (uint32, bool, error) {
-	db := s.db()
-	if db == nil {
-		return 0, false, fmt.Errorf("read the slot of a sidechain deposit: database not open")
-	}
-	var slot uint32
-	err := db.QueryRowContext(ctx, `
-		SELECT slot FROM sidechain_deposits
-		WHERE network = ? AND txid = ?`, s.Network(), txid).Scan(&slot)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return 0, false, nil
-	case err != nil:
-		return 0, false, fmt.Errorf("read the slot of a sidechain deposit: %w", err)
-	}
-	return slot, true, nil
 }

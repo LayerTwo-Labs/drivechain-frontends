@@ -15,7 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../bitwindowd/v1/bitwindowd.pb.dart' as $3;
+import '../../bitwindowd/v1/bitwindowd.pb.dart' as $2;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
 import 'wallet.pbenum.dart';
@@ -710,7 +710,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $fixnum.Int64? valueSats,
     $core.bool? isChange,
     $0.Timestamp? receivedAt,
-    $3.DenialInfo? denialInfo,
+    $2.DenialInfo? denialInfo,
     $core.String? derivationPath,
     $core.bool? splittable,
     $core.int? height,
@@ -767,7 +767,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(5, _omitFieldNames ? '' : 'isChange')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
-    ..aOM<$3.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $3.DenialInfo.create)
+    ..aOM<$2.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $2.DenialInfo.create)
     ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
     ..aOB(9, _omitFieldNames ? '' : 'splittable')
     ..a<$core.int>(10, _omitFieldNames ? '' : 'height', $pb.PbFieldType.O3)
@@ -861,15 +861,15 @@ class UnspentOutput extends $pb.GeneratedMessage {
 
   /// If set, this utxo is part of a denial chain
   @$pb.TagNumber(7)
-  $3.DenialInfo get denialInfo => $_getN(6);
+  $2.DenialInfo get denialInfo => $_getN(6);
   @$pb.TagNumber(7)
-  set denialInfo($3.DenialInfo v) { setField(7, v); }
+  set denialInfo($2.DenialInfo v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasDenialInfo() => $_has(6);
   @$pb.TagNumber(7)
   void clearDenialInfo() => clearField(7);
   @$pb.TagNumber(7)
-  $3.DenialInfo ensureDenialInfo() => $_ensure(6);
+  $2.DenialInfo ensureDenialInfo() => $_ensure(6);
 
   /// BIP32 path of the address that owns this output; empty when unknown.
   @$pb.TagNumber(8)
@@ -1214,6 +1214,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     BmmBid? bmmBid,
     $core.String? warningMessage,
     $core.bool? immature,
+    DepositRequest? depositRequest,
   }) {
     final $result = create();
     if (txid != null) {
@@ -1249,6 +1250,9 @@ class WalletTransaction extends $pb.GeneratedMessage {
     if (immature != null) {
       $result.immature = immature;
     }
+    if (depositRequest != null) {
+      $result.depositRequest = depositRequest;
+    }
     return $result;
   }
   WalletTransaction._() : super();
@@ -1267,6 +1271,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     ..aOM<BmmBid>(9, _omitFieldNames ? '' : 'bmmBid', subBuilder: BmmBid.create)
     ..aOS(10, _omitFieldNames ? '' : 'warningMessage')
     ..aOB(11, _omitFieldNames ? '' : 'immature')
+    ..aOM<DepositRequest>(12, _omitFieldNames ? '' : 'depositRequest', subBuilder: DepositRequest.create)
     ..hasRequiredFields = false
   ;
 
@@ -1396,6 +1401,84 @@ class WalletTransaction extends $pb.GeneratedMessage {
   $core.bool hasImmature() => $_has(10);
   @$pb.TagNumber(11)
   void clearImmature() => clearField(11);
+
+  /// Set when the transaction is a sidechain deposit request this install made.
+  @$pb.TagNumber(12)
+  DepositRequest get depositRequest => $_getN(11);
+  @$pb.TagNumber(12)
+  set depositRequest(DepositRequest v) { setField(12, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasDepositRequest() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearDepositRequest() => clearField(12);
+  @$pb.TagNumber(12)
+  DepositRequest ensureDepositRequest() => $_ensure(11);
+}
+
+/// DepositRequest names the sidechain a deposit request pays into.
+class DepositRequest extends $pb.GeneratedMessage {
+  factory DepositRequest({
+    $core.int? slot,
+    $core.String? destination,
+  }) {
+    final $result = create();
+    if (slot != null) {
+      $result.slot = slot;
+    }
+    if (destination != null) {
+      $result.destination = destination;
+    }
+    return $result;
+  }
+  DepositRequest._() : super();
+  factory DepositRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DepositRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DepositRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.OU3)
+    ..aOS(2, _omitFieldNames ? '' : 'destination')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DepositRequest clone() => DepositRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DepositRequest copyWith(void Function(DepositRequest) updates) => super.copyWith((message) => updates(message as DepositRequest)) as DepositRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DepositRequest create() => DepositRequest._();
+  DepositRequest createEmptyInstance() => create();
+  static $pb.PbList<DepositRequest> createRepeated() => $pb.PbList<DepositRequest>();
+  @$core.pragma('dart2js:noInline')
+  static DepositRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DepositRequest>(create);
+  static DepositRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get slot => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set slot($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSlot() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSlot() => clearField(1);
+
+  /// Sidechain address the deposit credits.
+  @$pb.TagNumber(2)
+  $core.String get destination => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set destination($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDestination() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDestination() => clearField(2);
 }
 
 /// BmmBid names the BMM request one wallet transaction carries.

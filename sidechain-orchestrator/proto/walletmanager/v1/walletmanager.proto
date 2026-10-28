@@ -68,7 +68,7 @@ service WalletManagerService {
   // length of a send so its own coin selection skips them too.
   rpc SetFrozenCoins(SetFrozenCoinsRequest) returns (google.protobuf.Empty);
 
-  // CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+  // CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
   rpc CreateDeposit(CreateDepositRequest) returns (CreateDepositResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
   rpc ListUnspent(ListUnspentRequest) returns (ListUnspentResponse);
@@ -1011,6 +1011,8 @@ message TransactionEntry {
   BmmBid bmm_bid = 14;
   // A backend warning for this transaction. Empty means no warning.
   string warning_message = 15;
+  // Set when this install broadcast the transaction as a sidechain deposit request.
+  SidechainDeposit sidechain_deposit = 16;
 }
 
 // BmmBid names the BMM request one wallet transaction carries.
@@ -1473,7 +1475,7 @@ message CreateDepositRequest {
 }
 
 message CreateDepositResponse {
+  reserved 2;
+  reserved "treasury_sats";
   string txid = 1;
-  // Treasury value after the deposit: the old CTIP plus the amount.
-  int64 treasury_sats = 2;
 }

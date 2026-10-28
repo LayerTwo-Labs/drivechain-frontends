@@ -176,7 +176,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     feeSats: Int64((tx.fee.abs() * 100000000).round()),
                     receivedSatoshi: tx.amountSats > Int64.ZERO ? tx.amountSats : Int64.ZERO,
                     sentSatoshi: tx.amountSats < Int64.ZERO ? -tx.amountSats : Int64.ZERO,
-                    address: tx.address,
+                    address: tx.hasSidechainDeposit() ? tx.sidechainDeposit.destination : tx.address,
                     addressLabel: tx.label,
                     note: '',
                     warningMessage: tx.warningMessage,
@@ -190,6 +190,9 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                       timestamp: Timestamp(seconds: tx.blockTime != Int64.ZERO ? tx.blockTime : tx.time),
                     ),
                     bmmBid: tx.hasBmmBid() ? _bmmBid(tx.bmmBid) : null,
+                    depositRequest: tx.hasSidechainDeposit()
+                        ? DepositRequest(slot: tx.sidechainDeposit.slot, destination: tx.sidechainDeposit.destination)
+                        : null,
                   ),
                 )
                 .toList();
