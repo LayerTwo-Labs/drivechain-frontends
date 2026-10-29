@@ -132,6 +132,17 @@ func (r *BackendRouter) EnsureAll(ctx context.Context) (int, error) {
 	return r.chain.EnsureAll(ctx)
 }
 
+// ReleaseStranded sends the release to the chain backend. Electrum wallets
+// read their state from the server, so no other backend holds a stranded
+// transaction.
+func (r *BackendRouter) ReleaseStranded(ctx context.Context, retiredLockTimes []uint32) (bool, error) {
+	releaser, ok := r.chain.(StrandedReleaser)
+	if !ok {
+		return true, nil
+	}
+	return releaser.ReleaseStranded(ctx, retiredLockTimes)
+}
+
 func (r *BackendRouter) Balance(ctx context.Context, walletID string) (float64, float64, float64, error) {
 	p, err := r.pick(walletID)
 	if err != nil {

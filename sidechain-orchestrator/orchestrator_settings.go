@@ -36,6 +36,9 @@ type OrchestratorSettings struct {
 	// switch left behind. The enforcer keeps one chain per network, not per
 	// fork, so it has to go before the enforcer runs on the new one.
 	PendingEnforcerWipe string `json:"pending_enforcer_wipe,omitempty"`
+	// StrandedReleasedFor is the eCash network whose Core wallets had their
+	// stranded transactions abandoned.
+	StrandedReleasedFor string `json:"stranded_released_for,omitempty"`
 	// ElectrumServerURL overrides the network's default Esplora endpoint for
 	// electrum wallets. Empty means "use the network default".
 	ElectrumServerURL string `json:"electrum_server_url"`
@@ -339,6 +342,29 @@ func (s *SettingsStore) SetPendingEnforcerWipe(id string) error {
 	}
 	next := s.current
 	next.PendingEnforcerWipe = id
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
+}
+
+// StrandedReleasedFor returns the eCash network whose stranded transactions
+// were released, empty when no release ran.
+func (s *SettingsStore) StrandedReleasedFor() string {
+	return s.Get().StrandedReleasedFor
+}
+
+// SetStrandedReleasedFor persists the eCash network whose stranded
+// transactions were released.
+func (s *SettingsStore) SetStrandedReleasedFor(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.current.StrandedReleasedFor == id {
+		return nil
+	}
+	next := s.current
+	next.StrandedReleasedFor = id
 	if err := SaveSettings(s.bitwindowDir, next); err != nil {
 		return err
 	}

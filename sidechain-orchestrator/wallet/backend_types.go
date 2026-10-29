@@ -48,6 +48,7 @@ type WalletTransaction struct {
 	Time          int64   `json:"time"`
 	TxID          string  `json:"txid"`
 	Label         string  `json:"label"`
+	Abandoned     bool    `json:"abandoned"`
 }
 
 // ReceivedByAddress aggregates what one wallet address has received,

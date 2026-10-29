@@ -467,6 +467,7 @@ func run(cctx *cli.Context) error {
 		// Fork engine: single source of truth for eCash fork state, needs
 		// Core-backed wallet access for its claimable scan.
 		orch.InitForkEngine(walletEngine)
+		go orch.RunStrandedRelease(ctx)
 
 		// Split engine: one BTC-mainnet lookup per claimable outpoint, so the
 		// claim UI can mark which coins are splittable.
