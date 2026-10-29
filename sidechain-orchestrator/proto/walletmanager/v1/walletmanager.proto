@@ -1307,7 +1307,14 @@ message DeriveAddressesResponse {
   repeated string addresses = 1;
 }
 
-message ListEcxBurnsRequest {}
+message ListEcxBurnsRequest {
+  // Burn network to list, "alphanet" or "betanet". Empty lists the running network.
+  string network_id = 1;
+  // RPC URL of a node on that network. Empty reads the network's esplora server.
+  string core_url = 2;
+  // Path to the node's .cookie file.
+  string core_cookie_path = 3;
+}
 
 message EcxBurn {
   string txid = 1;

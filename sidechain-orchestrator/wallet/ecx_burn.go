@@ -13,7 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
-// ECXBurnAddress receives Betanet coins for an ECX claim.
+// ECXBurnAddress receives Alphanet or Betanet coins for an ECX claim.
 const ECXBurnAddress = "1BitcoinEaterAddressDontSendf59kuE"
 
 // ECXBurnScriptHex is the output script for ECXBurnAddress.
@@ -24,6 +24,7 @@ const ECXBurnMinimumSats int64 = 100_000_000_000
 
 // ECXBurnNetwork is an eCash network that accepts the burn.
 type ECXBurnNetwork struct {
+	ID   string
 	Name string
 	// CreditDivisor is the number of burn satoshis for one ECX satoshi.
 	CreditDivisor int64
@@ -31,10 +32,14 @@ type ECXBurnNetwork struct {
 
 // ECXBurnNetworkByID returns the burn network for an eCash network id. Name is "" for each other id.
 func ECXBurnNetworkByID(id string) ECXBurnNetwork {
-	if id == "betanet" {
-		return ECXBurnNetwork{Name: "Betanet", CreditDivisor: 50}
+	switch id {
+	case "alphanet":
+		return ECXBurnNetwork{ID: "alphanet", Name: "Alphanet", CreditDivisor: 100}
+	case "betanet":
+		return ECXBurnNetwork{ID: "betanet", Name: "Betanet", CreditDivisor: 50}
+	default:
+		return ECXBurnNetwork{}
 	}
-	return ECXBurnNetwork{}
 }
 
 // CreditSats returns ceil(burnSats / CreditDivisor) in ECX satoshis.

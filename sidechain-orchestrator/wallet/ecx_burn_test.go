@@ -28,12 +28,13 @@ func TestECXBurnAddressAndScriptMatch(t *testing.T) {
 
 func TestECXBurnNetworkByID(t *testing.T) {
 	for id, network := range map[string]ECXBurnNetwork{
-		"betanet": {Name: "Betanet", CreditDivisor: 50},
-		"ecash":   {},
-		"drynet4": {},
-		"bitcoin": {},
-		"signet":  {},
-		"":        {},
+		"alphanet": {ID: "alphanet", Name: "Alphanet", CreditDivisor: 100},
+		"betanet":  {ID: "betanet", Name: "Betanet", CreditDivisor: 50},
+		"ecash":    {},
+		"drynet4":  {},
+		"bitcoin":  {},
+		"signet":   {},
+		"":         {},
 	} {
 		t.Run(id, func(t *testing.T) {
 			require.Equal(t, network, ECXBurnNetworkByID(id))
