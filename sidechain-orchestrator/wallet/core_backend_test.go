@@ -592,11 +592,37 @@ func TestCoreBackendSendFeeRatePath(t *testing.T) {
 	var opts map[string]any
 	require.NoError(t, json.Unmarshal(funds[0].Params[1], &opts))
 	assert.NotContains(t, opts, "add_inputs", "absent when Core selects inputs, like master")
+	assert.NotContains(t, opts, "changePosition")
 	assert.Equal(t, float64(5), opts["fee_rate"])
 
 	signs := fake.callsFor("signrawtransactionwithwallet")
 	require.Len(t, signs, 1)
 	assert.Equal(t, builtHex+"ff", mustString(t, signs[0].Params[0]))
+}
+
+func TestCoreBackendSendFeeRateKeepsRawOutputsFirst(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	fake.handle("fundrawtransaction", func(c bitcoindCall) (any, string) {
+		return map[string]any{"hex": mustString(t, c.Params[0]), "fee": 0.00001, "changepos": 1}, ""
+	})
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "txid-bid", "" })
+
+	_, err := backend.Send(context.Background(), coreID, SendRequest{
+		RawOutputs:      []TxOutSpec{{RawScriptHex: "6a0100", AmountSats: 0}},
+		FeeRateSatPerVB: 5,
+	})
+	require.NoError(t, err)
+
+	funds := fake.callsFor("fundrawtransaction")
+	require.Len(t, funds, 1)
+	var opts map[string]any
+	require.NoError(t, json.Unmarshal(funds[0].Params[1], &opts))
+	assert.Equal(t, float64(1), opts["changePosition"])
 }
 
 func TestCoreBackendSendFixedFeeSelectsInputsAndChange(t *testing.T) {
