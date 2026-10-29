@@ -13,13 +13,13 @@ dependencies:
   auto_updater: ^1.0.0
   collection: ^1.19.1
   connectrpc: 1.0.0
-  file_picker: ^13.1.0
+  file_picker: ^13.3.0
   fixnum: ^1.1.1
   flutter:
     sdk: flutter
   flutter_custom_tabs: ^2.6.0
   flutter_markdown: ^0.7.7+1
-  flutter_svg: ^2.3.0
+  flutter_svg: ^2.3.2
   get_it: ^8.3.0
   http: ^1.6.0
   intl: ^0.20.3
@@ -29,7 +29,7 @@ dependencies:
     path: ../sidechain_core
   skeletonizer: ^3.0.0
   stacked: ^3.5.0
-  url_launcher: ^6.3.2
+  url_launcher: ^6.3.3
   uuid: ^4.6.0
   window_manager: ^0.5.2
 

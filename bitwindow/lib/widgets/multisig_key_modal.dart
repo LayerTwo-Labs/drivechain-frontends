@@ -308,8 +308,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       dialogTitle: 'Save Multisig Key Configuration',
       fileName: filename,
       bytes: Uint8List.fromList(utf8.encode(prettyJson)),
-      type: FileType.custom,
-      allowedExtensions: ['conf'],
     );
 
     return result?.toFilePath();

@@ -1745,8 +1745,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
         dialogTitle: 'Save PSBT Export',
         fileName: fileName,
         bytes: Uint8List.fromList(utf8.encode(jsonString)),
-        type: FileType.custom,
-        allowedExtensions: ['json'],
       );
 
       if (result != null) {

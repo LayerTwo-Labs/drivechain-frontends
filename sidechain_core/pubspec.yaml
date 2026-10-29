@@ -8,11 +8,11 @@ environment:
   flutter: 3.47.7
 
 dependencies:
-  auto_route: ^11.1.0
+  auto_route: ^11.2.0
   collection: ^1.19.1
   connectrpc: 1.0.0
   convert: ^3.1.2
-  crypto: ^3.0.7
+  crypto: ^3.0.8
   desktop_multi_window:
     git:
       url: https://github.com/octobocto/flutter-plugins.git
@@ -25,13 +25,13 @@ dependencies:
   get_it: ^8.3.0
   http: ^1.6.0
   intl: ^0.20.3
-  logger: ^2.7.0
+  logger: ^2.8.0
   path: ^1.9.1
   path_provider: ^2.1.6
   protobuf: ^4.2.0
   thirds: ^0.2.0-alpha.1
   uuid: ^4.6.0
-  web: ^1.1.1
+  web: ^1.1.2
   window_manager: ^0.5.2
 
 dev_dependencies:
