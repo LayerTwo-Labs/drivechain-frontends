@@ -1080,11 +1080,28 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			}
 		}
 
+		if config.Name == "enforcer" && needsEnforcer {
+			o.awaitBootedEnforcer(ctx, config, ch)
+			return
+		}
+
 		o.startTargetOnly(ctx, config, opts, ch, targetPrefetch)
 		o.reloadIfWalletChanged(walletID)
 	}()
 
 	return ch, nil
+}
+
+// awaitBootedEnforcer finishes a boot whose target is the enforcer the L1 boot
+// already started. The target path would replace that start's restart with the
+// target arguments, which the enforcer refuses.
+func (o *Orchestrator) awaitBootedEnforcer(ctx context.Context, config BinaryConfig, ch chan<- StartupProgress) {
+	mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(config), enforcerStartupPatterns)
+	if err := waitForConnectedOrExit(ctx, mon, o.process.Get("enforcer")); err != nil {
+		failBoot(mon, ch, "wait for enforcer", err)
+		return
+	}
+	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 }
 
 // startsEnforcer reports whether a boot of target brings up the local enforcer.
