@@ -968,6 +968,10 @@ func (p *CoreBackend) fundWithCoreSelection(
 	if changeAddress != "" {
 		options["changeAddress"] = changeAddress
 	}
+	if len(req.RawOutputs) > 0 {
+		// Core puts change at a random index, which can move a raw output off the index consensus reads.
+		options["changePosition"] = len(outputs)
+	}
 	if req.FeeRateSatPerVB > 0 {
 		options["fee_rate"] = req.FeeRateSatPerVB
 	}
