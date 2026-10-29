@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
 )
@@ -52,9 +54,10 @@ const CliNetworkFlag = "--network"
 // the mainchain network n, on the eCash generation ecashID. It returns "" when
 // the daemon has no such network, and the launch path then stops the daemon.
 //
-// eCash carries a generation the daemon does not model: betanet has a name in
-// the daemon's own enum, and the rest do not. Each generation runs a build with
-// its own magic, so a name from another generation stops it from syncing.
+// eCash carries a generation the daemon does not model: mainnet and betanet
+// have a name in the daemon's own enum, and the rest do not. Each generation
+// runs a build with its own magic, so a name from another generation stops it
+// from syncing.
 func CusfNetworkName(n Network, ecashID string) string {
 	switch n {
 	case NetworkRegtest:
@@ -62,6 +65,9 @@ func CusfNetworkName(n Network, ecashID string) string {
 	case NetworkECash:
 		if ecashID == "betanet" {
 			return ecashID
+		}
+		if n, ok := netcatalog.Embedded().ByID(ecashID); ok && n.ReleaseChannelOrID() == "mainnet" {
+			return "mainnet"
 		}
 		return ""
 	case NetworkSignet:

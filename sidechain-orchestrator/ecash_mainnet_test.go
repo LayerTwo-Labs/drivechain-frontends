@@ -465,11 +465,11 @@ func TestPrepareEnforcerArgsOnECashMainnetNamesItsFork(t *testing.T) {
 	require.ErrorContains(t, config.CheckEnforcerFork(opts.EnforcerArgs), `"ecash-mainnet"`)
 }
 
-func TestSidechainsGetNoNetworkOnECashMainnet(t *testing.T) {
+func TestSidechainsGetMainnetOnECashMainnet(t *testing.T) {
 	keepNetworkGlobals(t)
-	config.SetECashNetworkID(ecashMainnetID)
+	config.SetECashNetworkID("ecash")
 
-	require.Empty(t, config.CusfNetworkName(config.NetworkECash, ecashMainnetID))
+	require.Equal(t, "mainnet", config.CusfNetworkName(config.NetworkECash, "ecash"))
 	require.Empty(t, config.SidechainSeedPeerForNetwork("thunder", config.NetworkECash))
 }
 
