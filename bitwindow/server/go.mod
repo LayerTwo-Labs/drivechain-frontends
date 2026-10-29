@@ -6,7 +6,7 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2
 	buf.build/go/protovalidate v1.4.0
 	connectrpc.com/connect v1.21.1
-	connectrpc.com/connect/v2 v2.0.1
+	connectrpc.com/connect/v2 v2.0.2
 	connectrpc.com/grpcreflect v1.3.1
 	github.com/LayerTwo-Labs/sidesail/coinnews/codec v0.0.0
 	github.com/LayerTwo-Labs/sidesail/coinnews/server v0.0.0
@@ -16,7 +16,7 @@ require (
 	github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633
 	github.com/brianvoe/gofakeit/v7 v7.18.0
 	github.com/btcsuite/btcd v0.25.0
-	github.com/btcsuite/btcd/btcec/v2 v2.5.0
+	github.com/btcsuite/btcd/btcec/v2 v2.5.1
 	github.com/btcsuite/btcd/btcutil v1.2.0
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.2.0
 	github.com/go-zeromq/zmq4 v0.17.0

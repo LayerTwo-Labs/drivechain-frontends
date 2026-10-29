@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250425153114-8976f5be98c1.1
 	connectrpc.com/connect v1.18.1
-	connectrpc.com/connect/v2 v2.0.1
+	connectrpc.com/connect/v2 v2.0.2
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/barebitcoin/btc-buf v0.0.0-20250502095110-38e347c4c3dd
 	github.com/btcsuite/btcd/btcutil v1.1.6

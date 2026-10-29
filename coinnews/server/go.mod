@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	connectrpc.com/connect v1.19.0
-	connectrpc.com/connect/v2 v2.0.1
+	connectrpc.com/connect/v2 v2.0.2
 	connectrpc.com/grpcreflect/v2 v2.0.0
 	github.com/LayerTwo-Labs/sidesail/coinnews/codec v0.0.0
 	github.com/mattn/go-sqlite3 v1.14.32
