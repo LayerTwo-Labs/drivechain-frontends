@@ -7,6 +7,7 @@ on:
       - "sidechain-orchestrator/**"
       - "dc-hub/server/**"
       - "ecash-broadcaster/**"
+      - "fulcrum-proxy/**"
       - "sqlitemigrate/**"
       - "coinnews/codec/**"
       - "coinnews/server/**"
@@ -42,6 +43,7 @@ jobs:
           - sidechain-orchestrator
           - dc-hub/server
           - ecash-broadcaster
+          - fulcrum-proxy
           - sqlitemigrate
           - coinnews/codec
           - coinnews/server
