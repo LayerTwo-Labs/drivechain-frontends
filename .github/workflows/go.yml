@@ -8,6 +8,7 @@ on:
       - "dc-hub/server/**"
       - "ecash-broadcaster/**"
       - "fulcrum-proxy/**"
+      - "difficulty/**"
       - "sqlitemigrate/**"
       - "coinnews/codec/**"
       - "coinnews/server/**"
@@ -44,6 +45,7 @@ jobs:
           - dc-hub/server
           - ecash-broadcaster
           - fulcrum-proxy
+          - difficulty
           - sqlitemigrate
           - coinnews/codec
           - coinnews/server
