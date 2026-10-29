@@ -789,6 +789,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	}
 	if downloaded {
 		status.BinaryPath = requestedPath
+		status.LocalTimestamp = localModTime(requestedPath)
 	}
 
 	if o.releases != nil {
