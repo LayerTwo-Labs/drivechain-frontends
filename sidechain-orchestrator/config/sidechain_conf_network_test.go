@@ -23,8 +23,7 @@ func sidechainConfFor(t *testing.T, name string, network Network, settings map[s
 	}
 }
 
-// Thunder knows betanet, signet and regtest. It knows no mainnet, so
-// a mainnet box gets no flag rather than a name that makes clap exit.
+// A Bitcoin mainnet box gets no flag rather than a name that makes clap exit.
 func TestCusfNetworkName(t *testing.T) {
 	for network, want := range map[Network]string{
 		NetworkRegtest: "regtest",
@@ -52,8 +51,14 @@ func TestCusfNetworkNameWithholdsAnUnknownECashGeneration(t *testing.T) {
 	}
 }
 
-// An eCash box runs the +20000 port group, which the old conf called
-// "mainnet". Thunder has no mainnet, so the flag carries the daemon's own name.
+func TestCusfNetworkNameGivesECashMainnetItsName(t *testing.T) {
+	if got := CusfNetworkName(NetworkECash, "ecash"); got != "mainnet" {
+		t.Errorf("CusfNetworkName(ecash, ecash) = %q, want mainnet", got)
+	}
+}
+
+// An eCash box runs the +20000 port group, and the flag carries the daemon's
+// own name for the generation.
 func TestGetCliArgsGivesThunderTheDaemonNetworkName(t *testing.T) {
 	m := sidechainConfFor(t, "thunder", NetworkECash, map[string]string{
 		"net-addr": "0.0.0.0:24009",
@@ -65,9 +70,6 @@ func TestGetCliArgsGivesThunderTheDaemonNetworkName(t *testing.T) {
 	want := CusfNetworkName(NetworkECash, ECashNetworkID())
 	if want != "" && !slices.Contains(args, "--network="+want) {
 		t.Errorf("args = %v, want --network=%s", args, want)
-	}
-	if slices.Contains(args, "--network=mainnet") {
-		t.Errorf("args = %v, passed the port group as a network name", args)
 	}
 	if !slices.Contains(args, "--net-addr=0.0.0.0:24009") {
 		t.Errorf("args = %v, want the conf net-addr", args)
