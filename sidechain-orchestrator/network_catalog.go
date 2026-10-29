@@ -191,10 +191,20 @@ func (o *Orchestrator) restoreECashPick(pick string) {
 // refreshNetworkCatalog fetches the published document and takes it in memory.
 // A failed fetch is never fatal: the compiled-in document stays in force.
 func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context) {
-	fetched, err := netcatalog.Fetch(ctx, o.publishedCatalogURL())
-	if err != nil {
-		o.log.Warn().Err(err).Msg("network catalog refresh failed, using the compiled-in document")
-		return
+	delay := catalogRetryDelay
+	var fetched netcatalog.Catalog
+	for {
+		var err error
+		if fetched, err = netcatalog.Fetch(ctx, o.publishedCatalogURL()); err == nil {
+			break
+		}
+		o.log.Warn().Err(err).Dur("retry_in", delay).Msg("network catalog refresh failed, using the compiled-in document")
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(delay):
+		}
+		delay = min(2*delay, catalogRetryMaxDelay)
 	}
 	o.mu.RLock()
 	current := o.Catalog
@@ -215,6 +225,13 @@ func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context) {
 		Str("published", next.ECashID()).
 		Msg("took the published network catalog")
 }
+
+// A failed refresh tries again, so one bad start does not hide a new network
+// until the next launch.
+var (
+	catalogRetryDelay    = time.Minute
+	catalogRetryMaxDelay = 15 * time.Minute
+)
 
 // publishedCatalogURL is where the document is fetched from.
 func (o *Orchestrator) publishedCatalogURL() string {
@@ -255,10 +272,12 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 	chainID, err := o.catalogChainID(id)
 	if err != nil {
 		o.log.Error().Err(err).Msg("cannot identify the ECX files")
+		o.listCatalog(c)
 		return
 	}
 	if err := o.recordECashChain(chainID); err != nil {
 		o.log.Error().Err(err).Msg("cannot save the ECX network identity")
+		o.listCatalog(c)
 		return
 	}
 	o.adoptCatalogRows(c, id)
@@ -350,6 +369,14 @@ func (o *Orchestrator) recordECashChain(id string) error {
 
 // adoptCatalogRows takes a document in memory: the picker rows, their endpoints
 // and their fork heights. It writes no conf, so a refresh can call it live.
+// listCatalog takes the rows for the picker and the upgrade offer only. Files of
+// unknown identity must not get a network's binaries, so no config expands.
+func (o *Orchestrator) listCatalog(c netcatalog.Catalog) {
+	o.mu.Lock()
+	o.Catalog = c
+	o.mu.Unlock()
+}
+
 func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
 	o.mu.Lock()
 	o.Catalog = c

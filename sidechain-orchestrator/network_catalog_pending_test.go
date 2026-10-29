@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -411,4 +412,64 @@ func TestANewerLeadIsOffered(t *testing.T) {
 	o := ecashOnNetworkWithLead(t, 970000)
 
 	require.Equal(t, "gammanet", o.PendingECashUpgrade().ID)
+}
+
+// One failed fetch at start used to leave the compiled-in document in place
+// until the next launch, so a new network never reached the picker.
+func TestARefreshTriesAgainAfterAFailure(t *testing.T) {
+	delay, maxDelay := catalogRetryDelay, catalogRetryMaxDelay
+	catalogRetryDelay, catalogRetryMaxDelay = 10*time.Millisecond, 20*time.Millisecond
+	t.Cleanup(func() { catalogRetryDelay, catalogRetryMaxDelay = delay, maxDelay })
+
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(catalogWithECash(t, "drynet2"), "drynet2")
+
+	body, err := json.Marshal(catalogWithECashRows(t, "drynet2", "drynet3"))
+	require.NoError(t, err)
+	var requests atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if requests.Add(1) <= 2 {
+			http.Error(w, "down", http.StatusServiceUnavailable)
+			return
+		}
+		_, _ = w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	o.catalogURL = srv.URL
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go o.refreshNetworkCatalog(ctx)
+	awaitRefresh(t, o, "drynet3")
+	require.Equal(t, int32(3), requests.Load())
+	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID)
+}
+
+func TestARefreshStopsWithItsContext(t *testing.T) {
+	delay := catalogRetryDelay
+	catalogRetryDelay = time.Hour
+	t.Cleanup(func() { catalogRetryDelay = delay })
+
+	o := newTestOrchestrator(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "down", http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(srv.Close)
+	o.catalogURL = srv.URL
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		o.refreshNetworkCatalog(ctx)
+		close(done)
+	}()
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the refresh must stop when its context ends")
+	}
 }

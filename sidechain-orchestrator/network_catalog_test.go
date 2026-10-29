@@ -220,3 +220,28 @@ func TestCatalogRejectsUnknownDiskIdentity(t *testing.T) {
 	o.adoptCatalog(netcatalog.Catalog{}, "betanet")
 	require.Empty(t, o.Settings.ECashChainID())
 }
+
+// Files of unknown identity get no binaries, but the picker and the upgrade
+// offer still need the rows, or the user has no way off the stuck network.
+func TestCatalogListsRowsForFilesOfUnknownIdentity(t *testing.T) {
+	o := catalogTestNode(t)
+	blocks := filepath.Join(o.BitcoinConf.DataDir(), "blocks")
+	require.NoError(t, os.MkdirAll(blocks, 0700))
+	require.NoError(t, os.WriteFile(filepath.Join(blocks, "blk00000.dat"), []byte{1}, 0600))
+	require.NoError(t, o.Settings.SetECashChainID(""))
+	o.BitcoinConf.Config.SetSetting("uacomment", "", "main")
+
+	catalog := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "betanet", Family: netcatalog.FamilyECash},
+		{ID: "ecash", Family: netcatalog.FamilyECash},
+	}}
+	o.adoptCatalog(catalog, "betanet")
+
+	var ids []string
+	for _, n := range o.ListNetworks() {
+		ids = append(ids, n.ID)
+	}
+	require.Contains(t, ids, "ecash", "the picker lists the new network")
+	require.Empty(t, o.ecashID, "no network takes the files of unknown identity")
+	require.Empty(t, o.Settings.ECashChainID())
+}
