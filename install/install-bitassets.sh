@@ -67,6 +67,12 @@ if [ "$missing_deps" = true ]; then
     exit 1
 fi
 
+arch=$(uname -m)
+if [ "$arch" != "x86_64" ]; then
+    print_error "$APP_NAME has no Linux build for $arch. Only x86_64 is available."
+    exit 1
+fi
+
 # Create installation directory
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$HOME/.local/share/applications"
