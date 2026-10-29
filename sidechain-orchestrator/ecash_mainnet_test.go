@@ -175,10 +175,10 @@ func TestTheReleaseChannelPicksTheL1Download(t *testing.T) {
 	v := expandECashPlaceholder(o.rawConfigs["bitcoind"], "ecash").Variants["ecash"]
 	require.Equal(t, ecashMainnetReleaseURL, v.BaseURL)
 	require.Equal(t, "ecash", v.Subfolder)
-	require.Equal(t, "L1-ecash-bitcoin-aarch64-apple-darwin.zip", v.Files["macos-arm64"])
-	require.Equal(t, "L1-ecash-bitcoin-x86_64-apple-darwin.zip", v.Files["macos-x86_64"])
-	require.Equal(t, "L1-ecash-bitcoin-x86_64-unknown-linux-gnu.zip", v.Files["linux-x86_64"])
-	require.Equal(t, "L1-ecash-bitcoin-x86_64-w64-msvc.zip", v.Files["windows-x86_64"])
+	require.Equal(t, "L1-ecash-bitcoin-latest-aarch64-apple-darwin.zip", v.Files["macos-arm64"])
+	require.Equal(t, "L1-ecash-bitcoin-latest-x86_64-apple-darwin.zip", v.Files["macos-x86_64"])
+	require.Equal(t, "L1-ecash-bitcoin-latest-x86_64-unknown-linux-gnu.zip", v.Files["linux-x86_64"])
+	require.Equal(t, "L1-ecash-bitcoin-latest-x86_64-w64-msvc.zip", v.Files["windows-x86_64"])
 
 	betanet := expandECashPlaceholder(o.rawConfigs["bitcoind"], "betanet").Variants["ecash"]
 	require.Equal(t, betanetReleaseURL, betanet.BaseURL)
@@ -471,4 +471,12 @@ func TestSidechainsGetNoNetworkOnECashMainnet(t *testing.T) {
 
 	require.Empty(t, config.CusfNetworkName(config.NetworkECash, ecashMainnetID))
 	require.Empty(t, config.SidechainSeedPeerForNetwork("thunder", config.NetworkECash))
+}
+
+func TestTheEnforcerDownloadsTheStableRelease(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	enforcer := o.configs["enforcer"]
+	require.Equal(t, "https://releases.ecash.com/bip300301-enforcer/stable/latest/", enforcer.BaseURL(ecashMainnetID))
+	require.Equal(t, "bip300301-enforcer-latest-aarch64-apple-darwin.zip", enforcer.Files["macos-arm64"])
 }
