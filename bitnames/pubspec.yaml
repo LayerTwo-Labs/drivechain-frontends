@@ -41,7 +41,7 @@ dependencies:
   intl: ^0.20.3
   http: ^1.6.0
   path_provider: ^2.1.6
-  crypto: ^3.0.7
+  crypto: ^3.0.8
   connectrpc: ^1.0.0
   path: ^1.9.1
   auto_updater: ^1.0.0

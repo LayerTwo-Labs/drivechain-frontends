@@ -89,8 +89,6 @@ class _EcxBurnListState extends State<EcxBurnList> {
       dialogTitle: 'Download CSV',
       fileName: fileName,
       bytes: Uint8List.fromList(utf8.encode(_burns!.csv)),
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
     );
     if (saved != null && mounted) {
       showSailToast(context, 'Saved $fileName');

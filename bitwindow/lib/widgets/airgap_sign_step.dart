@@ -54,8 +54,6 @@ class _AirgapSignStepState extends State<AirgapSignStep> {
       dialogTitle: 'Save Unsigned PSBT',
       fileName: 'unsigned_${DateTime.now().millisecondsSinceEpoch}.psbt',
       bytes: _unsignedBytes,
-      type: FileType.custom,
-      allowedExtensions: ['psbt'],
     );
     if (path == null) {
       return;

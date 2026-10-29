@@ -1808,8 +1808,6 @@ Future<void> showMultisigExportDialog(
                               dialogTitle: 'Save Coldcard multisig file',
                               fileName: 'multisig-coldcard.txt',
                               bytes: Uint8List.fromList(utf8.encode(coldcardConfig)),
-                              type: FileType.custom,
-                              allowedExtensions: ['txt'],
                             );
                             if (p == null) {
                               return;

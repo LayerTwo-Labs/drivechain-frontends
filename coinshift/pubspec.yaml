@@ -23,9 +23,9 @@ dependencies:
       # master, as of 08.06.2024
       ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
   flutter_highlighter: ^0.1.1
-  logger: ^2.7.0
+  logger: ^2.8.0
   dio: 5.11.0
-  auto_route: ^11.1.0
+  auto_route: ^11.2.0
   get_it: ^8.3.0
   qr_flutter: ^4.1.0
   window_manager: ^0.5.2
@@ -36,11 +36,11 @@ dependencies:
       url: https://github.com/octobocto/flutter-plugins.git
       ref: b9a9f5684eb1c81e203d17efef2915e183b05e9e
       path: packages/desktop_multi_window
-  synchronized: ^3.4.1+1
+  synchronized: ^3.5.0
   intl: ^0.20.3
   http: ^1.6.0
   path_provider: ^2.1.6
-  crypto: ^3.0.7
+  crypto: ^3.0.8
   connectrpc: ^1.0.0
   path: ^1.9.1
   auto_updater: ^1.0.0
@@ -54,8 +54,8 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  auto_route_generator: ^10.4.0
-  build_runner: ^2.15.1
+  auto_route_generator: ^10.6.0
+  build_runner: ^2.16.1
   flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:

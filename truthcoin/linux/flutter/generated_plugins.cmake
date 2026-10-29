@@ -3,8 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  app_links_linux
   desktop_multi_window
-  gtk
   screen_retriever_linux
   url_launcher_linux
   window_manager

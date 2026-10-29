@@ -693,8 +693,6 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
         dialogTitle: 'Export Transactions to CSV',
         fileName: defaultFileName,
         bytes: Uint8List.fromList(utf8.encode(csvData)),
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
       );
 
       if (result == null) {

@@ -117,8 +117,6 @@ class AddressBookViewModel extends BaseViewModel {
         dialogTitle: 'Export Labels (BIP329)',
         fileName: defaultFileName,
         bytes: Uint8List.fromList(utf8.encode(jsonl)),
-        type: FileType.custom,
-        allowedExtensions: ['jsonl'],
       );
       if (result == null) {
         return;
