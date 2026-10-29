@@ -157,7 +157,7 @@ func TestFillForkParentHashTakesTheEmbeddedValue(t *testing.T) {
 		{ID: "gammanet", Family: FamilyECash},
 	}}
 
-	filled := fillFromEmbedded(fetched, embedded)
+	filled := mustFill(t, fetched, embedded)
 	for id, want := range map[string]string{"betanet": "aa", "ecash": "", "gammanet": ""} {
 		entry, ok := filled.ByID(id)
 		if !ok {
@@ -173,7 +173,7 @@ func TestFillFromEmbeddedKeepsThePublishedForkParentHash(t *testing.T) {
 	embedded := Catalog{Networks: []Network{{ID: "betanet", Family: FamilyECash, ForkParentHash: "aa"}}}
 	fetched := Catalog{Networks: []Network{{ID: "betanet", Family: FamilyECash, ForkParentHash: "bb"}}}
 
-	filled := fillFromEmbedded(fetched, embedded)
+	filled := mustFill(t, fetched, embedded)
 	entry, _ := filled.ByID("betanet")
 	if entry.ForkParentHash != "bb" {
 		t.Errorf("fork parent hash = %q, want the published bb", entry.ForkParentHash)
@@ -320,7 +320,7 @@ func TestPublishedCatalogOf20261026TakesEcashWithItsCompiledInValues(t *testing.
 	published, _ := c.ByID("ecash")
 	require.Zero(t, published.ReplayLockTime)
 
-	live, ok := fillFromEmbedded(c, Embedded()).CurrentECash()
+	live, ok := mustFill(t, c, Embedded()).CurrentECash()
 	require.True(t, ok)
 	require.Equal(t, "ecash", live.ID)
 	require.EqualValues(t, 499999998, live.ReplayLockTimeOrDefault())
@@ -335,18 +335,54 @@ func TestFillFromEmbeddedKeepsAlphanetMigrationOnly(t *testing.T) {
 	require.True(t, ok)
 	require.False(t, published.MigrationOnly)
 
-	filled, _ := fillFromEmbedded(c, Embedded()).ByID("alphanet")
+	filled, _ := mustFill(t, c, Embedded()).ByID("alphanet")
 	require.True(t, filled.MigrationOnly)
-	betanet, _ := fillFromEmbedded(c, Embedded()).ByID("betanet")
+	betanet, _ := mustFill(t, c, Embedded()).ByID("betanet")
 	require.False(t, betanet.MigrationOnly)
 }
 
-func TestFillFromEmbeddedKeepsThePublishedLockTime(t *testing.T) {
-	embedded := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999998}}}
-	fetched := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: 499999997}}}
+func mustFill(t *testing.T, c, from Catalog) Catalog {
+	t.Helper()
+	filled, err := fillFromEmbedded(c, from)
+	require.NoError(t, err)
+	return filled
+}
 
-	entry, _ := fillFromEmbedded(fetched, embedded).ByID("ecash")
-	require.EqualValues(t, 499999997, entry.ReplayLockTime)
+func TestFillFromEmbeddedKeepsTheCompiledInLockTime(t *testing.T) {
+	for _, published := range []uint32{0, 1, 499999997, 499999999, 500000000, 1<<32 - 1} {
+		fetched := Catalog{Networks: []Network{{ID: "ecash", Family: FamilyECash, ReplayLockTime: published}}}
+		entry, ok := mustFill(t, fetched, Embedded()).ByID("ecash")
+		require.True(t, ok)
+		require.EqualValues(t, 499999998, entry.ReplayLockTimeOrDefault(), published)
+	}
+}
+
+func TestFillFromEmbeddedTakesTheDefaultForAKnownRowWithout(t *testing.T) {
+	embedded := Catalog{Networks: []Network{{ID: "betanet", Family: FamilyECash}}}
+	fetched := Catalog{Networks: []Network{{ID: "betanet", Family: FamilyECash, ReplayLockTime: 499999998}}}
+
+	entry, _ := mustFill(t, fetched, embedded).ByID("betanet")
+	require.EqualValues(t, DefaultReplayLockTime, entry.ReplayLockTimeOrDefault())
+}
+
+func TestFillFromEmbeddedAcceptsAKnownLockTimeForANewNetwork(t *testing.T) {
+	for published, want := range map[uint32]uint32{0: 499999999, 499999998: 499999998, 499999999: 499999999} {
+		fetched := Catalog{Networks: []Network{{ID: "gammanet", Family: FamilyECash, ReplayLockTime: published}}}
+		entry, ok := mustFill(t, fetched, Embedded()).ByID("gammanet")
+		require.True(t, ok)
+		require.EqualValues(t, want, entry.ReplayLockTimeOrDefault(), published)
+	}
+}
+
+func TestFillFromEmbeddedRejectsAnUnknownLockTimeForANewNetwork(t *testing.T) {
+	for _, published := range []uint32{1, 499999997, 500000000, 1<<32 - 1} {
+		fetched := Catalog{Networks: []Network{
+			{ID: "ecash", Family: FamilyECash},
+			{ID: "gammanet", Family: FamilyECash, ReplayLockTime: published},
+		}}
+		_, err := fillFromEmbedded(fetched, Embedded())
+		require.Error(t, err, published)
+	}
 }
 
 // The document drivechain.dev/config served on 2026-10-19 carries no

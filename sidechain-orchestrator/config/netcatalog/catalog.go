@@ -461,32 +461,42 @@ func Fetch(ctx context.Context, url string) (Catalog, error) {
 	if err != nil {
 		return Catalog{}, err
 	}
-	return fillFromEmbedded(c, Embedded()), nil
+	return fillFromEmbedded(c, Embedded())
 }
 
-// fillFromEmbedded gives an entry the fork parent hash and replay locktime that
-// the compiled-in entry of the same id carries, where the document leaves them
-// blank, and marks it migration-only when the app no longer runs it.
-func fillFromEmbedded(c, from Catalog) Catalog {
+// fillFromEmbedded gives an entry the replay locktime of the compiled-in entry
+// of the same id, and its fork parent hash where the document leaves it blank,
+// and marks it migration-only when the app no longer runs it. It rejects a new
+// entry whose replay locktime is not one the app knows.
+func fillFromEmbedded(c, from Catalog) (Catalog, error) {
 	filled := make([]Network, len(c.Networks))
 	copy(filled, c.Networks)
 	for i, n := range filled {
 		known, ok := from.ByID(n.ID)
 		if !ok {
+			if !validReplayLockTime(n.ReplayLockTime) {
+				return Catalog{}, fmt.Errorf("parse catalog: network %q replay locktime %d is not valid", n.ID, n.ReplayLockTime)
+			}
 			continue
 		}
 		if n.ForkParentHash == "" {
 			filled[i].ForkParentHash = known.ForkParentHash
 		}
-		if n.ReplayLockTime == 0 {
-			filled[i].ReplayLockTime = known.ReplayLockTime
-		}
+		// A final locktime turns off replay protection, so the document never sets it.
+		filled[i].ReplayLockTime = known.ReplayLockTime
 		if known.MigrationOnly {
 			filled[i].MigrationOnly = true
 		}
 	}
 	c.Networks = filled
-	return c
+	return c, nil
+}
+
+// ecashMainnetReplayLockTime is the replay locktime of the eCash mainnet enforcer.
+const ecashMainnetReplayLockTime uint32 = 499999998
+
+func validReplayLockTime(lockTime uint32) bool {
+	return lockTime == 0 || lockTime == DefaultReplayLockTime || lockTime == ecashMainnetReplayLockTime
 }
 
 // The id becomes a directory name and a conf value, and the address a conf value.
