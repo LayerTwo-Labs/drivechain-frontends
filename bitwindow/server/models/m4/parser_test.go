@@ -254,7 +254,7 @@ func TestWithdrawalMaxAge(t *testing.T) {
 		want    uint32
 	}{
 		{config.NetworkMainnet, 26300},
-		{config.NetworkECash, 26300},
+		{config.NetworkECash, 12096},
 		{config.NetworkSignet, 10},
 		{config.NetworkRegtest, 10},
 		{config.NetworkTestnet, 10},
@@ -272,7 +272,7 @@ func TestWithdrawalInclusionThreshold(t *testing.T) {
 		want    uint16
 	}{
 		{config.NetworkMainnet, 13150},
-		{config.NetworkECash, 13150},
+		{config.NetworkECash, 6048},
 		{config.NetworkSignet, 5},
 		{config.NetworkRegtest, 5},
 		{config.NetworkTestnet, 5},
