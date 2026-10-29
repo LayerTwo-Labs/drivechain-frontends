@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -697,6 +698,98 @@ func (c *CoreRPCClient) GetMempoolEntry(ctx context.Context, txid string) (*Memp
 		return nil, fmt.Errorf("decode getmempoolentry: %w", err)
 	}
 	return &entry, nil
+}
+
+// InMempool reports whether the mempool holds txid.
+func (c *CoreRPCClient) InMempool(ctx context.Context, txid string) (bool, error) {
+	_, err := c.GetMempoolEntry(ctx, txid)
+	switch {
+	case err == nil:
+		return true, nil
+	case strings.Contains(err.Error(), "Transaction not in mempool"):
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
+// ListAllTransactions returns every transaction the wallet holds.
+func (c *CoreRPCClient) ListAllTransactions(ctx context.Context, walletName string) ([]WalletTransaction, error) {
+	result, err := c.call(ctx, walletName, "listsinceblock")
+	if err != nil {
+		return nil, err
+	}
+	var res struct {
+		Transactions []WalletTransaction `json:"transactions"`
+	}
+	if err := json.Unmarshal(result, &res); err != nil {
+		return nil, fmt.Errorf("decode listsinceblock: %w", err)
+	}
+	return res.Transactions, nil
+}
+
+// DecodedWalletTransaction is a wallet transaction with its raw hex and the
+// fields of the decoded form.
+type DecodedWalletTransaction struct {
+	Hex     string `json:"hex"`
+	Decoded struct {
+		LockTime uint32 `json:"locktime"`
+		Vin      []struct {
+			TxID string `json:"txid"`
+			Vout int    `json:"vout"`
+		} `json:"vin"`
+	} `json:"decoded"`
+}
+
+// GetDecodedWalletTransaction returns a wallet transaction with its decoded form.
+func (c *CoreRPCClient) GetDecodedWalletTransaction(ctx context.Context, walletName, txid string) (*DecodedWalletTransaction, error) {
+	result, err := c.call(ctx, walletName, "gettransaction", txid, true, true)
+	if err != nil {
+		return nil, err
+	}
+	var tx DecodedWalletTransaction
+	if err := json.Unmarshal(result, &tx); err != nil {
+		return nil, fmt.Errorf("decode gettransaction: %w", err)
+	}
+	return &tx, nil
+}
+
+// TestMempoolAccept reports whether the mempool takes rawHex now, and the
+// reject reason when it does not.
+func (c *CoreRPCClient) TestMempoolAccept(ctx context.Context, rawHex string) (bool, string, error) {
+	result, err := c.call(ctx, "", "testmempoolaccept", []string{rawHex})
+	if err != nil {
+		return false, "", err
+	}
+	var res []struct {
+		Allowed      bool   `json:"allowed"`
+		RejectReason string `json:"reject-reason"`
+	}
+	if err := json.Unmarshal(result, &res); err != nil {
+		return false, "", fmt.Errorf("decode testmempoolaccept: %w", err)
+	}
+	if len(res) != 1 {
+		return false, "", fmt.Errorf("testmempoolaccept returned %d results for one transaction", len(res))
+	}
+	return res[0].Allowed, res[0].RejectReason, nil
+}
+
+// OutputUnspent reports whether the chain or the mempool holds an output
+// unspent.
+func (c *CoreRPCClient) OutputUnspent(ctx context.Context, txid string, vout int) (bool, error) {
+	const includeMempool = true
+	result, err := c.call(ctx, "", "gettxout", txid, vout, includeMempool)
+	if err != nil {
+		return false, err
+	}
+	return len(result) > 0 && string(result) != "null", nil
+}
+
+// AbandonTransaction marks an unconfirmed transaction outside the mempool as
+// abandoned, which frees the inputs it spends.
+func (c *CoreRPCClient) AbandonTransaction(ctx context.Context, walletName, txid string) error {
+	_, err := c.call(ctx, walletName, "abandontransaction", txid)
+	return err
 }
 
 // IncrementalRelayFeeSatPerKvB is the rate a replacement pays on its own size,
