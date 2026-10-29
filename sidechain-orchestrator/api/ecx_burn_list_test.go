@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -67,4 +70,50 @@ func TestListECXBurnsReportsAnUnreachableIndex(t *testing.T) {
 
 	_, err := listECXBurns(context.Background(), wallet.NewEsploraClient([]string{srv.URL}, zerolog.Nop()), wallet.ECXBurnNetworkByID("betanet"), 967680)
 	require.ErrorContains(t, err, "read the burn address history")
+}
+
+func TestListEcxBurnsReadsANode(t *testing.T) {
+	payout := burnPayout(t, "bc1qgkavkjygu5d952s7kspkyp3q2vrgg99rsuz2z5")
+	var gotUser, gotPassword string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUser, gotPassword, _ = r.BasicAuth()
+		var req struct {
+			Method string `json:"method"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		var result any
+		switch req.Method {
+		case "getnetworkinfo":
+			result = map[string]any{"subversion": "/eCash Satoshi:31.1.0(ecash-alphanet; BitWindow-0.2)/"}
+		case "scantxoutset":
+			result = map[string]any{"success": true, "unspents": []map[string]any{{"txid": "a", "height": 963700}}}
+		case "getblockhash":
+			result = "hash"
+		case "getrawtransaction":
+			result = map[string]any{"vout": []map[string]any{
+				{"value": 3000, "scriptPubKey": map[string]any{"hex": wallet.ECXBurnScriptHex, "type": "pubkeyhash"}},
+				{"value": 0, "scriptPubKey": map[string]any{"hex": payout.ScriptPubKey, "type": "nulldata"}},
+			}}
+		}
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{"result": result, "error": nil}))
+	}))
+	defer srv.Close()
+	cookie := filepath.Join(t.TempDir(), ".cookie")
+	require.NoError(t, os.WriteFile(cookie, []byte("__cookie__:secret"), 0o600))
+
+	resp, err := (&WalletHandler{}).ListEcxBurns(context.Background(), &pb.ListEcxBurnsRequest{
+		NetworkId: "alphanet", CoreUrl: srv.URL, CoreCookiePath: cookie,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Burns, 1)
+	require.EqualValues(t, 300_000_000_000, resp.Burns[0].BurnSats)
+	require.EqualValues(t, 3_000_000_000, resp.Burns[0].PayoutSats, "alphanet credits one ECX for each 100 coins")
+	require.Equal(t, []string{"__cookie__", "secret"}, []string{gotUser, gotPassword})
+}
+
+func TestListEcxBurnsRefusesANodeOfAnotherNetwork(t *testing.T) {
+	_, err := (&WalletHandler{}).ListEcxBurns(context.Background(), &pb.ListEcxBurnsRequest{
+		NetworkId: "ecash", CoreUrl: "http://127.0.0.1:1",
+	})
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }

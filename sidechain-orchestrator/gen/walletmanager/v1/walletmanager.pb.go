@@ -9457,9 +9457,15 @@ func (x *DeriveAddressesResponse) GetAddresses() []string {
 }
 
 type ListEcxBurnsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Burn network to list, "alphanet" or "betanet". Empty lists the running network.
+	NetworkId string `protobuf:"bytes,1,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
+	// RPC URL of a node on that network. Empty reads the network's esplora server.
+	CoreUrl string `protobuf:"bytes,2,opt,name=core_url,json=coreUrl,proto3" json:"core_url,omitempty"`
+	// Path to the node's .cookie file.
+	CoreCookiePath string `protobuf:"bytes,3,opt,name=core_cookie_path,json=coreCookiePath,proto3" json:"core_cookie_path,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListEcxBurnsRequest) Reset() {
@@ -9490,6 +9496,27 @@ func (x *ListEcxBurnsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListEcxBurnsRequest.ProtoReflect.Descriptor instead.
 func (*ListEcxBurnsRequest) Descriptor() ([]byte, []int) {
 	return file_walletmanager_v1_walletmanager_proto_rawDescGZIP(), []int{148}
+}
+
+func (x *ListEcxBurnsRequest) GetNetworkId() string {
+	if x != nil {
+		return x.NetworkId
+	}
+	return ""
+}
+
+func (x *ListEcxBurnsRequest) GetCoreUrl() string {
+	if x != nil {
+		return x.CoreUrl
+	}
+	return ""
+}
+
+func (x *ListEcxBurnsRequest) GetCoreCookiePath() string {
+	if x != nil {
+		return x.CoreCookiePath
+	}
+	return ""
 }
 
 type EcxBurn struct {
@@ -11639,8 +11666,12 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"startIndex\x12\x14\n" +
 	"\x05count\x18\x03 \x01(\x05R\x05count\"7\n" +
 	"\x17DeriveAddressesResponse\x12\x1c\n" +
-	"\taddresses\x18\x01 \x03(\tR\taddresses\"\x15\n" +
-	"\x13ListEcxBurnsRequest\"\x9a\x01\n" +
+	"\taddresses\x18\x01 \x03(\tR\taddresses\"y\n" +
+	"\x13ListEcxBurnsRequest\x12\x1d\n" +
+	"\n" +
+	"network_id\x18\x01 \x01(\tR\tnetworkId\x12\x19\n" +
+	"\bcore_url\x18\x02 \x01(\tR\acoreUrl\x12(\n" +
+	"\x10core_cookie_path\x18\x03 \x01(\tR\x0ecoreCookiePath\"\x9a\x01\n" +
 	"\aEcxBurn\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x03R\x06height\x12\x1b\n" +

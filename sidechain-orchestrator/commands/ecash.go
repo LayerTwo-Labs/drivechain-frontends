@@ -17,10 +17,11 @@ import (
 
 var ecashCommand = &cli.Command{
 	Name:  "ecash",
-	Usage: "Change ECX networks through drivechaind",
+	Usage: "Change ECX networks and list ECX burns",
 	Subcommands: []*cli.Command{
 		ecashMigrateCommand,
 		ecashMigrationStatusCommand,
+		ecashBurnsCommand,
 	},
 }
 
