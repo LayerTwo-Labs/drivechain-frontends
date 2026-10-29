@@ -52,10 +52,11 @@ type ElectrumClient struct {
 	notifCh chan ElectrumNotification
 	kaOnce  sync.Once
 
-	urlMu     sync.RWMutex
-	serverURL string // tcp://host:port or ssl://host:port
-	proxyOn   bool
-	proxyAddr string
+	urlMu sync.RWMutex
+	// Dials the first URL; BaseURLs returns the full list so a re-point check sees no change.
+	serverURLs []string
+	proxyOn    bool
+	proxyAddr  string
 
 	cacheMu    sync.Mutex
 	txCache    map[string]*wire.MsgTx // decoded txs, reused for prevout resolution
@@ -115,7 +116,9 @@ func NewChainDataSource(urls []string, log zerolog.Logger, network *chaincfg.Par
 		if len(urls) > 1 {
 			log.Warn().Strs("unused", urls[1:]).Msg("electrum client reads one server; the rest of the class is unused")
 		}
-		return NewElectrumClient(urls[0], log, network)
+		client := NewElectrumClient(urls[0], log, network)
+		client.serverURLs = append([]string(nil), urls...)
+		return client
 	}
 	return NewEsploraClient(urls, log)
 }
@@ -126,7 +129,7 @@ func NewElectrumClient(serverURL string, log zerolog.Logger, network *chaincfg.P
 	return &ElectrumClient{
 		network:    network,
 		log:        log.With().Str("component", "electrum-client").Logger(),
-		serverURL:  serverURL,
+		serverURLs: []string{serverURL},
 		pending:    map[int]chan rpcResult{},
 		notifCh:    make(chan ElectrumNotification, 1024),
 		txCache:    map[string]*wire.MsgTx{},
@@ -158,7 +161,7 @@ func parseElectrumURL(raw string) (scheme, hostport string, err error) {
 
 func (c *ElectrumClient) dial() (net.Conn, error) {
 	c.urlMu.RLock()
-	raw, proxyOn, proxyAddr := c.serverURL, c.proxyOn, c.proxyAddr
+	raw, proxyOn, proxyAddr := c.serverURLs[0], c.proxyOn, c.proxyAddr
 	c.urlMu.RUnlock()
 
 	scheme, host, err := parseElectrumURL(raw)
@@ -771,7 +774,7 @@ func (c *ElectrumClient) knownHeight(txid string) int {
 func (c *ElectrumClient) BaseURLs() []string {
 	c.urlMu.RLock()
 	defer c.urlMu.RUnlock()
-	return []string{c.serverURL}
+	return append([]string(nil), c.serverURLs...)
 }
 
 func (c *ElectrumClient) SetBaseURLs(urls []string) {
@@ -779,7 +782,7 @@ func (c *ElectrumClient) SetBaseURLs(urls []string) {
 		return
 	}
 	c.urlMu.Lock()
-	c.serverURL = urls[0]
+	c.serverURLs = append([]string(nil), urls...)
 	c.urlMu.Unlock()
 	c.resetConn()
 	c.cacheMu.Lock()
