@@ -472,3 +472,27 @@ func TestNetworkChainSource_ReportsNoPushesWhileThePrimaryIsDown(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, s.Notifications(), "a cooled-down primary must offer no push stream")
 }
+
+func TestNetworkChainSource_KeepsElectrumClientWithManyURLs(t *testing.T) {
+	urls := []string{"ssl://a.example:50002", "ssl://b.example:50002", "tcp://a.example:50001"}
+	nv := &networkVar{
+		network: "ecash",
+		urls:    map[string][]string{"ecash": urls},
+		params:  map[string]*chaincfg.Params{"ecash": &chaincfg.MainNetParams},
+	}
+	src := NewNetworkChainSource(nv.resolve, zerolog.Nop())
+
+	first, err := src.current()
+	require.NoError(t, err)
+	client, ok := first.(*ElectrumClient)
+	require.True(t, ok)
+	epoch := client.tipEpoch
+
+	for range 5 {
+		got, err := src.current()
+		require.NoError(t, err)
+		assert.Same(t, client, got)
+	}
+	assert.Equal(t, urls, src.BaseURLs())
+	assert.Equal(t, epoch, client.tipEpoch)
+}
