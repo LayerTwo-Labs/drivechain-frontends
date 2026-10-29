@@ -19,7 +19,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -991,29 +990,40 @@ func moveFile(src, dest string) error {
 	if err := os.Rename(src, dest); err == nil {
 		return nil
 	}
+	if err := copyBeside(src, dest); err != nil {
+		return err
+	}
+	return os.Remove(src)
+}
 
-	// Cross-device fallback: copy then remove
+// copyBeside copies src next to dest and renames it into place, so a binary
+// that runs keeps its old file until it restarts.
+func copyBeside(src, dest string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close() //nolint:errcheck // cleanup
+	defer srcFile.Close() //nolint:errcheck // read-only
 
-	destFile, err := os.Create(dest)
+	tmp, err := os.CreateTemp(filepath.Dir(dest), "."+filepath.Base(dest)+".*")
 	if err != nil {
-		if errors.Is(err, syscall.ETXTBSY) {
-			return fmt.Errorf("%s runs right now; stop it before you update it", dest)
-		}
 		return err
 	}
-	defer destFile.Close() //nolint:errcheck // cleanup
-
-	if _, err := io.Copy(destFile, srcFile); err != nil {
+	tmpName := tmp.Name()
+	if _, err := io.Copy(tmp, srcFile); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
 		return err
 	}
-
-	_ = srcFile.Close()
-	return os.Remove(src)
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := os.Rename(tmpName, dest); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("replace %s: %w", dest, err)
+	}
+	return nil
 }
 
 // hashFile computes the SHA256 hash and size of a file.
