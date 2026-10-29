@@ -15,18 +15,19 @@ String _dexScreener(String priceUsd) => jsonEncode({
   ],
 });
 
+String _neoxex(num lastPrice) => jsonEncode({
+  'ECX_USDC': {'trading_pairs': 'ECX_USDC', 'last_price': lastPrice, 'highest_bid': 32},
+});
+
 void main() {
   test('each network reads the market of its own coin', () {
     expect(priceSourceFor(Ticker.bitcoin), PriceSource.blockchainInfo);
     expect(priceSourceFor(Ticker.betanet), PriceSource.wbECX);
-    expect(priceSourceFor(Ticker.ecash), PriceSource.wECX);
+    expect(priceSourceFor(Ticker.ecash), PriceSource.neoxexECX);
   });
 
   test('blockchain.info gives the BTC price', () {
-    expect(
-      PriceSource.blockchainInfo.parse(jsonDecode('{"USD": {"last": 64000.5, "symbol": "\$"}}')),
-      64000.5,
-    );
+    expect(PriceSource.blockchainInfo.parse(jsonDecode('{"USD": {"last": 64000.5, "symbol": "\$"}}')), 64000.5);
     expect(() => PriceSource.blockchainInfo.parse(jsonDecode('{"EUR": {"last": 1}}')), throwsFormatException);
   });
 
@@ -34,6 +35,56 @@ void main() {
     expect(PriceSource.wbECX.parse(jsonDecode(_dexScreener('2.63'))), 2.63);
     expect(() => PriceSource.wECX.parse(jsonDecode('{"pairs": null}')), throwsFormatException);
     expect(() => PriceSource.wECX.parse(jsonDecode(_dexScreener('n/a'))), throwsFormatException);
+  });
+
+  test('neoxex gives the ECX trade price', () {
+    expect(PriceSource.neoxexECX.parse(jsonDecode(_neoxex(41.5))), 41.5);
+    expect(() => PriceSource.neoxexECX.parse(jsonDecode(_neoxex(0))), throwsFormatException);
+    expect(() => PriceSource.neoxexECX.parse(jsonDecode('{"NEOX_USDC": {"last_price": 1}}')), throwsFormatException);
+    expect(
+      PriceSource.neoxexECX.parse(
+        jsonDecode('{"ECX_USDC": {"last_price": 0}, "ECX_USDT": {"last_price": 40.25}}'),
+      ),
+      40.25,
+    );
+  });
+
+  test('eCash reads the wECX pool until NeoxEx trades', () async {
+    for (final (neoxex, want) in [(0, 121.7), (41.5, 41.5)]) {
+      final urls = <String>[];
+      final provider = PriceProvider(
+        client: MockClient((req) async {
+          urls.add(req.url.toString());
+          if (req.url.toString() == PriceSource.neoxexECX.url) {
+            return http.Response(_neoxex(neoxex), 200);
+          }
+          return http.Response(_dexScreener('121.7'), 200);
+        }),
+        source: () => PriceSource.neoxexECX,
+      );
+      addTearDown(provider.dispose);
+      await pumpEventQueue();
+
+      expect(provider.usdPrice, want);
+      expect(provider.error, isNull);
+      expect(urls.first, PriceSource.neoxexECX.url);
+    }
+  });
+
+  test('eCash reads the wECX pool when NeoxEx fails', () async {
+    final provider = PriceProvider(
+      client: MockClient((req) async {
+        if (req.url.toString() == PriceSource.neoxexECX.url) {
+          return http.Response('down', 503);
+        }
+        return http.Response(_dexScreener('121.7'), 200);
+      }),
+      source: () => PriceSource.neoxexECX,
+    );
+    addTearDown(provider.dispose);
+    await pumpEventQueue();
+
+    expect(provider.usdPrice, 121.7);
   });
 
   test('the provider converts the balance at the betanet price', () async {

@@ -11,7 +11,7 @@ import 'package:sidechain_core/ticker.dart';
 
 /// A USD price feed for one coin.
 class PriceSource {
-  const PriceSource._(this.url, this.parse, this.interval);
+  const PriceSource._(this.url, this.parse, this.interval, [this.fallback]);
 
   final String url;
 
@@ -20,6 +20,9 @@ class PriceSource {
 
   /// Minimum time between two fetches.
   final Duration interval;
+
+  /// The source to read when this one gives no price.
+  final PriceSource? fallback;
 
   static const blockchainInfo = PriceSource._(
     'https://blockchain.info/ticker',
@@ -40,13 +43,21 @@ class PriceSource {
     _parseDexScreener,
     Duration(seconds: 60),
   );
+
+  /// NeoxEx ECX/USDC and ECX/USDT markets, with the wECX pool until they trade.
+  static const neoxexECX = PriceSource._(
+    'https://neoxa.exchange/api/v1/cmc/summary',
+    _parseNeoxexECX,
+    Duration(seconds: 60),
+    wECX,
+  );
 }
 
 /// The USD price feed for [ticker], or null when no market trades the coin.
 PriceSource? priceSourceFor(Ticker ticker) => switch (ticker) {
   Ticker.bitcoin => PriceSource.blockchainInfo,
   Ticker.betanet => PriceSource.wbECX,
-  Ticker.ecash => PriceSource.wECX,
+  Ticker.ecash => PriceSource.neoxexECX,
   _ => null,
 };
 
@@ -55,6 +66,17 @@ double _parseBlockchainInfo(Object? body) {
     return last.toDouble();
   }
   throw const FormatException('blockchain.info: no USD "last" price');
+}
+
+double _parseNeoxexECX(Object? body) {
+  if (body is Map) {
+    for (final market in const ['ECX_USDC', 'ECX_USDT']) {
+      if (body[market] case {'last_price': final num last} when last > 0) {
+        return last.toDouble();
+      }
+    }
+  }
+  throw const FormatException('neoxex: no ECX trade price');
 }
 
 double _parseDexScreener(Object? body) {
@@ -116,11 +138,7 @@ class PriceProvider extends ChangeNotifier {
 
     isFetching = true;
     try {
-      final response = await _client.get(Uri.parse(source.url));
-      if (response.statusCode != 200) {
-        throw http.ClientException('HTTP ${response.statusCode}', Uri.parse(source.url));
-      }
-      final price = source.parse(json.decode(response.body));
+      final price = await _read(source);
       if (_pricedBy == source) {
         usdPrice = price;
         lastUpdated = DateTime.now();
@@ -133,6 +151,23 @@ class PriceProvider extends ChangeNotifier {
     } finally {
       isFetching = false;
       notifyListeners();
+    }
+  }
+
+  /// Reads [source], then its fallbacks in order, and returns the first price.
+  Future<double> _read(PriceSource source) async {
+    try {
+      final response = await _client.get(Uri.parse(source.url));
+      if (response.statusCode != 200) {
+        throw http.ClientException('HTTP ${response.statusCode}', Uri.parse(source.url));
+      }
+      return source.parse(json.decode(response.body));
+    } catch (_) {
+      final fallback = source.fallback;
+      if (fallback == null) {
+        rethrow;
+      }
+      return _read(fallback);
     }
   }
 
