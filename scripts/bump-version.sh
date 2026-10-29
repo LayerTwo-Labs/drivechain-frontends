@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Bump version for any Flutter app in the monorepo
-# This script increments the version in pubspec.yaml and optionally updates snapcraft.yaml
+# This script increments the version in pubspec.yaml.
 
 set -e
 
@@ -79,25 +79,6 @@ else
 fi
 echo "Updated $APP_NAME/pubspec.yaml"
 
-# Update snapcraft.yaml if it exists and contains "latest" version
-if [ -f "$APP_NAME/snapcraft.yaml" ]; then
-    if grep -q '^version: "latest"' "$APP_NAME/snapcraft.yaml"; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i '' "s/^version: \"latest\"/version: \"$NEW_VERSION\"/" "$APP_NAME/snapcraft.yaml"
-        else
-            sed -i "s/^version: \"latest\"/version: \"$NEW_VERSION\"/" "$APP_NAME/snapcraft.yaml"
-        fi
-        echo "Updated $APP_NAME/snapcraft.yaml (removed 'latest', set to $NEW_VERSION)"
-    else
-        # Update existing version in snapcraft.yaml
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i '' "s/^version: .*/version: \"$NEW_VERSION\"/" "$APP_NAME/snapcraft.yaml"
-        else
-            sed -i "s/^version: .*/version: \"$NEW_VERSION\"/" "$APP_NAME/snapcraft.yaml"
-        fi
-        echo "Updated $APP_NAME/snapcraft.yaml to $NEW_VERSION"
-    fi
-fi
 
 # Generate new version.dart file
 ./scripts/generate-version.sh "$APP_NAME"

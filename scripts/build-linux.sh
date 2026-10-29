@@ -48,34 +48,6 @@ release_dir="$old_cwd/release"
 mkdir -p "$release_dir"
 cp $zip_name "$release_dir"
 
-# Build snap package for bitwindow if snapcraft is available
-if [ "$lower_app_name" = "bitwindow" ] && command -v snapcraft >/dev/null 2>&1; then
-    echo "Building snap package for $app_name"
-    
-    # Go to bitwindow directory where snapcraft.yaml is located
-    cd "$old_cwd"
-    
-    # Build the snap using LXD
-    echo "Running: snapcraft --use-lxd"
-    sudo snapcraft --use-lxd
-    
-    # Find the generated .snap file
-    snap_file=$(find . -name "*.snap" | head -1)
-    if [ -n "$snap_file" ]; then
-        cp "$snap_file" "$release_dir/"
-        echo "Snap package created: $(basename "$snap_file")"
-    else
-        echo "Snap build succeeded but no .snap file found"
-    fi
-    
-    # Return to bundle directory
-    cd build/linux/x64/release/bundle
-else
-    if [ "$lower_app_name" = "bitwindow" ]; then
-        echo "snapcraft not found, skipping snap package creation"
-        echo "Install it with: sudo snap install snapcraft --classic"
-    fi
-fi
 
 
 # Create AppImage if appimagetool is available
