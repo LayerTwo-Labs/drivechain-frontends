@@ -337,8 +337,8 @@ func TestUpdateBundleStates_ApprovesAboveTheNetworkThreshold(t *testing.T) {
 	}{
 		{"regtest at the threshold", config.NetworkRegtest, 5, "pending"},
 		{"regtest above the threshold", config.NetworkRegtest, 6, "approved"},
-		{"ecash at the threshold", config.NetworkECash, 13150, "pending"},
-		{"ecash above the threshold", config.NetworkECash, 13151, "approved"},
+		{"ecash at the threshold", config.NetworkECash, 6048, "pending"},
+		{"ecash above the threshold", config.NetworkECash, 6049, "approved"},
 		{"mainnet below the threshold", config.NetworkMainnet, 73, "pending"},
 		{"mainnet above the threshold", config.NetworkMainnet, 13151, "approved"},
 	} {

@@ -86,8 +86,11 @@ const (
 // WithdrawalMaxAge returns the number of blocks a withdrawal bundle has for its
 // votes, with the values of the enforcer.
 func WithdrawalMaxAge(network config.Network) uint32 {
-	if network == config.NetworkMainnet || network == config.NetworkECash {
+	if network == config.NetworkMainnet {
 		return 26300
+	}
+	if network == config.NetworkECash {
+		return 12096
 	}
 	return 10
 }
@@ -95,8 +98,11 @@ func WithdrawalMaxAge(network config.Network) uint32 {
 // WithdrawalInclusionThreshold returns the number of ACKs a withdrawal bundle
 // must exceed for approval on network, with the values of the enforcer.
 func WithdrawalInclusionThreshold(network config.Network) uint16 {
-	if network == config.NetworkMainnet || network == config.NetworkECash {
+	if network == config.NetworkMainnet {
 		return 13150
+	}
+	if network == config.NetworkECash {
+		return 6048
 	}
 	return 5
 }
