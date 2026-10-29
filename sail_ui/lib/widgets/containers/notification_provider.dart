@@ -27,6 +27,9 @@ class NotificationProvider extends ChangeNotifier {
   /// stands, or opens a modal a second time.
   Future<void> get ready => _loaded.future;
 
+  /// True once the stored history is in memory.
+  bool get loaded => _loaded.isCompleted;
+
   /// Merges rather than replaces: loading is async, so anything added while it
   /// was in flight would otherwise be dropped.
   Future<void> _load() async {
