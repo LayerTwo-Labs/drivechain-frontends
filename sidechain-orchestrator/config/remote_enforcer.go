@@ -8,14 +8,14 @@ import (
 // RemoteEnforcerURLForNetwork returns the published validator URL, or an empty string.
 func RemoteEnforcerURLForNetwork(network Network) string {
 	entry := PublishedEndpoints(network)
-	if entry.Services.Enforcer.URL != "" {
-		return entry.Services.Enforcer.URL
+	if url := entry.Services.Enforcer.URL(); url != "" {
+		return url
 	}
 	embedded, ok := embeddedEntryFor(entry.ID, network)
 	if !ok {
 		return ""
 	}
-	return embedded.Services.Enforcer.URL
+	return embedded.Services.Enforcer.URL()
 }
 
 // embeddedEntryFor finds the compiled-in entry that stands for a network. An id

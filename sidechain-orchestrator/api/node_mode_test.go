@@ -10,6 +10,7 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
@@ -39,7 +40,7 @@ func TestNodeModeUsesThePublishedRemoteEnforcer(t *testing.T) {
 
 	for _, endpoint := range []string{"https://validator.example/enforcer", ""} {
 		entry := original
-		entry.Services.Enforcer.URL = endpoint
+		entry.Services.Enforcer = netcatalog.Endpoints{{URL: endpoint}}
 		config.SetNetworkEndpoints(network, entry)
 
 		response, err := handler.GetNodeMode(context.Background(), &pb.GetNodeModeRequest{})

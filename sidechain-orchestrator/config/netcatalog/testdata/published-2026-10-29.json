@@ -1,0 +1,405 @@
+{
+  "schema_version": 1,
+  "networks": [
+    {
+      "id": "bitcoin",
+      "family": "bitcoin",
+      "display_name": "Bitcoin",
+      "description": "Regular bitcoin mainnet",
+      "chain": "main",
+      "currency": {
+        "name": "Bitcoin",
+        "ticker": "BTC"
+      },
+      "network_magic": "f9beb4d9",
+      "fork_height": null,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.mainnet.drivechain.info",
+          "tls": true,
+          "label": "electrs",
+          "priority": 0
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://explorer.mainnet.drivechain.info:50002",
+          "tls": true,
+          "label": "Fulcrum",
+          "priority": 0
+        },
+        {
+          "kind": "electrum",
+          "url": "tcp://explorer.mainnet.drivechain.info:50001",
+          "tls": false,
+          "label": "Fulcrum",
+          "priority": 1
+        }
+      ],
+      "explorer_tx_template": "https://explorer.mainnet.drivechain.info/tx/{txid}",
+      "explorer_address_template": "https://explorer.mainnet.drivechain.info/address/{address}",
+      "explorer_block_template": "https://explorer.mainnet.drivechain.info/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": "https://coinnews.mainnet.drivechain.info"
+        },
+        "enforcer": [],
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": null,
+          "stratum": null
+        },
+        "fast_withdrawal": []
+      },
+      "mirror_domain": null,
+      "p2p": {
+        "address": "node.mainnet.drivechain.info:8333"
+      },
+      "sidechains": [],
+      "assumeutxo": null
+    },
+    {
+      "id": "signet",
+      "family": "bitcoin",
+      "display_name": "L2L Signet",
+      "description": "Bitcoin signet with Drivechain (BIP300/301) enforcement",
+      "chain": "signet",
+      "currency": {
+        "name": "Signet Bitcoin",
+        "ticker": "sBTC"
+      },
+      "network_magic": null,
+      "fork_height": null,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.signet.drivechain.info",
+          "tls": true,
+          "label": "electrs",
+          "priority": 0
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://node.signet.drivechain.info:50002",
+          "tls": true,
+          "label": "Fulcrum",
+          "priority": 0
+        },
+        {
+          "kind": "electrum",
+          "url": "tcp://node.signet.drivechain.info:50001",
+          "tls": false,
+          "label": "Fulcrum",
+          "priority": 1
+        }
+      ],
+      "explorer_tx_template": "https://explorer.signet.drivechain.info/tx/{txid}",
+      "explorer_address_template": "https://explorer.signet.drivechain.info/address/{address}",
+      "explorer_block_template": "https://explorer.signet.drivechain.info/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": "https://node.signet.drivechain.info/api",
+          "amount": 3,
+          "cooldown_seconds": 3600
+        },
+        "coinnews": {
+          "url": "https://coinnews.signet.drivechain.info"
+        },
+        "enforcer": [
+          {
+            "url": "https://enforcer.signet.drivechain.info"
+          }
+        ],
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": null,
+          "stratum": null
+        },
+        "fast_withdrawal": [
+          {
+            "url": "https://fw1.signet.drivechain.info"
+          }
+        ]
+      },
+      "mirror_domain": null,
+      "p2p": {
+        "address": "node.signet.drivechain.info:38333"
+      },
+      "sidechains": [
+        {
+          "slot": 2,
+          "title": "BitNames",
+          "description": "A variant of Namecoin/BitDNS that aims to replace ICANN",
+          "image": "ghcr.io/layertwo-labs/bitnames:sha-2a9fd14",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4002",
+            "transport": "quic"
+          },
+          "network_magic": null
+        },
+        {
+          "slot": 4,
+          "title": "BitAssets",
+          "description": "A sidechain for digital assets",
+          "image": "ghcr.io/layertwo-labs/bitassets:sha-8f8a627",
+          "version": "v0.13.1",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4004",
+            "transport": "quic"
+          },
+          "network_magic": null
+        },
+        {
+          "slot": 9,
+          "title": "Thunder",
+          "description": "A sidechain with a large & growing blocksize, plus fraud proofs",
+          "image": "ghcr.io/layertwo-labs/thunder:sha-2ea74b0",
+          "version": "sha-2ea74b0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4009",
+            "transport": "quic"
+          },
+          "network_magic": null
+        },
+        {
+          "slot": 13,
+          "title": "Truthcoin",
+          "description": "A sidechain for decentralized prediction markets and oracle data",
+          "image": "ghcr.io/layertwo-labs/truthcoin:sha-de1aa6f",
+          "version": "sha-de1aa6f",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4013",
+            "transport": "quic"
+          },
+          "network_magic": null
+        },
+        {
+          "slot": 98,
+          "title": "zSide",
+          "description": "Sidechain with private transactions",
+          "image": "ghcr.io/iwakura-rein/thunder-orchard:sha-7e34625",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4098",
+            "transport": "quic"
+          },
+          "network_magic": null
+        },
+        {
+          "slot": 99,
+          "title": "Photon",
+          "description": "Sidechain using post-quantum cryptography",
+          "image": "ghcr.io/layertwo-labs/photon:sha-13ba3e4",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4099",
+            "transport": "quic"
+          },
+          "network_magic": null
+        },
+        {
+          "slot": 255,
+          "title": "Coinshift",
+          "description": "Sidechain with a P2P, trustless L2-L1 swap system",
+          "image": "ghcr.io/layertwo-labs/coinshift:sha-9eeb5b2",
+          "version": "sha-9eeb5b2",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4255",
+            "transport": "quic"
+          },
+          "network_magic": null
+        }
+      ],
+      "assumeutxo": null
+    },
+    {
+      "id": "betanet",
+      "family": "ecash",
+      "display_name": "Betanet",
+      "description": "Fork of mainnet with PoW difficulty reset — the ECX beta network",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "eca5b104",
+      "fork_height": 967680,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.beta.ecash.ninja",
+          "tls": true,
+          "label": "electrs",
+          "priority": 0
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://explorer.beta.ecash.ninja:50002",
+          "tls": true,
+          "label": "Fulcrum",
+          "priority": 0
+        },
+        {
+          "kind": "electrum",
+          "url": "tcp://explorer.beta.ecash.ninja:50001",
+          "tls": false,
+          "label": "Fulcrum",
+          "priority": 1
+        }
+      ],
+      "explorer_tx_template": "https://explorer.beta.ecash.ninja/tx/{txid}",
+      "explorer_address_template": "https://explorer.beta.ecash.ninja/address/{address}",
+      "explorer_block_template": "https://explorer.beta.ecash.ninja/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": null
+        },
+        "enforcer": [
+          {
+            "url": "https://enforcer.beta.ecash.ninja"
+          }
+        ],
+        "blockbook": {
+          "url": "https://blockbook.beta.ecash.ninja"
+        },
+        "mining_pool": {
+          "url": "https://pool.beta.bip300.xyz",
+          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334"
+        },
+        "fast_withdrawal": [
+          {
+            "url": "https://fastwithdraw.betanet.ecash.ninja"
+          }
+        ]
+      },
+      "mirror_domain": null,
+      "p2p": {
+        "address": "seed.beta.ecash.ninja:8533"
+      },
+      "sidechains": [
+        {
+          "slot": 9,
+          "title": "Thunder",
+          "description": "A sidechain with a large & growing blocksize, plus fraud proofs",
+          "image": "ghcr.io/layertwo-labs/thunder:sha-2ea74b0",
+          "version": "sha-2ea74b0",
+          "p2p": {
+            "address": "seed.beta.ecash.ninja:4009",
+            "transport": "quic"
+          },
+          "network_magic": null
+        }
+      ],
+      "assumeutxo": null
+    },
+    {
+      "id": "ecash",
+      "family": "ecash",
+      "display_name": "eCash",
+      "description": "Bitcoin, with Drivechains: a Bitcoin hard fork that activates BIP300/301, forking at Bitcoin's difficulty adjustment at block 973,728",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "eca5dcb7",
+      "fork_height": 973728,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.ecash.ninja",
+          "tls": true,
+          "label": "electrs",
+          "priority": 0
+        },
+        {
+          "kind": "esplora",
+          "url": "https://esplora.ecash.com",
+          "tls": true,
+          "label": "electrs",
+          "priority": 1
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://fulcrum.ecash.ninja:50002",
+          "tls": true,
+          "label": "Fulcrum",
+          "priority": 0
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://fulcrum.ecash.com:50002",
+          "tls": true,
+          "label": "Fulcrum",
+          "priority": 1
+        },
+        {
+          "kind": "electrum",
+          "url": "tcp://fulcrum.ecash.ninja:50001",
+          "tls": false,
+          "label": "Fulcrum",
+          "priority": 2
+        },
+        {
+          "kind": "electrum",
+          "url": "tcp://fulcrum.ecash.com:50001",
+          "tls": false,
+          "label": "Fulcrum",
+          "priority": 3
+        }
+      ],
+      "explorer_tx_template": "https://explorer.ecash.ninja/tx/{txid}",
+      "explorer_address_template": "https://explorer.ecash.ninja/address/{address}",
+      "explorer_block_template": "https://explorer.ecash.ninja/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": null
+        },
+        "enforcer": [
+          {
+            "url": "https://seed.ecash.eu.com/enforcer"
+          }
+        ],
+        "blockbook": {
+          "url": "https://blockbook.ecash.ninja"
+        },
+        "mining_pool": {
+          "url": null,
+          "stratum": null
+        },
+        "fast_withdrawal": []
+      },
+      "mirror_domain": "ecash.com",
+      "p2p": {
+        "address": "seed.ecash.ninja:8533"
+      },
+      "sidechains": [],
+      "assumeutxo": {
+        "url": "https://releases.ecash.com/assumeutxo/mainnet/utxo-965000.dat",
+        "height": 965000,
+        "sha256": "89351f7106051c0685880f9c64026e993335308de63ae6980e94ba3fafdc7dda",
+        "size_bytes": 9468312119
+      }
+    }
+  ]
+}

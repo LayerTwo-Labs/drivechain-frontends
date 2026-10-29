@@ -60,7 +60,7 @@ func setRemoteTestEndpoint(t *testing.T, network config.Network, endpoint string
 	t.Helper()
 	old := config.PublishedEndpoints(network)
 	entry := old
-	entry.Services.Enforcer.URL = endpoint
+	entry.Services.Enforcer = netcatalog.Endpoints{{URL: endpoint}}
 	config.SetNetworkEndpoints(network, entry)
 	t.Cleanup(func() { config.SetNetworkEndpoints(network, old) })
 }
@@ -121,7 +121,7 @@ func TestRemoteEnforcerKeepsClientAfterEndpointChange(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 42, tip.BlockHeaderInfo.Height)
 	entry := config.PublishedEndpoints(config.NetworkSignet)
-	entry.Services.Enforcer.URL = secondServer.URL
+	entry.Services.Enforcer = netcatalog.Endpoints{{URL: secondServer.URL}}
 	config.SetNetworkEndpoints(config.NetworkSignet, entry)
 	second, err := o.EnforcerURL()
 	require.NoError(t, err)
@@ -182,7 +182,7 @@ func TestRemoteEnforcerReturnsAfterNetworkSwap(t *testing.T) {
 	previous := config.ECashEndpoints()
 	entry, ok := netcatalog.Embedded().ByID("betanet")
 	require.True(t, ok)
-	entry.Services.Enforcer.URL = server.URL
+	entry.Services.Enforcer = netcatalog.Endpoints{{URL: server.URL}}
 	config.SetECashEndpoints(entry)
 	t.Cleanup(func() { config.SetECashEndpoints(previous) })
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
@@ -277,7 +277,7 @@ func TestRemoteSidechainECashArgs(t *testing.T) {
 	previousID := config.ECashNetworkID()
 	entry, ok := netcatalog.Embedded().ByID("betanet")
 	require.True(t, ok)
-	entry.Services.Enforcer.URL = server.URL
+	entry.Services.Enforcer = netcatalog.Endpoints{{URL: server.URL}}
 	config.SetECashEndpoints(entry)
 	config.SetECashNetworkID(entry.ID)
 	t.Cleanup(func() {

@@ -41,9 +41,7 @@
           "stratum": null
         },
         "fast_withdrawal": [],
-        "enforcer": {
-          "url": null
-        }
+        "enforcer": []
       },
       "p2p": {
         "address": "node.mainnet.drivechain.info:8333"
@@ -101,9 +99,9 @@
             "url": "https://fw1.signet.drivechain.info"
           }
         ],
-        "enforcer": {
-          "url": "https://enforcer.signet.drivechain.info"
-        }
+        "enforcer": [
+          { "url": "https://enforcer.signet.drivechain.info" }
+        ]
       },
       "p2p": {
         "address": "node.signet.drivechain.info:38333"
@@ -268,9 +266,9 @@
             "url": "https://fastwithdraw.betanet.ecash.ninja"
           }
         ],
-        "enforcer": {
-          "url": "https://enforcer.beta.ecash.ninja"
-        }
+        "enforcer": [
+          { "url": "https://enforcer.beta.ecash.ninja" }
+        ]
       },
       "p2p": {
         "address": "seed.beta.ecash.ninja:8533"
@@ -332,9 +330,9 @@
         "coinnews": {
           "url": null
         },
-        "enforcer": {
-          "url": "https://seed.ecash.eu.com/enforcer"
-        },
+        "enforcer": [
+          { "url": "https://seed.ecash.eu.com/enforcer" }
+        ],
         "blockbook": {
           "url": "https://blockbook.ecash.ninja"
         },

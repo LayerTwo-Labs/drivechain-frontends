@@ -434,3 +434,42 @@ func TestReleaseChannelOrIDFallsBackToTheID(t *testing.T) {
 		require.Equal(t, want, n.ReleaseChannelOrID(), id)
 	}
 }
+
+// The document drivechain.dev/config served on 2026-10-29 lists each enforcer
+// address in an array.
+func TestPublishedCatalogOf20261029ReadsTheEnforcerList(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("testdata", "published-2026-10-29.json"))
+	require.NoError(t, err)
+	c, err := parse(raw)
+	require.NoError(t, err)
+
+	ecash, ok := c.ByID("ecash")
+	require.True(t, ok)
+	require.Equal(t, "https://seed.ecash.eu.com/enforcer", ecash.Services.Enforcer.URL())
+	signet, ok := c.ByID("signet")
+	require.True(t, ok)
+	require.Equal(t, "https://enforcer.signet.drivechain.info", signet.Services.Enforcer.URL())
+	bitcoin, ok := c.ByID("bitcoin")
+	require.True(t, ok)
+	require.Empty(t, bitcoin.Services.Enforcer.URL())
+}
+
+func TestEndpointsReadBothForms(t *testing.T) {
+	for _, tt := range []struct {
+		raw  string
+		want string
+	}{
+		{`[{"url": "https://a.example"}, {"url": "https://b.example"}]`, "https://a.example"},
+		{`[{"url": ""}, {"url": "https://b.example"}]`, "https://b.example"},
+		{`[]`, ""},
+		{`null`, ""},
+		{`{"url": "https://a.example"}`, "https://a.example"},
+		{`{"url": null}`, ""},
+	} {
+		var e Endpoints
+		require.NoError(t, json.Unmarshal([]byte(tt.raw), &e), tt.raw)
+		require.Equal(t, tt.want, e.URL(), tt.raw)
+	}
+	var e Endpoints
+	require.Error(t, json.Unmarshal([]byte(`"https://a.example"`), &e))
+}
