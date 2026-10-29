@@ -422,3 +422,22 @@ func TestStatusOffersAnUpdateForTheBackend(t *testing.T) {
 	assert.Equal(t, prodBuilt, status.RemoteTimestamp.UTC())
 	assert.Equal(t, prodBuilt.Add(-time.Hour), status.LocalTimestamp.UTC())
 }
+
+func TestStatusReportsTheFileTimeWithoutAProbe(t *testing.T) {
+	setTestHome(t)
+	built := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+
+	dataDir, bwDir := t.TempDir(), t.TempDir()
+	cfg := makeSidechainConfig("http://127.0.0.1:1/")
+	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, testLogger(t))
+
+	path := BinaryPath(dataDir, cfg.BinaryName)
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, []byte("bin"), 0o755))
+	require.NoError(t, os.Chtimes(path, built, built))
+
+	status := o.StatusWithOptions(cfg.Name, DownloadOptions{ForceBackend: true})
+	assert.False(t, status.UpdateAvailable)
+	assert.True(t, status.RemoteTimestamp.IsZero())
+	assert.Equal(t, built, status.LocalTimestamp.UTC())
+}

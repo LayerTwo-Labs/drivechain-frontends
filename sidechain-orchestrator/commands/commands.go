@@ -933,6 +933,15 @@ func formatBytes(b int64) string {
 
 // runDownload streams a binary download with a progress bar.
 func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name string, force, wait, forceBackend bool) error {
+	var before int64
+	if wait && force {
+		resp, err := client.GetBinaryStatus(ctx, &pb.GetBinaryStatusRequest{Name: name, ForceBackend: forceBackend})
+		if err != nil {
+			return fmt.Errorf("read %s status: %w", name, err)
+		}
+		before = resp.Status.GetDownloadedTimestampUnix()
+	}
+
 	// DownloadBinary is fire-and-forget on the server — it returns before the
 	// file lands on disk.
 	if _, err := client.DownloadBinary(ctx, &pb.DownloadBinaryRequest{
@@ -958,7 +967,7 @@ func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name
 			return fmt.Errorf("poll %s status: %w", name, err)
 		}
 		s := resp.Status
-		if s.Downloaded {
+		if downloadLanded(s, force, before) {
 			fmt.Printf("%s downloaded\n", name)
 			return nil
 		}
@@ -971,6 +980,15 @@ func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name
 		case <-time.After(2 * time.Second):
 		}
 	}
+}
+
+// downloadLanded reports whether the requested download is on disk. A forced
+// download replaces a file that is already there, so it waits for a new file.
+func downloadLanded(s *pb.BinaryStatusMsg, force bool, before int64) bool {
+	if !s.GetDownloaded() {
+		return false
+	}
+	return !force || s.GetDownloadedTimestampUnix() != before
 }
 
 func readApproval(reader io.Reader, defaultYes bool) (bool, error) {
