@@ -14,6 +14,7 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
@@ -127,7 +128,7 @@ func TestBMMListBidsReadsNoCore(t *testing.T) {
 	original := config.PublishedEndpoints(config.NetworkSignet)
 	t.Cleanup(func() { config.SetNetworkEndpoints(config.NetworkSignet, original) })
 	silent := original
-	silent.Services.Enforcer.URL = "http://127.0.0.1:1"
+	silent.Services.Enforcer = netcatalog.Endpoints{{URL: "http://127.0.0.1:1"}}
 	config.SetNetworkEndpoints(config.NetworkSignet, silent)
 
 	for _, mode := range []orchestrator.NodeMode{orchestrator.NodeModeFull, orchestrator.NodeModeLight} {

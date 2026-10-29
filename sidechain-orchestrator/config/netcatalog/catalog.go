@@ -94,10 +94,8 @@ type Network struct {
 	ExplorerBlockTemplate   string `json:"explorer_block_template"`
 
 	Services struct {
-		Enforcer struct {
-			URL string `json:"url"`
-		} `json:"enforcer"`
-		Faucet struct {
+		Enforcer Endpoints `json:"enforcer"`
+		Faucet   struct {
 			URL             *string `json:"url"`
 			Amount          *int    `json:"amount"`
 			CooldownSeconds *int    `json:"cooldown_seconds"`
@@ -111,6 +109,51 @@ type Network struct {
 	// AssumeUTXO is the published UTXO snapshot for this network, or nil when it
 	// has none. URL points straight at the .dat file.
 	AssumeUTXO *AssumeUTXO `json:"assumeutxo"`
+}
+
+// Endpoint is one published address of a service.
+type Endpoint struct {
+	URL string `json:"url"`
+}
+
+// Endpoints lists the published addresses of a service, preferred first.
+type Endpoints []Endpoint
+
+// URL returns the first address that is set, or an empty string.
+func (e Endpoints) URL() string {
+	for _, endpoint := range e {
+		if endpoint.URL != "" {
+			return endpoint.URL
+		}
+	}
+	return ""
+}
+
+// UnmarshalJSON reads a list, or the single object that documents before
+// 2026-10-29 carry.
+func (e *Endpoints) UnmarshalJSON(raw []byte) error {
+	if trimmed := bytes.TrimSpace(raw); len(trimmed) > 0 && trimmed[0] == '{' {
+		var one struct {
+			URL *string `json:"url"`
+		}
+		if err := json.Unmarshal(trimmed, &one); err != nil {
+			return err
+		}
+		*e = nil
+		if one.URL != nil {
+			*e = Endpoints{{URL: *one.URL}}
+		}
+		return nil
+	}
+	var list []Endpoint
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return err
+	}
+	*e = nil
+	if len(list) > 0 {
+		*e = list
+	}
+	return nil
 }
 
 // MiningPool is the Stratum pool a network publishes. Name, Fee and

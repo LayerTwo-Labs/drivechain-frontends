@@ -21,7 +21,7 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 	const betanetURL = "https://enforcer.beta.ecash.ninja"
 	const signetURL = "https://enforcer.signet.drivechain.info"
 	const ecashURL = "https://seed.ecash.eu.com/enforcer"
-	liveURL := netcatalog.EmbeddedECash().Services.Enforcer.URL
+	liveURL := netcatalog.EmbeddedECash().Services.Enforcer.URL()
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != liveURL {
 		t.Fatalf("initial URL = %q, want %q", got, liveURL)
 	}
@@ -35,10 +35,10 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 	}
 
 	entry := netcatalog.Network{ID: "betanet"}
-	entry.Services.Enforcer.URL = "https://validator.example/enforcer"
+	entry.Services.Enforcer = netcatalog.Endpoints{{URL: "https://validator.example/enforcer"}}
 	SetECashEndpoints(entry)
-	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != entry.Services.Enforcer.URL {
-		t.Fatalf("published URL = %q, want %q", got, entry.Services.Enforcer.URL)
+	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != entry.Services.Enforcer.URL() {
+		t.Fatalf("published URL = %q, want %q", got, entry.Services.Enforcer.URL())
 	}
 	SetECashEndpoints(netcatalog.Network{ID: "gammanet"})
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != "" {
@@ -54,10 +54,10 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 		t.Fatalf("compiled-in signet URL = %q, want %q", got, signetURL)
 	}
 	entry.ID = "signet"
-	entry.Services.Enforcer.URL = "https://signet.example/enforcer"
+	entry.Services.Enforcer = netcatalog.Endpoints{{URL: "https://signet.example/enforcer"}}
 	SetNetworkEndpoints(NetworkSignet, entry)
-	if got := RemoteEnforcerURLForNetwork(NetworkSignet); got != entry.Services.Enforcer.URL {
-		t.Fatalf("signet URL = %q, want %q", got, entry.Services.Enforcer.URL)
+	if got := RemoteEnforcerURLForNetwork(NetworkSignet); got != entry.Services.Enforcer.URL() {
+		t.Fatalf("signet URL = %q, want %q", got, entry.Services.Enforcer.URL())
 	}
 	if got := RemoteEnforcerURLForNetwork(NetworkMainnet); got != "" {
 		t.Fatalf("mainnet used signet URL %q", got)

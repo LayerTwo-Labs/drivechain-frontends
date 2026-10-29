@@ -15,6 +15,7 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	commonpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -76,7 +77,7 @@ func TestListBidsReadsTheEnforcerInBothModes(t *testing.T) {
 			entry := config.ECashEndpoints()
 			t.Cleanup(func() { config.SetECashEndpoints(entry) })
 			remote := entry
-			remote.Services.Enforcer.URL = server.URL
+			remote.Services.Enforcer = netcatalog.Endpoints{{URL: server.URL}}
 			config.SetECashEndpoints(remote)
 			require.NoError(t, orchestrator.WriteNodeMode(orch.BitwindowDir, mode))
 			t.Cleanup(func() { require.NoError(t, orch.SetNodeMode(context.Background(), orchestrator.NodeModeFull)) })

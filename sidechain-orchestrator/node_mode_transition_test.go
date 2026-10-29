@@ -17,7 +17,7 @@ func nodeModeECashFixture(t *testing.T, endpoint string) *Orchestrator {
 	previousID := config.ECashNetworkID()
 	entry, ok := netcatalog.Embedded().ByID("betanet")
 	require.True(t, ok)
-	entry.Services.Enforcer.URL = endpoint
+	entry.Services.Enforcer = netcatalog.Endpoints{{URL: endpoint}}
 	config.SetECashEndpoints(entry)
 	config.SetECashNetworkID(entry.ID)
 	t.Cleanup(func() {
