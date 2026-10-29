@@ -11555,12 +11555,31 @@ class DeriveAddressesResponse extends $pb.GeneratedMessage {
 }
 
 class ListEcxBurnsRequest extends $pb.GeneratedMessage {
-  factory ListEcxBurnsRequest() => create();
+  factory ListEcxBurnsRequest({
+    $core.String? networkId,
+    $core.String? coreUrl,
+    $core.String? coreCookiePath,
+  }) {
+    final $result = create();
+    if (networkId != null) {
+      $result.networkId = networkId;
+    }
+    if (coreUrl != null) {
+      $result.coreUrl = coreUrl;
+    }
+    if (coreCookiePath != null) {
+      $result.coreCookiePath = coreCookiePath;
+    }
+    return $result;
+  }
   ListEcxBurnsRequest._() : super();
   factory ListEcxBurnsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListEcxBurnsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListEcxBurnsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'networkId')
+    ..aOS(2, _omitFieldNames ? '' : 'coreUrl')
+    ..aOS(3, _omitFieldNames ? '' : 'coreCookiePath')
     ..hasRequiredFields = false
   ;
 
@@ -11584,6 +11603,36 @@ class ListEcxBurnsRequest extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static ListEcxBurnsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListEcxBurnsRequest>(create);
   static ListEcxBurnsRequest? _defaultInstance;
+
+  /// Burn network to list, "alphanet" or "betanet". Empty lists the running network.
+  @$pb.TagNumber(1)
+  $core.String get networkId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set networkId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasNetworkId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNetworkId() => clearField(1);
+
+  /// RPC URL of a node on that network. Empty reads the network's esplora server.
+  @$pb.TagNumber(2)
+  $core.String get coreUrl => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set coreUrl($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCoreUrl() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCoreUrl() => clearField(2);
+
+  /// Path to the node's .cookie file.
+  @$pb.TagNumber(3)
+  $core.String get coreCookiePath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set coreCookiePath($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasCoreCookiePath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCoreCookiePath() => clearField(3);
 }
 
 class EcxBurn extends $pb.GeneratedMessage {

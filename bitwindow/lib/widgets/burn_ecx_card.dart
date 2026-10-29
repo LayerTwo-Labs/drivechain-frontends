@@ -282,6 +282,11 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
             variant: ButtonVariant.link,
             onPressed: () => showEcxBurnList(context, networkName: _network!.name, networkId: _context.networkId),
           ),
+          SailButton(
+            label: 'See all Alphanet burns',
+            variant: ButtonVariant.link,
+            onPressed: () => showEcxBurnList(context, networkName: 'Alphanet', networkId: 'alphanet'),
+          ),
         ],
       ),
       SailColumn(
