@@ -1,5 +1,5 @@
 {
-  "version": 28,
+  "version": 29,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -77,10 +77,10 @@
             "subfolder": "{ecash}",
             "base_url": "https://releases.ecash.com/L1-ecash-bitcoin/{ecash}/latest/",
             "files": {
-              "linux-x86_64": "L1-ecash-bitcoin-x86_64-unknown-linux-gnu.zip",
-              "macos-x86_64": "L1-ecash-bitcoin-x86_64-apple-darwin.zip",
-              "macos-arm64": "L1-ecash-bitcoin-aarch64-apple-darwin.zip",
-              "windows-x86_64": "L1-ecash-bitcoin-x86_64-w64-msvc.zip"
+              "linux-x86_64": "L1-ecash-bitcoin-latest-x86_64-unknown-linux-gnu.zip",
+              "macos-x86_64": "L1-ecash-bitcoin-latest-x86_64-apple-darwin.zip",
+              "macos-arm64": "L1-ecash-bitcoin-latest-aarch64-apple-darwin.zip",
+              "windows-x86_64": "L1-ecash-bitcoin-latest-x86_64-w64-msvc.zip"
             },
             "available_networks": ["ecash"]
           },
@@ -197,7 +197,7 @@
         "binary": "bip300301-enforcer",
         "files": {
           "default": {
-            "base_url": "https://releases.drivechain.info/",
+            "base_url": "https://releases.ecash.com/bip300301-enforcer/stable/latest/",
             "linux-x86_64": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
             "macos-x86_64": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
             "macos-arm64": "bip300301-enforcer-latest-aarch64-apple-darwin.zip",

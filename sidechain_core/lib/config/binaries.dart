@@ -692,7 +692,7 @@ class Enforcer extends Binary {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+                 baseUrls: allNetworksUrl('https://releases.ecash.com/bip300301-enforcer/stable/latest/'),
                  binary: 'bip300301-enforcer',
                  files: allNetworks({
                    OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
