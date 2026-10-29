@@ -5,6 +5,12 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// The strip label, for example "ECASH HARDFORK · IN 10 BLOCKS".
+String forkStripLabel(String networkName, int blocksLeft) {
+  final fork = networkName.isEmpty ? 'HARDFORK' : '${networkName.toUpperCase()} HARDFORK';
+  return '$fork · IN $blocksLeft ${blocksLeft == 1 ? 'BLOCK' : 'BLOCKS'}';
+}
+
 /// Pins the [ForkCountdownTimer] strip above [child] on every tab. The strip is
 /// a thin sliver, so it stays put rather than collapsing on scroll; it hides
 /// itself entirely (via [ForkCountdownTimer]) when there's no fork ahead.
@@ -23,7 +29,7 @@ class ForkCountdownHeader extends StatelessWidget {
   }
 }
 
-/// "HARDFORK · T-MINUS" countdown, rendered as a single-line status strip.
+/// "HARDFORK · IN N BLOCKS" countdown, rendered as a single-line status strip.
 /// Visible on every page while the fork is still ahead. The target instant is
 /// held stable by [ForkProvider] (re-anchored only every 10 blocks); this
 /// widget just ticks the local clock down to it once a second, so the
@@ -88,9 +94,7 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
               ),
               const SizedBox(width: 8),
               SailText.secondary12(
-                _fork.networkName.isEmpty
-                    ? 'HARDFORK · T-MINUS'
-                    : '${_fork.networkName.toUpperCase()} HARDFORK · T-MINUS',
+                forkStripLabel(_fork.networkName, _fork.blocksUntilFork),
                 bold: true,
                 color: theme.colors.textSecondary,
               ),
