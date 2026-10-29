@@ -2507,11 +2507,18 @@ final $typed_data.Uint8List deriveAddressesResponseDescriptor = $convert.base64D
 @$core.Deprecated('Use listEcxBurnsRequestDescriptor instead')
 const ListEcxBurnsRequest$json = {
   '1': 'ListEcxBurnsRequest',
+  '2': [
+    {'1': 'network_id', '3': 1, '4': 1, '5': 9, '10': 'networkId'},
+    {'1': 'core_url', '3': 2, '4': 1, '5': 9, '10': 'coreUrl'},
+    {'1': 'core_cookie_path', '3': 3, '4': 1, '5': 9, '10': 'coreCookiePath'},
+  ],
 };
 
 /// Descriptor for `ListEcxBurnsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listEcxBurnsRequestDescriptor = $convert.base64Decode(
-    'ChNMaXN0RWN4QnVybnNSZXF1ZXN0');
+    'ChNMaXN0RWN4QnVybnNSZXF1ZXN0Eh0KCm5ldHdvcmtfaWQYASABKAlSCW5ldHdvcmtJZBIZCg'
+    'hjb3JlX3VybBgCIAEoCVIHY29yZVVybBIoChBjb3JlX2Nvb2tpZV9wYXRoGAMgASgJUg5jb3Jl'
+    'Q29va2llUGF0aA==');
 
 @$core.Deprecated('Use ecxBurnDescriptor instead')
 const EcxBurn$json = {

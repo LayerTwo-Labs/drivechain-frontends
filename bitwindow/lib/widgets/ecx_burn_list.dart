@@ -28,16 +28,32 @@ class EcxBurnList extends StatefulWidget {
   State<EcxBurnList> createState() => _EcxBurnListState();
 }
 
+/// Networks whose burns only a node of their own can list.
+const nodeOnlyBurnNetworks = {'alphanet'};
+
 class _EcxBurnListState extends State<EcxBurnList> {
   final _wallet = GetIt.I.get<OrchestratorRPC>().wallet;
+  final _coreUrl = TextEditingController(text: 'http://127.0.0.1:18302');
+  final _coreCookie = TextEditingController();
   wmpb.ListEcxBurnsResponse? _burns;
   String? _error;
-  bool _loading = true;
+  bool _loading = false;
+
+  bool get _needsNode => nodeOnlyBurnNetworks.contains(widget.networkId);
 
   @override
   void initState() {
     super.initState();
-    _load();
+    if (!_needsNode) {
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    _coreUrl.dispose();
+    _coreCookie.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -46,7 +62,13 @@ class _EcxBurnListState extends State<EcxBurnList> {
       _error = null;
     });
     try {
-      final burns = await _wallet.listEcxBurns();
+      final burns = _needsNode
+          ? await _wallet.listEcxBurns(
+              networkId: widget.networkId,
+              coreUrl: _coreUrl.text.trim(),
+              coreCookiePath: _coreCookie.text.trim(),
+            )
+          : await _wallet.listEcxBurns();
       if (mounted) {
         setState(() => _burns = burns);
       }
@@ -84,6 +106,7 @@ class _EcxBurnListState extends State<EcxBurnList> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SailText.primary24('${widget.networkName} burns', bold: true),
+        if (_needsNode) _NodeForm(url: _coreUrl, cookie: _coreCookie, loading: _loading, onLoad: _load),
         if (_error != null)
           SailCard(
             child: SailColumn(
@@ -95,8 +118,10 @@ class _EcxBurnListState extends State<EcxBurnList> {
               ],
             ),
           )
-        else if (burns == null || _loading)
+        else if (_loading)
           const SailCard(child: Center(child: LoadingIndicator()))
+        else if (burns == null)
+          const SizedBox.shrink()
         else ...[
           _Summary(burns: burns),
           Flexible(
@@ -104,6 +129,48 @@ class _EcxBurnListState extends State<EcxBurnList> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _NodeForm extends StatelessWidget {
+  final TextEditingController url;
+  final TextEditingController cookie;
+  final bool loading;
+  final VoidCallback onLoad;
+
+  const _NodeForm({required this.url, required this.cookie, required this.loading, required this.onLoad});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      child: SailRow(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: SailColumn(
+              spacing: SailStyleValues.padding04,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.secondary12('Node RPC URL', bold: true),
+                SailTextField(controller: url, hintText: 'http://127.0.0.1:18302', monospace: true, maxLines: 1),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SailColumn(
+              spacing: SailStyleValues.padding04,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.secondary12('Cookie file', bold: true),
+                SailTextField(controller: cookie, hintText: '/path/to/.cookie', monospace: true, maxLines: 1),
+              ],
+            ),
+          ),
+          SailButton(label: 'Load', loading: loading, onPressed: () async => onLoad()),
+        ],
+      ),
     );
   }
 }

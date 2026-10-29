@@ -14,8 +14,17 @@ class _FakeRpc implements OrchestratorWalletRPC {
   final responses = <Future<wmpb.ListEcxBurnsResponse> Function()>[];
   int calls = 0;
 
+  final requests = <({String networkId, String coreUrl, String coreCookiePath})>[];
+
   @override
-  Future<wmpb.ListEcxBurnsResponse> listEcxBurns() => responses[calls++]();
+  Future<wmpb.ListEcxBurnsResponse> listEcxBurns({
+    String networkId = '',
+    String coreUrl = '',
+    String coreCookiePath = '',
+  }) {
+    requests.add((networkId: networkId, coreUrl: coreUrl, coreCookiePath: coreCookiePath));
+    return responses[calls++]();
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -134,5 +143,40 @@ void main() {
     pending.complete(_response());
     await tester.pumpAndSettle();
     expect(find.byType(LoadingIndicator), findsNothing);
+  });
+
+  testWidgets('reads alphanet burns from the node the user names', (tester) async {
+    rpc.responses.add(() async => _response());
+    await tester.pumpSailPage(
+      const SizedBox(
+        width: 1200,
+        height: 900,
+        child: EcxBurnList(networkName: 'Alphanet', networkId: 'alphanet'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alphanet burns'), findsOneWidget);
+    expect(rpc.calls, 0, reason: 'nothing loads before the user names a node');
+
+    await tester.enterText(find.byType(TextField).at(1), '/data/alphanet/.cookie');
+    await tester.tap(find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'Load'));
+    await tester.pumpAndSettle();
+
+    expect(rpc.requests.single, (
+      networkId: 'alphanet',
+      coreUrl: 'http://127.0.0.1:18302',
+      coreCookiePath: '/data/alphanet/.cookie',
+    ));
+    expect(find.text('2 burns · newest first'), findsOneWidget);
+  });
+
+  testWidgets('lists the running network without a node', (tester) async {
+    rpc.responses.add(() async => _response());
+    await pumpList(tester);
+    await tester.pumpAndSettle();
+
+    expect(rpc.requests.single, (networkId: '', coreUrl: '', coreCookiePath: ''));
+    expect(find.text('Node RPC URL'), findsNothing);
   });
 }

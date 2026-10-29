@@ -336,8 +336,14 @@ class OrchestratorWalletRPC {
     );
   }
 
-  Future<wmpb.ListEcxBurnsResponse> listEcxBurns() {
-    return _unaryClient.listEcxBurns(wmpb.ListEcxBurnsRequest());
+  Future<wmpb.ListEcxBurnsResponse> listEcxBurns({
+    String networkId = '',
+    String coreUrl = '',
+    String coreCookiePath = '',
+  }) {
+    return _unaryClient.listEcxBurns(
+      wmpb.ListEcxBurnsRequest(networkId: networkId, coreUrl: coreUrl, coreCookiePath: coreCookiePath),
+    );
   }
 
   Future<wmpb.SendTransactionResponse> sendTransaction({
