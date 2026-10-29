@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eCash Difficulty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: Base app asset page. Fixed sidebar, one centered column of cards. */
+:root {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --line: #eef0f3;
+  --hover: #f5f6f8;
+  --fg: #0a0b0d;
+  --muted: #5b616e;
+  --faint: #a1a6b0;
+  --blue: #0052ff;
+  --blue-fill: rgba(0, 82, 255, 0.10);
+  --green: #098551;
+  --red: #cf202f;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0b0d; --card: #141519; --line: #26292f; --hover: #1c1e23;
+    --fg: #ffffff; --muted: #8a919e; --faint: #5b616e;
+    --blue: #3773f5; --blue-fill: rgba(55, 115, 245, 0.16);
+    --green: #27ad75; --red: #f0616d;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.4 var(--font); font-variant-numeric: tabular-nums; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.side { position: fixed; inset: 0 auto 0 0; width: 300px; padding: 28px 16px 24px; display: flex; flex-direction: column; gap: 32px; }
+.logo { display: flex; align-items: center; gap: 12px; padding: 0 8px; font-weight: 700; font-size: 26px; letter-spacing: -0.02em; }
+.logo-mark { width: 40px; height: 40px; border-radius: 10px; background: var(--blue); display: grid; place-items: center; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav a { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 16px; font-size: 18px; color: var(--muted); }
+.nav a:hover { background: var(--hover); }
+.nav a.on { background: var(--hover); color: var(--fg); font-weight: 500; }
+.nav svg { width: 24px; height: 24px; flex: none; }
+.side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 16px; }
+.promo { border-radius: 16px; overflow: hidden; background: var(--hover); }
+.promo-art { height: 110px; background: linear-gradient(135deg, #3c8cff, #0052ff 60%, #0036b0); position: relative; }
+.promo-art svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.promo-text { padding: 12px 16px 14px; font-size: 15px; }
+.promo-text small { display: block; color: var(--muted); font-size: 13px; }
+.who { display: flex; align-items: center; gap: 12px; padding: 4px 12px; font-size: 18px; font-weight: 500; }
+.dot { width: 40px; height: 40px; border-radius: 50%; background: var(--green); display: grid; place-items: center; }
+.dot i { width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+.dot.stale { background: var(--red); }
+
+.fab { position: fixed; top: 28px; right: 28px; width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center; }
+.fab svg { width: 24px; height: 24px; }
+.fab.spin svg { animation: spin 0.8s linear; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+main { margin-left: 300px; padding: 104px 32px 80px; }
+.col { max-width: 792px; margin: 0 auto; display: flex; flex-direction: column; }
+.title { display: flex; align-items: center; gap: 14px; font-size: 26px; font-weight: 500; margin: 0 0 32px; }
+.title .coin { width: 34px; height: 34px; }
+.title span { color: var(--faint); }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 32px; box-shadow: 0 1px 2px rgba(10, 11, 13, 0.03); }
+.chart-card { padding: 28px 30px 22px; }
+.big { display: flex; align-items: center; gap: 18px; }
+.big b { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; }
+.big svg { width: 14px; height: 14px; color: var(--muted); }
+.chg { font-size: 17px; font-weight: 500; }
+.chg em { font-style: normal; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.up, .two small.up { color: var(--green); }
+.down, .two small.down { color: var(--red); }
+.sub { display: flex; flex-wrap: wrap; gap: 4px 20px; color: var(--muted); font-size: 17px; margin-top: 6px; }
+.plot { position: relative; margin: 34px -30px 0; }
+.plot svg { display: block; width: 100%; height: 330px; }
+.axis-x { display: flex; justify-content: space-between; color: var(--faint); font-size: 14px; padding: 4px 40px 0; }
+.ranges { display: flex; align-items: center; gap: 8px; margin-top: 22px; }
+.ranges .r { flex: 1; display: flex; justify-content: space-between; }
+.ranges button { padding: 8px 14px; border-radius: 999px; color: var(--muted); font-size: 17px; font-weight: 500; }
+.ranges button.on { background: var(--hover); color: var(--fg); }
+.split { width: 1px; height: 28px; background: var(--line); margin: 0 6px; }
+.toggle { display: flex; background: var(--hover); border-radius: 999px; padding: 4px; }
+.toggle button { width: 58px; height: 36px; border-radius: 999px; display: grid; place-items: center; color: var(--muted); }
+.toggle button.on { background: var(--card); color: var(--fg); box-shadow: 0 1px 3px rgba(10, 11, 13, 0.08); }
+.toggle svg { width: 18px; height: 18px; }
+
+h2 { font-size: 26px; font-weight: 500; margin: 64px 0 22px; }
+.rows .row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 30px; border-top: 1px solid var(--line); font-size: 19px; }
+.rows .row:first-child { border-top: 0; }
+.rows .row > :first-child { color: var(--muted); }
+.rows .row > :last-child { text-align: right; }
+.rows .head { padding: 28px 30px; }
+.rows .head > :first-child { color: var(--fg); display: flex; align-items: center; gap: 16px; }
+.head .ico { width: 50px; height: 50px; border-radius: 50%; background: var(--blue); display: grid; place-items: center; color: #fff; flex: none; }
+.head .ico svg { width: 24px; height: 24px; }
+.two { display: flex; flex-direction: column; gap: 2px; }
+.two small { color: var(--muted); font-size: 17px; }
+.rows .row > :last-child small { display: block; }
+
+.table { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 17px; }
+th { text-align: right; font-weight: 500; color: var(--muted); padding: 22px 30px 12px; font-size: 15px; }
+td { text-align: right; padding: 16px 30px; border-top: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+.pill { display: inline-block; font-size: 13px; padding: 2px 8px; border-radius: 999px; background: var(--hover); color: var(--muted); margin-left: 8px; }
+.note { color: var(--faint); font-size: 14px; margin-top: 16px; }
+.err { color: var(--red); font-size: 15px; margin-top: 8px; }
+
+@media (max-width: 1100px) {
+  .side { position: static; width: auto; flex-direction: row; align-items: center; padding: 16px max(16px, env(safe-area-inset-left)) 0; }
+  .nav, .side-foot { display: none; }
+  .fab { top: 16px; right: max(16px, env(safe-area-inset-right)); width: 44px; height: 44px; }
+  main { margin-left: 0; padding: 32px max(16px, env(safe-area-inset-right)) 64px max(16px, env(safe-area-inset-left)); }
+}
+@media (max-width: 600px) {
+  .logo { font-size: 20px; }
+  .chart-card { padding: 22px 18px; }
+  .plot { margin: 24px -18px 0; }
+  .plot svg { height: 240px; }
+  .big b { font-size: 32px; }
+  .rows .row, .rows .head { padding: 16px 18px; font-size: 16px; }
+  th, td { padding-left: 18px; padding-right: 18px; }
+  .ranges button { padding: 6px 8px; font-size: 15px; }
+  .toggle button { width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .fab.spin svg { animation: none; } }
+</style>
+</head>
+<body>
+<aside class="side">
+  <div class="logo">
+    <span class="logo-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 18 L9 11 L13 14 L20 5"/></svg></span>
+    eCash Difficulty
+  </div>
+  <nav class="nav" aria-label="Sections">
+    <a href="#top" class="on"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Overview</a>
+    <a href="#next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11z"/></svg>Next adjustment</a>
+    <a href="#retargets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Retargets</a>
+    <a href="#blocks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>Latest blocks</a>
+  </nav>
+  <div class="side-foot">
+    <div class="promo">
+      <div class="promo-art"><svg viewBox="0 0 268 110" preserveAspectRatio="none" fill="none"><path d="M0 92 C40 90 60 70 90 72 S150 40 180 46 230 18 268 10" stroke="#fff" stroke-opacity=".9" stroke-width="3"/><circle cx="180" cy="46" r="6" fill="#fff"/></svg></div>
+      <div class="promo-text">Live from the eCash node<small>seed.ecash.eu.com, every second</small></div>
+    </div>
+    <div class="who"><span class="dot" id="live"><i></i></span><span id="who-tip">Block –</span></div>
+  </div>
+</aside>
+<button class="fab" id="refresh" aria-label="Refresh now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"/></svg></button>
+
+<main id="top">
+  <div class="col">
+    <h1 class="title">
+      <svg class="coin" viewBox="0 0 34 34"><circle cx="17" cy="17" r="17" fill="var(--blue)"/><path d="M10 22 L15 15 L19 18 L25 10" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>
+      Difficulty <span>ECX</span>
+    </h1>
+
+    <section class="card chart-card" aria-label="Difficulty chart">
+      <div class="big">
+        <b id="big">–</b>
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5.5 7 2.5l3 3M4 8.5l3 3 3-3"/></svg>
+        <span class="chg" id="big-chg"></span>
+      </div>
+      <div class="sub" id="sub"></div>
+      <div class="err" id="err" hidden></div>
+      <div class="plot">
+        <svg id="plot" viewBox="0 0 792 330" preserveAspectRatio="none" role="img" aria-label="Chart"></svg>
+        <div class="axis-x"><span id="x0"></span><span id="x1"></span></div>
+      </div>
+      <div class="ranges">
+        <div class="r" id="ranges"></div>
+        <span class="split"></span>
+        <div class="toggle" role="group" aria-label="Chart">
+          <button id="mode-diff" class="on" aria-label="Difficulty"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2v14h14"/><path d="m5 11 3-3 2 2 5-5"/></svg></button>
+          <button id="mode-time" aria-label="Block time"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="9" cy="9" r="7"/><path d="M9 5v4l2.5 1.5"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <h2 id="next">Next adjustment</h2>
+    <section class="card rows" id="next-rows"></section>
+
+    <h2>Ten-minute blocks</h2>
+    <section class="card rows" id="target-rows"></section>
+    <p class="note">Projection holds the hashrate of the last 288 blocks constant. Each retarget moves the target one seventh toward the measured window, and a window shorter than a quarter of 48 hours counts as a quarter.</p>
+
+    <h2 id="retargets">Retargets</h2>
+    <section class="card table"><table id="periods"></table></section>
+
+    <h2 id="blocks">Latest blocks</h2>
+    <section class="card table"><table id="recent"></table></section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = null;
+let mode = "diff";
+let range = { diff: "5", time: "288" };
+
+const si = (v, unit = "") => {
+  const p = ["", "K", "M", "G", "T", "P", "E", "Z"];
+  let i = 0;
+  while (Math.abs(v) >= 1000 && i < p.length - 1) { v /= 1000; i++; }
+  return v.toFixed(2) + p[i] + unit;
+};
+const num = (n) => n.toLocaleString("en-US");
+const pct = (p) => (p >= 0 ? "+" : "") + p.toFixed(2) + "%";
+const secs = (s) => {
+  s = Math.max(0, Math.round(s));
+  if (s < 90) return s + " s";
+  if (s < 5400) return Math.round(s / 60) + " min";
+  if (s < 172800) return (s / 3600).toFixed(1) + " h";
+  return (s / 86400).toFixed(1) + " days";
+};
+const blockTime = (s) => (s < 90 ? s.toFixed(1) + " s" : secs(s));
+const when = (unix) => new Date(unix * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const cls = (p) => (p >= 0 ? "up" : "down");
+
+function rangesFor(m) {
+  return m === "diff"
+    ? [["actual", "Actual"], ["5", "Next 5"], ["all", "To 10 min"]]
+    : [["50", "50 blocks"], ["144", "144 blocks"], ["288", "288 blocks"]];
+}
+
+function drawRanges() {
+  $("ranges").replaceChildren(...rangesFor(mode).map(([k, label]) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.className = range[mode] === k ? "on" : "";
+    b.onclick = () => { range[mode] = k; drawRanges(); drawChart(); };
+    return b;
+  }));
+}
+
+function series() {
+  if (!state) return { pts: [], dashFrom: null, fmt: si, x0: "", x1: "" };
+  if (mode === "time") {
+    const n = Number(range.time);
+    const blocks = state.blocks.filter((b) => b.interval > 0).slice(-n);
+    const pts = blocks.map((b, i) => {
+      const w = blocks.slice(Math.max(0, i - 9), i + 1);
+      return [b.height, w.reduce((a, x) => a + x.interval, 0) / w.length];
+    });
+    return {
+      pts, dashFrom: null, fmt: (v) => blockTime(v),
+      x0: blocks.length ? "Block " + num(blocks[0].height) : "",
+      x1: blocks.length ? "Block " + num(blocks[blocks.length - 1].height) : "",
+    };
+  }
+  const pts = [];
+  for (const p of state.periods) pts.push([p.start, p.difficulty]);
+  pts.push([state.tip.height, state.difficulty]);
+  const dashFrom = pts.length - 1;
+  if (range.diff !== "actual") {
+    const up = range.diff === "5" ? state.upcoming.slice(0, 5) : state.upcoming;
+    for (const s of up) pts.push([s.height, s.difficulty]);
+  }
+  const last = pts[pts.length - 1];
+  return {
+    pts, dashFrom: range.diff === "actual" ? null : dashFrom, fmt: si,
+    x0: "Block " + num(state.fork),
+    x1: "Block " + num(last[0]),
+  };
+}
+
+function drawChart() {
+  const svg = $("plot");
+  const W = 792, H = 330, padR = 96, padT = 24, padB = 16;
+  const { pts, dashFrom, fmt, x0, x1 } = series();
+  $("x0").textContent = x0;
+  $("x1").textContent = x1;
+  if (pts.length < 2) { svg.innerHTML = ""; return; }
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const ymin = Math.min(...ys), ymax = Math.max(...ys);
+  const ylo = mode === "diff" ? 0 : ymin * 0.9, yhi = ymax * 1.08;
+  const X = (x) => ((x - xmin) / Math.max(1, xmax - xmin)) * (W - padR);
+  const Y = (y) => padT + (1 - (y - ylo) / Math.max(1e-9, yhi - ylo)) * (H - padT - padB);
+  const step = mode === "diff";
+  const path = (from, to) => {
+    let d = "";
+    for (let i = from; i <= to; i++) {
+      const [x, y] = pts[i];
+      if (i === from) d += `M${X(x).toFixed(1)},${Y(y).toFixed(1)}`;
+      else if (step) d += `H${X(x).toFixed(1)}V${Y(y).toFixed(1)}`;
+      else d += `L${X(x).toFixed(1)},${Y(y).toFixed(1)}`;
+    }
+    return d;
+  };
+  const solidEnd = dashFrom ?? pts.length - 1;
+  const solid = path(0, solidEnd);
+  const area = `${solid}V${H}H${X(pts[0][0]).toFixed(1)}Z`;
+  const labels = [0, 1, 2, 3].map((i) => {
+    const v = yhi - ((yhi - ylo) * (i + 0.5)) / 4;
+    return `<text x="${W - 14}" y="${Y(v) + 5}" text-anchor="end" fill="var(--faint)" font-size="14">${fmt(v)}</text>`;
+  }).join("");
+  const dashed = dashFrom != null ? `<path d="${path(dashFrom, pts.length - 1)}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-dasharray="6 6" stroke-opacity=".6"/>` : "";
+  const end = pts[solidEnd];
+  svg.innerHTML = `
+    <defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--blue)" stop-opacity=".14"/><stop offset="1" stop-color="var(--blue)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#fill)"/>
+    <path d="${solid}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${dashed}
+    <circle cx="${X(end[0])}" cy="${Y(end[1])}" r="5" fill="var(--blue)" stroke="var(--card)" stroke-width="2"/>
+    ${labels}`;
+}
+
+function row(label, value) {
+  return `<div class="row"><span>${label}</span><span>${value}</span></div>`;
+}
+
+function render() {
+  const s = state;
+  $("err").hidden = !s.error;
+  $("err").textContent = s.error ? "Node read failed: " + s.error : "";
+  $("who-tip").textContent = "Block " + num(s.tip.height);
+  $("live").classList.toggle("stale", !!s.error);
+  if (s.blocksToFork > 0) {
+    $("big").textContent = si(s.difficulty);
+    $("big-chg").textContent = "";
+    $("sub").innerHTML = `<span>Block ${num(s.tip.height)}</span><span>Fork in ${num(s.blocksToFork)} blocks</span>`;
+    drawChart();
+    return;
+  }
+  $("big").textContent = si(s.difficulty);
+  $("big-chg").innerHTML = `${pct(s.next.changePct)}<em>in ${num(s.next.blocksLeft)} blocks</em>`;
+  $("big-chg").className = "chg " + cls(s.next.changePct);
+  $("sub").innerHTML = `<span>Block ${num(s.tip.height)}</span><span>Avg block ${blockTime(s.avgBlockTime)}</span><span>Hashrate ${si(s.hashrate, "H/s")}</span>`;
+  drawChart();
+
+  const n = s.next;
+  $("next-rows").innerHTML = `
+    <div class="row head">
+      <span><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17 9 11l4 3 7-8"/></svg></span>
+        <span class="two">Block ${num(n.height)}<small>in ${num(n.blocksLeft)} blocks · about ${secs(n.etaSeconds)}</small></span></span>
+      <span class="two">${si(n.difficulty)}<small class="${cls(n.changePct)}">${pct(n.changePct)}</small></span>
+    </div>
+    ${row("Window", `${num(n.windowStart)} to ${num(n.height - 1)}`)}
+    ${row("Window so far", secs(n.elapsed))}
+    ${row("Projected window", `${secs(n.projectedTimespan)} of 48 h`)}
+    ${row("Change limit", n.limit === "up" ? "At the +12% maximum" : n.limit === "down" ? "At the −30% maximum" : "Inside the limit")}`;
+
+  const t = s.targetReached;
+  const up = s.upcoming.slice(0, 5).map((u) => row(`Block ${num(u.height)}`,
+    `${si(u.difficulty)} <span class="${cls(u.changePct)}">${pct(u.changePct)}</span><small>${blockTime(u.blockTime)} blocks · ${secs(u.etaSeconds)}</small>`)).join("");
+  $("target-rows").innerHTML = (t ? `
+    <div class="row head">
+      <span><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
+        <span class="two">Block ${num(t.height)}<small>after ${num(s.upcoming.length)} retargets</small></span></span>
+      <span class="two">about ${secs(t.etaSeconds)}<small>${blockTime(t.blockTime)} blocks</small></span>
+    </div>` : "") + up;
+
+  $("periods").innerHTML = `<tr><th>From block</th><th>Difficulty</th><th>Change</th><th>Window</th><th>Avg block</th></tr>` +
+    s.periods.slice().reverse().map((p) => `<tr>
+      <td>${num(p.start)}${p.complete ? "" : '<span class="pill">Open</span>'}${p.start === s.fork ? '<span class="pill">Fork</span>' : ""}</td>
+      <td>${si(p.difficulty)}</td>
+      <td class="${p.start === s.fork ? "" : cls(p.changePct)}">${p.start === s.fork ? "Reset" : pct(p.changePct)}</td>
+      <td>${secs(p.timespan)}</td>
+      <td>${blockTime(p.avgBlockTime)}</td></tr>`).join("");
+
+  $("recent").innerHTML = `<tr><th>Block</th><th>Time</th><th>Since previous</th></tr>` +
+    s.blocks.slice(-10).reverse().map((b) => `<tr><td>${num(b.height)}</td><td>${when(b.time)}</td><td>${b.interval ? blockTime(b.interval) : "–"}</td></tr>`).join("");
+}
+
+async function load() {
+  const fab = $("refresh");
+  fab.classList.remove("spin"); void fab.offsetWidth; fab.classList.add("spin");
+  try {
+    const r = await fetch("api/state", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status + " " + r.statusText);
+    state = await r.json();
+    render();
+  } catch (e) {
+    $("err").hidden = false;
+    $("err").textContent = "Cannot reach the dashboard server: " + e.message;
+    $("live").classList.add("stale");
+  }
+}
+
+$("mode-diff").onclick = () => { mode = "diff"; $("mode-diff").classList.add("on"); $("mode-time").classList.remove("on"); drawRanges(); drawChart(); };
+$("mode-time").onclick = () => { mode = "time"; $("mode-time").classList.add("on"); $("mode-diff").classList.remove("on"); drawRanges(); drawChart(); };
+$("refresh").onclick = load;
+drawRanges();
+load();
+setInterval(load, 1000);
+</script>
+</body>
+</html>
