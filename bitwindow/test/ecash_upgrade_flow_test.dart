@@ -685,6 +685,47 @@ void main() {
     await _flush(tester);
   });
 
+  testWidgets('a banner read in an earlier start comes back once', (tester) async {
+    conf.ecashNetworkId = 'betanet';
+    rpc.pending = pb.GetPendingNetworkGenerationResponse(currentNetworkId: 'betanet', pendingNetworkId: 'ecash');
+    notices.add(
+      id: 'ecash-upgrade-ecash',
+      title: 'ecash is out',
+      content: 'Switch here →',
+      dialogType: DialogType.info,
+      style: NotificationStyle.banner,
+      action: ecashUpgradeAction,
+    );
+    await notices.markRead('ecash-upgrade-ecash');
+
+    final watcher = await showBanner(tester);
+    expect(find.text('ecash is out'), findsOneWidget);
+
+    await notices.markRead('ecash-upgrade-ecash');
+    await tester.pump(const Duration(seconds: 15));
+    await _flush(tester);
+    expect(find.text('ecash is out'), findsNothing, reason: 'a dismissal holds for the rest of the start');
+    watcher.dispose();
+  });
+
+  testWidgets('a retired banner comes back when the upgrade returns', (tester) async {
+    conf.ecashNetworkId = 'betanet';
+    rpc.pending = pb.GetPendingNetworkGenerationResponse(currentNetworkId: 'betanet', pendingNetworkId: 'ecash');
+    final watcher = await showBanner(tester);
+    expect(find.text('ecash is out'), findsOneWidget);
+
+    rpc.pending = pb.GetPendingNetworkGenerationResponse(currentNetworkId: 'betanet');
+    await tester.pump(const Duration(seconds: 15));
+    await _flush(tester);
+    expect(find.text('ecash is out'), findsNothing);
+
+    rpc.pending = pb.GetPendingNetworkGenerationResponse(currentNetworkId: 'betanet', pendingNetworkId: 'ecash');
+    await tester.pump(const Duration(seconds: 15));
+    await _flush(tester);
+    expect(find.text('ecash is out'), findsOneWidget);
+    watcher.dispose();
+  });
+
   testWidgets('settings shows an empty state when no upgrade or saved job exists', (tester) async {
     rpc.pending = pb.GetPendingNetworkGenerationResponse(currentNetworkId: 'alphanet');
     await tester.pumpSailPage(const SettingsNetwork());

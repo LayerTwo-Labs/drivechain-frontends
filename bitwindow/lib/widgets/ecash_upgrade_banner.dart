@@ -115,6 +115,10 @@ class ECashUpgradeWatcher {
   Timer? _poll;
   String? _statusErrorId;
 
+  /// Upgrade banners offered since this start. A banner the user dismissed
+  /// stays down until the next start, and no longer stays down for good.
+  final _offered = <String>{};
+
   void dispose() => _poll?.cancel();
 
   Future<void> _check() async {
@@ -206,16 +210,24 @@ class ECashUpgradeWatcher {
       return; // Orchestrator not up yet; the next tick retries.
     }
     if (pending.pendingNetworkId.isEmpty) {
-      // Upgraded some other way, e.g. the settings network selector. Retire the
-      // banner rather than keep advertising a network already installed.
-      for (final stale in provider.history.where((n) => n.id.startsWith(_bannerIdPrefix) && !n.read).toList()) {
-        await provider.markRead(stale.id);
+      // Upgraded some other way, e.g. the settings network selector. Forget the
+      // banner, so the offer can come back if the backend reports it again.
+      for (final stale in provider.history.where((n) => n.id.startsWith(_bannerIdPrefix)).toList()) {
+        await provider.forget(stale.id);
       }
       return;
     }
 
+    final id = '$_bannerIdPrefix${pending.pendingNetworkId}';
+    // The history loads after start; an offer used on an empty one stays down.
+    if (!provider.loaded) {
+      await provider.ready;
+    }
+    if (_offered.add(id) && provider.history.any((n) => n.id == id && n.read)) {
+      await provider.forget(id);
+    }
     provider.add(
-      id: '$_bannerIdPrefix${pending.pendingNetworkId}',
+      id: id,
       title: '${pending.pendingNetworkId} is out',
       content: 'Switch here →',
       dialogType: DialogType.info,
