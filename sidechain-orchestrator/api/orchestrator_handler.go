@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"strings"
 	"time"
@@ -66,10 +68,13 @@ func (h *Handler) GetBinaryStatus(ctx context.Context, req *pb.GetBinaryStatusRe
 
 func (h *Handler) GetBinaryVersion(ctx context.Context, req *pb.GetBinaryVersionRequest) (*pb.GetBinaryVersionResponse, error) {
 	version, binPath, isTest, err := h.orch.BinaryVersion(req.Name, req.ForceBackend)
+	if errors.Is(err, fs.ErrNotExist) {
+		return &pb.GetBinaryVersionResponse{
+			Version:    "Not installed",
+			BinaryPath: binPath,
+		}, nil
+	}
 	if err != nil {
-		// Not-installed-yet is the common case for sidechains the user hasn't
-		// downloaded; surface it as a value, not a transport error, so the
-		// modal can render it plainly.
 		return &pb.GetBinaryVersionResponse{
 			Version:    fmt.Sprintf("Error: %v", err),
 			BinaryPath: binPath,
