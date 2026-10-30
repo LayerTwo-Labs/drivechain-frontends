@@ -13,7 +13,7 @@ require (
 	github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator v0.0.0-20260401154321-d019aef317bb
 	github.com/LayerTwo-Labs/sidesail/sqlitemigrate v0.0.0
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633
+	github.com/barebitcoin/btc-buf v0.0.0-20260904175807-6294f598fc0f
 	github.com/brianvoe/gofakeit/v7 v7.18.0
 	github.com/btcsuite/btcd v0.25.0
 	github.com/btcsuite/btcd/btcec/v2 v2.5.1
@@ -57,11 +57,11 @@ require (
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/tidwall/match v1.2.0 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
