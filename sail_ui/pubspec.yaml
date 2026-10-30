@@ -13,6 +13,11 @@ dependencies:
   auto_updater: ^1.0.0
   collection: ^1.19.1
   connectrpc: 1.0.0
+  desktop_multi_window:
+    git:
+      url: https://github.com/octobocto/flutter-plugins.git
+      ref: b9a9f5684eb1c81e203d17efef2915e183b05e9e
+      path: packages/desktop_multi_window
   file_picker: ^13.3.0
   fixnum: ^1.1.1
   flutter:
