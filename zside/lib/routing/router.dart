@@ -1,29 +1,13 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:sail_ui/pages/router.gr.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:zside/main.dart' show bootBinaries;
-import 'package:zside/pages/tabs/home_page.dart';
-import 'package:zside/pages/tabs/settings/settings_tab.dart';
+import 'package:sail_ui/shell/shell.dart';
 import 'package:zside/pages/tabs/zside/zside_bill_page.dart';
 import 'package:zside/pages/tabs/zside/zside_melt_cast_page.dart';
 import 'package:zside/pages/tabs/zside/zside_shield_deshield_page.dart';
 import 'package:zside/pages/tabs/zside/zside_transfer_page.dart';
-import 'package:zside/pages/tabs/zside_configure_homepage_page.dart';
-import 'package:zside/pages/tabs/zside_homepage.dart';
+import 'package:zside/zside_module.dart';
 
 part 'router.gr.dart';
 
-/* In this Router, all of the app routes are defined. Router code is auto-generated.
-*  In replaceInRouteName we replace the Page suffix with Route in all generated
-*  routes. e.g: The annotated HomePage class will be generated as HomeRoute. HomeRoute
-*  is the component you route to.
-*
-*  Use the [watch] flag to watch the files' system for edits and rebuild as necessary.
-*  $ dart run build_runner watch
-*  if you want the generator to run one time and exit, use
-*  $ dart run build_runner build  --delete-conflicting-outputs
-
-*/
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
 class AppRouter extends RootStackRouter {
   AppRouter();
@@ -31,91 +15,16 @@ class AppRouter extends RootStackRouter {
   @override
   RouteType get defaultRouteType => const RouteType.adaptive();
 
-  // IMPORTANT: Update enum Tabs in home_page.dart when updating here,
-  // routes should match exactly
   @override
-  List<AutoRoute> get routes => [
-    AutoRoute(
-      page: HomeRoute.page,
-      initial: true,
-      guards: [
-        NetworkGuard(),
-        WalletGuard(
-          createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
-            homeRoute: const HomeRoute(),
-            onWalletCreated: onWalletCreated,
-            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
-              bootBinaries: (log) async => bootBinaries(log),
-              binariesToStop: [BitcoinCore(), Enforcer(), ZSide()],
-            ),
-          ),
-        ),
-        PasswordGuard(),
-      ],
-      children: [
-        AutoRoute(
-          page: ParentChainRoute.page,
-        ),
-        AutoRoute(
-          page: ExplorerRoute.page,
-        ),
-        AutoRoute(
-          page: BmmRoute.page,
-        ),
-        AutoRoute(
-          page: ZSideHomepageRoute.page,
-          initial: true,
-        ),
-        AutoRoute(
-          page: ZSideMeltCastTabRoute.page,
-        ),
-        AutoRoute(
-          page: ZSideShieldDeshieldTabRoute.page,
-        ),
-        AutoRoute(
-          page: ZSideTransferTabRoute.page,
-        ),
-        AutoRoute(
-          page: ConsoleTabRoute.page,
-        ),
-        AutoRoute(
-          page: SettingsTabRoute.page,
-        ),
-      ],
-    ),
-    AutoRoute(
-      page: ZSideConfigureHomepageRoute.page,
-    ),
-    AutoRoute(
-      page: ZSideBillRoute.page,
-    ),
-    AutoRoute(
-      page: LogRoute.page,
-    ),
-    AutoRoute(
-      page: ShutDownRoute.page,
-    ),
-    AutoRoute(
-      page: UnlockWalletRoute.page,
-    ),
-    AutoRoute(
-      page: SailCreateWalletRoute.page,
-    ),
-    AutoRoute(
-      page: BackupWalletRoute.page,
-    ),
-    AutoRoute(
-      page: RestoreWalletRoute.page,
-    ),
-    AutoRoute(
-      page: BitcoinConfEditorRoute.page,
-    ),
-    AutoRoute(
-      page: EnforcerConfEditorRoute.page,
-    ),
-
-    /// This route is used in tests so that we can pump a widget into a route
-    /// and use the real router for our test
-    AutoRoute(page: SailTestRoute.page),
-  ];
+  List<AutoRoute> get routes => sidechainShellRoutes(
+    ZSideModule(),
+    chainTabs: [
+      AutoRoute(page: ZSideMeltCastTabRoute.page),
+      AutoRoute(page: ZSideShieldDeshieldTabRoute.page),
+      AutoRoute(page: ZSideTransferTabRoute.page),
+    ],
+    chainPages: [
+      AutoRoute(page: ZSideBillRoute.page),
+    ],
+  );
 }
