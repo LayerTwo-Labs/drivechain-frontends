@@ -10,6 +10,7 @@ class _FakeStratum implements OrchestratorStratumRPC {
   GetStratumStatusResponse next = GetStratumStatusResponse();
   Future<GetStratumStatusResponse>? pending;
   Target? target;
+  double? minDifficulty;
 
   @override
   Future<GetStratumStatusResponse> status() => pending ?? Future.value(next);
@@ -20,6 +21,17 @@ class _FakeStratum implements OrchestratorStratumRPC {
   @override
   Future<void> setTarget(Target target) async {
     this.target = target;
+  }
+
+  @override
+  Future<void> setMiningSettings({
+    int? port,
+    bool? cpuMining,
+    int? cpuThreads,
+    bool? keepMiningOnClose,
+    double? minDifficulty,
+  }) async {
+    this.minDifficulty = minDifficulty;
   }
 
   @override
@@ -103,6 +115,12 @@ void main() {
       await Future.wait([first, second]);
 
       expect(provider.status.port, 2);
+    });
+
+    test('a minimum difficulty goes to the server', () async {
+      final provider = StratumProvider();
+      await provider.setMiningSettings(minDifficulty: 500000);
+      expect(stratum.minDifficulty, 500000);
     });
 
     test('a failed read keeps the last status', () async {

@@ -106,12 +106,19 @@ class StratumProvider extends ChangeNotifier {
     await refresh();
   }
 
-  Future<void> setMiningSettings({int? port, bool? cpuMining, int? cpuThreads, bool? keepMiningOnClose}) async {
+  Future<void> setMiningSettings({
+    int? port,
+    bool? cpuMining,
+    int? cpuThreads,
+    bool? keepMiningOnClose,
+    double? minDifficulty,
+  }) async {
     await _rpc.setMiningSettings(
       port: port,
       cpuMining: cpuMining,
       cpuThreads: cpuThreads,
       keepMiningOnClose: keepMiningOnClose,
+      minDifficulty: minDifficulty,
     );
     await refresh();
   }

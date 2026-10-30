@@ -38,12 +38,19 @@ class _FakeStratum implements OrchestratorStratumRPC {
   Future<ListPoolBlocksResponse> listPoolBlocks({int limit = 0}) async => blocks;
 
   @override
-  Future<void> setMiningSettings({int? port, bool? cpuMining, int? cpuThreads, bool? keepMiningOnClose}) async {
+  Future<void> setMiningSettings({
+    int? port,
+    bool? cpuMining,
+    int? cpuThreads,
+    bool? keepMiningOnClose,
+    double? minDifficulty,
+  }) async {
     saved = SetMiningSettingsRequest(
       port: port,
       cpuMining: cpuMining,
       cpuThreads: cpuThreads,
       keepMiningOnClose: keepMiningOnClose,
+      minDifficulty: minDifficulty,
     );
   }
 
@@ -211,7 +218,9 @@ void main() {
   testWidgets('the settings dialog saves every field', (tester) async {
     await GetIt.I.reset();
     final stratum = _FakeStratum();
-    stratum.next = GetStratumStatusResponse(settings: MiningSettings(port: 3333, cpuThreads: 4));
+    stratum.next = GetStratumStatusResponse(
+      settings: MiningSettings(port: 3333, cpuThreads: 4, minDifficulty: 65536),
+    );
     GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator(stratum));
     final provider = StratumProvider();
     GetIt.I.registerSingleton<StratumProvider>(provider);
@@ -223,6 +232,7 @@ void main() {
     expect(find.text('Mine with this computer'), findsOneWidget);
     expect(find.text('CPU threads'), findsOneWidget);
     expect(find.text('Keep mining when bitwindow closes'), findsOneWidget);
+    expect(find.text('Minimum difficulty'), findsOneWidget);
 
     await tester.tap(find.byType(SailSwitch).first);
     await tester.pump(const Duration(milliseconds: 300));
@@ -232,6 +242,7 @@ void main() {
     expect(stratum.saved?.cpuMining, isTrue);
     expect(stratum.saved?.port, 3333);
     expect(stratum.saved?.cpuThreads, 4);
+    expect(stratum.saved?.minDifficulty, 65536);
   });
 
   testWidgets('the recent shares card lists what the miners sent', (tester) async {
