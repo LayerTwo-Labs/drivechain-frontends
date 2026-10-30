@@ -24,6 +24,7 @@ on:
 
 env:
   GO_VERSION: "1.27"
+  FLUTTER_VERSION: "3.47.7"
 
 jobs:
   check-changes:
@@ -142,9 +143,14 @@ jobs:
 
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
                     # use windows-2022 because we need Inno Setup. -2022-image is heavier than latest
-              for os in "ubuntu-latest" "macos-latest" "windows-2022"; do
+              for os in "ubuntu-latest" "ubuntu-24.04-arm" "macos-latest" "windows-2022"; do
                 # For PRs, only build on ubuntu to save minutes
                 if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "ubuntu-latest" ]]; then
+                  continue
+                fi
+
+                # Only bitwindow runs in light mode, which needs no arm64 sidechain or enforcer build.
+                if [[ "$client" != "bitwindow" && "$os" == "ubuntu-24.04-arm" ]]; then
                   continue
                 fi
 
@@ -184,6 +190,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
+    env:
+      ARCH_SUFFIX: ${{ matrix.os == 'ubuntu-24.04-arm' && '-arm64' || '' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -193,18 +201,28 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-build-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          key: go-build-${{ env.GO_VERSION }}-${{ runner.os }}${{ env.ARCH_SUFFIX }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            go-build-${{ env.GO_VERSION }}-${{ runner.os }}-
+            go-build-${{ env.GO_VERSION }}-${{ runner.os }}${{ env.ARCH_SUFFIX }}-
 
       - uses: subosito/flutter-action@v2
+        if: matrix.os != 'ubuntu-24.04-arm'
         with:
           channel: stable
-          flutter-version: 3.47.7
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
           cache-key: "flutter-sdk-:channel:-:version:-:os:-:arch:"
           pub-cache: true
           pub-cache-key: "flutter-pub-:channel:-:version:-:os:-:arch:"
+
+      # Flutter publishes no Linux arm64 archive, so this runner uses a git checkout.
+      - name: Install Flutter from git
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: |
+          git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TOOL_CACHE/flutter"
+          echo "$RUNNER_TOOL_CACHE/flutter/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TOOL_CACHE/flutter/bin/flutter" --version
 
       - name: Install Fastforge - a tool for building and distributing apps
         run: dart pub global activate fastforge
@@ -283,9 +301,10 @@ jobs:
       - name: Install appimagetool
         if: runner.os == 'Linux'
         run: |
-          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-          sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+          tool="appimagetool-$(uname -m).AppImage"
+          wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/$tool"
+          chmod +x "$tool"
+          sudo mv "$tool" /usr/local/bin/appimagetool
 
       - name: Setup macOS app signing
         if: runner.os == 'macOS'
@@ -382,6 +401,7 @@ jobs:
             # Map GitHub runner OS to platform name
             case "${{ matrix.os }}" in
               ubuntu-latest) platform="linux" ;;
+              ubuntu-24.04-arm) platform="linux-arm64" ;;
               macos-latest) platform="macos" ;;
               windows-2022) platform="windows" ;;
               *) platform="${{ matrix.os }}" ;;
@@ -390,6 +410,7 @@ jobs:
             # Normalize OS name for version file (always use -latest suffix)
             case "${{ matrix.os }}" in
               windows-2022) normalized_os="windows-latest" ;;
+              ubuntu-24.04-arm) normalized_os="ubuntuarm64-latest" ;;
               *) normalized_os="${{ matrix.os }}" ;;
             esac
 
@@ -424,7 +445,7 @@ jobs:
         run: |
           # Find built files with platform-specific patterns
           case "${{ matrix.os }}" in
-            ubuntu-latest)
+            ubuntu-latest|ubuntu-24.04-arm)
               # Linux doesn't need appcast fragments (no auto-updater)
               echo "Skipping appcast fragment for Linux"
               exit 0
@@ -495,7 +516,7 @@ jobs:
       - uses: actions/upload-artifact@v5
         with:
           name:
-            ${{ matrix.client }}-binaries-${{ runner.os }}${{ (matrix.variant !=
+            ${{ matrix.client }}-binaries-${{ runner.os }}${{ env.ARCH_SUFFIX }}${{ (matrix.variant !=
             '' && matrix.variant != 'standard') && format('-{0}',
             matrix.variant) || '' }}${{ matrix.chain != '' && format('-{0}',
             matrix.chain) || '' }}
@@ -655,6 +676,8 @@ jobs:
             mv bitwindow-binaries-macOS/bitwindow-osx64.dmg BitWindow-latest-x86_64-apple-darwin.dmg || true
             mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
             mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
+            mv bitwindow-binaries-Linux-arm64/bitwindow-aarch64-linux-gnu.zip BitWindow-latest-aarch64-unknown-linux-gnu.zip || true
+            mv bitwindow-binaries-Linux-arm64/BitWindow-aarch64.AppImage BitWindow-latest-aarch64-unknown-linux-gnu.AppImage || true
             mv bitwindow-binaries-Windows/bitwindow.exe BitWindow-latest-x86_64-windows.exe || true
           else
             echo "Skipping BitWindow artifacts (version not increased)"

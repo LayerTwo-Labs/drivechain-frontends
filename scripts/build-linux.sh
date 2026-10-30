@@ -12,6 +12,16 @@ fi
 
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
+arch=$(uname -m)
+case "$arch" in
+    x86_64) flutter_arch=x64 ;;
+    aarch64) flutter_arch=arm64 ;;
+    *)
+        echo "No Linux build for $arch"
+        exit 1
+        ;;
+esac
+
 echo Building $app_name
 
 cd "$client_dir"
@@ -20,9 +30,9 @@ export SENTRY_NATIVE_BACKEND=breakpad
 flutter build linux --dart-define-from-file=build-vars.env
 
 old_cwd=$PWD
-cd build/linux/x64/release/bundle
+cd build/linux/$flutter_arch/release/bundle
 
-zip_name=$lower_app_name-x86_64-linux-gnu.zip
+zip_name=$lower_app_name-$arch-linux-gnu.zip
 echo Zipping into $zip_name
 
 # Create subfolder structure to prevent conflicts when extracting multiple sidechains
@@ -105,10 +115,10 @@ EOF
     chmod +x "$appdir_name/AppRun"
     
     # Create the AppImage
-    appimage_name="$app_name-x86_64.AppImage"
+    appimage_name="$app_name-$arch.AppImage"
     
     # Use --no-appstream and other flags to work around FUSE issues in CI
-    ARCH=x86_64 appimagetool --no-appstream "$appdir_name" "$appimage_name"
+    ARCH=$arch appimagetool --no-appstream "$appdir_name" "$appimage_name"
     
     if [ $? -eq 0 ]; then
         cp "$appimage_name" "$release_dir/"
@@ -124,7 +134,7 @@ EOF
             echo "Attempting to create AppImage manually..."
             
             # Download AppImage runtime
-            runtime_url="https://github.com/AppImage/AppImageKit/releases/download/continuous/runtime-x86_64"
+            runtime_url="https://github.com/AppImage/AppImageKit/releases/download/continuous/runtime-$arch"
             wget -O runtime "$runtime_url" 2>/dev/null || curl -L -o runtime "$runtime_url"
             
             if [ -f runtime ]; then
