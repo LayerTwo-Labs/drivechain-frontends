@@ -160,7 +160,7 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
                 value: isFull,
                 // The row below says light mode is unavailable here, so the
                 // toggle must not offer a switch the backend refuses.
-                enabled: _nodeMode.lightModeAvailable && !_switching,
+                enabled: _nodeMode.lightModeAvailable && (_nodeMode.localBuildsAvailable || isFull) && !_switching,
                 onChanged: (on) => _switchTo(
                   on ? wmpb.NodeMode.NODE_MODE_FULL : wmpb.NodeMode.NODE_MODE_LIGHT,
                 ),
@@ -170,6 +170,11 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
               SailSettingsRow(
                 label: 'Light mode is unavailable here',
                 description: 'This network has no remote enforcer or Bitcoin wallet server, so it uses full mode.',
+              ),
+            if (!_nodeMode.localBuildsAvailable)
+              SailSettingsRow(
+                label: 'Full mode is unavailable here',
+                description: noLocalBuildsLine,
               ),
             if (_error != null)
               SailSettingsRow(

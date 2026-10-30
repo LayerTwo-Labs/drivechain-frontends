@@ -313,7 +313,11 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
       builder: (context, constraints) => SailCard(
         title: 'Sidechains',
         titleTooltip: 'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
-        subtitle: viewModel._enforcerRPC.initializingBinary ? 'Enforcer is initializing...' : null,
+        subtitle: viewModel._enforcerRPC.initializingBinary
+            ? 'Enforcer is initializing...'
+            : viewModel.localBuildsAvailable
+            ? null
+            : 'This platform has no sidechain build.',
         error: viewModel._enforcerRPC.initializingBinary ? null : error,
         widgetHeaderEnd: smallVersion
             ? null
@@ -1183,6 +1187,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   bool get loading => _enforcerRPC.initializingBinary;
 
+  bool get localBuildsAvailable => _nodeMode?.localBuildsAvailable ?? true;
+
   /// Networks that serve sidechains in light mode.
   List<String> get remoteEnforcerNetworks => _nodeMode?.remoteEnforcerNetworks ?? const [];
 
@@ -1434,7 +1440,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   Widget? sidechainWidget(BuildContext context, int slot) {
     final sidechain = sidechainForSlot(slot);
 
-    if (sidechain == null) {
+    if (sidechain == null || !localBuildsAvailable) {
       return null;
     }
 

@@ -88,7 +88,9 @@ class _NodeModePageState extends State<NodeModePage> {
   void initState() {
     super.initState();
     _alignSelection();
-    if (!_nodeMode.loaded) {
+    if (_nodeMode.loaded) {
+      _confirmForcedMode();
+    } else {
       unawaited(_restartSilentBackend());
       _poll = Timer.periodic(const Duration(seconds: 2), (_) => unawaited(_reload()));
     }
@@ -103,8 +105,20 @@ class _NodeModePageState extends State<NodeModePage> {
   // A network with no remote chain server runs full mode only, so start the
   // selection somewhere the user can confirm.
   void _alignSelection() {
+    final forced = _nodeMode.forcedMode;
+    if (forced != null) {
+      _selected = forced;
+      return;
+    }
     if (!_nodeMode.lightModeAvailable) {
       _selected = wmpb.NodeMode.NODE_MODE_FULL;
+    }
+  }
+
+  // A platform with one possible mode records it without a question.
+  void _confirmForcedMode() {
+    if (_nodeMode.needsChoice && _nodeMode.forcedMode != null) {
+      unawaited(Future.microtask(_confirm));
     }
   }
 
@@ -134,6 +148,7 @@ class _NodeModePageState extends State<NodeModePage> {
       return;
     }
     setState(_alignSelection);
+    _confirmForcedMode();
   }
 
   /// A silent backend gets a replacement, and then time to boot. The bottom
@@ -223,7 +238,7 @@ class _NodeModePageState extends State<NodeModePage> {
                   Expanded(
                     child: _ModeCard(
                       label: 'Light',
-                      description: _nodeMode.remoteEnforcerAvailable
+                      description: _nodeMode.remoteEnforcerAvailable && _nodeMode.localBuildsAvailable
                           ? 'Runs sidechain daemons on this machine with a remote enforcer. '
                                 'Your Bitcoin wallet uses Electrum. No Bitcoin Core download.'
                           : 'Your Bitcoin wallet uses Electrum. No Bitcoin Core download.',
@@ -231,16 +246,17 @@ class _NodeModePageState extends State<NodeModePage> {
                       onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_LIGHT),
                     ),
                   ),
-                Expanded(
-                  child: _ModeCard(
-                    label: 'Full node',
-                    description:
-                        'Runs Bitcoin Core, the enforcer, and sidechain daemons on this machine. '
-                        'Bitcoin sync takes hours and hundreds of gigabytes of disk.',
-                    selected: _selected == wmpb.NodeMode.NODE_MODE_FULL,
-                    onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_FULL),
+                if (_nodeMode.localBuildsAvailable)
+                  Expanded(
+                    child: _ModeCard(
+                      label: 'Full node',
+                      description:
+                          'Runs Bitcoin Core, the enforcer, and sidechain daemons on this machine. '
+                          'Bitcoin sync takes hours and hundreds of gigabytes of disk.',
+                      selected: _selected == wmpb.NodeMode.NODE_MODE_FULL,
+                      onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_FULL),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -248,6 +264,7 @@ class _NodeModePageState extends State<NodeModePage> {
             SailText.secondary13(
               'This network has no remote enforcer or Bitcoin wallet server, so it uses full mode.',
             ),
+          if (!_nodeMode.localBuildsAvailable) SailText.secondary13(noLocalBuildsLine),
           if (_error != null) SailText.secondary13(_error!, color: SailTheme.of(context).colors.error),
           SailButton(
             label: 'Continue',
