@@ -2,13 +2,14 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/shell.dart';
 import 'package:stacked/stacked.dart';
 import 'package:truthcoin/routing/open_market.dart';
 import 'package:truthcoin/models/address_position.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/market_provider.dart';
-import 'package:truthcoin/pages/tabs/home_page.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
+import 'package:truthcoin/truthcoin_module.dart';
 import 'package:truthcoin/routing/router.dart';
 import 'package:truthcoin/widgets/market_card.dart';
 import 'package:truthcoin/widgets/market_stat_tile.dart';
@@ -539,7 +540,7 @@ class PortfolioViewModel extends BaseViewModel {
   }
 
   void openMarkets(BuildContext context) {
-    AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Markets.index);
+    AutoRouterX(context).tabsRouter.setActiveIndex(ShellTabIndex.of(TruthcoinModule()).chainTab(0));
   }
 
   Future<void> openMarket(String marketId, int? outcomeIndex) async {

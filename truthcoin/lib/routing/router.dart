@@ -1,33 +1,16 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
-import 'package:sail_ui/pages/router.gr.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:truthcoin/main.dart' show bootBinaries;
+import 'package:sail_ui/shell/shell.dart';
 import 'package:truthcoin/pages/market_creation_page.dart';
 import 'package:truthcoin/pages/market_detail_page.dart';
 import 'package:truthcoin/pages/market_explorer_page.dart';
-import 'package:truthcoin/pages/tabs/home_page.dart';
 import 'package:truthcoin/pages/tabs/markets_tab_page.dart';
 import 'package:truthcoin/pages/tabs/portfolio_page.dart';
-import 'package:truthcoin/pages/tabs/settings_page.dart';
-import 'package:truthcoin/pages/tabs/truthcoin_configure_homepage_page.dart';
-import 'package:truthcoin/pages/tabs/truthcoin_homepage.dart';
-import 'package:truthcoin/pages/truthcoin_conf_editor_page.dart';
 import 'package:truthcoin/pages/voting_dashboard_page.dart';
+import 'package:truthcoin/truthcoin_module.dart';
 
 part 'router.gr.dart';
 
-/* In this Router, all of the app routes are defined. Router code is auto-generated.
-*  In replaceInRouteName we replace the Page suffix with Route in all generated
-*  routes. e.g: The annotated HomePage class will be generated as HomeRoute. HomeRoute
-*  is the component you route to.
-*
-*  Use the [watch] flag to watch the files' system for edits and rebuild as necessary.
-*  $ dart run build_runner watch
-*  if you want the generator to run one time and exit, use
-*  $ dart run build_runner build  --delete-conflicting-outputs
-
-*/
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
 class AppRouter extends RootStackRouter {
   AppRouter();
@@ -35,107 +18,20 @@ class AppRouter extends RootStackRouter {
   @override
   RouteType get defaultRouteType => const RouteType.adaptive();
 
-  // IMPORTANT: Update enum Tabs in home_page.dart when updating here,
-  // routes should match exactly
   @override
-  List<AutoRoute> get routes => [
-    AutoRoute(
-      page: HomeRoute.page,
-      initial: true,
-      guards: _startupGuards,
-      children: [
-        AutoRoute(
-          page: ParentChainRoute.page,
-        ),
-        AutoRoute(
-          page: ExplorerRoute.page,
-        ),
-        AutoRoute(
-          page: BmmRoute.page,
-        ),
-        AutoRoute(
-          page: TruthcoinHomepageRoute.page,
-          initial: true,
-        ),
-        AutoRoute(
-          page: MarketsTabRoute.page,
-          children: [
-            AutoRoute(
-              page: MarketExplorerRoute.page,
-              initial: true,
-            ),
-            AutoRoute(
-              page: MarketDetailRoute.page,
-            ),
-            AutoRoute(
-              page: MarketCreationRoute.page,
-            ),
-          ],
-        ),
-        AutoRoute(
-          page: PortfolioRoute.page,
-        ),
-        AutoRoute(
-          page: VotingDashboardRoute.page,
-        ),
-        AutoRoute(
-          page: ConsoleTabRoute.page,
-        ),
-        AutoRoute(
-          page: SettingsTabRoute.page,
-        ),
-      ],
-    ),
-    AutoRoute(
-      page: LogRoute.page,
-    ),
-    AutoRoute(
-      page: ShutDownRoute.page,
-    ),
-    AutoRoute(
-      page: TruthcoinConfigureHomepageRoute.page,
-    ),
-    AutoRoute(
-      page: UnlockWalletRoute.page,
-    ),
-    AutoRoute(
-      page: SailCreateWalletRoute.page,
-    ),
-    AutoRoute(
-      page: BackupWalletRoute.page,
-    ),
-    AutoRoute(
-      page: RestoreWalletRoute.page,
-    ),
-    AutoRoute(
-      page: BitcoinConfEditorRoute.page,
-    ),
-    AutoRoute(
-      page: EnforcerConfEditorRoute.page,
-    ),
-    AutoRoute(
-      page: TruthcoinConfEditorRoute.page,
-    ),
-
-    /// This route is used in tests so that we can pump a widget into a route
-    /// and use the real router for our test
-    AutoRoute(page: SailTestRoute.page),
-  ];
-
-  /// Every route a user can reach first asks for a network, a wallet and the
-  /// password.
-  static List<AutoRouteGuard> get _startupGuards => [
-    NetworkGuard(),
-    WalletGuard(
-      createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
-        homeRoute: const HomeRoute(),
-        onWalletCreated: onWalletCreated,
-        additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
-          bootBinaries: (log) async => bootBinaries(log),
-          binariesToStop: [BitcoinCore(), Enforcer(), Truthcoin()],
-        ),
+  List<AutoRoute> get routes => sidechainShellRoutes(
+    TruthcoinModule(),
+    chainTabs: [
+      AutoRoute(
+        page: MarketsTabRoute.page,
+        children: [
+          AutoRoute(page: MarketExplorerRoute.page, initial: true),
+          AutoRoute(page: MarketDetailRoute.page),
+          AutoRoute(page: MarketCreationRoute.page),
+        ],
       ),
-    ),
-    PasswordGuard(),
-  ];
+      AutoRoute(page: PortfolioRoute.page),
+      AutoRoute(page: VotingDashboardRoute.page),
+    ],
+  );
 }
