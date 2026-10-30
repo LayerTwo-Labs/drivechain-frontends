@@ -37,13 +37,20 @@ class OrchestratorStratumRPC {
     await _client.setWorkMode(stratumpb.SetWorkModeRequest(address: address, mode: mode));
   }
 
-  Future<void> setMiningSettings({int? port, bool? cpuMining, int? cpuThreads, bool? keepMiningOnClose}) async {
+  Future<void> setMiningSettings({
+    int? port,
+    bool? cpuMining,
+    int? cpuThreads,
+    bool? keepMiningOnClose,
+    double? minDifficulty,
+  }) async {
     await _client.setMiningSettings(
       stratumpb.SetMiningSettingsRequest(
         port: port,
         cpuMining: cpuMining,
         cpuThreads: cpuThreads,
         keepMiningOnClose: keepMiningOnClose,
+        minDifficulty: minDifficulty,
       ),
     );
   }

@@ -313,6 +313,7 @@ class MiningSettings extends $pb.GeneratedMessage {
     $core.bool? cpuMining,
     $core.int? cpuThreads,
     $core.bool? keepMiningOnClose,
+    $core.double? minDifficulty,
   }) {
     final $result = create();
     if (port != null) {
@@ -327,6 +328,9 @@ class MiningSettings extends $pb.GeneratedMessage {
     if (keepMiningOnClose != null) {
       $result.keepMiningOnClose = keepMiningOnClose;
     }
+    if (minDifficulty != null) {
+      $result.minDifficulty = minDifficulty;
+    }
     return $result;
   }
   MiningSettings._() : super();
@@ -338,6 +342,7 @@ class MiningSettings extends $pb.GeneratedMessage {
     ..aOB(2, _omitFieldNames ? '' : 'cpuMining')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'cpuThreads', $pb.PbFieldType.OU3)
     ..aOB(4, _omitFieldNames ? '' : 'keepMiningOnClose')
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'minDifficulty', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -401,6 +406,16 @@ class MiningSettings extends $pb.GeneratedMessage {
   $core.bool hasKeepMiningOnClose() => $_has(3);
   @$pb.TagNumber(4)
   void clearKeepMiningOnClose() => clearField(4);
+
+  /// Lowest share difficulty of a network miner. Zero means no floor.
+  @$pb.TagNumber(5)
+  $core.double get minDifficulty => $_getN(4);
+  @$pb.TagNumber(5)
+  set minDifficulty($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasMinDifficulty() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMinDifficulty() => clearField(5);
 }
 
 class SetMiningSettingsRequest extends $pb.GeneratedMessage {
@@ -409,6 +424,7 @@ class SetMiningSettingsRequest extends $pb.GeneratedMessage {
     $core.bool? cpuMining,
     $core.int? cpuThreads,
     $core.bool? keepMiningOnClose,
+    $core.double? minDifficulty,
   }) {
     final $result = create();
     if (port != null) {
@@ -423,6 +439,9 @@ class SetMiningSettingsRequest extends $pb.GeneratedMessage {
     if (keepMiningOnClose != null) {
       $result.keepMiningOnClose = keepMiningOnClose;
     }
+    if (minDifficulty != null) {
+      $result.minDifficulty = minDifficulty;
+    }
     return $result;
   }
   SetMiningSettingsRequest._() : super();
@@ -434,6 +453,7 @@ class SetMiningSettingsRequest extends $pb.GeneratedMessage {
     ..aOB(2, _omitFieldNames ? '' : 'cpuMining')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'cpuThreads', $pb.PbFieldType.OU3)
     ..aOB(4, _omitFieldNames ? '' : 'keepMiningOnClose')
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'minDifficulty', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -493,6 +513,15 @@ class SetMiningSettingsRequest extends $pb.GeneratedMessage {
   $core.bool hasKeepMiningOnClose() => $_has(3);
   @$pb.TagNumber(4)
   void clearKeepMiningOnClose() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get minDifficulty => $_getN(4);
+  @$pb.TagNumber(5)
+  set minDifficulty($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasMinDifficulty() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMinDifficulty() => clearField(5);
 }
 
 class SetMiningSettingsResponse extends $pb.GeneratedMessage {

@@ -138,6 +138,7 @@ const MiningSettings$json = {
     {'1': 'cpu_mining', '3': 2, '4': 1, '5': 8, '10': 'cpuMining'},
     {'1': 'cpu_threads', '3': 3, '4': 1, '5': 13, '10': 'cpuThreads'},
     {'1': 'keep_mining_on_close', '3': 4, '4': 1, '5': 8, '10': 'keepMiningOnClose'},
+    {'1': 'min_difficulty', '3': 5, '4': 1, '5': 1, '10': 'minDifficulty'},
   ],
 };
 
@@ -145,7 +146,8 @@ const MiningSettings$json = {
 final $typed_data.Uint8List miningSettingsDescriptor = $convert.base64Decode(
     'Cg5NaW5pbmdTZXR0aW5ncxISCgRwb3J0GAEgASgNUgRwb3J0Eh0KCmNwdV9taW5pbmcYAiABKA'
     'hSCWNwdU1pbmluZxIfCgtjcHVfdGhyZWFkcxgDIAEoDVIKY3B1VGhyZWFkcxIvChRrZWVwX21p'
-    'bmluZ19vbl9jbG9zZRgEIAEoCFIRa2VlcE1pbmluZ09uQ2xvc2U=');
+    'bmluZ19vbl9jbG9zZRgEIAEoCFIRa2VlcE1pbmluZ09uQ2xvc2USJQoObWluX2RpZmZpY3VsdH'
+    'kYBSABKAFSDW1pbkRpZmZpY3VsdHk=');
 
 @$core.Deprecated('Use setMiningSettingsRequestDescriptor instead')
 const SetMiningSettingsRequest$json = {
@@ -155,12 +157,14 @@ const SetMiningSettingsRequest$json = {
     {'1': 'cpu_mining', '3': 2, '4': 1, '5': 8, '9': 1, '10': 'cpuMining', '17': true},
     {'1': 'cpu_threads', '3': 3, '4': 1, '5': 13, '9': 2, '10': 'cpuThreads', '17': true},
     {'1': 'keep_mining_on_close', '3': 4, '4': 1, '5': 8, '9': 3, '10': 'keepMiningOnClose', '17': true},
+    {'1': 'min_difficulty', '3': 5, '4': 1, '5': 1, '9': 4, '10': 'minDifficulty', '17': true},
   ],
   '8': [
     {'1': '_port'},
     {'1': '_cpu_mining'},
     {'1': '_cpu_threads'},
     {'1': '_keep_mining_on_close'},
+    {'1': '_min_difficulty'},
   ],
 };
 
@@ -169,8 +173,9 @@ final $typed_data.Uint8List setMiningSettingsRequestDescriptor = $convert.base64
     'ChhTZXRNaW5pbmdTZXR0aW5nc1JlcXVlc3QSFwoEcG9ydBgBIAEoDUgAUgRwb3J0iAEBEiIKCm'
     'NwdV9taW5pbmcYAiABKAhIAVIJY3B1TWluaW5niAEBEiQKC2NwdV90aHJlYWRzGAMgASgNSAJS'
     'CmNwdVRocmVhZHOIAQESNAoUa2VlcF9taW5pbmdfb25fY2xvc2UYBCABKAhIA1IRa2VlcE1pbm'
-    'luZ09uQ2xvc2WIAQFCBwoFX3BvcnRCDQoLX2NwdV9taW5pbmdCDgoMX2NwdV90aHJlYWRzQhcK'
-    'FV9rZWVwX21pbmluZ19vbl9jbG9zZQ==');
+    'luZ09uQ2xvc2WIAQESKgoObWluX2RpZmZpY3VsdHkYBSABKAFIBFINbWluRGlmZmljdWx0eYgB'
+    'AUIHCgVfcG9ydEINCgtfY3B1X21pbmluZ0IOCgxfY3B1X3RocmVhZHNCFwoVX2tlZXBfbWluaW'
+    '5nX29uX2Nsb3NlQhEKD19taW5fZGlmZmljdWx0eQ==');
 
 @$core.Deprecated('Use setMiningSettingsResponseDescriptor instead')
 const SetMiningSettingsResponse$json = {

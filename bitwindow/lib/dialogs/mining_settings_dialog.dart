@@ -14,6 +14,7 @@ class _MiningSettingsDialogState extends State<MiningSettingsDialog> {
 
   late final TextEditingController _port;
   late final TextEditingController _threads;
+  late final TextEditingController _minDifficulty;
   late bool _cpuMining;
   late bool _keepMining;
   String? _error;
@@ -24,6 +25,9 @@ class _MiningSettingsDialogState extends State<MiningSettingsDialog> {
     final settings = _stratum.status.settings;
     _port = TextEditingController(text: '${settings.port}');
     _threads = TextEditingController(text: '${settings.cpuThreads}');
+    _minDifficulty = TextEditingController(
+      text: settings.minDifficulty > 0 ? '${settings.minDifficulty.round()}' : '',
+    );
     _cpuMining = settings.cpuMining;
     _keepMining = settings.keepMiningOnClose;
   }
@@ -32,6 +36,7 @@ class _MiningSettingsDialogState extends State<MiningSettingsDialog> {
   void dispose() {
     _port.dispose();
     _threads.dispose();
+    _minDifficulty.dispose();
     super.dispose();
   }
 
@@ -46,12 +51,19 @@ class _MiningSettingsDialogState extends State<MiningSettingsDialog> {
       setState(() => _error = 'The thread count must be 1 or more');
       return;
     }
+    final minDifficultyText = _minDifficulty.text.trim();
+    final minDifficulty = minDifficultyText.isEmpty ? 0 : int.tryParse(minDifficultyText);
+    if (minDifficulty == null || minDifficulty < 0) {
+      setState(() => _error = 'The minimum difficulty must be a number of 0 or more');
+      return;
+    }
     try {
       await _stratum.setMiningSettings(
         port: port,
         cpuMining: _cpuMining,
         cpuThreads: threads,
         keepMiningOnClose: _keepMining,
+        minDifficulty: minDifficulty.toDouble(),
       );
     } catch (e) {
       setState(() => _error = extractConnectException(e));
@@ -86,6 +98,13 @@ class _MiningSettingsDialogState extends State<MiningSettingsDialog> {
             SizedBox(
               width: 120,
               child: SailTextField(controller: _port, hintText: '3333', textFieldType: TextFieldType.number),
+            ),
+          ),
+          _row(
+            'Minimum difficulty',
+            SizedBox(
+              width: 120,
+              child: SailTextField(controller: _minDifficulty, hintText: '8192', textFieldType: TextFieldType.number),
             ),
           ),
           _row(
