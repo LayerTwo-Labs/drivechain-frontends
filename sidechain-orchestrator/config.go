@@ -162,9 +162,15 @@ func (c BinaryConfig) Downloadable() bool {
 
 // FileForPlatform returns the download filename for the current os-arch.
 func (c BinaryConfig) FileForPlatform() (string, error) {
-	f := fileForPlatform(c.Files)
+	return c.fileFor(currentPlatform())
+}
+
+// fileFor returns the download filename for an os-arch token, or an error when
+// the binary has no build for it.
+func (c BinaryConfig) fileFor(platform string) (string, error) {
+	f := c.Files[platform]
 	if f == "" {
-		return "", fmt.Errorf("no download file for %s on %s", c.Name, currentPlatform())
+		return "", fmt.Errorf("%s is not available on %s", c.Name, platform)
 	}
 	return f, nil
 }

@@ -328,7 +328,7 @@ func TestStartWithL1KeepsCoreMonitorAfterFailure(t *testing.T) {
 
 	_, err = client.StartWithL1(t.Context(), &pb.StartWithL1Request{Target: "boottest", Wait: true})
 
-	require.ErrorContains(t, err, "no download available for boottest")
+	require.ErrorContains(t, err, "boottest is not available on")
 	close(responseDone)
 	select {
 	case <-checked:

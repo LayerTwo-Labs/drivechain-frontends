@@ -3,8 +3,45 @@ package orchestrator
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestFileFor_LinuxArm64HasNoEnforcerOrSidechain(t *testing.T) {
+	configs := AllDefaults()
+	for _, name := range []string{"enforcer", "thunder"} {
+		cfg, ok := lo.Find(configs, func(c BinaryConfig) bool { return c.Name == name })
+		require.Truef(t, ok, "%s must be in the embedded config", name)
+		_, err := cfg.fileFor("linux-arm64")
+		assert.ErrorContains(t, err, name+" is not available on linux-arm64")
+	}
+}
+
+func TestFullModeBuildErr_LinuxArm64HasNoFullMode(t *testing.T) {
+	assert.ErrorContains(t, fullModeBuildErr("linux-arm64"), "enforcer is not available on linux-arm64")
+	assert.NoError(t, fullModeBuildErr("linux-x86_64"))
+}
+
+func TestFileFor_LinuxArm64PicksItsOwnEntry(t *testing.T) {
+	cfg := BinaryConfig{Name: "tool", Files: map[string]string{
+		"linux-x86_64": "tool-x86_64.zip",
+		"linux-arm64":  "tool-aarch64.zip",
+	}}
+	got, err := cfg.fileFor("linux-arm64")
+	require.NoError(t, err)
+	assert.Equal(t, "tool-aarch64.zip", got)
+
+	for _, c := range AllDefaults() {
+		got, err := c.fileFor("linux-arm64")
+		if want := c.Files["linux-arm64"]; want != "" {
+			assert.NoErrorf(t, err, "%s has a linux-arm64 entry", c.Name)
+			assert.Equal(t, want, got)
+			continue
+		}
+		assert.Errorf(t, err, "%s has no linux-arm64 entry", c.Name)
+	}
+}
 
 func TestFileForPlatform_PicksArchKey(t *testing.T) {
 	files := map[string]string{

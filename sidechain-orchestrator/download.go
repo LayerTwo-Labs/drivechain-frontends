@@ -174,7 +174,10 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	}
 
 	for _, target := range targets {
-		if target.FileName == "" || target.BaseURL == "" {
+		if target.FileName == "" {
+			return nil, fmt.Errorf("%s is not available on %s", config.Name, currentPlatform())
+		}
+		if target.BaseURL == "" {
 			return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentPlatform())
 		}
 	}
