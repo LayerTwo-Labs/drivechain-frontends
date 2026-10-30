@@ -85,6 +85,19 @@ void main() {
     expect(picked, 1);
   });
 
+  testWidgets('records light mode by itself on a platform with no local builds', (tester) async {
+    GetIt.I.get<NodeModeProvider>().localBuildsAvailable = false;
+    await pumpPage(tester);
+    wallet.up = true;
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Full node'), findsNothing);
+    expect(find.text(noLocalBuildsLine), findsOneWidget);
+    expect(wallet.mode, wmpb.NodeMode.NODE_MODE_LIGHT);
+    expect(picked, 1);
+  });
+
   testWidgets('moves on when the backend reports the mode the user already picked', (tester) async {
     await pumpPage(tester);
     wallet.up = true;

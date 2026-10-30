@@ -1,8 +1,12 @@
+import 'dart:ffi';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/sidechain_core.dart';
+
+const String noLocalBuildsLine = 'This platform has no build of Bitcoin Core, the enforcer, or the sidechains.';
 
 /// Keeps the node mode and network service support.
 class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
@@ -15,6 +19,12 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
   bool lightModeAvailable = true;
 
   bool remoteEnforcerAvailable = false;
+
+  /// False on a platform with no Bitcoin Core, enforcer or sidechain build.
+  bool localBuildsAvailable = Abi.current() != Abi.linuxArm64;
+
+  /// The mode to record with no question, or null when the user picks.
+  wmpb.NodeMode? get forcedMode => !localBuildsAvailable && lightModeAvailable ? wmpb.NodeMode.NODE_MODE_LIGHT : null;
 
   /// Display names of the networks with a remote validator endpoint.
   List<String> remoteEnforcerNetworks = const [];
