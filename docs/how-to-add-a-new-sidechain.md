@@ -122,6 +122,26 @@ If Layer Two Labs does not develop/vet the chain, override
 (`sidechain_core/lib/config/binaries.dart` defines the flag, default `true`). The
 Download button shows a risk warning before downloading untrusted chains.
 
+### 8. A standalone app (optional)
+
+A sidechain app is a module plus its own pages. The shared shell in
+`sail_ui/lib/shell/` holds the boot, the home page with its tabs, menus and
+command palette, the settings, the conf editor and the configurable homepage.
+
+- `<app>/lib/<app>_module.dart` — a `SidechainModule`: the chain, the app name,
+  the router and RPC registration, the conf ports, the default homepage widgets,
+  the widget catalog, and the chain tabs (`ShellTab`). Override only what
+  differs; `thunder/lib/thunder_module.dart` is the smallest example.
+- `<app>/lib/main.dart` — `runSidechainApp(<App>Module())`.
+- `<app>/lib/routing/router.dart` — `sidechainShellRoutes(module, chainTabs: [...],
+  chainPages: [...])` with one `AutoRoute` per chain page.
+- `<app>/lib/pages/` — the chain tabs. Register their providers in
+  `registerChainProviders`.
+- `<app>/pubspec.yaml` — list the shell files under `packages/sail_ui/shell/`
+  next to `lib/`, so the command palette can search them.
+- `<app>/test/conf_file_test.dart` and `homepage_layout_test.dart` — the conf
+  file and the saved homepage layout are user data; test them from the on-disk shape.
+
 ---
 
 ## Conventions & pitfalls (the part that gets PRs sent back)
