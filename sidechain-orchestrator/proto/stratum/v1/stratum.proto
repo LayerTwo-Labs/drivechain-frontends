@@ -76,6 +76,8 @@ message MiningSettings {
   uint32 cpu_threads = 3;
   // Whether the miners keep going after the app window closes.
   bool keep_mining_on_close = 4;
+  // Lowest share difficulty of a network miner. Zero means no floor.
+  double min_difficulty = 5;
 }
 
 message SetMiningSettingsRequest {
@@ -83,6 +85,7 @@ message SetMiningSettingsRequest {
   optional bool cpu_mining = 2;
   optional uint32 cpu_threads = 3;
   optional bool keep_mining_on_close = 4;
+  optional double min_difficulty = 5;
 }
 
 message SetMiningSettingsResponse {}

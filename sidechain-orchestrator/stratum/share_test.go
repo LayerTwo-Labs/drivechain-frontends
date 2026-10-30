@@ -87,3 +87,109 @@ func TestARiseInDifficultySendsANewJob(t *testing.T) {
 		assert.Len(t, sess.out, 2)
 	})
 }
+
+func floorServer(floor float64) (*Server, *session) {
+	w := &Work{ExtranonceSize: 12, Bits: 0x170331db, Version: 0x20000000}
+	current := &job{id: "1", work: w, seen: map[string]struct{}{}}
+	s := &Server{jobs: map[string]*job{"1": current}, current: current, jobSeq: 1, workerFloor: floor}
+	sess := &session{out: make(chan []byte, 8), floor: minDifficulty, subscribed: true}
+	return s, sess
+}
+
+func authorize(t *testing.T, s *Server, sess *session, password string) {
+	t.Helper()
+	s.handle(context.Background(), sess, message{
+		ID:     json.RawMessage("1"),
+		Method: "mining.authorize",
+		Params: json.RawMessage(fmt.Sprintf(`["w", %q]`, password)),
+	})
+}
+
+func TestAMinimumDifficultyHoldsTheWorker(t *testing.T) {
+	s, sess := floorServer(65536)
+	authorize(t, s, sess, "x")
+	require.True(t, sess.started)
+	assert.Equal(t, 65536.0, sess.difficulty)
+
+	now := time.Now()
+	sess.retargetAt, sess.retargetShares = now.Add(-5*time.Minute), 0
+	s.retargetLocked(sess, now)
+	assert.Equal(t, 65536.0, sess.difficulty)
+
+	sess.retargetAt, sess.retargetShares = now.Add(-5*time.Second), earlyRetargetShares
+	s.retargetLocked(sess, now)
+	assert.Greater(t, sess.difficulty, 65536.0)
+
+	t.Run("a raised floor applies at the next retarget", func(t *testing.T) {
+		s.SetMinDifficulty(1e6)
+		sess.retargetAt, sess.retargetShares = now.Add(-5*time.Minute), 0
+		s.retargetLocked(sess, now)
+		assert.Equal(t, 1e6, sess.difficulty)
+	})
+
+	t.Run("no floor starts at the default", func(t *testing.T) {
+		s, sess := floorServer(0)
+		authorize(t, s, sess, "x")
+		assert.Equal(t, float64(startDifficulty), sess.difficulty)
+	})
+
+	t.Run("the hasher on this computer has no floor of the user", func(t *testing.T) {
+		s, sess := floorServer(65536)
+		sess.local, sess.floor = true, cpuMinDifficulty
+		authorize(t, s, sess, "x")
+		assert.Equal(t, float64(startDifficulty), sess.difficulty)
+	})
+}
+
+func TestAPasswordDifficultyHoldsTheWorker(t *testing.T) {
+	s, sess := floorServer(0)
+	authorize(t, s, sess, "x,d=131072")
+	require.True(t, sess.started)
+	assert.Equal(t, 131072.0, sess.difficulty)
+
+	now := time.Now()
+	sess.retargetAt, sess.retargetShares = now.Add(-5*time.Minute), 0
+	s.retargetLocked(sess, now)
+	assert.Equal(t, 131072.0, sess.difficulty)
+
+	t.Run("the higher floor wins", func(t *testing.T) {
+		s, sess := floorServer(1e6)
+		authorize(t, s, sess, "d=131072")
+		assert.Equal(t, 1e6, sess.difficulty)
+	})
+
+	t.Run("a bad value fails the authorize", func(t *testing.T) {
+		s, sess := floorServer(0)
+		authorize(t, s, sess, "d=abc")
+		assert.False(t, sess.authorized)
+	})
+}
+
+func TestPasswordDifficulty(t *testing.T) {
+	tests := []struct {
+		password string
+		want     float64
+		fails    bool
+	}{
+		{password: "x", want: 0},
+		{password: "", want: 0},
+		{password: "d=500000", want: 500000},
+		{password: "x,d=65536", want: 65536},
+		{password: "x d=1e6", want: 1e6},
+		{password: "x;d=2048", want: 2048},
+		{password: "d=0", fails: true},
+		{password: "d=-5", fails: true},
+		{password: "d=NaN", fails: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.password, func(t *testing.T) {
+			got, err := passwordDifficulty(tt.password)
+			if tt.fails {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

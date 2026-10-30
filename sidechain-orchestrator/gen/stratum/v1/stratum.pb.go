@@ -461,8 +461,10 @@ type MiningSettings struct {
 	CpuThreads uint32 `protobuf:"varint,3,opt,name=cpu_threads,json=cpuThreads,proto3" json:"cpu_threads,omitempty"`
 	// Whether the miners keep going after the app window closes.
 	KeepMiningOnClose bool `protobuf:"varint,4,opt,name=keep_mining_on_close,json=keepMiningOnClose,proto3" json:"keep_mining_on_close,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Lowest share difficulty of a network miner. Zero means no floor.
+	MinDifficulty float64 `protobuf:"fixed64,5,opt,name=min_difficulty,json=minDifficulty,proto3" json:"min_difficulty,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MiningSettings) Reset() {
@@ -523,12 +525,20 @@ func (x *MiningSettings) GetKeepMiningOnClose() bool {
 	return false
 }
 
+func (x *MiningSettings) GetMinDifficulty() float64 {
+	if x != nil {
+		return x.MinDifficulty
+	}
+	return 0
+}
+
 type SetMiningSettingsRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Port              *uint32                `protobuf:"varint,1,opt,name=port,proto3,oneof" json:"port,omitempty"`
 	CpuMining         *bool                  `protobuf:"varint,2,opt,name=cpu_mining,json=cpuMining,proto3,oneof" json:"cpu_mining,omitempty"`
 	CpuThreads        *uint32                `protobuf:"varint,3,opt,name=cpu_threads,json=cpuThreads,proto3,oneof" json:"cpu_threads,omitempty"`
 	KeepMiningOnClose *bool                  `protobuf:"varint,4,opt,name=keep_mining_on_close,json=keepMiningOnClose,proto3,oneof" json:"keep_mining_on_close,omitempty"`
+	MinDifficulty     *float64               `protobuf:"fixed64,5,opt,name=min_difficulty,json=minDifficulty,proto3,oneof" json:"min_difficulty,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -589,6 +599,13 @@ func (x *SetMiningSettingsRequest) GetKeepMiningOnClose() bool {
 		return *x.KeepMiningOnClose
 	}
 	return false
+}
+
+func (x *SetMiningSettingsRequest) GetMinDifficulty() float64 {
+	if x != nil && x.MinDifficulty != nil {
+		return *x.MinDifficulty
+	}
+	return 0
 }
 
 type SetMiningSettingsResponse struct {
@@ -1848,25 +1865,28 @@ const file_stratum_v1_stratum_proto_rawDesc = "" +
 	"\apool_id\x18\x02 \x01(\tR\x06poolId\x12\x10\n" +
 	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
 	"\x06worker\x18\x04 \x01(\tR\x06worker\x12\x1a\n" +
-	"\bpassword\x18\x05 \x01(\tR\bpassword\"\x95\x01\n" +
+	"\bpassword\x18\x05 \x01(\tR\bpassword\"\xbc\x01\n" +
 	"\x0eMiningSettings\x12\x12\n" +
 	"\x04port\x18\x01 \x01(\rR\x04port\x12\x1d\n" +
 	"\n" +
 	"cpu_mining\x18\x02 \x01(\bR\tcpuMining\x12\x1f\n" +
 	"\vcpu_threads\x18\x03 \x01(\rR\n" +
 	"cpuThreads\x12/\n" +
-	"\x14keep_mining_on_close\x18\x04 \x01(\bR\x11keepMiningOnClose\"\xf4\x01\n" +
+	"\x14keep_mining_on_close\x18\x04 \x01(\bR\x11keepMiningOnClose\x12%\n" +
+	"\x0emin_difficulty\x18\x05 \x01(\x01R\rminDifficulty\"\xb3\x02\n" +
 	"\x18SetMiningSettingsRequest\x12\x17\n" +
 	"\x04port\x18\x01 \x01(\rH\x00R\x04port\x88\x01\x01\x12\"\n" +
 	"\n" +
 	"cpu_mining\x18\x02 \x01(\bH\x01R\tcpuMining\x88\x01\x01\x12$\n" +
 	"\vcpu_threads\x18\x03 \x01(\rH\x02R\n" +
 	"cpuThreads\x88\x01\x01\x124\n" +
-	"\x14keep_mining_on_close\x18\x04 \x01(\bH\x03R\x11keepMiningOnClose\x88\x01\x01B\a\n" +
+	"\x14keep_mining_on_close\x18\x04 \x01(\bH\x03R\x11keepMiningOnClose\x88\x01\x01\x12*\n" +
+	"\x0emin_difficulty\x18\x05 \x01(\x01H\x04R\rminDifficulty\x88\x01\x01B\a\n" +
 	"\x05_portB\r\n" +
 	"\v_cpu_miningB\x0e\n" +
 	"\f_cpu_threadsB\x17\n" +
-	"\x15_keep_mining_on_close\"\x1b\n" +
+	"\x15_keep_mining_on_closeB\x11\n" +
+	"\x0f_min_difficulty\"\x1b\n" +
 	"\x19SetMiningSettingsResponse\"[\n" +
 	"\rHashratePoint\x12.\n" +
 	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1a\n" +
