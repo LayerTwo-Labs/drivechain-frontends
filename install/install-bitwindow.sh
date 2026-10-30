@@ -17,7 +17,6 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-APPIMAGE_URL="https://releases.drivechain.info/BitWindow-latest-x86_64-unknown-linux-gnu.AppImage"
 APP_NAME="BitWindow"
 APP_NAME_LOWER="bitwindow"
 INSTALL_DIR="$HOME/.local/bin"
@@ -68,10 +67,15 @@ if [ "$missing_deps" = true ]; then
 fi
 
 arch=$(uname -m)
-if [ "$arch" != "x86_64" ]; then
-    print_error "$APP_NAME has no Linux build for $arch. Only x86_64 is available."
-    exit 1
-fi
+case "$arch" in
+    x86_64) target=x86_64 ;;
+    aarch64|arm64) target=aarch64 ;;
+    *)
+        print_error "$APP_NAME has no Linux build for $arch. Only x86_64 and aarch64 are available."
+        exit 1
+        ;;
+esac
+APPIMAGE_URL="https://releases.drivechain.info/BitWindow-latest-${target}-unknown-linux-gnu.AppImage"
 
 # Create installation directory
 mkdir -p "$INSTALL_DIR"
@@ -153,7 +157,7 @@ fi
 
 # Check for FUSE support
 has_fuse=false
-if ldconfig -p 2>/dev/null | grep -q libfuse.so.2 || [ -f /usr/lib/libfuse.so.2 ] || [ -f /usr/lib/x86_64-linux-gnu/libfuse.so.2 ]; then
+if ldconfig -p 2>/dev/null | grep -q libfuse.so.2 || [ -f /usr/lib/libfuse.so.2 ] || [ -f "/usr/lib/${target}-linux-gnu/libfuse.so.2" ]; then
     has_fuse=true
 fi
 
