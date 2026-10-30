@@ -782,8 +782,13 @@ func (c *ElectrumClient) SetBaseURLs(urls []string) {
 		return
 	}
 	c.urlMu.Lock()
+	sameServer := len(c.serverURLs) > 0 && c.serverURLs[0] == urls[0]
 	c.serverURLs = append([]string(nil), urls...)
 	c.urlMu.Unlock()
+	// The client dials only the first URL, so a change behind it keeps the socket.
+	if sameServer {
+		return
+	}
 	c.resetConn()
 	c.cacheMu.Lock()
 	clear(c.headerTime)

@@ -303,6 +303,34 @@ func TestElectrumClientSwapReachesTheNewServer(t *testing.T) {
 	assert.Equal(t, 200, tip)
 }
 
+func TestElectrumClientSwapToTheSameServerKeepsTheRequestInFlight(t *testing.T) {
+	release := make(chan struct{})
+	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+		if method == "slow" {
+			<-release
+		}
+		return nil
+	})
+	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+	require.NoError(t, c.call(context.Background(), nil, "fast"))
+	epoch := c.currentTipEpoch()
+
+	done := make(chan error, 1)
+	go func() { done <- c.call(context.Background(), nil, "slow") }()
+	require.Eventually(t, func() bool {
+		c.connMu.Lock()
+		defer c.connMu.Unlock()
+		return len(c.pending) > 0
+	}, time.Second, time.Millisecond)
+
+	c.SetBaseURLs([]string{url, "tcp://127.0.0.1:1"})
+	close(release)
+
+	require.NoError(t, <-done)
+	assert.Equal(t, epoch, c.currentTipEpoch())
+	assert.Equal(t, []string{url, "tcp://127.0.0.1:1"}, c.BaseURLs())
+}
+
 // TestElectrumClientTipFromTheOldEndpointIsNotCached checks that a header push
 // or a reply from before a swap does not fill the cache.
 func TestElectrumClientTipFromTheOldEndpointIsNotCached(t *testing.T) {
