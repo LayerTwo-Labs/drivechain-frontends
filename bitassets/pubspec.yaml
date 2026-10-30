@@ -76,6 +76,13 @@ flutter:
     - assets/bitassets.png
     # Source files for code search
     - lib/
+    - packages/sail_ui/shell/messaging_view.dart
+    - packages/sail_ui/shell/run_sidechain_app.dart
+    - packages/sail_ui/shell/sidechain_conf_editor_page.dart
+    - packages/sail_ui/shell/sidechain_configure_homepage_page.dart
+    - packages/sail_ui/shell/sidechain_home_page.dart
+    - packages/sail_ui/shell/sidechain_homepage.dart
+    - packages/sail_ui/shell/sidechain_settings_page.dart
 
   fonts:
     - family: Inter
