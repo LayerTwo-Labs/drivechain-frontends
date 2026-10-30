@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/samber/lo"
 )
 
 // NodeMode is how much of Bitcoin this install runs.
@@ -76,6 +77,17 @@ func NodeModeForNetwork(mode NodeMode, network config.Network) NodeMode {
 	return mode
 }
 
+// fullModeBuildErr returns why a platform has no enforcer build for full mode,
+// or nil when it has one.
+func fullModeBuildErr(platform string) error {
+	enforcer, ok := lo.Find(AllDefaults(), func(c BinaryConfig) bool { return c.Name == "enforcer" })
+	if !ok {
+		return nil
+	}
+	_, err := enforcer.fileFor(platform)
+	return err
+}
+
 // NodeMode is the mode this install runs, already narrowed to what the current
 // network can serve.
 func (o *Orchestrator) NodeMode() NodeMode {
@@ -86,6 +98,11 @@ func (o *Orchestrator) NodeMode() NodeMode {
 func (o *Orchestrator) SetNodeMode(ctx context.Context, mode NodeMode) error {
 	if mode != NodeModeFull && mode != NodeModeLight {
 		return fmt.Errorf("select full or light mode")
+	}
+	if mode == NodeModeFull {
+		if err := fullModeBuildErr(currentPlatform()); err != nil {
+			return fmt.Errorf("full mode: %w", err)
+		}
 	}
 	o.swapNetworkMu.Lock()
 	defer o.swapNetworkMu.Unlock()

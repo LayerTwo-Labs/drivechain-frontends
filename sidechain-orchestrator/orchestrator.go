@@ -2818,6 +2818,11 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 // Sidechains are intentionally not auto-restarted — the user re-launches
 // them when they want to.
 func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error {
+	if !config.SupportsLightMode(n) {
+		if err := fullModeBuildErr(currentPlatform()); err != nil {
+			return fmt.Errorf("%s runs full mode only: %w", n, err)
+		}
+	}
 	startConfig := BinaryConfig{IsBitcoinCore: true, ChainLayer: 1}
 	if o.NodeMode() == NodeModeLight {
 		startConfig = BinaryConfig{Name: "enforcer"}
