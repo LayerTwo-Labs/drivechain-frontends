@@ -44,6 +44,8 @@ func TestClampDifficulty(t *testing.T) {
 	assert.Equal(t, 1e6, clampDifficulty(1e9, minDifficulty, 1e6))
 	// A test network sits below the floor, and the network wins.
 	assert.Equal(t, 4.6e-10, clampDifficulty(8192, minDifficulty, 4.6e-10))
+	// A floor the user set holds a slow share rate up.
+	assert.Equal(t, 65536.0, clampDifficulty(retarget(65536, 0, time.Minute), 65536, 1e9))
 	// The hasher on this computer gets a floor of its own.
 	assert.Equal(t, cpuMinDifficulty, clampDifficulty(0.0000001, cpuMinDifficulty, 1e6))
 }

@@ -477,22 +477,32 @@ func TestStratumHandlerMiningSettings(t *testing.T) {
 		settings := &fakeStratumSettings{}
 		h, _ := newTestStratumHandler(t, network, settings)
 
-		port, threads, keep := uint32(3401), uint32(2), true
+		port, threads, keep, floor := uint32(3401), uint32(2), true, 500000.0
 		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{
 			Port:              &port,
 			CpuThreads:        &threads,
 			KeepMiningOnClose: &keep,
+			MinDifficulty:     &floor,
 		})
 		require.NoError(t, err)
 
 		assert.Equal(t, uint32(3401), settings.current.Port)
 		assert.Equal(t, uint32(2), settings.current.CPUThreads)
 		assert.True(t, settings.current.KeepMiningOnClose)
+		assert.Equal(t, 500000.0, settings.current.MinDifficulty)
 
 		status, err := h.GetStratumStatus(context.Background(), &pb.GetStratumStatusRequest{})
 		require.NoError(t, err)
 		assert.False(t, status.Running)
 		assert.True(t, status.Settings.KeepMiningOnClose)
+		assert.Equal(t, 500000.0, status.Settings.MinDifficulty)
+	})
+
+	t.Run("a negative minimum difficulty", func(t *testing.T) {
+		h, _ := newTestStratumHandler(t, network, &fakeStratumSettings{})
+		floor := -1.0
+		_, err := h.SetMiningSettings(context.Background(), &pb.SetMiningSettingsRequest{MinDifficulty: &floor})
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
 	t.Run("a port out of range", func(t *testing.T) {

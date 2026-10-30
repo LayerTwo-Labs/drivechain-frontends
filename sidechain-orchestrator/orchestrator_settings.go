@@ -70,6 +70,9 @@ type StratumSettings struct {
 	CPUThreads uint32 `json:"cpu_threads,omitempty"`
 	// KeepMiningOnClose keeps the miners going after the app window closes.
 	KeepMiningOnClose bool `json:"keep_mining_on_close,omitempty"`
+	// MinDifficulty is the lowest share difficulty of a network miner. Zero
+	// means no floor.
+	MinDifficulty float64 `json:"min_difficulty,omitempty"`
 }
 
 // DefaultTorProxy is the SOCKS5 address of a standard local Tor daemon. Tor

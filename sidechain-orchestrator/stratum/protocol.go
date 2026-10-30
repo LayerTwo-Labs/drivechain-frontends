@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
+	"unicode"
 )
 
 // Stratum v1 error codes.
@@ -152,4 +154,24 @@ func parseDifficulty(raw json.RawMessage) (float64, error) {
 		return 0, fmt.Errorf("difficulty %v is not a positive number", d)
 	}
 	return d, nil
+}
+
+// passwordDifficulty reads the d=N field that rental services send in the
+// password. Zero means the password has no such field.
+func passwordDifficulty(password string) (float64, error) {
+	fields := strings.FieldsFunc(password, func(r rune) bool {
+		return r == ',' || r == ';' || unicode.IsSpace(r)
+	})
+	for _, field := range fields {
+		text, ok := strings.CutPrefix(field, "d=")
+		if !ok {
+			continue
+		}
+		d, err := strconv.ParseFloat(text, 64)
+		if err != nil || math.IsNaN(d) || math.IsInf(d, 0) || d <= 0 {
+			return 0, fmt.Errorf("password difficulty %q is not a positive number", text)
+		}
+		return d, nil
+	}
+	return 0, nil
 }

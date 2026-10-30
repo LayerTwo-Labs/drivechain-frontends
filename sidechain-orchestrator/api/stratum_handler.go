@@ -239,6 +239,7 @@ func (h *StratumHandler) serve(ready readyRun, settings orchestrator.StratumSett
 
 	server := stratum.NewServer(source, h.log)
 	server.SetCPU(settings.CPUMining, int(settings.CPUThreads))
+	server.SetMinDifficulty(settings.MinDifficulty)
 	runCtx, cancel := context.WithCancel(h.ctx)
 	run := &stratumRun{server: server, port: port, cancel: cancel, done: make(chan struct{}), pool: pool}
 	h.mu.Lock()
@@ -807,6 +808,13 @@ func (h *StratumHandler) SetMiningSettings(
 		return nil, connect.Errorf(connect.CodeInvalidArgument,
 			"a thread count of %d is over the limit of %d", req.GetCpuThreads(), maxCPUThreads)
 	}
+	if req.MinDifficulty != nil {
+		d := req.GetMinDifficulty()
+		if math.IsNaN(d) || math.IsInf(d, 0) || d < 0 {
+			return nil, connect.Errorf(connect.CodeInvalidArgument,
+				"a minimum difficulty of %v is not zero or a positive number", d)
+		}
+	}
 
 	h.opMu.Lock()
 	defer h.opMu.Unlock()
@@ -823,6 +831,9 @@ func (h *StratumHandler) SetMiningSettings(
 	}
 	if req.KeepMiningOnClose != nil {
 		next.KeepMiningOnClose = req.GetKeepMiningOnClose()
+	}
+	if req.MinDifficulty != nil {
+		next.MinDifficulty = req.GetMinDifficulty()
 	}
 	if next == current {
 		return &pb.SetMiningSettingsResponse{}, nil
@@ -877,6 +888,7 @@ func (h *StratumHandler) SetMiningSettings(
 	}
 	if run != nil {
 		run.server.SetCPU(next.CPUMining, int(next.CPUThreads))
+		run.server.SetMinDifficulty(next.MinDifficulty)
 	}
 	h.applyHold()
 	return &pb.SetMiningSettingsResponse{}, nil
@@ -892,6 +904,7 @@ func settingsToProto(s orchestrator.StratumSettings) *pb.MiningSettings {
 		CpuMining:         s.CPUMining,
 		CpuThreads:        threads,
 		KeepMiningOnClose: s.KeepMiningOnClose,
+		MinDifficulty:     s.MinDifficulty,
 	}
 }
 

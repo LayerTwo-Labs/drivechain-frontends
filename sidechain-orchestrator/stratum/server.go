@@ -66,6 +66,9 @@ type Server struct {
 	cpuWanted  bool
 	cpuThreads int
 	cpu        *cpuRun
+	// workerFloor is the lowest difficulty a network miner gets. Zero means
+	// no floor of the user's own.
+	workerFloor float64
 }
 
 // layout is how the extranonce space of the current work divides between
@@ -115,6 +118,9 @@ type session struct {
 	// floor is the lowest difficulty this session gets. The hasher on this
 	// computer needs a lower one than an ASIC.
 	floor float64
+	local bool
+	// passwordFloor is the d=N difficulty from the authorize password.
+	passwordFloor float64
 	// jobDifficulty is the difficulty in force when each job went out. A
 	// share for that job needs only that difficulty.
 	jobDifficulty map[string]float64
@@ -313,7 +319,24 @@ func (s *Server) difficultyFor(sess *session, want float64, w *Work) float64 {
 	if w.Relay {
 		return w.Difficulty
 	}
-	return clampDifficulty(want, sess.floor, NetworkDifficulty(w.Bits))
+	return clampDifficulty(want, max(sess.floor, s.chosenFloorLocked(sess)), NetworkDifficulty(w.Bits))
+}
+
+// chosenFloorLocked is the floor that the user or the miner set. Zero means
+// none. The hasher on this computer has none.
+func (s *Server) chosenFloorLocked(sess *session) float64 {
+	if sess.local {
+		return 0
+	}
+	return max(s.workerFloor, sess.passwordFloor)
+}
+
+// SetMinDifficulty sets the lowest difficulty a network miner gets. A
+// connected miner moves to it at its next retarget. Zero removes the floor.
+func (s *Server) SetMinDifficulty(d float64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.workerFloor = max(d, 0)
 }
 
 func (s *Server) setDifficultyLocked(sess *session, d float64) {
@@ -386,7 +409,7 @@ func (s *Server) serveConn(ctx context.Context, conn net.Conn, local bool) {
 			ip = host
 		}
 	}
-	sess := &session{conn: conn, ip: ip, floor: floor, out: make(chan []byte, outboxSize), connected: time.Now()}
+	sess := &session{conn: conn, ip: ip, floor: floor, local: local, out: make(chan []byte, outboxSize), connected: time.Now()}
 
 	s.mu.Lock()
 	if s.layout == nil {
@@ -463,11 +486,19 @@ func (s *Server) handle(ctx context.Context, sess *session, msg message) {
 		s.mu.Unlock()
 	case "mining.authorize":
 		params, err := stringParams(msg.Params)
+		var floor float64
+		var floorErr error
+		if err == nil && len(params) > 1 {
+			floor, floorErr = passwordDifficulty(params[1])
+		}
 		s.mu.Lock()
-		if err != nil || len(params) == 0 {
+		switch {
+		case err != nil || len(params) == 0:
 			s.replyLocked(sess, msg.ID, nil, rejectf(codeOther, "authorize needs a worker name"))
-		} else {
-			sess.worker, sess.authorized = params[0], true
+		case floorErr != nil:
+			s.replyLocked(sess, msg.ID, nil, rejectf(codeOther, "%v", floorErr))
+		default:
+			sess.worker, sess.authorized, sess.passwordFloor = params[0], true, floor
 			s.replyLocked(sess, msg.ID, true, nil)
 			s.startLocked(sess)
 		}
@@ -619,6 +650,9 @@ func (s *Server) startLocked(sess *session) {
 	sess.started = true
 	sess.retargetAt = now
 	want := float64(startDifficulty)
+	if floor := s.chosenFloorLocked(sess); floor > 0 {
+		want = floor
+	}
 	if sess.suggested > 0 {
 		want = sess.suggested
 	}
