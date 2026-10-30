@@ -130,7 +130,7 @@ func TestBinaryVersion_NotDownloadedReturnsStatError(t *testing.T) {
 	o := New(dataDir, "signet", t.TempDir(), []BinaryConfig{cfg}, log)
 
 	// Nothing on disk: prod resolve hits a stat miss, surfaced as an error
-	// (the handler turns this into an "Error: ..." display string).
+	// (the handler shows it as "Not installed").
 	_, binPath, isTest, err := o.BinaryVersion("thunder", true)
 	require.Error(t, err)
 	assert.True(t, os.IsNotExist(err))
