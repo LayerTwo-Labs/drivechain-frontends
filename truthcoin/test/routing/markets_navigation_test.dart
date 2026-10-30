@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/pages/sail_test_page.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
@@ -30,7 +31,7 @@ class _MarketsTestRouter extends AppRouter {
   List<AutoRoute> get routes => [
     AutoRoute(
       page: PageInfo(
-        HomeRoute.name,
+        SidechainHomeRoute.name,
         builder: (_) => SailTestPage(
           child: AutoTabsRouter.builder(
             routes: const [MarketsTabRoute(), _otherTab],
@@ -108,7 +109,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    router.innerRouterOf<TabsRouter>(HomeRoute.name)!.setActiveIndex(0);
+    router.innerRouterOf<TabsRouter>(SidechainHomeRoute.name)!.setActiveIndex(0);
     await tester.pumpAndSettle();
   }
 
@@ -148,7 +149,7 @@ void main() {
 
   testWidgets('back shows the grid after a switch to another tab and back', (tester) async {
     await pumpApp(tester);
-    final tabs = router.innerRouterOf<TabsRouter>(HomeRoute.name)!;
+    final tabs = router.innerRouterOf<TabsRouter>(SidechainHomeRoute.name)!;
 
     await tester.tap(find.text(twoDecisions['title'] as String));
     await tester.pumpAndSettle();
