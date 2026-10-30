@@ -11,10 +11,14 @@ class ChainSettingsModal extends StatefulWidget {
   final RPCConnection connection;
   final VoidCallback? onOpenConfConfigurator;
 
+  /// True when another host runs the daemon, so no local binary exists.
+  final bool remote;
+
   const ChainSettingsModal({
     super.key,
     required this.connection,
     this.onOpenConfConfigurator,
+    this.remote = false,
   });
 
   @override
@@ -43,7 +47,11 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   void initState() {
     super.initState();
     _loadArgs();
-    _loadBinaryVersion();
+    if (widget.remote) {
+      _loadingVersion = false;
+    } else {
+      _loadBinaryVersion();
+    }
     _loadChainHeight();
   }
 
@@ -308,8 +316,11 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                 Expanded(
                   child: InlineTabBar(
                     tabs: [
-                      SingleTabItem(label: 'Overview', child: _overviewTab(viewModel, version)),
-                      SingleTabItem(label: 'Paths', child: _pathsTab(viewModel)),
+                      SingleTabItem(
+                        label: 'Overview',
+                        child: widget.remote ? _remoteOverviewTab(viewModel) : _overviewTab(viewModel, version),
+                      ),
+                      if (!widget.remote) SingleTabItem(label: 'Paths', child: _pathsTab(viewModel)),
                       if (_isBitcoinCore) SingleTabItem(label: 'Chain', child: _chainTab(context, theme)),
                     ],
                   ),
@@ -337,7 +348,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
             children: [
               SailText.primary20(binary.name),
               SailText.secondary13(
-                '${_chainLayer(binary)} · 127.0.0.1:${_port()} · version $version',
+                widget.remote
+                    ? '${_chainLayer(binary)} · remote'
+                    : '${_chainLayer(binary)} · 127.0.0.1:${_port()} · version $version',
                 color: theme.colors.textSecondary,
               ),
             ],
@@ -351,6 +364,20 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
             loadingLabel: 'Updating',
           ),
       ],
+    );
+  }
+
+  Widget _remoteOverviewTab(ChainSettingsViewModel viewModel) {
+    final binary = viewModel.binary;
+    return SingleChildScrollView(
+      child: SailColumn(
+        spacing: 0,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _FieldRow(label: 'Runs on', value: 'Remote validator'),
+          if (binary.repoUrl.isNotEmpty) _FieldRow(label: 'Repository', value: binary.repoUrl, copyable: true),
+        ],
+      ),
     );
   }
 
@@ -535,15 +562,16 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     return SailRow(
       spacing: SailStyleValues.padding08,
       children: [
-        Tooltip(
-          message: 'Wipe ${viewModel.binary.name} binary, data, and wallets, then reinstall',
-          child: SailButton(
-            label: 'Wipe and reinstall',
-            variant: ButtonVariant.ghost,
-            textColor: SailColorScheme.red,
-            onPressed: () async => _showWipeReset(context, viewModel.binary),
+        if (!widget.remote)
+          Tooltip(
+            message: 'Wipe ${viewModel.binary.name} binary, data, and wallets, then reinstall',
+            child: SailButton(
+              label: 'Wipe and reinstall',
+              variant: ButtonVariant.ghost,
+              textColor: SailColorScheme.red,
+              onPressed: () async => _showWipeReset(context, viewModel.binary),
+            ),
           ),
-        ),
         const Spacer(),
         if (widget.onOpenConfConfigurator != null)
           SailButton(

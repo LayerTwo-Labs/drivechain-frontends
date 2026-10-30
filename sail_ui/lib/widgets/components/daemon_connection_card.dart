@@ -152,6 +152,7 @@ class DaemonConnectionCard extends StatelessWidget {
                       builder: (context) => ChainSettingsModal(
                         connection: chain,
                         onOpenConfConfigurator: onOpenConfConfigurator,
+                        remote: remote,
                       ),
                     );
                   },
