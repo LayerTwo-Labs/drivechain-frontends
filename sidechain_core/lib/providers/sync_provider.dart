@@ -127,8 +127,12 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   /// daemon (read [bitwindowdSyncInfo] or [sidechains] directly).
   bool get isSynced => (mainchainSyncInfo?.isSynced ?? false) && (enforcerSyncInfo?.isSynced ?? false);
 
-  /// True while bitcoind is still pulling its initial header set.
+  /// True while bitcoind is still pulling its initial header set. False in
+  /// light mode, which runs no bitcoind.
   bool get inHeaderSync {
+    if (!NodeModeProvider.runsLocalBackends) {
+      return false;
+    }
     final m = mainchainSyncInfo;
     if (m == null) {
       return true;

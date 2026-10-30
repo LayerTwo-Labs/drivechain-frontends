@@ -78,6 +78,21 @@ void main() {
     expect(provider.bitwindowdError, isNull);
   });
 
+  // The enforcer card showed "Waiting for L1 to sync headers..." for ever.
+  test('light mode waits for no headers', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_LIGHT);
+
+    expect(provider.inHeaderSync, isFalse);
+  });
+
+  test('full mode waits for headers until bitcoind reports them', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+
+    expect(provider.inHeaderSync, isTrue);
+    provider.mainchainSyncInfo = SyncInfo(progressCurrent: 980410, progressGoal: 980410, lastBlockAt: null);
+    expect(provider.inHeaderSync, isFalse);
+  });
+
   test('the bitwindowd poll runs in full mode', () async {
     final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
 
