@@ -11,38 +11,6 @@
 part of 'router.dart';
 
 /// generated route for
-/// [HomePage]
-class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children})
-    : super(HomeRoute.name, initialChildren: children);
-
-  static const String name = 'HomeRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const HomePage();
-    },
-  );
-}
-
-/// generated route for
-/// [SettingsTabPage]
-class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children})
-    : super(SettingsTabRoute.name, initialChildren: children);
-
-  static const String name = 'SettingsTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const SettingsTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [ZSideBillPage]
 class ZSideBillRoute extends PageRouteInfo<void> {
   const ZSideBillRoute({List<PageRouteInfo>? children})
@@ -54,38 +22,6 @@ class ZSideBillRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const ZSideBillPage();
-    },
-  );
-}
-
-/// generated route for
-/// [ZSideConfigureHomepagePage]
-class ZSideConfigureHomepageRoute extends PageRouteInfo<void> {
-  const ZSideConfigureHomepageRoute({List<PageRouteInfo>? children})
-    : super(ZSideConfigureHomepageRoute.name, initialChildren: children);
-
-  static const String name = 'ZSideConfigureHomepageRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const ZSideConfigureHomepagePage();
-    },
-  );
-}
-
-/// generated route for
-/// [ZSideHomepagePage]
-class ZSideHomepageRoute extends PageRouteInfo<void> {
-  const ZSideHomepageRoute({List<PageRouteInfo>? children})
-    : super(ZSideHomepageRoute.name, initialChildren: children);
-
-  static const String name = 'ZSideHomepageRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const ZSideHomepagePage();
     },
   );
 }

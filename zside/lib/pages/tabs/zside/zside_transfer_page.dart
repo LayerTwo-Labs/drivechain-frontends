@@ -6,13 +6,14 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/shell.dart';
 import 'package:stacked/stacked.dart';
-import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
+import 'package:zside/zside_module.dart';
 
 @RoutePage()
 class ZSideTransferTabPage extends StatelessWidget {
@@ -32,7 +33,7 @@ class ZSideTransferTabPage extends StatelessWidget {
         return SailPage(
           scrollable: true,
           widgetTitle: ZSideWidgetTitle(
-            depositNudgeAction: () => tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index),
+            depositNudgeAction: () => tabsRouter.setActiveIndex(ShellTabIndex.of(ZSideModule()).parentChain),
           ),
           body: Padding(
             padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
