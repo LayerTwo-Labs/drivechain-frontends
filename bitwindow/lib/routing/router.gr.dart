@@ -538,6 +538,58 @@ class SidechainActivationManagementRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [SidechainHostPage]
+class SidechainHostRoute extends PageRouteInfo<SidechainHostRouteArgs> {
+  SidechainHostRoute({
+    Key? key,
+    required String chain,
+    List<PageRouteInfo>? children,
+  }) : super(
+         SidechainHostRoute.name,
+         args: SidechainHostRouteArgs(key: key, chain: chain),
+         rawPathParams: {'chain': chain},
+         initialChildren: children,
+       );
+
+  static const String name = 'SidechainHostRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<SidechainHostRouteArgs>(
+        orElse: () =>
+            SidechainHostRouteArgs(chain: pathParams.getString('chain')),
+      );
+      return SidechainHostPage(key: args.key, chain: args.chain);
+    },
+  );
+}
+
+class SidechainHostRouteArgs {
+  const SidechainHostRouteArgs({this.key, required this.chain});
+
+  final Key? key;
+
+  final String chain;
+
+  @override
+  String toString() {
+    return 'SidechainHostRouteArgs{key: $key, chain: $chain}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SidechainHostRouteArgs) return false;
+    return key == other.key && chain == other.chain;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ chain.hashCode;
+}
+
+/// generated route for
 /// [SidechainProposalPage]
 class SidechainProposalRoute extends PageRouteInfo<void> {
   const SidechainProposalRoute({List<PageRouteInfo>? children})
@@ -549,6 +601,22 @@ class SidechainProposalRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const SidechainProposalPage();
+    },
+  );
+}
+
+/// generated route for
+/// [SidechainSlotsPage]
+class SidechainSlotsRoute extends PageRouteInfo<void> {
+  const SidechainSlotsRoute({List<PageRouteInfo>? children})
+    : super(SidechainSlotsRoute.name, initialChildren: children);
+
+  static const String name = 'SidechainSlotsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const SidechainSlotsPage();
     },
   );
 }

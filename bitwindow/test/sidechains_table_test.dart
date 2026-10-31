@@ -209,6 +209,16 @@ final Finder _startMenuButton = find.byWidgetPredicate(
 
 SailButton _buttonWidget(WidgetTester tester, String label) => tester.widget<SailButton>(_button(label));
 
+Future<void> registerSettings() async {
+  GetIt.I.registerSingleton<BitwindowClientSettings>(
+    BitwindowClientSettings(
+      store: MockStore(),
+      log: Logger(level: Level.off),
+    ),
+  );
+  GetIt.I.registerSingleton<SettingsProvider>(await SettingsProvider.create());
+}
+
 void main() {
   late _ThunderRPC thunderRPC;
   late _Wallet walletReader;
@@ -216,6 +226,7 @@ void main() {
   late _Downloads downloads;
   late BalanceProvider balances;
   late SyncProvider sync;
+  late List<Sidechain> openedHere;
 
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -233,6 +244,7 @@ void main() {
   setUp(() async {
     await GetIt.I.reset();
     GetIt.I.registerSingleton<Logger>(Logger(level: Level.off));
+    openedHere = [];
     sync = SyncProvider(startTimer: false);
     thunderRPC = _ThunderRPC();
     downloads = _Downloads();
@@ -272,7 +284,7 @@ void main() {
     addTearDown(() => tester.pumpWidget(const SizedBox()));
     await tester.pumpSailPage(
       ViewModelBuilder<SidechainsViewModel>.reactive(
-        viewModelBuilder: () => SidechainsViewModel(),
+        viewModelBuilder: () => SidechainsViewModel(openHere: (chain) async => openedHere.add(chain)),
         builder: (context, model, child) {
           Widget table = narrow
               ? const Row(
@@ -335,9 +347,11 @@ void main() {
   group('app window', () {
     late _Orchestrator orchestrator;
 
-    setUp(() {
+    setUp(() async {
       orchestrator = _Orchestrator();
       GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+      await registerSettings();
+      await GetIt.I.get<SettingsProvider>().updateOpenSidechainsInWindow(true);
     });
 
     Future<void> tapButton(WidgetTester tester, Finder button) async {
@@ -449,6 +463,88 @@ void main() {
       expect(tester.getRect(_openWindowButton).right, lessThanOrEqualTo(table.right));
       expect(tester.getRect(_button('Stop')).right, lessThanOrEqualTo(table.right));
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('inside BitWindow', () {
+    late _Orchestrator orchestrator;
+
+    setUp(() async {
+      orchestrator = _Orchestrator();
+      GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+      await registerSettings();
+    });
+
+    Future<void> tapButton(WidgetTester tester, Finder button) async {
+      await tester.tap(button);
+      await tester.pump(kDoubleTapTimeout);
+      await tester.pumpAndSettle();
+    }
+
+    test('the window setting is off by default', () {
+      expect(GetIt.I.get<SettingsProvider>().bitwindowSettings.openSidechainsInWindow, isFalse);
+    });
+
+    testWidgets('Start runs the node in the background and opens the chain here', (tester) async {
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      await tapButton(tester, _button('Start'));
+
+      expect(orchestrator.starts, [('thunder', true)]);
+      expect(openedHere.map((chain) => chain.name), ['Thunder']);
+    });
+
+    testWidgets('the start menu offers here, background and a separate window', (tester) async {
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      await tapButton(tester, _startMenuButton);
+      expect(find.text('Start and open here'), findsOneWidget);
+      expect(find.text('Start in background'), findsOneWidget);
+      expect(find.text('Start in a separate window'), findsOneWidget);
+      expect(find.text('Start with window'), findsNothing);
+
+      await tapButton(tester, find.text('Start in a separate window'));
+      expect(orchestrator.starts, [('thunder', false)]);
+      expect(openedHere, isEmpty);
+    });
+
+    testWidgets('Start in background opens nothing', (tester) async {
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      await tapButton(tester, _startMenuButton);
+      await tapButton(tester, find.text('Start in background'));
+
+      expect(orchestrator.starts, [('thunder', true)]);
+      expect(openedHere, isEmpty);
+    });
+
+    testWidgets('a running chain offers Open before Stop, and no window icon', (tester) async {
+      setUpChain(_thunder());
+      thunderRPC.setConnected(true);
+      await pumpTable(tester);
+
+      expect(_buttonWidget(tester, 'Open').variant, ButtonVariant.primary);
+      expect(tester.getRect(_button('Open')).right, lessThan(tester.getRect(_button('Stop')).left));
+      expect(_openWindowButton, findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await tapButton(tester, _button('Open'));
+      expect(openedHere.map((chain) => chain.name), ['Thunder']);
+      expect(orchestrator.starts, isEmpty);
+    });
+
+    testWidgets('with the setting on, Start uses the window flow', (tester) async {
+      await GetIt.I.get<SettingsProvider>().updateOpenSidechainsInWindow(true);
+      setUpChain(_thunder());
+      await pumpTable(tester);
+
+      await tapButton(tester, _button('Start'));
+
+      expect(orchestrator.starts, [('thunder', false)]);
+      expect(openedHere, isEmpty);
     });
   });
 

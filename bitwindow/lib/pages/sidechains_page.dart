@@ -8,8 +8,10 @@ import 'package:bitwindow/log_window.dart';
 import 'package:bitwindow/utils/deposit_fee.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
+import 'package:bitwindow/pages/sidechain_host_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/sidechains/hosted_modules.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
@@ -20,9 +22,20 @@ import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
+/// The Sidechains tab: the slot table, or one chain inside BitWindow.
 @RoutePage()
 class SidechainsPage extends StatelessWidget {
   const SidechainsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const AutoRouter();
+  }
+}
+
+@RoutePage()
+class SidechainSlotsPage extends StatelessWidget {
+  const SidechainSlotsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -455,7 +468,9 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       if (sidechain == null) {
         return width;
       }
-      final openWindow = viewModel._offersOpenWindow(sidechain)
+      final openWindow = viewModel._offersOpenHere(sidechain)
+          ? _openHereButtonWidth + SailStyleValues.padding08
+          : viewModel._offersOpenWindow(sidechain)
           ? _openWindowButtonWidth + SailStyleValues.padding08
           : 0.0;
       if (viewModel._binaryProvider.isInitializing(sidechain) ||
@@ -826,6 +841,8 @@ const double _updateButtonWidth = 32;
 
 const double _openWindowButtonWidth = 32;
 
+const double _openHereButtonWidth = 64;
+
 const double _startMenuButtonWidth = 32;
 
 /// A balance cell carries a long number and its unit, so it keeps less padding
@@ -905,13 +922,23 @@ class _SidechainActions extends StatelessWidget {
   }
 }
 
-/// Start, and a chevron that opens a menu to start the sidechain with or without its app window.
+/// One way to start a sidechain, in the start menu.
+class _StartOption {
+  final SailSVGAsset icon;
+  final String title;
+  final String? subtitle;
+  final Future<void> Function() onSelected;
+
+  const _StartOption({required this.icon, required this.title, this.subtitle, required this.onSelected});
+}
+
+/// Start, and a chevron that opens a menu of the ways to start the sidechain.
 class _StartMenuButton extends StatefulWidget {
   final Sidechain sidechain;
   final Widget start;
-  final Future<void> Function({required bool background}) onStart;
+  final List<_StartOption> options;
 
-  const _StartMenuButton({required this.sidechain, required this.start, required this.onStart});
+  const _StartMenuButton({required this.sidechain, required this.start, required this.options});
 
   @override
   State<_StartMenuButton> createState() => _StartMenuButtonState();
@@ -920,9 +947,9 @@ class _StartMenuButton extends StatefulWidget {
 class _StartMenuButtonState extends State<_StartMenuButton> {
   final _menu = MenuController();
 
-  void _select({required bool background}) {
+  void _select(_StartOption option) {
     _menu.close();
-    unawaited(widget.onStart(background: background));
+    unawaited(option.onSelected());
   }
 
   @override
@@ -950,18 +977,13 @@ class _StartMenuButtonState extends State<_StartMenuButton> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _StartMenuItem(
-                icon: SailSVGAsset.externalLink,
-                title: 'Start with window',
-                subtitle: 'Opens the ${sidechain.name} app.',
-                onSelected: () => _select(background: false),
-              ),
-              _StartMenuItem(
-                icon: SailSVGAsset.server,
-                title: 'Start in background',
-                subtitle: 'Runs the node only. Open the window later.',
-                onSelected: () => _select(background: true),
-              ),
+              for (final option in widget.options)
+                _StartMenuItem(
+                  icon: option.icon,
+                  title: option.title,
+                  subtitle: option.subtitle,
+                  onSelected: () => _select(option),
+                ),
             ],
           ),
         ),
@@ -993,15 +1015,16 @@ class _StartMenuButtonState extends State<_StartMenuButton> {
 class _StartMenuItem extends StatelessWidget {
   final SailSVGAsset icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final VoidCallback onSelected;
 
   const _StartMenuItem({required this.icon, required this.title, required this.subtitle, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = this.subtitle;
     return SailMenuItem(
-      height: 44,
+      height: subtitle == null ? 34 : 44,
       onSelected: onSelected,
       child: SailRow(
         spacing: SailStyleValues.padding12,
@@ -1014,7 +1037,7 @@ class _StartMenuItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SailText.primary13(title),
-                SailText.secondary12(subtitle),
+                if (subtitle != null) SailText.secondary12(subtitle),
               ],
             ),
           ),
@@ -1120,6 +1143,10 @@ class PinnedSidechainsSetting extends SettingValue<List<int>> {
 
 class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
+  final SettingsProvider _settingsProvider = GetIt.I.get<SettingsProvider>();
+
+  /// Opens a sidechain inside BitWindow.
+  final Future<void> Function(Sidechain chain) openHere;
   final BalanceProvider _balanceProvider = GetIt.I.get<BalanceProvider>();
   final SidechainProvider _sidechainProvider = GetIt.I.get<SidechainProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
@@ -1158,8 +1185,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return _syncProvider.sidechains[type];
   }
 
-  SidechainsViewModel() {
+  SidechainsViewModel({this.openHere = openSidechainHere}) {
     initChangeTracker();
+    _settingsProvider.addListener(notifyListeners);
     unawaited(_loadPinnedSlots());
 
     _sidechainProvider.addListener(_onChange);
@@ -1482,7 +1510,14 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (isRunning) {
-      final openWindow = _offersOpenWindow(sidechain)
+      final openWindow = _offersOpenHere(sidechain)
+          ? SailButton(
+              key: ValueKey('open_here_slot_${sidechain.slot}_${sidechain.name}'),
+              label: 'Open',
+              variant: ButtonVariant.primary,
+              onPressed: () => openHere(sidechain),
+            )
+          : _offersOpenWindow(sidechain)
           ? SailTooltip(
               message: 'Open window',
               child: SizedBox.square(
@@ -1561,21 +1596,72 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       key: ValueKey('start_slot_${sidechain.slot}_${sidechain.name}'),
       label: 'Start',
       variant: ButtonVariant.primary,
-      onPressed: () async => await _binaryProvider.start(sidechain),
+      onPressed: () => startSidechain(sidechain),
     );
-    if (!_binaryProvider.hasWindow(sidechain)) {
+    if (!_offersStartMenu(sidechain)) {
       return _withUpdate(context, sidechain, start);
     }
     return _withUpdate(
       context,
       sidechain,
-      _StartMenuButton(
-        sidechain: sidechain,
-        start: start,
-        onStart: ({required background}) => _binaryProvider.start(sidechain, background: background),
-      ),
+      _StartMenuButton(sidechain: sidechain, start: start, options: _startOptions(sidechain)),
     );
   }
+
+  /// True when the sidechain opens inside BitWindow, not in a window of its own.
+  bool _opensHere(Sidechain sidechain) =>
+      !_settingsProvider.bitwindowSettings.openSidechainsInWindow && hostedModuleFor(sidechain) != null;
+
+  /// Starts the sidechain the way the settings ask: its node with the view inside BitWindow, or its app window.
+  Future<void> startSidechain(Sidechain sidechain) async {
+    if (!_opensHere(sidechain)) {
+      await _binaryProvider.start(sidechain);
+      return;
+    }
+    await _binaryProvider.start(sidechain, background: true);
+    await openHere(sidechain);
+  }
+
+  List<_StartOption> _startOptions(Sidechain sidechain) {
+    if (!_opensHere(sidechain)) {
+      return [
+        _StartOption(
+          icon: SailSVGAsset.externalLink,
+          title: 'Start with window',
+          subtitle: 'Opens the ${sidechain.name} app.',
+          onSelected: () => _binaryProvider.start(sidechain),
+        ),
+        _StartOption(
+          icon: SailSVGAsset.server,
+          title: 'Start in background',
+          subtitle: 'Runs the node only. Open the window later.',
+          onSelected: () => _binaryProvider.start(sidechain, background: true),
+        ),
+      ];
+    }
+    return [
+      _StartOption(
+        icon: SailSVGAsset.play,
+        title: 'Start and open here',
+        onSelected: () => startSidechain(sidechain),
+      ),
+      _StartOption(
+        icon: SailSVGAsset.square,
+        title: 'Start in background',
+        onSelected: () => _binaryProvider.start(sidechain, background: true),
+      ),
+      if (_binaryProvider.hasWindow(sidechain))
+        _StartOption(
+          icon: SailSVGAsset.externalLink,
+          title: 'Start in a separate window',
+          onSelected: () => _binaryProvider.start(sidechain),
+        ),
+    ];
+  }
+
+  /// The node runs, and the sidechain opens inside BitWindow.
+  bool _offersOpenHere(Sidechain sidechain) =>
+      _opensHere(sidechain) && _binaryProvider.isConnected(sidechain) && !_binaryProvider.isStopping(sidechain);
 
   /// The node runs, but the app window of the sidechain is closed.
   bool _offersOpenWindow(Sidechain sidechain) =>
@@ -1585,7 +1671,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       !_binaryProvider.isStopping(sidechain);
 
   bool _offersStartMenu(Sidechain sidechain) =>
-      sidechain.isDownloaded && _binaryProvider.hasWindow(sidechain) && !_binaryProvider.isSidechainUp(sidechain);
+      sidechain.isDownloaded &&
+      (_binaryProvider.hasWindow(sidechain) || _opensHere(sidechain)) &&
+      !_binaryProvider.isSidechainUp(sidechain);
 
   /// The sync bar that sits beside Stop, or null when the chain follows the tip.
   Widget? _syncingWidget(BuildContext context, Sidechain sidechain) {
@@ -1786,6 +1874,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   @override
   void dispose() {
+    _settingsProvider.removeListener(notifyListeners);
     _sidechainProvider.removeListener(_onChange);
     _walletReader.removeListener(_onChange);
     _nodeMode?.removeListener(_onChange);
