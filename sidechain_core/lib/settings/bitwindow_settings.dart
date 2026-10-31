@@ -16,17 +16,23 @@ const String defaultThemeStyleId = _bitwindowNetwork == 'ecash' ? 'ecash' : 'sai
 class BitwindowSettings {
   final bool paranoidMode;
   final String themeStyle;
+  final bool openSidechainsInWindow;
 
-  BitwindowSettings({this.paranoidMode = false, this.themeStyle = defaultThemeStyleId});
+  BitwindowSettings({
+    this.paranoidMode = false,
+    this.themeStyle = defaultThemeStyleId,
+    this.openSidechainsInWindow = false,
+  });
 
   Map<String, dynamic> toMap() {
-    return {'paranoidMode': paranoidMode, 'themeStyle': themeStyle};
+    return {'paranoidMode': paranoidMode, 'themeStyle': themeStyle, 'openSidechainsInWindow': openSidechainsInWindow};
   }
 
   factory BitwindowSettings.fromMap(Map<String, dynamic> map) {
     return BitwindowSettings(
       paranoidMode: map['paranoidMode'] ?? false,
       themeStyle: map['themeStyle'] ?? defaultThemeStyleId,
+      openSidechainsInWindow: map['openSidechainsInWindow'] ?? false,
     );
   }
 
@@ -41,10 +47,11 @@ class BitwindowSettings {
     }
   }
 
-  BitwindowSettings copyWith({bool? paranoidMode, String? themeStyle}) {
+  BitwindowSettings copyWith({bool? paranoidMode, String? themeStyle, bool? openSidechainsInWindow}) {
     return BitwindowSettings(
       paranoidMode: paranoidMode ?? this.paranoidMode,
       themeStyle: themeStyle ?? this.themeStyle,
+      openSidechainsInWindow: openSidechainsInWindow ?? this.openSidechainsInWindow,
     );
   }
 }

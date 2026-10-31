@@ -49,4 +49,26 @@ void main() {
     final reloaded = await _loadedProvider();
     expect(reloaded.settings.hasConfiguredHomepage, isTrue);
   });
+
+  test('the sidechain window setting is off by default', () async {
+    expect(BitwindowSettings().openSidechainsInWindow, isFalse);
+    expect(BitwindowSettings.fromJson('{"paranoidMode":true}').openSidechainsInWindow, isFalse);
+
+    final settingsProvider = await SettingsProvider.create();
+    expect(settingsProvider.bitwindowSettings.openSidechainsInWindow, isFalse);
+  });
+
+  test('the sidechain window setting round-trips and keeps the other settings', () async {
+    final settingsProvider = await SettingsProvider.create();
+    await settingsProvider.updateParanoidMode(true);
+    await settingsProvider.updateOpenSidechainsInWindow(true);
+
+    final global = await GetIt.I.get<BitwindowClientSettings>().getValue(BitwindowSettingValue());
+    expect(global.value.openSidechainsInWindow, isTrue);
+    expect(global.value.paranoidMode, isTrue);
+    expect(BitwindowSettings.fromJson(global.value.toJson()).openSidechainsInWindow, isTrue);
+
+    final reloaded = await SettingsProvider.create();
+    expect(reloaded.bitwindowSettings.openSidechainsInWindow, isTrue);
+  });
 }
