@@ -47,6 +47,20 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
             ),
           ],
         ),
+        SailSettingsGroup(
+          title: 'Sidechains',
+          children: [
+            SailSettingsRow(
+              label: 'Open sidechains in a separate window',
+              trailing: SailToggle(
+                value: _settingsProvider.bitwindowSettings.openSidechainsInWindow,
+                onChanged: (value) async {
+                  await _settingsProvider.updateOpenSidechainsInWindow(value);
+                },
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
