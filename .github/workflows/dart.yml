@@ -16,6 +16,7 @@ on:
       - "coinshift/**"
       - "*/windows/packaging/exe/make_config.yaml"
       - "scripts/check-windows-app-ids.sh"
+      - "scripts/sync-path-dep-versions.sh"
       - ".github/workflows/dart.yml"
 
 env:
@@ -92,7 +93,9 @@ jobs:
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
 
       - name: Install dependencies
-        run: flutter pub get --enforce-lockfile
+        run: |
+          ../scripts/sync-path-dep-versions.sh .
+          flutter pub get --enforce-lockfile
 
       - name: Create necessary directories
         run: |

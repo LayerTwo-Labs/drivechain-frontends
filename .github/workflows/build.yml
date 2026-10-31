@@ -113,6 +113,13 @@ jobs:
             bitwindow:
               - 'scripts/**'
               - 'bitwindow/**'
+              - 'thunder/**'
+              - 'bitnames/**'
+              - 'bitassets/**'
+              - 'truthcoin/**'
+              - 'zside/**'
+              - 'photon/**'
+              - 'coinshift/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
               - 'sidechain-orchestrator/**'
@@ -262,6 +269,10 @@ jobs:
           cp -r sail_ui "$BUILD_DIR/"
           cp -r sidechain_core "$BUILD_DIR/"
           cp -r drivechain_lints "$BUILD_DIR/"
+          # BitWindow opens the sidechain apps inside its own window.
+          if [ "${{ matrix.client }}" == "bitwindow" ]; then
+            cp -r thunder bitnames bitassets truthcoin zside photon coinshift "$BUILD_DIR/"
+          fi
           # Every client embeds the orchestrator daemon.
           cp -r sidechain-orchestrator "$BUILD_DIR/"
           # Pull in whatever those modules replace-resolve to outside their own dir.
@@ -274,6 +285,7 @@ jobs:
       - name: Install Flutter dependencies
         run: |
           cd ${{ env.BUILD_DIR }}/${{ matrix.client }}
+          ../scripts/sync-path-dep-versions.sh .
           flutter pub get --enforce-lockfile
 
         # standard macOS sed has subtle differences from gnu
