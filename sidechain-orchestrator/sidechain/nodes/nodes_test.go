@@ -17,7 +17,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/solana"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
@@ -38,7 +37,6 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 		{name: "zside"},
 		{name: "solana"},
 		{name: "bbc", core: true},
-		{name: "freebank", core: true},
 	}
 
 	for _, chain := range chains {
@@ -50,7 +48,7 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 			require.True(t, ok, "the BMM engine drives this chain")
 
 			switch bmm.(type) {
-			case *sidechain.JSONRPCProxy, *bbc.Client, *freebank.Client, *zside.Node, *solana.Client:
+			case *sidechain.JSONRPCProxy, *bbc.Client, *zside.Node, *solana.Client:
 			default:
 				assert.Failf(t, "unaudited transport", "%s takes %T", chain.name, bmm)
 			}

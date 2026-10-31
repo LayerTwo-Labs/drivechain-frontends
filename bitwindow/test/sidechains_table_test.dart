@@ -173,30 +173,10 @@ Thunder _thunder({bool downloaded = true, bool updateAvailable = false}) {
   );
 }
 
-FreeBank _freeBank() {
-  final base = FreeBank();
-  return base.copyWith(
-    metadata: base.metadata.copyWith(
-      remoteTimestamp: null,
-      downloadedTimestamp: DateTime(2026, 1),
-      binaryPath: File('/tmp/freebankd'),
-      updateable: true,
-    ),
-  );
-}
-
-final Finder _settingsButton = find.byWidgetPredicate(
-  (widget) => widget is SailButton && widget.icon == SailSVGAsset.settings,
-);
-
 Finder _button(String label) => find.byWidgetPredicate((widget) => widget is SailButton && widget.label == label);
 
 final Finder _updateButton = find.byWidgetPredicate(
   (widget) => widget is SailButton && widget.icon == SailSVGAsset.circleArrowUp,
-);
-
-final Finder _bidButton = find.byWidgetPredicate(
-  (widget) => widget is SailButton && widget.icon == SailSVGAsset.iconTabBmm,
 );
 
 final Finder _openWindowButton = find.byWidgetPredicate(
@@ -421,23 +401,6 @@ void main() {
       expect(orchestrator.starts, [('thunder', false)]);
     });
 
-    for (final running in [false, true]) {
-      testWidgets('a chain with no app window offers ${running ? 'no Open window' : 'no start menu'}', (tester) async {
-        GetIt.I.registerSingleton<BinaryProvider>(_Binaries([_freeBank()]));
-        GetIt.I.registerSingleton<FreeBankRPC>(FreeBankLive()..connected = running);
-        GetIt.I.get<SidechainProvider>().sidechains[130] = SidechainOverview(
-          ListSidechainsResponse_Sidechain(title: 'FreeBank', slot: 130, balanceSatoshi: Int64.ZERO),
-          [],
-          [],
-        );
-        await pumpTable(tester);
-
-        expect(_button(running ? 'Stop' : 'Start'), findsOneWidget);
-        expect(_startMenuButton, findsNothing);
-        expect(_openWindowButton, findsNothing);
-      });
-    }
-
     testWidgets('a 1075 px window keeps Open window and Stop in view', (tester) async {
       setUpChain(_thunder());
       thunderRPC.setConnected(true);
@@ -479,85 +442,6 @@ void main() {
 
     expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(0.25)), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
-  });
-
-  // FreeBank reads all its state through the orchestrator.
-  group('FreeBank', () {
-    late _Orchestrator orchestrator;
-    late FreeBankRPC freeBankRPC;
-
-    Future<void> setUpFreeBank() async {
-      GetIt.I.registerSingleton<BinaryProvider>(_Binaries([_freeBank()]));
-      orchestrator = _Orchestrator();
-      GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
-      freeBankRPC = FreeBankLive();
-      GetIt.I.registerSingleton<FreeBankRPC>(freeBankRPC);
-      await GetIt.I.unregister<BalanceProvider>();
-      balances = BalanceProvider(connections: [thunderRPC, coinShiftRPC, freeBankRPC]);
-      GetIt.I.registerSingleton<BalanceProvider>(balances);
-      GetIt.I.get<SidechainProvider>().sidechains[130] = SidechainOverview(
-        ListSidechainsResponse_Sidechain(title: 'FreeBank', slot: 130, balanceSatoshi: Int64(300000000)),
-        [],
-        [],
-      );
-    }
-
-    testWidgets('the row has a settings button that opens the chain settings', (tester) async {
-      await setUpFreeBank();
-      await pumpTable(tester);
-
-      expect(_settingsButton, findsOneWidget);
-      await tester.tap(_settingsButton);
-      await tester.pump(kDoubleTapTimeout);
-      await tester.pump(const Duration(milliseconds: 500));
-
-      expect(find.byType(ChainSettingsModal), findsOneWidget);
-      expect(find.descendant(of: find.byType(ChainSettingsModal), matching: find.text('FreeBank')), findsOneWidget);
-      expect(find.textContaining('version freebank 1.0'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('the row has a button for the bid dialog', (tester) async {
-      await setUpFreeBank();
-      await pumpTable(tester);
-
-      expect(_bidButton, findsOneWidget);
-      expect(_tooltip('Bid for FreeBank blocks'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('a stopped FreeBank offers Start and reads no balance', (tester) async {
-      await setUpFreeBank();
-      await balances.fetch();
-      await pumpTable(tester);
-
-      expect(_buttonWidget(tester, 'Start').variant, ButtonVariant.primary);
-      expect(_button('Stop'), findsNothing);
-      expect(_settingsButton, findsOneWidget);
-      expect(orchestrator.balanceReads, isEmpty);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('a running FreeBank offers Stop and shows the balance the orchestrator reads', (tester) async {
-      await setUpFreeBank();
-      orchestrator.balance = GetSidechainBalanceResponse(confirmedSats: Int64(250000000));
-      freeBankRPC.connected = true;
-      await balances.fetch();
-      await pumpTable(tester);
-
-      expect(_buttonWidget(tester, 'Stop').variant, ButtonVariant.outline);
-      expect(_tooltip('Connected'), findsOneWidget);
-      expect(orchestrator.balanceReads, contains(BinaryType.BINARY_TYPE_FREEBANK));
-      expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(2.5)), findsOneWidget);
-    });
-  });
-
-  // Only FreeBank bids from BitWindow: every other chain bids from its own app.
-  testWidgets('another chain has no bid button', (tester) async {
-    setUpChain(_thunder());
-    await pumpTable(tester);
-
-    expect(_bidButton, findsNothing);
   });
 
   testWidgets('a chain that is not downloaded offers a primary Download', (tester) async {
@@ -1124,7 +1008,7 @@ void main() {
     expect(find.text('Main wallet'), findsNothing);
   });
 
-  // FreeBank keeps a wallet of its own, which no BitWindow wallet holds.
+  // A sidechain that holds no BitWindow wallet names none in the header.
   testWidgets('a running sidechain with a wallet of its own names no wallet in the header', (tester) async {
     setUpChain(_thunder());
     walletReader.wallets = [_wallet('a', 'Main wallet')];

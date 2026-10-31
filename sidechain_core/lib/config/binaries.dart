@@ -36,7 +36,6 @@ Binary defaultBinaryFor(BinaryType type) => switch (type) {
   BinaryType.BINARY_TYPE_DRIVECHAIND => Drivechaind(),
   BinaryType.BINARY_TYPE_ZSIDED => ZSided(),
   BinaryType.BINARY_TYPE_BBC => Bbc(),
-  BinaryType.BINARY_TYPE_FREEBANK => FreeBank(),
   _ => _unsupportedBinaryType(type),
 };
 
@@ -945,7 +944,7 @@ extension BinaryPaths on Binary {
       BinaryType.BINARY_TYPE_COINSHIFT => _findLatestDirVersionedLog(),
       // Core-derived, so the bitcoind layout: debug.log under the network dir,
       // not the versioned-directory logs the Rust sidechains write.
-      BinaryType.BINARY_TYPE_BBC || BinaryType.BINARY_TYPE_FREEBANK => filePath([datadirNetwork(), 'debug.log']),
+      BinaryType.BINARY_TYPE_BBC => filePath([datadirNetwork(), 'debug.log']),
       BinaryType.BINARY_TYPE_ENFORCER => _findLatestEnforcerLog(),
       BinaryType.BINARY_TYPE_GRPCURL || BinaryType.BINARY_TYPE_DRIVECHAIND || BinaryType.BINARY_TYPE_ZSIDED => '',
       BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
@@ -1033,9 +1032,7 @@ extension BinaryPaths on Binary {
 
     switch (OS.current) {
       case OS.linux:
-        if (type == BinaryType.BINARY_TYPE_BITCOIND ||
-            type == BinaryType.BINARY_TYPE_BBC ||
-            type == BinaryType.BINARY_TYPE_FREEBANK) {
+        if (type == BinaryType.BINARY_TYPE_BITCOIND || type == BinaryType.BINARY_TYPE_BBC) {
           // Core and its forks keep their datadir directly under $HOME
           return filePath([home]);
         }
@@ -1092,7 +1089,6 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_PHOTON:
       case BinaryType.BINARY_TYPE_COINSHIFT:
       case BinaryType.BINARY_TYPE_BBC:
-      case BinaryType.BINARY_TYPE_FREEBANK:
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
@@ -1122,11 +1118,10 @@ extension BinaryPaths on Binary {
     final baseDir = datadir();
 
     switch (type) {
-      // Bbc and FreeBank are Bitcoin Core derived, so they take the per-network
-      // subdir the CUSF sidechains do not have.
+      // Bbc is Bitcoin Core derived, so it takes the per-network subdir the
+      // CUSF sidechains do not have.
       case BinaryType.BINARY_TYPE_BITCOIND:
       case BinaryType.BINARY_TYPE_BBC:
-      case BinaryType.BINARY_TYPE_FREEBANK:
         if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
           return baseDir;
         }
@@ -1762,7 +1757,6 @@ BinaryType _binaryTypeFromJsonKey(String key) {
     'photon' => BinaryType.BINARY_TYPE_PHOTON,
     'coinshift' => BinaryType.BINARY_TYPE_COINSHIFT,
     'bbc' => BinaryType.BINARY_TYPE_BBC,
-    'freebank' => BinaryType.BINARY_TYPE_FREEBANK,
     'zside' => BinaryType.BINARY_TYPE_ZSIDE,
     _ => throw ArgumentError('Unknown binary key: $key'),
   };
@@ -1783,7 +1777,6 @@ String binaryTypeToJsonKey(BinaryType type) {
     BinaryType.BINARY_TYPE_PHOTON => 'photon',
     BinaryType.BINARY_TYPE_COINSHIFT => 'coinshift',
     BinaryType.BINARY_TYPE_BBC => 'bbc',
-    BinaryType.BINARY_TYPE_FREEBANK => 'freebank',
     BinaryType.BINARY_TYPE_ZSIDE => 'zside',
     BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
     _ => _unsupportedBinaryType(type),
@@ -1947,16 +1940,6 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       chainLayer: chainLayer,
     ),
     BinaryType.BINARY_TYPE_BBC => Bbc(
-      name: name,
-      version: version,
-      description: description,
-      repoUrl: repoUrl,
-      directories: directories,
-      metadata: metadata,
-      port: port,
-      chainLayer: chainLayer,
-    ),
-    BinaryType.BINARY_TYPE_FREEBANK => FreeBank(
       name: name,
       version: version,
       description: description,

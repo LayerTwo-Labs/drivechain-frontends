@@ -250,24 +250,6 @@ func TestFlutterFrontendPath(t *testing.T) {
 	}
 }
 
-// FreeBank is a Core fork, so its datadir is the one freebankd picks for itself,
-// with no network subdir on eCash. Its .cookie is read from there.
-func TestFreebankPath(t *testing.T) {
-	p := FreebankDirs.DatadirNetwork(NetworkECash, "")
-	var want string
-	switch runtime.GOOS {
-	case "darwin":
-		want = filepath.Join(home(), "Library", "Application Support", "FreeBank")
-	case "windows":
-		want = filepath.Join(home(), "AppData", "Roaming", "FreeBank")
-	default:
-		want = filepath.Join(home(), ".freebank")
-	}
-	if p != want {
-		t.Errorf("FreeBank eCash datadir = %q, want %q", p, want)
-	}
-}
-
 func TestEnforcerChainDirObeysTheEnforcerDataDir(t *testing.T) {
 	for _, tc := range []struct {
 		network Network

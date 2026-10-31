@@ -25,8 +25,11 @@ const SidechainType$json = {
     {'1': 'SIDECHAIN_TYPE_TRUTHCOIN', '2': 5},
     {'1': 'SIDECHAIN_TYPE_PHOTON', '2': 6},
     {'1': 'SIDECHAIN_TYPE_COINSHIFT', '2': 7},
-    {'1': 'SIDECHAIN_TYPE_FREEBANK', '2': 8},
   ],
+  '4': [
+    {'1': 8, '2': 8},
+  ],
+  '5': ['SIDECHAIN_TYPE_FREEBANK'],
 };
 
 /// Descriptor for `SidechainType`. Decode as a `google.protobuf.EnumDescriptorProto`.
@@ -35,7 +38,8 @@ final $typed_data.Uint8List sidechainTypeDescriptor = $convert.base64Decode(
     'NIQUlOX1RZUEVfVEhVTkRFUhABEhgKFFNJREVDSEFJTl9UWVBFX1pTSURFEAISGwoXU0lERUNI'
     'QUlOX1RZUEVfQklUTkFNRVMQAxIcChhTSURFQ0hBSU5fVFlQRV9CSVRBU1NFVFMQBBIcChhTSU'
     'RFQ0hBSU5fVFlQRV9UUlVUSENPSU4QBRIZChVTSURFQ0hBSU5fVFlQRV9QSE9UT04QBhIcChhT'
-    'SURFQ0hBSU5fVFlQRV9DT0lOU0hJRlQQBxIbChdTSURFQ0hBSU5fVFlQRV9GUkVFQkFOSxAI');
+    'SURFQ0hBSU5fVFlQRV9DT0lOU0hJRlQQByIECAgQCCoXU0lERUNIQUlOX1RZUEVfRlJFRUJBTk'
+    's=');
 
 @$core.Deprecated('Use binaryTypeDescriptor instead')
 const BinaryType$json = {
@@ -56,13 +60,13 @@ const BinaryType$json = {
     {'1': 'BINARY_TYPE_DRIVECHAIND', '2': 12},
     {'1': 'BINARY_TYPE_ZSIDED', '2': 13},
     {'1': 'BINARY_TYPE_BBC', '2': 15},
-    {'1': 'BINARY_TYPE_FREEBANK', '2': 16},
     {'1': 'BINARY_TYPE_SOLANA', '2': 17},
   ],
   '4': [
     {'1': 14, '2': 14},
+    {'1': 16, '2': 16},
   ],
-  '5': ['BINARY_TYPE_LIQUID_SIGNET'],
+  '5': ['BINARY_TYPE_LIQUID_SIGNET', 'BINARY_TYPE_FREEBANK'],
 };
 
 /// Descriptor for `BinaryType`. Decode as a `google.protobuf.EnumDescriptorProto`.
@@ -74,8 +78,8 @@ final $typed_data.Uint8List binaryTypeDescriptor = $convert.base64Decode(
     'EhkKFUJJTkFSWV9UWVBFX1RSVVRIQ09JThAIEhYKEkJJTkFSWV9UWVBFX1BIT1RPThAJEhkKFU'
     'JJTkFSWV9UWVBFX0NPSU5TSElGVBAKEhcKE0JJTkFSWV9UWVBFX0dSUENVUkwQCxIbChdCSU5B'
     'UllfVFlQRV9EUklWRUNIQUlORBAMEhYKEkJJTkFSWV9UWVBFX1pTSURFRBANEhMKD0JJTkFSWV'
-    '9UWVBFX0JCQxAPEhgKFEJJTkFSWV9UWVBFX0ZSRUVCQU5LEBASFgoSQklOQVJZX1RZUEVfU09M'
-    'QU5BEBEiBAgOEA4qGUJJTkFSWV9UWVBFX0xJUVVJRF9TSUdORVQ=');
+    '9UWVBFX0JCQxAPEhYKEkJJTkFSWV9UWVBFX1NPTEFOQRARIgQIDhAOIgQIEBAQKhlCSU5BUllf'
+    'VFlQRV9MSVFVSURfU0lHTkVUKhRCSU5BUllfVFlQRV9GUkVFQkFOSw==');
 
 @$core.Deprecated('Use mainchainSyncPhaseDescriptor instead')
 const MainchainSyncPhase$json = {
