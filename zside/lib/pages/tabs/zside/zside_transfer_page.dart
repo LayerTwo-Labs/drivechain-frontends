@@ -10,15 +10,12 @@ import 'package:sail_ui/shell/shell.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
-import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
 import 'package:zside/zside_module.dart';
 
 @RoutePage()
 class ZSideTransferTabPage extends StatelessWidget {
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ZSideTransferTabPage({super.key});
 
   @override
@@ -143,7 +140,7 @@ class ZSideTransferTabPage extends StatelessWidget {
 class ZSideTransferTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
 
   String get zsideAddress => _zsideProvider.zsideAddress;
@@ -264,8 +261,6 @@ class ZSideTransferTabViewModel extends BaseViewModel {
 class ZSideWidgetTitle extends StatelessWidget {
   final VoidCallback depositNudgeAction;
 
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ZSideWidgetTitle({
     super.key,
     required this.depositNudgeAction,
@@ -324,7 +319,7 @@ class ZSideWidgetTitle extends StatelessWidget {
 class ZSideWidgetTitleViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
 
   String get zsideAddress => _zsideProvider.zsideAddress;
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;

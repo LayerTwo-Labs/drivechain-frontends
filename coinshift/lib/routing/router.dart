@@ -14,11 +14,5 @@ class AppRouter extends RootStackRouter {
   RouteType get defaultRouteType => const RouteType.adaptive();
 
   @override
-  List<AutoRoute> get routes => sidechainShellRoutes(
-    CoinShiftModule(),
-    chainTabs: [
-      AutoRoute(page: SwapsTabRoute.page),
-      AutoRoute(page: SwapAnalyticsRoute.page),
-    ],
-  );
+  List<AutoRoute> get routes => sidechainShellRoutes(CoinShiftModule());
 }

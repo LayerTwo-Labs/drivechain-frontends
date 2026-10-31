@@ -33,8 +33,8 @@ void main() {
     final votingProvider = VotingProvider();
     GetIt.I.registerLazySingleton<VotingProvider>(() => votingProvider);
 
-    final balanceProvider = BalanceProvider(connections: [mockRpc]);
-    GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
+    final balanceProvider = SidechainBalanceProvider(sidechain: mockRpc);
+    GetIt.I.registerLazySingleton<SidechainBalanceProvider>(() => balanceProvider);
     await balanceProvider.fetch();
   });
 

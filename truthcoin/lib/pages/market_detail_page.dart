@@ -1255,7 +1255,7 @@ class MarketDetailViewModel extends BaseViewModel {
   final String marketId;
   final int? initialOutcomeIndex;
   final MarketProvider _marketProvider = GetIt.I.get<MarketProvider>();
-  final BalanceProvider _balanceProvider = GetIt.I.get<BalanceProvider>();
+  final SidechainBalanceProvider _balanceProvider = GetIt.I.get<SidechainBalanceProvider>();
   final TruthcoinRPC _rpc = GetIt.I.get<TruthcoinRPC>();
   final PriceHistoryProvider _priceHistory = GetIt.I.get<PriceHistoryProvider>();
   SyncProvider? get _sync => GetIt.I.isRegistered<SyncProvider>() ? GetIt.I.get<SyncProvider>() : null;

@@ -573,6 +573,17 @@ List<PageRouteInfo> shellTabRoutes(SidechainModule module) => [
   SidechainSettingsRoute(),
 ];
 
+/// The labels of the shell tabs, in the order of [shellTabRoutes].
+List<String> shellTabLabels(SidechainModule module) => [
+  'Parent Chain',
+  'Explorer',
+  'BMM',
+  module.homeTabLabel,
+  for (final tab in module.tabs) tab.label,
+  'Console',
+  'Settings',
+];
+
 List<TopNavRoute> shellTopNavRoutes(SidechainModule module, void Function(int index) select) {
   final index = ShellTabIndex.of(module);
   return [
@@ -648,7 +659,7 @@ Map<String, NavigationTarget> shellNavigationRegistry(SidechainModule module) {
 }
 
 class SidechainHomePageViewModel extends BaseViewModel {
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
 
   double get balance => _balanceProvider.balance;

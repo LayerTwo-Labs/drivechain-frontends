@@ -59,6 +59,22 @@ class AuctionBrowserTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [BitAssetsMessagingPage]
+class BitAssetsMessagingRoute extends PageRouteInfo<void> {
+  const BitAssetsMessagingRoute({List<PageRouteInfo>? children})
+    : super(BitAssetsMessagingRoute.name, initialChildren: children);
+
+  static const String name = 'BitAssetsMessagingRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitAssetsMessagingPage();
+    },
+  );
+}
+
+/// generated route for
 /// [BitAssetsTabPage]
 class BitAssetsTabRoute extends PageRouteInfo<void> {
   const BitAssetsTabRoute({List<PageRouteInfo>? children})
@@ -86,22 +102,6 @@ class DutchAuctionTabRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const DutchAuctionTabPage();
-    },
-  );
-}
-
-/// generated route for
-/// [MessagingTabPage]
-class MessagingTabRoute extends PageRouteInfo<void> {
-  const MessagingTabRoute({List<PageRouteInfo>? children})
-    : super(MessagingTabRoute.name, initialChildren: children);
-
-  static const String name = 'MessagingTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const MessagingTabPage();
     },
   );
 }

@@ -11,6 +11,22 @@
 part of 'router.dart';
 
 /// generated route for
+/// [BitnamesMessagingPage]
+class BitnamesMessagingRoute extends PageRouteInfo<void> {
+  const BitnamesMessagingRoute({List<PageRouteInfo>? children})
+    : super(BitnamesMessagingRoute.name, initialChildren: children);
+
+  static const String name = 'BitnamesMessagingRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitnamesMessagingPage();
+    },
+  );
+}
+
+/// generated route for
 /// [BitnamesTabPage]
 class BitnamesTabRoute extends PageRouteInfo<void> {
   const BitnamesTabRoute({List<PageRouteInfo>? children})
@@ -22,22 +38,6 @@ class BitnamesTabRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const BitnamesTabPage();
-    },
-  );
-}
-
-/// generated route for
-/// [MessagingTabPage]
-class MessagingTabRoute extends PageRouteInfo<void> {
-  const MessagingTabRoute({List<PageRouteInfo>? children})
-    : super(MessagingTabRoute.name, initialChildren: children);
-
-  static const String name = 'MessagingTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const MessagingTabPage();
     },
   );
 }

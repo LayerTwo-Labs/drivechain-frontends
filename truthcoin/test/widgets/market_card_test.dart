@@ -78,8 +78,8 @@ void main() {
     GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
     GetIt.I.registerLazySingleton<Logger>(() => Logger(level: Level.off));
 
-    final balanceProvider = BalanceProvider(connections: [mockRpc]);
-    GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
+    final balanceProvider = SidechainBalanceProvider(sidechain: mockRpc);
+    GetIt.I.registerLazySingleton<SidechainBalanceProvider>(() => balanceProvider);
     await balanceProvider.fetch();
   });
 

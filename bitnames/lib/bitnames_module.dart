@@ -45,7 +45,10 @@ class BitnamesModule extends SidechainModule {
   @override
   Future<void> registerChainProviders(GetIt getIt, Directory applicationDir, Logger log) async {
     if (!getIt.isRegistered<BitnamesProvider>()) {
-      getIt.registerLazySingleton<BitnamesProvider>(() => BitnamesProvider());
+      getIt.registerLazySingleton<BitnamesProvider>(
+        () => BitnamesProvider(),
+        dispose: (provider) => provider.dispose(),
+      );
     }
   }
 
@@ -133,6 +136,12 @@ mainchain-grpc-port=${ports['mainchain-grpc-port']}
       route: BitnamesTabRoute(),
       sourceFiles: ['reserve_register_page.dart', 'paymail_page.dart'],
     ),
-    ShellTab(label: 'Messaging', route: MessagingTabRoute(), sourceFiles: ['messaging_view.dart']),
+    ShellTab(label: 'Messaging', route: BitnamesMessagingRoute(), sourceFiles: ['messaging_view.dart']),
+  ];
+
+  @override
+  List<AutoRoute> get tabRoutes => [
+    AutoRoute(page: BitnamesTabRoute.page),
+    AutoRoute(page: BitnamesMessagingRoute.page),
   ];
 }

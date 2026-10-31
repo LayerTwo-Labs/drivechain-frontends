@@ -82,4 +82,12 @@ class PhotonModule extends SidechainModule {
     ShellTab(label: 'Withdrawals', route: WithdrawalsRoute()),
     ShellTab(label: 'Tx Builder', route: TransactionBuilderRoute(), commandLabel: 'Transaction Builder'),
   ];
+
+  @override
+  List<AutoRoute> get tabRoutes => [
+    AutoRoute(page: BlockExplorerRoute.page),
+    AutoRoute(page: MempoolExplorerRoute.page),
+    AutoRoute(page: WithdrawalsRoute.page),
+    AutoRoute(page: TransactionBuilderRoute.page),
+  ];
 }

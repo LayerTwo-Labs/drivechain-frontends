@@ -48,16 +48,28 @@ class BitAssetsModule extends SidechainModule {
   @override
   Future<void> registerChainProviders(GetIt getIt, Directory applicationDir, Logger log) async {
     if (!getIt.isRegistered<BitAssetsProvider>()) {
-      getIt.registerLazySingleton<BitAssetsProvider>(() => BitAssetsProvider());
+      getIt.registerLazySingleton<BitAssetsProvider>(
+        () => BitAssetsProvider(),
+        dispose: (provider) => provider.dispose(),
+      );
     }
     if (!getIt.isRegistered<AssetAnalyticsProvider>()) {
-      getIt.registerLazySingleton<AssetAnalyticsProvider>(() => AssetAnalyticsProvider());
+      getIt.registerLazySingleton<AssetAnalyticsProvider>(
+        () => AssetAnalyticsProvider(),
+        dispose: (provider) => provider.dispose(),
+      );
     }
     if (!getIt.isRegistered<FavoritesProvider>()) {
-      getIt.registerLazySingleton<FavoritesProvider>(() => FavoritesProvider());
+      getIt.registerLazySingleton<FavoritesProvider>(
+        () => FavoritesProvider(),
+        dispose: (provider) => provider.dispose(),
+      );
     }
     if (!getIt.isRegistered<PriceAlertProvider>()) {
-      getIt.registerLazySingleton<PriceAlertProvider>(() => PriceAlertProvider());
+      getIt.registerLazySingleton<PriceAlertProvider>(
+        () => PriceAlertProvider(),
+        dispose: (provider) => provider.dispose(),
+      );
     }
   }
 
@@ -152,10 +164,20 @@ mainchain-grpc-port=${ports['mainchain-grpc-port']}
       route: BitAssetsTabRoute(),
       sourceFiles: ['reserve_register_page.dart', 'paymail_page.dart'],
     ),
-    ShellTab(label: 'Messaging', route: MessagingTabRoute(), sourceFiles: ['messaging_view.dart']),
+    ShellTab(label: 'Messaging', route: BitAssetsMessagingRoute(), sourceFiles: ['messaging_view.dart']),
     ShellTab(label: 'Dutch Auction', route: DutchAuctionTabRoute(), sourceFiles: ['dutch_auction_page.dart']),
     ShellTab(label: 'AMM', route: AmmTabRoute(), sourceFiles: ['amm_page.dart']),
     ShellTab(label: 'Explorer', route: AssetExplorerTabRoute(), commandLabel: 'Asset Explorer'),
     ShellTab(label: 'Auctions', route: AuctionBrowserTabRoute(), commandLabel: 'Auction Browser'),
+  ];
+
+  @override
+  List<AutoRoute> get tabRoutes => [
+    AutoRoute(page: BitAssetsTabRoute.page),
+    AutoRoute(page: BitAssetsMessagingRoute.page),
+    AutoRoute(page: DutchAuctionTabRoute.page),
+    AutoRoute(page: AmmTabRoute.page),
+    AutoRoute(page: AssetExplorerTabRoute.page),
+    AutoRoute(page: AuctionBrowserTabRoute.page),
   ];
 }

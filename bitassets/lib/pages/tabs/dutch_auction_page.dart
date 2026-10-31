@@ -354,7 +354,7 @@ class DetailRow extends StatelessWidget {
 }
 
 class DutchAuctionViewModel extends BaseViewModel {
-  final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
+  final SidechainBalanceProvider balanceProvider = GetIt.I.get<SidechainBalanceProvider>();
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
   final BitAssetsRPC bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
   final BitAssetsProvider bitAssetsProvider = GetIt.I.get<BitAssetsProvider>();

@@ -159,10 +159,12 @@ class ZSideProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    super.dispose();
+    _mainchainRPC.removeListener(fetch);
+    _rpc.removeListener(fetch);
     for (final timer in _timers) {
       timer.cancel();
     }
+    super.dispose();
   }
 }
 

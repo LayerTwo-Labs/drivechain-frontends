@@ -8,8 +8,8 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/shell/shell.dart';
 
 @RoutePage()
-class MessagingTabPage extends StatelessWidget {
-  const MessagingTabPage({super.key});
+class BitnamesMessagingPage extends StatelessWidget {
+  const BitnamesMessagingPage({super.key});
 
   @override
   Widget build(BuildContext context) {

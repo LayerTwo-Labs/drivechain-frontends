@@ -13,6 +13,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/config/sidechain_main.dart' show getLogFile;
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:sail_ui/shell/sidechain_homepage_provider.dart';
 import 'package:sail_ui/shell/sidechain_module.dart';
 import 'package:sidechain_core/config/backend_sidechain_runtime.dart';
@@ -78,6 +79,9 @@ Future<(Directory, File, Logger)> _init(SidechainModule module, String arguments
   if (!GetIt.I.isRegistered<RootStackRouter>()) {
     GetIt.I.registerLazySingleton<RootStackRouter>(() => router);
   }
+  if (!GetIt.I.isRegistered<ChainNavigator>()) {
+    GetIt.I.registerSingleton<ChainNavigator>(ShellChainNavigator(router));
+  }
 
   late SidechainRPC rpc;
 
@@ -109,10 +113,11 @@ Future<(Directory, File, Logger)> _init(SidechainModule module, String arguments
   }
 
   await module.registerChainProviders(GetIt.I, applicationDir, log);
+  await module.registerAppProviders(GetIt.I, log);
 
   final homepageProvider = SidechainHomepageProvider(module);
-  if (!GetIt.I.isRegistered<HomepageProvider>()) {
-    GetIt.I.registerLazySingleton<HomepageProvider>(() => homepageProvider);
+  if (!GetIt.I.isRegistered<SidechainHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<SidechainHomepageProvider>(() => homepageProvider);
   }
 
   return (applicationDir, logFile, log);

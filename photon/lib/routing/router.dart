@@ -16,13 +16,5 @@ class AppRouter extends RootStackRouter {
   RouteType get defaultRouteType => const RouteType.adaptive();
 
   @override
-  List<AutoRoute> get routes => sidechainShellRoutes(
-    PhotonModule(),
-    chainTabs: [
-      AutoRoute(page: BlockExplorerRoute.page),
-      AutoRoute(page: MempoolExplorerRoute.page),
-      AutoRoute(page: WithdrawalsRoute.page),
-      AutoRoute(page: TransactionBuilderRoute.page),
-    ],
-  );
+  List<AutoRoute> get routes => sidechainShellRoutes(PhotonModule());
 }

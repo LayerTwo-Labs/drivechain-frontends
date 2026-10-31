@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:stacked/stacked.dart';
 
 /// Dashboard widget showing portfolio holdings breakdown
@@ -133,13 +134,13 @@ class PortfolioDashboard extends StatelessWidget {
                                       SailButton(
                                         label: 'Browse Auctions',
                                         onPressed: () async {
-                                          await GetIt.I.get<AppRouter>().navigate(const AuctionBrowserTabRoute());
+                                          await GetIt.I.get<ChainNavigator>().openTab(const AuctionBrowserTabRoute());
                                         },
                                       ),
                                       SailButton(
                                         label: 'Swap Assets',
                                         onPressed: () async {
-                                          await GetIt.I.get<AppRouter>().navigate(const AmmTabRoute());
+                                          await GetIt.I.get<ChainNavigator>().openTab(const AmmTabRoute());
                                         },
                                       ),
                                     ],

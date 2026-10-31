@@ -59,10 +59,9 @@ void main() {
       ..enforcerSyncInfo = SyncInfo(progressCurrent: 42, progressGoal: 42, lastBlockAt: null)
       ..chainSourceSyncInfo = SyncInfo(progressCurrent: 42, progressGoal: 42, lastBlockAt: null);
     GetIt.I.registerSingleton<NodeModeProvider>(mode);
-    GetIt.I.registerSingleton<BMMProvider>(bmm);
     GetIt.I.registerSingleton<BitcoinConfProvider>(_Conf());
     GetIt.I.registerSingleton<SyncProvider>(sync);
-    model = BMMViewModel();
+    model = BMMViewModel(provider: bmm);
   });
 
   tearDown(() async {

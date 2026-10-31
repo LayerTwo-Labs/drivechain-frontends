@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
@@ -12,8 +13,6 @@ import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
 
 @RoutePage()
 class ZSideMeltCastTabPage extends StatelessWidget {
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ZSideMeltCastTabPage({super.key});
 
   @override
@@ -114,8 +113,6 @@ class ZSideShieldCastViewModel extends BaseViewModel {
 }
 
 class ZSideMeltCast extends StatelessWidget {
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ZSideMeltCast({super.key});
 
   @override
@@ -290,9 +287,9 @@ class ZSideMeltCastViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
-  AppRouter get router => GetIt.I.get<AppRouter>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
 
   Binary get chain => _rpc.chain;
   String get zsideAddress => _zsideProvider.zsideAddress;
@@ -406,7 +403,7 @@ class ZSideMeltCastViewModel extends BaseViewModel {
   }
 
   Future<void> viewBills() async {
-    await router.push(const ZSideBillRoute());
+    await _navigator.push(const ZSideBillRoute());
   }
 
   void consolidateTransparent(BuildContext context) async {

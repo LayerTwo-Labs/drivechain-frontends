@@ -11,6 +11,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/pages/sail_test_page.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:truthcoin/pages/market_detail_page.dart';
 import 'package:truthcoin/pages/market_explorer_page.dart';
@@ -84,10 +85,11 @@ void main() {
     GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
     GetIt.I.registerLazySingleton<Logger>(() => Logger(level: Level.off));
     GetIt.I.registerLazySingleton<AppRouter>(() => router);
+    GetIt.I.registerLazySingleton<ChainNavigator>(() => ShellChainNavigator(router));
     GetIt.I.registerLazySingleton<MarketProvider>(() => MarketProvider());
     GetIt.I.registerLazySingleton<PriceHistoryProvider>(() => PriceHistoryProvider());
-    final balanceProvider = BalanceProvider(connections: [mockRpc]);
-    GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
+    final balanceProvider = SidechainBalanceProvider(sidechain: mockRpc);
+    GetIt.I.registerLazySingleton<SidechainBalanceProvider>(() => balanceProvider);
     await registerTestDependencies();
   });
 

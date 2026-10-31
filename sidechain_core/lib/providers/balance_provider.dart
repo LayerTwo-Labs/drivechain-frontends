@@ -190,3 +190,8 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     super.dispose();
   }
 }
+
+/// The balance of one sidechain wallet, for the pages of that chain.
+class SidechainBalanceProvider extends BalanceProvider {
+  SidechainBalanceProvider({required RPCConnection sidechain}) : super(connections: [sidechain]);
+}
