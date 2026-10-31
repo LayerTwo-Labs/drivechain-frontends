@@ -341,7 +341,7 @@ func TestGetSyncStatus_ACoreForkIsProbedWithItsCookie(t *testing.T) {
 			return statusResponse(http.StatusServiceUnavailable), nil
 		}),
 	}
-	datadir := config.FreebankDirs.DatadirNetwork(config.Network(o.CurrentNetwork()), "")
+	datadir := config.BbcDirs.DatadirNetwork(config.Network(o.CurrentNetwork()), "")
 	require.NoError(t, os.MkdirAll(datadir, 0o700))
 	require.NoError(t, os.WriteFile(filepath.Join(datadir, ".cookie"), []byte("__cookie__:secret"), 0o600))
 
@@ -363,12 +363,12 @@ func TestGetSyncStatus_ACoreForkIsProbedWithItsCookie(t *testing.T) {
 		_, _ = w.Write([]byte(`{"result":42,"error":null}`))
 	}))
 	t.Cleanup(srv.Close)
-	setSidechainPort(t, o, "freebank", srv.URL)
-	adoptSidechain(t, o, "freebank")
+	setSidechainPort(t, o, "bbc", srv.URL)
+	adoptSidechain(t, o, "bbc")
 
 	out, err := o.GetSyncStatus(context.Background())
 	require.NoError(t, err)
-	slot := out.Sidechains["freebank"]
+	slot := out.Sidechains["bbc"]
 	require.NotNil(t, slot)
 	assert.Equal(t, "", slot.Error)
 	assert.Equal(t, int64(42), slot.Blocks)

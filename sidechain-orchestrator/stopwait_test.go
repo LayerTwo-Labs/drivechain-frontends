@@ -60,11 +60,11 @@ func TestACoreForkStopCarriesItsCookie(t *testing.T) {
 		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
 		stopped.Store(req.Method == "stop")
-		_, _ = w.Write([]byte(`{"result":"FreeBank server stopping","error":null}`))
+		_, _ = w.Write([]byte(`{"result":"Bbc server stopping","error":null}`))
 	}))
 	t.Cleanup(srv.Close)
-	setSidechainPort(t, o, "freebank", srv.URL)
-	cfg, err := o.getConfig("freebank")
+	setSidechainPort(t, o, "bbc", srv.URL)
+	cfg, err := o.getConfig("bbc")
 	require.NoError(t, err)
 
 	// A node that has not written its cookie has no RPC server up yet.
@@ -72,7 +72,7 @@ func TestACoreForkStopCarriesItsCookie(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, unreachable(err), "a stop that never went out must go straight to the signal: %v", err)
 
-	datadir := config.FreebankDirs.DatadirNetwork(config.Network(o.CurrentNetwork()), "")
+	datadir := config.BbcDirs.DatadirNetwork(config.Network(o.CurrentNetwork()), "")
 	require.NoError(t, os.MkdirAll(datadir, 0o700))
 	require.NoError(t, os.WriteFile(filepath.Join(datadir, ".cookie"), []byte("__cookie__:secret"), 0o600))
 

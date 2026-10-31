@@ -106,7 +106,7 @@ func TestMainchainReaderReportsAnUnreachableCore(t *testing.T) {
 }
 
 func TestOnlyASidechainWithoutTheEnforcerSkipsIt(t *testing.T) {
-	for _, name := range []string{"bitcoind", "enforcer", "thunder", "freebank"} {
+	for _, name := range []string{"bitcoind", "enforcer", "thunder", "bbc"} {
 		cfg, ok := BinaryConfigByName(name)
 		require.True(t, ok, name)
 		require.True(t, startsEnforcer(cfg), name)

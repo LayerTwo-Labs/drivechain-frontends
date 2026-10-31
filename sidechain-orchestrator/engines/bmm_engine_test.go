@@ -1142,6 +1142,21 @@ func TestBmmEngineResumesItsTargetAfterRestart(t *testing.T) {
 	assert.Positive(t, backend.bids, "a resumed target bids on the next tip")
 }
 
+// A chain BitWindow no longer runs takes no bids, and no coins for them.
+func TestBmmEngineSkipsATargetForADroppedChain(t *testing.T) {
+	_, backend, tip, store := newEngine(t)
+	const dropped = 16
+	require.NoError(t, store.SaveTarget(bmmstate.Target{Sidechain: dropped, WalletID: "spender", MaxBidSats: 10_000}))
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	restarted.resumeTargets()
+
+	running, _, _ := restarted.Running(pb.BinaryType(dropped))
+	assert.False(t, running)
+	restarted.tick(context.Background())
+	assert.Zero(t, backend.bids)
+}
+
 // Stop is a decision, so it must outlive the process too.
 func TestBmmEngineForgetsAStoppedTargetAfterRestart(t *testing.T) {
 	engine, backend, tip, store := newEngine(t)

@@ -252,7 +252,6 @@ var jsonKeyToName = map[string]string{
 	"coinshift":   "coinshift",
 	"zside":       "zside",
 	"bbc":         "bbc",
-	"freebank":    "freebank",
 }
 
 func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {

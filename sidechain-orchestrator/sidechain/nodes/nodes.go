@@ -11,7 +11,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/solana"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
@@ -42,12 +41,7 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 	datadir := dirs.DatadirNetwork(network, "")
 	cookie := filepath.Join(datadir, ".cookie")
 
-	switch name {
-	case "freebank":
-		return freebank.NewClient(host, port, cookie), nil
-	default:
-		return bbc.NewClient(host, port, cookie), nil
-	}
+	return bbc.NewClient(host, port, cookie), nil
 }
 
 // Proxy returns the JSON-RPC proxy of a CUSF sidechain. Truthcoin and

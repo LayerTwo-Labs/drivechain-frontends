@@ -514,6 +514,10 @@ func (e *BmmEngine) resumeTargets() {
 		if t.MaxBidSats <= 0 {
 			continue
 		}
+		// A target for a dropped chain would still claim a coin every block.
+		if _, known := pb.BinaryType_name[t.Sidechain]; !known {
+			continue
+		}
 		sidechain := pb.BinaryType(t.Sidechain)
 		target := bmmTarget{
 			maxBidSats:      t.MaxBidSats,

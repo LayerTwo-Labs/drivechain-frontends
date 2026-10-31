@@ -562,7 +562,9 @@ enum SidechainType {
   SIDECHAIN_TYPE_TRUTHCOIN = 5;
   SIDECHAIN_TYPE_PHOTON = 6;
   SIDECHAIN_TYPE_COINSHIFT = 7;
-  SIDECHAIN_TYPE_FREEBANK = 8;
+
+  reserved 8;
+  reserved "SIDECHAIN_TYPE_FREEBANK";
 }
 
 // BinaryType is the single typed identifier for any binary the system tracks.
@@ -586,11 +588,10 @@ enum BinaryType {
   BINARY_TYPE_DRIVECHAIND = 12;
   BINARY_TYPE_ZSIDED = 13;
   BINARY_TYPE_BBC = 15;
-  BINARY_TYPE_FREEBANK = 16;
   BINARY_TYPE_SOLANA = 17;
 
-  reserved 14;
-  reserved "BINARY_TYPE_LIQUID_SIGNET";
+  reserved 14, 16;
+  reserved "BINARY_TYPE_LIQUID_SIGNET", "BINARY_TYPE_FREEBANK";
 }
 
 message SidechainStatus {
