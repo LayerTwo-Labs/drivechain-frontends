@@ -11,21 +11,6 @@ type Host interface {
 	// draws a window of its own.
 	BackendOnly() bool
 
-	// MainchainREST is the host:port the mainchain serves REST on, empty when
-	// the mainchain config failed to load.
-	MainchainREST() string
-
-	// ForkHeight is the height the network's fork activates at, 0 when the
-	// network publishes none.
-	ForkHeight() int
-
-	// MainchainBlockHash returns the hash of the mainchain block at a height.
-	MainchainBlockHash(ctx context.Context, height int) (string, error)
-
-	// ToolPath is where the orchestrator downloaded a helper binary, empty
-	// when it holds none.
-	ToolPath(name string) string
-
 	// MainchainRPC returns the RPC address of the local mainchain node, or an
 	// error when none runs.
 	MainchainRPC() (host string, port int, err error)

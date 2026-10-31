@@ -33,8 +33,6 @@ class SidechainType extends $pb.ProtobufEnum {
   static const SidechainType SIDECHAIN_TYPE_PHOTON = SidechainType._(6, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_PHOTON');
   static const SidechainType SIDECHAIN_TYPE_COINSHIFT =
       SidechainType._(7, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_COINSHIFT');
-  static const SidechainType SIDECHAIN_TYPE_FREEBANK =
-      SidechainType._(8, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_FREEBANK');
 
   static const $core.List<SidechainType> values = <SidechainType>[
     SIDECHAIN_TYPE_UNSPECIFIED,
@@ -45,10 +43,9 @@ class SidechainType extends $pb.ProtobufEnum {
     SIDECHAIN_TYPE_TRUTHCOIN,
     SIDECHAIN_TYPE_PHOTON,
     SIDECHAIN_TYPE_COINSHIFT,
-    SIDECHAIN_TYPE_FREEBANK,
   ];
 
-  static final $core.List<SidechainType?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 8);
+  static final $core.List<SidechainType?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 7);
   static SidechainType? valueOf($core.int value) => value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const SidechainType._(super.value, super.name);
@@ -75,7 +72,6 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_DRIVECHAIND = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_DRIVECHAIND');
   static const BinaryType BINARY_TYPE_ZSIDED = BinaryType._(13, _omitEnumNames ? '' : 'BINARY_TYPE_ZSIDED');
   static const BinaryType BINARY_TYPE_BBC = BinaryType._(15, _omitEnumNames ? '' : 'BINARY_TYPE_BBC');
-  static const BinaryType BINARY_TYPE_FREEBANK = BinaryType._(16, _omitEnumNames ? '' : 'BINARY_TYPE_FREEBANK');
   static const BinaryType BINARY_TYPE_SOLANA = BinaryType._(17, _omitEnumNames ? '' : 'BINARY_TYPE_SOLANA');
 
   static const $core.List<BinaryType> values = <BinaryType>[
@@ -94,7 +90,6 @@ class BinaryType extends $pb.ProtobufEnum {
     BINARY_TYPE_DRIVECHAIND,
     BINARY_TYPE_ZSIDED,
     BINARY_TYPE_BBC,
-    BINARY_TYPE_FREEBANK,
     BINARY_TYPE_SOLANA,
   ];
 

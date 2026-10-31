@@ -2,13 +2,8 @@ package orchestrator
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"net"
-	"net/http"
-	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -18,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
 
 func thunderOrchestrator(t *testing.T, settings map[string]string) *Orchestrator {
@@ -349,68 +343,6 @@ func TestUnforcedBackendKeepsItsWindow(t *testing.T) {
 	require.NoError(t, orch.appendSidechainArgs(context.Background(),
 		BinaryConfig{Name: "thunder", ChainLayer: 2, Port: 6009}, &opts))
 	assert.Empty(t, opts.TargetArgs)
-}
-
-// betanetPin is the hash of the eCash betanet fork block.
-const betanetPin = "00000000000000030101ba5cfea54b22becc79f95dc6040beb76e01dd9d04042"
-
-// freebankOnBetanet is an orchestrator on the eCash betanet. Its Core runs the
-// conf BitWindow writes and answers the hash of the fork block.
-func freebankOnBetanet(t *testing.T) (*Orchestrator, string) {
-	t.Helper()
-	useTempHome(t)
-	height := config.PublishedForkHeight(config.NetworkECash)
-	t.Cleanup(func() { config.SetForkHeight(config.NetworkECash, height) })
-	betanet, ok := netcatalog.Embedded().ByID("betanet")
-	require.True(t, ok)
-	config.SetForkHeight(config.NetworkECash, betanet.ForkHeight)
-
-	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Method string `json:"method"`
-			Params []int  `json:"params"`
-		}
-		assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
-		assert.Equal(t, "getblockhash", req.Method)
-		assert.Equal(t, []int{967680}, req.Params)
-		_ = json.NewEncoder(w).Encode(map[string]any{"result": betanetPin, "error": nil, "id": "orchestrator"})
-	}))
-	t.Cleanup(core.Close)
-	_, port, err := net.SplitHostPort(core.Listener.Addr().String())
-	require.NoError(t, err)
-
-	conf := &config.BitcoinConfManager{Network: config.NetworkECash}
-	conf.Config = config.ParseBitcoinConfig(conf.GetDefaultConfig())
-	for key, value := range map[string]string{"rpcport": port, "rpcuser": "user", "rpcpassword": "password"} {
-		conf.Config.SetSetting(key, value, config.CoreSectionForNetwork(config.NetworkECash))
-	}
-	orch := &Orchestrator{log: zerolog.Nop(), Network: string(config.NetworkECash), DataDir: t.TempDir(), BitcoinConf: conf}
-	return orch, port
-}
-
-// On betanet FreeBank boots pinned to the fork block the catalog publishes. It
-// verifies deposits over the REST port of the Core BitWindow runs, and freebankd
-// refuses to start unless that Core serves REST with a txindex.
-func TestFreeBankBootsPinnedToTheBetanetForkBlock(t *testing.T) {
-	orch, port := freebankOnBetanet(t)
-	for _, key := range []string{"rest", "txindex"} {
-		assert.Equal(t, "1", orch.BitcoinConf.Config.GetEffectiveSetting(key, "main"), key)
-	}
-	grpcurl := BinaryPath(orch.DataDir, "grpcurl")
-	require.NoError(t, os.MkdirAll(filepath.Dir(grpcurl), 0o755))
-	require.NoError(t, os.WriteFile(grpcurl, nil, 0o755))
-
-	opts := StartOpts{ForceBackend: true}
-	require.NoError(t, orch.appendSidechainArgs(context.Background(),
-		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 8454, IsBitcoinCore: true}, &opts))
-	assert.Equal(t, []string{
-		"-mainchaintransport=enforcer",
-		"-mainchainrest=127.0.0.1:" + port,
-		"-mainchainchain=main",
-		"-mainchainblockpin=967680:" + betanetPin,
-		"-bmmbidder=engine",
-		"-grpcurlbin=" + grpcurl,
-	}, opts.TargetArgs)
 }
 
 // A command line that already carries the flag takes it one time.
