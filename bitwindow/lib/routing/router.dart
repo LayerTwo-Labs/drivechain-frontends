@@ -12,6 +12,7 @@ import 'package:bitwindow/pages/remove_encryption_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
 import 'package:bitwindow/pages/success_page.dart';
 import 'package:bitwindow/pages/settings_page.dart';
+import 'package:bitwindow/pages/sidechain_host_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
@@ -23,6 +24,7 @@ import 'package:bitwindow/pages/wallet/create_timestamp_page.dart';
 import 'package:bitwindow/pages/wallet/timestamp_detail_page.dart';
 import 'package:bitwindow/pages/wallet/verify_timestamp_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
+import 'package:bitwindow/sidechains/hosted_modules.dart';
 import 'package:bitwindow/pages/welcome/create_another_wallet_page.dart';
 import 'package:bitwindow/pages/welcome/node_mode_page.dart';
 import 'package:flutter/widgets.dart';
@@ -75,6 +77,10 @@ class AppRouter extends RootStackRouter {
         AutoRoute(
           path: 'sidechains',
           page: SidechainsRoute.page,
+          children: [
+            AutoRoute(path: '', page: SidechainSlotsRoute.page, initial: true),
+            AutoRoute(path: ':chain', page: SidechainHostRoute.page, children: hostedTabRoutes()),
+          ],
         ),
         AutoRoute(
           path: 'mining',
@@ -214,5 +220,6 @@ class AppRouter extends RootStackRouter {
       path: '/coming-soon',
       page: ComingSoonRoute.page,
     ),
+    ...hostedPageRoutes(),
   ];
 }

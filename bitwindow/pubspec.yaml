@@ -34,6 +34,20 @@ dependencies:
     path: ../sail_ui
   sidechain_core:
     path: ../sidechain_core
+  thunder:
+    path: ../thunder
+  bitnames:
+    path: ../bitnames
+  bitassets:
+    path: ../bitassets
+  truthcoin:
+    path: ../truthcoin
+  zside:
+    path: ../zside
+  photon:
+    path: ../photon
+  coinshift:
+    path: ../coinshift
   logger: ^2.8.0
   google_fonts: ^9.0.0
   auto_route: ^11.2.0
