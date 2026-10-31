@@ -5,13 +5,10 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/zside_provider.dart';
-import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
 
 @RoutePage()
 class ZSideShieldDeshieldTabPage extends StatelessWidget {
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ZSideShieldDeshieldTabPage({super.key});
 
   @override
@@ -88,7 +85,7 @@ class ZSideShieldDeshieldTabPage extends StatelessWidget {
 class ZSideShieldTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
 
   String get zsideAddress => _zsideProvider.zsideAddress;
   List<UnshieldedUTXO> get unshieldedUTXOs =>

@@ -5,10 +5,10 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
-import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/dashboard_action_modal.dart';
 
 class ShieldUTXOAction extends StatelessWidget {
@@ -75,9 +75,9 @@ class ShieldUTXOAction extends StatelessWidget {
 class ShieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
 
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount {
@@ -158,7 +158,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
         subtitle: 'OPID: $shieldID',
       );
       // also pop the info modal
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -238,9 +238,9 @@ class DeshieldUTXOAction extends StatelessWidget {
 
 class DeshieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final bitcoinAmountController = TextEditingController();
@@ -327,7 +327,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
         subtitle: 'OPID: $deshieldID',
       );
       // also pop the info modal
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -405,9 +405,9 @@ class CastSingleUTXOAction extends StatelessWidget {
 class CastSingleUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   List<PendingDeshield>? get includedInBills => _castProvider.findBillsForAmount(utxo);
@@ -485,7 +485,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
             'Will cast to ${includedInBills!.length} new unique UTXOs.\n\nDont close the application until you have no private coins left in your wallet.',
       );
       // also pop the info modal
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -571,8 +571,8 @@ class MeltAction extends StatelessWidget {
 
 class MeltActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
@@ -635,7 +635,7 @@ class MeltActionViewModel extends BaseViewModel {
         subtitle: 'Will complete melt in ${willMeltAt.map((e) => e).join(', ')} seconds.',
       );
       // also pop the info modal
-      await _router.maybePop();
+      await _navigator.pop();
       if (castAfterCompletion) {
         _castProvider.castWhenMeltCompleted(meltAmount);
       }
@@ -717,9 +717,9 @@ class MeltSingleUTXOAction extends StatelessWidget {
 
 class MeltSingleUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final UnshieldedUTXO utxo;
@@ -769,7 +769,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
         subtitle: 'OPID: $shieldID',
       );
       // also pop the info modal
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -844,8 +844,8 @@ class CastAction extends StatelessWidget {
 class CastActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
 
@@ -931,7 +931,7 @@ class CastActionViewModel extends BaseViewModel {
             'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
       // also pop the info modal
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -1169,8 +1169,8 @@ class ConsolidateTransparentViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
 
   String get ticker => _rpc.chain.ticker;
   double get fee => zsideFee;
@@ -1214,7 +1214,7 @@ class ConsolidateTransparentViewModel extends BaseViewModel {
         subtitle: 'TXID: $txid',
       );
 
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (e) {
       if (!context.mounted) return;
       await errorDialog(
@@ -1288,8 +1288,8 @@ class ConsolidateShieldedViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
 
   String get ticker => _rpc.chain.ticker;
   double get fee => zsideFee;
@@ -1333,7 +1333,7 @@ class ConsolidateShieldedViewModel extends BaseViewModel {
         subtitle: 'TXID: $txid',
       );
 
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (e) {
       if (!context.mounted) return;
       await errorDialog(

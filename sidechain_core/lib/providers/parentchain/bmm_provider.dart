@@ -309,3 +309,8 @@ class BMMProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// The BMM engine of the sidechain whose pages are open.
+class SidechainBMMProvider extends BMMProvider {
+  SidechainBMMProvider({super.sidechainRPC, super.bmm, super.walletReader, super.logger});
+}

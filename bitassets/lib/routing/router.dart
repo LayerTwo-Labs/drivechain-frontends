@@ -18,15 +18,5 @@ class AppRouter extends RootStackRouter {
   RouteType get defaultRouteType => const RouteType.adaptive();
 
   @override
-  List<AutoRoute> get routes => sidechainShellRoutes(
-    BitAssetsModule(),
-    chainTabs: [
-      AutoRoute(page: BitAssetsTabRoute.page),
-      AutoRoute(page: MessagingTabRoute.page),
-      AutoRoute(page: DutchAuctionTabRoute.page),
-      AutoRoute(page: AmmTabRoute.page),
-      AutoRoute(page: AssetExplorerTabRoute.page),
-      AutoRoute(page: AuctionBrowserTabRoute.page),
-    ],
-  );
+  List<AutoRoute> get routes => sidechainShellRoutes(BitAssetsModule());
 }

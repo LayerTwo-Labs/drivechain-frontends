@@ -43,7 +43,7 @@ void main() {
 
   late _ListRPC rpc;
   late BitnamesProvider provider;
-  late BalanceProvider balances;
+  late SidechainBalanceProvider balances;
 
   setUp(() async {
     await GetIt.I.reset();
@@ -53,8 +53,8 @@ void main() {
     GetIt.I.registerSingleton<BitnamesRPC>(rpc);
     GetIt.I.registerSingleton<SidechainRPC>(sidechain);
     GetIt.I.registerSingleton<NotificationProvider>(NotificationProvider());
-    balances = BalanceProvider(connections: [sidechain]);
-    GetIt.I.registerSingleton<BalanceProvider>(balances);
+    balances = SidechainBalanceProvider(sidechain: sidechain);
+    GetIt.I.registerSingleton<SidechainBalanceProvider>(balances);
     provider = BitnamesProvider();
     GetIt.I.registerSingleton<BitnamesProvider>(provider);
   });

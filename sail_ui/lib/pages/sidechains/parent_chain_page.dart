@@ -5,14 +5,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class ParentChainPage extends StatelessWidget {
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ParentChainPage({super.key});
 
   @override
@@ -72,7 +69,7 @@ class DepositWithdrawHelp extends StatelessWidget {
 
 class ZSideWidgetTitleViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
@@ -94,7 +91,7 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   final log = Logger(level: Level.debug);
   SidechainTransactionsProvider get _transactionsProvider => GetIt.I.get<SidechainTransactionsProvider>();
   SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();
 
   final bitcoinAddressController = TextEditingController();

@@ -46,10 +46,13 @@ class CoinShiftModule extends SidechainModule {
   @override
   Future<void> registerChainProviders(GetIt getIt, Directory applicationDir, Logger log) async {
     if (!getIt.isRegistered<SwapProvider>()) {
-      getIt.registerLazySingleton<SwapProvider>(() => SwapProvider());
+      getIt.registerLazySingleton<SwapProvider>(() => SwapProvider(), dispose: (provider) => provider.dispose());
     }
     if (!getIt.isRegistered<AnalyticsProvider>()) {
-      getIt.registerLazySingleton<AnalyticsProvider>(() => AnalyticsProvider());
+      getIt.registerLazySingleton<AnalyticsProvider>(
+        () => AnalyticsProvider(),
+        dispose: (provider) => provider.dispose(),
+      );
     }
   }
 
@@ -95,5 +98,11 @@ class CoinShiftModule extends SidechainModule {
   @override
   List<ShellTab> get tabs => const [
     ShellTab(label: 'Swaps', route: SwapsTabRoute(), sourceFiles: ['swaps_page.dart']),
+  ];
+
+  @override
+  List<AutoRoute> get tabRoutes => [
+    AutoRoute(page: SwapsTabRoute.page),
+    AutoRoute(page: SwapAnalyticsRoute.page),
   ];
 }

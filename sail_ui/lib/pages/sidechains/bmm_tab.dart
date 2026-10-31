@@ -168,12 +168,15 @@ Color? profitColor(int? profitSats, SailColor colors) {
 }
 
 class BMMTab extends StatelessWidget {
-  const BMMTab({super.key});
+  /// The engine the tab drives. The engine of the open sidechain when null.
+  final BMMProvider? provider;
+
+  const BMMTab({super.key, this.provider});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => BMMViewModel(),
+      viewModelBuilder: () => BMMViewModel(provider: provider),
       builder: (context, viewModel, child) {
         return SailCard(
           title: 'BMM',
@@ -691,7 +694,7 @@ class _HistoricBids extends StatelessWidget {
 }
 
 class BMMViewModel extends BaseViewModel {
-  final BMMProvider bmmProvider = GetIt.I.get<BMMProvider>();
+  final BMMProvider bmmProvider;
   final BitcoinConfProvider _conf = GetIt.I.get<BitcoinConfProvider>();
   final SyncProvider _sync = GetIt.I.get<SyncProvider>();
   final NodeModeProvider? _nodeMode = GetIt.I.isRegistered<NodeModeProvider>() ? GetIt.I.get<NodeModeProvider>() : null;
@@ -699,7 +702,7 @@ class BMMViewModel extends BaseViewModel {
   final TextEditingController maxBidController = TextEditingController();
   final TextEditingController minBidController = TextEditingController();
 
-  BMMViewModel() {
+  BMMViewModel({BMMProvider? provider}) : bmmProvider = provider ?? GetIt.I.get<SidechainBMMProvider>() {
     maxBidController.text = bmmProvider.maxBidAmount.toStringAsFixed(8);
     maxBidController.addListener(_onMaxBound);
     minBidController.text = _minBidText;

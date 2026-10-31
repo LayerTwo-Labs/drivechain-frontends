@@ -14,11 +14,5 @@ class AppRouter extends RootStackRouter {
   RouteType get defaultRouteType => const RouteType.adaptive();
 
   @override
-  List<AutoRoute> get routes => sidechainShellRoutes(
-    BitnamesModule(),
-    chainTabs: [
-      AutoRoute(page: BitnamesTabRoute.page),
-      AutoRoute(page: MessagingTabRoute.page),
-    ],
-  );
+  List<AutoRoute> get routes => sidechainShellRoutes(BitnamesModule());
 }

@@ -6,7 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 class SidechainTransactionsProvider extends ChangeNotifier {
-  SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
+  final SidechainRPC rpc = GetIt.I.get<SidechainRPC>();
   Logger get log => GetIt.I.get<Logger>();
 
   List<CoreTransaction> sidechainTransactions = [];
@@ -70,5 +70,11 @@ class SidechainTransactionsProvider extends ChangeNotifier {
     }
 
     return false;
+  }
+
+  @override
+  void dispose() {
+    rpc.removeListener(fetch);
+    super.dispose();
   }
 }

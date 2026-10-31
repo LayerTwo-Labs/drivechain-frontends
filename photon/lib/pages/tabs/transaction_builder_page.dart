@@ -321,7 +321,7 @@ class _FeeRow extends StatelessWidget {
 
 class TransactionBuilderViewModel extends BaseViewModel {
   PhotonRPC get _rpc => GetIt.I.get<PhotonRPC>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController amountController = TextEditingController();

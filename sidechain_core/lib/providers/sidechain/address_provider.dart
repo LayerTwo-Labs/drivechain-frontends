@@ -6,7 +6,7 @@ import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
 
 class AddressProvider extends ChangeNotifier {
-  SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
+  final SidechainRPC rpc = GetIt.I.get<SidechainRPC>();
 
   String? receiveAddress;
   String? depositAddress;

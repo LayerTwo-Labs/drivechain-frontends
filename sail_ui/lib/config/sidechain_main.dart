@@ -181,16 +181,19 @@ Future<void> initSidechainDependencies({
   // State flows through BackendStateProvider.startWatching() → 1s
   // listBinaries poll → RPCConnection.
 
-  if (!GetIt.I.isRegistered<BMMProvider>()) {
-    GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
+  if (!GetIt.I.isRegistered<SidechainBMMProvider>()) {
+    GetIt.I.registerLazySingleton<SidechainBMMProvider>(() => SidechainBMMProvider());
   }
   if (!GetIt.I.isRegistered<AppRouter>()) {
     GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
   }
-  if (!GetIt.I.isRegistered<BalanceProvider>()) {
-    GetIt.I.registerLazySingleton<BalanceProvider>(
-      () => BalanceProvider(connections: [sidechainConnection]),
+  if (!GetIt.I.isRegistered<SidechainBalanceProvider>()) {
+    GetIt.I.registerLazySingleton<SidechainBalanceProvider>(
+      () => SidechainBalanceProvider(sidechain: sidechainConnection),
     );
+  }
+  if (!GetIt.I.isRegistered<BalanceProvider>()) {
+    GetIt.I.registerLazySingleton<BalanceProvider>(() => GetIt.I.get<SidechainBalanceProvider>());
   }
   if (!GetIt.I.isRegistered<AddressProvider>()) {
     GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());

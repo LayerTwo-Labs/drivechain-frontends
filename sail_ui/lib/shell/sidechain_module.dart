@@ -54,8 +54,11 @@ abstract class SidechainModule {
   /// Registers the typed RPC alias of the chain (e.g. `ThunderRPC`) and returns it.
   SidechainRPC registerRPC(GetIt getIt);
 
-  /// Registers the providers that only this chain uses.
+  /// Registers the providers that only this chain uses. BitWindow also calls it, in a scope of its own.
   Future<void> registerChainProviders(GetIt getIt, Directory applicationDir, Logger log) async {}
+
+  /// Registers the services that only the app of this chain runs, never BitWindow.
+  Future<void> registerAppProviders(GetIt getIt, Logger log) async {}
 
   /// Runs after the first frame of the main window.
   void onFirstFrame() {}
@@ -84,6 +87,12 @@ abstract class SidechainModule {
   List<String> get homepageSourceFiles => const [];
 
   List<ShellTab> get tabs => const [];
+
+  /// The routes of [tabs], and of the other pages that open inside the chain shell.
+  List<AutoRoute> get tabRoutes => const [];
+
+  /// The pages of the chain that open on top of the shell.
+  List<AutoRoute> get pageRoutes => const [];
 
   List<Binary> get binariesToStop => [BitcoinCore(), Enforcer(), chain];
 }

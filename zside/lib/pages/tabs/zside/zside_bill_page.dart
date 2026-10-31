@@ -5,12 +5,9 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/cast_provider.dart';
-import 'package:zside/routing/router.dart';
 
 @RoutePage()
 class ZSideBillPage extends StatelessWidget {
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ZSideBillPage({super.key});
 
   @override

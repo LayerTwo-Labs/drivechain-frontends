@@ -50,18 +50,22 @@ class TruthcoinModule extends SidechainModule {
   @override
   Future<void> registerChainProviders(GetIt getIt, Directory applicationDir, Logger log) async {
     if (!getIt.isRegistered<MarketProvider>()) {
-      getIt.registerLazySingleton<MarketProvider>(() => MarketProvider());
+      getIt.registerLazySingleton<MarketProvider>(() => MarketProvider(), dispose: (provider) => provider.dispose());
     }
     if (!getIt.isRegistered<PriceHistoryProvider>()) {
       final priceHistory = PriceHistoryProvider.inDirectory(applicationDir);
       // The cache read finishes first, so a fast market load cannot write a
       // point the read then drops.
       await priceHistory.load();
-      getIt.registerSingleton<PriceHistoryProvider>(priceHistory);
+      getIt.registerSingleton<PriceHistoryProvider>(priceHistory, dispose: (provider) => provider.dispose());
     }
     if (!getIt.isRegistered<VotingProvider>()) {
-      getIt.registerLazySingleton<VotingProvider>(() => VotingProvider());
+      getIt.registerLazySingleton<VotingProvider>(() => VotingProvider(), dispose: (provider) => provider.dispose());
     }
+  }
+
+  @override
+  Future<void> registerAppProviders(GetIt getIt, Logger log) async {
     // onFirstFrame starts the link stream, because a cold launch delivers the
     // first link at once and the router mounts later.
     if (!getIt.isRegistered<DeepLinkService>()) {
@@ -117,5 +121,19 @@ class TruthcoinModule extends SidechainModule {
     ShellTab(label: 'Markets', route: MarketsTabRoute()),
     ShellTab(label: 'Portfolio', route: PortfolioRoute()),
     ShellTab(label: 'Voting', route: VotingDashboardRoute()),
+  ];
+
+  @override
+  List<AutoRoute> get tabRoutes => [
+    AutoRoute(
+      page: MarketsTabRoute.page,
+      children: [
+        AutoRoute(page: MarketExplorerRoute.page, initial: true),
+        AutoRoute(page: MarketDetailRoute.page),
+        AutoRoute(page: MarketCreationRoute.page),
+      ],
+    ),
+    AutoRoute(page: PortfolioRoute.page),
+    AutoRoute(page: VotingDashboardRoute.page),
   ];
 }

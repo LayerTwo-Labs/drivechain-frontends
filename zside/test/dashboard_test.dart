@@ -41,8 +41,8 @@ void main() {
     GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => txProvider);
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => TransactionsProvider());
     GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
-    final balanceProvider = BalanceProvider(connections: [sidechainRPC]);
-    GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
+    final balanceProvider = SidechainBalanceProvider(sidechain: sidechainRPC);
+    GetIt.I.registerLazySingleton<SidechainBalanceProvider>(() => balanceProvider);
     // don't start test until balance is fetched
     await balanceProvider.fetch();
   });

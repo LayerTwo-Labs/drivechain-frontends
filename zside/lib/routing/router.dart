@@ -16,15 +16,5 @@ class AppRouter extends RootStackRouter {
   RouteType get defaultRouteType => const RouteType.adaptive();
 
   @override
-  List<AutoRoute> get routes => sidechainShellRoutes(
-    ZSideModule(),
-    chainTabs: [
-      AutoRoute(page: ZSideMeltCastTabRoute.page),
-      AutoRoute(page: ZSideShieldDeshieldTabRoute.page),
-      AutoRoute(page: ZSideTransferTabRoute.page),
-    ],
-    chainPages: [
-      AutoRoute(page: ZSideBillRoute.page),
-    ],
-  );
+  List<AutoRoute> get routes => sidechainShellRoutes(ZSideModule());
 }

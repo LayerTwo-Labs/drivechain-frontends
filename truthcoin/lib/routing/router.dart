@@ -19,19 +19,5 @@ class AppRouter extends RootStackRouter {
   RouteType get defaultRouteType => const RouteType.adaptive();
 
   @override
-  List<AutoRoute> get routes => sidechainShellRoutes(
-    TruthcoinModule(),
-    chainTabs: [
-      AutoRoute(
-        page: MarketsTabRoute.page,
-        children: [
-          AutoRoute(page: MarketExplorerRoute.page, initial: true),
-          AutoRoute(page: MarketDetailRoute.page),
-          AutoRoute(page: MarketCreationRoute.page),
-        ],
-      ),
-      AutoRoute(page: PortfolioRoute.page),
-      AutoRoute(page: VotingDashboardRoute.page),
-    ],
-  );
+  List<AutoRoute> get routes => sidechainShellRoutes(TruthcoinModule());
 }

@@ -4,13 +4,9 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/shell/run_sidechain_app.dart';
 import 'package:sail_ui/shell/sidechain_module.dart';
 
-/// The full route list of a sidechain app. [chainTabs] go under the home route,
-/// [chainPages] at the top level.
-List<AutoRoute> sidechainShellRoutes(
-  SidechainModule module, {
-  List<AutoRoute> chainTabs = const [],
-  List<AutoRoute> chainPages = const [],
-}) {
+/// The full route list of a sidechain app. The tab routes of [module] go under the
+/// home route, its page routes at the top level.
+List<AutoRoute> sidechainShellRoutes(SidechainModule module) {
   return [
     AutoRoute(
       page: SidechainHomeRoute.page,
@@ -29,15 +25,7 @@ List<AutoRoute> sidechainShellRoutes(
         ),
         PasswordGuard(),
       ],
-      children: [
-        AutoRoute(page: ParentChainRoute.page),
-        AutoRoute(page: ExplorerRoute.page),
-        AutoRoute(page: BmmRoute.page),
-        AutoRoute(page: SidechainHomepageRoute.page, initial: true),
-        ...chainTabs,
-        AutoRoute(page: SidechainSettingsRoute.page),
-        AutoRoute(page: ConsoleTabRoute.page),
-      ],
+      children: shellTabRouteConfig(module.tabRoutes),
     ),
     AutoRoute(page: LogRoute.page),
     AutoRoute(page: ShutDownRoute.page),
@@ -49,7 +37,18 @@ List<AutoRoute> sidechainShellRoutes(
     AutoRoute(page: BitcoinConfEditorRoute.page),
     AutoRoute(page: EnforcerConfEditorRoute.page),
     AutoRoute(page: SidechainConfEditorRoute.page),
-    ...chainPages,
+    ...module.pageRoutes,
     AutoRoute(page: SailTestRoute.page),
   ];
 }
+
+/// The tab routes of the chain shell, with [chainTabs] between the homepage and the settings.
+List<AutoRoute> shellTabRouteConfig(List<AutoRoute> chainTabs) => [
+  AutoRoute(page: ParentChainRoute.page),
+  AutoRoute(page: ExplorerRoute.page),
+  AutoRoute(page: BmmRoute.page),
+  AutoRoute(page: SidechainHomepageRoute.page, initial: true),
+  ...chainTabs,
+  AutoRoute(page: SidechainSettingsRoute.page),
+  AutoRoute(page: ConsoleTabRoute.page),
+];

@@ -47,13 +47,16 @@ class ZSideModule extends SidechainModule {
   @override
   Future<void> registerChainProviders(GetIt getIt, Directory applicationDir, Logger log) async {
     if (!getIt.isRegistered<ZSideProvider>()) {
-      getIt.registerLazySingleton<ZSideProvider>(() => ZSideProvider());
+      getIt.registerLazySingleton<ZSideProvider>(() => ZSideProvider(), dispose: (provider) => provider.dispose());
     }
     if (!getIt.isRegistered<CastProvider>()) {
-      getIt.registerLazySingleton<CastProvider>(() => CastProvider());
+      getIt.registerLazySingleton<CastProvider>(() => CastProvider(), dispose: (provider) => provider.dispose());
     }
     if (!getIt.isRegistered<TransactionsProvider>()) {
-      getIt.registerLazySingleton<TransactionsProvider>(() => TransactionsProvider());
+      getIt.registerLazySingleton<TransactionsProvider>(
+        () => TransactionsProvider(),
+        dispose: (provider) => provider.dispose(),
+      );
     }
   }
 
@@ -112,5 +115,17 @@ class ZSideModule extends SidechainModule {
       sourceFiles: ['zside_shield_deshield_page.dart'],
     ),
     ShellTab(label: 'Melt/Cast', route: ZSideMeltCastTabRoute(), sourceFiles: ['zside_melt_cast_page.dart']),
+  ];
+
+  @override
+  List<AutoRoute> get tabRoutes => [
+    AutoRoute(page: ZSideMeltCastTabRoute.page),
+    AutoRoute(page: ZSideShieldDeshieldTabRoute.page),
+    AutoRoute(page: ZSideTransferTabRoute.page),
+  ];
+
+  @override
+  List<AutoRoute> get pageRoutes => [
+    AutoRoute(page: ZSideBillRoute.page),
   ];
 }

@@ -145,7 +145,7 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   final log = Logger(level: Level.debug);
   SidechainTransactionsProvider get _transactionsProvider => GetIt.I.get<SidechainTransactionsProvider>();
   SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();
 
   final bitcoinAddressController = TextEditingController();

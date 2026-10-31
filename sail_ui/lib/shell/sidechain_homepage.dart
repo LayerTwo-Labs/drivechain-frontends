@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/sidechain_homepage_provider.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -45,7 +46,7 @@ class SidechainHomepagePage extends StatelessWidget {
 }
 
 class SidechainHomepageViewModel extends BaseViewModel {
-  HomepageProvider get _homepageProvider => GetIt.I.get<HomepageProvider>();
+  SidechainHomepageProvider get _homepageProvider => GetIt.I.get<SidechainHomepageProvider>();
 
   HomepageConfiguration get homepageConfiguration => _homepageProvider.configuration;
 

@@ -4,9 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/transactions_provider.dart';
-import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/dashboard_action_modal.dart';
 
 class SendOnSidechainAction extends StatelessWidget {
@@ -74,9 +74,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+  ChainNavigator get _navigator => GetIt.I.get<ChainNavigator>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
@@ -187,7 +187,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
         subtitle: 'TXID: $sendTXID',
       );
       // also pop the info modal
-      await _router.maybePop();
+      await _navigator.pop();
     } catch (error) {
       if (!context.mounted) {
         return;

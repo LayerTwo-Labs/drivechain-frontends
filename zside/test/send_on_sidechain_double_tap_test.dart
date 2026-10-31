@@ -27,8 +27,8 @@ void main() {
     GetIt.I.registerLazySingleton<TransactionsProvider>(
       () => TransactionsProvider(),
     );
-    GetIt.I.registerLazySingleton<BalanceProvider>(
-      () => BalanceProvider(connections: [sidechainRPC]),
+    GetIt.I.registerLazySingleton<SidechainBalanceProvider>(
+      () => SidechainBalanceProvider(sidechain: sidechainRPC),
     );
   });
 

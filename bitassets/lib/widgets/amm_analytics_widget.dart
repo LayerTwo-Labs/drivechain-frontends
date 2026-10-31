@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:stacked/stacked.dart';
 
 /// Widget showing AMM pool analytics with impermanent loss calculator
@@ -82,7 +83,7 @@ class AmmAnalyticsWidget extends StatelessWidget {
                                   SailButton(
                                     label: 'Add Liquidity',
                                     onPressed: () async {
-                                      await GetIt.I.get<AppRouter>().navigate(const AmmTabRoute());
+                                      await GetIt.I.get<ChainNavigator>().openTab(const AmmTabRoute());
                                     },
                                   ),
                                 ],

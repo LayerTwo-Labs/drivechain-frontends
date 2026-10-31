@@ -242,7 +242,7 @@ class OverviewTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainBalanceProvider get _balanceProvider => GetIt.I.get<SidechainBalanceProvider>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();

@@ -58,4 +58,10 @@ class TransactionsProvider extends ChangeNotifier {
 
     return false;
   }
+
+  @override
+  void dispose() {
+    rpc.removeListener(fetch);
+    super.dispose();
+  }
 }

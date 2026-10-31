@@ -173,10 +173,12 @@ class _FreeBankBidDialogState extends State<FreeBankBidDialog> {
               child: SizedBox(
                 width: _bmmTabWidth,
                 child: _blockedReason == null
-                    ? const BMMTab()
+                    ? BMMTab(provider: _bmm)
                     : Stack(
                         children: [
-                          const IgnorePointer(child: Opacity(opacity: 0.35, child: BMMTab())),
+                          IgnorePointer(
+                            child: Opacity(opacity: 0.35, child: BMMTab(provider: _bmm)),
+                          ),
                           Center(child: SailText.primary15(_blockedReason!)),
                         ],
                       ),

@@ -37,9 +37,9 @@ void main() {
     if (!GetIt.I.isRegistered<AddressProvider>()) {
       GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
     }
-    if (!GetIt.I.isRegistered<BalanceProvider>()) {
-      final balanceProvider = BalanceProvider(connections: [sidechainRPC]);
-      GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
+    if (!GetIt.I.isRegistered<SidechainBalanceProvider>()) {
+      final balanceProvider = SidechainBalanceProvider(sidechain: sidechainRPC);
+      GetIt.I.registerLazySingleton<SidechainBalanceProvider>(() => balanceProvider);
       await balanceProvider.fetch();
     }
   });

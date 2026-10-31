@@ -21,7 +21,7 @@ void main() {
     GetIt.I.registerLazySingleton<ZSideRPC>(() => MockZSideRPC());
     GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => SidechainTransactionsProvider());
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => TransactionsProvider());
-    GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [sidechainRPC]));
+    GetIt.I.registerLazySingleton<SidechainBalanceProvider>(() => SidechainBalanceProvider(sidechain: sidechainRPC));
   });
 
   test('a transparent send is capped at the spendable transparent coins', () {
@@ -40,7 +40,7 @@ void main() {
   });
 
   test('a switch to a transparent address caps an amount already entered', () {
-    GetIt.I<BalanceProvider>().setBalance(GetIt.I<SidechainRPC>(), 2.5, 0);
+    GetIt.I<SidechainBalanceProvider>().setBalance(GetIt.I<SidechainRPC>(), 2.5, 0);
     final model = OverviewTabViewModel()
       ..sidechainFee = 0.001
       ..balanceBreakdown = ZSideBalanceBreakdown(
