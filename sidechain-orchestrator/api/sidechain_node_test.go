@@ -57,21 +57,6 @@ func TestCoreForkAnswersOnlyWhatItDrives(t *testing.T) {
 	assert.Contains(t, err.Error(), "proposes no withdrawal bundle")
 }
 
-// The BMM engine drives FreeBank blocks through the node's get_block_template
-// and connect_block, but FreeBank settles withdrawals on its own paths.
-func TestFreebankAnswersBMMButNotWithdrawals(t *testing.T) {
-	cfg := orchestrator.BinaryConfig{Name: "freebank", DisplayName: "FreeBank", Port: 8454, IsBitcoinCore: true}
-	node, err := sidechainNode(cfg, config.NetworkRegtest)
-	require.NoError(t, err)
-
-	_, err = bmmNode(cfg, config.NetworkRegtest)
-	require.NoError(t, err)
-
-	_, err = withdrawalNode(node, cfg.DisplayName)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "proposes no withdrawal bundle")
-}
-
 // A chain with no directory config names itself in the failure, rather than
 // dialling a port that belongs to something else.
 func TestCoreForkWithoutDirsFails(t *testing.T) {

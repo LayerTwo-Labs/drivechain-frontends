@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/nodes"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/samber/lo"
 )
@@ -286,15 +284,8 @@ func refusedSeed(run *ManagedProcess) bool {
 // Empty for a sidechain that never started with a wallet.
 func (o *Orchestrator) LoadedSidechainWallet(cfg BinaryConfig) (string, error) {
 	// A Core derived sidechain keeps its wallet in Core, made from the starter
-	// wallet, unless the node keeps a wallet of its own.
+	// wallet.
 	if cfg.ChainLayer == 2 && cfg.IsBitcoinCore && o.WalletSvc != nil {
-		node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.CurrentNetwork()))
-		if err != nil {
-			return "", err
-		}
-		if _, own := node.(sidechain.OwnWalletNode); own {
-			return "", nil
-		}
 		return o.WalletSvc.StarterWalletID(), nil
 	}
 	dir, _, ok := o.sidechainWalletDir(cfg)

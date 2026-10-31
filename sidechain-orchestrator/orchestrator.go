@@ -1218,13 +1218,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
-	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.CurrentNetwork()))
-	if err != nil {
-		return err
-	}
-	if _, ok := node.(sidechain.OwnWalletNode); ok {
-		return nil
-	}
 	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
 	if err != nil {
 		return fmt.Errorf("sidechain starter: %w", err)
@@ -1452,37 +1445,6 @@ type bootHost struct {
 
 func (h bootHost) BackendOnly() bool { return h.backendOnly }
 
-func (h bootHost) MainchainREST() string {
-	if h.orch.BitcoinConf == nil {
-		return ""
-	}
-	return fmt.Sprintf("%s:%d", h.orch.BitcoinConf.GetRPCHost(), h.orch.BitcoinConf.GetRPCPort())
-}
-
-func (h bootHost) ForkHeight() int {
-	network := config.NetworkFromString(h.orch.CurrentNetwork())
-	if network == config.NetworkRegtest {
-		return 0
-	}
-	return config.PublishedForkHeight(network)
-}
-
-func (h bootHost) MainchainBlockHash(ctx context.Context, height int) (string, error) {
-	client, err := h.orch.CoreStatusClient()
-	if err != nil {
-		return "", err
-	}
-	raw, err := client.call(ctx, "getblockhash", height)
-	if err != nil {
-		return "", err
-	}
-	var hash string
-	if err := json.Unmarshal(raw, &hash); err != nil {
-		return "", fmt.Errorf("decode the mainchain block hash at %d: %w", height, err)
-	}
-	return hash, nil
-}
-
 func (h bootHost) MainchainRPC() (string, int, error) {
 	o := h.orch
 	if o.NodeMode() == NodeModeLight || o.BitcoinConf == nil {
@@ -1542,15 +1504,6 @@ func probeMainchainReader(ctx context.Context, host string, port int, cookie str
 		return nil
 	}
 	return err
-}
-
-func (h bootHost) ToolPath(name string) string {
-	path := BinaryPath(h.orch.DataDir, name)
-	st, err := os.Stat(path)
-	if err != nil || st.IsDir() {
-		return ""
-	}
-	return path
 }
 
 // parkedStateOutstanding names a live path a swap moved aside and never brought

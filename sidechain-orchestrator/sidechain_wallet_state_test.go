@@ -398,13 +398,6 @@ func TestCoreSidechainHoldsTheStarterWallet(t *testing.T) {
 	loaded, err := o.LoadedSidechainWallet(bbc)
 	require.NoError(t, err)
 	require.Equal(t, starter, loaded)
-
-	// FreeBank keeps a wallet of its own, which no BitWindow seed restores.
-	freebank, err := o.getConfig("freebank")
-	require.NoError(t, err)
-	loaded, err = o.LoadedSidechainWallet(freebank)
-	require.NoError(t, err)
-	require.Empty(t, loaded)
 }
 
 // A daemon the swap skipped while it ran gets the wallet and the seed of the

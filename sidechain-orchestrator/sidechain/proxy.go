@@ -81,14 +81,6 @@ type WithdrawalNode interface {
 	GetLatestFailedWithdrawalBundleHeight(ctx context.Context) (int64, error)
 }
 
-// OwnWalletNode is a Core derived sidechain that creates and keeps its own
-// wallet, so the orchestrator seeds none.
-type OwnWalletNode interface {
-	Node
-
-	OwnWallet()
-}
-
 // CoreWalletName is the wallet a Bitcoin Core derived sidechain loads. Core
 // creates none on its own, so the orchestrator seeds this one from the chain's
 // slot starter and every wallet RPC is scoped to it.

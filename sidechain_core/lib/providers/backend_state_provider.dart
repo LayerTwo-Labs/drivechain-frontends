@@ -14,7 +14,6 @@ import 'package:sidechain_core/rpcs/coinshift_rpc.dart';
 import 'package:sidechain_core/rpcs/enforcer_rpc.dart';
 import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
 import 'package:sidechain_core/env.dart';
-import 'package:sidechain_core/rpcs/freebank_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 import 'package:sidechain_core/rpcs/photon_rpc.dart';
 import 'package:sidechain_core/rpcs/thunder_rpc.dart';
@@ -228,7 +227,6 @@ class BackendStateProvider extends ChangeNotifier {
       'truthcoin' => GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null,
       'photon' => GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
       'coinshift' => GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
-      'freebank' => GetIt.I.isRegistered<FreeBankRPC>() ? GetIt.I.get<FreeBankRPC>() : null,
       _ => null,
     };
   }
@@ -256,8 +254,6 @@ class BackendStateProvider extends ChangeNotifier {
         return BinaryType.BINARY_TYPE_PHOTON;
       case 'coinshift':
         return BinaryType.BINARY_TYPE_COINSHIFT;
-      case 'freebank':
-        return BinaryType.BINARY_TYPE_FREEBANK;
       default:
         return null;
     }

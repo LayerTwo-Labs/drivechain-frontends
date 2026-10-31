@@ -36,7 +36,6 @@ const (
 	SidechainType_SIDECHAIN_TYPE_TRUTHCOIN   SidechainType = 5
 	SidechainType_SIDECHAIN_TYPE_PHOTON      SidechainType = 6
 	SidechainType_SIDECHAIN_TYPE_COINSHIFT   SidechainType = 7
-	SidechainType_SIDECHAIN_TYPE_FREEBANK    SidechainType = 8
 )
 
 // Enum value maps for SidechainType.
@@ -50,7 +49,6 @@ var (
 		5: "SIDECHAIN_TYPE_TRUTHCOIN",
 		6: "SIDECHAIN_TYPE_PHOTON",
 		7: "SIDECHAIN_TYPE_COINSHIFT",
-		8: "SIDECHAIN_TYPE_FREEBANK",
 	}
 	SidechainType_value = map[string]int32{
 		"SIDECHAIN_TYPE_UNSPECIFIED": 0,
@@ -61,7 +59,6 @@ var (
 		"SIDECHAIN_TYPE_TRUTHCOIN":   5,
 		"SIDECHAIN_TYPE_PHOTON":      6,
 		"SIDECHAIN_TYPE_COINSHIFT":   7,
-		"SIDECHAIN_TYPE_FREEBANK":    8,
 	}
 )
 
@@ -115,7 +112,6 @@ const (
 	BinaryType_BINARY_TYPE_DRIVECHAIND BinaryType = 12
 	BinaryType_BINARY_TYPE_ZSIDED      BinaryType = 13
 	BinaryType_BINARY_TYPE_BBC         BinaryType = 15
-	BinaryType_BINARY_TYPE_FREEBANK    BinaryType = 16
 	BinaryType_BINARY_TYPE_SOLANA      BinaryType = 17
 )
 
@@ -137,7 +133,6 @@ var (
 		12: "BINARY_TYPE_DRIVECHAIND",
 		13: "BINARY_TYPE_ZSIDED",
 		15: "BINARY_TYPE_BBC",
-		16: "BINARY_TYPE_FREEBANK",
 		17: "BINARY_TYPE_SOLANA",
 	}
 	BinaryType_value = map[string]int32{
@@ -156,7 +151,6 @@ var (
 		"BINARY_TYPE_DRIVECHAIND": 12,
 		"BINARY_TYPE_ZSIDED":      13,
 		"BINARY_TYPE_BBC":         15,
-		"BINARY_TYPE_FREEBANK":    16,
 		"BINARY_TYPE_SOLANA":      17,
 	}
 )
@@ -6268,7 +6262,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x10download_mb_done\x18\x17 \x01(\x03R\x0edownloadMbDone\x12*\n" +
 	"\x11download_mb_total\x18\x18 \x01(\x03R\x0fdownloadMbTotal\x12\x1d\n" +
 	"\n" +
-	"below_fork\x18\x19 \x01(\bR\tbelowFork*\x94\x02\n" +
+	"below_fork\x18\x19 \x01(\bR\tbelowFork*\x96\x02\n" +
 	"\rSidechainType\x12\x1e\n" +
 	"\x1aSIDECHAIN_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16SIDECHAIN_TYPE_THUNDER\x10\x01\x12\x18\n" +
@@ -6277,8 +6271,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x18SIDECHAIN_TYPE_BITASSETS\x10\x04\x12\x1c\n" +
 	"\x18SIDECHAIN_TYPE_TRUTHCOIN\x10\x05\x12\x19\n" +
 	"\x15SIDECHAIN_TYPE_PHOTON\x10\x06\x12\x1c\n" +
-	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a\x12\x1b\n" +
-	"\x17SIDECHAIN_TYPE_FREEBANK\x10\b*\xe2\x03\n" +
+	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a\"\x04\b\b\x10\b*\x17SIDECHAIN_TYPE_FREEBANK*\xe4\x03\n" +
 	"\n" +
 	"BinaryType\x12\x1b\n" +
 	"\x17BINARY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
@@ -6296,9 +6289,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x13BINARY_TYPE_GRPCURL\x10\v\x12\x1b\n" +
 	"\x17BINARY_TYPE_DRIVECHAIND\x10\f\x12\x16\n" +
 	"\x12BINARY_TYPE_ZSIDED\x10\r\x12\x13\n" +
-	"\x0fBINARY_TYPE_BBC\x10\x0f\x12\x18\n" +
-	"\x14BINARY_TYPE_FREEBANK\x10\x10\x12\x16\n" +
-	"\x12BINARY_TYPE_SOLANA\x10\x11\"\x04\b\x0e\x10\x0e*\x19BINARY_TYPE_LIQUID_SIGNET*\xbe\x01\n" +
+	"\x0fBINARY_TYPE_BBC\x10\x0f\x12\x16\n" +
+	"\x12BINARY_TYPE_SOLANA\x10\x11\"\x04\b\x0e\x10\x0e\"\x04\b\x10\x10\x10*\x19BINARY_TYPE_LIQUID_SIGNET*\x14BINARY_TYPE_FREEBANK*\xbe\x01\n" +
 	"\x12MainchainSyncPhase\x12$\n" +
 	" MAINCHAIN_SYNC_PHASE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cMAINCHAIN_SYNC_PHASE_HEADERS\x10\x01\x12\x1e\n" +

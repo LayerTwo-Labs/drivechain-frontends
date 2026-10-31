@@ -282,7 +282,6 @@ var (
 	PhotonDirs      = MustDirConfig("photon")
 	CoinShiftDirs   = MustDirConfig("coinshift")
 	BbcDirs         = MustDirConfig("bbc")
-	FreebankDirs    = MustDirConfig("freebank")
 )
 
 // DirConfigByName returns the BinaryDirConfig for a given binary name.
@@ -822,8 +821,6 @@ func (b BinaryDirConfig) staticExtraFiles() []string {
 			"flutter_platform_alert_plugin.dll", "flutter_windows.dll",
 			"screen_retriever_windows_plugin.dll", "url_launcher_windows_plugin.dll",
 			"window_manager_plugin.dll"}
-	case "freebankd":
-		return []string{"freebank-cli", "freebank-tx", "COPYING"}
 	case "bitnames":
 		return []string{"bitnames-cli"}
 	case "bitassets":
