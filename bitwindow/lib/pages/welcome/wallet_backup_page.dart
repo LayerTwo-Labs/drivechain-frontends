@@ -59,6 +59,10 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   bool _wantPassphrase = false;
   bool _busy = false;
   int _deriveId = 0;
+
+  /// The id of the last derive that answered. The words match the field only
+  /// when it equals [_deriveId].
+  int _landedId = 0;
   String? _error;
 
   /// The number of characters the keyboard typed into the field.
@@ -120,6 +124,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       setState(() {
         _words = [];
         _error = null;
+        _landedId = id;
       });
       return;
     }
@@ -137,12 +142,17 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       setState(() {
         _words = mnemonic.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
         _error = mnemonic.isEmpty ? 'Failed to derive a seed from that entropy' : null;
+        _landedId = id;
       });
     } catch (e) {
       if (!mounted || id != _deriveId) {
         return;
       }
-      setState(() => _error = 'Error deriving seed: $e');
+      setState(() {
+        _words = [];
+        _error = 'Error deriving seed: $e';
+        _landedId = id;
+      });
     }
   }
 
@@ -797,7 +807,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   Widget _bottomBar(BuildContext context) {
     final theme = SailTheme.of(context);
     final ready = switch (_stage) {
-      _Stage.entropy => _words.isNotEmpty,
+      _Stage.entropy => _words.isNotEmpty && _landedId == _deriveId,
       _Stage.reenter => true,
       _Stage.import => _importValid,
     };

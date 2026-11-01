@@ -173,6 +173,23 @@ void main() {
     expect(find.text(_wordsFor(_fieldText(tester), 12).first), findsOneWidget);
   });
 
+  testWidgets('Continue waits for the newest derive', (tester) async {
+    await _pumpPage(tester);
+    SailButton next() => tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Continue')).first;
+
+    writer.gate = Completer<void>();
+    await tester.enterText(_field, 'pending entropy');
+    await tester.pump();
+    expect(next().disabled, isTrue, reason: 'the words on screen are from the old text');
+
+    writer.gate!.complete();
+    writer.gate = null;
+    await tester.pump();
+    await tester.pump();
+    expect(next().disabled, isFalse);
+    expect(find.text(_wordsFor('pending entropy', 12).first), findsOneWidget);
+  });
+
   testWidgets('the same text gives the same words', (tester) async {
     await _pumpPage(tester);
 
