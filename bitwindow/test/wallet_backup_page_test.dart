@@ -251,6 +251,21 @@ void main() {
     expect(find.textContaining('been written down'), findsNothing);
   });
 
+  testWidgets('creating a wallet offers no passphrase', (tester) async {
+    final created = <SeedBackup>[];
+    await _pumpPage(tester, onCreate: (seed) async => created.add(seed));
+
+    expect(find.text('Add passphrase'), findsNothing);
+    expect(find.widgetWithText(TextField, 'Passphrase'), findsNothing);
+
+    await _toReenter(tester);
+    expect(find.text('Add passphrase'), findsNothing);
+    await _enterWords(tester, _wordsFor(_osHex, 12));
+    await _tapAndSettle(tester, 'Create Wallet');
+
+    expect(created.single.passphrase, isEmpty);
+  });
+
   testWidgets('with no word entered the button skips, and the modal can go back', (tester) async {
     final created = <SeedBackup>[];
     await _pumpPage(tester, onCreate: (seed) async => created.add(seed));
@@ -361,6 +376,21 @@ void main() {
   group('import mode', () {
     const phrase = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
     final long = '${'abandon ' * 23}art';
+
+    testWidgets('a restore still takes a BIP39 passphrase', (tester) async {
+      final created = <SeedBackup>[];
+      await _pumpPage(tester, mode: SeedEntryMode.importExisting, onCreate: (seed) async => created.add(seed));
+
+      await _tapAndSettle(tester, 'Add passphrase');
+      await _tapAndSettle(tester, 'Yes, add one');
+      await tester.enterText(find.widgetWithText(TextField, 'Passphrase'), 'my secret');
+      await tester.enterText(find.byType(TextField).first, phrase);
+      await tester.pump();
+      await _tapAndSettle(tester, 'Create Wallet');
+
+      expect(created.single.mnemonic, phrase);
+      expect(created.single.passphrase, 'my secret');
+    });
 
     testWidgets('opens on an empty grid without minting a seed', (tester) async {
       await _pumpPage(tester, mode: SeedEntryMode.importExisting);
