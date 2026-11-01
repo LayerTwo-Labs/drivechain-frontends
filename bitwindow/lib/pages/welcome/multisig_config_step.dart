@@ -44,6 +44,7 @@ class CosignerKeystore {
   String? fingerprint; // 8 hex chars
   String? originPath; // without leading m/, e.g. 48'/1'/0'/2'
   String? mnemonic; // present => held on disk, this wallet can sign with it
+  String? xprv; // account-level private key from an imported descriptor
   String? passphrase; // optional BIP39 passphrase for mnemonic
   String? descriptor; // backend-built single-sig watch descriptor (device/watch-only)
   String? hardwareDeviceType; // present => signs on a USB device
@@ -125,6 +126,7 @@ List<wmpb.MultisigCosignerInput> cosignerInputs(List<CosignerKeystore> cosigners
           originPath: c.originPath ?? '',
           fingerprint: c.fingerprint ?? '',
           mnemonic: c.mnemonic ?? '',
+          xprv: c.xprv ?? '',
           passphrase: c.passphrase ?? '',
           hardwareDeviceType: c.hardwareDeviceType ?? '',
         ),
@@ -156,6 +158,7 @@ List<CosignerKeystore> keystoresFromPolicy(
       ..fingerprint = e.value.fingerprint.isEmpty ? null : e.value.fingerprint
       ..originPath = e.value.originPath.isEmpty ? null : e.value.originPath
       ..derivationPath = e.value.originPath.isEmpty ? '' : 'm/${e.value.originPath}'
+      ..xprv = e.value.xprv.isEmpty ? null : e.value.xprv
       ..source = CosignerSource.xpub;
   }).toList();
 }

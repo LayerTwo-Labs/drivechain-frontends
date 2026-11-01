@@ -570,6 +570,7 @@ func (h *WalletHandler) ValidateDescriptor(ctx context.Context, req *pb.Validate
 			Xpub:        c.Xpub,
 			Fingerprint: c.Fingerprint,
 			OriginPath:  c.OriginPath,
+			Xprv:        c.Xprv,
 		})
 	}
 	return &pb.ValidateDescriptorResponse{

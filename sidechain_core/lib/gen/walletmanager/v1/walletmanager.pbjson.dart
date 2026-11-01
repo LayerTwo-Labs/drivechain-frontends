@@ -13,8 +13,8 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $5;
-import '../../google/protobuf/timestamp.pbjson.dart' as $2;
+import '../../google/protobuf/empty.pbjson.dart' as $21;
+import '../../google/protobuf/timestamp.pbjson.dart' as $14;
 
 @$core.Deprecated('Use walletStateDescriptor instead')
 const WalletState$json = {
@@ -934,13 +934,15 @@ const ParsedCosigner$json = {
     {'1': 'xpub', '3': 1, '4': 1, '5': 9, '10': 'xpub'},
     {'1': 'fingerprint', '3': 2, '4': 1, '5': 9, '10': 'fingerprint'},
     {'1': 'origin_path', '3': 3, '4': 1, '5': 9, '10': 'originPath'},
+    {'1': 'xprv', '3': 4, '4': 1, '5': 9, '10': 'xprv'},
   ],
 };
 
 /// Descriptor for `ParsedCosigner`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List parsedCosignerDescriptor = $convert.base64Decode(
     'Cg5QYXJzZWRDb3NpZ25lchISCgR4cHViGAEgASgJUgR4cHViEiAKC2ZpbmdlcnByaW50GAIgAS'
-    'gJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aA==');
+    'gJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aBISCgR4cHJ2'
+    'GAQgASgJUgR4cHJ2');
 
 @$core.Deprecated('Use parseMultisigConfigResponseDescriptor instead')
 const ParseMultisigConfigResponse$json = {
@@ -3009,7 +3011,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletBackupsRequest': ListWalletBackupsRequest$json,
   '.walletmanager.v1.ListWalletBackupsResponse': ListWalletBackupsResponse$json,
   '.walletmanager.v1.WalletBackup': WalletBackup$json,
-  '.google.protobuf.Timestamp': $2.Timestamp$json,
+  '.google.protobuf.Timestamp': $14.Timestamp$json,
   '.walletmanager.v1.BackupWalletSummary': BackupWalletSummary$json,
   '.walletmanager.v1.BalanceSnapshot': BalanceSnapshot$json,
   '.walletmanager.v1.RestoreWalletBackupRequest': RestoreWalletBackupRequest$json,
@@ -3057,7 +3059,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.PreviewSendResponse': PreviewSendResponse$json,
   '.walletmanager.v1.SetFrozenCoinsRequest': SetFrozenCoinsRequest$json,
   '.walletmanager.v1.FrozenOutpoint': FrozenOutpoint$json,
-  '.google.protobuf.Empty': $5.Empty$json,
+  '.google.protobuf.Empty': $21.Empty$json,
   '.walletmanager.v1.CreateDepositRequest': CreateDepositRequest$json,
   '.walletmanager.v1.CreateDepositResponse': CreateDepositResponse$json,
   '.walletmanager.v1.ListTransactionsRequest': ListTransactionsRequest$json,
