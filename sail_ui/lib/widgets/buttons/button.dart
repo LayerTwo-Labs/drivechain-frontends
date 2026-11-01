@@ -180,6 +180,9 @@ class _ButtonContent extends StatelessWidget {
     required this.plainLabel,
   });
 
+  TextDecoration? get _labelDecoration =>
+      variant == ButtonVariant.link || variant == ButtonVariant.ghost ? TextDecoration.underline : null;
+
   Widget _terminalLabel(BuildContext context) {
     final theme = SailTheme.of(context);
     final text = isLoading ? loadingLabel ?? 'Please wait' : label!;
@@ -192,7 +195,7 @@ class _ButtonContent extends StatelessWidget {
         fontWeight: plainLabel ? FontWeight.w400 : SailStyleValues.boldWeight,
         fontFamily: theme.chrome.fontFamily,
         letterSpacing: plainLabel ? null : 1.2,
-        decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
+        decoration: _labelDecoration,
       ),
     );
   }
@@ -237,13 +240,13 @@ class _ButtonContent extends StatelessWidget {
                   isLoading ? loadingLabel ?? 'Please wait' : label!,
                   color: foregroundColor,
                   bold: !plainLabel,
-                  decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
+                  decoration: _labelDecoration,
                 )
               : SailText.primary12(
                   isLoading ? loadingLabel ?? 'Please wait' : label!,
                   color: foregroundColor,
                   bold: !plainLabel,
-                  decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
+                  decoration: _labelDecoration,
                 ),
         if (trailingIcon != null) ...[
           if (label != null || icon != null || endIcon != null) const SizedBox(width: 6),
