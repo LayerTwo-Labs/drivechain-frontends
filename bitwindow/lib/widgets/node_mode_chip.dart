@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -51,11 +53,32 @@ class _NodeModeChipState extends State<NodeModeChip> {
     }
   }
 
+  static const double _popoverWidth = 400;
+  static const double _windowMargin = 8;
+
+  double _width = _popoverWidth;
+  double _shift = 0;
+
   void _onPopover() {
     if (!NodeModeChip._controller.isOpen) {
       NodeModeChip._openOnDataDir = false;
+    } else {
+      _fitToWindow();
     }
     _onChange();
+  }
+
+  // The popover ends at the chip's right edge. A narrow window shrinks it and
+  // moves it right, so it stays inside both edges.
+  void _fitToWindow() {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      return;
+    }
+    final window = MediaQuery.sizeOf(context).width;
+    final chipRight = box.localToGlobal(Offset(box.size.width, 0)).dx;
+    _width = min(_popoverWidth, window - 2 * _windowMargin);
+    _shift = max(0, _windowMargin - (chipRight - _width));
   }
 
   @override
@@ -71,8 +94,10 @@ class _NodeModeChipState extends State<NodeModeChip> {
         offset: 8,
         barrierDismissible: !NodeModeChip._busy.value,
         borderRadius: theme.chrome.radiusLarge,
+        crossOffset: _shift,
         popover: NodeModePopover(
           key: ValueKey(NodeModeChip._openOnDataDir),
+          width: _width,
           dataDirFirst: NodeModeChip._openOnDataDir,
           onDone: NodeModeChip._controller.hide,
         ),
@@ -104,8 +129,9 @@ class NodeModePopover extends StatefulWidget {
   /// Opens on the data directory page, for a full mode install with none.
   final bool dataDirFirst;
   final VoidCallback onDone;
+  final double width;
 
-  const NodeModePopover({super.key, required this.onDone, this.dataDirFirst = false});
+  const NodeModePopover({super.key, required this.onDone, this.dataDirFirst = false, this.width = 400});
 
   @override
   State<NodeModePopover> createState() => _NodeModePopoverState();
@@ -213,7 +239,7 @@ class _NodeModePopoverState extends State<NodeModePopover> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 400,
+      width: widget.width,
       child: Padding(
         padding: const EdgeInsets.all(SailStyleValues.padding16),
         child: _onDataDirPage ? _dataDirPage(context) : _modePage(context),
