@@ -3282,6 +3282,7 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     $core.String? hardwareDeviceType,
     $core.String? hardwareFingerprint,
     $core.String? passphrase,
+    $core.String? privateDescriptor,
   }) {
     final $result = create();
     if (name != null) {
@@ -3317,6 +3318,9 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     if (passphrase != null) {
       $result.passphrase = passphrase;
     }
+    if (privateDescriptor != null) {
+      $result.privateDescriptor = privateDescriptor;
+    }
     return $result;
   }
   CreateElectrumWalletRequest._() : super();
@@ -3335,6 +3339,7 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     ..aOS(9, _omitFieldNames ? '' : 'hardwareDeviceType')
     ..aOS(10, _omitFieldNames ? '' : 'hardwareFingerprint')
     ..aOS(11, _omitFieldNames ? '' : 'passphrase')
+    ..aOS(12, _omitFieldNames ? '' : 'privateDescriptor')
     ..hasRequiredFields = false
   ;
 
@@ -3469,6 +3474,17 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasPassphrase() => $_has(10);
   @$pb.TagNumber(11)
   void clearPassphrase() => clearField(11);
+
+  /// Optional single-sig output descriptor that holds an account xprv. The
+  /// wallet keeps the key and can sign. Mutually exclusive with the other keys.
+  @$pb.TagNumber(12)
+  $core.String get privateDescriptor => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set privateDescriptor($core.String v) { $_setString(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasPrivateDescriptor() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearPrivateDescriptor() => clearField(12);
 }
 
 class CreateElectrumWalletResponse extends $pb.GeneratedMessage {

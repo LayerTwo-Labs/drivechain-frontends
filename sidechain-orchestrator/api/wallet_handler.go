@@ -429,6 +429,13 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *pb.Create
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			"electrum wallets are not supported on this network")
 	}
+	if req.PrivateDescriptor != "" {
+		w, err := h.svc.CreateElectrumDescriptorWallet(req.Name, json.RawMessage(req.GradientJson), req.PrivateDescriptor)
+		if err != nil {
+			return nil, rpcError(err)
+		}
+		return &pb.CreateElectrumWalletResponse{WalletId: w.ID}, nil
+	}
 	account, path, err := wallet.ResolveCreateDerivationPath(req.Account, req.DerivationPath)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)

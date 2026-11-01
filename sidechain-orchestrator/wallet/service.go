@@ -849,6 +849,19 @@ func validateHotScriptType(s string) (string, error) {
 	}
 }
 
+// CreateElectrumDescriptorWallet creates an electrum wallet from a single-sig
+// descriptor that holds an account xprv. The wallet keeps the key and signs.
+func (s *Service) CreateElectrumDescriptorWallet(name string, gradient json.RawMessage, descriptor string) (*WalletData, error) {
+	desc, err := ParseDescriptorAs(descriptor, ScriptNativeSegwit)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid descriptor: %w", err).Error())
+	}
+	if len(desc.Keys) != 1 || !desc.Keys[0].Account.IsPrivate() {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "a spending descriptor needs exactly one key, and it must be a private key")
+	}
+	return s.storeDescriptorWallet(name, gradient, descriptor, desc, WalletTypeElectrum)
+}
+
 // createWatchOnly creates a watch-only wallet of a backend type from an xpub or
 // descriptor. requested is the kind to store when the key states none of its
 // own. The key can hold history of any age, so the wallet counts as imported.
@@ -862,6 +875,11 @@ func (s *Service) createWatchOnly(name string, gradient json.RawMessage, xpubOrD
 			return nil, connect.NewError(connect.CodeInvalidArgument, "watch-only import must not contain private keys")
 		}
 	}
+	return s.storeDescriptorWallet(name, gradient, xpubOrDescriptor, desc, walletType)
+}
+
+// storeDescriptorWallet stores a wallet that derives from xpubOrDescriptor.
+func (s *Service) storeDescriptorWallet(name string, gradient json.RawMessage, xpubOrDescriptor string, desc *Descriptor, walletType WalletType) (*WalletData, error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -879,7 +897,7 @@ func (s *Service) createWatchOnly(name string, gradient json.RawMessage, xpubOrD
 	}
 	watchOnlyJSON, err := json.Marshal(watchOnly)
 	if err != nil {
-		return nil, fmt.Errorf("encode watch-only data: %w", err)
+		return nil, fmt.Errorf("encode descriptor data: %w", err)
 	}
 
 	wallet := WalletData{
@@ -901,9 +919,9 @@ func (s *Service) createWatchOnly(name string, gradient json.RawMessage, xpubOrD
 	s.activeWalletID = walletID
 	s.adoptStarterWallet()
 	if err := s.saveWalletFile(); err != nil {
-		return nil, fmt.Errorf("save watch-only wallet: %w", err)
+		return nil, fmt.Errorf("save descriptor wallet: %w", err)
 	}
-	s.log.Info().Str("id", walletID).Str("type", string(walletType)).Msg("watch-only wallet created")
+	s.log.Info().Str("id", walletID).Str("type", string(walletType)).Bool("signs", !wallet.IsWatchOnly()).Msg("descriptor wallet created")
 	return &wallet, nil
 }
 

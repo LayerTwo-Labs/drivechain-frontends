@@ -89,6 +89,15 @@ Future<String> importDescriptorWallet(String descriptor) async {
       cosigners: keystoresFromPolicy(policy),
     );
   }
+  if (policy.keys.any((k) => k.xprv.isNotEmpty)) {
+    final name = _nextName();
+    await GetIt.I.get<WalletWriterProvider>().createElectrumWallet(
+      name: name,
+      gradient: WalletGradient.fromWalletId(name),
+      privateDescriptor: descriptor.trim(),
+    );
+    return name;
+  }
   return createWalletFromSetup(
     WalletSetupResult.single(
       SingleSigResult(scriptType: hotScriptType(policy.scriptType), xpubOrDescriptor: descriptor.trim()),

@@ -833,6 +833,7 @@ const CreateElectrumWalletRequest$json = {
     {'1': 'hardware_device_type', '3': 9, '4': 1, '5': 9, '10': 'hardwareDeviceType'},
     {'1': 'hardware_fingerprint', '3': 10, '4': 1, '5': 9, '10': 'hardwareFingerprint'},
     {'1': 'passphrase', '3': 11, '4': 1, '5': 9, '10': 'passphrase'},
+    {'1': 'private_descriptor', '3': 12, '4': 1, '5': 9, '10': 'privateDescriptor'},
   ],
 };
 
@@ -845,7 +846,8 @@ final $typed_data.Uint8List createElectrumWalletRequestDescriptor = $convert.bas
     'cHRUeXBlEhgKB2FjY291bnQYByABKA1SB2FjY291bnQSJwoPZGVyaXZhdGlvbl9wYXRoGAggAS'
     'gJUg5kZXJpdmF0aW9uUGF0aBIwChRoYXJkd2FyZV9kZXZpY2VfdHlwZRgJIAEoCVISaGFyZHdh'
     'cmVEZXZpY2VUeXBlEjEKFGhhcmR3YXJlX2ZpbmdlcnByaW50GAogASgJUhNoYXJkd2FyZUZpbm'
-    'dlcnByaW50Eh4KCnBhc3NwaHJhc2UYCyABKAlSCnBhc3NwaHJhc2U=');
+    'dlcnByaW50Eh4KCnBhc3NwaHJhc2UYCyABKAlSCnBhc3NwaHJhc2USLQoScHJpdmF0ZV9kZXNj'
+    'cmlwdG9yGAwgASgJUhFwcml2YXRlRGVzY3JpcHRvcg==');
 
 @$core.Deprecated('Use createElectrumWalletResponseDescriptor instead')
 const CreateElectrumWalletResponse$json = {

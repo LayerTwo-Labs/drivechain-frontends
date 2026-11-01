@@ -171,6 +171,25 @@ func sameAccountKey(a, b *hdkeychain.ExtendedKey) bool {
 
 // watchOnlyDescriptorString returns the descriptor (or bare xpub) stored in a
 // watch-only wallet's payload, for ParseDescriptor.
+// descriptorHoldsKey reports whether a descriptor wallet stores a private key,
+// so it can sign.
+func (w *WalletData) descriptorHoldsKey() bool {
+	stored, err := watchOnlyDescriptorString(w)
+	if err != nil {
+		return false
+	}
+	d, err := ParseDescriptorAs(stored, w.scriptKind())
+	if err != nil {
+		return false
+	}
+	for _, k := range d.Keys {
+		if k.Account.IsPrivate() {
+			return true
+		}
+	}
+	return false
+}
+
 func watchOnlyDescriptorString(w *WalletData) (string, error) {
 	var stored struct {
 		Xpub       string `json:"xpub"`

@@ -33,6 +33,7 @@ class _RecordingWriter extends _FakeWriter {
     String? derivationPath,
     String? hardwareDeviceType,
     String? hardwareFingerprint,
+    String? privateDescriptor,
   }) async {
     restored = customMnemonic;
   }
