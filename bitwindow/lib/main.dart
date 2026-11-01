@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sail_ui/pages/router.gr.dart' as sail_routes;
 import 'package:sail_ui/shell/chain_events.dart';
 import 'package:bitwindow/sidechains/hosted_modules.dart';
 import 'package:bitwindow/sidechains/truthcoin_links.dart';
@@ -921,10 +922,27 @@ Future<void> startBackendsForMode({
     backendState.removeListener(onBackendState);
     log.i('STARTUP: drivechaind answered after the readiness wait');
     unawaited(_bootForMode(orchestrator: orchestrator, orchestratorReady: true, log: log, retryEvery: retryEvery));
+    unawaited(_unlockIfLocked(orchestrator, log));
   }
 
   backendState.addListener(onBackendState);
   onBackendState();
+}
+
+// The password guard ran while drivechaind was down, and read no encryption.
+Future<void> _unlockIfLocked(OrchestratorRPC orchestrator, Logger log) async {
+  final wmpb.GetWalletStatusResponse status;
+  try {
+    status = await orchestrator.wallet.getWalletStatus();
+  } catch (e) {
+    log.e('STARTUP: could not read the wallet lock after a late drivechaind: $e');
+    return;
+  }
+  if (status.state != wmpb.WalletState.WALLET_STATE_LOCKED) {
+    return;
+  }
+  log.i('STARTUP: the wallet is locked, asking for its password');
+  await GetIt.I.get<AppRouter>().push(sail_routes.UnlockWalletRoute());
 }
 
 Future<void> _bootForMode({
