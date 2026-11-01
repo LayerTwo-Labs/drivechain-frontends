@@ -907,12 +907,24 @@ Future<void> startBackendsForMode({
   log.i('STARTUP: starting backend state watch');
   backendState.startWatching();
 
-  await _bootForMode(
-    orchestrator: orchestrator,
-    orchestratorReady: orchestratorReady,
-    log: log,
-    retryEvery: retryEvery,
-  );
+  if (orchestratorReady) {
+    await _bootForMode(orchestrator: orchestrator, orchestratorReady: true, log: log, retryEvery: retryEvery);
+    return;
+  }
+
+  // drivechaind came up after the readiness wait, so the state watch is what
+  // sees it answer. The boot then runs once.
+  void onBackendState() {
+    if (!backendState.orchestratorAnswered || !backendState.orchestratorReachable) {
+      return;
+    }
+    backendState.removeListener(onBackendState);
+    log.i('STARTUP: drivechaind answered after the readiness wait');
+    unawaited(_bootForMode(orchestrator: orchestrator, orchestratorReady: true, log: log, retryEvery: retryEvery));
+  }
+
+  backendState.addListener(onBackendState);
+  onBackendState();
 }
 
 Future<void> _bootForMode({
