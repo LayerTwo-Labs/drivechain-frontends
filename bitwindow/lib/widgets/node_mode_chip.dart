@@ -61,20 +61,21 @@ class _NodeModeChipState extends State<NodeModeChip> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    return SailPopover(
-      controller: NodeModeChip._controller,
-      side: SailPopoverSide.top,
-      alignment: SailPopoverAlignment.end,
-      offset: 8,
-      barrierDismissible: !NodeModeChip._busy.value,
-      borderRadius: theme.chrome.radiusLarge,
-      popover: NodeModePopover(
-        key: ValueKey(NodeModeChip._openOnDataDir),
-        dataDirFirst: NodeModeChip._openOnDataDir,
-        onDone: NodeModeChip._controller.hide,
-      ),
-      child: IgnorePointer(
-        ignoring: NodeModeChip._busy.value,
+    // The popover's own trigger toggles it, so the whole widget ignores taps while busy.
+    return IgnorePointer(
+      ignoring: NodeModeChip._busy.value,
+      child: SailPopover(
+        controller: NodeModeChip._controller,
+        side: SailPopoverSide.top,
+        alignment: SailPopoverAlignment.end,
+        offset: 8,
+        barrierDismissible: !NodeModeChip._busy.value,
+        borderRadius: theme.chrome.radiusLarge,
+        popover: NodeModePopover(
+          key: ValueKey(NodeModeChip._openOnDataDir),
+          dataDirFirst: NodeModeChip._openOnDataDir,
+          onDone: NodeModeChip._controller.hide,
+        ),
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: Container(
