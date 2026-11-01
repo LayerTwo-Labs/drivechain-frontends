@@ -11,6 +11,10 @@ class NodeModeChip extends StatefulWidget {
   static final SailPopoverController _controller = SailPopoverController();
   static bool _openOnDataDir = false;
 
+  /// True while the popover saves a directory or switches the mode. A click
+  /// outside must not drop that work.
+  static final ValueNotifier<bool> _busy = ValueNotifier(false);
+
   /// Opens the popover. [dataDir] opens it on its data directory page.
   static void open({bool dataDir = false}) {
     _openOnDataDir = dataDir;
@@ -30,12 +34,14 @@ class _NodeModeChipState extends State<NodeModeChip> {
     _nodeMode.addListener(_onChange);
     // A rebuild on open hands the popover the page [NodeModeChip.open] asked for.
     NodeModeChip._controller.addListener(_onPopover);
+    NodeModeChip._busy.addListener(_onChange);
   }
 
   @override
   void dispose() {
     _nodeMode.removeListener(_onChange);
     NodeModeChip._controller.removeListener(_onPopover);
+    NodeModeChip._busy.removeListener(_onChange);
     super.dispose();
   }
 
@@ -58,28 +64,33 @@ class _NodeModeChipState extends State<NodeModeChip> {
     return SailPopover(
       controller: NodeModeChip._controller,
       side: SailPopoverSide.top,
+      alignment: SailPopoverAlignment.end,
       offset: 8,
+      barrierDismissible: !NodeModeChip._busy.value,
       borderRadius: theme.chrome.radiusLarge,
       popover: NodeModePopover(
         key: ValueKey(NodeModeChip._openOnDataDir),
         dataDirFirst: NodeModeChip._openOnDataDir,
         onDone: NodeModeChip._controller.hide,
       ),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: theme.colors.chip,
-            borderRadius: theme.chrome.radiusSmall,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailText.primary12(_nodeMode.isFull ? 'Full node' : 'Light'),
-              const SizedBox(width: 4),
-              SailSVG.fromAsset(SailSVGAsset.chevronUp, color: theme.colors.text, width: 8),
-            ],
+      child: IgnorePointer(
+        ignoring: NodeModeChip._busy.value,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colors.chip,
+              borderRadius: theme.chrome.radiusSmall,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.primary12(_nodeMode.isFull ? 'Full node' : 'Light'),
+                const SizedBox(width: 4),
+                SailSVG.fromAsset(SailSVGAsset.chevronUp, color: theme.colors.text, width: 8),
+              ],
+            ),
           ),
         ),
       ),
@@ -154,34 +165,48 @@ class _NodeModePopoverState extends State<NodeModePopover> {
   }
 
   Future<void> _continueWithDataDir() async {
-    setState(() => _switching = true);
-    final saved = await _dataDir.save(_conf.network);
-    if (!saved) {
-      if (mounted) {
-        setState(() => _switching = false);
+    _setSwitching(true);
+    try {
+      if (!await _dataDir.save(_conf.network)) {
+        return;
       }
-      return;
+      await _select();
+    } finally {
+      _setSwitching(false);
     }
-    await _switch();
   }
 
   Future<void> _switch() async {
-    setState(() {
-      _switching = true;
-      _error = null;
-    });
+    _setSwitching(true);
+    try {
+      await _select();
+    } finally {
+      _setSwitching(false);
+    }
+  }
+
+  // Sets [_error] on a refused switch and calls [onDone] on success.
+  Future<void> _select() async {
+    if (mounted) {
+      setState(() => _error = null);
+    }
     try {
       await _nodeMode.select(_selected);
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _switching = false;
-          _error = '$e';
-        });
+        setState(() => _error = '$e');
       }
       return;
     }
+    NodeModeChip._busy.value = false;
     widget.onDone();
+  }
+
+  void _setSwitching(bool switching) {
+    NodeModeChip._busy.value = switching;
+    if (mounted) {
+      setState(() => _switching = switching);
+    }
   }
 
   @override
@@ -244,7 +269,7 @@ class _NodeModePopoverState extends State<NodeModePopover> {
             SailButton(
               label: label,
               loading: _switching,
-              disabled: current,
+              disabled: current && !(_toFull && fullModeNeedsDataDir(_conf)),
               onPressed: _confirm,
             ),
           ],

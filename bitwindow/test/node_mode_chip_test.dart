@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:bitwindow/widgets/node_mode_chip.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -15,6 +19,16 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
   bool hasPrivateBitcoinConf = false;
 
   bool dataDir = false;
+  Completer<void>? saveGate;
+
+  @override
+  Future<void> updateDataDir(String? dataDir, {required BitcoinNetwork forNetwork}) async {
+    await saveGate?.future;
+    this.dataDir = dataDir != null;
+  }
+
+  @override
+  Future<void> commitNetworkChange(BitcoinNetwork newNetwork) async {}
 
   @override
   bool get mustSelectDatadir => !dataDir;
@@ -27,6 +41,22 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakePicker extends FilePickerPlatform {
+  _FakePicker(this.path);
+
+  final String path;
+
+  @override
+  Future<String?> getDirectoryPath({
+    String? dialogTitle,
+    String? initialDirectory,
+    AndroidOptions androidOptions = const AndroidOptions(),
+    WindowsOptions windowsOptions = const WindowsOptions(),
+    LinuxOptions linuxOptions = const LinuxOptions(),
+    WebOptions webOptions = const WebOptions(),
+  }) async => path;
 }
 
 class _FakeWallet implements OrchestratorWalletRPC {
@@ -184,5 +214,71 @@ void main() {
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('a full mode install with no directory can still reach the directory page', (tester) async {
+    nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
+    await pump(tester, NodeModePopover(onDone: () {}));
+
+    final confirm = tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Confirm node mode')).first;
+    expect(confirm.disabled, isFalse);
+
+    await tester.tap(find.widgetWithText(SailButton, 'Confirm node mode').first);
+    await tester.pump();
+    expect(find.text('Configure Data Directory'), findsOneWidget);
+  });
+
+  testWidgets('the popover stays inside the window at the right edge', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      _host(const Align(alignment: Alignment.bottomRight, child: NodeModeChip())),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Light'));
+    await tester.pumpAndSettle();
+
+    final popover = tester.getRect(find.byType(NodeModePopover));
+    expect(popover.right, lessThanOrEqualTo(800));
+    expect(popover.left, greaterThanOrEqualTo(0));
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a click outside does not drop a switch that saves the directory', (tester) async {
+    final dir = Directory.systemTemp.createTempSync('node-mode-dir');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final previous = FilePickerPlatform.instance;
+    FilePickerPlatform.instance = _FakePicker(dir.path);
+    addTearDown(() => FilePickerPlatform.instance = previous);
+
+    nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
+    await pump(tester, const NodeModeChip());
+    NodeModeChip.open(dataDir: true);
+    await tester.pumpAndSettle();
+
+    await tester.runAsync(() async {
+      await tester.tap(find.widgetWithText(SailButton, 'Browse').first);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    expect(find.text(dir.path), findsOneWidget);
+
+    conf.saveGate = Completer<void>();
+    await tester.tap(find.widgetWithText(SailButton, 'Continue').first);
+    await tester.pump();
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pump();
+    expect(find.text('Configure Data Directory'), findsOneWidget, reason: 'the save holds the popover open');
+
+    conf.saveGate!.complete();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(orchestrator.wallet.selections, [wmpb.NodeMode.NODE_MODE_FULL]);
+    expect(find.text('Configure Data Directory'), findsNothing);
   });
 }
