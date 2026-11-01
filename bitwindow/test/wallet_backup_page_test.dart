@@ -11,6 +11,14 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+const _osHex = 'abababababababababababababababab';
+
+/// The words the fake backend derives. They depend only on the text.
+List<String> _wordsFor(String text, int count) {
+  final tag = text.codeUnits.fold<int>(7, (a, b) => (a * 31 + b) % 9973);
+  return List.generate(count, (i) => 'w$tag-${i + 1}');
+}
+
 /// Stands in for the orchestrator round trip. [gate] holds a derive open so a
 /// test can act while one is in flight.
 class _FakeWriter extends WalletWriterProvider {
@@ -18,7 +26,6 @@ class _FakeWriter extends WalletWriterProvider {
 
   Completer<void>? gate;
   int calls = 0;
-  List<int>? lastEntropy;
   List<int>? lastExtraEntropy;
   String? lastSourceText;
 
@@ -33,32 +40,36 @@ class _FakeWriter extends WalletWriterProvider {
     List<int> extraEntropy = const [],
   }) async {
     calls++;
-    lastEntropy = entropy;
     lastExtraEntropy = extraEntropy;
     lastSourceText = sourceText;
-    if (gate != null) {
-      await gate!.future;
+    final waitFor = gate;
+    if (waitFor != null) {
+      await waitFor.future;
     }
     return {
-      'mnemonic': List.generate(wordCount, (i) => 'word${i + 1}').join(' '),
-      'entropy_hex': 'ab' * 16,
+      'mnemonic': _wordsFor(sourceText ?? _osHex, wordCount).join(' '),
+      'entropy_hex': _osHex,
     };
   }
 }
 
 /// The page targets a desktop window; the default 800x600 surface overflows it.
-Future<void> _pumpPage(WidgetTester tester, {SeedEntryMode mode = SeedEntryMode.generate}) async {
-  await tester.binding.setSurfaceSize(const Size(1440, 1024));
+Future<void> _pumpPage(
+  WidgetTester tester, {
+  SeedEntryMode mode = SeedEntryMode.generate,
+  Future<void> Function(SeedBackup seed)? onCreate,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1440, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(_app(mode));
+  await tester.pumpWidget(_app(mode, onCreate));
   await tester.pumpAndSettle();
 }
 
-Widget _app(SeedEntryMode mode) {
+Widget _app(SeedEntryMode mode, Future<void> Function(SeedBackup seed)? onCreate) {
   return MaterialApp(
     home: SailTheme(
       data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
-      child: WalletBackupPage(mode: mode),
+      child: WalletBackupPage(mode: mode, onCreate: onCreate),
     ),
   );
 }
@@ -67,9 +78,9 @@ SailButton _createWalletButton(WidgetTester tester) {
   return tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Create Wallet')).first;
 }
 
-SailThemeData _themeInPage(WidgetTester tester) {
-  return SailTheme.of(tester.element(find.text('Backup your wallet')));
-}
+Finder get _field => find.widgetWithText(TextField, 'Type anything: a sentence, dice rolls, hex, whatever you like');
+
+String _fieldText(WidgetTester tester) => tester.widget<TextField>(_field).controller!.text;
 
 // SailButton spins while its async onPressed is pending, and the confirm future
 // stays pending until the dialog closes, so pumpAndSettle would never settle.
@@ -82,21 +93,28 @@ Future<void> _tapAndSettle(WidgetTester tester, String label) async {
 
 // Moves the pointer over the board so it types one key per move. The pointer
 // leaves at the end, so no repeat timer outlives the test.
-Future<void> _typeOnPad(WidgetTester tester, Finder pad, int keys) async {
+Future<void> _typeOnPad(WidgetTester tester, int keys) async {
+  final pad = find.byKey(const Key('mouse-entropy-pad'));
+  final start = tester.getCenter(pad);
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-  await gesture.addPointer(location: tester.getCenter(pad));
+  await gesture.addPointer(location: start);
   addTearDown(gesture.removePointer);
   for (var i = 0; i < keys; i++) {
-    await gesture.moveTo(tester.getCenter(pad) + Offset(3.0 * i, 0));
+    await gesture.moveTo(start + Offset(3.0 * i, 0));
     await tester.pump();
   }
   await gesture.moveTo(Offset.zero);
   await tester.pump();
 }
 
-// Generate mode opens on the collect stage; this walks past it.
-Future<void> _toBackup(WidgetTester tester) async {
+Future<void> _toReenter(WidgetTester tester) async {
   await _tapAndSettle(tester, 'Continue');
+  expect(find.text('Re-enter your words'), findsOneWidget);
+}
+
+Future<void> _enterWords(WidgetTester tester, List<String> words) async {
+  await tester.enterText(find.byType(TextField).first, words.join(' '));
+  await tester.pump();
 }
 
 void main() {
@@ -110,174 +128,185 @@ void main() {
 
   tearDown(() async => GetIt.I.reset());
 
-  testWidgets('opens on the collect stage; Continue mints the seed', (tester) async {
+  testWidgets('opens with OS entropy in the field and its words shown', (tester) async {
     await _pumpPage(tester);
 
     expect(find.text('Add mouse entropy'), findsOneWidget);
-    expect(writer.calls, 0, reason: 'no seed exists before the user continues');
-
-    await _toBackup(tester);
-
-    expect(find.text('word1'), findsOneWidget);
+    expect(_fieldText(tester), _osHex);
+    expect(writer.lastSourceText, _osHex, reason: 'the words come from the field text');
+    expect(find.text(_wordsFor(_osHex, 12).first), findsOneWidget);
     expect(find.text('Valid checksum'), findsOneWidget);
-    expect(_themeInPage(tester).type, SailThemeValues.light);
+    expect(find.text('32 characters'), findsOneWidget);
+    expect(find.text('0 samples'), findsOneWidget);
+    expect(tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Continue')).first.disabled, isFalse);
   });
 
-  testWidgets('Back on backup returns to the collect stage', (tester) async {
+  testWidgets('a key appends one character and derives at once', (tester) async {
     await _pumpPage(tester);
-    await _toBackup(tester);
-    expect(find.text('word1'), findsOneWidget);
+    final before = _wordsFor(_osHex, 12).first;
 
-    await _tapAndSettle(tester, '\u2190 Back');
-    expect(find.text('Add mouse entropy'), findsOneWidget);
+    await _typeOnPad(tester, 1);
+    await tester.pump();
 
-    await _toBackup(tester);
-    expect(find.text('word1'), findsOneWidget);
+    final text = _fieldText(tester);
+    expect(text, hasLength(33));
+    expect(text.startsWith(_osHex), isTrue);
+    expect(writer.lastSourceText, text, reason: 'no debounce: the derive runs on the key');
+    expect(find.text(_wordsFor(text, 12).first), findsOneWidget);
+    expect(find.text(before), findsNothing);
+    expect(find.text('1 sample'), findsOneWidget);
+    expect(writer.lastExtraEntropy, isEmpty, reason: 'no hidden entropy beside the field');
   });
 
-  testWidgets('Continue forwards the typed keys as extra entropy', (tester) async {
+  testWidgets('the words stay on screen while a derive runs', (tester) async {
     await _pumpPage(tester);
+    final before = _wordsFor(_osHex, 12).first;
 
-    final pad = find.byKey(const Key('mouse-entropy-pad'));
-    expect(pad, findsOneWidget);
-    await _typeOnPad(tester, pad, 5);
-
-    await _toBackup(tester);
-
-    expect(writer.lastEntropy, isEmpty, reason: 'the backend mints the base entropy');
-    expect(writer.lastExtraEntropy, hasLength(5), reason: 'one key for each move');
-    expect(
-      String.fromCharCodes(writer.lastExtraEntropy!).split('').every(entropyKeyboardChars.contains),
-      isTrue,
-      reason: 'the board types its own keys, in either mode',
-    );
-  });
-
-  testWidgets('enabling paranoid mode wipes the seed and turns the screen dark', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-    expect(find.text('word1'), findsOneWidget);
-
-    await _tapAndSettle(tester, 'Paranoid mode');
-    expect(find.text('Enable paranoid mode?'), findsOneWidget);
-    await _tapAndSettle(tester, 'Yes, enable');
-
-    expect(find.text('word1'), findsNothing);
-    expect(_themeInPage(tester).type, SailThemeValues.dark);
-  });
-
-  testWidgets('declining paranoid mode keeps the seed and the light theme', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'No');
-
-    expect(find.text('word1'), findsOneWidget);
-    expect(_themeInPage(tester).type, SailThemeValues.light);
-  });
-
-  testWidgets('clearing entropy mid-derive does not strand the loading state', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
-
-    final field = find.widgetWithText(TextField, 'Type anything: a sentence, dice rolls, hex, whatever you like');
     writer.gate = Completer<void>();
-    await tester.enterText(field, 'dice rolls');
-    await tester.pump();
+    await _typeOnPad(tester, 1);
+    expect(find.text(before), findsOneWidget);
 
-    // Clear the field while that derive is still open, then let it land.
-    await tester.enterText(field, '');
-    await tester.pump();
     writer.gate!.complete();
+    writer.gate = null;
     await tester.pump();
     await tester.pump();
+    expect(find.text(_wordsFor(_fieldText(tester), 12).first), findsOneWidget);
+  });
 
-    expect(_createWalletButton(tester).loading, isFalse);
+  testWidgets('the same text gives the same words', (tester) async {
+    await _pumpPage(tester);
+
+    await tester.enterText(_field, 'pasted entropy');
+    await tester.pump();
+    final first = _wordsFor('pasted entropy', 12);
+    expect(find.text(first.first), findsOneWidget);
+
+    await tester.enterText(_field, 'pasted entropy!');
+    await tester.pump();
+    expect(find.text(first.first), findsNothing);
+
+    await tester.enterText(_field, 'pasted entropy');
+    await tester.pump();
+    expect(find.text(first.first), findsOneWidget);
   });
 
   testWidgets('a superseded derive never overwrites the newest words', (tester) async {
     await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
 
-    final field = find.widgetWithText(TextField, 'Type anything: a sentence, dice rolls, hex, whatever you like');
     writer.gate = Completer<void>();
-    await tester.enterText(field, 'first');
+    final old = writer.gate!;
+    await tester.enterText(_field, 'old');
     await tester.pump();
 
-    writer.gate!.complete();
     writer.gate = null;
-    await tester.enterText(field, 'second');
+    await tester.enterText(_field, 'new');
     await tester.pump();
     await tester.pump();
+    expect(find.text(_wordsFor('new', 12).first), findsOneWidget);
 
-    expect(find.text('word1'), findsOneWidget);
+    old.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text(_wordsFor('new', 12).first), findsOneWidget);
+    expect(find.text(_wordsFor('old', 12).first), findsNothing);
   });
 
-  testWidgets('re-enter only accepts the words in order', (tester) async {
+  testWidgets('Generate Random replaces the field and the samples', (tester) async {
     await _pumpPage(tester);
-    await _toBackup(tester);
+    await _typeOnPad(tester, 3);
+    expect(find.text('3 samples'), findsOneWidget);
 
-    await _tapAndSettle(tester, 'Create Wallet');
-    expect(find.text('Have these 12 words been written down?'), findsOneWidget);
-    await _tapAndSettle(tester, 'Yes, continue');
+    await _tapAndSettle(tester, 'Generate Random');
+
+    expect(_fieldText(tester), _osHex);
+    expect(find.text('0 samples'), findsOneWidget);
+  });
+
+  testWidgets('the removed steps and options are gone', (tester) async {
+    await _pumpPage(tester);
+
+    expect(find.text('Paranoid mode'), findsNothing);
+    expect(find.text('Enable mouse entropy'), findsNothing);
+    expect(find.text('Backup your wallet'), findsNothing);
+    expect(find.widgetWithText(SailButton, 'Shuffle'), findsWidgets);
+
+    await _toReenter(tester);
+    expect(find.textContaining('been written down'), findsNothing);
+  });
+
+  testWidgets('with no word entered the button skips, and the modal can go back', (tester) async {
+    final created = <SeedBackup>[];
+    await _pumpPage(tester, onCreate: (seed) async => created.add(seed));
+    await _toReenter(tester);
+
+    await _tapAndSettle(tester, 'Skip and create wallet');
+    expect(find.text('Create wallet without a backup?'), findsOneWidget);
+    expect(find.text('If you lose the 12 words, you lose the coins in this wallet.'), findsOneWidget);
+
+    await _tapAndSettle(tester, 'Re-enter words');
+    expect(find.text('Create wallet without a backup?'), findsNothing);
     expect(find.text('Re-enter your words'), findsOneWidget);
+    expect(created, isEmpty);
 
-    // The grid reads down each column, so the nth field on screen is not the
-    // nth word: screen position p holds word (p % columns) * rows + (p ~/ columns).
-    const columns = 3;
-    const rows = 12 ~/ columns;
-    final boxes = find.byType(TextField);
-    expect(boxes, findsNWidgets(12));
-    for (var p = 0; p < 12; p++) {
-      final word = (p % columns) * rows + (p ~/ columns);
-      await tester.enterText(boxes.at(p), 'word${word + 1}');
-    }
-    await tester.pump();
-    expect(_createWalletButton(tester).disabled, isFalse);
+    await _tapAndSettle(tester, 'Skip and create wallet');
+    await _tapAndSettle(tester, 'Create without backup');
 
-    await tester.enterText(boxes.at(4), 'wrong');
-    await tester.pump();
-    expect(_createWalletButton(tester).disabled, isTrue);
+    expect(created.single.mnemonic, _wordsFor(_osHex, 12).join(' '));
   });
 
-  testWidgets('re-enter takes a pasted phrase into the box it belongs in', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Create Wallet');
-    await _tapAndSettle(tester, 'Yes, continue');
+  testWidgets('words that do not match create nothing', (tester) async {
+    final created = <SeedBackup>[];
+    await _pumpPage(tester, onCreate: (seed) async => created.add(seed));
+    await _toReenter(tester);
 
-    final phrase = List.generate(12, (i) => 'word${i + 1}').join(' ');
-    await tester.enterText(find.byType(TextField).first, phrase);
-    await tester.pump();
-
-    expect(find.text('word12'), findsOneWidget);
+    final words = _wordsFor(_osHex, 12);
+    await _enterWords(tester, [...words.take(11), 'wrong']);
     expect(_createWalletButton(tester).disabled, isFalse);
+
+    await _tapAndSettle(tester, 'Create Wallet');
+    expect(created, isEmpty);
+    expect(find.text('12 of 12 entered'), findsOneWidget);
   });
 
-  testWidgets('re-enter fills from the start when the paste lands in a later box', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
+  testWidgets('words that match create the wallet', (tester) async {
+    final created = <SeedBackup>[];
+    await _pumpPage(tester, onCreate: (seed) async => created.add(seed));
+    await _toReenter(tester);
+
+    await _enterWords(tester, _wordsFor(_osHex, 12));
     await _tapAndSettle(tester, 'Create Wallet');
-    await _tapAndSettle(tester, 'Yes, continue');
 
-    final phrase = List.generate(12, (i) => 'word${i + 1}').join(' ');
-    await tester.enterText(find.byType(TextField).at(4), phrase);
+    expect(created.single.mnemonic, _wordsFor(_osHex, 12).join(' '));
+  });
+
+  testWidgets('a failed create stays on the page and shows why', (tester) async {
+    await _pumpPage(tester, onCreate: (seed) async => throw Exception('electrum is down'));
+    await _toReenter(tester);
+
+    await _enterWords(tester, _wordsFor(_osHex, 12));
+    await _tapAndSettle(tester, 'Create Wallet');
+
+    expect(find.text('Re-enter your words'), findsOneWidget);
+    expect(find.textContaining('electrum is down'), findsOneWidget);
+  });
+
+  testWidgets('Back on re-enter keeps the field and the words', (tester) async {
+    await _pumpPage(tester);
+    await tester.enterText(_field, 'my own entropy');
     await tester.pump();
+    await _toReenter(tester);
 
-    expect(_createWalletButton(tester).disabled, isFalse);
+    await _tapAndSettle(tester, '← Back');
+
+    expect(_fieldText(tester), 'my own entropy');
+    expect(find.text(_wordsFor('my own entropy', 12).first), findsOneWidget);
   });
 
   // The keyboard shortcut takes a different route into the field than typing,
   // so the spread has to hold for a real paste too.
   testWidgets('re-enter spreads a keyboard paste', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
-    final phrase = List.generate(12, (i) => 'word${i + 1}').join(' ');
+    final phrase = _wordsFor(_osHex, 12).join(' ');
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
       if (call.method == 'Clipboard.getData') {
         return <String, dynamic>{'text': phrase};
@@ -287,9 +316,7 @@ void main() {
     addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
 
     await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Create Wallet');
-    await _tapAndSettle(tester, 'Yes, continue');
+    await _toReenter(tester);
 
     await tester.tap(find.byType(TextField).first);
     await tester.pump();
@@ -299,129 +326,19 @@ void main() {
     await tester.pumpAndSettle();
     debugDefaultTargetPlatformOverride = null;
 
-    expect(find.text('word12'), findsOneWidget);
-    expect(_createWalletButton(tester).disabled, isFalse);
+    expect(find.text('12 of 12 entered'), findsOneWidget);
   });
 
-  testWidgets('the keyboard types its keys into the entropy field', (tester) async {
+  testWidgets('re-enter fills from the start when the paste lands in a later box', (tester) async {
     await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
+    await _toReenter(tester);
 
-    expect(find.text('Enable mouse entropy'), findsOneWidget);
-    final pad = find.byKey(const Key('mouse-entropy-pad'));
-    expect(pad, findsOneWidget);
-
-    await _typeOnPad(tester, pad, 8);
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).at(4), _wordsFor(_osHex, 12).join(' '));
     await tester.pump();
 
-    expect(find.text('8 characters'), findsOneWidget);
-    expect(find.text('8 characters typed'), findsOneWidget);
-    expect(writer.lastSourceText, hasLength(8), reason: 'the field is what the backend hashes');
-    expect(find.text('word1'), findsOneWidget);
-  });
-
-  testWidgets('a key repeats while the pointer rests, and stops when it leaves', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
-
-    final pad = find.byKey(const Key('mouse-entropy-pad'));
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await gesture.addPointer(location: tester.getCenter(pad));
-    addTearDown(gesture.removePointer);
-    await gesture.moveTo(tester.getCenter(pad));
-    await tester.pump();
-    expect(find.text('1 character typed'), findsOneWidget);
-
-    // The pointer rests on one key, and the key repeats.
-    await tester.pump(entropyKeyRepeat * 4);
-    expect(find.text('5 characters typed'), findsOneWidget);
-
-    await gesture.moveTo(Offset.zero);
-    await tester.pump();
-    await tester.pump(entropyKeyRepeat * 4);
-    expect(find.text('5 characters typed'), findsOneWidget, reason: 'the repeat stops outside the board');
-
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump();
-  });
-
-  testWidgets('a key keeps the words hidden until the derive settles', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
-
-    final pad = find.byKey(const Key('mouse-entropy-pad'));
-    await _typeOnPad(tester, pad, 3);
-    await tester.pump();
-    expect(find.text('word1'), findsNothing, reason: 'a key that waits keeps the words hidden');
-    expect(_createWalletButton(tester).disabled, isTrue);
-
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump();
-
-    expect(writer.lastSourceText, hasLength(3), reason: 'three keys, and the field is the buffer');
-    expect(find.text('word1'), findsOneWidget);
-  });
-
-  testWidgets('a key invalidates an in-flight derive', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
-
-    final field = find.widgetWithText(TextField, 'Type anything: a sentence, dice rolls, hex, whatever you like');
-    writer.gate = Completer<void>();
-    await tester.enterText(field, 'weak');
-    await tester.pump();
-
-    final pad = find.byKey(const Key('mouse-entropy-pad'));
-    await _typeOnPad(tester, pad, 1);
-
-    writer.gate!.complete();
-    writer.gate = null;
-    await tester.pump();
-    await tester.pump();
-
-    expect(find.text('word1'), findsNothing, reason: 'the old derive must not restore stale words');
-
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump();
-    expect(find.text('word1'), findsOneWidget);
-  });
-
-  testWidgets('Generate Random replaces every key the board typed', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
-
-    final pad = find.byKey(const Key('mouse-entropy-pad'));
-    await _typeOnPad(tester, pad, 3);
-    expect(find.text('3 characters typed'), findsOneWidget);
-
-    await _tapAndSettle(tester, 'Generate Random');
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('3 characters typed'), findsNothing);
-    expect(find.text('32 characters typed'), findsOneWidget, reason: 'the fresh hex is the whole buffer');
-  });
-
-  testWidgets('paranoid mode keeps the keyboard, and the checkbox never turns it off', (tester) async {
-    await _pumpPage(tester);
-    await _toBackup(tester);
-    await _tapAndSettle(tester, 'Paranoid mode');
-    await _tapAndSettle(tester, 'Yes, enable');
-
-    await tester.tap(find.text('Enable mouse entropy'), warnIfMissed: false);
-    await tester.pump();
-
-    expect(find.byKey(const Key('mouse-entropy-pad')), findsOneWidget);
+    expect(find.text('12 of 12 entered'), findsOneWidget);
+    final success = SailTheme.of(tester.element(find.text('12 of 12 entered'))).colors.success;
+    expect(tester.widget<Text>(find.text('12 of 12 entered')).style?.color, success);
   });
 
   group('import mode', () {

@@ -25,11 +25,11 @@ bool _isElectrumSeed(String phrase) {
 /// Where the seed comes from: minted here, or one the user already has.
 enum SeedEntryMode { generate, importExisting }
 
-enum _Stage { collect, backup, reenter, import }
+enum _Stage { entropy, reenter, import }
 
-/// Collects mouse entropy, shows a freshly generated seed, offers a
-/// passphrase or the user's own entropy, then makes the user type the words
-/// back before accepting them.
+/// Derives a seed from the entropy field, which starts with OS entropy and
+/// grows with every key the mouse types, then asks the user to type the words
+/// back. The words come only from the field text.
 /// In [SeedEntryMode.importExisting] the same grid starts empty and the user
 /// pastes their own words into it.
 class WalletBackupPage extends StatefulWidget {
@@ -48,7 +48,7 @@ class WalletBackupPage extends StatefulWidget {
 class _WalletBackupPageState extends State<WalletBackupPage> {
   WalletWriterProvider get _writer => GetIt.I.get<WalletWriterProvider>();
 
-  final TextEditingController _entropy = TextEditingController();
+  final _EntropyController _entropy = _EntropyController();
   final TextEditingController _passphrase = TextEditingController();
   List<TextEditingController> _reentered = [];
   List<TextEditingController> _imported = [];
@@ -56,17 +56,13 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   late _Stage _stage;
   List<String> _words = [];
   int _wordCount = 12;
-  bool _paranoid = false;
   bool _wantPassphrase = false;
   bool _busy = false;
   int _deriveId = 0;
   String? _error;
 
-  /// _typed is every character the keyboard produced. Both modes read it:
-  /// paranoid mode sends it as the source text, and normal mode sends its
-  /// bytes beside the entropy the backend mints.
-  final StringBuffer _typed = StringBuffer();
-  Timer? _deriveDebounce;
+  /// The number of characters the keyboard typed into the field.
+  int _samples = 0;
   static const int _sampleTarget = 256;
 
   @override
@@ -77,12 +73,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       _imported = List.generate(_wordCount, (_) => TextEditingController());
       return;
     }
-    _stage = _Stage.collect;
+    _stage = _Stage.entropy;
+    unawaited(_randomEntropy());
   }
 
   @override
   void dispose() {
-    _deriveDebounce?.cancel();
     _entropy.dispose();
     _passphrase.dispose();
     for (final c in [..._reentered, ..._imported]) {
@@ -91,25 +87,24 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     super.dispose();
   }
 
-  // Fills the entropy box from the backend, so the box and the words agree.
+  // Fills the field with OS entropy from the backend, so the field and the
+  // words agree.
   Future<void> _randomEntropy() async {
+    final id = ++_deriveId;
     try {
       final wallet = await _writer.generateWalletFromEntropy(
         const [],
         wordCount: _wordCount,
         doNotSave: true,
       );
-      if (!mounted) {
+      if (!mounted || id != _deriveId) {
         return;
       }
-      // The fresh hex replaces the whole field, so earlier samples are gone
-      // and the count must say so.
-      _deriveDebounce?.cancel();
-      _entropy.text = (wallet['entropy_hex'] as String?) ?? '';
-      _typed
-        ..clear()
-        ..write(_entropy.text);
-      await _derive(_entropy.text);
+      final hex = (wallet['entropy_hex'] as String?) ?? '';
+      _entropy.osEntropy = hex;
+      _entropy.text = hex;
+      _samples = 0;
+      await _derive(hex);
     } catch (e) {
       if (mounted) {
         setState(() => _error = 'Error generating entropy: $e');
@@ -117,19 +112,23 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     }
   }
 
-  Future<void> _generate() async {
+  // Any input is entropy: the backend hashes the whole text, so a sentence
+  // works as well as hex. Only the newest derive may land.
+  Future<void> _derive(String text) async {
     final id = ++_deriveId;
-    setState(() {
-      _words = [];
-      _error = null;
-      _busy = true;
-    });
+    if (text.isEmpty) {
+      setState(() {
+        _words = [];
+        _error = null;
+      });
+      return;
+    }
     try {
       final wallet = await _writer.generateWalletFromEntropy(
         const [],
+        sourceText: text,
         wordCount: _wordCount,
         doNotSave: true,
-        extraEntropy: utf8.encode(_typed.toString()),
       );
       if (!mounted || id != _deriveId) {
         return;
@@ -137,95 +136,21 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       final mnemonic = (wallet['mnemonic'] as String?) ?? '';
       setState(() {
         _words = mnemonic.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-        _error = mnemonic.isEmpty ? 'Failed to generate a seed' : null;
-        _busy = false;
-      });
-    } catch (e) {
-      if (!mounted || id != _deriveId) {
-        return;
-      }
-      setState(() {
-        _error = 'Error generating seed: $e';
-        _busy = false;
-      });
-    }
-  }
-
-  // Any input is entropy: the backend hashes it, so a sentence works as well as
-  // hex. Every keystroke starts a derive, so only the newest one may land.
-  Future<void> _derive(String raw) async {
-    final input = raw.trim();
-    final id = ++_deriveId;
-    if (input.isEmpty) {
-      setState(() {
-        _words = [];
-        _error = null;
-        _busy = false;
-      });
-      return;
-    }
-    setState(() {
-      _words = [];
-      _error = null;
-      _busy = true;
-    });
-    try {
-      final wallet = await _writer.generateWalletFromEntropy(
-        const [],
-        sourceText: input,
-        wordCount: _wordCount,
-        doNotSave: true,
-      );
-      if (!mounted || id != _deriveId) {
-        return;
-      }
-      final mnemonic = (wallet['mnemonic'] as String?) ?? '';
-      // A key that waits for the debounce keeps the words hidden, so every
-      // visible word always comes from the whole field text.
-      final settled = !(_deriveDebounce?.isActive ?? false);
-      setState(() {
-        _words = settled ? mnemonic.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList() : [];
         _error = mnemonic.isEmpty ? 'Failed to derive a seed from that entropy' : null;
-        _busy = false;
       });
     } catch (e) {
       if (!mounted || id != _deriveId) {
         return;
       }
-      setState(() {
-        _error = 'Error deriving seed: $e';
-        _busy = false;
-      });
+      setState(() => _error = 'Error deriving seed: $e');
     }
   }
 
-  /// _type takes one character the keyboard produced. It is the only place a
-  /// sample enters, whatever mode the page runs in.
+  /// _type appends one character the keyboard produced and derives at once.
   void _type(String char) {
-    _typed.write(char);
-    if (!_paranoid) {
-      setState(() {});
-      return;
-    }
-    _entropy.text = _typed.toString();
-    // The words on screen are stale from the first key, so the clear holds
-    // the copy and create buttons shut until the derive lands. The id bump
-    // drops the answers of derives that are already in flight.
-    _deriveId++;
-    setState(() => _words = []);
-    _scheduleDerive();
-  }
-
-  void _scheduleDerive() {
-    _deriveDebounce?.cancel();
-    _deriveDebounce = Timer(const Duration(milliseconds: 250), () {
-      unawaited(_derive(_entropy.text));
-    });
-  }
-
-  Future<void> _finishCollect() async {
-    setState(() => _stage = _Stage.backup);
-    await _generate();
+    _entropy.text += char;
+    setState(() => _samples++);
+    unawaited(_derive(_entropy.text));
   }
 
   Future<void> _setWordCount(int count) async {
@@ -234,7 +159,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       return;
     }
     setState(() => _wordCount = count);
-    await (_paranoid ? _derive(_entropy.text) : _generate());
+    await _derive(_entropy.text);
   }
 
   /// Grows or shrinks the input grid, keeping whatever is already typed.
@@ -359,28 +284,6 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     }
   }
 
-  Future<void> _enableParanoid(BuildContext context) async {
-    final ok = await _confirm(
-      context,
-      title: 'Enable paranoid mode?',
-      body:
-          "Paranoid mode lets you supply your own entropy. Useful if you don't trust us to generate a "
-          'random one for you. Optional added security for advanced users. Enabling will wipe your '
-          'currently generated seed. Are you sure?',
-      confirmLabel: 'Yes, enable',
-    );
-    if (!ok) {
-      return;
-    }
-    _deriveId++;
-    setState(() {
-      _paranoid = true;
-      _words = [];
-      _busy = false;
-      _entropy.clear();
-    });
-  }
-
   Future<void> _addPassphrase(BuildContext context) async {
     final ok = await _confirm(
       context,
@@ -396,18 +299,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     }
   }
 
-  Future<void> _startReenter(BuildContext context) async {
-    final ok = await _confirm(
-      context,
-      title: 'Have these ${_words.length} words been written down?',
-      body: 'In the next step you will re-enter them, so make sure your copy is complete and in order.',
-      confirmLabel: 'Yes, continue',
-      cancelLabel: 'Not yet',
-      warn: false,
-    );
-    if (!ok) {
-      return;
-    }
+  void _startReenter() {
     setState(() {
       for (final c in _reentered) {
         c.dispose();
@@ -429,19 +321,42 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
 
   void _back() {
     if (_stage == _Stage.reenter) {
-      setState(() => _stage = _Stage.backup);
-      return;
-    }
-    if (_stage == _Stage.backup && widget.mode == SeedEntryMode.generate && !_paranoid) {
-      _deriveId++;
-      setState(() {
-        _stage = _Stage.collect;
-        _words = [];
-        _busy = false;
-      });
+      setState(() => _stage = _Stage.entropy);
       return;
     }
     Navigator.of(context).pop();
+  }
+
+  /// Asks before a wallet is made with no word typed back.
+  Future<void> _skipBackup(BuildContext context) async {
+    final create = await showThemedDialog<bool>(
+      context: context,
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: SailCard(
+          title: 'Create wallet without a backup?',
+          subtitle: 'If you lose the ${_words.length} words, you lose the coins in this wallet.',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              SailButton(
+                label: 'Create without backup',
+                variant: ButtonVariant.destructive,
+                onPressed: () async => Navigator.of(context).pop(true),
+              ),
+              const SizedBox(width: 8),
+              SailButton(
+                label: 'Re-enter words',
+                onPressed: () async => Navigator.of(context).pop(false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (create == true) {
+      await _finish();
+    }
   }
 
   Future<bool> _confirm(
@@ -449,8 +364,6 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     required String title,
     required String body,
     required String confirmLabel,
-    String cancelLabel = 'No',
-    bool warn = true,
   }) async {
     final answer = await showThemedDialog<bool>(
       context: context,
@@ -466,14 +379,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
               children: [
                 Row(
                   children: [
-                    if (warn) ...[
-                      SailSVG.icon(
-                        SailSVGAsset.iconWarning,
-                        width: 20,
-                        color: theme.colors.orange,
-                      ),
-                      const SizedBox(width: 8),
-                    ],
+                    SailSVG.icon(
+                      SailSVGAsset.iconWarning,
+                      width: 20,
+                      color: theme.colors.orange,
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(child: SailText.primary16(title, bold: true)),
                   ],
                 ),
@@ -482,7 +393,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     SailButton(
-                      label: cancelLabel,
+                      label: 'No',
                       variant: ButtonVariant.ghost,
                       onPressed: () async => Navigator.of(context).pop(false),
                     ),
@@ -503,20 +414,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final ambient = SailTheme.of(context);
-    return SailTheme(
-      data: _paranoid
-          ? SailThemeData.darkTheme(
-              ambient.colors.primary,
-              ambient.dense,
-              ambient.font,
-              ambient.style,
-            )
-          : ambient,
-      child: Builder(builder: _scaffold),
-    );
-  }
+  Widget build(BuildContext context) => _scaffold(context);
 
   Widget _scaffold(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -547,8 +445,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                   child: SizedBox(
                     width: 900,
                     child: switch (_stage) {
-                      _Stage.collect => _collectBody(context),
-                      _Stage.backup => _backupBody(context),
+                      _Stage.entropy => _entropyBody(context),
                       _Stage.reenter => _reenterBody(context),
                       _Stage.import => _importBody(context),
                     },
@@ -574,48 +471,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     );
   }
 
-  Widget _collectBody(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _heading(
-          'Add mouse entropy',
-          'Move your mouse in a random pattern inside the box below. We mix your movements into the '
-              'randomness your computer supplies. When you are ready, press Continue to get your words.',
-        ),
-        SailCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary16('Mouse Entropy', bold: true),
-              SailText.secondary13(
-                'Your movements add more randomness to your seed.',
-              ),
-              const SizedBox(height: 16),
-              SailEntropyKeyboard(
-                onType: _type,
-                caption: 'Move your mouse as randomly as you can inside this box',
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _progressBar(context)),
-                  const SizedBox(width: 12),
-                  SailText.secondary12(
-                    _typed.length == 1 ? '1 sample' : '${_typed.length} samples',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _progressBar(BuildContext context) {
     final theme = SailTheme.of(context);
-    final fraction = (_typed.length / _sampleTarget).clamp(0.0, 1.0);
+    final fraction = (_samples / _sampleTarget).clamp(0.0, 1.0);
     return Container(
       height: 8,
       decoration: BoxDecoration(
@@ -635,80 +493,82 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     );
   }
 
-  Widget _backupBody(BuildContext context) {
+  Widget _entropyBody(BuildContext context) {
     final theme = SailTheme.of(context);
+    final count = _entropy.text.characters.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _heading(
-          'Backup your wallet',
-          'Write down this wallet backup and stash it somewhere safe. Do not under any circumstances '
-              'share it with other people. They are very very secret.',
+          'Add mouse entropy',
+          'Move your mouse in a random pattern inside the box below. We mix your movements into the '
+              'randomness your computer supplies. When you are ready, press Continue to get your words.',
         ),
         SailCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: SailText.primary16('Mnemonic Words (BIP39)', bold: true)),
+                  SizedBox(width: 210, child: _wordCountDropdown()),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.primary16(
-                          'Mnemonic Words (BIP39)',
-                          bold: true,
-                        ),
-                        SailText.secondary13(
-                          'Write these down. You will re-enter them in the next step.',
-                        ),
-                      ],
+                    child: SailTextField(
+                      controller: _entropy,
+                      hintText: 'Type anything: a sentence, dice rolls, hex, whatever you like',
+                      size: TextFieldSize.small,
+                      monospace: true,
+                      onChanged: (v) {
+                        setState(() {});
+                        unawaited(_derive(v));
+                      },
                     ),
                   ),
-                  SizedBox(
-                    width: 210,
-                    child: SailDropdownButton<int>(
-                      value: _wordCount,
-                      onChanged: (v) async {
-                        if (v != null) {
-                          await _setWordCount(v);
-                        }
-                      },
-                      items: const [
-                        SailDropdownItem<int>(value: 12, label: 'Use 12 Words'),
-                        SailDropdownItem<int>(value: 24, label: 'Use 24 Words'),
-                      ],
+                  const SizedBox(width: 8),
+                  SailButton(
+                    label: 'Generate Random',
+                    variant: ButtonVariant.secondary,
+                    onPressed: _randomEntropy,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SailText.secondary12(count == 1 ? '1 character' : '$count characters'),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  SailSVG.icon(SailSVGAsset.iconInfo, width: 12, color: theme.colors.text),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: SailText.primary12(
+                      "The text in white is os entropy added by default. Remove it if you don't want it mixed in.",
                     ),
                   ),
                 ],
               ),
-              if (_paranoid) ...[
-                const SizedBox(height: 16),
-                _entropyRow(context),
-                const SizedBox(height: 12),
-                // Paranoid mode always types its own entropy, so the box
-                // states that rather than offering a choice.
-                Opacity(
-                  opacity: 0.5,
-                  child: SailCheckbox(
-                    value: true,
-                    label: 'Enable mouse entropy',
-                    onChanged: (_) {},
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SailEntropyKeyboard(
-                  onType: _type,
-                  showKeys: true,
-                  caption: 'Move your mouse as randomly as you can across this grid',
-                  subCaption: _typed.length == 1 ? '1 character typed' : '${_typed.length} characters typed',
-                ),
-              ],
+              const SizedBox(height: 16),
+              SailEntropyKeyboard(
+                onType: _type,
+                showKeys: true,
+                caption: 'Move your mouse as randomly as you can across this grid. The more the better.',
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _progressBar(context)),
+                  const SizedBox(width: 12),
+                  SailText.secondary12(_samples == 1 ? '1 sample' : '$_samples samples'),
+                ],
+              ),
               const SizedBox(height: 16),
               SailMnemonicGrid(words: _words),
               const SizedBox(height: 16),
-              _optionLinks(context),
+              _passphraseLink(context),
               if (_wantPassphrase) ...[
                 const SizedBox(height: 12),
                 SizedBox(
@@ -737,7 +597,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                   ],
                   const Spacer(),
                   SailButton(
-                    label: 'Copy Mnemonic',
+                    label: 'Copy Mnemonic for backup',
                     variant: ButtonVariant.secondary,
                     disabled: _words.isEmpty,
                     onPressed: () async => copySecretToClipboard(_words.join(' ')),
@@ -755,49 +615,22 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     );
   }
 
-  Widget _entropyRow(BuildContext context) {
-    final count = _entropy.text.characters.length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: SailTextField(
-                controller: _entropy,
-                hintText: 'Type anything: a sentence, dice rolls, hex, whatever you like',
-                size: TextFieldSize.small,
-                onChanged: (v) {
-                  // The field is the buffer in paranoid mode, so a hand edit
-                  // replaces what the keyboard typed.
-                  _typed
-                    ..clear()
-                    ..write(v);
-                  setState(() {});
-                  unawaited(_derive(v));
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            SailButton(
-              label: 'Generate Random',
-              variant: ButtonVariant.secondary,
-              onPressed: () async {
-                await _randomEntropy();
-                if (mounted) {
-                  setState(() {});
-                }
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        SailText.secondary12(count == 1 ? '1 character' : '$count characters'),
+  Widget _wordCountDropdown() {
+    return SailDropdownButton<int>(
+      value: _wordCount,
+      onChanged: (v) async {
+        if (v != null) {
+          await _setWordCount(v);
+        }
+      },
+      items: const [
+        SailDropdownItem<int>(value: 12, label: 'Use 12 Words'),
+        SailDropdownItem<int>(value: 24, label: 'Use 24 Words'),
       ],
     );
   }
 
-  Widget _optionLinks(BuildContext context) {
+  Widget _passphraseLink(BuildContext context) {
     return Row(
       children: [
         SailButton(
@@ -806,14 +639,6 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           small: true,
           disabled: _wantPassphrase,
           onPressed: () async => _addPassphrase(context),
-        ),
-        const SizedBox(width: 8),
-        SailButton(
-          label: 'Paranoid mode',
-          variant: ButtonVariant.ghost,
-          small: true,
-          disabled: _paranoid,
-          onPressed: () async => _enableParanoid(context),
         ),
       ],
     );
@@ -871,7 +696,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
               const SizedBox(height: 16),
               SailMnemonicGrid(controllers: _imported, onChanged: _spread),
               const SizedBox(height: 16),
-              _optionLinks(context),
+              _passphraseLink(context),
               if (_wantPassphrase) ...[
                 const SizedBox(height: 12),
                 SizedBox(
@@ -972,10 +797,14 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   Widget _bottomBar(BuildContext context) {
     final theme = SailTheme.of(context);
     final ready = switch (_stage) {
-      _Stage.collect => true,
-      _Stage.backup => _words.isNotEmpty && !_busy,
-      _Stage.reenter => _reenterMatches,
+      _Stage.entropy => _words.isNotEmpty,
+      _Stage.reenter => true,
       _Stage.import => _importValid,
+    };
+    final label = switch (_stage) {
+      _Stage.entropy => 'Continue',
+      _Stage.reenter when _enteredCount == 0 => 'Skip and create wallet',
+      _ => 'Create Wallet',
     };
     return Container(
       height: 64,
@@ -995,17 +824,19 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 onPressed: () async => _back(),
               ),
               SailButton(
-                label: _stage == _Stage.collect ? 'Continue' : 'Create Wallet',
+                label: label,
                 loading: _busy,
                 disabled: !ready,
                 onPressed: () async {
                   switch (_stage) {
-                    case _Stage.collect:
-                      await _finishCollect();
-                    case _Stage.backup:
-                      await _startReenter(context);
+                    case _Stage.entropy:
+                      _startReenter();
+                    case _Stage.reenter when _enteredCount == 0:
+                      await _skipBackup(context);
                     case _Stage.reenter:
-                      await _finish();
+                      if (_reenterMatches) {
+                        await _finish();
+                      }
                     case _Stage.import:
                       await _finishImport();
                   }
@@ -1015,6 +846,31 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Draws the OS entropy at the start of the field in the text color, and every
+/// character after it in the primary color.
+class _EntropyController extends TextEditingController {
+  String osEntropy = '';
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    final colors = SailTheme.of(context).colors;
+    final os = osEntropy.isNotEmpty && text.startsWith(osEntropy) ? osEntropy : '';
+    return TextSpan(
+      style: style,
+      children: [
+        TextSpan(
+          text: os,
+          style: TextStyle(color: colors.text),
+        ),
+        TextSpan(
+          text: text.substring(os.length),
+          style: TextStyle(color: colors.primary),
+        ),
+      ],
     );
   }
 }

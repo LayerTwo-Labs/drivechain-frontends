@@ -197,47 +197,54 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
       builder: (context, constraints) {
         final gridWidth = _gridWidthFor(constraints.maxWidth);
         final keySize = _keySizeFor(gridWidth);
-        return Column(
-          mainAxisSize: MainAxisSize.min,
+        return Stack(
           children: [
-            Center(
-              child: SizedBox(
-                width: gridWidth,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (var row = 0; row < _rows; row++) ...[
-                      if (row > 0) const SizedBox(height: _keyGap),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          for (var column = 0; column < entropyKeyboardColumns; column++)
-                            _key(theme, keySize, row * entropyKeyboardColumns + column),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: SizedBox(
+                    width: gridWidth,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var row = 0; row < _rows; row++) ...[
+                          if (row > 0) const SizedBox(height: _keyGap),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              for (var column = 0; column < entropyKeyboardColumns; column++)
+                                _key(theme, keySize, row * entropyKeyboardColumns + column),
+                            ],
+                          ),
                         ],
-                      ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(child: SailText.secondary12(widget.caption)),
+                    if (widget.subCaption != null) ...[
+                      const SizedBox(width: 12),
+                      SailText.secondary12(widget.subCaption!),
                     ],
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(child: SailText.secondary12(widget.caption)),
-                if (widget.subCaption != null) ...[
-                  const SizedBox(width: 12),
-                  SailText.secondary12(widget.subCaption!),
-                ],
-                const SizedBox(width: 12),
-                SailButton(
-                  label: 'Shuffle',
-                  icon: SailSVGAsset.shuffle,
-                  variant: ButtonVariant.secondary,
-                  small: true,
-                  disabled: !widget.enabled,
-                  onPressed: () async => _shuffle(),
-                ),
               ],
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: SailButton(
+                label: 'Shuffle',
+                icon: SailSVGAsset.shuffle,
+                variant: ButtonVariant.secondary,
+                small: true,
+                disabled: !widget.enabled,
+                onPressed: () async => _shuffle(),
+              ),
             ),
           ],
         );
