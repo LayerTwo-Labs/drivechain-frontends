@@ -273,7 +273,7 @@ class BottomNav extends StatelessWidget {
                   children: [
                     if (lightRemote) ...[
                       DaemonConnectionCard(
-                        connection: model.mainchain,
+                        connection: model.remoteChain,
                         syncInfo: null,
                         infoMessage: null,
                         remote: true,
@@ -502,6 +502,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   final bool mainchainInfo;
   final Function(String, String, BinaryType) navigateToLogs;
+
+  /// The remote chain source light mode reads Bitcoin from.
+  RemoteChainState get remoteChain => _remoteChain ??= RemoteChainState(syncProvider);
+  RemoteChainState? _remoteChain;
 
   /// The connection to the local orchestrator.
   late final DrivechaindState? drivechaind = GetIt.I.isRegistered<BackendStateProvider>() ? DrivechaindState() : null;
@@ -737,6 +741,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     additionalConnection.rpc.removeListener(_onChange);
     syncProvider.removeListener(_onChange);
     drivechaind?.dispose();
+    _remoteChain?.dispose();
     nodeMode?.removeListener(_onChange);
     super.dispose();
   }
@@ -1258,4 +1263,37 @@ class _BalanceRefreshButtonState extends State<_BalanceRefreshButton> {
             ),
     );
   }
+}
+
+/// The health of the remote chain source, in the shape of a daemon card.
+class RemoteChainState extends ChangeNotifier implements DaemonState {
+  final SyncProvider _sync;
+
+  RemoteChainState(this._sync) {
+    _sync.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    _sync.removeListener(notifyListeners);
+    super.dispose();
+  }
+
+  @override
+  Binary get binary => BitcoinCore();
+
+  @override
+  bool get connected => _sync.chainSourceSyncInfo != null && _sync.chainSourceError == null;
+
+  @override
+  String? get connectionError => _sync.chainSourceError;
+
+  @override
+  bool get initializingBinary => false;
+
+  @override
+  bool get stoppingBinary => false;
+
+  @override
+  String? get startupError => null;
 }
