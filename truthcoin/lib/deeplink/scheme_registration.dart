@@ -6,14 +6,32 @@ import 'package:truthcoin/deeplink/truthcoin_link.dart';
 
 const String _handler = 'x-scheme-handler/$truthcoinScheme';
 
-/// Tells the operating system that this app opens a truthcoin:// link.
+/// The app that opens truthcoin:// links, as the Linux desktop names it.
+class SchemeHost {
+  /// The desktop entry file, e.g. `truthcoin.desktop`.
+  final String desktopFile;
+  final String name;
+  final String comment;
+  final String wmClass;
+
+  const SchemeHost({required this.desktopFile, required this.name, required this.comment, required this.wmClass});
+
+  static const truthcoin = SchemeHost(
+    desktopFile: 'truthcoin.desktop',
+    name: 'Truthcoin',
+    comment: 'Truthcoin Sidechain for Drivechain - Prediction markets',
+    wmClass: 'truthcoin',
+  );
+}
+
+/// Tells the operating system that [host], the app that runs, opens a truthcoin:// link.
 /// macOS reads the scheme from Info.plist, so macOS asks for no step here.
-Future<void> registerTruthcoinScheme(Logger log) async {
+Future<void> registerTruthcoinScheme(Logger log, {SchemeHost host = SchemeHost.truthcoin}) async {
   try {
     if (Platform.isWindows) {
       await _registerWindows();
     } else if (Platform.isLinux) {
-      await _registerLinux();
+      await _registerLinux(host);
     }
   } catch (error) {
     log.w('the truthcoin:// scheme stays unregistered: $error');
@@ -37,14 +55,14 @@ Future<void> _registerWindows() async {
   }
 }
 
-Future<void> _registerLinux() async {
+Future<void> _registerLinux(SchemeHost host) async {
   final home = Platform.environment['HOME'];
   if (home == null || home.isEmpty) {
     throw Exception('HOME is empty');
   }
   final dir = Directory(p.join(home, '.local', 'share', 'applications'));
   await dir.create(recursive: true);
-  final file = File(p.join(dir.path, 'truthcoin.desktop'));
+  final file = File(p.join(dir.path, host.desktopFile));
 
   if (file.existsSync()) {
     // The installer writes this file with an icon and the AppImage path, so
@@ -52,14 +70,14 @@ Future<void> _registerLinux() async {
     final updated = withSchemeHandler(await file.readAsString());
     if (updated != null) await file.writeAsString(updated);
   } else {
-    await file.writeAsString(desktopEntry(linuxExecutable()));
+    await file.writeAsString(desktopEntry(linuxExecutable(), host: host));
   }
 
   // The scheme stays invisible to the desktop until the database reads the file.
   await Process.run('update-desktop-database', [dir.path]);
   // The database alone offers the app as one choice. This line makes it the
   // default, so a browser opens the link without a chooser.
-  await Process.run('xdg-mime', ['default', 'truthcoin.desktop', _handler]);
+  await Process.run('xdg-mime', ['default', host.desktopFile, _handler]);
 }
 
 /// An AppImage runs from a temporary mount that ends with the process, so the
@@ -109,18 +127,18 @@ String quoteExecArgument(String value) {
   return buffer.toString();
 }
 
-/// The freedesktop entry that claims the scheme.
-String desktopEntry(String executable) {
+/// The freedesktop entry of [host] that claims the scheme.
+String desktopEntry(String executable, {SchemeHost host = SchemeHost.truthcoin}) {
   return '''
 [Desktop Entry]
 Type=Application
-Name=Truthcoin
+Name=${host.name}
 GenericName=Drivechain Sidechain
-Comment=Truthcoin Sidechain for Drivechain - Prediction markets
+Comment=${host.comment}
 Exec=${quoteExecArgument(executable)} %U
 Terminal=false
 Categories=Network;P2P;Finance;
-StartupWMClass=truthcoin
+StartupWMClass=${host.wmClass}
 MimeType=$_handler;
 ''';
 }
