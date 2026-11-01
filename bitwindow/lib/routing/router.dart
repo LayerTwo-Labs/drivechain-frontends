@@ -145,6 +145,14 @@ class AppRouter extends RootStackRouter {
       page: EnforcerConfEditorRoute.page,
     ),
     AutoRoute(
+      path: '/sidechain-config',
+      page: SidechainConfEditorRoute.page,
+    ),
+    AutoRoute(
+      path: '/sidechain-homepage',
+      page: SidechainConfigureHomepageRoute.page,
+    ),
+    AutoRoute(
       path: '/create-check',
       page: CreateCheckRoute.page,
     ),

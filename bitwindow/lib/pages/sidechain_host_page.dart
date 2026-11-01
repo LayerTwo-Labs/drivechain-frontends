@@ -6,11 +6,12 @@ import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/sidechains/hosted_modules.dart';
-import 'package:bitwindow/sidechains/sidechain_scope.dart';
+import 'package:bitwindow/log_window.dart';
+import 'package:bitwindow/sidechains/hosted_chains.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/shell/shell.dart';
 import 'package:stacked/stacked.dart' show BaseViewModel, ViewModelBuilder;
@@ -89,7 +90,7 @@ class SidechainHostPage extends StatelessWidget {
   }
 }
 
-/// Holds the GetIt scope of [module] while it is on screen.
+/// Puts the view scope of [module] on top while the chain is on screen.
 class SidechainScopeHost extends StatefulWidget {
   final SidechainModule module;
   final Widget child;
@@ -101,22 +102,18 @@ class SidechainScopeHost extends StatefulWidget {
 }
 
 class _SidechainScopeHostState extends State<SidechainScopeHost> {
+  final HostedChains _hosted = GetIt.I.get<HostedChains>();
   late final Future<void> _entered;
 
   @override
   void initState() {
     super.initState();
-    _entered = enterSidechainScope(
-      widget.module,
-      navigator: HostChainNavigator(widget.module.chain),
-      applicationDir: GetIt.I.get<WindowProvider>().appDir,
-      log: GetIt.I.get<Logger>(),
-    );
+    _entered = _hosted.openView(widget.module);
   }
 
   @override
   void dispose() {
-    unawaited(exitSidechainScope(widget.module));
+    unawaited(_hosted.closeView(widget.module));
     super.dispose();
   }
 
@@ -261,9 +258,41 @@ class HostedChainHeader extends StatelessWidget {
               SailButton(label: 'Stop', variant: ButtonVariant.outline, onPressed: model.stop)
             else
               SailButton(label: 'Start', variant: ButtonVariant.primary, onPressed: model.start),
+            Builder(
+              builder: (context) => SailButton(
+                variant: ButtonVariant.icon,
+                icon: SailSVGAsset.ellipsisVertical,
+                onPressed: () => _showChainMenu(context),
+              ),
+            ),
           ],
         ),
       ],
+    );
+  }
+
+  Future<void> _showChainMenu(BuildContext context) async {
+    final bounds = getGlobalBoundsForContext(context);
+    await showSailMenu(
+      context: context,
+      preferredAnchorPoint: bounds.bottomRight,
+      alignment: Alignment.topRight,
+      menu: SailMenu(
+        items: [
+          SailMenuItem(onSelected: model.configureHomepage, child: SailText.primary13('Configure homepage')),
+          if (model.module.hasConfEditor)
+            SailMenuItem(onSelected: model.editConf, child: SailText.primary13('Edit configuration')),
+          SailMenuItem(onSelected: model.viewLogs, child: SailText.primary13('View logs')),
+          SailMenuItem(
+            onSelected: () => unawaited(model.openDebugWindow(context)),
+            child: SailText.primary13('Debug window'),
+          ),
+          SailMenuItem(
+            onSelected: () => unawaited(model.openNodeSettings(context)),
+            child: SailText.primary13('Node settings'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -304,6 +333,32 @@ class HostedChainViewModel extends BaseViewModel {
   Future<void> start() => _binaries.start(chain, background: true);
   Future<void> stop() => _binaries.stop(chain);
   Future<void> openWindow() => _binaries.start(chain);
+
+  AppRouter get _router => GetIt.I.get<AppRouter>();
+
+  void configureHomepage() => unawaited(_router.push(SidechainConfigureHomepageRoute()));
+
+  void editConf() => unawaited(_router.push(SidechainConfEditorRoute()));
+
+  void viewLogs() => unawaited(openLogWindow('${module.appName} Logs', chain.logPath(), chain.type));
+
+  Future<void> openDebugWindow(BuildContext context) => showThemedDialog(
+    context: context,
+    builder: (context) => SailDialog(
+      title: '${module.appName} debug window',
+      maxWidth: 900,
+      maxHeight: 640,
+      child: SidechainDebugWindow(rpc: GetIt.I.get<SidechainRPC>(), sidechainName: module.fullName),
+    ),
+  );
+
+  Future<void> openNodeSettings(BuildContext context) => showThemedDialog(
+    context: context,
+    builder: (context) => ChainSettingsModal(
+      connection: GetIt.I.get<SidechainRPC>(),
+      onOpenConfConfigurator: module.hasConfEditor ? editConf : null,
+    ),
+  );
 
   @override
   void dispose() {
@@ -491,13 +546,15 @@ class _SidebarRow extends StatelessWidget {
 
 class SidechainSidebarViewModel extends BaseViewModel {
   final BinaryProvider _binaries = GetIt.I.get<BinaryProvider>();
-  final BalanceProvider _balances = GetIt.I.get<BalanceProvider>();
+  final HostedChains _hosted = GetIt.I.get<HostedChains>();
+  final SyncProvider? _sync = GetIt.I.isRegistered<SyncProvider>() ? GetIt.I.get<SyncProvider>() : null;
   final SidechainProvider _slots = GetIt.I.get<SidechainProvider>();
   final FormatterProvider _formatter = GetIt.I.get<FormatterProvider>();
 
   SidechainSidebarViewModel() {
     _binaries.addListener(notifyListeners);
-    _balances.addListener(notifyListeners);
+    _hosted.addListener(notifyListeners);
+    _sync?.addListener(notifyListeners);
     _slots.addListener(notifyListeners);
     _formatter.addListener(notifyListeners);
   }
@@ -509,7 +566,22 @@ class SidechainSidebarViewModel extends BaseViewModel {
 
   bool _running(SidechainModule module) => _binaries.isConnected(_binary(module));
 
-  double _balance(SidechainModule module) => _balances.balanceFor(module.registerRPC(GetIt.I)).$1;
+  double _balance(SidechainModule module) => _hosted.session(module)?.balance.balance ?? 0;
+
+  String _trailing(SidechainModule module) {
+    final binary = _binary(module);
+    if (!_running(module)) {
+      if (_binaries.isInitializing(binary)) {
+        return 'Starting';
+      }
+      return binary.isDownloaded ? 'Stopped' : 'Not downloaded';
+    }
+    final sync = _sync?.sidechainSyncInfo(binary);
+    if (sync != null && sync.progressGoal > 0 && !sync.isSynced) {
+      return 'Syncing ${(sync.progress * 100).floor()}%';
+    }
+    return _formatter.formatBTC(_balance(module));
+  }
 
   /// The hosted chains in an active slot, and [open] in all cases.
   List<SidechainSidebarEntry> entries({SidechainModule? open}) => [
@@ -519,11 +591,7 @@ class SidechainSidebarViewModel extends BaseViewModel {
           module: module,
           color: _binary(module).color,
           running: _running(module),
-          trailing: _running(module)
-              ? _formatter.formatBTC(_balance(module))
-              : _binary(module).isDownloaded
-              ? 'Stopped'
-              : 'Not downloaded',
+          trailing: _trailing(module),
         ),
   ];
 
@@ -534,7 +602,8 @@ class SidechainSidebarViewModel extends BaseViewModel {
   @override
   void dispose() {
     _binaries.removeListener(notifyListeners);
-    _balances.removeListener(notifyListeners);
+    _hosted.removeListener(notifyListeners);
+    _sync?.removeListener(notifyListeners);
     _slots.removeListener(notifyListeners);
     _formatter.removeListener(notifyListeners);
     super.dispose();
